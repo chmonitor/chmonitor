@@ -85,6 +85,12 @@ describe('fillStep', () => {
   test.each(cases)('fillStep(%s) === %s', (interval, expected) => {
     expect(fillStep(interval)).toBe(expected)
   })
+
+  test('falls back to a safe default instead of empty string for an unmapped interval', () => {
+    // Guards against WITH FILL STEP  (empty) malformed SQL if a new
+    // ClickHouseInterval variant is added without an intervalMap entry.
+    expect(fillStep('unknown' as never)).toBe('toIntervalMinute(1)')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -104,6 +110,12 @@ describe('nowOrToday', () => {
 
   test.each(cases)('nowOrToday(%s) === %s', (interval, expected) => {
     expect(nowOrToday(interval)).toBe(expected)
+  })
+
+  test('falls back to a safe default instead of empty string for an unmapped interval', () => {
+    // Guards against WITH FILL TO  (empty) malformed SQL if a new
+    // ClickHouseInterval variant is added without an intervalMap entry.
+    expect(nowOrToday('unknown' as never)).toBe('now()')
   })
 })
 
@@ -216,12 +228,12 @@ describe('withQueryParams', () => {
 
   test('escapes single quotes in string values', () => {
     const result = withQueryParams('SELECT {s:String}', { s: "O'Brien" })
-    expect(result).toBe("SET param_s='O''Brien';\nSELECT {s:String}")
+    expect(result).toBe("SET param_s='O\\'Brien';\nSELECT {s:String}")
   })
 
   test('escapes multiple single quotes in string values', () => {
     const result = withQueryParams('SELECT {s:String}', { s: "it's a 'test'" })
-    expect(result).toBe("SET param_s='it''s a ''test''';\nSELECT {s:String}")
+    expect(result).toBe("SET param_s='it\\'s a \\'test\\'';\nSELECT {s:String}")
   })
 
   test('serialises boolean true as 1', () => {
