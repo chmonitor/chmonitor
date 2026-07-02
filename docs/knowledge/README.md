@@ -35,8 +35,12 @@ Agents discover knowledge in this order:
 | **Operations** | [secret-rotation.md](secret-rotation.md) | workflow | Cloudflare Workers secret rotation: redeploy after wrangler secret put |
 | **Operations** | [k8s-health-probes.md](k8s-health-probes.md) | reference | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image incident; non-helm manifest + migration prompt |
 | **Operations** | [release-automation.md](release-automation.md) | workflow | release-please + release.yml pipeline: versioning rules, PR-title guard, labeler, CHANGELOG ownership, migration prompt |
+| **Operations** | [observability-sentry.md](observability-sentry.md) | spec | Sentry error tracking (OSS + Cloud): @sentry/react (browser) + @sentry/cloudflare (Worker, per-request middleware); DSN-gated off-by-default; source-map upload via SENTRY_AUTH_TOKEN |
+| **Operations** | [bug-handler-email-worker.md](bug-handler-email-worker.md) | spec | apps/bug-handler: Cloudflare Email Worker turning inbound Sentry alert emails (bug@chmonitor.dev) into agent-friendly GitHub issues; fully env-configurable (address/repo/labels/assignees/token), own CI job |
 | **Specs** | [ai-insights.md](ai-insights.md) | spec | AI Insights engine: collect→enrich→persist (pluggable InsightsStore: clickhouse default / d1 / postgres / agentstate / memory), cron + manual generation, stable-key dismissal, overview panel |
+| **Specs** | [cloud-saas-mode.md](cloud-saas-mode.md) | spec | One codebase, two products: cloud-mode flag (fail-closed to OSS), read-only demo hosts for anon, welcome/setup onboarding, per-user D1 connections, connection-error classifier |
 | **Specs** | [mcp-server.md](mcp-server.md) | reference | MCP server at /api/mcp: tools, setup, security |
+| **Specs** | [mcp-clerk-oauth.md](mcp-clerk-oauth.md) | reference | MCP endpoint auth postures (open / HMAC API key / Clerk OAuth); either credential accepted when both set; REST token verification runs in both Worker and Next.js runtimes |
 | **Security** | [sql-validator-threat-model.md](sql-validator-threat-model.md) | decision | validateSqlQuery gates all free-form SQL; whole-query (not fragment) threat model; UNION/replace()/OR-disjunction false-positive class + corpus regression guard |
 | **Development** | [api-hostid-validation.md](api-hostid-validation.md) | decision | API routes must validate hostId as non-negative integer (400); `!Number.isFinite` accepted -1/1.5 → 500-retry; 9 routes fixed + cross-route source guard |
 | **Specs** | [agent-conversation-storage.md](agent-conversation-storage.md) | spec | Runtime-selected agent chat persistence backends and fallback rules |
@@ -48,6 +52,7 @@ Agents discover knowledge in this order:
 | **Specs** | [table-availability.md](table-availability.md) | spec | Sidebar muting (table availability), permission GRANT + version-mismatch errors, `toEmptyStateVariant` gotcha |
 | **Development** | [component-ci-stability.md](component-ci-stability.md) | incident | Cypress component test fragility findings and fix direction |
 | **Development** | [conventions.md](conventions.md) | workflow | Coding conventions, file organization, component patterns |
+| **Design** | [product-design.md](product-design.md) | reference | Design system + UX conventions: OKLCH tokens, dark mode, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
 | **Tools** | [standalone-cli.md](standalone-cli.md) | reference | Rust CLI for monitoring via terminal and TUI |
 
 ## Graph Convention
