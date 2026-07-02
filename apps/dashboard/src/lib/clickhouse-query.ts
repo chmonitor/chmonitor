@@ -112,8 +112,10 @@ export function withQueryParams(
   const setParams = Object.entries(params)
     .map(([key, value]) => {
       if (typeof value === 'string') {
-        // Escape single quotes by doubling them
-        const escapedValue = value.replace(/'/g, "''")
+        // Escape backslashes first, then single quotes, so a trailing backslash
+        // cannot escape the closing quote of the SET literal (e.g. a value of
+        // "\" would otherwise produce SET param_x='\' and swallow the quote).
+        const escapedValue = value.replace(/\\/g, '\\\\').replace(/'/g, "''")
         return `SET param_${key}='${escapedValue}'`
       }
       if (typeof value === 'boolean') {

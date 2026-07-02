@@ -152,6 +152,14 @@ describe('withQueryParams', () => {
     expect(result).toContain("SET param_name='O''Brien'")
   })
 
+  test('escapes backslashes so a trailing one cannot break out of the literal', () => {
+    // A trailing backslash must not escape the closing quote of the SET literal.
+    const result = withQueryParams('SELECT {path:String}', {
+      path: 'C:\\',
+    })
+    expect(result).toContain("SET param_path='C:\\\\'")
+  })
+
   test('handles boolean params', () => {
     const result = withQueryParams('SELECT {flag:UInt8}', { flag: true })
     expect(result).toContain('SET param_flag=1')
