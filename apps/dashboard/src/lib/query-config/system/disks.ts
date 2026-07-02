@@ -91,10 +91,10 @@ export const databaseDiskSpaceConfig: QueryConfig = {
   sql: `
       SELECT database,
              SUM(bytes_on_disk) AS used_space,
-             ROUND(100.0 * used_space / SUM(used_space) over (), 2) AS pct_used_space,
+             ROUND(100.0 * used_space / nullIf(SUM(used_space) over (), 0), 2) AS pct_used_space,
              formatReadableSize(used_space) AS readable_used_space,
              SUM(data_compressed_bytes) AS data_compressed,
-             ROUND(100.0 * data_compressed / SUM(data_compressed) over (), 2) AS pct_data_compressed,
+             ROUND(100.0 * data_compressed / nullIf(SUM(data_compressed) over (), 0), 2) AS pct_data_compressed,
              formatReadableSize(data_compressed) AS readable_data_compressed
       FROM system.parts
       WHERE active
@@ -114,10 +114,10 @@ export const databaseDiskSpaceByDatabaseConfig: QueryConfig = {
   sql: `
       SELECT table,
              SUM(bytes_on_disk) AS used_space,
-             ROUND(100.0 * used_space / SUM(used_space) over (), 2) AS pct_used_space,
+             ROUND(100.0 * used_space / nullIf(SUM(used_space) over (), 0), 2) AS pct_used_space,
              formatReadableSize(used_space) AS readable_used_space,
              SUM(data_compressed_bytes) AS data_compressed,
-             ROUND(100.0 * data_compressed / SUM(data_compressed) over (), 2) AS pct_data_compressed,
+             ROUND(100.0 * data_compressed / nullIf(SUM(data_compressed) over (), 0), 2) AS pct_data_compressed,
              formatReadableSize(data_compressed) AS readable_data_compressed
       FROM system.parts
       WHERE active AND database = {database:String}

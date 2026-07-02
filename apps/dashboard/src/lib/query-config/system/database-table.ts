@@ -44,10 +44,10 @@ export const databaseTableColumnsConfig: QueryConfig = {
              sum(rows) AS rows_cnt,
              formatReadableQuantity(rows_cnt) AS readable_rows_cnt,
              round(uncompressed / rows_cnt, 2) avg_row_size,
-             round(100 * compressed / max(compressed) OVER ()) AS pct_compressed,
-             round(100 * uncompressed / max(uncompressed) OVER()) AS pct_uncompressed,
-             round(100 * rows_cnt / max(rows_cnt) OVER ()) AS pct_rows_cnt,
-             round(100 * compr_ratio / max(compr_ratio) OVER ()) AS pct_compr_ratio
+             round(100 * compressed / nullIf(max(compressed) OVER (), 0)) AS pct_compressed,
+             round(100 * uncompressed / nullIf(max(uncompressed) OVER(), 0)) AS pct_uncompressed,
+             round(100 * rows_cnt / nullIf(max(rows_cnt) OVER (), 0)) AS pct_rows_cnt,
+             round(100 * compr_ratio / nullIf(max(compr_ratio) OVER (), 0)) AS pct_compr_ratio
       FROM system.parts_columns
       WHERE (active = 1)
         AND (database = {database: String})
