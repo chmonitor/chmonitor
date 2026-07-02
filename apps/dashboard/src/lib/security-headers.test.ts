@@ -13,8 +13,17 @@ describe('SECURITY_HEADERS', () => {
     )
   })
 
-  test('has exactly 4 entries (no accidental additions)', () => {
-    expect(Object.keys(SECURITY_HEADERS)).toHaveLength(4)
+  test('ships CSP in report-only mode (never enforced)', () => {
+    const csp = SECURITY_HEADERS['Content-Security-Policy-Report-Only']
+    expect(csp).toBeDefined()
+    expect(csp).toContain("default-src 'self'")
+    expect(csp).toContain("frame-ancestors 'none'")
+    // Enforcing CSP must NOT be set — report-only only, pending validation.
+    expect(SECURITY_HEADERS['Content-Security-Policy']).toBeUndefined()
+  })
+
+  test('has exactly 5 entries (no accidental additions)', () => {
+    expect(Object.keys(SECURITY_HEADERS)).toHaveLength(5)
   })
 })
 
