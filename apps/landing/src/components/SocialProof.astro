@@ -28,44 +28,54 @@ const starIcon = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true
 const forkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="19" r="2.4"/><path d="M6 8.4v2.1a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V8.4M12 13.5v3.1"/></svg>`
 const commitIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M3 12h5.8M15.2 12H21"/></svg>`
 ---
-<section class="band band-soft">
+<section class="band band-soft community">
   <div class="wrap">
-    <div class="sec-head reveal" style="text-align:center">
+    <div class="community-card reveal">
       <span class="eyebrow">Community</span>
       <h2>Open source, built in public</h2>
-    </div>
 
-    <div class="stat-badges reveal">
-      <a class="gh-stat" href={`https://github.com/${REPO}/stargazers`} target="_blank" rel="noopener" aria-label={`${fmt(stars)} GitHub stars`}>
-        <span class="gh-ico" set:html={starIcon} />
-        <span class="gh-label">Stars</span>
-        {stars != null && <strong class="gh-num">{fmt(stars)}</strong>}
-      </a>
-      <a class="gh-stat" href={`https://github.com/${REPO}/forks`} target="_blank" rel="noopener" aria-label={`${fmt(forks)} GitHub forks`}>
-        <span class="gh-ico" set:html={forkIcon} />
-        <span class="gh-label">Forks</span>
-        {forks != null && <strong class="gh-num">{fmt(forks)}</strong>}
-      </a>
-      <a class="gh-stat" href={`https://github.com/${REPO}/commits`} target="_blank" rel="noopener" aria-label="Recent activity">
-        <span class="gh-ico" set:html={commitIcon} />
-        <span class="gh-label">Last commit</span>
-        {updated && <strong class="gh-num">{updated}</strong>}
-      </a>
-    </div>
+      <div class="stat-badges">
+        <a class="gh-stat" href={`https://github.com/${REPO}/stargazers`} target="_blank" rel="noopener" aria-label={`${fmt(stars)} GitHub stars`}>
+          <span class="gh-ico" set:html={starIcon} />
+          <span class="gh-label">Stars</span>
+          {stars != null && <strong class="gh-num">{fmt(stars)}</strong>}
+        </a>
+        <a class="gh-stat" href={`https://github.com/${REPO}/forks`} target="_blank" rel="noopener" aria-label={`${fmt(forks)} GitHub forks`}>
+          <span class="gh-ico" set:html={forkIcon} />
+          <span class="gh-label">Forks</span>
+          {forks != null && <strong class="gh-num">{fmt(forks)}</strong>}
+        </a>
+        <a class="gh-stat" href={`https://github.com/${REPO}/commits`} target="_blank" rel="noopener" aria-label="Recent activity">
+          <span class="gh-ico" set:html={commitIcon} />
+          <span class="gh-label">Last commit</span>
+          {updated && <strong class="gh-num">{updated}</strong>}
+        </a>
+      </div>
 
-    <div style="text-align:center;margin-top:28px" class="reveal">
-      <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
-        View on GitHub
-      </a>
-      <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor/discussions" target="_blank" rel="noopener" style="margin-left:10px">
-        Join the discussion
-      </a>
+      <div class="community-cta">
+        <a class="btn btn-primary" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+          View on GitHub
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor/discussions" target="_blank" rel="noopener">
+          Join the discussion
+        </a>
+      </div>
     </div>
   </div>
 
   <style>
-    .gh-stat{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--card);box-shadow:var(--shadow-card);font-size:13.5px;font-weight:500;color:var(--fg-soft);text-decoration:none;transition:border-color .14s,color .14s}
+    /* Compact community strip: a single centered card so the stats + CTAs read
+       as one deliberate cluster instead of floating in an empty band. */
+    .community{padding:64px 0}
+    .community-card{max-width:600px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;padding:36px 32px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow-card)}
+    .community-card .eyebrow{display:inline-flex;align-items:center;gap:9px}
+    .community-card .eyebrow::before{content:"";width:18px;height:1.5px;background:var(--amber);border-radius:2px}
+    .community-card h2{margin:0;font-size:clamp(24px,2.8vw,32px);line-height:1.1;letter-spacing:-.025em;font-weight:700;text-wrap:balance}
+    .community-card .stat-badges{margin-top:0;gap:10px}
+    .community-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+    @media (max-width:560px){.community-card{padding:30px 20px;gap:18px}.community-cta{width:100%}.community-cta .btn{flex:1;justify-content:center}}
+    .gh-stat{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--bg-soft);box-shadow:none;font-size:13.5px;font-weight:500;color:var(--fg-soft);text-decoration:none;transition:border-color .14s,color .14s}
     .gh-stat:hover{border-color:var(--border-hover);color:var(--fg)}
     .gh-stat .gh-ico{display:inline-flex;width:15px;height:15px;color:var(--muted-fg)}
     .gh-stat .gh-ico svg{width:15px;height:15px}

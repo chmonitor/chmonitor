@@ -340,7 +340,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .feat-shot{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow-float)}
     .feat-shot .browser-bar{height:20px}
     .feat-shot .lights i{width:9px;height:9px}
-    .feat-shot img{display:block;width:100%}
+    .feat-shot img{display:block;width:100%;height:auto}
 
     /* ── data explorer (two-up) ── */
     .de-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:52px}
@@ -495,23 +495,23 @@ const ogImage = new URL(image, Astro.site).toString()
     .pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:52px;align-items:stretch}
     .price-card{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);overflow:hidden;box-shadow:var(--shadow-card)}
     .price-card-highlight{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),var(--shadow-card)}
-    .price-hd{padding:28px 28px 20px;border-bottom:1px solid var(--border-soft)}
-    .price-hd .pname{font-size:20px;font-weight:700;letter-spacing:-.015em}
+    .price-hd{padding:22px 22px 16px;border-bottom:1px solid var(--border-soft)}
+    .price-hd .pname{font-size:18px;font-weight:700;letter-spacing:-.015em}
     .price-hd .ptag{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;margin-left:8px}
     .ptag-free{background:#d1fae5;color:#065f46}
     .ptag-beta{background:#fef3c7;color:#92400e}
-    .price-hd .pamount{font-size:36px;font-weight:700;letter-spacing:-.03em;margin-top:16px;line-height:1;font-variant-numeric:tabular-nums}
-    .price-hd .pamount small{font-size:15px;font-weight:500;color:var(--muted-fg);letter-spacing:0}
-    .price-hd .pdesc{font-size:14px;line-height:1.4;color:var(--muted-fg);margin-top:10px;text-wrap:pretty;min-height:2.8em}
-    .price-body{display:flex;flex-direction:column;flex:1;padding:22px 28px 28px}
-    .price-rows{display:flex;flex-direction:column;gap:13px}
-    .price-row{display:flex;gap:10px;font-size:14px;color:var(--fg-soft);list-style:none}
-    .price-row svg{width:17px;height:17px;flex:0 0 auto;margin-top:1px}
+    .price-hd .pamount{font-size:30px;font-weight:700;letter-spacing:-.03em;margin-top:14px;line-height:1;font-variant-numeric:tabular-nums}
+    .price-hd .pamount small{font-size:14px;font-weight:500;color:var(--muted-fg);letter-spacing:0}
+    .price-hd .pdesc{font-size:13.5px;line-height:1.4;color:var(--muted-fg);margin-top:8px;text-wrap:pretty;min-height:2.6em}
+    .price-body{display:flex;flex-direction:column;flex:1;padding:18px 22px 22px}
+    .price-rows{display:flex;flex-direction:column;gap:10px}
+    .price-row{display:flex;gap:10px;font-size:13.5px;color:var(--fg-soft);list-style:none}
+    .price-row svg{width:16px;height:16px;flex:0 0 auto;margin-top:1px}
     /* Inherited-tier row ("Everything in X") — a mini section header for the
        benefits it builds on. */
-    .price-row-inherited{font-weight:600;color:var(--fg);padding-bottom:13px;border-bottom:1px solid var(--border)}
+    .price-row-inherited{font-weight:600;color:var(--fg);padding-bottom:10px;border-bottom:1px solid var(--border)}
     .price-row-inherited svg{stroke:var(--orange)}
-    .price-cta{margin-top:auto;padding-top:24px}
+    .price-cta{margin-top:auto;padding-top:18px}
     @media (max-width:640px){.pricing-grid{grid-template-columns:1fr}}
 
     /* ── comparison ── */

@@ -115,12 +115,12 @@ const { compact = false } = Astro.props
   </div>
 
   <style>
-    .selfhost-banner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:44px;padding:18px 22px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow-card)}
+    .selfhost-banner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:36px;padding:16px 20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow-card)}
     .selfhost-banner .sh-text{display:flex;flex-direction:column;gap:8px}
     .selfhost-banner .sh-title{display:flex;align-items:center;gap:10px}
     .selfhost-banner .sh-title strong{font-size:16px;color:var(--fg)}
     .selfhost-banner .sh-desc{margin:0;font-size:14px;color:var(--muted-fg);text-wrap:pretty;max-width:62ch}
-    .cloud-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:40px}
+    .cloud-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:30px}
     .ea-badge{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--orange)}
     .ea-badge::before{content:"";width:7px;height:7px;border-radius:999px;background:var(--orange)}
     .bill-toggle{display:inline-flex;padding:4px;gap:2px;border:1px solid var(--border);border-radius:999px;background:var(--card)}
@@ -131,7 +131,7 @@ const { compact = false } = Astro.props
        mode. So the accent must flip per theme to stay readable on it. */
     .bill-toggle button.active .save{color:#34d399} /* light mode: black pill → light green */
     :root[data-theme="dark"] .bill-toggle button.active .save{color:#047857} /* dark mode: white pill → dark green */
-    .cloud-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:22px;align-items:stretch}
+    .cloud-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:18px;align-items:stretch}
     .cloud-grid .pamount{display:flex;align-items:baseline;gap:6px}
     .cloud-grid .amt{display:none}
     .cloud-grid[data-period="monthly"] .amt-monthly{display:inline}
