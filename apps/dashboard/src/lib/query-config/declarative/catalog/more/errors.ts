@@ -13,6 +13,19 @@ export const errorsDeclarative: DeclarativeQueryConfig = {
   description: 'System error logs and history',
   optional: true,
   tableCheck: 'system.error_log',
+  // NOTE (issue #2138): A previous `since: '25.12'` variant SELECTed
+  // last_error_time / last_error_message / last_error_query_id /
+  // last_error_trace FROM system.error_log. In verified ClickHouse versions
+  // those `last_error_*` columns belong to the AGGREGATED system.errors table
+  // (see queries/common-errors.ts), NOT the per-event system.error_log
+  // (hostname, event_date, event_time, code, error, value, remote). A
+  // non-existent column makes ClickHouse fail the ENTIRE query on servers, and
+  // the table-validator checks table existence, not columns, so it cannot save
+  // this. The variant was removed as a conservative fix (a broken variant is
+  // worse than a missing feature). If a maintainer confirms on a live 25.12+
+  // server that system.error_log actually exposes these `last_error_*` columns,
+  // the variant may be re-added here (sourced from the correct table).
+  // Keep this file in sync with more/errors.ts (the imperative mirror).
   sql: [
     {
       since: '23.8',
@@ -29,26 +42,6 @@ export const errorsDeclarative: DeclarativeQueryConfig = {
       ${errorsTail}
   `,
     },
-    {
-      since: '25.12',
-      description:
-        'Added last_error_time, last_error_message, last_error_query_id, last_error_trace (CH 25.12+)',
-      sql: `
-      SELECT
-          event_time,
-          event_date,
-          code,
-          error,
-          value,
-          remote,
-          hostname,
-          last_error_time,
-          last_error_message,
-          last_error_query_id,
-          last_error_trace
-      ${errorsTail}
-  `,
-    },
   ],
   columns: [
     'event_time',
@@ -58,30 +51,12 @@ export const errorsDeclarative: DeclarativeQueryConfig = {
     'value',
     'remote',
     'hostname',
-    'last_error_time',
-    'last_error_message',
-    'last_error_query_id',
   ],
   columnFormats: {
     error: ['link', { href: `?error=[error]` }],
     remote: 'boolean',
-    last_error_query_id: [
-      'link',
-      {
-        href: '/query?query_id=[last_error_query_id]&host=[ctx.hostId]',
-        className: 'truncate max-w-48',
-        title: 'View query detail',
-      },
-    ],
-    last_error_time: 'related-time',
   },
   defaultParams: { error: '' },
-  // config-details expandable: auto-renders all non-primary columns in a detail grid,
-  // including last_error_message and last_error_trace from CH 25.12+.
-  expandable: {
-    type: 'config-details',
-    primaryColumns: ['event_time', 'code', 'error', 'value', 'remote'],
-  },
   filterParamPresets: [
     { name: 'KEEPER_EXCEPTION', key: 'error', value: 'KEEPER_EXCEPTION' },
     {

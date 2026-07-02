@@ -1,6 +1,5 @@
 import type { QueryConfig, VersionedSql } from '@/types/query-config'
 
-import { createExpandedPanel } from '@/components/data-table/cells/expanded-panel'
 import { ColumnFormat } from '@/types/column-format'
 
 /** Base WHERE predicate shared across all version variants. */
@@ -17,6 +16,18 @@ export const errorsConfig: QueryConfig = {
   description: 'System error logs and history',
   optional: true,
   tableCheck: 'system.error_log',
+  // NOTE (issue #2138): A previous `since: '25.12'` variant SELECTed
+  // last_error_time / last_error_message / last_error_query_id /
+  // last_error_trace FROM system.error_log. In verified ClickHouse versions
+  // those `last_error_*` columns belong to the AGGREGATED system.errors table
+  // (see queries/common-errors.ts), NOT the per-event system.error_log
+  // (hostname, event_date, event_time, code, error, value, remote). A
+  // non-existent column makes ClickHouse fail the ENTIRE query on servers, and
+  // the table-validator checks table existence, not columns, so it cannot save
+  // this. The variant was removed as a conservative fix (a broken variant is
+  // worse than a missing feature). If a maintainer confirms on a live 25.12+
+  // server that system.error_log actually exposes these `last_error_*` columns,
+  // the variant may be re-added here (sourced from the correct table).
   sql: [
     {
       since: '23.8',
@@ -33,26 +44,6 @@ export const errorsConfig: QueryConfig = {
       ${errorsTail}
   `,
     },
-    {
-      since: '25.12',
-      description:
-        'Added last_error_time, last_error_message, last_error_query_id, last_error_trace (CH 25.12+)',
-      sql: `
-      SELECT
-          event_time,
-          event_date,
-          code,
-          error,
-          value,
-          remote,
-          hostname,
-          last_error_time,
-          last_error_message,
-          last_error_query_id,
-          last_error_trace
-      ${errorsTail}
-  `,
-    },
   ] as VersionedSql[],
   columns: [
     'event_time',
@@ -62,49 +53,12 @@ export const errorsConfig: QueryConfig = {
     'value',
     'remote',
     'hostname',
-    'last_error_time',
-    'last_error_message',
-    'last_error_query_id',
   ],
   columnFormats: {
     error: [ColumnFormat.Link, { href: `?error=[error]` }],
     remote: ColumnFormat.Boolean,
-    last_error_query_id: [
-      ColumnFormat.Link,
-      {
-        href: '/query?query_id=[last_error_query_id]&host=[ctx.hostId]',
-        className: 'truncate max-w-48',
-        title: 'View query detail',
-      },
-    ],
-    last_error_time: ColumnFormat.RelatedTime,
   },
   defaultParams: { error: '' },
-  // Row expansion shows last error message + trace + query link (CH 25.12+ only)
-  expandable: {
-    renderExpanded: createExpandedPanel({
-      sections: [
-        {
-          type: 'fields',
-          title: 'Last Error Details',
-          columns: [
-            { key: 'last_error_time', label: 'Last error time' },
-            { key: 'last_error_query_id', label: 'Query ID' },
-          ],
-        },
-        {
-          type: 'code',
-          title: 'Last error message',
-          column: 'last_error_message',
-        },
-        {
-          type: 'code',
-          title: 'Stack trace',
-          column: 'last_error_trace',
-        },
-      ],
-    }),
-  },
   // Common ClickHouse error types for quick filtering
   // These are frequently occurring errors in production environments
   // Future improvement: fetch distinct error types dynamically from system.error_log
