@@ -11,6 +11,57 @@ export interface KeyboardShortcutOptions {
 }
 
 /**
+ * Pure predicate: does a keyboard event satisfy the requested shortcut?
+ *
+ * Modifier rules (each requested modifier is matched exactly):
+ * - `shiftKey` / `altKey`: `event.<mod>` must equal the requested value.
+ * - Meta/Ctrl, cross-platform aware:
+ *   - BOTH requested → "Cmd on mac / Ctrl on win": match when EITHER
+ *     `event.metaKey` or `event.ctrlKey` is held.
+ *   - only `metaKey` → require `event.metaKey` and forbid `event.ctrlKey`.
+ *   - only `ctrlKey` → require `event.ctrlKey` and forbid `event.metaKey`.
+ *   - NEITHER → forbid both meta and ctrl.
+ */
+export function matchesKeyboardShortcut(
+  event: Pick<
+    KeyboardEvent,
+    'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'
+  >,
+  options: Pick<
+    KeyboardShortcutOptions,
+    'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'
+  >
+): boolean {
+  const {
+    key,
+    metaKey = false,
+    ctrlKey = false,
+    shiftKey = false,
+    altKey = false,
+  } = options
+
+  const keyMatches = event.key.toLowerCase() === key.toLowerCase()
+
+  // Meta/Ctrl matching with cross-platform support.
+  let metaCtrlMatches: boolean
+  if (metaKey && ctrlKey) {
+    // Cross-platform "Cmd/Ctrl": either modifier satisfies the shortcut.
+    metaCtrlMatches = event.metaKey || event.ctrlKey
+  } else if (metaKey) {
+    metaCtrlMatches = event.metaKey && !event.ctrlKey
+  } else if (ctrlKey) {
+    metaCtrlMatches = event.ctrlKey && !event.metaKey
+  } else {
+    metaCtrlMatches = !event.metaKey && !event.ctrlKey
+  }
+
+  const shiftMatches = event.shiftKey === shiftKey
+  const altMatches = event.altKey === altKey
+
+  return keyMatches && metaCtrlMatches && shiftMatches && altMatches
+}
+
+/**
  * Hook to register keyboard shortcuts
  * @param options - Shortcut configuration
  * @param dependencies - Dependencies for the callback
@@ -31,21 +82,15 @@ export function useKeyboardShortcut(
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check if the pressed key matches the shortcut
-      const keyMatches = event.key.toLowerCase() === key.toLowerCase()
-      const metaMatches = !metaKey || event.metaKey
-      const ctrlMatches = !ctrlKey || event.ctrlKey
-      const shiftMatches = !shiftKey || event.shiftKey
-      const altMatches = !altKey || event.altKey
-
-      // For meta/ctrl: allow either (OR logic) for cross-platform shortcuts
-      // If both are specified, trigger on Cmd (Mac) OR Ctrl (Windows/Linux)
-      const modifierMatches =
-        shiftMatches &&
-        altMatches &&
-        (metaKey || ctrlKey ? metaMatches || ctrlMatches : true)
-
-      if (keyMatches && modifierMatches) {
+      if (
+        matchesKeyboardShortcut(event, {
+          key,
+          metaKey,
+          ctrlKey,
+          shiftKey,
+          altKey,
+        })
+      ) {
         if (preventDefault) {
           event.preventDefault()
         }

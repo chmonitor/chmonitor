@@ -26,6 +26,14 @@ describe('valueToCsv', () => {
     expect(valueToCsv('line1\nline2')).toBe('"line1\nline2"')
   })
 
+  it('wraps in quotes when value contains a carriage return', () => {
+    expect(valueToCsv('line1\rline2')).toBe('"line1\rline2"')
+  })
+
+  it('wraps in quotes when value contains a CRLF sequence', () => {
+    expect(valueToCsv('line1\r\nline2')).toBe('"line1\r\nline2"')
+  })
+
   it('wraps in quotes and doubles embedded quotes', () => {
     expect(valueToCsv('say "hi"')).toBe('"say ""hi"""')
   })
