@@ -1,17 +1,14 @@
 ---
+title: Multiple Hosts
 description: Monitor multiple ClickHouse clusters from a single deployment using comma-separated connection variables and the host selector.
 icon: Server
 ---
 
-# Multiple Hosts
-
-chmonitor can monitor multiple ClickHouse clusters from a single deployment. The host selector in the dashboard header lets you switch between them. The URL reflects the active host as `?host=N`.
-
----
+chmonitor can monitor multiple ClickHouse clusters from a single deployment. The host selector in the dashboard header lets you switch between them, and the URL reflects the active host as `?host=N`.
 
 ## How it works
 
-Set `CLICKHOUSE_HOST` to a comma-separated list of host URLs. Position N across all four connection variables maps to host index N:
+Set `CLICKHOUSE_HOST` to a comma-separated list of host URLs. Position N across all four connection variables maps to host index N.
 
 | Variable | Example |
 |---|---|
@@ -35,10 +32,12 @@ The URL parameter `?host=0` targets the first host, `?host=1` the second, and so
     R -->|hostId=1| CH2[ClickHouse ch-2]
   end`} />
 
----
+## Configure
 
-## Same credentials for all hosts
+Choose the credential strategy that matches your clusters.
 
+<Tabs items={['Same credentials', 'Different credentials']}>
+<Tab value="Same credentials">
 If all hosts share the same user and password, set a single value:
 
 ```bash
@@ -47,11 +46,8 @@ CLICKHOUSE_NAME=ch-1,ch-2
 CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=
 ```
-
----
-
-## Different credentials per host
-
+</Tab>
+<Tab value="Different credentials">
 Set a value per position:
 
 ```bash
@@ -60,10 +56,10 @@ CLICKHOUSE_NAME=Production,Staging
 CLICKHOUSE_USER=prod_user,staging_user
 CLICKHOUSE_PASSWORD=prod_pass,staging_pass
 ```
+</Tab>
+</Tabs>
 
----
-
-## Docker examples
+### Docker
 
 Replace `vX.Y.Z` with the release tag you want to run.
 
@@ -94,9 +90,7 @@ docker run -d \
 </Tab>
 </Tabs>
 
----
-
-## Kubernetes / Helm examples
+### Kubernetes / Helm
 
 <Tabs items={['Same credentials', 'Different credentials']}>
 <Tab value="Same credentials">
@@ -136,14 +130,15 @@ helm repo add chmonitor https://charts.chmonitor.dev
 helm upgrade --install chmonitor chmonitor/chmonitor -f values.yaml
 ```
 
----
-
-## Notes
-
-<Callout type="info">
+<Callout type="info" title="Notes">
 - Adding or removing a host requires a restart (env change).
 - Health alerts run over all configured hosts when `HEALTH_ALERT_ENABLED=true`.
 - The agent API accepts a `hostId` parameter to target a specific host.
 </Callout>
 
-See [Custom Name](/operate/advanced/custom-name) for display labels, and [Environment Variables](/reference/environment-variables) for the full connection reference.
+## Related
+
+<Cards>
+  <Card title="Custom Name" href="/operate/advanced/custom-name" description="Give each host a human-readable display label." />
+  <Card title="Environment Variables" href="/reference/environment-variables" description="Full connection variable reference." />
+</Cards>

@@ -1,15 +1,12 @@
 ---
+title: Feature Permissions
 description: Hide or protect specific dashboard sections per-feature using config files or environment variables, without changing application code.
 icon: Lock
 ---
 
-# Feature Permissions
-
 Feature permissions let you hide or protect specific dashboard sections without changing application code. Features are enabled and public by default — except the **AI agent** (`agent`) and **control actions** (`actions`), which default to `authenticated`. Configure only what needs different behavior.
 
 Permissions also carry a **read / write** classification. Reads are predefined monitoring data; writes are the AI agent, control actions, and arbitrary SQL execution. Under `auth=clerk` with [`CHM_CLERK_PUBLIC_READ`](/operate/authentication/clerk#public-read-only-mode), anonymous visitors may perform reads but never writes; with `auth=none` everyone may do both.
-
----
 
 ## Defaults
 
@@ -19,8 +16,6 @@ access  = "public"   (alias: "guest")
 ```
 
 A self-hosted deployment with no auth configured works out of the box. Every page is visible to any visitor.
-
----
 
 ## Access values
 
@@ -34,22 +29,18 @@ A self-hosted deployment with no auth configured works out of the box. Every pag
 v1 has no roles — only public and authenticated access levels.
 </Callout>
 
----
+## Configure
 
-## Configuration sources
+Configuration is layered. Later sources win over earlier ones:
 
-Later sources win over earlier ones:
-
-```
+```text
 built-in allow-all defaults
   → TypeScript config defaults
     → CHM_CONFIG_FILE (TOML or YAML)
       → environment variables
 ```
 
----
-
-## Config file (`CHM_CONFIG_FILE`)
+### Config file (`CHM_CONFIG_FILE`)
 
 Point `CHM_CONFIG_FILE` at a TOML or YAML file. Feature names are lowercase in the file.
 
@@ -87,9 +78,7 @@ features:
 </Tab>
 </Tabs>
 
----
-
-## Environment variable overrides
+### Environment variable overrides
 
 Env vars override the config file. Feature ids are uppercase in env var names.
 
@@ -105,8 +94,6 @@ CHM_FEATURE_AGENT_ACCESS=authenticated
 CHM_FEATURE_METRICS_ENABLED=false
 CHM_FEATURE_SETTINGS_ACCESS=authenticated
 ```
-
----
 
 ## Supported feature ids
 
@@ -133,12 +120,10 @@ Use these ids in TOML/YAML (lowercase) or env vars (uppercase):
 | `peerdb` | PeerDB Mirrors and Peers section |
 | `actions` | Row-level actions across data pages |
 
----
-
 ## Docker examples
 
-**With config file:**
-
+<Tabs items={['With config file', 'Env-only']}>
+<Tab value="With config file">
 ```bash
 docker run -d \
   -e CLICKHOUSE_HOST='http://clickhouse:8123' \
@@ -149,9 +134,8 @@ docker run -d \
   -p 3000:3000 \
   ghcr.io/chmonitor/chmonitor:vX.Y.Z
 ```
-
-**Env-only:**
-
+</Tab>
+<Tab value="Env-only">
 ```bash
 docker run -d \
   -e CLICKHOUSE_HOST='http://clickhouse:8123' \
@@ -162,15 +146,15 @@ docker run -d \
   -p 3000:3000 \
   ghcr.io/chmonitor/chmonitor:vX.Y.Z
 ```
-
----
+</Tab>
+</Tabs>
 
 ## Authentication for `authenticated` features
 
 Gating UI features with `access = "authenticated"` requires a user auth provider (for example, Clerk). Set one of:
 
-**Clerk:**
-
+<Tabs items={['Clerk', 'Agent API token']}>
+<Tab value="Clerk">
 ```bash
 CHM_AUTH_PROVIDER=clerk
 CHM_CLERK_PUBLISHABLE_KEY=pk_live_your_key
@@ -180,8 +164,9 @@ CLERK_SECRET_KEY=sk_live_your_key
 <Callout type="warn" title="Build-time vars">
 `VITE_*` vars are build-time inlined — set them before running `bun run build`. See [Migrate to v0.3](/reference/migrating/v0-3) if you are upgrading from the legacy Next.js app and need the old `NEXT_PUBLIC_*` names.
 </Callout>
-
-**Agent API token (agent API endpoints only — does not provide UI-level user authentication):**
+</Tab>
+<Tab value="Agent API token">
+Applies to agent API endpoints only — it does not provide UI-level user authentication.
 
 ```bash
 AGENT_API_TOKEN=your-shared-token
@@ -192,53 +177,50 @@ AGENT_API_TOKEN=your-shared-token
 curl -H "Authorization: Bearer your-shared-token" \
   https://your-deployment.example.com/api/v1/agent
 ```
+</Tab>
+</Tabs>
 
 See [Authentication](/operate/authentication) for the full auth model, including API keys and reverse-proxy options.
 
----
-
 ## Common policies
 
-**Gate AI agent behind login, keep everything else open:**
-
+<Accordions>
+<Accordion title="Gate AI agent behind login, keep everything else open">
 ```toml
 [features.agent]
 access = "authenticated"
 ```
-
-**Hide metrics completely:**
-
+</Accordion>
+<Accordion title="Hide metrics completely">
 ```toml
 [features.metrics]
 enabled = false
 ```
-
-**Require login for settings:**
-
+</Accordion>
+<Accordion title="Require login for settings">
 ```toml
 [features.settings]
 access = "authenticated"
 ```
-
-**Multiple env-var approach (no config file needed):**
-
+</Accordion>
+<Accordion title="Multiple env-var approach (no config file needed)">
 ```bash
 CHM_FEATURE_AGENT_ACCESS=authenticated
 CHM_FEATURE_SETTINGS_ACCESS=authenticated
 CHM_DISABLED_FEATURES=insights
 ```
-
----
+</Accordion>
+</Accordions>
 
 ## Behavior when a feature is disabled or gated
 
 - **Disabled** (`enabled = false`): removed from navigation and command search. Direct page visits show a disabled screen. API routes return a blocked response before querying ClickHouse or the agent.
 - **Authenticated** (`access = "authenticated"`): unauthenticated visitors see the feature in navigation (so they know to sign in) but cannot load data. API routes reject unauthenticated requests.
 
----
-
 ## Related
 
-- [Authentication](/operate/authentication) — auth providers and API keys.
-- [Environment Variables — Feature Permissions](/reference/environment-variables#feature-permissions) — full env var reference.
-- [Features](/guide/features) — what each feature does.
+<Cards>
+  <Card title="Authentication" href="/operate/authentication" description="Auth providers and API keys." />
+  <Card title="Environment Variables — Feature Permissions" href="/reference/environment-variables#feature-permissions" description="Full env var reference." />
+  <Card title="Features" href="/guide/features" description="What each feature does." />
+</Cards>

@@ -1,31 +1,26 @@
 ---
+title: Custom Name
 description: Set CLICKHOUSE_NAME to give each monitored host a human-readable label in the dashboard host selector dropdown.
 icon: Tag
 ---
 
-# Custom Name
-
 Set `CLICKHOUSE_NAME` to give each ClickHouse host a human-readable label. The label appears in the host selector dropdown in the dashboard header.
 
----
+## Configure
 
-## Configuration
+Provide one comma-separated label per host. Position N in `CLICKHOUSE_NAME` labels host index N, so the number of values must match `CLICKHOUSE_HOST`.
 
 ```bash
 CLICKHOUSE_HOST=http://ch-1:8123,http://ch-2:8123,http://ch-3:8123
 CLICKHOUSE_NAME=Production,Staging,Dev
 ```
 
-The number of comma-separated values must match `CLICKHOUSE_HOST`. Position N in `CLICKHOUSE_NAME` labels host index N.
-
 <Callout type="info">
 If `CLICKHOUSE_NAME` is not set, hosts are labeled by index: **Host 0**, **Host 1**, etc.
 </Callout>
 
----
-
-## Docker
-
+<Tabs items={['Docker', 'Kubernetes / Helm']}>
+<Tab value="Docker">
 ```bash
 docker run -d \
   -e CLICKHOUSE_HOST='http://ch-1:8123,http://ch-2:8123' \
@@ -35,11 +30,8 @@ docker run -d \
   -p 3000:3000 \
   ghcr.io/chmonitor/chmonitor:vX.Y.Z
 ```
-
----
-
-## Kubernetes / Helm
-
+</Tab>
+<Tab value="Kubernetes / Helm">
 ```yaml
 env:
   - name: CLICKHOUSE_HOST
@@ -47,5 +39,12 @@ env:
   - name: CLICKHOUSE_NAME
     value: "Production,Staging"
 ```
+</Tab>
+</Tabs>
 
-See [Multiple Hosts](/operate/advanced/multiple-hosts) for full multi-host setup.
+## Related
+
+<Cards>
+  <Card title="Multiple Hosts" href="/operate/advanced/multiple-hosts" description="Full multi-host setup with the host selector and per-host credentials." />
+  <Card title="Environment Variables" href="/reference/environment-variables" description="Full reference for all connection variables." />
+</Cards>
