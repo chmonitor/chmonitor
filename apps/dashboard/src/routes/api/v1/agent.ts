@@ -867,10 +867,41 @@ async function handlePost(request: Request): Promise<Response> {
   })
 }
 
+/**
+ * Outermost error boundary for the agent endpoint.
+ *
+ * `handlePost` guards every individual step (auth, MCP connect, billing, the
+ * stream body) but the pre-stream setup — `createClickHouseAgent`,
+ * `connectCustomMcpServers`, `authorizeAgentApiRequest` — runs before the
+ * streaming Response is built. If any of those throws (e.g. a provider/runtime
+ * edge case), the rejection would otherwise escape to the framework, which
+ * serves a bare `text/html` 500. The client's `apiFetch` then surfaces that as
+ * the opaque "Request failed (500 Error)". Wrapping the handler converts any
+ * uncaught throw into a structured, classified `application/json` error the chat
+ * UI can render (title, cause, suggestion) and logs the raw cause so the true
+ * origin is visible in worker logs / Sentry.
+ */
+async function handlePostWithBoundary(request: Request): Promise<Response> {
+  try {
+    return await handlePost(request)
+  } catch (error) {
+    const classified = classifyError(error)
+    console.error('[Agent API] Unhandled error:', classified, error)
+    const status =
+      typeof classified.statusCode === 'number' && classified.statusCode >= 400
+        ? classified.statusCode
+        : 500
+    return new Response(JSON.stringify({ error: classified }), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+}
+
 export const Route = createFileRoute('/api/v1/agent')({
   server: {
     handlers: {
-      POST: async ({ request }) => handlePost(request),
+      POST: async ({ request }) => handlePostWithBoundary(request),
     },
   },
 })

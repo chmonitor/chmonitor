@@ -50,6 +50,23 @@ describe('parseModelId', () => {
       model: 'openrouter/free',
     })
   })
+
+  // Regression: the reported 500 came from `anyrouter:google/gemma-4-26b`.
+  // The model id itself contains a slash, so only the FIRST ':' may be treated
+  // as the provider separator — the slash must stay part of the model name.
+  test('parses anyrouter provider with a slash in the model id', () => {
+    expect(parseModelId('anyrouter:google/gemma-4-26b')).toEqual({
+      provider: 'anyrouter',
+      model: 'google/gemma-4-26b',
+    })
+  })
+
+  test('keeps a trailing :free tag on a prefixed slash model', () => {
+    expect(parseModelId('anyrouter:qwen/qwen3-coder:free')).toEqual({
+      provider: 'anyrouter',
+      model: 'qwen/qwen3-coder:free',
+    })
+  })
 })
 
 describe('resolveProvider', () => {
@@ -99,6 +116,17 @@ describe('resolveProvider', () => {
     expect(resolved.apiKey).toBe('ar-test-key')
     expect(resolved.baseURL).toBe('https://anyrouter.dev/api/v1')
     expect(resolved.sdk).toBe('openai')
+  })
+
+  // Regression for the reported 500 model id (slash inside the model name).
+  test('resolves anyrouter provider for a slash-containing model id', () => {
+    setEnv({ ANYROUTER_API_KEY: 'ar-test-key' })
+    const resolved = resolveProvider('anyrouter:google/gemma-4-26b')
+    expect(resolved.providerId).toBe('anyrouter')
+    expect(resolved.apiKey).toBe('ar-test-key')
+    expect(resolved.baseURL).toBe('https://anyrouter.dev/api/v1')
+    expect(resolved.sdk).toBe('openai')
+    expect(resolved.isOpenRouter).toBe(false)
   })
 
   test('unprefixed free model uses OpenRouter key cascade', () => {

@@ -75,4 +75,28 @@ describe('agent error classification', () => {
       message: 'Provider unavailable',
     })
   })
+
+  // The agent route's outermost boundary passes any uncaught throw through
+  // classifyError. Whatever escapes must still become a renderable AgentError
+  // (round-trippable via parseAgentError) instead of an opaque HTML 500.
+  test('classifies an arbitrary uncaught throw into a renderable AgentError', () => {
+    const classified = classifyError(
+      new Error('Cannot read properties of undefined')
+    )
+
+    expect(classified.type).toBe('unknown')
+    expect(classified.message).toBe('Cannot read properties of undefined')
+    expect(typeof classified.suggestion).toBe('string')
+    expect(classified.suggestion.length).toBeGreaterThan(0)
+    expect(typeof classified.timestamp).toBe('number')
+
+    // The boundary serialises `{ error: classified }`; the client re-parses it.
+    const roundTripped = parseAgentError(
+      new Error(JSON.stringify({ error: classified }))
+    )
+    expect(roundTripped).toMatchObject({
+      type: 'unknown',
+      message: 'Cannot read properties of undefined',
+    })
+  })
 })
