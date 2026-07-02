@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
-import { fetchData } from '@chm/clickhouse-client'
+import { hostIdSchema, runReadonlyQuery } from './helpers'
 import { z } from 'zod/v3'
 
 /**
@@ -17,32 +17,13 @@ export function registerQueryTools(server: McpServer) {
     'get_running_queries',
     'List currently running queries on the ClickHouse server, ordered by elapsed time.',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      hostId: hostIdSchema,
     },
-    async ({ hostId }) => {
-      const result = await fetchData({
-        query:
-          'SELECT query_id, user, elapsed, read_rows, memory_usage, substring(query, 1, 200) AS query FROM system.processes ORDER BY elapsed DESC',
-        hostId: hostId ?? 0,
-        format: 'JSONEachRow',
-        clickhouse_settings: { readonly: '1' },
-      })
-
-      if (result.error) {
-        return {
-          content: [
-            { type: 'text' as const, text: `Error: ${result.error.message}` },
-          ],
-          isError: true,
-        }
-      }
-
-      return {
-        content: [
-          { type: 'text' as const, text: JSON.stringify(result.data, null, 2) },
-        ],
-      }
-    }
+    async ({ hostId }) =>
+      runReadonlyQuery(
+        'SELECT query_id, user, elapsed, read_rows, memory_usage, substring(query, 1, 200) AS query FROM system.processes ORDER BY elapsed DESC',
+        hostId
+      )
   )
 
   server.tool(
@@ -56,34 +37,13 @@ export function registerQueryTools(server: McpServer) {
         .max(1000)
         .default(10)
         .describe('Max number of queries to return (default: 10)'),
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      hostId: hostIdSchema,
     },
-    async ({ limit, hostId }) => {
-      const effectiveLimit = limit
-
-      const result = await fetchData({
-        query:
-          "SELECT query_id, user, query_duration_ms, read_rows, memory_usage, substring(query, 1, 200) AS query, event_time FROM system.query_log WHERE type = 'QueryFinish' AND is_initial_query = 1 ORDER BY query_duration_ms DESC LIMIT {limit:UInt32}",
-        query_params: { limit: effectiveLimit },
-        hostId: hostId ?? 0,
-        format: 'JSONEachRow',
-        clickhouse_settings: { readonly: '1' },
-      })
-
-      if (result.error) {
-        return {
-          content: [
-            { type: 'text' as const, text: `Error: ${result.error.message}` },
-          ],
-          isError: true,
-        }
-      }
-
-      return {
-        content: [
-          { type: 'text' as const, text: JSON.stringify(result.data, null, 2) },
-        ],
-      }
-    }
+    async ({ limit, hostId }) =>
+      runReadonlyQuery(
+        "SELECT query_id, user, query_duration_ms, read_rows, memory_usage, substring(query, 1, 200) AS query, event_time FROM system.query_log WHERE type = 'QueryFinish' AND is_initial_query = 1 ORDER BY query_duration_ms DESC LIMIT {limit:UInt32}",
+        hostId,
+        { query_params: { limit } }
+      )
   )
 }

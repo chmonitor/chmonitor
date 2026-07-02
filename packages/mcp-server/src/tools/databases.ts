@@ -1,38 +1,18 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
-import { fetchData } from '@chm/clickhouse-client'
-import { z } from 'zod/v3'
+import { hostIdSchema, runReadonlyQuery } from './helpers'
 
 export function registerDatabasesTool(server: McpServer) {
   server.tool(
     'list_databases',
     'List all databases on the ClickHouse server with their engines and comments.',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      hostId: hostIdSchema,
     },
-    async ({ hostId }) => {
-      const result = await fetchData({
-        query:
-          'SELECT name, engine, comment FROM system.databases ORDER BY name',
-        hostId: hostId ?? 0,
-        format: 'JSONEachRow',
-        clickhouse_settings: { readonly: '1' },
-      })
-
-      if (result.error) {
-        return {
-          content: [
-            { type: 'text' as const, text: `Error: ${result.error.message}` },
-          ],
-          isError: true,
-        }
-      }
-
-      return {
-        content: [
-          { type: 'text' as const, text: JSON.stringify(result.data, null, 2) },
-        ],
-      }
-    }
+    async ({ hostId }) =>
+      runReadonlyQuery(
+        'SELECT name, engine, comment FROM system.databases ORDER BY name',
+        hostId
+      )
   )
 }
