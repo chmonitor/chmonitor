@@ -109,7 +109,7 @@ jobs:
         # (its tags are toolchain names, not action releases). Rust 1.100.0 does
         # not exist; #1898's grouped bump to @1.100.0 404'd the Setup Rust step.
         # Keep this pinned to a real, released stable toolchain.
-        uses: dtolnay/rust-toolchain@1.94.0
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Download pre-built WASM
         if: ${{ inputs.skip-rust }}
@@ -157,7 +157,7 @@ jobs:
 
       - name: Login to Container registry
         if: ${{ inputs.job-type == 'docker' && inputs.push-image }}
-        uses: docker/login-action@3864d6aed8ff134b2ed894ce00c87695c709c870
+        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}

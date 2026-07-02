@@ -54,7 +54,7 @@ jobs:
             image=moby/buildkit:latest
 
       - name: Login to Container registry
-        uses: docker/login-action@3864d6aed8ff134b2ed894ce00c87695c709c870
+        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -97,7 +97,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Login to Container registry
-        uses: docker/login-action@3864d6aed8ff134b2ed894ce00c87695c709c870
+        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -196,7 +196,7 @@ jobs:
           echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
 
       - name: Login to Container registry
-        uses: docker/login-action@3864d6aed8ff134b2ed894ce00c87695c709c870
+        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
