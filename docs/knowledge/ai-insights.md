@@ -149,6 +149,17 @@ Files: `clickhouse-store.ts`, `d1-store.ts`, `postgres-store.ts`,
 - **Manual**: `POST /api/v1/insights/generate?host=<id>` (the panel's Refresh
   button), optionally carrying the user's config (see below).
 
+**Server-side regeneration throttle.** The collect pipeline runs ~10 ClickHouse
+scans per call, so `generateInsights` enforces a min-interval floor
+(`INSIGHTS_MIN_REGEN_INTERVAL_MS`, 5 min): when the store already holds an
+`ai-insight` finding newer than the window it returns the stored set (via
+`readInsights`) instead of re-scanning. Auto-generate-on-mount and the cron sweep
+are throttled; the explicit manual Refresh passes `force=true` (query param →
+`generateInsights(..., { force })`) to bypass it for an immediate refresh. Client
+wiring: `generateParamsFromSettings(host, settings, { force })`, and the
+`useInsights` `generateMutation` takes `{ force }` (auto effect `false`, exposed
+`generate()`/preview `true`).
+
 ## Configuration (per-user)
 
 Insight generation is configurable per-user, persisted client-side (localStorage,
@@ -168,10 +179,12 @@ validated server-side** — omitting them reproduces the original behavior.
   (`getModelRegistry()` + `isProviderConfigured`); an unknown/unconfigured id
   falls back to the deployment default (`DEFAULT_MODEL`).
 - **Generate API params** — `POST /api/v1/insights/generate` accepts
-  `enrich` (`false` skips LLM), `model` (`provider:model`), `promptStyle`. The
-  read endpoint (`GET /api/v1/insights`) takes `since` = the chosen window.
+  `enrich` (`false` skips LLM), `model` (`provider:model`), `promptStyle`, and
+  `force` (`true` bypasses the regeneration throttle). The read endpoint
+  (`GET /api/v1/insights`) takes `since` = the chosen window.
 - `enrichInsights(candidates, { model, promptStyle })` /
-  `generateInsights(hostId, { enrich, model, promptStyle })` thread the overrides.
+  `generateInsights(hostId, { enrich, model, promptStyle, force })` thread the
+  overrides.
 
 ## Settings page
 

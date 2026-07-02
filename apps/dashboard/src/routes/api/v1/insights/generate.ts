@@ -15,6 +15,9 @@
  * - model (optional): `provider:model` id for enrichment; validated server-side,
  *   ignored when unknown/unconfigured (falls back to the deployment default)
  * - promptStyle (optional): "concise" | "detailed" | "beginner" (default concise)
+ * - force (optional): "true" bypasses the server-side min-interval regeneration
+ *   throttle (the explicit manual "Refresh"); otherwise a fresh set within the
+ *   throttle window returns the stored insights without re-running the scans
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -61,11 +64,15 @@ async function handlePost(request: Request): Promise<Response> {
     const promptStyle = isInsightPromptStyle(styleParam)
       ? styleParam
       : undefined
+    // Explicit manual "Refresh" passes force=true to bypass the server-side
+    // min-interval throttle in generateInsights; auto/cron triggers omit it.
+    const force = searchParams.get('force') === 'true'
 
     const insights = await generateInsights(hostId, {
       enrich,
       model,
       promptStyle,
+      force,
     })
 
     return Response.json(

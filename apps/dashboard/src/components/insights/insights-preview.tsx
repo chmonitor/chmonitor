@@ -41,7 +41,10 @@ export function InsightsPreview({
 
   const preview = useMutation({
     mutationFn: async (): Promise<PreviewResponse> => {
-      const params = generateParamsFromSettings(hostId, settings)
+      // Explicit "Regenerate example" click → force past the server throttle.
+      const params = generateParamsFromSettings(hostId, settings, {
+        force: true,
+      })
       const res = await apiFetch(`/api/v1/insights/generate?${params}`, {
         method: 'POST',
       })

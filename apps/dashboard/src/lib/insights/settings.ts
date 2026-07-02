@@ -106,10 +106,15 @@ export function sanitizeInsightsSettings(
  * Build the query string for `POST /api/v1/insights/generate` from settings.
  * Only includes parameters that differ from the server default, keeping URLs
  * clean and letting the server apply its own defaults when omitted.
+ *
+ * `force` maps to the `force=true` param that bypasses the server-side
+ * min-interval regeneration throttle. Pass it for an explicit user "Refresh";
+ * omit it for auto/background generation so the throttle can short-circuit.
  */
 export function generateParamsFromSettings(
   hostId: number,
-  settings: InsightsSettings
+  settings: InsightsSettings,
+  opts: { force?: boolean } = {}
 ): string {
   const params = new URLSearchParams({ host: String(hostId) })
   if (!settings.enrich) {
@@ -120,5 +125,6 @@ export function generateParamsFromSettings(
       params.set('promptStyle', settings.promptStyle)
     }
   }
+  if (opts.force) params.set('force', 'true')
   return params.toString()
 }
