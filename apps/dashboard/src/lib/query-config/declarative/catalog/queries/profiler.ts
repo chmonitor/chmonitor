@@ -20,8 +20,10 @@ export const profilerDeclarative: DeclarativeQueryConfig = {
       output_rows,
       output_bytes,
       formatReadableQuantity(input_rows) as readable_input_rows,
+      round(input_rows * 100.0 / nullIf(max(input_rows) OVER (), 0), 2) as pct_input_rows,
       formatReadableSize(input_bytes) as readable_input_bytes,
       formatReadableQuantity(output_rows) as readable_output_rows,
+      round(output_rows * 100.0 / nullIf(max(output_rows) OVER (), 0), 2) as pct_output_rows,
       formatReadableSize(output_bytes) as readable_output_bytes,
       round(elapsed_us / 1000, 2) as elapsed_ms,
       event_time

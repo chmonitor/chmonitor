@@ -17,8 +17,11 @@ export const parallelizationDeclarative: DeclarativeQueryConfig = {
       max(peak_memory_usage) as max_peak_memory,
       sum(memory_usage) as total_memory,
       formatReadableQuantity(total_read_rows) as readable_total_read_rows,
+      round(total_read_rows * 100.0 / nullIf(max(total_read_rows) OVER (), 0), 2) as pct_total_read_rows,
       formatReadableSize(total_read_bytes) as readable_total_read_bytes,
+      round(total_read_bytes * 100.0 / nullIf(max(total_read_bytes) OVER (), 0), 2) as pct_total_read_bytes,
       formatReadableSize(max_peak_memory) as readable_max_peak_memory,
+      round(max_peak_memory * 100.0 / nullIf(max(max_peak_memory) OVER (), 0), 2) as pct_max_peak_memory,
       formatReadableSize(total_memory) as readable_total_memory,
       min(event_time) as event_time
     FROM system.query_thread_log

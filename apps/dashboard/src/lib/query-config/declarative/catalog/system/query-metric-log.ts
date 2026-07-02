@@ -48,9 +48,9 @@ export const queryMetricLogDeclarative: DeclarativeQueryConfig = {
         query_id,
         last_event_time AS event_time,
         formatReadableSize(memory_usage) AS readable_memory,
-        round(memory_usage * 100.0 / nullIf(max(memory_usage) OVER (), 0), 2) AS pct_readable_memory,
+        round(memory_usage * 100.0 / nullIf(max(memory_usage) OVER (), 0), 2) AS pct_memory,
         formatReadableSize(peak_memory_usage) AS readable_peak_memory,
-        round(peak_memory_usage * 100.0 / nullIf(max(peak_memory_usage) OVER (), 0), 2) AS pct_readable_peak_memory,
+        round(peak_memory_usage * 100.0 / nullIf(max(peak_memory_usage) OVER (), 0), 2) AS pct_peak_memory,
         selected_rows,
         real_time_us,
         cpu_time_us

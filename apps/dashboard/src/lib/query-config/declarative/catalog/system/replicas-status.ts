@@ -18,7 +18,10 @@ export const clustersReplicasStatusDeclarative: DeclarativeQueryConfig = {
           (100 * total_bytes / nullIf(max(total_bytes) OVER (), 0)) AS pct_total_bytes,
 
           countDistinct(database) AS database_count,
+          (100 * database_count / nullIf(max(database_count) OVER (), 0)) AS pct_database_count,
+
           countDistinct(database || table) AS table_count,
+          (100 * table_count / nullIf(max(table_count) OVER (), 0)) AS pct_table_count,
 
           countIf(active) as active_part_count,
           (100 * active_part_count / nullIf(max(active_part_count) OVER (), 0)) AS pct_active_part_count,
@@ -84,7 +87,10 @@ export const replicaTablesDeclarative: DeclarativeQueryConfig = {
           (100 * total_bytes / nullIf(max(total_bytes) OVER (), 0)) AS pct_total_bytes,
 
           countDistinct(database) AS database_count,
+          (100 * database_count / nullIf(max(database_count) OVER (), 0)) AS pct_database_count,
+
           countDistinct(database || table) AS table_count,
+          (100 * table_count / nullIf(max(table_count) OVER (), 0)) AS pct_table_count,
 
           countIf(active) as active_part_count,
           (100 * active_part_count / nullIf(max(active_part_count) OVER (), 0)) AS pct_active_part_count,
