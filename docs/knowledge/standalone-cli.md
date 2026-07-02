@@ -16,7 +16,7 @@ related:
 
 # Standalone chmonitor CLI (Rust)
 
-`tools/ch-monitor-cli` provides a standalone CLI that talks to the existing API.
+`rust/ch-monitor-cli` provides a standalone CLI that talks to the existing API.
 
 ## Config Loading
 
@@ -36,10 +36,10 @@ default_chart = "query-count"
 ## Commands
 
 ```bash
-cargo run --manifest-path tools/ch-monitor-cli/Cargo.toml -- hosts
-cargo run --manifest-path tools/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
-cargo run --manifest-path tools/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
-cargo run --manifest-path tools/ch-monitor-cli/Cargo.toml -- tui query-count
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- hosts
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui query-count
 ```
 
 ## API Key Support

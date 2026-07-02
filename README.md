@@ -1,6 +1,7 @@
 # chmonitor Dashboard
 
 [![Build and Test](https://github.com/chmonitor/chmonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/chmonitor/chmonitor/actions/workflows/ci.yml)
+<!-- NOTE: this uptime badge still uses the pre-rebrand `clickhouse-monitoring-vercel-app` slug and may be stale; verify against the live uptime source before relying on it. -->
 [![All-time uptime](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduyet%2Fuptime%2FHEAD%2Fapi%2Fclickhouse-monitoring-vercel-app%2Fuptime.json)](https://duyet.github.io/uptime/history/clickhouse-monitoring-vercel-app)
 [![Latest release](https://img.shields.io/github/v/release/chmonitor/chmonitor?sort=semver&label=release)](https://github.com/chmonitor/chmonitor/releases)
 [![Docker image](https://img.shields.io/badge/ghcr.io-chmonitor%2Fchmonitor-2496ED?logo=docker&logoColor=white)](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor)
@@ -59,7 +60,7 @@ chmonitor is **self-hosted** — run it next to your ClickHouse with the same
 - **[Docker](#docker)** — one `docker run`; the fastest path to a live dashboard.
 - **[Cloudflare Workers](#cloudflare-workers)** — global edge deploy (how the
   demo at [dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github) runs).
-- **[One-click templates](docs/content/deploy/one-click.mdx)** — Railway, Render, Fly.io.
+- **[One-click templates](docs/content/operate/deploy/one-click.mdx)** — Railway, Render, Fly.io.
 - **[Kubernetes (Helm)](https://docs.chmonitor.dev/deploy/k8s)** — for clusters.
 
 Prefer to look before you install? Try the live demo above — no setup required.
@@ -243,10 +244,10 @@ plus a short list of what you changed:
     - [Vercel](https://docs.chmonitor.dev/deploy/vercel)
     - [Docker](https://docs.chmonitor.dev/deploy/docker)
     - [Kubernetes Helm Chart](https://docs.chmonitor.dev/deploy/k8s)
-    - [One-Click Deploy](docs/content/deploy/one-click.mdx) — Railway / Render / Fly.io community templates
+    - [One-Click Deploy](docs/content/operate/deploy/one-click.mdx) — Railway / Render / Fly.io community templates
   - [Advanced](https://docs.chmonitor.dev/advanced)
-    - [Telemetry](docs/content/advanced/telemetry.mdx) — opt-in, privacy-first usage metrics (off by default)
-    - [Editions](docs/content/advanced/editions.mdx) — open-core model: GPL-3.0 community is free forever; enterprise features gated by `CHM_EDITION`
+    - [Telemetry](docs/content/operate/advanced/telemetry.mdx) — opt-in, privacy-first usage metrics (off by default)
+    - [Editions](docs/content/operate/advanced/editions.mdx) — open-core model: GPL-3.0 community is free forever; enterprise features gated by `CHM_EDITION`
   - [Reference](https://docs.chmonitor.dev/reference)
     - [Platform Support Matrix](docs/content/reference/support-matrix.mdx) — ClickHouse versions and distributions (supported / best-effort / untested)
     - [Connection Presets](docs/content/reference/connection-presets.mdx) — least-privilege read-only user setup for ClickHouse OSS, Altinity, and Cloud

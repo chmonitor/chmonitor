@@ -32,10 +32,10 @@ Benchmark evidence from PR #1021 showed:
 
 ## How to Apply
 
-- Re-run `bun run bench:wasm` after changing `rust/monitor-core`, `lib/wasm/monitor-core.ts`, or `scripts/bench-wasm.ts`
+- Re-run `bun run scripts/bench-wasm.ts` after changing `rust/monitor-core`, `packages/clickhouse-client/src/wasm/monitor-core.ts`, or `scripts/bench-wasm.ts`
 - Keep the promotion threshold at 1.20x
 - Preserve lazy loading for the WASM bundle — do not add it to default dashboard or client bundles
-- For `tools/ch-monitor-cli`, keep TUI refresh cadence bounded (one chart fetch every 5s)
+- For `rust/ch-monitor-cli`, keep TUI refresh cadence bounded (one chart fetch every 5s)
 
 ## Latest Benchmark (May 1, 2026)
 
@@ -51,5 +51,5 @@ Benchmark evidence from PR #1021 showed:
 - `scripts/bench-wasm.ts` — benchmark runner
 - `scripts/build-wasm.ts` — WASM build script
 - `rust/monitor-core` — Rust source
-- `lib/wasm/monitor-core.ts` — JS bindings
-- `lib/wasm/generated/monitor_core_bg.wasm` — compiled WASM
+- `packages/clickhouse-client/src/wasm/monitor-core.ts` — JS bindings
+- `packages/clickhouse-client/src/wasm/generated/monitor_core_bg.wasm` — compiled WASM
