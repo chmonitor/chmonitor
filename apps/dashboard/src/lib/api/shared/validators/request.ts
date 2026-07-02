@@ -8,9 +8,9 @@
 
 import type { ApiError, ApiRequest } from '@/lib/api/types'
 
-import { VALID_INTERVALS } from '@chm/types/clickhouse-interval'
 import { validateFormat } from './format'
 import { validateHostIdWithError } from './host-id'
+import { VALID_INTERVALS } from '@chm/types'
 import { ApiErrorType } from '@/lib/api/types'
 
 /**
