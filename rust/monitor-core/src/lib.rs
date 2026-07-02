@@ -35,9 +35,13 @@ pub fn transform_user_event_counts_v3(
 /// Legacy export returning JSON string (kept for backward compat).
 #[wasm_bindgen]
 pub fn transform_user_event_counts_json(input: &str, time_field: &str) -> String {
+    // On parse/serialize failure return a valid JSON object ("{}") instead of an
+    // empty string, which is not valid JSON. The successful output is an object
+    // (`{ data, users, chartData }`), so an empty object matches that shape and
+    // lets callers `JSON.parse` the result without a syntax error.
     ch_pivot::transform_user_event_counts(input, time_field)
         .and_then(|result| serde_json::to_string(&result))
-        .unwrap_or_default()
+        .unwrap_or_else(|_| "{}".to_string())
 }
 
 #[cfg(test)]
