@@ -74,20 +74,30 @@ fn transform(rows: Vec<Row>, time_field: &str) -> Output {
 }
 
 fn main() {
+    if let Err(err) = run() {
+        eprintln!("{err}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut payload: Value = serde_json::from_str(&input).expect("invalid json payload");
+    io::stdin().read_to_string(&mut input)?;
+    let mut payload: Value =
+        serde_json::from_str(&input).map_err(|e| format!("invalid json payload: {e}"))?;
 
     let data_val = payload.get_mut("data").map(|v| v.take());
     let rows: Vec<Row> = serde_json::from_value(data_val.unwrap_or(Value::Array(vec![])))
-        .expect("data must be array");
+        .map_err(|e| format!("data must be array: {e}"))?;
     let time_field = payload
         .get("timeField")
         .and_then(|v| v.as_str())
         .unwrap_or("event_time");
 
     let out = transform(rows, time_field);
-    println!("{}", serde_json::to_string(&out).unwrap());
+    println!("{}", serde_json::to_string(&out)?);
+
+    Ok(())
 }
 
 #[cfg(test)]
