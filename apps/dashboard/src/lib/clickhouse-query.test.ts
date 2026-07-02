@@ -228,12 +228,12 @@ describe('withQueryParams', () => {
 
   test('escapes single quotes in string values', () => {
     const result = withQueryParams('SELECT {s:String}', { s: "O'Brien" })
-    expect(result).toBe("SET param_s='O\\'Brien';\nSELECT {s:String}")
+    expect(result).toBe("SET param_s='O''Brien';\nSELECT {s:String}")
   })
 
   test('escapes multiple single quotes in string values', () => {
     const result = withQueryParams('SELECT {s:String}', { s: "it's a 'test'" })
-    expect(result).toBe("SET param_s='it\\'s a \\'test\\'';\nSELECT {s:String}")
+    expect(result).toBe("SET param_s='it''s a ''test''';\nSELECT {s:String}")
   })
 
   test('serialises boolean true as 1', () => {
