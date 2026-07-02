@@ -121,12 +121,13 @@ describe('analyzeDataForLogScale', () => {
   test('all values zero or negative — maxValue reflects actual max, no log scale', () => {
     const data = [{ v: 0 }, { v: -5 }, { v: -1 }]
     const result = analyzeDataForLogScale(data, ['v'])
-    // minPositive stays Infinity → first branch triggers
+    // minPositive stays Infinity → edge-case branch triggers
     expect(result.shouldUseLog).toBe(false)
     expect(result.minValue).toBe(0)
     expect(result.maxValue).toBe(0)
     expect(result.ratio).toBe(1)
-    expect(result.hasZeroOrNegative).toBe(false) // first branch returns this
+    // The loop set hasZeroOrNegative=true; the edge-case branch now reports it
+    expect(result.hasZeroOrNegative).toBe(true)
   })
 
   test('multiple categories are all analyzed', () => {
