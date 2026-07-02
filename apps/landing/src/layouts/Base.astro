@@ -255,11 +255,25 @@ const ogImage = new URL(image, Astro.site).toString()
 
     /* ── hero ── */
     .hero{padding:52px 0 72px;text-align:center;position:relative;overflow:hidden}
+    /* static CSS fallback: shows before the shader island hydrates and whenever
+       WebGL is unavailable (the shader renders nothing then). */
     .hero::before{content:"";position:absolute;inset:0;z-index:-1;
       background:
         radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249,115,22,.14), transparent 65%),
         radial-gradient(ellipse 60% 40% at 80% 10%, rgba(245,158,11,.08), transparent 55%),
         radial-gradient(ellipse 50% 35% at 15% 20%, rgba(16,185,129,.05), transparent 50%);}
+    /* animated shader island (Paper Design MeshGradient) sits above the CSS
+       fallback but below the hero content. A radial mask fades it OUT of the
+       center so the headline/subhead/CTAs stay fully legible. pointer-events
+       are off so it never intercepts clicks. */
+    .hero-shader{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
+      -webkit-mask-image:radial-gradient(ellipse 78% 72% at 50% 34%, transparent 0%, rgba(0,0,0,.4) 46%, #000 82%);
+      mask-image:radial-gradient(ellipse 78% 72% at 50% 34%, transparent 0%, rgba(0,0,0,.4) 46%, #000 82%);}
+    .hero-shader canvas{display:block;width:100%;height:100%}
+    :root[data-theme="dark"] .hero-shader{opacity:.62}
+    @media (prefers-reduced-motion:reduce){.hero-shader{opacity:.42}}
+    /* hero content must layer above the shader */
+    .hero > .wrap,.hero > .gallery-strip{position:relative;z-index:1}
     .pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 11px;border:1px solid var(--border);
       border-radius:999px;font-size:12.5px;font-weight:500;color:var(--fg-soft);background:var(--card);box-shadow:var(--shadow-card);white-space:nowrap}
     .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 3px rgba(16,185,129,.16)}

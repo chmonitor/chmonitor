@@ -1,4 +1,6 @@
 ---
+import HeroShader from './HeroShader.tsx'
+
 const galleryCards = [
   { tab: 'Overview', src: '/landing-assets/hero-overview.png', alt: 'chmonitor cluster overview' },
   { tab: 'Cluster Topology', src: '/landing-assets/hero-topology.png', alt: 'chmonitor cluster topology' },
@@ -13,6 +15,7 @@ const galleryCards = [
 ]
 ---
 <section class="hero">
+  <HeroShader client:visible />
   <div class="wrap">
     <span class="pill"><span class="dot"></span> Open source <a class="tag" href="https://github.com/chmonitor/chmonitor/blob/main/LICENSE" target="_blank" rel="noopener" style="color:inherit">· GPL-3.0</a></span>
     <h1 class="hero-title">
