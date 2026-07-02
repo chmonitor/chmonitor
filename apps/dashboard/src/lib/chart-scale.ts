@@ -47,25 +47,16 @@ export function analyzeDataForLogScale(
     }
   }
 
-  // Handle edge cases
+  // Handle edge cases: no positive values (all zero/negative) or no numeric
+  // values at all. Report the actual accumulated hasZeroOrNegative so all-zero/
+  // negative input is not mislabelled as false.
   if (minPositive === Infinity || maxValue === -Infinity) {
     return {
       shouldUseLog: false,
       minValue: 0,
       maxValue: 0,
       ratio: 1,
-      hasZeroOrNegative: false,
-    }
-  }
-
-  // If all values are zero or negative, don't use log scale
-  if (minPositive === Infinity) {
-    return {
-      shouldUseLog: false,
-      minValue: 0,
-      maxValue,
-      ratio: 1,
-      hasZeroOrNegative: true,
+      hasZeroOrNegative,
     }
   }
 
