@@ -1,4 +1,4 @@
-import type { Row } from '@tanstack/react-table'
+import type { Row, RowData } from '@tanstack/react-table'
 
 import {
   Accordion,
@@ -13,19 +13,21 @@ export interface CodeToggleOptions {
   hide_query_comment?: boolean
 }
 
-interface CodeToggleFormatProps {
-  row: Row<any>
+interface CodeToggleFormatProps<TData extends RowData = RowData> {
+  row: Row<TData>
   value: string
   options?: CodeToggleOptions
 }
 
 const CODE_TRUNCATE_LENGTH = 50
 
-export const CodeToggleFormat = function CodeToggleFormat({
+export const CodeToggleFormat = function CodeToggleFormat<
+  TData extends RowData = RowData,
+>({
   row,
   value,
   options,
-}: CodeToggleFormatProps): React.ReactNode {
+}: CodeToggleFormatProps<TData>): React.ReactNode {
   const truncate_length = options?.max_truncate || CODE_TRUNCATE_LENGTH
 
   const handleValueChange = (accordionValue: string) => {

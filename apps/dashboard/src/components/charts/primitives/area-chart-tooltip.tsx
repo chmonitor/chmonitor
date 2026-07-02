@@ -4,8 +4,6 @@
  * Provides standard and breakdown tooltip variants.
  */
 
-import type { DefaultTooltipContentProps } from 'recharts'
-
 import type { ChartConfig } from '@/components/ui/chart'
 
 import { BreakdownSection } from './tooltip-breakdown-section'
@@ -13,9 +11,8 @@ import { parseBreakdownData } from './tooltip-data-parser'
 import { StandardTooltipRow, SummaryRow } from './tooltip-row'
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
-type TooltipPayload = NonNullable<
-  DefaultTooltipContentProps<any, any>['payload']
->
+/** Raw data row backing a tooltip (Recharts passes the row object as `payload`). */
+type TooltipDataRecord = Record<string, unknown>
 
 export interface RenderChartTooltipOptions {
   breakdown?: string
@@ -68,7 +65,7 @@ function renderStandardTooltip(chartConfig: ChartConfig) {
       content={
         <ChartTooltipContent
           className="max-w-[300px] [font-variant-numeric:tabular-nums]"
-          formatter={(value, name, item, index, _payload: TooltipPayload) => {
+          formatter={(value, name, item, index) => {
             return (
               <StandardTooltipRow
                 key={`${name}${index}`}
@@ -106,13 +103,13 @@ function renderBreakdownTooltip({
       content={
         <ChartTooltipContent
           className="max-w-[320px] [font-variant-numeric:tabular-nums]"
-          formatter={(value, name, item, _index, payload: any) => {
+          formatter={(value, name, item, _index, payload) => {
             return (
               <BreakdownTooltipContent
                 name={name as string}
                 value={value}
                 item={item}
-                payload={payload}
+                payload={payload as unknown as TooltipDataRecord}
                 breakdown={breakdown}
                 breakdownLabel={breakdownLabel}
                 breakdownValue={breakdownValue}
@@ -143,9 +140,9 @@ function BreakdownTooltipContent({
   chartConfig,
 }: {
   name: string
-  value: any
-  item: any
-  payload: any
+  value: unknown
+  item: unknown
+  payload: TooltipDataRecord
   breakdown?: string
   breakdownLabel?: string
   breakdownValue?: string
@@ -153,7 +150,7 @@ function BreakdownTooltipContent({
   chartConfig: ChartConfig
 }) {
   const breakdownDataMap = parseBreakdownData(
-    payload[breakdown as keyof typeof payload] as Array<any>,
+    payload[breakdown as string] as Array<unknown>,
     breakdownLabel,
     breakdownValue
   )

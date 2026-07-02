@@ -1,4 +1,4 @@
-import type { Row } from '@tanstack/react-table'
+import type { Row, RowData } from '@tanstack/react-table'
 
 import {
   HoverCard,
@@ -13,22 +13,24 @@ export type HoverCardOptions = {
   content: HoverCardContent
 }
 
-interface HoverCardProps {
-  row: Row<any>
+interface HoverCardProps<TData extends RowData = RowData> {
+  row: Row<TData>
   value: React.ReactNode
   options?: HoverCardOptions
 }
 
-export const HoverCardFormat = function HoverCardFormat({
+export const HoverCardFormat = function HoverCardFormat<
+  TData extends RowData = RowData,
+>({
   row,
   value,
   options,
-}: HoverCardProps): React.ReactNode {
+}: HoverCardProps<TData>): React.ReactNode {
   const { content } = options || {}
 
   // Extract row data for template replacement
   // Uses row.getValue() for each column to get the value
-  const rowData = extractRowData(content, row)
+  const rowData = extractRowData(content, row as Row<unknown>)
 
   // Content replacement, e.g. "Hover content: [column_name]"
   const processedContent = replaceTemplateInReactNode(content, rowData)
