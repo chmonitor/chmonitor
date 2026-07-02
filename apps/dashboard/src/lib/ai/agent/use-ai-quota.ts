@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { visibilityAwareInterval } from '@/lib/swr/config'
 
 export interface AiQuota {
   /** Messages already sent today. */
@@ -113,7 +114,7 @@ export function useAiQuota(): UseAiQuotaResult {
     staleTime: 30_000,
     // Poll gently so the indicator ticks down as the user sends messages,
     // without hammering the endpoint.
-    refetchInterval: 60_000,
+    refetchInterval: visibilityAwareInterval(60_000),
     refetchOnWindowFocus: true,
     // The endpoint may not exist yet (sibling slice) or the session cookie may
     // be briefly stale — do not spam retries; a single miss just hides it.

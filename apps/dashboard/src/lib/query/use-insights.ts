@@ -28,7 +28,7 @@ import {
 import { generateParamsFromSettings } from '@/lib/insights/settings'
 import { useInsightsSettings } from '@/lib/query/use-insights-settings'
 import { apiFetch } from '@/lib/swr/api-fetch'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
+import { REFRESH_INTERVAL, visibilityAwareInterval } from '@/lib/swr/config'
 
 interface InsightsResponse {
   insights: InsightCard[]
@@ -69,7 +69,7 @@ export function useInsights(hostId: number): UseInsightsResult {
       if (!res.ok) throw new Error('Failed to fetch insights')
       return res.json()
     },
-    refetchInterval: REFRESH_INTERVAL.SLOW_2M,
+    refetchInterval: visibilityAwareInterval(REFRESH_INTERVAL.SLOW_2M),
     staleTime: 60_000,
     retry: 1,
   })

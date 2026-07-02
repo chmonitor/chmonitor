@@ -25,7 +25,7 @@ import {
   filterActiveNotifications,
   getNotificationKey,
 } from '@/lib/notifications/dismissed-notifications'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
+import { REFRESH_INTERVAL, visibilityAwareInterval } from '@/lib/swr/config'
 
 // Extended notification with required key for UI
 export interface NotificationWithKey extends Omit<Notification, 'key'> {
@@ -78,7 +78,7 @@ export function useNotifications(hostId: number): NotificationsResult {
       }
       return res.json()
     },
-    refetchInterval: REFRESH_INTERVAL.MEDIUM_30S,
+    refetchInterval: visibilityAwareInterval(REFRESH_INTERVAL.MEDIUM_30S),
     staleTime: 15_000, // 15 seconds deduping
     refetchOnWindowFocus: true, // Revalidate on focus for critical metrics
     refetchOnReconnect: true, // Revalidate on reconnect

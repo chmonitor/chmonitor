@@ -13,7 +13,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from '@/lib/swr/api-fetch'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
+import { REFRESH_INTERVAL, visibilityAwareInterval } from '@/lib/swr/config'
 
 interface TableAvailabilityResponse {
   success: boolean
@@ -43,7 +43,7 @@ export function useTableAvailability(hostId: number): {
       }
       return res.json()
     },
-    refetchInterval: REFRESH_INTERVAL.SLOW_2M,
+    refetchInterval: visibilityAwareInterval(REFRESH_INTERVAL.SLOW_2M),
     staleTime: 60_000, // 1 minute deduping
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

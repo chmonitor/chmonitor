@@ -11,7 +11,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
+import { REFRESH_INTERVAL, visibilityAwareInterval } from '@/lib/swr/config'
 
 interface ClusterCountResult {
   count: number | null
@@ -60,7 +60,7 @@ export function useClusterCount(
       return res.json()
     },
     enabled: Boolean(countKey && cluster),
-    refetchInterval: REFRESH_INTERVAL.MEDIUM_30S,
+    refetchInterval: visibilityAwareInterval(REFRESH_INTERVAL.MEDIUM_30S),
     staleTime: 15_000, // 15 seconds deduping
     refetchOnWindowFocus: true, // Revalidate on focus for critical metrics
     refetchOnReconnect: true, // Revalidate on reconnect
