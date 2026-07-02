@@ -15,6 +15,7 @@ mock.module('@chm/logger', () => ({
   debug: mock(() => {}),
   error: mock(() => {}),
   warn: mock(() => {}),
+  isDebugEnabled: mock(() => false),
 }))
 
 // Mock the cloudflare-workers runtime detection

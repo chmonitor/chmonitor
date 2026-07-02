@@ -5,6 +5,7 @@ mock.module('@chm/logger', () => ({
   debug: mock(() => {}),
   error: mock(() => {}),
   warn: mock(() => {}),
+  isDebugEnabled: mock(() => false),
 }))
 
 const { clickhouseEnvSchema, validateClickHouseEnv, _resetEnvCache } =

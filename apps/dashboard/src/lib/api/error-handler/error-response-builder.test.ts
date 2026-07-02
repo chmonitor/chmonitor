@@ -26,6 +26,7 @@ mock.module('@chm/logger', () => ({
   warn: () => {},
   log: () => {},
   debug: () => {},
+  isDebugEnabled: () => false,
 }))
 
 import {

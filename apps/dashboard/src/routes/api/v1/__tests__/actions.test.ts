@@ -45,6 +45,7 @@ mock.module('@/lib/api/server-env', () => ({
 mock.module('@chm/logger', () => ({
   ErrorLogger: { logError: mock(() => undefined) },
   log: mock(() => undefined),
+  isDebugEnabled: mock(() => false),
 }))
 
 // Mutable mock so each test can configure its own behavior

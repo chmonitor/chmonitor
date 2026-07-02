@@ -26,6 +26,13 @@ const isDevelopment =
 const debugEnabled =
   typeof process !== 'undefined' && process.env?.DEBUG === 'true'
 
+/**
+ * Whether debug/info logging is active (development or DEBUG=true).
+ * Exposed so callers can guard expensive work (e.g. serialization) that is
+ * only needed to build debug log payloads, avoiding it entirely in production.
+ */
+export const isDebugEnabled = (): boolean => isDevelopment || debugEnabled
+
 // ============================================================================
 // Types
 // ============================================================================

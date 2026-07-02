@@ -4,7 +4,15 @@
 
 import type { QueryConfigLike } from '@chm/sql-builder'
 
-import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
+import {
+  afterAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 
 // Mock dependencies — all mock.module calls are hoisted by bun before imports.
 // We use dynamic import (await import) instead of static import to guarantee
@@ -13,11 +21,13 @@ import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 const mockDebug = mock(() => {})
 const mockError = mock(() => {})
 const mockWarn = mock(() => {})
+const mockIsDebugEnabled = mock(() => false)
 
 mock.module('@chm/logger', () => ({
   debug: mockDebug,
   error: mockError,
   warn: mockWarn,
+  isDebugEnabled: mockIsDebugEnabled,
 }))
 
 // Mock @clickhouse/client and @clickhouse/client-web at the package level so
@@ -175,6 +185,25 @@ describe('clickhouse-fetch', () => {
         expect(result.metadata.rawResponseLength).toBeGreaterThan(0)
         expect(result.metadata.rawResponsePreview).toBeDefined()
         expect(result.error).toBeUndefined()
+      })
+
+      it('does not JSON.stringify the result set when debug is disabled', async () => {
+        // isDebugEnabled() is mocked false (simulating DEBUG unset / prod).
+        const mockData = [{ big: 'payload' }]
+        mockResultSetJson.mockResolvedValue(mockData)
+
+        const stringifySpy = spyOn(JSON, 'stringify')
+        try {
+          const result = await fetchData(defaultParams)
+          // The parsed result set must never be serialized while debug is off
+          // and the lazy rawResponse* getters are untouched.
+          const serializedResultSet = stringifySpy.mock.calls.some(
+            (call) => call[0] === result.data
+          )
+          expect(serializedResultSet).toBe(false)
+        } finally {
+          stringifySpy.mockRestore()
+        }
       })
 
       it('should handle array data', async () => {

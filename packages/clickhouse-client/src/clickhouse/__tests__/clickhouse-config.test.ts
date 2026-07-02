@@ -1,10 +1,16 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 // Mock logger so tests don't pollute stdout
+const mockDebug = mock(() => {})
+// Simulate DEBUG unset / production: the redaction + debug logging blocks in
+// getClickHouseConfigs() are guarded behind isDebugEnabled().
+const mockIsDebugEnabled = mock(() => false)
+
 mock.module('@chm/logger', () => ({
-  debug: mock(() => {}),
+  debug: mockDebug,
   error: mock(() => {}),
   warn: mock(() => {}),
+  isDebugEnabled: mockIsDebugEnabled,
 }))
 
 // _resetEnvCache is re-exported from clickhouse-config so it resets the SAME
@@ -170,6 +176,48 @@ describe('getClickHouseConfigs', () => {
 
     const configs = getClickHouseConfigs()
     expect(configs.map((c) => c.id)).toEqual([0, 1, 2])
+  })
+
+  it('memoizes the parsed configs across calls (same reference)', () => {
+    process.env.CLICKHOUSE_HOST = 'host1,host2'
+
+    const first = getClickHouseConfigs()
+    const second = getClickHouseConfigs()
+    // Memoized: parsing runs once, later calls return the same array instance.
+    expect(second).toBe(first)
+  })
+
+  it('_resetEnvCache re-parses configs from the current env', () => {
+    process.env.CLICKHOUSE_HOST = 'host1'
+    const first = getClickHouseConfigs()
+    expect(first.map((c) => c.host)).toEqual(['host1'])
+
+    // Without a reset, a changed env is ignored (still memoized).
+    process.env.CLICKHOUSE_HOST = 'host2,host3'
+    expect(getClickHouseConfigs()).toBe(first)
+
+    // After reset, the new env is parsed fresh.
+    _resetEnvCache()
+    const reparsed = getClickHouseConfigs()
+    expect(reparsed).not.toBe(first)
+    expect(reparsed.map((c) => c.host)).toEqual(['host2', 'host3'])
+  })
+
+  it('does not redact host credentials or debug-log when debug is disabled', () => {
+    process.env.CLICKHOUSE_HOST = 'http://admin:secret@clickhouse.prod:8123'
+
+    mockDebug.mockClear()
+    getClickHouseConfigs()
+
+    // isDebugEnabled() is false, so the credential-redaction debug blocks are
+    // skipped — no URL parsing/redaction work is spent on discarded log output.
+    const redactionLogged = mockDebug.mock.calls.some(
+      (call) =>
+        typeof call[0] === 'string' &&
+        (call[0].includes('CLICKHOUSE_HOST:') ||
+          call[0].startsWith('[ClickHouse Config] Host '))
+    )
+    expect(redactionLogged).toBe(false)
   })
 })
 

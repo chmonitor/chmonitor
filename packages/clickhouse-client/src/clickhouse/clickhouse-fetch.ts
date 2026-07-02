@@ -14,7 +14,7 @@ import { transformClickHouseJsonEachRowWasmJson } from '../wasm/monitor-core'
 import { getClient, releaseClient } from './clickhouse-client'
 import { getClickHouseConfigs } from './clickhouse-config'
 import { QUERY_COMMENT } from './constants'
-import { debug, error, warn } from '@chm/logger'
+import { debug, error, isDebugEnabled, warn } from '@chm/logger'
 
 type FetchJsonEachRowTextResult = FetchDataResult<never> & {
   dataJson: string | null
@@ -252,14 +252,27 @@ export const fetchData = async <
       // Use the client's json() method which handles format-specific parsing
       const data = (await resultSet.json()) as T
 
-      // For debugging: serialize the parsed data to see what we got
-      const rawText = JSON.stringify(data)
-      debug(`[fetchData] ClickHouse response (${query_id}):`, {
-        dataType: typeof data,
-        isArray: Array.isArray(data),
-        length: Array.isArray(data) ? data.length : 'N/A',
-        preview: rawText.substring(0, 500),
-      })
+      // Lazily serialize the parsed data — only needed for debug logging and the
+      // rawResponse* metadata getters below, so avoid JSON.stringify in prod.
+      let cachedRawText: string | undefined
+      const getRawText = () => {
+        if (cachedRawText === undefined) {
+          cachedRawText = JSON.stringify(data)
+        }
+        return cachedRawText
+      }
+
+      // For debugging: serialize the parsed data to see what we got. Guarded so
+      // the (potentially large) JSON.stringify never runs unless debug is on.
+      if (isDebugEnabled()) {
+        const rawText = getRawText()
+        debug(`[fetchData] ClickHouse response (${query_id}):`, {
+          dataType: typeof data,
+          isArray: Array.isArray(data),
+          length: Array.isArray(data) ? data.length : 'N/A',
+          preview: rawText.substring(0, 500),
+        })
+      }
 
       const end = new Date()
       const duration = (end.getTime() - start.getTime()) / 1000
@@ -295,14 +308,6 @@ export const fetchData = async <
         clickhouseVersion: clickhouseVersion?.raw ?? 'unknown',
         // Include the actual SQL that was executed (normalized for readability)
         sql: effectiveQuery.replace(/\s+/g, ' ').trim(),
-      }
-
-      let cachedRawText: string | undefined
-      const getRawText = () => {
-        if (cachedRawText === undefined) {
-          cachedRawText = JSON.stringify(data)
-        }
-        return cachedRawText
       }
 
       // Include raw response for debugging (lazily evaluated to avoid performance overhead)

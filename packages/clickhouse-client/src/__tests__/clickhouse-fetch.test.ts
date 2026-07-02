@@ -3,11 +3,13 @@ import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 const mockDebug = mock(() => {})
 const mockError = mock(() => {})
 const mockWarn = mock(() => {})
+const mockIsDebugEnabled = mock(() => false)
 
 mock.module('@chm/logger', () => ({
   debug: mockDebug,
   error: mockError,
   warn: mockWarn,
+  isDebugEnabled: mockIsDebugEnabled,
 }))
 
 const mockCreateClient = mock(() => ({}))

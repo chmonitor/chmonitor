@@ -3,16 +3,29 @@
  * Parses environment variables and creates ClickHouse configurations
  */
 
+import type { ClickHouseEnv } from './env-schema'
 import type { ClickHouseConfig } from './types'
 
 import { _resetEnvCache, validateClickHouseEnv } from './env-schema'
-import { debug, error } from '@chm/logger'
+import { debug, error, isDebugEnabled } from '@chm/logger'
 
 /**
  * Re-export env cache reset so tests can reset the SAME env-schema instance
- * that this module's getClickHouseConfigs() uses internally.
+ * that this module's getClickHouseConfigs() uses internally. Resetting it also
+ * invalidates the parsed-config memo below, because validateClickHouseEnv()
+ * then returns a fresh env object whose reference no longer matches _cachedEnv.
  */
 export { _resetEnvCache }
+
+/**
+ * Memoized parsed configs, keyed by the env object reference returned by
+ * validateClickHouseEnv(). Env vars don't change at runtime, so parsing once
+ * avoids re-splitting/re-building configs on every getClickHouseConfigs() call.
+ * When _resetEnvCache() runs, validateClickHouseEnv() returns a new reference on
+ * its next call, so `_cachedEnv !== env` and we re-parse automatically.
+ */
+let _cachedEnv: ClickHouseEnv | null = null
+let _cachedConfigs: ClickHouseConfig[] | null = null
 
 /**
  * Redacts username and password credentials from a ClickHouse host URL string
@@ -82,6 +95,7 @@ function splitByComma(value: string) {
 
 export const getClickHouseConfigs = (): ClickHouseConfig[] => {
   const env = validateClickHouseEnv()
+  if (_cachedConfigs && _cachedEnv === env) return _cachedConfigs
 
   const hostEnv = env.CLICKHOUSE_HOST
   const userEnv = env.CLICKHOUSE_USER
@@ -97,7 +111,9 @@ export const getClickHouseConfigs = (): ClickHouseConfig[] => {
       '[ClickHouse Config] Available env keys:',
       Object.keys(process.env).filter((k) => k.includes('CLICK'))
     )
-  } else {
+  } else if (isDebugEnabled()) {
+    // Only build the redacted host string when debug logging is active — the
+    // per-host URL redaction is otherwise discarded work in production.
     const redactedHostEnv = splitByComma(hostEnv)
       .map(redactHostCredentials)
       .join(',')
@@ -125,7 +141,7 @@ export const getClickHouseConfigs = (): ClickHouseConfig[] => {
     return []
   }
 
-  return hosts.map((host, index) => {
+  const configs = hosts.map((host, index) => {
     // User and password fallback to the first value,
     // supporting multiple hosts with the same user/password
     let user, password
@@ -145,14 +161,20 @@ export const getClickHouseConfigs = (): ClickHouseConfig[] => {
       customName: customLabels[index],
     }
 
-    debug(`[ClickHouse Config] Host ${index}:`, {
-      id: config.id,
-      host: redactHostCredentials(config.host),
-      user: config.user,
-      hasPassword: !!config.password,
-      customName: config.customName,
-    })
+    if (isDebugEnabled()) {
+      debug(`[ClickHouse Config] Host ${index}:`, {
+        id: config.id,
+        host: redactHostCredentials(config.host),
+        user: config.user,
+        hasPassword: !!config.password,
+        customName: config.customName,
+      })
+    }
 
     return config
   })
+
+  _cachedEnv = env
+  _cachedConfigs = configs
+  return configs
 }

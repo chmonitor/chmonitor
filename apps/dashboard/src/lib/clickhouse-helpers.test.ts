@@ -33,6 +33,7 @@ mock.module('@chm/logger', () => ({
       logWarningCalls.push(args)
     },
   },
+  isDebugEnabled: () => false,
 }))
 
 // ── Import AFTER mocks are registered ────────────────────────────────────

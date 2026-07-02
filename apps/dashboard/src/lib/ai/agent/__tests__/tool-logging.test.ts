@@ -23,6 +23,7 @@ mock.module('@chm/logger', () => ({
   error: (msg: string, err: unknown, ctx: unknown) => {
     errorCalls.push([msg, err, ctx])
   },
+  isDebugEnabled: () => false,
 }))
 
 const { wrapToolsWithLogging } = await import('../tool-logging')
