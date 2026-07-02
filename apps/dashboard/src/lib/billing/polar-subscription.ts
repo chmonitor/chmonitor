@@ -105,6 +105,21 @@ export function __resetPolarSubscriptionCacheForTests(): void {
 }
 
 /**
+ * Invalidate a negative-cache entry for an externalId, if one exists.
+ *
+ * Why: the webhook path (subscription.created/updated/active/...) writes the
+ * D1 cache directly and never calls pullOwnerSubscriptionFromPolar, so a
+ * negative entry recorded moments earlier (e.g. an entitlement check that ran
+ * just before checkout completed) would otherwise survive until its TTL and
+ * shadow the fresh D1 row whenever resolveOwnerSubscription's D1 read misses
+ * or races the write — gating a just-paid user as free for up to a minute.
+ * Call this from the webhook whenever a subscription becomes live/paid.
+ */
+export function invalidateNegativeCache(externalId: string): void {
+  noActiveSubUntil.delete(externalId)
+}
+
+/**
  * The owner's current paid subscription per Polar, or null when they have none
  * (free), Polar is not configured, or the call fails (caller falls back to the
  * D1 cache / free). When several active subscriptions exist, the highest plan
