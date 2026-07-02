@@ -132,6 +132,8 @@ const ogImage = new URL(image, Astro.site).toString()
     }
     *{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
+    /* keep in-page jump targets clear of the sticky 64px nav */
+    :target{scroll-margin-top:84px}
     body{
       background:var(--bg);
       color:var(--fg);
