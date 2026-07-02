@@ -151,7 +151,7 @@ describe('withQueryParams', () => {
     const result = withQueryParams('SELECT {name:String}', {
       name: "O'Brien",
     })
-    expect(result).toContain("SET param_name='O\\'Brien'")
+    expect(result).toContain("SET param_name='O''Brien'")
   })
 
   test('escapes a single backslash in string values', () => {
@@ -160,11 +160,11 @@ describe('withQueryParams', () => {
   })
 
   test('escapes a backslash immediately followed by a quote (injection case)', () => {
-    // Naive quote-doubling would let this trailing backslash "consume" the
-    // escaped quote, breaking out of the string literal. Backslash-first
-    // escaping must render "\\\'" so the literal stays closed correctly.
+    // Backslashes are escaped first (\\ -> \\\\), then single quotes are doubled
+    // ('' ), so a trailing backslash cannot "consume" the escaped quote and break
+    // out of the string literal: "evil\'; --" renders as 'evil\\''; --'.
     const result = withQueryParams('SELECT {s:String}', { s: "evil\\'; --" })
-    expect(result).toBe("SET param_s='evil\\\\\\'; --';\nSELECT {s:String}")
+    expect(result).toBe("SET param_s='evil\\\\''; --';\nSELECT {s:String}")
   })
 
   test('escapes backslashes so a trailing one cannot break out of the literal', () => {
