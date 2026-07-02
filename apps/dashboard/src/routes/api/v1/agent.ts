@@ -79,7 +79,14 @@ import { getPlanForOwner } from '@/lib/billing/user-subscription'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
-const AGENT_DEBUG_LOGS = process.env.NODE_ENV !== 'production'
+// Verbose agent request/usage logging. Opt-in via an explicit AGENT_DEBUG flag
+// rather than `NODE_ENV !== 'production'`: a self-hosted deploy that runs with
+// NODE_ENV unset would otherwise log request internals (message keys, resolved
+// user ids, usage) by default. Fails closed — off unless AGENT_DEBUG is truthy.
+const AGENT_DEBUG_LOGS = (() => {
+  const raw = process.env.AGENT_DEBUG?.trim().toLowerCase()
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on'
+})()
 
 const AGENT_MAX_REQUEST_SIZE_BYTES = 128 * 1024
 // Free / routed providers can take 20-40s between a tool call and the
@@ -489,6 +496,18 @@ async function handlePost(request: Request): Promise<Response> {
     }
   }
   const openRouterUser = `${userId}/${sessionId}`
+
+  // Tighten the coarse per-IP budget (checked at request entry) to a per-identity
+  // budget now that auth has resolved, so one signed-in account cannot fan out
+  // across many IPs to exceed its allowance. Anonymous callers keep the per-IP
+  // bucket above as their identity, so this only adds a stricter per-user gate.
+  if (userId !== 'guest') {
+    const identityRl = checkRateLimit(
+      `agent:user:${userId}`,
+      getAgentRateLimitPerMin()
+    )
+    if (!identityRl.allowed) return rateLimitResponse(identityRl.retryAfterSec)
+  }
 
   if (AGENT_DEBUG_LOGS) {
     console.log('[Agent API] OpenRouter user:', openRouterUser)

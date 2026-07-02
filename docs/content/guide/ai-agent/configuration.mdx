@@ -66,6 +66,8 @@ Extra models are appended after the built-in registry. If an extra entry shares 
 | `CHM_FEATURE_AGENT_ACCESS` | `public` | Set to `authenticated` to require login before using the agent. |
 | `AGENT_API_TOKEN` | — | Shared Bearer token accepted by `POST /api/v1/agent`. |
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | When `true`, enables `optimize_table`, `kill_query`, and `kill_mutation`. Keep off unless the ClickHouse user is trusted. |
+| `RATE_LIMIT_AGENT_PER_MIN` | `10` | Max `POST /api/v1/agent` requests per minute, applied per signed-in identity and per IP for anonymous callers. |
+| `AGENT_DEBUG` | `false` | When truthy (`1`/`true`/`yes`/`on`), logs verbose agent request/usage details. Leave off in production — it prints message keys, resolved user ids, and token usage. |
 
 Require auth on public deployments:
 
@@ -84,6 +86,40 @@ curl -H "Authorization: Bearer $AGENT_API_TOKEN" \
      -d '{"message":"...","hostId":0}' \
      https://your-host/api/v1/agent
 ```
+
+### Least-privilege ClickHouse user
+
+The agent's `query` tool (and the [MCP server](/reference/mcp-server)) run
+read-only `SELECT`s that the model composes. Because the model can read any
+table the connection user can, point it at a **dedicated, restricted user** —
+not `default` or an admin account. Two concerns in particular:
+
+- `system.query_log` can contain **credentials embedded in query text** (e.g. a
+  `CREATE ... IDENTIFIED BY` or an `s3(...)` call another client ran).
+- `system.users`, `system.grants`, and `system.quotas` expose your access model.
+
+Create a monitoring user restricted to the system tables the dashboard needs and
+deny the sensitive ones:
+
+```sql
+CREATE USER chmonitor_agent IDENTIFIED BY 'a-strong-password'
+  SETTINGS readonly = 1;
+
+-- Read-only access to the metrics/monitoring tables the dashboard reads.
+GRANT SELECT ON system.* TO chmonitor_agent;
+
+-- Revoke the tables that leak secrets or your access model.
+REVOKE SELECT ON system.query_log FROM chmonitor_agent;
+REVOKE SELECT ON system.users FROM chmonitor_agent;
+REVOKE SELECT ON system.grants FROM chmonitor_agent;
+REVOKE SELECT ON system.quotas FROM chmonitor_agent;
+```
+
+<Callout type="warn" title="Keep control tools off by default">
+Leave `AGENT_ENABLE_CONTROL_TOOLS=false` unless the ClickHouse user is trusted —
+it enables mutating tools (`optimize_table`, `kill_query`, `kill_mutation`). A
+`readonly = 1` user is a second line of defense even if it is ever turned on.
+</Callout>
 
 ## Conversation persistence
 

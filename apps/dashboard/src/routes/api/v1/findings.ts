@@ -16,7 +16,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
-import { fetchData, getClient } from '@chm/clickhouse-client'
+import { fetchData } from '@chm/clickhouse-client'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { FINDINGS_TABLE } from '@/lib/app-tables'
@@ -59,37 +59,6 @@ function sanitizeSince(value: string): string | null {
     .match(/^(\d{1,5})\s+(SECOND|MINUTE|HOUR|DAY|WEEK|MONTH)S?$/)
   if (!match) return null
   return `${match[1]} ${match[2]}`
-}
-
-// Per-host guard so we only attempt CREATE TABLE once per process per host.
-const ensuredHosts = new Set<number>()
-
-const CREATE_FINDINGS_TABLE = `
-  CREATE TABLE IF NOT EXISTS ${FINDINGS_TABLE} (
-    event_time DateTime DEFAULT now(),
-    host_id String,
-    severity LowCardinality(String),
-    category LowCardinality(String),
-    source LowCardinality(String),
-    title String,
-    detail String,
-    metric String,
-    value Float64
-  ) ENGINE = MergeTree
-  ORDER BY event_time
-  TTL event_time + INTERVAL 30 DAY
-`
-
-async function ensureTable(hostId: number): Promise<boolean> {
-  if (ensuredHosts.has(hostId)) return true
-  try {
-    const client = await getClient({ hostId })
-    await client.command({ query: CREATE_FINDINGS_TABLE })
-    ensuredHosts.add(hostId)
-    return true
-  } catch {
-    return false
-  }
 }
 
 async function listRecentFindings(
@@ -191,8 +160,10 @@ export const Route = createFileRoute('/api/v1/findings')({
             limit,
           })
 
-          await ensureTable(hostId)
-
+          // A read must not run DDL. The findings table is created by the
+          // write path (`recordFinding` in lib/findings/findings-store.ts) and
+          // by the cron sweep; when it does not exist yet, listRecentFindings
+          // returns [] on the query error, so GET stays side-effect free.
           const findings = await listRecentFindings(hostId, {
             severity: severityParam as FindingSeverity | undefined,
             since,
