@@ -4,12 +4,23 @@
  * The primary key column is named `user_id` for backward compatibility but now
  * holds the BILLING-OWNER id, which is either a Clerk user id (user_*) or a
  * Clerk org id (org_*). The `owner_type` column ('user'|'org') records which
- * kind, added by migration 0004_subscription_owner.sql.
+ * kind, added by migration 0004_subscription_owner.sql. `cancel_at_period_end`
+ * and `event_timestamp` were added by migration
+ * 0008_subscription_cancel_and_event_guard.sql.
  *
  * Reads degrade gracefully: when the CHM_CLOUD_D1 binding is absent (local dev,
  * self-host) or there is no row, `getSubscription()` returns null and the caller
  * falls back to the free plan. Writes require D1 and are only exercised by the
  * Polar webhook (cloud runtime), so they throw if the binding is missing.
+ *
+ * Monotonic write guard: `upsertSubscription` takes an optional
+ * `eventTimestamp` (unix seconds from the Polar webhook envelope). Webhook
+ * deliveries are at-least-once and can arrive out of order (retries, replays);
+ * without a guard a late/older event can stomp newer state written by a
+ * fresher one. The upsert only applies when the incoming `eventTimestamp` is
+ * `>=` the stored value (or either side is null/unset — first write, or a
+ * caller that doesn't carry an event timestamp, e.g. the Polar-truth
+ * write-through cache path, always wins so it never gets silently ignored).
  */
 
 import type { PlanId } from './plans'
@@ -31,6 +42,8 @@ export interface UserSubscription {
   polarCustomerId: string | null
   /** Unix seconds; access valid until then. null for free. */
   currentPeriodEnd: number | null
+  /** True when the owner cancelled but is still inside the paid period. */
+  cancelAtPeriodEnd: boolean
   createdAt: number
   updatedAt: number
 }
@@ -46,6 +59,16 @@ export interface UpsertSubscriptionInput {
   polarSubscriptionId?: string | null
   polarCustomerId?: string | null
   currentPeriodEnd?: number | null
+  /** Default false. */
+  cancelAtPeriodEnd?: boolean
+  /**
+   * Unix seconds from the source event (e.g. the Polar webhook envelope's
+   * `timestamp`). When set, the write is rejected if a later event has
+   * already been applied — see the monotonic write guard note above. Leave
+   * unset for callers without an event ordering (e.g. the Polar-truth
+   * write-through cache), which always win.
+   */
+  eventTimestamp?: number | null
 }
 
 interface D1SubscriptionRow {
@@ -57,6 +80,7 @@ interface D1SubscriptionRow {
   polar_subscription_id: string | null
   polar_customer_id: string | null
   current_period_end: number | null
+  cancel_at_period_end: number | null
   created_at: number
   updated_at: number
 }
@@ -71,6 +95,7 @@ function rowToSubscription(row: D1SubscriptionRow): UserSubscription {
     polarSubscriptionId: row.polar_subscription_id,
     polarCustomerId: row.polar_customer_id,
     currentPeriodEnd: row.current_period_end,
+    cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -100,7 +125,7 @@ export async function getSubscription(
       .prepare(
         `SELECT user_id, owner_type, plan_id, billing_period, status,
                 polar_subscription_id, polar_customer_id, current_period_end,
-                created_at, updated_at
+                cancel_at_period_end, created_at, updated_at
          FROM user_subscriptions WHERE user_id = ?1`
       )
       .bind(ownerId)
@@ -118,6 +143,14 @@ export async function getSubscription(
 /**
  * Insert or replace a subscription row (idempotent on owner id).
  * `input.userId` is the billing-owner id (user or org).
+ *
+ * Monotonic on `event_timestamp` when `input.eventTimestamp` is provided: the
+ * `DO UPDATE ... WHERE` clause only applies the update when the existing row
+ * has no event_timestamp yet or the incoming one is `>=` it, so an
+ * out-of-order/replayed older webhook delivery can never stomp state written
+ * by a newer one. When `input.eventTimestamp` is omitted (e.g. the Polar-truth
+ * write-through cache, which reads Polar's CURRENT state rather than replaying
+ * a specific event), the guard is bypassed — that path is always authoritative.
  */
 export async function upsertSubscription(
   input: UpsertSubscriptionInput
@@ -130,13 +163,14 @@ export async function upsertSubscription(
   }
   const now = Math.floor(Date.now() / 1000)
   const ownerType: OwnerType = input.ownerType ?? 'user'
+  const eventTimestamp = input.eventTimestamp ?? null
   await db
     .prepare(
       `INSERT INTO user_subscriptions
          (user_id, owner_type, plan_id, billing_period, status,
           polar_subscription_id, polar_customer_id, current_period_end,
-          created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)
+          cancel_at_period_end, event_timestamp, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)
        ON CONFLICT(user_id) DO UPDATE SET
          owner_type = excluded.owner_type,
          plan_id = excluded.plan_id,
@@ -145,7 +179,12 @@ export async function upsertSubscription(
          polar_subscription_id = excluded.polar_subscription_id,
          polar_customer_id = excluded.polar_customer_id,
          current_period_end = excluded.current_period_end,
-         updated_at = excluded.updated_at`
+         cancel_at_period_end = excluded.cancel_at_period_end,
+         event_timestamp = excluded.event_timestamp,
+         updated_at = excluded.updated_at
+       WHERE excluded.event_timestamp IS NULL
+          OR user_subscriptions.event_timestamp IS NULL
+          OR excluded.event_timestamp >= user_subscriptions.event_timestamp`
     )
     .bind(
       input.userId,
@@ -156,6 +195,8 @@ export async function upsertSubscription(
       input.polarSubscriptionId ?? null,
       input.polarCustomerId ?? null,
       input.currentPeriodEnd ?? null,
+      input.cancelAtPeriodEnd ? 1 : 0,
+      eventTimestamp,
       now
     )
     .run()

@@ -58,7 +58,7 @@ export async function resolveOwnerSubscription(
       billingPeriod: cached.billingPeriod,
       status: cached.status,
       currentPeriodEnd: cached.currentPeriodEnd,
-      cancelAtPeriodEnd: false,
+      cancelAtPeriodEnd: cached.cancelAtPeriodEnd,
     }
   }
 
@@ -75,6 +75,7 @@ export async function resolveOwnerSubscription(
         billingPeriod: polar.billingPeriod,
         status: polar.status,
         currentPeriodEnd: polar.currentPeriodEnd,
+        cancelAtPeriodEnd: polar.cancelAtPeriodEnd,
       })
     } catch {
       // ignore — Polar already gave us the authoritative answer
