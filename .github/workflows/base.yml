@@ -106,10 +106,11 @@ jobs:
       - name: Setup Rust
         if: ${{ inputs.job-type == 'build' }}
         # NOTE: dtolnay/rust-toolchain uses its @ref AS the toolchain version
-        # (its tags are toolchain names, not action releases). Rust 1.100.0 does
-        # not exist; #1898's grouped bump to @1.100.0 404'd the Setup Rust step.
-        # Keep this pinned to a real, released stable toolchain.
-        uses: dtolnay/rust-toolchain@1.100.0
+        # (its tags are toolchain names, not action releases). Pin to the
+        # `stable` branch tag, NOT a version number — a numeric tag (e.g.
+        # `@1.100.0`) invites dependabot to "bump" it to a nonexistent Rust
+        # release, which 404s the Setup Rust step (see #1898).
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Download pre-built WASM
         if: ${{ inputs.skip-rust }}
