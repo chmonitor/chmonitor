@@ -143,6 +143,31 @@ describe('Table Validator', () => {
       expect(result).toContain('system.parts')
     })
 
+    it('should extract table name from merge() table function', () => {
+      const sql = "SELECT * FROM merge('system', '^query_log')"
+      const result = parseTableFromSQL(sql)
+      expect(result).toEqual(['system.query_log'])
+    })
+
+    it('should extract table name from merge() combined with a JOIN', () => {
+      const sql = `
+        SELECT * FROM merge('system', '^error_log') e
+        JOIN system.tables t ON e.table = t.name
+      `
+      const result = parseTableFromSQL(sql)
+      expect(result).toContain('system.error_log')
+      expect(result).toContain('system.tables')
+    })
+
+    it('should not extract duplicates from repeated merge() calls to the same table', () => {
+      const sql = `
+        SELECT * FROM merge('system', '^query_log') q1
+        JOIN merge('system', '^query_log') q2 ON q1.query_id = q2.query_id
+      `
+      const result = parseTableFromSQL(sql)
+      expect(result).toEqual(['system.query_log'])
+    })
+
     it('should handle empty SQL', () => {
       const sql = ''
       const result = parseTableFromSQL(sql)
