@@ -136,6 +136,11 @@ async function handlePost(request: Request): Promise<Response> {
       query,
       query_params,
       format: format as DataFormat,
+      // SECURITY: Enforce readonly mode to prevent DML/DDL even if SQL
+      // validation is bypassed — defense-in-depth, matching /api/v1/data.
+      clickhouse_settings: {
+        readonly: '1',
+      },
     })
 
     const rows = await result.json<unknown[]>()
