@@ -29,4 +29,12 @@ describe('mapConnectionApiError', () => {
     )
     expect(response.status).toBe(401)
   })
+
+  it('maps ConnectionStoreError LIMIT_EXCEEDED to 402', async () => {
+    const response = mapConnectionApiError(
+      new ConnectionStoreError('Host limit reached', 'LIMIT_EXCEEDED'),
+      CONTEXT
+    )
+    expect(response.status).toBe(402)
+  })
 })

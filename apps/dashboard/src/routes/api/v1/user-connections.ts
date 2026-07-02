@@ -6,6 +6,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import type { LimitCheck } from '@/lib/billing/entitlements'
 import type { CreateUserConnectionInput } from '@/lib/connection-store/types'
 
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
@@ -21,6 +22,7 @@ import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
+import { ConnectionStoreError } from '@/lib/connection-store/types'
 
 const ROUTE_GET = { route: '/api/v1/user-connections', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/user-connections', method: 'POST' }
@@ -63,6 +65,29 @@ interface CreateRequest {
   host: string
   user: string
   password: string
+}
+
+/**
+ * The 402 response shape for a tripped host-limit check (pre-check or atomic
+ * recheck). Both call sites only reach this with a plan that caps hosts, so
+ * `check.limit` is always non-null there — but `LimitCheck.limit` is typed
+ * `number | null` (it doubles as the unlimited-plan shape), so the caller
+ * passes the known-non-null cap explicitly rather than us re-deriving it.
+ */
+function hostLimitResponse(check: LimitCheck, limit: number): Response {
+  return createApiErrorResponse(
+    {
+      type: ApiErrorType.PermissionError,
+      message: limitMessage(check),
+      details: {
+        planId: check.planId,
+        limit,
+        reason: check.reason,
+      },
+    },
+    402,
+    ROUTE_POST
+  )
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -129,27 +154,23 @@ async function handlePost(request: Request): Promise<Response> {
     // For a user owner it's just this user's connections. The count is fail-safe:
     // an org-enumeration error falls back to the acting user's count, so it never
     // blocks a paying org on a Clerk hiccup.
+    //
+    // This is a UX fast-path only, not the authoritative guard: two concurrent
+    // requests (two tabs, or two org members) can both pass this check before
+    // either has inserted. The authoritative guard is the atomic INSERT-with-
+    // count `store.create()` performs below — see CreateLimitEnforcement.
+    // Unlimited plans (plan.hosts === null) skip the count entirely — no
+    // Clerk member enumeration needed when there's no cap to check against.
     const owner = await resolveBillingOwner()
     const plan = await getPlanForOwner(owner.id)
+    const usage =
+      plan.hosts != null
+        ? await countOwnerHosts(owner, store, userId)
+        : { count: 0, memberUserIds: [] as string[] }
     if (plan.hosts != null) {
-      const usedHosts = await countOwnerHosts(owner, store, userId)
-      const check = checkHostLimit(plan, usedHosts)
+      const check = checkHostLimit(plan, usage.count)
       if (!check.allowed) {
-        return createApiErrorResponse(
-          {
-            type: ApiErrorType.PermissionError,
-            message: limitMessage(check),
-            details: {
-              planId: check.planId,
-              // Non-null inside this `plan.hosts != null` guard; coerce for the
-              // string|number details type (LimitCheck.limit is number | null).
-              limit: check.limit ?? plan.hosts,
-              reason: check.reason,
-            },
-          },
-          402,
-          ROUTE_POST
-        )
+        return hostLimitResponse(check, plan.hosts)
       }
     }
 
@@ -182,7 +203,28 @@ async function handlePost(request: Request): Promise<Response> {
       chUser: credentials.user,
       credentials,
     }
-    const created = await store.create(userId, input)
+    let created
+    try {
+      created = await store.create(userId, input, {
+        memberUserIds: usage.memberUserIds,
+        limit: plan.hosts,
+      })
+    } catch (err) {
+      if (
+        err instanceof ConnectionStoreError &&
+        err.code === 'LIMIT_EXCEEDED'
+      ) {
+        // Lost the race: another concurrent request filled the last slot
+        // between our fast-path check above and this atomic insert. The
+        // store only throws LIMIT_EXCEEDED when it was given a non-null
+        // limit, so plan.hosts is guaranteed non-null here; `used: plan.hosts`
+        // reflects that the pool was already at (or past) the cap when the
+        // atomic recheck ran.
+        const limit = plan.hosts as number
+        return hostLimitResponse(checkHostLimit(plan, limit), limit)
+      }
+      throw err
+    }
     return createSuccessResponse({
       id: created.id,
       name: created.name,

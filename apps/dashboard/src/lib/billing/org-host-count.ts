@@ -1,6 +1,20 @@
 import type { ConnectionStore } from '@/lib/connection-store/types'
 import type { BillingOwner } from './billing-owner'
 
+/** Pooled host usage for a billing owner: the count plus the member id set it was computed from. */
+export interface OwnerHostUsage {
+  /** Hosts counted so far — the value fed to `checkHostLimit`. */
+  count: number
+  /**
+   * The user_ids whose connections were counted. `[actingUserId]` for a user
+   * owner, or the pooled Clerk org member id list (including the acting user)
+   * for an org owner. Callers pass this through to `store.create()`'s atomic
+   * limit enforcement so the insert-time recount uses the SAME member set the
+   * pre-check used.
+   */
+  memberUserIds: string[]
+}
+
 /**
  * Count the hosts (saved per-user connections) that consume a billing owner's
  * host limit — the value fed to `checkHostLimit`.
@@ -21,9 +35,10 @@ export async function countOwnerHosts(
   owner: BillingOwner,
   store: ConnectionStore,
   actingUserId: string
-): Promise<number> {
+): Promise<OwnerHostUsage> {
   if (owner.type !== 'org') {
-    return (await store.list(actingUserId)).length
+    const count = (await store.list(actingUserId)).length
+    return { count, memberUserIds: [actingUserId] }
   }
 
   try {
@@ -45,9 +60,13 @@ export async function countOwnerHosts(
         store.list(id).then((connections) => connections.length)
       )
     )
-    return counts.reduce((sum, n) => sum + n, 0)
+    return {
+      count: counts.reduce((sum, n) => sum + n, 0),
+      memberUserIds: memberIds,
+    }
   } catch {
     // Permissive fallback — never block a paying org on an enumeration failure.
-    return (await store.list(actingUserId)).length
+    const count = (await store.list(actingUserId)).length
+    return { count, memberUserIds: [actingUserId] }
   }
 }

@@ -27,12 +27,13 @@ function fakeStore(counts: Record<string, number>): ConnectionStore {
 describe('countOwnerHosts', () => {
   test('user owner counts only the acting user', async () => {
     const store = fakeStore({ user_a: 2, user_b: 5 })
-    const n = await countOwnerHosts(
+    const usage = await countOwnerHosts(
       { type: 'user', id: 'user_a' },
       store,
       'user_a'
     )
-    expect(n).toBe(2)
+    expect(usage.count).toBe(2)
+    expect(usage.memberUserIds).toEqual(['user_a'])
   })
 
   test('org owner pools connections across all current members', async () => {
@@ -44,12 +45,13 @@ describe('countOwnerHosts', () => {
     }))
     const store = fakeStore({ user_a: 2, user_b: 3, user_c: 9 })
     // owner is the org; acting user is a member. Pool = a(2) + b(3) = 5.
-    const n = await countOwnerHosts(
+    const usage = await countOwnerHosts(
       { type: 'org', id: 'org_1' },
       store,
       'user_a'
     )
-    expect(n).toBe(5)
+    expect(usage.count).toBe(5)
+    expect(usage.memberUserIds).toEqual(['user_a', 'user_b'])
   })
 
   test('acting user is counted even if not yet in the membership list', async () => {
@@ -57,12 +59,13 @@ describe('countOwnerHosts', () => {
       data: [{ publicUserData: { userId: 'user_b' } }],
     }))
     const store = fakeStore({ user_a: 4, user_b: 1 })
-    const n = await countOwnerHosts(
+    const usage = await countOwnerHosts(
       { type: 'org', id: 'org_1' },
       store,
       'user_a'
     )
-    expect(n).toBe(5) // b(1) + a(4), a appended
+    expect(usage.count).toBe(5) // b(1) + a(4), a appended
+    expect(usage.memberUserIds).toEqual(['user_b', 'user_a'])
   })
 
   test('org enumeration failure falls back to the acting user count', async () => {
@@ -70,11 +73,12 @@ describe('countOwnerHosts', () => {
       throw new Error('clerk down')
     })
     const store = fakeStore({ user_a: 3 })
-    const n = await countOwnerHosts(
+    const usage = await countOwnerHosts(
       { type: 'org', id: 'org_1' },
       store,
       'user_a'
     )
-    expect(n).toBe(3)
+    expect(usage.count).toBe(3)
+    expect(usage.memberUserIds).toEqual(['user_a'])
   })
 })

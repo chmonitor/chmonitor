@@ -20,7 +20,9 @@ export function mapConnectionApiError(
           ? 404
           : error.code === 'NOT_CONFIGURED'
             ? 501
-            : 500
+            : error.code === 'LIMIT_EXCEEDED'
+              ? 402
+              : 500
     return createApiErrorResponse(
       { type: ApiErrorType.PermissionError, message: error.message },
       status,

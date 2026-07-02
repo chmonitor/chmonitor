@@ -1,5 +1,6 @@
 import type {
   ConnectionStore,
+  CreateLimitEnforcement,
   CreateUserConnectionInput,
   StoredUserConnection,
   UpdateUserConnectionInput,
@@ -116,7 +117,8 @@ export class PostgresConnectionStore implements ConnectionStore {
 
   async create(
     userId: string,
-    input: CreateUserConnectionInput
+    input: CreateUserConnectionInput,
+    limit?: CreateLimitEnforcement
   ): Promise<UserConnectionMeta> {
     await this.ensureInitialized()
     const existing = await this.list(userId)
@@ -125,12 +127,42 @@ export class PostgresConnectionStore implements ConnectionStore {
     const hostId = allocateDbHostId(existing.map((c) => c.hostId))
     const encryptedPayload = await encryptCredentials(input.credentials)
 
-    await this.sql`
-      INSERT INTO user_connections
-        (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
-      VALUES
-        (${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${encryptedPayload}, ${now}, ${now})
-    `
+    if (limit && limit.limit != null && limit.memberUserIds.length > 0) {
+      // Same TOCTOU concern as the D1 store, but a bare `INSERT ... SELECT
+      // ... WHERE (subquery count)` is NOT enough here: under Postgres's
+      // default READ COMMITTED isolation, two concurrent transactions each
+      // take their own snapshot for the subquery and neither sees the
+      // other's uncommitted insert, so both can pass the check (D1 has no
+      // such gap — Cloudflare serializes all statements against a single
+      // SQLite connection). Take a transaction-scoped advisory lock keyed on
+      // the billing owner FIRST so concurrent creates for the SAME owner
+      // queue up instead of racing; creates for different owners are
+      // unaffected (different lock key, no contention). The lock is released
+      // automatically when the transaction commits/rolls back.
+      const ownerLockKey = limit.memberUserIds.slice().sort().join(',')
+      const rows = await this.sql.begin(async (tx) => {
+        await tx`SELECT pg_advisory_xact_lock(hashtext(${ownerLockKey}))`
+        return tx<{ id: string }[]>`
+          INSERT INTO user_connections
+            (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
+          SELECT ${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${encryptedPayload}, ${now}, ${now}
+          WHERE (
+            SELECT COUNT(*) FROM user_connections WHERE user_id IN ${tx(limit.memberUserIds)}
+          ) < ${limit.limit}
+          RETURNING id
+        `
+      })
+      if (rows.length === 0) {
+        throw new ConnectionStoreError('Host limit reached', 'LIMIT_EXCEEDED')
+      }
+    } else {
+      await this.sql`
+        INSERT INTO user_connections
+          (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
+        VALUES
+          (${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${encryptedPayload}, ${now}, ${now})
+      `
+    }
 
     return {
       id,

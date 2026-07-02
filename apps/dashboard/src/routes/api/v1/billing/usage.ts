@@ -62,7 +62,8 @@ async function resolveHostsUsed(
 ): Promise<number> {
   try {
     const store = await resolveConnectionStore()
-    return await countOwnerHosts(owner, store, userId)
+    const usage = await countOwnerHosts(owner, store, userId)
+    return usage.count
   } catch {
     return 0
   }

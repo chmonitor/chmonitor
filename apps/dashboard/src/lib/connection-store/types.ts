@@ -32,6 +32,22 @@ export interface CreateUserConnectionInput {
   credentials: ConnectionCredentials
 }
 
+/**
+ * Atomic host-limit enforcement inputs for `create()`. The store folds the
+ * "is there room for one more?" count check into the same SQL statement as
+ * the row insert, so a second concurrent request can't slip through the gap
+ * between a separate pre-check and the insert (TOCTOU).
+ *
+ * `memberUserIds` is the full set of user_ids whose connections count toward
+ * the limit — just `[userId]` for a user-owned plan, or the pooled Clerk org
+ * member id list for an org-owned plan (see `countOwnerHosts`). `limit` is
+ * the plan's host cap; `null` means unlimited and skips enforcement entirely.
+ */
+export interface CreateLimitEnforcement {
+  memberUserIds: string[]
+  limit: number | null
+}
+
 export interface UpdateUserConnectionInput {
   name?: string
   hostUrl?: string
@@ -45,9 +61,17 @@ export interface ConnectionStore {
     userId: string,
     connectionId: string
   ): Promise<StoredUserConnection | null>
+  /**
+   * `limit` (optional) enforces the plan's host cap atomically with the
+   * insert — see {@link CreateLimitEnforcement}. Omit it (or pass
+   * `limit: null`) to insert unconditionally, e.g. for unlimited plans.
+   * Throws `ConnectionStoreError('LIMIT_EXCEEDED')` when the cap is already
+   * met at insert time, even if a caller's earlier pre-check passed.
+   */
   create(
     userId: string,
-    input: CreateUserConnectionInput
+    input: CreateUserConnectionInput,
+    limit?: CreateLimitEnforcement
   ): Promise<UserConnectionMeta>
   update(
     userId: string,
@@ -69,7 +93,8 @@ export class ConnectionStoreError extends Error {
       | 'UNAUTHORIZED'
       | 'STORAGE_ERROR'
       | 'VALIDATION_ERROR'
-      | 'NOT_CONFIGURED',
+      | 'NOT_CONFIGURED'
+      | 'LIMIT_EXCEEDED',
     public readonly cause?: unknown
   ) {
     super(message)

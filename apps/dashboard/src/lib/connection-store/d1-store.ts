@@ -1,5 +1,6 @@
 import type {
   ConnectionStore,
+  CreateLimitEnforcement,
   CreateUserConnectionInput,
   StoredUserConnection,
   UpdateUserConnectionInput,
@@ -83,7 +84,8 @@ export class D1ConnectionStore implements ConnectionStore {
 
   async create(
     userId: string,
-    input: CreateUserConnectionInput
+    input: CreateUserConnectionInput,
+    limit?: CreateLimitEnforcement
   ): Promise<UserConnectionMeta> {
     const db = this.getDb()
     const existing = await this.list(userId)
@@ -91,25 +93,57 @@ export class D1ConnectionStore implements ConnectionStore {
     const id = crypto.randomUUID()
     const hostId = allocateDbHostId(existing.map((c) => c.hostId))
     const encryptedPayload = await encryptCredentials(input.credentials)
+    const insertValues = [
+      id,
+      userId,
+      input.name,
+      input.hostUrl,
+      input.chUser,
+      hostId,
+      encryptedPayload,
+      now,
+      now,
+    ]
 
-    await db
-      .prepare(
-        `INSERT INTO user_connections
-         (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
-      )
-      .bind(
-        id,
-        userId,
-        input.name,
-        input.hostUrl,
-        input.chUser,
-        hostId,
-        encryptedPayload,
-        now,
-        now
-      )
-      .run()
+    // D1 statements are individually ACID, but the count-then-insert pattern
+    // is still a TOCTOU race across two round trips: two concurrent requests
+    // can both read a count under the cap before either has inserted. Folding
+    // the count check into the INSERT's own SELECT collapses both steps into
+    // ONE statement, so there's no window for a second request to interleave.
+    // A capped plan gets `INSERT ... SELECT ... WHERE <count> < <limit>`; the
+    // SELECT (and therefore the insert) evaluates against the row set as it
+    // stands at that single statement's execution, so only one of two racing
+    // requests can ever observe room under the cap and insert.
+    if (limit && limit.limit != null && limit.memberUserIds.length > 0) {
+      const memberPlaceholders = limit.memberUserIds
+        .map((_, i) => `?${insertValues.length + i + 1}`)
+        .join(', ')
+      const limitParamIndex =
+        insertValues.length + limit.memberUserIds.length + 1
+
+      const result = await db
+        .prepare(
+          `INSERT INTO user_connections
+           (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
+           SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+           WHERE (SELECT COUNT(*) FROM user_connections WHERE user_id IN (${memberPlaceholders})) < ?${limitParamIndex}`
+        )
+        .bind(...insertValues, ...limit.memberUserIds, limit.limit)
+        .run()
+
+      if ((result.meta.changes ?? 0) === 0) {
+        throw new ConnectionStoreError('Host limit reached', 'LIMIT_EXCEEDED')
+      }
+    } else {
+      await db
+        .prepare(
+          `INSERT INTO user_connections
+           (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
+        )
+        .bind(...insertValues)
+        .run()
+    }
 
     return {
       id,
