@@ -9,11 +9,13 @@
       <nav class="nav-links">
         <div class="nav-group">
           <button type="button" class="nav-trigger" aria-haspopup="true" aria-expanded="false">
-            Product
+            Features
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="nav-menu">
-            <a href="/#features">Features<small>System tables, read-only, AI agent</small></a>
+            <a href="/#feature-ai-agent">AI Agent<small>Ask your cluster anything over MCP</small></a>
+            <a href="/#feature-queries">Query monitoring<small>Running, slow, failed &amp; expensive queries</small></a>
+            <a href="/#feature-topology">Cluster topology<small>Nodes, shards, replicas &amp; Keeper quorum</small></a>
             <a href="/#data-explorer">Data Explorer<small>Browse databases, deps and SQL</small></a>
             <a href="/#health">Health<small>Live cluster health indicators</small></a>
             <a href="/#capabilities">Capabilities<small>Every system table, one place</small></a>
@@ -68,8 +70,10 @@
         </button>
       </div>
       <div class="nav-drawer-body">
-        <span class="nav-drawer-label">Product</span>
-        <a href="/#features">Features</a>
+        <span class="nav-drawer-label">Features</span>
+        <a href="/#feature-ai-agent">AI Agent</a>
+        <a href="/#feature-queries">Query monitoring</a>
+        <a href="/#feature-topology">Cluster topology</a>
         <a href="/#data-explorer">Data Explorer</a>
         <a href="/#health">Health</a>
         <a href="/#capabilities">Capabilities</a>
@@ -165,6 +169,40 @@
         if (e.key === 'Escape' && drawer.getAttribute('data-open') === 'true') closeDrawer()
       })
     }
+    // In-page jump links (#feature-*, #pricing, …). `scroll-behavior:smooth` on
+    // <html> makes browsers skip the automatic scroll-to-fragment on load, so we
+    // run it ourselves after layout settles, and intercept same-page anchor
+    // clicks so every "jump to feature" link lands reliably. :target's
+    // scroll-margin-top keeps the destination clear of the sticky nav.
+    // Use window.scrollTo with behavior:'instant', not el.scrollIntoView or CSS
+    // smooth: an overflow-x:hidden wrapper makes scrollIntoView hit the wrong
+    // scroll container, and behavior:'auto' defers to scroll-behavior:smooth
+    // which that wrapper silently cancels. 72px clears the sticky nav (matches
+    // :target scroll-margin-top). Instant is fine for a "jump to feature" link.
+    var NAV_OFFSET = 72
+    var scrollToHash = function (hash) {
+      if (!hash || hash === '#') return false
+      var el = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (!el) return false
+      var top = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET
+      window.scrollTo({ top: top < 0 ? 0 : top, behavior: 'instant' })
+      return true
+    }
+    if (location.hash) {
+      window.addEventListener('load', function () {
+        requestAnimationFrame(function () { scrollToHash(location.hash) })
+      })
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href*="#"]')
+      if (!a) return
+      var url = new URL(a.href, location.href)
+      if (url.pathname !== location.pathname || url.search !== location.search || !url.hash) return
+      if (!scrollToHash(url.hash)) return
+      e.preventDefault()
+      history.pushState(null, '', url.hash)
+    })
+
     // Follow OS changes only while the user hasn't picked a theme.
     try {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {

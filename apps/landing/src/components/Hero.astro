@@ -41,7 +41,7 @@ const galleryCards = [
       {galleryCards.map((card) => (
         <div class="gcard">
           <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span><span class="gtab">{card.tab}</span></div>
-          <img src={card.src} alt={card.alt} width="600" height="360" loading="lazy" decoding="async" />
+          <img src={card.src} alt={card.alt} width="600" height="360" loading="eager" decoding="sync" />
         </div>
       ))}
       {galleryCards.map((card) => (
