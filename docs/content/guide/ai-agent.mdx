@@ -1,10 +1,11 @@
 ---
-title: AI Agent
 description: The AI Agent turns natural language into ClickHouse insights using read-only tools, expert skills, and plan-and-verify reasoning.
 icon: Bot
 ---
 
-Ask a question in plain English and the agent plans a series of read-only tool calls — querying system tables, inspecting schema, comparing hosts, spotting anomalies — then streams back a concise answer with optional inline charts.
+# AI Agent
+
+The AI Agent turns natural language into ClickHouse insights. Ask a question and the agent plans a series of read-only tool calls — querying system tables, inspecting schema, comparing hosts, spotting anomalies — then streams back a concise answer with optional inline charts.
 
 <Mermaid chart={`flowchart LR
   Q([User question]) --> A[Agent]
@@ -18,7 +19,7 @@ Ask a question in plain English and the agent plans a series of read-only tool c
   P --> A
   A --> R([Streamed answer])`} />
 
-The agent connects through the **same ClickHouse host and user** as the rest of the dashboard, so its visibility is bounded by the grants on that user. By default it runs read-only queries only. Keep control tools off and use a restricted ClickHouse user for safe exposure.
+The agent connects through the **same ClickHouse host and user** as the rest of the dashboard. Its visibility is bounded by the grants on that user. By default it only runs read-only queries. Keep control tools off and use a restricted ClickHouse user for safe exposure.
 
 ## What it can do
 
@@ -33,9 +34,9 @@ The agent connects through the **same ClickHouse host and user** as the rest of 
 | Tuning & upgrades | Hardware-based settings, version-upgrade guidance |
 | Charts & visualization | Run SQL and render an interactive chart inline |
 
-A small set of tools delivers this: dedicated primitives for the common reads, plus the `query` tool and an expert **skill** recipe for everything else. See [Capabilities](/guide/ai-agent/capabilities) for the full list.
+A small set of tools delivers this: dedicated primitives for the common reads, and the `query` tool plus an expert **skill** recipe for everything else. See [Capabilities](/guide/ai-agent/capabilities) for the full list.
 
-**Skills** — when a question needs domain depth, the agent loads a bundled expert guide (a skill) with copy-pasteable SQL recipes before answering. Eighteen skills cover data analysis, anomaly detection, query tuning, schema & data-type design, hardware tuning, version upgrades, concept explanations, incident response, plan-and-verify, and the core domains (replication, cluster, storage, migration, security, best practices, troubleshooting, system tables). List available skills with `GET /api/v1/agent/skills`.
+**Skills** — when a question needs domain depth, the agent loads a bundled expert guide (a skill) with copy-pasteable SQL recipes before answering. Eighteen skills cover data analysis, anomaly detection, query tuning, schema & data-type design, hardware tuning, version upgrades, concept explanations, incident response, plan-and-verify, and the core domains (replication, cluster, storage, migration, security, best practices, troubleshooting, system tables). Available skills: `GET /api/v1/agent/skills`.
 
 **Plan and verify** — for multi-step tasks (incident triage, investigations, find-and-fix) the agent authors a live checklist with `update_plan`, keeps one step in progress, and verifies each result before stating it. Simple one-step questions skip the plan. See [Capabilities](/guide/ai-agent/capabilities) for details.
 
@@ -49,9 +50,9 @@ LLM_API_KEY=your-provider-key
 
 Then open `/agents` in the dashboard, pick a host, and start asking questions. The agent uses OpenRouter by default (`https://openrouter.ai/api/v1`) with the free model tier.
 
-For the full set of options, see [Configuration](/guide/ai-agent/configuration).
+For full configuration options see [Configuration](/guide/ai-agent/configuration).
 
-## Explore the agent
+## Child pages
 
 <Cards>
   <Card
@@ -65,12 +66,12 @@ For the full set of options, see [Configuration](/guide/ai-agent/configuration).
     description="All environment variables, LLM providers, and access control."
   />
   <Card
-    title="Conversation history"
+    title="Conversation History"
     href="/guide/ai-agent/conversation-history"
     description="How chat history works and how to enable server-side persistence."
   />
   <Card
-    title="Store backends"
+    title="Store Backends"
     href="/guide/ai-agent/conversation-history/backends"
     description="Per-backend setup: D1, ClickHouse, Postgres, AgentState, and more."
   />
@@ -91,15 +92,13 @@ Selection priority when persistence is enabled: **AgentState** (if `AGENTSTATE_A
 
 Server persistence requires `CHM_FEATURE_CONVERSATION_DB=true` and an authenticated user — configure Clerk (`CHM_AUTH_PROVIDER=clerk` + `CLERK_SECRET_KEY`) so history can be scoped per user. Unauthenticated sessions always fall back to browser history. See [Authentication](/operate/authentication).
 
-For per-backend setup, see [Conversation history](/guide/ai-agent/conversation-history) and [Store backends](/guide/ai-agent/conversation-history/backends).
-
 ### AgentState
 
 [AgentState](https://agentstate.app) is a conversation-history database-as-a-service for AI agents. Use it when you want managed (or self-hosted) persistence that survives browser clears and is shared across devices, plus optional **AI enrichment** — auto-generated conversation titles and follow-up question suggestions — and per-project analytics. It is self-hostable as a single Cloudflare Worker (see [duyet/agentstate](https://github.com/duyet/agentstate)) and ships an npm SDK (`@agentstate/sdk`).
 
 Per-user isolation is built in: each thread is namespaced by AgentState `external_id` as `<userId>:<conversationId>` and tagged `user:<userId>`, so one project key safely holds every user's history without cross-talk.
 
-Environment variables (all server-side):
+**Environment variables** (all server-side):
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
@@ -110,9 +109,7 @@ Environment variables (all server-side):
 
 Still requires `CHM_FEATURE_CONVERSATION_DB=true` and a Clerk auth provider (`CHM_AUTH_PROVIDER=clerk` + `CLERK_SECRET_KEY`).
 
-<Tabs items={["Hosted", "Self-host", "Local dev"]}>
-
-<Tab value="Hosted">
+#### Setup (hosted)
 
 1. Sign in at [agentstate.app](https://agentstate.app) and create a project.
 2. Create an API key — it is prefixed `as_live_` and shown **once**, so copy it immediately.
@@ -125,9 +122,7 @@ AGENTSTATE_API_KEY=as_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 AGENTSTATE_AI_ENRICH=true
 ```
 
-</Tab>
-
-<Tab value="Self-host">
+#### Setup (self-host)
 
 Run your own AgentState Worker per [duyet/agentstate](https://github.com/duyet/agentstate), then point the dashboard at it:
 
@@ -137,9 +132,7 @@ AGENTSTATE_API_KEY=as_live_your_self_hosted_key
 AGENTSTATE_BASE_URL=https://your-agentstate-host/api
 ```
 
-</Tab>
-
-<Tab value="Local dev">
+#### Local dev
 
 Against a locally running AgentState instance, use the seed test key:
 
@@ -149,11 +142,7 @@ AGENTSTATE_BASE_URL=http://localhost:8787
 AGENTSTATE_API_KEY=as_live_TEST_KEY_FOR_LOCAL_DEV_ONLY_1234567890ab
 ```
 
-</Tab>
-
-</Tabs>
-
-**Verify it's active:**
+#### Verify it's active
 
 - **Settings sidebar** — the agent settings sidebar shows a read-only **Conversation History** section naming the active backend (e.g. `AgentState`).
 - **Endpoint** — `GET /api/v1/conversations/backend` reports the active backend and whether enrichment is available:
@@ -163,7 +152,9 @@ curl https://your-host/api/v1/conversations/backend
 # => { "backend": "agentstate", "supportsAiEnrichment": true }
 ```
 
-**AI enrichment** — when AgentState is active **and** `AGENTSTATE_AI_ENRICH=true`:
+#### AI enrichment
+
+When AgentState is active **and** `AGENTSTATE_AI_ENRICH=true`:
 
 - **Auto-title** — new conversations get a concise generated title instead of a placeholder.
 - **Follow-ups** — the chat suggests follow-up questions after a turn. The dashboard reads them from `GET /api/v1/conversations/$id/follow-ups`.
@@ -172,7 +163,10 @@ With enrichment off, conversations persist normally but titles and follow-up sug
 
 ## AI Insights persistence
 
-Separate from chat history, the AI Insights panel on `/overview` persists the short observations it generates through its own pluggable store, mirroring the conversation backends above. It is **additive opt-in** via one env var and defaults to ClickHouse, so existing deployments are unaffected.
+Separate from chat history, the AI Insights panel on `/overview` persists the
+short observations it generates through its own pluggable store, mirroring the
+conversation backends above. It is **additive opt-in** via one env var and
+defaults to ClickHouse, so existing deployments are unaffected.
 
 ```bash
 INSIGHTS_STORE_BACKEND=auto   # auto | clickhouse | d1 | postgres | agentstate | memory
@@ -187,11 +181,14 @@ INSIGHTS_STORE_BACKEND=auto   # auto | clickhouse | d1 | postgres | agentstate |
 | `agentstate` | AgentState State store | `AGENTSTATE_API_KEY` (+ optional `AGENTSTATE_BASE_URL`) |
 | `memory` | in-process (ephemeral) | — |
 
-The D1, Postgres, and AgentState backends reuse the same env / bindings as the conversation store. `auto` resolves to ClickHouse and never silently follows other env; if an explicitly selected backend is missing its prerequisite, the engine logs a warning and falls back to ClickHouse. `GET /api/v1/insights/backend` reports the active backend (`{ "backend": "d1" }`), and the overview panel shows a read-only "Stored in `<backend>`" footer.
+The D1, Postgres, and AgentState backends reuse the same env / bindings as the
+conversation store. `auto` resolves to ClickHouse and never silently follows
+other env; if an explicitly selected backend is missing its prerequisite, the
+engine logs a warning and falls back to ClickHouse. `GET /api/v1/insights/backend`
+reports the active backend (`{ "backend": "d1" }`), and the overview panel shows
+a read-only "Stored in `<backend>`" footer.
 
 ## HTTP API
-
-Call the agent directly over HTTP:
 
 ```bash
 curl -X POST https://your-host/api/v1/agent \
@@ -200,9 +197,9 @@ curl -X POST https://your-host/api/v1/agent \
   -d '{"message": "Which queries are running right now?", "hostId": 0}'
 ```
 
-`hostId` is a zero-based numeric index; it defaults to `0`.
+`hostId` is a zero-based numeric index; defaults to `0`.
 
-## MCP server
+## MCP Server
 
 The dashboard exposes an MCP (Model Context Protocol) endpoint at `/api/mcp`. The same implementation runs in the standalone Cloudflare MCP Worker (`apps/mcp`). All tools are read-only by design — write and DDL statements are rejected.
 
@@ -216,7 +213,7 @@ You can connect additional MCP servers from the agent settings sidebar. Click **
 
 **How tools are named.** Each tool from a custom server is prefixed `mcp_<server-name>_<tool-name>` (server name is lowercased and non-alphanumeric characters replaced with `_`, truncated to 20 chars). This keeps custom tools distinct from built-in ones.
 
-Requirements and limits:
+**Requirements and limits:**
 
 - Endpoint URL must use `https:`. `http:` is allowed only for `localhost` / `127.0.0.1` / `[::1]` (local development).
 - Private IP ranges are blocked (10.x, 172.16–31.x, 192.168.x, 127.x, 169.254.x). This includes the AWS/GCP instance metadata endpoint (`169.254.169.254`).
@@ -256,22 +253,74 @@ All other MCP tools run fixed SELECT queries and pass `readonly: '1'` to the Cli
 
 </Callout>
 
-## Related
+### Least-privilege ClickHouse user for the agent/MCP
 
-<Cards>
-  <Card
-    title="Capabilities"
-    href="/guide/ai-agent/capabilities"
-    description="Full tool list, skills, plan & verify mode, and worked examples."
-  />
-  <Card
-    title="Configuration"
-    href="/guide/ai-agent/configuration"
-    description="All environment variables, LLM providers, and access control."
-  />
-  <Card
-    title="Conversation history"
-    href="/guide/ai-agent/conversation-history"
-    description="How chat history works and how to enable server-side persistence."
-  />
-</Cards>
+**The risk.** The agent's `query` tool and the [MCP server's](#mcp-server) `query`
+tool both accept arbitrary read-only SQL (`SELECT` / `WITH` / `DESCRIBE` /
+`EXPLAIN`) and run it with whatever `CLICKHOUSE_USER` is configured for the
+connection — see [Read-only enforcement](#read-only-enforcement). The validator
+gates the *statement type*, not the *tables* it touches, so a query like
+`SELECT * FROM system.query_log` or `SELECT * FROM system.users` passes
+validation as long as the configured user has grants on those tables. Two
+system tables deserve special attention:
+
+- **`system.query_log`** — stores the full text of every query the server has
+  run, including queries issued by other tools, users, or services. If any of
+  those queries ever embedded a connection string, password, or token in a SQL
+  comment or string literal, it is sitting in plaintext in this table and is
+  readable through the agent.
+- **`system.users`** — exposes configured usernames, auth types, and (on some
+  ClickHouse versions/configurations) additional auth metadata.
+
+Because the agent is LLM-driven and, by default (`CHM_FEATURE_AGENT_ACCESS=public`),
+reachable without authentication on self-hosted deployments, anyone who can
+prompt it inherits read access to everything the configured ClickHouse user can
+see — including secrets that leaked into query text.
+
+**The recommendation.** Create a dedicated, restricted, read-only ClickHouse
+user for the dashboard/agent/MCP connection instead of reusing an admin or
+broad-access account — for both self-hosted deployments and any custom/BYO
+ClickHouse connection configured in cloud mode:
+
+```sql
+CREATE USER chmonitor_agent IDENTIFIED WITH sha256_password BY 'CHANGE_ME'
+    SETTINGS readonly = 1;
+
+-- Grant only the system tables the dashboard needs for monitoring.
+GRANT SELECT ON system.processes TO chmonitor_agent;
+GRANT SELECT ON system.metrics TO chmonitor_agent;
+GRANT SELECT ON system.parts TO chmonitor_agent;
+GRANT SELECT ON system.replicas TO chmonitor_agent;
+GRANT SELECT ON system.merges TO chmonitor_agent;
+-- ... plus any other system.* tables your dashboard pages use.
+
+-- Explicitly withhold the sensitive ones unless you've reviewed what's
+-- in your query text / user list and accept the risk:
+REVOKE SELECT ON system.query_log FROM chmonitor_agent;
+REVOKE SELECT ON system.query_thread_log FROM chmonitor_agent;
+REVOKE SELECT ON system.users FROM chmonitor_agent;
+REVOKE SELECT ON system.session_log FROM chmonitor_agent;
+```
+
+Adjust the exact grant list to your environment — the key principle is least
+privilege, `readonly = 1`, and treating `system.query_log` / `system.users` as
+sensitive by default.
+
+**Weighing the trade-off.** Several dashboard [query-monitoring pages](/guide/features/queries) —
+Slow Queries, Expensive Queries, the query-history panel, and the Query Detail
+view — legitimately read `system.query_log` to power their own charts and
+tables. If your monitoring use case needs that access, weigh it against the
+agent's ability to read the same table through the same connection. Two
+options:
+
+1. **Split the connection** — the dashboard, agent, and MCP server currently
+   share one `CLICKHOUSE_USER`/`CLICKHOUSE_HOST` connection, so achieving a
+   split means running a second chmonitor deployment (or a separate host entry)
+   configured with its own, more restricted ClickHouse user — one that revokes
+   `system.query_log` / `system.users` — dedicated to agent/MCP traffic, while
+   the primary connection keeps broader access for the dashboard's own charts.
+2. **Accept the risk** — keep one shared user, but understand that anyone who
+   can prompt the agent (or call `/api/mcp`) inherits the same read access as
+   the dashboard's own query-monitoring pages, and gate access accordingly
+   (`CHM_FEATURE_AGENT_ACCESS=authenticated`, MCP auth via `CHM_API_KEY_SECRET`
+   / Clerk — see [MCP Server](#mcp-server)).
