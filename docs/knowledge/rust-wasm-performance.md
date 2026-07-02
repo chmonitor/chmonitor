@@ -3,7 +3,7 @@ id: rust-wasm-performance
 title: Rust and WASM Performance
 type: decision
 status: active
-updated: 2026-05-09
+updated: 2026-07-02
 source_pr: 1021
 tags:
   - rust
@@ -20,6 +20,8 @@ related:
 ## Decision
 
 Keep object-heavy transforms in TypeScript. Use Rust/WASM only for JSON-preserving or byte/string-heavy paths where data can stay serialized across the JS/WASM boundary.
+
+> **Object-pivot WASM path is benchmark-only (issue #2150).** The user-event pivot runs in pure TS (`apps/dashboard/src/lib/chart-data-transforms/transforms/user-events.ts` → `transformUserEventCounts`). The dead TS wrapper `transformUserEventCountsWasm` was removed; the Rust exports `transform_user_event_counts_v2` / `_v3` remain only for `scripts/benchmarks/` and are not called by the app. Fully removing them requires rebuilding the committed `.wasm` binary — a follow-up for a maintainer who can run the wasm build.
 
 Do not promote native Rust subprocess transforms into hot API paths. Process startup and IPC overhead dominate the benchmark for small and medium inputs.
 

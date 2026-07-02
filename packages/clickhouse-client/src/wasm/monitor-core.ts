@@ -54,30 +54,6 @@ async function loadMonitorCore(): Promise<MonitorCoreModule> {
   return modulePromise
 }
 
-function toPlainObjects(value: unknown): unknown {
-  if (
-    value instanceof Map ||
-    Object.prototype.toString.call(value) === '[object Map]'
-  ) {
-    const map = value as Map<unknown, unknown>
-    return Object.fromEntries(
-      [...map.entries()].map(([key, entry]) => [key, toPlainObjects(entry)])
-    )
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(toPlainObjects)
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, toPlainObjects(entry)])
-    )
-  }
-
-  return value
-}
-
 export async function transformClickHouseJsonEachRowWasmJson(
   input: string
 ): Promise<string> {
@@ -125,17 +101,4 @@ export async function transformClickHouseDataWasm<
 >(input: T[]): Promise<T[]> {
   const jsonEachRow = input.map((row) => JSON.stringify(row)).join('\n')
   return transformClickHouseJsonEachRowWasm<T>(jsonEachRow)
-}
-
-export async function transformUserEventCountsWasm<
-  T extends string = 'event_time',
->(input: readonly Record<string, unknown>[], timeField: T = 'event_time' as T) {
-  const mod = await loadMonitorCore()
-  return toPlainObjects(
-    mod.transform_user_event_counts_v3(input, timeField)
-  ) as {
-    data: Record<T, Record<string, number>>
-    users: string[]
-    chartData: Array<Record<T, string> & Record<string, number>>
-  }
 }
