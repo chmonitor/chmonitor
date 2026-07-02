@@ -110,3 +110,6 @@ ds-bundle/
 apps/dashboard/.ds-tailwind.css
 apps/dashboard/node_modules/dashboard
 .omo/
+
+# Local infra notes with credentials — never commit (public repo)
+docs/machines.md
