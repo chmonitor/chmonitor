@@ -113,7 +113,7 @@ browser tab open.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CRON_SECRET` | — | Shared secret guarding `/api/cron/health-sweep`. Send as `Authorization: Bearer <secret>`. When unset, the endpoint is open. |
+| `CRON_SECRET` | — | **Required** shared secret guarding the cron endpoints `/api/cron/health-sweep` and `/api/cron/retention-prune`. Send as `Authorization: Bearer <secret>` (or `?secret=<secret>`). When unset/empty the endpoints **fail closed and return HTTP 503** (they do not run) — `retention-prune` is destructive, so it must not be reachable unauthenticated. |
 | `HEALTH_ALERT_ENABLED` | `false` | Set `true` to POST webhook alerts. Checks run regardless; alerts only fire when `true`. |
 | `HEALTH_ALERT_WEBHOOK_URL` | — | Slack- or Discord-compatible webhook URL. Required for alerts to be dispatched. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity to alert: `warning` (warning + critical) or `critical` (critical only). |

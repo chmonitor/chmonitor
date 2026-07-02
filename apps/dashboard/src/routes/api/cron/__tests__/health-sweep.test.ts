@@ -1,13 +1,14 @@
 /**
  * Tests for CRON_SECRET authorization in health-sweep.ts
  *
- * The route's `isAuthorized()` is not exported, so we verify the security
+ * The route's `authorizeCron()` is not exported, so we verify the security
  * contract in two layers:
  *
  *   1. Structural — read the source and assert that:
  *        - `secretsMatch` is imported from the constant-time module
  *        - no bare `===` comparison against the secret remains
  *        - both the Authorization header and `?secret=` query paths use it
+ *        - the endpoint fails closed (503) when CRON_SECRET is unset
  *
  *   2. Behavioral — test `secretsMatch` (the comparator used by the route)
  *      directly: correct secret passes, wrong secret is rejected, empty
@@ -58,9 +59,15 @@ describe('health-sweep.ts CRON_SECRET authorization (structural)', () => {
     expect(SOURCE).not.toMatch(/searchParams\.get\(['"]secret['"]\) ===/)
   })
 
-  test('preserves the open-when-unset guard (if (!secret) return true)', () => {
-    // Intentional: when CRON_SECRET is not configured the endpoint is open.
-    expect(SOURCE).toMatch(/if\s*\(!secret\)\s*return true/)
+  test('fails closed when CRON_SECRET is unset (503, not open)', () => {
+    // Security (issue #2135): when CRON_SECRET is not configured the endpoint
+    // must DENY the request, not allow it. The old insecure guard
+    // (`if (!secret) return true`) must be gone.
+    expect(SOURCE).not.toMatch(/if\s*\(!secret\)\s*return true/)
+    // The unset branch returns a 503 with a JSON error body.
+    expect(SOURCE).toMatch(/if\s*\(!secret\)/)
+    expect(SOURCE).toContain("error: 'CRON_SECRET not configured'")
+    expect(SOURCE).toMatch(/status:\s*503/)
   })
 })
 
