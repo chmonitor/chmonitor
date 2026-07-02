@@ -183,6 +183,11 @@ export async function listRecentFindings(
 
   const safeLimit = Math.min(Math.max(Math.trunc(limit) || 0, 1), 1000)
 
+  // Filter and order on the real DateTime `event_time` column inside a
+  // subquery, then format it to a string in the outer SELECT. Formatting in
+  // the same SELECT that filters/orders would shadow the DateTime column with
+  // a String alias, so `event_time >= now() - INTERVAL ...` and
+  // `ORDER BY event_time` compare String vs DateTime → Code 386 NO_COMMON_TYPE.
   const sql = `
     SELECT
       toString(event_time) AS event_time,
@@ -194,10 +199,22 @@ export async function listRecentFindings(
       detail,
       metric,
       value
-    FROM ${FINDINGS_TABLE}
-    WHERE ${conditions.join(' AND ')}
-    ORDER BY event_time DESC
-    LIMIT ${safeLimit}
+    FROM (
+      SELECT
+        event_time,
+        host_id,
+        severity,
+        category,
+        source,
+        title,
+        detail,
+        metric,
+        value
+      FROM ${FINDINGS_TABLE}
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY event_time DESC
+      LIMIT ${safeLimit}
+    )
   `
 
   const result = await fetchData<FindingRow[]>({

@@ -141,4 +141,32 @@ describe('listRecentFindings', () => {
     fetchDataImpl = async () => ({ error: { message: 'boom' } })
     expect(await listRecentFindings(1)).toEqual([])
   })
+
+  // Regression: #2173 — filtering/ordering must run on the real DateTime
+  // `event_time` column inside a subquery, and the string formatting must live
+  // only in the OUTER select. Otherwise `toString(event_time) AS event_time`
+  // shadows the DateTime column and `WHERE event_time >= now() - INTERVAL ...`
+  // / `ORDER BY event_time` compare String vs DateTime → Code 386
+  // NO_COMMON_TYPE.
+  test('filters and orders inside a subquery on the real DateTime column (#2173)', async () => {
+    await listRecentFindings(1, { since: '24 HOUR' })
+
+    // The query wraps an inner SELECT.
+    const innerStart = lastQuery.indexOf('FROM (')
+    expect(innerStart).toBeGreaterThan(-1)
+
+    // The WHERE (host filter + since) and ORDER BY live inside the subquery,
+    // i.e. after the `FROM (` that opens it.
+    const wherePos = lastQuery.indexOf('WHERE host_id')
+    const sincePos = lastQuery.indexOf('event_time >= now() - INTERVAL 24 HOUR')
+    const orderPos = lastQuery.indexOf('ORDER BY event_time DESC')
+    expect(wherePos).toBeGreaterThan(innerStart)
+    expect(sincePos).toBeGreaterThan(innerStart)
+    expect(orderPos).toBeGreaterThan(innerStart)
+
+    // The string formatting is in the OUTER select, before the subquery opens.
+    const toStringPos = lastQuery.indexOf('toString(event_time) AS event_time')
+    expect(toStringPos).toBeGreaterThan(-1)
+    expect(toStringPos).toBeLessThan(innerStart)
+  })
 })
