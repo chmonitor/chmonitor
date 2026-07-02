@@ -94,13 +94,13 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 
 | Variable | Default | Description |
 |---|---|---|
-| `CRON_SECRET` | (unset = open) | Guards `GET /api/cron/health-sweep`. Pass as `Authorization: Bearer <secret>`. **Setting this is strongly recommended** — without it the endpoint is publicly accessible to anyone who can reach your deployment. |
+| `CRON_SECRET` | (unset = **endpoint disabled**) | **Required.** Guards `GET /api/cron/health-sweep` and `GET /api/cron/retention-prune`. Pass as `Authorization: Bearer <secret>` (or `?secret=<secret>`). When it is **unset/empty the endpoints fail closed and return HTTP 503** — they do not run. Note that `retention-prune` is **destructive** (it deletes conversation rows past each plan's retention window), which is why these routes refuse to run unauthenticated. |
 | `HEALTH_ALERT_ENABLED` | `false` | Set to `true` to enable webhook dispatch. |
 | `HEALTH_ALERT_WEBHOOK_URL` | (required if enabled) | Slack or Discord incoming webhook URL. Payload is a JSON object with a `text` field. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity that triggers a notification. Values: `warning` or `critical`. |
 
-<Callout type="warn" title="Secure the sweep endpoint">
-Without `CRON_SECRET`, the `/api/cron/health-sweep` endpoint is publicly accessible. Set it and pass it as `Authorization: Bearer <secret>` from your cron caller.
+<Callout type="warn" title="CRON_SECRET is required">
+`CRON_SECRET` is **required** for the cron endpoints. When it is unset, `/api/cron/health-sweep` and `/api/cron/retention-prune` **fail closed and return HTTP 503** (they do not run) — `retention-prune` is destructive, so it must never be reachable unauthenticated. Set `CRON_SECRET` and pass it as `Authorization: Bearer <secret>` from your cron caller.
 </Callout>
 
 <Steps>
@@ -147,7 +147,7 @@ In `wrangler.toml`:
 crons = ["*/5 * * * *"]
 ```
 
-The cron handler calls the health-sweep logic directly — no HTTP hop needed when running inside the same Worker.
+The Cloudflare scheduled trigger is routed to the route's `GET` handler. Because that handler now **requires** `CRON_SECRET` (it returns HTTP 503 when unset), make sure the secret is configured before relying on the schedule, and invoke the endpoint with the `Authorization: Bearer <secret>` header (or `?secret=<secret>`) so the request is authorized — e.g. from an external scheduler, or a Worker Cron that forwards the secret. An unauthenticated scheduled hit will be rejected by design.
 
 ## Notes & limitations
 
