@@ -22,8 +22,11 @@ export const threadAnalysisConfig: QueryConfig = {
       memory_usage,
       peak_memory_usage,
       formatReadableSize(memory_usage) as readable_memory_usage,
+      round(memory_usage * 100.0 / nullIf(max(memory_usage) OVER (), 0), 2) as pct_memory_usage,
       formatReadableSize(peak_memory_usage) as readable_peak_memory_usage,
+      round(peak_memory_usage * 100.0 / nullIf(max(peak_memory_usage) OVER (), 0), 2) as pct_peak_memory_usage,
       formatReadableQuantity(read_rows) as readable_read_rows,
+      round(read_rows * 100.0 / nullIf(max(read_rows) OVER (), 0), 2) as pct_read_rows,
       formatReadableSize(read_bytes) as readable_read_bytes,
       event_time
     FROM system.query_thread_log
