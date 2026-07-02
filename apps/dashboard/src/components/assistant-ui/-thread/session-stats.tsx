@@ -97,7 +97,8 @@ function useSessionTotals(): SessionTotals {
     // Tool-call count (same predicate as the per-message footer).
     totals.toolCount +=
       (content as { type?: string }[]).filter(
-        (p) => p?.type === 'tool-call' || (p?.type?.startsWith('tool-') ?? false)
+        (p) =>
+          p?.type === 'tool-call' || (p?.type?.startsWith('tool-') ?? false)
       ).length ?? 0
 
     if (messageTokens > 0) totals.messageCount += 1
