@@ -10,7 +10,7 @@
     "typegen": "wrangler types"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260515.0",
+    "@cloudflare/workers-types": "^4.20260603.1",
     "wrangler": "^4.97.0"
   }
 }
