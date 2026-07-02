@@ -181,7 +181,7 @@ export function useInsights(hostId: number): UseInsightsResult {
     isGenerating: generateMutation.isPending,
     error: error ?? undefined,
     refresh: invalidate,
-    generate: () => generateMutation.mutate(),
+    generate: () => generateMutation.mutate({ auto: false }),
     dismiss,
     dismissAll,
   }
