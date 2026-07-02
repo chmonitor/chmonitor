@@ -136,10 +136,27 @@ export function resolveAgentChatModel({
   }
 
   if (resolved.providerId === 'anyrouter') {
+    // Mirror the OpenRouter+Anthropic prompt-caching path: for
+    // Anthropic-compatible models routed through AnyRouter, attach
+    // `cache_control: { type: 'ephemeral' }` so the ~8K-token system prompt is
+    // cached instead of re-billed on every tool-loop step. The AnyRouter
+    // callable takes no per-model settings arg (unlike `openrouter.chat`), so
+    // the hint is forwarded via the provider's `extraBody` request-body hook.
+    // Safe no-op if AnyRouter ignores it — the route logs `cacheReadTokens` to
+    // confirm when it takes effect.
+    const usePromptCache = isAnthropicModel(modelId)
+    if (usePromptCache) {
+      console.debug(
+        `[Agent] Prompt caching enabled for Anthropic model: ${modelId}`
+      )
+    }
     const anyrouter = createAnyRouter({
       apiKey: resolved.apiKey,
       baseURL: resolved.baseURL,
       headers: getAnyRouterHeaders(referer),
+      ...(usePromptCache && {
+        extraBody: { cache_control: { type: 'ephemeral' } },
+      }),
     })
     return {
       model: anyrouter(modelId) as LanguageModel,

@@ -126,6 +126,54 @@ describe('createClickHouseAgent OpenRouter model resolution', () => {
     expect(anyrouterModelMock).toHaveBeenCalledWith('google/gemma-test')
   })
 
+  test('attaches ephemeral cache_control for Anthropic models via AnyRouter', async () => {
+    process.env.ANYROUTER_API_KEY = 'ar-test'
+    const { resolveAgentChatModel } = await import('../provider-chat-model')
+
+    resolveAgentChatModel({
+      model: 'anyrouter:anthropic/claude-sonnet-4.6',
+      referer: 'https://example.test/agents',
+    })
+
+    expect(createAnyRouterOptions[0]).toMatchObject({
+      apiKey: 'ar-test',
+      baseURL: 'https://anyrouter.dev/api/v1',
+      extraBody: { cache_control: { type: 'ephemeral' } },
+    })
+    expect(anyrouterModelMock).toHaveBeenCalledWith(
+      'anthropic/claude-sonnet-4.6'
+    )
+  })
+
+  test('does not attach cache_control for non-Anthropic AnyRouter models', async () => {
+    process.env.ANYROUTER_API_KEY = 'ar-test'
+    const { resolveAgentChatModel } = await import('../provider-chat-model')
+
+    resolveAgentChatModel({
+      model: 'anyrouter:google/gemma-test',
+      referer: 'https://example.test/agents',
+    })
+
+    expect(createAnyRouterOptions[0]).not.toHaveProperty('extraBody')
+  })
+
+  test('does not attach cache_control on the OpenAI-compatible path', async () => {
+    const { resolveAgentChatModel } = await import('../provider-chat-model')
+
+    resolveAgentChatModel({
+      model: 'nvidia:anthropic/claude-sonnet-4.6',
+      referer: 'https://example.test/agents',
+    })
+
+    // NVIDIA resolves through the OpenAI-compatible branch (createOpenAI); the
+    // AnyRouter branch must not run, and no cache_control is set anywhere.
+    expect(createAnyRouterOptions).toHaveLength(0)
+    for (const options of createOpenAIOptions) {
+      expect(options).not.toHaveProperty('extraBody')
+    }
+    expect(openAIChatMock).toHaveBeenCalledWith('anthropic/claude-sonnet-4.6')
+  })
+
   test('falls back to the default AnyRouter source when APP_SOURCE is unset', async () => {
     process.env.ANYROUTER_API_KEY = 'ar-test'
     process.env.APP_NAME = 'Agent Test'
