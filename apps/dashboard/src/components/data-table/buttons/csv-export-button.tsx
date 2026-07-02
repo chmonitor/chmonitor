@@ -11,10 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { downloadCsv, valueToCsv } from '@/lib/csv'
 
-interface CsvExportButtonProps {
-  // Using 'any' since the component only uses table methods that don't depend on TData
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  table: Table<any>
+interface CsvExportButtonProps<TData extends RowData = RowData> {
+  table: Table<TData>
   /** Optional filename for the download (without extension) */
   filename?: string
 }
@@ -61,10 +59,12 @@ function generateCsvContent<TData extends RowData>(
  * - Generates filename with timestamp
  * - Shows toast notifications
  */
-export const CsvExportButton = function CsvExportButton({
+export const CsvExportButton = function CsvExportButton<
+  TData extends RowData = RowData,
+>({
   table,
   filename = 'export',
-}: CsvExportButtonProps) {
+}: CsvExportButtonProps<TData>) {
   const handleExportCurrentPage = () => {
     const csvContent = generateCsvContent(table)
 

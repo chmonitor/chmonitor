@@ -1,12 +1,14 @@
-import type { Table } from '@tanstack/react-table'
+import type { RowData, Table } from '@tanstack/react-table'
 
-export interface FootnoteProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  table: Table<any>
+export interface FootnoteProps<TData extends RowData = RowData> {
+  table: Table<TData>
   footnote?: string | React.ReactNode
 }
 
-export const Footnote = function Footnote({ table, footnote }: FootnoteProps) {
+export const Footnote = function Footnote<TData extends RowData = RowData>({
+  table,
+  footnote,
+}: FootnoteProps<TData>) {
   return (
     <div className="min-w-0 flex-1 text-wrap break-words text-sm text-muted-foreground">
       {footnote ? (

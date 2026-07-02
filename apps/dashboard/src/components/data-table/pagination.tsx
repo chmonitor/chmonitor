@@ -4,7 +4,7 @@ import {
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon,
 } from '@radix-ui/react-icons'
-import type { Table } from '@tanstack/react-table'
+import type { RowData, Table } from '@tanstack/react-table'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -17,9 +17,8 @@ import {
 import { formatNumber } from '@/lib/format-number'
 import { cn } from '@/lib/utils'
 
-interface DataTablePaginationProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  table: Table<any>
+interface DataTablePaginationProps<TData extends RowData = RowData> {
+  table: Table<TData>
 }
 
 const pageSizeOptions = [10, 25, 50, 100, 200, 500, 1000]
@@ -28,7 +27,9 @@ const pageSizeOptions = [10, 25, 50, 100, 200, 500, 1000]
  * Memoized pagination info displaying row range (desktop) or page number (mobile).
  * Uses cached Intl.NumberFormat from @/lib/format-number.
  */
-function PaginationInfo({ table }: DataTablePaginationProps) {
+function PaginationInfo<TData extends RowData = RowData>({
+  table,
+}: DataTablePaginationProps<TData>) {
   const { pageIndex, pageSize } = table.getState().pagination
   const totalRows = table.getPrePaginationRowModel().rows.length
   const pageCount = table.getPageCount()
@@ -50,7 +51,9 @@ function PaginationInfo({ table }: DataTablePaginationProps) {
   )
 }
 
-export function DataTablePagination({ table }: DataTablePaginationProps) {
+export function DataTablePagination<TData extends RowData = RowData>({
+  table,
+}: DataTablePaginationProps<TData>) {
   // Memoized pagination handlers to prevent recreation on every render
   const handleFirstPage = () => {
     table.setPageIndex(0)

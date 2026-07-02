@@ -1,4 +1,4 @@
-import type { Row, Table } from '@tanstack/react-table'
+import type { Row, RowData, Table } from '@tanstack/react-table'
 
 import { getBarStyle, getColorFromBank, getShade } from '@/lib/color-bank'
 import { formatReadableQuantity } from '@/lib/format-readable'
@@ -7,29 +7,33 @@ export interface BackgroundBarOptions {
   numberFormat?: boolean
 }
 
-interface BackgroundBarFormatProps {
-  table: Table<any>
-  row: Row<any>
+interface BackgroundBarFormatProps<TData extends RowData = RowData> {
+  table: Table<TData>
+  row: Row<TData>
   columnName: string
   value: React.ReactNode
   options?: BackgroundBarOptions
 }
 
-export const BackgroundBarFormat = function BackgroundBarFormat({
+export const BackgroundBarFormat = function BackgroundBarFormat<
+  TData extends RowData = RowData,
+>({
   table,
   row,
   columnName,
   value,
   options,
-}: BackgroundBarFormatProps): React.ReactNode {
+}: BackgroundBarFormatProps<TData>): React.ReactNode {
   // Disable if row count <= 1
   if (table.getCoreRowModel()?.rows?.length <= 1) return value
 
   // Looking at pct_{columnName} for the value
   const colName = columnName.replace('readable_', '')
   const pctColName = `pct_${colName}`
-  const pct = row.original[pctColName]
-  const orgValue = row.original[colName]
+  // row.original is generic (TData); read dynamic keys via a narrow record cast.
+  const original = row.original as Record<string, unknown>
+  const pct = original[pctColName]
+  const orgValue = original[colName]
 
   if (pct === undefined || pct === null || !Number.isFinite(Number(pct))) {
     // Column pct_{columnName} is not defined in the query
