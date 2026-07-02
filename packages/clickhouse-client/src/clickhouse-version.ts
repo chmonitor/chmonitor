@@ -160,7 +160,8 @@ export async function checkTableExists(
     const resultSet = await client.query({
       query:
         QUERY_COMMENT +
-        `SELECT count() > 0 as exists FROM system.tables WHERE database = '${database}' AND name = '${table}'`,
+        `SELECT count() > 0 as exists FROM system.tables WHERE database = {database:String} AND name = {table:String}`,
+      query_params: { database, table },
       format: 'JSONEachRow',
     })
 

@@ -18,12 +18,12 @@ export const mergePerformanceDeclarative: DeclarativeQueryConfig = {
           -- Merge Duration
           AVG(duration_ms) AS avg_duration_ms,
           formatReadableTimeDelta(avg_duration_ms / 1000, 'minutes', 'milliseconds') AS readable_avg_duration,
-          round(100 * avg_duration_ms / max(avg_duration_ms) OVER ()) as pct_avg_duration,
+          round(100 * avg_duration_ms / nullIf(max(avg_duration_ms) OVER (), 0)) as pct_avg_duration,
 
           -- Rows Read
           SUM(read_rows) AS sum_read_rows,
           formatReadableQuantity(sum_read_rows) AS readable_sum_read_rows,
-          round(100 * sum_read_rows / max(sum_read_rows) OVER ()) as pct_sum_read_rows,
+          round(100 * sum_read_rows / nullIf(max(sum_read_rows) OVER (), 0)) as pct_sum_read_rows,
 
           bar(avg_duration_ms, 0, max(avg_duration_ms) OVER (), 30) AS bar_avg_duration,
           bar(sum_read_rows, 0, max(sum_read_rows) OVER (), 30) AS bar_sum_read_rows

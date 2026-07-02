@@ -10,6 +10,7 @@ import type { ApiError, ApiRequest } from '@/lib/api/types'
 
 import { validateFormat } from './format'
 import { validateHostIdWithError } from './host-id'
+import { VALID_INTERVALS } from '@chm/types'
 import { ApiErrorType } from '@/lib/api/types'
 
 /**
@@ -164,21 +165,6 @@ export function validatePaginationParams(searchParams: URLSearchParams): {
 
   return { limit, offset }
 }
-
-/** Valid ClickHouse interval functions */
-const VALID_INTERVALS = [
-  'toStartOfSecond',
-  'toStartOfMinute',
-  'toStartOfFiveMinutes',
-  'toStartOfTenMinutes',
-  'toStartOfFifteenMinutes',
-  'toStartOfHour',
-  'toStartOfDay',
-  'toStartOfWeek',
-  'toStartOfMonth',
-  'toStartOfQuarter',
-  'toStartOfYear',
-] as const
 
 /**
  * Validate ClickHouse interval parameter

@@ -1,4 +1,24 @@
-import { describe, expect, it } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
+
+// Mock the leaf ClickHouse client packages (same approach as
+// clickhouse-fetch.test.ts) so getClient() resolves to a controllable
+// fake client instead of making a real network call.
+const mockClientQuery = mock(() =>
+  Promise.resolve({ json: () => Promise.resolve([{ exists: 0 }]) })
+)
+const mockClient = { query: mockClientQuery }
+const mockCreateClient = mock(() => mockClient)
+
+mock.module('@clickhouse/client', () => ({
+  createClient: mockCreateClient,
+}))
+mock.module('@clickhouse/client-web', () => ({
+  createClient: mockCreateClient,
+}))
+
+afterAll(() => {
+  mock.restore()
+})
 
 const {
   parseVersion,
@@ -10,9 +30,15 @@ const {
   selectVersionedSql,
   getTableInfoMessage,
   SYSTEM_TABLE_INFO,
+  checkTableExists,
 } = await import(
   new URL('../clickhouse-version.ts?test=version', import.meta.url).href
 )
+
+const { _resetEnvCache: resetEnvCache } = await import(
+  '../clickhouse/env-schema'
+)
+const { clientPool } = await import('../clickhouse/connection-pool')
 
 describe('parseVersion', () => {
   it('parses a standard 3-part version', () => {
@@ -402,5 +428,72 @@ describe('getTableInfoMessage', () => {
   it('returns generic message for unknown tables', () => {
     const msg = getTableInfoMessage('system.unknown_table')
     expect(msg).toContain('may require specific configuration')
+  })
+})
+
+describe('checkTableExists', () => {
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
+    process.env.CLICKHOUSE_USER = 'default'
+    process.env.CLICKHOUSE_PASSWORD = ''
+    resetEnvCache()
+    clientPool.clear()
+    mockCreateClient.mockReset()
+    mockClientQuery.mockReset()
+    mockCreateClient.mockReturnValue(mockClient)
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ exists: 0 }]),
+    })
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+  })
+
+  it('sends a parameterized query using query_params instead of interpolating db/table into the SQL', async () => {
+    await checkTableExists(0, 'system', 'backup_log')
+
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
+    const call = mockClientQuery.mock.calls[0][0]
+
+    // The SQL must use bound placeholders, not raw interpolated values.
+    expect(call.query).toContain('{database:String}')
+    expect(call.query).toContain('{table:String}')
+    expect(call.query).not.toContain("'system'")
+    expect(call.query).not.toContain("'backup_log'")
+
+    // The actual values must be passed via query_params.
+    expect(call.query_params).toEqual({
+      database: 'system',
+      table: 'backup_log',
+    })
+  })
+
+  it('returns true when the query reports the table exists', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ exists: 1 }]),
+    })
+
+    const result = await checkTableExists(0, 'system', 'query_log')
+    expect(result).toBe(true)
+  })
+
+  it('returns false when the query reports the table does not exist', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ exists: 0 }]),
+    })
+
+    const result = await checkTableExists(0, 'system', 'missing_table')
+    expect(result).toBe(false)
+  })
+
+  it('returns false when the underlying client query throws', async () => {
+    mockClientQuery.mockRejectedValue(new Error('connection refused'))
+
+    const result = await checkTableExists(0, 'system', 'query_log')
+    expect(result).toBe(false)
   })
 })

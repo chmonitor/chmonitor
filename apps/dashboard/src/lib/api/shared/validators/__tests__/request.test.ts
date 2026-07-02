@@ -285,7 +285,6 @@ describe('validateIntervalParam', () => {
 
   test('accepts every valid interval', () => {
     const valid = [
-      'toStartOfSecond',
       'toStartOfMinute',
       'toStartOfFiveMinutes',
       'toStartOfTenMinutes',
@@ -294,12 +293,21 @@ describe('validateIntervalParam', () => {
       'toStartOfDay',
       'toStartOfWeek',
       'toStartOfMonth',
-      'toStartOfQuarter',
-      'toStartOfYear',
     ]
     for (const interval of valid) {
       expect(validateIntervalParam(interval)).toBeUndefined()
     }
+  })
+
+  test('returns ValidationError for an interval not backed by intervalMap', () => {
+    // toStartOfQuarter/toStartOfYear/toStartOfSecond are ClickHouse functions
+    // but are not in the app's supported interval set (see intervalMap in
+    // clickhouse-query.ts) — must stay rejected so WITH FILL never gets an
+    // empty fillStep/nowOrToday.
+    const err = validateIntervalParam('toStartOfQuarter')
+    expect(err).toBeDefined()
+    expect(err?.type).toBe(ApiErrorType.ValidationError)
+    expect(err?.message).toContain('toStartOfQuarter')
   })
 
   test('returns ValidationError for unknown interval', () => {

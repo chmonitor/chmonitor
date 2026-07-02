@@ -42,12 +42,16 @@ const intervalMap = new Map<
   ['toStartOfMonth', { fillStep: 'toIntervalMonth(1)', nowOrToday: 'today()' }],
 ])
 
+/** Fallback used for any ClickHouseInterval not present in intervalMap, so
+ * WITH FILL never receives an empty STEP/TO and produces malformed SQL. */
+const DEFAULT_FILL = { fillStep: 'toIntervalMinute(1)', nowOrToday: 'now()' }
+
 export function fillStep(interval: ClickHouseInterval): string {
-  return intervalMap.get(interval)?.fillStep ?? ''
+  return (intervalMap.get(interval) ?? DEFAULT_FILL).fillStep
 }
 
 export function nowOrToday(interval: ClickHouseInterval): string {
-  return intervalMap.get(interval)?.nowOrToday ?? ''
+  return (intervalMap.get(interval) ?? DEFAULT_FILL).nowOrToday
 }
 
 /**

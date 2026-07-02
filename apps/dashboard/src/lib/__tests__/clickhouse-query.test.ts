@@ -52,8 +52,9 @@ describe('fillStep', () => {
     expect(fillStep('toStartOfMonth')).toBe('toIntervalMonth(1)')
   })
 
-  test('returns empty string for unknown interval', () => {
-    expect(fillStep('unknown' as any)).toBe('')
+  test('falls back to a safe default instead of empty string for an unknown interval', () => {
+    // Guards against WITH FILL STEP  (empty) malformed SQL.
+    expect(fillStep('unknown' as any)).toBe('toIntervalMinute(1)')
   })
 })
 
@@ -69,8 +70,9 @@ describe('nowOrToday', () => {
     expect(nowOrToday('toStartOfMonth')).toBe('today()')
   })
 
-  test('returns empty string for unknown interval', () => {
-    expect(nowOrToday('unknown' as any)).toBe('')
+  test('falls back to a safe default instead of empty string for an unknown interval', () => {
+    // Guards against WITH FILL TO  (empty) malformed SQL.
+    expect(nowOrToday('unknown' as any)).toBe('now()')
   })
 })
 
@@ -150,6 +152,19 @@ describe('withQueryParams', () => {
       name: "O'Brien",
     })
     expect(result).toContain("SET param_name='O''Brien'")
+  })
+
+  test('escapes a single backslash in string values', () => {
+    const result = withQueryParams('SELECT {s:String}', { s: 'a\\b' })
+    expect(result).toContain("SET param_s='a\\\\b'")
+  })
+
+  test('escapes a backslash immediately followed by a quote (injection case)', () => {
+    // Backslashes are escaped first (\\ -> \\\\), then single quotes are doubled
+    // ('' ), so a trailing backslash cannot "consume" the escaped quote and break
+    // out of the string literal: "evil\'; --" renders as 'evil\\''; --'.
+    const result = withQueryParams('SELECT {s:String}', { s: "evil\\'; --" })
+    expect(result).toBe("SET param_s='evil\\\\''; --';\nSELECT {s:String}")
   })
 
   test('escapes backslashes so a trailing one cannot break out of the literal', () => {

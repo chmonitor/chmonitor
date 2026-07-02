@@ -18,7 +18,7 @@ export const topUsageTablesConfig: QueryConfig = {
       SELECT
           tables as table,
           count() as count,
-          round(100 * count() / max(count()) OVER ()) as pct_count
+          round(100 * count() / nullIf(max(count()) OVER (), 0)) as pct_count
       FROM merge('system', '^query_log')
       ARRAY JOIN tables
       WHERE (query_kind = 'Select')
@@ -38,7 +38,7 @@ export const topUsageTablesConfig: QueryConfig = {
       SELECT
           tables as table,
           count() as count,
-          round(100 * count() / max(count()) OVER ()) as pct_count,
+          round(100 * count() / nullIf(max(count()) OVER (), 0)) as pct_count,
           countIf(query_cache_usage = 'Read') as cache_hits,
           countIf(query_cache_usage != 'None' AND query_cache_usage != 'Unknown') as cache_usage,
           round(100 * countIf(query_cache_usage = 'Read') / count(), 2) as cache_hit_rate

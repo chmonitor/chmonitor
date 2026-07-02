@@ -74,6 +74,23 @@ export function parseTableFromSQL(sql: string): string[] {
     }
   })
 
+  // merge('database', 'regex') table function - aggregates data across all
+  // tables in `database` whose name matches `regex` (e.g.
+  // merge('system', '^query_log')). Strip regex anchors/escapes from the
+  // pattern to derive a plausible table name to check existence for.
+  const mergePattern = /merge\s*\(\s*'(\w+)'\s*,\s*'([^']+)'\s*\)/gi
+  let mergeMatch: RegExpExecArray | null
+  while ((mergeMatch = mergePattern.exec(sql)) !== null) {
+    const [, database, pattern] = mergeMatch
+    const tableName = pattern.replace(/^\^/, '').replace(/\\(.)/g, '$1')
+    if (database && tableName) {
+      const table = `${database}.${tableName}`
+      if (!tables.includes(table)) {
+        tables.push(table)
+      }
+    }
+  }
+
   return tables
 }
 
