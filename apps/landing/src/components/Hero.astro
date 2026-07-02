@@ -1,5 +1,5 @@
 ---
-import HeroShader from './HeroShader.tsx'
+import HeroHalftone from './HeroHalftone.tsx'
 
 const galleryCards = [
   { tab: 'Overview', src: '/landing-assets/hero-overview.png', alt: 'chmonitor cluster overview' },
@@ -14,32 +14,44 @@ const galleryCards = [
   { tab: 'Metrics', src: '/landing-assets/g-metrics.png', alt: 'chmonitor metrics' },
 ]
 ---
-<section class="hero">
-  <HeroShader client:visible />
-  <div class="wrap">
-    <span class="pill"><span class="dot"></span> Open source <a class="tag" href="https://github.com/chmonitor/chmonitor/blob/main/LICENSE" target="_blank" rel="noopener" style="color:inherit">· GPL-3.0</a></span>
-    <h1 class="hero-title">
-      <span class="hero-line">A simple, beautiful UI</span>
-      <span class="hero-line">to <span class="accent">monitor ClickHouse</span></span>
-    </h1>
-    <p class="hero-sub">chmonitor turns your cluster's system tables into a fast, readable dashboard: queries, merges, parts, replication and health, plus an AI agent that answers questions about your data. Self-host it, or use the hosted dashboard.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="https://dash.chmonitor.dev" target="_blank" rel="noopener">
-        Open dashboard
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-      <a class="btn btn-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
-        Quickstart
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
-      </a>
-      <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
-        GitHub
-      </a>
+<section class="ehero">
+  <div class="ehero-card">
+    <div class="ehero-shader"><HeroHalftone client:only="react" /></div>
+    <div class="ehero-scrim" aria-hidden="true"></div>
+
+    <span class="ehero-status">
+      <span class="dot"></span> Live cluster telemetry ·
+      <a href="https://github.com/chmonitor/chmonitor/blob/main/LICENSE" target="_blank" rel="noopener">open source, GPL-3.0</a>
+    </span>
+
+    <div class="ehero-content">
+      <span class="ehero-eyebrow">Real-time ClickHouse observability</span>
+      <h1 class="ehero-title">
+        <span class="l1">See every <span class="ch-hl">ClickHouse</span> query.</span><br /><span class="accent">As it runs.</span>
+      </h1>
+      <p class="ehero-sub">
+        chmonitor turns your cluster's <strong>system tables</strong> into a fast, readable
+        dashboard — queries, merges, parts, replication and health, plus an AI agent that
+        answers questions about your data. <strong>Self-host it, or use the hosted dashboard.</strong>
+      </p>
+      <div class="ehero-actions">
+        <a class="btn btn-primary" href="https://dash.chmonitor.dev" target="_blank" rel="noopener">
+          Open dashboard
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a class="btn btn-ghost ehero-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
+          Quickstart
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+        </a>
+        <a class="btn btn-ghost ehero-ghost" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+          GitHub
+        </a>
+      </div>
     </div>
   </div>
 
-  <div class="gallery-strip reveal" style="margin-top:48px">
+  <div class="gallery-strip reveal">
     <div class="marquee">
       {galleryCards.map((card) => (
         <div class="gcard">
@@ -56,3 +68,120 @@ const galleryCards = [
     </div>
   </div>
 </section>
+
+<style>
+  /* Vertical rhythm only — horizontal inset lives on the card so the gallery
+     strip below can span the full browser width. */
+  .ehero { padding: 84px 0 100px; margin-bottom: 56px; }
+  /* Card sits at ~70% width (15% gutters each side); widens as viewport narrows. */
+  .ehero-card { margin: 0 15%; }
+  @media (max-width: 1200px) { .ehero { padding: 56px 0 80px; } .ehero-card { margin: 0 8%; } }
+  @media (max-width: 820px)  { .ehero { padding: 32px 0 60px; } .ehero-card { margin: 0 4%; } }
+  @media (max-width: 640px)  { .ehero { padding: 16px 0 44px; } .ehero-card { margin: 0 14px; } }
+
+  /* Rounded dark hero card carrying the halftone shader + editorial copy. */
+  .ehero-card {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #0b0b0e;
+    min-height: min(600px, 70vh);
+    display: flex;
+    isolation: isolate;
+    box-shadow: 0 30px 90px -50px rgba(0,0,0,.55);
+  }
+  .ehero-shader { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .ehero-shader :global(canvas) { display: block; width: 100% !important; height: 100% !important; }
+
+  /* Readability plate: a soft centered wash so the copy stays legible over the
+     busy right side of the halftone (the source image is calm-left / busy-right,
+     and centered text crosses into the busy zone). */
+  .ehero-scrim {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(ellipse 72% 66% at 50% 50%, rgba(6,6,10,.58) 0%, rgba(6,6,10,.28) 48%, rgba(6,6,10,0) 76%),
+      linear-gradient(180deg, rgba(6,6,10,.35) 0%, rgba(6,6,10,0) 26%, rgba(6,6,10,0) 60%, rgba(6,6,10,.42) 100%);
+  }
+
+  .ehero-status {
+    position: absolute; top: 22px; left: 22px; z-index: 3;
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 32px; padding: 0 14px; border-radius: 999px;
+    background: rgba(10,10,14,.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.12);
+    color: #e7e7ea; font-size: 13px; font-weight: 500; white-space: nowrap;
+  }
+  .ehero-status a { color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); }
+  .ehero-status a:hover { border-color: #fff; }
+  .ehero-status .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #34d399;
+    box-shadow: 0 0 0 3px rgba(52,211,153,.2); animation: ehero-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes ehero-pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+
+  .ehero-content {
+    position: relative; z-index: 2; margin: auto;
+    width: 100%; max-width: 880px; padding: 88px 28px;
+    text-align: center;
+  }
+  .ehero-eyebrow {
+    color: rgba(255,255,255,.66); font-size: 12.5px; font-weight: 600;
+    letter-spacing: .2em; text-transform: uppercase; display: block; margin-bottom: 22px;
+  }
+  .ehero-title {
+    font-family: var(--serif);
+    color: #fff; font-weight: 600;
+    font-size: clamp(2rem, 4.6vw, 3.9rem); line-height: 1.08; letter-spacing: -0.015em;
+    max-width: 24ch; margin: 0 auto; text-wrap: pretty;
+    text-shadow: 0 2px 40px rgba(0,0,0,.4);
+  }
+  /* Keep the statement on one line (line 2 is the italic accent) on desktop;
+     allow it to wrap on small screens so it never overflows the card. */
+  .ehero-title .l1 { white-space: nowrap; }
+  @media (max-width: 720px) { .ehero-title .l1 { white-space: normal; } }
+  .ehero-title .accent { font-style: italic; font-weight: 500; color: #f97316; }
+  /* "ClickHouse" in the same accent orange as "As it runs." */
+  .ehero-title .ch-hl { color: #f97316; }
+  .ehero-sub {
+    margin: 26px auto 0; max-width: 58ch;
+    color: rgba(230,232,238,.9); font-size: clamp(1rem, 1.4vw, 1.22rem); line-height: 1.55; text-wrap: pretty;
+  }
+  .ehero-sub strong { color: #fff; font-weight: 600; }
+  .ehero-actions { margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  /* Ghost buttons: light-on-dark by default (dark card). The global .btn-primary
+     already flips correctly per theme (light card ⇒ dark button, dark card ⇒
+     light button), so it needs no override. */
+  /* Solid, blurred glass so the label stays readable over the busy halftone. */
+  .ehero-ghost {
+    background: rgba(18,18,24,.55); color: #fff;
+    border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(10px);
+  }
+  .ehero-ghost:hover { background: rgba(18,18,24,.72); }
+
+  .ehero .gallery-strip { position: relative; z-index: 1; margin-top: 64px; }
+
+  /* ---- Light-mode hero: light paper card, dark copy, whitening scrim. ---- */
+  :global(html[data-theme='light']) .ehero-card { background: #eceef2; }
+  :global(html[data-theme='light']) .ehero-scrim {
+    background:
+      radial-gradient(ellipse 72% 68% at 50% 50%, rgba(247,248,250,.72) 0%, rgba(247,248,250,.38) 48%, rgba(247,248,250,0) 76%),
+      linear-gradient(180deg, rgba(247,248,250,.4) 0%, rgba(247,248,250,0) 26%, rgba(247,248,250,0) 60%, rgba(247,248,250,.45) 100%);
+  }
+  :global(html[data-theme='light']) .ehero-title { color: #0b0b0e; text-shadow: none; }
+  :global(html[data-theme='light']) .ehero-eyebrow { color: rgba(20,20,26,.6); }
+  :global(html[data-theme='light']) .ehero-sub { color: rgba(30,30,38,.86); }
+  :global(html[data-theme='light']) .ehero-sub strong { color: #0b0b0e; }
+  :global(html[data-theme='light']) .ehero-status {
+    background: rgba(255,255,255,.6); border-color: rgba(0,0,0,.1); color: #1e1e24;
+  }
+  :global(html[data-theme='light']) .ehero-status a { color: #0b0b0e; border-bottom-color: rgba(0,0,0,.28); }
+  :global(html[data-theme='light']) .ehero-ghost {
+    background: rgba(255,255,255,.72); color: #14141a; border-color: rgba(0,0,0,.12);
+  }
+  :global(html[data-theme='light']) .ehero-ghost:hover { background: rgba(255,255,255,.9); }
+
+  @media (max-width: 640px) {
+    .ehero-content { padding: 92px 22px; }
+    .ehero-status { font-size: 12px; }
+  }
+</style>

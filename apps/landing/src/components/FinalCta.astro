@@ -1,5 +1,11 @@
-  <section class="band" style="padding-top:80px">
-    <div class="wrap">
+---
+import HeroHalftone from './HeroHalftone.tsx'
+---
+  <section class="fcta">
+    <div class="fcta-card">
+      <div class="fcta-shader"><HeroHalftone client:only="react" /></div>
+      <div class="fcta-scrim" aria-hidden="true"></div>
+
       <div class="cta reveal">
         <span class="mark mark-lg" aria-hidden="true" style="margin:0 auto 22px">
           <img src="/brand/logo-mark.svg" alt="chmonitor" />
@@ -11,10 +17,10 @@
             Open dashboard
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
-          <a class="btn btn-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
+          <a class="btn btn-ghost fcta-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
             Read the docs
           </a>
-          <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
+          <a class="btn btn-ghost fcta-ghost" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
             GitHub
           </a>
@@ -22,3 +28,52 @@
       </div>
     </div>
   </section>
+
+<style>
+  /* Mirrors the hero card so the closing CTA bookends the page. */
+  .fcta { padding: 40px 0 88px; }
+  .fcta-card {
+    position: relative; margin: 0 8%;
+    border-radius: 24px; overflow: hidden; isolation: isolate;
+    background: #0b0b0e; box-shadow: 0 30px 90px -50px rgba(0,0,0,.55);
+  }
+  .fcta-shader { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .fcta-shader :global(canvas) { display: block; width: 100% !important; height: 100% !important; }
+  .fcta-scrim {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(ellipse 64% 60% at 50% 50%, rgba(6,6,10,.5) 0%, rgba(6,6,10,.2) 52%, rgba(6,6,10,0) 80%),
+      linear-gradient(180deg, rgba(6,6,10,.32) 0%, rgba(6,6,10,0) 32%, rgba(6,6,10,0) 64%, rgba(6,6,10,.36) 100%);
+  }
+  .fcta .cta {
+    position: relative; z-index: 2;
+    padding: 88px 28px; max-width: 760px; margin: 0 auto; text-align: center;
+  }
+  /* Dark card ⇒ light copy. */
+  .fcta .cta :global(h2) { color: #fff; text-shadow: 0 2px 40px rgba(0,0,0,.4); }
+  .fcta .cta :global(p) { color: rgba(230,232,238,.9); }
+  .fcta-ghost {
+    background: rgba(18,18,24,.55); color: #fff;
+    border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(10px);
+  }
+  .fcta-ghost:hover { background: rgba(18,18,24,.72); }
+  .fcta .btn-primary { background: #fafafa; color: #09090b; border: 1px solid transparent; }
+  .fcta .btn-primary:hover { background: #fff; transform: translateY(-1px); }
+
+  /* Light-mode card: light paper, dark copy, whitening scrim. */
+  :global(html[data-theme='light']) .fcta-card { background: #eceef2; }
+  :global(html[data-theme='light']) .fcta-scrim {
+    background:
+      radial-gradient(ellipse 64% 60% at 50% 50%, rgba(247,248,250,.6) 0%, rgba(247,248,250,.28) 52%, rgba(247,248,250,0) 80%),
+      linear-gradient(180deg, rgba(247,248,250,.36) 0%, rgba(247,248,250,0) 32%, rgba(247,248,250,0) 64%, rgba(247,248,250,.4) 100%);
+  }
+  :global(html[data-theme='light']) .fcta .cta :global(h2) { color: #0b0b0e; text-shadow: none; }
+  :global(html[data-theme='light']) .fcta .cta :global(p) { color: rgba(30,30,38,.86); }
+  :global(html[data-theme='light']) .fcta-ghost {
+    background: rgba(255,255,255,.72); color: #14141a; border-color: rgba(0,0,0,.12);
+  }
+  :global(html[data-theme='light']) .fcta-ghost:hover { background: rgba(255,255,255,.9); }
+
+  @media (max-width: 1200px) { .fcta-card { margin: 0 5%; } }
+  @media (max-width: 640px)  { .fcta-card { margin: 0 14px; } .fcta .cta { padding: 64px 22px; } }
+</style>

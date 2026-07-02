@@ -61,9 +61,16 @@ const ogImage = new URL(image, Astro.site).toString()
        paints text fast with swap fallback. -->
   <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- Fraunces (variable, latin) — the editorial display serif used for the hero
+       headline + section accents. Roman preloaded (above the fold); italic loads
+       on demand. Self-hosted, same as Geist — no cross-origin font request. -->
+  <link rel="preload" href="/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin />
   <style>
     @font-face{font-family:'Geist';font-style:normal;font-weight:400 700;font-display:swap;src:url('/fonts/geist-latin.woff2') format('woff2')}
     @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/jetbrains-mono-latin.woff2') format('woff2')}
+    @font-face{font-family:'Fraunces';font-style:normal;font-weight:400 900;font-display:swap;src:url('/fonts/fraunces-latin.woff2') format('woff2')}
+    @font-face{font-family:'Fraunces';font-style:italic;font-weight:400 900;font-display:swap;src:url('/fonts/fraunces-italic-latin.woff2') format('woff2')}
+    :root{--serif:'Fraunces',Georgia,'Times New Roman',serif}
   </style>
   <script is:inline>
     // Resolve theme before paint (no flash): saved choice wins, else OS pref.
@@ -170,7 +177,10 @@ const ogImage = new URL(image, Astro.site).toString()
 
     /* ── nav ── */
     header.nav{position:sticky;top:0;z-index:50;background:var(--nav-bg);
-      backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid var(--border-soft)}
+      backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid transparent;
+      transition:border-color .2s ease}
+    /* Only draw the divider once the page has scrolled off the very top. */
+    header.nav.is-scrolled{border-bottom-color:var(--border-soft)}
     .nav-row{display:flex;align-items:center;justify-content:space-between;gap:28px;height:64px}
     .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:650;font-weight:600;font-size:16px;letter-spacing:-.01em}
     .nav-links{display:flex;align-items:center;gap:22px}
@@ -336,7 +346,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .sec-head{max-width:none}
     .sec-head .eyebrow{display:flex;align-items:center;gap:9px}
     .sec-head .eyebrow::before{content:"";width:18px;height:1.5px;background:var(--amber);border-radius:2px}
-    .sec-head h2{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
+    .sec-head h2{font-family:var(--serif);font-size:clamp(30px,3.6vw,44px);line-height:1.08;letter-spacing:-.02em;font-weight:600;margin-top:14px;text-wrap:balance}
     .sec-head p{margin-top:14px;font-size:17px;color:var(--muted-fg);max-width:62ch;text-wrap:pretty}
 
     /* ── feature rows ── */
@@ -457,7 +467,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .cta::before{content:"";position:absolute;inset:0;z-index:0;
       background:radial-gradient(620px 280px at 50% -40px, rgba(249,115,22,.12), transparent 70%)}
     .cta > *{position:relative;z-index:1}
-    .cta h2{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.03em;font-weight:700;line-height:1.08;text-wrap:balance}
+    .cta h2{font-family:var(--serif);font-size:clamp(32px,4vw,48px);letter-spacing:-.02em;font-weight:600;line-height:1.06;text-wrap:balance}
     .cta p{margin:16px auto 0;max-width:50ch;font-size:17px;color:var(--muted-fg)}
     .cta .hero-actions{margin-top:28px}
 

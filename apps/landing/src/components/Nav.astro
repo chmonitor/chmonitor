@@ -120,6 +120,15 @@
       })
     })
 
+    // Only show the nav's bottom border once scrolled off the very top, so the
+    // header sits flush with the hero on first paint.
+    var navEl = document.querySelector('header.nav')
+    if (navEl) {
+      var syncStuck = function () { navEl.classList.toggle('is-scrolled', window.scrollY > 4) }
+      syncStuck()
+      window.addEventListener('scroll', syncStuck, { passive: true })
+    }
+
     // Theme toggle: flip data-theme, persist the choice. The head script set the
     // initial value (saved choice or OS preference) before paint. Wire every
     // toggle (desktop nav bar + the mobile drawer) so both stay in sync.

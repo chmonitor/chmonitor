@@ -9,105 +9,7 @@
         <div class="de-card reveal">
           <div class="feat-shot">
             <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
-            <div class="dep-wrap">
-              <svg class="dep-svg" viewBox="0 0 760 470" role="img" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  <pattern id="depDots" width="22" height="22" patternUnits="userSpaceOnUse">
-                    <circle cx="1.5" cy="1.5" r="1.4" fill="var(--fg)" opacity="0.05" />
-                  </pattern>
-                  <marker id="dep-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--blue)" /></marker>
-                  <marker id="dep-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--emerald)" /></marker>
-                  <marker id="dep-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--orange)" /></marker>
-                  <marker id="dep-violet" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--violet)" /></marker>
-                  <marker id="dep-gray" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--muted-fg)" /></marker>
-                </defs>
-                <rect x="0" y="0" width="760" height="470" fill="url(#depDots)" />
-
-                <!-- edges -->
-                <g fill="none" stroke-width="2">
-                  <path d="M225 98 C225 140 145 140 145 178" stroke="var(--blue)" marker-end="url(#dep-blue)" />
-                  <path d="M225 98 C225 140 325 140 325 178" stroke="var(--blue)" marker-end="url(#dep-blue)" />
-                  <path d="M545 98 L545 168" stroke="var(--blue)" marker-end="url(#dep-blue)" />
-                  <path d="M545 218 L545 298" stroke="var(--emerald)" stroke-dasharray="6 5" marker-end="url(#dep-green)" />
-                  <path d="M325 298 L325 228" stroke="var(--orange)" marker-end="url(#dep-orange)" />
-                  <path d="M220 204 C250 244 250 282 250 318" stroke="var(--violet)" marker-end="url(#dep-violet)" />
-                  <path d="M210 324 C172 300 145 270 145 228" stroke="var(--muted-fg)" stroke-dasharray="4 5" opacity="0.7" marker-end="url(#dep-gray)" />
-                </g>
-
-                <!-- animated flow accents -->
-                <g fill="none" stroke-width="2.4" stroke-linecap="round">
-                  <path class="dep-comet" d="M225 98 C225 140 145 140 145 178" stroke="var(--blue)" />
-                  <path class="dep-comet" d="M225 98 C225 140 325 140 325 178" stroke="var(--blue)" style="animation-delay:.7s" />
-                  <path class="dep-comet" d="M545 98 L545 168" stroke="var(--blue)" style="animation-delay:1.3s" />
-                </g>
-
-                <!-- nodes -->
-                <g class="dep-node" transform="translate(150 52)">
-                  <rect width="150" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.75" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">events_raw</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--muted-fg)">MergeTree</text>
-                </g>
-
-                <g class="dep-node" transform="translate(470 52)">
-                  <rect width="160" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.75" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">cf_logs_raw</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--muted-fg)">ReplacingMergeTree</text>
-                </g>
-
-                <g class="dep-node" transform="translate(70 178)">
-                  <rect width="150" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.75" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">events_hourly</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--blue)">MV / View</text>
-                </g>
-
-                <g class="dep-node" transform="translate(250 178)">
-                  <rect width="150" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.75" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">events_daily</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--blue)">MV / View</text>
-                </g>
-
-                <g class="dep-node" transform="translate(470 168)">
-                  <rect width="160" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.75" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">cf_daily</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--blue)">MV / View</text>
-                </g>
-
-                <g class="dep-node" transform="translate(470 298)">
-                  <rect width="160" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.75" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">cf_rollup</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--emerald)">TO target</text>
-                </g>
-
-                <g class="dep-node" transform="translate(250 318)">
-                  <rect width="150" height="46" rx="10" fill="var(--card)" stroke="var(--border)" stroke-width="1.5" />
-                  <g transform="translate(14 15)" stroke="var(--orange)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M4 4 H12 M4 8 H12 M4 12 H9" opacity="0.85" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg)">geo_dict</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--orange)">Dictionary · dictGet</text>
-                </g>
-
-                <g transform="translate(60 300)">
-                  <rect width="150" height="46" rx="10" fill="var(--card)" stroke="var(--muted-fg)" stroke-width="1.5" stroke-dasharray="5 5" opacity="0.85" />
-                  <g transform="translate(14 15)" stroke="var(--muted-fg)" stroke-width="1.4" fill="none"><rect width="16" height="16" rx="2.5" /><path d="M0 6 H16 M6 0 V16" opacity="0.6" /></g>
-                  <text x="40" y="21" font-size="12.5" font-weight="600" fill="var(--fg-soft)">s3_events</text>
-                  <text x="40" y="35" font-size="9.5" fill="var(--muted-fg)">external source</text>
-                </g>
-
-                <!-- legend -->
-                <g font-size="10" fill="var(--muted-fg)">
-                  <line x1="40" y1="446" x2="62" y2="446" stroke="var(--blue)" stroke-width="2" /><text x="68" y="450">MV / View</text>
-                  <line x1="150" y1="446" x2="172" y2="446" stroke="var(--orange)" stroke-width="2" /><text x="178" y="450">dictGet</text>
-                  <line x1="248" y1="446" x2="270" y2="446" stroke="var(--violet)" stroke-width="2" /><text x="276" y="450">joinGet</text>
-                  <line x1="344" y1="446" x2="366" y2="446" stroke="var(--emerald)" stroke-width="2" stroke-dasharray="5 4" /><text x="372" y="450">TO</text>
-                  <line x1="418" y1="446" x2="440" y2="446" stroke="var(--muted-fg)" stroke-width="1.5" stroke-dasharray="4 4" /><text x="446" y="450">external</text>
-                </g>
-              </svg>
-            </div>
+            <img src="/landing-assets/data-explorer-graph.png" alt="chmonitor data explorer dependency graph: materialized views, dictionaries and sources wired between tables" width="1024" height="566" loading="lazy" decoding="async" />
           </div>
           <div class="de-cap">
             <span class="n">01</span>
@@ -117,7 +19,7 @@
         <div class="de-card reveal">
           <div class="feat-shot">
             <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
-            <img src="/landing-assets/data-explorer-query.png" alt="chmonitor data explorer SQL query editor" width="3572" height="1972" loading="lazy" decoding="async" />
+            <img src="/landing-assets/data-explorer-query.png" alt="chmonitor data explorer SQL query editor" width="1024" height="565" loading="lazy" decoding="async" />
           </div>
           <div class="de-cap">
             <span class="n">02</span>
@@ -127,13 +29,3 @@
       </div>
     </div>
   </section>
-
-  <style>
-    .dep-wrap{background:var(--bg-soft)}
-    .dep-svg{display:block;width:100%;height:auto}
-    .dep-comet{stroke-dasharray:14 150;stroke-dashoffset:164;animation:dep-comet 2.6s linear infinite}
-    @keyframes dep-comet{to{stroke-dashoffset:0}}
-    @media (prefers-reduced-motion:reduce){
-      .dep-comet{display:none;animation:none}
-    }
-  </style>
