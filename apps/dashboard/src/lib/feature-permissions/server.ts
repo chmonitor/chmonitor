@@ -127,13 +127,35 @@ interface AppConfig {
   features: FeatureOverrides
 }
 
-function getAppConfig(): AppConfig {
+let _cachedAppConfig: AppConfig | null = null
+
+/**
+ * Resolve the app's feature-permission config from env.
+ *
+ * Cached after the first call: `getAppConfig()` takes no per-request inputs
+ * (auth provider + feature overrides come only from env vars, which are
+ * immutable at runtime on Workers), and it is called on every gated request
+ * via `authorizeFeatureRequest`. Re-parsing ~40 env lookups per request is
+ * wasted work. Mirrors the `_cachedEnv` pattern in
+ * `packages/clickhouse-client/src/clickhouse/env-schema.ts`.
+ */
+export function getAppConfig(): AppConfig {
+  if (_cachedAppConfig) return _cachedAppConfig
+
   const authProvider = parseAuthProvider(
     readEnv('CHM_AUTH_PROVIDER') ??
       import.meta.env.VITE_AUTH_PROVIDER ??
       readEnv('NEXT_PUBLIC_AUTH_PROVIDER')
   )
-  return { authProvider, features: parseEnvFeatureOverrides() }
+  _cachedAppConfig = { authProvider, features: parseEnvFeatureOverrides() }
+  return _cachedAppConfig
+}
+
+/**
+ * Reset the cached AppConfig — for use in tests only.
+ */
+export function _resetAppConfigCache(): void {
+  _cachedAppConfig = null
 }
 
 /**
