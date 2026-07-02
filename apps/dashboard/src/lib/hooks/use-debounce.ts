@@ -5,7 +5,7 @@
  * in scenarios like search inputs, filter handlers, and API requests.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * Debounce delay presets for common scenarios
@@ -81,32 +81,37 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
   delay: number = DEBOUNCE_DELAY.DEFAULT,
   deps: React.DependencyList = []
 ): T {
-  const [debouncedCall, setDebouncedCall] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null)
+  // Store the pending timer in a ref so same-tick calls all observe the latest
+  // timer id (state would be stale within a render tick) and so the returned
+  // function keeps a stable identity across renders.
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Clean up any pending debounced call on unmount.
   useEffect(() => {
-    // Clean up any pending debounced call on unmount or dependency change
     return () => {
-      if (debouncedCall) {
-        clearTimeout(debouncedCall)
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
       }
     }
-  }, [debouncedCall, ...deps])
+  }, [])
 
-  return ((...args: Parameters<T>) => {
-    // Clear any pending call
-    if (debouncedCall) {
-      clearTimeout(debouncedCall)
-    }
+  return useCallback(
+    ((...args: Parameters<T>) => {
+      // Clear any pending call so only the latest invocation fires.
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
 
-    // Schedule new call after delay
-    const newCall = setTimeout(() => {
-      callback(...args)
-    }, delay)
-
-    setDebouncedCall(newCall)
-  }) as T
+      // Schedule new call after delay.
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        callback(...args)
+      }, delay)
+    }) as T,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [callback, delay, ...deps]
+  )
 }
 
 /**

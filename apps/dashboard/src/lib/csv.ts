@@ -24,12 +24,14 @@ export function valueToCsv(value: unknown): string {
   // Convert to string
   const strValue = String(value)
 
-  // If the value contains quotes, commas, or newlines, wrap in quotes and
-  // escape quotes
+  // If the value contains quotes, commas, or line breaks (LF or CR), wrap in
+  // quotes and escape quotes. A lone CR must also trigger quoting, otherwise
+  // spreadsheet parsers treat it as a row separator.
   if (
     strValue.includes('"') ||
     strValue.includes(',') ||
-    strValue.includes('\n')
+    strValue.includes('\n') ||
+    strValue.includes('\r')
   ) {
     return `"${strValue.replace(/"/g, '""')}"`
   }
