@@ -15,6 +15,44 @@ interface SkillEntry {
   content: string
 }
 
+/**
+ * Allowlist of ClickHouse-domain skill directories that belong in the
+ * monitoring agent bundle. ONLY these dirs under `.agents/skills/` are compiled
+ * into `registry.ts`.
+ *
+ * Why an allowlist: `.agents/skills/` doubles as the target for
+ * `npx skills add <pkg>` installs, so it accumulates unrelated third-party
+ * skills (hyperframes*, polar-*, seo-audit, pr-to-video, build-agent, etc.).
+ * Without this filter, `bun run build:skills` would inject every scanned dir
+ * into the agent bundle — the leak CLAUDE.md warns against ("keep dev/product
+ * skills out of there so they never leak into the agent bundle").
+ *
+ * HOW TO MAINTAIN: when you add a legitimate new ClickHouse-domain skill, add
+ * its directory name here. Unrelated `npx skills add` installs are intentionally
+ * excluded and must NOT be added. Any scanned dir not in this list is skipped
+ * and reported via console.warn so drift stays visible.
+ */
+const DOMAIN_SKILLS: readonly string[] = [
+  'replication-guide',
+  'incident-response',
+  'anomaly-detection',
+  'plan-and-verify',
+  'query-optimization',
+  'version-upgrade-advisor',
+  'cluster-operations',
+  'troubleshooting',
+  'hardware-tuning',
+  'concept-explainer',
+  'query-tuning-advisor',
+  'security-hardening',
+  'schema-design-advisor',
+  'migration-patterns',
+  'data-analysis',
+  'system-tables-reference',
+  'storage-optimization',
+  'clickhouse-best-practices',
+]
+
 function parseFrontmatter(raw: string): {
   name: string
   description: string
@@ -65,6 +103,25 @@ async function main() {
     console.log('No .agents/skills/ directory found, generating empty registry')
     dirNames = []
   }
+
+  // Filter scanned dirs down to the domain allowlist. Anything else (e.g.
+  // `npx skills add` installs) is intentionally excluded so it can't leak into
+  // the agent bundle. Report skipped dirs so drift is visible.
+  const allowed = new Set(DOMAIN_SKILLS)
+  const skipped = dirNames.filter((d) => !allowed.has(d)).sort()
+  if (skipped.length > 0) {
+    console.warn(
+      `  Skipping ${skipped.length} non-domain skill dir(s) not in the allowlist ` +
+        `(not compiled into registry.ts): ${skipped.join(', ')}`
+    )
+  }
+  const missing = DOMAIN_SKILLS.filter((d) => !dirNames.includes(d))
+  if (missing.length > 0) {
+    console.warn(
+      `  Allowlisted skill dir(s) not found under .agents/skills/: ${missing.join(', ')}`
+    )
+  }
+  dirNames = dirNames.filter((d) => allowed.has(d))
 
   for (const dirName of dirNames) {
     const skillFile = join(skillsDir, dirName, 'SKILL.md')
