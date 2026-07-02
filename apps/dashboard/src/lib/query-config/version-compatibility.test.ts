@@ -44,8 +44,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { queries } from '../index'
-import type { QueryConfig } from '../types'
+import { queries } from './index'
+import type { QueryConfig } from '../../types/query-config'
 import { describe, expect, test } from 'bun:test'
 import { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 import {
@@ -365,7 +365,7 @@ describe('QueryConfig cross-version schema compatibility', () => {
     const failures: string[] = []
     for (const config of queries) {
       if (!isVersionedArray(config.sql)) continue
-      const sinces = config.sql.map((v) => v.since)
+      const sinces = config.sql.map((v: VersionedSql) => v.since)
 
       for (const entry of config.sql) {
         if (!VERSION_RE.test(entry.since)) {
@@ -378,7 +378,7 @@ describe('QueryConfig cross-version schema compatibility', () => {
         }
       }
 
-      const valid = sinces.filter((s) => VERSION_RE.test(s))
+      const valid = sinces.filter((s: string) => VERSION_RE.test(s))
       for (let k = 1; k < valid.length; k++) {
         if (
           compareVersions(parseVersion(valid[k]), parseVersion(valid[k - 1])) <= 0
@@ -403,7 +403,7 @@ describe('QueryConfig cross-version schema compatibility', () => {
     const failures: string[] = []
     for (const config of queries) {
       if (!isVersionedArray(config.sql) || config.sql.length < 2) continue
-      const parsed = config.sql.map((v) => ({
+      const parsed = config.sql.map((v: VersionedSql) => ({
         since: v.since,
         cols: extractSelectColumns(v.sql),
       }))
@@ -411,7 +411,7 @@ describe('QueryConfig cross-version schema compatibility', () => {
         const prev = parsed[k - 1]
         const cur = parsed[k]
         if (!prev.cols || !cur.cols) continue // one side not confidently parseable
-        const dropped = prev.cols.filter((c) => !cur.cols!.includes(c))
+        const dropped = prev.cols.filter((c: string) => !cur.cols!.includes(c))
         if (dropped.length) {
           failures.push(
             `[${config.name}] ${prev.since} → ${cur.since} dropped: ${dropped.join(', ')}`
