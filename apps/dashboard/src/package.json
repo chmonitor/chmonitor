@@ -1,6 +1,6 @@
 {
   "name": "dashboard",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "ClickHouse Monitoring Dashboard — real-time insights into ClickHouse clusters via system tables.",
   "repository": {
     "type": "git",
