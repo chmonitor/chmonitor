@@ -1,6 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
-import { fetchData } from '@chm/clickhouse-client'
+import {
+  hostIdSchema,
+  runReadonlyFetch,
+  toErrorResult,
+  toJsonResult,
+} from './helpers'
 import { z } from 'zod/v3'
 
 type Severity = 'OK' | 'WARNING' | 'CRITICAL'
@@ -81,7 +86,7 @@ export function registerPerformanceTool(server: McpServer) {
     'analyze_performance',
     'Get a structured performance analysis snapshot with severity ratings. Returns slow queries, high part counts, merge backlog, memory pressure, and disk utilization in one call.',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      hostId: hostIdSchema,
       lastHours: z
         .number()
         .optional()
@@ -93,7 +98,7 @@ export function registerPerformanceTool(server: McpServer) {
 
       const [slowQueries, partCounts, merges, memory, disks] =
         await Promise.all([
-          fetchData({
+          runReadonlyFetch({
             query: `SELECT
                 query_id,
                 user,
@@ -109,10 +114,8 @@ export function registerPerformanceTool(server: McpServer) {
               LIMIT 5`,
             query_params: { hours: hours.toString() },
             hostId: h,
-            format: 'JSONEachRow',
-            clickhouse_settings: { readonly: '1' },
           }),
-          fetchData({
+          runReadonlyFetch({
             query: `SELECT
                 database,
                 table,
@@ -124,19 +127,15 @@ export function registerPerformanceTool(server: McpServer) {
               ORDER BY part_count DESC
               LIMIT 5`,
             hostId: h,
-            format: 'JSONEachRow',
-            clickhouse_settings: { readonly: '1' },
           }),
-          fetchData({
+          runReadonlyFetch({
             query: `SELECT
                 count() AS active_merges,
                 formatReadableSize(sum(total_size_bytes_compressed)) AS total_merge_size
               FROM system.merges`,
             hostId: h,
-            format: 'JSONEachRow',
-            clickhouse_settings: { readonly: '1' },
           }),
-          fetchData({
+          runReadonlyFetch({
             query: `SELECT
                 metric,
                 value,
@@ -146,10 +145,8 @@ export function registerPerformanceTool(server: McpServer) {
               FROM system.metrics
               WHERE metric = 'MemoryTracking'`,
             hostId: h,
-            format: 'JSONEachRow',
-            clickhouse_settings: { readonly: '1' },
           }),
-          fetchData({
+          runReadonlyFetch({
             query: `SELECT
                 name,
                 path,
@@ -158,8 +155,6 @@ export function registerPerformanceTool(server: McpServer) {
                 round(free_space * 100.0 / nullIf(total_space, 0), 2) AS free_pct
               FROM system.disks`,
             hostId: h,
-            format: 'JSONEachRow',
-            clickhouse_settings: { readonly: '1' },
           }),
         ])
 
@@ -167,15 +162,7 @@ export function registerPerformanceTool(server: McpServer) {
       const errors = results.filter((r) => r.error).map((r) => r.error!.message)
 
       if (errors.length === 5) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `All queries failed: ${errors.join('; ')}`,
-            },
-          ],
-          isError: true,
-        }
+        return toErrorResult(`All queries failed: ${errors.join('; ')}`)
       }
 
       const asArray = (data: unknown): Array<Record<string, unknown>> =>
@@ -215,14 +202,7 @@ export function registerPerformanceTool(server: McpServer) {
         ...(errors.length > 0 ? { errors } : {}),
       }
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(report, null, 2),
-          },
-        ],
-      }
+      return toJsonResult(report)
     }
   )
 }

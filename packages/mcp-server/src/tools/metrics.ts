@@ -1,37 +1,30 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
-import { fetchData } from '@chm/clickhouse-client'
-import { z } from 'zod/v3'
+import {
+  hostIdSchema,
+  runReadonlyFetch,
+  toErrorResult,
+  toJsonResult,
+} from './helpers'
 
 export function registerMetricsTool(server: McpServer) {
   server.tool(
     'get_metrics',
     'Get key ClickHouse server metrics: version, uptime, active connections, and memory usage.',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      hostId: hostIdSchema,
     },
     async ({ hostId }) => {
-      const effectiveHostId = hostId ?? 0
-
       const [versionResult, uptimeResult, metricsResult] = await Promise.all([
-        fetchData({
-          query: 'SELECT version() AS version',
-          hostId: effectiveHostId,
-          format: 'JSONEachRow',
-          clickhouse_settings: { readonly: '1' },
-        }),
-        fetchData({
+        runReadonlyFetch({ query: 'SELECT version() AS version', hostId }),
+        runReadonlyFetch({
           query: 'SELECT uptime() AS uptime_seconds',
-          hostId: effectiveHostId,
-          format: 'JSONEachRow',
-          clickhouse_settings: { readonly: '1' },
+          hostId,
         }),
-        fetchData({
+        runReadonlyFetch({
           query:
             "SELECT metric, value FROM system.metrics WHERE metric IN ('TCPConnection', 'HTTPConnection', 'MemoryTracking') ORDER BY metric",
-          hostId: effectiveHostId,
-          format: 'JSONEachRow',
-          clickhouse_settings: { readonly: '1' },
+          hostId,
         }),
       ])
 
@@ -40,15 +33,7 @@ export function registerMetricsTool(server: McpServer) {
         .map((r) => r.error!.message)
 
       if (errors.length > 0) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Errors: ${errors.join('; ')}`,
-            },
-          ],
-          isError: true,
-        }
+        return toErrorResult(`Errors: ${errors.join('; ')}`)
       }
 
       const versionRow = (
@@ -68,11 +53,7 @@ export function registerMetricsTool(server: McpServer) {
         metrics: metricsResult.data,
       }
 
-      return {
-        content: [
-          { type: 'text' as const, text: JSON.stringify(combined, null, 2) },
-        ],
-      }
+      return toJsonResult(combined)
     }
   )
 }
