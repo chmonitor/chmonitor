@@ -1,9 +1,8 @@
 ---
-description: Run the chmonitor dashboard from source using Bun and TanStack Start for local development and testing before deploying.
+title: Local development
+description: Run the chmonitor dashboard from source with Bun and TanStack Start to develop and test changes before deploying.
 icon: TerminalSquare
 ---
-
-# Local Development
 
 Run chmonitor from source for development or to test changes before deploying.
 
@@ -75,7 +74,7 @@ Client vars are inlined at build time and shipped to the browser.
 
 ### Configure ClickHouse
 
-Make sure the user you set in step 3 has the right grants. See:
+Make sure the user you set in the previous step has the right grants:
 
 - [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements)
 - [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables)
@@ -97,10 +96,41 @@ Open [http://localhost:3000](http://localhost:3000).
 
 </Steps>
 
-## Common issues
+## Verify
 
-**`localhost` connection refused** — If ClickHouse is not running locally, update `CLICKHOUSE_HOST` to point at your remote instance.
+The dashboard should hot-reload as you edit source, and the overview page should render live metrics from your ClickHouse instance.
 
-**Type errors on first run** — Run `bun run type-check` from the repo root. Some generated types require a build pass first.
+## Troubleshooting
 
-**Missing system tables** — See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables).
+<Callout type="warn" title="Common issues">
+
+- **`localhost` connection refused** — If ClickHouse is not running locally, update `CLICKHOUSE_HOST` to point at your remote instance.
+- **Type errors on first run** — Run `bun run type-check` from the repo root. Some generated types require a build pass first.
+- **Missing system tables** — See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables).
+
+</Callout>
+
+## Related
+
+<Cards>
+  <Card
+    title="Getting started"
+    href="/guide/getting-started"
+    description="Run chmonitor against your ClickHouse instance in minutes."
+  />
+  <Card
+    title="ClickHouse user & grants"
+    href="/guide/getting-started/clickhouse-requirements"
+    description="Create a safe read-only monitoring user with the minimal grants needed."
+  />
+  <Card
+    title="Enable system tables"
+    href="/guide/getting-started/clickhouse-enable-system-tables"
+    description="Enable system log tables for full feature coverage."
+  />
+  <Card
+    title="Install & configure"
+    href="/operate/deploy"
+    description="Deploy to Kubernetes, Cloudflare Workers, or another platform."
+  />
+</Cards>

@@ -1,13 +1,10 @@
 ---
-description: chmonitor is a read-only ClickHouse monitoring dashboard with an AI agent and MCP server, deployable on Docker, Kubernetes, or Cloudflare Workers.
+title: Introduction
+description: A read-only ClickHouse monitoring dashboard with an AI agent and MCP server — deploy on Docker, Kubernetes, or Cloudflare Workers.
 icon: BookOpen
 ---
 
-# Introduction
-
-chmonitor is a client-rendered ClickHouse monitoring dashboard. The core dashboard reads from ClickHouse `system.*` tables and renders query performance, storage, cluster health, and operational metrics directly in the browser. No SSR of your ClickHouse data; no database writes except optional self-tracking events.
-
-It also ships an AI agent that can answer natural-language questions about your cluster, and an MCP server that exposes monitoring tools to external AI clients.
+chmonitor is a client-rendered ClickHouse monitoring dashboard. It reads from your ClickHouse `system.*` tables and renders query performance, storage, cluster health, and operational metrics directly in the browser. It does not SSR your ClickHouse data and writes nothing to the database except optional self-tracking events. An AI agent answers natural-language questions about your cluster, and an MCP server exposes the same monitoring tools to external AI clients.
 
 <Mermaid chart={`graph LR
   A[Browser] -->|fetch| B[chmonitor]
@@ -31,12 +28,12 @@ chmonitor does not manage schema, run DDL, or modify ClickHouse configuration. O
 
 <Cards>
   <Card
-    title="Getting Started"
+    title="Getting started"
     href="/guide/getting-started"
     description="Get a monitoring dashboard running in 5 minutes with Docker."
   />
   <Card
-    title="Install & Configure"
+    title="Install & configure"
     href="/operate/deploy"
     description="Deploy on Docker, Kubernetes, Cloudflare Workers, or Vercel."
   />
@@ -51,7 +48,7 @@ chmonitor does not manage schema, run DDL, or modify ClickHouse configuration. O
     description="Add login and fine-grained access control."
   />
   <Card
-    title="AI Agent"
+    title="AI agent"
     href="/guide/ai-agent"
     description="Ask natural-language questions about your ClickHouse cluster."
   />
@@ -59,5 +56,25 @@ chmonitor does not manage schema, run DDL, or modify ClickHouse configuration. O
     title="Reference"
     href="/reference/environment-variables"
     description="Every environment variable, grouped by category."
+  />
+</Cards>
+
+## Related
+
+<Cards>
+  <Card
+    title="ClickHouse user & grants"
+    href="/guide/getting-started/clickhouse-requirements"
+    description="Create a safe read-only monitoring user with the minimal grants needed."
+  />
+  <Card
+    title="Enable system tables"
+    href="/guide/getting-started/clickhouse-enable-system-tables"
+    description="Enable system log tables for full feature coverage."
+  />
+  <Card
+    title="Local development"
+    href="/guide/getting-started/local"
+    description="Run the dashboard from source with hot reload."
   />
 </Cards>

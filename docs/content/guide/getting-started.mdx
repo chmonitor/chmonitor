@@ -1,11 +1,10 @@
 ---
-description: Run chmonitor against your ClickHouse instance in minutes using Docker or from source — three environment variables and one command.
+title: Getting started
+description: Run chmonitor against your ClickHouse instance in minutes — three environment variables and one command, via Docker or from source.
 icon: Rocket
 ---
 
-# Getting Started
-
-The fastest path: run chmonitor against an existing ClickHouse instance. You need three environment variables and one command.
+Point chmonitor at an existing ClickHouse instance and you have a dashboard. You need three environment variables and one command. Pick Docker for the fastest path, or run from source to develop against it.
 
 ## Prerequisites
 
@@ -48,18 +47,6 @@ If ClickHouse runs on the same Docker host, use the host gateway address instead
 ### Open the dashboard
 
 Navigate to [http://localhost:3000](http://localhost:3000). The overview page loads immediately.
-
-</Step>
-
-<Step>
-
-### Verify it works
-
-If pages are empty or show errors:
-
-1. Check the container logs: `docker logs chmonitor`
-2. Confirm the ClickHouse user can query `system.query_log` directly.
-3. See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables) if some tables are missing.
 
 </Step>
 
@@ -111,13 +98,27 @@ Open [http://localhost:3001](http://localhost:3001).
 
 </Steps>
 
-See the [Local development guide](/guide/getting-started/local) for the complete setup including testing and building.
+See the [local development guide](/guide/getting-started/local) for the complete setup including testing and building.
 
 </Tab>
 
 </Tabs>
 
-## Next steps
+## Verify
+
+The overview page should render metrics right away. If pages are empty or show errors:
+
+1. Check the container logs: `docker logs chmonitor` (Docker path).
+2. Confirm the ClickHouse user can query `system.query_log` directly.
+3. See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables) if some tables are missing.
+
+## Troubleshooting
+
+<Callout type="warn" title="Empty pages or connection errors">
+An empty overview usually means the dashboard reached ClickHouse but the user lacks grants, or the connection itself failed. Verify the user has `SELECT` on `system.*` ([ClickHouse user & grants](/guide/getting-started/clickhouse-requirements)), then confirm `CLICKHOUSE_HOST` is reachable from the container or process.
+</Callout>
+
+## Related
 
 <Cards>
   <Card
@@ -131,7 +132,7 @@ See the [Local development guide](/guide/getting-started/local) for the complete
     description="Enable system log tables for full feature coverage."
   />
   <Card
-    title="Install & Configure"
+    title="Install & configure"
     href="/operate/deploy"
     description="Deploy to Kubernetes, Cloudflare Workers, or another platform."
   />
@@ -141,7 +142,7 @@ See the [Local development guide](/guide/getting-started/local) for the complete
     description="Require login before accessing the dashboard."
   />
   <Card
-    title="AI Agent"
+    title="AI agent"
     href="/guide/ai-agent"
     description="Set up natural-language queries about your cluster."
   />

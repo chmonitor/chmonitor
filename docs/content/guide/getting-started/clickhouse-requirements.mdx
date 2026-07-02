@@ -1,13 +1,12 @@
 ---
+title: ClickHouse user & grants
 description: Create a minimal read-only ClickHouse user for chmonitor, with optional action grants and a recommended monitoring profile.
 icon: ListChecks
 ---
 
-# ClickHouse User & Grants
-
 chmonitor needs a ClickHouse user with at minimum `SELECT` on `system.*`. Do not use an admin account for a shared dashboard.
 
-<Callout type="tip" title="Connecting a firewalled ClickHouse to Cloud?">
+<Callout type="info" title="Connecting a firewalled ClickHouse to Cloud?">
 If your ClickHouse is behind a firewall and you use the hosted Cloud, see
 [Connect a firewalled ClickHouse](/guides/connect-firewalled-clickhouse) for how
 to reach it without a brittle IP allowlist (Cloudflare Tunnel, dedicated egress
@@ -359,3 +358,28 @@ Create a monitoring profile to enable query caching and the experimental analyze
   </users>
 </clickhouse>
 ```
+
+## Related
+
+<Cards>
+  <Card
+    title="Enable system tables"
+    href="/guide/getting-started/clickhouse-enable-system-tables"
+    description="Enable system log tables so every dashboard feature has data to read."
+  />
+  <Card
+    title="Getting started"
+    href="/guide/getting-started"
+    description="Run chmonitor against your ClickHouse instance in minutes."
+  />
+  <Card
+    title="Connect a firewalled ClickHouse"
+    href="/guides/connect-firewalled-clickhouse"
+    description="Reach a firewalled ClickHouse from the hosted Cloud without a brittle IP allowlist."
+  />
+  <Card
+    title="Environment variables"
+    href="/reference/environment-variables"
+    description="Every environment variable, grouped by category."
+  />
+</Cards>

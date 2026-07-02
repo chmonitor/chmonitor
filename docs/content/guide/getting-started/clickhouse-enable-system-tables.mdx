@@ -1,9 +1,8 @@
 ---
-description: Enable and configure ClickHouse system log tables required for full chmonitor feature coverage, including query_log, metric_log, and optional thread logs.
+title: Enable system tables
+description: Enable and configure ClickHouse system log tables for full chmonitor feature coverage, including query_log, metric_log, and optional thread logs.
 icon: TerminalSquare
 ---
-
-# Enable System Tables
 
 chmonitor reads from ClickHouse `system.*` log tables. Most are enabled by default in a fresh installation, but some deployments disable them with `<... remove="1"/>` to save disk. This page lists which tables are needed and how to enable them.
 
@@ -35,7 +34,13 @@ These unlock specific features. chmonitor handles their absence gracefully — t
 | `system.backup_log` | Backup/restore history | Not present | Only exists when backup is configured |
 | `system.zookeeper` | ZooKeeper / Keeper status | Not present | Only available when Keeper/ZooKeeper is configured |
 
-## Configuration
+## Enable the tables
+
+<Steps>
+
+<Step>
+
+### Add the config block
 
 Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
 
@@ -163,7 +168,11 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
 </clickhouse>
 ```
 
-## Enable `log_query_threads`
+</Step>
+
+<Step>
+
+### Enable `log_query_threads`
 
 For `query_thread_log` to collect data, set `log_query_threads=1` in the profile used by the monitoring user:
 
@@ -178,6 +187,25 @@ For `query_thread_log` to collect data, set `log_query_threads=1` in the profile
 </clickhouse>
 ```
 
+</Step>
+
+<Step>
+
+### Restart and verify
+
+After applying the config, restart ClickHouse and check which log tables are present:
+
+```bash
+sudo systemctl restart clickhouse-server
+
+clickhouse-client --query \
+  "SELECT name FROM system.tables WHERE database = 'system' AND name LIKE '%_log' ORDER BY name"
+```
+
+</Step>
+
+</Steps>
+
 ## Re-enabling disabled tables
 
 If your config has entries like:
@@ -189,18 +217,11 @@ If your config has entries like:
 <query_thread_log remove="1"/>
 ```
 
-Remove those lines and add the corresponding config block from the section above. The `remove="1"` attribute completely prevents the table from being created — removing the attribute alone is not enough if no config block exists.
+Remove those lines and add the corresponding config block from the section above.
 
-## Verify
-
-After applying the config, restart ClickHouse and check which log tables are present:
-
-```bash
-sudo systemctl restart clickhouse-server
-
-clickhouse-client --query \
-  "SELECT name FROM system.tables WHERE database = 'system' AND name LIKE '%_log' ORDER BY name"
-```
+<Callout type="warn" title="The remove attribute prevents table creation">
+The `remove="1"` attribute completely prevents the table from being created — removing the attribute alone is not enough if no config block exists.
+</Callout>
 
 ## Controlling disk usage
 
@@ -209,3 +230,23 @@ System log tables can grow large. Useful levers:
 - **`max_size_rows`**: Caps the table size (default ~1M rows). Rows are dropped when the limit is hit.
 - **TTL**: Configure a TTL to prune old rows automatically. This is set in `config.xml` (or a file in `config.d/`) under the relevant log block — for example, `<ttl>event_date + INTERVAL 30 DAY DELETE</ttl>`. Direct `ALTER TABLE` on system tables is generally restricted.
 - **`collect_interval_milliseconds`**: Higher values mean less frequent metric collection. `60000` (1 minute) is a reasonable default for most deployments.
+
+## Related
+
+<Cards>
+  <Card
+    title="ClickHouse user & grants"
+    href="/guide/getting-started/clickhouse-requirements"
+    description="Create a read-only monitoring user with the grants each feature needs."
+  />
+  <Card
+    title="Getting started"
+    href="/guide/getting-started"
+    description="Run chmonitor against your ClickHouse instance in minutes."
+  />
+  <Card
+    title="Features"
+    href="/guide/features"
+    description="See which dashboard page each system table powers."
+  />
+</Cards>
