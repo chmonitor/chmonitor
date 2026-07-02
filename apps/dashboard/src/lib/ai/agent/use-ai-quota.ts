@@ -23,7 +23,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { apiFetch } from '@/lib/swr/api-fetch'
-import { visibilityAwareInterval } from '@/lib/swr/config'
+import { NON_CRITICAL_RETRY, visibilityAwareInterval } from '@/lib/swr/config'
 
 export interface AiQuota {
   /** Messages already sent today. */
@@ -118,7 +118,8 @@ export function useAiQuota(): UseAiQuotaResult {
     refetchOnWindowFocus: true,
     // The endpoint may not exist yet (sibling slice) or the session cookie may
     // be briefly stale — do not spam retries; a single miss just hides it.
-    retry: 1,
+    // Non-critical always-on poll: share the reduced retry budget.
+    retry: NON_CRITICAL_RETRY,
     queryFn: async (): Promise<AiQuota> => {
       const res = await apiFetch('/api/v1/billing/usage')
       if (!res.ok) throw new Error(`Usage request failed (${res.status})`)

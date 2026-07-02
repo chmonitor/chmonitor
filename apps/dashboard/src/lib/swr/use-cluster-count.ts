@@ -11,7 +11,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'
-import { REFRESH_INTERVAL, visibilityAwareInterval } from '@/lib/swr/config'
+import {
+  NON_CRITICAL_RETRY,
+  REFRESH_INTERVAL,
+  visibilityAwareInterval,
+} from '@/lib/swr/config'
 
 interface ClusterCountResult {
   count: number | null
@@ -64,7 +68,9 @@ export function useClusterCount(
     staleTime: 15_000, // 15 seconds deduping
     refetchOnWindowFocus: true, // Revalidate on focus for critical metrics
     refetchOnReconnect: true, // Revalidate on reconnect
-    retry: 2, // Retry on error for critical data, limit retries
+    // Non-critical always-on poll: cap retries to avoid amplifying a transient
+    // blip into extra Worker→ClickHouse round-trips (next poll recovers).
+    retry: NON_CRITICAL_RETRY,
   })
 
   return {

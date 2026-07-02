@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'
-import { visibilityAwareInterval } from './config'
+import { NON_CRITICAL_RETRY, visibilityAwareInterval } from './config'
 
 /** API response format for host status */
 type HostStatusApiResponse = {
@@ -84,6 +84,10 @@ export function useHostStatus(
       refreshInterval > 0 ? visibilityAwareInterval(refreshInterval) : false,
     refetchOnWindowFocus: revalidateOnFocus,
     refetchOnReconnect: true,
+    // Non-critical always-on poll: cap retries so a transient blip doesn't
+    // amplify into repeated Worker→ClickHouse round-trips (the next scheduled
+    // refetch recovers anyway). See NON_CRITICAL_RETRY.
+    retry: NON_CRITICAL_RETRY,
   })
 
   return {

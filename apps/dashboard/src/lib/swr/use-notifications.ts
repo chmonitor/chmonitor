@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Notification } from '@/lib/notifications/dismissed-notifications'
 
 import { apiFetch } from './api-fetch'
+import { NON_CRITICAL_RETRY } from './config'
 import { useEffect, useState } from 'react'
 import { subscribeInAppAlerts } from '@/lib/health/alert-dispatcher'
 import {
@@ -82,7 +83,9 @@ export function useNotifications(hostId: number): NotificationsResult {
     staleTime: 15_000, // 15 seconds deduping
     refetchOnWindowFocus: true, // Revalidate on focus for critical metrics
     refetchOnReconnect: true, // Revalidate on reconnect
-    retry: 2, // Retry on error for critical data, limit retries
+    // Non-critical always-on poll: cap retries to avoid amplifying a transient
+    // blip into extra Worker→ClickHouse round-trips (next poll recovers).
+    retry: NON_CRITICAL_RETRY,
   })
 
   const mutate = () => queryClient.invalidateQueries({ queryKey })
