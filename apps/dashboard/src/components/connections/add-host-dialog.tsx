@@ -1,6 +1,7 @@
 import type { HostStorageMode } from '@/lib/types/host-storage'
 
 import { ConnectionForm, type ConnectionFormData } from './connection-form'
+import { ConnectionHelpPanel } from './connection-help-panel'
 import { useState } from 'react'
 import {
   Dialog,
@@ -56,51 +57,52 @@ export function AddHostDialog({ open, onOpenChange }: AddHostDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Add ClickHouse host</DialogTitle>
           <DialogDescription>
-            chmonitor needs a user with <code>SELECT</code> on{' '}
-            <code>system.*</code>. See{' '}
-            <a
-              href={docsSiteUrl('getting-started/clickhouse-requirements')}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              required permissions &amp; firewall setup
-            </a>{' '}
-            for grants and how to allowlist the Cloud connection.
+            Point chmonitor at a ClickHouse cluster to start monitoring. It
+            needs a user with <code>SELECT</code> on <code>system.*</code> — see
+            the guidance on the right for grants, firewall setup, and how your
+            credentials are stored.
           </DialogDescription>
         </DialogHeader>
 
-        {!isSignedIn && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
-            <p className="font-medium">Sign in for more</p>
-            <p className="mt-0.5 text-amber-700 dark:text-amber-400">
-              Server storage is disabled on this deployment.{' '}
-              <a
-                href={docsSiteUrl('features/user-connections')}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200"
-              >
-                Enable user connections
-              </a>
-              . Sign in to select your plan or join an organization to get
-              access to your team&apos;s clusters.
-            </p>
-          </div>
-        )}
+        {/* Two columns on md+ (form left, guidance right); stacks with the form
+            on top on narrow screens. */}
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="space-y-4">
+            {!isSignedIn && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
+                <p className="font-medium">Sign in for more</p>
+                <p className="mt-0.5 text-amber-700 dark:text-amber-400">
+                  Server storage is disabled on this deployment.{' '}
+                  <a
+                    href={docsSiteUrl('features/user-connections')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200"
+                  >
+                    Enable user connections
+                  </a>
+                  . Sign in to select your plan or join an organization to get
+                  access to your team&apos;s clusters.
+                </p>
+              </div>
+            )}
 
-        <ConnectionForm
-          onSave={handleSave}
-          onCancel={() => onOpenChange(false)}
-          storageMode={storageMode}
-          onStorageModeChange={setStorageMode}
-          dbStorageEnabled={dbStorageEnabled}
-          dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
-        />
+            <ConnectionForm
+              onSave={handleSave}
+              onCancel={() => onOpenChange(false)}
+              storageMode={storageMode}
+              onStorageModeChange={setStorageMode}
+              dbStorageEnabled={dbStorageEnabled}
+              dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
+            />
+          </div>
+
+          <ConnectionHelpPanel />
+        </div>
       </DialogContent>
     </Dialog>
   )

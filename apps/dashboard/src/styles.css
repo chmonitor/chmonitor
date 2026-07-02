@@ -18,6 +18,7 @@
   --animate-scale-in: scale-in 0.2s ease-out;
   --animate-pulse-subtle: pulse-subtle 3s ease-in-out infinite;
   --animate-progress-fill: progress-fill 0.8s ease-out forwards;
+  --animate-flow-dot: flow-dot 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 
   @keyframes shimmer {
     100% {
@@ -73,6 +74,18 @@
     }
     100% {
       width: var(--progress-width);
+    }
+  }
+  /* Dot travelling along the "browser → chmonitor → ClickHouse" connector in the
+     Add-host dialog. Applied via `motion-safe:animate-flow-dot`, so it is off
+     under prefers-reduced-motion. */
+  @keyframes flow-dot {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(26px);
     }
   }
 }
