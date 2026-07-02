@@ -38,22 +38,26 @@ export function RegressionPanel({ hostId, className }: RegressionPanelProps) {
 
   const rows: SlowQueryRegression[] = Array.isArray(data) ? data : []
 
+  // Per-minute bucket so an ongoing regression re-alerts each minute, and a
+  // content signature so the effect re-runs when the worst factor changes.
+  const minuteBucket = Math.floor(Date.now() / 60_000)
+  const worstFactor = rows.length
+    ? Math.max(...rows.map((r) => r.regression_factor))
+    : 0
+
   // Fire an alert whenever regressions are detected, deduped by incidentId.
   useEffect(() => {
     if (rows.length === 0) return
-    const worst = rows.reduce((a, b) =>
-      a.regression_factor > b.regression_factor ? a : b
-    )
     void dispatchAlert({
       checkId: 'slow-query-regression',
       title: 'Slow Query Regression Detected',
-      severity: worst.regression_factor >= 5 ? 'critical' : 'warning',
+      severity: worstFactor >= 5 ? 'critical' : 'warning',
       value: rows.length,
-      label: `${rows.length} fingerprint${rows.length === 1 ? '' : 's'} regressed — worst: ${worst.regression_factor}× slower`,
+      label: `${rows.length} fingerprint${rows.length === 1 ? '' : 's'} regressed — worst: ${worstFactor}× slower`,
       hostId,
-      incidentId: `sqr-${hostId}-${Math.floor(Date.now() / 60_000)}`,
+      incidentId: `sqr-${hostId}-${minuteBucket}`,
     })
-  }, [rows.length, hostId, rows.reduce]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hostId, rows.length, worstFactor, minuteBucket])
 
   if (isLoading) return null
   if (error || rows.length === 0) return null
