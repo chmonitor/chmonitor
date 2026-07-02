@@ -321,11 +321,11 @@ of local files.
 - `cd apps/docs && bun run build` - Full build (sync-docs → generate-og → `vite build`)
 - Edit only `docs/content/**`; the generated `apps/docs/content/docs/**` is regenerated and gitignored.
 
-**IMPORTANT — keep the AI Agent docs in sync**: `docs/content/ai-agent.mdx` is
+**IMPORTANT — keep the AI Agent docs in sync**: `docs/content/guide/ai-agent.mdx` is
 the user-facing reference for the agent's tools, skills, and configuration.
 Whenever you add, rename, or remove an agent tool (`lib/ai/agent/tools/*.ts`), a
 skill (`.agents/skills/*/SKILL.md`), or an agent env var, update
-`docs/content/ai-agent.mdx` in the same change so the docs do not drift.
+`docs/content/guide/ai-agent.mdx` in the same change so the docs do not drift.
 
 ## Architecture
 
@@ -606,6 +606,6 @@ For the app's file layout (routes, data layer, query configs, types), see `apps/
 
 ## AI Agents
 
-The agent subsystem lives at `apps/dashboard/src/lib/ai/agent/` and is built on the **Vercel AI SDK** (not LangGraph). It has 29+ tool categories (schema, query, diagnostics, anomaly, cluster, visualization, etc.) assembled by `tools/index.ts`. Agent prompts are in `lib/ai/agent/prompts/`, skills in `lib/ai/agent/skills/`, and workflows in `lib/ai/agent/workflows/`.
+The agent subsystem lives at `apps/dashboard/src/lib/ai/agent/` and is built on the **Vercel AI SDK** (not LangGraph). It intentionally exposes a lean set of ~21 tools (18 by default; 3 destructive control tools are env-gated off) across 11 tool modules assembled by `tools/index.ts`: `schema-tools`, `query-tools`, `health-tools`, `storage-tools`, `replication-tools`, `merge-tools`, `plan-tools`, `skill-tools`, `ask-user-tools`, `visualization-tools`, and `control-tools`. Anything not covered by a primitive is done with the `query` tool plus a `load_skill` recipe. Agent prompts are in `lib/ai/agent/prompts/`, and the skill registry/loader is in `lib/ai/agent/skills/` (the skills themselves live at repo-root `.agents/skills/`).
 
-For the agent environment variables and configuration, see `apps/dashboard/src/lib/ai/agent/` or `docs/content/ai-agent.mdx`.
+For the agent environment variables and configuration, see `apps/dashboard/src/lib/ai/agent/` or `docs/content/guide/ai-agent.mdx`.
