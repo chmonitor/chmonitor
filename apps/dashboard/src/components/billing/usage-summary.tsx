@@ -170,7 +170,7 @@ function UsageMeterBar({
           {formatValue(meter.used)}
           <span className="text-muted-foreground font-normal">
             {meter.unlimited || meter.limit == null
-              ? ' / ∞'
+              ? ' / Unlimited'
               : ` / ${formatValue(meter.limit)}`}
           </span>
         </span>
@@ -199,7 +199,7 @@ function UsageMeterBar({
  * AI overage spend this billing month ($ spent / $ budget). Degrades gracefully:
  * when `spent` is absent (metering not surfaced) the value renders "—" with no
  * bar — never a throw or a broken meter. `budget: null` is Enterprise BYOK /
- * unlimited and renders "/ ∞".
+ * unlimited and renders "/ Unlimited".
  */
 function AiSpendMeterBar({
   spent,
