@@ -20,7 +20,7 @@ import { describe, expect, test } from 'bun:test'
 // ---------------------------------------------------------------------------
 // Base input covering all 9 dimensions with non-empty values
 // ---------------------------------------------------------------------------
-const base: Parameters<typeof computeTableBodyRenderKey>[0] = {
+const base = {
   sorting: [{ id: 'name', desc: false }],
   pagination: { pageIndex: 0, pageSize: 25 },
   expanded: { row_1: true },
@@ -30,7 +30,7 @@ const base: Parameters<typeof computeTableBodyRenderKey>[0] = {
   rowSelection: { row_1: true },
   globalSearch: 'foo',
   advancedFilters: [{ field: 'status', op: 'eq', value: 'ok' }],
-}
+} satisfies Parameters<typeof computeTableBodyRenderKey>[0]
 
 describe('computeTableBodyRenderKey', () => {
   test('identical inputs (different object references) produce an identical key', () => {
