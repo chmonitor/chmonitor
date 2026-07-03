@@ -45,6 +45,22 @@ export interface AlertPayload {
   label: string
   /** Runbook / documentation URLs relevant to this alert. */
   runbookUrls?: readonly string[]
+  /**
+   * Labeled remediation actions from the firing rule's `remediationActions`
+   * (plans/33-remediation-action-links.md). Channel-agnostic and intentionally
+   * carries only ids — NEVER the underlying SQL — so a channel-specific
+   * adapter (e.g. Slack) can render a button whose `value` is just
+   * `{hostId, ruleId, actionId}`; the SQL for `diagnostic` actions is always
+   * re-resolved server-side by `POST /api/v1/health/actions`, never taken from
+   * client input.
+   */
+  actions?: readonly {
+    id: string
+    label: string
+    kind: 'runbook' | 'diagnostic'
+    /** Present only for `kind === 'runbook'`. */
+    url?: string
+  }[]
   /** ISO-8601 timestamp of when the alert was observed. */
   timestamp: string
   /**

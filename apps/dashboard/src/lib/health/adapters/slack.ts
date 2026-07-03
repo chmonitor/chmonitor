@@ -23,11 +23,18 @@ interface SlackTextObject {
   emoji?: boolean
 }
 
+interface SlackButtonElement {
+  type: 'button'
+  text: SlackTextObject
+  /** Link-out button (runbook actions) — no interaction round-trip required. */
+  url: string
+}
+
 interface SlackBlock {
   type: string
   text?: SlackTextObject
   fields?: SlackTextObject[]
-  elements?: SlackTextObject[]
+  elements?: (SlackTextObject | SlackButtonElement)[]
 }
 
 interface SlackAttachment {
@@ -99,6 +106,42 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
       text: {
         type: 'mrkdwn',
         text: `*Runbooks:*\n${payload.runbookUrls.map((u) => `• <${u}>`).join('\n')}`,
+      },
+    })
+  }
+
+  // Remediation actions (plans/33-remediation-action-links.md). Runbook
+  // actions render as Slack link buttons (no interactivity needed — Incoming
+  // Webhooks support `url` buttons out of the box). Diagnostic actions are
+  // READ-ONLY and executable via `POST /api/v1/health/actions`, but wiring a
+  // one-click Slack button to that endpoint requires an interactive Slack App
+  // request URL (plan 37) — a plain Incoming Webhook cannot receive the click.
+  // Until then, list diagnostics as plain text so the operator knows they
+  // exist and can trigger them from the in-app Active Alerts panel.
+  const runbookActions = (payload.actions ?? []).filter(
+    (a) => a.kind === 'runbook' && a.url
+  )
+  const diagnosticActions = (payload.actions ?? []).filter(
+    (a) => a.kind === 'diagnostic'
+  )
+
+  if (runbookActions.length > 0) {
+    blocks.push({
+      type: 'actions',
+      elements: runbookActions.map((a) => ({
+        type: 'button',
+        text: { type: 'plain_text', text: a.label, emoji: true },
+        url: a.url as string,
+      })),
+    })
+  }
+
+  if (diagnosticActions.length > 0) {
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*Diagnostics available:*\n${diagnosticActions.map((a) => `• ${a.label} — run from the Active Alerts panel`).join('\n')}`,
       },
     })
   }

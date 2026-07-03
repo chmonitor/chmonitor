@@ -21,6 +21,16 @@ export const TABLES_FEATURE_PERMISSION = {
   feature: 'tables',
 } satisfies FeaturePermission
 
+// Health remediation actions (POST /api/v1/health/actions). Even a read-only
+// diagnostic still issues an on-demand cluster call, so it is gated like the
+// other mutating health routes (mirrors health/webhook.ts) rather than the
+// plain 'health' read feature.
+export const HEALTH_ACTIONS_FEATURE_PERMISSION = {
+  feature: 'health',
+  defaultAccess: 'authenticated',
+  operation: 'write',
+} satisfies FeaturePermission
+
 // Arbitrary user-supplied SQL execution (SQL Console, explorer query tab).
 // Same `tables` feature as schema browsing, but classified as a write: running
 // attacker-chosen SQL is a powerful capability distinct from a fixed registry

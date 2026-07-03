@@ -58,6 +58,24 @@ FROM system.replicas`,
     formatLabel: (v) => `${(v ?? 0).toLocaleString()}s max delay`,
     optional: true,
     tableCheck: 'system.replicas',
+    remediationActions: [
+      {
+        id: 'replication-lag-runbook',
+        label: 'Replication lag runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/replication-lag-runbook',
+      },
+      {
+        id: 'lagging-replicas',
+        label: 'Get lagging replicas',
+        kind: 'diagnostic',
+        description: 'Replicas ordered by absolute_delay, worst first.',
+        sql: `SELECT database, table, replica_name, absolute_delay, is_readonly
+FROM system.replicas
+ORDER BY absolute_delay DESC
+LIMIT 20`,
+      },
+    ],
   },
 
   {
@@ -72,6 +90,16 @@ FROM system.disks`,
     formatLabel: (v) => `${v ?? 0}% used (worst disk)`,
     optional: true,
     tableCheck: 'system.disks',
+    // Runbook link only — freeing disk space is a TTL/partition-management
+    // decision, never a one-click action from an alert.
+    remediationActions: [
+      {
+        id: 'disk-usage-runbook',
+        label: 'Disk usage runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/disk-usage-runbook',
+      },
+    ],
   },
 
   {
@@ -108,6 +136,25 @@ FROM system.mutations`,
     formatLabel: fmtCount('failed mutation'),
     optional: true,
     tableCheck: 'system.mutations',
+    remediationActions: [
+      {
+        id: 'failed-mutations-runbook',
+        label: 'Failed mutations runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/failed-mutations-runbook',
+      },
+      {
+        id: 'failed-mutations-detail',
+        label: 'Get failed mutations',
+        kind: 'diagnostic',
+        description: 'Incomplete mutations with a recorded failure.',
+        sql: `SELECT database, table, mutation_id, command, latest_fail_reason, latest_fail_time
+FROM system.mutations
+WHERE is_done = 0 AND isNotNull(latest_fail_time)
+ORDER BY latest_fail_time DESC
+LIMIT 20`,
+      },
+    ],
   },
 
   {
@@ -124,6 +171,25 @@ WHERE elapsed > 600`,
     formatLabel: fmtCount('stuck merge'),
     optional: true,
     tableCheck: 'system.merges',
+    remediationActions: [
+      {
+        id: 'stuck-merges-runbook',
+        label: 'Stuck merges runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/stuck-merges-runbook',
+      },
+      {
+        id: 'stuck-merges-detail',
+        label: 'Get stuck merges',
+        kind: 'diagnostic',
+        description: 'Merges running longer than 10 minutes, slowest first.',
+        sql: `SELECT database, table, elapsed, progress, num_parts, total_size_bytes_compressed
+FROM system.merges
+WHERE elapsed > 600
+ORDER BY elapsed DESC
+LIMIT 20`,
+      },
+    ],
   },
 
   {

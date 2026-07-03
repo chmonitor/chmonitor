@@ -30,6 +30,34 @@ export type AlertRuleType =
   | 'slow-query-regression'
   | 'custom'
 
+/**
+ * Kind of a remediation action declared on a rule.
+ * - `runbook`: a link to operator documentation — never executed, just rendered.
+ * - `diagnostic`: a READ-ONLY SQL query an operator can run on demand to pull
+ *   extra context. Never DDL, never a mutation — see `assertReadOnlyAction`.
+ */
+export type RemediationActionKind = 'runbook' | 'diagnostic'
+
+/**
+ * A labeled remediation affordance a rule can declare. Rendered by adapters
+ * (e.g. Slack buttons/links) and, for `diagnostic` actions, executable via
+ * `POST /api/v1/health/actions` — which re-validates the SQL server-side
+ * before running it. This is affordance, not automation: nothing here is ever
+ * auto-executed, and diagnostics are read-only by construction.
+ */
+export interface RemediationAction {
+  /** Stable, unique within the rule (e.g. 'top-mutations'). */
+  id: string
+  /** Button/link text. */
+  label: string
+  kind: RemediationActionKind
+  /** Required when `kind === 'runbook'`. */
+  url?: string
+  /** Required when `kind === 'diagnostic'`. MUST be a read-only SELECT/SHOW/EXPLAIN/DESCRIBE. */
+  sql?: string
+  description?: string
+}
+
 export interface AlertRuleDef {
   /** Stable unique identifier (used for threshold lookup and dedup). */
   id: string
@@ -48,6 +76,57 @@ export interface AlertRuleDef {
   optional?: boolean
   /** Table to check before running the SQL (e.g. 'system.backup_log'). */
   tableCheck?: string
+  /**
+   * Labeled runbook links / read-only diagnostic actions surfaced by
+   * notification adapters (e.g. Slack buttons) to cut MTTR. NEVER a
+   * destructive/DDL action — see `assertReadOnlyAction`.
+   */
+  remediationActions?: RemediationAction[]
+}
+
+/**
+ * SQL keywords that make a `diagnostic` remediation action unsafe to expose as
+ * a one-click affordance. Matches the DDL/DML/mutation/SYSTEM surface that
+ * must never be auto-runnable from an alert.
+ *
+ * `SYSTEM` uses a negative lookahead for a following `.` so a legitimate
+ * `system.<table>` reference (e.g. `FROM system.mutations`, the overwhelming
+ * majority of diagnostic queries) does not false-positive as the `SYSTEM
+ * RELOAD ...` DDL-adjacent statement.
+ */
+const DESTRUCTIVE_SQL_PATTERN =
+  /\b(ALTER|DROP|DELETE|INSERT|UPDATE|TRUNCATE|OPTIMIZE|ATTACH|DETACH|CREATE|RENAME|GRANT|REVOKE|SYSTEM(?!\s*\.))\b/i
+
+/** Allowed leading statement keywords for a read-only diagnostic query. */
+const READ_ONLY_LEADING_PATTERN = /^\s*(SELECT|SHOW|EXPLAIN|DESCRIBE)\b/i
+
+/**
+ * Validate that a `diagnostic` remediation action's SQL is read-only.
+ *
+ * Pure, no side effects. Runs at BOTH rule-declaration time (unit tests over
+ * every built-in rule) and request time (the `/api/v1/health/actions`
+ * endpoint, defense in depth) — see plans/33-remediation-action-links.md.
+ * `runbook` actions always pass (nothing to execute).
+ */
+export function assertReadOnlyAction(action: RemediationAction): void {
+  if (action.kind !== 'diagnostic') return
+
+  const sql = action.sql?.trim()
+  if (!sql) {
+    throw new Error(
+      `Remediation action "${action.id}": diagnostic actions require "sql"`
+    )
+  }
+  if (!READ_ONLY_LEADING_PATTERN.test(sql)) {
+    throw new Error(
+      `Remediation action "${action.id}": diagnostic SQL must start with SELECT/SHOW/EXPLAIN/DESCRIBE`
+    )
+  }
+  if (DESTRUCTIVE_SQL_PATTERN.test(sql)) {
+    throw new Error(
+      `Remediation action "${action.id}": diagnostic SQL must not contain DDL/mutation/SYSTEM statements`
+    )
+  }
 }
 
 export interface AlertRuleThresholds {

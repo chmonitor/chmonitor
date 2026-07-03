@@ -154,6 +154,63 @@ describe('slack adapter', () => {
   test('snapshot', () => {
     expect(buildSlackBody(CRITICAL)).toMatchSnapshot()
   })
+
+  test('renders a link button for a runbook action', () => {
+    const payload: AlertPayload = {
+      ...CRITICAL,
+      actions: [
+        {
+          id: 'failed-mutations-runbook',
+          label: 'Failed mutations runbook',
+          kind: 'runbook',
+          url: 'https://docs.example.com/runbook',
+        },
+      ],
+    }
+    const body = buildSlackBody(payload)
+    const actionsBlock = body.attachments[0].blocks.find(
+      (b) => b.type === 'actions'
+    )
+    expect(actionsBlock).toBeDefined()
+    const button = actionsBlock?.elements?.[0] as {
+      type: string
+      url?: string
+      text?: { text: string }
+    }
+    expect(button.type).toBe('button')
+    expect(button.url).toBe('https://docs.example.com/runbook')
+    expect(button.text?.text).toBe('Failed mutations runbook')
+  })
+
+  test('lists diagnostic actions as text, never as an interactive button carrying SQL', () => {
+    const payload: AlertPayload = {
+      ...CRITICAL,
+      actions: [
+        {
+          id: 'failed-mutations-detail',
+          label: 'Get failed mutations',
+          kind: 'diagnostic',
+        },
+      ],
+    }
+    const body = buildSlackBody(payload)
+    const serialized = JSON.stringify(body)
+    expect(serialized).toContain('Get failed mutations')
+    // The payload never carries raw SQL — only labeled ids.
+    expect(serialized).not.toContain('SELECT')
+    const actionsBlock = body.attachments[0].blocks.find(
+      (b) => b.type === 'actions'
+    )
+    expect(actionsBlock).toBeUndefined()
+  })
+
+  test('omits the actions block when no actions are present', () => {
+    const body = buildSlackBody(CRITICAL)
+    const actionsBlock = body.attachments[0].blocks.find(
+      (b) => b.type === 'actions'
+    )
+    expect(actionsBlock).toBeUndefined()
+  })
 })
 
 // ---------------------------------------------------------------------------

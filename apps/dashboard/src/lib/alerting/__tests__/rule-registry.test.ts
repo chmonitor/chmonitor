@@ -5,9 +5,12 @@
  * Also tests registry CRUD and classifyValue boundaries.
  */
 
+import type { RemediationAction } from '../rule-registry'
+
 import { BUILTIN_RULES, registerBuiltinRules } from '../builtin-rules'
 import {
   AlertRuleRegistry,
+  assertReadOnlyAction,
   classifyValue,
   ruleRegistry,
 } from '../rule-registry'
@@ -320,5 +323,105 @@ describe('mv-refresh-failures rule', () => {
 
   test('clears on null (table absent)', () => {
     expect(classifyValue(null, rule.defaults)).toBe('ok')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// assertReadOnlyAction — the invariant that remediation actions never
+// auto-execute DDL or any destructive statement (plans/33-remediation-action-links.md)
+// ---------------------------------------------------------------------------
+
+describe('assertReadOnlyAction', () => {
+  test('accepts a SELECT diagnostic', () => {
+    expect(() =>
+      assertReadOnlyAction({
+        id: 'a',
+        label: 'A',
+        kind: 'diagnostic',
+        sql: 'SELECT * FROM system.mutations',
+      })
+    ).not.toThrow()
+  })
+
+  test('accepts SHOW / EXPLAIN / DESCRIBE diagnostics', () => {
+    for (const sql of [
+      'SHOW TABLES',
+      'EXPLAIN SELECT 1',
+      'DESCRIBE system.mutations',
+    ]) {
+      expect(() =>
+        assertReadOnlyAction({ id: 'a', label: 'A', kind: 'diagnostic', sql })
+      ).not.toThrow()
+    }
+  })
+
+  test('rejects DDL/mutation/SYSTEM statements', () => {
+    const destructive = [
+      'ALTER TABLE foo DELETE WHERE 1',
+      'DROP TABLE foo',
+      'DELETE FROM foo',
+      'INSERT INTO foo VALUES (1)',
+      'UPDATE foo SET x = 1',
+      'TRUNCATE TABLE foo',
+      'OPTIMIZE TABLE foo',
+      'ATTACH TABLE foo',
+      'DETACH TABLE foo',
+      'CREATE TABLE foo (x Int32) ENGINE = Memory',
+      'RENAME TABLE foo TO bar',
+      'GRANT SELECT ON foo TO bar',
+      'REVOKE SELECT ON foo FROM bar',
+      'SYSTEM RELOAD DICTIONARY foo',
+    ]
+    for (const sql of destructive) {
+      expect(() =>
+        assertReadOnlyAction({ id: 'a', label: 'A', kind: 'diagnostic', sql })
+      ).toThrow()
+    }
+  })
+
+  test('rejects a query that does not start with an allowed keyword', () => {
+    expect(() =>
+      assertReadOnlyAction({
+        id: 'a',
+        label: 'A',
+        kind: 'diagnostic',
+        sql: 'WITH x AS (SELECT 1) SELECT * FROM x',
+      })
+    ).toThrow()
+  })
+
+  test('rejects a diagnostic with missing sql', () => {
+    expect(() =>
+      assertReadOnlyAction({ id: 'a', label: 'A', kind: 'diagnostic' })
+    ).toThrow()
+  })
+
+  test('runbook actions always pass (nothing to execute)', () => {
+    expect(() =>
+      assertReadOnlyAction({
+        id: 'a',
+        label: 'A',
+        kind: 'runbook',
+        url: 'https://example.com',
+      })
+    ).not.toThrow()
+  })
+
+  test('every built-in diagnostic remediation action is read-only', () => {
+    const actions: RemediationAction[] = BUILTIN_RULES.flatMap(
+      (r) => r.remediationActions ?? []
+    )
+    const diagnostics = actions.filter((a) => a.kind === 'diagnostic')
+    expect(diagnostics.length).toBeGreaterThan(0)
+    for (const action of diagnostics) {
+      expect(() => assertReadOnlyAction(action)).not.toThrow()
+    }
+  })
+
+  test('at least 4 built-in rules declare a remediation action', () => {
+    const rulesWithActions = BUILTIN_RULES.filter(
+      (r) => (r.remediationActions?.length ?? 0) > 0
+    )
+    expect(rulesWithActions.length).toBeGreaterThanOrEqual(4)
   })
 })
