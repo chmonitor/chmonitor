@@ -144,12 +144,6 @@ const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
 
 // ───────────────────────── cells ─────────────────────────
 
-const SEVERITY_ACCENT: Record<Severity, string> = {
-  critical: 'bg-rose-500',
-  warning: 'bg-amber-500',
-  normal: 'bg-blue-500',
-}
-
 const SEVERITY_DURATION: Record<Severity, string> = {
   critical: 'text-rose-600 dark:text-rose-400',
   warning: 'text-amber-600 dark:text-amber-400',
@@ -331,20 +325,9 @@ const QueryRow = memo(function QueryRow({
   return (
     <>
       <tr
-        className="group relative cursor-pointer border-b border-border align-middle hover:bg-muted/60"
+        className="group cursor-pointer border-b border-border/60 align-middle transition-colors hover:bg-muted/50"
         onClick={onToggle}
       >
-        {/* Severity accent stripe */}
-        <td className="relative w-0 p-0">
-          <span
-            className={cn(
-              'absolute inset-y-0 left-0 w-0.5',
-              SEVERITY_ACCENT[d.severity]
-            )}
-            aria-hidden
-          />
-        </td>
-
         {/* Rank + expand chevron */}
         <td className="px-2 py-2.5 sm:px-3">
           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -432,7 +415,7 @@ const QueryRow = memo(function QueryRow({
       </tr>
       {expanded && (
         <tr className="border-b border-border">
-          <td colSpan={9} className="p-0">
+          <td colSpan={8} className="p-0">
             <ExpandedDetail d={d} />
           </td>
         </tr>
@@ -504,7 +487,6 @@ export function SlowQueriesTable({ rows }: SlowQueriesTableProps) {
         <table className="w-full border-collapse text-sm">
           <thead className="border-b border-border bg-muted/40">
             <tr>
-              <th className="w-0 p-0" aria-hidden />
               <SortableHeader width="64px">#</SortableHeader>
               <SortableHeader>Query</SortableHeader>
               <SortableHeader
