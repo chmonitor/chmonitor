@@ -1,0 +1,105 @@
+---
+description: Opt-in PostHog funnel analytics for the SaaS product — off by default, no PII, Do Not Track respected, cookieless.
+icon: TrendingUp
+title: Product Analytics
+---
+
+chmonitor can optionally send **conversion funnel events** (landing page views,
+signups, cluster connects, upgrades, checkouts) to [PostHog](https://posthog.com)
+for the hosted SaaS product's growth/business side. It is **OFF by default** —
+a hard no-op — until you configure an analytics key.
+
+This is a different system from [Product Telemetry](/operate/advanced/telemetry)
+(anonymous, on-by-default, aggregate OSS instance telemetry to chmonitor's own
+collector) and from [Self-Tracking](/operate/advanced/self-tracking) (writes
+usage events to your own ClickHouse instance). Product analytics exists purely
+to measure the marketing/signup/upgrade funnel and is never required to run
+chmonitor.
+
+## Opt in — off by default
+
+<Callout type="info" title="No key, no network call">
+Without `CHM_ANALYTICS_KEY` (dashboard) / `PUBLIC_ANALYTICS_KEY` (landing site)
+set, none of this code makes a network call, loads PostHog, or sets a cookie.
+Self-hosted instances stay completely untouched by default.
+</Callout>
+
+| Variable | Surface | Purpose |
+|---|---|---|
+| `CHM_ANALYTICS_KEY` | Dashboard (derives client `VITE_ANALYTICS_KEY`) | PostHog project key. Empty = disabled. |
+| `CHM_ANALYTICS_HOST` | Dashboard (derives client `VITE_ANALYTICS_HOST`) | PostHog ingestion host. Empty = PostHog Cloud (US). |
+| `PUBLIC_ANALYTICS_KEY` | Landing site (Astro) | PostHog project key. Empty = disabled. |
+| `PUBLIC_ANALYTICS_HOST` | Landing site (Astro) | PostHog ingestion host. Empty = PostHog Cloud (US). |
+
+Both `*_HOST` variables let you point at a **self-hosted PostHog** instance
+instead of PostHog Cloud, keeping the whole stack self-hostable in spirit.
+
+## Do Not Track
+
+The browser [`navigator.doNotTrack`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/doNotTrack)
+signal is checked before analytics initializes — when set, init is skipped
+entirely. The dashboard additionally honors the cross-tool `DO_NOT_TRACK`/
+`VITE_DO_NOT_TRACK` convention already used by telemetry.
+
+## Events
+
+### Landing site
+
+| Event | When it fires |
+|---|---|
+| `landing_view` | The marketing home page (`/`) loads |
+| `pricing_view` | The `/pricing` page loads |
+| `cta_click` | A tracked call-to-action link is clicked (`target` = a static identifier, e.g. `hero-primary`) |
+
+### Dashboard
+
+| Event | When it fires |
+|---|---|
+| `signup` | A Clerk account created within the last 2 minutes loads the app (approximates "just signed up") |
+| `cluster_connect` | A ClickHouse connection is added and saved |
+| `first_chart_render` | The first chart renders with real data (once per page load) |
+| `agent_message` | A message is sent to the AI agent |
+| `upgrade_click` | An "Upgrade" call-to-action is clicked |
+| `checkout_started` | A Polar checkout session is created, right before redirect |
+
+## What is NOT collected
+
+- Query text, SQL statements, hostnames, IP addresses, or connection strings
+- Email addresses, names, or any other user-identifying field
+- Form input or free text — **autocapture is disabled**
+- Session recordings — **disabled**
+- Automatic pageview/pageleave capture — **disabled**; only the explicit events above are sent
+
+Dashboard-side events are redacted defensively before leaving the process,
+reusing the same `redactProps` allowlist [Product Telemetry](/operate/advanced/telemetry)
+uses (drops any prop whose key implies sensitive content, or whose value looks
+like an email/IP/URL). Landing-side `cta_click` targets are static identifiers
+authored in the marketing site's own markup, never derived from user input.
+
+PostHog is configured cookieless (`persistence: 'localStorage'`), so no cookie
+banner is required for this feature.
+
+<Callout type="info" title="Anonymous by design">
+No call site ever calls PostHog's `identify()` with anything user-derived —
+every distinct id stays PostHog's anonymous default.
+</Callout>
+
+## Related
+
+<Cards>
+  <Card
+    title="Product Telemetry"
+    href="/operate/advanced/telemetry"
+    description="Anonymous, on-by-default, aggregate OSS instance telemetry — a different system, own collector."
+  />
+  <Card
+    title="Self-Tracking"
+    href="/operate/advanced/self-tracking"
+    description="Writes dashboard usage events (page visits, query executions) to your own ClickHouse instance."
+  />
+  <Card
+    title="Environment Variables"
+    href="/reference/environment-variables"
+    description="Full reference for all configuration variables."
+  />
+</Cards>

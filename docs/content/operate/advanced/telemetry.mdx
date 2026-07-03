@@ -11,7 +11,10 @@ three dimensions, no PII) to help the project understand how the dashboard is
 used at a high level.
 
 This is separate from [Self-Tracking](/operate/advanced/self-tracking), which
-writes dashboard usage events to your own ClickHouse instance.
+writes dashboard usage events to your own ClickHouse instance, and from
+[Product Analytics](/operate/advanced/product-analytics), an opt-in,
+off-by-default PostHog integration used for the hosted SaaS product's
+conversion funnel.
 
 ## Opt out — on by default
 
@@ -145,7 +148,7 @@ telemetry store, and this documentation.
 <Callout type="info" title="Privacy by design">
 - **One-switch opt-out** — `CHM_TELEMETRY=off` or `DO_NOT_TRACK=1` disables it completely, anytime.
 - **Self-hosted data stays put** — chmonitor is fully self-hostable; your ClickHouse data never leaves your network regardless of telemetry settings.
-- **No third-party trackers** — there are no analytics SDKs, beacon scripts, or third-party pixels in the application.
+- **No third-party trackers in this system** — telemetry uses only chmonitor's own collector, never a third-party analytics SDK. (chmonitor separately offers an opt-in, *off-by-default* [Product Analytics](/operate/advanced/product-analytics) integration that sends funnel events to PostHog — only if you explicitly configure a key.)
 - **No PII by design** — the event schema and redaction layer are written to make PII collection structurally impossible, not just policy-forbidden.
 - **Anonymous** — only a hashed random install id is sent; it cannot be tied to an identity, and the collector never stores request IPs.
 - **Hard kill-switch** — setting the endpoint env to an empty string stops all network calls regardless of any other setting.
@@ -158,6 +161,11 @@ telemetry store, and this documentation.
     title="Self-Tracking"
     href="/operate/advanced/self-tracking"
     description="Writes dashboard usage events (page visits, query executions) to your own ClickHouse instance. A different system, entirely within your infrastructure."
+  />
+  <Card
+    title="Product Analytics"
+    href="/operate/advanced/product-analytics"
+    description="Opt-in, off-by-default PostHog funnel analytics for the hosted SaaS product."
   />
   <Card
     title="Environment Variables"

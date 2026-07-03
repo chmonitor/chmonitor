@@ -431,8 +431,8 @@ legacy Next.js.
 | `VITE_MEASUREMENT_ID` | — | Google Analytics measurement ID (`G-...`). |
 | `VITE_SELINE_ENABLED` | `false` | Enable Seline analytics. |
 | `VITE_VERCEL_ANALYTICS` | `false` | Enable Vercel Analytics. |
-| `VITE_POSTHOG_KEY` | — | PostHog project API key. |
-| `VITE_POSTHOG_HOST` | `https://us.i.posthog.com` | PostHog ingest host URL. |
+| `VITE_ANALYTICS_KEY` (derived from `CHM_ANALYTICS_KEY`) | — | PostHog project key for opt-in [Product Analytics](/operate/advanced/product-analytics) (SaaS funnel tracking). Empty = disabled. |
+| `VITE_ANALYTICS_HOST` (derived from `CHM_ANALYTICS_HOST`) | `https://us.i.posthog.com` | PostHog ingest host — point at a self-hosted PostHog instance. |
 
 ## Runtime & build
 
@@ -483,6 +483,7 @@ See [Migrate to v0.3](/reference/migrating/v0-3) for the full rename list.
 <Card title="Connection presets" href="/reference/connection-presets" description="Create a least-privilege read-only ClickHouse user." />
 <Card title="Feature permissions" href="/operate/advanced/feature-permissions" description="Config-file and env-override details." />
 <Card title="Authentication" href="/operate/authentication" description="Choose and configure an auth provider." />
+<Card title="Product Analytics" href="/operate/advanced/product-analytics" description="Opt-in, off-by-default PostHog funnel analytics." />
 <Card title="Migrate to v0.3" href="/reference/migrating/v0-3" description="Full rename list from the Next.js era." />
 <Card title="Catalog contributing" href="/reference/catalog-contributing" description="The declarative query-config catalog CHM_CONFIG_SOURCE opts into." />
 </Cards>
