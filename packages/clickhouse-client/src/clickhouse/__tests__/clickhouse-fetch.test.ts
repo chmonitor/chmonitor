@@ -187,6 +187,35 @@ describe('clickhouse-fetch', () => {
         expect(result.error).toBeUndefined()
       })
 
+      it('does not include readBytes when the result set has no response_headers', async () => {
+        // The shared mockResultSet (default beforeEach setup) carries no
+        // response_headers, matching most existing test stubs.
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.readBytes).toBeUndefined()
+      })
+
+      it('includes readBytes parsed from the X-ClickHouse-Summary header', async () => {
+        mockClientQuery.mockResolvedValueOnce({
+          ...mockResultSet,
+          response_headers: {
+            'x-clickhouse-summary': JSON.stringify({ read_bytes: '2048' }),
+          },
+        } as never)
+
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.readBytes).toBe(2048)
+      })
+
+      it('omits readBytes when the summary header is present but unparseable', async () => {
+        mockClientQuery.mockResolvedValueOnce({
+          ...mockResultSet,
+          response_headers: { 'x-clickhouse-summary': 'not-json' },
+        } as never)
+
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.readBytes).toBeUndefined()
+      })
+
       it('does not JSON.stringify the result set when debug is disabled', async () => {
         // isDebugEnabled() is mocked false (simulating DEBUG unset / prod).
         const mockData = [{ big: 'payload' }]

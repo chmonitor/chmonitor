@@ -21,6 +21,29 @@ type FetchJsonEachRowTextResult = FetchDataResult<never> & {
 }
 
 /**
+ * Parse `read_bytes` out of the `X-ClickHouse-Summary` response header (always
+ * sent by the ClickHouse HTTP interface, regardless of format). Returns
+ * `undefined` when the header is absent/unparseable — or when the result set
+ * itself doesn't carry response_headers, e.g. in unit tests that stub a
+ * minimal client — so callers only ever see a genuine value, never a guess.
+ */
+function parseReadBytesFromHeaders(
+  headers: Record<string, string | string[] | undefined> | undefined
+): number | undefined {
+  const raw = headers?.['x-clickhouse-summary']
+  const text = Array.isArray(raw) ? raw[0] : raw
+  if (!text) return undefined
+
+  try {
+    const summary = JSON.parse(text) as { read_bytes?: string }
+    const bytes = summary.read_bytes ? Number(summary.read_bytes) : undefined
+    return bytes !== undefined && Number.isFinite(bytes) ? bytes : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Extract an HTTP status code (100–599) from a fetch error message.
  *
  * Strategy:
@@ -308,6 +331,13 @@ export const fetchData = async <
         clickhouseVersion: clickhouseVersion?.raw ?? 'unknown',
         // Include the actual SQL that was executed (normalized for readability)
         sql: effectiveQuery.replace(/\s+/g, ' ').trim(),
+      }
+
+      // Only present when the X-ClickHouse-Summary header parses cleanly —
+      // callers (e.g. OTel span attributes) must treat this as optional.
+      const readBytes = parseReadBytesFromHeaders(resultSet.response_headers)
+      if (readBytes !== undefined) {
+        metadata.readBytes = readBytes
       }
 
       // Include raw response for debugging (lazily evaluated to avoid performance overhead)
@@ -599,6 +629,10 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
       )
       debug(`<-- Response (${queryId}):`, { rows, duration, unit: 's' })
 
+      // Only present when the X-ClickHouse-Summary header parses cleanly —
+      // callers (e.g. OTel span attributes) must treat this as optional.
+      const readBytes = parseReadBytesFromHeaders(resultSet.response_headers)
+
       return {
         data: null,
         dataJson,
@@ -611,6 +645,7 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
           rawResponseLength: rawText.length,
           rawResponsePreview:
             rawText.length <= 500 ? rawText : `${rawText.substring(0, 500)}...`,
+          ...(readBytes !== undefined ? { readBytes } : {}),
         },
       }
     } finally {
