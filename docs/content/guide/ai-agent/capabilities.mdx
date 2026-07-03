@@ -1,10 +1,10 @@
 ---
 title: Capabilities
-description: Full reference for the agent's 19+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
+description: Full reference for the agent's 21+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
 icon: Sparkles
 ---
 
-The agent exposes a small set of **powerful primitives** (19 tools, plus 3 env-gated control tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
+The agent exposes a small set of **powerful primitives** (21 tools, plus 3 env-gated control tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
 
 ## Tools
 
@@ -13,13 +13,14 @@ The agent exposes a small set of **powerful primitives** (19 tools, plus 3 env-g
 | Schema & exploration | Databases, tables, columns, ad-hoc SQL | `query`, `list_databases`, `list_tables`, `get_table_schema`, `explore_table_schema` |
 | Query analysis | Running, slow, failed queries; EXPLAIN | `get_running_queries`, `get_slow_queries`, `get_failed_queries`, `explain_query` |
 | Health, storage, replication, merges | Metrics, disks, parts, replication, merges | `get_metrics`, `get_disk_usage`, `get_table_parts`, `get_replication_status`, `get_merge_status` |
+| Capacity planning | Disk-full forecast, TTL/retention advice (recommend-only) | `forecast_disk_capacity`, `suggest_ttl_adjustment` |
 | Plan & verify | A visible, adaptive step-by-step plan | `update_plan` |
 | Knowledge & interaction | Load expert guides; ask the user | `load_skill`, `ask_user` |
 | Charts & visualization | Run SQL and return an interactive chart | `query_and_visualize` |
 | Insights | Explain a statistical anomaly baseline and z-score | `explain_anomaly_score` |
 | Control actions (env-gated) | Kill query/mutation, optimize table | `kill_query`, `kill_mutation`, `optimize_table` |
 
-Everything else (expensive-query rankings, query patterns, anomalies, table-design advice, capacity forecasts, settings, logs, replication queue, ZooKeeper, users…) is done with `query` plus the relevant skill recipe — so the agent keeps full reach with a much smaller, more reliable tool surface.
+Everything else (expensive-query rankings, query patterns, anomalies, table-design advice, settings, logs, replication queue, ZooKeeper, users…) is done with `query` plus the relevant skill recipe — so the agent keeps full reach with a much smaller, more reliable tool surface.
 
 <Callout type="warn" title="Control tools are off by default">
 Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unless `AGENT_ENABLE_CONTROL_TOOLS=true`. The agent always confirms before using them.
@@ -41,6 +42,8 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 | `get_metrics` | Server health: version, uptime, active connections, memory. | Reads `system.metrics`. |
 | `get_disk_usage` | Per-disk free and total space. | Reads `system.disks`. |
 | `get_table_parts` | Part-level info for a table: rows, size, compression ratio. | Reads `system.parts`. |
+| `forecast_disk_capacity` | Forecast when disks will run out of free space from recent write-growth trend, plus top contributing tables. | Reads `system.part_log` (NewPart events) + `system.disks`. Reports a clear message instead of a forecast when `part_log` isn't enabled. |
+| `suggest_ttl_adjustment` | Recommend a TTL/retention change for a table to keep projected disk utilization ≤80%, never below a stated retention floor. | Returns a suggested `ALTER TABLE ... MODIFY TTL ...` string + risk note — recommend-only, never executed. Reports a clear message instead of a suggestion when `part_log` isn't enabled. |
 | `get_replication_status` | Per-table replication delay, queue size, and replica counts. | Reads `system.replicas`. |
 | `get_merge_status` | Currently running merges with progress and elapsed time. | Reads `system.merges`. |
 | `update_plan` | Create or update a step-by-step workflow plan for the current investigation. | Rendered as a live checklist in the UI. |

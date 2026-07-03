@@ -54,5 +54,80 @@ export function createStorageTools(hostId: number) {
         })
       },
     }),
+
+    forecast_disk_capacity: dynamicTool({
+      description:
+        "Forecast when this host's disks will run out of free space, projecting from system.part_log NewPart write volume over the last 30 days (plus top contributing tables). Read-only and recommend-only. Reports a clear 'enable part_log' message instead of a fabricated forecast when system.part_log isn't available.",
+      inputSchema: z.object({
+        horizonDays: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .default(90)
+          .describe(
+            'Projection horizon in days used to flag urgency (default 90).'
+          ),
+        hostId: hostIdSchema,
+      }),
+      execute: async (input: unknown) => {
+        const { forecastDiskFull } = await import(
+          '@/lib/ai/advisor/capacity-forecaster'
+        )
+        const { horizonDays, hostId: toolHostId } = input as {
+          horizonDays?: number
+          hostId?: number
+        }
+        const resolvedHostId = resolveHostId(toolHostId, hostId)
+
+        return forecastDiskFull(resolvedHostId, horizonDays)
+      },
+    }),
+
+    suggest_ttl_adjustment: dynamicTool({
+      description:
+        "Recommend a TTL/retention change for a table that keeps projected disk utilization at or under 80%, never suggesting less than retentionRequirementDays (defaults to 30 if omitted). Returns a suggested `ALTER TABLE ... MODIFY TTL ...` string plus a risk note — a suggestion only, never executed. Reports a clear 'enable part_log' message instead of a fabricated suggestion when system.part_log isn't available.",
+      inputSchema: z.object({
+        database: z.string().describe('Database name'),
+        table: z.string().describe('Table name'),
+        retentionRequirementDays: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe(
+            'Minimum number of days of data that must be retained (compliance/business floor). The suggested TTL is never lower than this. Defaults to 30 if omitted — pass this explicitly whenever the real requirement differs.'
+          ),
+        hostId: hostIdSchema,
+      }),
+      execute: async (input: unknown) => {
+        const { suggestTtl, DEFAULT_RETENTION_FLOOR_DAYS } = await import(
+          '@/lib/ai/advisor/capacity-forecaster'
+        )
+        const {
+          database,
+          table,
+          retentionRequirementDays,
+          hostId: toolHostId,
+        } = input as {
+          database: string
+          table: string
+          retentionRequirementDays?: number
+          hostId?: number
+        }
+        const resolvedHostId = resolveHostId(toolHostId, hostId)
+        const retentionAssumedDefault = retentionRequirementDays === undefined
+        const retentionDays =
+          retentionRequirementDays ?? DEFAULT_RETENTION_FLOOR_DAYS
+
+        return suggestTtl({
+          hostId: resolvedHostId,
+          database,
+          table,
+          retentionDays,
+          retentionAssumedDefault,
+        })
+      },
+    }),
   }
 }

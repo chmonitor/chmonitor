@@ -57,3 +57,17 @@ mock.module('@chm/clickhouse-client', () => ({
     query: async () => ({ json: async () => [] }),
   }),
 }))
+
+// checkTableExists lives at a separate package subpath
+// (@chm/clickhouse-client/table-existence-cache), not covered by the
+// '@chm/clickhouse-client' mock above. storage-tools.ts's
+// forecast_disk_capacity / suggest_ttl_adjustment (via capacity-forecaster.ts)
+// use it to gate on system.part_log. Defaults to `true` (table exists) so
+// existing tests that don't care about this are unaffected; tests exercising
+// the "part_log disabled" path override with
+// mockCheckTableExists.mockResolvedValueOnce(false).
+export const mockCheckTableExists = mock(async () => true) as any
+
+mock.module('@chm/clickhouse-client/table-existence-cache', () => ({
+  checkTableExists: mockCheckTableExists,
+}))
