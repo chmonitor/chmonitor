@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "test": "bun test",
     "preview": "astro preview",
     "build:og": "bun run scripts/build-og.ts",
     "cf:deploy": "wrangler deploy"
