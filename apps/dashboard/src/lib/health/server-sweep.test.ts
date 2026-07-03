@@ -187,6 +187,28 @@ mock.module('@/lib/health/maintenance-windows', () => ({
     ),
 }))
 
+// --- ACK store mock (plan 29) ------------------------------------------------
+// Controllable in-memory acks list + a spy on clearAck, so tests can assert
+// the sweep's suppression/recovery-clear branch without D1.
+interface FakeAck {
+  hostId: number
+  ruleId: string
+  expiresAt: number
+}
+let activeAcks: FakeAck[] = []
+const clearAckCalls: { hostId: number; ruleId: string }[] = []
+
+mock.module('./alert-ack-store', () => ({
+  listActiveAcks: async () => activeAcks,
+  isAcked: (acks: FakeAck[], hostId: number, ruleId: string, now: number) =>
+    acks.some(
+      (a) => a.hostId === hostId && a.ruleId === ruleId && a.expiresAt > now
+    ),
+  clearAck: async (_ownerId: string, hostId: number, ruleId: string) => {
+    clearAckCalls.push({ hostId, ruleId })
+  },
+}))
+
 const { alertStateStore } = await import('./alert-state-store')
 const { ruleRegistry } = await import('@/lib/alerting/rule-registry')
 const { compoundRuleRegistry } = await import('@/lib/alerting/compound-rules')
@@ -235,6 +257,8 @@ beforeEach(() => {
   testValue = 50
   fetchCalls = []
   mockWindows = []
+  activeAcks = []
+  clearAckCalls.length = 0
 })
 
 afterEach(() => {
@@ -843,5 +867,67 @@ describe('runHealthSweep — maintenance window suppression', () => {
     mockWindows = []
     const summary = await runHealthSweep()
     expect(summary.alertsDispatched).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runHealthSweep — ACK / manual resolution (plan 29)
+// ---------------------------------------------------------------------------
+describe('runHealthSweep — ACK suppression', () => {
+  test('an active ACK suppresses dispatch and does NOT reset the reminder cooldown', async () => {
+    activeAcks = [
+      { hostId: 0, ruleId: TEST_RULE_ID, expiresAt: Date.now() + 60_000 },
+    ]
+
+    globalThis.fetch = mock(async () => {
+      fetchCalls.push({ status: 200 })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(fetchCalls).toHaveLength(0)
+    expect(summary.alertsDispatched).toBe(0)
+    expect(summary.ackedSuppressed).toBe(1)
+
+    // Critically: the acked (non-delivered) notification must not commit —
+    // otherwise a short ACK would silently start the full reminder cooldown.
+    const { alertStateKey } = await import('./alert-state-store')
+    expect(alertStateStore.get(alertStateKey(0, TEST_RULE_ID))).toBeUndefined()
+
+    // Once the ACK lifts, the very next sweep delivers normally as a fresh
+    // "new" alert — proving no cooldown/dedup side effect was persisted.
+    activeAcks = []
+    const summary2 = await runHealthSweep()
+    expect(fetchCalls).toHaveLength(1)
+    expect(summary2.alertsDispatched).toBe(1)
+    expect(fakeDb.rows[0]?.decision_kind).toBe('new')
+  })
+
+  test('a recovery is never suppressed by an ACK, and clears it', async () => {
+    globalThis.fetch = mock(async () => {
+      fetchCalls.push({ status: 200 })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    // First sweep: condition fires and delivers/commits normally.
+    await runHealthSweep()
+    expect(fetchCalls).toHaveLength(1)
+
+    // Condition resolves; simulate an operator ACK still "active" at the
+    // moment of recovery.
+    testValue = 0
+    activeAcks = [
+      { hostId: 0, ruleId: TEST_RULE_ID, expiresAt: Date.now() + 60_000 },
+    ]
+
+    const summary = await runHealthSweep()
+
+    // Recovery still dispatches (never suppressed) …
+    expect(fetchCalls).toHaveLength(2)
+    expect(summary.recoveries).toBe(1)
+    expect(summary.ackedSuppressed).toBe(0)
+    // … and the now-moot ACK is cleared.
+    expect(clearAckCalls).toContainEqual({ hostId: 0, ruleId: TEST_RULE_ID })
   })
 })

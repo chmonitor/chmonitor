@@ -6,9 +6,14 @@
  * → write an ACK to the alert-ack store (actor = the Slack user) → edit the
  * original message via its `response_url` to show "Acknowledged by @user".
  *
- * The ACK write is intentionally minimal and does NOT feed back into the
- * sweep's in-memory dedup (`alert-state-store.ts`) — that coupling is roadmap
- * 29's job; adding it here would be inventing a parallel state store.
+ * The ACK feeds into the same `alert-ack-store` the health sweep reads (plan
+ * 29's `isAcked`/`listActiveAcks`), so acking from Slack suppresses the sweep's
+ * dispatch too — not just a cosmetic message edit. A Slack button click has no
+ * duration picker, so it acks for the longest whitelisted window (240m); the
+ * operator can always re-ack (via Slack or the Active Alerts panel) to extend.
+ * Owner scope is the fixed OSS single-tenant id (`''`), matching the sweep's
+ * own `SWEEP_ROUTING_OWNER_ID` convention — the sweep has no per-tenant
+ * session to resolve against.
  *
  * SSRF: `response_url` comes from the (verified) Slack payload but is still
  * checked against a Slack-host allowlist AND the shared SSRF guard before we
@@ -20,7 +25,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { error as logError } from '@chm/logger'
-import { recordAlertAck } from '@/lib/health/alert-ack-store'
+import { ackAlert } from '@/lib/health/alert-ack-store'
 import { postToResponseUrl } from '@/lib/slack/api'
 import {
   ACK_ACTION_ID,
@@ -84,17 +89,24 @@ async function handlePost(request: Request): Promise<Response> {
   const nowIso = new Date().toISOString()
 
   // Persist the ACK (best-effort; a failed write still edits the message so the
-  // user gets feedback — the store logs its own failures).
-  await recordAlertAck({
-    ackKey: `${ackKey.hostId}:${ackKey.ruleId}:${ackKey.severity}`,
-    hostId: ackKey.hostId,
-    ruleId: ackKey.ruleId,
-    severity: ackKey.severity,
-    ackedBy: userId,
-    ackedByName: userName,
-    source: 'slack',
-    ackedAt: Date.now(),
-  })
+  // user gets feedback — ackAlert only throws on a missing/misconfigured D1
+  // binding, which we swallow here the same way the rest of this handler
+  // degrades gracefully when Slack app config is partial).
+  try {
+    await ackAlert({
+      ownerId: '',
+      hostId: ackKey.hostId,
+      ruleId: ackKey.ruleId,
+      durationKey: '240m',
+      ackedBy: userName ? `${userName} (${userId})` : userId,
+      note: 'Acknowledged via Slack',
+    })
+  } catch (err) {
+    logError(
+      '[slack-interactions] failed to persist ACK',
+      err instanceof Error ? err : new Error(String(err))
+    )
+  }
 
   // Edit the original message: drop the button, append an "acked by" line.
   const originalBlocks = payload.message?.blocks ?? []
