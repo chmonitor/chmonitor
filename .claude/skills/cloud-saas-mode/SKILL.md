@@ -5,12 +5,13 @@ description: >-
   codebase. Use when changing how dash.chmonitor.dev differs from Docker/K8s/OSS
   builds: the cloud-mode flag, public read-only demo hosts, the welcome/setup
   onboarding page, per-user (D1) ClickHouse connections, host visibility for
-  anonymous vs signed-in users, or the "Test connection" error classifier and
-  its docs links. Triggers: "cloud mode", "SaaS", "demo host", "welcome page",
-  "setup page", "first-run", "add host error", "connection error", "read-only
-  host", "hide hosts when signed in".
+  anonymous vs signed-in users, the "Test connection" error classifier and its
+  docs links, or the "Try with sample ClickHouse" onboarding preset. Triggers:
+  "cloud mode", "SaaS", "demo host", "welcome page", "setup page", "first-run",
+  "add host error", "connection error", "read-only host", "hide hosts when
+  signed in", "sample cluster", "sample ClickHouse", "try sample".
 metadata:
-  tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors
+  tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors, sample-cluster
 ---
 
 # chmonitor Cloud (SaaS) mode
@@ -62,6 +63,23 @@ returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
 `(cloudMode, isSignedIn)`: cloud signed-in (Connect-your-host + Add-host dialog),
 cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
 Gate `ClerkSignInButton` behind `isClerkEnabled()`.
+
+**"Try with sample ClickHouse" preset** — a DIFFERENT thing from the `demo` host
+above (server env-configured, cloud-only): a one-click preset any user (OSS or
+cloud signed-in) can add through the NORMAL add-host path, for the "must own a
+cluster to try it" barrier. Not shown to cloud anon visitors (they already get
+the automatic demo). `components/connections/sample-preset.ts` is the single
+constant (`SAMPLE_CLUSTER_PRESET` + `isSampleClusterHost`) — currently the
+public ClickHouse Playground (`play.clickhouse.com`/`explorer`, non-secret,
+DDL/INSERT rejected server-side); that shared demo also denies several
+`system.*` tables chmonitor needs (query_log, parts, merges, processes,
+replicas, mutations, disks, errors), so operational pages show their normal
+empty/error states against it — schema browsing, metrics/settings/functions,
+and SQL/AI chat work. `add-host-dialog.tsx`'s `initialPreset?: 'sample'` must be
+set explicitly (incl. `undefined`) on every open — the dialog is reused, not
+remounted per-CTA. `components/host/sample-cluster-banner.tsx` is the
+dismissible "Connect your own cluster" convert nudge shown once the sample is
+connected. Full detail: `docs/knowledge/cloud-saas-mode.md`.
 
 ## Connection-error help
 

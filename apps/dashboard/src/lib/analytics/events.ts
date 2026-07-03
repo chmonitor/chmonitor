@@ -20,6 +20,8 @@ export const ANALYTICS_EVENTS = [
   'agent_message',
   'upgrade_click',
   'checkout_started',
+  'sample_cluster_connected',
+  'sample_to_real_converted',
 ] as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number]

@@ -68,6 +68,48 @@ Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
 - `components/host/first-run-gate.tsx` + `first-run-decision.ts` — enforce the "signed-in ⇒ no demo data" invariant at the render boundary. The active host for data comes from `?host=` (`useHostId`), which is DECOUPLED from the visible host list; a stale `?host=0` (carried over from browsing the demo while anonymous) points at the now-hidden demo, and `resolve-host-fetch.ts` falls back to the server/demo host for an id not in the merged list — so a signed-in, zero-connection user could otherwise see demo data. The gate refuses to render the routed page (its charts fetch `?host` directly) until the active host resolves to one of the user's OWN visible hosts: while their connections load it shows a skeleton (never demo charts); with zero it routes to `/setup`; with some it re-points `?host` at a real host. Discriminator is deterministic — user connections use NEGATIVE ids (`DB_CONNECTION_HOST_ID_START = -1000`), env/demo use `0,1,2…`, so a non-negative `?host` for a signed-in user is always the demo. OSS + anonymous-cloud behaviour is unchanged. Invariant covered by `first-run-decision.test.ts`.
 - `lib/dashboard-storage/` — saved Chart Builder dashboards. Client entrypoint (`index.ts`) picks D1 (per-owner, cross-device, optional read-only sharing) vs. localStorage the same way conversations do — via `featureFlags.conversationDb()` (same `CHM_CLOUD_D1` + Clerk gate, no dedicated flag) — so OSS/self-host and cloud-signed-out always get the localStorage path. `d1-store.ts` + `auth.ts` are server-only (never imported by client code — reached only through `routes/api/dashboards/*`); the public `share/$slug` read is the one deliberately owner-unscoped query, projecting only `{name, charts}`. See `plans/56-dashboard-d1-persistence-sharing.md`.
 
+## Sample-cluster onboarding preset
+
+A DIFFERENT concept from the cloud `demo` host above (that one is server
+env-configured and cloud-only): "Try with sample ClickHouse" is a preset users
+of EITHER product add through the normal add-host flow, so it works in
+self-hosted OSS too — the main barrier it removes is "must own a ClickHouse
+cluster to try the product at all" (self-hosted zero-host first-run, and cloud
+signed-in users whose demo is hidden). Cloud anonymous visitors already get an
+automatic demo, so they don't see this CTA.
+
+- `components/connections/sample-preset.ts` — the single constant
+  (`SAMPLE_CLUSTER_PRESET`: name/host/user/password) + `isSampleClusterHost`
+  matcher. Points at the public ClickHouse Playground (`play.clickhouse.com`,
+  user `explorer`, no password) — genuinely public/non-secret creds, DDL/INSERT
+  rejected server-side (verified). **Caveat**: that shared public demo also
+  denies SELECT on several `system.*` tables chmonitor relies on (`query_log`,
+  `parts`, `merges`, `processes`, `replicas`, `mutations`, `disks`, `errors`,
+  `storage_policies` — verified via direct query); schema browsing
+  (`tables`/`databases`), `system.metrics`/`settings`/`functions`, and the SQL
+  explorer/AI chat work. Operational monitoring pages will show their normal
+  empty/error states against it. Swapping to a differently-provisioned public
+  demo (broader `system.*` access) is a one-constant change.
+- `components/connections/connection-form.tsx` — `showSamplePreset` prop
+  renders a "Use sample" quick-fill button (only passed by `AddHostDialog`, so
+  it never appears in the edit-connection flow).
+- `components/connections/add-host-dialog.tsx` — `initialPreset?: 'sample'`
+  prefills the form when opened from a sample CTA; parents MUST pass it
+  explicitly (including `undefined`) on every open since the dialog instance is
+  reused/toggled, not remounted per-CTA. Prefill only — same test/save
+  validation and host-limit path as any manual entry, no bypass. Also fires
+  `sample_cluster_connected` / `sample_to_real_converted` (see
+  `lib/analytics/events.ts`) by comparing the saved host against
+  `isSampleClusterHost`.
+- `components/host/first-run-empty-state.tsx` — secondary "Try with sample
+  ClickHouse" CTA in `ConnectYourHost` (cloud signed-in) and `SelfHostedSetup`;
+  not in `SignInToConnect` (redundant with the automatic demo).
+- `components/host/sample-cluster-banner.tsx` (+ `sample-cluster-banner-
+  dismissed.ts`) — persistent, dismissible "Connect your own cluster" convert
+  nudge rendered in `app-sidebar.tsx`'s `SidebarHeader` below `HostSwitcher`.
+  Shows only once a sample host is connected and no real (non-sample) host
+  exists yet; dismissal persists per-browser via localStorage.
+
 ## Connection-error help
 
 `lib/connection-errors.ts` → `classifyConnectionError(raw)` maps a raw "Test

@@ -2,6 +2,7 @@ import type { HostStorageMode } from '@/lib/types/host-storage'
 
 import { ConnectionForm, type ConnectionFormData } from './connection-form'
 import { ConnectionHelpPanel } from './connection-help-panel'
+import { isSampleClusterHost, SAMPLE_CLUSTER_PRESET } from './sample-preset'
 import { useState } from 'react'
 import {
   Dialog,
@@ -24,16 +25,33 @@ import { buildUrl } from '@/lib/url/url-builder'
 interface AddHostDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /**
+   * Pre-fill the form with the read-only sample ClickHouse preset — e.g. from
+   * the first-run "Try with sample ClickHouse" CTA. The parent must pass this
+   * explicitly on every open (including `undefined` for a plain "Add host")
+   * since this dialog instance is reused/toggled, not remounted per-CTA.
+   * Still goes through the normal test/save validation — prefill only.
+   */
+  initialPreset?: 'sample'
 }
 
-export function AddHostDialog({ open, onOpenChange }: AddHostDialogProps) {
+export function AddHostDialog({
+  open,
+  onOpenChange,
+  initialPreset,
+}: AddHostDialogProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { config } = useFeaturePermissions()
-  const { addConnection } = useBrowserConnections()
+  const { addConnection, connections: browserConnections } =
+    useBrowserConnections()
   const { createConnection } = useUserConnectionsMutations()
-  const { refetch: refetchDb, isSignedIn } = useUserConnections()
+  const {
+    refetch: refetchDb,
+    isSignedIn,
+    connections: dbConnections,
+  } = useUserConnections()
   const [storageMode, setStorageMode] = useState<HostStorageMode>('browser')
 
   const dbStorageConfigured = config.userConnections?.dbStorageEnabled === true
@@ -53,9 +71,25 @@ export function AddHostDialog({ open, onOpenChange }: AddHostDialogProps) {
       const url = buildUrl(pathname, { host: created.hostId }, searchParams)
       router.push(url)
     }
+
+    // Sample-cluster funnel: distinguish "connected the sample" from
+    // "converted from sample to a real cluster" (had the sample already,
+    // this new host is not it). Checked against the pre-save connection
+    // list, so this fires once per transition.
+    if (isSampleClusterHost(data.host)) {
+      trackEvent('sample_cluster_connected')
+    } else if (
+      browserConnections.some((c) => isSampleClusterHost(c.host)) ||
+      dbConnections.some((c) => isSampleClusterHost(c.host))
+    ) {
+      trackEvent('sample_to_real_converted')
+    }
     trackEvent('cluster_connect', { storage_mode: storageMode })
     onOpenChange(false)
   }
+
+  const initialValues =
+    initialPreset === 'sample' ? SAMPLE_CLUSTER_PRESET : undefined
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,10 +130,12 @@ export function AddHostDialog({ open, onOpenChange }: AddHostDialogProps) {
             <ConnectionForm
               onSave={handleSave}
               onCancel={() => onOpenChange(false)}
+              initialValues={initialValues}
               storageMode={storageMode}
               onStorageModeChange={setStorageMode}
               dbStorageEnabled={dbStorageEnabled}
               dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
+              showSamplePreset
             />
           </div>
 
