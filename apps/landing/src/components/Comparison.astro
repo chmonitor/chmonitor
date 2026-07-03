@@ -53,6 +53,13 @@ const partialSvg = `<svg class="cmp-partial" viewBox="0 0 24 24" fill="none" str
               <td><Fragment set:html={crossSvg} /> none</td>
             </tr>
             <tr>
+              <td>Alert rules &amp; channels</td>
+              <td class="cmp-highlight"><Fragment set:html={checkSvg} /> Built-in health checks, editable thresholds; one webhook &rarr; Slack or Discord + full alert history</td>
+              <td><Fragment set:html={checkSvg} /> Grafana Alerting: many channels and routing rules, once you've built the CH panels</td>
+              <td><Fragment set:html={checkSvg} /> Datadog Monitors: broad integrations, mature escalation policies</td>
+              <td><Fragment set:html={crossSvg} /> none</td>
+            </tr>
+            <tr>
               <td>Version-aware queries</td>
               <td class="cmp-highlight"><Fragment set:html={checkSvg} /> SQL adapts to CH schema by version</td>
               <td><Fragment set:html={crossSvg} /> you manage query compatibility</td>
