@@ -3,7 +3,11 @@ import type {
   AlertRuleDef,
   AlertRuleSeverity,
 } from '@/lib/alerting/rule-registry'
+import type { AlertEventRecord } from './alert-history-store'
+import type { AlertDecision } from './alert-state-store'
 
+import { detectAdapter } from './adapters'
+import { recordAlertEvent } from './alert-history-store'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
 import {
   getServerAlertConfig,
@@ -140,13 +144,20 @@ function shouldRunRule(
   return tables.has(rule.tableCheck)
 }
 
+/** Result of a webhook delivery attempt, incl. the error text for the audit log. */
+interface WebhookResult {
+  ok: boolean
+  /** Present only when `ok` is false — recorded in the alert-history store. */
+  error?: string
+}
+
 /**
  * POST an alert to the configured webhook using the EXACT payload shape the
  * `/api/v1/health/webhook` proxy forwards upstream (`{ text, content: text }`),
  * so Slack (`text`) and Discord (`content`) both render it. Server-side, no CORS
  * proxy needed — we post directly to the operator-configured webhook URL.
  */
-async function postWebhook(url: string, text: string): Promise<boolean> {
+async function postWebhook(url: string, text: string): Promise<WebhookResult> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
@@ -157,17 +168,66 @@ async function postWebhook(url: string, text: string): Promise<boolean> {
       signal: controller.signal,
     })
     if (!res.ok) {
-      error(
-        '[health-sweep] Webhook returned non-OK status',
-        new Error(`Status ${res.status}`)
-      )
+      const message = `Webhook returned status ${res.status}`
+      error('[health-sweep] Webhook returned non-OK status', new Error(message))
+      return { ok: false, error: message }
     }
-    return res.ok
+    return { ok: true }
   } catch (err) {
     error('[health-sweep] Webhook POST failed', err as Error)
-    return false
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
   } finally {
     clearTimeout(timeout)
+  }
+}
+
+/**
+ * Map a notify decision + dispatch outcome into the shape the alert-history
+ * store persists. Pure — no I/O — so the decision→record translation (the
+ * trickiest part: `recovery` carries its own severity distinct from the
+ * underlying `AlertRuleSeverity`, and a fresh `new` alert has no meaningful
+ * previous severity) is unit-testable without mocking D1 or the sweep.
+ */
+export function buildAlertEventRecord(params: {
+  hostId: number
+  hostLabel: string
+  ruleId: string
+  decision: AlertDecision
+  value: number | null
+  delivered: boolean
+  error?: string
+  channel: string
+  /** Injectable clock for tests. Defaults to `Date.now()`. */
+  now?: number
+}): AlertEventRecord {
+  const { decision } = params
+  // Recovery is its own severity for audit purposes — the decision's
+  // `severity` field is 'ok' (the condition classifies healthy again), which
+  // isn't a useful thing to show in a log of *alert* events.
+  const severity: AlertEventRecord['severity'] =
+    decision.kind === 'recovery'
+      ? 'recovery'
+      : (decision.severity as 'warning' | 'critical')
+  // 'ok' means "no prior firing condition" (e.g. a brand-new alert) — no
+  // previous severity worth recording.
+  const prevSeverity: AlertEventRecord['prevSeverity'] =
+    decision.previousSeverity === 'ok' ? null : decision.previousSeverity
+
+  return {
+    eventTime: new Date(params.now ?? Date.now()).toISOString(),
+    hostId: params.hostId,
+    hostLabel: params.hostLabel,
+    rule: params.ruleId,
+    severity,
+    prevSeverity,
+    decisionKind: decision.kind,
+    delivered: params.delivered,
+    error: params.error ?? null,
+    value: params.value,
+    channel: params.channel,
   }
 }
 
@@ -256,13 +316,39 @@ export async function runHealthSweep(): Promise<SweepSummary> {
               decision.kind === 'recovery'
                 ? `[RECOVERY] ${rule.title} — resolved (host ${name})`
                 : `[${effective.toUpperCase()}] ${rule.title} — ${label} (host ${name})`
-            const ok = await postWebhook(settings.webhookUrl, text)
-            if (ok) {
+            const result = await postWebhook(settings.webhookUrl, text)
+            if (result.ok) {
               // Persist "notified" only now — a failed delivery leaves no
               // record, so the next sweep retries instead of suppressing.
               commit()
               alertsDispatched++
               if (decision.kind === 'recovery') recoveries++
+            }
+
+            // Best-effort audit trail — recorded AFTER the commit/counters
+            // above (on both success and failure) so a slow or failing D1
+            // write can never delay or drop the alert that was just
+            // dispatched. recordAlertEvent already never throws; the
+            // try/catch here is defense-in-depth, mirroring the
+            // generateInsights call below.
+            try {
+              await recordAlertEvent(
+                buildAlertEventRecord({
+                  hostId: config.id,
+                  hostLabel: name,
+                  ruleId: rule.id,
+                  decision,
+                  value,
+                  delivered: result.ok,
+                  error: result.error,
+                  channel: detectAdapter(settings.webhookUrl).id,
+                })
+              )
+            } catch (err) {
+              debug(
+                `[health-sweep] alert-history record failed for host ${config.id} rule ${rule.id}`,
+                err instanceof Error ? err.message : String(err)
+              )
             }
           } else {
             // Non-notify decisions (dedup/de-escalation/recovery-cleared
