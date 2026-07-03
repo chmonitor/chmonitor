@@ -371,12 +371,12 @@ const QueryRow = memo(function QueryRow({
         <td className="px-2 py-2.5 text-right sm:px-3">
           <span
             className={cn(
-              'whitespace-nowrap font-semibold tabular-nums',
+              'whitespace-nowrap text-sm font-semibold tabular-nums',
               SEVERITY_DURATION[d.severity]
             )}
           >
             {dur.value}
-            <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">
+            <span className="ml-0.5 font-normal text-muted-foreground">
               {dur.unit}
             </span>
           </span>
