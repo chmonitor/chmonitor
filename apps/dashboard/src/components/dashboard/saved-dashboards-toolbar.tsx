@@ -1,8 +1,11 @@
 /**
  * SavedDashboardsToolbar
  *
- * Toolbar for managing saved dashboard configurations in localStorage.
- * Provides load, save, and delete operations via simple UI controls.
+ * Toolbar for managing saved dashboard configurations. Persists to D1 (per
+ * signed-in owner, synced across devices) when server-side dashboard storage
+ * is enabled, else falls back to localStorage — see
+ * `@/lib/dashboard-storage`. Provides load, save, and delete operations via
+ * simple UI controls.
  */
 
 import { BookmarkIcon, TrashIcon } from '@radix-ui/react-icons'
@@ -37,42 +40,56 @@ export function SavedDashboardsToolbar({
   const [savedNames, setSavedNames] = useState<string[]>([])
   const [activeName, setActiveName] = useState<string>('')
 
-  // Refresh the list from localStorage (runs client-side only)
-  const refreshList = () => {
-    setSavedNames(listDashboards())
+  // Refresh the list (D1 or localStorage, depending on backend).
+  const refreshList = async () => {
+    setSavedNames(await listDashboards())
   }
 
   // Load the saved list on mount (inline to keep an empty dependency array).
   useEffect(() => {
-    setSavedNames(listDashboards())
+    let cancelled = false
+    listDashboards().then((names) => {
+      if (!cancelled) setSavedNames(names)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  function handleLoad(name: string) {
-    const charts = loadDashboard(name)
+  async function handleLoad(name: string) {
+    const charts = await loadDashboard(name)
     if (charts) {
       setActiveName(name)
       onLoad(charts)
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (selectedCharts.length === 0) {
       alert('Add at least one chart before saving.')
       return
     }
     const name = window.prompt('Dashboard name:')?.trim()
     if (!name) return
-    saveDashboard(name, selectedCharts)
-    setActiveName(name)
-    refreshList()
+    try {
+      await saveDashboard(name, selectedCharts)
+      setActiveName(name)
+      await refreshList()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save dashboard.')
+    }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!activeName) return
     if (!window.confirm(`Delete "${activeName}"?`)) return
-    deleteDashboard(activeName)
-    setActiveName('')
-    refreshList()
+    try {
+      await deleteDashboard(activeName)
+      setActiveName('')
+      await refreshList()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete dashboard.')
+    }
   }
 
   return (

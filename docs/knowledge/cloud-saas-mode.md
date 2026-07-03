@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-07-02
+updated: 2026-07-03
 tags:
   - saas
   - cloud
@@ -66,6 +66,7 @@ Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
 - `components/host/host-switcher.tsx` — Demo / read-only badges; `demo` behaves like `env` for live status (server-backed by index).
 - `components/host/first-run-empty-state.tsx` — redesigned welcome/setup (cloud signed-in / cloud anon / self-hosted).
 - `components/host/first-run-gate.tsx` + `first-run-decision.ts` — enforce the "signed-in ⇒ no demo data" invariant at the render boundary. The active host for data comes from `?host=` (`useHostId`), which is DECOUPLED from the visible host list; a stale `?host=0` (carried over from browsing the demo while anonymous) points at the now-hidden demo, and `resolve-host-fetch.ts` falls back to the server/demo host for an id not in the merged list — so a signed-in, zero-connection user could otherwise see demo data. The gate refuses to render the routed page (its charts fetch `?host` directly) until the active host resolves to one of the user's OWN visible hosts: while their connections load it shows a skeleton (never demo charts); with zero it routes to `/setup`; with some it re-points `?host` at a real host. Discriminator is deterministic — user connections use NEGATIVE ids (`DB_CONNECTION_HOST_ID_START = -1000`), env/demo use `0,1,2…`, so a non-negative `?host` for a signed-in user is always the demo. OSS + anonymous-cloud behaviour is unchanged. Invariant covered by `first-run-decision.test.ts`.
+- `lib/dashboard-storage/` — saved Chart Builder dashboards. Client entrypoint (`index.ts`) picks D1 (per-owner, cross-device, optional read-only sharing) vs. localStorage the same way conversations do — via `featureFlags.conversationDb()` (same `CHM_CLOUD_D1` + Clerk gate, no dedicated flag) — so OSS/self-host and cloud-signed-out always get the localStorage path. `d1-store.ts` + `auth.ts` are server-only (never imported by client code — reached only through `routes/api/dashboards/*`); the public `share/$slug` read is the one deliberately owner-unscoped query, projecting only `{name, charts}`. See `plans/56-dashboard-d1-persistence-sharing.md`.
 
 ## Connection-error help
 
