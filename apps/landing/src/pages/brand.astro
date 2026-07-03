@@ -49,12 +49,22 @@ const monoMark = `<svg viewBox="0 0 32 32" fill="currentColor" xmlns="http://www
   <rect x="8.7" y="3.5" width="3.8" height="25"/><rect x="14.1" y="13.25" width="3.8" height="15.25"/>
   <rect x="19.5" y="6.25" width="3.8" height="22.25"/><rect x="24.9" y="16.8" width="3.8" height="11.7"/>
 </svg>`
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'Brand', item: canonical },
+  ],
+}
 ---
 <Base
-  title="chmonitor — Brand & Logo"
-  description="The chmonitor brand mark, colors and usage. A flat metric-bar glyph with an emerald top-cap dot."
+  title="chmonitor Brand Kit — Logo, Colors & Usage Guide"
+  description="The chmonitor brand kit: logo marks in SVG and PNG, brand colors, and usage guidelines. A flat metric-bar glyph with an emerald top-cap dot, free to download."
   image="/brand/og-brand.png"
 >
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <Nav />
   <main id="top">
     <!-- ── header ── -->

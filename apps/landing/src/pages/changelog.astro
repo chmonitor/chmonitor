@@ -58,11 +58,23 @@ function mdToHtml(md: string): string {
   }
   return items.length ? `<ul>${items.join('')}</ul>` : ''
 }
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'Changelog', item: canonical },
+  ],
+}
 ---
 <Base
-  title="Changelog, chmonitor"
-  description="Release history for chmonitor. See what's new in each version."
+  title="chmonitor Changelog — Release Notes & Updates"
+  description="Every chmonitor release: dashboard features, AI agent improvements, query monitoring and self-hosting updates. Synced from GitHub releases."
+  image="/og/og-changelog.png"
 >
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <Nav />
   <main style="min-height:70vh">
     <section class="band">

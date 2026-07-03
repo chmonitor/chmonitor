@@ -3,15 +3,19 @@
  *
  * Flat, on-brand 1200×630 card: enlarged brand lockup + headline on the left, a
  * faithful "Overview" dashboard panel (query count, p50/95/99 latency, failed
- * queries, memory) on the right, over a faint monitoring-waveform backdrop.
+ * queries, memory) on the right, over a faint monitoring-waveform backdrop. One
+ * shared template, per-page copy (eyebrow/headline/subhead) — see PAGES below.
  *
  * Rendered with resvg (deterministic text via the vendored TTFs — no system
- * fontconfig dependency) at 2× then downscaled with sharp for crisp type. OG
- * scrapers don't render SVG, so we ship PNG; the SVG stays the editable source.
+ * fontconfig dependency) at 2× then downscaled with sharp for crisp type, and
+ * palette-quantized (still visually lossless for this flat, few-color art) to
+ * stay well under the ~100KB budget social platforms expect. OG scrapers don't
+ * render SVG, so we ship PNG; the SVG stays the editable source.
  *
  *   cd apps/landing && bun run scripts/build-og.ts
  *
- * Emits public/og/og.png (dark) and public/og/og-light.png (white).
+ * Emits public/og/og.png + og-light.png (home) and one dark image per
+ * additional page in PAGES (public/og/og-<page>.png).
  */
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -138,7 +142,23 @@ const mapPts = (
     +(sy + sh - v * sh).toFixed(1),
   ])
 
-function buildSvg(T: Theme) {
+interface Copy {
+  eyebrow: string
+  h1Line1: string
+  h1Line2: string
+  sub1: string
+  sub2: string
+}
+
+const HOME_COPY: Copy = {
+  eyebrow: 'OPEN-SOURCE CLICKHOUSE MONITORING',
+  h1Line1: 'A simple UI to',
+  h1Line2: 'monitor ClickHouse',
+  sub1: 'Queries, merges, parts, replication, health',
+  sub2: '&#8212; and an AI agent. Self-host or cloud.',
+}
+
+function buildSvg(T: Theme, copy: Copy = HOME_COPY) {
   // chart series → area + line (optionally spiky / with end dot)
   const series = (
     sx: number,
@@ -340,13 +360,13 @@ ${bgWave}
 ${mark(1.75, 80, 64)}
 <text x="158" y="112" font-family="${INK_R}" font-size="35" font-weight="700" letter-spacing="-1.1" fill="${T.wordmark}">chmonitor</text>
 
-<text x="82" y="232" font-family="${MONO_SB}" font-size="15" letter-spacing="3.5" fill="${T.eyebrow}">OPEN-SOURCE CLICKHOUSE MONITORING</text>
+<text x="82" y="232" font-family="${MONO_SB}" font-size="15" letter-spacing="3.5" fill="${T.eyebrow}">${copy.eyebrow}</text>
 
-<text x="79" y="312" font-family="${INK_R}" font-size="59" font-weight="700" letter-spacing="-2.4" fill="${T.h1}">A simple UI to</text>
-<text x="79" y="378" font-family="${INK_R}" font-size="59" font-weight="700" letter-spacing="-2.4" fill="${T.accent}">monitor ClickHouse</text>
+<text x="79" y="312" font-family="${INK_R}" font-size="59" font-weight="700" letter-spacing="-2.4" fill="${T.h1}">${copy.h1Line1}</text>
+<text x="79" y="378" font-family="${INK_R}" font-size="59" font-weight="700" letter-spacing="-2.4" fill="${T.accent}">${copy.h1Line2}</text>
 
-<text x="81" y="448" font-family="${INK_R}" font-size="25" letter-spacing="-0.3" fill="${T.sub}">Queries, merges, parts, replication, health</text>
-<text x="81" y="482" font-family="${INK_R}" font-size="25" letter-spacing="-0.3" fill="${T.sub}">&#8212; and an AI agent. Self-host or cloud.</text>
+<text x="81" y="448" font-family="${INK_R}" font-size="25" letter-spacing="-0.3" fill="${T.sub}">${copy.sub1}</text>
+<text x="81" y="482" font-family="${INK_R}" font-size="25" letter-spacing="-0.3" fill="${T.sub}">${copy.sub2}</text>
 
 <circle cx="89" cy="552" r="5" fill="${EMERALD}"/>
 <text x="105" y="558" font-family="${MONO_SB}" font-size="18" letter-spacing="-0.2" fill="${T.domain}">chmonitor.dev</text>
@@ -384,8 +404,8 @@ const fontFiles = [
   'jbm-600',
 ].map((f) => join(fontsDir, `${f}.ttf`))
 
-async function render(theme: Theme, file: string) {
-  const svg = buildSvg(theme)
+async function render(theme: Theme, file: string, copy: Copy = HOME_COPY) {
+  const svg = buildSvg(theme, copy)
   // Render at 2× (resvg's text is deterministic via the loaded TTFs), then
   // downscale to the 1200×630 OG spec for crisp anti-aliased type.
   const png2x = new Resvg(svg, {
@@ -396,11 +416,44 @@ async function render(theme: Theme, file: string) {
     .asPng()
   await sharp(png2x)
     .resize(W, H, { kernel: 'lanczos3' })
-    .png({ compressionLevel: 9 })
+    // Palette-quantized PNG: this is flat, few-color synthetic art (grid,
+    // waveform, sparklines, type) so 256-color quantization is visually
+    // lossless here, and it cuts file size ~3× (150KB → ~48KB) to stay well
+    // under the <100KB OG budget. Verified by eye against the true-color
+    // render before landing this — re-check if the template's color count
+    // grows a lot (e.g. photos/gradients).
+    .png({ palette: true, quality: 90, effort: 10 })
     .toFile(join(outDir, file))
   console.log(`✓ ${file}`)
 }
 
+// Per-page copy for the additional marketing pages that share this template
+// (see Base.astro `image` prop on each page). The home page keeps its
+// dedicated dark + light pair; every other page gets one dark card.
+const PAGES: { file: string; copy: Copy }[] = [
+  {
+    file: 'og-pricing.png',
+    copy: {
+      eyebrow: 'PRICING',
+      h1Line1: 'Simple pricing',
+      h1Line2: 'that scales with you',
+      sub1: 'Self-host free under GPL-3.0, or use',
+      sub2: 'the hosted cloud &#8212; early access now.',
+    },
+  },
+  {
+    file: 'og-changelog.png',
+    copy: {
+      eyebrow: 'CHANGELOG',
+      h1Line1: "What's new in",
+      h1Line2: 'chmonitor',
+      sub1: 'Release notes for every version &#8212;',
+      sub2: 'dashboard, AI agent, monitoring.',
+    },
+  },
+]
+
 await render(dark, 'og.png')
 await render(light, 'og-light.png')
+for (const page of PAGES) await render(dark, page.file, page.copy)
 console.log('done')

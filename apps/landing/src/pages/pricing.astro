@@ -18,11 +18,23 @@ const faqJsonLd = {
     acceptedAnswer: { '@type': 'Answer', text: f.a },
   })),
 }
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'Pricing', item: canonical },
+  ],
+}
 ---
 <Base
-  title="Pricing, chmonitor"
+  title="chmonitor Pricing — Free, Pro, Max & Enterprise Plans"
   description="chmonitor pricing — self-host free under GPL-3.0, or use the hosted cloud. Compare Free, Pro, Max and Enterprise plans, limits and features side by side."
+  image="/og/og-pricing.png"
 >
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <Nav />
   <main id="top">
     <!-- Page header -->

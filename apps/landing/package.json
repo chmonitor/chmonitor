@@ -21,8 +21,15 @@
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "sharp": "^0.34.0",
     "wrangler": "^4.97.0"
+  },
+  "bun": {
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   }
 }
