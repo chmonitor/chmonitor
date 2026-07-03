@@ -504,7 +504,9 @@ function ExplainContent() {
                 </code>
                 : {qlError.message}
               </span>
-            ) : (
+            ) : qlRow === null ? (
+              // Settled null = genuinely not found. A found row renders nothing
+              // here: the effect is about to fill the editor and strip the id.
               <span className="text-amber-600 dark:text-amber-400">
                 Query{' '}
                 <code className="bg-muted rounded px-1 text-[11px]">
@@ -516,7 +518,7 @@ function ExplainContent() {
                 </code>{' '}
                 yet — paste its SQL below to explain it.
               </span>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -563,7 +565,7 @@ function ExplainContent() {
           planSettings={planSettings}
           treeRenderable={treeRenderable}
         />
-      ) : (
+      ) : prefillPending ? null : (
         <div className="rounded-xl border border-dashed bg-card/40 px-6 py-10">
           <EmptyState
             variant="no-data"
