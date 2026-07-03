@@ -9,6 +9,7 @@ import {
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { InsightCard } from '@/components/insights/insight-card'
+import { InsightsEmptyCta } from '@/components/insights/insights-empty-cta'
 import {
   SEVERITY_META,
   SEVERITY_ORDER,
@@ -52,47 +53,12 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
   // Empty + idle → slim CTA row, so the overview never shows an empty box.
   if (!hasInsights && !isLoading) {
     return (
-      <section
-        className={cn(
-          'flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3',
-          className
-        )}
-        aria-label="AI insights"
-      >
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Activity className="size-4 shrink-0" />
-          <span>
-            No insights right now. Generate a fresh analysis of this cluster.
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={generate}
-            disabled={isGenerating}
-          >
-            <RefreshCw
-              className={cn('size-3.5', isGenerating && 'animate-spin')}
-            />
-            {isGenerating ? 'Generating…' : 'Generate insights'}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 text-muted-foreground hover:text-foreground"
-            aria-label="AI Insights settings"
-            asChild
-          >
-            <AppLink href={buildUrl('/insights-settings', { host: hostId })}>
-              <Settings2 className="size-3.5" />
-            </AppLink>
-          </Button>
-        </div>
-      </section>
+      <InsightsEmptyCta
+        hostId={hostId}
+        isGenerating={isGenerating}
+        onGenerate={generate}
+        className={className}
+      />
     )
   }
 
