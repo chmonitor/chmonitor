@@ -1,0 +1,141 @@
+---
+// Shared layout for the SEO use-case pages (see
+// plans/64-seo-use-case-landing-pages.md): a page-specific hero (eyebrow/h1/
+// subhead/CTA + a real product screenshot), a benefits grid, social proof,
+// cross-links to the other use cases, and the standard closing CTA + footer.
+// Base.astro owns <head>/meta (title/description/canonical/OG/site-wide
+// Organization+SoftwareApplication schema) — this layout adds a page-specific
+// BreadcrumbList + a distinct per-page SoftwareApplication entity on top.
+import type { UseCase } from '../data/use-cases'
+
+import Base from './Base.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import FinalCta from '../components/FinalCta.astro'
+import SocialProof from '../components/SocialProof.astro'
+import UseCaseLinks from '../components/UseCaseLinks.astro'
+import { useCases } from '../data/use-cases'
+
+interface Props {
+  useCase: UseCase
+  ctaLabel?: string
+  ctaHref?: string
+}
+
+const {
+  useCase,
+  ctaLabel = 'Open dashboard',
+  ctaHref = 'https://dash.chmonitor.dev',
+} = Astro.props
+
+const {
+  slug,
+  title,
+  description,
+  eyebrow,
+  h1,
+  subhead,
+  heroImage,
+  heroImageAlt,
+  heroImageWidth,
+  heroImageHeight,
+  benefits,
+  featureList,
+} = useCase
+
+// The other three use cases, for the "Related" cross-link band.
+const related = useCases.filter((u) => u.slug !== slug)
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: eyebrow, item: canonical },
+  ],
+}
+
+// A distinct SoftwareApplication entity per page (own @id/name/description/
+// featureList) — not a duplicate of Base's site-wide entity. No aggregateRating
+// or review: chmonitor collects neither today, so both would be fabricated.
+const softwareJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  '@id': `${canonical}#software`,
+  name: `chmonitor — ${h1}`,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Linux, macOS, Windows',
+  license: 'https://github.com/chmonitor/chmonitor/blob/main/LICENSE',
+  url: canonical,
+  description,
+  featureList,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+}
+---
+<Base title={title} description={description}>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:40px">
+      <div class="wrap">
+        <div class="feature" style="align-items:center">
+          <div class="reveal">
+            <div class="sec-head uc-head">
+              <span class="eyebrow">{eyebrow}</span>
+              <h1>{h1}</h1>
+              <p>{subhead}</p>
+            </div>
+            <div class="hero-actions" style="justify-content:flex-start;margin-top:6px">
+              <a class="btn btn-primary" href={ctaHref} target="_blank" rel="noopener" data-cta={`usecase-${slug}-primary`}>
+                {ctaLabel}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </a>
+              <a class="btn btn-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
+                Docs
+              </a>
+            </div>
+          </div>
+          <div class="feat-shot reveal">
+            <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
+            <img src={heroImage} alt={heroImageAlt} width={heroImageWidth} height={heroImageHeight} loading="eager" decoding="async" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">What you get</span>
+          <h2>Built for this, not bolted on</h2>
+        </div>
+        <div class="cap-grid">
+          {benefits.map((b) => (
+            <div class="cap reveal">
+              <span class="cap-ico" set:html={`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${b.icon}</svg>`} />
+              <h4>{b.title}</h4>
+              <p>{b.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <SocialProof />
+
+    <UseCaseLinks items={related} eyebrow="Related" heading="More ways to monitor ClickHouse" />
+
+    <FinalCta />
+  </main>
+  <Footer />
+
+  <style>
+    /* Promoted page title: match the global .sec-head h2 type scale, same
+       convention as pricing.astro / changelog.astro. */
+    .uc-head h1{font-size:clamp(28px,3.6vw,42px);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
+    .uc-head p{margin-top:14px}
+  </style>
+</Base>
