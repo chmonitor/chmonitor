@@ -15,9 +15,7 @@ interface ColumnVisibilityButtonProps<TData extends RowData = RowData> {
 
 export const ColumnVisibilityButton = function ColumnVisibilityButton<
   TData extends RowData = RowData,
->({
-  table,
-}: ColumnVisibilityButtonProps<TData>) {
+>({ table }: ColumnVisibilityButtonProps<TData>) {
   const handleSelect = (event: Event) => {
     event.preventDefault()
     // Prevent default selection behavior to avoid
