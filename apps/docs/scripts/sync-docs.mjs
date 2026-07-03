@@ -98,7 +98,12 @@ const FOLDER_META = {
   'guide/guides': {
     title: 'Guides',
     icon: 'Compass',
-    pages: ['proxy-auth-setup', 'troubleshooting', 'upgrade-clickhouse'],
+    pages: [
+      'proxy-auth-setup',
+      'slack-app',
+      'troubleshooting',
+      'upgrade-clickhouse',
+    ],
   },
   // ── Tab 2: Deploy & Operate ────────────────────────────────────────────
   operate: {
