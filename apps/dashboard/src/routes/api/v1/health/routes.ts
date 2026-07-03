@@ -1,0 +1,150 @@
+/**
+ * Per-rule / per-host alert routing CRUD (plans/30-per-rule-alert-routing.md)
+ *
+ *   GET    /api/v1/health/routes            — list the caller's routes
+ *   POST   /api/v1/health/routes             — create a route
+ *   DELETE /api/v1/health/routes?id=<id>     — delete a route by id
+ *
+ * Owner-scoped via {@link resolveAlertRoutingOwnerId} — see
+ * `lib/health/alert-routing-auth.ts` for the fail-open (self-hosted) /
+ * auth-gated-write (cloud) split. The underlying store
+ * (`lib/health/alert-routing.ts`) is best-effort D1: it degrades to `[]` /
+ * `null` rather than throwing when D1 isn't configured, so GET always
+ * returns 200 with a (possibly empty) list instead of a 5xx.
+ */
+
+import { createFileRoute } from '@tanstack/react-router'
+
+import { validateHostUrl } from '@/lib/browser-connections/host-url'
+import {
+  createRoute,
+  deleteRoute,
+  listRoutes,
+} from '@/lib/health/alert-routing'
+import {
+  requiresSignInForWrite,
+  resolveAlertRoutingOwnerId,
+} from '@/lib/health/alert-routing-auth'
+
+function jsonError(message: string, status: number): Response {
+  return Response.json({ success: false, error: { message } }, { status })
+}
+
+function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
+  return {
+    id: route.id,
+    matchRule: route.matchRule,
+    matchHost: route.matchHost,
+    channelUrl: route.channelUrl,
+    enabled: route.enabled,
+    createdAt: route.createdAt,
+  }
+}
+
+async function handleGet(): Promise<Response> {
+  const ownerId = await resolveAlertRoutingOwnerId()
+  const routes = await listRoutes(ownerId)
+  return Response.json(
+    { success: true, routes: routes.map(toPublicRoute) },
+    { status: 200 }
+  )
+}
+
+interface CreateRouteBody {
+  matchRule?: unknown
+  matchHost?: unknown
+  channelUrl?: unknown
+  enabled?: unknown
+}
+
+async function handlePost(request: Request): Promise<Response> {
+  const ownerId = await resolveAlertRoutingOwnerId()
+  if (requiresSignInForWrite(ownerId)) {
+    return jsonError('Sign in to create alert routes.', 401)
+  }
+
+  let body: CreateRouteBody
+  try {
+    body = (await request.json()) as CreateRouteBody
+  } catch {
+    return jsonError('Request body must be valid JSON', 400)
+  }
+
+  const channelUrl =
+    typeof body.channelUrl === 'string' ? body.channelUrl.trim() : ''
+  if (!channelUrl || !channelUrl.startsWith('https://')) {
+    return jsonError(
+      'Missing or invalid "channelUrl": expected an HTTPS endpoint',
+      400
+    )
+  }
+
+  // Reuse the same SSRF guard the outbound webhook-subscriptions create path
+  // uses (`validateHostUrl`) — never introduce a new unguarded outbound
+  // destination. Delivery re-validates on every send via the sweep's
+  // existing `postWebhook`, this just fails fast with a clear error.
+  const ssrfError = await validateHostUrl(channelUrl)
+  if (ssrfError) {
+    return jsonError(ssrfError, 400)
+  }
+
+  const matchRule =
+    typeof body.matchRule === 'string' && body.matchRule.trim()
+      ? body.matchRule.trim()
+      : '*'
+  const matchHost =
+    typeof body.matchHost === 'string' && body.matchHost.trim()
+      ? body.matchHost.trim()
+      : '*'
+  const enabled = body.enabled !== false
+
+  const created = await createRoute({
+    ownerId,
+    matchRule,
+    matchHost,
+    channelUrl,
+    enabled,
+  })
+
+  if (!created) {
+    return jsonError(
+      'Alert routing storage is not configured (no D1 binding) or the write failed.',
+      501
+    )
+  }
+
+  return Response.json(
+    { success: true, route: toPublicRoute(created) },
+    { status: 201 }
+  )
+}
+
+async function handleDelete(request: Request): Promise<Response> {
+  const ownerId = await resolveAlertRoutingOwnerId()
+  if (requiresSignInForWrite(ownerId)) {
+    return jsonError('Sign in to delete alert routes.', 401)
+  }
+
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get('id')
+  if (!id) {
+    return jsonError('Missing required query param "id"', 400)
+  }
+
+  const deleted = await deleteRoute(ownerId, id)
+  if (!deleted) {
+    return jsonError('Route not found', 404)
+  }
+
+  return Response.json({ success: true }, { status: 200 })
+}
+
+export const Route = createFileRoute('/api/v1/health/routes')({
+  server: {
+    handlers: {
+      GET: async () => handleGet(),
+      POST: async ({ request }) => handlePost(request),
+      DELETE: async ({ request }) => handleDelete(request),
+    },
+  },
+})
