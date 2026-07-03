@@ -16,7 +16,7 @@
  * plans/48-statistical-anomaly-baselines.md).
  */
 
-import type { Baseline } from './statistical-baseline'
+import type { Baseline } from './baseline-types'
 
 import { ErrorLogger } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
