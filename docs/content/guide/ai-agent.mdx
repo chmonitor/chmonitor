@@ -222,6 +222,19 @@ You can connect additional MCP servers from the agent settings sidebar. Click **
 
 The panel probes each enabled server on load (`POST /api/v1/mcp/probe`) to show live connection status and tool count. Click a row to see the full tool list.
 
+### Persistent MCP server registry (per-user)
+
+The sidebar panel above stores servers in the browser (`localStorage`). For servers that **persist server-side per user** — with authentication and a template library — use the **MCP Servers** page (`/mcp-servers`, in the sidebar under *AI Agent*).
+
+- **Register** a server with a name, endpoint URL, transport (`http` streamable or `sse`), and optional auth (a **bearer token** or a **custom header**). Saving first runs a **Test connection** probe and stores the server only if it connects — so the tool count shown reflects what the server actually advertised.
+- **Template library** — one-click presets prefill the form for **Slack**, **GitHub**, and **Datadog** (endpoint + expected auth kind); you supply your own token.
+- **Enable / disable / remove** each server. Enabled registrations are loaded for that user at the start of every conversation, merged with any request-body (sidebar) servers and de-duplicated by endpoint.
+- **Storage** — registrations live in Cloudflare D1 (`mcp_server_registrations`), strictly scoped to the signed-in user; one user's servers are never loaded for another. Auth secrets are **encrypted at rest** (AES-256-GCM) and never returned by the API.
+- **SSRF-guarded transport** — the same private-range / DNS-rebind guard as above applies, and the actual outbound connection is pinned behind the host-validated fetch (not a raw fetch), so the validated address is the one connected to.
+- **Availability** — this page requires the hosted (cloud) deployment (a D1 binding + a signed-in account). Self-hosted deployments without D1 use the sidebar panel instead; the page shows an explanatory empty state.
+
+**API:** `GET/POST/PATCH/DELETE /api/v1/mcp/servers` (all user-scoped); `POST /api/v1/mcp/probe` for test-before-save.
+
 ### MCP tools
 
 The MCP server exposes a smaller, read-only-only subset of tools for external MCP
