@@ -194,3 +194,24 @@ exports[`generic-json adapter snapshot 1`] = `
   "value": 7,
 }
 `;
+
+exports[`email adapter snapshot 1`] = `
+{
+  "html": "<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;max-width:480px;"><div style="background:#dc2626;color:#ffffff;padding:12px 16px;border-radius:6px 6px 0 0;font-size:16px;font-weight:600;">CRITICAL: Failed mutations</div><table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-top:none;font-size:14px;"><tr><td style="color:#6b7280;padding:6px 8px;">Host</td><td style="padding:6px 8px;">prod-1 (id 2)</td></tr><tr><td style="color:#6b7280;padding:6px 8px;">Metric</td><td style="padding:6px 8px;">failed-mutations</td></tr><tr><td style="color:#6b7280;padding:6px 8px;">Value</td><td style="padding:6px 8px;">7</td></tr><tr><td style="color:#6b7280;padding:6px 8px;">Thresholds</td><td style="padding:6px 8px;">warn 1 | crit 5</td></tr><tr><td style="color:#6b7280;padding:6px 8px;">Detail</td><td style="padding:6px 8px;">7 failed mutations</td></tr><tr><td style="color:#6b7280;padding:6px 8px;">Runbooks</td><td style="padding:6px 8px;"><a href="https://docs.example.com/runbook/mutations" style="color:#2563eb;">https://docs.example.com/runbook/mutations</a></td></tr></table><div style="color:#9ca3af;font-size:12px;margin-top:8px;">2026-07-02T10:00:00.000Z</div></div>",
+  "subject": "[CRITICAL] failed-mutations on prod-1",
+  "text": 
+"CRITICAL: Failed mutations
+
+Host: prod-1 (id 2)
+Metric: failed-mutations
+Value: 7
+Thresholds: warn 1 | crit 5
+Detail: 7 failed mutations
+
+Runbooks:
+- https://docs.example.com/runbook/mutations
+
+2026-07-02T10:00:00.000Z"
+,
+}
+`;

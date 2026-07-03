@@ -3,11 +3,15 @@ import type {
   AlertRuleDef,
   AlertRuleSeverity,
 } from '@/lib/alerting/rule-registry'
+import type { AlertPayload, AlertSeverity } from './adapters'
 
+import { buildEmailBody } from './adapters'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
+import { sendAlertEmail } from './email-transport'
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
+  getServerEmailConfig,
   getServerThresholdOverrides,
 } from './server-alert-config'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -53,6 +57,8 @@ export interface SweepSummary {
   ranAt: string
   enabled: boolean
   webhookConfigured: boolean
+  /** Whether `HEALTH_ALERT_EMAIL_*` env vars resolve to a usable email config. */
+  emailConfigured: boolean
   minSeverity: 'warning' | 'critical'
   hostsChecked: number
   totalChecks: number
@@ -62,6 +68,8 @@ export interface SweepSummary {
   alertsSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
+  /** Emails successfully sent (only counted when email is configured). */
+  emailsDispatched: number
   /** Total AI insights generated and persisted across all hosts. */
   insightsGenerated: number
   hosts: SweepHostSummary[]
@@ -180,6 +188,16 @@ async function postWebhook(url: string, text: string): Promise<boolean> {
  * longer webhooks on every run.
  *
  * Disabled (or no webhook URL) → rules still run, alerts are skipped.
+ *
+ * Email (`HEALTH_ALERT_EMAIL_*`) is dispatched ADDITIVELY alongside the
+ * webhook, inside the same notify decision — it does not gate or duplicate the
+ * dedup evaluation (`evaluateAlert` still runs exactly once per rule/host).
+ * This means today an email is only sent when the webhook path is ALSO
+ * enabled+configured (`canDispatch`); a standalone "email only, no webhook"
+ * sweep trigger would require restructuring this single dedup gate into
+ * multi-channel fan-out, which is plans/30-per-rule-alert-routing.md's job, not
+ * this one. Unconfigured email (`getServerEmailConfig() === null`) leaves this
+ * function's behavior byte-for-byte identical to before email support existed.
  */
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
@@ -188,6 +206,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const canDispatch = settings.webhookEnabled && webhookConfigured
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
+  const emailConfig = getServerEmailConfig()
 
   const rules = ruleRegistry.getAll()
   const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
@@ -200,6 +219,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   let alertsDispatched = 0
   let alertsSuppressed = 0
   let recoveries = 0
+  let emailsDispatched = 0
 
   for (const config of configs) {
     const name = hostLabel(config)
@@ -257,9 +277,41 @@ export async function runHealthSweep(): Promise<SweepSummary> {
                 ? `[RECOVERY] ${rule.title} — resolved (host ${name})`
                 : `[${effective.toUpperCase()}] ${rule.title} — ${label} (host ${name})`
             const ok = await postWebhook(settings.webhookUrl, text)
-            if (ok) {
-              // Persist "notified" only now — a failed delivery leaves no
-              // record, so the next sweep retries instead of suppressing.
+
+            // Additive email channel: only attempted when configured. Never
+            // gates or blocks the webhook path, and never touches dedup — the
+            // `evaluateAlert`/`commit()` pair above still runs exactly once.
+            let emailOk = false
+            if (emailConfig) {
+              const emailSeverity: AlertSeverity =
+                decision.kind === 'recovery'
+                  ? 'recovery'
+                  : effective === 'critical'
+                    ? 'critical'
+                    : 'warning'
+              const emailPayload: AlertPayload = {
+                severity: emailSeverity,
+                hostLabel: name,
+                hostId: config.id,
+                metric: rule.id,
+                value,
+                warnThreshold: thresholds.warning,
+                critThreshold: thresholds.critical,
+                title: rule.title,
+                label: decision.kind === 'recovery' ? 'resolved' : label,
+                timestamp: ranAt,
+              }
+              emailOk = await sendAlertEmail(
+                emailConfig,
+                buildEmailBody(emailPayload)
+              )
+              if (emailOk) emailsDispatched++
+            }
+
+            if (ok || emailOk) {
+              // Persist "notified" only when at least one channel delivered —
+              // a fully failed delivery leaves no record, so the next sweep
+              // retries instead of suppressing.
               commit()
               alertsDispatched++
               if (decision.kind === 'recovery') recoveries++
@@ -309,6 +361,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     ranAt,
     enabled: settings.webhookEnabled,
     webhookConfigured,
+    emailConfigured: emailConfig !== null,
     minSeverity: settings.minSeverity,
     hostsChecked: configs.length,
     totalChecks: hosts.reduce((sum, h) => sum + h.checksRun, 0),
@@ -316,6 +369,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     alertsDispatched,
     alertsSuppressed,
     recoveries,
+    emailsDispatched,
     insightsGenerated,
     hosts,
     findings,

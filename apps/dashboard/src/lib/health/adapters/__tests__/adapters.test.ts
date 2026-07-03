@@ -14,14 +14,18 @@ import type { AlertPayload } from '@/lib/health/adapters'
 
 import { describe, expect, test } from 'bun:test'
 import {
+  ALL_ADAPTERS,
   buildDiscordBody,
+  buildEmailBody,
   buildGenericJsonBody,
   buildPagerDutyBody,
   buildSlackBody,
   buildTelegramBody,
   buildTelegramText,
   detectAdapter,
+  detectEmailProvider,
   discordAdapter,
+  emailAdapter,
   escapeMarkdownV2,
   genericJsonAdapter,
   pagerDutyAdapter,
@@ -60,6 +64,18 @@ const RECOVERY: AlertPayload = {
   severity: 'recovery',
   value: 0,
   label: 'recovered',
+}
+
+/** Exercises HTML-escaping: markup, ampersands, quotes, and an unsafe link scheme. */
+const XSS_ATTEMPT: AlertPayload = {
+  ...CRITICAL,
+  hostLabel: '<b>prod</b> & co',
+  title: 'Mutation <script>alert(1)</script>',
+  label: '"quoted" label \'value\'',
+  runbookUrls: [
+    'https://docs.example.com/runbook?x=1&y=2',
+    'javascript:alert(1)',
+  ],
 }
 
 // ---------------------------------------------------------------------------
@@ -247,6 +263,100 @@ describe('generic-json adapter', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Email
+// ---------------------------------------------------------------------------
+
+describe('email adapter', () => {
+  test('subject uses uppercase severity and metric/host', () => {
+    expect(buildEmailBody(CRITICAL).subject).toBe(
+      '[CRITICAL] failed-mutations on prod-1'
+    )
+    expect(buildEmailBody(WARNING).subject).toBe(
+      '[WARNING] failed-mutations on prod-1'
+    )
+  })
+
+  test('recovery subject reads RESOLVED, not RECOVERY', () => {
+    expect(buildEmailBody(RECOVERY).subject).toBe(
+      '[RESOLVED] failed-mutations on prod-1'
+    )
+  })
+
+  test('html includes host, metric, value, thresholds, timestamp, and a runbook link', () => {
+    const { html } = buildEmailBody(CRITICAL)
+    expect(html).toContain('prod-1 (id 2)')
+    expect(html).toContain('failed-mutations')
+    expect(html).toContain('>7<')
+    expect(html).toContain('warn 1 | crit 5')
+    expect(html).toContain('2026-07-02T10:00:00.000Z')
+    expect(html).toContain(
+      '<a href="https://docs.example.com/runbook/mutations"'
+    )
+  })
+
+  test('null value renders n/a in both html and text', () => {
+    const body = buildEmailBody({ ...CRITICAL, value: null })
+    expect(body.html).toContain('>n/a<')
+    expect(body.text).toContain('Value: n/a')
+  })
+
+  test('text mirrors the html content in plaintext', () => {
+    const { text } = buildEmailBody(CRITICAL)
+    expect(text).toContain('CRITICAL: Failed mutations')
+    expect(text).toContain('Host: prod-1 (id 2)')
+    expect(text).toContain('Runbooks:')
+    expect(text).toContain('- https://docs.example.com/runbook/mutations')
+  })
+
+  test('escapes HTML-special characters in host label, title, and label', () => {
+    const { html } = buildEmailBody(XSS_ATTEMPT)
+    expect(html).toContain('&lt;b&gt;prod&lt;/b&gt; &amp; co')
+    expect(html).toContain('Mutation &lt;script&gt;alert(1)&lt;/script&gt;')
+    expect(html).toContain('&quot;quoted&quot; label &#39;value&#39;')
+    expect(html).not.toContain('<script>alert(1)</script>')
+    expect(html).not.toContain('<b>prod</b>')
+  })
+
+  test('escapes ampersands in runbook href attributes', () => {
+    const { html } = buildEmailBody(XSS_ATTEMPT)
+    expect(html).toContain(
+      'href="https://docs.example.com/runbook?x=1&amp;y=2"'
+    )
+  })
+
+  test('does not render a javascript: runbook url as a clickable link', () => {
+    const { html } = buildEmailBody(XSS_ATTEMPT)
+    expect(html).not.toContain('href="javascript:alert(1)"')
+    // still shown as inert escaped text, not silently dropped
+    expect(html).toContain('javascript:alert(1)')
+  })
+
+  test('snapshot', () => {
+    expect(buildEmailBody(CRITICAL)).toMatchSnapshot()
+  })
+})
+
+describe('detectEmailProvider', () => {
+  test('maps mailgun/sendgrid/smtp(s) schemes', () => {
+    expect(detectEmailProvider('mailgun://key@domain.example')).toBe('mailgun')
+    expect(detectEmailProvider('sendgrid://key')).toBe('sendgrid')
+    expect(detectEmailProvider('smtp://user:pass@host:25')).toBe('smtp')
+    expect(detectEmailProvider('smtps://user:pass@host:465')).toBe('smtp')
+  })
+
+  test('is case-insensitive on the scheme', () => {
+    expect(detectEmailProvider('MAILGUN://key@domain.example')).toBe('mailgun')
+  })
+
+  test('returns null for unknown schemes, including http(s)', () => {
+    expect(detectEmailProvider('https://hooks.slack.com/services/x')).toBe(null)
+    expect(detectEmailProvider('http://example.com')).toBe(null)
+    expect(detectEmailProvider('ftp://example.com')).toBe(null)
+    expect(detectEmailProvider('not a url')).toBe(null)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Registry + detectAdapter
 // ---------------------------------------------------------------------------
 
@@ -279,6 +389,7 @@ describe('detectAdapter', () => {
     expect(discordAdapter.id).toBe('discord')
     expect(pagerDutyAdapter.id).toBe('pagerduty')
     expect(genericJsonAdapter.id).toBe('generic-json')
+    expect(emailAdapter.id).toBe('email')
   })
 
   test('adapter.buildBody returns something for each channel', () => {
@@ -288,8 +399,53 @@ describe('detectAdapter', () => {
       discordAdapter,
       pagerDutyAdapter,
       genericJsonAdapter,
+      emailAdapter,
     ]) {
       expect(adapter.buildBody(CRITICAL)).toBeDefined()
     }
+  })
+
+  test('ALL_ADAPTERS includes every channel adapter plus generic-json and email', () => {
+    const ids = ALL_ADAPTERS.map((a) => a.id).sort()
+    expect(ids).toEqual(
+      [
+        'telegram',
+        'slack',
+        'discord',
+        'pagerduty',
+        'generic-json',
+        'email',
+      ].sort()
+    )
+  })
+
+  test('email adapter.detect matches only provider config URL schemes, never http(s)', () => {
+    expect(emailAdapter.detect?.('mailgun://key@domain.example')).toBe(true)
+    expect(emailAdapter.detect?.('sendgrid://key')).toBe(true)
+    expect(emailAdapter.detect?.('smtp://user:pass@host:25')).toBe(true)
+    expect(emailAdapter.detect?.('smtps://user:pass@host:465')).toBe(true)
+    expect(emailAdapter.detect?.('https://hooks.slack.com/services/x')).toBe(
+      false
+    )
+    expect(emailAdapter.detect?.('http://example.com')).toBe(false)
+  })
+
+  test('email is NOT in the URL-detection registry, so detectAdapter routing for existing http(s) webhook URLs is unaffected', () => {
+    // Same assertions as the "routes known webhook hosts" test above, re-run
+    // after the email adapter's registration — a regression guard for the
+    // explicit STOP condition in plans/25-email-alert-adapter.md.
+    expect(detectAdapter('https://example.com/webhook').id).toBe('generic-json')
+    expect(detectAdapter('https://hooks.slack.com/services/T/B/x').id).toBe(
+      'slack'
+    )
+    expect(detectAdapter('https://events.pagerduty.com/v2/enqueue').id).toBe(
+      'pagerduty'
+    )
+    // Provider config URLs never match a channel adapter either — they fall
+    // back to generic-json via detectAdapter (email is dispatched explicitly,
+    // not through this URL registry).
+    expect(detectAdapter('mailgun://key@domain.example').id).toBe(
+      'generic-json'
+    )
   })
 })
