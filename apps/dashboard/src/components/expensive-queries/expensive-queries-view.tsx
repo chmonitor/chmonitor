@@ -8,6 +8,7 @@ import {
   Timer,
 } from 'lucide-react'
 
+import type { ChartProps } from '@/components/charts/chart-props'
 import type { ExpensiveQueryRow } from '@/components/expensive-queries/expensive-queries-table'
 import type { CardError } from '@/lib/card-error-utils'
 
@@ -29,7 +30,10 @@ import {
   getCardErrorTitle,
   toEmptyStateVariant,
 } from '@/lib/card-error-utils'
-import { useTimeRange } from '@/lib/context/time-range-context'
+import {
+  TIME_RANGE_PRESETS,
+  useTimeRange,
+} from '@/lib/context/time-range-context'
 import { truncateSql } from '@/lib/explain-heuristics'
 import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useTableData } from '@/lib/query/use-table-data'
@@ -145,9 +149,32 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
   // on the query state + emptiness instead. Using `isLoading && rows.length===0`
   // (not `||`) keeps prior rows visible on chip/range changes via placeholderData.
   const showSkeleton = isLoading && rows.length === 0
-  const windowLabel = formatHoursLabel(
-    Number(filterParams.last_hours ?? timeRange.lastHours)
-  )
+  const activeHours = Number(filterParams.last_hours ?? timeRange.lastHours)
+  const windowLabel = formatHoursLabel(activeHours)
+
+  // Mirror the active window into the related chart so the fingerprint-occurrence
+  // chart tracks the same range as the table. The duration threshold is
+  // table-only — it has no meaning for an occurrences-over-time chart. Charts
+  // keep their own per-chart range override, which still wins if the user sets it.
+  const relatedChartsWithWindow = useMemo(() => {
+    const base = expensiveQueriesConfig.relatedCharts as
+      | (string | [string, Omit<ChartProps, 'hostId'>])[]
+      | undefined
+    if (!base) return base
+    const matched = TIME_RANGE_PRESETS.find((p) => p.lastHours === activeHours)
+    return base.map((c): string | [string, Omit<ChartProps, 'hostId'>] =>
+      Array.isArray(c)
+        ? [
+            c[0],
+            {
+              ...c[1],
+              lastHours: activeHours,
+              ...(matched ? { interval: matched.interval } : {}),
+            },
+          ]
+        : c
+    )
+  }, [activeHours])
 
   const explainItems = rows.slice(0, 20).map((r) => ({
     sql: String(r.query ?? ''),
@@ -255,9 +282,7 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
             {expensiveQueriesConfig.relatedCharts &&
               expensiveQueriesConfig.relatedCharts.length > 0 &&
               (chartsOpen ? (
-                <RelatedCharts
-                  relatedCharts={expensiveQueriesConfig.relatedCharts}
-                />
+                <RelatedCharts relatedCharts={relatedChartsWithWindow} />
               ) : (
                 <CollapsedChartsRow
                   labels={expensiveQueriesConfig.relatedCharts
