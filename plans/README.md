@@ -86,7 +86,7 @@ the call. The spec file for each held plan lives on its PR branch (kept off
 | 56 | Dashboard D1 persistence & sharing | [#2224](https://github.com/chmonitor/chmonitor/pull/2224) | **Public share endpoint + entitlement surface.** Adds an unauthenticated share route and a billing/entitlement gate. Needs a security review and a CI-build proof of client/server layering. *(Only red is `codecov/patch` — soft coverage, not a merge blocker.)* |
 | 66 | Onboarding sample-cluster preset | [#2225](https://github.com/chmonitor/chmonitor/pull/2225) | **Failed live verification.** The public demo endpoint (`play.clickhouse.com`) denies `query_log`/`parts`/`merges`/etc., so most monitoring pages render empty. Choose a demo endpoint that exposes the system tables before shipping the "Try with sample cluster" CTA. |
 
-### Not started ⏳ (44) — grouped by what unblocks each
+### Not started ⏳ (43) — grouped by what unblocks each
 
 Each of these needs a **product/design decision**, **depends on a held PR**, or
 is **epic-scale** (new toolchain / package / enterprise auth) — i.e. not
@@ -116,9 +116,9 @@ appropriate for blind autonomous execution. Grouped by the blocker:
   [32 custom-alert-rule-builder](32-custom-alert-rule-builder.md),
   [33 remediation-action-links](33-remediation-action-links.md) (ACK-gated, never auto-executes DDL),
   [34 pagerduty-escalation-oncall](34-pagerduty-escalation-oncall.md) (extends 30).
-- **Integrations 36–47** (12) — new packages/toolchains (38 Grafana plugin, 40
+- **Integrations 36–47** (11) — new packages/toolchains (38 Grafana plugin, 40
   Terraform provider, 39 OTel, 37 Slack OAuth) + security-adjacent proxies
-  (42/43/44); 46 is the advisor wedge (epic):
+  (42/43/44):
   [36 inbound-event-bus-queues](36-inbound-event-bus-queues.md),
   [37 slack-app-native-oauth](37-slack-app-native-oauth.md),
   [38 grafana-datasource-plugin](38-grafana-datasource-plugin.md),
@@ -129,8 +129,13 @@ appropriate for blind autonomous execution. Grouped by the blocker:
   [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md),
   [44 webhook-event-bus-outbound](44-webhook-event-bus-outbound.md),
   [45 github-deploy-correlation](45-github-deploy-correlation.md),
-  [46 query-advisor-engine](46-query-advisor-engine.md) (recommend-only, never auto-applies DDL),
   [47 mv-projection-designer](47-mv-projection-designer.md) (recommend-only).
+- **46 [query-advisor-engine](46-query-advisor-engine.md)** — 🔶 implemented,
+  not yet a PR: engine + agent tool (`get_optimization_recommendations`) + MCP
+  tool + `/advisor` page landed on branch `advisor/46-query-advisor-engine`
+  (recommend-only, never auto-applies DDL). Held for human review before a PR
+  is opened — it wires AI-usage metering (a billing surface) and the MCP
+  surface has a disclosed, unmetered gap (see the branch's commit message).
 - **Advisor 49, 52** (2) — [49 query-cost-estimator](49-query-cost-estimator.md)
   (builds on 46), [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
   (depends on 25/37 delivery channels).
