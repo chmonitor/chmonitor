@@ -461,6 +461,7 @@ Injected at build time for the About page.
 | Variable | Default | Purpose |
 |---|---|---|
 | `CHM_CONFIG_SOURCE` | `ts` | Query-config resolution path: `ts` (hand-written TypeScript configs, current default everywhere) or `declarative` (opt-in data-only catalog, validated against the same schema and kept at parity — see [Catalog contributing](/reference/catalog-contributing)). Any value other than the literal string `declarative` resolves to `ts`. A malformed declarative entry logs an error and falls back to the `ts` config rather than crashing. |
+| `CHM_PACK_REGISTRY_URL` | — | Comma-separated community query-pack URLs (HTTP(S) or `file://`), consulted when `CHM_CONFIG_SOURCE=declarative`. Each pack is a single YAML manifest (`{ name, version, queries: [...] }`) fetched once at startup (no hot-reload). HTTP(S) fetches are SSRF-guarded; `file://` reads a local, operator-chosen path. Precedence (highest to lowest): the self-hosted local `queries.d` override > packs > the built-in declarative catalog > `ts` configs. Within packs, the last URL wins on a name collision (logged). An unreachable or malformed pack — or a single bad query inside an otherwise-valid pack — is skipped with a warning; the built-in catalog always still serves. |
 
 ## Legacy / migration
 

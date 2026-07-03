@@ -79,6 +79,7 @@ const MCP_SERVER_TOOL_NAMES = [
   'get_merge_status',
   'explore_table_schema',
   'analyze_performance',
+  'get_optimization_recommendations',
 ] as const
 
 describe('AI agent tool docs stay in sync with the code', () => {

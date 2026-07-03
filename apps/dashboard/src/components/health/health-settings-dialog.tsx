@@ -2,6 +2,7 @@ import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { HEALTH_CHECKS } from './health-checks'
+import { RecentAlertsCard } from './recent-alerts-card'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -177,6 +178,7 @@ export function HealthSettingsDialog() {
           <TabsList>
             <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
             <TabsTrigger value="alerts">Alerts</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="thresholds">
@@ -358,6 +360,10 @@ export function HealthSettingsDialog() {
                 </button>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <RecentAlertsCard />
           </TabsContent>
         </Tabs>
 

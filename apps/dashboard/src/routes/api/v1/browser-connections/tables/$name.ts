@@ -14,6 +14,7 @@ import { ApiErrorType } from '@/lib/api/types'
 import { executeConnectionTableConfig } from '@/lib/connection-query/execute-connection-table'
 import { resolveProxyCredentials } from '@/lib/connection-query/resolve-credentials'
 import { getQueryConfigByName } from '@/lib/query-config'
+import { ensurePacksLoaded } from '@/lib/query-config/declarative/pack-registry'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/browser-connections/tables/$name',
@@ -31,6 +32,9 @@ async function handlePost(
   request: Request,
   tableName: string
 ): Promise<Response> {
+  // Community query packs (plan 54) — warm before the sync lookup so a
+  // pack-only table name resolves deterministically (no cold-start race).
+  await ensurePacksLoaded()
   const queryConfig = getQueryConfigByName(tableName)
   if (!queryConfig) {
     return createErrorResponse(
