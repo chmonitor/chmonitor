@@ -96,6 +96,17 @@ const BEHAVIOR_FIELDS = [
   'columnFilters',
 ] as const
 
+// Behavior fields a specific catalog config keeps TS-only ON PURPOSE because the
+// declarative schema cannot express them — declared here so the drop is explicit,
+// not silent (any UNLISTED drop still fails the check below). `query-metric-log`'s
+// `expandable` is a bespoke, lazily-loaded React panel
+// (createQueryMetricLogExpandedDetails); `compileExpandable` only supports the
+// serialisable `config-details` variant, so the panel stays authoritative in the
+// TS config while the mirror still validates the SQL/columns surface.
+const TS_ONLY_BEHAVIOR: Record<string, ReadonlySet<string>> = {
+  'query-metric-log': new Set(['expandable']),
+}
+
 // Catalog names with NO config of the same name in the central `queries`
 // registry. Both are real TS configs (`keeperPresenceConfig`,
 // `clusterLiveMetricsAllConfig`) consumed by DIRECT IMPORT in
@@ -183,7 +194,9 @@ describe('declarative catalog — flip-safety invariants', () => {
       test('flip preserves every behavior field the TS config defines', () => {
         const dropped = BEHAVIOR_FIELDS.filter(
           (field) =>
-            tsResolved[field] !== undefined && declResolved[field] === undefined
+            tsResolved[field] !== undefined &&
+            declResolved[field] === undefined &&
+            !TS_ONLY_BEHAVIOR[name]?.has(field)
         )
         expect(dropped).toEqual([])
       })
