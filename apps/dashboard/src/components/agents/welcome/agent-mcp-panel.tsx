@@ -15,9 +15,11 @@
  * Follows the assistant-ui MCP config pattern:
  *   https://www.assistant-ui.com/docs/ui/mcp-config
  *
- * Note: custom servers are not yet wired to the agent runtime, so their
- * persisted enable/disable state is a stored user preference rather than a
- * live runtime binding.
+ * These custom servers ARE wired to the agent runtime: the runtime provider
+ * sends the enabled ones in each agent request body, and the agent connects
+ * them (SSRF-guarded) alongside the built-in tools for that conversation. For
+ * per-user servers that PERSIST server-side (D1) with auth + a template
+ * library, see the MCP Servers manager route (`/mcp-servers`).
  */
 
 import { PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react'

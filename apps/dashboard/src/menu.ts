@@ -75,6 +75,16 @@ export const menuItemsConfig: MenuItem[] = [
     permission: { feature: 'agent' },
   },
   {
+    title: 'MCP Servers',
+    href: '/mcp-servers',
+    description:
+      'Register external Model Context Protocol servers; their tools load with the agent at conversation start',
+    icon: WorkflowIcon,
+    section: 'main',
+    isNew: true,
+    permission: { feature: 'agent' },
+  },
+  {
     title: 'Insights',
     href: '/insights',
     icon: TrendingUpIcon,
