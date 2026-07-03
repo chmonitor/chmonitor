@@ -226,8 +226,11 @@ export function decideNotification(
 }
 
 /**
- * Read → decide → persist against a store. Returns the decision for the caller
- * (the sweep) to act on. Keeps all mutation of the store in one place.
+ * Read → decide against a store, returning the decision plus a deferred
+ * `commit` thunk. The store is **not** written until the caller invokes
+ * `commit()` — for the sweep, that means only after a confirmed webhook
+ * delivery, so a failed send doesn't get remembered as "notified" and is
+ * retried on the next sweep instead of suppressed by the cooldown.
  */
 export function evaluateAlert(
   store: AlertStateStore,
@@ -238,17 +241,19 @@ export function evaluateAlert(
     cooldownMs?: number
     now?: number
   }
-): AlertDecision {
+): { decision: AlertDecision; commit: () => void } {
   const key = alertStateKey(params.hostId, params.ruleId)
   const prev = store.get(key)
   const { decision, next } = decideNotification(prev, params.severity, {
     cooldownMs: params.cooldownMs,
     now: params.now,
   })
-  if (next === null) {
-    store.delete(key)
-  } else {
-    store.set(key, next)
+  const commit = () => {
+    if (next === null) {
+      store.delete(key)
+    } else {
+      store.set(key, next)
+    }
   }
-  return decision
+  return { decision, commit }
 }

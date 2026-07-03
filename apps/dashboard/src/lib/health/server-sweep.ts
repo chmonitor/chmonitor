@@ -242,7 +242,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         if (canDispatch) {
           const effective: Severity =
             SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
-          const decision = evaluateAlert(alertStateStore, {
+          const { decision, commit } = evaluateAlert(alertStateStore, {
             hostId: config.id,
             ruleId: rule.id,
             severity: effective,
@@ -258,12 +258,21 @@ export async function runHealthSweep(): Promise<SweepSummary> {
                 : `[${effective.toUpperCase()}] ${rule.title} — ${label} (host ${name})`
             const ok = await postWebhook(settings.webhookUrl, text)
             if (ok) {
+              // Persist "notified" only now — a failed delivery leaves no
+              // record, so the next sweep retries instead of suppressing.
+              commit()
               alertsDispatched++
               if (decision.kind === 'recovery') recoveries++
             }
-          } else if (SEVERITY_ORDER[severity] >= minRank) {
-            // A current finding that we chose not to re-send (deduped).
-            alertsSuppressed++
+          } else {
+            // Non-notify decisions (dedup/de-escalation/recovery-cleared
+            // bookkeeping) still commit — only the notify path gates on
+            // delivery.
+            commit()
+            if (SEVERITY_ORDER[severity] >= minRank) {
+              // A current finding that we chose not to re-send (deduped).
+              alertsSuppressed++
+            }
           }
         }
       } catch (err) {
