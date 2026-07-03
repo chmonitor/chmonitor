@@ -44,6 +44,7 @@ import {
   useVirtualRows,
 } from '@/components/data-table/hooks'
 import { getCustomSortingFns } from '@/components/data-table/sorting-fns'
+import { computeTableBodyRenderKey } from '@/components/data-table/utils/body-render-key'
 import { resolveTableBehavior } from '@/components/data-table/utils/resolve-table-behavior'
 import { FilterBar } from '@/components/filters/filter-bar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -560,17 +561,17 @@ export function DataTable<
   // `expanded` would never reach the memo and row expansion would silently
   // no-op. Passing this down guarantees the body memo busts when rows change.
   const tableState = table.getState()
-  const bodyRenderKey = JSON.stringify([
-    tableState.sorting,
-    tableState.pagination,
-    tableState.expanded,
-    tableState.columnSizing,
-    tableState.columnOrder,
-    tableState.columnVisibility,
-    tableState.rowSelection,
+  const bodyRenderKey = computeTableBodyRenderKey({
+    sorting: tableState.sorting,
+    pagination: tableState.pagination,
+    expanded: tableState.expanded,
+    columnSizing: tableState.columnSizing,
+    columnOrder: tableState.columnOrder,
+    columnVisibility: tableState.columnVisibility,
+    rowSelection: tableState.rowSelection,
     globalSearch,
     advancedFilters,
-  ])
+  })
 
   // Card vs. table view. Only offered (with a toolbar toggle) when the config
   // opts in via `defaultView`; otherwise tables behave exactly as before.
