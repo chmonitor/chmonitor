@@ -12,7 +12,7 @@ import { CLICKHOUSE_AGENT_INSTRUCTIONS } from './prompts/clickhouse-instructions
 import { DEFAULT_MODEL, resolveAgentChatModel } from './provider-chat-model'
 import { wrapToolsWithLogging } from './tool-logging'
 import { createAllTools } from './tools'
-import { isStepCount, ToolLoopAgent } from 'ai'
+import { isStepCount, type LanguageModel, ToolLoopAgent } from 'ai'
 
 function filterTools<T extends Record<string, unknown>>(
   tools: T,
@@ -29,8 +29,15 @@ function filterTools<T extends Record<string, unknown>>(
 const DEFAULT_MAX_STEPS = 30
 
 export function createClickHouseAgent(options: {
-  /** Model ID in `provider:model` format (e.g., `openrouter:openrouter/free`) */
-  model?: string
+  /**
+   * Model ID in `provider:model` format (e.g., `openrouter:openrouter/free`),
+   * or a pre-resolved `LanguageModel` instance. The instance form is a test
+   * seam only — e.g. passing `ai/test`'s `MockLanguageModelV3` to drive the
+   * real tool loop deterministically without a live LLM (see
+   * `__tests__/scenarios.test.ts`). All production callers pass a string, so
+   * this branch does not change their behavior.
+   */
+  model?: string | LanguageModel
   maxSteps?: number
   hostId: number
   disabledTools?: string[]
@@ -67,11 +74,10 @@ export function createClickHouseAgent(options: {
     : filteredTools
   const tools = wrapToolsWithLogging(mergedTools, sessionId)
   const hasTools = Object.keys(tools).length > 0
-  const { model: modelInstance } = resolveAgentChatModel({
-    model,
-    hasTools,
-    referer,
-  })
+  const modelInstance =
+    typeof model === 'string'
+      ? resolveAgentChatModel({ model, hasTools, referer }).model
+      : model
 
   return new ToolLoopAgent({
     id: 'clickhouse-agent',

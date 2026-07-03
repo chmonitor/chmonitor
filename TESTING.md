@@ -78,6 +78,50 @@ Visual and behavioral tests for UI components using Cypress.
 
 Component tests are essential for ensuring the reliability and stability of the UI components, helping to catch regressions and errors early in the development process.
 
+### 6. Agent Golden-Scenario Tests
+
+End-to-end behavior tests for the AI agent loop (`apps/dashboard/src/lib/ai/agent/`).
+
+**Location:** `apps/dashboard/src/lib/ai/agent/__tests__/scenarios.test.ts` +
+`__tests__/fixtures/system-tables.ts`.
+
+Per-tool unit tests (`tools/__tests__/*.test.ts`) call a tool's `execute()`
+directly. This suite instead drives the REAL `createClickHouseAgent()` tool
+loop end-to-end — the real tool set, real Zod input schemas, real system
+prompt — so a regression in tool selection or in the "recommend but never
+auto-apply" safety story is caught, not just a regression in one tool's SQL.
+
+**How it's driven without a live LLM:** `createClickHouseAgent`'s `model`
+option accepts either a provider string (production) or a pre-built AI SDK
+`LanguageModel` instance (test-only seam). Each golden scripts a
+`MockLanguageModelV3` (from `ai/test`) with one entry per LLM turn — tool
+calls, then a final text answer — and a mocked `@chm/clickhouse-client`
+`fetchData` that routes to canned `fixtures/system-tables.ts` rows by
+matching a distinctive substring of the real SQL each tool issues.
+
+**Adding a new golden** (e.g. for a new advisor / tool-selection feature):
+1. Add any new canned rows to `fixtures/system-tables.ts` and a matching
+   branch in `scenarios.test.ts`'s `routeQuery()`.
+2. Add a `test(...)` using the `runAgentScenario({ prompt, turns })` helper —
+   script the tool call(s) you expect, then a final `textTurn(...)`.
+3. Assert on what's real, not on the scripted text: the ordered
+   `toolCallNames`, the (Zod-validated) tool-call `input`, and the tool's
+   actual `output` in `result.toolResults`. `expect(result.toolCalls.every(c
+   => !c.invalid)).toBe(true)` catches a tool schema drifting out from under
+   the scenario for free.
+4. Every scenario must call `assertNoDestructiveExecution(result)` — the
+   suite's core safety invariant is that `kill_query` / `optimize_table` /
+   `kill_mutation` never actually execute (never appear in `toolResults`),
+   only ever recommended in text. The `agent golden scenarios — safety net`
+   describe block proves this guard has teeth by scripting a direct,
+   unconfirmed destructive call (with control tools enabled) and asserting
+   the guard throws for that trace.
+
+Run just this suite with `cd apps/dashboard && bun test
+src/lib/ai/agent/__tests__/scenarios.test.ts --isolate`; it also runs as part
+of the existing `bun run test` / `bun run test:coverage` CI job since those
+already glob all of `src/`.
+
 ## Writing New Component Tests
 
 When contributing new component tests, please follow these guidelines:
