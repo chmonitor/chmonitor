@@ -429,6 +429,12 @@ Injected at build time for the About page.
 | `VITE_BUILD_TIMESTAMP` | ISO build timestamp. |
 | `VITE_CI` | Set to `true` in CI environments. |
 
+## Query config source
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_CONFIG_SOURCE` | `ts` | Query-config resolution path: `ts` (hand-written TypeScript configs, current default everywhere) or `declarative` (opt-in data-only catalog, validated against the same schema and kept at parity — see [Catalog contributing](/reference/catalog-contributing)). Any value other than the literal string `declarative` resolves to `ts`. A malformed declarative entry logs an error and falls back to the `ts` config rather than crashing. |
+
 ## Legacy / migration
 
 | Variable | Notes |
@@ -451,4 +457,5 @@ See [Migrate to v0.3](/reference/migrating/v0-3) for the full rename list.
 <Card title="Feature permissions" href="/operate/advanced/feature-permissions" description="Config-file and env-override details." />
 <Card title="Authentication" href="/operate/authentication" description="Choose and configure an auth provider." />
 <Card title="Migrate to v0.3" href="/reference/migrating/v0-3" description="Full rename list from the Next.js era." />
+<Card title="Catalog contributing" href="/reference/catalog-contributing" description="The declarative query-config catalog CHM_CONFIG_SOURCE opts into." />
 </Cards>

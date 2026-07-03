@@ -3,7 +3,7 @@ id: declarative-config-catalog
 title: Declarative Config Catalog
 type: spec
 status: active
-updated: 2026-06-18
+updated: 2026-07-03
 tags:
   - query-config
   - declarative
@@ -50,7 +50,20 @@ inert until explicitly turned on. `getQueryConfigByName(name, env)` in
 `lib/query-config/index.ts` is the central resolver: when the source is
 `declarative` it serves `DECLARATIVE_CATALOG[name]` (falling back to the TS
 config when a name is absent from the catalog); when `ts` it returns the TS
-config unchanged (by reference). The full default-flip to `declarative` is
+config unchanged (by reference).
+
+**Fail-closed on a malformed entry.** A second, distinct fallback path exists
+for a name that IS present in the catalog but fails `loadDeclarativeConfig`'s
+schema validation (a hand-authoring bug): the resolver catches the error, logs
+it via `@chm/logger`'s `error()`, and falls through to the TS config for that
+name — it never lets a bad catalog entry throw out of `getQueryConfigByName`
+and crash the dashboard. Every shipped catalog entry already passes validation
+(enforced by `flip-safety.test.ts`'s "every catalog entry loads without
+throwing"), so this path only fires for a future authoring mistake; it is
+tested directly in `getQueryConfigByName.test.ts` by mutating a live catalog
+entry to an invalid shape.
+
+The full default-flip to `declarative` is
 **deferred** (plan 02L) — it changes prod rendering for ~75 views and needs
 route-level visual verification against a live ClickHouse, which is not yet
 available.
@@ -159,11 +172,25 @@ catalog-wide what the per-domain suites can't, gating the 02L default flip:
 
 ## Status
 
-Foundation + opt-in wiring complete; ~80 configs migrated across all 10 domains
-(including `settings`/`users` via the `config-details` expandable, #1728), all
-dormant behind `CHM_CONFIG_SOURCE=ts`. The catalog is bundled (imported by the
-registry) but tree-shaken from rendering paths until the flag flips. Adding a
-check is a single-file PR — see the contributor guide. There are no external
-catalog consumers yet, so the `rowStyle`, `permission`, and `expandable`
-contracts remain freely revisable until the 02L default-flip — whose safety is
-now machine-enforced by the flip-safety invariants above.
+Foundation + opt-in wiring complete; `DECLARATIVE_CATALOG` has 93 entries — 91
+map to a same-named config in the 107-entry TS `queries` registry, plus 2
+catalog-only entries (`keeper-presence`, `cluster-live-metrics-all`) consumed
+by direct import (see orphan guard above) — across all 10 domains, including
+`settings`/`users` via the `config-details` expandable (#1728), all dormant
+behind `CHM_CONFIG_SOURCE=ts`. Of the 16 TS configs with no catalog entry: 3
+are inline-JSX expandables (`running-queries`, `keeper-connections`,
+`readonly-tables`), 5 are blocked on the not-yet-implemented `panel` expandable
+variant (`expensive-queries`, `expensive-queries-by-memory`, `slow-queries`,
+`failed-queries`, `history-queries`), 1 has runtime-templated SQL
+(`page-views`) — see "What stays TS-only" above — and the remaining 7
+(`explorer-table-overview`, `explorer-table-usage`, `warnings`,
+`blob-storage-log`, `storage-compression`, `storage-policies`,
+`ttl-storage-moves`) simply haven't been migrated yet; there is no principled
+blocker recorded for them. The catalog is bundled (imported by the registry) but
+tree-shaken from rendering paths until the flag flips. Adding a check is a
+single-file PR — see the contributor guide. There are no external catalog
+consumers yet, so the `rowStyle`, `permission`, and `expandable` contracts
+remain freely revisable until the 02L default-flip — whose safety is now
+machine-enforced by the flip-safety invariants above, plus a representative
+`__tests__/declarative-parity.test.ts` sample that additionally cross-checks
+`selectVersionedSql`-resolved SQL per ClickHouse version (plan 53).

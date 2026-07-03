@@ -2,6 +2,7 @@ import type { QueryConfig } from '@/types/query-config'
 
 import { DECLARATIVE_CATALOG } from './declarative/catalog'
 import { getConfigSource, loadDeclarativeConfig } from './declarative/loader'
+import { error } from '@chm/logger'
 
 export type { QueryConfig } from './types'
 
@@ -265,7 +266,19 @@ export const getQueryConfigByName = (
 
   if (getConfigSource(runtimeEnv) === 'declarative') {
     const decl = DECLARATIVE_CATALOG[name]
-    if (decl) return loadDeclarativeConfig(decl)
+    if (decl) {
+      // Fail-closed: a malformed catalog entry must never crash the
+      // dashboard. Log it and fall through to the TS default below instead
+      // of propagating the loader's validation error.
+      try {
+        return loadDeclarativeConfig(decl)
+      } catch (err) {
+        error(
+          `[query-config] Malformed declarative config for "${name}"; falling back to TS config`,
+          err
+        )
+      }
+    }
   }
 
   return queries.find((q) => q.name === name)
