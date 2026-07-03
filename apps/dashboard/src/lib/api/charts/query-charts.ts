@@ -229,7 +229,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
       SELECT ${applyInterval(interval, 'event_time')},
              COUNT() AS query_count
       FROM merge('system', '^query_log')
-      WHERE
+      PREWHERE
             type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
             ${timeFilter ? `AND ${timeFilter}` : ''}
       GROUP BY 1
@@ -240,7 +240,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
                type AS query_type,
                COUNT() AS count
         FROM merge('system', '^query_log')
-        WHERE
+        PREWHERE
               type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
               ${timeFilter ? `AND ${timeFilter}` : ''}
         GROUP BY 1, 2
@@ -292,7 +292,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
            user,
            countDistinct(query_id) AS count
     FROM merge('system', '^query_log')
-    WHERE
+    PREWHERE
           type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY 1, 2
