@@ -73,6 +73,8 @@ export interface AlertStateStore {
   set(key: string, record: AlertStateRecord): void
   delete(key: string): void
   clear(): void
+  /** Read-only enumeration of all current condition keys and records. */
+  entries(): IterableIterator<[string, AlertStateRecord]>
 }
 
 /** Stable per-condition key. Severity is tracked in the record, not the key. */
@@ -100,6 +102,10 @@ export class MemoryAlertStateStore implements AlertStateStore {
 
   clear(): void {
     this.records.clear()
+  }
+
+  entries(): IterableIterator<[string, AlertStateRecord]> {
+    return this.records.entries()
   }
 }
 

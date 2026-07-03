@@ -126,6 +126,33 @@ HEALTH_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/XXXX
 HEALTH_ALERT_MIN_SEVERITY=warning
 ```
 
+## Prometheus metrics exporter
+
+`GET /api/v1/metrics` serves `system.metrics` + `system.asynchronous_metrics`
+for every configured host (labeled `host="<id>"`), plus a
+`chmonitor_alerts_firing` gauge from the in-memory alert-dedup state, as
+Prometheus text exposition format. Cached ~30s; concurrent scrapes share one
+query batch.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_FEATURE_PROMETHEUS_ENABLED` | mode (self-hosted→`true`, cloud→`false`) | **Canonical**, server-only (no client bundle exposure needed). Set explicitly to override either default. Never gated on Clerk/billing — disabled returns `404` rather than `403` so cloud never advertises the surface. |
+
+```bash
+# Scrape this instance from Prometheus
+CHM_FEATURE_PROMETHEUS_ENABLED=true
+```
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: chmonitor
+    scrape_interval: 30s
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['dash.example.com']
+```
+
 ## Feature permissions
 
 All features are public and enabled by default. Override only what needs
