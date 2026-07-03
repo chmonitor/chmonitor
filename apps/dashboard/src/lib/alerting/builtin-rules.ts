@@ -10,8 +10,10 @@
  * the health page does not yet track.
  */
 
+import type { CompoundRuleDef } from './compound-rules'
 import type { AlertRuleDef } from './rule-registry'
 
+import { atLeast, compoundRuleRegistry } from './compound-rules'
 import { ruleRegistry } from './rule-registry'
 
 const fmtCount =
@@ -195,11 +197,72 @@ WHERE level = 'Fatal'
 ]
 
 /**
+ * Built-in compound alert rules — correlate ≥2 base rules to cut single-metric
+ * false positives. `depends` ids must resolve to `BUILTIN_RULES` ids above.
+ * Exported so they can be individually imported for tests.
+ */
+export const BUILTIN_COMPOUND_RULES: readonly CompoundRuleDef[] = [
+  {
+    id: 'replica-split-brain',
+    title: 'Replica Split-Brain Risk',
+    description:
+      'Replication lag AND readonly replicas both firing at once — a stronger ' +
+      'signal of a stuck/diverging replica than either metric alone.',
+    depends: ['replication-lag', 'readonly-replicas'],
+    evaluate: (inputs) => {
+      const lag = inputs['replication-lag']
+      const readonly = inputs['readonly-replicas']
+      if (!lag || !readonly) return 'ok'
+      const lagFiring = atLeast(lag.severity, 'warning')
+      const readonlyFiring = (readonly.value ?? 0) > 0
+      if (!lagFiring || !readonlyFiring) return 'ok'
+      // Escalate to critical when either input is already critical.
+      return lag.severity === 'critical' || readonly.severity === 'critical'
+        ? 'critical'
+        : 'warning'
+    },
+    formatLabel: (inputs) => {
+      const lag = inputs['replication-lag']?.value ?? 0
+      const readonly = inputs['readonly-replicas']?.value ?? 0
+      return `${lag.toLocaleString()}s max delay + ${readonly.toLocaleString()} readonly replica(s)`
+    },
+  },
+
+  {
+    id: 'merge-pressure',
+    title: 'Merge Pressure',
+    description:
+      'Stuck merges AND high disk usage both firing at once — merges are ' +
+      'likely stalled fighting for disk headroom rather than transient load.',
+    depends: ['stuck-merges', 'disk-usage'],
+    evaluate: (inputs) => {
+      const merges = inputs['stuck-merges']
+      const disk = inputs['disk-usage']
+      if (!merges || !disk) return 'ok'
+      const mergesFiring = atLeast(merges.severity, 'warning')
+      const diskFiring = atLeast(disk.severity, 'warning')
+      if (!mergesFiring || !diskFiring) return 'ok'
+      return merges.severity === 'critical' || disk.severity === 'critical'
+        ? 'critical'
+        : 'warning'
+    },
+    formatLabel: (inputs) => {
+      const merges = inputs['stuck-merges']?.value ?? 0
+      const disk = inputs['disk-usage']?.value ?? 0
+      return `${merges.toLocaleString()} stuck merge(s) + ${disk}% disk used`
+    },
+  },
+]
+
+/**
  * Register all built-in rules into the global registry.
  * Safe to call multiple times (idempotent: later call overwrites same ID).
  */
 export function registerBuiltinRules(): void {
   for (const rule of BUILTIN_RULES) {
     ruleRegistry.register(rule)
+  }
+  for (const rule of BUILTIN_COMPOUND_RULES) {
+    compoundRuleRegistry.register(rule)
   }
 }

@@ -108,6 +108,12 @@ mock.module('@chm/platform', () => ({
 // --- synthetic rule + ClickHouse stubs --------------------------------------
 const TEST_RULE_MARKER = '__TEST_SWEEP_MARKER__'
 const TEST_RULE_ID = 'test-sweep-rule'
+// A second, always-ok, non-optional synthetic base rule — used as a compound
+// rule dependency below. Every real builtin rule is `optional: true` with a
+// `tableCheck`, and the fake `system.tables` probe response never contains a
+// real table name, so builtin rules are always skipped in this suite; a
+// compound rule that depended on one would never see its dependency run.
+const TEST_RULE_ID_2 = 'test-sweep-rule-2'
 
 let testValue = 50
 
@@ -133,6 +139,7 @@ mock.module('@/lib/insights/generate-insights', () => ({
 
 const { alertStateStore } = await import('./alert-state-store')
 const { ruleRegistry } = await import('@/lib/alerting/rule-registry')
+const { compoundRuleRegistry } = await import('@/lib/alerting/compound-rules')
 const { buildAlertEventRecord, runHealthSweep } = await import('./server-sweep')
 
 ruleRegistry.register({
@@ -142,6 +149,16 @@ ruleRegistry.register({
   description: 'Synthetic rule for server-sweep.test.ts',
   sql: `SELECT 1 /* ${TEST_RULE_MARKER} */`,
   valueKey: 'test_value',
+  defaults: { warning: 10, critical: 20 },
+})
+
+ruleRegistry.register({
+  id: TEST_RULE_ID_2,
+  type: 'custom',
+  title: 'Test Sweep Rule 2',
+  description: 'Second synthetic (always-ok) rule for compound-rule tests.',
+  sql: `SELECT 0 AS always_ok_value`,
+  valueKey: 'always_ok_value',
   defaults: { warning: 10, critical: 20 },
 })
 
@@ -338,5 +355,98 @@ describe('runHealthSweep — alert-history hook', () => {
     const summary = await runHealthSweep()
 
     expect(summary.alertsDispatched).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runHealthSweep — compound rules (plan 31)
+// ---------------------------------------------------------------------------
+describe('runHealthSweep — compound rules', () => {
+  afterEach(() => {
+    compoundRuleRegistry.unregister('throwing-compound-rule')
+    compoundRuleRegistry.unregister('test-compound-rule')
+  })
+
+  test('a throwing compound rule never breaks base-rule evaluation or dispatch', async () => {
+    compoundRuleRegistry.register({
+      id: 'throwing-compound-rule',
+      title: 'Throwing Compound Rule',
+      description: 'Always throws — proves fail-open.',
+      depends: [TEST_RULE_ID, TEST_RULE_ID_2],
+      evaluate: () => {
+        throw new Error('boom: compound predicate exploded')
+      },
+    })
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // The base test rule still fired and dispatched normally.
+    expect(summary.alertsDispatched).toBe(1)
+    const host = summary.hosts[0]
+    expect(host.errored).toBeGreaterThanOrEqual(1)
+  })
+
+  test('a compound rule fires and dedups under its own hostId:compoundId key', async () => {
+    compoundRuleRegistry.register({
+      id: 'test-compound-rule',
+      title: 'Test Compound Rule',
+      description: 'Fires whenever the test base rule fires.',
+      depends: [TEST_RULE_ID, TEST_RULE_ID_2],
+      evaluate: (inputs) =>
+        inputs[TEST_RULE_ID]?.severity === 'critical' ? 'critical' : 'ok',
+    })
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // Base rule + compound rule both dispatched, each under its own dedup key.
+    expect(summary.alertsDispatched).toBe(2)
+    const rules = fakeDb.rows.map((r) => r.rule).sort()
+    expect(rules).toEqual(['test-compound-rule', TEST_RULE_ID].sort())
+
+    expect(alertStateStore.get(`0:test-compound-rule`)?.severity).toBe(
+      'critical'
+    )
+    // Base rule's own dedup identity is untouched by the compound rule.
+    expect(alertStateStore.get(`0:${TEST_RULE_ID}`)?.severity).toBe('critical')
+  })
+
+  test("a compound-on-compound dependency sees its upstream compound rule's result", async () => {
+    compoundRuleRegistry.register({
+      id: 'test-compound-rule',
+      title: 'Test Compound Rule',
+      description: 'Fires whenever the test base rule fires.',
+      depends: [TEST_RULE_ID, TEST_RULE_ID_2],
+      evaluate: (inputs) =>
+        inputs[TEST_RULE_ID]?.severity === 'critical' ? 'critical' : 'ok',
+    })
+    compoundRuleRegistry.register({
+      id: 'test-compound-of-compound',
+      title: 'Test Compound-of-Compound',
+      description: 'Depends on another compound rule, not just base rules.',
+      depends: ['test-compound-rule'],
+      evaluate: (inputs) => inputs['test-compound-rule']?.severity ?? 'ok',
+    })
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // Base rule + both compound rules dispatched, each under its own key.
+    expect(summary.alertsDispatched).toBe(3)
+    expect(alertStateStore.get('0:test-compound-of-compound')?.severity).toBe(
+      'critical'
+    )
+
+    compoundRuleRegistry.unregister('test-compound-of-compound')
   })
 })
