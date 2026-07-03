@@ -67,6 +67,7 @@ export const tablesOverviewConfig: QueryConfig = {
         splitByChar('.', parts.table)[2] AS _table
       FROM parts
       LEFT JOIN detached_parts USING (\`table\`)
+      ORDER BY compressed DESC
     `,
   columns: [
     'table',
