@@ -29,6 +29,8 @@ import {
 } from '@/lib/alerting/compound-rules'
 import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
+import { buildAlertBlocksWithAck, type SlackBlock } from '@/lib/slack/blocks'
+import { isSlackAppConfigured } from '@/lib/slack/config'
 
 // Register pluggable alert rules into the global ruleRegistry once at module
 // load. The sweep drives itself from `ruleRegistry.getAll()`; the /health page
@@ -166,15 +168,28 @@ interface WebhookResult {
  * `/api/v1/health/webhook` proxy forwards upstream (`{ text, content: text }`),
  * so Slack (`text`) and Discord (`content`) both render it. Server-side, no CORS
  * proxy needed — we post directly to the operator-configured webhook URL.
+ *
+ * When `blocks` is provided (only for a Slack incoming webhook with the native
+ * Slack app configured — see the call site) it is added to the body so Slack
+ * renders the rich message with an "Acknowledge" button; `text` stays as the
+ * notification fallback and Discord/others ignore the extra field. Absent
+ * `blocks`, the body is byte-for-byte the original `{ text, content }` — the
+ * OSS/self-hosted path is unchanged.
  */
-async function postWebhook(url: string, text: string): Promise<WebhookResult> {
+async function postWebhook(
+  url: string,
+  text: string,
+  blocks?: unknown[]
+): Promise<WebhookResult> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, content: text }),
+      body: JSON.stringify(
+        blocks ? { text, content: text, blocks } : { text, content: text }
+      ),
       signal: controller.signal,
     })
     if (!res.ok) {
@@ -363,7 +378,37 @@ export async function runHealthSweep(): Promise<SweepSummary> {
 
       let anyDelivered = false
       for (const url of targets) {
-        const result = await postWebhook(url, text)
+        const adapter = detectAdapter(url)
+
+        // Native Slack app bridge (plan 37): when the app is configured AND
+        // this target is a Slack incoming webhook, post rich blocks with an
+        // "Acknowledge" button (keyed by this alert's dedup key) instead of
+        // plain text. Gated so the OSS default (no Slack app) and non-Slack
+        // channels keep the exact plain-text payload. Recovery messages have
+        // nothing to acknowledge, so they stay plain text too.
+        let ackBlocks: SlackBlock[] | undefined
+        if (
+          decision.kind !== 'recovery' &&
+          (effective === 'warning' || effective === 'critical') &&
+          isSlackAppConfigured() &&
+          adapter.id === 'slack'
+        ) {
+          ackBlocks = buildAlertBlocksWithAck(
+            {
+              severity: effective,
+              hostLabel: name,
+              hostId,
+              metric: ruleId,
+              value,
+              title: ruleTitle,
+              label,
+              timestamp: new Date().toISOString(),
+            },
+            { hostId, ruleId, severity: effective }
+          )
+        }
+
+        const result = await postWebhook(url, text, ackBlocks)
         if (result.ok) anyDelivered = true
 
         // Best-effort audit trail per channel — recorded on both success and
@@ -383,7 +428,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
               value,
               delivered: result.ok,
               error: result.error,
-              channel: detectAdapter(url).id,
+              channel: adapter.id,
             })
           )
         } catch (err) {
