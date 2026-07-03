@@ -1,12 +1,26 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 
+// ── Stub ClickHouse I/O before importing the module under test, so the
+// single-flight/cache tests below never hit a real network call. ──────────
+let getClientCallCount = 0
+
+mock.module('@chm/clickhouse-client', () => ({
+  getClient: async () => {
+    getClientCallCount++
+    return { query: async () => ({ json: async () => [] as unknown[] }) }
+  },
+}))
+
+import type { ClickHouseConfig } from '@chm/clickhouse-client'
 import { MemoryAlertStateStore } from '@/lib/health/alert-state-store'
 
 import {
   buildPrometheusText,
   countFiringAlertsByHost,
+  getPrometheusMetricsText,
   type HostMetricsInput,
   isPrometheusExporterEnabled,
+  __resetPrometheusMetricsCacheForTests,
 } from './prometheus-exporter'
 
 // ---------------------------------------------------------------------------
@@ -267,5 +281,43 @@ describe('isPrometheusExporterEnabled', () => {
     expect(
       isPrometheusExporterEnabled({ SOME_UNRELATED_VAR: 'x' })
     ).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getPrometheusMetricsText — 30s cache + single-flight rebuild.
+// ---------------------------------------------------------------------------
+
+describe('getPrometheusMetricsText', () => {
+  afterEach(() => {
+    __resetPrometheusMetricsCacheForTests()
+    getClientCallCount = 0
+  })
+
+  const configs: ClickHouseConfig[] = [
+    { id: 0, host: 'http://localhost:8123', user: 'default', password: '' },
+  ]
+
+  test('concurrent scrapes share one in-flight build (single query batch)', async () => {
+    // Two calls fired back-to-back, neither awaited before the other starts —
+    // exactly what a scrape storm looks like. If each triggered its own
+    // rebuild, getClient would be called 4 times (2 queries x 2 builds)
+    // instead of 2 (2 queries x 1 build).
+    const [a, b] = await Promise.all([
+      getPrometheusMetricsText(configs),
+      getPrometheusMetricsText(configs),
+    ])
+
+    expect(a).toBe(b)
+    expect(getClientCallCount).toBe(2)
+  })
+
+  test('a call within the 30s cache TTL reuses the cached body (no new queries)', async () => {
+    await getPrometheusMetricsText(configs)
+    expect(getClientCallCount).toBe(2)
+
+    await getPrometheusMetricsText(configs)
+    // Still within the TTL — zero additional ClickHouse queries.
+    expect(getClientCallCount).toBe(2)
   })
 })
