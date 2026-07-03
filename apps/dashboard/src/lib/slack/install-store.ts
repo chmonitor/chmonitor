@@ -15,9 +15,9 @@
  * useless), rather than silently claiming success.
  */
 
+import { decryptToken, encryptToken } from './token-crypto'
 import { ErrorLogger } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
-import { decryptToken, encryptToken } from './token-crypto'
 
 const warn = (msg: string) =>
   ErrorLogger.logWarning(`[slack-install-store] ${msg}`, {

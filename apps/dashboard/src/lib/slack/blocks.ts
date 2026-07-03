@@ -200,7 +200,11 @@ export function buildQueryResultBlocks(
   }
 ): SlackBlock[] {
   const shown = rows.slice(0, opts.rowCap)
-  const blocks: SlackBlock[] = [header('🔎 Query result')]
+  const sqlPreview = sql.length > 150 ? `${sql.slice(0, 150)}…` : sql
+  const blocks: SlackBlock[] = [
+    header('🔎 Query result'),
+    context(`\`${sqlPreview}\``),
+  ]
 
   if (shown.length === 0) {
     blocks.push(section('_No rows returned._'))
@@ -212,7 +216,8 @@ export function buildQueryResultBlocks(
     const table = [columns.join(' | '), ...lines].join('\n')
     // Guard against Slack's 3000-char section text limit.
     const body = table.length > 2800 ? `${table.slice(0, 2800)}\n…` : table
-    blocks.push(section('```' + body + '```'))
+    const fence = '```'
+    blocks.push(section(`${fence}${body}${fence}`))
   }
 
   const noteParts: string[] = [`${shown.length} row(s)`]

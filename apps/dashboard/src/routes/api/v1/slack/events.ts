@@ -26,8 +26,8 @@ import { queryAlertEvents } from '@/lib/health/alert-history-store'
 import { captureIncidentSnapshot } from '@/lib/health/incident-snapshot'
 import { publishHomeView } from '@/lib/slack/api'
 import { buildHomeTabView, type HomeHostSummary } from '@/lib/slack/blocks'
-import { getInstallation } from '@/lib/slack/install-store'
 import { readAndVerifySlackRequest } from '@/lib/slack/inbound'
+import { getInstallation } from '@/lib/slack/install-store'
 
 /** Cap how many hosts the Home tab summarizes so it stays within the ack budget. */
 const HOME_HOST_CAP = 5

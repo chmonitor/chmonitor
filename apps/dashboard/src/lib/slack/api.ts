@@ -14,10 +14,11 @@
  * codes only, never request bodies or Authorization headers.
  */
 
+import type { SlackBlock, SlackHomeView } from './blocks'
+
+import { SLACK_API_BASE } from './config'
 import { error as logError } from '@chm/logger'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
-import { SLACK_API_BASE } from './config'
-import type { SlackBlock, SlackHomeView } from './blocks'
 
 const FETCH_TIMEOUT_MS = 10_000
 

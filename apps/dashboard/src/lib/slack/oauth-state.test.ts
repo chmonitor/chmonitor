@@ -7,8 +7,8 @@
  */
 
 import {
-  signOAuthState,
   STATE_MAX_AGE_SECONDS,
+  signOAuthState,
   verifyOAuthState,
 } from './oauth-state'
 import { describe, expect, test } from 'bun:test'
