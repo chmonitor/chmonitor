@@ -24,6 +24,10 @@ import { PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react'
 
 import type { McpServer } from './mcp-types'
 
+import {
+  AddMcpServerDialog,
+  type AddServerInput,
+} from './add-mcp-server-dialog'
 import { McpToolsResourcesDialog } from './mcp-tools-resources-dialog'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +36,6 @@ import { Switch } from '@/components/ui/switch'
 import { toMcpServers, useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { useMcpProbe } from '@/lib/swr/use-mcp-probe'
 import { useMcpServerInfo } from '@/lib/swr/use-mcp-server-info'
-import { cn } from '@/lib/utils'
 
 // Re-exported for existing consumers; canonical definition lives in mcp-types.ts.
 export type { McpServer }
@@ -157,87 +160,6 @@ function McpServerRow({
 }
 
 // ---------------------------------------------------------------------------
-// "Connect new server" form
-// ---------------------------------------------------------------------------
-
-/** A custom server the user is about to register. */
-interface AddServerInput {
-  name: string
-  endpoint: string
-}
-
-interface AddServerFormProps {
-  onCancel: () => void
-  onAdd: (server: AddServerInput) => void
-}
-
-function AddServerForm({ onCancel, onAdd }: AddServerFormProps) {
-  const [name, setName] = useState('')
-  const [url, setUrl] = useState('')
-
-  const trimmedName = name.trim()
-  const trimmedUrl = url.trim()
-  const canSubmit = trimmedName.length > 0 && trimmedUrl.length > 0
-
-  const inputClass = cn(
-    'bg-background border-input h-8 w-full rounded-md border px-3 text-[12px]',
-    'placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring'
-  )
-
-  const handleSubmit = () => {
-    if (!canSubmit) return
-    onAdd({ name: trimmedName, endpoint: trimmedUrl })
-  }
-
-  return (
-    <form
-      className="border-border mt-2 space-y-2 rounded-md border p-2.5"
-      onSubmit={(e) => {
-        e.preventDefault()
-        handleSubmit()
-      }}
-    >
-      <p className="text-muted-foreground text-[10.5px] font-medium tracking-wide uppercase">
-        New server
-      </p>
-      <input
-        type="text"
-        placeholder="Server name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className={inputClass}
-      />
-      <input
-        type="url"
-        placeholder="Endpoint URL (https://…)"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className={inputClass}
-      />
-      <div className="flex items-center gap-2">
-        <Button
-          type="submit"
-          size="sm"
-          className="h-7 flex-1 text-[11.5px]"
-          disabled={!canSubmit}
-        >
-          Connect
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 flex-1 text-[11.5px]"
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Custom server row — probes the endpoint to get live status + tool list
 // ---------------------------------------------------------------------------
 
@@ -291,7 +213,7 @@ export function AgentMcpPanel() {
     addServer,
     removeServer,
   } = useMcpConfig()
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [addServerOpen, setAddServerOpen] = useState(false)
   const [selectedServer, setSelectedServer] = useState<McpServer | null>(null)
 
   // Derive real connection status for the built-in server from the
@@ -324,8 +246,8 @@ export function AgentMcpPanel() {
   }
 
   const handleAddServer = (server: AddServerInput) => {
+    // The dialog closes itself on submit; the panel only needs to persist.
     addServer(server)
-    setShowAddForm(false)
   }
 
   const panelStatus =
@@ -384,24 +306,23 @@ export function AgentMcpPanel() {
         )}
       </div>
 
-      {/* Add server form / button */}
-      {showAddForm ? (
-        <AddServerForm
-          onCancel={() => setShowAddForm(false)}
-          onAdd={handleAddServer}
-        />
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="mt-1 h-8 w-full justify-center gap-1.5 text-[11.5px]"
-          onClick={() => setShowAddForm(true)}
-        >
-          <PlusIcon className="size-3" />
-          Connect new server
-        </Button>
-      )}
+      {/* Connect new server — opens a registration dialog */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="mt-1 h-8 w-full justify-center gap-1.5 text-[11.5px]"
+        onClick={() => setAddServerOpen(true)}
+      >
+        <PlusIcon className="size-3" />
+        Connect new server
+      </Button>
+
+      <AddMcpServerDialog
+        open={addServerOpen}
+        onOpenChange={setAddServerOpen}
+        onAdd={handleAddServer}
+      />
     </div>
   )
 }
