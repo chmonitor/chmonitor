@@ -46,15 +46,30 @@ export const expensiveQueriesByMemoryConfig: QueryConfig = {
       ],
     }),
   },
-  description: 'Most expensive queries by memory finished over last 24 hours',
+  description: 'Most expensive queries by memory over the selected time window',
   docs: QUERY_LOG,
   tableCheck: 'system.query_log',
+  defaultParams: {
+    last_hours: '24',
+    // Minimum per-query memory floor (MiB). 0 keeps the default view unchanged.
+    min_memory_mb: '0',
+  },
+  filterParamPresets: [
+    { name: 'Last 1h', key: 'last_hours', value: '1' },
+    { name: 'Last 6h', key: 'last_hours', value: '6' },
+    { name: 'Last 24h', key: 'last_hours', value: '24' },
+    { name: 'Last 7d', key: 'last_hours', value: '168' },
+    { name: 'Any', key: 'min_memory_mb', value: '0' },
+    { name: '> 128 MB', key: 'min_memory_mb', value: '128' },
+    { name: '> 1 GB', key: 'min_memory_mb', value: '1024' },
+    { name: '> 4 GB', key: 'min_memory_mb', value: '4096' },
+  ],
   sql: [
     {
       since: '23.8',
       sql: `
       SELECT
-          query,
+          substr(query, 1, 500) AS query,
           user,
           count() as cnt,
           sum(memory_usage) AS sum_memory,
@@ -66,10 +81,10 @@ export const expensiveQueriesByMemoryConfig: QueryConfig = {
           round(100 * avg_memory / max(avg_memory) OVER ()) AS pct_avg_memory,
           normalized_query_hash
       FROM system.query_log
-      WHERE
-          (event_time >= (now() - toIntervalDay(1)))
-          AND query_kind = 'Select'
-          AND type = 'QueryFinish'
+      PREWHERE type = 'QueryFinish'
+          AND event_time > (now() - interval {last_hours:UInt64} hour)
+      WHERE query_kind = 'Select'
+          AND memory_usage >= {min_memory_mb:UInt64} * 1024 * 1024
       GROUP BY
           normalized_query_hash,
           query,
@@ -83,7 +98,7 @@ export const expensiveQueriesByMemoryConfig: QueryConfig = {
       since: '24.1',
       sql: `
       SELECT
-          query,
+          substr(query, 1, 500) AS query,
           query_cache_usage,
           user,
           count() as cnt,
@@ -96,10 +111,10 @@ export const expensiveQueriesByMemoryConfig: QueryConfig = {
           round(100 * avg_memory / max(avg_memory) OVER ()) AS pct_avg_memory,
           normalized_query_hash
       FROM system.query_log
-      WHERE
-          (event_time >= (now() - toIntervalDay(1)))
-          AND query_kind = 'Select'
-          AND type = 'QueryFinish'
+      PREWHERE type = 'QueryFinish'
+          AND event_time > (now() - interval {last_hours:UInt64} hour)
+      WHERE query_kind = 'Select'
+          AND memory_usage >= {min_memory_mb:UInt64} * 1024 * 1024
       GROUP BY
           normalized_query_hash,
           query,
