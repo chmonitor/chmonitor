@@ -29,7 +29,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Schema & exploration: query, list_databases, list_tables,
  *    get_table_schema, explore_table_schema
  *  - Query analysis: get_running_queries, get_slow_queries,
- *    get_failed_queries, explain_query
+ *    get_failed_queries, explain_query, estimate_query_cost
  *  - Health: get_metrics, get_disk_usage
  *  - Storage: get_table_parts
  *  - Replication: get_replication_status

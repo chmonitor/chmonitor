@@ -45,6 +45,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { error as logError, log as logInfo } from '@chm/logger'
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
+import { logEvent } from '@/lib/audit/logEvent'
 import {
   getPolarClient,
   getWebhookSecret,
@@ -273,6 +274,23 @@ async function applySubscription(
   if (isPaidPlan) {
     invalidateNegativeCache(externalId)
     if (ownerId !== externalId) invalidateNegativeCache(ownerId)
+  }
+
+  // Best-effort audit trail — org-scoped only (a user-type owner has no org
+  // to scope the row to; audit is an org-level enterprise feature). Fires
+  // regardless of the D1 cache-write outcome above: Polar already confirmed
+  // the event, so the audit trail shouldn't depend on our cache succeeding.
+  if (ownerType === 'org') {
+    const isCanceled = data.status === 'canceled' || data.status === 'revoked'
+    await logEvent({
+      orgId: ownerId,
+      userId: null,
+      event: isCanceled ? 'billing.canceled' : 'billing.plan_changed',
+      resource: mapped.planId,
+      action: 'update',
+      result: 'success',
+      metadata: { status: data.status, subscriptionId: data.id },
+    })
   }
 
   logInfo('[polar-webhook] applied subscription', {

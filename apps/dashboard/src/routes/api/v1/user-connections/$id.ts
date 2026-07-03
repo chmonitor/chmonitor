@@ -9,6 +9,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { logSessionEvent } from '@/lib/audit/log-session-event'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
@@ -92,6 +93,14 @@ async function handlePatch(
         : undefined,
     })
 
+    await logSessionEvent({
+      userId,
+      event: 'connection.updated',
+      resource: updated.id,
+      action: 'update',
+      result: 'success',
+    })
+
     return createSuccessResponse({
       id: updated.id,
       name: updated.name,
@@ -127,6 +136,14 @@ async function handleDelete(connectionId: string): Promise<Response> {
     const existing = await store.get(userId, connectionId)
     await store.delete(userId, connectionId)
 
+    await logSessionEvent({
+      userId,
+      event: 'connection.deleted',
+      resource: connectionId,
+      action: 'delete',
+      result: 'success',
+    })
+
     // Outbound webhook bus (plan 44): fire-and-forget, never blocks/fails
     // this request — see lib/events/outbound-bus.ts's module docblock.
     void emitEvent(userId, {
@@ -154,3 +171,9 @@ export const Route = createFileRoute('/api/v1/user-connections/$id')({
     },
   },
 })
+
+// Exported for unit tests only.
+export {
+  handlePatch as __handlePatchForTests,
+  handleDelete as __handleDeleteForTests,
+}

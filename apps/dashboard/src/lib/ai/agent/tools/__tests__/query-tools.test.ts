@@ -70,6 +70,7 @@ describe('createQueryTools', () => {
     expect(tools.get_slow_queries).toBeDefined()
     expect(tools.get_failed_queries).toBeDefined()
     expect(tools.explain_query).toBeDefined()
+    expect(tools.estimate_query_cost).toBeDefined()
   })
 
   describe('get_running_queries', () => {
@@ -218,6 +219,71 @@ describe('createQueryTools', () => {
       expect(
         tools.explain_query.execute({ sql: 'DROP TABLE system.tables' })
       ).rejects.toThrow('SQL validation failed')
+    })
+  })
+
+  describe('estimate_query_cost', () => {
+    test('returns a rows/bytes/memory/time cost estimate from EXPLAIN only', async () => {
+      mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+        if (query.includes('EXPLAIN')) {
+          const fixture = [
+            {
+              Plan: {
+                'Node Type': 'ReadFromMergeTree',
+                Description: 'default.events',
+                Indexes: [
+                  {
+                    Type: 'PrimaryKey',
+                    'Initial Parts': 1,
+                    'Selected Parts': 1,
+                    'Initial Granules': 10,
+                    'Selected Granules': 10,
+                  },
+                ],
+              },
+            },
+          ]
+          const lines = JSON.stringify(fixture, null, 2).split('\n')
+          return { data: lines.map((l) => ({ explain: l })), error: null }
+        }
+        return { data: [], error: null }
+      })
+
+      const tools = createQueryTools(0) as any
+      const result = await tools.estimate_query_cost.execute({
+        sql: 'SELECT * FROM default.events',
+      })
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          estRows: expect.any(Number),
+          estBytesRead: expect.any(Number),
+          estPeakMemoryBytes: expect.any(Number),
+          estWallMs: expect.any(Number),
+          confidence: expect.any(String),
+          warnings: expect.any(Array),
+        })
+      )
+    })
+
+    test('never calls fetchData when SQL validation rejects a mutating statement (never executes/mutates)', async () => {
+      setupQueryMock()
+      const tools = createQueryTools(0) as any
+      const { validateSqlQuery } = await import('@chm/sql-builder')
+
+      ;(validateSqlQuery as ReturnType<typeof mock>).mockImplementationOnce(
+        () => {
+          throw new Error('SQL validation failed: dangerous query')
+        }
+      )
+
+      mockFetchData.mockClear()
+      await expect(
+        tools.estimate_query_cost.execute({
+          sql: 'DROP TABLE default.events',
+        })
+      ).rejects.toThrow('SQL validation failed')
+      expect(mockFetchData).not.toHaveBeenCalled()
     })
   })
 })

@@ -1,0 +1,9 @@
+---
+// SEO use-case page — content lives in src/data/use-cases.ts (plans/64).
+import LandingPage from '../layouts/LandingPage.astro'
+import { useCases } from '../data/use-cases'
+
+const useCase = useCases.find((u) => u.slug === 'replication')
+if (!useCase) throw new Error('use-cases.ts: missing "replication" entry')
+---
+<LandingPage useCase={useCase} />

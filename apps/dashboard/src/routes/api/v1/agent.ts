@@ -27,6 +27,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import type { LanguageModelUsage } from 'ai'
+import type { Plan } from '@/lib/billing/plans'
 
 import { env } from 'cloudflare:workers'
 import { pipeJsonRender } from '@json-render/core'
@@ -64,8 +65,8 @@ import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
 import {
-  addAiSpend,
   getAiSpendThisMonth,
+  meterAiOverage,
   releaseAiUsage,
   reserveAiUsage,
 } from '@/lib/billing/ai-usage-store'
@@ -561,16 +562,18 @@ async function handlePost(request: Request): Promise<Response> {
   // resolveBillingOwner() throws when Clerk is not configured (self-hosted),
   // so the entire block is wrapped in try/catch — OSS deployments skip silently.
   //
-  // billingOwnerId / reservedDailyUsage are hoisted so the stream can (a) charge
-  // the monthly spend accumulator with the actual estimatedCostUsd once the
+  // billingOwnerId / resolvedPlan / reservedDailyUsage are hoisted so the
+  // stream can (a) meter the actual estimatedCostUsd as overage once the
   // generation succeeds, and (b) roll back the daily reservation if generation
   // fails before it produces any output.
   let billingOwnerId: string | null = null
+  let resolvedPlan: Plan | null = null
   let reservedDailyUsage = false
   try {
     const owner = await resolveBillingOwner()
     const plan = await getPlanForOwner(owner.id)
     billingOwnerId = owner.id
+    resolvedPlan = plan
 
     // Monthly LLM spend budget — hard cap (null = Enterprise BYOK / unlimited).
     if (plan.aiMonthlyUsdBudget != null) {
@@ -621,6 +624,7 @@ async function handlePost(request: Request): Promise<Response> {
   } catch {
     // Not cloud / no Clerk owner → skip enforcement; self-hosted stays whole.
     billingOwnerId = null
+    resolvedPlan = null
     reservedDailyUsage = false
   }
 
@@ -791,10 +795,15 @@ async function handlePost(request: Request): Promise<Response> {
             data: [stats],
           })
 
-          // Charge the monthly USD budget with the actual spend now that the
-          // generation succeeded (cloud only; no-op when D1/owner absent).
-          if (billingOwnerId && stats.estimatedCostUsd) {
-            await addAiSpend(billingOwnerId, stats.estimatedCostUsd)
+          // Meter the actual spend as overage now that the generation
+          // succeeded (cloud only; Free/Enterprise never accrue overage — see
+          // meterAiOverage; no-op when D1/owner/plan absent).
+          if (billingOwnerId && resolvedPlan && stats.estimatedCostUsd) {
+            await meterAiOverage(
+              resolvedPlan,
+              billingOwnerId,
+              stats.estimatedCostUsd
+            )
           }
         }
       } catch (error) {
@@ -818,10 +827,14 @@ async function handlePost(request: Request): Promise<Response> {
             type: 'data-usage',
             data: [stats],
           })
-          // Generation started and incurred cost before failing — still charge
-          // the monthly budget for what was actually spent.
-          if (billingOwnerId && stats.estimatedCostUsd) {
-            await addAiSpend(billingOwnerId, stats.estimatedCostUsd)
+          // Generation started and incurred cost before failing — still meter
+          // what was actually spent as overage.
+          if (billingOwnerId && resolvedPlan && stats.estimatedCostUsd) {
+            await meterAiOverage(
+              resolvedPlan,
+              billingOwnerId,
+              stats.estimatedCostUsd
+            )
           }
         } else if (billingOwnerId && reservedDailyUsage) {
           // Generation failed before producing any output — release the daily

@@ -95,6 +95,6 @@ export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
   },
   aiMonthlyUsdBudget: {
     status: 'enforced',
-    gate: 'routes/api/v1/agent.ts handlePost → checkAiBudget (spend accumulator: lib/billing/ai-usage-store.ts / ai_usage_monthly, fed by estimatedCostUsd)',
+    gate: 'routes/api/v1/agent.ts handlePost → checkAiBudget (blocks) + meterAiOverage → ai-usage-store.ts addAiSpend (spend accumulator: ai_usage_monthly, fed by estimatedCostUsd, gated on plan.aiOverage so Free never accrues); usage.ts surfaces aiSpentThisMonth',
   },
 }

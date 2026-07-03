@@ -39,8 +39,9 @@ jobs:
         with:
           # `bun test --isolate` (used by the test scripts to give each file a
           # fresh global, preventing cross-file mock.module leakage) needs a
-          # recent Bun.
-          bun-version: '1.3.13'
+          # recent Bun. 1.3.13's lcov coverage writer intermittently throws
+          # `WriteFailed` after all tests already passed; 1.3.14 fixes it.
+          bun-version: '1.3.14'
 
       - name: Bun Cache
         uses: actions/cache@v6

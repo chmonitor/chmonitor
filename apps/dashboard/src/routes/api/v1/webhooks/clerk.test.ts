@@ -26,6 +26,16 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { BILLING_PLANS } from '@/lib/billing/plans'
 
+// --- @/lib/audit/logEvent (leaf specifier, not the @/lib/audit barrel) ------
+// Mocking the leaf here (not the barrel) so a partial mock here can never
+// shadow the barrel's other exports (listAuditLogs/buildAuditCsv) for
+// routes/api/v1/audit/export.test.ts when both share a `bun test src/
+// --isolate` process.
+let logEventImpl = mock((_e: unknown) => Promise.resolve())
+mock.module('@/lib/audit/logEvent', () => ({
+  logEvent: (e: unknown) => logEventImpl(e),
+}))
+
 // --- @clerk/tanstack-react-start/webhooks -----------------------------------
 // Full real export surface: verifyWebhook is its only runtime export.
 type ClerkWebhookFixture = { type: string; data: Record<string, unknown> }
@@ -138,6 +148,7 @@ beforeEach(() => {
   deleteOrganizationMembership = mock(async () => ({}))
   usersGetOrganizationMembershipList = mock(async () => ({ data: [] }))
   createOrganization = mock(async () => ({ id: 'org_new' }))
+  logEventImpl = mock(() => Promise.resolve())
 })
 
 describe('POST /api/v1/webhooks/clerk — config + signature gate', () => {
@@ -170,6 +181,14 @@ describe('POST /api/v1/webhooks/clerk — seat enforcement (organizationMembersh
     expect(res.status).toBe(202)
     expect(getOrganizationMembershipList).not.toHaveBeenCalled()
     expect(deleteOrganizationMembership).not.toHaveBeenCalled()
+    expect(logEventImpl).toHaveBeenCalledTimes(1)
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      orgId: 'org_1',
+      userId: 'user_new',
+      event: 'member.invited',
+      action: 'invite',
+      result: 'success',
+    })
   })
 
   test('count === seats (post-addition) fits — the new member is NOT rolled back', async () => {
@@ -184,6 +203,9 @@ describe('POST /api/v1/webhooks/clerk — seat enforcement (organizationMembersh
       limit: 100,
     })
     expect(deleteOrganizationMembership).not.toHaveBeenCalled()
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      result: 'success',
+    })
   })
 
   test('count === seats + 1 (post-addition) is over cap — the new member IS rolled back', async () => {
@@ -202,6 +224,37 @@ describe('POST /api/v1/webhooks/clerk — seat enforcement (organizationMembersh
       organizationId: 'org_1',
       userId: 'user_new',
     })
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      orgId: 'org_1',
+      userId: 'user_new',
+      event: 'member.invited',
+      action: 'invite',
+      result: 'denied',
+    })
+  })
+})
+
+describe('POST /api/v1/webhooks/clerk — audit wiring', () => {
+  test('organizationMembership.deleted logs a member.removed row', async () => {
+    verifyWebhookImpl = mock(async () => ({
+      type: 'organizationMembership.deleted',
+      data: {
+        organization: { id: 'org_1' },
+        public_user_data: { user_id: 'user_gone' },
+      },
+    }))
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(202)
+    expect(logEventImpl).toHaveBeenCalledTimes(1)
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      orgId: 'org_1',
+      userId: 'user_gone',
+      event: 'member.removed',
+      action: 'delete',
+      result: 'success',
+    })
   })
 })
 
@@ -218,5 +271,6 @@ describe('POST /api/v1/webhooks/clerk — other event types', () => {
     expect(getPlanForOwner).not.toHaveBeenCalled()
     expect(getOrganizationMembershipList).not.toHaveBeenCalled()
     expect(deleteOrganizationMembership).not.toHaveBeenCalled()
+    expect(logEventImpl).not.toHaveBeenCalled()
   })
 })

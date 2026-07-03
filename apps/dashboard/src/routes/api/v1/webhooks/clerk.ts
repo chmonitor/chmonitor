@@ -21,6 +21,7 @@ import type { WebhookEvent } from '@clerk/tanstack-react-start/webhooks'
 
 import { error as logError, log as logInfo } from '@chm/logger'
 import { verifyWebhook } from '@clerk/tanstack-react-start/webhooks'
+import { logEvent } from '@/lib/audit/logEvent'
 import { getClerkWebhookSecret } from '@/lib/billing/clerk-webhook-config'
 import { checkSeatLimit } from '@/lib/billing/entitlements'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
@@ -49,43 +50,68 @@ async function handlePost(request: Request): Promise<Response> {
         const userId = event.data.public_user_data.user_id
 
         const plan = await getPlanForOwner(orgId)
+        let allowed = true
 
-        if (plan.seats == null) {
-          // Enterprise: unlimited seats — always allow.
-          break
-        }
-
-        const { clerkClient } = await import(
-          '@clerk/tanstack-react-start/server'
-        )
-        const memberships =
-          await clerkClient().organizations.getOrganizationMembershipList({
-            organizationId: orgId,
-            limit: 100,
-          })
-        const count = memberships.data.length
-
-        // The `organizationMembership.created` webhook fires after Clerk has
-        // already added the new member, so `count` is the post-addition total.
-        // `checkSeatLimit` uses `used < limit` ("is there room for one more?"),
-        // so pass the pre-addition count to ask whether this new member fits.
-        const check = checkSeatLimit(plan, count - 1)
-        if (!check.allowed) {
-          await clerkClient().organizations.deleteOrganizationMembership({
-            organizationId: orgId,
-            userId,
-          })
-          logInfo(
-            '[clerk-webhook] seat cap enforced — over-limit membership rolled back',
-            {
-              orgId,
-              userId,
-              planId: plan.id,
-              seats: plan.seats,
-              currentCount: count,
-            }
+        if (plan.seats != null) {
+          const { clerkClient } = await import(
+            '@clerk/tanstack-react-start/server'
           )
+          const memberships =
+            await clerkClient().organizations.getOrganizationMembershipList({
+              organizationId: orgId,
+              limit: 100,
+            })
+          const count = memberships.data.length
+
+          // The `organizationMembership.created` webhook fires after Clerk
+          // has already added the new member, so `count` is the
+          // post-addition total. `checkSeatLimit` uses `used < limit` ("is
+          // there room for one more?"), so pass the pre-addition count to ask
+          // whether this new member fits.
+          const check = checkSeatLimit(plan, count - 1)
+          allowed = check.allowed
+          if (!allowed) {
+            await clerkClient().organizations.deleteOrganizationMembership({
+              organizationId: orgId,
+              userId,
+            })
+            logInfo(
+              '[clerk-webhook] seat cap enforced — over-limit membership rolled back',
+              {
+                orgId,
+                userId,
+                planId: plan.id,
+                seats: plan.seats,
+                currentCount: count,
+              }
+            )
+          }
         }
+
+        // Best-effort audit trail; logEvent never throws so this can't affect
+        // the webhook's 202 acknowledgement either way.
+        await logEvent({
+          orgId,
+          userId,
+          event: 'member.invited',
+          resource: userId,
+          action: 'invite',
+          result: allowed ? 'success' : 'denied',
+        })
+        break
+      }
+      case 'organizationMembership.deleted': {
+        const orgId = event.data.organization.id
+        const userId = event.data.public_user_data.user_id
+
+        await logEvent({
+          orgId,
+          userId,
+          event: 'member.removed',
+          resource: userId,
+          action: 'delete',
+          result: 'success',
+        })
         break
       }
       default:

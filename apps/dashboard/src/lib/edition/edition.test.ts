@@ -107,6 +107,7 @@ describe('isEnabled', () => {
       'rbac',
       'fleet',
       'cloud',
+      'audit',
     ]
     for (const f of features) {
       expect(isEnabled(f, env)).toBe(false)
@@ -121,6 +122,7 @@ describe('isEnabled', () => {
       'rbac',
       'fleet',
       'cloud',
+      'audit',
     ]
     for (const f of features) {
       expect(isEnabled(f, env)).toBe(true)

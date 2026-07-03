@@ -15,6 +15,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { logEvent } from '@/lib/audit/logEvent'
 import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import {
   getPolarClient,
@@ -104,6 +105,23 @@ async function handlePost(request: Request): Promise<Response> {
       // buyer when externalCustomerId was still a user id (first payment).
       metadata: { userId, planId, period },
     })
+
+    // Best-effort audit trail — org-scoped only (a first-time upgrade with no
+    // org yet has nothing to scope the row to; the webhook logs
+    // billing.plan_changed once Polar confirms the org-scoped subscription).
+    // Same `org_` id-prefix convention applySubscription() uses in
+    // webhooks/polar.ts to tell an org owner from a user owner.
+    if (ownerId.startsWith('org_')) {
+      await logEvent({
+        orgId: ownerId,
+        userId,
+        event: 'billing.checkout',
+        resource: `${planId}:${period}`,
+        action: 'create',
+        result: 'success',
+      })
+    }
+
     return createSuccessResponse({ url: checkout.url })
   } catch (error) {
     return mapConnectionApiError(error, ROUTE)
@@ -117,3 +135,6 @@ export const Route = createFileRoute('/api/v1/billing/checkout')({
     },
   },
 })
+
+// Exported for unit tests only.
+export { handlePost as __handlePostForTests }

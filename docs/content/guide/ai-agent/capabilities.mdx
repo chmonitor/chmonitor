@@ -11,7 +11,7 @@ The agent exposes a small set of **powerful primitives** (22 tools, plus 3 env-g
 | Category | What it covers | Tools |
 |---|---|---|
 | Schema & exploration | Databases, tables, columns, ad-hoc SQL | `query`, `list_databases`, `list_tables`, `get_table_schema`, `explore_table_schema` |
-| Query analysis | Running, slow, failed queries; EXPLAIN | `get_running_queries`, `get_slow_queries`, `get_failed_queries`, `explain_query` |
+| Query analysis | Running, slow, failed queries; EXPLAIN; pre-flight cost estimate | `get_running_queries`, `get_slow_queries`, `get_failed_queries`, `explain_query`, `estimate_query_cost` |
 | Health, storage, replication, merges | Metrics, disks, parts, replication, merges | `get_metrics`, `get_disk_usage`, `get_table_parts`, `get_replication_status`, `get_merge_status` |
 | Capacity planning | Disk-full forecast, TTL/retention advice (recommend-only) | `forecast_disk_capacity`, `suggest_ttl_adjustment` |
 | Aggregation advisor | Design MV/projection DDL from frequent aggregation queries, with a size estimate (recommend-only) | `recommend_materialized_view` |
@@ -41,6 +41,7 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 | `get_slow_queries` | Slowest completed queries from the query log. | Reads `system.query_log`. |
 | `get_failed_queries` | Recent failed queries with error details. | Reads `system.query_log`. |
 | `explain_query` | EXPLAIN PLAN / PIPELINE / PLAN with indexes for a query. | |
+| `estimate_query_cost` | Pre-flight cost estimate (rows scanned, bytes read, peak memory, wall time, confidence) from EXPLAIN alone. | Read-only and recommend-only — runs EXPLAIN only, never executes the analyzed query. |
 | `get_metrics` | Server health: version, uptime, active connections, memory. | Reads `system.metrics`. |
 | `get_disk_usage` | Per-disk free and total space. | Reads `system.disks`. |
 | `get_table_parts` | Part-level info for a table: rows, size, compression ratio. | Reads `system.parts`. |
