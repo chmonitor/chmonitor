@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { AppSidebar } from '@/components/app-sidebar'
 import { GlobalAssistantModal } from '@/components/assistant-ui/global-assistant-modal'
+import { PaywallHost } from '@/components/billing/paywall-host'
 import { KeyboardShortcuts } from '@/components/controls/keyboard-shortcuts'
 import { HeaderActions } from '@/components/header/header-actions'
 import { Breadcrumb } from '@/components/navigation/breadcrumb'
@@ -65,6 +66,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </SidebarInset>
       </ResizableSidebarProvider>
       <GlobalAssistantModal />
+      <PaywallHost />
       <Toaster />
     </>
   )

@@ -5,7 +5,11 @@
  * for consistent error handling across the API layer.
  */
 
-import type { BillingLimitClassification, ErrorClassification } from './types'
+import type {
+  BillingLimitClassification,
+  BillingLimitReason,
+  ErrorClassification,
+} from './types'
 
 import { ApiErrorType } from '@/lib/api/types'
 
