@@ -84,7 +84,7 @@ async function handlePatch(
     }
   }
 
-  let eventTypes: ReturnType<typeof parseEventTypes>
+  let eventTypes: ReturnType<typeof parseEventTypes> | undefined
   if (body.eventTypes !== undefined) {
     eventTypes = parseEventTypes(body.eventTypes)
     if (!eventTypes) {

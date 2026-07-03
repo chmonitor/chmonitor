@@ -82,7 +82,7 @@ function SubscriptionRow({
 }: {
   subscription: WebhookSubscriptionInfo
   onDeleted: () => void
-  onToggled: (enabled: boolean) => void
+  onToggled: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -93,7 +93,7 @@ function SubscriptionRow({
     setBusy(true)
     try {
       await updateSubscription(subscription.id, { enabled: checked })
-      onToggled(checked)
+      onToggled()
     } catch {
       toast.error('Failed to update subscription')
     } finally {

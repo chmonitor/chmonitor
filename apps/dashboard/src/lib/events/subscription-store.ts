@@ -205,7 +205,9 @@ export async function listEnabledSubscriptionsForEvent(
   eventType: string
 ): Promise<WebhookSubscription[]> {
   const all = await listSubscriptions(userId)
-  return all.filter((s) => s.enabled && s.eventTypes.includes(eventType))
+  return all.filter(
+    (s) => s.enabled && (s.eventTypes as readonly string[]).includes(eventType)
+  )
 }
 
 export async function createSubscription(
