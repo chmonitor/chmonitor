@@ -38,11 +38,31 @@ interface FakeRow {
   channel: string | null
 }
 
-function makeFakeD1() {
+/** A pre-configured `alert_routes` row, as `alert-routing.ts`'s `listRoutes` reads it. */
+interface FakeRouteRow {
+  id: string
+  owner_id: string
+  match_rule: string
+  match_host: string
+  channel_url: string
+  enabled: number
+  created_at: number
+}
+
+/**
+ * `routes` seeds what the SELECT in `alert-routing.ts` (`listRoutes`) returns,
+ * so tests can exercise the sweep's fan-out over ≥1 configured routes — every
+ * other test in this file passes no routes, which only exercises the legacy
+ * global-webhook fallback (`resolveTargets` sees `[]` and falls back).
+ * `prepare()` branches on the SQL's target table, mirroring
+ * `alert-routing.test.ts`'s fake-D1 pattern.
+ */
+function makeFakeD1(routes: FakeRouteRow[] = []) {
   const rows: FakeRow[] = []
   return {
     rows,
-    prepare(_sql: string) {
+    prepare(sql: string) {
+      const isRoutesSelect = /FROM alert_routes/i.test(sql)
       return {
         bind(...args: unknown[]) {
           return {
@@ -90,6 +110,9 @@ function makeFakeD1() {
               })
               return { meta: { changes: 1 } }
             },
+            async all<T>(): Promise<{ results: T[] }> {
+              return { results: (isRoutesSelect ? routes : []) as T[] }
+            },
           }
         },
       }
@@ -108,6 +131,12 @@ mock.module('@chm/platform', () => ({
 // --- synthetic rule + ClickHouse stubs --------------------------------------
 const TEST_RULE_MARKER = '__TEST_SWEEP_MARKER__'
 const TEST_RULE_ID = 'test-sweep-rule'
+// A second, always-ok, non-optional synthetic base rule — used as a compound
+// rule dependency below. Every real builtin rule is `optional: true` with a
+// `tableCheck`, and the fake `system.tables` probe response never contains a
+// real table name, so builtin rules are always skipped in this suite; a
+// compound rule that depended on one would never see its dependency run.
+const TEST_RULE_ID_2 = 'test-sweep-rule-2'
 
 let testValue = 50
 
@@ -133,6 +162,7 @@ mock.module('@/lib/insights/generate-insights', () => ({
 
 const { alertStateStore } = await import('./alert-state-store')
 const { ruleRegistry } = await import('@/lib/alerting/rule-registry')
+const { compoundRuleRegistry } = await import('@/lib/alerting/compound-rules')
 const { buildAlertEventRecord, runHealthSweep } = await import('./server-sweep')
 
 ruleRegistry.register({
@@ -142,6 +172,16 @@ ruleRegistry.register({
   description: 'Synthetic rule for server-sweep.test.ts',
   sql: `SELECT 1 /* ${TEST_RULE_MARKER} */`,
   valueKey: 'test_value',
+  defaults: { warning: 10, critical: 20 },
+})
+
+ruleRegistry.register({
+  id: TEST_RULE_ID_2,
+  type: 'custom',
+  title: 'Test Sweep Rule 2',
+  description: 'Second synthetic (always-ok) rule for compound-rule tests.',
+  sql: `SELECT 0 AS always_ok_value`,
+  valueKey: 'always_ok_value',
   defaults: { warning: 10, critical: 20 },
 })
 
@@ -338,5 +378,221 @@ describe('runHealthSweep — alert-history hook', () => {
     const summary = await runHealthSweep()
 
     expect(summary.alertsDispatched).toBe(1)
+  })
+
+  test('a matched route fans out to its channel INSTEAD OF the legacy webhook', async () => {
+    fakeDb = makeFakeD1([
+      {
+        id: 'route-1',
+        owner_id: '',
+        match_rule: TEST_RULE_ID,
+        match_host: '*',
+        channel_url: 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+        enabled: 1,
+        created_at: 0,
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    // Exactly one delivery — to the matched route's channel, not the legacy
+    // global URL (env HEALTH_ALERT_WEBHOOK_URL) — matched routes take
+    // precedence, the legacy URL is a fallback only when nothing matches.
+    expect(posted).toEqual([
+      'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+    ])
+    expect(fakeDb.rows).toHaveLength(1)
+    expect(fakeDb.rows[0].channel).toBe('slack')
+  })
+
+  test('two matched routes fan out to both channels, but dedup evaluates the condition only ONCE', async () => {
+    fakeDb = makeFakeD1([
+      {
+        id: 'route-1',
+        owner_id: '',
+        match_rule: '*',
+        match_host: '*',
+        channel_url: 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+        enabled: 1,
+        created_at: 0,
+      },
+      {
+        id: 'route-2',
+        owner_id: '',
+        match_rule: '*',
+        match_host: '*',
+        channel_url: 'https://discord.com/api/webhooks/1/abc',
+        enabled: 1,
+        created_at: 0,
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const first = await runHealthSweep()
+
+    // One finding, two matched channels: two deliveries, two audit rows —
+    // but the sweep's summary still counts ONE dispatched alert (the
+    // finding-level decision), and each channel got its own row.
+    expect(first.alertsDispatched).toBe(1)
+    expect(posted).toHaveLength(2)
+    expect(posted.sort()).toEqual(
+      [
+        'https://discord.com/api/webhooks/1/abc',
+        'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+      ].sort()
+    )
+    expect(fakeDb.rows).toHaveLength(2)
+    expect(fakeDb.rows.map((r) => r.channel).sort()).toEqual([
+      'discord',
+      'slack',
+    ])
+    // Every row shares the same decision (fan-out didn't fork the decision
+    // per channel): both are the 'new' notify for this finding.
+    for (const row of fakeDb.rows) {
+      expect(row.decision_kind).toBe('new')
+      expect(row.delivered).toBe(1)
+    }
+
+    // STOP condition: evaluateAlert ran ONCE for this finding, not once per
+    // channel — a second sweep of the same persistent condition must be
+    // suppressed by dedup/cooldown (no further deliveries), not fire again
+    // per matched channel.
+    posted.length = 0
+    fakeDb.rows.length = 0
+    const second = await runHealthSweep()
+    expect(second.alertsDispatched).toBe(0)
+    expect(posted).toHaveLength(0)
+  })
+
+  test('no route matches and no legacy URL configured -> no delivery, but the condition still commits', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    fakeDb = makeFakeD1([
+      {
+        id: 'route-1',
+        owner_id: '',
+        match_rule: 'unrelated-rule-id',
+        match_host: '*',
+        channel_url: 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+        enabled: 1,
+        created_at: 0,
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(posted).toHaveLength(0)
+    expect(summary.alertsDispatched).toBe(0)
+    expect(fakeDb.rows).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runHealthSweep — compound rules (plan 31)
+// ---------------------------------------------------------------------------
+describe('runHealthSweep — compound rules', () => {
+  afterEach(() => {
+    compoundRuleRegistry.unregister('throwing-compound-rule')
+    compoundRuleRegistry.unregister('test-compound-rule')
+  })
+
+  test('a throwing compound rule never breaks base-rule evaluation or dispatch', async () => {
+    compoundRuleRegistry.register({
+      id: 'throwing-compound-rule',
+      title: 'Throwing Compound Rule',
+      description: 'Always throws — proves fail-open.',
+      depends: [TEST_RULE_ID, TEST_RULE_ID_2],
+      evaluate: () => {
+        throw new Error('boom: compound predicate exploded')
+      },
+    })
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // The base test rule still fired and dispatched normally.
+    expect(summary.alertsDispatched).toBe(1)
+    const host = summary.hosts[0]
+    expect(host.errored).toBeGreaterThanOrEqual(1)
+  })
+
+  test('a compound rule fires and dedups under its own hostId:compoundId key', async () => {
+    compoundRuleRegistry.register({
+      id: 'test-compound-rule',
+      title: 'Test Compound Rule',
+      description: 'Fires whenever the test base rule fires.',
+      depends: [TEST_RULE_ID, TEST_RULE_ID_2],
+      evaluate: (inputs) =>
+        inputs[TEST_RULE_ID]?.severity === 'critical' ? 'critical' : 'ok',
+    })
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // Base rule + compound rule both dispatched, each under its own dedup key.
+    expect(summary.alertsDispatched).toBe(2)
+    const rules = fakeDb.rows.map((r) => r.rule).sort()
+    expect(rules).toEqual(['test-compound-rule', TEST_RULE_ID].sort())
+
+    expect(alertStateStore.get(`0:test-compound-rule`)?.severity).toBe(
+      'critical'
+    )
+    // Base rule's own dedup identity is untouched by the compound rule.
+    expect(alertStateStore.get(`0:${TEST_RULE_ID}`)?.severity).toBe('critical')
+  })
+
+  test("a compound-on-compound dependency sees its upstream compound rule's result", async () => {
+    compoundRuleRegistry.register({
+      id: 'test-compound-rule',
+      title: 'Test Compound Rule',
+      description: 'Fires whenever the test base rule fires.',
+      depends: [TEST_RULE_ID, TEST_RULE_ID_2],
+      evaluate: (inputs) =>
+        inputs[TEST_RULE_ID]?.severity === 'critical' ? 'critical' : 'ok',
+    })
+    compoundRuleRegistry.register({
+      id: 'test-compound-of-compound',
+      title: 'Test Compound-of-Compound',
+      description: 'Depends on another compound rule, not just base rules.',
+      depends: ['test-compound-rule'],
+      evaluate: (inputs) => inputs['test-compound-rule']?.severity ?? 'ok',
+    })
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // Base rule + both compound rules dispatched, each under its own key.
+    expect(summary.alertsDispatched).toBe(3)
+    expect(alertStateStore.get('0:test-compound-of-compound')?.severity).toBe(
+      'critical'
+    )
+
+    compoundRuleRegistry.unregister('test-compound-of-compound')
   })
 })

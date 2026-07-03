@@ -1,13 +1,19 @@
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
 import type {
+  CompoundRuleDef,
+  CompoundRuleInput,
+} from '@/lib/alerting/compound-rules'
+import type {
   AlertRuleDef,
   AlertRuleSeverity,
 } from '@/lib/alerting/rule-registry'
 import type { AlertEventRecord } from './alert-history-store'
+import type { AlertRoute } from './alert-routing'
 import type { AlertDecision } from './alert-state-store'
 
 import { detectAdapter } from './adapters'
 import { recordAlertEvent } from './alert-history-store'
+import { listRoutes, resolveTargets } from './alert-routing'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
 import {
   getServerAlertConfig,
@@ -17,6 +23,10 @@ import {
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
+import {
+  compoundRuleRegistry,
+  topoSortCompound,
+} from '@/lib/alerting/compound-rules'
 import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
 
@@ -232,25 +242,60 @@ export function buildAlertEventRecord(params: {
 }
 
 /**
+ * Owner id the sweep loads routes under. The sweep is a session-less cron
+ * job over env-configured hosts (`getClickHouseConfigs()`), never per-user D1
+ * connections — same reasoning as `alert-history-store.ts`'s host-only
+ * scoping — so it uses the OSS single-tenant convention rather than resolving
+ * a Clerk user. Per-user cloud routing over env hosts is not in scope here;
+ * see plans/30-per-rule-alert-routing.md open question 3.
+ */
+const SWEEP_ROUTING_OWNER_ID = ''
+
+/**
  * Autonomous health sweep: runs every registered alert rule over ALL hosts,
  * classifies severity from each rule's thresholds (with env overrides), and
- * dispatches a webhook alert for any finding at or above the configured minimum
+ * dispatches a notification for any finding at or above the configured minimum
  * severity — but only when the dedup state store says the alert is genuinely
  * new, escalated, past its cooldown, or a recovery. A persistent condition no
- * longer webhooks on every run.
+ * longer notifies on every run.
  *
- * Disabled (or no webhook URL) → rules still run, alerts are skipped.
+ * Destinations: for each finding, {@link resolveTargets} fans out to every
+ * matching per-rule/per-host route's channel URL (`alert-routing.ts`), or
+ * falls back to the legacy global `HEALTH_ALERT_WEBHOOK_URL` when nothing
+ * matches — so deployments that never configure a route behave exactly as
+ * before. Routes are best-effort (D1-backed; degrade to `[]` when D1 isn't
+ * configured), so a routing-table hiccup never blocks the legacy fallback.
+ *
+ * Disabled (or no webhook URL and no routes) → rules still run, alerts are
+ * skipped.
  */
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
   const settings = getServerAlertConfig()
   const webhookConfigured = Boolean(settings.webhookUrl)
-  const canDispatch = settings.webhookEnabled && webhookConfigured
+  const routes: AlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
+  const canDispatch =
+    settings.webhookEnabled && (webhookConfigured || routes.length > 0)
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
   const rules = ruleRegistry.getAll()
   const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
+
+  // Compound rules (plans 31): base rules already ran above their sweep. Order
+  // them once up front so dependency ordering is computed a single time, not
+  // per host. A misconfigured compound rule (cycle / unknown dependency) must
+  // never break base-rule evaluation — fall back to "no compound rules" and
+  // keep going.
+  let orderedCompoundRules: CompoundRuleDef[] = []
+  try {
+    orderedCompoundRules = topoSortCompound(
+      compoundRuleRegistry.getAll(),
+      rules.map((r) => r.id)
+    )
+  } catch (err) {
+    error('[health-sweep] compound rule ordering failed', err as Error)
+  }
 
   const configs = getClickHouseConfigs()
 
@@ -261,6 +306,117 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   let alertsSuppressed = 0
   let recoveries = 0
 
+  /**
+   * Dedup + dispatch a single finding (base or compound rule) via the shared
+   * webhook path. Sub-threshold severities count as 'ok' so the state store
+   * only tracks conditions the operator cares about (and a drop below the
+   * threshold reads as a recovery). Mutates the outer `alertsDispatched` /
+   * `alertsSuppressed` / `recoveries` counters and pushes to `findings`'s
+   * caller-owned array — kept as a closure (rather than returning deltas) to
+   * match the single call site's original shape per rule/host iteration.
+   */
+  async function dispatchFinding(params: {
+    hostId: number
+    hostName: string
+    ruleId: string
+    /** Rule type (base rules) or `'compound'` — matched by `resolveTargets`. */
+    ruleType: string
+    ruleTitle: string
+    severity: Severity
+    value: number | null
+    label: string
+  }): Promise<void> {
+    const {
+      hostId,
+      hostName: name,
+      ruleId,
+      ruleType,
+      ruleTitle,
+      severity,
+      value,
+      label,
+    } = params
+    const effective: Severity =
+      SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
+    const { decision, commit } = evaluateAlert(alertStateStore, {
+      hostId,
+      ruleId,
+      severity: effective,
+      cooldownMs,
+    })
+    if (decision.notify) {
+      const text =
+        decision.kind === 'recovery'
+          ? `[RECOVERY] ${ruleTitle} — resolved (host ${name})`
+          : `[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
+
+      // Fan out to every matched route's channel (plan 30), falling back to
+      // the legacy global webhook when nothing matches (see `alert-routing.ts`).
+      // Dedup (`evaluateAlert`) already ran ONCE above for this finding —
+      // fan-out never multiplies cooldown state, it only multiplies where the
+      // single decision is sent.
+      const targets = resolveTargets(
+        routes,
+        { ruleId, ruleType, hostId, hostName: name },
+        settings.webhookUrl
+      )
+
+      let anyDelivered = false
+      for (const url of targets) {
+        const result = await postWebhook(url, text)
+        if (result.ok) anyDelivered = true
+
+        // Best-effort audit trail per channel — recorded on both success and
+        // failure so a slow or failing D1 write can never delay or drop the
+        // alert that was just dispatched. recordAlertEvent already never
+        // throws; the try/catch here is defense-in-depth, mirroring the
+        // generateInsights call below. detectAdapter picks the per-URL channel
+        // label (plan 26), so a fan-out to mixed Slack/Discord/Opsgenie
+        // destinations is audited per its own adapter.
+        try {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId,
+              hostLabel: name,
+              ruleId,
+              decision,
+              value,
+              delivered: result.ok,
+              error: result.error,
+              channel: detectAdapter(url).id,
+            })
+          )
+        } catch (err) {
+          debug(
+            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+
+      // Persist "notified" only when there was nothing to deliver (no
+      // targets — not a failure) or at least one channel succeeded. A failed
+      // delivery with no successes leaves no record, so the next sweep retries
+      // instead of suppressing.
+      if (targets.length === 0 || anyDelivered) {
+        commit()
+        if (anyDelivered) {
+          alertsDispatched++
+          if (decision.kind === 'recovery') recoveries++
+        }
+      }
+    } else {
+      // Non-notify decisions (dedup/de-escalation/recovery-cleared
+      // bookkeeping) still commit — only the notify path gates on
+      // delivery.
+      commit()
+      if (SEVERITY_ORDER[severity] >= minRank) {
+        // A current finding that we chose not to re-send (deduped).
+        alertsSuppressed++
+      }
+    }
+  }
+
   for (const config of configs) {
     const name = hostLabel(config)
     let checksRun = 0
@@ -268,6 +424,12 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     let skipped = 0
 
     const tables = await getExistingSystemTables(config.id)
+
+    // Per-host base rule results, keyed by rule id — feeds compound rules
+    // below. Populated for every rule that actually ran (regardless of
+    // severity), so a compound predicate can read the raw value/severity of
+    // a healthy base rule too (e.g. `readonly-replicas` at 0).
+    const perHostResults: Record<string, CompoundRuleInput> = {}
 
     for (const rule of rules) {
       if (!rule.sql) continue
@@ -283,6 +445,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           ...(thresholdOverrides[rule.id] ?? {}),
         }
         const severity = classifyValue(value, thresholds)
+        perHostResults[rule.id] = { value, severity }
 
         if (severity !== 'ok') {
           findings.push({
@@ -296,75 +459,87 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           })
         }
 
-        // Dedup + dispatch. Sub-threshold severities count as 'ok' so the state
-        // store only tracks conditions the operator cares about (and a drop
-        // below the threshold reads as a recovery).
         if (canDispatch) {
-          const effective: Severity =
-            SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
-          const { decision, commit } = evaluateAlert(alertStateStore, {
+          await dispatchFinding({
             hostId: config.id,
+            hostName: name,
             ruleId: rule.id,
-            severity: effective,
-            cooldownMs,
+            ruleTitle: rule.title,
+            severity,
+            value,
+            ruleType: rule.type,
+            label: rule.formatLabel ? rule.formatLabel(value) : String(value),
           })
-          if (decision.notify) {
-            const label = rule.formatLabel
-              ? rule.formatLabel(value)
-              : String(value)
-            const text =
-              decision.kind === 'recovery'
-                ? `[RECOVERY] ${rule.title} — resolved (host ${name})`
-                : `[${effective.toUpperCase()}] ${rule.title} — ${label} (host ${name})`
-            const result = await postWebhook(settings.webhookUrl, text)
-            if (result.ok) {
-              // Persist "notified" only now — a failed delivery leaves no
-              // record, so the next sweep retries instead of suppressing.
-              commit()
-              alertsDispatched++
-              if (decision.kind === 'recovery') recoveries++
-            }
-
-            // Best-effort audit trail — recorded AFTER the commit/counters
-            // above (on both success and failure) so a slow or failing D1
-            // write can never delay or drop the alert that was just
-            // dispatched. recordAlertEvent already never throws; the
-            // try/catch here is defense-in-depth, mirroring the
-            // generateInsights call below.
-            try {
-              await recordAlertEvent(
-                buildAlertEventRecord({
-                  hostId: config.id,
-                  hostLabel: name,
-                  ruleId: rule.id,
-                  decision,
-                  value,
-                  delivered: result.ok,
-                  error: result.error,
-                  channel: detectAdapter(settings.webhookUrl).id,
-                })
-              )
-            } catch (err) {
-              debug(
-                `[health-sweep] alert-history record failed for host ${config.id} rule ${rule.id}`,
-                err instanceof Error ? err.message : String(err)
-              )
-            }
-          } else {
-            // Non-notify decisions (dedup/de-escalation/recovery-cleared
-            // bookkeeping) still commit — only the notify path gates on
-            // delivery.
-            commit()
-            if (SEVERITY_ORDER[severity] >= minRank) {
-              // A current finding that we chose not to re-send (deduped).
-              alertsSuppressed++
-            }
-          }
         }
       } catch (err) {
         errored++
         debug(
           `[health-sweep] check "${rule.id}" failed on host ${config.id}`,
+          err instanceof Error ? err.message : String(err)
+        )
+      }
+    }
+
+    // Compound rules (plan 31): evaluated AFTER all base rules for this host,
+    // in dependency order, purely from `perHostResults` (no extra SQL). Each
+    // compound rule's own result is written back into `perHostResults` (as
+    // `{ value: null, severity }`) so a *later* compound rule in the topo
+    // order may itself depend on it — `topoSortCompound` already validates
+    // and orders compound-on-compound dependencies (v1 ships base-only
+    // built-ins, but the sweep honors the general case the ordering
+    // guarantees). Each compound rule dedups under its own
+    // `hostId:compoundId` key — never a base rule's key — and dispatches via
+    // the exact same shared path. A throwing/misconfigured `evaluate()` is
+    // caught per-rule and never breaks base-rule evaluation or the host loop.
+    for (const compound of orderedCompoundRules) {
+      const inputs: Record<string, CompoundRuleInput> = {}
+      let missingDependency = false
+      for (const dep of compound.depends) {
+        const input = perHostResults[dep]
+        if (!input) {
+          missingDependency = true
+          break
+        }
+        inputs[dep] = input
+      }
+      // A dependency didn't run on this host (skipped optional table, or
+      // errored) — nothing to correlate; skip silently, not an error.
+      if (missingDependency) continue
+
+      try {
+        const severity = compound.evaluate(inputs)
+        perHostResults[compound.id] = { value: null, severity }
+        if (severity !== 'ok') {
+          findings.push({
+            hostId: config.id,
+            hostName: name,
+            checkId: compound.id,
+            title: compound.title,
+            severity,
+            value: null,
+            label: compound.formatLabel
+              ? compound.formatLabel(inputs)
+              : severity,
+          })
+        }
+        if (canDispatch) {
+          await dispatchFinding({
+            hostId: config.id,
+            hostName: name,
+            ruleId: compound.id,
+            ruleType: 'compound',
+            ruleTitle: compound.title,
+            severity,
+            value: null,
+            label: compound.formatLabel
+              ? compound.formatLabel(inputs)
+              : severity,
+          })
+        }
+      } catch (err) {
+        errored++
+        debug(
+          `[health-sweep] compound rule "${compound.id}" failed on host ${config.id}`,
           err instanceof Error ? err.message : String(err)
         )
       }

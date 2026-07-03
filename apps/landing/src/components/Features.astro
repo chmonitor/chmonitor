@@ -14,6 +14,7 @@
           <p>The built-in AI agent connects over MCP and answers questions about schemas, storage, query performance and health, then links you straight to the matching view.</p>
           <ul class="feat-list">
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Chat about schema, storage, slow queries and system health</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Recommend-only advisor: skip indexes, projections, partition keys and PREWHERE rewrites, ranked by estimated impact &mdash; nothing is ever applied for you</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Bring your own model, skills and MCP tools</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Read-only MCP endpoint for Claude, Cursor or any client</li>
           </ul>
@@ -63,6 +64,30 @@
         <div class="feat-shot reveal">
           <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
           <img src="/landing-assets/topology.png" alt="chmonitor cluster topology: ClickHouse nodes, shards, replicas and the Keeper quorum with live replication links" width="1024" height="564" loading="lazy" decoding="async" />
+        </div>
+      </div>
+
+      <!-- Alerting -->
+      <div id="feature-alerting" class="feature flip">
+        <div class="feat-text reveal">
+          <span class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+          <h3>Know before your users do</h3>
+          <p>Built-in health checks watch replication lag, readonly replicas, failed queries, OOM kills, disk and memory, each with a warning and critical threshold you can tune per check. When one fires, chmonitor pushes it straight to your team and logs it to history.</p>
+          <ul class="feat-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> One webhook URL, Slack or Discord &mdash; no extra glue to wire up</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Editable warning / critical thresholds per check, with a full history of every fire and recovery</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> One-click AI audit prompt turns any alert into a ready-to-paste diagnosis for your favorite AI agent</li>
+          </ul>
+        </div>
+        <div class="feat-shot reveal">
+          <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
+          <div class="carousel" data-autoplay="4600">
+            <div class="ctrack">
+              <div class="cslide"><img src="/landing-assets/health-summary.png" alt="chmonitor health checks with editable warning and critical thresholds" width="1024" height="564" loading="lazy" decoding="async" /></div>
+              <div class="cslide"><img src="/landing-assets/health-audit.png" alt="chmonitor AI audit prompt generated from a critical replication lag alert" width="1024" height="684" loading="lazy" decoding="async" /></div>
+            </div>
+            <div class="cdots"></div>
+          </div>
         </div>
       </div>
     </div>

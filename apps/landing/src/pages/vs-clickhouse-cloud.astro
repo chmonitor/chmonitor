@@ -1,0 +1,86 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import ComparisonTable from '../components/ComparisonTable.astro'
+import FinalCta from '../components/FinalCta.astro'
+import Footer from '../components/Footer.astro'
+import { clickhouseCloudRows } from '../data/comparisons'
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'chmonitor vs ClickHouse Cloud', item: canonical },
+  ],
+}
+---
+<Base
+  title="chmonitor vs ClickHouse Cloud's built-in monitoring — Honest 2026 Comparison"
+  description="chmonitor vs ClickHouse Cloud's console monitoring, Ask AI and remote MCP server: a dated, sourced feature matrix. Complementary, not exclusive — chmonitor also connects to ClickHouse Cloud."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head reveal">
+          <span class="eyebrow">chmonitor vs ClickHouse Cloud</span>
+          <h1>An ops layer vs a managed hosting service</h1>
+          <p>ClickHouse Cloud is a genuinely zero-ops way to run ClickHouse — autoscaling, backups, upgrades handled for you, plus its own Ask AI agent and a remote MCP server in beta. chmonitor isn't a hosting product; it's an independent monitoring and advisor layer that works on any ClickHouse — including ClickHouse Cloud itself. They're not mutually exclusive.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Feature matrix</span>
+          <h2>chmonitor vs ClickHouse Cloud's built-in tooling</h2>
+          <p>ClickHouse Cloud legitimately wins on zero-ops managed hosting — that's not something chmonitor does either.</p>
+        </div>
+        <ComparisonTable competitor="ClickHouse Cloud" rows={clickhouseCloudRows}>
+          <Fragment slot="note">
+            ClickHouse Cloud details reflect public docs and pricing as of July 2026 and may change — verify at <a href="https://clickhouse.com/pricing" target="_blank" rel="noopener">clickhouse.com/pricing</a> and the <a href="https://clickhouse.com/blog/agentic-analytics-ask-ai-agent-and-remote-mcp-server-beta-launch" target="_blank" rel="noopener">Ask AI / remote MCP server beta announcement</a>. chmonitor rows reflect the current self-hosted/OSS build.
+          </Fragment>
+        </ComparisonTable>
+      </div>
+    </section>
+
+    <section id="tco" class="band">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Total cost of ownership</span>
+          <h2>Pick your hosting, keep the ops advisor</h2>
+          <p>chmonitor doesn't compete with ClickHouse Cloud's hosting — it adds the ops-focused advisor and alerting layer on top, wherever your ClickHouse runs.</p>
+        </div>
+        <div class="cap-grid">
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+            <h4>Not locked to one hosting vendor</h4>
+            <p>Works against self-managed ClickHouse, Altinity, or ClickHouse Cloud — connect any of them, switch hosting without losing your monitoring.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></span>
+            <h4>Built for cluster ops, not just queries</h4>
+            <p>A recommend-only query/MV advisor and statistical anomaly baselines built to run a cluster, not just analyze data in it.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>
+            <h4>MCP server, every deployment</h4>
+            <p>Self-hosted chmonitor ships the same MCP server ClickHouse Cloud offers only in beta, and only to its own managed service.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <h4>Free self-hosted, period</h4>
+            <p>GPL-3.0, no usage-based bill. ClickHouse Cloud bills compute + storage with no permanent free tier.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <FinalCta />
+  </main>
+  <Footer />
+</Base>

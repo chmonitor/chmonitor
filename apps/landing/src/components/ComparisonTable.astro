@@ -1,0 +1,73 @@
+---
+/**
+ * Shared, data-driven comparison matrix for the /vs-* pages. Renders chmonitor
+ * vs one named competitor across N rows. Reuses the same `.cmp-*` classes as
+ * the homepage `Comparison.astro` table (defined once, globally, in
+ * `layouts/Base.astro`) — no new CSS needed.
+ *
+ * Row cells are either a plain phrase (`kind: 'plain'`, e.g. "Setup time" or
+ * "Cost", where a check/cross would be meaningless) or a check/cross/partial
+ * icon plus a short explanation. Pass a `note` slot for the sourced,
+ * dated disclaimer under the table (mirrors `pricing.astro`'s `.cmp-note`).
+ */
+export type CellKind = 'yes' | 'no' | 'partial' | 'plain'
+
+export interface ComparisonCell {
+  kind: CellKind
+  text: string
+}
+
+export interface ComparisonRow {
+  label: string
+  chm: ComparisonCell
+  them: ComparisonCell
+}
+
+interface Props {
+  /** Header label for the competitor column, e.g. "Grafana + Altinity plugin". */
+  competitor: string
+  rows: ComparisonRow[]
+}
+
+const { competitor, rows } = Astro.props
+
+const ICON_YES = `<svg class="cmp-yes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="m5 12 5 5L20 7"/></svg>`
+const ICON_NO = `<svg class="cmp-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="m18 6-12 12M6 6l12 12"/></svg>`
+const ICON_PARTIAL = `<svg class="cmp-partial" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="M5 12h14"/></svg>`
+
+function iconFor(kind: CellKind): string {
+  switch (kind) {
+    case 'yes':
+      return ICON_YES
+    case 'no':
+      return ICON_NO
+    case 'partial':
+      return ICON_PARTIAL
+    default:
+      return ''
+  }
+}
+---
+<div class="cmp-wrap reveal">
+  <div class="cmp-scroll">
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="cmp-highlight">chmonitor</th>
+          <th>{competitor}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr>
+            <td>{row.label}</td>
+            <td class="cmp-highlight">{row.chm.kind !== 'plain' && <Fragment set:html={iconFor(row.chm.kind)} />} {row.chm.text}</td>
+            <td>{row.them.kind !== 'plain' && <Fragment set:html={iconFor(row.them.kind)} />} {row.them.text}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <div class="cmp-note"><slot name="note" /></div>
+</div>
