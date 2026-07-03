@@ -96,7 +96,7 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 |---|---|---|
 | `CRON_SECRET` | (unset = **endpoint disabled**) | **Required.** Guards `GET /api/cron/health-sweep` and `GET /api/cron/retention-prune`. Pass as `Authorization: Bearer <secret>` (or `?secret=<secret>`). When it is **unset/empty the endpoints fail closed and return HTTP 503** — they do not run. Note that `retention-prune` is **destructive** (it deletes conversation rows past each plan's retention window), which is why these routes refuse to run unauthenticated. |
 | `HEALTH_ALERT_ENABLED` | `false` | Set to `true` to enable webhook dispatch. |
-| `HEALTH_ALERT_WEBHOOK_URL` | (required if enabled) | Slack or Discord incoming webhook URL. Payload is a JSON object with a `text` field. |
+| `HEALTH_ALERT_WEBHOOK_URL` | (required if enabled) | Slack or Discord incoming webhook URL. Payload is `{"text": "...", "content": "..."}` so both render it. See [Alerting to Slack and Discord](https://blog.chmonitor.dev/alerting-to-slack-and-discord/) for setup examples. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity that triggers a notification. Values: `warning` or `critical`. |
 
 <Callout type="warn" title="CRON_SECRET is required">
@@ -153,7 +153,7 @@ The Cloudflare scheduled trigger is routed to the route's `GET` handler. Because
 
 - `system.error_log` is checked separately by the Errors page (under Operations). The Health page uses `system.errors` (in-memory error counts), which resets on server restart.
 - If a system table is missing (e.g., no `system.replicas` on a standalone node), that check is skipped with an "unavailable" state rather than a false positive.
-- The webhook payload is a plain Slack/Discord-compatible JSON object (`{"text": "..."}`). Custom payload shapes are not supported in v1.
+- The webhook payload is a plain Slack/Discord-compatible JSON object (`{"text": "...", "content": "..."}`). Custom payload shapes are not supported in v1.
 - The health-sweep endpoint queries all configured `CLICKHOUSE_HOST` entries. High host counts increase sweep latency.
 
 ## Related

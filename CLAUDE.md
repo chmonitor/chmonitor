@@ -193,6 +193,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Specs | [mcp-clerk-oauth.md](docs/knowledge/mcp-clerk-oauth.md) | MCP endpoint auth postures (open / HMAC API key / Clerk OAuth); either credential accepted when both set; REST token verification runs in both Worker and Next.js runtimes |
 | Specs | [agentstate-conversation-store.md](docs/knowledge/agentstate-conversation-store.md) | AgentState conversation backend: store priority, per-user external_id/tag isolation, append-only upsert, AI enrichment, backend/follow-ups routes |
 | Specs | [query-config-format.md](docs/knowledge/query-config-format.md) | QueryConfig type, versioned SQL, BackgroundBar |
+| Specs | [chart-config-format.md](docs/knowledge/chart-config-format.md) | Declarative chart schema/loader mirroring the query-config declarative system: area/bar factory config as data, chartName → chart-registry key, yAxisTickFormatterKey, lazy lucide-react icon resolution, ported chart templates (dormant, additive-only) |
 | Specs | [cluster-topology.md](docs/knowledge/cluster-topology.md) | Cluster topology SVG: layout pipeline, constant contracts, OKLCH `hsl(var())` gotcha, shared component, verification harness |
 | Development | [component-ci-stability.md](docs/knowledge/component-ci-stability.md) | Cypress component test fragility and fixes |
 | Development | [conventions.md](docs/knowledge/conventions.md) | Coding conventions, file org, component patterns |

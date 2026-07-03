@@ -15,6 +15,7 @@ const ogImage = new URL(image, Astro.site).toString()
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
+  <link rel="alternate" type="application/rss+xml" title="chmonitor blog" href="/rss.xml" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonical} />
   <meta property="og:title" content={title} />
