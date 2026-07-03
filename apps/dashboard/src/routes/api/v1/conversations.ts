@@ -276,9 +276,23 @@ async function handlePost(request: Request): Promise<Response> {
       messages,
     }
 
-    // Save to store
+    // Save to store. The id is freshly minted above (crypto.randomUUID()),
+    // so `written` should always be true; handle `false` defensively as an
+    // unexpected id collision rather than returning a misleading 200.
     const store = await resolveStore()
-    await store.upsert(storedConversation)
+    const { written } = await store.upsert(storedConversation)
+
+    if (!written) {
+      return createApiErrorResponse(
+        {
+          type: ApiErrorType.ValidationError,
+          message: 'Conversation ID collision. Please retry.',
+          details: { timestamp: new Date().toISOString() },
+        },
+        409,
+        ROUTE_CONTEXT_POST
+      )
+    }
 
     // Build response
     const responseData: CreateConversationResponse = {

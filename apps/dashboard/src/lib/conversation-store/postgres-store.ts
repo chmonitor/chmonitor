@@ -253,22 +253,30 @@ export class PostgresStore implements ConversationStore {
    * Create or update a conversation.
    *
    * Uses PostgreSQL's INSERT ... ON CONFLICT (upsert) semantics:
-   * - If conversation exists: replaces all fields including messages
+   * - If conversation exists and is owned by the caller: replaces all fields
+   *   including messages
    * - If conversation doesn't exist: creates new conversation
+   * - If conversation exists but is owned by a different user: the `WHERE`
+   *   guard blocks the update (0 rows affected) rather than reassigning
+   *   ownership to the caller
    *
    * Messages are serialized to JSONB (Postgres automatically converts
    * JavaScript objects to JSONB).
    *
    * @param conversation - Full conversation to upsert
+   * @returns `written: true` if a row was inserted or updated; `written:
+   *   false` when the id belongs to another user and the write was blocked
    */
-  async upsert(conversation: StoredConversation): Promise<void> {
+  async upsert(
+    conversation: StoredConversation
+  ): Promise<{ written: boolean }> {
     await this.ensureInitialized()
 
     try {
       // Serialize messages to JSON string for safe parameter passing
       const messagesJson = JSON.stringify(conversation.messages)
 
-      await this.sql`
+      const res = await this.sql`
         INSERT INTO conversations (
           id, user_id, title, messages, message_count, created_at, updated_at
         )
@@ -282,12 +290,13 @@ export class PostgresStore implements ConversationStore {
           ${conversation.updatedAt}
         )
         ON CONFLICT (id) DO UPDATE SET
-          user_id = EXCLUDED.user_id,
           title = EXCLUDED.title,
           messages = EXCLUDED.messages,
           message_count = EXCLUDED.message_count,
           updated_at = EXCLUDED.updated_at
+        WHERE conversations.user_id = EXCLUDED.user_id
       `
+      return { written: res.count > 0 }
     } catch (error) {
       throw new ConversationStoreError(
         `Failed to upsert conversation: ${error instanceof Error ? error.message : 'Unknown error'}`,

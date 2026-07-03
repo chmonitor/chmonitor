@@ -237,7 +237,7 @@ export interface ConversationStore {
     userId: string,
     conversationId: string
   ): Promise<StoredConversation | null>
-  upsert(conversation: StoredConversation): Promise<void>
+  upsert(conversation: StoredConversation): Promise<{ written: boolean }>
   delete(userId: string, conversationId: string): Promise<void>
   deleteAll(userId: string): Promise<void>
 }

@@ -291,8 +291,26 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       updatedAt: now,
     }
 
-    // Save to store
-    await store.upsert(updatedConversation)
+    // Save to store. The store enforces ownership at the write layer (see
+    // conversation-store/*.ts): a foreign-owned id is refused rather than
+    // reassigned to the caller, surfaced here as `written: false`.
+    const { written } = await store.upsert(updatedConversation)
+
+    // existingConversation came from a user-scoped read, so it is null both
+    // for a genuinely new id (write always succeeds) and for an id owned by
+    // another user (write is blocked). Only the latter yields `written:
+    // false` here, so this precisely detects the blocked cross-tenant case.
+    if (!written && existingConversation === null) {
+      return createApiErrorResponse(
+        {
+          type: ApiErrorType.ValidationError,
+          message: 'Conversation ID belongs to another user.',
+          details: { timestamp: new Date().toISOString() },
+        },
+        409,
+        ROUTE_CONTEXT_PUT
+      )
+    }
 
     // Create response with standardized builder
     const response = createSuccessResponse(
