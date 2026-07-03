@@ -135,6 +135,7 @@ tool modules exposing ~25 tools total (22 by default; the 3 destructive
 | `ask-user-tools` | `ask_user` |
 | `visualization-tools` | `query_and_visualize` |
 | `insight-tools` | `explain_anomaly_score` |
+| `advisor-tools` | `get_optimization_recommendations` |
 | `mv-designer-tools` | `recommend_materialized_view` |
 | `control-tools` (gated) | `kill_query`, `optimize_table`, `kill_mutation` |
 
