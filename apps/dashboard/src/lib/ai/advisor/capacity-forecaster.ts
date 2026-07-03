@@ -117,6 +117,12 @@ export type TtlResult = PartLogUnavailable | TtlSuggestion
  * Build a dense, chronologically-ordered daily byte series over `windowDays`,
  * filling any day with no NewPart events as `0`. Index `0` is the oldest day
  * (`windowDays - 1` days ago); the last index is "today" (`referenceDate`).
+ *
+ * Note: `day` keys from ClickHouse (`toDate(event_time)`) bucket in the
+ * server's configured timezone, while this function keys in UTC. On a
+ * non-UTC server the oldest/newest bucket can be off by one and fall back to
+ * `0` — a minor undercount of growth, not a correctness hazard (30 days of
+ * history absorbs a one-day edge easily).
  */
 export function buildDailySeries(
   rows: Array<{ day: string; bytes: number }>,
