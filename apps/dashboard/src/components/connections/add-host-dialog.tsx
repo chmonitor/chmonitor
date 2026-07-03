@@ -33,12 +33,20 @@ interface AddHostDialogProps {
    * Still goes through the normal test/save validation — prefill only.
    */
   initialPreset?: 'sample'
+  /**
+   * Show the in-form "Use sample" quick-fill chip. Defaults on for the
+   * regular "Add host" entry points; the sample-cluster convert banner opens
+   * this dialog specifically to connect a REAL cluster, so it turns this off
+   * to avoid re-offering the sample there.
+   */
+  showSamplePreset?: boolean
 }
 
 export function AddHostDialog({
   open,
   onOpenChange,
   initialPreset,
+  showSamplePreset = true,
 }: AddHostDialogProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -135,7 +143,7 @@ export function AddHostDialog({
               onStorageModeChange={setStorageMode}
               dbStorageEnabled={dbStorageEnabled}
               dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
-              showSamplePreset
+              showSamplePreset={showSamplePreset}
             />
           </div>
 

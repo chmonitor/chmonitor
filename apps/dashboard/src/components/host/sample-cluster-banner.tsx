@@ -85,7 +85,11 @@ export function SampleClusterBanner() {
           <ArrowRight className="size-3.5" />
         </Button>
       </div>
-      <AddHostDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddHostDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        showSamplePreset={false}
+      />
     </>
   )
 }
