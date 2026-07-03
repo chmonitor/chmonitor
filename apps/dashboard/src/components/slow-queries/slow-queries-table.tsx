@@ -150,21 +150,11 @@ const SEVERITY_DURATION: Record<Severity, string> = {
   normal: 'text-foreground',
 }
 
-const SEVERITY_RANK: Record<Severity, string> = {
-  critical: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-  warning:
-    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  normal: 'bg-muted text-muted-foreground',
-}
-
-/** Rank badge — emphasises the slowest queries (1 = worst). */
-function RankBadge({ rank, severity }: { rank: number; severity: Severity }) {
+/** Rank indicator — a quiet monochrome ordinal (1 = slowest). */
+function RankBadge({ rank }: { rank: number }) {
   return (
     <span
-      className={cn(
-        'inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums',
-        SEVERITY_RANK[severity]
-      )}
+      className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[11px] font-semibold tabular-nums text-muted-foreground"
       title={`Rank #${rank} by duration`}
     >
       {rank}
@@ -192,12 +182,12 @@ function MetricBar({ label, pct }: { label: string; pct: number }) {
   const width = Math.max(Math.min(pct, 100), 2)
   return (
     <div className="flex min-w-[72px] flex-col gap-1">
-      <span className="truncate text-right text-[11.5px] font-medium tabular-nums">
+      <span className="truncate text-right text-xs font-medium tabular-nums">
         {label}
       </span>
       <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-blue-500/70 transition-all"
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground/25 transition-all"
           style={{ width: `${width}%` }}
         />
       </div>
@@ -337,17 +327,17 @@ const QueryRow = memo(function QueryRow({
                 expanded && 'rotate-90'
               )}
             />
-            <RankBadge rank={rank} severity={d.severity} />
+            <RankBadge rank={rank} />
           </div>
         </td>
 
         {/* Query text */}
         <td className="max-w-0 px-2 py-2.5 sm:px-3">
-          <div className="truncate font-mono text-[12px] text-muted-foreground group-hover:text-foreground">
+          <div className="truncate font-mono text-sm text-muted-foreground group-hover:text-foreground">
             {d.query}
           </div>
           {/* Compact metric row on small viewports where columns collapse. */}
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground md:hidden">
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:hidden">
             <span className="inline-flex items-center gap-1">
               <UserIcon className="size-3" />
               {d.user || 'anon'}
@@ -384,7 +374,7 @@ const QueryRow = memo(function QueryRow({
 
         {/* User — hidden on small screens (shown inline under query) */}
         <td className="hidden px-2 py-2.5 sm:px-3 lg:table-cell">
-          <span className="truncate text-[12px]">{d.user || 'anon'}</span>
+          <span className="truncate text-sm">{d.user || 'anon'}</span>
         </td>
 
         {/* Cache usage */}
@@ -482,7 +472,7 @@ export function SlowQueriesTable({ rows }: SlowQueriesTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead className="border-b border-border bg-muted/40">
