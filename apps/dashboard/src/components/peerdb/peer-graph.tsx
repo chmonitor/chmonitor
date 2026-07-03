@@ -20,13 +20,16 @@ import type { MirrorListItem, PeerListItem } from '@/lib/peerdb/types'
 
 import { getPeerTypeIcon } from './peer-type-icon'
 import { dbTypeLabel, statusTone, TONE_COLOR } from './peerdb-utils'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { computeDagrePositions } from '@/lib/graph/dagre-layout'
 import { cn } from '@/lib/utils'
 
 const NODE_WIDTH = 220
 const NODE_HEIGHT = 64
+
+/** Stable fit-view options shared across renders (module-level constant). */
+const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.4, maxZoom: 1.5 }
 
 interface PeerNodeData {
   label: string
@@ -234,29 +237,44 @@ interface PeerGraphProps {
 export function PeerGraph({ peers, mirrors, className }: PeerGraphProps) {
   const instance = useRef<ReactFlowInstance | null>(null)
 
-  const built = buildGraph(peers, mirrors)
-  const {
-    nodes: rawNodes,
-    edges: rawEdges,
-    totalPairs,
-    shownPairs,
-    totalPeers,
-  } = built
-  const layoutedNodes = layout(rawNodes, rawEdges)
+  // Stable signature of the input data. Both callers (peers.tsx and
+  // peerdb/index.tsx) build a NEW peers/mirrors array on every render, so keying
+  // the layout memo on those arrays directly would recompute each render and
+  // re-fire the sync effect below forever (React error #185). Stringifying
+  // collapses content-equal inputs to an Object.is-equal string, keeping the
+  // memo — and the node/edge references it returns — stable until the data
+  // actually changes. Mirrors the depsKey pattern in dependency-graph.tsx.
+  const graphKey = useMemo(
+    () => JSON.stringify({ peers, mirrors }),
+    [peers, mirrors]
+  )
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: graphKey is a stable signature of peers+mirrors
+  const graph = useMemo(() => {
+    const built = buildGraph(peers, mirrors)
+    return {
+      layoutedNodes: layout(built.nodes, built.edges),
+      rawEdges: built.edges,
+      totalPairs: built.totalPairs,
+      shownPairs: built.shownPairs,
+      totalPeers: built.totalPeers,
+    }
+  }, [graphKey])
+  const { layoutedNodes, rawEdges, totalPairs, shownPairs, totalPeers } = graph
 
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(rawEdges)
 
+  // layoutedNodes/rawEdges are stable references (memoized on graphKey), so this
+  // sync fires only when the graph data actually changes — never every render.
   useEffect(() => {
     setNodes(layoutedNodes)
     setEdges(rawEdges)
   }, [layoutedNodes, rawEdges, setNodes, setEdges])
 
-  const fitViewOptions = { padding: 0.2, minZoom: 0.4, maxZoom: 1.5 }
-
   const onInit = (inst: ReactFlowInstance) => {
     instance.current = inst
-    setTimeout(() => inst.fitView(fitViewOptions), 100)
+    setTimeout(() => inst.fitView(FIT_VIEW_OPTIONS), 100)
   }
 
   if (nodes.length === 0) {
@@ -282,7 +300,7 @@ export function PeerGraph({ peers, mirrors, className }: PeerGraphProps) {
         onInit={onInit}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={fitViewOptions}
+        fitViewOptions={FIT_VIEW_OPTIONS}
         minZoom={0.2}
         maxZoom={2}
         defaultEdgeOptions={{ type: 'smoothstep' }}
