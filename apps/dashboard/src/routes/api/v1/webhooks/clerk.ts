@@ -108,3 +108,6 @@ export const Route = createFileRoute('/api/v1/webhooks/clerk')({
     },
   },
 })
+
+// Exported for unit tests only.
+export { handlePost as __handlePostForTests }
