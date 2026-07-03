@@ -11,9 +11,11 @@ import {
   MemoryStick,
   ScanSearch,
   User as UserIcon,
+  Workflow,
+  X,
 } from 'lucide-react'
 
-import { CpuMeter, ProgressCell } from './cells'
+import { CpuMeter, DoneBadge, ProgressCell } from './cells'
 import { ExpandedRow } from './expanded-row'
 import {
   BASE_COLUMN_COUNT,
@@ -36,6 +38,7 @@ import {
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { formatReadableSize } from '@/lib/format-readable'
 import { useHostId } from '@/lib/swr/use-host'
+import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
 interface QueryRowProps {
@@ -43,6 +46,10 @@ interface QueryRowProps {
   expanded: boolean
   onToggle: () => void
   hiddenColumns: Set<OptionalColumn>
+  /** Query has finished and its row is retained in a "Done" state. */
+  done?: boolean
+  /** Drop this retained Done row from the table. */
+  onDismiss?: () => void
 }
 
 /** One running query rendered as a table row (collapsed) + detail row. */
@@ -51,11 +58,16 @@ export const QueryRow = memo(function QueryRow({
   expanded,
   onToggle,
   hiddenColumns,
+  done,
+  onDismiss,
 }: QueryRowProps) {
   const hostId = useHostId()
   const { isKilling, handleKill } = useKillQuery(d.id)
   const queryDetailUrl = d.id
     ? `/query?query_id=${encodeURIComponent(d.id)}&host=${hostId}`
+    : ''
+  const explainUrl = d.id
+    ? buildUrl('/explain', { query_id: d.id, host: hostId })
     : ''
 
   const dur = formatDuration(d.elapsed)
@@ -70,7 +82,11 @@ export const QueryRow = memo(function QueryRow({
   return (
     <>
       <tr
-        className="group animate-in cursor-pointer border-b border-border align-middle fade-in-0 slide-in-from-top-1 duration-300 hover:bg-muted/60"
+        className={cn(
+          'group animate-in cursor-pointer border-b border-border align-middle fade-in-0 slide-in-from-top-1 duration-300 hover:bg-muted/60',
+          done &&
+            'bg-emerald-50/60 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30'
+        )}
         onClick={onToggle}
       >
         {/* Type + expand chevron */}
@@ -82,6 +98,7 @@ export const QueryRow = memo(function QueryRow({
                 expanded && 'rotate-90'
               )}
             />
+            {done && <DoneBadge />}
             <KindBadge kind={d.kind} />
           </div>
         </td>
@@ -166,7 +183,7 @@ export const QueryRow = memo(function QueryRow({
 
         {/* Progress — always visible */}
         <td className="px-2 py-2.5 sm:px-3">
-          <ProgressCell d={d} />
+          <ProgressCell d={d} done={done} />
         </td>
 
         {/* Memory — md+ */}
@@ -204,7 +221,7 @@ export const QueryRow = memo(function QueryRow({
         {/* Duration — sm+ (lives in the meta line on xs) */}
         {showDuration && (
           <td className="hidden whitespace-nowrap px-2 py-2.5 text-right text-[12px] tabular-nums sm:table-cell sm:px-3">
-            <span className={SEVERITY_DURATION[d.severity]}>
+            <span className={cn(!done && SEVERITY_DURATION[d.severity])}>
               {dur.value}
               <span className="ml-0.5 text-[10.5px] text-muted-foreground">
                 {dur.unit}
@@ -219,25 +236,60 @@ export const QueryRow = memo(function QueryRow({
             className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 text-muted-foreground hover:text-rose-600"
-                  onClick={handleKill}
-                  disabled={isKilling || !d.id}
-                  aria-label="Kill query"
-                >
-                  {isKilling ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <CircleX className="size-3.5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Kill query</TooltipContent>
-            </Tooltip>
+            {done ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-muted-foreground hover:text-foreground"
+                    onClick={onDismiss}
+                    aria-label="Dismiss finished query"
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Dismiss</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-muted-foreground hover:text-rose-600"
+                    onClick={handleKill}
+                    disabled={isKilling || !d.id}
+                    aria-label="Kill query"
+                  >
+                    {isKilling ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <CircleX className="size-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Kill query</TooltipContent>
+              </Tooltip>
+            )}
+            {explainUrl && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
+                    aria-label="Explain query"
+                    asChild
+                  >
+                    <Link href={explainUrl}>
+                      <Workflow className="size-3.5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Explain query</TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -287,7 +339,13 @@ export const QueryRow = memo(function QueryRow({
       {expanded && (
         <tr>
           <td colSpan={colSpan} className="p-0">
-            <ExpandedRow d={d} onKill={handleKill} isKilling={isKilling} />
+            <ExpandedRow
+              d={d}
+              onKill={handleKill}
+              isKilling={isKilling}
+              done={done}
+              onDismiss={onDismiss}
+            />
           </td>
         </tr>
       )}

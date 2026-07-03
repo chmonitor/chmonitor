@@ -1,4 +1,11 @@
-import { CircleX, ExternalLink, Loader2, ScanSearch } from 'lucide-react'
+import {
+  CircleX,
+  ExternalLink,
+  Loader2,
+  ScanSearch,
+  Workflow,
+  X,
+} from 'lucide-react'
 
 import type { DerivedQuery } from './types'
 
@@ -8,22 +15,36 @@ import { Button } from '@/components/ui/button'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { formatReadableSize } from '@/lib/format-readable'
 import { useHostId } from '@/lib/swr/use-host'
+import { buildUrl } from '@/lib/url/url-builder'
 
 interface ExpandedRowProps {
   d: DerivedQuery
   onKill: () => void
   isKilling: boolean
+  /** Row has finished and is being retained; swaps Kill → Dismiss. */
+  done?: boolean
+  /** Drop this retained Done row from the table. */
+  onDismiss?: () => void
 }
 
 /**
  * Expanded row — an execution-details grid, the full query as a scrollable
  * code block, then row actions.
  */
-export function ExpandedRow({ d, onKill, isKilling }: ExpandedRowProps) {
+export function ExpandedRow({
+  d,
+  onKill,
+  isKilling,
+  done,
+  onDismiss,
+}: ExpandedRowProps) {
   const hostId = useHostId()
   const explorerUrl = buildExplorerQueryUrl(d.query, hostId)
   const detailUrl = d.id
     ? `/query?query_id=${encodeURIComponent(d.id)}&host=${hostId}`
+    : ''
+  const explainUrl = d.id
+    ? buildUrl('/explain', { query_id: d.id, host: hostId })
     : ''
   const lineCount = (d.query.match(/\n/g)?.length ?? 0) + 1
 
@@ -115,20 +136,40 @@ export function ExpandedRow({ d, onKill, isKilling }: ExpandedRowProps) {
             </span>
           )}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto h-7 gap-1.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30"
-          onClick={onKill}
-          disabled={isKilling || !d.id}
-        >
-          {isKilling ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <CircleX className="size-3.5" />
-          )}
-          Kill query
-        </Button>
+        {explainUrl && (
+          <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
+            <Link href={explainUrl}>
+              <Workflow className="size-3.5" />
+              Explain
+            </Link>
+          </Button>
+        )}
+        {done ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={onDismiss}
+          >
+            <X className="size-3.5" />
+            Dismiss
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 gap-1.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30"
+            onClick={onKill}
+            disabled={isKilling || !d.id}
+          >
+            {isKilling ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <CircleX className="size-3.5" />
+            )}
+            Kill query
+          </Button>
+        )}
       </div>
     </div>
   )
