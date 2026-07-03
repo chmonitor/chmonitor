@@ -21,7 +21,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import type { WeeklyReportSummary } from '@/lib/insights/weekly-report'
+import type { WeeklyReportSummary } from '@/lib/insights/types'
 
 import { error, generateRequestId } from '@chm/logger'
 import { renderWeeklyReportHtml } from '@/lib/insights/weekly-report-html'

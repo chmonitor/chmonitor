@@ -14,8 +14,12 @@
  * (fail-open — see plans/52-proactive-weekly-health-report.md).
  */
 
-import type { ForecastResult } from '@/lib/ai/advisor/capacity-forecaster'
-import type { InsightSeverity } from './types'
+import type {
+  InsightSeverity,
+  WeeklyReportCapacity,
+  WeeklyReportSummary,
+  WeeklyTopFinding,
+} from './types'
 
 import { listBaselines } from './baseline-store'
 import { resolveInsightsStore } from './store/resolve-store'
@@ -44,43 +48,6 @@ function toSeverity(value: string): InsightSeverity {
   return VALID_SEVERITY.has(value as InsightSeverity)
     ? (value as InsightSeverity)
     : 'info'
-}
-
-/** A single highlighted finding surfaced in the "top findings" section. */
-export interface WeeklyTopFinding {
-  readonly severity: InsightSeverity
-  readonly category: string
-  readonly title: string
-  readonly detail: string
-  readonly metric: string
-  readonly generatedAt: string
-}
-
-/** Capacity section: the real forecast, or a degraded-but-honest fallback. */
-export type WeeklyReportCapacity =
-  | ForecastResult
-  | {
-      readonly available: false
-      readonly reason: 'error'
-      readonly message: string
-    }
-
-/** Compact, JSON-serializable summary of a host's weekly report. */
-export interface WeeklyReportSummary {
-  readonly hostId: number
-  readonly hostLabel: string
-  /** Start of the rolling 7-day window, `YYYY-MM-DD`. */
-  readonly weekStart: string
-  /** End of the window (today), `YYYY-MM-DD`. */
-  readonly weekEnd: string
-  readonly generatedAt: string
-  readonly totalFindings: number
-  readonly bySeverity: Record<InsightSeverity, number>
-  readonly byCategory: Record<string, number>
-  readonly topFindings: readonly WeeklyTopFinding[]
-  /** Count of metrics with a fitted statistical baseline (plan 48). */
-  readonly baselinesFitted: number
-  readonly capacity: WeeklyReportCapacity
 }
 
 export interface WeeklyReport {

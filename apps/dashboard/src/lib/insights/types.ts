@@ -7,7 +7,46 @@
  * optionally polished by an LLM when a provider key is configured.
  */
 
+import type { ForecastResult } from '@/lib/ai/advisor/capacity-forecaster'
+
 export type InsightSeverity = 'info' | 'warning' | 'critical'
+
+/** A single highlighted finding surfaced in a weekly report's "top findings" section. */
+export interface WeeklyTopFinding {
+  readonly severity: InsightSeverity
+  readonly category: string
+  readonly title: string
+  readonly detail: string
+  readonly metric: string
+  readonly generatedAt: string
+}
+
+/** Weekly report capacity section: the real forecast, or a degraded-but-honest fallback. */
+export type WeeklyReportCapacity =
+  | ForecastResult
+  | {
+      readonly available: false
+      readonly reason: 'error'
+      readonly message: string
+    }
+
+/** Compact, JSON-serializable summary of a host's weekly report. */
+export interface WeeklyReportSummary {
+  readonly hostId: number
+  readonly hostLabel: string
+  /** Start of the rolling 7-day window, `YYYY-MM-DD`. */
+  readonly weekStart: string
+  /** End of the window (today), `YYYY-MM-DD`. */
+  readonly weekEnd: string
+  readonly generatedAt: string
+  readonly totalFindings: number
+  readonly bySeverity: Record<InsightSeverity, number>
+  readonly byCategory: Record<string, number>
+  readonly topFindings: readonly WeeklyTopFinding[]
+  /** Count of metrics with a fitted statistical baseline (plan 48). */
+  readonly baselinesFitted: number
+  readonly capacity: WeeklyReportCapacity
+}
 
 /** A recommended next step the operator can take for an insight. */
 export interface InsightAction {

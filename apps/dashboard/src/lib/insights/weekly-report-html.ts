@@ -19,12 +19,12 @@
  * claims any change was applied — chmonitor recommends, it does not act.
  */
 
-import type { InsightSeverity } from './types'
 import type {
+  InsightSeverity,
   WeeklyReportCapacity,
   WeeklyReportSummary,
   WeeklyTopFinding,
-} from './weekly-report'
+} from './types'
 
 /** Escape untrusted finding text before interpolating into markup. */
 function esc(value: string): string {
