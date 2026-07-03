@@ -6,6 +6,7 @@ import {
   Database,
   ExternalLink,
   HardDrive,
+  ListTree,
   MemoryStick,
   RowsIcon,
   Server,
@@ -21,6 +22,7 @@ import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { formatReadableSize } from '@/lib/format-readable'
 import { useTableData } from '@/lib/query/use-table-data'
 import { useHostId } from '@/lib/swr/use-host'
+import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
 // ──────────────────────────── types ────────────────────────────
@@ -430,14 +432,37 @@ export const QueryDetailView = function QueryDetailView({
             )}
           </div>
 
-          {/* Right: explorer link */}
+          {/* Right: actions */}
           {queryText && (
-            <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
-              <Link href={explorerUrl}>
-                <ExternalLink className="size-3.5" />
-                Open in Explorer
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5"
+                asChild
+              >
+                <Link
+                  href={buildUrl('/explain', {
+                    query_id: queryId,
+                    host: hostId,
+                  })}
+                >
+                  <ListTree className="size-3.5" />
+                  Explain query
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5"
+                asChild
+              >
+                <Link href={explorerUrl}>
+                  <ExternalLink className="size-3.5" />
+                  Open in Explorer
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
 
