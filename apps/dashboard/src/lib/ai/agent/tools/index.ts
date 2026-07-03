@@ -10,6 +10,7 @@
 import { createAskUserTools } from './ask-user-tools'
 import { createControlTools } from './control-tools'
 import { createHealthTools } from './health-tools'
+import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
 import { createPlanTools } from './plan-tools'
 import { createQueryTools } from './query-tools'
@@ -35,6 +36,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Knowledge: load_skill
  *  - Interaction: ask_user
  *  - Visualization: query_and_visualize
+ *  - Insights: explain_anomaly_score
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
@@ -70,6 +72,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Visualization
     ...createVisualizationTools(hostId),
+
+    // Insights (statistical anomaly baselines)
+    ...createInsightTools(hostId),
 
     // Control actions (destructive) — off unless explicitly enabled
     ...(enableControlTools && includeControlTools

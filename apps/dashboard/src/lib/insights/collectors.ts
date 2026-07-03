@@ -9,8 +9,10 @@
  */
 
 import type { InsightCandidate, InsightSeverity } from './types'
+import type { Baseline } from './statistical-baseline'
 
 import { readOnlyQuery } from '../ai/agent/tools/helpers'
+import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
 
 function extractValue(result: unknown): number | null {
   if (Array.isArray(result) && result.length > 0) {
@@ -20,6 +22,18 @@ function extractValue(result: unknown): number | null {
     return Number.isFinite(num) ? num : null
   }
   return null
+}
+
+/** Extract a `value` column from every row (used to fit a 7-day baseline). */
+function extractSamples(result: unknown): number[] {
+  if (!Array.isArray(result)) return []
+  const out: number[] = []
+  for (const row of result) {
+    const val = (row as Record<string, unknown>)?.value
+    const num = typeof val === 'number' ? val : Number(val)
+    if (Number.isFinite(num)) out.push(num)
+  }
+  return out
 }
 
 async function firstRow(
@@ -45,7 +59,15 @@ interface AnomalyCheck {
   title: string
   recentQuery: string
   baselineQuery: string
-  /** Render the change into a human detail string. */
+  /**
+   * ~7-day, hourly-bucketed history of the same metric `recentQuery` reads,
+   * used to fit this check's statistical baseline (see `statistical-baseline.ts`).
+   * Must read the *same* underlying metric as `recentQuery`/`baselineQuery` —
+   * scoring a value against a baseline fit from a different metric produces a
+   * meaningless z-score.
+   */
+  sampleQuery: string
+  /** Render the change into a human detail string (static-threshold fallback path). */
   format: (recent: number, baseline: number, changePct: number) => string
   classify: (changePct: number) => InsightSeverity
 }
@@ -58,6 +80,7 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
     title: 'Query error rate is climbing',
     recentQuery: `SELECT countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) as value FROM system.query_log WHERE event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) as value FROM system.query_log WHERE event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
+    sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) AS value FROM system.query_log WHERE event_time > now() - INTERVAL 7 DAY GROUP BY bucket HAVING isNotNull(value) ORDER BY bucket`,
     format: (recent, baseline) =>
       `Error rate in the last hour is ${round(recent)}% vs a 24h baseline of ${round(baseline)}%. Investigate failing queries before they spread.`,
     classify: (pct) => (pct > 100 ? 'critical' : pct > 50 ? 'warning' : 'info'),
@@ -67,6 +90,7 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
     title: 'Queries are slowing down (p95)',
     recentQuery: `SELECT quantile(0.95)(query_duration_ms) as value FROM system.query_log WHERE type = 'QueryFinish' AND event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT quantile(0.95)(query_duration_ms) as value FROM system.query_log WHERE type = 'QueryFinish' AND event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
+    sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, quantile(0.95)(query_duration_ms) AS value FROM system.query_log WHERE type = 'QueryFinish' AND event_time > now() - INTERVAL 7 DAY GROUP BY bucket ORDER BY bucket`,
     format: (recent, baseline, pct) =>
       `p95 query duration rose ${round(pct)}% (now ${round(recent)}ms vs ${round(baseline)}ms baseline). Check for heavy scans or contention.`,
     classify: (pct) =>
@@ -75,13 +99,81 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
   {
     metric: 'memory_usage',
     title: 'Memory usage spiked',
-    recentQuery: `SELECT value as value FROM system.metrics WHERE metric = 'MemoryTracking'`,
+    // Reads MemoryResident from asynchronous_metric_log (same metric as
+    // baselineQuery/sampleQuery below) — a live system.metrics MemoryTracking
+    // snapshot would score against a different metric's baseline and produce
+    // a meaningless z-score.
+    recentQuery: `SELECT avg(value) as value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT avg(value) as value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
+    sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, avg(value) AS value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time > now() - INTERVAL 7 DAY GROUP BY bucket ORDER BY bucket`,
     format: (_recent, _baseline, pct) =>
       `Tracked memory is ${round(pct)}% above the 24h average. Watch for OOM risk on memory-heavy queries.`,
     classify: (pct) => (pct > 80 ? 'critical' : pct > 40 ? 'warning' : 'info'),
   },
 ]
+
+/** Above this |z|, a baseline-flagged anomaly is 'critical' rather than 'warning'. */
+const CRITICAL_Z_THRESHOLD = 4
+
+/** Outcome of reconciling the statistical baseline with the legacy static threshold. */
+export interface AnomalySeverityDecision {
+  /** `null` means suppress this candidate — it isn't worth surfacing. */
+  readonly severity: InsightSeverity | null
+  readonly usedBaseline: boolean
+  /** z-score when `usedBaseline` is true; `null` otherwise. */
+  readonly z: number | null
+}
+
+/**
+ * Decide whether an anomaly check's current reading is worth surfacing, and at
+ * what severity — the single point where the statistical baseline and the
+ * legacy static-threshold path are reconciled. Exported so both collectors and
+ * tests can reason about it as a pure function (no ClickHouse/store I/O).
+ *
+ * When a usable baseline exists (`scoreAnomaly(...).usedBaseline`), severity is
+ * derived from the z-score: `|z| <= 2` is suppressed — this is what eliminates
+ * false positives a fixed percentage threshold produces on a cluster whose
+ * normal range differs from the default. `|z| > 4` is `critical`, otherwise
+ * `warning`. Falls back to the existing `staticClassify(changePct)` (with
+ * `'info'` suppressed, matching pre-baseline behavior) when there is no usable
+ * baseline yet — cold start or a degenerate fit — so detection never regresses
+ * before enough history accumulates.
+ */
+export function decideSeverity(
+  recent: number,
+  changePct: number,
+  baseline: Baseline | null,
+  staticClassify: (changePct: number) => InsightSeverity
+): AnomalySeverityDecision {
+  const score = scoreAnomaly(recent, baseline)
+
+  if (score.usedBaseline) {
+    if (!score.isAnomaly) return { severity: null, usedBaseline: true, z: score.z }
+    return {
+      severity: Math.abs(score.z) > CRITICAL_Z_THRESHOLD ? 'critical' : 'warning',
+      usedBaseline: true,
+      z: score.z,
+    }
+  }
+
+  const severity = staticClassify(changePct)
+  return {
+    severity: severity === 'info' ? null : severity,
+    usedBaseline: false,
+    z: null,
+  }
+}
+
+/** Detail string for the baseline-backed path — labels the signal as statistical, not a fixed default. */
+function formatBaselineDetail(
+  check: AnomalyCheck,
+  recent: number,
+  baseline: Baseline,
+  z: number
+): string {
+  const direction = z >= 0 ? 'above' : 'below'
+  return `${check.title}: the current value (${round(recent)}) is ${round(Math.abs(z))}σ ${direction} this cluster's own 7-day baseline (mean ${round(baseline.mean)}, stddev ${round(baseline.stddev)}, n=${baseline.sampleCount}). This threshold is statistically fitted per cluster, not a fixed default.`
+}
 
 async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
@@ -95,21 +187,49 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
           ),
         ])
         const recent = extractValue(recentRes)
-        const baseline = extractValue(baselineRes)
-        if (recent === null || baseline === null || baseline === 0) return
+        const baselineAvg = extractValue(baselineRes)
+        if (recent === null || baselineAvg === null || baselineAvg === 0) return
 
-        const changePct = ((recent - baseline) / Math.abs(baseline)) * 100
-        const severity = check.classify(changePct)
-        // Only surface meaningful regressions.
-        if (severity === 'info') return
+        const changePct = ((recent - baselineAvg) / Math.abs(baselineAvg)) * 100
+
+        // Best-effort: reuse (or refit, if stale/missing) this metric's
+        // statistical baseline. Any failure here resolves to null, which
+        // decideSeverity treats the same as cold start — fail-open onto the
+        // static classify below.
+        const fittedBaseline = await refitBaselineIfStale(
+          hostId,
+          check.metric,
+          () =>
+            readOnlyQuery({ query: check.sampleQuery, hostId })
+              .then(extractSamples)
+              .catch(() => [])
+        )
+
+        const decision = decideSeverity(
+          recent,
+          changePct,
+          fittedBaseline,
+          check.classify
+        )
+        if (decision.severity === null) return
+
+        const usedBaseline =
+          decision.usedBaseline && fittedBaseline !== null && decision.z !== null
 
         out.push({
-          severity,
+          severity: decision.severity,
           category: 'anomaly',
           metric: check.metric,
           title: check.title,
-          detail: check.format(recent, baseline, changePct),
-          value: round(changePct),
+          detail: usedBaseline
+            ? formatBaselineDetail(
+                check,
+                recent,
+                fittedBaseline as Baseline,
+                decision.z as number
+              )
+            : check.format(recent, baselineAvg, changePct),
+          value: round(usedBaseline ? (decision.z as number) : changePct),
           action: {
             label: 'Open running queries',
             href: '/running-queries',

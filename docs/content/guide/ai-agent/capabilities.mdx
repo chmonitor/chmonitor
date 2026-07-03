@@ -1,10 +1,10 @@
 ---
 title: Capabilities
-description: Full reference for the agent's 18+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
+description: Full reference for the agent's 19+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
 icon: Sparkles
 ---
 
-The agent exposes a small set of **powerful primitives** (18 tools, plus 3 env-gated control tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
+The agent exposes a small set of **powerful primitives** (19 tools, plus 3 env-gated control tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
 
 ## Tools
 
@@ -16,6 +16,7 @@ The agent exposes a small set of **powerful primitives** (18 tools, plus 3 env-g
 | Plan & verify | A visible, adaptive step-by-step plan | `update_plan` |
 | Knowledge & interaction | Load expert guides; ask the user | `load_skill`, `ask_user` |
 | Charts & visualization | Run SQL and return an interactive chart | `query_and_visualize` |
+| Insights | Explain a statistical anomaly baseline and z-score | `explain_anomaly_score` |
 | Control actions (env-gated) | Kill query/mutation, optimize table | `kill_query`, `kill_mutation`, `optimize_table` |
 
 Everything else (expensive-query rankings, query patterns, anomalies, table-design advice, capacity forecasts, settings, logs, replication queue, ZooKeeper, users…) is done with `query` plus the relevant skill recipe — so the agent keeps full reach with a much smaller, more reliable tool surface.
@@ -46,6 +47,7 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 | `load_skill` | Load an expert guide (skill) with SQL recipes for a specific domain. | |
 | `ask_user` | Ask the user a question to gather information before proceeding. | |
 | `query_and_visualize` | Run a SQL query and return an interactive chart config. | Chart type is auto-detected from result columns. |
+| `explain_anomaly_score` | Explain a per-host/per-metric statistical anomaly baseline (mean, stddev, median, MAD, sample count) and, given a value, its z-score and anomaly verdict. | Read-only. Reports "no baseline yet" during cold start (falls back to a static threshold). |
 | `kill_query` | Kill a running query by `query_id`. | **DESTRUCTIVE.** Env-gated: requires `AGENT_ENABLE_CONTROL_TOOLS=true`. Agent always confirms first. |
 | `kill_mutation` | Cancel a running mutation on a table. | **DESTRUCTIVE.** Env-gated: requires `AGENT_ENABLE_CONTROL_TOOLS=true`. Agent always confirms first. |
 | `optimize_table` | Trigger an OPTIMIZE on a table to force merges. | **DESTRUCTIVE.** Env-gated: requires `AGENT_ENABLE_CONTROL_TOOLS=true`. Agent always confirms first. |
