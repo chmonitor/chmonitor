@@ -530,7 +530,7 @@ export async function estimateQueryCost(params: {
     ...new Set(
       plan.reads
         .map((r) => r.table)
-        .filter((t): t is string => Boolean(t) && t.includes('.'))
+        .filter((t): t is string => Boolean(t?.includes('.')))
     ),
   ].map((key) => {
     const [database, table] = key.split('.')
