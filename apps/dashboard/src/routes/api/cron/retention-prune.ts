@@ -167,3 +167,5 @@ export const Route = createFileRoute('/api/cron/retention-prune')({
     },
   },
 })
+
+export { handler as __handlerForTests }
