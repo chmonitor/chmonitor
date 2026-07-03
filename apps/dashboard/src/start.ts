@@ -25,6 +25,8 @@ import {
 } from '@/lib/auth/api-guard'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
 import { resolveServerSentryOptions } from '@/lib/observability/sentry.server'
+import { forceFlushOtel, getOtelTracer } from '@/lib/otel/exporter'
+import { withSpan } from '@/lib/otel/with-span'
 import { withSecurityHeaders } from '@/lib/security-headers'
 
 // Returning a Response from a request middleware short-circuits the chain and
@@ -142,11 +144,43 @@ const sentryMiddleware = createMiddleware().server(
   }
 )
 
+// ---------------------------------------------------------------------------
+// OTel trace export (opt-in, OFF by default)
+// ---------------------------------------------------------------------------
+// Root `dashboard-request` span for every request, per
+// plans/39-otel-trace-export.md. True no-op when CHM_OTEL_EXPORTER_URL is
+// unset/invalid: getOtelTracer() returns undefined and withSpan() runs next()
+// directly without creating a span. See src/lib/otel/exporter.ts.
+//
+// getOtelTracer(env) is called here (with the Worker env binding) to warm the
+// memoized singleton for the whole request; nested spans created deeper in
+// the call chain (e.g. the query executor, which has no `env` handy) reuse
+// the cached result via their own no-arg getOtelTracer() call.
+//
+// Like sentryMiddleware above, TanStack Start's request middleware does not
+// expose the Worker ExecutionContext, so there is no `waitUntil` to defer the
+// batch export past the response — forceFlushOtel() is awaited inline before
+// returning. Only reachable when export is enabled, so the added latency is
+// opt-in.
+const otelMiddleware = createMiddleware().server(async ({ next }) => {
+  getOtelTracer(env as Record<string, string | undefined>)
+  try {
+    return await withSpan('dashboard-request', {}, () => next())
+  } finally {
+    await forceFlushOtel()
+  }
+})
+
 export const startInstance = createStart(() => {
   // Order matters: Sentry is first (outermost) so it captures errors from every
-  // other middleware; security-headers is next so it wraps the rest of the
-  // chain and patches the response on the way out.
-  const middleware = [sentryMiddleware, securityHeadersMiddleware]
+  // other middleware; otel is next so its root span covers the rest of the
+  // chain (security-headers, auth, the route handler); security-headers wraps
+  // what's left and patches the response on the way out.
+  const middleware = [
+    sentryMiddleware,
+    otelMiddleware,
+    securityHeadersMiddleware,
+  ]
 
   if (isClerkAuthProvider() && hasClerkSecretKey()) {
     middleware.push(clerkMiddleware())
