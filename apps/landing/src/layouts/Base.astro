@@ -759,8 +759,11 @@ const ogImage = new URL(image, Astro.site).toString()
     import { initAnalytics, trackCtaClick, trackEvent } from '../lib/analytics'
 
     initAnalytics().then(function () {
-      if (location.pathname === '/') trackEvent('landing_view')
-      else if (location.pathname === '/pricing') trackEvent('pricing_view')
+      // Normalize a trailing slash — static-asset serving may resolve
+      // /pricing as /pricing/ depending on host configuration.
+      var path = location.pathname.replace(/\/+$/, '') || '/'
+      if (path === '/') trackEvent('landing_view')
+      else if (path === '/pricing') trackEvent('pricing_view')
     })
 
     // Delegated CTA tracking: add data-cta="<short-id>" to any link/button to
