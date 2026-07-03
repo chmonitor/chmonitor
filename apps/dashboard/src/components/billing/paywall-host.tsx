@@ -3,15 +3,15 @@
  * (`lib/billing/paywall-store.ts`). Mounted in `DashboardShell` next to
  * `<Toaster />` — same "singleton host at the shell" pattern.
  */
-import { useSyncExternalStore } from 'react'
 
+import { PaywallModal } from './paywall-modal'
+import { useSyncExternalStore } from 'react'
 import {
   getPaywallServerSnapshot,
   getPaywallSnapshot,
   hidePaywall,
   subscribePaywall,
 } from '@/lib/billing/paywall-store'
-import { PaywallModal } from './paywall-modal'
 
 export function usePaywall() {
   return useSyncExternalStore(
