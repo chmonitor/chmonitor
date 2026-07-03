@@ -56,8 +56,7 @@ export async function initAnalyticsClient(): Promise<void> {
 
   const { default: posthog } = await import('posthog-js')
   posthog.init(key as string, {
-    api_host:
-      import.meta.env.VITE_ANALYTICS_HOST || 'https://us.i.posthog.com',
+    api_host: import.meta.env.VITE_ANALYTICS_HOST || 'https://us.i.posthog.com',
     persistence: 'localStorage',
     autocapture: false,
     capture_pageview: false,

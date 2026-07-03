@@ -12,16 +12,16 @@ mock.module('@chm/clickhouse-client', () => ({
 }))
 
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
-import { MemoryAlertStateStore } from '@/lib/health/alert-state-store'
 
 import {
+  __resetPrometheusMetricsCacheForTests,
   buildPrometheusText,
   countFiringAlertsByHost,
   getPrometheusMetricsText,
   type HostMetricsInput,
   isPrometheusExporterEnabled,
-  __resetPrometheusMetricsCacheForTests,
 } from './prometheus-exporter'
+import { MemoryAlertStateStore } from '@/lib/health/alert-state-store'
 
 // ---------------------------------------------------------------------------
 // buildPrometheusText
@@ -42,7 +42,9 @@ function parsePrometheusText(text: string) {
       const [, , name, kind] = line.split(' ')
       type.set(name, kind)
     } else {
-      const match = line.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)(\{[^}]*\})?\s+(\S+)$/)
+      const match = line.match(
+        /^([a-zA-Z_:][a-zA-Z0-9_:]*)(\{[^}]*\})?\s+(\S+)$/
+      )
       expect(match).not.toBeNull()
       const [, name, labels = '', value] = match as RegExpMatchArray
       samples.push({ name, labels, value })
@@ -130,12 +132,12 @@ describe('buildPrometheusText', () => {
     const text = buildPrometheusText(inputs, 0.01)
     const helpCount = text
       .split('\n')
-      .filter((l) => l === '# HELP clickhouse_query ClickHouse system.metrics.Query')
-      .length
+      .filter(
+        (l) => l === '# HELP clickhouse_query ClickHouse system.metrics.Query'
+      ).length
     const typeCount = text
       .split('\n')
-      .filter((l) => l === '# TYPE clickhouse_query gauge')
-      .length
+      .filter((l) => l === '# TYPE clickhouse_query gauge').length
     expect(helpCount).toBe(1)
     expect(typeCount).toBe(1)
   })
@@ -157,9 +159,7 @@ describe('buildPrometheusText', () => {
     ]
 
     const text = buildPrometheusText(inputs, 0.01)
-    const sampleLines = text
-      .split('\n')
-      .filter((l) => l && !l.startsWith('#'))
+    const sampleLines = text.split('\n').filter((l) => l && !l.startsWith('#'))
     const seriesKeys = sampleLines.map((l) => l.split(' ')[0])
     expect(new Set(seriesKeys).size).toBe(seriesKeys.length)
   })
@@ -278,9 +278,7 @@ describe('isPrometheusExporterEnabled', () => {
   test('never gates on billing/plan — only cloud-mode + explicit flag inputs', () => {
     // No plan/entitlement fields are read at all; passing unrelated keys must
     // not change the outcome (fail-open, no billing dependency).
-    expect(
-      isPrometheusExporterEnabled({ SOME_UNRELATED_VAR: 'x' })
-    ).toBe(true)
+    expect(isPrometheusExporterEnabled({ SOME_UNRELATED_VAR: 'x' })).toBe(true)
   })
 })
 

@@ -22,11 +22,11 @@
  */
 
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
+import type { AlertStateStore } from '@/lib/health/alert-state-store'
+
 import { getClient } from '@chm/clickhouse-client'
 import { error as logError } from '@chm/logger'
-
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
-import type { AlertStateStore } from '@/lib/health/alert-state-store'
 import { alertStateStore } from '@/lib/health/alert-state-store'
 
 const CACHE_TTL_MS = 30_000
@@ -263,7 +263,9 @@ async function collectHostMetrics(
   }
 }
 
-async function buildScrape(configs: readonly ClickHouseConfig[]): Promise<string> {
+async function buildScrape(
+  configs: readonly ClickHouseConfig[]
+): Promise<string> {
   const startedAt = Date.now()
   const alertCounts = countFiringAlertsByHost(alertStateStore)
   const perHost = await Promise.all(

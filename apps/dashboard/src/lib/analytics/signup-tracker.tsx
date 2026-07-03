@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { useUser } from '@clerk/tanstack-react-start'
 import { trackEvent } from './analytics'
+import { useUser } from '@clerk/tanstack-react-start'
+import { useEffect, useRef } from 'react'
 
 // A freshly created Clerk account is treated as "signup" if the session
 // starts within this window of account creation — distinguishes a brand-new

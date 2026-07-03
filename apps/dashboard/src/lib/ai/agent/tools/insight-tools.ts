@@ -48,7 +48,11 @@ export function createInsightTools(hostId: number) {
         const { scoreAnomaly } = await import(
           '@/lib/insights/statistical-baseline'
         )
-        const { metric, value, hostId: toolHostId } = input as {
+        const {
+          metric,
+          value,
+          hostId: toolHostId,
+        } = input as {
           metric: string
           value?: number
           hostId?: number

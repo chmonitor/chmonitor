@@ -105,7 +105,9 @@ describe('decideSeverity — false-positive reduction vs the static threshold', 
       if (fires(decideSeverity(recent, changePct, null, classify).severity)) {
         staticFires++
       }
-      if (fires(decideSeverity(recent, changePct, baseline, classify).severity)) {
+      if (
+        fires(decideSeverity(recent, changePct, baseline, classify).severity)
+      ) {
         baselineFires++
       }
     }

@@ -8,8 +8,8 @@
  * anomaly and table-insight tools so the panel matches what the agent reports.
  */
 
-import type { InsightCandidate, InsightSeverity } from './types'
 import type { Baseline } from './statistical-baseline'
+import type { InsightCandidate, InsightSeverity } from './types'
 
 import { readOnlyQuery } from '../ai/agent/tools/helpers'
 import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
@@ -148,9 +148,11 @@ export function decideSeverity(
   const score = scoreAnomaly(recent, baseline)
 
   if (score.usedBaseline) {
-    if (!score.isAnomaly) return { severity: null, usedBaseline: true, z: score.z }
+    if (!score.isAnomaly)
+      return { severity: null, usedBaseline: true, z: score.z }
     return {
-      severity: Math.abs(score.z) > CRITICAL_Z_THRESHOLD ? 'critical' : 'warning',
+      severity:
+        Math.abs(score.z) > CRITICAL_Z_THRESHOLD ? 'critical' : 'warning',
       usedBaseline: true,
       z: score.z,
     }
@@ -214,7 +216,9 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
         if (decision.severity === null) return
 
         const usedBaseline =
-          decision.usedBaseline && fittedBaseline !== null && decision.z !== null
+          decision.usedBaseline &&
+          fittedBaseline !== null &&
+          decision.z !== null
 
         out.push({
           severity: decision.severity,

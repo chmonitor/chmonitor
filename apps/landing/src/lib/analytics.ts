@@ -9,7 +9,10 @@
 // event-catalog philosophy, separate PostHog project). See
 // docs/content/operate/advanced/product-analytics.mdx.
 
-export type LandingAnalyticsEvent = 'landing_view' | 'pricing_view' | 'cta_click'
+export type LandingAnalyticsEvent =
+  | 'landing_view'
+  | 'pricing_view'
+  | 'cta_click'
 
 type LandingAnalyticsProps = Record<string, string>
 
@@ -18,8 +21,10 @@ type PostHogModule = typeof import('posthog-js').default
 let posthogInstance: PostHogModule | null = null
 let disabled = false
 const MAX_PENDING = 20
-const pending: { event: LandingAnalyticsEvent; props: LandingAnalyticsProps }[] =
-  []
+const pending: {
+  event: LandingAnalyticsEvent
+  props: LandingAnalyticsProps
+}[] = []
 
 function isBrowserDoNotTrack(): boolean {
   return typeof navigator !== 'undefined' && navigator.doNotTrack === '1'
