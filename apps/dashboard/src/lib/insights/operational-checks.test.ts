@@ -13,8 +13,6 @@
  * two drift, insights silently lose their link after a reload.
  */
 
-import { describe, expect, test } from 'bun:test'
-
 import {
   checkDetachedParts,
   checkFailedDictionaries,
@@ -26,6 +24,7 @@ import {
   LONG_QUERY_WARN_SECONDS,
   STUCK_MUTATIONS_CRITICAL,
 } from './operational-checks'
+import { describe, expect, test } from 'bun:test'
 
 describe('checkDetachedParts', () => {
   test('below the minimum is suppressed', () => {
