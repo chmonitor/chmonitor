@@ -23,6 +23,9 @@ interface FakeRow {
   channel_url: string
   enabled: number
   created_at: number
+  provider: string
+  service_name: string | null
+  routing_key: string | null
 }
 
 function makeFakeD1() {
@@ -46,6 +49,9 @@ function makeFakeD1() {
                 channel_url,
                 enabled,
                 created_at,
+                provider,
+                service_name,
+                routing_key,
               ] = params as [
                 string,
                 string,
@@ -54,6 +60,9 @@ function makeFakeD1() {
                 string,
                 number,
                 number,
+                string,
+                string | null,
+                string | null,
               ]
               rows.push({
                 id,
@@ -63,6 +72,9 @@ function makeFakeD1() {
                 channel_url,
                 enabled,
                 created_at,
+                provider,
+                service_name,
+                routing_key,
               })
               return { meta: { changes: 1 } }
             }
@@ -116,8 +128,14 @@ mock.module('@chm/platform', () => ({
   }),
 }))
 
-const { createRoute, deleteRoute, listRoutes, matchRoutes, resolveTargets } =
-  await import('./alert-routing')
+const {
+  createRoute,
+  deleteRoute,
+  listRoutes,
+  matchRoutes,
+  resolvePagerDutyTargets,
+  resolveTargets,
+} = await import('./alert-routing')
 
 import type { AlertRoute, RouteMatchTarget } from './alert-routing'
 
@@ -130,6 +148,9 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     channelUrl: 'https://hooks.slack.com/services/x',
     enabled: true,
     createdAt: 0,
+    provider: 'webhook',
+    serviceName: null,
+    routingKey: null,
     ...overrides,
   }
 }
@@ -229,9 +250,117 @@ describe('resolveTargets (pure)', () => {
     ])
   })
 
+  test('a matched pagerduty route is excluded from the channel list AND suppresses the legacy webhook fallback (no double-fire)', () => {
+    // An operator who explicitly routed this rule/host to PagerDuty must not
+    // ALSO get the legacy global webhook — a match of either provider
+    // suppresses the OTHER provider's catch-all (plan 34).
+    const pd = route({
+      matchRule: 'disk-usage',
+      provider: 'pagerduty',
+      routingKey: 'R-key',
+    })
+    expect(resolveTargets([pd], TARGET, 'https://legacy.example/hook')).toEqual(
+      []
+    )
+  })
+
   test('no match and no legacy URL configured -> empty', () => {
     const r = route({ matchRule: 'replication-*' })
     expect(resolveTargets([r], TARGET, '')).toEqual([])
+  })
+})
+
+describe('resolvePagerDutyTargets (pure) — plan 34', () => {
+  test('matches a pagerduty route and returns its service + routing key', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'pagerduty',
+      serviceName: 'DB On-call',
+      routingKey: 'R-abc',
+    })
+    expect(resolvePagerDutyTargets([r], TARGET, '')).toEqual([
+      { serviceName: 'DB On-call', routingKey: 'R-abc' },
+    ])
+  })
+
+  test('matches a pagerduty route via glob and the * host wildcard', () => {
+    const r = route({
+      matchRule: 'disk-*',
+      matchHost: '*',
+      provider: 'pagerduty',
+      serviceName: 'DB On-call',
+      routingKey: 'R-glob',
+    })
+    expect(resolvePagerDutyTargets([r], TARGET, '')).toEqual([
+      { serviceName: 'DB On-call', routingKey: 'R-glob' },
+    ])
+  })
+
+  test('ignores webhook-provider routes even if matched', () => {
+    const r = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolvePagerDutyTargets([r], TARGET, '')).toEqual([])
+  })
+
+  test('a matched webhook route suppresses the env PagerDuty fallback (no double-fire)', () => {
+    // An operator who explicitly routed this rule/host to Slack/Discord must
+    // not ALSO get it paged to the env-configured PagerDuty service (plan
+    // 34's cross-provider suppression, symmetric with resolveTargets above).
+    const webhook = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(
+      resolvePagerDutyTargets([webhook], TARGET, 'env-fallback-key')
+    ).toEqual([])
+  })
+
+  test('deduplicates matched routes sharing the same routing key', () => {
+    const r1 = route({
+      id: 'a',
+      matchRule: 'disk-usage',
+      provider: 'pagerduty',
+      serviceName: 'DB',
+      routingKey: 'R-shared',
+    })
+    const r2 = route({
+      id: 'b',
+      matchRule: '*',
+      provider: 'pagerduty',
+      serviceName: 'DB (dup)',
+      routingKey: 'R-shared',
+    })
+    expect(resolvePagerDutyTargets([r1, r2], TARGET, '')).toEqual([
+      { serviceName: 'DB', routingKey: 'R-shared' },
+    ])
+  })
+
+  test('a pagerduty route with no routing key never dispatches, and still suppresses the env fallback', () => {
+    // A route matched this finding (by rule/host) but is misconfigured (no
+    // routing key) — it counts as "this finding was explicitly routed" for
+    // the fallback-suppression decision, same as any other match, so the env
+    // key does NOT silently take over. This is a misconfiguration the
+    // operator should notice (an unmatched route commits with no delivery),
+    // not a shape the sweep should paper over by guessing a different key.
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'pagerduty',
+      routingKey: null,
+    })
+    expect(resolvePagerDutyTargets([r], TARGET, 'env-fallback-key')).toEqual([])
+  })
+
+  test('falls back to the env routing key when nothing matches', () => {
+    const r = route({ matchRule: 'replication-*', provider: 'pagerduty' })
+    expect(resolvePagerDutyTargets([r], TARGET, 'env-fallback-key')).toEqual([
+      { serviceName: 'default', routingKey: 'env-fallback-key' },
+    ])
+  })
+
+  test('empty route list (no D1 / owner throw) falls back to the env key — STOP condition proof', () => {
+    expect(resolvePagerDutyTargets([], TARGET, 'env-fallback-key')).toEqual([
+      { serviceName: 'default', routingKey: 'env-fallback-key' },
+    ])
+  })
+
+  test('no match and no env key configured -> empty (no PagerDuty dispatch)', () => {
+    expect(resolvePagerDutyTargets([], TARGET, '')).toEqual([])
   })
 })
 
@@ -284,5 +413,49 @@ describe('D1-backed alert-routing CRUD', () => {
 
     expect(await deleteRoute('owner-1', created!.id)).toBe(true)
     expect(await listRoutes('owner-1')).toEqual([])
+  })
+
+  test('create -> list round-trip persists pagerduty provider fields', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+
+    const created = await createRoute({
+      ownerId: 'owner-1',
+      matchRule: 'disk-*',
+      matchHost: '*',
+      channelUrl: 'https://events.pagerduty.com/v2/enqueue',
+      provider: 'pagerduty',
+      serviceName: 'DB On-call',
+      routingKey: 'R-abc',
+    })
+    expect(created?.provider).toBe('pagerduty')
+    expect(created?.serviceName).toBe('DB On-call')
+    expect(created?.routingKey).toBe('R-abc')
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.provider).toBe('pagerduty')
+    expect(listed.serviceName).toBe('DB On-call')
+    expect(listed.routingKey).toBe('R-abc')
+  })
+
+  test('legacy row with no provider column value defaults to webhook', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+    // Simulate a pre-migration row: provider/service_name/routing_key absent.
+    fakeDb._rows.push({
+      id: 'legacy-1',
+      owner_id: 'owner-1',
+      match_rule: '*',
+      match_host: '*',
+      channel_url: 'https://hooks.slack.com/services/x',
+      enabled: 1,
+      created_at: 0,
+      provider: '',
+      service_name: null,
+      routing_key: null,
+    })
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.provider).toBe('webhook')
   })
 })

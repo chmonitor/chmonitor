@@ -15,6 +15,8 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import type { AlertRouteProvider } from '@/lib/health/alert-routing'
+
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import {
   createRoute,
@@ -25,9 +27,22 @@ import {
   requiresSignInForWrite,
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
+import { PAGERDUTY_EVENTS_API_URL } from '@/lib/health/pagerduty-config'
 
 function jsonError(message: string, status: number): Response {
   return Response.json({ success: false, error: { message } }, { status })
+}
+
+/**
+ * Mask a PagerDuty routing key for API responses — unlike a Slack/Discord
+ * `channelUrl` (whose secret already lives openly in the URL path by
+ * convention), a routing key is a bare secret with no other identifying
+ * shape, so it is never returned in full once stored (plan 34's "secret at
+ * rest, like connection secrets"). Shows only the last 4 characters.
+ */
+function maskRoutingKey(key: string): string {
+  if (key.length <= 4) return '••••'
+  return `••••${key.slice(-4)}`
 }
 
 function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
@@ -38,6 +53,11 @@ function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
     channelUrl: route.channelUrl,
     enabled: route.enabled,
     createdAt: route.createdAt,
+    provider: route.provider,
+    serviceName: route.serviceName,
+    routingKeyMasked: route.routingKey
+      ? maskRoutingKey(route.routingKey)
+      : null,
   }
 }
 
@@ -55,6 +75,12 @@ interface CreateRouteBody {
   matchHost?: unknown
   channelUrl?: unknown
   enabled?: unknown
+  /** `'webhook'` (default) or `'pagerduty'` (plan 34). */
+  provider?: unknown
+  /** PagerDuty-only: display label for the service. */
+  serviceName?: unknown
+  /** PagerDuty-only: the service's Events API v2 integration/routing key. */
+  routingKey?: unknown
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -68,6 +94,58 @@ async function handlePost(request: Request): Promise<Response> {
     body = (await request.json()) as CreateRouteBody
   } catch {
     return jsonError('Request body must be valid JSON', 400)
+  }
+
+  const provider: AlertRouteProvider =
+    body.provider === 'pagerduty' ? 'pagerduty' : 'webhook'
+
+  const matchRule =
+    typeof body.matchRule === 'string' && body.matchRule.trim()
+      ? body.matchRule.trim()
+      : '*'
+  const matchHost =
+    typeof body.matchHost === 'string' && body.matchHost.trim()
+      ? body.matchHost.trim()
+      : '*'
+  const enabled = body.enabled !== false
+
+  if (provider === 'pagerduty') {
+    const routingKey =
+      typeof body.routingKey === 'string' ? body.routingKey.trim() : ''
+    if (!routingKey) {
+      return jsonError(
+        'Missing required "routingKey": a PagerDuty service integration/routing key',
+        400
+      )
+    }
+    const serviceName =
+      typeof body.serviceName === 'string' ? body.serviceName.trim() : ''
+
+    // The Events API v2 endpoint is fixed for every PagerDuty service — not
+    // caller-supplied, so there is no new SSRF sink here (unlike the
+    // webhook path below, which fetches an arbitrary operator-supplied URL).
+    const created = await createRoute({
+      ownerId,
+      matchRule,
+      matchHost,
+      channelUrl: PAGERDUTY_EVENTS_API_URL,
+      enabled,
+      provider: 'pagerduty',
+      serviceName: serviceName || null,
+      routingKey,
+    })
+
+    if (!created) {
+      return jsonError(
+        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        501
+      )
+    }
+
+    return Response.json(
+      { success: true, route: toPublicRoute(created) },
+      { status: 201 }
+    )
   }
 
   const channelUrl =
@@ -88,22 +166,13 @@ async function handlePost(request: Request): Promise<Response> {
     return jsonError(ssrfError, 400)
   }
 
-  const matchRule =
-    typeof body.matchRule === 'string' && body.matchRule.trim()
-      ? body.matchRule.trim()
-      : '*'
-  const matchHost =
-    typeof body.matchHost === 'string' && body.matchHost.trim()
-      ? body.matchHost.trim()
-      : '*'
-  const enabled = body.enabled !== false
-
   const created = await createRoute({
     ownerId,
     matchRule,
     matchHost,
     channelUrl,
     enabled,
+    provider: 'webhook',
   })
 
   if (!created) {

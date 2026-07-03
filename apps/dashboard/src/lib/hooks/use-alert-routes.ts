@@ -12,6 +12,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
+/** Destination provider: `'webhook'` (plan 30) or `'pagerduty'` (plan 34). */
+export type AlertRouteProvider = 'webhook' | 'pagerduty'
+
 export interface AlertRouteInfo {
   id: string
   matchRule: string
@@ -19,6 +22,10 @@ export interface AlertRouteInfo {
   channelUrl: string
   enabled: boolean
   createdAt: number
+  provider: AlertRouteProvider
+  serviceName: string | null
+  /** Masked routing key (last 4 chars only) — never the raw secret. */
+  routingKeyMasked: string | null
 }
 
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
@@ -56,7 +63,10 @@ export function useAlertRoutesMutations() {
   const createRoute = async (input: {
     matchRule: string
     matchHost: string
-    channelUrl: string
+    channelUrl?: string
+    provider?: AlertRouteProvider
+    serviceName?: string
+    routingKey?: string
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {
       method: 'POST',
@@ -82,4 +92,39 @@ export function useAlertRoutesMutations() {
   }
 
   return { createRoute, deleteRoute, invalidate }
+}
+
+/** One PagerDuty service, for the setup dialog's picker. */
+export interface PagerDutyServiceOption {
+  id: string
+  name: string
+}
+
+/**
+ * List PagerDuty services via the account's REST API token (plan 34) — used
+ * to populate the picker. Degrades to an empty list (never throws) when no
+ * token is configured, so the dialog always falls back to pasting a routing
+ * key by hand.
+ */
+export function usePagerDutyServices(enabled = true) {
+  const query = useQuery({
+    queryKey: ['/api/v1/health/pagerduty-services'],
+    queryFn: async () => {
+      const response = await apiFetch('/api/v1/health/pagerduty-services')
+      await throwIfNotOk(response, 'Failed to load PagerDuty services')
+      const json = (await response.json()) as {
+        success: boolean
+        services: PagerDutyServiceOption[]
+      }
+      return json.services ?? []
+    },
+    enabled,
+    staleTime: 60_000,
+  })
+
+  return {
+    services: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+  }
 }

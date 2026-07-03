@@ -32,6 +32,15 @@ const warn = (msg: string) =>
 
 const TABLE = 'alert_routes'
 
+/**
+ * Route destination provider. `'webhook'` (default) fans out to
+ * `channelUrl` exactly as plan 30 shipped — Slack/Discord/generic JSON.
+ * `'pagerduty'` (plan 34) routes to a PagerDuty service's Events API v2
+ * integration key (`routingKey`) instead, letting PagerDuty apply that
+ * service's own escalation policy + on-call schedule.
+ */
+export type AlertRouteProvider = 'webhook' | 'pagerduty'
+
 /** A configured alert route: match criteria → destination channel. */
 export interface AlertRoute {
   id: string
@@ -43,6 +52,12 @@ export interface AlertRoute {
   channelUrl: string
   enabled: boolean
   createdAt: number
+  /** Destination provider; defaults to `'webhook'` for plan-30 rows. */
+  provider: AlertRouteProvider
+  /** Display label for a PagerDuty service (provider `'pagerduty'` only). */
+  serviceName: string | null
+  /** PagerDuty Events API v2 integration/routing key (provider `'pagerduty'` only). */
+  routingKey: string | null
 }
 
 interface D1AlertRouteRow {
@@ -53,6 +68,9 @@ interface D1AlertRouteRow {
   channel_url: string
   enabled: number
   created_at: number
+  provider: string | null
+  service_name: string | null
+  routing_key: string | null
 }
 
 function getDb(): D1Database | null {
@@ -68,6 +86,12 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
     channelUrl: row.channel_url,
     enabled: row.enabled === 1,
     createdAt: row.created_at,
+    // Legacy plan-30 rows have no `provider` column value yet (pre-migration
+    // fake D1s in tests, or a row inserted before 0016 ran) — default to the
+    // webhook behavior they already have.
+    provider: row.provider === 'pagerduty' ? 'pagerduty' : 'webhook',
+    serviceName: row.service_name ?? null,
+    routingKey: row.routing_key ?? null,
   }
 }
 
@@ -84,7 +108,8 @@ export async function listRoutes(ownerId: string): Promise<AlertRoute[]> {
 
     const result = await db
       .prepare(
-        `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at
+        `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
+                provider, service_name, routing_key
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -105,6 +130,12 @@ export interface CreateRouteInput {
   matchHost: string
   channelUrl: string
   enabled?: boolean
+  /** Defaults to `'webhook'` — plan-30 behavior unchanged. */
+  provider?: AlertRouteProvider
+  /** Display label for a PagerDuty service (provider `'pagerduty'` only). */
+  serviceName?: string | null
+  /** PagerDuty Events API v2 integration/routing key (provider `'pagerduty'` only). */
+  routingKey?: string | null
 }
 
 /**
@@ -127,13 +158,17 @@ export async function createRoute(
       channelUrl: input.channelUrl.trim(),
       enabled: input.enabled ?? true,
       createdAt: Date.now(),
+      provider: input.provider ?? 'webhook',
+      serviceName: input.serviceName?.trim() || null,
+      routingKey: input.routingKey?.trim() || null,
     }
 
     await db
       .prepare(
         `INSERT INTO ${TABLE}
-           (id, owner_id, match_rule, match_host, channel_url, enabled, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+           (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
+            provider, service_name, routing_key)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
       )
       .bind(
         route.id,
@@ -142,7 +177,10 @@ export async function createRoute(
         route.matchHost,
         route.channelUrl,
         route.enabled ? 1 : 0,
-        route.createdAt
+        route.createdAt,
+        route.provider,
+        route.serviceName,
+        route.routingKey
       )
       .run()
 
@@ -234,10 +272,16 @@ export function matchRoutes(
 
 /**
  * Resolve the channel URLs a finding should be dispatched to: every matched
- * route's `channelUrl` (deduplicated), or `[legacyGlobalUrl]` when nothing
- * matches and a global URL is configured — preserving today's single-webhook
- * behavior for deployments that never configure a route. Returns `[]` only
- * when there is no match AND no legacy URL configured.
+ * `'webhook'`-provider route's `channelUrl` (deduplicated), or
+ * `[legacyGlobalUrl]` when NO route matched at all (any provider) and a
+ * global URL is configured — preserving today's single-webhook behavior for
+ * deployments that never configure a route. Returns `[]` when there is no
+ * legacy URL configured, OR when a `'pagerduty'` route matched instead: an
+ * explicit route (plan 30's precedent — "matched routes take precedence, the
+ * legacy URL is a fallback only when nothing matches") always suppresses the
+ * catch-all, even one belonging to the other provider — otherwise an
+ * operator who explicitly routed a rule to PagerDuty would ALSO get paged on
+ * the legacy Slack/Discord webhook for the same finding (plan 34).
  */
 export function resolveTargets(
   routes: readonly AlertRoute[],
@@ -245,8 +289,67 @@ export function resolveTargets(
   legacyGlobalUrl: string
 ): string[] {
   const matched = matchRoutes(routes, target)
-  if (matched.length > 0) {
-    return [...new Set(matched.map((r) => r.channelUrl))]
+  // 'pagerduty' routes (plan 34) are dispatched separately by
+  // {@link resolvePagerDutyTargets} with a PagerDuty-shaped body, never the
+  // generic `{ text, content }` wrapper this path sends — but a pagerduty
+  // match still counts toward "something matched" for the fallback decision
+  // below.
+  const webhookMatched = matched.filter((r) => r.provider === 'webhook')
+  if (webhookMatched.length > 0) {
+    return [...new Set(webhookMatched.map((r) => r.channelUrl))]
   }
+  if (matched.length > 0) return []
   return legacyGlobalUrl ? [legacyGlobalUrl] : []
+}
+
+/** One PagerDuty dispatch target: a service's display name + routing key. */
+export interface PagerDutyTarget {
+  serviceName: string
+  routingKey: string
+}
+
+/**
+ * Resolve the PagerDuty services a finding should page (plan 34 — extends
+ * plan 30's routing model rather than a parallel one): every ENABLED,
+ * matched route with `provider === 'pagerduty'` and a non-empty
+ * `routingKey`, deduplicated by routing key. When NO route matched at all
+ * (any provider), falls back to `[{ serviceName: 'default', routingKey:
+ * envFallbackKey }]` when `envFallbackKey` is configured — preserving
+ * today's single-integration-key behavior for deployments that never
+ * configure a PagerDuty route. Returns `[]` when there is no env key
+ * configured, OR when a `'webhook'` route matched instead — mirrors
+ * {@link resolveTargets}'s cross-provider suppression: an operator who
+ * explicitly routed a rule to Slack/Discord must not ALSO get it paged to
+ * the env-configured PagerDuty service. Pure — no I/O.
+ */
+export function resolvePagerDutyTargets(
+  routes: readonly AlertRoute[],
+  target: RouteMatchTarget,
+  envFallbackKey: string
+): PagerDutyTarget[] {
+  const matched = matchRoutes(routes, target)
+  const pagerDutyMatched = matched.filter(
+    (r): r is AlertRoute & { routingKey: string } =>
+      r.provider === 'pagerduty' && Boolean(r.routingKey)
+  )
+
+  if (pagerDutyMatched.length > 0) {
+    const seen = new Set<string>()
+    const out: PagerDutyTarget[] = []
+    for (const r of pagerDutyMatched) {
+      if (seen.has(r.routingKey)) continue
+      seen.add(r.routingKey)
+      out.push({
+        serviceName: r.serviceName || 'PagerDuty',
+        routingKey: r.routingKey,
+      })
+    }
+    return out
+  }
+
+  if (matched.length > 0) return []
+
+  return envFallbackKey
+    ? [{ serviceName: 'default', routingKey: envFallbackKey }]
+    : []
 }

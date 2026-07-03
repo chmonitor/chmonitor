@@ -47,6 +47,10 @@ interface FakeRouteRow {
   channel_url: string
   enabled: number
   created_at: number
+  /** plan 34: defaults to 'webhook' when omitted, matching a pre-migration row. */
+  provider?: string
+  service_name?: string | null
+  routing_key?: string | null
 }
 
 /**
@@ -189,6 +193,7 @@ const ENV_KEYS = [
   'HEALTH_ALERT_ENABLED',
   'HEALTH_ALERT_WEBHOOK_URL',
   'HEALTH_ALERT_MIN_SEVERITY',
+  'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
 ] as const
 const savedEnv: Record<string, string | undefined> = {}
 
@@ -200,6 +205,7 @@ beforeEach(() => {
   process.env.HEALTH_ALERT_WEBHOOK_URL =
     'https://hooks.slack.com/services/T000/B000/XXXX'
   process.env.HEALTH_ALERT_MIN_SEVERITY = 'warning'
+  delete process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY
 
   alertStateStore.clear()
   fakeDb = makeFakeD1()
@@ -501,6 +507,156 @@ describe('runHealthSweep — alert-history hook', () => {
     expect(posted).toHaveLength(0)
     expect(summary.alertsDispatched).toBe(0)
     expect(fakeDb.rows).toHaveLength(0)
+  })
+
+  // -------------------------------------------------------------------------
+  // PagerDuty escalation / on-call routing (plan 34)
+  // -------------------------------------------------------------------------
+
+  test('a matched pagerduty route posts a real Events API v2 body to the fixed enqueue endpoint', async () => {
+    // Isolate the PagerDuty-only delivery: no legacy global webhook so the
+    // 'webhook' fallback in resolveTargets contributes nothing here.
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    fakeDb = makeFakeD1([
+      {
+        id: 'pd-route-1',
+        owner_id: '',
+        match_rule: TEST_RULE_ID,
+        match_host: '*',
+        channel_url: 'https://events.pagerduty.com/v2/enqueue',
+        enabled: 1,
+        created_at: 0,
+        provider: 'pagerduty',
+        service_name: 'DB On-call',
+        routing_key: 'R-service-key',
+      },
+    ])
+
+    const posted: { url: string; body: unknown }[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+      posted.push({
+        url: String(url),
+        body: init?.body ? JSON.parse(String(init.body)) : null,
+      })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toHaveLength(1)
+    expect(posted[0].url).toBe('https://events.pagerduty.com/v2/enqueue')
+    const body = posted[0].body as {
+      routing_key: string
+      event_action: string
+      dedup_key: string
+    }
+    expect(body.routing_key).toBe('R-service-key')
+    expect(body.event_action).toBe('trigger')
+    expect(body.dedup_key).toBe(`chmonitor:0:${TEST_RULE_ID}`)
+    expect(fakeDb.rows).toHaveLength(1)
+    expect(fakeDb.rows[0].channel).toBe('pagerduty:DB On-call')
+  })
+
+  test('falls back to the env PagerDuty routing key when no route matches', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY = 'R-env-fallback'
+
+    const posted: { url: string; body: unknown }[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+      posted.push({
+        url: String(url),
+        body: init?.body ? JSON.parse(String(init.body)) : null,
+      })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toHaveLength(1)
+    expect(posted[0].url).toBe('https://events.pagerduty.com/v2/enqueue')
+    expect((posted[0].body as { routing_key: string }).routing_key).toBe(
+      'R-env-fallback'
+    )
+    expect(fakeDb.rows[0].channel).toBe('pagerduty:default')
+  })
+
+  test('no pagerduty route/env key configured -> no PagerDuty delivery (only the legacy webhook fires)', async () => {
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    // Only the legacy global webhook (env HEALTH_ALERT_WEBHOOK_URL) fired —
+    // no PagerDuty Events API call since no route or env key is configured.
+    expect(posted).toEqual(['https://hooks.slack.com/services/T000/B000/XXXX'])
+  })
+
+  test('a matched pagerduty route suppresses the legacy webhook — no double-fire', async () => {
+    // Legacy global webhook stays configured (beforeEach default), AND a
+    // PagerDuty route matches this finding — the match must win exclusively:
+    // PagerDuty pages, the legacy Slack webhook must NOT also fire.
+    fakeDb = makeFakeD1([
+      {
+        id: 'pd-route-1',
+        owner_id: '',
+        match_rule: TEST_RULE_ID,
+        match_host: '*',
+        channel_url: 'https://events.pagerduty.com/v2/enqueue',
+        enabled: 1,
+        created_at: 0,
+        provider: 'pagerduty',
+        service_name: 'DB On-call',
+        routing_key: 'R-service-key',
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toEqual(['https://events.pagerduty.com/v2/enqueue'])
+  })
+
+  test('a matched webhook route suppresses the env PagerDuty fallback — no double-fire', async () => {
+    // A catch-all webhook route matches AND an env PagerDuty routing key is
+    // configured — the explicit webhook route must win exclusively: no
+    // PagerDuty Events API call for this finding.
+    process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY = 'R-env-fallback'
+    fakeDb = makeFakeD1([
+      {
+        id: 'webhook-route-1',
+        owner_id: '',
+        match_rule: '*',
+        match_host: '*',
+        channel_url: 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+        enabled: 1,
+        created_at: 0,
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toEqual([
+      'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+    ])
   })
 })
 

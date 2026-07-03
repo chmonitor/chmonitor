@@ -7,14 +7,23 @@ import type {
   AlertRuleDef,
   AlertRuleSeverity,
 } from '@/lib/alerting/rule-registry'
+import type { AlertPayload, PagerDutyEventBody } from './adapters'
 import type { AlertEventRecord } from './alert-history-store'
 import type { AlertRoute } from './alert-routing'
 import type { AlertDecision } from './alert-state-store'
 
-import { detectAdapter } from './adapters'
+import { buildPagerDutyBody, detectAdapter } from './adapters'
 import { recordAlertEvent } from './alert-history-store'
-import { listRoutes, resolveTargets } from './alert-routing'
+import {
+  listRoutes,
+  resolvePagerDutyTargets,
+  resolveTargets,
+} from './alert-routing'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
+import {
+  getPagerDutyFallbackRoutingKey,
+  PAGERDUTY_EVENTS_API_URL,
+} from './pagerduty-config'
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
@@ -195,6 +204,45 @@ async function postWebhook(url: string, text: string): Promise<WebhookResult> {
 }
 
 /**
+ * POST a PagerDuty Events API v2 body (`trigger` or `resolve`) to the fixed
+ * enqueue endpoint, using a specific service's routing key — plan 34. Mirrors
+ * {@link postWebhook}'s shape/timeout so the two dispatch paths behave the
+ * same for the caller; only the content-type target differs (a real PagerDuty
+ * body, not the generic `{ text, content }` wrapper).
+ */
+async function postPagerDutyEvent(
+  body: PagerDutyEventBody
+): Promise<WebhookResult> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const res = await fetch(PAGERDUTY_EVENTS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      const message = `PagerDuty Events API returned status ${res.status}`
+      error(
+        '[health-sweep] PagerDuty Events API returned non-OK status',
+        new Error(message)
+      )
+      return { ok: false, error: message }
+    }
+    return { ok: true }
+  } catch (err) {
+    error('[health-sweep] PagerDuty Events API POST failed', err as Error)
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/**
  * Map a notify decision + dispatch outcome into the shape the alert-history
  * store persists. Pure — no I/O — so the decision→record translation (the
  * trickiest part: `recovery` carries its own severity distinct from the
@@ -274,8 +322,10 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const settings = getServerAlertConfig()
   const webhookConfigured = Boolean(settings.webhookUrl)
   const routes: AlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
+  const pagerDutyFallbackKey = getPagerDutyFallbackRoutingKey()
   const canDispatch =
-    settings.webhookEnabled && (webhookConfigured || routes.length > 0)
+    settings.webhookEnabled &&
+    (webhookConfigured || routes.length > 0 || Boolean(pagerDutyFallbackKey))
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
@@ -361,6 +411,19 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         settings.webhookUrl
       )
 
+      // PagerDuty services (plan 34): resolved separately from the generic
+      // webhook fan-out above (`resolveTargets` already excludes
+      // provider === 'pagerduty' routes — see `alert-routing.ts`), because a
+      // PagerDuty target needs the real Events API v2 body/routing key
+      // rather than the generic `{ text, content }` wrapper. Falls back to
+      // the legacy env routing key when no route matches, same fail-open
+      // contract as the webhook path.
+      const pagerDutyTargets = resolvePagerDutyTargets(
+        routes,
+        { ruleId, ruleType, hostId, hostName: name },
+        pagerDutyFallbackKey
+      )
+
       let anyDelivered = false
       for (const url of targets) {
         const result = await postWebhook(url, text)
@@ -394,11 +457,60 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
+      if (pagerDutyTargets.length > 0) {
+        // `decision.kind === 'recovery'` maps to `event_action: 'resolve'`
+        // inside `buildPagerDutyBody`; the stable `chmonitor:{hostId}:{metric}`
+        // dedup key is what lets PagerDuty collapse repeat triggers into one
+        // open incident and auto-resolve it here. `metric` is the rule id, so
+        // this key aligns 1:1 with the sweep's own `hostId:ruleId` dedup.
+        const pagerDutyPayload: AlertPayload = {
+          severity:
+            decision.kind === 'recovery'
+              ? 'recovery'
+              : (effective as 'warning' | 'critical'),
+          hostLabel: name,
+          hostId,
+          metric: ruleId,
+          value,
+          title: ruleTitle,
+          label,
+          timestamp: new Date().toISOString(),
+        }
+
+        for (const target of pagerDutyTargets) {
+          const body = buildPagerDutyBody(pagerDutyPayload, {
+            routingKey: target.routingKey,
+          })
+          const result = await postPagerDutyEvent(body)
+          if (result.ok) anyDelivered = true
+
+          try {
+            await recordAlertEvent(
+              buildAlertEventRecord({
+                hostId,
+                hostLabel: name,
+                ruleId,
+                decision,
+                value,
+                delivered: result.ok,
+                error: result.error,
+                channel: `pagerduty:${target.serviceName}`,
+              })
+            )
+          } catch (err) {
+            debug(
+              `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+              err instanceof Error ? err.message : String(err)
+            )
+          }
+        }
+      }
+
       // Persist "notified" only when there was nothing to deliver (no
-      // targets — not a failure) or at least one channel succeeded. A failed
-      // delivery with no successes leaves no record, so the next sweep retries
-      // instead of suppressing.
-      if (targets.length === 0 || anyDelivered) {
+      // targets at all across every channel — not a failure) or at least one
+      // channel succeeded. A failed delivery with no successes leaves no
+      // record, so the next sweep retries instead of suppressing.
+      if (targets.length + pagerDutyTargets.length === 0 || anyDelivered) {
         commit()
         if (anyDelivered) {
           alertsDispatched++
