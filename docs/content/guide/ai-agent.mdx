@@ -224,6 +224,12 @@ The panel probes each enabled server on load (`POST /api/v1/mcp/probe`) to show 
 
 ### MCP tools
 
+The MCP server exposes a smaller, read-only-only subset of tools for external MCP
+clients — not the full agent toolset. For the complete tool list the in-app AI
+Agent uses (schema, query analysis, health, storage, replication, merges,
+planning, skills, and visualization — 21 tools total), see
+[Capabilities](/guide/ai-agent/capabilities).
+
 | Tool | Purpose |
 |---|---|
 | `query` | Execute a read-only SQL query (SELECT / WITH / DESCRIBE / EXPLAIN only) |
@@ -235,6 +241,7 @@ The panel probes each enabled server on load (`POST /api/v1/mcp/probe`) to show 
 | `get_slow_queries` | Slowest completed queries from the query log |
 | `get_merge_status` | Currently running merge operations with progress and elapsed time |
 | `explore_table_schema` | Three-mode schema exploration: databases → tables → full schema with relationships |
+| `analyze_performance` | Structured performance snapshot — slow queries, high part counts, merge backlog, memory/disk pressure — with severity ratings |
 
 ### Read-only enforcement
 
