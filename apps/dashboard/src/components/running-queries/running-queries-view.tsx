@@ -4,7 +4,7 @@ import type { CompletedQueryRow } from '@/components/running-queries/completed-q
 import type { RunningQueryRow } from '@/components/running-queries/running-queries-table'
 import type { CardError } from '@/lib/card-error-utils'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout'
 import { CollapsedChartsRow } from '@/components/layout/query-page/collapsed-charts-row'
 import { HeaderButton } from '@/components/query-tables/header-button'
@@ -12,6 +12,7 @@ import { QueryPageSkeleton } from '@/components/query-tables/query-page-skeleton
 import { CompletedQueriesTable } from '@/components/running-queries/completed-queries-table'
 import { RunningQueriesCharts } from '@/components/running-queries/running-queries-charts'
 import { RunningQueriesTable } from '@/components/running-queries/running-queries-table'
+import { reconcileDoneRows } from '@/components/running-queries/table/done-retention'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -155,6 +156,43 @@ export const RunningQueriesView = function RunningQueriesView() {
   const [pendingFinished, setPendingFinished] = useState<CompletedQueryRow[]>(
     []
   )
+
+  // Row expansion is owned here rather than inside the table: the table unmounts
+  // when the live list empties, so a retained "Done" row must outlive it. Keyed
+  // by the stable `query_id` (the table's row key for identified rows).
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  const expandedRef = useRef(expanded)
+  expandedRef.current = expanded
+  const toggleExpanded = useCallback((key: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [])
+
+  // Finished queries the user had expanded, retained as Done rows (keyed by
+  // query_id) so an in-flight inspection is not lost when the query leaves
+  // `system.processes`. Cleared on dismiss or unmount (navigate away).
+  const [doneRows, setDoneRows] = useState<Map<string, RunningQueryRow>>(
+    () => new Map()
+  )
+  const dismissDone = useCallback((id: string) => {
+    setDoneRows((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Map(prev)
+      next.delete(id)
+      return next
+    })
+    setExpanded((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }, [])
+
   useEffect(() => {
     // Only diff once the running list has loaded; an undefined `data` means the
     // first fetch is still in flight, which must not count every id as gone.
@@ -169,6 +207,13 @@ export const RunningQueriesView = function RunningQueriesView() {
       if (!current.has(id)) finishedRows.push(row)
     }
     prevRunningRef.current = current
+    // Retain finished rows the user had expanded (the keep-Done behaviour).
+    // reconcileDoneRows returns the previous map unchanged when nothing was
+    // added or removed, so this setState bails out of a needless re-render.
+    const currentIds = new Set(current.keys())
+    setDoneRows((prev) =>
+      reconcileDoneRows(prev, finishedRows, currentIds, expandedRef.current)
+    )
     if (finishedRows.length > 0) {
       const finishedIds = finishedRows.map((r) => String(r.query_id))
       setJustFinishedIds((prev) => {
@@ -200,6 +245,12 @@ export const RunningQueriesView = function RunningQueriesView() {
   )
   const mergedCompleted =
     livePending.length > 0 ? [...livePending, ...completedRows] : completedRows
+
+  // Retained Done rows, newest-first (most recently finished at the top).
+  const doneRowsArr = useMemo(
+    () => Array.from(doneRows.values()).reverse(),
+    [doneRows]
+  )
 
   const errVariant = error
     ? detectCardErrorVariant(error as CardError)
@@ -305,7 +356,7 @@ export const RunningQueriesView = function RunningQueriesView() {
                 onExpand={() => setChartsOpen(true)}
               />
             )}
-            {rows.length === 0 ? (
+            {rows.length === 0 && doneRowsArr.length === 0 ? (
               <Card className="rounded-xl border-dashed">
                 <CardContent className="p-6">
                   <EmptyState
@@ -316,7 +367,13 @@ export const RunningQueriesView = function RunningQueriesView() {
                 </CardContent>
               </Card>
             ) : (
-              <RunningQueriesTable rows={rows} />
+              <RunningQueriesTable
+                rows={rows}
+                doneRows={doneRowsArr}
+                expanded={expanded}
+                onToggle={toggleExpanded}
+                onDismiss={dismissDone}
+              />
             )}
             <CompletedQueriesTable
               rows={mergedCompleted}

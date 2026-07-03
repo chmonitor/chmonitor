@@ -53,7 +53,23 @@ import { cn } from '@/lib/utils'
 export type { RunningQueryRow } from './table/types'
 
 interface RunningQueriesTableProps {
+  /** Live `system.processes` rows. Drives the toolbar/footer counts and CSV. */
   rows: RunningQueryRow[]
+  /**
+   * Retained "Done" rows — queries the user had expanded that have since left
+   * `system.processes`. Rendered pinned above the live rows in a finished
+   * state; excluded from the "active" counts and export.
+   */
+  doneRows: RunningQueryRow[]
+  /**
+   * Expanded row keys. Owned by the parent view so an expanded row survives as
+   * a Done row even when the live list (and this table) would otherwise unmount.
+   */
+  expanded: Set<string>
+  /** Toggle a row's expansion by its stable key. */
+  onToggle: (key: string) => void
+  /** Dismiss a retained Done row by query_id. */
+  onDismiss: (id: string) => void
 }
 
 /**
@@ -68,6 +84,10 @@ interface RunningQueriesTableProps {
  */
 export const RunningQueriesTable = memo(function RunningQueriesTable({
   rows,
+  doneRows,
+  expanded,
+  onToggle,
+  onDismiss,
 }: RunningQueriesTableProps) {
   const [search, setSearch] = useState('')
   const [filterKind, setFilterKind] = useState('all')
@@ -82,13 +102,16 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
   // Card view leads on phones (the wide metric table is unreadable in a scroll
   // box), table on desktop — with a toggle so either is reachable anywhere.
   const [view, setView] = useLayoutView()
-  // Expansion is keyed by a stable row key; `query_id` still drives actions.
-  // A row stays open across refreshes and re-sorts as long as that underlying
-  // identifier remains stable.
-  // sorting / filtering never reassigns the panel to a different query.
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  // Expansion is owned by the parent view (keyed by the stable `query_id`), so
+  // an expanded row can be retained as a "Done" row when it finishes rather
+  // than vanishing with the live list. A row stays open across refreshes,
+  // re-sorts and filters as long as that identifier is stable.
 
   const derived = useMemo(() => rows.map(derive), [rows])
+  // Retained Done rows, pinned above the live rows and exempt from the live
+  // search / filter / sort so they stay put until dismissed.
+  const derivedDone = useMemo(() => doneRows.map(derive), [doneRows])
 
   // Filter options come from the values actually present in the data.
   const kindOptions = useMemo(() => {
@@ -144,15 +167,6 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
   const moreFiltersActive = filterInterface !== 'all' || longRunningOnly
   const totalColumns =
     BASE_COLUMN_COUNT + (OPTIONAL_COLUMNS.length - hiddenColumns.size)
-
-  const toggleRow = useCallback((id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
 
   const handleSort = useCallback((key: string) => {
     const k = key as SortKey
@@ -314,15 +328,25 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
           className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3"
           data-testid="running-queries-cards"
         >
+          {derivedDone.map((d) => (
+            <QueryCard
+              key={d.key}
+              d={d}
+              done
+              expanded={expanded.has(d.key)}
+              onToggle={() => onToggle(d.key)}
+              onDismiss={() => onDismiss(d.id)}
+            />
+          ))}
           {visible.map((d) => (
             <QueryCard
               key={d.key}
               d={d}
               expanded={expanded.has(d.key)}
-              onToggle={() => toggleRow(d.key)}
+              onToggle={() => onToggle(d.key)}
             />
           ))}
-          {visible.length === 0 && <EmptyCards />}
+          {visible.length === 0 && derivedDone.length === 0 && <EmptyCards />}
         </div>
       ) : (
         /* Table — table-fixed so the Query column truncates instead of pushing
@@ -415,6 +439,18 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
               </tr>
             </thead>
             <tbody>
+              {/* Retained Done rows, pinned above the live rows. */}
+              {derivedDone.map((d) => (
+                <QueryRow
+                  key={d.key}
+                  d={d}
+                  done
+                  expanded={expanded.has(d.key)}
+                  onToggle={() => onToggle(d.key)}
+                  onDismiss={() => onDismiss(d.id)}
+                  hiddenColumns={hiddenColumns}
+                />
+              ))}
               {visible.map((d) => (
                 // Keyed by stable row key so each row keeps identity and
                 // component state through refreshes, sorts and filters.
@@ -422,11 +458,13 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
                   key={d.key}
                   d={d}
                   expanded={expanded.has(d.key)}
-                  onToggle={() => toggleRow(d.key)}
+                  onToggle={() => onToggle(d.key)}
                   hiddenColumns={hiddenColumns}
                 />
               ))}
-              {visible.length === 0 && <EmptyTableRow colSpan={totalColumns} />}
+              {visible.length === 0 && derivedDone.length === 0 && (
+                <EmptyTableRow colSpan={totalColumns} />
+              )}
             </tbody>
           </table>
         </div>
