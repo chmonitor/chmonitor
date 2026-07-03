@@ -7,6 +7,8 @@
 [![Docker image](https://img.shields.io/badge/ghcr.io-chmonitor%2Fchmonitor-2496ED?logo=docker&logoColor=white)](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor)
 [![License](https://img.shields.io/github/license/chmonitor/chmonitor)](LICENSE)
 
+**chmonitor is an operational advisor for self-hosted ClickHouse** — not just a metrics viewer. It reads `system.*` and recommends projections, skip indexes, partition keys, PREWHERE rewrites, and materialized views (it *recommends*, and never auto-applies DDL), on top of the real-time query/cluster/replication monitoring you'd expect. Managed-ClickHouse AI tools stay locked to their own Cloud; chmonitor works the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud.
+
 A modern dashboard (TanStack Start, as of **v0.3**) that provides real-time insights into ClickHouse clusters through system tables. Every page is pre-rendered at build time with client-side data fetching for optimal performance and CDN caching.
 
 > **Upgrading from v0.2?** v0.3 rebuilds the app on TanStack Start. ClickHouse
@@ -30,6 +32,7 @@ A modern dashboard (TanStack Start, as of **v0.3**) that provides real-time insi
 - **Security & Access**: Users, roles, security settings
 - **Developer Tools**: Zookeeper explorer, query EXPLAIN, query kill, distributed DDL queue, mutations
 - **Multi-Host Support**: Monitor multiple ClickHouse instances from a single dashboard
+- **AI Advisor**: Query optimization advisor, materialized-view/projection designer, capacity forecast + TTL advisor, and EXPLAIN-based query cost estimator — all recommend-only, never auto-applies DDL
 - **AI Agent**: Built-in AI chat for natural language queries against your ClickHouse cluster
 - **MCP Server**: Model Context Protocol endpoint for AI tool integration (Claude, Cursor, etc.)
 - **Rust CLI**: Standalone terminal and TUI monitoring tool
