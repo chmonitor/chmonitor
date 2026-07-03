@@ -2,6 +2,7 @@ import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { HEALTH_CHECKS } from './health-checks'
+import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
 import { RecentAlertsCard } from './recent-alerts-card'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { useEffect, useState } from 'react'
@@ -181,6 +182,7 @@ export function HealthSettingsDialog() {
             <TabsTrigger value="alerts">Alerts</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="thresholds">
@@ -371,6 +373,12 @@ export function HealthSettingsDialog() {
           <TabsContent value="webhooks">
             <ScrollArea className="h-[420px] pr-3">
               <WebhookSubscriptionsPanel />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="maintenance">
+            <ScrollArea className="h-[420px] pr-3">
+              <MaintenanceWindowsPanel />
             </ScrollArea>
           </TabsContent>
         </Tabs>

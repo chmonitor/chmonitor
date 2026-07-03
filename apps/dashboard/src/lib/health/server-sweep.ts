@@ -9,6 +9,7 @@ import type { AlertDecision } from './alert-state-store'
 import { detectAdapter } from './adapters'
 import { recordAlertEvent } from './alert-history-store'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
+import { isSuppressed, listWindows } from './maintenance-windows'
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
@@ -64,6 +65,8 @@ export interface SweepSummary {
   alertsDispatched: number
   /** Alerts suppressed by the dedup state store (already-firing conditions). */
   alertsSuppressed: number
+  /** Of `alertsSuppressed`, how many were gated by an active maintenance window. */
+  maintenanceSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
   /** Total AI insights generated and persisted across all hosts. */
@@ -254,11 +257,19 @@ export async function runHealthSweep(): Promise<SweepSummary> {
 
   const configs = getClickHouseConfigs()
 
+  // Maintenance windows: loaded once per sweep, best-effort (never throws —
+  // listWindows() already degrades to [] on any D1/binding failure).
+  // (verify) The sweep runs from a cron context with no signed-in session, so
+  // there is no per-tenant owner to resolve here yet — OSS single-tenant
+  // ('') is correct today; multi-tenant sweep scoping is a follow-up.
+  const windows = await listWindows('')
+
   const hosts: SweepHostSummary[] = []
   const findings: SweepFinding[] = []
   let insightsGenerated = 0
   let alertsDispatched = 0
   let alertsSuppressed = 0
+  let maintenanceSuppressed = 0
   let recoveries = 0
 
   for (const config of configs) {
@@ -308,6 +319,47 @@ export async function runHealthSweep(): Promise<SweepSummary> {
             severity: effective,
             cooldownMs,
           })
+          if (decision.notify && isSuppressed(windows, config.id, Date.now())) {
+            // A maintenance window covers this host right now — suppress the
+            // dispatch only. The finding above was already pushed to
+            // `findings` and the rule already ran, so nothing about data
+            // collection changes. Deliberately do NOT call `commit()`: the
+            // dedup state store must stay exactly as it was (still "unknown"
+            // for a brand-new condition, or still at its last-committed
+            // severity for a persisting one) so the cooldown/escalation
+            // semantics are unaffected once the window ends — the very next
+            // sweep after the window closes re-evaluates fresh and notifies
+            // normally if the condition still holds.
+            alertsSuppressed++
+            maintenanceSuppressed++
+            try {
+              await recordAlertEvent({
+                eventTime: new Date().toISOString(),
+                hostId: config.id,
+                hostLabel: name,
+                rule: rule.id,
+                severity:
+                  decision.kind === 'recovery'
+                    ? 'recovery'
+                    : (decision.severity as 'warning' | 'critical'),
+                prevSeverity:
+                  decision.previousSeverity === 'ok'
+                    ? null
+                    : decision.previousSeverity,
+                decisionKind: 'maintenance',
+                delivered: false,
+                value,
+                channel: detectAdapter(settings.webhookUrl).id,
+              })
+            } catch (err) {
+              debug(
+                `[health-sweep] alert-history record failed for host ${config.id} rule ${rule.id}`,
+                err instanceof Error ? err.message : String(err)
+              )
+            }
+            continue
+          }
+
           if (decision.notify) {
             const label = rule.formatLabel
               ? rule.formatLabel(value)
@@ -401,6 +453,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     totalFindings: findings.length,
     alertsDispatched,
     alertsSuppressed,
+    maintenanceSuppressed,
     recoveries,
     insightsGenerated,
     hosts,
