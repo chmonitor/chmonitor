@@ -144,6 +144,11 @@ export function useTableData<T = unknown>(
     metadata: data?.metadata,
     error: error ?? undefined,
     isLoading,
+    // `isPending` is true whenever no successful response has loaded yet for
+    // the current query key — including the dispatched-but-not-yet-fetching /
+    // paused / first-paint window where `isFetching` is false. Consumers use it
+    // to keep a skeleton up so the empty-state never flashes before data lands.
+    isPending,
     isValidating,
     refresh: () => refetch().then(() => undefined),
     hasData,
