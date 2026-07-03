@@ -314,6 +314,7 @@ const SSR_STUB_NAMED_EXPORTS = [
   'PieChart',
   'RadialBar',
   'RadialBarChart',
+  'ReferenceLine',
   'Scatter',
   'ScatterChart',
   'Tooltip',

@@ -28,6 +28,13 @@ export interface AreaChartFactoryConfig extends BaseChartFactoryConfig {
   categories: string[]
   defaultChartClassName?: string
   areaChartProps?: Partial<AreaChartProps> & AreaChartAdditionalProps
+  /**
+   * Opt-in: overlay GitHub deploy markers on this chart, fetched for the
+   * chart's current visible window (plans/45-github-deploy-correlation.md).
+   * Undefined/false ⇒ zero behavior/query change (the default for every
+   * other area chart).
+   */
+  showDeployments?: boolean
 }
 
 // Additional props that BarChart accepts but aren't in BarChartProps

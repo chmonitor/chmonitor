@@ -1,6 +1,7 @@
 import type { ChartProps } from '@/components/charts/chart-props'
-import type { DateRangeValue } from '@/components/date-range'
+import type { DateRangeConfig, DateRangeValue } from '@/components/date-range'
 import type { ChartDataPoint } from '@/types/chart-data'
+import type { AreaChartDeploymentMarker } from '@/types/charts'
 import type { AreaChartFactoryConfig } from './types'
 
 import { type FC, memo, useMemo, useState } from 'react'
@@ -11,9 +12,48 @@ import { AreaChart } from '@/components/charts/primitives/area'
 import { resolveDateRangeConfig } from '@/components/date-range'
 import { useTimeRange } from '@/lib/context/time-range-context'
 import { useTimezone } from '@/lib/context/timezone-context'
+import { useDeployments } from '@/lib/deployments/use-deployments'
 import { useChartData, useHostId } from '@/lib/swr'
 import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { cn, createDateTickFormatter } from '@/lib/utils'
+
+/**
+ * Picks the smallest date-range preset that comfortably covers a deploy's
+ * age (10% buffer for clock skew/render lag), falling back to the largest
+ * preset. Powers the "filter to deploy window" marker click.
+ *
+ * Deliberately NOT a tight `[deploy, deploy+N min]` window: the chart's date
+ * range is relative-from-now (`rangeOverride`/`onRangeChange`,
+ * `DateRangeValue { lastHours, interval }`), with no absolute start/end.
+ * Per plans/45-github-deploy-correlation.md — "reuse the chart's existing
+ * time-range mechanism — do not build a new one" — this zooms to the
+ * smallest existing preset that contains the deploy (ending at "now"),
+ * rather than adding a new absolute-window control to get a tighter view.
+ */
+export function pickRangeForDeployment(
+  deployedAtMs: number,
+  dateRangeConfig: DateRangeConfig | undefined
+): DateRangeValue | undefined {
+  if (!dateRangeConfig || dateRangeConfig.options.length === 0) return undefined
+
+  const ageHours = (Date.now() - deployedAtMs) / 3_600_000
+  const sorted = [...dateRangeConfig.options].sort(
+    (a, b) =>
+      (a.lastHours ?? Number.POSITIVE_INFINITY) -
+      (b.lastHours ?? Number.POSITIVE_INFINITY)
+  )
+  const match =
+    sorted.find(
+      (opt) => (opt.lastHours ?? Number.POSITIVE_INFINITY) >= ageHours * 1.1
+    ) ?? sorted.at(-1)
+  if (!match) return undefined
+
+  return {
+    value: match.value,
+    lastHours: match.lastHours,
+    interval: match.interval,
+  }
+}
 
 /**
  * Check if all values in the specified categories are zero or empty
@@ -101,6 +141,42 @@ export function createAreaChart(
       refreshInterval: config.refreshInterval ?? REFRESH_INTERVAL.DEFAULT_60S,
     })
 
+    // Deploy-marker overlay (opt-in via config.showDeployments): fetch only
+    // for the currently visible window, and only for charts that ask for it
+    // — every other area chart pays zero extra query cost. `now` is bucketed
+    // to the minute so the TanStack Query key (which includes sinceMs/untilMs)
+    // stays stable across re-renders within that minute instead of
+    // refetching on every render.
+    const nowBucketMs = Math.floor(Date.now() / 60_000) * 60_000
+    const { deployments } = useDeployments({
+      sinceMs: effectiveLastHours
+        ? nowBucketMs - effectiveLastHours * 3_600_000
+        : undefined,
+      untilMs: nowBucketMs,
+      enabled: Boolean(config.showDeployments),
+    })
+    const deploymentMarkers: AreaChartDeploymentMarker[] | undefined =
+      config.showDeployments
+        ? deployments.map((d) => ({
+            id: d.id,
+            repo: d.repo,
+            environment: d.environment,
+            ref: d.ref,
+            sha: d.sha,
+            version: d.version,
+            createdAt: d.createdAt,
+          }))
+        : undefined
+    const handleDeploymentSelect = config.showDeployments
+      ? (deployment: AreaChartDeploymentMarker) => {
+          const range = pickRangeForDeployment(
+            deployment.createdAt,
+            resolvedDateRangeConfig
+          )
+          if (range) setRangeOverride(range)
+        }
+      : undefined
+
     // Create smart date formatter based on time range
     // Only apply if no custom tickFormatter is provided
     // biome-ignore lint/correctness/useExhaustiveDependencies: config is fixed for the factory instance.
@@ -172,6 +248,8 @@ export function createAreaChart(
               categories={config.categories}
               {...config.areaChartProps}
               tickFormatter={tickFormatter}
+              deployments={deploymentMarkers}
+              onDeploymentSelect={handleDeploymentSelect}
               {...props}
             />
           </ChartCard>
