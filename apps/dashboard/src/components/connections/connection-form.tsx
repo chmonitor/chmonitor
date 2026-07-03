@@ -2,12 +2,19 @@ import { ArrowUpRight, Check, Eye, EyeOff, Globe, Loader2 } from 'lucide-react'
 
 import type { BrowserConnection } from '@/lib/types/browser-connection'
 import type { HostStorageMode } from '@/lib/types/host-storage'
+import type { ConnectionPreset } from './connection-presets'
 
+import {
+  applyCloudHostDefaults,
+  CLOUD_HOST_PLACEHOLDER,
+  SELF_HOSTED_HOST_PLACEHOLDER,
+} from './connection-presets'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   classifyConnectionError,
   extractConnectionErrorMessage,
@@ -78,6 +85,7 @@ export function ConnectionForm({
   })
   const [showPassword, setShowPassword] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>({ state: 'idle' })
+  const [preset, setPreset] = useState<ConnectionPreset>('self-hosted')
 
   const handleChange =
     (field: keyof ConnectionFormData) =>
@@ -88,6 +96,28 @@ export function ConnectionForm({
         setTestStatus({ state: 'idle' })
       }
     }
+
+  const handlePresetChange = (next: ConnectionPreset) => {
+    setPreset(next)
+    // Only fill a still-empty username — never clobber an existing value
+    // (e.g. while editing an existing connection via ConnectionManagerDialog).
+    if (next === 'clickhouse-cloud') {
+      setForm((prev) =>
+        prev.user.trim() ? prev : { ...prev, user: 'default' }
+      )
+    }
+  }
+
+  // Normalize the host on blur (not on every keystroke, so we never fight the
+  // cursor while typing) so a pasted Cloud hostname connects on the first
+  // try. Never runs for the self-hosted preset — that path is untouched.
+  const handleHostBlur = () => {
+    if (preset !== 'clickhouse-cloud') return
+    setForm((prev) => {
+      const next = applyCloudHostDefaults(prev.host)
+      return next === prev.host ? prev : { ...prev, host: next }
+    })
+  }
 
   const handleTest = async () => {
     setTestStatus({ state: 'loading' })
@@ -153,6 +183,21 @@ export function ConnectionForm({
 
   return (
     <div className="space-y-4">
+      {/* Connection type — presets only change defaults/hints below; the
+          self-hosted preset (default) leaves every field untouched. */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">Connection type</Label>
+        <Tabs
+          value={preset}
+          onValueChange={(v) => handlePresetChange(v as ConnectionPreset)}
+        >
+          <TabsList>
+            <TabsTrigger value="self-hosted">Self-hosted</TabsTrigger>
+            <TabsTrigger value="clickhouse-cloud">ClickHouse Cloud</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {/* Name */}
       <div className="space-y-1.5">
         <Label htmlFor="conn-name" className="text-sm font-medium">
@@ -176,9 +221,14 @@ export function ConnectionForm({
           <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
             id="conn-host"
-            placeholder="https://clickhouse.example.com:8123"
+            placeholder={
+              preset === 'clickhouse-cloud'
+                ? CLOUD_HOST_PLACEHOLDER
+                : SELF_HOSTED_HOST_PLACEHOLDER
+            }
             value={form.host}
             onChange={handleChange('host')}
+            onBlur={handleHostBlur}
             className="pl-8"
             autoComplete="off"
             type="url"
@@ -187,6 +237,12 @@ export function ConnectionForm({
         {form.host.length > 0 && !isValidUrl(form.host) && (
           <p className="text-xs text-destructive">
             Enter a valid HTTP or HTTPS URL
+          </p>
+        )}
+        {preset === 'clickhouse-cloud' && (
+          <p className="text-xs text-muted-foreground">
+            Paste your Cloud service hostname; username is usually{' '}
+            <code className="text-foreground">default</code>.
           </p>
         )}
       </div>
@@ -315,7 +371,10 @@ export function ConnectionForm({
       {/* Rich, actionable error panel — classifies the raw ClickHouse / network
           error into a cause + fix + docs link for the specific failure kind. */}
       {testStatus.state === 'error' && (
-        <ConnectionErrorPanel message={testStatus.message} />
+        <ConnectionErrorPanel
+          message={testStatus.message}
+          cloudPreset={preset === 'clickhouse-cloud'}
+        />
       )}
 
       {/* Actions */}
@@ -336,8 +395,26 @@ export function ConnectionForm({
  * the concrete fix, the raw technical detail, and a docs link for that exact
  * failure kind (host not allowed, auth failed, permissions, DNS, TLS, …).
  */
-function ConnectionErrorPanel({ message }: { message?: string }) {
+function ConnectionErrorPanel({
+  message,
+  cloudPreset = false,
+}: {
+  message?: string
+  /** Whether the ClickHouse Cloud preset was active for this test attempt. */
+  cloudPreset?: boolean
+}) {
   const e = classifyConnectionError(message)
+  // Cloud-specific nudge on top of the generic classification — reachability
+  // failures on the Cloud preset are almost always a TLS/port mismatch (the
+  // 8443 HTTPS interface, never plain HTTP). Additive only: the shared
+  // classifier in `lib/connection-errors.ts` (also used by self-host) is
+  // untouched.
+  const showCloudTlsHint =
+    cloudPreset &&
+    (e.kind === 'tls_error' ||
+      e.kind === 'connection_refused' ||
+      e.kind === 'invalid_url' ||
+      e.kind === 'timeout')
   return (
     <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
       <p className="text-sm font-medium text-destructive">{e.title}</p>
@@ -346,6 +423,16 @@ function ConnectionErrorPanel({ message }: { message?: string }) {
         <span className="font-medium">What to do: </span>
         <span className="text-muted-foreground">{e.fix}</span>
       </p>
+      {showCloudTlsHint && (
+        <p className="text-xs">
+          <span className="font-medium">ClickHouse Cloud: </span>
+          <span className="text-muted-foreground">
+            requires TLS on port 8443 — confirm the URL starts with{' '}
+            <code className="text-foreground">https://</code> and ends with{' '}
+            <code className="text-foreground">:8443</code>.
+          </span>
+        </p>
+      )}
       {e.kind !== 'unknown' && e.raw && (
         <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-[11px] text-muted-foreground">
           <code>{e.raw}</code>
