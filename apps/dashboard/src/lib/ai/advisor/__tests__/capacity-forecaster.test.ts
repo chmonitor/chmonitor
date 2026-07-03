@@ -160,12 +160,30 @@ describe('computeTtlSuggestion', () => {
     expect(result.meetsUtilizationTarget).toBe(true)
   })
 
-  test('fuzz: suggestedTtlDays is never below retentionDays across randomized inputs', () => {
+  test('growth so slow it would take >100 years to matter collapses to the retention floor, not an absurd interval', () => {
+    const result = computeTtlSuggestion({
+      currentBytes: 1 * GB,
+      dailyGrowthBytes: 1, // 1 byte/day
+      freeBytes: 900 * GB,
+      totalBytes: 1000 * GB,
+      retentionDays: 30,
+    })
+    // Without the >100y cap this would be hundreds of billions of days.
+    expect(result.nSafeDays).toBeNull()
+    expect(result.suggestedTtlDays).toBe(30)
+    expect(result.meetsUtilizationTarget).toBe(true)
+  })
+
+  test('fuzz: suggestedTtlDays is never below retentionDays, and never an absurd interval, across randomized inputs', () => {
     for (let i = 0; i < 500; i++) {
       const totalBytes = Math.random() * 1000 * GB + GB
       const freeBytes = Math.random() * totalBytes
       const currentBytes = Math.random() * Math.max(totalBytes - freeBytes, 1)
-      const dailyGrowthBytes = Math.random() * 10 * GB
+      // Occasionally drive dailyGrowthBytes down near zero (but still
+      // positive) to exercise the "effectively never" cap, in addition to
+      // the normal 0..10GB range.
+      const dailyGrowthBytes =
+        i % 10 === 0 ? Math.random() * 0.001 : Math.random() * 10 * GB
       const retentionDays = Math.floor(Math.random() * 365) + 1
 
       const result = computeTtlSuggestion({
@@ -177,6 +195,7 @@ describe('computeTtlSuggestion', () => {
       })
 
       expect(result.suggestedTtlDays).toBeGreaterThanOrEqual(retentionDays)
+      expect(result.suggestedTtlDays).toBeLessThanOrEqual(36_500)
     }
   })
 })
@@ -217,6 +236,37 @@ describe('forecastDiskFull', () => {
       expect(result.daysToFull).toBe(100) // 100 GiB free / ~1 GiB per day
       expect(result.confidence).toBe('high')
       expect(result.willExceedHorizon).toBe(true)
+    }
+  })
+
+  test('does not crash (Date overflow) when growth is tiny relative to a huge amount of free space', async () => {
+    mockCheckTableExists.mockResolvedValue(true)
+    // ~100 bytes/day against 1 TB free: naive daysToFull would be in the
+    // billions, and Date.now() + that many days overflows JS's representable
+    // date range, throwing a RangeError out of toISOString() if uncapped.
+    const dailyRows = Array.from({ length: 30 }, (_, n) => ({
+      day: daysAgoStr(n),
+      bytes: 100,
+    }))
+    mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+      if (query.includes('bytes_written')) return { data: [], error: null }
+      if (query.includes('system.disks'))
+        return {
+          data: [{ free_bytes: 1024 * GB, total_bytes: 2048 * GB }],
+          error: null,
+        }
+      if (query.includes('system.part_log'))
+        return { data: dailyRows, error: null }
+      return { data: [], error: null }
+    })
+
+    const result = await forecastDiskFull(0)
+    expect(result.available).toBe(true)
+    if (result.available) {
+      expect(result.daysToFull).toBeNull()
+      expect(result.fullDate).toBeNull()
+      expect(result.willExceedHorizon).toBe(false)
+      expect(typeof result.explanation).toBe('string')
     }
   })
 

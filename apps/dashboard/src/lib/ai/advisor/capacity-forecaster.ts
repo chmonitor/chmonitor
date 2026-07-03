@@ -30,6 +30,16 @@ const DEFAULT_RETENTION_FLOOR_DAYS = 30
 /** Below this many days of history, confidence is capped at 'low' regardless of dispersion. */
 const MIN_SAMPLE_DAYS_FOR_CONFIDENCE = 7
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+/**
+ * A day-count projection beyond this (100 years) is treated as "effectively
+ * never" rather than a real number — both because it's meaningless for
+ * capacity planning (nobody needs an `ALTER ... INTERVAL 999999999 DAY`
+ * suggestion) and because a tiny-but-positive growth rate against a large
+ * free space can otherwise produce a `daysToFull` so large that
+ * `Date.now() + daysToFull * MS_PER_DAY` overflows JS's representable date
+ * range, which throws a `RangeError` out of `toISOString()`.
+ */
+const MAX_MEANINGFUL_FORECAST_DAYS = 36_500
 
 const PART_LOG_UNAVAILABLE_MESSAGE =
   'system.part_log is not enabled on this ClickHouse server (or is inaccessible to this user). Capacity forecasting and TTL suggestions need part_log to estimate the write-growth rate — enable it in the ClickHouse server config (<part_log> section), let it accumulate history, then retry. Refusing to fabricate a forecast without it.'
@@ -234,9 +244,16 @@ export function computeTtlSuggestion(
     targetMaxTotalBytes - otherUsedBytes
   )
 
-  const nSafeDays =
+  const rawNSafeDays =
     dailyGrowthBytes > 0
       ? Math.floor(maxTableBytesAtTarget / dailyGrowthBytes)
+      : null
+  // Growth so slow it would take >100 years to matter is functionally the
+  // same as "not growing" — collapse into the same null/no-pressure branch
+  // rather than suggesting an absurd `INTERVAL <huge number> DAY`.
+  const nSafeDays =
+    rawNSafeDays !== null && rawNSafeDays <= MAX_MEANINGFUL_FORECAST_DAYS
+      ? rawNSafeDays
       : null
 
   const meetsUtilizationTarget =
@@ -422,8 +439,18 @@ export async function forecastDiskFull(
   const confidence = growthConfidence(dailySeries)
   const { freeBytes, totalBytes } = diskTotals
 
-  const daysToFull =
+  const rawDaysToFull =
     dailyGrowthBytes > 0 ? Math.floor(freeBytes / dailyGrowthBytes) : null
+  // Growth so slow it would take >100 years to fill the disk is functionally
+  // "never" — treat it like the no-growth case. This also guards against
+  // Date overflow: a tiny-but-positive rate against a large free space can
+  // otherwise produce a daysToFull so large that Date.now() + daysToFull *
+  // MS_PER_DAY exceeds JS's representable date range, throwing a RangeError
+  // out of toISOString() below.
+  const daysToFull =
+    rawDaysToFull !== null && rawDaysToFull <= MAX_MEANINGFUL_FORECAST_DAYS
+      ? rawDaysToFull
+      : null
   const fullDate =
     daysToFull !== null
       ? new Date(Date.now() + daysToFull * MS_PER_DAY)
@@ -444,7 +471,9 @@ export async function forecastDiskFull(
   const explanation =
     daysToFull !== null
       ? `Disk writes are growing ~${formatBytes(dailyGrowthBytes)}/day (${confidence} confidence, from ${dailySeries.length} days of system.part_log history). At this rate, the ${formatBytes(freeBytes)} currently free will be exhausted in ~${daysToFull} day(s), around ${fullDate}.${willExceedHorizon ? ` This is within your ${horizonDays}-day horizon.` : ''}`
-      : `No sustained growth detected in new-part write volume over the last ${dailySeries.length} days — disk usage is not currently trending toward full from ingestion.`
+      : dailyGrowthBytes > 0
+        ? `Disk writes are growing negligibly slowly (~${formatBytes(dailyGrowthBytes)}/day) relative to the ${formatBytes(freeBytes)} currently free — projected to take over ${MAX_MEANINGFUL_FORECAST_DAYS} days to fill, effectively no near-term risk.`
+        : `No sustained growth detected in new-part write volume over the last ${dailySeries.length} days — disk usage is not currently trending toward full from ingestion.`
 
   return {
     available: true,
