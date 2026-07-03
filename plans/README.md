@@ -137,7 +137,12 @@ appropriate for blind autonomous execution. Grouped by the blocker:
   [38 grafana-datasource-plugin](38-grafana-datasource-plugin.md),
   [39 otel-trace-export](39-otel-trace-export.md),
   [40 terraform-provider](40-terraform-provider.md),
-  [42 kafka-consumer-control](42-kafka-consumer-control.md),
+  [42 kafka-consumer-control](42-kafka-consumer-control.md) — 🔶 **HELD**
+  (blocked: no Kafka broker client is installed and none can run on the
+  Cloudflare Workers runtime; the SSRF guard is HTTP-fetch-only; the "Kafka"
+  data is ClickHouse `system.kafka_consumers` (table-engine consumers), not
+  standalone groups. The broker-admin design is not implementable as specified —
+  needs product re-scope to ClickHouse-native control, see draft PR),
   [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md).
   (36, 41, 44, 45, 46, 47 already merged — the plumbing/advisor foundation this cluster builds on.)
 - **Advisor 52** (1) — [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
