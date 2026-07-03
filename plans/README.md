@@ -138,7 +138,7 @@ appropriate for blind autonomous execution. Grouped by the blocker:
   [39 otel-trace-export](39-otel-trace-export.md),
   [40 terraform-provider](40-terraform-provider.md),
   [42 kafka-consumer-control](42-kafka-consumer-control.md),
-  [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md).
+  [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md) — 🔷 **PR open** [#2271](https://github.com/chmonitor/chmonitor/pull/2271) (per-user D1 registry, SSRF-pinned transport, template library).
   (36, 41, 44, 45, 46, 47 already merged — the plumbing/advisor foundation this cluster builds on.)
 - **Advisor 52** (1) — [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
   (depends on 25/37 delivery channels). (49 query-cost-estimator already merged, #2233.)
