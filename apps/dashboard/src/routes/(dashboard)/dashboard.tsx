@@ -19,6 +19,7 @@ import { ChartsOnlyPageSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
 import { EmptyState } from '@/components/ui/empty-state'
+import { DASHBOARD_SESSION_KEY } from '@/lib/dashboard-storage'
 import {
   DEFAULT_CHART_WIDGET_H,
   DEFAULT_CHART_WIDGET_W,
@@ -40,8 +41,6 @@ const DEFAULT_CHARTS: string[] = [
   'disk-size',
 ]
 
-const SESSION_KEY = 'dashboard-current-layout'
-
 function defaultLayout(): DashboardLayout {
   // normalizeLayout's legacy string[] path auto-places these 2-per-row,
   // matching the pre-plan-57 look.
@@ -50,7 +49,7 @@ function defaultLayout(): DashboardLayout {
 
 function readInitialLayout(): DashboardLayout {
   if (typeof window === 'undefined') return defaultLayout()
-  const stored = sessionStorage.getItem(SESSION_KEY)
+  const stored = sessionStorage.getItem(DASHBOARD_SESSION_KEY)
   if (stored) {
     try {
       return normalizeLayout(JSON.parse(stored))
@@ -134,7 +133,7 @@ function DashboardContent() {
   // pre-plan-57 — saved dashboards use D1/localStorage for durable,
   // cross-tab persistence).
   useEffect(() => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(layout))
+    sessionStorage.setItem(DASHBOARD_SESSION_KEY, JSON.stringify(layout))
   }, [layout])
 
   const handleLoad = useCallback((loaded: DashboardLayout) => {

@@ -45,6 +45,15 @@ import { featureFlags } from '@/lib/feature-flags'
 export type DashboardBackend = 'd1' | 'local'
 
 /**
+ * sessionStorage key the dashboard route reads its unsaved "current working
+ * layout" from (see `routes/(dashboard)/dashboard.tsx`). Exported so other
+ * surfaces — e.g. the AI agent's "Apply to dashboard" suggestion action in
+ * `agent-dashboard-suggestion.tsx` — can load a layout into the live grid
+ * without importing the route module itself.
+ */
+export const DASHBOARD_SESSION_KEY = 'dashboard-current-layout'
+
+/**
  * Returns `'d1'` when server-side dashboard storage is enabled, otherwise
  * `'local'`.
  */

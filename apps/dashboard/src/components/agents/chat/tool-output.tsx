@@ -18,6 +18,7 @@ import { getToolMetadata } from '@chm/mcp-server/data'
 import { type ComponentProps, useEffect, useState } from 'react'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
 import { AgentChartRenderer } from '@/components/agents/agent-chart-renderer'
+import { AgentDashboardSuggestion } from '@/components/agents/agent-dashboard-suggestion'
 import { AgentDataSources } from '@/components/agents/agent-data-sources'
 import {
   AgentIssuesPanel,
@@ -110,6 +111,13 @@ function getPromotedOutputType(output: unknown) {
   }
   if (outputObj.type === 'workflow_plan' && Array.isArray(outputObj.steps)) {
     return 'workflow_plan' as const
+  }
+  if (
+    outputObj.type === 'dashboard_suggestion' &&
+    typeof outputObj.layout === 'object' &&
+    outputObj.layout !== null
+  ) {
+    return 'dashboard_suggestion' as const
   }
   if (outputObj.type === 'agent_issues' && Array.isArray(outputObj.issues)) {
     return 'agent_issues' as const
@@ -309,6 +317,25 @@ export function renderToolOutput(output: unknown) {
         workflow={outputObj.workflow as string | undefined}
         total={outputObj.total as number | undefined}
         completed={outputObj.completed as number | undefined}
+      />
+    )
+  }
+
+  if (
+    outputObj.type === 'dashboard_suggestion' &&
+    typeof outputObj.layout === 'object' &&
+    outputObj.layout !== null
+  ) {
+    return (
+      <AgentDashboardSuggestion
+        request={outputObj.request as string}
+        name={outputObj.name as string}
+        layout={
+          outputObj.layout as ComponentProps<
+            typeof AgentDashboardSuggestion
+          >['layout']
+        }
+        chartCount={outputObj.chartCount as number}
       />
     )
   }
