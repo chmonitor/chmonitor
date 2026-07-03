@@ -11,11 +11,20 @@
  * (see `paywall-logic.ts:enforcementForReason`). A `deferred` limit shows
  * beta-friendly copy instead — never a false "you must upgrade" claim.
  */
-import { useState } from 'react'
+
 import { toast } from 'sonner'
 
 import type { BillingLimitReason } from '@/lib/api/error-handler/types'
 
+import {
+  enforcementForReason,
+  findNextTier,
+  formatReasonCap,
+  REASON_TITLES,
+  resolveCurrentPlan,
+  resolveUpgradeAction,
+} from './paywall-logic'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,14 +36,6 @@ import {
 } from '@/components/ui/dialog'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { openBillingPortal, startCheckout } from '@/lib/billing/use-billing'
-import {
-  enforcementForReason,
-  findNextTier,
-  formatReasonCap,
-  REASON_TITLES,
-  resolveCurrentPlan,
-  resolveUpgradeAction,
-} from './paywall-logic'
 
 export interface PaywallModalProps {
   open: boolean
