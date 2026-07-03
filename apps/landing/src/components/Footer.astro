@@ -1,5 +1,10 @@
 ---
 import { useCases } from '../data/use-cases'
+import latestPosts from '../data/latest-posts.json'
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 ---
   <footer>
     <div class="wrap">
@@ -42,6 +47,18 @@ import { useCases } from '../data/use-cases'
             <a href="https://github.com/chmonitor/chmonitor/security" target="_blank" rel="noopener">Security policy</a>
             <a href="/brand">Brand</a>
           </div>
+          {latestPosts.length > 0 && (
+            <div class="foot-col foot-col-posts">
+              <h5>Latest from the blog</h5>
+              {latestPosts.map((post) => (
+                <a href={post.url} target="_blank" rel="noopener">
+                  {post.title}
+                  <span class="foot-post-date">{fmtDate(post.date)}</span>
+                </a>
+              ))}
+              <a href="https://blog.chmonitor.dev/rss.xml" target="_blank" rel="noopener">RSS feed</a>
+            </div>
+          )}
         </div>
       </div>
       <div class="foot-bottom">

@@ -49,6 +49,36 @@ Markdown (Astro renders raw HTML in `.md`):
 Launch films live in `chmonitor/launch/<version>/` and are copied into
 `public/posts/<version>/` for the release post.
 
+## Content engine
+
+- **Calendar**: `CONTENT-CALENDAR.md` is the plan-of-record for cadence (12
+  weeks, mixing release/how-to/troubleshooting/case-study posts). Update its
+  status column as posts move from planned → drafting → done.
+- **Templates**: `templates/*.md` (one per post type) live outside
+  `src/content/blog/` so the content-collection glob never picks them up as
+  posts. Each ends with a claim-verification checklist — every feature/config
+  claim in a post must be checked against merged code before `draft: false`.
+- **Docs↔blog cross-linking**: a how-to/troubleshooting/case-study post links
+  the canonical docs page it walks through (`https://docs.chmonitor.dev/<slug>`,
+  matching `docs/content/**` paths 1:1); the docs page links back with a
+  `[Post title](https://blog.chmonitor.dev/<slug>/)` reference. Bidirectional
+  by convention — see `alerting-to-slack-and-discord.md` ↔
+  `docs/content/guide/features/health.mdx` for the reference pair.
+- **RSS**: `src/pages/rss.xml.ts` (via `@astrojs/rss`) builds `/rss.xml` from
+  the same content collection as the post list; linked from `Base.astro`'s
+  `<head>` and the footer.
+- **Release → draft post**: `bun run release-to-post <tag>` (fetches via `gh
+  release view`, or `-- --from-file <json>` for offline/CI use) scaffolds a
+  `draft: true` post from `templates/release-post.md`. It never publishes —
+  a human still runs the claim-verification checklist and flips `draft` to
+  `false`.
+- **Landing footer widget**: `apps/landing` is a separate Astro app with its
+  own CI job, so it can't reach into this app's content collection at build
+  time. `bun run sync-latest-posts` regenerates a committed snapshot at
+  `apps/landing/src/data/latest-posts.json` (published, non-draft posts,
+  newest first) that `Footer.astro` renders as "Latest from the blog". Run it
+  after publishing and commit the snapshot alongside the post.
+
 ## Deploy
 
 ```bash
