@@ -171,6 +171,13 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
+  // TODO(27): record a structured action-invocation history entry once
+  // alert_events (plans/27-alert-history-audit-log.md) gains actionId/actor/
+  // result columns — its current schema is shaped for threshold-breach
+  // dispatch (severity is NOT NULL with no honest value for "action
+  // invoked"), so forcing a row in today's shape would be misleading audit
+  // data. `debug()` below is the interim record, per this plan's own
+  // "(Optional) intent log" section.
   debug('[POST /api/v1/health/actions] Executing diagnostic action', {
     ruleId,
     actionId,
