@@ -9,6 +9,8 @@
  * Schema: see src/db/conversations-migrations/0005_ai_usage_daily.sql
  */
 
+import type { Plan } from './plans'
+
 import { getPlatformBindings } from '@chm/platform'
 
 /** Returns the UTC date string 'YYYY-MM-DD' for the given instant. */
@@ -220,4 +222,27 @@ export async function addAiSpend(
   } catch {
     // Swallow: a missing table or transient D1 error must not break the request.
   }
+}
+
+/**
+ * Meter one request's actual USD cost as overage — but only for plans that
+ * publish an overage policy (`plan.aiOverage`).
+ *
+ * Free (`aiOverage: null`) hard-caps: the daily-message gate ({@link
+ * checkAiDailyLimit} in `entitlements.ts`) already blocks it at its daily
+ * allowance, so this is a deliberate no-op — Free never accrues billable
+ * overage. Enterprise is also `aiOverage: null` (BYOK/unlimited) and likewise
+ * never meters. Paid tiers (Pro/Max, `aiOverage` set) accumulate every
+ * request's cost against `aiMonthlyUsdBudget` via {@link addAiSpend}, which is
+ * itself fail-open (no-op when D1 is unavailable) — so self-hosted/OSS is
+ * never metered.
+ */
+export async function meterAiOverage(
+  plan: Plan,
+  ownerId: string,
+  requestCostUsd: number,
+  now: Date = new Date()
+): Promise<void> {
+  if (plan.aiOverage == null) return
+  await addAiSpend(ownerId, requestCostUsd, now)
 }

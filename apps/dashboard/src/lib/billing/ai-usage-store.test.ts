@@ -7,6 +7,7 @@
  */
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { BILLING_PLANS } from '@chm/pricing'
 
 // ---------------------------------------------------------------------------
 // In-memory D1 fake
@@ -47,11 +48,61 @@ function makeFakeD1(store: UsageStore) {
   return { prepare }
 }
 
+/**
+ * In-memory D1 fake for the monthly spend table (`ai_usage_monthly`). Keyed by
+ * "owner_id::month" → cumulative `spent_usd`. Unlike {@link makeFakeD1}'s daily
+ * counter (always +1), `addAiSpend`'s INSERT carries the actual USD amount as
+ * a bind param, so `run()` adds that amount rather than a fixed increment.
+ *
+ * `ensureMonthlyTable`'s `CREATE TABLE IF NOT EXISTS` runs with no `.bind()`
+ * call at all, so `prepare()` exposes `run()` directly (real D1 statements
+ * support calling `.run()`/`.first()` without binding when there are no
+ * placeholders) in addition to the bound-statement shape the SELECT/INSERT use.
+ */
+function makeFakeSpendD1(store: Map<string, number>) {
+  function prepare(sql: string) {
+    const isSelect = sql.trimStart().toUpperCase().startsWith('SELECT')
+
+    return {
+      // CREATE TABLE IF NOT EXISTS — no bind, always a no-op success.
+      async run() {
+        return { success: true, results: [], meta: {} }
+      },
+      bind(...values: unknown[]) {
+        const ownerId = values[0] as string
+        const month = values[1] as string
+        const amountUsd = values[2] as number | undefined
+        const key = `${ownerId}::${month}`
+
+        return {
+          async first<T>() {
+            if (!isSelect) return null
+            const spent = store.get(key)
+            if (spent == null) return null
+            return { spent_usd: spent } as unknown as T
+          },
+          async run() {
+            if (!isSelect && amountUsd != null) {
+              store.set(key, (store.get(key) ?? 0) + amountUsd)
+            }
+            return { success: true, results: [], meta: {} }
+          },
+        }
+      },
+    }
+  }
+
+  return { prepare }
+}
+
 // ---------------------------------------------------------------------------
 // Inject via mocked platform (must happen before any import of the SUT)
 // ---------------------------------------------------------------------------
 
-let currentDb: ReturnType<typeof makeFakeD1> | null = null
+let currentDb:
+  | ReturnType<typeof makeFakeD1>
+  | ReturnType<typeof makeFakeSpendD1>
+  | null = null
 
 mock.module('@chm/platform', () => ({
   getPlatformBindings: () => ({
@@ -61,9 +112,13 @@ mock.module('@chm/platform', () => ({
 }))
 
 // Dynamic import so the mock is already in place when the module initialises.
-const { utcDayKey, getAiUsageToday, incrementAiUsage } = await import(
-  './ai-usage-store'
-)
+const {
+  utcDayKey,
+  getAiUsageToday,
+  incrementAiUsage,
+  getAiSpendThisMonth,
+  meterAiOverage,
+} = await import('./ai-usage-store')
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -145,5 +200,31 @@ describe('incrementAiUsage + getAiUsageToday round-trip', () => {
     currentDb = null
     // Must not throw
     await incrementAiUsage('user_abc', FIXED_DATE)
+  })
+})
+
+describe('meterAiOverage', () => {
+  beforeEach(() => {
+    currentDb = makeFakeSpendD1(new Map())
+  })
+
+  test('Free hard-caps: no overage is ever written (daily gate already blocks abuse)', async () => {
+    await meterAiOverage(BILLING_PLANS.free, 'user_free', 0.1, FIXED_DATE)
+    expect(await getAiSpendThisMonth('user_free', FIXED_DATE)).toBe(0)
+  })
+
+  test('Pro meters: cost accrues across calls', async () => {
+    await meterAiOverage(BILLING_PLANS.pro, 'user_pro', 0.1, FIXED_DATE)
+    expect(await getAiSpendThisMonth('user_pro', FIXED_DATE)).toBeCloseTo(0.1)
+
+    await meterAiOverage(BILLING_PLANS.pro, 'user_pro', 0.1, FIXED_DATE)
+    expect(await getAiSpendThisMonth('user_pro', FIXED_DATE)).toBeCloseTo(0.2)
+  })
+
+  test('fail-open: does not throw when D1 is unavailable', async () => {
+    currentDb = null
+    await expect(
+      meterAiOverage(BILLING_PLANS.pro, 'user_pro', 0.1, FIXED_DATE)
+    ).resolves.toBeUndefined()
   })
 })
