@@ -51,6 +51,40 @@ pattern = "dash.chmonitor.dev"
 custom_domain = true
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Inbound event bus (Cloudflare Queues) — EXAMPLE, NOT ACTIVE.
+# See plans/36-inbound-event-bus-queues.md. POST /api/events/ingest and the
+# consumer (lib/events/queue-consumer.ts processEventBatch) are implemented
+# and unit-tested, but this binding is intentionally left commented out:
+# `wrangler deploy` fails hard if a `[[queues.producers]]`/`[[queues.consumers]]`
+# block references a queue that doesn't exist yet, which would break the next
+# CI deploy. Cloudflare Queues are cloud-only — self-host has no Queue binding
+# by design, so /api/events/ingest always runs its synchronous inline path
+# (same code path a missing/erroring binding falls back to on cloud) until an
+# operator completes this setup:
+#
+#   1. wrangler queues create chmonitor-inbound-events
+#      wrangler queues create chmonitor-inbound-events-dlq
+#   2. Uncomment the blocks below (top-level = production; mirror into
+#      [env.preview] with its own queue, or reuse the same one).
+#   3. Add a worker entry that also exports `queue()` (the default
+#      `@tanstack/react-start/server-entry` only exports `fetch` — wrap it with
+#      `createServerEntry` from that package and call
+#      `processEventBatch` from lib/events/queue-consumer.ts), and point
+#      `main` at it instead of the package's default-entry.
+#   4. Redeploy.
+#
+# [[queues.producers]]
+# binding = "CHM_EVENTS_QUEUE"
+# queue = "chmonitor-inbound-events"
+#
+# [[queues.consumers]]
+# queue = "chmonitor-inbound-events"
+# max_batch_size = 10
+# max_retries = 3
+# dead_letter_queue = "chmonitor-inbound-events-dlq"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Worker runtime [vars] are intentionally NOT declared here.
 #
 # Single source of truth = the committed `.env.production` (+ `.env.preview` overlay).
