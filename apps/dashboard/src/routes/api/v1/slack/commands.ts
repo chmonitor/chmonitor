@@ -121,11 +121,17 @@ async function runQuery(sql: string): Promise<SlackBlock[]> {
 
   // … plus hard read-only + row/time caps as defense-in-depth and to keep the
   // response within Slack's 3s budget. `result_overflow_mode: 'break'` stops at
-  // the row cap WITHOUT erroring (unlike the default 'throw'). Typed as a
-  // widened record (matching explorer/query.ts) since the per-key ClickHouse
-  // setting types want string values for readonly/max_result_rows.
+  // the row cap WITHOUT erroring (unlike the default 'throw').
+  //
+  // `readonly: 2` (NOT 1): level 1 forbids write queries AND changing any other
+  // setting in the same request, so pairing it with the caps below would throw
+  // "Cannot modify 'max_execution_time' setting in readonly mode". Level 2 still
+  // blocks writes (SELECT/SHOW only) but permits per-query settings — exactly
+  // what we need. `validateSqlQuery` already enforced SELECT-only above, so this
+  // is belt-and-suspenders. Typed as a widened record (matching explorer/query.ts)
+  // since the per-key ClickHouse setting types want string values here.
   const clickhouse_settings: Record<string, string | number> = {
-    readonly: 1,
+    readonly: 2,
     max_execution_time: QUERY_MAX_EXEC_SECONDS,
     max_result_rows: QUERY_ROW_CAP + 1,
     result_overflow_mode: 'break',
