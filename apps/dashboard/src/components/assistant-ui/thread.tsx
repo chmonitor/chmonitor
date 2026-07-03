@@ -67,7 +67,7 @@ import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { JsonRenderMessage } from '@/components/assistant-ui/json-render-message'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
-import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker'
+import { Marker, MarkerIcon } from '@/components/ui/marker'
 import { Message, MessageContent } from '@/components/ui/message'
 import {
   MessageScroller,
@@ -277,8 +277,9 @@ const EditComposer: FC = () => {
 // ---------------------------------------------------------------------------
 
 /**
- * Shows a subtle "Thinking…" pulse while the thread is running and the
- * current assistant message has no real parts yet.
+ * Shows a subtle spinner while the thread is running and the current assistant
+ * message has no real parts yet. The visible "Thinking…" label is intentionally
+ * dropped for a cleaner starting state; the text is kept screen-reader-only.
  */
 function LoadingIndicator() {
   const isRunning = useThread((thread) => thread.isRunning)
@@ -302,11 +303,11 @@ function LoadingIndicator() {
   if (!isRunning || hasError || !hasNoParts) return null
 
   return (
-    <Marker className="py-1">
+    <Marker className="py-1" role="status">
       <MarkerIcon>
         <LoaderCircleIcon className="animate-spin" />
       </MarkerIcon>
-      <MarkerContent className="shimmer text-xs">Thinking…</MarkerContent>
+      <span className="sr-only">Thinking…</span>
     </Marker>
   )
 }
