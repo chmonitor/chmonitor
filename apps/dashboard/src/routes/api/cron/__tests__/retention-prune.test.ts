@@ -114,7 +114,9 @@ describe('GET /api/cron/retention-prune — auth gate', () => {
     const res = await handler(req())
 
     expect(res.status).toBe(503)
-    expect(await res.json()).toEqual({ error: 'CRON_SECRET not configured' })
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'CRON_SECRET not configured',
+    })
     expect(getD1Database).not.toHaveBeenCalled()
   })
 
@@ -122,14 +124,18 @@ describe('GET /api/cron/retention-prune — auth gate', () => {
     const res = await handler(req({ auth: 'Bearer wrong' }))
 
     expect(res.status).toBe(401)
-    expect(await res.json()).toEqual({ error: 'Unauthorized' })
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Unauthorized',
+    })
   })
 
   test('2. wrong ?secret= query param → 401', async () => {
     const res = await handler(req({ secret: 'wrong' }))
 
     expect(res.status).toBe(401)
-    expect(await res.json()).toEqual({ error: 'Unauthorized' })
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Unauthorized',
+    })
   })
 })
 
@@ -142,7 +148,7 @@ describe('GET /api/cron/retention-prune — D1 unbound no-op', () => {
     const res = await handler(req({ auth: 'Bearer test-secret' }))
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({
+    expect((await res.json()) as { skipped: boolean; reason: string }).toEqual({
       skipped: true,
       reason: 'D1 not bound',
     })
@@ -154,7 +160,7 @@ describe('GET /api/cron/retention-prune — D1 unbound no-op', () => {
     const res = await handler(req({ secret: 'test-secret' }))
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({
+    expect((await res.json()) as { skipped: boolean; reason: string }).toEqual({
       skipped: true,
       reason: 'D1 not bound',
     })
@@ -175,7 +181,14 @@ describe('GET /api/cron/retention-prune — prune loop', () => {
     const after = Date.now()
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({
+    expect(
+      (await res.json()) as {
+        usersProcessed: number
+        usersSkipped: number
+        totalDeleted: number
+        errors: number
+      }
+    ).toEqual({
       usersProcessed: 2,
       usersSkipped: 0,
       totalDeleted: 5,
@@ -207,7 +220,14 @@ describe('GET /api/cron/retention-prune — prune loop', () => {
     const res = await handler(req({ auth: 'Bearer test-secret' }))
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({
+    expect(
+      (await res.json()) as {
+        usersProcessed: number
+        usersSkipped: number
+        totalDeleted: number
+        errors: number
+      }
+    ).toEqual({
       usersProcessed: 1,
       usersSkipped: 1,
       totalDeleted: 0,
@@ -230,7 +250,14 @@ describe('GET /api/cron/retention-prune — prune loop', () => {
     const res = await handler(req({ auth: 'Bearer test-secret' }))
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({
+    expect(
+      (await res.json()) as {
+        usersProcessed: number
+        usersSkipped: number
+        totalDeleted: number
+        errors: number
+      }
+    ).toEqual({
       usersProcessed: 2,
       usersSkipped: 0,
       totalDeleted: 1,
