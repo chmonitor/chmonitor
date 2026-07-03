@@ -6,6 +6,7 @@ import { AlertRoutingPanel } from './alert-routing-dialog'
 import { HEALTH_CHECKS } from './health-checks'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
 import { RecentAlertsCard } from './recent-alerts-card'
+import { RuleBuilderPanel } from './rule-builder'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -219,6 +220,7 @@ export function HealthSettingsDialog() {
             <TabsTrigger value="routing">Routing</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
             <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+            <TabsTrigger value="custom-rules">Custom Rules</TabsTrigger>
           </TabsList>
 
           <TabsContent value="thresholds">
@@ -456,6 +458,12 @@ export function HealthSettingsDialog() {
           <TabsContent value="maintenance">
             <ScrollArea className="h-[420px] pr-3">
               <MaintenanceWindowsPanel />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="custom-rules">
+            <ScrollArea className="h-[420px] pr-3">
+              <RuleBuilderPanel />
             </ScrollArea>
           </TabsContent>
         </Tabs>

@@ -82,6 +82,16 @@ export interface AlertRuleDef {
    * destructive/DDL action — see `assertReadOnlyAction`.
    */
   remediationActions?: RemediationAction[]
+  /**
+   * Optional custom classifier, overriding the default `classifyValue`
+   * (higher-is-worse) comparison. Used by the custom alert rule builder
+   * (plan 32) to support "lower = worse" operators (`<` / `<=`) without
+   * changing the shared `classifyValue` semantics other rules rely on.
+   */
+  classify?: (
+    value: number | null,
+    thresholds: AlertRuleThresholds
+  ) => AlertRuleSeverity
 }
 
 /**

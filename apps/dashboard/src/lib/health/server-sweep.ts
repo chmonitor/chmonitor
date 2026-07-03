@@ -22,6 +22,7 @@ import {
   resolveTargets,
 } from './alert-routing'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
+import { loadCustomRulesIntoRegistry } from './custom-rules-store'
 import { isSuppressed, listWindows } from './maintenance-windows'
 import { dispatchOpsgenie } from './opsgenie-dispatch'
 import {
@@ -356,6 +357,12 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       Boolean(opsgenieConfig))
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
+
+  // Re-sync custom alert rules (plan 32) every sweep tick: unregisters stale
+  // `custom:*` ids first, then loads whatever is currently enabled in D1.
+  // This is a no-op (built-ins run unaffected) when D1 is unconfigured or the
+  // load fails — see `loadCustomRulesIntoRegistry`'s own try/catch.
+  await loadCustomRulesIntoRegistry()
 
   const rules = ruleRegistry.getAll()
   const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
@@ -747,7 +754,9 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           ...rule.defaults,
           ...(thresholdOverrides[rule.id] ?? {}),
         }
-        const severity = classifyValue(value, thresholds)
+        const severity = rule.classify
+          ? rule.classify(value, thresholds)
+          : classifyValue(value, thresholds)
         perHostResults[rule.id] = { value, severity }
 
         if (severity !== 'ok') {
