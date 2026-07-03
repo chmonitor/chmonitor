@@ -164,6 +164,29 @@ mock.module('@/lib/insights/generate-insights', () => ({
   generateInsights: async () => [],
 }))
 
+// --- maintenance windows stub ------------------------------------------------
+// Mocked at the module boundary (like generate-insights above) rather than
+// routed through the shared fake D1: the sweep only depends on
+// `listWindows`/`isSuppressed`'s CONTRACT here, not the D1 storage details
+// already covered by maintenance-windows.test.ts.
+interface MockWindow {
+  hostId: number | null
+  startsAt: number
+  endsAt: number
+}
+let mockWindows: MockWindow[] = []
+
+mock.module('@/lib/health/maintenance-windows', () => ({
+  listWindows: async (_ownerId: string) => mockWindows,
+  isSuppressed: (windows: MockWindow[], hostId: number, now: number) =>
+    windows.some(
+      (w) =>
+        (w.hostId === null || w.hostId === hostId) &&
+        w.startsAt <= now &&
+        now < w.endsAt
+    ),
+}))
+
 const { alertStateStore } = await import('./alert-state-store')
 const { ruleRegistry } = await import('@/lib/alerting/rule-registry')
 const { compoundRuleRegistry } = await import('@/lib/alerting/compound-rules')
@@ -211,6 +234,7 @@ beforeEach(() => {
   fakeDb = makeFakeD1()
   testValue = 50
   fetchCalls = []
+  mockWindows = []
 })
 
 afterEach(() => {
@@ -750,5 +774,74 @@ describe('runHealthSweep — compound rules', () => {
     )
 
     compoundRuleRegistry.unregister('test-compound-of-compound')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runHealthSweep — maintenance-window suppression (plan 28)
+// ---------------------------------------------------------------------------
+describe('runHealthSweep — maintenance window suppression', () => {
+  test('an active ALL-hosts window suppresses dispatch and records decisionKind=maintenance', async () => {
+    mockWindows = [{ hostId: null, startsAt: 0, endsAt: Date.now() + 60_000 }]
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // Suppressed, not dispatched — no webhook call at all.
+    expect(summary.alertsDispatched).toBe(0)
+    expect(summary.maintenanceSuppressed).toBe(1)
+    expect(summary.alertsSuppressed).toBe(1)
+    // The finding itself is still reported (data collection unaffected).
+    expect(summary.totalFindings).toBe(1)
+    expect(fakeDb.rows).toHaveLength(1)
+    expect(fakeDb.rows[0]?.decision_kind).toBe('maintenance')
+    expect(fakeDb.rows[0]?.delivered).toBe(0)
+  })
+
+  test("an active window on a DIFFERENT host does not suppress this host's dispatch", async () => {
+    mockWindows = [{ hostId: 999, startsAt: 0, endsAt: Date.now() + 60_000 }]
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(summary.maintenanceSuppressed).toBe(0)
+  })
+
+  test('a window outside its time range does not suppress', async () => {
+    // Window already ended.
+    mockWindows = [{ hostId: null, startsAt: 0, endsAt: Date.now() - 60_000 }]
+
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(summary.maintenanceSuppressed).toBe(0)
+  })
+
+  test('suppression does not commit dedup state: the condition stays "new" on the next sweep', async () => {
+    mockWindows = [{ hostId: null, startsAt: 0, endsAt: Date.now() + 60_000 }]
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+
+    await runHealthSweep()
+    // Nothing committed to the dedup store for the suppressed condition.
+    expect(alertStateStore.get('0:test-sweep-rule')).toBeUndefined()
+
+    // Window closes; the same condition should notify normally now, as if
+    // suppression never happened (no stale cooldown/escalation state).
+    mockWindows = []
+    const summary = await runHealthSweep()
+    expect(summary.alertsDispatched).toBe(1)
   })
 })
