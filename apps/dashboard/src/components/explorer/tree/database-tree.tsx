@@ -44,6 +44,8 @@ export function DatabaseTree() {
   } = useQuery<ApiResponse<Database[]>>({
     queryKey: [queryKey],
     queryFn: () => fetcher(queryKey),
+    // Schema shape changes rarely — don't refetch the database list on every remount.
+    staleTime: 5 * 60_000,
   })
 
   const databases = response?.data

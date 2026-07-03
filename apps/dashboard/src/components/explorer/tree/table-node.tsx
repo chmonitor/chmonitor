@@ -127,6 +127,8 @@ export const TableNode = function TableNode({
         `/api/v1/explorer/columns?hostId=${hostId}&database=${encodeURIComponent(database)}&table=${encodeURIComponent(table)}`
       ),
     enabled: shouldFetch,
+    // Column schema changes rarely — cache across expand/collapse and remounts.
+    staleTime: 5 * 60_000,
   })
 
   const columns = response?.data
