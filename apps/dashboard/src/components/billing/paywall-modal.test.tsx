@@ -4,9 +4,7 @@
  * (see error-classifier.ts) — no DOM rendering here, per this repo's
  * convention of Bun for logic / Cypress for interaction.
  */
-import { describe, expect, test } from 'bun:test'
 
-import { classifyBillingLimit } from '@/lib/api/error-handler/error-classifier'
 import {
   enforcementForReason,
   findNextTier,
@@ -15,6 +13,8 @@ import {
   resolveCurrentPlan,
   resolveUpgradeAction,
 } from './paywall-logic'
+import { describe, expect, test } from 'bun:test'
+import { classifyBillingLimit } from '@/lib/api/error-handler/error-classifier'
 
 describe('classifyBillingLimit', () => {
   test('classifies the nested error-response-builder 402 shape (host limit)', () => {
