@@ -1,6 +1,6 @@
 import { Check, Copy } from 'lucide-react'
 
-import { useState } from 'react'
+import { type MouseEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +13,10 @@ interface CopyButtonProps {
 export function CopyButton({ text, className, label }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: MouseEvent) => {
+    // Never let a copy click bubble to a clickable ancestor (breadcrumb link,
+    // tree row, table cell): copying should not also navigate or select.
+    e.stopPropagation()
     await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
