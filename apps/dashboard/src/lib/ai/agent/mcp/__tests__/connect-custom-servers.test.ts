@@ -1,10 +1,23 @@
 /**
- * Unit tests for the SSRF guard and name sanitiser in connect-custom-servers.
- * Network calls (createMCPClient) are not mocked — only pure functions are tested.
+ * Unit tests for connect-custom-servers.
+ *
+ * The SSRF guard + name sanitiser are tested as pure functions. The connect /
+ * validate / merge lifecycle is exercised through an INJECTED client factory
+ * (never the real `createMCPClient`), so no network call is made and the
+ * close-always / failure-isolation invariants can be asserted deterministically.
  */
 
-import { isAllowedMcpUrl, sanitizeServerName } from '../connect-custom-servers'
-import { describe, expect, test } from 'bun:test'
+import type { McpClientFactory } from '../connect-custom-servers'
+
+import {
+  connectCustomMcpServers,
+  isAllowedMcpUrl,
+  loadUserRegisteredServers,
+  mergeMcpServers,
+  sanitizeServerName,
+  validateServer,
+} from '../connect-custom-servers'
+import { describe, expect, mock, test } from 'bun:test'
 
 // ---------------------------------------------------------------------------
 // isAllowedMcpUrl
@@ -237,5 +250,175 @@ describe('sanitizeServerName', () => {
   test('returns "server" for empty or symbols-only input', () => {
     expect(sanitizeServerName('')).toBe('server')
     expect(sanitizeServerName('---')).toBe('server')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// validateServer — SSRF pre-check + close-always
+// ---------------------------------------------------------------------------
+
+const PUBLIC_ENDPOINT = 'https://mcp.example.com/mcp'
+
+describe('validateServer', () => {
+  test('rejects a private-host URL without opening a client', async () => {
+    const createClient = mock<McpClientFactory>(async () => ({
+      tools: async () => ({}),
+      close: async () => {},
+    }))
+    const res = await validateServer(
+      { id: '1', name: 'evil', endpoint: 'https://rebind.internal.test/mcp' },
+      { createClient, resolveHostAddresses: stubDns }
+    )
+    expect(res.ok).toBe(false)
+    expect(createClient).not.toHaveBeenCalled()
+  })
+
+  test('returns the advertised tool names and closes on success', async () => {
+    const close = mock(async () => {})
+    const createClient: McpClientFactory = async () => ({
+      tools: async () => ({ search: {}, fetch: {} }),
+      close,
+    })
+    const res = await validateServer(
+      { id: '1', name: 'ok', endpoint: PUBLIC_ENDPOINT },
+      { createClient, resolveHostAddresses: stubDns }
+    )
+    expect(res.ok).toBe(true)
+    expect(res.tools).toEqual(['search', 'fetch'])
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  test('closes the client even when tools() throws', async () => {
+    const close = mock(async () => {})
+    const createClient: McpClientFactory = async () => ({
+      tools: async () => {
+        throw new Error('listing failed: boom')
+      },
+      close,
+    })
+    const res = await validateServer(
+      { id: '1', name: 'flaky', endpoint: PUBLIC_ENDPOINT },
+      { createClient, resolveHostAddresses: stubDns }
+    )
+    expect(res.ok).toBe(false)
+    expect(res.error).toContain('boom')
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// connectCustomMcpServers — per-server isolation + SSRF
+// ---------------------------------------------------------------------------
+
+describe('connectCustomMcpServers', () => {
+  test('isolates a failing server; the others still return prefixed tools', async () => {
+    const closeGood = mock(async () => {})
+    const createClient: McpClientFactory = async ({ serverName }) => {
+      if (serverName === 'bad') {
+        return {
+          tools: async () => {
+            throw new Error('nope')
+          },
+          close: async () => {},
+        }
+      }
+      return { tools: async () => ({ ping: {} }), close: closeGood }
+    }
+
+    const result = await connectCustomMcpServers(
+      [
+        { id: 'g', name: 'good', endpoint: PUBLIC_ENDPOINT },
+        { id: 'b', name: 'bad', endpoint: 'https://api.acme.io/mcp' },
+      ],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+
+    expect(Object.keys(result.tools)).toEqual(['mcp_good_ping'])
+    const statusById = Object.fromEntries(
+      result.statuses.map((s) => [s.id, s.status])
+    )
+    expect(statusById).toEqual({ g: 'connected', b: 'error' })
+
+    await result.closeAll()
+    expect(closeGood).toHaveBeenCalledTimes(1)
+  })
+
+  test('rejects a private-host server before connecting', async () => {
+    const createClient = mock<McpClientFactory>(async () => ({
+      tools: async () => ({}),
+      close: async () => {},
+    }))
+    const result = await connectCustomMcpServers(
+      [
+        {
+          id: 'x',
+          name: 'evil',
+          endpoint: 'https://metadata.internal.test/mcp',
+        },
+      ],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+    expect(result.statuses[0]?.status).toBe('error')
+    expect(createClient).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// mergeMcpServers — dedupe across body + registry sources
+// ---------------------------------------------------------------------------
+
+describe('mergeMcpServers', () => {
+  test('de-duplicates by normalized endpoint, earlier lists win', () => {
+    const body = [
+      { id: 'a', name: 'body', endpoint: 'https://mcp.example.com/mcp/' },
+    ]
+    const registered = [
+      { id: 'b', name: 'reg', endpoint: 'https://MCP.example.com/mcp' },
+      { id: 'c', name: 'other', endpoint: 'https://api.acme.io/mcp' },
+    ]
+    const merged = mergeMcpServers(body, registered)
+    expect(merged.map((s) => s.id)).toEqual(['a', 'c'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// loadUserRegisteredServers — store mapping + best-effort
+// ---------------------------------------------------------------------------
+
+describe('loadUserRegisteredServers', () => {
+  test('maps a user’s enabled registrations into connect inputs', async () => {
+    const store = {
+      listEnabledConnectInputs: async (userId: string) => {
+        expect(userId).toBe('user-a')
+        return [
+          {
+            id: '1',
+            name: 'slack',
+            url: 'https://slack.example.com/mcp',
+            transport: 'http' as const,
+            auth: { kind: 'bearer' as const, token: 'tok' },
+          },
+        ]
+      },
+    }
+    const servers = await loadUserRegisteredServers('user-a', { store })
+    expect(servers).toEqual([
+      {
+        id: '1',
+        name: 'slack',
+        endpoint: 'https://slack.example.com/mcp',
+        transport: 'http',
+        auth: { kind: 'bearer', token: 'tok' },
+      },
+    ])
+  })
+
+  test('returns [] when the store throws (best-effort / OSS no D1)', async () => {
+    const store = {
+      listEnabledConnectInputs: async () => {
+        throw new Error('no D1 binding')
+      },
+    }
+    expect(await loadUserRegisteredServers('u', { store })).toEqual([])
   })
 })
