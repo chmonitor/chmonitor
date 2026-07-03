@@ -48,6 +48,8 @@ import { createJsonRenderPatchGuardStream } from '@/lib/ai/agent/json-render-pat
 import {
   type CustomMcpServerInput,
   connectCustomMcpServers,
+  loadUserRegisteredServers,
+  mergeMcpServers,
 } from '@/lib/ai/agent/mcp/connect-custom-servers'
 import { resolveDefaultAgentModel } from '@/lib/ai/agent-model-registry'
 import {
@@ -536,27 +538,11 @@ async function handlePost(request: Request): Promise<Response> {
     )
     .map((s) => ({ id: s.id, name: s.name, endpoint: s.endpoint }))
 
-  // Connect custom MCP servers (if any) before creating the agent.
-  // closeAll() is called in onEnd so connections are freed after streaming.
+  // Custom MCP servers are connected AFTER the billing gate below (which can
+  // return 402 before any stream exists) so a rejected request never opens —
+  // and then leaks — an MCP client. Declared here so onEnd can close them.
   let mcpCloseAll: (() => Promise<void>) | null = null
   let extraTools: Record<string, unknown> | undefined
-
-  if (validMcpServers.length > 0) {
-    const mcpResult = await connectCustomMcpServers(validMcpServers)
-    mcpCloseAll = mcpResult.closeAll
-    extraTools =
-      Object.keys(mcpResult.tools).length > 0 ? mcpResult.tools : undefined
-
-    const connected = mcpResult.statuses.filter(
-      (s) => s.status === 'connected'
-    ).length
-    const errored = mcpResult.statuses.filter(
-      (s) => s.status === 'error'
-    ).length
-    console.log(
-      `[Agent API] Custom MCP servers: ${connected} connected, ${errored} failed`
-    )
-  }
 
   // AI usage enforcement (cloud only): daily message meter + monthly USD budget.
   // resolveBillingOwner() throws when Clerk is not configured (self-hosted),
@@ -628,18 +614,52 @@ async function handlePost(request: Request): Promise<Response> {
     reservedDailyUsage = false
   }
 
+  // Now that all early (402 / validation) returns are behind us, connect the
+  // user's custom MCP servers: request-body servers PLUS their D1-persisted
+  // registrations (loaded per-user, best-effort — [] for guest / no D1). Merge
+  // and dedupe by endpoint so the same server is never connected twice (which
+  // would collide tool keys and bypass the per-call cap), then connect once.
+  // closeAll() runs in onEnd on the streaming path (and on a pre-stream throw
+  // just below).
+  const registeredServers = await loadUserRegisteredServers(userId)
+  const mergedMcpServers = mergeMcpServers(validMcpServers, registeredServers)
+  if (mergedMcpServers.length > 0) {
+    const mcpResult = await connectCustomMcpServers(mergedMcpServers)
+    mcpCloseAll = mcpResult.closeAll
+    extraTools =
+      Object.keys(mcpResult.tools).length > 0 ? mcpResult.tools : undefined
+
+    const connected = mcpResult.statuses.filter(
+      (s) => s.status === 'connected'
+    ).length
+    const errored = mcpResult.statuses.filter(
+      (s) => s.status === 'error'
+    ).length
+    console.log(
+      `[Agent API] Custom MCP servers: ${connected} connected, ${errored} failed`
+    )
+  }
+
   const requestOrigin = request.headers.get('origin') ?? undefined
-  const agent = createClickHouseAgent({
-    hostId,
-    model,
-    disabledTools,
-    systemPrompt: AGENT_JSON_RENDER_INLINE_PROMPT,
-    providerOptions: { openrouter: { user: openRouterUser } },
-    referer: requestOrigin,
-    includeControlTools,
-    sessionId,
-    extraTools,
-  })
+  let agent: ReturnType<typeof createClickHouseAgent>
+  try {
+    agent = createClickHouseAgent({
+      hostId,
+      model,
+      disabledTools,
+      systemPrompt: AGENT_JSON_RENDER_INLINE_PROMPT,
+      providerOptions: { openrouter: { user: openRouterUser } },
+      referer: requestOrigin,
+      includeControlTools,
+      sessionId,
+      extraTools,
+    })
+  } catch (error) {
+    // Pre-stream failure: close any MCP clients we just opened (onEnd won't run
+    // because no stream is created) before rethrowing to the outer boundary.
+    if (mcpCloseAll) await mcpCloseAll().catch(() => {})
+    throw error
+  }
 
   const uiMessages: Array<{
     id: string
