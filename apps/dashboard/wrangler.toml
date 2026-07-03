@@ -118,15 +118,19 @@ custom_domain = true
 # CHM_PROXY_AUTH_SECRET via: wrangler secret put CHM_PROXY_AUTH_SECRET
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Cron triggers. The @cloudflare/vite-plugin routes scheduled events to the
-# worker's fetch handler, which TanStack Start then dispatches to the matching
-# GET route (see src/routes/api/cron/). Each cron hits its corresponding route
-# via a synthetic GET request: retention-prune runs once daily at 03:00 UTC.
+# Cron triggers. These secret-gated GET routes (see src/routes/api/cron/) are
+# invoked by a scheduler that forwards CRON_SECRET as `Authorization: Bearer
+# <secret>` (an external scheduler, or a Cloudflare Cron that forwards the
+# secret to the route's URL — see docs/content/guide/features/health.mdx). The
+# schedules below document each cadence:
+#   - "0 3 * * *"  → retention-prune, daily at 03:00 UTC.
+#   - "0 8 * * 1"  → weekly-report, Mondays at 08:00 UTC (per-host opt-in via
+#     CHM_WEEKLY_REPORT_HOSTS; no-op when unset).
 # health-sweep (every 5 min) should be added here when that route is confirmed
 # working end-to-end.
 # ─────────────────────────────────────────────────────────────────────────────
 [triggers]
-crons = ["0 3 * * *"]
+crons = ["0 3 * * *", "0 8 * * 1"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Preview environment for PR deployments
