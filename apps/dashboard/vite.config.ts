@@ -125,6 +125,12 @@ const CLIENT_ENV = {
     e.CHM_FEATURE_USER_CONNECTIONS_DB ??
     e.NEXT_PUBLIC_FEATURE_USER_CONNECTIONS_DB ??
     (isCloud ? 'true' : 'false'),
+  // Outbound webhook subscriptions (plan 44) — same D1 + Clerk requirement as
+  // user-connections, own flag so an operator can enable one without the other.
+  VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS:
+    e.VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS ??
+    e.CHM_FEATURE_WEBHOOK_SUBSCRIPTIONS ??
+    (isCloud ? 'true' : 'false'),
   VITE_AUTOCOMPLETE_LIMIT:
     e.VITE_AUTOCOMPLETE_LIMIT ?? e.NEXT_PUBLIC_AUTOCOMPLETE_LIMIT ?? '',
   VITE_RUNNING_QUERIES_REFRESH_MS:

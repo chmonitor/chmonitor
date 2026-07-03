@@ -23,6 +23,7 @@ import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
 import { ConnectionStoreError } from '@/lib/connection-store/types'
+import { emitEvent } from '@/lib/events/outbound-bus'
 
 const ROUTE_GET = { route: '/api/v1/user-connections', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/user-connections', method: 'POST' }
@@ -225,6 +226,18 @@ async function handlePost(request: Request): Promise<Response> {
       }
       throw err
     }
+
+    // Outbound webhook bus (plan 44): fire-and-forget — NOT awaited, so a
+    // slow/failing subscriber can never slow or fail this request. emitEvent
+    // never throws. See lib/events/outbound-bus.ts's module docblock for why
+    // this can't be `waitUntil`-backed instead.
+    void emitEvent(userId, {
+      id: crypto.randomUUID(),
+      type: 'connection.created',
+      occurred_at: new Date(created.createdAt).toISOString(),
+      data: { id: created.id, name: created.name, hostId: created.hostId },
+    })
+
     return createSuccessResponse({
       id: created.id,
       name: created.name,

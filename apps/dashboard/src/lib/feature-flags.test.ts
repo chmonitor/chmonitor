@@ -46,6 +46,7 @@ const { featureFlags, isFeatureEnabled } = await import('./feature-flags')
 const FEATURE_KEYS = [
   'VITE_FEATURE_CONVERSATION_DB',
   'VITE_FEATURE_USER_CONNECTIONS_DB',
+  'VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS',
 ] as const
 
 type FeatureEnvKey = (typeof FEATURE_KEYS)[number]
@@ -171,6 +172,45 @@ describe('featureFlags.userConnectionsDb — Clerk gate (env var = "true")', () 
   })
 })
 
+describe('featureFlags.webhookSubscriptions — VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS gate', () => {
+  // Clerk mock returns true throughout; only the env var varies.
+
+  test('returns false when env var is unset (safe default)', () => {
+    expect(featureFlags.webhookSubscriptions()).toBe(false)
+  })
+
+  test('returns false when env var is "false"', () => {
+    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', 'false')
+    expect(featureFlags.webhookSubscriptions()).toBe(false)
+  })
+
+  test('returns false when env var is "1" (not strictly "true")', () => {
+    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', '1')
+    expect(featureFlags.webhookSubscriptions()).toBe(false)
+  })
+
+  test('returns true when env var is exactly "true" and Clerk is enabled', () => {
+    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', 'true')
+    expect(featureFlags.webhookSubscriptions()).toBe(true)
+  })
+})
+
+describe('featureFlags.webhookSubscriptions — Clerk gate (env var = "true")', () => {
+  beforeEach(() => {
+    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', 'true')
+  })
+
+  test('returns false when Clerk is NOT enabled', () => {
+    mockIsClerkEnabled.mockReturnValue(false)
+    expect(featureFlags.webhookSubscriptions()).toBe(false)
+  })
+
+  test('returns true when Clerk IS enabled', () => {
+    mockIsClerkEnabled.mockReturnValue(true)
+    expect(featureFlags.webhookSubscriptions()).toBe(true)
+  })
+})
+
 describe('featureFlags — both flags disabled simultaneously', () => {
   test('neither flag leaks into the other: conversationDb false does not affect userConnectionsDb', () => {
     // Only userConnectionsDb enabled.
@@ -198,6 +238,10 @@ describe('isFeatureEnabled', () => {
     expect(isFeatureEnabled('userConnectionsDb')).toBe(false)
   })
 
+  test('returns false for webhookSubscriptions when env var is unset', () => {
+    expect(isFeatureEnabled('webhookSubscriptions')).toBe(false)
+  })
+
   test('returns true for conversationDb when env + Clerk are enabled', () => {
     setEnv('VITE_FEATURE_CONVERSATION_DB', 'true')
     mockIsClerkEnabled.mockReturnValue(true)
@@ -208,6 +252,12 @@ describe('isFeatureEnabled', () => {
     setEnv('VITE_FEATURE_USER_CONNECTIONS_DB', 'true')
     mockIsClerkEnabled.mockReturnValue(true)
     expect(isFeatureEnabled('userConnectionsDb')).toBe(true)
+  })
+
+  test('returns true for webhookSubscriptions when env + Clerk are enabled', () => {
+    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', 'true')
+    mockIsClerkEnabled.mockReturnValue(true)
+    expect(isFeatureEnabled('webhookSubscriptions')).toBe(true)
   })
 
   test('delegates to featureFlags[flag]() — result matches direct call', () => {
@@ -224,6 +274,7 @@ describe('featureFlags — shape invariants', () => {
     expect(Object.keys(featureFlags).sort()).toEqual([
       'conversationDb',
       'userConnectionsDb',
+      'webhookSubscriptions',
     ])
   })
 
