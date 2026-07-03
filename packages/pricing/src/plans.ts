@@ -54,7 +54,15 @@ export interface Plan {
   /** USD/year on annual billing (10× monthly ⇒ ~2 months free). null = custom/free. */
   priceYearlyUsd: number | null
   seats: number | null // null = custom/unlimited
-  hosts: number | null // null = custom/unlimited; the BINDING meter
+  hosts: number | null // null = custom/unlimited; the INCLUDED allowance
+  /**
+   * Overage policy once `hosts` is reached: `usdPer` USD/month per extra host
+   * kept past the included allowance. null = hard cap (Free — no expansion;
+   * Enterprise — moot, `hosts` is already unlimited). Paid tiers (Pro/Max) set
+   * this so adding a host past the included count soft-caps (allowed, billed)
+   * instead of hard-blocking — the GA land-and-expand lever.
+   */
+  hostOverage: { usdPer: number } | null
   /** Monthly LLM spend allowance in USD. null = BYOK / unlimited (Enterprise). */
   aiMonthlyUsdBudget: number | null
   /**
@@ -93,6 +101,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     priceYearlyUsd: 0,
     seats: 1,
     hosts: 1,
+    hostOverage: null, // hard cap — no expansion on Free
     aiMonthlyUsdBudget: 0.5,
     aiRequestsPerDay: 5,
     aiOverage: null,
@@ -115,6 +124,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     priceYearlyUsd: 290,
     seats: 3,
     hosts: 3,
+    hostOverage: { usdPer: 15 }, // soft-cap: 4th+ host bills $15/mo each
     aiMonthlyUsdBudget: 5,
     aiRequestsPerDay: 100,
     aiOverage: { usdPer: 5, messages: 2000 },
@@ -130,7 +140,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     ],
     highlights: [
       'Everything in Free',
-      '3 hosts, 3 seats',
+      '3 hosts included, 3 seats — extra hosts $15/mo each',
       'AI agent — 100 messages / day, then $5 / 2,000',
       'Scheduled AI Insights',
       'Basic alerting — up to 10 rules',
@@ -147,6 +157,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     priceYearlyUsd: 990,
     seats: 10,
     hosts: 10,
+    hostOverage: { usdPer: 19 }, // soft-cap: 11th+ host bills $19/mo each
     aiMonthlyUsdBudget: 20,
     aiRequestsPerDay: 1000,
     aiOverage: { usdPer: 5, messages: 2000 },
@@ -167,7 +178,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     ],
     highlights: [
       'Everything in Pro',
-      '10 hosts, 10 seats',
+      '10 hosts included, 10 seats — extra hosts $19/mo each',
       'AI agent — 1,000 messages / day, then $5 / 2,000',
       'Fleet view + advanced alerting (Slack, PagerDuty)',
       'Custom dashboards + webhook integrations',
@@ -184,6 +195,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     priceYearlyUsd: null,
     seats: null,
     hosts: null,
+    hostOverage: null, // moot — hosts is already unlimited
     aiMonthlyUsdBudget: null, // BYOK / unlimited
     aiRequestsPerDay: null,
     aiOverage: null, // BYOK — unlimited, no metered overage

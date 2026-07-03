@@ -3,8 +3,10 @@ import {
   checkAiDailyLimit,
   checkAlertRuleLimit,
   checkHostLimit,
+  checkHostSoftCap,
   checkSeatLimit,
   hasCapability,
+  hostOverageUsd,
   isWithinRetention,
   limitMessage,
   retentionCutoffMs,
@@ -42,6 +44,87 @@ describe('entitlements — host limit', () => {
     expect(c.planId).toBe('pro')
     expect(c.planName).toBe('Pro')
     expect(c.reason).toBe('host_limit')
+  })
+})
+
+describe('entitlements — host soft cap (overage)', () => {
+  test('Free hard-caps: denies at its 1-host limit, no overage reported', () => {
+    const c = checkHostSoftCap(free, 1)
+    expect(c.allowed).toBe(false)
+    expect(c.overageHosts).toBe(0)
+  })
+
+  test('Free allows under the cap, no overage', () => {
+    const c = checkHostSoftCap(free, 0)
+    expect(c.allowed).toBe(true)
+    expect(c.overageHosts).toBe(0)
+  })
+
+  test('Pro soft-caps: allowed under the included allowance, no overage', () => {
+    const c = checkHostSoftCap(pro, 2)
+    expect(c.allowed).toBe(true)
+    expect(c.overageHosts).toBe(0)
+  })
+
+  test('Pro soft-caps: the 4th host (at the 3-host cap) is allowed and billable', () => {
+    const c = checkHostSoftCap(pro, 3)
+    expect(c.allowed).toBe(true)
+    expect(c.overageHosts).toBe(1)
+  })
+
+  test('Pro soft-caps: the 5th host is allowed and the overage count grows', () => {
+    const c = checkHostSoftCap(pro, 4)
+    expect(c.allowed).toBe(true)
+    expect(c.overageHosts).toBe(2)
+  })
+
+  test('Max soft-caps the same way at its 10-host allowance', () => {
+    expect(checkHostSoftCap(max, 9).overageHosts).toBe(0)
+    expect(checkHostSoftCap(max, 10)).toEqual({
+      allowed: true,
+      overageHosts: 1,
+    })
+  })
+
+  test('Enterprise (unlimited) is always allowed with no overage', () => {
+    const c = checkHostSoftCap(enterprise, 9999)
+    expect(c.allowed).toBe(true)
+    expect(c.overageHosts).toBe(0)
+  })
+
+  test('defensive: negative/NaN current-host counts never allow negative overage', () => {
+    expect(checkHostSoftCap(pro, -5)).toEqual({
+      allowed: true,
+      overageHosts: 0,
+    })
+    expect(checkHostSoftCap(pro, Number.NaN)).toEqual({
+      allowed: true,
+      overageHosts: 0,
+    })
+  })
+})
+
+describe('entitlements — host overage monthly math', () => {
+  test('Pro: overageHosts * $15/host', () => {
+    expect(hostOverageUsd(pro, 0)).toBe(0)
+    expect(hostOverageUsd(pro, 1)).toBe(15)
+    expect(hostOverageUsd(pro, 3)).toBe(45)
+  })
+
+  test('Max: overageHosts * $19/host', () => {
+    expect(hostOverageUsd(max, 1)).toBe(19)
+    expect(hostOverageUsd(max, 2)).toBe(38)
+  })
+
+  test('Free/Enterprise never owe host overage', () => {
+    expect(hostOverageUsd(free, 5)).toBe(0)
+    expect(hostOverageUsd(enterprise, 5)).toBe(0)
+  })
+
+  test('defensive: non-positive overage counts owe nothing', () => {
+    expect(hostOverageUsd(pro, 0)).toBe(0)
+    expect(hostOverageUsd(pro, -1)).toBe(0)
+    expect(hostOverageUsd(pro, Number.NaN)).toBe(0)
   })
 })
 

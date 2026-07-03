@@ -14,7 +14,12 @@ import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { logEvent } from '@/lib/audit/logEvent'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
-import { checkHostLimit, limitMessage } from '@/lib/billing/entitlements'
+import {
+  checkHostLimit,
+  checkHostSoftCap,
+  limitMessage,
+} from '@/lib/billing/entitlements'
+import { recordHostOverage } from '@/lib/billing/host-usage-store'
 import { countOwnerHosts } from '@/lib/billing/org-host-count'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
@@ -163,14 +168,23 @@ async function handlePost(request: Request): Promise<Response> {
     // count `store.create()` performs below — see CreateLimitEnforcement.
     // Unlimited plans (plan.hosts === null) skip the count entirely — no
     // Clerk member enumeration needed when there's no cap to check against.
+    //
+    // SOFT-CAP (plan 18): plans that publish `plan.hostOverage` (Pro/Max) never
+    // hard-block past the included allowance — the add is allowed and the extra
+    // host is billed as monthly overage (`recordHostOverage` below). Free
+    // (`hostOverage: null`) keeps the hard cap. `hardCapLimit` mirrors that split
+    // for the atomic store insert: null for soft-capped plans (so a paid owner's
+    // pooled count can legitimately exceed `plan.hosts`), the real cap for Free.
     const owner = await resolveBillingOwner()
     const plan = await getPlanForOwner(owner.id)
     const usage =
       plan.hosts != null
         ? await countOwnerHosts(owner, store, userId)
         : { count: 0, memberUserIds: [] as string[] }
+    let overageHosts = 0
+    let hardCapLimit: number | null = null
     if (plan.hosts != null) {
-      const check = checkHostLimit(plan, usage.count)
+      const check = checkHostSoftCap(plan, usage.count)
       if (!check.allowed) {
         if (owner.type === 'org') {
           await logEvent({
@@ -181,8 +195,10 @@ async function handlePost(request: Request): Promise<Response> {
             result: 'denied',
           })
         }
-        return hostLimitResponse(check, plan.hosts)
+        return hostLimitResponse(checkHostLimit(plan, usage.count), plan.hosts)
       }
+      overageHosts = check.overageHosts
+      hardCapLimit = plan.hostOverage == null ? plan.hosts : null
     }
 
     const ssrfError = await validateHostUrl(credentials.host)
@@ -218,7 +234,7 @@ async function handlePost(request: Request): Promise<Response> {
     try {
       created = await store.create(userId, input, {
         memberUserIds: usage.memberUserIds,
-        limit: plan.hosts,
+        limit: hardCapLimit,
       })
     } catch (err) {
       if (
@@ -228,13 +244,22 @@ async function handlePost(request: Request): Promise<Response> {
         // Lost the race: another concurrent request filled the last slot
         // between our fast-path check above and this atomic insert. The
         // store only throws LIMIT_EXCEEDED when it was given a non-null
-        // limit, so plan.hosts is guaranteed non-null here; `used: plan.hosts`
-        // reflects that the pool was already at (or past) the cap when the
-        // atomic recheck ran.
+        // limit — i.e. only for hard-capped (Free) plans, since soft-capped
+        // plans pass `hardCapLimit: null` above — so plan.hosts is guaranteed
+        // non-null here; `used: plan.hosts` reflects that the pool was already
+        // at (or past) the cap when the atomic recheck ran.
         const limit = plan.hosts as number
         return hostLimitResponse(checkHostLimit(plan, limit), limit)
       }
       throw err
+    }
+
+    // Meter the over-limit host-month (soft-capped paid plans only —
+    // `overageHosts` stays 0 for Free/Enterprise/under-allowance adds).
+    // recordHostOverage is fail-open (D1-absent self-host/OSS is a no-op), so
+    // this can't fail or block the request.
+    if (overageHosts > 0) {
+      await recordHostOverage(owner.id, overageHosts)
     }
 
     if (owner.type === 'org') {

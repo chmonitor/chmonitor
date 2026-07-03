@@ -63,6 +63,7 @@ export const CAPABILITY_ENFORCEMENT: Record<PlanCapability, Enforcement> = {
 /** Numeric limits advertised by every plan. */
 export type LimitKey =
   | 'hosts'
+  | 'hostOverage'
   | 'seats'
   | 'alertRules'
   | 'retentionDays'
@@ -75,7 +76,12 @@ export type LimitKey =
 export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
   hosts: {
     status: 'enforced',
-    gate: 'routes/api/v1/user-connections.ts handlePost → checkHostLimit (pooled by countOwnerHosts)',
+    gate: 'routes/api/v1/user-connections.ts handlePost → checkHostSoftCap (pooled by countOwnerHosts): Free hard-caps (402), Pro/Max soft-cap (allowed past the included allowance)',
+  },
+  hostOverage: {
+    status: 'deferred',
+    reason:
+      'local meter live (host-usage-store.ts recordHostOverage → host_usage_monthly, peak per owner/month, surfaced as hostOverageThisMonth/hostOverageUsd on usage.ts); Polar usage-based reporting pending product setup — do not claim billed revenue until that lands',
   },
   seats: {
     status: 'enforced',

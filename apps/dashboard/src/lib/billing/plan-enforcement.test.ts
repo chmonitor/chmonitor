@@ -33,6 +33,7 @@ describe('plan-enforcement — anti-drift coverage', () => {
   test('every numeric limit is classified', () => {
     const limitKeys: LimitKey[] = [
       'hosts',
+      'hostOverage',
       'seats',
       'alertRules',
       'retentionDays',
@@ -65,6 +66,12 @@ describe('plan-enforcement — anti-drift coverage', () => {
     expect(LIMIT_ENFORCEMENT.aiMonthlyUsdBudget.status).toBe('enforced')
     expect(LIMIT_ENFORCEMENT.retentionDays.status).toBe('enforced')
     expect(LIMIT_ENFORCEMENT.alertRules.status).toBe('deferred')
+  })
+
+  test('host overage is honestly deferred pending Polar usage reporting', () => {
+    // The local meter is live (host-usage-store.ts), but nothing reports usage
+    // to Polar yet — never claim billed revenue for an integration that isn't wired.
+    expect(LIMIT_ENFORCEMENT.hostOverage.status).toBe('deferred')
   })
 
   test('api_mcp_access is the enforced capability gate', () => {
