@@ -6,6 +6,13 @@
  * member would push the org over its plan's seat limit, the membership is
  * rolled back synchronously via Clerk's deleteOrganizationMembership API.
  *
+ * DEFENSE-IN-DEPTH, NOT THE PRIMARY GATE (plan 20): the primary, pre-emptive
+ * seat check now lives at invite time — routes/api/v1/org/invite.ts rejects an
+ * over-cap invite with a 402 BEFORE any member is created, so the normal invite
+ * flow never reaches this rollback. This handler stays wired for any path that
+ * bypasses that pre-check (e.g. a member added directly via the Clerk
+ * Dashboard) — do not remove it.
+ *
  * All other events are acknowledged (202) without action.
  * 501 when CLERK_WEBHOOK_SECRET is unset. 403 on bad signature.
  * 500 on unexpected handler errors (Clerk will retry with backoff).
@@ -13,7 +20,8 @@
  * Unauthenticated by design — the signature IS the auth.
  *
  * Registry gate: routes/api/v1/webhooks/clerk.ts
- *   organizationMembership.created → checkSeatLimit (rollback over-limit member)
+ *   organizationMembership.created → checkSeatLimit (rollback over-limit member;
+ *   fallback — see routes/api/v1/org/invite.ts for the primary pre-check)
  */
 import { createFileRoute } from '@tanstack/react-router'
 

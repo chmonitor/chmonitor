@@ -79,7 +79,7 @@ export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
   },
   seats: {
     status: 'enforced',
-    gate: 'routes/api/v1/webhooks/clerk.ts organizationMembership.created → checkSeatLimit (rolls back over-limit member)',
+    gate: 'routes/api/v1/org/invite.ts handlePost → preCheckSeatLimit (pre-emptive 402 before the invite is created — the ONLY entry point today is a direct call to this route; the hosted Clerk <OrganizationProfile/> widget cannot be repointed at it, see components/clerk/organization-members.tsx, so its invites still rely solely on the fallback below); routes/api/v1/webhooks/clerk.ts organizationMembership.created → checkSeatLimit (rolls back over-limit member — defense-in-depth fallback, and the ONLY gate the widget invite path currently hits)',
   },
   alertRules: {
     status: 'deferred',
