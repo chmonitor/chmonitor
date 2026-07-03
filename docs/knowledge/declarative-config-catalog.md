@@ -170,6 +170,35 @@ catalog-wide what the per-domain suites can't, gating the 02L default flip:
   documented allowlist (`keeper-presence`, `cluster-live-metrics-all`) consumed
   by direct import in `routes/api/v1/cluster-topology.ts`.
 
+## Community query packs (plan 54)
+
+`declarative/pack-registry.ts` lets self-hosters extend the catalog at runtime
+without rebuilding, via `CHM_PACK_REGISTRY_URL` (comma-separated HTTP(S) or
+`file://` URLs), consulted when `CHM_CONFIG_SOURCE=declarative`. Each pack is
+one YAML manifest — `{ name, version, minChmVersion?, queries: [...] }` — where
+every entry in `queries` is validated against the same
+`declarativeQueryConfigSchema` as the built-in catalog.
+
+- **`loadPacks(urls, fetchImpl?)`** — the directly-testable core (mirrors
+  `local-loader.ts`'s `loadLocalConfigs`): fetches each URL (SSRF-guarded via
+  `createHostValidationFetch`, with a 5s timeout; `file://` reads the local
+  path directly — not a network concern, same trust model as
+  `CHM_CONFIG_DIRECTORY`), parses YAML, validates the manifest shape, then
+  validates each query individually. A whole pack is rejected (fetch error,
+  invalid YAML, invalid manifest) on failure; a single bad query inside an
+  otherwise-valid pack is skipped without dropping its siblings. Every failure
+  is `warn`-logged and returned in `skipped` — this function never throws.
+- **Precedence**: local `queries.d` (plan 55) > packs > built-in
+  `DECLARATIVE_CATALOG` > TS `queries`. Within packs, a later
+  `CHM_PACK_REGISTRY_URL` entry wins on a name collision (logged).
+- **Startup-only (v1)** — `ensurePacksLoaded(runtimeEnv)` is memoized for the
+  process lifetime; no hot-reload. The two `tables/$name` route handlers
+  (`browser-connections`, `user-connections`) `await` it before the
+  synchronous `getQueryConfigByName` lookup so a pack-only query resolves
+  deterministically on first request, instead of racing a background fetch.
+- **`minChmVersion`** is schema-validated but not yet enforced against the
+  running app version — deferred, same as pack signing/verification.
+
 ## Status
 
 Foundation + opt-in wiring complete; `DECLARATIVE_CATALOG` has 93 entries — 91
