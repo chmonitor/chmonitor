@@ -15,6 +15,8 @@
  * order-independent regardless of load order.
  */
 
+import type { BillingOwner } from '@/lib/billing/billing-owner'
+
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { BILLING_PLANS } from '@/lib/billing/plans'
 
@@ -37,10 +39,12 @@ mock.module('@/lib/connection-store/auth', () => ({
   resolveConnectionUserId: () => resolveConnectionUserId(),
 }))
 
-let resolveBillingOwner = mock(async () => ({
-  type: 'org' as const,
-  id: 'org_1',
-}))
+let resolveBillingOwner = mock(
+  async (): Promise<BillingOwner> => ({
+    type: 'org',
+    id: 'org_1',
+  })
+)
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwner: () => resolveBillingOwner(),
 }))
@@ -75,15 +79,17 @@ mock.module('@/lib/connection-query/connection-client', () => ({
   getConnectionVersion: async () => null,
 }))
 
-let storeCreate = mock(async (_userId: string, input: { name: string }) => ({
-  id: 'conn_new',
-  hostId: -1000,
-  name: input.name,
-  hostUrl: 'https://ch.example.com',
-  chUser: 'default',
-  createdAt: 1,
-  updatedAt: 1,
-}))
+let storeCreate = mock(
+  async (_userId: string, input: { name: string }, _limit?: unknown) => ({
+    id: 'conn_new',
+    hostId: -1000,
+    name: input.name,
+    hostUrl: 'https://ch.example.com',
+    chUser: 'default',
+    createdAt: 1,
+    updatedAt: 1,
+  })
+)
 mock.module('@/lib/connection-store/resolve-store', () => ({
   resolveConnectionStore: async () => ({
     list: async () => [],
@@ -116,22 +122,26 @@ function makeRequest(): Request {
 beforeEach(() => {
   logEventImpl = mock(() => Promise.resolve())
   resolveConnectionUserId = mock(async () => 'user_1')
-  resolveBillingOwner = mock(async () => ({
-    type: 'org' as const,
-    id: 'org_1',
-  }))
+  resolveBillingOwner = mock(
+    async (): Promise<BillingOwner> => ({
+      type: 'org',
+      id: 'org_1',
+    })
+  )
   getPlanForOwner = mock(async () => BILLING_PLANS.pro)
   countOwnerHosts = mock(async () => ({ count: 0, memberUserIds: ['user_1'] }))
   queryConnection = mock(async () => [])
-  storeCreate = mock(async (_userId: string, input: { name: string }) => ({
-    id: 'conn_new',
-    hostId: -1000,
-    name: input.name,
-    hostUrl: 'https://ch.example.com',
-    chUser: 'default',
-    createdAt: 1,
-    updatedAt: 1,
-  }))
+  storeCreate = mock(
+    async (_userId: string, input: { name: string }, _limit?: unknown) => ({
+      id: 'conn_new',
+      hostId: -1000,
+      name: input.name,
+      hostUrl: 'https://ch.example.com',
+      chUser: 'default',
+      createdAt: 1,
+      updatedAt: 1,
+    })
+  )
 })
 
 describe('POST /api/v1/user-connections — audit wiring', () => {

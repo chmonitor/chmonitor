@@ -10,12 +10,16 @@
  * cross-file mock.module registration notes in webhooks/clerk.test.ts).
  */
 
+import type { BillingOwner } from '@/lib/billing/billing-owner'
+
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-let resolveBillingOwnerImpl = mock(async () => ({
-  type: 'org' as const,
-  id: 'org_1',
-}))
+let resolveBillingOwnerImpl = mock(
+  async (): Promise<BillingOwner> => ({
+    type: 'org',
+    id: 'org_1',
+  })
+)
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwner: () => resolveBillingOwnerImpl(),
 }))
@@ -28,10 +32,12 @@ mock.module('./logEvent', () => ({
 const { logSessionEvent } = await import('./log-session-event')
 
 beforeEach(() => {
-  resolveBillingOwnerImpl = mock(async () => ({
-    type: 'org' as const,
-    id: 'org_1',
-  }))
+  resolveBillingOwnerImpl = mock(
+    async (): Promise<BillingOwner> => ({
+      type: 'org',
+      id: 'org_1',
+    })
+  )
   logEventImpl = mock(async () => {})
 })
 

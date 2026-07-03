@@ -20,6 +20,7 @@
  */
 
 import type { AuditLogRow } from '@/lib/audit/query'
+import type { BillingOwner } from '@/lib/billing/billing-owner'
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -39,10 +40,12 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
   auth: () => authImpl(),
 }))
 
-let resolveBillingOwnerImpl = mock(async () => ({
-  type: 'org' as const,
-  id: 'org_A',
-}))
+let resolveBillingOwnerImpl = mock(
+  async (): Promise<BillingOwner> => ({
+    type: 'org',
+    id: 'org_A',
+  })
+)
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwner: () => resolveBillingOwnerImpl(),
 }))
