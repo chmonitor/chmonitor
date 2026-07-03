@@ -2,6 +2,7 @@ import type { QueryConfig } from '@/types/query-config'
 
 import { DECLARATIVE_CATALOG } from './declarative/catalog'
 import { getConfigSource, loadDeclarativeConfig } from './declarative/loader'
+import { getLocalConfigCatalog } from './declarative/local-loader'
 import { error } from '@chm/logger'
 
 export type { QueryConfig } from './types'
@@ -262,6 +263,26 @@ export const getQueryConfigByName = (
 ): QueryConfig | undefined => {
   if (!name) {
     return undefined
+  }
+
+  // Self-hosted local config override (queries.d, plan 55) — server-only.
+  // Gated on the build-time `import.meta.env.SSR` constant (not a runtime
+  // check) so Vite/Rollup dead-code-eliminates this whole branch, and the
+  // local-loader import (node:fs + yaml) with it, out of the client bundle.
+  // Checked FIRST — regardless of CHM_CONFIG_SOURCE — so a local file can
+  // override a same-named built-in (TS or declarative) config.
+  if (import.meta.env.SSR) {
+    const local = getLocalConfigCatalog(runtimeEnv)[name]
+    if (local) {
+      try {
+        return loadDeclarativeConfig(local)
+      } catch (err) {
+        error(
+          `[query-config] Malformed local config for "${name}"; falling back to built-in config`,
+          err
+        )
+      }
+    }
   }
 
   if (getConfigSource(runtimeEnv) === 'declarative') {

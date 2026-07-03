@@ -91,6 +91,53 @@ replicas:
 kubectl apply -k deploy/kubernetes/overlays/prod
 ```
 
+## Custom queries (queries.d)
+
+Add your own monitoring queries without forking the image: mount a ConfigMap
+of `*.yaml` declarative query configs at `CHM_CONFIG_DIRECTORY` (default
+`/etc/chmonitor/queries.d`) and the dashboard picks them up at startup. Invalid
+files are skipped and logged; a missing directory is a silent no-op — this
+needs a local filesystem, so it only applies to Docker/Kubernetes, not the
+Cloudflare Worker deploy.
+
+```yaml
+# deploy/kubernetes/overlays/custom-queries/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+configMapGenerator:
+  - name: chmonitor-queries
+    files:
+      - my-query.yaml # declarative schema — see docs/content/reference/catalog-contributing.mdx
+patches:
+  - target:
+      kind: Deployment
+      name: chmonitor
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: CHM_CONFIG_DIRECTORY
+          value: /etc/chmonitor/queries.d
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - name: queries-d
+            mountPath: /etc/chmonitor/queries.d
+            readOnly: true
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: queries-d
+            configMap:
+              name: chmonitor-queries
+```
+
+```bash
+kubectl apply -k deploy/kubernetes/overlays/custom-queries
+```
+
 ## Health probes
 
 - **Liveness** — `GET /healthz` (static, always `200` while the process runs).

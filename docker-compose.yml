@@ -36,6 +36,13 @@ services:
       CLICKHOUSE_PASSWORD: ""
       PORT: 3000
       HOST: "0.0.0.0"
+    # Optional: self-hosted local config override (queries.d). Mount a host
+    # directory of custom *.yaml query configs and point CHM_CONFIG_DIRECTORY
+    # (set it in `.env`) at the container path below. Invalid files are
+    # skipped + logged; leave both lines commented out to keep the default
+    # (no local overrides, TS/declarative catalog only).
+    # volumes:
+    #   - ./queries.d:/etc/chmonitor/queries.d:ro
     depends_on:
       clickhouse:
         condition: service_healthy
