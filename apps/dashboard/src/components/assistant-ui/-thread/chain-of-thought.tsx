@@ -20,6 +20,7 @@ import type {
 } from '@assistant-ui/react'
 import type { ReactNode } from 'react'
 
+import { useMessage } from '@assistant-ui/react'
 import { MarkdownText } from '@/components/assistant-ui/markdown-text'
 import {
   Reasoning,
@@ -102,6 +103,35 @@ function renderLeafPart(part: EnrichedPartState) {
 }
 
 /**
+ * A run of adjacent tool calls. Stays expanded while ANY tool in the run is
+ * still executing OR the message is still streaming its final answer, so the
+ * group never collapses mid-turn (before the assistant's final text lands). It
+ * folds into tidy history only once the whole turn is done. The trigger's own
+ * spinner keeps tracking the tools' status, not the message's.
+ *
+ * Reads `useMessage` here (not inside `renderGroupedPart`) because that render
+ * function is called per group in a switch — hooks must live in a component.
+ */
+function ToolGroup({
+  count,
+  status,
+  children,
+}: {
+  readonly count: number
+  readonly status: MessagePartStatus | ToolCallMessagePartStatus
+  readonly children: ReactNode
+}) {
+  const toolsRunning = status?.type === 'running'
+  const messageRunning = useMessage((m) => m.status?.type === 'running')
+  return (
+    <ToolGroupRoot isRunning={toolsRunning || messageRunning}>
+      <ToolGroupTrigger count={count} status={status} />
+      <ToolGroupContent>{children}</ToolGroupContent>
+    </ToolGroupRoot>
+  )
+}
+
+/**
  * Renderer function for MessagePrimitive.GroupedParts.
  * Reasoning and tool runs render as separate sibling collapsibles whose open
  * state follows the run's `running` status; leaf parts delegate to
@@ -119,13 +149,10 @@ export function renderGroupedPart({ part, children }: GroupedRenderInfo) {
       )
     }
     case 'group-tool': {
-      const isRunning = part.status?.type === 'running'
-      const count = part.indices.length
       return (
-        <ToolGroupRoot isRunning={isRunning}>
-          <ToolGroupTrigger count={count} status={part.status} />
-          <ToolGroupContent>{children}</ToolGroupContent>
-        </ToolGroupRoot>
+        <ToolGroup count={part.indices.length} status={part.status}>
+          {children}
+        </ToolGroup>
       )
     }
     default: {

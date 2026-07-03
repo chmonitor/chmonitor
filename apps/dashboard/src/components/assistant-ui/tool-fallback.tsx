@@ -2,6 +2,7 @@
 
 import type { ToolCallMessagePartComponent } from '@assistant-ui/react'
 
+import { useMessage } from '@assistant-ui/react'
 import {
   type AgentToolPart,
   ToolCallPart,
@@ -27,6 +28,9 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
 }) => {
   const hasResult = result !== undefined && result !== null
   const isRunning = status?.type === 'running'
+  // Whether the whole assistant turn is still streaming (NOT just this tool).
+  // Drives the row's collapse-into-history so it waits for the final text.
+  const isMessageStreaming = useMessage((m) => m.status?.type === 'running')
 
   const state: AgentToolPart['state'] = isError
     ? 'output-error'
@@ -53,7 +57,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
   return (
     <ToolCallPart
       part={part}
-      isMessageStreaming={isRunning}
+      isMessageStreaming={isMessageStreaming}
       onToolResult={(_toolCallId, value) => addResult(value)}
     />
   )
