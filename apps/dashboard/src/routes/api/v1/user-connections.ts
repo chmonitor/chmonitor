@@ -12,6 +12,7 @@ import type { CreateUserConnectionInput } from '@/lib/connection-store/types'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { logEvent } from '@/lib/audit/logEvent'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
 import { checkHostLimit, limitMessage } from '@/lib/billing/entitlements'
 import { countOwnerHosts } from '@/lib/billing/org-host-count'
@@ -170,6 +171,15 @@ async function handlePost(request: Request): Promise<Response> {
     if (plan.hosts != null) {
       const check = checkHostLimit(plan, usage.count)
       if (!check.allowed) {
+        if (owner.type === 'org') {
+          await logEvent({
+            orgId: owner.id,
+            userId,
+            event: 'connection.created',
+            action: 'create',
+            result: 'denied',
+          })
+        }
         return hostLimitResponse(check, plan.hosts)
       }
     }
@@ -225,6 +235,18 @@ async function handlePost(request: Request): Promise<Response> {
       }
       throw err
     }
+
+    if (owner.type === 'org') {
+      await logEvent({
+        orgId: owner.id,
+        userId,
+        event: 'connection.created',
+        resource: created.id,
+        action: 'create',
+        result: 'success',
+      })
+    }
+
     return createSuccessResponse({
       id: created.id,
       name: created.name,
@@ -248,3 +270,6 @@ export const Route = createFileRoute('/api/v1/user-connections')({
     },
   },
 })
+
+// Exported for unit tests only.
+export { handlePost as __handlePostForTests }

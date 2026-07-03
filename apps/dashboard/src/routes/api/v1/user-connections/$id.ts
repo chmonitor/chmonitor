@@ -9,6 +9,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { logSessionEvent } from '@/lib/audit/log-session-event'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
@@ -91,6 +92,14 @@ async function handlePatch(
         : undefined,
     })
 
+    await logSessionEvent({
+      userId,
+      event: 'connection.updated',
+      resource: updated.id,
+      action: 'update',
+      result: 'success',
+    })
+
     return createSuccessResponse({
       id: updated.id,
       name: updated.name,
@@ -121,6 +130,15 @@ async function handleDelete(connectionId: string): Promise<Response> {
     const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
     await store.delete(userId, connectionId)
+
+    await logSessionEvent({
+      userId,
+      event: 'connection.deleted',
+      resource: connectionId,
+      action: 'delete',
+      result: 'success',
+    })
+
     return createSuccessResponse({ deleted: true })
   } catch (error) {
     return mapConnectionApiError(error, ROUTE_DELETE)
@@ -135,3 +153,9 @@ export const Route = createFileRoute('/api/v1/user-connections/$id')({
     },
   },
 })
+
+// Exported for unit tests only.
+export {
+  handlePatch as __handlePatchForTests,
+  handleDelete as __handleDeleteForTests,
+}
