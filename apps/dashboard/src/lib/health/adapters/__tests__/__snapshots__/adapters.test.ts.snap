@@ -194,3 +194,29 @@ exports[`generic-json adapter snapshot 1`] = `
   "value": 7,
 }
 `;
+
+exports[`opsgenie adapter snapshot 1`] = `
+{
+  "alias": "chmonitor:2:failed-mutations",
+  "description": 
+"Runbooks:
+https://docs.example.com/runbook/mutations"
+,
+  "details": {
+    "critThreshold": "5",
+    "hostId": "2",
+    "metric": "failed-mutations",
+    "timestamp": "2026-07-02T10:00:00.000Z",
+    "value": "7",
+    "warnThreshold": "1",
+  },
+  "message": "Failed mutations — 7 failed mutations (host prod-1)",
+  "priority": "P1",
+  "source": "chmonitor",
+  "tags": [
+    "host:prod-1",
+    "metric:failed-mutations",
+    "chmonitor",
+  ],
+}
+`;

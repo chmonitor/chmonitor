@@ -16,6 +16,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   buildDiscordBody,
   buildGenericJsonBody,
+  buildOpsgenieBody,
   buildPagerDutyBody,
   buildSlackBody,
   buildTelegramBody,
@@ -24,6 +25,8 @@ import {
   discordAdapter,
   escapeMarkdownV2,
   genericJsonAdapter,
+  opsgenieAdapter,
+  opsgenieAlias,
   pagerDutyAdapter,
   pagerDutyDedupKey,
   slackAdapter,
@@ -272,6 +275,78 @@ describe('pagerduty adapter', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Opsgenie
+// ---------------------------------------------------------------------------
+
+describe('opsgenie adapter', () => {
+  test('critical maps to P1 priority with a stable alias', () => {
+    const body = buildOpsgenieBody(CRITICAL)
+    expect(body.priority).toBe('P1')
+    expect(body.alias).toBe('chmonitor:2:failed-mutations')
+    expect(body.alias).toBe(opsgenieAlias(CRITICAL))
+    expect(body.source).toBe('chmonitor')
+    expect(body.message).toBe(
+      'Failed mutations — 7 failed mutations (host prod-1)'
+    )
+  })
+
+  test('warning maps to P2, recovery maps to P3', () => {
+    expect(buildOpsgenieBody(WARNING).priority).toBe('P2')
+    expect(buildOpsgenieBody(RECOVERY).priority).toBe('P3')
+  })
+
+  test('repeated firings for the same host+metric share one alias', () => {
+    expect(opsgenieAlias(CRITICAL)).toBe(opsgenieAlias(WARNING))
+    expect(opsgenieAlias(CRITICAL)).toBe(opsgenieAlias(RECOVERY))
+  })
+
+  test('tags host + metric + chmonitor', () => {
+    expect(buildOpsgenieBody(CRITICAL).tags).toEqual([
+      'host:prod-1',
+      'metric:failed-mutations',
+      'chmonitor',
+    ])
+  })
+
+  test('details values are all strings', () => {
+    const details = buildOpsgenieBody(CRITICAL).details
+    for (const value of Object.values(details)) {
+      expect(typeof value).toBe('string')
+    }
+    expect(details.value).toBe('7')
+    expect(details.warnThreshold).toBe('1')
+    expect(details.critThreshold).toBe('5')
+  })
+
+  test('null value and missing thresholds render "n/a" strings', () => {
+    const details = buildOpsgenieBody({
+      ...CRITICAL,
+      value: null,
+      warnThreshold: null,
+      critThreshold: null,
+    }).details
+    expect(details.value).toBe('n/a')
+    expect(details.warnThreshold).toBe('n/a')
+    expect(details.critThreshold).toBe('n/a')
+  })
+
+  test('includes runbook urls in the description', () => {
+    expect(buildOpsgenieBody(CRITICAL).description).toContain(
+      'https://docs.example.com/runbook/mutations'
+    )
+  })
+
+  test('omits description when no runbook urls are present', () => {
+    const { runbookUrls: _runbookUrls, ...withoutRunbooks } = CRITICAL
+    expect(buildOpsgenieBody(withoutRunbooks).description).toBeUndefined()
+  })
+
+  test('snapshot', () => {
+    expect(buildOpsgenieBody(CRITICAL)).toMatchSnapshot()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Generic JSON
 // ---------------------------------------------------------------------------
 
@@ -324,6 +399,12 @@ describe('detectAdapter', () => {
     expect(detectAdapter('https://events.pagerduty.com/v2/enqueue').id).toBe(
       'pagerduty'
     )
+    expect(detectAdapter('https://api.opsgenie.com/v2/alerts').id).toBe(
+      'opsgenie'
+    )
+    expect(detectAdapter('https://api.eu.opsgenie.com/v2/alerts').id).toBe(
+      'opsgenie'
+    )
   })
 
   test('falls back to generic-json for unknown urls', () => {
@@ -335,6 +416,7 @@ describe('detectAdapter', () => {
     expect(slackAdapter.id).toBe('slack')
     expect(discordAdapter.id).toBe('discord')
     expect(pagerDutyAdapter.id).toBe('pagerduty')
+    expect(opsgenieAdapter.id).toBe('opsgenie')
     expect(genericJsonAdapter.id).toBe('generic-json')
   })
 
@@ -344,6 +426,7 @@ describe('detectAdapter', () => {
       slackAdapter,
       discordAdapter,
       pagerDutyAdapter,
+      opsgenieAdapter,
       genericJsonAdapter,
     ]) {
       expect(adapter.buildBody(CRITICAL)).toBeDefined()

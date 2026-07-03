@@ -12,6 +12,11 @@
 export type { DiscordWebhookBody } from './discord'
 export type { GenericJsonBody } from './generic-json'
 export type {
+  OpsgenieConfig,
+  OpsgenieCreateBody,
+  OpsgeniePriority,
+} from './opsgenie'
+export type {
   PagerDutyConfig,
   PagerDutyEventBody,
   PagerDutySeverity,
@@ -26,6 +31,7 @@ export type {
 
 export { buildDiscordBody, discordAdapter } from './discord'
 export { buildGenericJsonBody, genericJsonAdapter } from './generic-json'
+export { buildOpsgenieBody, opsgenieAdapter, opsgenieAlias } from './opsgenie'
 export {
   buildPagerDutyBody,
   pagerDutyAdapter,
@@ -43,6 +49,7 @@ import type { NotificationAdapter } from './types'
 
 import { discordAdapter } from './discord'
 import { genericJsonAdapter } from './generic-json'
+import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
 import { slackAdapter } from './slack'
 import { telegramAdapter } from './telegram'
@@ -57,6 +64,7 @@ export const ADAPTERS: readonly NotificationAdapter[] = [
   slackAdapter,
   discordAdapter,
   pagerDutyAdapter,
+  opsgenieAdapter,
 ]
 
 /** All adapters including the generic-json fallback. */
