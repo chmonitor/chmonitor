@@ -1,5 +1,6 @@
 import {
   getServerAlertConfig,
+  getServerEmailConfig,
   getServerOpsgenieConfig,
 } from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
@@ -8,6 +9,13 @@ const ENV_KEYS = [
   'HEALTH_ALERT_ENABLED',
   'HEALTH_ALERT_WEBHOOK_URL',
   'HEALTH_ALERT_MIN_SEVERITY',
+] as const
+
+const EMAIL_ENV_KEYS = [
+  'HEALTH_ALERT_EMAIL_ENABLED',
+  'HEALTH_ALERT_EMAIL_TO',
+  'HEALTH_ALERT_EMAIL_FROM',
+  'HEALTH_ALERT_EMAIL_PROVIDER_URL',
 ] as const
 
 describe('getServerAlertConfig', () => {
@@ -200,5 +208,152 @@ describe('getServerOpsgenieConfig', () => {
     process.env.HEALTH_ALERT_OPSGENIE_API_KEY = 'my-key'
     process.env.HEALTH_ALERT_OPSGENIE_REGION = 'apac'
     expect(getServerOpsgenieConfig()?.region).toBe('us')
+  })
+})
+
+describe('getServerEmailConfig', () => {
+  let saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of EMAIL_ENV_KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of EMAIL_ENV_KEYS) {
+      if (saved[key] === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = saved[key]
+      }
+    }
+    saved = {}
+  })
+
+  it('returns null when no env vars are set (fail-open)', () => {
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('returns null when HEALTH_ALERT_EMAIL_ENABLED is not exactly "true"', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = '1'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'mailgun://key@example.com'
+
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('returns null when enabled but the provider URL is missing', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('returns null when the provider URL scheme is unrecognized', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'https://example.com/hook'
+
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('returns null when enabled but "from" is missing', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'sendgrid://key'
+
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('returns null when enabled but there are no recipients', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'sendgrid://key'
+
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('returns null when recipients are only whitespace/commas', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = ' , , '
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'sendgrid://key'
+
+    expect(getServerEmailConfig()).toBeNull()
+  })
+
+  it('parses a fully configured mailgun setup', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com, oncall@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'mailgun://key@mg.example.com'
+
+    expect(getServerEmailConfig()).toEqual({
+      provider: 'mailgun',
+      from: 'alerts@example.com',
+      to: ['ops@example.com', 'oncall@example.com'],
+    })
+  })
+
+  it('parses a fully configured sendgrid setup', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'sendgrid://key'
+
+    expect(getServerEmailConfig()).toEqual({
+      provider: 'sendgrid',
+      from: 'alerts@example.com',
+      to: ['ops@example.com'],
+    })
+  })
+
+  it('parses a fully configured smtp(s) setup', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL =
+      'smtps://user:pass@smtp.example.com:465'
+
+    expect(getServerEmailConfig()).toEqual({
+      provider: 'smtp',
+      from: 'alerts@example.com',
+      to: ['ops@example.com'],
+    })
+  })
+
+  it('trims whitespace around recipients and from address', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO =
+      '  ops@example.com  ,  oncall@example.com  '
+    process.env.HEALTH_ALERT_EMAIL_FROM = '  alerts@example.com  '
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'sendgrid://key'
+
+    expect(getServerEmailConfig()).toEqual({
+      provider: 'sendgrid',
+      from: 'alerts@example.com',
+      to: ['ops@example.com', 'oncall@example.com'],
+    })
+  })
+
+  it('does not change getServerAlertConfig behaviour when email env vars are set', () => {
+    process.env.HEALTH_ALERT_EMAIL_ENABLED = 'true'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'sendgrid://key'
+
+    const config = getServerAlertConfig()
+
+    expect(config).toEqual({
+      webhookEnabled: false,
+      webhookUrl: '',
+      minSeverity: 'warning',
+      browserNotificationsEnabled: false,
+    })
   })
 })

@@ -10,6 +10,7 @@
  */
 
 export type { DiscordWebhookBody } from './discord'
+export type { EmailBody, EmailConfig, EmailProvider } from './email'
 export type { GenericJsonBody } from './generic-json'
 export type {
   OpsgenieConfig,
@@ -30,6 +31,7 @@ export type {
 } from './types'
 
 export { buildDiscordBody, discordAdapter } from './discord'
+export { buildEmailBody, detectEmailProvider, emailAdapter } from './email'
 export { buildGenericJsonBody, genericJsonAdapter } from './generic-json'
 export { buildOpsgenieBody, opsgenieAdapter, opsgenieAlias } from './opsgenie'
 export {
@@ -48,6 +50,7 @@ export {
 import type { NotificationAdapter } from './types'
 
 import { discordAdapter } from './discord'
+import { emailAdapter } from './email'
 import { genericJsonAdapter } from './generic-json'
 import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
@@ -55,9 +58,16 @@ import { slackAdapter } from './slack'
 import { telegramAdapter } from './telegram'
 
 /**
- * Channel-specific adapters, in detection priority order. `genericJsonAdapter`
- * is intentionally excluded here — it is the fallback returned by
+ * Channel-specific adapters, in detection priority order, for
+ * {@link detectAdapter}'s webhook-URL routing. `genericJsonAdapter` is
+ * intentionally excluded here — it is the fallback returned by
  * {@link detectAdapter} when nothing else matches.
+ *
+ * `emailAdapter` is ALSO intentionally excluded: email is selected by env
+ * config (`getServerEmailConfig`), not by detecting a webhook URL, so it is
+ * dispatched explicitly rather than through this URL-based registry. This
+ * keeps `detectAdapter`'s routing for existing http(s) webhook URLs provably
+ * unaffected by the email adapter's existence.
  */
 export const ADAPTERS: readonly NotificationAdapter[] = [
   telegramAdapter,
@@ -67,10 +77,11 @@ export const ADAPTERS: readonly NotificationAdapter[] = [
   opsgenieAdapter,
 ]
 
-/** All adapters including the generic-json fallback. */
+/** All adapters, including the generic-json fallback and email. */
 export const ALL_ADAPTERS: readonly NotificationAdapter[] = [
   ...ADAPTERS,
   genericJsonAdapter,
+  emailAdapter,
 ]
 
 /**

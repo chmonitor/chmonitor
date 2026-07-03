@@ -13,7 +13,7 @@ import type { AlertEventRecord } from './alert-history-store'
 import type { AlertRoute } from './alert-routing'
 import type { AlertDecision } from './alert-state-store'
 
-import { buildPagerDutyBody, detectAdapter } from './adapters'
+import { buildEmailBody, buildPagerDutyBody, detectAdapter } from './adapters'
 import { clearAck, isAcked, listActiveAcks } from './alert-ack-store'
 import { recordAlertEvent } from './alert-history-store'
 import {
@@ -23,6 +23,7 @@ import {
 } from './alert-routing'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
 import { loadCustomRulesIntoRegistry } from './custom-rules-store'
+import { sendAlertEmail } from './email-transport'
 import { isSuppressed, listWindows } from './maintenance-windows'
 import { dispatchOpsgenie } from './opsgenie-dispatch'
 import {
@@ -32,6 +33,7 @@ import {
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
+  getServerEmailConfig,
   getServerOpsgenieConfig,
   getServerThresholdOverrides,
 } from './server-alert-config'
@@ -84,6 +86,8 @@ export interface SweepSummary {
   ranAt: string
   enabled: boolean
   webhookConfigured: boolean
+  /** Whether `HEALTH_ALERT_EMAIL_*` env vars resolve to a usable email config. */
+  emailConfigured: boolean
   minSeverity: 'warning' | 'critical'
   hostsChecked: number
   totalChecks: number
@@ -97,6 +101,8 @@ export interface SweepSummary {
   ackedSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
+  /** Emails successfully sent (only counted when email is configured). */
+  emailsDispatched: number
   /** Total AI insights generated and persisted across all hosts. */
   insightsGenerated: number
   hosts: SweepHostSummary[]
@@ -338,9 +344,12 @@ const SWEEP_ROUTING_OWNER_ID = ''
  * matches — so deployments that never configure a route behave exactly as
  * before. Routes are best-effort (D1-backed; degrade to `[]` when D1 isn't
  * configured), so a routing-table hiccup never blocks the legacy fallback.
+ * Opsgenie/PagerDuty/email are each an independent env-configured channel
+ * (like Opsgenie/PagerDuty above) — none of them requires the webhook to also
+ * be configured; every channel is attempted and audited on its own.
  *
- * Disabled (or no webhook URL and no routes) → rules still run, alerts are
- * skipped.
+ * Disabled (or no webhook URL and no routes and no Opsgenie/PagerDuty/email) →
+ * rules still run, alerts are skipped.
  */
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
@@ -349,12 +358,14 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const routes: AlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
   const pagerDutyFallbackKey = getPagerDutyFallbackRoutingKey()
   const opsgenieConfig = getServerOpsgenieConfig()
+  const emailConfig = getServerEmailConfig()
   const canDispatch =
     settings.webhookEnabled &&
     (webhookConfigured ||
       routes.length > 0 ||
       Boolean(pagerDutyFallbackKey) ||
-      Boolean(opsgenieConfig))
+      Boolean(opsgenieConfig) ||
+      Boolean(emailConfig))
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
@@ -399,6 +410,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   let maintenanceSuppressed = 0
   let ackedSuppressed = 0
   let recoveries = 0
+  let emailsDispatched = 0
 
   // Active operator ACKs (plan 29), loaded once for the whole sweep.
   // `listActiveAcks` never throws — a missing/misconfigured D1 binding
@@ -700,12 +712,66 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
+      // Email (plan 25): a single global env-configured destination, same
+      // shape as Opsgenie above — no per-route resolution yet. Fires whenever
+      // `emailConfig` is set, independent of every other channel.
+      // `sendAlertEmail` never throws (fails open): Mailgun/SendGrid send for
+      // real over authenticated HTTPS; the `smtp` provider is not implemented
+      // yet (Cloudflare Workers has no raw TCP) and always resolves `false`
+      // with its own log line — never a silent fake "sent".
+      if (emailConfig) {
+        const alertSeverity: AlertSeverity =
+          decision.kind === 'recovery'
+            ? 'recovery'
+            : (effective as 'warning' | 'critical')
+        const emailBody = buildEmailBody({
+          severity: alertSeverity,
+          hostLabel: name,
+          hostId,
+          metric: ruleId,
+          value,
+          warnThreshold,
+          critThreshold,
+          title: ruleTitle,
+          label,
+          timestamp: new Date().toISOString(),
+        })
+        const ok = await sendAlertEmail(emailConfig, emailBody)
+        if (ok) {
+          anyDelivered = true
+          emailsDispatched++
+        }
+
+        try {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId,
+              hostLabel: name,
+              ruleId,
+              decision,
+              value,
+              delivered: ok,
+              error: ok ? undefined : 'Email dispatch failed',
+              channel: 'email',
+            })
+          )
+        } catch (err) {
+          debug(
+            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+
       // Persist "notified" only when there was nothing to deliver (no
       // targets at all across every channel — not a failure) or at least one
       // channel succeeded. A failed delivery with no successes leaves no
       // record, so the next sweep retries instead of suppressing.
       if (
-        targets.length + pagerDutyTargets.length + (opsgenieConfig ? 1 : 0) ===
+        targets.length +
+          pagerDutyTargets.length +
+          (opsgenieConfig ? 1 : 0) +
+          (emailConfig ? 1 : 0) ===
           0 ||
         anyDelivered
       ) {
@@ -884,6 +950,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     ranAt,
     enabled: settings.webhookEnabled,
     webhookConfigured,
+    emailConfigured: emailConfig !== null,
     minSeverity: settings.minSeverity,
     hostsChecked: configs.length,
     totalChecks: hosts.reduce((sum, h) => sum + h.checksRun, 0),
@@ -893,6 +960,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     maintenanceSuppressed,
     ackedSuppressed,
     recoveries,
+    emailsDispatched,
     insightsGenerated,
     hosts,
     findings,

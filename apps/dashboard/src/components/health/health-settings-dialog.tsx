@@ -175,6 +175,23 @@ export function HealthSettingsDialog() {
     }
   }
 
+  const handleTestEmail = async () => {
+    try {
+      const res = await fetch('/api/v1/health/email-test', { method: 'POST' })
+      const data = (await res.json().catch(() => null)) as {
+        success?: boolean
+        error?: { message?: string }
+      } | null
+      if (res.ok && data?.success) {
+        toast.success('Test email sent')
+      } else {
+        toast.error(data?.error?.message || 'Failed to send test email')
+      }
+    } catch {
+      toast.error('Failed to send test email')
+    }
+  }
+
   const handleTestBrowser = () => {
     if (!('Notification' in window)) {
       toast.error('Browser notifications are not supported in this browser')
@@ -360,6 +377,24 @@ export function HealthSettingsDialog() {
                   disabled={!alerts.webhookUrl}
                 >
                   Send test
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-2 rounded-md border p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <Label className="text-sm font-medium">Email alerts</Label>
+                  <span className="text-xs text-muted-foreground">
+                    Configured by the server operator via{' '}
+                    <code className="text-xs">HEALTH_ALERT_EMAIL_*</code>{' '}
+                    environment variables (Mailgun, SendGrid, or SMTP)
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleTestEmail}>
+                  Send test email
                 </Button>
               </div>
             </div>

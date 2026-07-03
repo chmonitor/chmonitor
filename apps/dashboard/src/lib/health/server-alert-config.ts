@@ -1,6 +1,8 @@
 import type { AlertRuleThresholds } from '@/lib/alerting/rule-registry'
+import type { EmailConfig } from './adapters/email'
 import type { AlertSettings } from './alert-settings-storage'
 
+import { detectEmailProvider } from './adapters/email'
 import { DEFAULT_ALERT_SETTINGS } from './alert-settings-storage'
 
 /**
@@ -44,6 +46,49 @@ export function getServerAlertConfig(): AlertSettings {
     browserNotificationsEnabled: false,
     minSeverity,
   }
+}
+
+/**
+ * Server-side email alert configuration, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_EMAIL_ENABLED       → boolean (default false)
+ *   - HEALTH_ALERT_EMAIL_TO            → comma-separated recipients (default '')
+ *   - HEALTH_ALERT_EMAIL_FROM          → from address (default '')
+ *   - HEALTH_ALERT_EMAIL_PROVIDER_URL  → mailgun://KEY@DOMAIN | sendgrid://KEY |
+ *                                        smtp://user:pass@host:port | smtps://...
+ *
+ * Returns `null` when disabled or unconfigured — missing/invalid provider URL,
+ * no `from` address, or no recipients — so an unconfigured deployment fails
+ * OPEN: the sweep behaves exactly as it did before email support existed.
+ *
+ * The provider transport secret (API key / SMTP credentials) is intentionally
+ * NOT part of the returned {@link EmailConfig} — it stays in
+ * `HEALTH_ALERT_EMAIL_PROVIDER_URL` and is resolved by the dispatch layer that
+ * actually sends the email, mirroring how `buildEmailBody` stays pure.
+ *
+ * NOTE: exposed as a companion function rather than folded into
+ * {@link getServerAlertConfig}'s return value so that function keeps its exact
+ * {@link AlertSettings} shape (its unit tests assert the object deeply) —
+ * exactly as {@link getServerThresholdOverrides} is a companion today.
+ */
+export function getServerEmailConfig(): EmailConfig | null {
+  const enabled = process.env.HEALTH_ALERT_EMAIL_ENABLED === 'true'
+  if (!enabled) return null
+
+  const providerUrl = process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL?.trim() || ''
+  const provider = providerUrl ? detectEmailProvider(providerUrl) : null
+  if (!provider) return null
+
+  const from = process.env.HEALTH_ALERT_EMAIL_FROM?.trim() || ''
+  if (!from) return null
+
+  const to = (process.env.HEALTH_ALERT_EMAIL_TO ?? '')
+    .split(',')
+    .map((addr) => addr.trim())
+    .filter((addr) => addr.length > 0)
+  if (to.length === 0) return null
+
+  return { provider, from, to }
 }
 
 /** Per-rule threshold override (either bound may be omitted). */
