@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import type { PlanId } from '@/lib/billing/plans'
 
+import { trackEvent } from '@/lib/analytics/analytics'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
 export interface BillingSubscription {
@@ -76,6 +77,7 @@ export async function startCheckout(
   period: 'monthly' | 'yearly'
 ): Promise<void> {
   const url = await postForUrl('/api/v1/billing/checkout', { planId, period })
+  trackEvent('checkout_started', { plan_id: planId, billing_period: period })
   window.location.href = url
 }
 

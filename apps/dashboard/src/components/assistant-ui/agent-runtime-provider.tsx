@@ -23,12 +23,26 @@ import {
 import { useChatRuntime } from '@assistant-ui/react-ai-sdk'
 import { DefaultChatTransport } from 'ai'
 import { type ReactNode, useMemo } from 'react'
+import { trackEvent } from '@/lib/analytics/analytics'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import { useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { useToolConfig } from '@/lib/hooks/use-tool-config'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
+
+/**
+ * Wraps apiFetch to fire the `agent_message` funnel event whenever the chat
+ * transport sends a request to the agent route — i.e. whenever a message is
+ * sent to the AI agent.
+ */
+function trackedAgentFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  trackEvent('agent_message')
+  return apiFetch(input, init)
+}
 
 /**
  * Per-thread chat runtime. assistant-ui invokes this hook once per active
@@ -57,7 +71,7 @@ function useAgentChatRuntime() {
     () =>
       new DefaultChatTransport({
         api: '/api/v1/agent',
-        fetch: apiFetch as typeof globalThis.fetch,
+        fetch: trackedAgentFetch as typeof globalThis.fetch,
         body: { hostId, model, disabledTools, sessionId, mcpServers },
       }),
     // mcpServers is a derived array — include it directly so the transport

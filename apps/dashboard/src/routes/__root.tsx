@@ -8,6 +8,7 @@ import {
 import appCss from '../styles.css?url'
 import { type ReactNode, useEffect } from 'react'
 import { ClerkAuthProvider } from '@/components/clerk/clerk-auth-provider'
+import { SignupAnalyticsTracker } from '@/lib/analytics/signup-tracker'
 import { isClerkClientEnabled } from '@/lib/clerk/clerk-client'
 import { AppProvider } from '@/lib/context/app-context'
 import { BrowserConnectionsProvider } from '@/lib/context/browser-connections-context'
@@ -173,7 +174,10 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
               <TimeRangeProvider>
                 <QueryProvider>
                   {isClerkClientEnabled() ? (
-                    <UserConnectionsCacheGuard />
+                    <>
+                      <UserConnectionsCacheGuard />
+                      <SignupAnalyticsTracker />
+                    </>
                   ) : null}
                   <BrowserConnectionsProvider>
                     <AppProvider>

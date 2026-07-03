@@ -16,6 +16,7 @@ import { ClerkSignInButton as ClerkSignInButtonImpl } from '@/components/clerk/c
 import { AddHostDialog } from '@/components/connections'
 import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
 import { Button } from '@/components/ui/button'
+import { trackEvent } from '@/lib/analytics/analytics'
 import { BILLING_PLAN_LIST } from '@/lib/billing/plans'
 import {
   startCheckout,
@@ -258,6 +259,7 @@ function OnboardingPlans({
 
   async function choosePaid(planId: 'pro' | 'max') {
     setBusy(planId)
+    trackEvent('upgrade_click', { plan_id: planId, source: 'welcome' })
     try {
       await startCheckout(planId, 'yearly')
     } catch (err) {

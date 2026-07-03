@@ -186,6 +186,15 @@ const CLIENT_ENV = {
   // Browser tracing sample rate (0..1). Empty → SDK default in sentry-options.ts.
   VITE_SENTRY_TRACES_SAMPLE_RATE:
     e.VITE_SENTRY_TRACES_SAMPLE_RATE ?? e.CHM_SENTRY_TRACES_SAMPLE_RATE ?? '',
+  // Product analytics (PostHog) — SaaS funnel/conversion tracking, DISTINCT
+  // from VITE_TELEMETRY_ENABLED (anonymous OSS instance telemetry, on by
+  // default). OFF unless a key is set — self-hosted instances never phone
+  // home to a third-party analytics platform by default. See
+  // docs/operate/advanced/product-analytics.mdx and lib/analytics/.
+  VITE_ANALYTICS_KEY: e.VITE_ANALYTICS_KEY ?? e.CHM_ANALYTICS_KEY ?? '',
+  // Self-hostable: point at your own PostHog instance. Empty = PostHog Cloud
+  // (US) default (see lib/analytics/analytics.client.ts).
+  VITE_ANALYTICS_HOST: e.VITE_ANALYTICS_HOST ?? e.CHM_ANALYTICS_HOST ?? '',
 } as const
 
 // Explicit text-replacement of each `import.meta.env.VITE_*` read. Deterministic

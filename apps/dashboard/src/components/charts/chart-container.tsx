@@ -13,12 +13,19 @@ import {
   cloneElement,
   isValidElement,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
 import { ChartSkeleton } from '@/components/skeletons'
 import { FadeIn } from '@/components/ui/fade-in'
+import { trackEvent } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils'
+
+// Fires at most once per page load — an activation signal for "the user saw a
+// live chart render with real data," not a per-chart-mount counter (this
+// component mounts 30+ times across the app).
+let firstChartRenderTracked = false
 
 export interface ChartContainerProps<
   TData extends ChartDataPoint = ChartDataPoint,
@@ -97,6 +104,14 @@ export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
   const { data, isLoading, error, mutate, sql, metadata, hasData, staleError } =
     swr
   const [zoomOpen, setZoomOpen] = useState(false)
+
+  const hasRenderableData = Boolean(data && data.length > 0)
+  useEffect(() => {
+    if (hasRenderableData && !firstChartRenderTracked) {
+      firstChartRenderTracked = true
+      trackEvent('first_chart_render')
+    }
+  }, [hasRenderableData])
 
   // Resolve skeleton type: explicit prop, or dynamic lookup from registry, or fallback
   const skeletonType = (() => {

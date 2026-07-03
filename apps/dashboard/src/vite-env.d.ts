@@ -37,6 +37,11 @@ interface ImportMetaEnv {
   // See lib/config/deployment-mode.ts. Drives the defaults for cloud mode, auth provider,
   // public-read, and per-user storage. The VITE_*/CHM_* vars above override it.
   readonly VITE_DEPLOYMENT_MODE?: string
+  // Product analytics (PostHog). OFF unless set — see lib/analytics/. Distinct
+  // from VITE_TELEMETRY_ENABLED (anonymous OSS instance telemetry).
+  readonly VITE_ANALYTICS_KEY?: string
+  // Self-hosted PostHog host override. Empty = PostHog Cloud (US) default.
+  readonly VITE_ANALYTICS_HOST?: string
 }
 
 interface ImportMeta {

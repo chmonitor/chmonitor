@@ -1,5 +1,6 @@
 import { createRouter as createTanstackRouter } from '@tanstack/react-router'
 
+import { initAnalyticsClient } from './lib/analytics/analytics'
 import { initSentryClient } from './lib/observability/sentry'
 import { registerStaleChunkReload } from './lib/stale-chunk-reload'
 import { routeTree } from './routeTree.gen'
@@ -15,6 +16,10 @@ export function getRouter() {
 
   // Browser-only Sentry init (no-op on the server). See lib/observability/sentry.
   initSentryClient()
+
+  // Browser-only product analytics init (no-op on the server, and a no-op
+  // client-side without VITE_ANALYTICS_KEY). See lib/analytics/analytics.
+  initAnalyticsClient()
 
   return createTanstackRouter({
     routeTree,

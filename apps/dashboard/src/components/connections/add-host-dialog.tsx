@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { trackEvent } from '@/lib/analytics/analytics'
 import { docsSiteUrl } from '@/lib/docs-site'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -52,6 +53,7 @@ export function AddHostDialog({ open, onOpenChange }: AddHostDialogProps) {
       const url = buildUrl(pathname, { host: created.hostId }, searchParams)
       router.push(url)
     }
+    trackEvent('cluster_connect', { storage_mode: storageMode })
     onOpenChange(false)
   }
 

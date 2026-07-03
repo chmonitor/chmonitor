@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { trackEvent } from '@/lib/analytics/analytics'
 import { BILLING_PLAN_LIST, getPlan } from '@/lib/billing/plans'
 import {
   openBillingPortal,
@@ -65,6 +66,7 @@ function BillingPage() {
 
   async function onCheckout(planId: 'pro' | 'max') {
     setBusy(planId)
+    trackEvent('upgrade_click', { plan_id: planId, source: 'billing_page' })
     try {
       await startCheckout(planId, period)
     } catch (err) {
