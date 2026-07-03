@@ -91,6 +91,7 @@ const { compact = false } = Astro.props
                 href={t.cta.href}
                 target="_blank"
                 rel="noopener"
+                data-cta={`pricing-${t.name.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 {t.cta.label} <span set:html={arrowSvg} />
               </a>

@@ -16,6 +16,7 @@
     "@astrojs/sitemap": "^3.3.0",
     "@paper-design/shaders-react": "0.0.76",
     "astro": "^7.0.0",
+    "posthog-js": "^1.396.5",
     "react": "^19",
     "react-dom": "^19"
   },

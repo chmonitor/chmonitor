@@ -751,5 +751,27 @@ const ogImage = new URL(image, Astro.site).toString()
       });
     })();
   </script>
+  <script>
+    // Opt-in, off-by-default product analytics (PostHog) — see
+    // ../lib/analytics.ts for the full privacy contract. A no-op without
+    // PUBLIC_ANALYTICS_KEY, so this never runs for anyone who hasn't
+    // configured it.
+    import { initAnalytics, trackCtaClick, trackEvent } from '../lib/analytics'
+
+    initAnalytics().then(function () {
+      if (location.pathname === '/') trackEvent('landing_view')
+      else if (location.pathname === '/pricing') trackEvent('pricing_view')
+    })
+
+    // Delegated CTA tracking: add data-cta="<short-id>" to any link/button to
+    // have its click tracked automatically.
+    document.addEventListener('click', function (e) {
+      var target = e.target
+      var el =
+        target && target.closest ? target.closest('[data-cta]') : null
+      var cta = el ? el.getAttribute('data-cta') : null
+      if (cta) trackCtaClick(cta)
+    })
+  </script>
 </body>
 </html>
