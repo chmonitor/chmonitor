@@ -290,7 +290,7 @@ function FilterTabs({
   return (
     <div
       className="flex flex-wrap items-center gap-1.5"
-      role="tablist"
+      role="group"
       aria-label="Filter insights"
     >
       <FilterTab
@@ -352,8 +352,7 @@ function FilterTab({
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={selected}
+      aria-pressed={selected}
       onClick={onClick}
       className={className}
     >
