@@ -1,10 +1,10 @@
 import {
-  Activity,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
   Settings2,
+  Sparkles,
 } from 'lucide-react'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -69,8 +69,8 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Activity className="size-4 shrink-0 text-muted-foreground" />
-          <h2 className="text-sm font-medium text-foreground">Insights</h2>
+          <Sparkles className="size-4 shrink-0 text-muted-foreground" />
+          <h2 className="text-sm font-medium text-foreground">AI Insights</h2>
           {SEVERITY_ORDER.map((sev) =>
             counts[sev] > 0 ? (
               <Badge
