@@ -1,0 +1,65 @@
+number,title,priority,effort,depth,wave_label,plan_file
+14,14 — Wire AI overage spend metering,P0,S,F,wave:revenue,plans/14-wire-ai-overage-spend-metering.md
+15,15 — Upgrade paywall modal,P0,M,F,wave:revenue,plans/15-upgrade-paywall-modal.md
+16,16 — Billing usage dashboard card,P0,M,F,wave:revenue,plans/16-billing-usage-dashboard-card.md
+17,17 — Checkout → webhook → D1 → plan e2e tests + runbook,P1,M,F,wave:revenue,plans/17-checkout-webhook-e2e-tests.md
+18,18 — Per-host overage billing,P1,L,E,wave:revenue,plans/18-per-host-overage-billing.md
+19,19 — Downgrade protection,P1,S,F,wave:revenue,plans/19-downgrade-protection.md
+20,20 — Seat-cap invite-time gate,P1,S,F,wave:revenue,plans/20-seat-cap-invite-time-gate.md
+21,21 — SSO / SAML for Enterprise,P2,L,E,wave:enterprise,plans/21-sso-saml-enterprise.md
+22,22 — Audit log + org-scoped CSV export,P2,M,F,wave:enterprise,plans/22-audit-log-export.md
+23,23 — RBAC roles for Enterprise (viewer / operator / admin),P2,L,E,wave:enterprise,plans/23-rbac-roles-enterprise.md
+24,"24 — Enterprise multi-org pooling (one subscription, pooled limits)",P2,L,E,wave:enterprise,plans/24-enterprise-multi-org-pooling.md
+25,25 — Email alert adapter (Mailgun / SendGrid / SMTP),P0,M,F,wave:alerting,plans/25-email-alert-adapter.md
+26,26 — Opsgenie alert adapter,P1,M,F,wave:alerting,plans/26-opsgenie-adapter.md
+27,27 — Alert history (persisted alert_events + filtered API + UI card),P1,M,F,wave:alerting,plans/27-alert-history-audit-log.md
+28,28 — Maintenance windows (alert suppression),P1,M,F,wave:alerting,plans/28-maintenance-windows-suppression.md
+29,29 — Alert ACK / manual resolution (snooze),P1,M,F,wave:alerting,plans/29-alert-ack-manual-resolution.md
+30,30 — Per-rule / per-host alert routing,P1,L,E,wave:alerting,plans/30-per-rule-alert-routing.md
+31,31 — Compound alert rules (AND/OR correlation),P2,L,E,wave:alerting,plans/31-compound-alert-rules.md
+32,"32 — Custom alert rule builder (no-code, whitelisted)",P2,M,E,wave:alerting,plans/32-custom-alert-rule-builder.md
+33,33 — Remediation action links (runbook + read-only actions),P2,M,F,wave:alerting,plans/33-remediation-action-links.md
+34,34 — PagerDuty escalation & on-call routing,P1,L,E,wave:alerting,plans/34-pagerduty-escalation-oncall.md
+35,35 — Prometheus metrics exporter,P0,M,F,wave:integrations,plans/35-prometheus-metrics-exporter.md
+36,36 — Inbound event bus (Cloudflare Queues),P1,L,E,wave:integrations,plans/36-inbound-event-bus-queues.md
+37,37 — Native Slack app (OAuth + slash + ACK buttons),P1,L,E,wave:integrations,plans/37-slack-app-native-oauth.md
+38,38 — Grafana datasource plugin,P1,L,E,wave:integrations,plans/38-grafana-datasource-plugin.md
+39,39 — OTel trace export,P2,M,F,wave:integrations,plans/39-otel-trace-export.md
+40,40 — Terraform provider,P2,XL,E,wave:integrations,plans/40-terraform-provider.md
+41,41 — ClickHouse Cloud connect wizard,P1,M,F,wave:integrations,plans/41-clickhouse-cloud-connect-wizard.md
+42,42 — Kafka Consumer Control (gated pause/resume/offset via SSRF-guarded broker admin proxy),P2,M,F,wave:integrations,plans/42-kafka-consumer-control.md
+43,"43 — MCP Custom Server Registry (register external MCP servers, per-user, usable in the agent)",P1,M,F,wave:integrations,plans/43-mcp-custom-server-registry.md
+44,"44 — Outbound Webhook Event Bus (subscribe by event type, HMAC-signed, retried, SSRF-guarded)",P1,M,F,wave:integrations,plans/44-webhook-event-bus-outbound.md
+45,"45 — GitHub Deploy Correlation (ingest deployment webhooks, overlay deploy markers on the query-volume timeline)",P2,M,E,wave:integrations,plans/45-github-deploy-correlation.md
+46,"46 — Query Advisor Engine (slow query → ranked skip-index / projection / partition / PREWHERE DDL, recommend-only)",P0,XL,E,wave:advisor,plans/46-query-advisor-engine.md
+47,"47 — MV / Projection Designer (design MV/projection DDL from frequent aggregations, size-estimated, recommend-only)",P0,L,E,wave:advisor,plans/47-mv-projection-designer.md
+48,48 — Statistical Anomaly Baselines (replace static insight thresholds with per-cluster z-score/MAD baselines),P1,M,F,wave:advisor,plans/48-statistical-anomaly-baselines.md
+49,49 — Query cost estimator (EXPLAIN → rows / memory / time),P1,L,E,wave:advisor,plans/49-query-cost-estimator.md
+50,50 — Capacity forecast & TTL advisor,P2,M,F,wave:advisor,plans/50-capacity-forecast-ttl-advisor.md
+51,51 — Agent eval & golden-scenario tests,P1,L,F,wave:advisor,plans/51-agent-eval-golden-tests.md
+52,52 — Proactive weekly health report,P1,M,F,wave:advisor,plans/52-proactive-weekly-health-report.md
+53,53 — Activate the declarative query-config path,P0,S,F,wave:dashboards,plans/53-activate-declarative-queries.md
+54,54 — Community query-pack registry,P0,M,E,wave:dashboards,plans/54-query-config-pack-registry.md
+55,55 — Self-hosted local config override (queries.d),P1,M,F,wave:dashboards,plans/55-self-hosted-local-config-override.md
+56,56 — Dashboard D1 persistence & sharing,P1,M,F,wave:dashboards,plans/56-dashboard-d1-persistence-sharing.md
+57,57 — Custom dashboard builder (drag-drop grid),P1,L,E,wave:dashboards,plans/57-custom-dashboard-builder-grid.md
+58,58 — Declarative chart schema,P2,M,E,wave:dashboards,plans/58-declarative-chart-schema.md
+59,59 — AI-generated dashboards,P2,L,E,wave:dashboards,plans/59-ai-generated-dashboards.md
+60,60 — Landing hero: advisor + alerting + all-deployment wedge,P0,L,F,wave:growth,plans/60-landing-hero-wedge-refresh.md
+61,61 — Feature/capability/comparison sections: advisor + alerting,P1,M,F,wave:growth,plans/61-feature-sections-advisor-alerts-refresh.md
+62,62 — Product analytics & funnel instrumentation,P0,M,F,wave:growth,plans/62-product-analytics-funnel.md
+63,63 — Comparison pages vs Grafana / Datadog / ClickHouse Cloud,P1,M,E,wave:growth,plans/63-comparison-pages-vs-competitors.md
+64,64 — SEO use-case landing pages,P2,L,E,wave:growth,plans/64-seo-use-case-landing-pages.md
+65,"65 — Live demo (embedded, public read-only)",P1,M,E,wave:growth,plans/65-live-demo-embedded.md
+66,"66 — Onboarding: sample-cluster preset (""Try with sample ClickHouse"")",P1,M,F,wave:growth,plans/66-onboarding-sample-cluster-preset.md
+67,67 — Docs + blog content engine,P1,M,E,wave:growth,plans/67-docs-blog-content-engine.md
+68,68 — GitHub star social proof,P2,S,F,wave:growth,plans/68-github-star-social-proof.md
+69,69 — OG images + SEO meta/schema audit,P1,M,F,wave:growth,plans/69-og-images-seo-meta-audit.md
+70,70 — Landing performance (Lighthouse ≥90 / green Core Web Vitals),P1,S,F,wave:growth,plans/70-landing-perf-lighthouse.md
+,Finding SEC-04 — MCP custom-server transport unpinned (DNS-rebinding class),P2,,,type:finding,plans/README.md
+,Finding SEC-05 — Raw ClickHouse errors leaked on ~20 server-defined-query routes,P2,,,type:finding,plans/README.md
+,Finding BUG-03 — Custom MCP clients not closed on agent 402 / pre-stream throw,P3,,,type:finding,plans/README.md
+,Finding DEP-01 — bun audit highs in dev/build/deploy toolchain (bump wrangler/opennext/cypress),P3,,,type:finding,plans/README.md
+,Finding DEP-02 — Two markdown pipelines shipped (measure with bundle-size gate before consolidating),P3,,,type:finding,plans/README.md
+,Finding DEBT-01 — Two chart-authoring patterns (batch the 18 mechanically-convertible charts),P2,,,type:finding,plans/README.md
+,Finding DOC-01 — Stale 'custom MCP not wired' comment contradicted by agent.ts,P3,,,type:finding,plans/README.md
