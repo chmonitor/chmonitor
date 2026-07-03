@@ -56,6 +56,11 @@ primary secondary accent destructive border input ring`. Charts:
 - **Spacing:** `gap-1.5` compact, `gap-2` standard, `gap-4` generous; card content `p-4 pt-0`.
 - **Pill/secondary button link:** `inline-flex h-8 items-center gap-1.5 rounded-md
   border border-border px-3 text-[13px] font-medium hover:bg-muted`.
+- **Clickable card → detail dialog:** whole card is the target (`role="button"` +
+  `tabIndex={0}` + `onKeyDown={activateOnEnterOrSpace(open)}`, never a nested
+  `<button>`); inner links `e.stopPropagation()` (not `preventDefault`) so they
+  still navigate. Drive drill-down from a per-item field, rendered via
+  `ResultTable`. See `components/health/{health-card-shell,health-detail-rows}.tsx`.
 
 ## Charts — always wrap state, never hand-roll it
 
