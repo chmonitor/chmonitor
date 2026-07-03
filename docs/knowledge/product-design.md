@@ -107,6 +107,14 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
 - Class idioms: card `rounded-xl border bg-card shadow-sm`; dense text
   `text-[13px]`; meta `text-xs text-muted-foreground`; hero title `text-xl
   font-semibold tracking-tight`.
+- Overflow strip: for a single-row scroller that must not wrap, use
+  `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
+  tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped
+  vertically. When it overflows, show a chevron button + a
+  `from-background`→`transparent` edge fade per scrollable side and page with
+  `scrollBy({ left: ±clientWidth*0.85, behavior: 'smooth' })`; re-measure on
+  scroll, `ResizeObserver`, and content-count change. Reference:
+  `components/insights/insights-strip.tsx`.
 
 ## Brand
 

@@ -61,6 +61,11 @@ primary secondary accent destructive border input ring`. Charts:
   `<button>`); inner links `e.stopPropagation()` (not `preventDefault`) so they
   still navigate. Drive drill-down from a per-item field, rendered via
   `ResultTable`. See `components/health/{health-card-shell,health-detail-rows}.tsx`.
+- **Overflow strip (one row, no wrap):** `scrollbar-hide overflow-x-auto` + `py-*`
+  (so shadows/accents/focus rings aren't clipped) with a chevron button + a
+  `from-background`→`transparent` edge fade per scrollable side, paging via
+  `scrollBy`. Re-measure on scroll / `ResizeObserver` / content-count change.
+  Copy `components/insights/insights-strip.tsx`.
 
 ## Charts — always wrap state, never hand-roll it
 
