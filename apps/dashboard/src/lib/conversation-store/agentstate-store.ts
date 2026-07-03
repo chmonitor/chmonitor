@@ -496,8 +496,13 @@ export class AgentStateStore implements ConversationStore {
    * a best-effort `generateTitle` call is made (failures are swallowed).
    *
    * @param conversation - Full conversation to upsert
+   * @returns `written: true` — this backend is namespaced per user via the
+   *   deterministic `${userId}:${conversationId}` external id, so a write
+   *   always either creates or updates the caller's own conversation
    */
-  async upsert(conversation: StoredConversation): Promise<void> {
+  async upsert(
+    conversation: StoredConversation
+  ): Promise<{ written: boolean }> {
     try {
       const externalId = this.externalId(conversation.userId, conversation.id)
       const metadata = this.buildMetadata(conversation)
@@ -544,6 +549,7 @@ export class AgentStateStore implements ConversationStore {
       }
 
       await this.maybeEnrichTitle(internalId, conversation)
+      return { written: true }
     } catch (err) {
       logError('[AgentStateStore.upsert] Failed to upsert conversation', err)
       throw this.wrap('Failed to upsert conversation', err)

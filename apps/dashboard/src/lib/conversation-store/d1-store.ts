@@ -30,6 +30,28 @@ interface D1ConversationRow {
 }
 
 /**
+ * Upsert SQL for the `conversations` table.
+ *
+ * The `ON CONFLICT` update deliberately excludes `user_id` from the `SET`
+ * list and guards the update with a `WHERE` clause so a conflicting row
+ * owned by a different user is never touched: SQLite's `DO UPDATE ... WHERE`
+ * evaluates the guard per matched row and leaves it unchanged (0 `changes`)
+ * when the guard is false, instead of reassigning ownership to the caller.
+ *
+ * Exported so `d1-store.sql.test.ts` can run this exact string against
+ * `bun:sqlite` (SQLite is D1's engine) and prove the guard behaves as
+ * expected, rather than re-deriving it in the test.
+ */
+export const D1_UPSERT_CONVERSATION_SQL = `INSERT INTO conversations (id, user_id, title, messages, message_count, created_at, updated_at)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+   ON CONFLICT (id) DO UPDATE SET
+     title = excluded.title,
+     messages = excluded.messages,
+     message_count = excluded.message_count,
+     updated_at = excluded.updated_at
+   WHERE conversations.user_id = excluded.user_id`
+
+/**
  * D1-based conversation storage implementation.
  *
  * Uses Cloudflare D1 (SQLite) for persistent storage of AI agent conversations.
@@ -188,12 +210,20 @@ export class D1Store implements ConversationStore {
    * Create or update a conversation.
    *
    * Uses UPSERT (INSERT OR REPLACE) semantics:
-   * - If conversation exists: replaces all fields including messages
+   * - If conversation exists and is owned by the caller: replaces all fields
+   *   including messages
    * - If conversation doesn't exist: creates new conversation
+   * - If conversation exists but is owned by a different user: the `WHERE`
+   *   guard in {@link D1_UPSERT_CONVERSATION_SQL} blocks the update (0 rows
+   *   changed) rather than reassigning ownership to the caller
    *
    * @param conversation - Full conversation to upsert
+   * @returns `written: true` if a row was inserted or updated; `written:
+   *   false` when the id belongs to another user and the write was blocked
    */
-  async upsert(conversation: StoredConversation): Promise<void> {
+  async upsert(
+    conversation: StoredConversation
+  ): Promise<{ written: boolean }> {
     try {
       const db = this.getDb()
 
@@ -201,16 +231,7 @@ export class D1Store implements ConversationStore {
       const messagesJson = JSON.stringify(conversation.messages)
 
       const stmt = db
-        .prepare(
-          `INSERT INTO conversations (id, user_id, title, messages, message_count, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-           ON CONFLICT (id) DO UPDATE SET
-             user_id = excluded.user_id,
-             title = excluded.title,
-             messages = excluded.messages,
-             message_count = excluded.message_count,
-             updated_at = excluded.updated_at`
-        )
+        .prepare(D1_UPSERT_CONVERSATION_SQL)
         .bind(
           conversation.id,
           conversation.userId,
@@ -221,7 +242,8 @@ export class D1Store implements ConversationStore {
           conversation.updatedAt
         )
 
-      await stmt.run()
+      const res = await stmt.run()
+      return { written: (res.meta?.changes ?? 0) > 0 }
     } catch (error) {
       throw new ConversationStoreError(
         `Failed to upsert conversation: ${error instanceof Error ? error.message : 'Unknown error'}`,

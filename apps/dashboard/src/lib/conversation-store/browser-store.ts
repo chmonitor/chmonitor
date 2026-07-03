@@ -117,8 +117,12 @@ export class BrowserStore implements ConversationStore {
    * Create or update a conversation.
    *
    * @param conversation - Full conversation to upsert
+   * @returns `written: true` — localStorage is single-user per browser, so a
+   *   write always succeeds
    */
-  async upsert(conversation: StoredConversation): Promise<void> {
+  async upsert(
+    conversation: StoredConversation
+  ): Promise<{ written: boolean }> {
     try {
       const conversations = loadConversations()
 
@@ -144,6 +148,7 @@ export class BrowserStore implements ConversationStore {
       conversations.sort((a, b) => b.updatedAt - a.updatedAt)
 
       saveConversations(conversations)
+      return { written: true }
     } catch (error) {
       throw new ConversationStoreError(
         'Failed to upsert conversation to localStorage',
