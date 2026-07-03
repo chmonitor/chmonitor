@@ -286,3 +286,5 @@ export const Route = createFileRoute('/api/v1/advisor')({
     },
   },
 })
+
+export { runAdvisor as __runAdvisorForTests }
