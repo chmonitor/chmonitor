@@ -101,7 +101,7 @@ export const grafanaRows: ComparisonRow[] = [
     label: 'Alerting & webhooks',
     chm: {
       kind: 'yes',
-      text: 'ClickHouse-native thresholds, inbound events and outbound webhooks run everywhere; alert history persists with a D1 binding (hosted cloud or a Cloudflare Workers self-host)',
+      text: 'ClickHouse-native thresholds and outbound webhooks run everywhere; alert history and inbound-event storage persist with a D1 binding (hosted cloud or a Cloudflare Workers self-host)',
     },
     them: {
       kind: 'yes',
@@ -235,7 +235,7 @@ export const datadogRows: ComparisonRow[] = [
     label: 'Alerting & webhooks',
     chm: {
       kind: 'yes',
-      text: 'ClickHouse-specific thresholds, inbound events and outbound webhooks run everywhere — narrower by design; alert history persists with a D1 binding (hosted cloud or a Cloudflare Workers self-host)',
+      text: 'ClickHouse-specific thresholds and outbound webhooks run everywhere — narrower by design; alert history and inbound-event storage persist with a D1 binding (hosted cloud or a Cloudflare Workers self-host)',
     },
     them: {
       kind: 'yes',
@@ -364,7 +364,7 @@ export const clickhouseCloudRows: ComparisonRow[] = [
     label: 'Alerting & webhooks',
     chm: {
       kind: 'yes',
-      text: 'Cluster-health thresholds, inbound events and outbound webhooks run everywhere; alert history persists with a D1 binding (hosted cloud or a Cloudflare Workers self-host)',
+      text: 'Cluster-health thresholds and outbound webhooks run everywhere; alert history and inbound-event storage persist with a D1 binding (hosted cloud or a Cloudflare Workers self-host)',
     },
     them: {
       kind: 'partial',
