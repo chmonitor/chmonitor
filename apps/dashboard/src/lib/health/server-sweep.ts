@@ -8,6 +8,7 @@ import type {
   AlertRuleSeverity,
 } from '@/lib/alerting/rule-registry'
 import type { AlertPayload, PagerDutyEventBody } from './adapters'
+import type { AlertSeverity } from './adapters/types'
 import type { AlertEventRecord } from './alert-history-store'
 import type { AlertRoute } from './alert-routing'
 import type { AlertDecision } from './alert-state-store'
@@ -20,6 +21,7 @@ import {
   resolveTargets,
 } from './alert-routing'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
+import { dispatchOpsgenie } from './opsgenie-dispatch'
 import {
   getPagerDutyFallbackRoutingKey,
   PAGERDUTY_EVENTS_API_URL,
@@ -27,6 +29,7 @@ import {
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
+  getServerOpsgenieConfig,
   getServerThresholdOverrides,
 } from './server-alert-config'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -338,9 +341,13 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const webhookConfigured = Boolean(settings.webhookUrl)
   const routes: AlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
   const pagerDutyFallbackKey = getPagerDutyFallbackRoutingKey()
+  const opsgenieConfig = getServerOpsgenieConfig()
   const canDispatch =
     settings.webhookEnabled &&
-    (webhookConfigured || routes.length > 0 || Boolean(pagerDutyFallbackKey))
+    (webhookConfigured ||
+      routes.length > 0 ||
+      Boolean(pagerDutyFallbackKey) ||
+      Boolean(opsgenieConfig))
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
@@ -390,6 +397,9 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     severity: Severity
     value: number | null
     label: string
+    /** Thresholds that classified this finding, when known (base rules only). */
+    warnThreshold?: number | null
+    critThreshold?: number | null
   }): Promise<void> {
     const {
       hostId,
@@ -400,6 +410,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       severity,
       value,
       label,
+      warnThreshold,
+      critThreshold,
     } = params
     const effective: Severity =
       SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
@@ -551,11 +563,62 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
+      // Opsgenie (plan 26): a single global env-configured destination (no
+      // per-route resolution yet, unlike webhook/PagerDuty targets above) —
+      // fires whenever `opsgenieConfig` is set. `dispatchOpsgenie` never
+      // throws (fails open), matching every other channel here.
+      if (opsgenieConfig) {
+        const alertSeverity: AlertSeverity =
+          decision.kind === 'recovery'
+            ? 'recovery'
+            : (effective as 'warning' | 'critical')
+        const ok = await dispatchOpsgenie(
+          {
+            severity: alertSeverity,
+            hostLabel: name,
+            hostId,
+            metric: ruleId,
+            value,
+            warnThreshold,
+            critThreshold,
+            title: ruleTitle,
+            label,
+            timestamp: new Date().toISOString(),
+          },
+          opsgenieConfig
+        )
+        if (ok) anyDelivered = true
+
+        try {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId,
+              hostLabel: name,
+              ruleId,
+              decision,
+              value,
+              delivered: ok,
+              error: ok ? undefined : 'Opsgenie dispatch failed',
+              channel: 'opsgenie',
+            })
+          )
+        } catch (err) {
+          debug(
+            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+
       // Persist "notified" only when there was nothing to deliver (no
       // targets at all across every channel — not a failure) or at least one
       // channel succeeded. A failed delivery with no successes leaves no
       // record, so the next sweep retries instead of suppressing.
-      if (targets.length + pagerDutyTargets.length === 0 || anyDelivered) {
+      if (
+        targets.length + pagerDutyTargets.length + (opsgenieConfig ? 1 : 0) ===
+          0 ||
+        anyDelivered
+      ) {
         commit()
         if (anyDelivered) {
           alertsDispatched++
@@ -626,6 +689,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
             value,
             ruleType: rule.type,
             label: rule.formatLabel ? rule.formatLabel(value) : String(value),
+            warnThreshold: thresholds.warning,
+            critThreshold: thresholds.critical,
           })
         }
       } catch (err) {
