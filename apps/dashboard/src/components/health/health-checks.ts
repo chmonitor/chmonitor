@@ -58,6 +58,23 @@ export interface HealthCheckDef {
    * the chart registry here would cross a layering boundary depcruise enforces).
    */
   sql?: string
+  /**
+   * Chart name (in the registry) whose query returns the *affected rows* behind
+   * this check — the drill-down breakdown shown in the detail dialog (e.g. the
+   * individual lagging replicas, not just the max lag). Fetched on demand when
+   * the dialog opens. Omit for checks with no meaningful per-row breakdown.
+   */
+  detailChartName?: string
+  /**
+   * Heading for the breakdown table. Defaults to "Affected rows". Use a
+   * "Likely cause …" heading for checks whose metric is a global scalar with no
+   * true per-row source (so the rows are a diagnostic, not the flagged instances).
+   */
+  detailTitle?: string
+  /** One-line caption clarifying what the breakdown rows represent. */
+  detailDescription?: string
+  /** Message shown when the breakdown query returns no rows. */
+  detailEmptyMessage?: string
 }
 
 const fmtCount = (singular: string, plural?: string) => (v: number | null) => {
@@ -71,6 +88,9 @@ export const HEALTH_CHECKS: readonly HealthCheckDef[] = [
     title: 'Readonly Replicas',
     icon: ShieldAlert,
     chartName: 'health-readonly-replicas',
+    detailChartName: 'health-readonly-replicas-detail',
+    detailEmptyMessage:
+      'No readonly replicas — every replica is accepting writes.',
     valueKey: 'readonly_count',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('readonly replica'),
@@ -106,6 +126,10 @@ WHERE is_readonly = 1`,
     title: 'Delayed Inserts',
     icon: PauseCircle,
     chartName: 'health-delayed-inserts',
+    detailChartName: 'health-max-part-count-detail',
+    detailTitle: 'Likely cause: partitions with the most parts',
+    detailDescription:
+      '`DelayedInserts` is a global gauge with no per-row source. These partitions carry the most active parts — the pressure that makes the MergeTree throttle inserts.',
     valueKey: 'delayed_inserts',
     defaults: { warning: 1, critical: 5 },
     formatLabel: fmtCount('delayed insert'),
@@ -137,6 +161,9 @@ WHERE metric = 'DelayedInserts'`,
     title: 'Max Parts / Partition',
     icon: Layers,
     chartName: 'health-max-part-count',
+    detailChartName: 'health-max-part-count-detail',
+    detailTitle: 'Partitions by active part count',
+    detailEmptyMessage: 'No user partitions found.',
     valueKey: 'part_count',
     defaults: { warning: 150, critical: 300 },
     formatLabel: (v) => `${(v ?? 0).toLocaleString()} parts (max partition)`,
@@ -178,6 +205,8 @@ LIMIT 1`,
     title: 'Long-Running Queries',
     icon: Timer,
     chartName: 'health-long-running-queries',
+    detailChartName: 'health-long-running-queries-detail',
+    detailEmptyMessage: 'No initial queries have been running longer than 60s.',
     valueKey: 'long_running',
     defaults: { warning: 1, critical: 5 },
     formatLabel: (v) => `${(v ?? 0).toLocaleString()} queries > 60s`,
@@ -213,6 +242,8 @@ WHERE elapsed > 60 AND is_initial_query`,
     title: 'OOM-Killed Queries (1h)',
     icon: MemoryStick,
     chartName: 'health-oom-killed-recent',
+    detailChartName: 'health-oom-killed-recent-detail',
+    detailEmptyMessage: 'No OOM-killed queries in the last hour.',
     valueKey: 'oom_count',
     defaults: { warning: 1, critical: 10 },
     formatLabel: (v) => `${(v ?? 0).toLocaleString()} OOM kills in last hour`,
@@ -250,6 +281,8 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     title: 'Failed Queries (1h)',
     icon: XCircle,
     chartName: 'health-failed-queries-recent',
+    detailChartName: 'health-failed-queries-recent-detail',
+    detailEmptyMessage: 'No failed queries in the last hour.',
     valueKey: 'failed_count',
     defaults: { warning: 10, critical: 100 },
     formatLabel: (v) =>
@@ -286,6 +319,9 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     title: 'Replication Lag',
     icon: Clock,
     chartName: 'health-replication-lag',
+    detailChartName: 'health-replication-lag-detail',
+    detailTitle: 'Lagging replicas',
+    detailEmptyMessage: 'No replica is lagging — every table is caught up.',
     valueKey: 'max_lag',
     defaults: { warning: 30, critical: 300 },
     formatLabel: (v) => `${(v ?? 0).toLocaleString()}s max delay`,
@@ -320,6 +356,11 @@ FROM system.replicas`,
     title: 'Keeper Exceptions (1h)',
     icon: ServerCrash,
     chartName: 'health-keeper-exceptions-recent',
+    detailChartName: 'health-keeper-exceptions-detail',
+    detailTitle: 'Likely cause: KEEPER_EXCEPTION totals',
+    detailDescription:
+      '`system.errors` reports a cumulative count since server start (not the last hour) plus the most recent occurrence — Keeper has no per-incident row source.',
+    detailEmptyMessage: 'No KEEPER_EXCEPTION recorded on this server.',
     valueKey: 'exception_count',
     defaults: { warning: 1, critical: 20 },
     formatLabel: (v) => `${(v ?? 0).toLocaleString()} exceptions in last hour`,
@@ -351,6 +392,11 @@ WHERE error = 'KEEPER_EXCEPTION'
     title: 'Memory Usage',
     icon: MemoryStick,
     chartName: 'health-memory-percent',
+    detailChartName: 'health-memory-percent-detail',
+    detailTitle: 'Likely cause: top in-flight queries by memory',
+    detailDescription:
+      'OS memory is a host-level metric with no per-row source. These are the largest in-flight queries by memory — the biggest process-level consumers (they do not sum to OS memory).',
+    detailEmptyMessage: 'No queries are currently running.',
     valueKey: 'memory_percent',
     defaults: { warning: 80, critical: 95 },
     formatLabel: (v) => `${v ?? 0}% of OS memory`,
@@ -388,6 +434,9 @@ WHERE error = 'KEEPER_EXCEPTION'
     title: 'Disk Usage',
     icon: HardDrive,
     chartName: 'health-disk-percent',
+    detailChartName: 'health-disk-percent-detail',
+    detailTitle: 'Disks by utilization',
+    detailEmptyMessage: 'No disks reported.',
     valueKey: 'disk_percent',
     defaults: { warning: 80, critical: 95 },
     formatLabel: (v) => `${v ?? 0}% used (worst disk)`,
@@ -423,6 +472,8 @@ FROM system.disks`,
     title: 'Failed Mutations',
     icon: XCircle,
     chartName: 'health-failed-mutations',
+    detailChartName: 'health-failed-mutations-detail',
+    detailEmptyMessage: 'No failed mutations.',
     valueKey: 'failed_count',
     defaults: { warning: 1, critical: 5 },
     formatLabel: fmtCount('failed mutation'),
@@ -449,6 +500,8 @@ FROM system.mutations`,
     title: 'Stuck Merges (>10m)',
     icon: Timer,
     chartName: 'health-stuck-merges',
+    detailChartName: 'health-stuck-merges-detail',
+    detailEmptyMessage: 'No merges have been running longer than 10 minutes.',
     valueKey: 'stuck_count',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('stuck merge'),
@@ -476,6 +529,8 @@ WHERE elapsed > 600`,
     title: 'Query Timeout Breaches (1h)',
     icon: Clock,
     chartName: 'health-query-timeouts',
+    detailChartName: 'health-query-timeouts-detail',
+    detailEmptyMessage: 'No queries hit TIMEOUT_EXCEEDED in the last hour.',
     valueKey: 'timeout_count',
     defaults: { warning: 1, critical: 10 },
     formatLabel: (v) =>
@@ -509,6 +564,8 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     title: 'Failed Backups (24h)',
     icon: HardDrive,
     chartName: 'health-failed-backups',
+    detailChartName: 'health-failed-backups-detail',
+    detailEmptyMessage: 'No failed backups in the last 24 hours.',
     valueKey: 'failed_count',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('failed backup'),
@@ -537,6 +594,8 @@ WHERE event_time > now() - INTERVAL 24 HOUR
     title: 'MV Refresh Failures',
     icon: ShieldAlert,
     chartName: 'health-mv-refresh-failures',
+    detailChartName: 'health-mv-refresh-failures-detail',
+    detailEmptyMessage: 'No materialized views have failed their last refresh.',
     valueKey: 'failed_count',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('failed MV refresh'),
