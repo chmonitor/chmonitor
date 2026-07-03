@@ -35,6 +35,7 @@ export const CHARTS_BY_CATEGORY: Record<ChartCategory, string[]> = {
     'query-count-by-user',
     'query-duration',
     'query-memory',
+    'query-metric-log-memory',
     'query-type',
     'failed-query-count',
     'failed-query-count-by-user',
