@@ -6,6 +6,7 @@ import { HEALTH_CHECKS } from './health-checks'
 import { RecentAlertsCard } from './recent-alerts-card'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -42,11 +43,23 @@ export function HealthSettingsDialog() {
   const [open, setOpen] = useState(false)
   const [thresholds, setThresholdsState] = useState<ThresholdsMap>({})
   const [alerts, setAlerts] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS)
+  const [opsgenieStatus, setOpsgenieStatus] = useState<{
+    configured: boolean
+    region: string | null
+  } | null>(null)
 
   useEffect(() => {
     if (!open) return
     setThresholdsState(loadThresholds())
     setAlerts(loadAlertSettings())
+    fetch('/api/v1/health/opsgenie-test')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) =>
+        setOpsgenieStatus(
+          data as { configured: boolean; region: string | null } | null
+        )
+      )
+      .catch(() => setOpsgenieStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -138,6 +151,25 @@ export function HealthSettingsDialog() {
     )
     if (ok) toast.success('Test alert sent')
     else toast.error('Webhook request failed')
+  }
+
+  const handleTestOpsgenie = async () => {
+    try {
+      const res = await fetch('/api/v1/health/opsgenie-test', {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast.success('Opsgenie test alert sent')
+      } else {
+        const body = await res.json().catch(() => null)
+        toast.error(
+          (body as { error?: { message?: string } } | null)?.error?.message ??
+            'Opsgenie test alert failed'
+        )
+      }
+    } catch {
+      toast.error('Opsgenie test alert failed')
+    }
   }
 
   const handleTestBrowser = () => {
@@ -324,6 +356,37 @@ export function HealthSettingsDialog() {
                   Send test
                 </Button>
               </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">Opsgenie alerts</Label>
+                  <Badge
+                    variant={
+                      opsgenieStatus?.configured ? 'default' : 'secondary'
+                    }
+                  >
+                    {opsgenieStatus?.configured
+                      ? `Configured (${opsgenieStatus.region})`
+                      : 'Not configured'}
+                  </Badge>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  Set HEALTH_ALERT_OPSGENIE_API_KEY on the server to enable —
+                  the key is never exposed to the browser
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleTestOpsgenie}
+                disabled={!opsgenieStatus?.configured}
+              >
+                Send test
+              </Button>
             </div>
 
             <Separator />
