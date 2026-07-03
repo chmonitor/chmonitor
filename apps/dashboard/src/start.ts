@@ -165,7 +165,10 @@ const sentryMiddleware = createMiddleware().server(
 const otelMiddleware = createMiddleware().server(async ({ next }) => {
   getOtelTracer(env as Record<string, string | undefined>)
   try {
-    return await withSpan('dashboard-request', {}, () => next())
+    // Wrapped in an `async` arrow (not `() => next()`) so its declared return
+    // type is a real Promise<T> — next()'s own result type isn't structurally
+    // a Promise, which withSpan's `fn` parameter requires.
+    return await withSpan('dashboard-request', {}, async () => next())
   } finally {
     await forceFlushOtel()
   }
