@@ -14,6 +14,11 @@
  *     probe dashboard existence.
  *   - `Cache-Control: NONE` — a revoked share must stop resolving
  *     immediately, not after a cached copy expires.
+ *   - Rate-limited by client IP (`checkRateLimit`/`getApiRateLimitPerMin`),
+ *     the same guard `routes/api/v1/charts/$name.ts` applies to its public
+ *     GET route — a defense-in-depth throttle on top of the slug's
+ *     `crypto.randomUUID()` entropy, which already makes brute-forcing a
+ *     valid slug computationally infeasible.
  *
  * Kept as a separate file/route from `share.ts` (the authenticated
  * mint/revoke endpoint) so the public, unauthenticated surface is never
@@ -24,6 +29,12 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  checkRateLimit,
+  clientIpKey,
+  getApiRateLimitPerMin,
+  rateLimitResponse,
+} from '@/lib/api/rate-limiter'
 import {
   CacheControl,
   createSuccessResponse,
@@ -36,11 +47,20 @@ import { autoMigrate } from '@/lib/migration/auto-migrate'
 
 const ROUTE_CONTEXT = { route: '/api/dashboards/share/$slug', method: 'GET' }
 
-async function handleGet(slug: string): Promise<Response> {
+async function handleGet(request: Request, slug: string): Promise<Response> {
   const requestId = generateRequestId()
   debug('[GET /api/dashboards/share/$slug] Fetching shared dashboard', {
     requestId,
   })
+
+  // Rate-limit by client IP before doing any work — this is a public,
+  // unauthenticated route, so it's the only abuse guard available.
+  const ip = clientIpKey(request)
+  const rlResult = checkRateLimit(
+    `dashboards-share:ip:${ip}`,
+    getApiRateLimitPerMin()
+  )
+  if (!rlResult.allowed) return rateLimitResponse(rlResult.retryAfterSec)
 
   try {
     await autoMigrate()
@@ -131,7 +151,7 @@ async function handleGet(slug: string): Promise<Response> {
 export const Route = createFileRoute('/api/dashboards/share/$slug')({
   server: {
     handlers: {
-      GET: ({ params }) => handleGet(params.slug),
+      GET: ({ request, params }) => handleGet(request, params.slug),
     },
   },
 })
