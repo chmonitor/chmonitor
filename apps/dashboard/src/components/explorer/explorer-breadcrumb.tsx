@@ -45,7 +45,7 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
         {database && (
           <>
             <BreadcrumbSeparator />
-            <BreadcrumbItem className="min-w-0">
+            <BreadcrumbItem className="group min-w-0">
               {table ? (
                 <BreadcrumbLink asChild>
                   <Link
@@ -68,8 +68,13 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
                   </span>
                 </BreadcrumbPage>
               )}
-              {/* Stops the copy click from bubbling into the sibling database link/page above. */}
-              <span onClick={(e) => e.stopPropagation()}>
+              {/* Stops the copy click from bubbling into the sibling database link/page above.
+                  Hover/focus-revealed, matching the quiet copy-affordance convention
+                  used elsewhere (e.g. ai-elements/message.tsx). */}
+              <span
+                onClick={(e) => e.stopPropagation()}
+                className="opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+              >
                 <CopyButton text={database} className="size-6 shrink-0 p-0" />
               </span>
             </BreadcrumbItem>
@@ -79,15 +84,20 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
         {table && (
           <>
             <BreadcrumbSeparator />
-            <BreadcrumbItem className="min-w-0">
+            <BreadcrumbItem className="group min-w-0">
               <BreadcrumbPage className="flex min-w-0 items-center gap-1.5">
                 <TableIcon className="size-3.5 shrink-0" />
                 <span className={cn('truncate select-text', NAME_MAX_WIDTH)}>
                   {table}
                 </span>
               </BreadcrumbPage>
-              {/* Stops the copy click from bubbling into the sibling table page above. */}
-              <span onClick={(e) => e.stopPropagation()}>
+              {/* Stops the copy click from bubbling into the sibling table page above.
+                  Hover/focus-revealed, matching the quiet copy-affordance convention
+                  used elsewhere (e.g. ai-elements/message.tsx). */}
+              <span
+                onClick={(e) => e.stopPropagation()}
+                className="opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+              >
                 <CopyButton text={table} className="size-6 shrink-0 p-0" />
               </span>
             </BreadcrumbItem>
