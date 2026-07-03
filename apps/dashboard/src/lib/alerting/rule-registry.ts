@@ -48,6 +48,16 @@ export interface AlertRuleDef {
   optional?: boolean
   /** Table to check before running the SQL (e.g. 'system.backup_log'). */
   tableCheck?: string
+  /**
+   * Optional custom classifier, overriding the default `classifyValue`
+   * (higher-is-worse) comparison. Used by the custom alert rule builder
+   * (plan 32) to support "lower = worse" operators (`<` / `<=`) without
+   * changing the shared `classifyValue` semantics other rules rely on.
+   */
+  classify?: (
+    value: number | null,
+    thresholds: AlertRuleThresholds
+  ) => AlertRuleSeverity
 }
 
 export interface AlertRuleThresholds {
