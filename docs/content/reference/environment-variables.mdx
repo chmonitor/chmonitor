@@ -153,6 +153,30 @@ scrape_configs:
       - targets: ['dash.example.com']
 ```
 
+## OTel trace export
+
+Exports chmonitor's OWN query traces — a `dashboard-request` span per request,
+with a nested `clickhouse-query` span per ClickHouse call carrying
+`query_id`/`read_bytes`/`host` attributes when available — to an external OTLP
+collector for correlation with the rest of your tracing stack. This is
+DISTINCT from the built-in OTel span *viewer*, which reads spans already
+stored in `system.opentelemetry_span_log`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_OTEL_EXPORTER_URL` | unset (disabled) | Collector's OTLP/HTTP traces endpoint. Must be an absolute `http(s)` URL, including the `/v1/traces` path. Unset or invalid → trace export stays off: zero spans, zero network calls, zero added latency (fail-open). Server-only, never gated on Clerk/billing. |
+
+```bash
+# Export to a local Jaeger instance (OTLP/HTTP receiver)
+CHM_OTEL_EXPORTER_URL=http://jaeger:4318/v1/traces
+```
+
+Runs on Cloudflare Workers: the exporter uses OTLP/HTTP (not gRPC, which
+Workers cannot run), and the batch export is flushed inline before each
+response returns rather than deferred with `waitUntil` (Workers request
+middleware doesn't expose it here) — so export only adds latency when
+explicitly enabled.
+
 ## Feature permissions
 
 All features are public and enabled by default. Override only what needs
