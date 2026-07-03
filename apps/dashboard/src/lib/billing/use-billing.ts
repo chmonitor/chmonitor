@@ -86,3 +86,32 @@ export async function openBillingPortal(): Promise<void> {
   const url = await postForUrl('/api/v1/billing/portal')
   window.location.href = url
 }
+
+export interface CanDowngradeExceededLimit {
+  metric: string
+  used: number
+  targetLimit: number | null
+  message: string
+}
+
+export interface CanDowngradeResult {
+  ok: boolean
+  exceeded: CanDowngradeExceededLimit[]
+}
+
+/**
+ * Pre-flight check before sending the user to the portal to change plans —
+ * see POST /api/v1/billing/can-downgrade. Fails open on the server (OSS/no
+ * Clerk returns `{ ok: true, exceeded: [] }`), so callers only need to handle
+ * the network-level failure case (report it, don't block the change).
+ */
+export async function checkCanDowngrade(
+  targetPlanId: string
+): Promise<CanDowngradeResult> {
+  const res = await apiFetch('/api/v1/billing/can-downgrade', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetPlanId }),
+  })
+  return readEnvelope<CanDowngradeResult>(res)
+}

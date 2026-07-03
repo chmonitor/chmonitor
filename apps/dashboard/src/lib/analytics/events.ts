@@ -20,6 +20,7 @@ export const ANALYTICS_EVENTS = [
   'agent_message',
   'upgrade_click',
   'checkout_started',
+  'downgrade_override',
 ] as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number]
