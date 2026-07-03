@@ -161,6 +161,32 @@ describe('generateGrantPrivilegeDdl', () => {
     )
     expect(sql).toContain('WITH GRANT OPTION')
   })
+
+  it('quotes a validated db.table target', () => {
+    const sql = generateGrantPrivilegeDdl(
+      { privilege: 'SELECT', on: 'db.events' },
+      'u'
+    )
+    expect(sql).toBe('GRANT SELECT ON `db`.`events` TO `u`')
+  })
+
+  it('accepts *.* without quoting the wildcard', () => {
+    const sql = generateGrantPrivilegeDdl({ privilege: 'ALL', on: '*.*' }, 'u')
+    expect(sql).toBe('GRANT ALL ON *.* TO `u`')
+  })
+
+  it('accepts a column-list privilege', () => {
+    const sql = generateGrantPrivilegeDdl(
+      { privilege: 'SELECT(col1, col2)', on: 'db.t' },
+      'u'
+    )
+    expect(sql).toContain('SELECT(col1, col2)')
+  })
+
+  it('accepts a digit-containing source privilege like S3', () => {
+    const sql = generateGrantPrivilegeDdl({ privilege: 'S3', on: '*.*' }, 'u')
+    expect(sql).toBe('GRANT S3 ON *.* TO `u`')
+  })
 })
 
 describe('generateRevokePrivilegeDdl', () => {
@@ -171,7 +197,8 @@ describe('generateRevokePrivilegeDdl', () => {
     )
     expect(sql).toStartWith('REVOKE')
     expect(sql).toContain('INSERT')
-    expect(sql).toContain('mydb.*')
+    // 'mydb' is a validated identifier, so it is rebuilt quoted; '*' stays bare
+    expect(sql).toContain('`mydb`.*')
     expect(sql).toContain('`carol`')
   })
 })
@@ -246,5 +273,32 @@ describe('SQL injection safety', () => {
     // Must not produce a valid injection — single quote is escaped
     expect(sql).not.toContain("IDENTIFIED BY 'evil'")
     expect(sql).toContain("\\'")
+  })
+
+  it('neutralizes a trailing backslash in a password so it cannot break out of the literal', () => {
+    const sql = generateCreateUserDdl({
+      username: 'u',
+      password: 'a\\',
+      defaultRole: 'analyst',
+    })
+    // The backslash is doubled, not left dangling before the closing quote
+    expect(sql).toContain("IDENTIFIED BY 'a\\\\'")
+    // The literal closed correctly, so the next clause follows intact (not truncated)
+    expect(sql).toEndWith('DEFAULT ROLE `analyst`')
+  })
+
+  it('rejects SQL injection via the grant target', () => {
+    expect(() =>
+      generateGrantPrivilegeDdl(
+        { privilege: 'SELECT', on: 'a TO attacker; --' },
+        'victim'
+      )
+    ).toThrow('Invalid grant target')
+  })
+
+  it('rejects SQL injection via the privilege token', () => {
+    expect(() =>
+      generateGrantPrivilegeDdl({ privilege: "SELECT'; DROP", on: 'db.t' }, 'u')
+    ).toThrow('Invalid privilege')
   })
 })

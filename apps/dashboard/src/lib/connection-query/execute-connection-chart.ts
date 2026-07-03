@@ -38,22 +38,28 @@ export async function executeConnectionChartQuery(
   }
 
   if ('queries' in queryDef) {
-    const combined: Record<string, unknown[]> = {}
-    let executedSql = ''
     const start = Date.now()
 
-    for (const q of queryDef.queries) {
-      const { data } = await queryConnection<Record<string, unknown>>(
-        credentials,
-        q.query,
-        {
-          clickhouse_settings: timezone
-            ? { session_timezone: timezone }
-            : undefined,
-        }
-      )
-      combined[q.key] = data
-      executedSql += `${q.key}: ${q.query}\n`
+    const entries = await Promise.all(
+      queryDef.queries.map(async (q) => {
+        const { data } = await queryConnection<Record<string, unknown>>(
+          credentials,
+          q.query,
+          {
+            clickhouse_settings: timezone
+              ? { session_timezone: timezone }
+              : undefined,
+          }
+        )
+        return [q.key, data, q.query] as const
+      })
+    )
+
+    const combined: Record<string, unknown[]> = {}
+    let executedSql = ''
+    for (const [key, data, query] of entries) {
+      combined[key] = data
+      executedSql += `${key}: ${query}\n`
     }
 
     return {

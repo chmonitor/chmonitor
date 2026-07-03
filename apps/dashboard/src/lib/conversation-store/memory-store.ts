@@ -83,10 +83,27 @@ export class MemoryStore implements ConversationStore {
   /**
    * Create or update a conversation.
    *
+   * Mirrors the D1/Postgres ownership guard: `id` is a global primary key
+   * (not scoped per user), so if another user already owns this id, the
+   * write is refused rather than reassigning ownership to the caller.
+   *
    * @param conversation - Full conversation to upsert
+   * @returns `written: true` if the conversation was created or updated;
+   *   `written: false` when the id belongs to another user and the write
+   *   was blocked
    */
-  async upsert(conversation: StoredConversation): Promise<void> {
+  async upsert(
+    conversation: StoredConversation
+  ): Promise<{ written: boolean }> {
     const { userId, id } = conversation
+
+    // Global id collision check: refuse the write if a different user
+    // already owns a conversation with this id.
+    for (const [ownerId, conversations] of storage) {
+      if (ownerId !== userId && conversations.some((c) => c.id === id)) {
+        return { written: false }
+      }
+    }
 
     // Get user's conversations or initialize empty array
     let conversations = storage.get(userId) || []
@@ -115,6 +132,7 @@ export class MemoryStore implements ConversationStore {
 
     // Save back to storage
     storage.set(userId, conversations)
+    return { written: true }
   }
 
   /**

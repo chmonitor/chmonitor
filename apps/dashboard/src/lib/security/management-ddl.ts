@@ -2,8 +2,11 @@
  * management-ddl.ts
  *
  * Pure functions for generating ClickHouse DDL statements for RBAC management.
- * No React, no app imports — safe for both server and client contexts.
+ * No React; only imports `@/lib/sql-utils` (also dependency-free) — safe for
+ * both server and client contexts.
  */
+
+import { validateIdentifier } from '@/lib/sql-utils'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -14,9 +17,9 @@ function quoteId(name: string): string {
   return `\`${name.replace(/`/g, '``')}\``
 }
 
-/** Escape single quotes in a ClickHouse string literal. */
+/** Escape backslashes and single quotes in a ClickHouse string literal. */
 function escapeLiteral(s: string): string {
-  return s.replace(/'/g, "\\'")
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 }
 
 // ---------------------------------------------------------------------------
@@ -118,12 +121,56 @@ export type PrivilegeTarget = {
   withGrantOption?: boolean
 }
 
+/**
+ * Conservative pattern for a privilege keyword with an optional column list.
+ * Digits are allowed after the first letter so source privileges like 'S3'
+ * (under the SOURCES group, e.g. `GRANT S3 ON *.* TO user`) still validate —
+ * quotes/semicolons/backticks/backslashes remain rejected either way.
+ */
+const PRIVILEGE_PATTERN = /^[A-Za-z][A-Za-z0-9 ]*(\([A-Za-z0-9_, ]+\))?$/
+
+/** Validate a privilege token, e.g. 'SELECT', 'ALTER UPDATE', 'SELECT(col1, col2)'. */
+function validatePrivilege(privilege: string): string {
+  if (typeof privilege !== 'string' || !PRIVILEGE_PATTERN.test(privilege)) {
+    throw new Error('Invalid privilege')
+  }
+  return privilege
+}
+
+/**
+ * Validate a grant target ('*', '*.*', 'db.*', or 'db.table') and rebuild it
+ * from the validated parts, quoting non-'*' parts with quoteId instead of
+ * interpolating the raw string.
+ */
+function validateGrantTarget(on: string): string {
+  if (typeof on !== 'string') {
+    throw new Error('Invalid grant target')
+  }
+  const parts = on.split('.')
+  if (parts.length > 2) {
+    throw new Error('Invalid grant target')
+  }
+  return parts
+    .map((part) => {
+      if (part === '*') return '*'
+      try {
+        validateIdentifier(part)
+      } catch {
+        throw new Error('Invalid grant target')
+      }
+      return quoteId(part)
+    })
+    .join('.')
+}
+
 export function generateGrantPrivilegeDdl(
   target: PrivilegeTarget,
   toUser: string
 ): string {
   const { privilege, on, withGrantOption } = target
-  let ddl = `GRANT ${privilege} ON ${on} TO ${quoteId(toUser)}`
+  const validPrivilege = validatePrivilege(privilege)
+  const validOn = validateGrantTarget(on)
+  let ddl = `GRANT ${validPrivilege} ON ${validOn} TO ${quoteId(toUser)}`
   if (withGrantOption) {
     ddl += ' WITH GRANT OPTION'
   }
@@ -135,7 +182,9 @@ export function generateRevokePrivilegeDdl(
   fromUser: string
 ): string {
   const { privilege, on } = target
-  return `REVOKE ${privilege} ON ${on} FROM ${quoteId(fromUser)}`
+  const validPrivilege = validatePrivilege(privilege)
+  const validOn = validateGrantTarget(on)
+  return `REVOKE ${validPrivilege} ON ${validOn} FROM ${quoteId(fromUser)}`
 }
 
 // ---------------------------------------------------------------------------

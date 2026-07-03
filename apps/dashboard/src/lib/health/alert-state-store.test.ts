@@ -122,19 +122,31 @@ describe('evaluateAlert + MemoryAlertStateStore', () => {
     }
 
     // First sighting fires.
-    expect(
-      evaluateAlert(store, { ...base, severity: 'critical', now: 1_000 }).kind
-    ).toBe('new')
+    const first = evaluateAlert(store, {
+      ...base,
+      severity: 'critical',
+      now: 1_000,
+    })
+    first.commit()
+    expect(first.decision.kind).toBe('new')
 
     // Persisting within cooldown is suppressed.
-    expect(
-      evaluateAlert(store, { ...base, severity: 'critical', now: 3_000 }).kind
-    ).toBe('suppressed')
+    const second = evaluateAlert(store, {
+      ...base,
+      severity: 'critical',
+      now: 3_000,
+    })
+    second.commit()
+    expect(second.decision.kind).toBe('suppressed')
 
     // Past the cooldown it reminds.
-    expect(
-      evaluateAlert(store, { ...base, severity: 'critical', now: 12_000 }).kind
-    ).toBe('reminder')
+    const third = evaluateAlert(store, {
+      ...base,
+      severity: 'critical',
+      now: 12_000,
+    })
+    third.commit()
+    expect(third.decision.kind).toBe('reminder')
 
     // Recovery fires and clears the record.
     const recovery = evaluateAlert(store, {
@@ -142,26 +154,29 @@ describe('evaluateAlert + MemoryAlertStateStore', () => {
       severity: 'ok',
       now: 13_000,
     })
-    expect(recovery.kind).toBe('recovery')
+    recovery.commit()
+    expect(recovery.decision.kind).toBe('recovery')
     expect(store.get(alertStateKey(0, 'disk-usage'))).toBeUndefined()
   })
 
   test('escalation fires even inside the cooldown window', () => {
     const store = new MemoryAlertStateStore()
-    evaluateAlert(store, {
+    const first = evaluateAlert(store, {
       hostId: 1,
       ruleId: 'replication-lag',
       severity: 'warning',
       now: 1_000,
       cooldownMs: 100_000,
     })
-    const decision = evaluateAlert(store, {
+    first.commit()
+    const { decision, commit } = evaluateAlert(store, {
       hostId: 1,
       ruleId: 'replication-lag',
       severity: 'critical',
       now: 1_500,
       cooldownMs: 100_000,
     })
+    commit()
     expect(decision.kind).toBe('escalated')
     expect(decision.notify).toBe(true)
   })
@@ -174,14 +189,45 @@ describe('evaluateAlert + MemoryAlertStateStore', () => {
       severity: 'warning',
       now: 1,
     })
+    a.commit()
     const b = evaluateAlert(store, {
       hostId: 1,
       ruleId: 'stuck-merges',
       severity: 'warning',
       now: 1,
     })
+    b.commit()
     // Both are "new" because each host tracks its own state.
-    expect(a.kind).toBe('new')
-    expect(b.kind).toBe('new')
+    expect(a.decision.kind).toBe('new')
+    expect(b.decision.kind).toBe('new')
+  })
+
+  test('a failed delivery (no commit) does not suppress the next sweep', () => {
+    const store = new MemoryAlertStateStore()
+    const base = { hostId: 1, ruleId: 'cpu', cooldownMs: 60_000 }
+
+    const first = evaluateAlert(store, {
+      ...base,
+      severity: 'critical',
+      now: 1_000,
+    })
+    expect(first.decision.notify).toBe(true) // new critical → notify
+    // simulate delivery FAILURE: do NOT commit
+
+    const second = evaluateAlert(store, {
+      ...base,
+      severity: 'critical',
+      now: 2_000,
+    })
+    expect(second.decision.notify).toBe(true) // retried, NOT suppressed
+    second.commit() // delivery now succeeds
+
+    const third = evaluateAlert(store, {
+      ...base,
+      severity: 'critical',
+      now: 3_000,
+    })
+    // within cooldown after a committed notify → suppressed
+    expect(third.decision.notify).toBe(false)
   })
 })
