@@ -39,6 +39,7 @@ export const CHARTS_BY_CATEGORY: Record<ChartCategory, string[]> = {
     'failed-query-count',
     'failed-query-count-by-user',
     'query-cache',
+    'query-cache-usage',
     'top-query-fingerprints',
     'cancelled-queries',
     'query-duration-percentiles',
