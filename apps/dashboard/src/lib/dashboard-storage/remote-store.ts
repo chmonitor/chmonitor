@@ -6,13 +6,16 @@
  * `conversation-store/adapter/d1-thread-list-adapter.tsx`.
  */
 
+import type { DashboardLayout } from '@/types/dashboard-layout'
+
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { normalizeLayout } from '@/types/dashboard-layout'
 
 const BASE = '/api/dashboards'
 
 interface DashboardListItem {
   name: string
-  charts: string[]
+  layout: DashboardLayout
 }
 
 function unwrap(json: unknown): Record<string, unknown> {
@@ -45,10 +48,10 @@ export async function listDashboardsRemote(): Promise<string[]> {
     .map((d) => d.name)
 }
 
-/** Load a saved dashboard's chart list by name. Returns null if not found. */
+/** Load a saved dashboard's layout by name. Returns null if not found. */
 export async function loadDashboardRemote(
   name: string
-): Promise<string[] | null> {
+): Promise<DashboardLayout | null> {
   const res = await apiFetch(`${BASE}/list`)
   if (!res.ok) {
     throw new Error(`Failed to load dashboard (${res.status})`)
@@ -60,18 +63,18 @@ export async function loadDashboardRemote(
     (d): d is DashboardListItem =>
       !!d && typeof d === 'object' && (d as DashboardListItem).name === name
   )
-  return match ? match.charts : null
+  return match ? normalizeLayout(match.layout) : null
 }
 
 /** Save (create or overwrite) a dashboard by name. */
 export async function saveDashboardRemote(
   name: string,
-  charts: string[]
+  layout: DashboardLayout
 ): Promise<void> {
   const res = await apiFetch(`${BASE}/save`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name, charts }),
+    body: JSON.stringify({ name, layout }),
   })
   if (!res.ok) {
     throw new Error(

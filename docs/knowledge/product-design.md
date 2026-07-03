@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-06-29
+updated: 2026-07-04
 tags:
   - design-system
   - ui
@@ -76,6 +76,18 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
 - **Skeletons:** `components/skeletons/` — match final layout (no layout shift).
 - **First-run:** `components/host/first-run-gate.tsx` →
   `first-run-empty-state.tsx` (cloud signed-in / cloud anon / self-hosted).
+- **Dashboard widget grid** (plan 57, `components/dashboard/`): `grid.tsx`
+  lays out `DashboardWidget[]` (chart/table/stat/text, `@/types/dashboard-layout`)
+  on a fixed 12-column CSS grid; view mode is plain positioned `div`s, arrange
+  mode adds `@dnd-kit/core` drag-to-move + pointer-event corner resize, both
+  rejecting (snap-back) a move/resize that collides with another widget
+  (`widgetsCollide`/`findFreePosition`). `widget-frame.tsx` is the shared
+  chrome (title bar, drag handle, remove, resize handle — edit-mode-only).
+  A dashboard-scoped `DashboardTimeRangeProvider`
+  (`components/dashboard/time-range-context.tsx`, distinct from the app-wide
+  `lib/context/time-range-context.tsx`) drives every chart widget's baseline
+  `lastHours`/`interval` via explicit props, which outrank both the chart's
+  own default and the global header time-range picker.
 
 ## UX conventions
 

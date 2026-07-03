@@ -1,3 +1,5 @@
+import type { DashboardLayout } from '@/types/dashboard-layout'
+
 import {
   deleteDashboardLocal,
   listDashboardsLocal,
@@ -7,6 +9,31 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 const STORAGE_KEY = 'clickhouse-monitor-dashboards'
+
+const layoutA: DashboardLayout = {
+  widgets: [
+    {
+      id: 'w1',
+      type: 'chart',
+      chartName: 'chart1',
+      x: 0,
+      y: 0,
+      w: 6,
+      h: 4,
+    },
+    {
+      id: 'w2',
+      type: 'chart',
+      chartName: 'chart2',
+      x: 6,
+      y: 0,
+      w: 6,
+      h: 4,
+    },
+  ],
+}
+
+const emptyLayout: DashboardLayout = { widgets: [] }
 
 // Minimal localStorage mock
 function makeLocalStorageMock() {
@@ -46,7 +73,7 @@ describe('local-store — SSR guard', () => {
       expect(listDashboardsLocal()).toEqual([])
       expect(loadDashboardLocal('any')).toBeNull()
       // saveDashboardLocal and deleteDashboardLocal should be no-ops (no throw)
-      expect(() => saveDashboardLocal('x', ['a'])).not.toThrow()
+      expect(() => saveDashboardLocal('x', layoutA)).not.toThrow()
       expect(() => deleteDashboardLocal('x')).not.toThrow()
     } finally {
       globalThis.window = savedWindow
@@ -73,26 +100,29 @@ describe('local-store — with localStorage mock', () => {
 
   describe('saveDashboardLocal / loadDashboardLocal round-trip', () => {
     it('saves and loads a dashboard by name', () => {
-      saveDashboardLocal('myDash', ['chart1', 'chart2'])
-      expect(loadDashboardLocal('myDash')).toEqual(['chart1', 'chart2'])
+      saveDashboardLocal('myDash', layoutA)
+      expect(loadDashboardLocal('myDash')).toEqual(layoutA)
     })
 
-    it('saves an empty chart list', () => {
-      saveDashboardLocal('empty', [])
-      expect(loadDashboardLocal('empty')).toEqual([])
+    it('saves an empty layout', () => {
+      saveDashboardLocal('empty', emptyLayout)
+      expect(loadDashboardLocal('empty')).toEqual(emptyLayout)
     })
 
     it('overwrites an existing dashboard with the same name', () => {
-      saveDashboardLocal('dash', ['old'])
-      saveDashboardLocal('dash', ['new1', 'new2'])
-      expect(loadDashboardLocal('dash')).toEqual(['new1', 'new2'])
+      saveDashboardLocal('dash', layoutA)
+      const layoutB: DashboardLayout = {
+        widgets: [{ id: 'w3', type: 'text', x: 0, y: 0, w: 3, h: 2 }],
+      }
+      saveDashboardLocal('dash', layoutB)
+      expect(loadDashboardLocal('dash')).toEqual(layoutB)
     })
 
     it('preserves other dashboards when saving a new one', () => {
-      saveDashboardLocal('a', ['x'])
-      saveDashboardLocal('b', ['y'])
-      expect(loadDashboardLocal('a')).toEqual(['x'])
-      expect(loadDashboardLocal('b')).toEqual(['y'])
+      saveDashboardLocal('a', layoutA)
+      saveDashboardLocal('b', emptyLayout)
+      expect(loadDashboardLocal('a')).toEqual(layoutA)
+      expect(loadDashboardLocal('b')).toEqual(emptyLayout)
     })
   })
 
@@ -102,21 +132,51 @@ describe('local-store — with localStorage mock', () => {
     })
   })
 
+  describe('loadDashboardLocal — legacy back-compat', () => {
+    it('upgrades a pre-plan-57 bare string[] value into a DashboardLayout', () => {
+      // Simulate a dashboard saved before plan 57: the localStorage store
+      // maps name -> string[] directly (no `saveDashboardLocal` involved).
+      lsMock.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ legacyDash: ['chart1', 'chart2'] })
+      )
+
+      const result = loadDashboardLocal('legacyDash')
+      expect(result).not.toBeNull()
+      expect(result?.widgets).toHaveLength(2)
+      expect(result?.widgets.every((w) => w.type === 'chart')).toBe(true)
+      expect(result?.widgets.map((w) => w.chartName)).toEqual([
+        'chart1',
+        'chart2',
+      ])
+    })
+
+    it('a legacy dashboard survives a save/load round trip after being upgraded', () => {
+      lsMock.setItem(STORAGE_KEY, JSON.stringify({ legacyDash: ['chart1'] }))
+      const upgraded = loadDashboardLocal('legacyDash')
+      expect(upgraded).not.toBeNull()
+
+      // Re-saving persists the upgraded (non-legacy) shape.
+      saveDashboardLocal('legacyDash', upgraded as DashboardLayout)
+      expect(loadDashboardLocal('legacyDash')).toEqual(upgraded)
+    })
+  })
+
   describe('listDashboardsLocal', () => {
     it('returns empty array when no dashboards saved', () => {
       expect(listDashboardsLocal()).toEqual([])
     })
 
     it('returns sorted dashboard names', () => {
-      saveDashboardLocal('zebra', [])
-      saveDashboardLocal('alpha', [])
-      saveDashboardLocal('middle', [])
+      saveDashboardLocal('zebra', emptyLayout)
+      saveDashboardLocal('alpha', emptyLayout)
+      saveDashboardLocal('middle', emptyLayout)
       expect(listDashboardsLocal()).toEqual(['alpha', 'middle', 'zebra'])
     })
 
     it('reflects names after deletion', () => {
-      saveDashboardLocal('a', [])
-      saveDashboardLocal('b', [])
+      saveDashboardLocal('a', emptyLayout)
+      saveDashboardLocal('b', emptyLayout)
       deleteDashboardLocal('a')
       expect(listDashboardsLocal()).toEqual(['b'])
     })
@@ -124,23 +184,23 @@ describe('local-store — with localStorage mock', () => {
 
   describe('deleteDashboardLocal', () => {
     it('removes a dashboard by name', () => {
-      saveDashboardLocal('toDelete', ['c1'])
+      saveDashboardLocal('toDelete', layoutA)
       deleteDashboardLocal('toDelete')
       expect(loadDashboardLocal('toDelete')).toBeNull()
     })
 
     it('is a no-op for a non-existent dashboard', () => {
-      saveDashboardLocal('keep', ['x'])
+      saveDashboardLocal('keep', layoutA)
       expect(() => deleteDashboardLocal('ghost')).not.toThrow()
       // kept dashboard unaffected
-      expect(loadDashboardLocal('keep')).toEqual(['x'])
+      expect(loadDashboardLocal('keep')).toEqual(layoutA)
     })
 
     it('does not remove other dashboards', () => {
-      saveDashboardLocal('a', ['1'])
-      saveDashboardLocal('b', ['2'])
+      saveDashboardLocal('a', layoutA)
+      saveDashboardLocal('b', emptyLayout)
       deleteDashboardLocal('a')
-      expect(loadDashboardLocal('b')).toEqual(['2'])
+      expect(loadDashboardLocal('b')).toEqual(emptyLayout)
     })
   })
 
@@ -168,8 +228,8 @@ describe('local-store — with localStorage mock', () => {
 
     it('still allows saving after a malformed store', () => {
       lsMock.setItem(STORAGE_KEY, 'bad')
-      saveDashboardLocal('fresh', ['chart'])
-      expect(loadDashboardLocal('fresh')).toEqual(['chart'])
+      saveDashboardLocal('fresh', layoutA)
+      expect(loadDashboardLocal('fresh')).toEqual(layoutA)
     })
   })
 

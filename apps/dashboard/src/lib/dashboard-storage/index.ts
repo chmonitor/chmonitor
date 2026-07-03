@@ -24,6 +24,8 @@
  * the `/api/dashboards/*` routes called by `remote-store.ts`.
  */
 
+import type { DashboardLayout } from '@/types/dashboard-layout'
+
 import {
   deleteDashboardLocal,
   listDashboardsLocal,
@@ -67,24 +69,26 @@ export async function listDashboards(): Promise<string[]> {
  * Load a saved dashboard by name. Returns null if the dashboard does not
  * exist.
  */
-export async function loadDashboard(name: string): Promise<string[] | null> {
+export async function loadDashboard(
+  name: string
+): Promise<DashboardLayout | null> {
   return resolveDashboardBackend() === 'd1'
     ? loadDashboardRemote(name)
     : loadDashboardLocal(name)
 }
 
 /**
- * Save a dashboard configuration under the given name. Overwrites any
- * existing dashboard with the same name.
+ * Save a dashboard layout under the given name. Overwrites any existing
+ * dashboard with the same name.
  */
 export async function saveDashboard(
   name: string,
-  charts: string[]
+  layout: DashboardLayout
 ): Promise<void> {
   if (resolveDashboardBackend() === 'd1') {
-    await saveDashboardRemote(name, charts)
+    await saveDashboardRemote(name, layout)
   } else {
-    saveDashboardLocal(name, charts)
+    saveDashboardLocal(name, layout)
   }
 }
 

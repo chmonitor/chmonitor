@@ -14,6 +14,8 @@
  * routes).
  */
 
+import type { DashboardLayout } from '@/types/dashboard-layout'
+
 import { describe, expect, mock, test } from 'bun:test'
 
 const mockConversationDb = mock(() => true)
@@ -23,10 +25,42 @@ mock.module('@/lib/feature-flags', () => ({
   },
 }))
 
+const localLayout: DashboardLayout = {
+  widgets: [
+    {
+      id: 'local-1',
+      type: 'chart',
+      chartName: 'chart-local',
+      x: 0,
+      y: 0,
+      w: 6,
+      h: 4,
+    },
+  ],
+}
+const remoteLayout: DashboardLayout = {
+  widgets: [
+    {
+      id: 'remote-1',
+      type: 'chart',
+      chartName: 'chart-remote',
+      x: 0,
+      y: 0,
+      w: 6,
+      h: 4,
+    },
+  ],
+}
+const savedLayout: DashboardLayout = {
+  widgets: [
+    { id: 'c1', type: 'chart', chartName: 'c1', x: 0, y: 0, w: 6, h: 4 },
+  ],
+}
+
 const localCalls = {
   list: mock(() => ['local-a', 'local-b']),
-  load: mock((_name: string) => ['chart-local']),
-  save: mock((_name: string, _charts: string[]) => {}),
+  load: mock((_name: string) => localLayout),
+  save: mock((_name: string, _layout: DashboardLayout) => {}),
   del: mock((_name: string) => {}),
 }
 mock.module('./local-store', () => ({
@@ -38,8 +72,8 @@ mock.module('./local-store', () => ({
 
 const remoteCalls = {
   list: mock(async () => ['remote-a']),
-  load: mock(async (_name: string) => ['chart-remote']),
-  save: mock(async (_name: string, _charts: string[]) => {}),
+  load: mock(async (_name: string) => remoteLayout),
+  save: mock(async (_name: string, _layout: DashboardLayout) => {}),
   del: mock(async (_name: string) => {}),
   share: mock(async (_name: string) => 'slug-123'),
   unshare: mock(async (_name: string) => {}),
@@ -105,7 +139,7 @@ describe('D1-absent falls back to localStorage', () => {
     resetMocks()
     mockConversationDb.mockReturnValue(false)
     const result = await loadDashboard('myDash')
-    expect(result).toEqual(['chart-local'])
+    expect(result).toEqual(localLayout)
     expect(localCalls.load).toHaveBeenCalledWith('myDash')
     expect(remoteCalls.load).not.toHaveBeenCalled()
   })
@@ -113,8 +147,8 @@ describe('D1-absent falls back to localStorage', () => {
   test('saveDashboard() uses the local store and never calls remote', async () => {
     resetMocks()
     mockConversationDb.mockReturnValue(false)
-    await saveDashboard('myDash', ['c1'])
-    expect(localCalls.save).toHaveBeenCalledWith('myDash', ['c1'])
+    await saveDashboard('myDash', savedLayout)
+    expect(localCalls.save).toHaveBeenCalledWith('myDash', savedLayout)
     expect(remoteCalls.save).not.toHaveBeenCalled()
   })
 
@@ -138,8 +172,8 @@ describe('D1-enabled uses the remote store', () => {
 
   test('saveDashboard() calls remote, not local', async () => {
     resetMocks()
-    await saveDashboard('myDash', ['c1'])
-    expect(remoteCalls.save).toHaveBeenCalledWith('myDash', ['c1'])
+    await saveDashboard('myDash', savedLayout)
+    expect(remoteCalls.save).toHaveBeenCalledWith('myDash', savedLayout)
     expect(localCalls.save).not.toHaveBeenCalled()
   })
 })

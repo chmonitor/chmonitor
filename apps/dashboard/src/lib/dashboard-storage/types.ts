@@ -1,8 +1,13 @@
 /**
  * Dashboard storage types.
  *
- * A "dashboard" here is a saved Chart Builder layout: a named, ordered list
- * of chart identifiers (`charts: string[]`). Schema design mirrors
+ * A "dashboard" here is a saved dashboard grid layout (plan 57): a named
+ * `DashboardLayout` — an ordered list of positioned widgets (`chart | table |
+ * stat | text`), each with grid geometry (`x/y/w/h`). Prior to plan 57 a
+ * dashboard was just a bare ordered list of chart identifiers
+ * (`charts: string[]`); `normalizeLayout` (`@/types/dashboard-layout`)
+ * transparently upgrades that legacy shape on load, so every dashboard saved
+ * before this change keeps working. Schema design mirrors
  * `conversation-store/types.ts`:
  *   - `id` is the server-minted, globally-unique primary key. It is never
  *     accepted from a client — routes resolve/mint it internally via an
@@ -11,16 +16,18 @@
  *     conversations, whose `id` IS client-supplied). The guard is kept anyway
  *     as defense-in-depth (see `d1-store.ts`).
  *   - `ownerId` scopes every read/write.
- *   - Sharing is read-only: a shared dashboard exposes only `name` + `charts`
+ *   - Sharing is read-only: a shared dashboard exposes only `name` + `layout`
  *     to anonymous viewers via `shareSlug`, never `ownerId` or any other
  *     owner-identifying field.
  */
+
+import type { DashboardLayout } from '@/types/dashboard-layout'
 
 export interface StoredDashboard {
   id: string
   ownerId: string
   name: string
-  charts: string[]
+  layout: DashboardLayout
   isShared: boolean
   shareSlug: string | null
   updatedAt: number
@@ -34,7 +41,7 @@ export interface StoredDashboard {
  */
 export interface PublicSharedDashboard {
   name: string
-  charts: string[]
+  layout: DashboardLayout
 }
 
 /**
@@ -55,7 +62,7 @@ export interface DashboardStore {
   saveByName(
     ownerId: string,
     name: string,
-    charts: string[]
+    layout: DashboardLayout
   ): Promise<StoredDashboard>
   /**
    * Low-level upsert primitive, mirroring
