@@ -1,5 +1,8 @@
 export { explorerColumnsConfig } from './columns'
-export { explorerDatabasesConfig } from './databases'
+export {
+  explorerDatabaseCountsConfig,
+  explorerDatabasesConfig,
+} from './databases'
 export { explorerDdlConfig } from './ddl'
 export {
   explorerAllDependenciesConfig,

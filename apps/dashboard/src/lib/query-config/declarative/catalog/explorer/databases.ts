@@ -1,21 +1,18 @@
 import type { DeclarativeQueryConfig } from '../../schema'
 
+// Mirrors explorerDatabasesConfig (TS). Table counts moved to a separate
+// streamed query (explorer-database-counts) so the sidebar / first paint no
+// longer joins system.tables. Keep this in lockstep with the TS config —
+// enforced by explorer-catalog.test.ts.
 export const explorerDatabasesDeclarative: DeclarativeQueryConfig = {
   name: 'explorer-databases',
-  description: 'List of ClickHouse databases with table counts',
+  description: 'List of ClickHouse databases',
   sql: `
-    SELECT
-      d.name,
-      d.engine,
-      d.data_path,
-      d.uuid,
-      count(t.name) AS item_count
-    FROM system.databases d
-    LEFT JOIN system.tables t ON d.name = t.database
-    WHERE d.name NOT IN ('INFORMATION_SCHEMA', 'information_schema')
-    GROUP BY d.name, d.engine, d.data_path, d.uuid
-    ORDER BY d.name
+    SELECT name, engine
+    FROM system.databases
+    WHERE name NOT IN ('INFORMATION_SCHEMA', 'information_schema')
+    ORDER BY name
   `,
-  columns: ['name', 'engine', 'data_path', 'uuid', 'item_count'],
+  columns: ['name', 'engine'],
   optional: false,
 }
