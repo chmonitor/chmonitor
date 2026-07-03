@@ -18,7 +18,8 @@
  * configs so it cannot fail on unrelated, unaudited configs.
  */
 
-import { getAllSqlStrings } from './types'
+import type { QueryConfig } from '@/types/query-config'
+
 import { dictionariesConfig } from './more/dictionaries'
 import { parallelizationConfig } from './queries/parallelization'
 import { profilerConfig } from './queries/profiler'
@@ -32,8 +33,8 @@ import {
   clustersReplicasStatusConfig,
   replicaTablesConfig,
 } from './system/replicas-status'
+import { getAllSqlStrings } from './types'
 import { describe, expect, test } from 'bun:test'
-import type { QueryConfig } from '@/types/query-config'
 import { ColumnFormat } from '@/types/column-format'
 
 // Normalize a columnFormats value (which may be `ColumnFormat` or

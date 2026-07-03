@@ -23,11 +23,7 @@ const CODE_TRUNCATE_LENGTH = 50
 
 export const CodeToggleFormat = function CodeToggleFormat<
   TData extends RowData = RowData,
->({
-  row,
-  value,
-  options,
-}: CodeToggleFormatProps<TData>): React.ReactNode {
+>({ row, value, options }: CodeToggleFormatProps<TData>): React.ReactNode {
   const truncate_length = options?.max_truncate || CODE_TRUNCATE_LENGTH
 
   const handleValueChange = (accordionValue: string) => {

@@ -40,19 +40,19 @@
  * quoted aliases), so checks (c)/(d) only fire on unambiguous columns.
  */
 
+import type { QueryConfig } from '../../types/query-config'
+
+import { queries } from './index'
+import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-import { queries } from './index'
-import type { QueryConfig } from '../../types/query-config'
-import { describe, expect, test } from 'bun:test'
-import { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 import {
   compareVersions,
   parseVersion,
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
+import { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 
 // ---------------------------------------------------------------------------
 // Supported ClickHouse versions
@@ -94,9 +94,8 @@ const SUPPORTED_VERSIONS = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-const isVersionedArray = (
-  sql: QueryConfig['sql']
-): sql is VersionedSql[] => Array.isArray(sql)
+const isVersionedArray = (sql: QueryConfig['sql']): sql is VersionedSql[] =>
+  Array.isArray(sql)
 
 /** A version string is valid if it is 1–4 dot-separated numbers. */
 const VERSION_RE = /^\d+(\.\d+){0,3}$/
@@ -244,10 +243,7 @@ function primarySystemTable(config: QueryConfig): string | null {
 // This file lives at apps/dashboard/src/lib/query-config/ — the schema docs are
 // at the repo root under docs/clickhouse-schemas/tables/.
 const SCHEMA_TABLES_DIR = fileURLToPath(
-  new URL(
-    '../../../../../docs/clickhouse-schemas/tables/',
-    import.meta.url
-  )
+  new URL('../../../../../docs/clickhouse-schemas/tables/', import.meta.url)
 )
 
 /** Normalize a matrix header/cell like "24.1+" / "19.x" into a version string. */
@@ -300,7 +296,10 @@ function parseMatrixTable(md: string): Map<string, string> | null {
         const bucket = bucketVersions[ci]
         if (!bucket) continue // "Notes" or unparseable header
         if (/^yes$/i.test(rc[ci])) {
-          if (!min || compareVersions(parseVersion(bucket), parseVersion(min)) < 0)
+          if (
+            !min ||
+            compareVersions(parseVersion(bucket), parseVersion(min)) < 0
+          )
             min = bucket
         }
       }
@@ -343,7 +342,9 @@ describe('QueryConfig cross-version schema compatibility', () => {
         try {
           sql = selectVersionedSql(config.sql, parseVersion(v))
         } catch (err) {
-          failures.push(`[${config.name}] @${v}: threw ${(err as Error).message}`)
+          failures.push(
+            `[${config.name}] @${v}: threw ${(err as Error).message}`
+          )
           continue
         }
         if (typeof sql !== 'string' || sql.trim().length === 0) {
@@ -381,7 +382,8 @@ describe('QueryConfig cross-version schema compatibility', () => {
       const valid = sinces.filter((s: string) => VERSION_RE.test(s))
       for (let k = 1; k < valid.length; k++) {
         if (
-          compareVersions(parseVersion(valid[k]), parseVersion(valid[k - 1])) <= 0
+          compareVersions(parseVersion(valid[k]), parseVersion(valid[k - 1])) <=
+          0
         ) {
           failures.push(
             `[${config.name}] since not strictly ascending: '${valid[k - 1]}' → '${valid[k]}'`

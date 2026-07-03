@@ -61,10 +61,7 @@ function generateCsvContent<TData extends RowData>(
  */
 export const CsvExportButton = function CsvExportButton<
   TData extends RowData = RowData,
->({
-  table,
-  filename = 'export',
-}: CsvExportButtonProps<TData>) {
+>({ table, filename = 'export' }: CsvExportButtonProps<TData>) {
   const handleExportCurrentPage = () => {
     const csvContent = generateCsvContent(table)
 

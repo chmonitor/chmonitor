@@ -21,11 +21,7 @@ interface HoverCardProps<TData extends RowData = RowData> {
 
 export const HoverCardFormat = function HoverCardFormat<
   TData extends RowData = RowData,
->({
-  row,
-  value,
-  options,
-}: HoverCardProps<TData>): React.ReactNode {
+>({ row, value, options }: HoverCardProps<TData>): React.ReactNode {
   const { content } = options || {}
 
   // Extract row data for template replacement
