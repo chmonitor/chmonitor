@@ -7,6 +7,10 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useClerkIsSignedIn as useClerkIsSignedInImpl } from '@/components/assistant-ui/use-clerk-is-signed-in'
 import {
+  DowngradeConfirmModal,
+  type DowngradeExceededLimit,
+} from '@/components/billing/downgrade-confirm-modal'
+import {
   type BillingPeriod,
   BillingPeriodToggle,
   CurrentPlanBadge,
@@ -28,6 +32,7 @@ import {
 import { trackEvent } from '@/lib/analytics/analytics'
 import { BILLING_PLAN_LIST, getPlan } from '@/lib/billing/plans'
 import {
+  checkCanDowngrade,
   openBillingPortal,
   startCheckout,
   useBillingSubscription,
@@ -48,11 +53,19 @@ const ClerkSignInButton:
   | ((props: { children: ReactNode }) => ReactNode)
   | null = isClerkEnabled() ? ClerkSignInButtonImpl : null
 
+interface DowngradeState {
+  targetPlanId: string
+  exceeded: DowngradeExceededLimit[]
+}
+
 function BillingPage() {
   const signedIn = useClerkIsSignedIn()
   const { data: sub, isLoading } = useBillingSubscription()
   const [period, setPeriod] = useState<BillingPeriod>('yearly')
   const [busy, setBusy] = useState<string | null>(null)
+  const [downgradeState, setDowngradeState] = useState<DowngradeState | null>(
+    null
+  )
 
   // Cloud visitors who aren't signed in get a sign-in prompt instead of a
   // billing UI they can't act on. (Always signed-in in OSS, so never shown.)
@@ -76,6 +89,52 @@ function BillingPage() {
   }
 
   async function onPortal() {
+    setBusy('portal')
+    try {
+      await openBillingPortal()
+    } catch (err) {
+      setBusy(null)
+      toast.error(
+        err instanceof Error ? err.message : 'Could not open billing portal'
+      )
+    }
+  }
+
+  /**
+   * "Change to <plan>" — plan 19's downgrade protection. Pre-flights the
+   * change against the target plan's limits; only over-limit changes see the
+   * warning modal, so upgrades between paid tiers proceed straight through
+   * (can-downgrade returns `ok: true` harmlessly for those).
+   */
+  async function onChangeToPlan(planId: 'pro' | 'max') {
+    setBusy(planId)
+    try {
+      const { ok, exceeded } = await checkCanDowngrade(planId)
+      if (ok) {
+        await openBillingPortal()
+        return // navigating away — leave `busy` true through the redirect
+      }
+      setDowngradeState({ targetPlanId: planId, exceeded })
+      setBusy(null)
+    } catch (err) {
+      setBusy(null)
+      toast.error(
+        err instanceof Error ? err.message : 'Could not check plan change'
+      )
+    }
+  }
+
+  function onStayOnCurrentPlan() {
+    setDowngradeState(null)
+  }
+
+  async function onDowngradeAnyway() {
+    if (!downgradeState) return
+    trackEvent('downgrade_override', {
+      target_plan: downgradeState.targetPlanId,
+      exceeded_metrics: downgradeState.exceeded.map((e) => e.metric).join(','),
+    })
+    setDowngradeState(null)
     setBusy('portal')
     try {
       await openBillingPortal()
@@ -161,13 +220,15 @@ function BillingPage() {
                   // Active subscribers can't start a fresh checkout (Polar blocks
                   // it: "You already have an active subscription"). Plan changes
                   // go through the customer portal, which prorates correctly.
+                  // Pre-flighted by can-downgrade (plan 19) so a change that
+                  // would exceed the target plan's limits warns first.
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={onPortal}
+                    onClick={() => onChangeToPlan(plan.id as 'pro' | 'max')}
                     disabled={busy !== null}
                   >
-                    {busy === 'portal' ? 'Opening…' : `Change to ${plan.name}`}
+                    {busy === plan.id ? 'Checking…' : `Change to ${plan.name}`}
                   </Button>
                 ) : paid ? (
                   <Button
@@ -196,6 +257,15 @@ function BillingPage() {
 
       {/* Full benefits matrix */}
       <PlanComparison currentPlanId={currentPlanId} />
+
+      <DowngradeConfirmModal
+        open={downgradeState !== null}
+        targetPlanId={downgradeState?.targetPlanId ?? ''}
+        exceeded={downgradeState?.exceeded ?? []}
+        onStay={onStayOnCurrentPlan}
+        onProceed={onDowngradeAnyway}
+        onClose={onStayOnCurrentPlan}
+      />
     </div>
   )
 }

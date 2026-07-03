@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-07-03
+updated: 2026-07-04
 tags:
   - saas
   - cloud
@@ -150,11 +150,31 @@ free forever (auth `none` ⇒ unlimited, plans inert).
   not live or the period ended — no cron needed).
 - **Routes**: `api/v1/billing/checkout` (hosted checkout, `externalCustomerId =
   Clerk userId` ⇒ no customer map), `…/portal`, `…/subscription` (GET),
-  `api/v1/webhooks/polar` (verifies via `validateEvent` over the RAW body).
+  `…/usage` (GET, current-plan meters), `…/can-downgrade` (POST, pre-flight
+  before a plan change — see below), `api/v1/webhooks/polar` (verifies via
+  `validateEvent` over the RAW body).
 - **Enforcement**: `api/v1/user-connections` POST returns 402 via
   `checkHostLimit(plan, count)` + `limitMessage(check)` (null = unlimited). New
   metered surfaces (alerts, AI) should reuse the matching `entitlements.ts`
   helper for consistent boundary + error semantics.
+- **Shared usage resolution**: `lib/billing/owner-usage.ts`
+  `resolveOwnerUsage(owner, userId)` is the ONE resolver for current
+  consumption (hosts pooled across org members, seats, AI daily/monthly) —
+  both `…/usage` (GET) and `…/can-downgrade` (POST) call it so "current usage"
+  can never drift between the usage card and the downgrade check.
+- **Downgrade protection** (plan 19): before sending a user to the Polar
+  portal to change to a lower/different plan, the billing page (`Change to
+  <plan>` CTA) calls `POST api/v1/billing/can-downgrade { targetPlanId }`. It
+  compares current usage to the target plan's caps through the SAME
+  `entitlements.ts` `check*` helpers, but only reports a metric in `exceeded`
+  when it is BOTH numerically over the target cap AND classified `enforced` in
+  `plan-enforcement.ts` (`LIMIT_ENFORCEMENT`) — a `deferred` limit never
+  manufactures a warning (honest paywalls, same invariant as the upgrade
+  paywall modal). Fails open (`{ ok: true, exceeded: [] }`, never throws) with
+  no Clerk, so OSS is unaffected. `ok: false` opens
+  `components/billing/downgrade-confirm-modal.tsx` (`DowngradeConfirmModal`) —
+  "Stay on current plan" vs "Downgrade anyway" (the latter proceeds to the
+  portal and fires the `downgrade_override` product-analytics event).
 - **UI**: `routes/(dashboard)/billing.tsx`, gated to cloud mode in
   `app-sidebar.tsx`; `feature: 'billing'`.
 - **Setup**: `apps/dashboard/scripts/polar-setup.ts` creates Pro/Max

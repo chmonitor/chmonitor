@@ -22,6 +22,7 @@ export const ANALYTICS_EVENTS = [
   'checkout_started',
   'sample_cluster_connected',
   'sample_to_real_converted',
+  'downgrade_override',
 ] as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number]
