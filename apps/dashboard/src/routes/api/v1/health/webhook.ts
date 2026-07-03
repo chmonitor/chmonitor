@@ -14,8 +14,12 @@
  * a generic 400 so we never leak internal DNS/resolution detail.
  *
  * Ported from apps/dashboard/app/api/v1/health/webhook/route.ts.
- * - Per-route auth (authorizeFeatureRequest / SETTINGS_FEATURE_PERMISSION)
- *   dropped; centralized in middleware (#1397).
+ * - Per-route auth (authorizeFeatureRequest, feature 'settings') restored:
+ *   the global /api/v1 middleware is a public passthrough, so this route
+ *   must self-enforce that anonymous callers cannot trigger the outbound
+ *   fetch (see the write gate in handlePost below). Was previously dropped
+ *   in favor of centralized middleware (#1397); that middleware turned out
+ *   to be a passthrough for writes, so the gate is back.
  * - NextResponse replaced with standard Response / Response.json.
  * - @/lib/api/error-handler exists in this app and is imported directly.
  */
@@ -29,6 +33,7 @@ import {
   type ResolveHostAddresses,
   validateHostUrl,
 } from '@/lib/browser-connections/host-url'
+import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/health/webhook',
@@ -63,6 +68,20 @@ async function handlePost(
   request: Request,
   deps: WebhookDeps = {}
 ): Promise<Response> {
+  // Write gate: this POST makes the server issue an outbound fetch to a
+  // caller-supplied URL — a state-changing, SSRF-capable egress. The global
+  // /api/v1 middleware is a public passthrough under provider='none' /
+  // CHM_CLERK_PUBLIC_READ, so this route must self-enforce that anonymous
+  // callers cannot trigger it. A valid `chm_` API key still authenticates
+  // programmatic clients (e.g. alert integrations). Mirrors the
+  // /api/v1/actions guard.
+  const permissionResponse = await authorizeFeatureRequest(
+    { feature: 'settings', defaultAccess: 'authenticated', operation: 'write' },
+    request,
+    { allowAgentBearerToken: true }
+  )
+  if (permissionResponse) return permissionResponse
+
   debug('[POST /api/v1/health/webhook] Proxying alert webhook')
 
   let body: WebhookRequestBody
