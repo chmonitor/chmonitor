@@ -7,6 +7,7 @@ import type { AlertEventRecord } from './alert-history-store'
 import type { AlertDecision } from './alert-state-store'
 
 import { detectAdapter } from './adapters'
+import { clearAck, isAcked, listActiveAcks } from './alert-ack-store'
 import { recordAlertEvent } from './alert-history-store'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
 import {
@@ -64,6 +65,8 @@ export interface SweepSummary {
   alertsDispatched: number
   /** Alerts suppressed by the dedup state store (already-firing conditions). */
   alertsSuppressed: number
+  /** Notify-worthy alerts suppressed by an active operator ACK (plan 29). */
+  ackedSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
   /** Total AI insights generated and persisted across all hosts. */
@@ -259,7 +262,17 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   let insightsGenerated = 0
   let alertsDispatched = 0
   let alertsSuppressed = 0
+  let ackedSuppressed = 0
   let recoveries = 0
+
+  // Active operator ACKs (plan 29), loaded once for the whole sweep.
+  // `listActiveAcks` never throws — a missing/misconfigured D1 binding
+  // (self-hosted/OSS default) resolves to `[]`, so `isAcked` is false
+  // everywhere and dispatch behaves exactly as before ACK existed.
+  // ownerId '' is the OSS single-tenant scope; multi-tenant owner wiring for
+  // the cron sweep is (verify) — see plans/29-alert-ack-manual-resolution.md.
+  const ackOwnerId = ''
+  const acks = await listActiveAcks(ackOwnerId)
 
   for (const config of configs) {
     const name = hostLabel(config)
@@ -309,6 +322,23 @@ export async function runHealthSweep(): Promise<SweepSummary> {
             cooldownMs,
           })
           if (decision.notify) {
+            if (decision.kind === 'recovery') {
+              // A resolved condition should always reach the operator — never
+              // suppress a recovery — and any active ACK for it is now moot.
+              // Best-effort: clearAck never throws.
+              void clearAck(ackOwnerId, config.id, rule.id)
+            } else if (isAcked(acks, config.id, rule.id, Date.now())) {
+              // Post-decision dispatch gate only — do NOT commit. Like the
+              // failed-delivery path below, an acked (non-delivered)
+              // notification must not start the reminder cooldown clock —
+              // otherwise a short ACK (e.g. 15m) would silently suppress the
+              // next reminder until the full cooldown (e.g. 60m) elapses.
+              // Once the ACK expires, the next firing sweep re-evaluates
+              // fresh and delivers/commits normally.
+              ackedSuppressed++
+              // TODO(27): historyStore.record({ ..., decisionKind: 'acked', delivered: false })
+              continue
+            }
             const label = rule.formatLabel
               ? rule.formatLabel(value)
               : String(value)
@@ -401,6 +431,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     totalFindings: findings.length,
     alertsDispatched,
     alertsSuppressed,
+    ackedSuppressed,
     recoveries,
     insightsGenerated,
     hosts,
