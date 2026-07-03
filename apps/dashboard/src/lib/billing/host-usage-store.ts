@@ -8,7 +8,7 @@
  * the table doesn't exist yet, functions return safe defaults (0 / no-op) so
  * OSS/self-hosted deployments are never gated or metered.
  *
- * Schema: see src/db/conversations-migrations/0016_host_usage_monthly.sql
+ * Schema: see src/db/conversations-migrations/0017_host_usage_monthly.sql
  */
 
 import { utcMonthKey } from './ai-usage-store'
