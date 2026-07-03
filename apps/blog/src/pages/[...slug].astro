@@ -12,16 +12,58 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props
 const { Content } = await render(post)
+const slug = postSlug(post)
 
 function fmtDate(d: Date) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
+
+// The frontmatter description doubles as the visible article lede, so it's
+// written for reading, not for a 160-char SERP snippet. Truncate ONLY the
+// <meta name=description> value at a word boundary — the on-page lede below
+// keeps the full text unchanged.
+function metaDescription(text: string, max = 157): string {
+  if (text.length <= max) return text
+  return `${text.slice(0, max).replace(/\s+\S*$/, '')}…`
+}
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const ogImage = new URL(post.data.cover ?? `/og/blog/${slug}.png`, Astro.site).toString()
+
+const articleJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.description,
+  image: ogImage,
+  datePublished: post.data.date.toISOString(),
+  mainEntityOfPage: canonical,
+  url: canonical,
+  author: { '@type': 'Organization', name: 'chmonitor', url: 'https://chmonitor.dev' },
+  publisher: {
+    '@type': 'Organization',
+    name: 'chmonitor',
+    logo: { '@type': 'ImageObject', url: 'https://chmonitor.dev/brand/logo-mark.svg' },
+  },
+}
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://chmonitor.dev/' },
+    { '@type': 'ListItem', position: 2, name: 'Blog', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 3, name: post.data.title, item: canonical },
+  ],
+}
 ---
 <Base
   title={`${post.data.title} — chmonitor blog`}
-  description={post.data.description}
-  image={post.data.cover ?? '/brand/og-brand.png'}
+  description={metaDescription(post.data.description)}
+  image={post.data.cover ?? `/og/blog/${slug}.png`}
 >
+  <script type="application/ld+json" set:html={JSON.stringify(articleJsonLd)} is:inline />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <Nav />
   <main>
     <div class="article-wrap">

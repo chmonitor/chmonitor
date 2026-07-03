@@ -4,7 +4,6 @@ description: "We rebuilt chmonitor from the ground up on TanStack Start: a faste
 date: 2026-06-29
 tag: Release
 version: v0.3
-cover: /brand/og-brand.png
 ---
 
 chmonitor **v0.3** is the biggest release since the project started — a ground-up
