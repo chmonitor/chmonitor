@@ -1,8 +1,17 @@
-import { ArrowUpRight, Check, Eye, EyeOff, Globe, Loader2 } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Check,
+  Eye,
+  EyeOff,
+  FlaskConical,
+  Globe,
+  Loader2,
+} from 'lucide-react'
 
 import type { BrowserConnection } from '@/lib/types/browser-connection'
 import type { HostStorageMode } from '@/lib/types/host-storage'
 
+import { SAMPLE_CLUSTER_PRESET } from './sample-preset'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +51,13 @@ interface ConnectionFormProps {
   dbStorageEnabled?: boolean
   /** Server storage is configured but the user must sign in first. */
   dbStorageRequiresSignIn?: boolean
+  /**
+   * Show a "Try sample ClickHouse (read-only)" quick-fill affordance that
+   * loads `SAMPLE_CLUSTER_PRESET` into the form. Only appropriate for an "add
+   * new host" context (`AddHostDialog`) — never passed when editing an
+   * existing connection.
+   */
+  showSamplePreset?: boolean
 }
 
 function isValidUrl(value: string): boolean {
@@ -69,6 +85,7 @@ export function ConnectionForm({
   onStorageModeChange,
   dbStorageEnabled = false,
   dbStorageRequiresSignIn = false,
+  showSamplePreset = false,
 }: ConnectionFormProps) {
   const [form, setForm] = useState<ConnectionFormData>({
     name: initialValues?.name ?? '',
@@ -88,6 +105,11 @@ export function ConnectionForm({
         setTestStatus({ state: 'idle' })
       }
     }
+
+  const handleUseSample = () => {
+    setForm({ ...SAMPLE_CLUSTER_PRESET })
+    setTestStatus({ state: 'idle' })
+  }
 
   const handleTest = async () => {
     setTestStatus({ state: 'loading' })
@@ -153,6 +175,29 @@ export function ConnectionForm({
 
   return (
     <div className="space-y-4">
+      {showSamplePreset && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-xs font-medium">No cluster handy?</p>
+            <p className="text-xs text-muted-foreground">
+              Try the public, read-only ClickHouse Playground — schema browsing
+              and SQL, no setup.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={handleUseSample}
+            data-testid="use-sample-preset"
+          >
+            <FlaskConical className="size-3.5" />
+            Use sample
+          </Button>
+        </div>
+      )}
+
       {/* Name */}
       <div className="space-y-1.5">
         <Label htmlFor="conn-name" className="text-sm font-medium">

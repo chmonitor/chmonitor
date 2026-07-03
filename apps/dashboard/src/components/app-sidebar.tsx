@@ -2,6 +2,7 @@ import { BookOpenIcon } from 'lucide-react'
 import { menuItemsConfig } from '@/menu'
 
 import { HostSwitcher } from '@/components/host/host-switcher'
+import { SampleClusterBanner } from '@/components/host/sample-cluster-banner'
 import { NavUser } from '@/components/nav-user'
 import { NavMain } from '@/components/navigation/nav-main'
 import {
@@ -34,6 +35,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <HostSwitcher />
+        <SampleClusterBanner />
       </SidebarHeader>
 
       <SidebarContent>

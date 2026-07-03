@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   DatabaseZap,
+  FlaskConical,
   KeyRound,
   PlugZap,
   ShieldCheck,
@@ -50,14 +51,24 @@ const ClerkSignInButton:
 export function FirstRunEmptyState() {
   const { cloudMode, isSignedIn } = useMergedHosts()
   const [addOpen, setAddOpen] = useState(false)
+  const [addPreset, setAddPreset] = useState<'sample' | undefined>(undefined)
+
+  // Every open sets the preset explicitly (including `undefined`) — this
+  // dialog instance is reused/toggled, not remounted per CTA, so leaving the
+  // previous preset in place would leak "sample" into a later plain
+  // "Add host" click.
+  const openAddHost = (preset?: 'sample') => {
+    setAddPreset(preset)
+    setAddOpen(true)
+  }
 
   let body: ReactNode
   if (cloudMode && isSignedIn) {
-    body = <ConnectYourHost onAddHost={() => setAddOpen(true)} />
+    body = <ConnectYourHost onAddHost={openAddHost} />
   } else if (cloudMode) {
     body = <SignInToConnect />
   } else {
-    body = <SelfHostedSetup onAddHost={() => setAddOpen(true)} />
+    body = <SelfHostedSetup onAddHost={openAddHost} />
   }
 
   return (
@@ -65,7 +76,11 @@ export function FirstRunEmptyState() {
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
         <div className="w-full max-w-3xl">{body}</div>
       </div>
-      <AddHostDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddHostDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        initialPreset={addPreset}
+      />
     </>
   )
 }
@@ -140,7 +155,11 @@ function DocsFooter({ links }: { links: { slug: string; label: string }[] }) {
 /* Cloud — signed in                                                   */
 /* ------------------------------------------------------------------ */
 
-function ConnectYourHost({ onAddHost }: { onAddHost: () => void }) {
+function ConnectYourHost({
+  onAddHost,
+}: {
+  onAddHost: (preset?: 'sample') => void
+}) {
   const { data: sub } = useBillingSubscription()
   const currentPlanId = sub?.planId ?? 'free'
   const isPaid = currentPlanId === 'pro' || currentPlanId === 'max'
@@ -205,13 +224,28 @@ function ConnectYourHost({ onAddHost }: { onAddHost: () => void }) {
         <Button
           className="mt-5 w-full"
           size="lg"
-          onClick={onAddHost}
+          onClick={() => onAddHost()}
           data-testid="welcome-add-host"
         >
           <PlugZap className="size-4" />
           Add ClickHouse host
           <ArrowRight className="ml-auto size-4" />
         </Button>
+
+        <Button
+          className="mt-2 w-full"
+          size="lg"
+          variant="outline"
+          onClick={() => onAddHost('sample')}
+          data-testid="welcome-try-sample"
+        >
+          <FlaskConical className="size-4" />
+          Try with sample ClickHouse
+        </Button>
+        <p className="mt-1.5 text-center text-xs text-muted-foreground">
+          A public, read-only demo — explore schema &amp; SQL, no setup
+          required.
+        </p>
 
         <p className="text-muted-foreground mt-3 text-center text-xs">
           Not sure where to start?{' '}
@@ -368,7 +402,11 @@ function SignInToConnect() {
 /* Self-hosted (OSS)                                                   */
 /* ------------------------------------------------------------------ */
 
-function SelfHostedSetup({ onAddHost }: { onAddHost: () => void }) {
+function SelfHostedSetup({
+  onAddHost,
+}: {
+  onAddHost: (preset?: 'sample') => void
+}) {
   return (
     <div className="space-y-7">
       <WelcomeHeader
@@ -399,12 +437,26 @@ CLICKHOUSE_PASSWORD=••••••••`}</code>
         <Button
           className="w-full"
           variant="outline"
-          onClick={onAddHost}
+          onClick={() => onAddHost()}
           data-testid="welcome-add-host"
         >
           <PlugZap className="size-4" />
           Add a host from this browser
         </Button>
+
+        <Button
+          className="mt-2 w-full"
+          variant="outline"
+          onClick={() => onAddHost('sample')}
+          data-testid="welcome-try-sample"
+        >
+          <FlaskConical className="size-4" />
+          Try with sample ClickHouse
+        </Button>
+        <p className="mt-1.5 text-center text-xs text-muted-foreground">
+          A public, read-only demo — explore schema &amp; SQL, no setup
+          required.
+        </p>
       </div>
 
       <DocsFooter
