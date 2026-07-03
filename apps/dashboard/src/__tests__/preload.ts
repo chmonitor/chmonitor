@@ -8,7 +8,7 @@
 // resolution here so every test file resolves it deterministically, instead of
 // each file having to mock it and risking `--isolate` cross-file ordering flake.
 
-import { env } from './lib/cloudflare-workers-shim'
+import { env } from '../lib/cloudflare-workers-shim'
 import { mock } from 'bun:test'
 
 mock.module('cloudflare:workers', () => ({ env }))
