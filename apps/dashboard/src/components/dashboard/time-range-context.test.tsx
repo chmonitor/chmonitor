@@ -13,6 +13,8 @@
  * that needs a real DOM to mount React and observe a state-driven re-render.
  */
 
+import type { DateRangeValue } from '@/components/date-range'
+
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
@@ -39,13 +41,7 @@ describe('DashboardTimeRangeProvider / useDashboardTimeRange', () => {
     )
 
     const renders: Array<{ lastHours?: number; interval: string }> = []
-    let capturedSetRange:
-      | ((range: {
-          value: string
-          lastHours?: number
-          interval: string
-        }) => void)
-      | null = null
+    let capturedSetRange: ((range: DateRangeValue) => void) | null = null
 
     function SubscribingWidget() {
       const { lastHours, interval, setRange } = useDashboardTimeRange()
