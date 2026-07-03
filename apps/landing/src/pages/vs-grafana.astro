@@ -1,0 +1,86 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import ComparisonTable from '../components/ComparisonTable.astro'
+import FinalCta from '../components/FinalCta.astro'
+import Footer from '../components/Footer.astro'
+import { grafanaRows } from '../data/comparisons'
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'chmonitor vs Grafana', item: canonical },
+  ],
+}
+---
+<Base
+  title="chmonitor vs Grafana + ClickHouse plugin — Honest 2026 Comparison"
+  description="chmonitor vs Grafana with the Altinity/official ClickHouse data source plugin: a dated, sourced feature matrix, setup time and cost — no strawmen, just what each tool actually does."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head reveal">
+          <span class="eyebrow">chmonitor vs Grafana</span>
+          <h1>ClickHouse-native monitoring vs a general-purpose dashboard</h1>
+          <p>Grafana with the Altinity or official ClickHouse plugin is a genuinely great, flexible dashboarding tool for any data source you wire up. chmonitor does one thing: it reads ClickHouse system tables directly and ships every page pre-built, plus an AI agent, a recommend-only query/MV advisor, and ClickHouse-aware alerting. Here's the honest, row-by-row comparison.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Feature matrix</span>
+          <h2>chmonitor vs Grafana + ClickHouse plugin</h2>
+          <p>Where each tool actually wins — Grafana included.</p>
+        </div>
+        <ComparisonTable competitor="Grafana + ClickHouse plugin" rows={grafanaRows}>
+          <Fragment slot="note">
+            Grafana and Altinity/ClickHouse-plugin details reflect public docs and pricing pages as of July 2026 and may change — verify at <a href="https://grafana.com/pricing/" target="_blank" rel="noopener">grafana.com/pricing</a> and the <a href="https://github.com/Altinity/clickhouse-grafana" target="_blank" rel="noopener">Altinity ClickHouse plugin repo</a>. chmonitor rows reflect the current self-hosted/OSS build.
+          </Fragment>
+        </ComparisonTable>
+      </div>
+    </section>
+
+    <section id="tco" class="band">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Total cost of ownership</span>
+          <h2>Less to build, less to maintain</h2>
+          <p>Grafana's strength is being a flexible canvas. That flexibility is also the bill: someone has to build and maintain the ClickHouse panels.</p>
+        </div>
+        <div class="cap-grid">
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+            <h4>Minutes, not a dashboard project</h4>
+            <p>chmonitor ships ClickHouse monitoring as complete pages. Grafana + the ClickHouse plugin gives you a SQL editor and a blank canvas.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7l9 4 9-4-9-4Z"/><path d="m3 12 9 4 9-4"/><path d="m3 17 9 4 9-4"/></svg></span>
+            <h4>Nothing to maintain across upgrades</h4>
+            <p>No panel JSON or hand-written SQL queries to keep in sync with your ClickHouse version — chmonitor's query set adapts on its own.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></span>
+            <h4>Advisor + AI agent included</h4>
+            <p>A recommend-only query and MV/projection advisor plus a built-in AI agent — Grafana has no ClickHouse-specific advisor at any price.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <h4>Free self-hosted, period</h4>
+            <p>GPL-3.0, no usage-based bill. Grafana Cloud starts free too, then bills per active series/user once you outgrow the free tier.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <FinalCta />
+  </main>
+  <Footer />
+</Base>
