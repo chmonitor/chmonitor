@@ -15,6 +15,7 @@
  */
 
 import {
+  isMcpRegistryEnabled,
   type McpAuth,
   type McpConnectInput,
   type McpRegistrationStore,
@@ -336,6 +337,10 @@ export async function loadUserRegisteredServers(
   userId: string,
   opts?: { store?: Pick<McpRegistrationStore, 'listEnabledConnectInputs'> }
 ): Promise<CustomMcpServerInput[]> {
+  // Self-hosted/OSS without a D1 binding has no registry — skip silently. A
+  // missing registry is a normal condition, not an error worth logging on every
+  // agent conversation. Tests inject a store, so they bypass this gate.
+  if (!opts?.store && !isMcpRegistryEnabled()) return []
   try {
     const store = opts?.store ?? mcpRegistrationStore
     const inputs = await store.listEnabledConnectInputs(userId)
