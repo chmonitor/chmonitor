@@ -13,6 +13,7 @@ import { createControlTools } from './control-tools'
 import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
+import { createMvDesignerTools } from './mv-designer-tools'
 import { createPlanTools } from './plan-tools'
 import { createQueryTools } from './query-tools'
 import { createReplicationTools } from './replication-tools'
@@ -39,6 +40,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
  *  - Advisor: get_optimization_recommendations
+ *  - Advisor: recommend_materialized_view
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
@@ -80,6 +82,8 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Advisor (ranked DDL/rewrite recommendations — recommend-only)
     ...createAdvisorTools(hostId),
+    // Advisor (MV/projection designer, recommend-only)
+    ...createMvDesignerTools(hostId),
 
     // Control actions (destructive) — off unless explicitly enabled
     ...(enableControlTools && includeControlTools

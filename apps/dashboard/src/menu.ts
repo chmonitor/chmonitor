@@ -90,6 +90,16 @@ export const menuItemsConfig: MenuItem[] = [
     permission: { feature: 'health' },
   },
   {
+    title: 'Inbound Events',
+    href: '/inbound-events',
+    description:
+      'Alertmanager, Datadog, and generic webhook events ingested via POST /api/events/ingest',
+    icon: RssIcon,
+    section: 'main',
+    isNew: true,
+    permission: { feature: 'health' },
+  },
+  {
     title: 'Queries',
     href: '',
     countKey: 'running-queries',

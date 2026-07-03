@@ -14,6 +14,7 @@ The agent exposes a small set of **powerful primitives** (22 tools, plus 3 env-g
 | Query analysis | Running, slow, failed queries; EXPLAIN | `get_running_queries`, `get_slow_queries`, `get_failed_queries`, `explain_query` |
 | Health, storage, replication, merges | Metrics, disks, parts, replication, merges | `get_metrics`, `get_disk_usage`, `get_table_parts`, `get_replication_status`, `get_merge_status` |
 | Capacity planning | Disk-full forecast, TTL/retention advice (recommend-only) | `forecast_disk_capacity`, `suggest_ttl_adjustment` |
+| Aggregation advisor | Design MV/projection DDL from frequent aggregation queries, with a size estimate (recommend-only) | `recommend_materialized_view` |
 | Plan & verify | A visible, adaptive step-by-step plan | `update_plan` |
 | Knowledge & interaction | Load expert guides; ask the user | `load_skill`, `ask_user` |
 | Charts & visualization | Run SQL and return an interactive chart | `query_and_visualize` |
@@ -45,6 +46,7 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 | `get_table_parts` | Part-level info for a table: rows, size, compression ratio. | Reads `system.parts`. |
 | `forecast_disk_capacity` | Forecast when disks will run out of free space from recent write-growth trend, plus top contributing tables. | Reads `system.part_log` (NewPart events) + `system.disks`. Reports a clear message instead of a forecast when `part_log` isn't enabled. |
 | `suggest_ttl_adjustment` | Recommend a TTL/retention change for a table to keep projected disk utilization ≤80%, never below a stated retention floor. | Returns a suggested `ALTER TABLE ... MODIFY TTL ...` string + risk note — recommend-only, never executed. Reports a clear message instead of a suggestion when `part_log` isn't enabled. |
+| `recommend_materialized_view` | Mine frequent GROUP BY/aggregate query shapes and design a Summing/AggregatingMergeTree MV or projection to pre-aggregate them. | Returns DDL text + size estimate + impact + risk (added write-path/storage cost) — recommend-only, never executed. Reads `system.query_log`, `system.parts`, `system.tables`. |
 | `get_replication_status` | Per-table replication delay, queue size, and replica counts. | Reads `system.replicas`. |
 | `get_merge_status` | Currently running merges with progress and elapsed time. | Reads `system.merges`. |
 | `update_plan` | Create or update a step-by-step workflow plan for the current investigation. | Rendered as a live checklist in the UI. |
