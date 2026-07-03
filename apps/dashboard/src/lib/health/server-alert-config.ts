@@ -103,6 +103,41 @@ export function getServerThresholdOverrides(
   return out
 }
 
+/** Opsgenie region — selects which Alert API base host the dispatch layer uses. */
+export type OpsgenieRegion = 'us' | 'eu'
+
+/** Resolved server-side Opsgenie config: the API key plus which region to target. */
+export interface ServerOpsgenieConfig {
+  apiKey: string
+  region: OpsgenieRegion
+}
+
+/**
+ * Server-side Opsgenie config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_OPSGENIE_API_KEY → apiKey (default '')
+ *   - HEALTH_ALERT_OPSGENIE_REGION  → region ('us' | 'eu', default 'us')
+ *
+ * Returns null when no API key is configured — Opsgenie delivery is opt-in
+ * and fails open (no key ⇒ the sweep skips the Opsgenie dispatch entirely).
+ *
+ * NOTE: exposed as a companion function (matching
+ * {@link getServerThresholdOverrides}) rather than folded into
+ * {@link getServerAlertConfig}'s return value — that shape is shared with the
+ * client's localStorage settings and asserted deeply by its tests, and an
+ * Opsgenie API key is a server-only secret that must never round-trip
+ * through it.
+ */
+export function getServerOpsgenieConfig(): ServerOpsgenieConfig | null {
+  const apiKey = process.env.HEALTH_ALERT_OPSGENIE_API_KEY?.trim() || ''
+  if (!apiKey) return null
+  const region: OpsgenieRegion =
+    process.env.HEALTH_ALERT_OPSGENIE_REGION?.trim().toLowerCase() === 'eu'
+      ? 'eu'
+      : 'us'
+  return { apiKey, region }
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

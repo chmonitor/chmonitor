@@ -1,4 +1,7 @@
-import { getServerAlertConfig } from './server-alert-config'
+import {
+  getServerAlertConfig,
+  getServerOpsgenieConfig,
+} from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 const ENV_KEYS = [
@@ -141,5 +144,61 @@ describe('getServerAlertConfig', () => {
       minSeverity: 'critical',
       browserNotificationsEnabled: false,
     })
+  })
+})
+
+const OPSGENIE_ENV_KEYS = [
+  'HEALTH_ALERT_OPSGENIE_API_KEY',
+  'HEALTH_ALERT_OPSGENIE_REGION',
+] as const
+
+describe('getServerOpsgenieConfig', () => {
+  let saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of OPSGENIE_ENV_KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of OPSGENIE_ENV_KEYS) {
+      if (saved[key] === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = saved[key]
+      }
+    }
+    saved = {}
+  })
+
+  it('returns null when no API key is configured (fail-open)', () => {
+    expect(getServerOpsgenieConfig()).toBeNull()
+  })
+
+  it('returns null when the API key is only whitespace', () => {
+    process.env.HEALTH_ALERT_OPSGENIE_API_KEY = '   '
+    expect(getServerOpsgenieConfig()).toBeNull()
+  })
+
+  it('trims the API key and defaults region to "us"', () => {
+    process.env.HEALTH_ALERT_OPSGENIE_API_KEY = '  my-key  '
+    expect(getServerOpsgenieConfig()).toEqual({
+      apiKey: 'my-key',
+      region: 'us',
+    })
+  })
+
+  it('reads region "eu" case-insensitively', () => {
+    process.env.HEALTH_ALERT_OPSGENIE_API_KEY = 'my-key'
+    process.env.HEALTH_ALERT_OPSGENIE_REGION = 'EU'
+    expect(getServerOpsgenieConfig()?.region).toBe('eu')
+  })
+
+  it('falls back to "us" for an invalid region value', () => {
+    process.env.HEALTH_ALERT_OPSGENIE_API_KEY = 'my-key'
+    process.env.HEALTH_ALERT_OPSGENIE_REGION = 'apac'
+    expect(getServerOpsgenieConfig()?.region).toBe('us')
   })
 })
