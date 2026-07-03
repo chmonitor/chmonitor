@@ -130,7 +130,8 @@ appropriate for blind autonomous execution. Grouped by the blocker:
   [44 webhook-event-bus-outbound](44-webhook-event-bus-outbound.md),
   [45 github-deploy-correlation](45-github-deploy-correlation.md),
   [46 query-advisor-engine](46-query-advisor-engine.md) (recommend-only, never auto-applies DDL),
-  [47 mv-projection-designer](47-mv-projection-designer.md) (recommend-only).
+  [47 mv-projection-designer](47-mv-projection-designer.md) (recommend-only;
+  implemented on `advisor/47-mv-projection-designer`, pending PR).
 - **Advisor 49, 52** (2) — [49 query-cost-estimator](49-query-cost-estimator.md)
   (builds on 46), [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
   (depends on 25/37 delivery channels).
