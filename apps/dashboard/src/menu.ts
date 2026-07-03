@@ -46,6 +46,7 @@ import {
   UngroupIcon,
   UnplugIcon,
   UsersIcon,
+  WandSparklesIcon,
   WorkflowIcon,
 } from 'lucide-react'
 
@@ -148,6 +149,14 @@ export const menuItemsConfig: MenuItem[] = [
         description: 'Query execution plan analysis for performance tuning',
         icon: InfoCircledIcon,
         docs: 'https://clickhouse.com/docs/en/sql-reference/statements/explain',
+      },
+      {
+        title: 'Advisor',
+        href: '/advisor',
+        description:
+          'Ranked skip-index, projection, partition-key, and PREWHERE recommendations for a slow query (recommend-only)',
+        icon: WandSparklesIcon,
+        isNew: true,
       },
       {
         title: 'Query Views Log',

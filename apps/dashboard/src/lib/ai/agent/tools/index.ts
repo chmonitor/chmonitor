@@ -7,6 +7,7 @@
  * returns its tools for a given host.
  */
 
+import { createAdvisorTools } from './advisor-tools'
 import { createAskUserTools } from './ask-user-tools'
 import { createControlTools } from './control-tools'
 import { createHealthTools } from './health-tools'
@@ -37,6 +38,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Interaction: ask_user
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
+ *  - Advisor: get_optimization_recommendations
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
@@ -75,6 +77,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Insights (statistical anomaly baselines)
     ...createInsightTools(hostId),
+
+    // Advisor (ranked DDL/rewrite recommendations — recommend-only)
+    ...createAdvisorTools(hostId),
 
     // Control actions (destructive) — off unless explicitly enabled
     ...(enableControlTools && includeControlTools

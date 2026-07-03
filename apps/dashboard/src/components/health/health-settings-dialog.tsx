@@ -2,6 +2,7 @@ import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { HEALTH_CHECKS } from './health-checks'
+import { RecentAlertsCard } from './recent-alerts-card'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -178,6 +179,7 @@ export function HealthSettingsDialog() {
           <TabsList>
             <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
             <TabsTrigger value="alerts">Alerts</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           </TabsList>
 
@@ -360,6 +362,10 @@ export function HealthSettingsDialog() {
                 </button>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <RecentAlertsCard />
           </TabsContent>
 
           <TabsContent value="webhooks">
