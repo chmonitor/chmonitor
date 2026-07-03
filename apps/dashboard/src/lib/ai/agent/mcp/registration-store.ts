@@ -84,8 +84,10 @@ export interface McpConnectInput {
 
 const TABLE = 'mcp_server_registrations'
 
-// Kept byte-for-byte in sync with
-// db/conversations-migrations/0015_mcp_server_registrations.sql.
+// Kept in sync with db/conversations-migrations/0015_mcp_server_registrations.sql
+// — identical columns / types / defaults (that file adds explanatory column
+// comments). `IF NOT EXISTS` makes the tracked migration and this lazy DDL
+// idempotent together.
 const MIGRATION_SQL = `CREATE TABLE IF NOT EXISTS ${TABLE} (
   id                 TEXT PRIMARY KEY,
   user_id            TEXT NOT NULL,
