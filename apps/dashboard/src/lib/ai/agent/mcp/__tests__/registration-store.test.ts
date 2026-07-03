@@ -11,8 +11,7 @@
  */
 
 import { Database } from 'bun:sqlite'
-import { beforeEach, describe, expect, test } from 'bun:test'
-import { mock } from 'bun:test'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // One shared in-memory DB for the process: the store's lazy `CREATE TABLE IF
 // NOT EXISTS` migration is single-flight (cached per process), so a fresh DB

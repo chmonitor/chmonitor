@@ -5,12 +5,12 @@
 
 import type { McpAuth, McpAuthKind, McpTransport } from './registration-store'
 
+import { McpRegistryError } from './registration-store'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { ApiErrorType } from '@/lib/api/types'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
 import { GUEST_USER_ID, resolveUserId } from '@/lib/conversation-store/auth'
 import { ConversationStoreError } from '@/lib/conversation-store/types'
-import { McpRegistryError } from './registration-store'
 
 interface RouteContext {
   route: string

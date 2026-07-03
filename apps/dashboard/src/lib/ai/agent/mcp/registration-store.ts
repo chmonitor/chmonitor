@@ -21,12 +21,12 @@
  * (`db/conversations-migrations/0015_mcp_server_registrations.sql`) is applied.
  */
 
-import { getPlatformBindings } from '@chm/platform'
 import {
   decryptRegistrySecret,
   encryptRegistrySecret,
   isRegistryEncryptionConfigured,
 } from './registry-crypto'
+import { getPlatformBindings } from '@chm/platform'
 
 export type McpTransport = 'http' | 'sse'
 export type McpAuthKind = 'none' | 'bearer' | 'header'

@@ -14,12 +14,6 @@
  * permitted on loopback hosts (dev convenience).
  */
 
-import { createMCPClient } from '@ai-sdk/mcp'
-import {
-  createHostValidationFetch,
-  type ResolveHostAddresses,
-  validateHostUrl,
-} from '@/lib/browser-connections/host-url'
 import {
   type McpAuth,
   type McpConnectInput,
@@ -27,6 +21,12 @@ import {
   type McpTransport,
   mcpRegistrationStore,
 } from './registration-store'
+import { createMCPClient } from '@ai-sdk/mcp'
+import {
+  createHostValidationFetch,
+  type ResolveHostAddresses,
+  validateHostUrl,
+} from '@/lib/browser-connections/host-url'
 
 export interface CustomMcpServerInput {
   id: string

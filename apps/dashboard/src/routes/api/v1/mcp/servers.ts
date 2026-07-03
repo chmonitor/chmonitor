@@ -23,8 +23,8 @@ import type { McpRegistration } from '@/lib/ai/agent/mcp/registration-store'
 import { validateServer } from '@/lib/ai/agent/mcp/connect-custom-servers'
 import {
   isMcpRegistryEnabled,
-  mcpRegistrationStore,
   McpRegistryError,
+  mcpRegistrationStore,
 } from '@/lib/ai/agent/mcp/registration-store'
 import {
   buildRegistryAuth,
