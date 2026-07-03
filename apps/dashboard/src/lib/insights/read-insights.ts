@@ -32,10 +32,17 @@ function deriveAction(
       return { label: 'Open running queries', href: '/running-queries' }
     case 'max_active_parts':
     case 'worst_compression_ratio':
+    case 'detached_parts':
       return { label: 'View tables', href: '/tables' }
     case 'readonly_replicas':
     case 'max_replication_delay':
       return { label: 'View replicas', href: '/replicas' }
+    case 'stuck_mutations':
+      return { label: 'View mutations', href: '/mutations' }
+    case 'longest_running_query':
+      return { label: 'Open running queries', href: '/running-queries' }
+    case 'failed_dictionaries':
+      return { label: 'View dictionaries', href: '/dictionaries' }
     default:
       if (category === 'storage')
         return { label: 'View tables', href: '/tables' }

@@ -12,6 +12,12 @@ import type { Baseline } from './statistical-baseline'
 import type { InsightCandidate, InsightSeverity } from './types'
 
 import { readOnlyQuery } from '../ai/agent/tools/helpers'
+import {
+  checkDetachedParts,
+  checkFailedDictionaries,
+  checkLongRunningQuery,
+  checkStuckMutations,
+} from './operational-checks'
 import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
 
 function extractValue(result: unknown): number | null {
@@ -361,6 +367,63 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
+// ---------------------------------------------------------------------------
+// Operational collector — cheap point-in-time health checks across storage,
+// reliability and performance (each a single count/aggregate on a small system
+// table). Classification lives in ./operational-checks so it is unit-tested as
+// pure functions; this layer only owns the SQL.
+// ---------------------------------------------------------------------------
+
+async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
+  const out: InsightCandidate[] = []
+
+  // Detached parts — leftovers from failed merges / DETACH; disk without value.
+  const detached = await firstRow(
+    `SELECT count() AS value FROM system.detached_parts`,
+    hostId
+  )
+  if (detached) {
+    const candidate = checkDetachedParts(Number(detached.value) || 0)
+    if (candidate) out.push(candidate)
+  }
+
+  // Stuck mutations — not done yet but already carrying a failure reason.
+  const mutations = await firstRow(
+    `SELECT count() AS value FROM system.mutations WHERE is_done = 0 AND latest_fail_reason != ''`,
+    hostId
+  )
+  if (mutations) {
+    const candidate = checkStuckMutations(Number(mutations.value) || 0)
+    if (candidate) out.push(candidate)
+  }
+
+  // Long-running live query — the single longest currently-executing query,
+  // excluding this collector's own probe of system.processes.
+  const longRunning = await firstRow(
+    `SELECT count() AS value, max(elapsed) AS max_elapsed FROM system.processes WHERE elapsed > 60 AND query NOT ILIKE '%system.processes%'`,
+    hostId
+  )
+  if (longRunning) {
+    const candidate = checkLongRunningQuery(
+      Number(longRunning.max_elapsed) || 0,
+      Number(longRunning.value) || 0
+    )
+    if (candidate) out.push(candidate)
+  }
+
+  // Dictionaries stuck in the FAILED state — every query using them errors.
+  const dictionaries = await firstRow(
+    `SELECT count() AS value FROM system.dictionaries WHERE status = 'FAILED'`,
+    hostId
+  )
+  if (dictionaries) {
+    const candidate = checkFailedDictionaries(Number(dictionaries.value) || 0)
+    if (candidate) out.push(candidate)
+  }
+
+  return out
+}
+
 /**
  * Run all collectors for a host and return de-duplicated candidates,
  * highest severity first.
@@ -372,6 +435,7 @@ export async function collectInsights(
     collectAnomalies(hostId).catch(() => []),
     collectStorage(hostId).catch(() => []),
     collectReliability(hostId).catch(() => []),
+    collectOperational(hostId).catch(() => []),
   ])
 
   const seen = new Set<string>()
