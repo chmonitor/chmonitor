@@ -16,6 +16,7 @@ import { QueryInsightsCard } from './query-insights-card'
 import { isCloudflareWorkers } from '@chm/clickhouse-client/runtime/cloudflare-workers'
 import { getToolMetadata } from '@chm/mcp-server/data'
 import { type ComponentProps, useEffect, useState } from 'react'
+import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
 import { AgentChartRenderer } from '@/components/agents/agent-chart-renderer'
 import { AgentDataSources } from '@/components/agents/agent-data-sources'
 import {
@@ -335,6 +336,19 @@ export function renderToolOutput(output: unknown) {
     return (
       <TableDesignPanel
         output={output as ComponentProps<typeof TableDesignPanel>['output']}
+      />
+    )
+  }
+
+  if (
+    outputObj.type === 'query_advisor_recommendations' &&
+    Array.isArray(outputObj.recommendations)
+  ) {
+    return (
+      <AdvisorRecommendationsPanel
+        output={
+          output as ComponentProps<typeof AdvisorRecommendationsPanel>['output']
+        }
       />
     )
   }

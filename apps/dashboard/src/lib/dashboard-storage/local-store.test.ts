@@ -1,9 +1,9 @@
 import {
-  deleteDashboard,
-  listDashboards,
-  loadDashboard,
-  saveDashboard,
-} from './dashboard-storage'
+  deleteDashboardLocal,
+  listDashboardsLocal,
+  loadDashboardLocal,
+  saveDashboardLocal,
+} from './local-store'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 const STORAGE_KEY = 'clickhouse-monitor-dashboards'
@@ -33,7 +33,7 @@ function makeLocalStorageMock() {
   }
 }
 
-describe('dashboard-storage — SSR guard', () => {
+describe('local-store — SSR guard', () => {
   it('returns empty list when window is undefined', () => {
     // Bun runs in Node; window is undefined by default
     const savedWindow = globalThis.window
@@ -43,18 +43,18 @@ describe('dashboard-storage — SSR guard', () => {
     delete globalThis.localStorage
 
     try {
-      expect(listDashboards()).toEqual([])
-      expect(loadDashboard('any')).toBeNull()
-      // saveDashboard and deleteDashboard should be no-ops (no throw)
-      expect(() => saveDashboard('x', ['a'])).not.toThrow()
-      expect(() => deleteDashboard('x')).not.toThrow()
+      expect(listDashboardsLocal()).toEqual([])
+      expect(loadDashboardLocal('any')).toBeNull()
+      // saveDashboardLocal and deleteDashboardLocal should be no-ops (no throw)
+      expect(() => saveDashboardLocal('x', ['a'])).not.toThrow()
+      expect(() => deleteDashboardLocal('x')).not.toThrow()
     } finally {
       globalThis.window = savedWindow
     }
   })
 })
 
-describe('dashboard-storage — with localStorage mock', () => {
+describe('local-store — with localStorage mock', () => {
   let lsMock: ReturnType<typeof makeLocalStorageMock>
 
   beforeEach(() => {
@@ -71,115 +71,115 @@ describe('dashboard-storage — with localStorage mock', () => {
     delete globalThis.localStorage
   })
 
-  describe('saveDashboard / loadDashboard round-trip', () => {
+  describe('saveDashboardLocal / loadDashboardLocal round-trip', () => {
     it('saves and loads a dashboard by name', () => {
-      saveDashboard('myDash', ['chart1', 'chart2'])
-      expect(loadDashboard('myDash')).toEqual(['chart1', 'chart2'])
+      saveDashboardLocal('myDash', ['chart1', 'chart2'])
+      expect(loadDashboardLocal('myDash')).toEqual(['chart1', 'chart2'])
     })
 
     it('saves an empty chart list', () => {
-      saveDashboard('empty', [])
-      expect(loadDashboard('empty')).toEqual([])
+      saveDashboardLocal('empty', [])
+      expect(loadDashboardLocal('empty')).toEqual([])
     })
 
     it('overwrites an existing dashboard with the same name', () => {
-      saveDashboard('dash', ['old'])
-      saveDashboard('dash', ['new1', 'new2'])
-      expect(loadDashboard('dash')).toEqual(['new1', 'new2'])
+      saveDashboardLocal('dash', ['old'])
+      saveDashboardLocal('dash', ['new1', 'new2'])
+      expect(loadDashboardLocal('dash')).toEqual(['new1', 'new2'])
     })
 
     it('preserves other dashboards when saving a new one', () => {
-      saveDashboard('a', ['x'])
-      saveDashboard('b', ['y'])
-      expect(loadDashboard('a')).toEqual(['x'])
-      expect(loadDashboard('b')).toEqual(['y'])
+      saveDashboardLocal('a', ['x'])
+      saveDashboardLocal('b', ['y'])
+      expect(loadDashboardLocal('a')).toEqual(['x'])
+      expect(loadDashboardLocal('b')).toEqual(['y'])
     })
   })
 
-  describe('loadDashboard', () => {
+  describe('loadDashboardLocal', () => {
     it('returns null for a non-existent dashboard', () => {
-      expect(loadDashboard('nonexistent')).toBeNull()
+      expect(loadDashboardLocal('nonexistent')).toBeNull()
     })
   })
 
-  describe('listDashboards', () => {
+  describe('listDashboardsLocal', () => {
     it('returns empty array when no dashboards saved', () => {
-      expect(listDashboards()).toEqual([])
+      expect(listDashboardsLocal()).toEqual([])
     })
 
     it('returns sorted dashboard names', () => {
-      saveDashboard('zebra', [])
-      saveDashboard('alpha', [])
-      saveDashboard('middle', [])
-      expect(listDashboards()).toEqual(['alpha', 'middle', 'zebra'])
+      saveDashboardLocal('zebra', [])
+      saveDashboardLocal('alpha', [])
+      saveDashboardLocal('middle', [])
+      expect(listDashboardsLocal()).toEqual(['alpha', 'middle', 'zebra'])
     })
 
     it('reflects names after deletion', () => {
-      saveDashboard('a', [])
-      saveDashboard('b', [])
-      deleteDashboard('a')
-      expect(listDashboards()).toEqual(['b'])
+      saveDashboardLocal('a', [])
+      saveDashboardLocal('b', [])
+      deleteDashboardLocal('a')
+      expect(listDashboardsLocal()).toEqual(['b'])
     })
   })
 
-  describe('deleteDashboard', () => {
+  describe('deleteDashboardLocal', () => {
     it('removes a dashboard by name', () => {
-      saveDashboard('toDelete', ['c1'])
-      deleteDashboard('toDelete')
-      expect(loadDashboard('toDelete')).toBeNull()
+      saveDashboardLocal('toDelete', ['c1'])
+      deleteDashboardLocal('toDelete')
+      expect(loadDashboardLocal('toDelete')).toBeNull()
     })
 
     it('is a no-op for a non-existent dashboard', () => {
-      saveDashboard('keep', ['x'])
-      expect(() => deleteDashboard('ghost')).not.toThrow()
+      saveDashboardLocal('keep', ['x'])
+      expect(() => deleteDashboardLocal('ghost')).not.toThrow()
       // kept dashboard unaffected
-      expect(loadDashboard('keep')).toEqual(['x'])
+      expect(loadDashboardLocal('keep')).toEqual(['x'])
     })
 
     it('does not remove other dashboards', () => {
-      saveDashboard('a', ['1'])
-      saveDashboard('b', ['2'])
-      deleteDashboard('a')
-      expect(loadDashboard('b')).toEqual(['2'])
+      saveDashboardLocal('a', ['1'])
+      saveDashboardLocal('b', ['2'])
+      deleteDashboardLocal('a')
+      expect(loadDashboardLocal('b')).toEqual(['2'])
     })
   })
 
   describe('malformed JSON fallback', () => {
     it('treats invalid JSON as an empty store', () => {
       lsMock.setItem(STORAGE_KEY, 'not-json{{{')
-      expect(listDashboards()).toEqual([])
-      expect(loadDashboard('x')).toBeNull()
+      expect(listDashboardsLocal()).toEqual([])
+      expect(loadDashboardLocal('x')).toBeNull()
     })
 
     it('treats a JSON array as an empty store', () => {
       lsMock.setItem(STORAGE_KEY, JSON.stringify(['a', 'b']))
-      expect(listDashboards()).toEqual([])
+      expect(listDashboardsLocal()).toEqual([])
     })
 
     it('treats null JSON value as an empty store', () => {
       lsMock.setItem(STORAGE_KEY, 'null')
-      expect(listDashboards()).toEqual([])
+      expect(listDashboardsLocal()).toEqual([])
     })
 
     it('treats a JSON primitive as an empty store', () => {
       lsMock.setItem(STORAGE_KEY, '42')
-      expect(listDashboards()).toEqual([])
+      expect(listDashboardsLocal()).toEqual([])
     })
 
     it('still allows saving after a malformed store', () => {
       lsMock.setItem(STORAGE_KEY, 'bad')
-      saveDashboard('fresh', ['chart'])
-      expect(loadDashboard('fresh')).toEqual(['chart'])
+      saveDashboardLocal('fresh', ['chart'])
+      expect(loadDashboardLocal('fresh')).toEqual(['chart'])
     })
   })
 
   describe('default / missing key', () => {
     it('returns empty list when localStorage key is absent', () => {
-      expect(listDashboards()).toEqual([])
+      expect(listDashboardsLocal()).toEqual([])
     })
 
     it('returns null load when localStorage key is absent', () => {
-      expect(loadDashboard('anything')).toBeNull()
+      expect(loadDashboardLocal('anything')).toBeNull()
     })
   })
 })

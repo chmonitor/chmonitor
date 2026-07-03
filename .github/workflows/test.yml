@@ -40,8 +40,7 @@ jobs:
           # `bun test --isolate` (used by the test scripts to give each file a
           # fresh global, preventing cross-file mock.module leakage) needs a
           # recent Bun. 1.3.13's lcov coverage writer intermittently throws
-          # "error: An internal error occurred (WriteFailed)" after all tests
-          # pass (reproduced failing on both main and PRs); 1.3.14 fixes it.
+          # `WriteFailed` after all tests already passed; 1.3.14 fixes it.
           bun-version: '1.3.14'
 
       - name: Bun Cache
@@ -95,7 +94,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.3'
+          bun-version: '1.3.14'
 
       # This job was the ONLY one missing the Bun install cache, so every run
       # re-downloaded the full dependency set from the registry before building
@@ -188,7 +187,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.3'
+          bun-version: '1.3.14'
 
       - name: Bun Cache
         uses: actions/cache@v6

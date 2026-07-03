@@ -9,9 +9,12 @@
     "build": "astro build",
     "preview": "astro preview",
     "build:og": "bun run scripts/build-og.ts",
+    "release-to-post": "bun run scripts/release-to-post.mjs",
+    "sync-latest-posts": "bun run scripts/sync-latest-posts.mjs",
     "cf:deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@astrojs/rss": "^4.0.12",
     "@astrojs/sitemap": "^3.3.0",
     "astro": "^7.0.0"
   },

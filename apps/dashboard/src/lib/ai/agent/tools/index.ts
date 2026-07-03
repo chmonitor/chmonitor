@@ -7,11 +7,13 @@
  * returns its tools for a given host.
  */
 
+import { createAdvisorTools } from './advisor-tools'
 import { createAskUserTools } from './ask-user-tools'
 import { createControlTools } from './control-tools'
 import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
+import { createMvDesignerTools } from './mv-designer-tools'
 import { createPlanTools } from './plan-tools'
 import { createQueryTools } from './query-tools'
 import { createReplicationTools } from './replication-tools'
@@ -27,7 +29,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Schema & exploration: query, list_databases, list_tables,
  *    get_table_schema, explore_table_schema
  *  - Query analysis: get_running_queries, get_slow_queries,
- *    get_failed_queries, explain_query
+ *    get_failed_queries, explain_query, estimate_query_cost
  *  - Health: get_metrics, get_disk_usage
  *  - Storage: get_table_parts
  *  - Replication: get_replication_status
@@ -37,6 +39,8 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Interaction: ask_user
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
+ *  - Advisor: get_optimization_recommendations
+ *  - Advisor: recommend_materialized_view
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
@@ -75,6 +79,11 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Insights (statistical anomaly baselines)
     ...createInsightTools(hostId),
+
+    // Advisor (ranked DDL/rewrite recommendations — recommend-only)
+    ...createAdvisorTools(hostId),
+    // Advisor (MV/projection designer, recommend-only)
+    ...createMvDesignerTools(hostId),
 
     // Control actions (destructive) — off unless explicitly enabled
     ...(enableControlTools && includeControlTools

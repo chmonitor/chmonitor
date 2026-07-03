@@ -26,7 +26,7 @@ The agent connects through the **same ClickHouse host and user** as the rest of 
 | Category | What the agent covers |
 |---|---|
 | Schema exploration | List databases, tables, columns; explore tables relevant to a topic |
-| Query analysis | Running, slow, failed, and expensive queries; EXPLAIN plans; optimization advice |
+| Query analysis | Running, slow, failed, and expensive queries; EXPLAIN plans; pre-flight cost estimates; optimization advice |
 | System health | Server metrics, disks, errors, anomaly detection |
 | Storage, merges & mutations | Part sizes, active merges, stuck mutations, merge throughput |
 | Replication & cluster | Replication lag, queue, ZooKeeper/Keeper status, cluster topology |
@@ -227,8 +227,8 @@ The panel probes each enabled server on load (`POST /api/v1/mcp/probe`) to show 
 The MCP server exposes a smaller, read-only-only subset of tools for external MCP
 clients — not the full agent toolset. For the complete tool list the in-app AI
 Agent uses (schema, query analysis, health, storage, replication, merges,
-capacity planning, planning, skills, visualization, and insights — 24 tools
-total), see [Capabilities](/guide/ai-agent/capabilities).
+capacity planning, the query advisor, aggregation/MV advisor, planning, skills,
+visualization, and insights — 26 tools total), see [Capabilities](/guide/ai-agent/capabilities).
 
 | Tool | Purpose |
 |---|---|
@@ -242,6 +242,7 @@ total), see [Capabilities](/guide/ai-agent/capabilities).
 | `get_merge_status` | Currently running merge operations with progress and elapsed time |
 | `explore_table_schema` | Three-mode schema exploration: databases → tables → full schema with relationships |
 | `analyze_performance` | Structured performance snapshot — slow queries, high part counts, merge backlog, memory/disk pressure — with severity ratings |
+| `get_optimization_recommendations` | Analyze a slow query (by `queryId` or raw `sql`) and return ranked skip-index/projection/partition-key/PREWHERE recommendations with DDL, risk, effort, and an estimated impact — recommend-only, never executed |
 
 ### Read-only enforcement
 

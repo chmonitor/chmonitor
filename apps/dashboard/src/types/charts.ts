@@ -138,6 +138,22 @@ export type ReadableFormat = 'bytes' | 'duration' | 'number' | 'quantity'
  */
 export type YAxisScale = 'linear' | 'log' | 'auto'
 
+/**
+ * Minimal deployment shape the area-chart overlay needs to render a marker
+ * (plans/45-github-deploy-correlation.md). A subset of
+ * `lib/deployments/use-deployments.ts`'s `DeploymentMarker` — kept local to
+ * avoid `types/` depending on `lib/deployments`.
+ */
+export interface AreaChartDeploymentMarker {
+  id: string
+  repo: string
+  environment: string | null
+  ref: string | null
+  sha: string | null
+  version: string | null
+  createdAt: number
+}
+
 export interface AreaChartProps extends BaseChartProps {
   categories: string[]
   index?: string
@@ -177,6 +193,20 @@ export interface AreaChartProps extends BaseChartProps {
    * - 'auto': Auto-detect based on data range
    */
   yAxisScale?: YAxisScale
+
+  /**
+   * GitHub deployments to overlay as vertical reference markers, keyed to
+   * the nearest bucket on the `index` axis (plans/45-github-deploy-correlation.md).
+   * Opt-in — undefined/empty means zero rendering change.
+   */
+  deployments?: AreaChartDeploymentMarker[]
+
+  /**
+   * Called when a deployment marker is clicked — the chart factory uses this
+   * to set the chart's time range to a window covering the deploy ("filter
+   * to deploy window"), reusing the existing date-range mechanism.
+   */
+  onDeploymentSelect?: (deployment: AreaChartDeploymentMarker) => void
 }
 
 export interface RadialChartProps extends Omit<BaseChartProps, 'onClick'> {

@@ -179,5 +179,26 @@ export function createQueryTools(hostId: number) {
         return result
       },
     }),
+
+    estimate_query_cost: dynamicTool({
+      description:
+        'Pre-flight cost estimate for a query from EXPLAIN alone: estimated rows scanned, bytes read, peak memory, and wall time, plus a confidence level and any caveats. Read-only and recommend-only — runs EXPLAIN only and never executes the analyzed query. Use this before running a query you suspect might be expensive, or to rank optimization impact.',
+      inputSchema: z.object({
+        sql: z.string().describe('SQL query to estimate the cost of'),
+        hostId: hostIdSchema,
+      }),
+      execute: async (input: unknown) => {
+        const { estimateQueryCost } = await import(
+          '@/lib/ai/advisor/cost-estimator'
+        )
+        const { sql, hostId: toolHostId } = input as {
+          sql: string
+          hostId?: number
+        }
+        const resolvedHostId = resolveHostId(toolHostId, hostId)
+
+        return estimateQueryCost({ sql, hostId: resolvedHostId })
+      },
+    }),
   }
 }

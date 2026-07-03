@@ -21,6 +21,7 @@ export const ENTERPRISE_FEATURES = [
   'rbac',
   'fleet',
   'cloud',
+  'audit',
 ] as const
 
 export type EditionFeature = (typeof ENTERPRISE_FEATURES)[number]

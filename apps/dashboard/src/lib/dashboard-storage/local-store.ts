@@ -3,6 +3,12 @@
  *
  * Provides save/load/list/delete operations for Chart Builder configurations.
  * Data is stored under a single JSON key in localStorage.
+ *
+ * This is the OSS/self-hosted default (no owner/sharing concept — a single
+ * browser profile IS the scope) and the fail-open fallback for cloud
+ * deployments where D1 storage is unavailable or disabled. Logic is
+ * unchanged from the original `dashboard-storage.ts` (see `index.ts` for the
+ * async wrapper that picks between this and the D1-backed remote store).
  */
 
 const STORAGE_KEY = 'clickhouse-monitor-dashboards'
@@ -41,7 +47,7 @@ function writeStore(store: DashboardStore): void {
  * Save a dashboard configuration under the given name.
  * Overwrites any existing dashboard with the same name.
  */
-export function saveDashboard(name: string, charts: string[]): void {
+export function saveDashboardLocal(name: string, charts: string[]): void {
   const store = readStore()
   store[name] = charts
   writeStore(store)
@@ -51,7 +57,7 @@ export function saveDashboard(name: string, charts: string[]): void {
  * Load a saved dashboard by name.
  * Returns null if the dashboard does not exist.
  */
-export function loadDashboard(name: string): string[] | null {
+export function loadDashboardLocal(name: string): string[] | null {
   const store = readStore()
   return store[name] ?? null
 }
@@ -59,14 +65,14 @@ export function loadDashboard(name: string): string[] | null {
 /**
  * List all saved dashboard names, sorted alphabetically.
  */
-export function listDashboards(): string[] {
+export function listDashboardsLocal(): string[] {
   return Object.keys(readStore()).sort()
 }
 
 /**
  * Delete a saved dashboard by name.
  */
-export function deleteDashboard(name: string): void {
+export function deleteDashboardLocal(name: string): void {
   const store = readStore()
   delete store[name]
   writeStore(store)

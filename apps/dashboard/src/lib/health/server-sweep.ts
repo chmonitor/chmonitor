@@ -1,9 +1,17 @@
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
 import type {
+  CompoundRuleDef,
+  CompoundRuleInput,
+} from '@/lib/alerting/compound-rules'
+import type {
   AlertRuleDef,
   AlertRuleSeverity,
 } from '@/lib/alerting/rule-registry'
+import type { AlertEventRecord } from './alert-history-store'
+import type { AlertDecision } from './alert-state-store'
 
+import { detectAdapter } from './adapters'
+import { recordAlertEvent } from './alert-history-store'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
 import {
   getServerAlertConfig,
@@ -13,6 +21,10 @@ import {
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
+import {
+  compoundRuleRegistry,
+  topoSortCompound,
+} from '@/lib/alerting/compound-rules'
 import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
 
@@ -140,13 +152,20 @@ function shouldRunRule(
   return tables.has(rule.tableCheck)
 }
 
+/** Result of a webhook delivery attempt, incl. the error text for the audit log. */
+interface WebhookResult {
+  ok: boolean
+  /** Present only when `ok` is false — recorded in the alert-history store. */
+  error?: string
+}
+
 /**
  * POST an alert to the configured webhook using the EXACT payload shape the
  * `/api/v1/health/webhook` proxy forwards upstream (`{ text, content: text }`),
  * so Slack (`text`) and Discord (`content`) both render it. Server-side, no CORS
  * proxy needed — we post directly to the operator-configured webhook URL.
  */
-async function postWebhook(url: string, text: string): Promise<boolean> {
+async function postWebhook(url: string, text: string): Promise<WebhookResult> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
@@ -157,17 +176,66 @@ async function postWebhook(url: string, text: string): Promise<boolean> {
       signal: controller.signal,
     })
     if (!res.ok) {
-      error(
-        '[health-sweep] Webhook returned non-OK status',
-        new Error(`Status ${res.status}`)
-      )
+      const message = `Webhook returned status ${res.status}`
+      error('[health-sweep] Webhook returned non-OK status', new Error(message))
+      return { ok: false, error: message }
     }
-    return res.ok
+    return { ok: true }
   } catch (err) {
     error('[health-sweep] Webhook POST failed', err as Error)
-    return false
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
   } finally {
     clearTimeout(timeout)
+  }
+}
+
+/**
+ * Map a notify decision + dispatch outcome into the shape the alert-history
+ * store persists. Pure — no I/O — so the decision→record translation (the
+ * trickiest part: `recovery` carries its own severity distinct from the
+ * underlying `AlertRuleSeverity`, and a fresh `new` alert has no meaningful
+ * previous severity) is unit-testable without mocking D1 or the sweep.
+ */
+export function buildAlertEventRecord(params: {
+  hostId: number
+  hostLabel: string
+  ruleId: string
+  decision: AlertDecision
+  value: number | null
+  delivered: boolean
+  error?: string
+  channel: string
+  /** Injectable clock for tests. Defaults to `Date.now()`. */
+  now?: number
+}): AlertEventRecord {
+  const { decision } = params
+  // Recovery is its own severity for audit purposes — the decision's
+  // `severity` field is 'ok' (the condition classifies healthy again), which
+  // isn't a useful thing to show in a log of *alert* events.
+  const severity: AlertEventRecord['severity'] =
+    decision.kind === 'recovery'
+      ? 'recovery'
+      : (decision.severity as 'warning' | 'critical')
+  // 'ok' means "no prior firing condition" (e.g. a brand-new alert) — no
+  // previous severity worth recording.
+  const prevSeverity: AlertEventRecord['prevSeverity'] =
+    decision.previousSeverity === 'ok' ? null : decision.previousSeverity
+
+  return {
+    eventTime: new Date(params.now ?? Date.now()).toISOString(),
+    hostId: params.hostId,
+    hostLabel: params.hostLabel,
+    rule: params.ruleId,
+    severity,
+    prevSeverity,
+    decisionKind: decision.kind,
+    delivered: params.delivered,
+    error: params.error ?? null,
+    value: params.value,
+    channel: params.channel,
   }
 }
 
@@ -192,6 +260,21 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const rules = ruleRegistry.getAll()
   const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
 
+  // Compound rules (plans 31): base rules already ran above their sweep. Order
+  // them once up front so dependency ordering is computed a single time, not
+  // per host. A misconfigured compound rule (cycle / unknown dependency) must
+  // never break base-rule evaluation — fall back to "no compound rules" and
+  // keep going.
+  let orderedCompoundRules: CompoundRuleDef[] = []
+  try {
+    orderedCompoundRules = topoSortCompound(
+      compoundRuleRegistry.getAll(),
+      rules.map((r) => r.id)
+    )
+  } catch (err) {
+    error('[health-sweep] compound rule ordering failed', err as Error)
+  }
+
   const configs = getClickHouseConfigs()
 
   const hosts: SweepHostSummary[] = []
@@ -201,6 +284,92 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   let alertsSuppressed = 0
   let recoveries = 0
 
+  /**
+   * Dedup + dispatch a single finding (base or compound rule) via the shared
+   * webhook path. Sub-threshold severities count as 'ok' so the state store
+   * only tracks conditions the operator cares about (and a drop below the
+   * threshold reads as a recovery). Mutates the outer `alertsDispatched` /
+   * `alertsSuppressed` / `recoveries` counters and pushes to `findings`'s
+   * caller-owned array — kept as a closure (rather than returning deltas) to
+   * match the single call site's original shape per rule/host iteration.
+   */
+  async function dispatchFinding(params: {
+    hostId: number
+    hostName: string
+    ruleId: string
+    ruleTitle: string
+    severity: Severity
+    value: number | null
+    label: string
+  }): Promise<void> {
+    const {
+      hostId,
+      hostName: name,
+      ruleId,
+      ruleTitle,
+      severity,
+      value,
+      label,
+    } = params
+    const effective: Severity =
+      SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
+    const { decision, commit } = evaluateAlert(alertStateStore, {
+      hostId,
+      ruleId,
+      severity: effective,
+      cooldownMs,
+    })
+    if (decision.notify) {
+      const text =
+        decision.kind === 'recovery'
+          ? `[RECOVERY] ${ruleTitle} — resolved (host ${name})`
+          : `[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
+      const result = await postWebhook(settings.webhookUrl, text)
+      if (result.ok) {
+        // Persist "notified" only now — a failed delivery leaves no
+        // record, so the next sweep retries instead of suppressing.
+        commit()
+        alertsDispatched++
+        if (decision.kind === 'recovery') recoveries++
+      }
+
+      // Best-effort audit trail — recorded AFTER the commit/counters
+      // above (on both success and failure) so a slow or failing D1
+      // write can never delay or drop the alert that was just
+      // dispatched. recordAlertEvent already never throws; the
+      // try/catch here is defense-in-depth, mirroring the
+      // generateInsights call below.
+      try {
+        await recordAlertEvent(
+          buildAlertEventRecord({
+            hostId,
+            hostLabel: name,
+            ruleId,
+            decision,
+            value,
+            delivered: result.ok,
+            error: result.error,
+            channel: detectAdapter(settings.webhookUrl).id,
+          })
+        )
+      } catch (err) {
+        debug(
+          `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+          err instanceof Error ? err.message : String(err)
+        )
+      }
+    } else {
+      // Non-notify decisions (dedup/de-escalation/recovery-cleared
+      // bookkeeping) still commit — only the notify path gates on
+      // delivery.
+      commit()
+      if (SEVERITY_ORDER[severity] >= minRank) {
+        // A current finding that we chose not to re-send (deduped).
+        alertsSuppressed++
+      }
+    }
+  }
+
   for (const config of configs) {
     const name = hostLabel(config)
     let checksRun = 0
@@ -208,6 +377,12 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     let skipped = 0
 
     const tables = await getExistingSystemTables(config.id)
+
+    // Per-host base rule results, keyed by rule id — feeds compound rules
+    // below. Populated for every rule that actually ran (regardless of
+    // severity), so a compound predicate can read the raw value/severity of
+    // a healthy base rule too (e.g. `readonly-replicas` at 0).
+    const perHostResults: Record<string, CompoundRuleInput> = {}
 
     for (const rule of rules) {
       if (!rule.sql) continue
@@ -223,6 +398,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           ...(thresholdOverrides[rule.id] ?? {}),
         }
         const severity = classifyValue(value, thresholds)
+        perHostResults[rule.id] = { value, severity }
 
         if (severity !== 'ok') {
           findings.push({
@@ -236,49 +412,85 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           })
         }
 
-        // Dedup + dispatch. Sub-threshold severities count as 'ok' so the state
-        // store only tracks conditions the operator cares about (and a drop
-        // below the threshold reads as a recovery).
         if (canDispatch) {
-          const effective: Severity =
-            SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
-          const { decision, commit } = evaluateAlert(alertStateStore, {
+          await dispatchFinding({
             hostId: config.id,
+            hostName: name,
             ruleId: rule.id,
-            severity: effective,
-            cooldownMs,
+            ruleTitle: rule.title,
+            severity,
+            value,
+            label: rule.formatLabel ? rule.formatLabel(value) : String(value),
           })
-          if (decision.notify) {
-            const label = rule.formatLabel
-              ? rule.formatLabel(value)
-              : String(value)
-            const text =
-              decision.kind === 'recovery'
-                ? `[RECOVERY] ${rule.title} — resolved (host ${name})`
-                : `[${effective.toUpperCase()}] ${rule.title} — ${label} (host ${name})`
-            const ok = await postWebhook(settings.webhookUrl, text)
-            if (ok) {
-              // Persist "notified" only now — a failed delivery leaves no
-              // record, so the next sweep retries instead of suppressing.
-              commit()
-              alertsDispatched++
-              if (decision.kind === 'recovery') recoveries++
-            }
-          } else {
-            // Non-notify decisions (dedup/de-escalation/recovery-cleared
-            // bookkeeping) still commit — only the notify path gates on
-            // delivery.
-            commit()
-            if (SEVERITY_ORDER[severity] >= minRank) {
-              // A current finding that we chose not to re-send (deduped).
-              alertsSuppressed++
-            }
-          }
         }
       } catch (err) {
         errored++
         debug(
           `[health-sweep] check "${rule.id}" failed on host ${config.id}`,
+          err instanceof Error ? err.message : String(err)
+        )
+      }
+    }
+
+    // Compound rules (plan 31): evaluated AFTER all base rules for this host,
+    // in dependency order, purely from `perHostResults` (no extra SQL). Each
+    // compound rule's own result is written back into `perHostResults` (as
+    // `{ value: null, severity }`) so a *later* compound rule in the topo
+    // order may itself depend on it — `topoSortCompound` already validates
+    // and orders compound-on-compound dependencies (v1 ships base-only
+    // built-ins, but the sweep honors the general case the ordering
+    // guarantees). Each compound rule dedups under its own
+    // `hostId:compoundId` key — never a base rule's key — and dispatches via
+    // the exact same shared path. A throwing/misconfigured `evaluate()` is
+    // caught per-rule and never breaks base-rule evaluation or the host loop.
+    for (const compound of orderedCompoundRules) {
+      const inputs: Record<string, CompoundRuleInput> = {}
+      let missingDependency = false
+      for (const dep of compound.depends) {
+        const input = perHostResults[dep]
+        if (!input) {
+          missingDependency = true
+          break
+        }
+        inputs[dep] = input
+      }
+      // A dependency didn't run on this host (skipped optional table, or
+      // errored) — nothing to correlate; skip silently, not an error.
+      if (missingDependency) continue
+
+      try {
+        const severity = compound.evaluate(inputs)
+        perHostResults[compound.id] = { value: null, severity }
+        if (severity !== 'ok') {
+          findings.push({
+            hostId: config.id,
+            hostName: name,
+            checkId: compound.id,
+            title: compound.title,
+            severity,
+            value: null,
+            label: compound.formatLabel
+              ? compound.formatLabel(inputs)
+              : severity,
+          })
+        }
+        if (canDispatch) {
+          await dispatchFinding({
+            hostId: config.id,
+            hostName: name,
+            ruleId: compound.id,
+            ruleTitle: compound.title,
+            severity,
+            value: null,
+            label: compound.formatLabel
+              ? compound.formatLabel(inputs)
+              : severity,
+          })
+        }
+      } catch (err) {
+        errored++
+        debug(
+          `[health-sweep] compound rule "${compound.id}" failed on host ${config.id}`,
           err instanceof Error ? err.message : String(err)
         )
       }

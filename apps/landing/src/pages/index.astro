@@ -12,6 +12,8 @@ import Pricing from '../components/Pricing.astro'
 import FAQ from '../components/FAQ.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
+import UseCaseLinks from '../components/UseCaseLinks.astro'
+import { useCases } from '../data/use-cases'
 ---
 <Base>
   <Nav />
@@ -21,6 +23,7 @@ import Footer from '../components/Footer.astro'
     <DataExplorer />
     <Health />
     <Capabilities />
+    <UseCaseLinks items={useCases} eyebrow="Use cases" heading="Explore by use case" soft />
     <SocialProof />
     <Comparison />
     <Pricing />

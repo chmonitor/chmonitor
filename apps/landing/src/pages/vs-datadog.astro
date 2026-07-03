@@ -1,0 +1,86 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import ComparisonTable from '../components/ComparisonTable.astro'
+import FinalCta from '../components/FinalCta.astro'
+import Footer from '../components/Footer.astro'
+import { datadogRows } from '../data/comparisons'
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'chmonitor vs Datadog', item: canonical },
+  ],
+}
+---
+<Base
+  title="chmonitor vs Datadog for ClickHouse — Honest 2026 Comparison"
+  description="chmonitor vs Datadog's ClickHouse integration: a dated, sourced feature matrix, setup time and cost. Datadog wins on full-stack APM and on-call — we say so."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head reveal">
+          <span class="eyebrow">chmonitor vs Datadog</span>
+          <h1>A ClickHouse specialist vs a full-stack observability platform</h1>
+          <p>Datadog is a mature, full-stack observability platform — APM, tracing, logs, on-call — with a ClickHouse integration bolted on. chmonitor only monitors ClickHouse, but goes far deeper: no agent to install, ClickHouse-native pages for merges/parts/replication, a recommend-only query/MV advisor, and a built-in AI agent. Neither replaces the other everywhere — here's the honest comparison.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Feature matrix</span>
+          <h2>chmonitor vs Datadog</h2>
+          <p>Datadog legitimately wins on full-stack APM and on-call — that's not what chmonitor is for.</p>
+        </div>
+        <ComparisonTable competitor="Datadog" rows={datadogRows}>
+          <Fragment slot="note">
+            Datadog details reflect public pricing and docs as of July 2026 and may change — verify at <a href="https://www.datadoghq.com/pricing/" target="_blank" rel="noopener">datadoghq.com/pricing</a>. chmonitor rows reflect the current self-hosted/OSS build.
+          </Fragment>
+        </ComparisonTable>
+      </div>
+    </section>
+
+    <section id="tco" class="band">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Total cost of ownership</span>
+          <h2>No agents, no per-host bill, for ClickHouse specifically</h2>
+          <p>If ClickHouse monitoring is the whole job, an agent-based, per-host-billed platform is a lot of surface area for one system.</p>
+        </div>
+        <div class="cap-grid">
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>
+            <h4>Nothing to deploy per node</h4>
+            <p>chmonitor reads ClickHouse system tables directly. No Datadog Agent process to install, update or babysit on every host.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7l9 4 9-4-9-4Z"/><path d="m3 12 9 4 9-4"/><path d="m3 17 9 4 9-4"/></svg></span>
+            <h4>Merge/part/replication depth</h4>
+            <p>Dedicated pages for the parts of ClickHouse a general infra integration doesn't drill into.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></span>
+            <h4>Advisor + AI agent included</h4>
+            <p>A recommend-only query and MV/projection advisor plus a built-in AI agent, scoped to ClickHouse — not a general infra add-on.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <h4>Free self-hosted, period</h4>
+            <p>GPL-3.0, no per-host bill. Datadog Infrastructure Monitoring runs ~$15–$23/host/month before APM or logs.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <FinalCta />
+  </main>
+  <Footer />
+</Base>

@@ -12,6 +12,7 @@ import type { CreateUserConnectionInput } from '@/lib/connection-store/types'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { logEvent } from '@/lib/audit/logEvent'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
 import { checkHostLimit, limitMessage } from '@/lib/billing/entitlements'
 import { countOwnerHosts } from '@/lib/billing/org-host-count'
@@ -23,6 +24,7 @@ import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
 import { ConnectionStoreError } from '@/lib/connection-store/types'
+import { emitEvent } from '@/lib/events/outbound-bus'
 
 const ROUTE_GET = { route: '/api/v1/user-connections', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/user-connections', method: 'POST' }
@@ -170,6 +172,15 @@ async function handlePost(request: Request): Promise<Response> {
     if (plan.hosts != null) {
       const check = checkHostLimit(plan, usage.count)
       if (!check.allowed) {
+        if (owner.type === 'org') {
+          await logEvent({
+            orgId: owner.id,
+            userId,
+            event: 'connection.created',
+            action: 'create',
+            result: 'denied',
+          })
+        }
         return hostLimitResponse(check, plan.hosts)
       }
     }
@@ -225,6 +236,29 @@ async function handlePost(request: Request): Promise<Response> {
       }
       throw err
     }
+
+    if (owner.type === 'org') {
+      await logEvent({
+        orgId: owner.id,
+        userId,
+        event: 'connection.created',
+        resource: created.id,
+        action: 'create',
+        result: 'success',
+      })
+    }
+
+    // Outbound webhook bus (plan 44): fire-and-forget — NOT awaited, so a
+    // slow/failing subscriber can never slow or fail this request. emitEvent
+    // never throws. See lib/events/outbound-bus.ts's module docblock for why
+    // this can't be `waitUntil`-backed instead.
+    void emitEvent(userId, {
+      id: crypto.randomUUID(),
+      type: 'connection.created',
+      occurred_at: new Date(created.createdAt).toISOString(),
+      data: { id: created.id, name: created.name, hostId: created.hostId },
+    })
+
     return createSuccessResponse({
       id: created.id,
       name: created.name,
@@ -248,3 +282,6 @@ export const Route = createFileRoute('/api/v1/user-connections')({
     },
   },
 })
+
+// Exported for unit tests only.
+export { handlePost as __handlePostForTests }

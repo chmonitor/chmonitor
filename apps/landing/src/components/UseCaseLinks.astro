@@ -1,0 +1,32 @@
+---
+// Shared cross-link cards for use-case pages — used both by LandingPage.astro
+// ("Related" — the other use cases) and index.astro ("Explore by use case" —
+// all four), so the two surfaces can never drift out of sync.
+import type { UseCase } from '../data/use-cases'
+
+interface Props {
+  items: UseCase[]
+  eyebrow: string
+  heading: string
+  soft?: boolean
+}
+
+const { items, eyebrow, heading, soft = false } = Astro.props
+---
+<section class={soft ? 'band band-soft' : 'band'}>
+  <div class="wrap">
+    <div class="sec-head reveal" style="text-align:center">
+      <span class="eyebrow">{eyebrow}</span>
+      <h2>{heading}</h2>
+    </div>
+    <div class="cap-grid">
+      {items.map((item) => (
+        <a class="cap reveal" href={`/${item.slug}`} data-cta={`usecase-link-${item.slug}`}>
+          <span class="cap-ico" set:html={`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${item.benefits[0]?.icon ?? ''}</svg>`} />
+          <h4>{item.eyebrow}</h4>
+          <p>{item.cardBlurb}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

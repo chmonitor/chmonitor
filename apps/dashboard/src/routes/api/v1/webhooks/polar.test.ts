@@ -20,6 +20,14 @@
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
+// Mocked at its LEAF specifier (not the @/lib/audit barrel) — see the same
+// note in webhooks/clerk.test.ts for why a barrel mock here would risk
+// shadowing listAuditLogs/buildAuditCsv for routes/api/v1/audit/export.test.ts.
+let logEventImpl = mock((_e: unknown) => Promise.resolve())
+mock.module('@/lib/audit/logEvent', () => ({
+  logEvent: (e: unknown) => logEventImpl(e),
+}))
+
 let getOrganizationMembershipList = mock(async (_args: { userId: string }) => ({
   data: [] as Array<{ organization?: { id?: string | null } }>,
 }))
@@ -100,6 +108,7 @@ beforeEach(() => {
   updateCustomer = mock(async () => ({}))
   upsertSubscription = mock(async () => {})
   invalidateNegativeCache = mock(() => {})
+  logEventImpl = mock(() => Promise.resolve())
 })
 
 describe('applySubscription — org re-keying', () => {
@@ -181,5 +190,48 @@ describe('applySubscription — negative cache invalidation', () => {
 
     expect(invalidateNegativeCache).toHaveBeenCalledWith('user_alice')
     expect(invalidateNegativeCache).toHaveBeenCalledWith('org_new')
+  })
+})
+
+describe('applySubscription — audit wiring', () => {
+  test('an org-scoped active subscription logs billing.plan_changed', async () => {
+    await applySubscription(subData({ customer: { externalId: 'org_x' } }))
+
+    expect(logEventImpl).toHaveBeenCalledTimes(1)
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      orgId: 'org_x',
+      event: 'billing.plan_changed',
+      action: 'update',
+      result: 'success',
+    })
+  })
+
+  test('a canceled subscription logs billing.canceled instead', async () => {
+    await applySubscription(
+      subData({ customer: { externalId: 'org_x' }, status: 'canceled' })
+    )
+
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      orgId: 'org_x',
+      event: 'billing.canceled',
+      action: 'update',
+      result: 'success',
+    })
+  })
+
+  test('a user-scoped owner (no Clerk org) is never audit-logged', async () => {
+    getOrganizationMembershipList = mock(async () => {
+      throw new Error('clerk down')
+    })
+
+    await applySubscription(subData()) // falls back to userId owner
+
+    expect(logEventImpl).not.toHaveBeenCalled()
+  })
+
+  test('an unmapped product is skipped without an audit row', async () => {
+    await applySubscription(subData({ productId: 'prod_unknown' }))
+
+    expect(logEventImpl).not.toHaveBeenCalled()
   })
 })

@@ -9,11 +9,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { logSessionEvent } from '@/lib/audit/log-session-event'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
+import { emitEvent } from '@/lib/events/outbound-bus'
 
 const ROUTE_PATCH = {
   route: '/api/v1/user-connections/$id',
@@ -91,6 +93,14 @@ async function handlePatch(
         : undefined,
     })
 
+    await logSessionEvent({
+      userId,
+      event: 'connection.updated',
+      resource: updated.id,
+      action: 'update',
+      result: 'success',
+    })
+
     return createSuccessResponse({
       id: updated.id,
       name: updated.name,
@@ -120,7 +130,33 @@ async function handleDelete(connectionId: string): Promise<Response> {
   try {
     const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
+    // Fetch metadata BEFORE delete purely so the emitted event can name which
+    // connection was removed — `store.delete()` returns void and the row is
+    // gone afterward. NOT_FOUND still throws from delete() below either way.
+    const existing = await store.get(userId, connectionId)
     await store.delete(userId, connectionId)
+
+    await logSessionEvent({
+      userId,
+      event: 'connection.deleted',
+      resource: connectionId,
+      action: 'delete',
+      result: 'success',
+    })
+
+    // Outbound webhook bus (plan 44): fire-and-forget, never blocks/fails
+    // this request — see lib/events/outbound-bus.ts's module docblock.
+    void emitEvent(userId, {
+      id: crypto.randomUUID(),
+      type: 'connection.deleted',
+      occurred_at: new Date().toISOString(),
+      data: {
+        id: connectionId,
+        name: existing?.name,
+        hostId: existing?.hostId,
+      },
+    })
+
     return createSuccessResponse({ deleted: true })
   } catch (error) {
     return mapConnectionApiError(error, ROUTE_DELETE)
@@ -135,3 +171,9 @@ export const Route = createFileRoute('/api/v1/user-connections/$id')({
     },
   },
 })
+
+// Exported for unit tests only.
+export {
+  handlePatch as __handlePatchForTests,
+  handleDelete as __handleDeleteForTests,
+}

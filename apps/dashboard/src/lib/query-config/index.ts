@@ -3,6 +3,7 @@ import type { QueryConfig } from '@/types/query-config'
 import { DECLARATIVE_CATALOG } from './declarative/catalog'
 import { getConfigSource, loadDeclarativeConfig } from './declarative/loader'
 import { getLocalConfigCatalog } from './declarative/local-loader'
+import { getPackCatalogSnapshot } from './declarative/pack-registry'
 import { error } from '@chm/logger'
 
 export type { QueryConfig } from './types'
@@ -281,6 +282,23 @@ export const getQueryConfigByName = (
           `[query-config] Malformed local config for "${name}"; falling back to built-in config`,
           err
         )
+      }
+    }
+
+    // Community query packs (plan 54) — extend the declarative catalog, so
+    // only consulted alongside it. Callers `await ensurePacksLoaded` before
+    // this synchronous lookup; the snapshot is `{}` (fail-closed) otherwise.
+    if (getConfigSource(runtimeEnv) === 'declarative') {
+      const pack = getPackCatalogSnapshot()[name]
+      if (pack) {
+        try {
+          return loadDeclarativeConfig(pack)
+        } catch (err) {
+          error(
+            `[query-config] Malformed pack config for "${name}"; falling back to built-in config`,
+            err
+          )
+        }
       }
     }
   }

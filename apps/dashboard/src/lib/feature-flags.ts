@@ -64,6 +64,31 @@ export const featureFlags = {
       return false
     }
   },
+
+  /**
+   * Enable the outbound webhook subscriptions UI (plan 44).
+   *
+   * Requires Clerk auth and a configured D1 backend on the server — see
+   * `lib/events/server-feature.ts`.
+   *
+   * @default false (unset)
+   * @env VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS
+   */
+  webhookSubscriptions: (): boolean => {
+    if (import.meta.env.VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS !== 'true') {
+      return false
+    }
+
+    try {
+      return isClerkEnabled()
+    } catch (err) {
+      error(
+        '[featureFlags.webhookSubscriptions] Clerk enablement check failed',
+        err
+      )
+      return false
+    }
+  },
 } as const
 
 /**

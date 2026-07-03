@@ -12,6 +12,10 @@ export const ChartQueryCount = createAreaChart({
   defaultLastHours: 24 * 14,
   dataTestId: 'query-count-chart',
   dateRangeConfig: 'query-activity',
+  // Deploy correlation overlay (plans/45-github-deploy-correlation.md): query
+  // volume is the identified timeline SREs correlate spikes/lag with releases
+  // against.
+  showDeployments: true,
   areaChartProps: {
     readable: 'quantity',
     stack: true,

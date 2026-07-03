@@ -17,6 +17,7 @@ import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
 import { getQueryConfigByName } from '@/lib/query-config'
+import { ensurePacksLoaded } from '@/lib/query-config/declarative/pack-registry'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/user-connections/tables/$name',
@@ -44,6 +45,9 @@ async function handlePost(
     )
   }
 
+  // Community query packs (plan 54) — warm before the sync lookup so a
+  // pack-only table name resolves deterministically (no cold-start race).
+  await ensurePacksLoaded()
   const queryConfig = getQueryConfigByName(tableName)
   if (!queryConfig) {
     return createErrorResponse(

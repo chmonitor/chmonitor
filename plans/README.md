@@ -58,57 +58,113 @@ baseline import cycle + clear round-3 format drift).
 
 ## Round 3 — feature backlog (14–70)
 
-### Merged ✅ (9)
+### Merged ✅ (31)
 
 | # | Plan | PR |
 |---|------|----|
+| 14 | [wire-ai-overage-spend-metering.md](14-wire-ai-overage-spend-metering.md) | [#2213](https://github.com/chmonitor/chmonitor/pull/2213) |
+| 17 | checkout↔webhook recovery runbook | [#2229](https://github.com/chmonitor/chmonitor/pull/2229) |
+| 22 | [audit-log-export.md](22-audit-log-export.md) | [#2232](https://github.com/chmonitor/chmonitor/pull/2232) |
+| 27 | [alert-history-audit-log.md](27-alert-history-audit-log.md) | [#2231](https://github.com/chmonitor/chmonitor/pull/2231) |
 | 35 | [prometheus-metrics-exporter.md](35-prometheus-metrics-exporter.md) | [#2215](https://github.com/chmonitor/chmonitor/pull/2215) |
+| 36 | [inbound-event-bus-queues.md](36-inbound-event-bus-queues.md) | [#2236](https://github.com/chmonitor/chmonitor/pull/2236) |
+| 44 | [webhook-event-bus-outbound.md](44-webhook-event-bus-outbound.md) | [#2235](https://github.com/chmonitor/chmonitor/pull/2235) |
+| 45 | [github-deploy-correlation.md](45-github-deploy-correlation.md) | [#2238](https://github.com/chmonitor/chmonitor/pull/2238) |
+| 46 | [query-advisor-engine.md](46-query-advisor-engine.md) | [#2234](https://github.com/chmonitor/chmonitor/pull/2234) |
+| 47 | [mv-projection-designer.md](47-mv-projection-designer.md) | [#2237](https://github.com/chmonitor/chmonitor/pull/2237) |
 | 48 | [statistical-anomaly-baselines.md](48-statistical-anomaly-baselines.md) | [#2217](https://github.com/chmonitor/chmonitor/pull/2217) |
+| 49 | [query-cost-estimator.md](49-query-cost-estimator.md) | [#2233](https://github.com/chmonitor/chmonitor/pull/2233) |
 | 50 | [capacity-forecast-ttl-advisor.md](50-capacity-forecast-ttl-advisor.md) | [#2222](https://github.com/chmonitor/chmonitor/pull/2222) |
 | 51 | [agent-eval-golden-tests.md](51-agent-eval-golden-tests.md) | [#2216](https://github.com/chmonitor/chmonitor/pull/2216) |
 | 53 | [activate-declarative-queries.md](53-activate-declarative-queries.md) | [#2214](https://github.com/chmonitor/chmonitor/pull/2214) |
+| 54 | [query-config-pack-registry.md](54-query-config-pack-registry.md) | [#2230](https://github.com/chmonitor/chmonitor/pull/2230) |
 | 55 | [self-hosted-local-config-override.md](55-self-hosted-local-config-override.md) | [#2221](https://github.com/chmonitor/chmonitor/pull/2221) |
+| 56 | [dashboard-d1-persistence-sharing.md](56-dashboard-d1-persistence-sharing.md) | [#2224](https://github.com/chmonitor/chmonitor/pull/2224) |
+| 60 | [landing-hero-wedge-refresh.md](60-landing-hero-wedge-refresh.md) | [#2241](https://github.com/chmonitor/chmonitor/pull/2241) |
 | 62 | [product-analytics-funnel.md](62-product-analytics-funnel.md) | [#2219](https://github.com/chmonitor/chmonitor/pull/2219) |
+| 64 | [seo-use-case-landing-pages.md](64-seo-use-case-landing-pages.md) | [#2239](https://github.com/chmonitor/chmonitor/pull/2239) |
+| 68 | github-star-social-proof | [#2228](https://github.com/chmonitor/chmonitor/pull/2228) |
 | 69 | [og-images-seo-meta-audit.md](69-og-images-seo-meta-audit.md) | [#2223](https://github.com/chmonitor/chmonitor/pull/2223) |
 | 70 | [landing-perf-lighthouse.md](70-landing-perf-lighthouse.md) | [#2226](https://github.com/chmonitor/chmonitor/pull/2226) |
+| 31 | [compound-alert-rules.md](31-compound-alert-rules.md) | [#2249](https://github.com/chmonitor/chmonitor/pull/2249) |
+| 52 | [proactive-weekly-health-report.md](52-proactive-weekly-health-report.md) — styled self-contained HTML narrative | [#2253](https://github.com/chmonitor/chmonitor/pull/2253) |
+| 58 | [declarative-chart-schema.md](58-declarative-chart-schema.md) | [#2256](https://github.com/chmonitor/chmonitor/pull/2256) |
+| 61 | [feature-sections-advisor-alerts-refresh.md](61-feature-sections-advisor-alerts-refresh.md) | [#2251](https://github.com/chmonitor/chmonitor/pull/2251) |
+| 63 | [comparison-pages-vs-competitors.md](63-comparison-pages-vs-competitors.md) | [#2247](https://github.com/chmonitor/chmonitor/pull/2247) |
+| 67 | [docs-blog-content-engine.md](67-docs-blog-content-engine.md) | [#2250](https://github.com/chmonitor/chmonitor/pull/2250) |
 
-### Held 🔶 — PR open, needs a human decision (4)
+Supporting infra: [#2242](https://github.com/chmonitor/chmonitor/pull/2242) bumped
+CI's `bun-version` 1.3.13→1.3.14 for the `unit-tests` coverage-writer crash
+(`WriteFailed`); [#2246](https://github.com/chmonitor/chmonitor/pull/2246) then
+fixed the real root cause of the related `cloudflare:workers` pre-push-hook
+failures with a global `bun test` preload; [#2252](https://github.com/chmonitor/chmonitor/pull/2252)
+bumped remaining stray bun pins. `unit-tests` is still a non-required check
+per the babysit-PR policy above, so any residual flake there is not a blocker.
 
-Implemented and pushed, but deliberately **not auto-merged**: each touches a
-billing / security surface or failed live verification, so a person should make
-the call. The spec file for each held plan lives on its PR branch (kept off
-`main` until the PR merges).
+**Note:** a separate long-running autonomous swarm (see `~/.claude` memory
+`chmonitor-swarm-ci-operating-context`) also works this backlog concurrently —
+some merges above may originate from it rather than an interactive session.
+
+### Held 🔶 — PR open, needs a human decision (3)
 
 | # | Plan | PR | Why it's held |
 |---|------|----|---------------|
-| 14 | Wire AI overage spend metering | [#2213](https://github.com/chmonitor/chmonitor/pull/2213) | **Billing surface.** As written the Free monthly-USD cap is inert — usage is bounded only by the 5-messages/day limit, so real spend is never metered against a dollar cap. Confirm the intended cap semantics before enforcing. |
-| 25 | Email alert adapter | [#2218](https://github.com/chmonitor/chmonitor/pull/2218) | **No-op transport.** The SMTP path is a stub, and email only fires from the cron sweep when a webhook is *also* configured. Decide the real transport (Mailgun/SendGrid/SMTP) and the fire path. *(Branch is behind `main`; its only red is an inherited depcruise from before #2220 — update-branch clears it.)* |
-| 56 | Dashboard D1 persistence & sharing | [#2224](https://github.com/chmonitor/chmonitor/pull/2224) | **Public share endpoint + entitlement surface.** Adds an unauthenticated share route and a billing/entitlement gate. Needs a security review and a CI-build proof of client/server layering. *(Only red is `codecov/patch` — soft coverage, not a merge blocker.)* |
-| 66 | Onboarding sample-cluster preset | [#2225](https://github.com/chmonitor/chmonitor/pull/2225) | **Failed live verification.** The public demo endpoint (`play.clickhouse.com`) denies `query_log`/`parts`/`merges`/etc., so most monitoring pages render empty. Choose a demo endpoint that exposes the system tables before shipping the "Try with sample cluster" CTA. |
+| 25 | Email alert adapter | [#2218](https://github.com/chmonitor/chmonitor/pull/2218) | **No-op transport.** The SMTP path is a stub, and email only fires from the cron sweep when a webhook is *also* configured. Decide the real transport (Mailgun/SendGrid/SMTP) and the fire path. Owner chose to defer this decision (2026-07-03). |
+| 42 | Kafka consumer control | [#2259](https://github.com/chmonitor/chmonitor/pull/2259) | **Design-level block, not just a decision.** Marked HELD by the swarm: broker-admin operations aren't implementable within the current architecture as specced — needs a redesign, not a go/no-go call. |
+| 66 | Onboarding sample-cluster preset | [#2225](https://github.com/chmonitor/chmonitor/pull/2225) | **Not just a failed live-verification — a real credential-exposure risk.** The public demo (`play.clickhouse.com`) denies `query_log`/`parts`/`merges`/etc. so most pages render empty. The obvious-looking fix — point at chmonitor's own `duet-ubuntu` cloud demo host — was investigated and **rejected**: that demo's credentials are deliberately server-side-only (`CHM_CLOUD_DEMO_HOSTS`, proxied), while the onboarding preset (`sample-preset.ts`) is embedded client-side and shipped in every deployment's public JS bundle forever. Needs either a genuinely publish-safe ClickHouse demo with broad `system.*` grants, or ship with honest "limited demo" copy instead. |
 
-### Not started ⏳ (44) — grouped by what unblocks each
+### In flight — reconciling a shared-file conflict cascade (6)
+
+Plans **26, 28, 29, 30, 32, 33** (the rest of the alerting cluster) were all
+implemented in parallel against the same base commit and ALL touch the same
+core dispatch function, `apps/dashboard/src/lib/health/server-sweep.ts`. Only
+31 merged cleanly; the other five now cascade into `CONFLICTING` against each
+other as each one lands. Reconciling them requires composing routing +
+suppression gates (maintenance windows, ACKs) + rule-evaluation additions
+(compound, custom) + dispatch-time formatting (Opsgenie, remediation links)
+correctly, in order — not a naive per-PR rebase. **This is the current top
+priority**: land them serially, verify `bun test src/lib/health/ --isolate`
+passes after each (it exercises all six plans' interaction), before starting
+new alerting or advisor work on top of this file. There is also a 5-way
+migration-number collision (`0014_*.sql`) across plans 28/29/30/32/52 to
+renumber sequentially as each lands.
+
+| # | Plan | PR |
+|---|------|----|
+| 26 | [opsgenie-adapter.md](26-opsgenie-adapter.md) | [#2248](https://github.com/chmonitor/chmonitor/pull/2248) — conflicting |
+| 28 | [maintenance-windows-suppression.md](28-maintenance-windows-suppression.md) | [#2254](https://github.com/chmonitor/chmonitor/pull/2254) — conflicting |
+| 29 | [alert-ack-manual-resolution.md](29-alert-ack-manual-resolution.md) | [#2258](https://github.com/chmonitor/chmonitor/pull/2258) — conflicting |
+| 30 | [per-rule-alert-routing.md](30-per-rule-alert-routing.md) | branch `advisor/30-per-rule-alert-routing`, PR pending reconciliation |
+| 32 | [custom-alert-rule-builder.md](32-custom-alert-rule-builder.md) | [#2257](https://github.com/chmonitor/chmonitor/pull/2257) — conflicting |
+| 33 | [remediation-action-links.md](33-remediation-action-links.md) | [#2255](https://github.com/chmonitor/chmonitor/pull/2255) — mergeable, will conflict once others land |
+
+Also in flight, not yet merged: **57** [custom-dashboard-builder-grid.md](57-custom-dashboard-builder-grid.md)
+([#2265](https://github.com/chmonitor/chmonitor/pull/2265), mergeable, auto-merge armed),
+**41** [clickhouse-cloud-connect-wizard.md](41-clickhouse-cloud-connect-wizard.md)
+([#2240](https://github.com/chmonitor/chmonitor/pull/2240), conflicting, needs a rebase),
+**39** otel-trace-export (swarm-originated PR [#2243](https://github.com/chmonitor/chmonitor/pull/2243), not in the original plan file set).
+
+### Not started ⏳ (34) — grouped by what unblocks each
 
 Each of these needs a **product/design decision**, **depends on a held PR**, or
 is **epic-scale** (new toolchain / package / enterprise auth) — i.e. not
 appropriate for blind autonomous execution. Grouped by the blocker:
 
-- **Revenue 15–20** (6) — build on the billing enforcement in held **#14**:
-  [15 upgrade-paywall-modal](15-upgrade-paywall-modal.md),
+- **Revenue 15–16, 18–20** (5) — 🟢 **unblocked as of 2026-07-03** (plan 14 merged,
+  `#2213`): [15 upgrade-paywall-modal](15-upgrade-paywall-modal.md),
   [16 billing-usage-dashboard-card](16-billing-usage-dashboard-card.md),
-  [17 checkout-webhook-e2e-tests](17-checkout-webhook-e2e-tests.md),
   [18 per-host-overage-billing](18-per-host-overage-billing.md),
   [19 downgrade-protection](19-downgrade-protection.md),
-  [20 seat-cap-invite-time-gate](20-seat-cap-invite-time-gate.md). **Unblock #14 first.**
-- **Enterprise 21–24** (4) — edition-gated enterprise auth; prefer Clerk
+  [20 seat-cap-invite-time-gate](20-seat-cap-invite-time-gate.md).
+  (17 checkout-webhook-e2e-tests already merged as a recovery-runbook doc, #2229.)
+- **Enterprise 21, 23–24** (3) — edition-gated enterprise auth; prefer Clerk
   enterprise connections over a bespoke SAML stack. Product decision required:
   [21 sso-saml-enterprise](21-sso-saml-enterprise.md),
-  [22 audit-log-export](22-audit-log-export.md),
   [23 rbac-roles-enterprise](23-rbac-roles-enterprise.md),
   [24 enterprise-multi-org-pooling](24-enterprise-multi-org-pooling.md).
-- **Alerting 26–34** (9) — interdependent cluster; land **#25** (held) and a
-  `27` alert_events store first, then the rest record into it:
+  (22 audit-log-export already merged, #2232.)
+- **Alerting 26, 28–34** (8) — depends on held **#25** (email transport):
   [26 opsgenie-adapter](26-opsgenie-adapter.md),
-  [27 alert-history-audit-log](27-alert-history-audit-log.md),
   [28 maintenance-windows-suppression](28-maintenance-windows-suppression.md),
   [29 alert-ack-manual-resolution](29-alert-ack-manual-resolution.md),
   [30 per-rule-alert-routing](30-per-rule-alert-routing.md),
@@ -116,38 +172,30 @@ appropriate for blind autonomous execution. Grouped by the blocker:
   [32 custom-alert-rule-builder](32-custom-alert-rule-builder.md),
   [33 remediation-action-links](33-remediation-action-links.md) (ACK-gated, never auto-executes DDL),
   [34 pagerduty-escalation-oncall](34-pagerduty-escalation-oncall.md) (extends 30).
-- **Integrations 36–47** (12) — new packages/toolchains (38 Grafana plugin, 40
-  Terraform provider, 39 OTel, 37 Slack OAuth) + security-adjacent proxies
-  (42/43/44); 46 is the advisor wedge (epic):
-  [36 inbound-event-bus-queues](36-inbound-event-bus-queues.md),
-  [37 slack-app-native-oauth](37-slack-app-native-oauth.md),
+  (27 alert_events store already merged, #2231 — this cluster records into it.)
+- **Integrations 37–40, 42–43** (5) — new packages/toolchains (38 Grafana
+  plugin, 40 Terraform provider, 39 OTel, 37 Slack OAuth) + security-adjacent
+  proxies (42/43): [37 slack-app-native-oauth](37-slack-app-native-oauth.md),
   [38 grafana-datasource-plugin](38-grafana-datasource-plugin.md),
   [39 otel-trace-export](39-otel-trace-export.md),
   [40 terraform-provider](40-terraform-provider.md),
-  [41 clickhouse-cloud-connect-wizard](41-clickhouse-cloud-connect-wizard.md),
   [42 kafka-consumer-control](42-kafka-consumer-control.md),
-  [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md),
-  [44 webhook-event-bus-outbound](44-webhook-event-bus-outbound.md),
-  [45 github-deploy-correlation](45-github-deploy-correlation.md),
-  [46 query-advisor-engine](46-query-advisor-engine.md) (recommend-only, never auto-applies DDL),
-  [47 mv-projection-designer](47-mv-projection-designer.md) (recommend-only).
-- **Advisor 49, 52** (2) — [49 query-cost-estimator](49-query-cost-estimator.md)
-  (builds on 46), [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
-  (depends on 25/37 delivery channels).
-- **Dashboards/OSS 54, 57–59** (4) — depend on held **#56** or are epic-scope:
-  [54 query-config-pack-registry](54-query-config-pack-registry.md),
-  [57 custom-dashboard-builder-grid](57-custom-dashboard-builder-grid.md) (needs 56),
+  [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md).
+  (36, 41, 44, 45, 46, 47 already merged — the plumbing/advisor foundation this cluster builds on.)
+- **Advisor 52** (1) — [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
+  (depends on 25/37 delivery channels). (49 query-cost-estimator already merged, #2233.)
+- **Dashboards/OSS 57–59** (3) — 🟢 **57 unblocked as of 2026-07-03** (plan 56
+  merged, `#2224`): [57 custom-dashboard-builder-grid](57-custom-dashboard-builder-grid.md),
   [58 declarative-chart-schema](58-declarative-chart-schema.md),
-  [59 ai-generated-dashboards](59-ai-generated-dashboards.md) (needs 56/57).
-- **Growth 60–61, 63–65, 67–68** (7) — marketing copy must be verified against
-  shipped+enforced features first (60/61/63/64), and 65 depends on held **#66**:
-  [60 landing-hero-wedge-refresh](60-landing-hero-wedge-refresh.md),
+  [59 ai-generated-dashboards](59-ai-generated-dashboards.md) (needs 57 too).
+  (54 query-config pack registry already merged, #2230.)
+- **Growth 61, 63, 65, 67** (4) — marketing copy must be verified against
+  shipped+enforced features first; 65 depends on held **#66**:
   [61 feature-sections-advisor-alerts-refresh](61-feature-sections-advisor-alerts-refresh.md),
   [63 comparison-pages-vs-competitors](63-comparison-pages-vs-competitors.md),
-  [64 seo-use-case-landing-pages](64-seo-use-case-landing-pages.md),
   [65 live-demo-embedded](65-live-demo-embedded.md) (needs 66),
-  [67 docs-blog-content-engine](67-docs-blog-content-engine.md),
-  [68 github-star-social-proof](68-github-star-social-proof.md).
+  [67 docs-blog-content-engine](67-docs-blog-content-engine.md).
+  (60, 64, 68, 69, 70 already merged.)
 
 ## How "done" is judged (every plan)
 

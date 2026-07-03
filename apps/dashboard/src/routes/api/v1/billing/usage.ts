@@ -23,7 +23,10 @@ import type { LimitCheck } from '@/lib/billing/entitlements'
 import type { Plan } from '@/lib/billing/plans'
 
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
-import { getAiUsageToday } from '@/lib/billing/ai-usage-store'
+import {
+  getAiSpendThisMonth,
+  getAiUsageToday,
+} from '@/lib/billing/ai-usage-store'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
 import {
   checkAiDailyLimit,
@@ -97,14 +100,27 @@ async function resolveAiUsedToday(ownerId: string): Promise<number> {
   }
 }
 
+/**
+ * USD `ownerId` has spent on AI overage this month. Defensive like the other
+ * meters — a store hiccup degrades to 0 rather than failing the summary.
+ */
+async function resolveAiSpentThisMonth(ownerId: string): Promise<number> {
+  try {
+    return await getAiSpendThisMonth(ownerId)
+  } catch {
+    return 0
+  }
+}
+
 async function handleGet(): Promise<Response> {
   try {
     const owner = await resolveBillingOwner()
     const userId = await resolveConnectionUserId()
 
-    const [plan, sub, hostsUsed, seatsUsed, aiUsedToday]: [
+    const [plan, sub, hostsUsed, seatsUsed, aiUsedToday, aiSpentThisMonth]: [
       Plan,
       Awaited<ReturnType<typeof resolveOwnerSubscription>>,
+      number,
       number,
       number,
       number,
@@ -114,6 +130,7 @@ async function handleGet(): Promise<Response> {
       resolveHostsUsed(owner, userId),
       resolveSeatsUsed(owner),
       resolveAiUsedToday(owner.id),
+      resolveAiSpentThisMonth(owner.id),
     ])
 
     return createSuccessResponse({
@@ -122,6 +139,8 @@ async function handleGet(): Promise<Response> {
       hosts: toMeter(checkHostLimit(plan, hostsUsed)),
       seats: toMeter(checkSeatLimit(plan, seatsUsed)),
       aiMessages: toMeter(checkAiDailyLimit(plan, aiUsedToday)),
+      aiSpentThisMonth,
+      aiMonthlyUsdBudget: plan.aiMonthlyUsdBudget,
       renewal: {
         currentPeriodEnd: sub?.currentPeriodEnd ?? null,
         cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,

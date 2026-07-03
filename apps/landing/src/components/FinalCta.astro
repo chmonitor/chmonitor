@@ -10,8 +10,8 @@ import HeroHalftone from './HeroHalftone.tsx'
         <span class="mark mark-lg" aria-hidden="true" style="margin:0 auto 22px">
           <img src="/brand/logo-mark.svg" alt="chmonitor" />
         </span>
-        <h2>Start monitoring in minutes</h2>
-        <p>Open the hosted dashboard and connect a cluster, or grab the source and run it yourself. Self-hosting is always free.</p>
+        <h2>Start monitoring — with an <span class="wedge">advisor</span> and <span class="wedge">alerts</span> built in</h2>
+        <p>Open the hosted dashboard and connect a cluster, or self-host with Docker, Kubernetes, or from source. Self-hosting is always free.</p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="https://dash.chmonitor.dev" target="_blank" rel="noopener" data-cta="final-primary">
             Open dashboard
@@ -52,6 +52,9 @@ import HeroHalftone from './HeroHalftone.tsx'
   /* Dark card ⇒ light copy. */
   .fcta .cta :global(h2) { color: #fff; text-shadow: 0 2px 40px rgba(0,0,0,.4); }
   .fcta .cta :global(p) { color: rgba(230,232,238,.9); }
+  /* Brand accent on the advisor/alerts wedge, same fixed orange as the hero
+     (stays orange in both themes — see Hero.astro .ch-hl/.accent). */
+  .fcta .cta :global(h2 .wedge) { color: #f97316; }
   .fcta-ghost {
     background: rgba(18,18,24,.55); color: #fff;
     border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(10px);

@@ -8,12 +8,14 @@ import { formatCount, getGitHubStats } from '../lib/github-stars'
 const { stars } = await getGitHubStats()
 const starLabel = formatCount(stars)
 
+// Leads with the advisor/agent + alerts + topology + insights wedge (plan 60);
+// the rest keep their prior relative order.
 const galleryCards = [
-  { tab: 'Overview', src: '/landing-assets/hero-overview.png', alt: 'chmonitor cluster overview' },
-  { tab: 'Cluster Topology', src: '/landing-assets/hero-topology.png', alt: 'chmonitor cluster topology' },
-  { tab: 'Health Summary', src: '/landing-assets/hero-health.png', alt: 'chmonitor health summary' },
   { tab: 'AI Agent', src: '/landing-assets/hero-agent.png', alt: 'chmonitor AI agent' },
+  { tab: 'Alerts', src: '/landing-assets/hero-health.png', alt: 'chmonitor health summary and alert thresholds' },
+  { tab: 'Cluster Topology', src: '/landing-assets/hero-topology.png', alt: 'chmonitor cluster topology' },
   { tab: 'Cluster Insights', src: '/landing-assets/g-insights.png', alt: 'chmonitor cluster insights' },
+  { tab: 'Overview', src: '/landing-assets/hero-overview.png', alt: 'chmonitor cluster overview' },
   { tab: 'Running Queries', src: '/landing-assets/g-running.png', alt: 'chmonitor running queries' },
   { tab: 'Explain Query', src: '/landing-assets/g-explain.png', alt: 'chmonitor explain query' },
   { tab: 'Most Expensive Queries', src: '/landing-assets/g-expensive.png', alt: 'chmonitor most expensive queries' },
@@ -34,17 +36,22 @@ const galleryCards = [
     <div class="ehero-content">
       <span class="ehero-eyebrow">Real-time ClickHouse observability</span>
       <h1 class="ehero-title">
-        <span class="l1">See every <span class="ch-hl">ClickHouse</span> query.</span><br /><span class="accent">As it runs.</span>
+        <span class="l1">The <span class="ch-hl">ClickHouse advisor</span>.</span><br /><span class="accent">Now with real-time alerts.</span>
       </h1>
       <p class="ehero-sub">
-        chmonitor turns your cluster's <strong>system tables</strong> into a fast, readable
-        dashboard — queries, merges, parts, replication and health, plus an AI agent that
-        answers questions about your data. <strong>Self-host it, or use the hosted dashboard.</strong>
+        chmonitor gives you live query, merge and replication visibility from your cluster's
+        <strong>system tables</strong>, an AI agent that recommends (never auto-applies) partition
+        keys, skip indexes, projections and PREWHERE rewrites, and threshold alerts to any webhook
+        or your Prometheus/Grafana stack. <strong>Self-host, Docker, K8s, or the hosted Cloud.</strong>
       </p>
       <div class="ehero-actions">
         <a class="btn btn-primary" href="https://dash.chmonitor.dev" target="_blank" rel="noopener" data-cta="hero-primary">
           Open dashboard
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a class="btn btn-ghost ehero-ghost" href="https://dash.chmonitor.dev" target="_blank" rel="noopener" data-cta="hero-live-demo">
+          See a live demo
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
         </a>
         <a class="btn btn-ghost ehero-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
           Quickstart
