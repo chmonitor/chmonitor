@@ -135,7 +135,10 @@ export const TreeNode = function TreeNode({
                   )}
                 />
               ))}
-            <span className="truncate">{label}</span>
+            {/* CSS-only ellipsis (never a JS substring) so the full name
+                stays in the DOM for double-click-select + copy; select-text
+                guards against any ancestor accidentally disabling selection. */}
+            <span className="truncate select-text">{label}</span>
             {badge && <div className="ml-auto">{badge}</div>}
           </SidebarMenuButton>
         </div>
