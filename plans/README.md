@@ -58,7 +58,7 @@ baseline import cycle + clear round-3 format drift).
 
 ## Round 3 — feature backlog (14–70)
 
-### Merged ✅ (25)
+### Merged ✅ (31)
 
 | # | Plan | PR |
 |---|------|----|
@@ -86,23 +86,65 @@ baseline import cycle + clear round-3 format drift).
 | 68 | github-star-social-proof | [#2228](https://github.com/chmonitor/chmonitor/pull/2228) |
 | 69 | [og-images-seo-meta-audit.md](69-og-images-seo-meta-audit.md) | [#2223](https://github.com/chmonitor/chmonitor/pull/2223) |
 | 70 | [landing-perf-lighthouse.md](70-landing-perf-lighthouse.md) | [#2226](https://github.com/chmonitor/chmonitor/pull/2226) |
-| 41 | [clickhouse-cloud-connect-wizard.md](41-clickhouse-cloud-connect-wizard.md) | [#2240](https://github.com/chmonitor/chmonitor/pull/2240) (auto-merge armed, CI settling) |
+| 31 | [compound-alert-rules.md](31-compound-alert-rules.md) | [#2249](https://github.com/chmonitor/chmonitor/pull/2249) |
+| 52 | [proactive-weekly-health-report.md](52-proactive-weekly-health-report.md) — styled self-contained HTML narrative | [#2253](https://github.com/chmonitor/chmonitor/pull/2253) |
+| 58 | [declarative-chart-schema.md](58-declarative-chart-schema.md) | [#2256](https://github.com/chmonitor/chmonitor/pull/2256) |
+| 61 | [feature-sections-advisor-alerts-refresh.md](61-feature-sections-advisor-alerts-refresh.md) | [#2251](https://github.com/chmonitor/chmonitor/pull/2251) |
+| 63 | [comparison-pages-vs-competitors.md](63-comparison-pages-vs-competitors.md) | [#2247](https://github.com/chmonitor/chmonitor/pull/2247) |
+| 67 | [docs-blog-content-engine.md](67-docs-blog-content-engine.md) | [#2250](https://github.com/chmonitor/chmonitor/pull/2250) |
 
 Supporting infra: [#2242](https://github.com/chmonitor/chmonitor/pull/2242) bumped
-CI's `bun-version` 1.3.13→1.3.14 after a repo-wide `unit-tests` coverage-writer
-crash (`WriteFailed`) was blocking several unrelated PRs; it did **not** fully
-fix the flake (still reproduces intermittently on the GH Actions runner) —
-`unit-tests` is a non-required check per the babysit-PR policy above, so this
-is a known loose end, not a blocker.
+CI's `bun-version` 1.3.13→1.3.14 for the `unit-tests` coverage-writer crash
+(`WriteFailed`); [#2246](https://github.com/chmonitor/chmonitor/pull/2246) then
+fixed the real root cause of the related `cloudflare:workers` pre-push-hook
+failures with a global `bun test` preload; [#2252](https://github.com/chmonitor/chmonitor/pull/2252)
+bumped remaining stray bun pins. `unit-tests` is still a non-required check
+per the babysit-PR policy above, so any residual flake there is not a blocker.
 
-### Held 🔶 — PR open, needs a human decision (2)
+**Note:** a separate long-running autonomous swarm (see `~/.claude` memory
+`chmonitor-swarm-ci-operating-context`) also works this backlog concurrently —
+some merges above may originate from it rather than an interactive session.
+
+### Held 🔶 — PR open, needs a human decision (3)
 
 | # | Plan | PR | Why it's held |
 |---|------|----|---------------|
 | 25 | Email alert adapter | [#2218](https://github.com/chmonitor/chmonitor/pull/2218) | **No-op transport.** The SMTP path is a stub, and email only fires from the cron sweep when a webhook is *also* configured. Decide the real transport (Mailgun/SendGrid/SMTP) and the fire path. Owner chose to defer this decision (2026-07-03). |
+| 42 | Kafka consumer control | [#2259](https://github.com/chmonitor/chmonitor/pull/2259) | **Design-level block, not just a decision.** Marked HELD by the swarm: broker-admin operations aren't implementable within the current architecture as specced — needs a redesign, not a go/no-go call. |
 | 66 | Onboarding sample-cluster preset | [#2225](https://github.com/chmonitor/chmonitor/pull/2225) | **Not just a failed live-verification — a real credential-exposure risk.** The public demo (`play.clickhouse.com`) denies `query_log`/`parts`/`merges`/etc. so most pages render empty. The obvious-looking fix — point at chmonitor's own `duet-ubuntu` cloud demo host — was investigated and **rejected**: that demo's credentials are deliberately server-side-only (`CHM_CLOUD_DEMO_HOSTS`, proxied), while the onboarding preset (`sample-preset.ts`) is embedded client-side and shipped in every deployment's public JS bundle forever. Needs either a genuinely publish-safe ClickHouse demo with broad `system.*` grants, or ship with honest "limited demo" copy instead. |
 
-### Not started ⏳ (40) — grouped by what unblocks each
+### In flight — reconciling a shared-file conflict cascade (6)
+
+Plans **26, 28, 29, 30, 32, 33** (the rest of the alerting cluster) were all
+implemented in parallel against the same base commit and ALL touch the same
+core dispatch function, `apps/dashboard/src/lib/health/server-sweep.ts`. Only
+31 merged cleanly; the other five now cascade into `CONFLICTING` against each
+other as each one lands. Reconciling them requires composing routing +
+suppression gates (maintenance windows, ACKs) + rule-evaluation additions
+(compound, custom) + dispatch-time formatting (Opsgenie, remediation links)
+correctly, in order — not a naive per-PR rebase. **This is the current top
+priority**: land them serially, verify `bun test src/lib/health/ --isolate`
+passes after each (it exercises all six plans' interaction), before starting
+new alerting or advisor work on top of this file. There is also a 5-way
+migration-number collision (`0014_*.sql`) across plans 28/29/30/32/52 to
+renumber sequentially as each lands.
+
+| # | Plan | PR |
+|---|------|----|
+| 26 | [opsgenie-adapter.md](26-opsgenie-adapter.md) | [#2248](https://github.com/chmonitor/chmonitor/pull/2248) — conflicting |
+| 28 | [maintenance-windows-suppression.md](28-maintenance-windows-suppression.md) | [#2254](https://github.com/chmonitor/chmonitor/pull/2254) — conflicting |
+| 29 | [alert-ack-manual-resolution.md](29-alert-ack-manual-resolution.md) | [#2258](https://github.com/chmonitor/chmonitor/pull/2258) — conflicting |
+| 30 | [per-rule-alert-routing.md](30-per-rule-alert-routing.md) | branch `advisor/30-per-rule-alert-routing`, PR pending reconciliation |
+| 32 | [custom-alert-rule-builder.md](32-custom-alert-rule-builder.md) | [#2257](https://github.com/chmonitor/chmonitor/pull/2257) — conflicting |
+| 33 | [remediation-action-links.md](33-remediation-action-links.md) | [#2255](https://github.com/chmonitor/chmonitor/pull/2255) — mergeable, will conflict once others land |
+
+Also in flight, not yet merged: **57** [custom-dashboard-builder-grid.md](57-custom-dashboard-builder-grid.md)
+([#2265](https://github.com/chmonitor/chmonitor/pull/2265), mergeable, auto-merge armed),
+**41** [clickhouse-cloud-connect-wizard.md](41-clickhouse-cloud-connect-wizard.md)
+([#2240](https://github.com/chmonitor/chmonitor/pull/2240), conflicting, needs a rebase),
+**39** otel-trace-export (swarm-originated PR [#2243](https://github.com/chmonitor/chmonitor/pull/2243), not in the original plan file set).
+
+### Not started ⏳ (34) — grouped by what unblocks each
 
 Each of these needs a **product/design decision**, **depends on a held PR**, or
 is **epic-scale** (new toolchain / package / enterprise auth) — i.e. not
