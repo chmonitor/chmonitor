@@ -1,5 +1,3 @@
-import { describe, expect, test } from 'bun:test'
-
 import {
   deferredNote,
   formatUsd,
@@ -8,6 +6,7 @@ import {
   meterPercent,
   renewalBannerState,
 } from './usage-meter-utils'
+import { describe, expect, test } from 'bun:test'
 
 const meter = (used: number, limit: number | null): Meter => ({
   used,

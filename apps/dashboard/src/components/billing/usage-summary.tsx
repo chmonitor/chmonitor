@@ -1,10 +1,6 @@
 import { AlertTriangleIcon, CalendarClockIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
-import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
-import { apiFetch } from '@/lib/swr/api-fetch'
-import { cn } from '@/lib/utils'
 import {
   deferredNote,
   formatUsd,
@@ -13,6 +9,10 @@ import {
   meterPercent,
   renewalBannerState,
 } from './usage-meter-utils'
+import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
+import { apiFetch } from '@/lib/swr/api-fetch'
+import { cn } from '@/lib/utils'
 
 /**
  * Current-plan usage summary — the used-vs-cap meters + renewal/cancel banner
