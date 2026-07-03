@@ -272,32 +272,9 @@ const ogImage = new URL(image, Astro.site).toString()
         radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249,115,22,.14), transparent 65%),
         radial-gradient(ellipse 60% 40% at 80% 10%, rgba(245,158,11,.08), transparent 55%),
         radial-gradient(ellipse 50% 35% at 15% 20%, rgba(16,185,129,.05), transparent 50%);}
-    /* animated shader island (Paper Design MeshGradient) sits above the CSS
-       fallback but below the hero content. A radial mask fades it OUT of the
-       center so the headline/subhead/CTAs stay fully legible. pointer-events
-       are off so it never intercepts clicks. */
-    .hero-shader{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
-      -webkit-mask-image:radial-gradient(ellipse 78% 72% at 50% 34%, transparent 0%, rgba(0,0,0,.4) 46%, #000 82%);
-      mask-image:radial-gradient(ellipse 78% 72% at 50% 34%, transparent 0%, rgba(0,0,0,.4) 46%, #000 82%);}
-    .hero-shader canvas{display:block;width:100%;height:100%}
-    :root[data-theme="dark"] .hero-shader{opacity:.62}
-    @media (prefers-reduced-motion:reduce){.hero-shader{opacity:.42}}
-    /* hero content must layer above the shader */
+    /* hero content must layer above the ::before background */
     .hero > .wrap,.hero > .gallery-strip{position:relative;z-index:1}
-    .pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 11px;border:1px solid var(--border);
-      border-radius:999px;font-size:12.5px;font-weight:500;color:var(--fg-soft);background:var(--card);box-shadow:var(--shadow-card);white-space:nowrap}
-    .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 3px rgba(16,185,129,.16)}
-    .pill .tag{font-weight:600;color:var(--muted-fg)}
-    h1.hero-title{font-size:clamp(38px,5.6vw,64px);line-height:1.04;letter-spacing:-.03em;font-weight:700;
-      margin:22px auto 0}
-    .hero-line{display:block}
-    h1.hero-title .accent{background:linear-gradient(120deg,#f59e0b,#f97316);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-    .hero-sub{margin:22px auto 0;max-width:60ch;font-size:18.5px;color:var(--muted-fg);text-wrap:pretty}
     .hero-actions{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:30px;flex-wrap:wrap}
-    .hero-meta{margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px 22px;flex-wrap:wrap;
-      font-size:13px;color:var(--muted-fg)}
-    .hero-meta span{display:inline-flex;align-items:center;gap:7px}
-    .hero-meta svg{width:14px;height:14px;color:var(--emerald)}
 
     /* ── browser frame ── */
     .browser-bar{display:flex;align-items:center;gap:14px;height:42px;padding:0 14px;background:var(--browser-bar);border-bottom:1px solid var(--border-soft)}
@@ -506,7 +483,6 @@ const ogImage = new URL(image, Astro.site).toString()
     }
     @media (max-width:560px){
       .cap-grid{grid-template-columns:1fr}
-      .hero-sub{font-size:16.5px}
       /* comfortable 44px tap targets on phones */
       .nav-toggle,.nav-drawer-close,.theme-toggle{width:44px;height:44px}
       .foot-col a{padding:5px 0}

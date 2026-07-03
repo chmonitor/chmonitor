@@ -16,7 +16,7 @@ const galleryCards = [
 ---
 <section class="ehero">
   <div class="ehero-card">
-    <div class="ehero-shader"><HeroHalftone client:only="react" /></div>
+    <div class="ehero-shader"><HeroHalftone client:idle={{ timeout: 300 }} /></div>
     <div class="ehero-scrim" aria-hidden="true"></div>
 
     <span class="ehero-status">
@@ -53,10 +53,13 @@ const galleryCards = [
 
   <div class="gallery-strip reveal">
     <div class="marquee">
-      {galleryCards.map((card) => (
+      {galleryCards.map((card, i) => (
         <div class="gcard">
           <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span><span class="gtab">{card.tab}</span></div>
-          <img src={card.src} alt={card.alt} width="600" height="360" loading="eager" decoding="sync" />
+          {/* Only the first card is a plausible above-the-fold/LCP candidate;
+              the rest scroll in via the auto-scrolling marquee, so native lazy
+              loading has ample lead time before they're ever visible. */}
+          <img src={card.src} alt={card.alt} width="600" height="360" loading={i === 0 ? 'eager' : 'lazy'} decoding={i === 0 ? 'sync' : 'async'} />
         </div>
       ))}
       {galleryCards.map((card) => (

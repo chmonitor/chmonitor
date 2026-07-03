@@ -39,3 +39,51 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      # Informational only (never blocks the PR): GitHub-hosted runners have no
+      # GPU, so headless Chrome falls back to software WebGL. The hero's
+      # animated shader inflates main-thread cost under that fallback the same
+      # way it does in a local sandbox, which makes a hard "fail below 90" gate
+      # unreliable here — see plans/70-landing-perf-lighthouse.md. Once a
+      # GPU-backed runner (or a non-simulated baseline) is available, promote
+      # this to a real regression gate.
+      - name: Lighthouse (informational)
+        continue-on-error: true
+        run: |
+          SERVER_PID=""
+          trap '[ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null' EXIT
+          bun run preview --port 4321 &
+          SERVER_PID=$!
+          npx --yes wait-on http://localhost:4321 --timeout 30000
+          npx --yes lighthouse http://localhost:4321 \
+            --chrome-flags="--headless=new --no-sandbox --disable-gpu" \
+            --only-categories=performance \
+            --output=json --output-path=./lighthouse-mobile.json \
+            --form-factor=mobile --screenEmulation.mobile
+          npx --yes lighthouse http://localhost:4321 \
+            --chrome-flags="--headless=new --no-sandbox --disable-gpu" \
+            --only-categories=performance \
+            --output=json --output-path=./lighthouse-desktop.json \
+            --preset=desktop
+          node -e "
+            for (const f of ['lighthouse-mobile.json', 'lighthouse-desktop.json']) {
+              const r = JSON.parse(require('fs').readFileSync(f, 'utf8'));
+              const a = r.audits;
+              console.log(\`\n=== \${f} ===\`);
+              console.log('Performance score:', Math.round(r.categories.performance.score * 100));
+              console.log('LCP:', a['largest-contentful-paint'].displayValue);
+              console.log('CLS:', a['cumulative-layout-shift'].displayValue);
+              console.log('TBT:', a['total-blocking-time'].displayValue);
+            }
+          "
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: |
+            apps/landing/lighthouse-mobile.json
+            apps/landing/lighthouse-desktop.json
+          retention-days: 14
+          if-no-files-found: ignore
