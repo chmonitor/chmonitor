@@ -34,7 +34,7 @@ export function InsightsEmptyCta({
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Activity className="size-4 shrink-0" />
         <span>
-          No insights right now. Generate a fresh analysis of this cluster.
+          No AI Insights yet. Generate a fresh AI analysis of this cluster.
         </span>
       </div>
       <div className="flex items-center gap-1">

@@ -46,6 +46,16 @@ function deriveAction(
     default:
       if (category === 'storage')
         return { label: 'View tables', href: '/tables' }
+      // Schema-optimization suggestions use a dynamic per-recommendation metric
+      // (`schema_opt:...`), so they never match a case above. Re-derive a
+      // generic agent deep-link — the specific DDL/rewrite only lives in the
+      // immediate generate() response (scalar findings store drops it).
+      if (category === 'optimization')
+        return {
+          label: 'Ask the agent',
+          prompt:
+            'Review this schema optimization suggestion and show the DDL or rewrite to apply, with its estimated impact and risk.',
+        }
       return undefined
   }
 }

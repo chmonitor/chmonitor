@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Sparkles,
   TriangleAlert,
+  Wrench,
   X,
 } from 'lucide-react'
 
@@ -50,6 +51,7 @@ const CATEGORY_META: Record<string, { label: string; icon: LucideIcon }> = {
   performance: { label: 'Performance', icon: Gauge },
   storage: { label: 'Storage', icon: HardDrive },
   reliability: { label: 'Reliability', icon: ShieldAlert },
+  optimization: { label: 'Optimization', icon: Wrench },
   queries: { label: 'Queries', icon: Search },
   cost: { label: 'Cost', icon: CircleDollarSign },
 }

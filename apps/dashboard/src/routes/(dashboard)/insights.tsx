@@ -1,3 +1,4 @@
+import { BarChart3 } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { ChartsSection } from './-insights/charts-section'
@@ -32,7 +33,7 @@ function InsightsPage() {
             Cluster Insights
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Record-breaking queries, storage statistics, and performance
+            AI-generated findings, record-breaking queries, and storage
             highlights (showing {rangeLabel})
           </p>
         </div>
@@ -50,8 +51,16 @@ function InsightsPage() {
 
       <Separator className="my-1" />
 
-      <StatsGrid hostId={hostId} lastHours={lastHours} />
-      <ChartsSection hostId={hostId} />
+      <section className="flex flex-col gap-3" aria-label="Cluster statistics">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="size-4 shrink-0 text-muted-foreground" />
+          <h2 className="text-sm font-medium text-foreground">
+            Cluster Statistics
+          </h2>
+        </div>
+        <StatsGrid hostId={hostId} lastHours={lastHours} />
+        <ChartsSection hostId={hostId} />
+      </section>
     </div>
   )
 }

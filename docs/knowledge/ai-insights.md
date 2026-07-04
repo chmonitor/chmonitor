@@ -33,6 +33,7 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
 |-------|--------|
 | Collect (deterministic) | `src/lib/insights/collectors.ts` |
 | Operational classifiers (pure) | `src/lib/insights/operational-checks.ts` |
+| Schema-optimization mapper (pure) | `src/lib/insights/schema-optimizations.ts` |
 | Enrich (optional LLM) | `src/lib/insights/llm-enrich.ts` |
 | Orchestrate + persist | `src/lib/insights/generate-insights.ts` |
 | Read + de-dupe | `src/lib/insights/read-insights.ts` |
@@ -43,6 +44,25 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
   porting the SQL/severity heuristics from the agent's `anomaly-tools.ts` /
   `insights-tools.ts`. They **never throw** — any failure yields `[]` so the
   feature degrades on read-only clusters or missing system tables.
+- **Schema-optimization collector** (`collectSchemaOptimizations` in
+  `collectors.ts`, category `optimization`) reuses the query advisor's
+  `analyzeQuery` (`lib/ai/advisor/recommendation-engine.ts`) — the same engine
+  behind the agent's `get_optimization_recommendations` tool. It pulls a few
+  (≤3) of the heaviest recent `SELECT`s (one per `normalized_query_hash`), runs
+  the read-only advisor (EXPLAIN + `system.tables`/`columns`/`parts`/
+  `data_skipping_indexes`) on each, and surfaces the ranked skip-index /
+  projection / partition-key / PREWHERE recommendations as `info` insights. The
+  ranking + mapping is a pure function in `schema-optimizations.ts`
+  (`selectSchemaOptimizations`), unit-tested without I/O. **Determinism is
+  load-bearing:** the `metric` (`schema_opt:<kind>:<db>.<table>:<title-slug>`)
+  and `title` derive only from kind/table/title — never from the run-to-run
+  impact estimate — so a dismissed suggestion does not resurrect when the
+  estimate shifts; impact numbers ride in `detail`/`value` only (not part of the
+  stable key). The distinct per-recommendation `metric` is also what stops the
+  `${category}:${metric}` dedup in `collectInsights` from collapsing several
+  suggestions into one. `deriveAction` returns a generic "Ask the agent"
+  deep-link for `category === 'optimization'` (the full DDL only survives the
+  immediate `generate()` response, not the scalar findings store).
 - **Operational collectors** (`collectOperational` in `collectors.ts`) add cheap
   point-in-time checks across categories — detached parts (`storage`), stuck /
   failing mutations + FAILED dictionaries (`reliability`), and the longest
@@ -231,7 +251,8 @@ stay in sync) and the same card + severity styling:
   a **"View all insights"** deep link to `/insights`.
 - `src/components/insights/insights-panel.tsx` — **`/insights` page board**:
   insights **grouped by category** (Anomalies / Performance / Storage /
-  Reliability, extensible to Queries / Cost) with section headers, a segmented
+  Reliability / Optimization, extensible to Queries / Cost) with section headers,
+  a segmented
   **filter row** (All · a tinted **"Needs attention"** tab for critical+warning ·
   one tab per present category), and header severity count badges.
 - `src/components/insights/insight-card.tsx` — shadcn `Card` wrapper (never edits
@@ -265,6 +286,10 @@ stay in sync) and the same card + severity styling:
 
 ## Follow-ups
 
+- **Schema-optimization suggestions — done.** The advisor engine is now wired
+  into the collect pipeline as the `optimization` category (see the
+  schema-optimization collector above), reusing `analyzeQuery` rather than
+  reimplementing schema analysis.
 - **More detectors.** The operational collectors are a starter set. Natural next
   detectors (each still a cheap single system-table read + a pure classifier in
   `operational-checks.ts`): long-running merges (`system.merges`), high

@@ -18,6 +18,10 @@ import {
   checkLongRunningQuery,
   checkStuckMutations,
 } from './operational-checks'
+import {
+  type AnalyzedQuery,
+  selectSchemaOptimizations,
+} from './schema-optimizations'
 import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
 
 function extractValue(result: unknown): number | null {
@@ -424,6 +428,75 @@ async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
+// ---------------------------------------------------------------------------
+// Schema-optimization collector — reuses the query advisor's `analyzeQuery`
+// (skip index / projection / partition key / PREWHERE) against a few
+// representative heavy recent queries and surfaces the ranked recommendations
+// as "Optimization" insights. Read-only end to end (EXPLAIN + system tables);
+// the pure ranking/mapping lives in ./schema-optimizations so it is unit-tested.
+// ---------------------------------------------------------------------------
+
+/** How many representative queries to analyze per sweep (bounds ClickHouse round-trips). */
+const SCHEMA_OPT_MAX_QUERIES = 3
+
+/**
+ * A few of the heaviest recent SELECTs, one per normalized query shape, so the
+ * advisor analyzes distinct workloads rather than the same query repeated.
+ */
+const HEAVY_QUERIES_SQL = `SELECT any(query) AS query
+  FROM system.query_log
+  WHERE type = 'QueryFinish'
+    AND event_time > now() - INTERVAL 24 HOUR
+    AND query_kind = 'Select'
+    AND read_bytes > 10000000
+    AND query NOT ILIKE '%system.%'
+  GROUP BY normalized_query_hash
+  ORDER BY max(read_bytes) DESC
+  LIMIT ${SCHEMA_OPT_MAX_QUERIES}`
+
+async function collectSchemaOptimizations(
+  hostId: number
+): Promise<InsightCandidate[]> {
+  try {
+    const rows = await readOnlyQuery({
+      query: HEAVY_QUERIES_SQL,
+      hostId,
+    }).catch(() => null)
+    if (!Array.isArray(rows) || rows.length === 0) return []
+
+    const queries = rows
+      .map((r) => (r as Record<string, unknown>)?.query)
+      .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
+    if (queries.length === 0) return []
+
+    // Dynamic import (like advisor-tools.ts) keeps the heavy recommendation
+    // engine out of anything that merely imports the collectors module.
+    const { analyzeQuery } = await import('../ai/advisor/recommendation-engine')
+
+    const analyzed = await Promise.all(
+      queries.map(async (sql): Promise<AnalyzedQuery | null> => {
+        try {
+          const res = await analyzeQuery({ hostId, sql })
+          if (!res.ok || res.recommendations.length === 0) return null
+          return {
+            database: res.database,
+            table: res.table,
+            recommendations: res.recommendations,
+          }
+        } catch {
+          return null
+        }
+      })
+    )
+
+    return selectSchemaOptimizations(
+      analyzed.filter((a): a is AnalyzedQuery => a !== null)
+    )
+  } catch {
+    return []
+  }
+}
+
 /**
  * Run all collectors for a host and return de-duplicated candidates,
  * highest severity first.
@@ -436,6 +509,7 @@ export async function collectInsights(
     collectStorage(hostId).catch(() => []),
     collectReliability(hostId).catch(() => []),
     collectOperational(hostId).catch(() => []),
+    collectSchemaOptimizations(hostId).catch(() => []),
   ])
 
   const seen = new Set<string>()
