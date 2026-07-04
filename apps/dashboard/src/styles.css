@@ -450,7 +450,12 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.269 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.424 0.199 265.638);
+  /* Brightened for dark mode: the previous 0.424 was darker than the light-mode
+     primary (0.488), leaving `text-primary`/`border-primary` chips (e.g. Slow
+     Queries filter pills) unreadable on near-black cards (~2:1). 0.61 lifts chip
+     text to WCAG AA (~4.5:1) while keeping white-on-primary buttons legible
+     (~3.6:1, above the shipped sidebar-primary floor). */
+  --primary: oklch(0.61 0.21 264.376);
   --primary-foreground: oklch(0.97 0.014 254.604);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
