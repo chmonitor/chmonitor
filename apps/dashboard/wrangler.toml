@@ -70,24 +70,19 @@ custom_domain = true
 # (`@chm/clickhouse-client/clickhouse-version` /
 # `@chm/clickhouse-client/table-existence-cache`) with a KV L2 so they survive
 # Worker isolate churn instead of re-querying `SELECT version()` /
-# `system.tables` on every cold start. This binding is intentionally left
-# commented out: `wrangler deploy` fails hard if a `[[kv_namespaces]]` block
-# references a namespace that doesn't exist yet, which would break the next CI
-# deploy. Self-host has no KV binding by design, so both caches always fall
-# back to their in-memory-only (L1) behavior — identical to today — until an
-# operator completes this setup:
+# `system.tables` on every cold start. ACTIVE — provisioned in #2319.
 #
-#   1. wrangler kv namespace create chmonitor-version-cache
-#      (the namespace TITLE is chmonitor-prefixed so it's identifiable in the
-#      shared Cloudflare account; the worker BINDING below stays
-#      CHM_VERSION_CACHE_KV — title and binding are independent.)
-#   2. Uncomment the block below with the real `id` from step 1 (mirror into
-#      [env.preview] with its own namespace, or reuse the same one).
-#   3. Redeploy.
-#
-# [[kv_namespaces]]
-# binding = "CHM_VERSION_CACHE_KV"
-# id = "<namespace id from `wrangler kv namespace create`>"
+# Self-host has no KV binding by design, so both caches always fall back to
+# their in-memory-only (L1) behavior — identical to today — whenever this
+# binding is absent (Docker/K8s/Node). The namespace TITLEs are
+# chmonitor-prefixed so they're identifiable in the shared Cloudflare account;
+# the worker BINDING stays CHM_VERSION_CACHE_KV — title and binding are
+# independent. `id` = chmonitor-version-cache, `preview_id` =
+# chmonitor-version-cache-preview.
+[[kv_namespaces]]
+binding = "CHM_VERSION_CACHE_KV"
+id = "f2efbec5955a4772a01e32e7e35c35f5"
+preview_id = "1f8ab0acc6114802bf5c14d883dae341"
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -203,6 +198,13 @@ migrations_dir = "./src/db/conversations-migrations"
 binding = "CHM_DASHBOARD_QUERY_KV"
 id = "98b43d2d6fcf438cbd91e18e38b4212d"
 preview_id = "44390b843ada46d8beb47c99bcf24115"
+
+# Version + table-existence L2 cache (#2319). KV namespaces are not inherited by
+# named environments, so repeat the top-level CHM_VERSION_CACHE_KV binding here.
+[[env.preview.kv_namespaces]]
+binding = "CHM_VERSION_CACHE_KV"
+id = "f2efbec5955a4772a01e32e7e35c35f5"
+preview_id = "1f8ab0acc6114802bf5c14d883dae341"
 
 # DO migrations are not inherited by named environments — repeat the chain that
 # drops the legacy preview worker's Durable Objects (see top-level note).
