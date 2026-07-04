@@ -107,12 +107,33 @@ export const menuItemsConfig: MenuItem[] = [
     ],
   },
   {
+    // Parent groups the insights findings view and its settings — two pages
+    // sharing the same `insights` feature gate (set on the parent so the whole
+    // group is filtered together).
     title: 'Insights',
-    href: '/insights',
+    href: '',
     icon: TrendingUpIcon,
     section: 'main',
     isNew: true,
     permission: { feature: 'insights' },
+    items: [
+      {
+        title: 'Insights',
+        href: '/insights',
+        description:
+          'AI-generated findings, record breakers, and query insights for this cluster',
+        icon: TrendingUpIcon,
+        isNew: true,
+      },
+      {
+        title: 'Insights Settings',
+        href: '/insights-settings',
+        description:
+          'Configure how insights are generated — templates, AI enhancement, model, and prompt style',
+        icon: SlidersHorizontalIcon,
+        isNew: true,
+      },
+    ],
   },
   {
     title: 'Health',
