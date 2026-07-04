@@ -3,7 +3,7 @@
  * layer added in #2185 on top of the existing in-memory (L1) cache.
  *
  * The single invariant under test: a KV miss, a KV read error, or a missing
- * `DASHBOARD_QUERY_KV` binding (self-hosted/Node) must NEVER be treated as
+ * `CHM_DASHBOARD_QUERY_KV` binding (self-hosted/Node) must NEVER be treated as
  * "allow" — it must always fall through to the authoritative ClickHouse
  * allowlist query, preserving the fail-closed behavior of the validator.
  */
@@ -62,13 +62,13 @@ interface FakeKV {
 
 function installKV(kv: FakeKV) {
   ;(
-    globalThis as unknown as { DASHBOARD_QUERY_KV: FakeKV }
-  ).DASHBOARD_QUERY_KV = kv
+    globalThis as unknown as { CHM_DASHBOARD_QUERY_KV: FakeKV }
+  ).CHM_DASHBOARD_QUERY_KV = kv
 }
 
 function removeKV() {
-  delete (globalThis as unknown as { DASHBOARD_QUERY_KV?: FakeKV })
-    .DASHBOARD_QUERY_KV
+  delete (globalThis as unknown as { CHM_DASHBOARD_QUERY_KV?: FakeKV })
+    .CHM_DASHBOARD_QUERY_KV
 }
 
 let hostCounter = 1000

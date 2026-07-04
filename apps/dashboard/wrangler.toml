@@ -26,12 +26,12 @@ migrations_dir = "./src/db/conversations-migrations"
 # the in-memory L1 (cache-manager.ts, 5-min TTL) with an L2 that survives
 # Worker isolate churn on cold starts. Optional/zero-config: code auto-detects
 # this binding (see lib/api/data/dashboard-query-kv-cache.ts, same pattern as
-# lib/version-cache.ts's VERSION_CACHE_KV) and falls back to in-memory-only
+# lib/version-cache.ts's CHM_VERSION_CACHE_KV) and falls back to in-memory-only
 # when absent, so self-hosted/Docker/K8s deploys (no KV binding) are unaffected.
 # A KV miss or read error is always treated as a cache miss (fail-closed) —
 # never as an implicit allow.
 [[kv_namespaces]]
-binding = "DASHBOARD_QUERY_KV"
+binding = "CHM_DASHBOARD_QUERY_KV"
 id = "98b43d2d6fcf438cbd91e18e38b4212d"
 preview_id = "44390b843ada46d8beb47c99bcf24115"
 
@@ -77,13 +77,16 @@ custom_domain = true
 # back to their in-memory-only (L1) behavior — identical to today — until an
 # operator completes this setup:
 #
-#   1. wrangler kv namespace create VERSION_CACHE_KV
+#   1. wrangler kv namespace create chmonitor-version-cache
+#      (the namespace TITLE is chmonitor-prefixed so it's identifiable in the
+#      shared Cloudflare account; the worker BINDING below stays
+#      CHM_VERSION_CACHE_KV — title and binding are independent.)
 #   2. Uncomment the block below with the real `id` from step 1 (mirror into
 #      [env.preview] with its own namespace, or reuse the same one).
 #   3. Redeploy.
 #
 # [[kv_namespaces]]
-# binding = "VERSION_CACHE_KV"
+# binding = "CHM_VERSION_CACHE_KV"
 # id = "<namespace id from `wrangler kv namespace create`>"
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -197,7 +200,7 @@ migrations_dir = "./src/db/conversations-migrations"
 # for now, same pattern as CHM_CLOUD_D1 above). Cached entries are non-secret
 # (they mirror rows already readable from the dashboard's own charts table).
 [[env.preview.kv_namespaces]]
-binding = "DASHBOARD_QUERY_KV"
+binding = "CHM_DASHBOARD_QUERY_KV"
 id = "98b43d2d6fcf438cbd91e18e38b4212d"
 preview_id = "44390b843ada46d8beb47c99bcf24115"
 

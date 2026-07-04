@@ -17,12 +17,12 @@
 // over HTTP — only the project's Cloudflare account can query the dataset.
 
 export interface Env {
-  TELEMETRY: AnalyticsEngineDataset
+  CHM_TELEMETRY_AE: AnalyticsEngineDataset
   // Optional forever-retention store. Analytics Engine keeps data for only 3
   // months; when a D1 binding is present we ALSO record one deduped row per
   // install per UTC day, which D1 keeps indefinitely (CF-native, free tier).
   // Deploy works without it (AE-only) until the binding is configured.
-  DB?: D1Database
+  CHM_TELEMETRY_DB?: D1Database
 }
 
 const MAX_BODY_BYTES = 2048
@@ -110,7 +110,7 @@ export default {
       const deployTarget = asEnum(data.deploy_target, DEPLOY_TARGETS, 'unknown')
       const chVersion = asVersion(data.ch_version)
 
-      env.TELEMETRY.writeDataPoint({
+      env.CHM_TELEMETRY_AE.writeDataPoint({
         // index1 — distinct-install key. Count installs with uniqExact(index1).
         indexes: [instanceHash],
         // blob1=kind, blob2=deploy_target, blob3=ch_version
@@ -122,10 +122,10 @@ export default {
       // binding is present also record one deduped row per install per UTC day.
       // INSERT OR IGNORE on (day, instance_hash) keeps storage to one row per
       // install per day; D1 retains it indefinitely. Runs after the response.
-      if (env.DB) {
+      if (env.CHM_TELEMETRY_DB) {
         const day = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
         ctx.waitUntil(
-          env.DB.prepare(
+          env.CHM_TELEMETRY_DB.prepare(
             'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version) VALUES (?, ?, ?, ?)'
           )
             .bind(day, instanceHash, deployTarget, chVersion || null)
@@ -151,7 +151,7 @@ export default {
       const chVersion = asVersion(props.ch_version)
       const chFlavor = asEnum(props.ch_flavor, CH_FLAVORS, 'unknown')
 
-      env.TELEMETRY.writeDataPoint({
+      env.CHM_TELEMETRY_AE.writeDataPoint({
         // events carry no instance identity — index by event name.
         indexes: [event],
         // blob1=kind, blob2=event, blob3=deploy_target, blob4=ch_version, blob5=ch_flavor

@@ -3,7 +3,7 @@
  *
  * Zero-config cache layer for ClickHouse version caching.
  * Auto-detects environment and uses appropriate caching strategy:
- * 1. Cloudflare Workers KV (if VERSION_CACHE_KV binding exists)
+ * 1. Cloudflare Workers KV (if CHM_VERSION_CACHE_KV binding exists)
  * 2. In-memory fallback (always works — self-hosted Node/Docker, or
  *    Cloudflare before the KV namespace is provisioned)
  *
@@ -27,7 +27,7 @@ import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-versio
 import { debug, warn } from '@chm/logger'
 
 /** The wrangler.toml binding name this module reads (see issue #2183). */
-export const VERSION_CACHE_KV_BINDING = 'VERSION_CACHE_KV'
+export const CHM_VERSION_CACHE_KV_BINDING = 'CHM_VERSION_CACHE_KV'
 
 /**
  * Cache adapter interface
@@ -126,7 +126,7 @@ let cacheInstance: VersionCacheAdapter | null = null
  * Get the appropriate cache adapter for the current environment
  *
  * Priority order:
- * 1. Cloudflare Workers KV (if VERSION_CACHE_KV binding exists)
+ * 1. Cloudflare Workers KV (if CHM_VERSION_CACHE_KV binding exists)
  * 2. In-memory fallback
  *
  * @returns Cache adapter instance

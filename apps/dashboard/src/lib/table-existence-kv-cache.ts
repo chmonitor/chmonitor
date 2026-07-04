@@ -5,7 +5,7 @@
  * TTL) guarding optional system tables (`system.backup_log`,
  * `system.zookeeper`, …). On Cloudflare that cache is wiped on every Worker
  * isolate churn, forcing a fresh `SELECT count() FROM system.tables` per cold
- * start. This adapter backs it with the same `VERSION_CACHE_KV` namespace
+ * start. This adapter backs it with the same `CHM_VERSION_CACHE_KV` namespace
  * used by `version-cache.ts` (different key prefix, same binding — a table's
  * existence rarely changes, so one small KV namespace covers both caches),
  * and is registered as that package's L2 provider from `src/start.ts`.

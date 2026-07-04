@@ -4,8 +4,8 @@
  * Backs the in-memory per-isolate allowlist cache (`cache-manager.ts`, L1)
  * with an optional Cloudflare Workers KV layer that survives isolate churn
  * (cold starts, isolate eviction). Zero-config, same pattern as
- * `lib/version-cache.ts`'s `VERSION_CACHE_KV`: the code auto-detects the
- * `DASHBOARD_QUERY_KV` binding via `globalThis` and is a silent no-op when
+ * `lib/version-cache.ts`'s `CHM_VERSION_CACHE_KV`: the code auto-detects the
+ * `CHM_DASHBOARD_QUERY_KV` binding via `globalThis` and is a silent no-op when
  * it's absent — self-hosted Docker/K8s deploys (no Cloudflare KV) are
  * unaffected and keep working exactly as before.
  *
@@ -42,11 +42,14 @@ function getKeyName(hostId: number): string {
   return `dashboard-queries:${hostId}`
 }
 
-/** Resolve the `DASHBOARD_QUERY_KV` binding if the runtime provides one. */
+/** Resolve the `CHM_DASHBOARD_QUERY_KV` binding if the runtime provides one. */
 function getKV(): KVNamespace | undefined {
-  if (typeof globalThis !== 'undefined' && 'DASHBOARD_QUERY_KV' in globalThis) {
-    return (globalThis as unknown as { DASHBOARD_QUERY_KV: KVNamespace })
-      .DASHBOARD_QUERY_KV
+  if (
+    typeof globalThis !== 'undefined' &&
+    'CHM_DASHBOARD_QUERY_KV' in globalThis
+  ) {
+    return (globalThis as unknown as { CHM_DASHBOARD_QUERY_KV: KVNamespace })
+      .CHM_DASHBOARD_QUERY_KV
   }
   return undefined
 }

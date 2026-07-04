@@ -62,7 +62,7 @@ describe('CloudflareAdapter contract', () => {
     // Under bun test `cloudflare:workers` env is the process.env shim, so a
     // non-object value probes to null.
     expect(a.d1('CHM_CLOUD_D1')).toBeNull()
-    expect(a.kv('VERSION_CACHE_KV')).toBeNull()
+    expect(a.kv('CHM_VERSION_CACHE_KV')).toBeNull()
     expect(a.durableObject('SOME_DO')).toBeNull()
   })
 
@@ -91,7 +91,7 @@ describe('NodeAdapter contract', () => {
 
   test('binding accessors return null on Node', () => {
     expect(a.d1('CHM_CLOUD_D1')).toBeNull()
-    expect(a.kv('VERSION_CACHE_KV')).toBeNull()
+    expect(a.kv('CHM_VERSION_CACHE_KV')).toBeNull()
     expect(a.durableObject('SOME_DO')).toBeNull()
   })
 

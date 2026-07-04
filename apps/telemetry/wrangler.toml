@@ -28,7 +28,7 @@ enabled = true
 # Analytics Engine — hot store (3-month retention, ad-hoc SQL). No binding-side
 # config needed beyond the dataset name; rows go in via writeDataPoint().
 [[analytics_engine_datasets]]
-binding = "TELEMETRY"
+binding = "CHM_TELEMETRY_AE"
 dataset = "chm_telemetry"
 
 # D1 — forever store (optional). AE auto-deletes after 3 months; D1 keeps one
@@ -40,7 +40,7 @@ dataset = "chm_telemetry"
 #
 # then uncomment:
 # [[d1_databases]]
-# binding = "DB"
+# binding = "CHM_TELEMETRY_DB"
 # database_name = "chm_telemetry"
 # database_id = "<paste id from `wrangler d1 create`>"
 # migrations_dir = "migrations"
@@ -57,7 +57,7 @@ custom_domain = true
 name = "preview-chmonitor-telemetry"
 
 [[env.preview.analytics_engine_datasets]]
-binding = "TELEMETRY"
+binding = "CHM_TELEMETRY_AE"
 dataset = "chm_telemetry_preview"
 
 [[env.preview.routes]]

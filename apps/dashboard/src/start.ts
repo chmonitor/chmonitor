@@ -31,7 +31,10 @@ import { forceFlushOtel, getOtelTracer } from '@/lib/otel/exporter'
 import { withSpan } from '@/lib/otel/with-span'
 import { withSecurityHeaders } from '@/lib/security-headers'
 import { getTableExistenceCache } from '@/lib/table-existence-kv-cache'
-import { getVersionCache, VERSION_CACHE_KV_BINDING } from '@/lib/version-cache'
+import {
+  CHM_VERSION_CACHE_KV_BINDING,
+  getVersionCache,
+} from '@/lib/version-cache'
 
 // Returning a Response from a request middleware short-circuits the chain and
 // sends that Response without running the route handler (same mechanism the
@@ -53,7 +56,7 @@ function wireVersionCacheKvOnce(): void {
   kvCacheWired = true
 
   const binding = (env as Record<string, unknown> | undefined)?.[
-    VERSION_CACHE_KV_BINDING
+    CHM_VERSION_CACHE_KV_BINDING
   ]
   const kv =
     binding && typeof binding === 'object' ? (binding as KVNamespace) : null

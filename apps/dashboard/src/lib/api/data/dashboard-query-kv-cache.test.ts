@@ -28,13 +28,13 @@ interface FakeKV {
 
 function installKV(kv: FakeKV) {
   ;(
-    globalThis as unknown as { DASHBOARD_QUERY_KV: FakeKV }
-  ).DASHBOARD_QUERY_KV = kv
+    globalThis as unknown as { CHM_DASHBOARD_QUERY_KV: FakeKV }
+  ).CHM_DASHBOARD_QUERY_KV = kv
 }
 
 function removeKV() {
-  delete (globalThis as unknown as { DASHBOARD_QUERY_KV?: FakeKV })
-    .DASHBOARD_QUERY_KV
+  delete (globalThis as unknown as { CHM_DASHBOARD_QUERY_KV?: FakeKV })
+    .CHM_DASHBOARD_QUERY_KV
 }
 
 beforeEach(() => {
