@@ -26,6 +26,14 @@ export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'query-duration-percentiles': 'area',
   'slow-query-occurrences': 'bar',
 
+  // Query Insights overview (parity with ClickHouse Cloud Query Insights)
+  'query-insights-qps': 'area',
+  'query-insights-latency': 'area',
+  'query-insights-operations': 'bar',
+  'query-insights-rows': 'area',
+  'query-insights-cache-hit-ratio': 'bar',
+  'query-insights-errors': 'area',
+
   // Merge Charts - area and metric
   'merge-count': 'area',
   'summary-used-by-merges': 'table',
