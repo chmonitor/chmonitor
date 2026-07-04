@@ -117,19 +117,15 @@ export const slowQueryPatternsFilterSchema: FilterSchema = {
 }
 
 /**
- * Normalized slow-query patterns: `system.query_log` aggregated by
- * `normalized_query_hash`, mirroring ClickHouse Cloud's Query Insights
- * "Slow Patterns" table. Foundation for the rest of the Query Insights epic
- * (overview cards, detail flyout, insights API) — keep column names stable.
+ * Build the versioned slow-query-patterns SQL, parameterized by the WHERE
+ * fragment applied to the raw `filtered` rows before aggregation. The
+ * dashboard page injects the schema-driven {@link FILTER_PLACEHOLDER}; the
+ * insights detail endpoint (`/api/v1/insights/query-patterns/:hash`) reuses
+ * this same aggregation scoped to one `normalized_query_hash` — a single
+ * source of truth for the pattern metrics instead of duplicating the SQL.
  */
-export const slowQueryPatternsConfig: QueryConfig = {
-  name: 'slow-query-patterns',
-  description:
-    'Query patterns aggregated by normalized_query_hash — calls, duration percentiles, resource usage, and errors per pattern',
-  docs: QUERY_LOG,
-  tableCheck: 'system.query_log',
-  filterSchema: slowQueryPatternsFilterSchema,
-  sql: [
+export function buildQueryPatternsSql(whereFragment: string): VersionedSql[] {
+  return [
     {
       since: '19.1',
       description: 'Base query without query_cache_usage',
@@ -140,7 +136,7 @@ ${rawRowsSelect}
         FROM system.query_log
         WHERE type IN ('QueryFinish', 'ExceptionWhileProcessing')
       ) AS q
-      ${FILTER_PLACEHOLDER}
+      ${whereFragment}
     ),
     base_metrics AS (
       SELECT
@@ -198,7 +194,7 @@ ${rawRowsSelect},
         FROM system.query_log
         WHERE type IN ('QueryFinish', 'ExceptionWhileProcessing')
       ) AS q
-      ${FILTER_PLACEHOLDER}
+      ${whereFragment}
     ),
     base_metrics AS (
       SELECT
@@ -244,7 +240,23 @@ ${rawRowsSelect},
     LIMIT 1000
   `,
     },
-  ] as VersionedSql[],
+  ]
+}
+
+/**
+ * Normalized slow-query patterns: `system.query_log` aggregated by
+ * `normalized_query_hash`, mirroring ClickHouse Cloud's Query Insights
+ * "Slow Patterns" table. Foundation for the rest of the Query Insights epic
+ * (overview cards, detail flyout, insights API) — keep column names stable.
+ */
+export const slowQueryPatternsConfig: QueryConfig = {
+  name: 'slow-query-patterns',
+  description:
+    'Query patterns aggregated by normalized_query_hash — calls, duration percentiles, resource usage, and errors per pattern',
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  filterSchema: slowQueryPatternsFilterSchema,
+  sql: buildQueryPatternsSql(FILTER_PLACEHOLDER),
 
   rowClassName: (row) => {
     const totalDuration = Number(row.total_duration || 0)
