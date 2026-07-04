@@ -35,7 +35,7 @@ published (`draft: false`, merged to main)
 | Week | Type | Working title | Target keyword | Cross-link (docs page) | Status |
 |---|---|---|---|---|---|
 | 1 | release | chmonitor v0.3 — a full rebuild | clickhouse monitoring dashboard | `/guide/getting-started` | done (`chmonitor-v0-3.md`, published 2026-06-29) |
-| 2 | how-to | Alerting to Slack and Discord | clickhouse alerting webhook | `/guide/features/health` | done (`alerting-to-slack-and-discord.md`) |
+| 2 | how-to | Alerting to Slack and Discord | clickhouse alerting webhook | `/guide/features/health` | moved to docs-only (`docs/content/guide/guides/alerting-slack-discord.mdx`), no blog post |
 | 3 | how-to | Ask your cluster anything: the AI agent over MCP | clickhouse ai agent mcp | `/guide/ai-agent` | planned |
 | 4 | troubleshooting | Why is my ClickHouse replication lagging? | clickhouse replication lag | `/guide/features` (replication section) | planned |
 | 5 | how-to | The query advisor: DDL recommendations you review, not that run themselves | clickhouse query optimization advisor | `/guide/ai-agent` (advisor tools) | planned |

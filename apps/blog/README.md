@@ -62,8 +62,9 @@ Launch films live in `chmonitor/launch/<version>/` and are copied into
   the canonical docs page it walks through (`https://docs.chmonitor.dev/<slug>`,
   matching `docs/content/**` paths 1:1); the docs page links back with a
   `[Post title](https://blog.chmonitor.dev/<slug>/)` reference. Bidirectional
-  by convention — see `alerting-to-slack-and-discord.md` ↔
-  `docs/content/guide/features/health.mdx` for the reference pair.
+  by convention. Content that's docs-only (a walkthrough with no release-style
+  narrative) can skip the blog post entirely and live only under
+  `docs/content/**` — see `docs/content/guide/guides/alerting-slack-discord.mdx`.
 - **RSS**: `src/pages/rss.xml.ts` (via `@astrojs/rss`) builds `/rss.xml` from
   the same content collection as the post list; linked from `Base.astro`'s
   `<head>` and the footer.

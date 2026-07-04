@@ -115,6 +115,10 @@ function Page() {
       // switcher. tabMode stays default ('auto') so it renders inside the
       // sidebar and keeps the tree scoped to the active section. Version lives
       // once in the footer; no custom banner so the sidebar stays compact.
+      // `links` is cleared here (kept on HomeLayout's navbar via baseOptions)
+      // — DocsLayout renders it a second time in the sidebar, duplicating the
+      // section dropdown above with the same 4 links.
+      links={[]}
       sidebar={{
         footer: <SidebarFooter />,
       }}

@@ -96,7 +96,7 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 |---|---|---|
 | `CRON_SECRET` | (unset = **endpoint disabled**) | **Required.** Guards `GET /api/cron/health-sweep` and `GET /api/cron/retention-prune`. Pass as `Authorization: Bearer <secret>` (or `?secret=<secret>`). When it is **unset/empty the endpoints fail closed and return HTTP 503** — they do not run. Note that `retention-prune` is **destructive** (it deletes conversation rows past each plan's retention window), which is why these routes refuse to run unauthenticated. |
 | `HEALTH_ALERT_ENABLED` | `false` | Set to `true` to enable webhook dispatch. |
-| `HEALTH_ALERT_WEBHOOK_URL` | (required if enabled) | Slack or Discord incoming webhook URL. Payload is `{"text": "...", "content": "..."}` so both render it. See [Alerting to Slack and Discord](https://blog.chmonitor.dev/alerting-to-slack-and-discord/) for setup examples. |
+| `HEALTH_ALERT_WEBHOOK_URL` | (required if enabled) | Slack or Discord incoming webhook URL. Payload is `{"text": "...", "content": "..."}` so both render it. See [Alerting to Slack and Discord](/guide/guides/alerting-slack-discord) for setup examples. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity that triggers a notification. Values: `warning` or `critical`. |
 
 <Callout type="warn" title="CRON_SECRET is required">

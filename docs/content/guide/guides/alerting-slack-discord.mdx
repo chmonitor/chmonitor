@@ -1,0 +1,88 @@
+---
+title: Alerting to Slack and Discord
+description: Wire chmonitor's health sweep to a Slack or Discord incoming webhook so your team gets notified the moment a check crosses a threshold — no polling the dashboard required.
+icon: BellRing
+---
+
+chmonitor's [Health](/guide/features/health) page checks replication lag, failed
+mutations, disk usage and a handful of other signals on a schedule you control.
+Left alone, that only helps the person who remembers to look at the page. The
+health-sweep cron endpoint closes that gap: point it at a Slack or Discord
+incoming webhook and it posts a message whenever a check meets or exceeds a
+severity threshold.
+
+This page walks through creating the webhook URL itself. For the full
+`CRON_SECRET` / `HEALTH_ALERT_*` environment variable reference, scheduling on
+Cloudflare Cron, and the sequence diagram, see
+[Health → Health-sweep cron alerting](/guide/features/health#health-sweep-cron-alerting).
+
+## Prerequisites
+
+- A chmonitor instance already connected to at least one ClickHouse host.
+- The ability to set environment variables / secrets on your deployment
+  (Cloudflare Worker secret, Docker env, or Kubernetes Secret).
+
+## 1. Create the webhook URL
+
+<Tabs items={['Slack', 'Discord']}>
+<Tab value="Slack">
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → create (or open) an
+   app → **Incoming Webhooks** → turn the toggle on.
+2. **Add New Webhook to Workspace**, pick the channel, and copy the generated
+   URL (`https://hooks.slack.com/services/...`).
+
+</Tab>
+<Tab value="Discord">
+
+1. In the target channel: **Channel Settings → Integrations → Webhooks →
+   New Webhook**.
+2. Name it, optionally set an avatar, and **Copy Webhook URL**.
+
+</Tab>
+</Tabs>
+
+The same URL works for both — the sweep posts `{"text": "...", "content": "..."}`,
+and each platform reads the field it understands.
+
+## 2. Configure and enable
+
+```bash
+CRON_SECRET=<random-secret>
+HEALTH_ALERT_ENABLED=true
+HEALTH_ALERT_MIN_SEVERITY=warning   # or "critical" to only page on the worst checks
+HEALTH_ALERT_WEBHOOK_URL=<the URL you copied above>
+```
+
+On Cloudflare Workers, set the secrets rather than plain vars:
+
+```bash
+wrangler secret put CRON_SECRET
+wrangler secret put HEALTH_ALERT_WEBHOOK_URL
+```
+
+## 3. Test it
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://your-chmonitor.example.com/api/cron/health-sweep
+```
+
+The endpoint always returns HTTP 200 with a JSON array of check results —
+dispatch happens server-side and doesn't block the response. To confirm a
+message actually went out, trip a threshold intentionally (temporarily lower
+`HEALTH_ALERT_MIN_SEVERITY` to `warning`) and watch the channel.
+
+<Callout type="info" title="Alert history">
+On Cloud with D1 configured, the Health page's alert history records every
+dispatch attempt and whether delivery succeeded. That history isn't available
+on a self-hosted deployment without D1.
+</Callout>
+
+## Related
+
+- [Health](/guide/features/health) — every check, threshold, and environment
+  variable, plus scheduling on Cloudflare Cron.
+- [Slack app](/guide/guides/slack-app) — the native `/chmonitor` Slack app
+  (slash command, Home tab, Acknowledge buttons), a different and more capable
+  integration than a plain incoming webhook.

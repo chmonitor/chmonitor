@@ -289,11 +289,21 @@ plus a short list of what you changed:
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/mcp-server-dark.png">
+  <img alt="MCP Server: connect Claude, Cursor or any MCP client directly to your cluster" src=".github/screenshots/mcp-server-light.png">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/sql-console-dark.png">
   <img alt="SQL Console: read-only SQL with history, EXPLAIN and scan analysis" src=".github/screenshots/sql-console-light.png">
 </picture>
 
 ![Running Queries: live charts and a detailed table of executing queries](.github/screenshots/running-queries-light.png)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/explain-dark.png">
+  <img alt="Explain Query: the EXPLAIN plan with recommend-only tuning suggestions" src=".github/screenshots/explain-light.png">
+</picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/data-explorer-graph-dark.png">

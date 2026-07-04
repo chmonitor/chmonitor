@@ -190,11 +190,11 @@ export const useCases: UseCase[] = [
       'Slowest/most-expensive queries plus a recommend-only tuning and capacity advisor.',
     subhead:
       'Find the queries actually costing you time and memory, then get recommend-only tuning suggestions from EXPLAIN and a capacity/TTL advisor — chmonitor never rewrites schema or executes DDL for you.',
-    heroImage: '/landing-assets/g-explain.png',
+    heroImage: '/landing-assets/explain-light.png',
     heroImageAlt:
       'chmonitor EXPLAIN view with recommend-only tuning suggestions',
     heroImageWidth: 1024,
-    heroImageHeight: 613,
+    heroImageHeight: 762,
     benefits: [
       {
         icon: BARS_ICON,
