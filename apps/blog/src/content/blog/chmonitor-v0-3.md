@@ -147,6 +147,18 @@ the execution plan as a collapsible tree instead of a wall of text.
 turns into a ready-to-paste prompt with the metric, raw data row, system
 tables and common causes — hand it to any AI/coding agent for a diagnosis.
 
+<img src="/posts/v0.3/slow-queries.png" alt="Slow Queries page with an occurrence chart and a sortable table of the slowest finished queries" />
+
+**Slow Queries**: the slowest finished queries from the query log, worst
+first, with an occurrence chart and a one-click "Explain top N" for the whole
+list.
+
+<img src="/posts/v0.3/peerdb-mirrors.png" alt="PeerDB Mirrors page with mirror status, peer topology and per-mirror pipeline phase" />
+
+**PeerDB Mirrors**: CDC/QRep mirror status, throughput and rows synced across
+every source-to-ClickHouse pipeline, plus a live peer topology and per-mirror
+pipeline phase breakdown.
+
 <img src="/posts/v0.3/mcp-server.png" alt="MCP Server page with endpoint URL and setup guides for Claude Desktop, Claude Code and Cursor" />
 
 **MCP Server**, self-serve: the endpoint URL plus copy-paste setup for Claude
