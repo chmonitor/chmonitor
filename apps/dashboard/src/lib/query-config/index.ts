@@ -71,6 +71,7 @@ import { queryDetailConfig } from './queries/query-detail'
 import { queryViewsLogConfig } from './queries/query-views-log'
 import { runningQueriesConfig } from './queries/running-queries'
 import { slowQueriesConfig } from './queries/slow-queries'
+import { slowQueryPatternsConfig } from './queries/slow-query-patterns'
 // Thread Analysis
 import { threadAnalysisConfig } from './queries/thread-analysis'
 import { loginAttemptsConfig } from './security/login-attempts'
@@ -173,6 +174,7 @@ export const queries: Array<QueryConfig> = [
   expensiveQueriesConfig,
   expensiveQueriesByMemoryConfig,
   slowQueriesConfig,
+  slowQueryPatternsConfig,
   userProcessesConfig,
   queryMetricLogConfig,
 

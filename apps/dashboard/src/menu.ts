@@ -164,6 +164,15 @@ export const menuItemsConfig: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        title: 'Slow Query Patterns',
+        href: '/slow-query-patterns',
+        description:
+          'Normalized query patterns aggregated by hash — calls, duration percentiles, and resource usage per pattern',
+        icon: LayersIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
         title: 'Explain',
         href: '/explain',
         description: 'Query execution plan analysis for performance tuning',
