@@ -104,6 +104,9 @@ export interface ModelDisplayInfo {
   description: string
   contextLength: number
   formattedContextLength: string
+  /** Max completion (output) tokens, when the upstream API reports it. */
+  maxOutputTokens?: number
+  formattedMaxOutputTokens?: string
   isFree: boolean
   /** True when the Worker has an API key for this provider. Defaults to true offline. */
   available?: boolean

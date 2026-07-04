@@ -35,7 +35,10 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { isMenuItemActive } from '@/lib/menu/breadcrumb'
+import {
+  isMenuItemActive,
+  isMenuItemActiveAmongSiblings,
+} from '@/lib/menu/breadcrumb'
 
 function useCloseMobileSidebar() {
   const { isMobile, setOpenMobile } = useSidebar()
@@ -133,11 +136,13 @@ const SubMenuItem = function SubMenuItem({
   subItem,
   pathname,
   hostId,
+  siblingHrefs,
   closeMobileSidebar,
 }: {
   subItem: MenuItemType
   pathname: string
   hostId: number
+  siblingHrefs: string[]
   closeMobileSidebar: () => void
 }) {
   const { available } = useIsTableAvailable(subItem.tableCheck, hostId)
@@ -146,11 +151,16 @@ const SubMenuItem = function SubMenuItem({
     <SidebarMenuSubItem>
       <SidebarMenuSubButton
         asChild
-        isActive={isMenuItemActive(subItem.href, pathname)}
+        isActive={isMenuItemActiveAmongSiblings(
+          subItem.href,
+          siblingHrefs,
+          pathname
+        )}
         className={available ? '' : 'opacity-50 text-muted-foreground/50'}
       >
         <HostPrefixedLink
           href={subItem.href}
+          siblingHrefs={siblingHrefs}
           className="flex w-full items-center gap-2"
           onClick={closeMobileSidebar}
         >
@@ -198,6 +208,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
   const isCollapsed = state === 'collapsed'
+  const siblingHrefs = item.items?.map((child) => child.href) ?? []
 
   // When collapsed, use Popover submenu
   // Note: Badges stay inline with button content for collapsed state
@@ -269,6 +280,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
                 subItem={subItem}
                 pathname={pathname}
                 hostId={hostId}
+                siblingHrefs={siblingHrefs}
                 closeMobileSidebar={closeMobileSidebar}
               />
             ))}

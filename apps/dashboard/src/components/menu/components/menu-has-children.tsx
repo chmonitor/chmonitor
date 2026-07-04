@@ -32,6 +32,9 @@ export const MenuHasChildren = function MenuHasChildren({
   item,
 }: MenuHasChildrenProps) {
   const hasActiveChild = useMenuActiveState(item)
+  const siblingHrefs = item.items
+    ?.filter((childItem) => childItem.href)
+    .map((childItem) => childItem.href)
 
   return (
     <NavigationMenuItem role="none">
@@ -62,7 +65,11 @@ export const MenuHasChildren = function MenuHasChildren({
           {item.items
             ?.filter((childItem) => childItem.title && childItem.href)
             .map((childItem) => (
-              <MenuListItem key={childItem.href} item={childItem} />
+              <MenuListItem
+                key={childItem.href}
+                item={childItem}
+                siblingHrefs={siblingHrefs}
+              />
             ))}
         </ul>
       </NavigationMenuContent>

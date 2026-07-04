@@ -31,7 +31,7 @@ import {
 import { cn } from '@/lib/utils'
 
 /** Set of model IDs that are part of the curated static registry. */
-const CURATED_MODEL_IDS = new Set(getAllModelOptions())
+export const CURATED_MODEL_IDS = new Set(getAllModelOptions())
 
 interface AgentModelPickerProps {
   /** Compact toolbar variant (welcome screen toolbar). */
@@ -78,6 +78,86 @@ function badgeTone(model: ModelDisplayInfo): {
     }
   }
   return null
+}
+
+/** `262.1K ctx · 8.2K out · $0.35/M in · $0.40/M out`, omitting unknown parts. */
+function modelMetaLine(model: ModelDisplayInfo): string {
+  const parts = [`${model.formattedContextLength} ctx`]
+  if (model.formattedMaxOutputTokens) {
+    parts.push(`${model.formattedMaxOutputTokens} out`)
+  }
+  if (model.pricing) {
+    parts.push(`$${model.pricing.inputPerMillion.toFixed(2)}/M in`)
+    parts.push(`$${model.pricing.outputPerMillion.toFixed(2)}/M out`)
+  } else if (model.isFree) {
+    parts.push('free')
+  }
+  return parts.join(' · ')
+}
+
+/**
+ * One selectable model row: name, metadata line (context / max output /
+ * pricing), free-or-default and custom badges, and a check when active.
+ * Shared by the popover list here and the persistent list in the merged
+ * Provider & Models settings tab.
+ */
+export function ModelOptionRow({
+  model,
+  active,
+  onSelect,
+}: {
+  model: ModelDisplayInfo
+  active: boolean
+  onSelect: () => void
+}) {
+  const tone = badgeTone(model)
+  const isCustom = !CURATED_MODEL_IDS.has(model.id)
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'hover:bg-muted flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left',
+        active && 'bg-muted/60'
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-mono text-[12px]">
+          <span className={providerColorClass(model.provider)}>
+            {model.provider}
+          </span>
+          <span className="text-muted-foreground">:</span>
+          <span className="text-foreground">{model.name}</span>
+        </div>
+        <div className="text-muted-foreground truncate text-[10px] tabular-nums">
+          {modelMetaLine(model)}
+        </div>
+      </div>
+      {tone ? (
+        <Badge
+          variant="secondary"
+          className={cn(
+            'h-4 shrink-0 px-1.5 text-[10px] font-normal',
+            tone.className
+          )}
+        >
+          {tone.label}
+        </Badge>
+      ) : null}
+      {isCustom ? (
+        <Badge
+          variant="secondary"
+          className="h-4 shrink-0 px-1.5 text-[10px] font-normal opacity-60"
+        >
+          custom
+        </Badge>
+      ) : null}
+      {active ? (
+        <CheckIcon className="size-3 shrink-0 text-emerald-500" />
+      ) : null}
+    </button>
+  )
 }
 
 export function AgentModelPicker({
@@ -197,63 +277,17 @@ export function AgentModelPicker({
                   />
                   {provider}
                 </div>
-                {list.map((m) => {
-                  const tone = badgeTone(m)
-                  const active = m.id === model
-                  const isCustom = !CURATED_MODEL_IDS.has(m.id)
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => {
-                        setModel(m.id)
-                        setOpen(false)
-                      }}
-                      className={cn(
-                        'hover:bg-muted flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left',
-                        active && 'bg-muted/60'
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-mono text-[12px]">
-                          <span className={providerColorClass(m.provider)}>
-                            {m.provider}
-                          </span>
-                          <span className="text-muted-foreground">:</span>
-                          <span className="text-foreground">{m.name}</span>
-                        </div>
-                        <div className="text-muted-foreground text-[10px] tabular-nums">
-                          {m.formattedContextLength} ctx
-                          {m.pricing
-                            ? ` · $${m.pricing.inputPerMillion.toFixed(2)}/M in`
-                            : ''}
-                        </div>
-                      </div>
-                      {tone ? (
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            'h-4 shrink-0 px-1.5 text-[10px] font-normal',
-                            tone.className
-                          )}
-                        >
-                          {tone.label}
-                        </Badge>
-                      ) : null}
-                      {isCustom ? (
-                        <Badge
-                          variant="secondary"
-                          className="h-4 shrink-0 px-1.5 text-[10px] font-normal opacity-60"
-                        >
-                          custom
-                        </Badge>
-                      ) : null}
-                      {active ? (
-                        <CheckIcon className="size-3 shrink-0 text-emerald-500" />
-                      ) : null}
-                    </button>
-                  )
-                })}
+                {list.map((m) => (
+                  <ModelOptionRow
+                    key={m.id}
+                    model={m}
+                    active={m.id === model}
+                    onSelect={() => {
+                      setModel(m.id)
+                      setOpen(false)
+                    }}
+                  />
+                ))}
               </div>
             ))}
           </div>

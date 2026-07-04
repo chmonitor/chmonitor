@@ -16,27 +16,19 @@ import {
   CpuIcon,
   PlugZapIcon,
   ScrollTextIcon,
-  ServerIcon,
   SparklesIcon,
 } from 'lucide-react'
 
-import { ModelsTab } from './models-tab'
-import { ProviderTab } from './provider-tab'
+import { McpSettingsTab } from './mcp-settings-tab'
+import { ProviderModelsTab } from './provider-models-tab'
 import { SkillsTab } from './skills-tab'
 import { SystemPromptTab } from './system-prompt-tab'
 import { useCallback, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
-import { McpServerManager } from '@/components/mcp/mcp-server-manager'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRouter, useSearchParams } from '@/lib/next-compat'
 
-const TAB_IDS = [
-  'provider',
-  'models',
-  'system-prompt',
-  'skills',
-  'mcp',
-] as const
+const TAB_IDS = ['provider', 'system-prompt', 'skills', 'mcp'] as const
 type TabId = (typeof TAB_IDS)[number]
 
 const DEFAULT_TAB: TabId = 'provider'
@@ -77,12 +69,8 @@ export function AgentSettingsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="provider" className="gap-1.5">
-            <ServerIcon className="size-3.5" />
-            Provider
-          </TabsTrigger>
-          <TabsTrigger value="models" className="gap-1.5">
             <CpuIcon className="size-3.5" />
-            Models
+            Provider &amp; Models
           </TabsTrigger>
           <TabsTrigger value="system-prompt" className="gap-1.5">
             <ScrollTextIcon className="size-3.5" />
@@ -99,10 +87,7 @@ export function AgentSettingsPage() {
         </TabsList>
 
         <TabsContent value="provider" className="mt-4">
-          <ProviderTab />
-        </TabsContent>
-        <TabsContent value="models" className="mt-4">
-          <ModelsTab />
+          <ProviderModelsTab />
         </TabsContent>
         <TabsContent value="system-prompt" className="mt-4">
           <SystemPromptTab />
@@ -111,7 +96,7 @@ export function AgentSettingsPage() {
           <SkillsTab />
         </TabsContent>
         <TabsContent value="mcp" className="mt-4">
-          <McpServerManager />
+          <McpSettingsTab />
         </TabsContent>
       </Tabs>
     </div>

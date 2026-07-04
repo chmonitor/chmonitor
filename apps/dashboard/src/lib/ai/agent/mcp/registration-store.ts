@@ -356,6 +356,37 @@ export class McpRegistrationStore {
   }
 
   /**
+   * Resolve one of the user's registrations (regardless of enabled state)
+   * into a decrypted connect input, for an on-demand live-status probe
+   * (`/api/v1/mcp/servers/$id/probe`). Returns `null` when the row doesn't
+   * exist (or belongs to another user — the `WHERE user_id` scope in `get`
+   * already enforces that). Decrypts the secret server-side only; never
+   * returned to a client.
+   */
+  async getConnectInput(
+    userId: string,
+    id: string
+  ): Promise<McpConnectInput | null> {
+    const db = this.requireDb()
+    await ensureMigrated(db)
+    const row = await db
+      .prepare(
+        `SELECT id, user_id, name, url, transport, auth_kind, auth_secret, auth_header_name, enabled, capabilities_json, last_validated_at, created_at, updated_at
+         FROM ${TABLE} WHERE user_id = ?1 AND id = ?2`
+      )
+      .bind(userId, id)
+      .first<D1McpRegistrationRow>()
+    if (!row) return null
+    return {
+      id: row.id,
+      name: row.name,
+      url: row.url,
+      transport: normalizeTransport(row.transport),
+      auth: await toAuth(row),
+    }
+  }
+
+  /**
    * Resolve a user's ENABLED registrations into decrypted connect inputs for
    * the agent loader. This is the only path that decrypts secrets; the result
    * is used solely to open outbound MCP clients server-side and is never

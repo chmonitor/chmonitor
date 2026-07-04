@@ -56,17 +56,26 @@ For full configuration options see [Configuration](/guide/ai-agent/configuration
 
 `/agents/settings` is the full-page home for everything agent-related, reached
 from the sidebar under *AI Agent → Agent Settings* (or the "Open full agent
-settings" link in the chat page's settings panel). It groups five tabs:
+settings" link in the chat page's settings panel). It groups four tabs:
 
-- **Provider** — read-only status of configured LLM providers (`GET
-  /api/v1/agents/config-check`); provider/model/API keys are still set via
-  environment variables at deploy time (see [Configuration](/guide/ai-agent/configuration)).
-- **Models** — the same model picker used on the chat page and its sidebar.
+- **Provider & Models** — a provider → model hierarchy: each configured
+  provider (AnyRouter, OpenRouter, NVIDIA NIM) is grouped with its models,
+  showing configured/not-configured status (`GET /api/v1/agents/config-check`),
+  context size, max output tokens and per-token pricing where available, and
+  free/default/custom badges. Click a model to make it the active model for
+  new conversations — the same picker used on the chat page and its sidebar.
+  Provider/model access and API keys are still set via environment variables
+  at deploy time (see [Configuration](/guide/ai-agent/configuration)); this
+  tab requires being signed in on deployments where the `agent` feature needs
+  authentication (it shows a sign-in prompt rather than an error for an
+  anonymous visitor).
 - **System prompt** — read-only view of the instructions sent to the model on
   every request; there is no per-user override yet.
 - **Skills** — the full skill library with search and per-skill toggles.
-- **MCP servers** — the persistent, per-user MCP server registry (see
-  [Persistent MCP server registry](#persistent-mcp-server-registry-per-user)
+- **MCP servers** — split into the always-on **built-in** chmonitor MCP
+  server (self-access to this cluster; links to the full [MCP server
+  guide](/guide/features/mcp)) and the **external MCP servers** you register
+  yourself (see [Persistent MCP server registry](#persistent-mcp-server-registry-per-user)
   below). This replaces the old standalone `/mcp-servers` page, which now
   redirects to `/agents/settings?tab=mcp`.
 
@@ -247,11 +256,13 @@ The sidebar panel above stores servers in the browser (`localStorage`). For serv
 - **Register** a server with a name, endpoint URL, transport (`http` streamable or `sse`), and optional auth (a **bearer token** or a **custom header**). Saving first runs a **Test connection** probe and stores the server only if it connects — so the tool count shown reflects what the server actually advertised.
 - **Template library** — one-click presets prefill the form for **Slack**, **GitHub**, and **Datadog** (endpoint + expected auth kind); you supply your own token.
 - **Enable / disable / remove** each server. Enabled registrations are loaded for that user at the start of every conversation, merged with any request-body (sidebar) servers and de-duplicated by endpoint.
+- **Live connection status** — each row re-probes the server (with its stored, decrypted auth) and shows connected / unreachable, not just the last manual "Test connection" timestamp.
 - **Storage** — registrations live in Cloudflare D1 (`mcp_server_registrations`), strictly scoped to the signed-in user; one user's servers are never loaded for another. Auth secrets are **encrypted at rest** (AES-256-GCM) and never returned by the API.
 - **SSRF-guarded transport** — the same private-range / DNS-rebind guard as above applies, and the actual outbound connection is pinned behind the host-validated fetch (not a raw fetch), so the validated address is the one connected to.
 - **Availability** — this page requires the hosted (cloud) deployment (a D1 binding + a signed-in account). Self-hosted deployments without D1 use the sidebar panel instead; the page shows an explanatory empty state.
+- **Config-as-code (server-configured MCP servers) and OAuth are not implemented yet** — every external server today is registered through this UI with a bearer token or custom header. There's no env-var-driven static server list, and no OAuth redirect/token-refresh flow; both are documented follow-ups (bearer/header auth already covers most real-world MCP servers, e.g. Firecrawl).
 
-**API:** `GET/POST/PATCH/DELETE /api/v1/mcp/servers` (all user-scoped); `POST /api/v1/mcp/probe` for test-before-save.
+**API:** `GET/POST/PATCH/DELETE /api/v1/mcp/servers` (all user-scoped); `POST /api/v1/mcp/probe` for test-before-save; `POST /api/v1/mcp/servers/$id/probe` for the live status of an already-registered server.
 
 ### MCP tools
 

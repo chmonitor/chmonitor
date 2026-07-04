@@ -26,10 +26,15 @@ const NewBadge = lazy(() =>
 
 interface MenuListItemProps {
   item: MenuItem
+  /** Hrefs of the other items rendered in the same dropdown list. */
+  siblingHrefs?: string[]
 }
 
-export const MenuListItem = function MenuListItem({ item }: MenuListItemProps) {
-  const isActive = useMenuActiveState(item)
+export const MenuListItem = function MenuListItem({
+  item,
+  siblingHrefs,
+}: MenuListItemProps) {
+  const isActive = useMenuActiveState(item, siblingHrefs)
 
   const title = (
     <span className="flex flex-row items-center gap-1.5">
@@ -51,6 +56,7 @@ export const MenuListItem = function MenuListItem({ item }: MenuListItemProps) {
       <NavigationMenuLink asChild>
         <HostPrefixedLink
           href={item.href}
+          siblingHrefs={siblingHrefs}
           className="group"
           data-active={isActive ? 'true' : undefined}
           data-testid={

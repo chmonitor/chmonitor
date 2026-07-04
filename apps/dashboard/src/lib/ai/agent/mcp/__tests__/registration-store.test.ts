@@ -219,3 +219,34 @@ describe('secret hygiene + connect inputs', () => {
     expect(inputs.map((i) => i.id)).toEqual(['on'])
   })
 })
+
+describe('getConnectInput (single-row decrypt for the live-status probe)', () => {
+  test('resolves a decrypted connect input for the owning user', async () => {
+    await store.upsert(
+      baseReg({ authKind: 'bearer', authSecret: 'probe-secret' })
+    )
+    const input = await store.getConnectInput('user-a', 'r1')
+    expect(input).toEqual({
+      id: 'r1',
+      name: 'server',
+      url: 'https://mcp.example.com/mcp',
+      transport: 'http',
+      auth: { kind: 'bearer', token: 'probe-secret' },
+    })
+  })
+
+  test('resolves a DISABLED registration too (probe is opt-in, not gated on enabled)', async () => {
+    await store.upsert(baseReg({ id: 'off', enabled: false }))
+    const input = await store.getConnectInput('user-a', 'off')
+    expect(input?.id).toBe('off')
+  })
+
+  test('returns null for a missing id', async () => {
+    expect(await store.getConnectInput('user-a', 'nope')).toBeNull()
+  })
+
+  test("returns null for another user's registration (per-user isolation)", async () => {
+    await store.upsert(baseReg({ id: 'r1', userId: 'user-a' }))
+    expect(await store.getConnectInput('user-b', 'r1')).toBeNull()
+  })
+})

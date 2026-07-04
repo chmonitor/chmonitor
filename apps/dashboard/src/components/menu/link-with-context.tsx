@@ -3,7 +3,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { ComponentProps } from 'react'
 
 import { AppLink as Link } from '@/components/ui/app-link'
-import { isMenuItemActive } from '@/lib/menu/breadcrumb'
+import {
+  isMenuItemActive,
+  isMenuItemActiveAmongSiblings,
+} from '@/lib/menu/breadcrumb'
 import { usePathname } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
 import { prefetchRoute } from '@/lib/swr/prefetch'
@@ -13,11 +16,20 @@ export const HostPrefixedLink = ({
   children,
   className,
   onMouseEnter,
+  siblingHrefs,
   ...props
 }: {
   href: string
   children: React.ReactNode
   className?: string
+  /**
+   * Hrefs of sibling menu items rendered alongside this link (e.g. the other
+   * children of the same collapsible group). When provided, active state
+   * resolves via `isMenuItemActiveAmongSiblings` so a shorter sibling href
+   * (`/agents`) never lights up together with a more specific one
+   * (`/agents/settings`) — see that function's doc comment.
+   */
+  siblingHrefs?: string[]
 } & Omit<
   ComponentProps<typeof Link>,
   'to' | 'href' | 'children' | 'className'
@@ -52,7 +64,9 @@ export const HostPrefixedLink = ({
   const searchParams = { host: hostId }
 
   // Check if this link is active
-  const isActive = isMenuItemActive(href, pathname)
+  const isActive = siblingHrefs
+    ? isMenuItemActiveAmongSiblings(href, siblingHrefs, pathname)
+    : isMenuItemActive(href, pathname)
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Prefetch route data on hover using idle callback to avoid blocking

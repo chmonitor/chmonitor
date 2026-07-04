@@ -24,7 +24,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useSidebar } from '@/components/ui/sidebar'
-import { isMenuItemActive } from '@/lib/menu/breadcrumb'
+import { isMenuItemActiveAmongSiblings } from '@/lib/menu/breadcrumb'
 import { cn } from '@/lib/utils'
 
 interface CollapsedSubmenuProps {
@@ -41,6 +41,7 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   subItem,
   pathname,
   hostId,
+  siblingHrefs,
   isMobile,
   setOpenMobile,
   setOpen,
@@ -48,12 +49,17 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   subItem: MenuItemType
   pathname: string
   hostId: number
+  siblingHrefs: string[]
   isMobile: boolean
   setOpenMobile: (open: boolean) => void
   setOpen: (open: boolean) => void
 }) {
   const { available } = useIsTableAvailable(subItem.tableCheck, hostId)
-  const isActive = isMenuItemActive(subItem.href, pathname)
+  const isActive = isMenuItemActiveAmongSiblings(
+    subItem.href,
+    siblingHrefs,
+    pathname
+  )
 
   return (
     <HostPrefixedLink
@@ -113,6 +119,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
   const { isMobile, setOpenMobile } = useSidebar()
   const hostId = useHostId()
   const hasChildren = item.items && item.items.length > 0
+  const siblingHrefs = item.items?.map((child) => child.href) ?? []
 
   if (!hasChildren) {
     return <>{trigger}</>
@@ -149,6 +156,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
                 subItem={subItem}
                 pathname={pathname}
                 hostId={hostId}
+                siblingHrefs={siblingHrefs}
                 isMobile={isMobile}
                 setOpenMobile={setOpenMobile}
                 setOpen={setOpen}

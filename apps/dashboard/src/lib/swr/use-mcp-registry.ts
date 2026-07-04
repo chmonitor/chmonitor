@@ -183,3 +183,52 @@ export async function testMcpConnection(
   }
   return body as TestMcpConnectionResult
 }
+
+export interface McpServerStatusResult {
+  status: 'connecting' | 'connected' | 'error'
+  toolCount: number
+  tools: string[]
+  error?: string
+}
+
+/**
+ * Live connection status for an already-registered server, re-validated
+ * server-side (with its stored, decrypted auth) via
+ * `/api/v1/mcp/servers/$id/probe`. Only fires while `enabled` — a disabled
+ * server isn't loaded by the agent, so there's nothing useful to probe.
+ */
+export function useMcpServerStatus(
+  id: string,
+  enabled: boolean
+): McpServerStatusResult {
+  const { data, isLoading, error } = useQuery<TestMcpConnectionResult>({
+    queryKey: ['/api/v1/mcp/servers', id, 'probe'],
+    queryFn: async () => {
+      const res = await apiFetch(`/api/v1/mcp/servers/${id}/probe`, {
+        method: 'POST',
+      })
+      return parseEnvelope<TestMcpConnectionResult>(res).then(
+        (body) => body ?? { status: 'error', toolCount: 0, tools: [] }
+      )
+    },
+    enabled,
+    staleTime: 120_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+
+  if (!enabled) {
+    return { status: 'error', toolCount: 0, tools: [] }
+  }
+  if (isLoading) {
+    return { status: 'connecting', toolCount: 0, tools: [] }
+  }
+  if (error || !data) {
+    const msg =
+      error instanceof McpRegistryRequestError
+        ? error.message
+        : 'Status check failed'
+    return { status: 'error', toolCount: 0, tools: [], error: msg }
+  }
+  return data
+}

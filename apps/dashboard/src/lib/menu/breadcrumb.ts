@@ -102,3 +102,30 @@ export function isMenuItemActive(itemHref: string, pathname: string): boolean {
 
   return false
 }
+
+/**
+ * Active-match for one item among a known list of sibling hrefs (e.g. the
+ * children of the same collapsible menu group).
+ *
+ * `isMenuItemActive`'s parent-path rule (`/agents` matches `/agents/settings`)
+ * is correct when a page has an unregistered detail route nested under it,
+ * but wrong when the "nested" path is itself a SIBLING menu entry — e.g.
+ * "Chat" (`/agents`) and "Agent Settings" (`/agents/settings`) both live under
+ * the same "AI Agent" group, so `/agents/settings` would light up both. Rule:
+ * an exact href match among the siblings always wins; only fall back to the
+ * parent-path heuristic when no sibling matches the pathname exactly.
+ */
+export function isMenuItemActiveAmongSiblings(
+  itemHref: string,
+  siblingHrefs: string[],
+  pathname: string
+): boolean {
+  const normalizedPath = pathname.split('?')[0]
+  const exactSibling = siblingHrefs.find(
+    (href) => href.split('?')[0] === normalizedPath
+  )
+  if (exactSibling !== undefined) {
+    return exactSibling === itemHref
+  }
+  return isMenuItemActive(itemHref, pathname)
+}

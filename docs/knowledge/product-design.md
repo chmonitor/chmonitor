@@ -132,7 +132,13 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
 
 `components/icons/chmonitor-logo.tsx` — orange metric bars + emerald health cap.
 Name "chmonitor" / "ClickHouse Monitor". Accents: orange (metrics), emerald
-(live/health).
+(live/health). For a real upstream brand (PeerDB, …), draw an inline SVG in
+`components/icons/` like `peerdb-brand-logo.tsx`. When no real logo is
+available/appropriate to fabricate (e.g. third-party LLM providers in the
+agent settings Provider & Models tab), fall back to a colored circular
+lettermark (first letter, provider's existing accent color) rather than
+inventing a low-quality logo — see `ProviderMark` in
+`components/agents/settings/provider-models-tab.tsx`.
 
 ## File / naming
 

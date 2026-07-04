@@ -42,6 +42,9 @@ interface ModelCapability {
   description: string
   contextLength: number
   formattedContextLength: string
+  /** Max completion (output) tokens, when the upstream API reports it. */
+  maxOutputTokens?: number
+  formattedMaxOutputTokens?: string
   isFree: boolean
   /** True when the Worker has an API key configured for this provider. */
   available: boolean
@@ -85,6 +88,9 @@ async function fetchOpenRouterCapabilities(): Promise<
         output_modalities?: string[]
         modality?: string | string[]
       }
+      top_provider?: {
+        max_completion_tokens?: number | null
+      }
     }>
   }
 
@@ -95,6 +101,7 @@ async function fetchOpenRouterCapabilities(): Promise<
         contextLength: m.context_length,
         supportedParameters: m.supported_parameters,
         architecture: m.architecture,
+        maxOutputTokens: m.top_provider?.max_completion_tokens ?? undefined,
       },
     ])
   )
@@ -204,6 +211,7 @@ async function buildModels(): Promise<ModelCapability[]> {
       // Enrich context length from OpenRouter if available
       const contextLength =
         (orData?.contextLength as number | undefined) ?? entry.contextLength
+      const maxOutputTokens = orData?.maxOutputTokens as number | undefined
 
       const capabilities = extractCapabilities(orData)
 
@@ -215,6 +223,12 @@ async function buildModels(): Promise<ModelCapability[]> {
         description: entry.description,
         contextLength,
         formattedContextLength: formatCompactNumber(contextLength),
+        ...(maxOutputTokens
+          ? {
+              maxOutputTokens,
+              formattedMaxOutputTokens: formatCompactNumber(maxOutputTokens),
+            }
+          : {}),
         isFree,
         available: isProviderConfigured(provider),
         pricing: entry.pricing,

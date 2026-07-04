@@ -4,7 +4,10 @@
  * MCP Server Manager — per-user registry of external Model Context Protocol
  * servers (plan 43). Backed by D1 through `/api/v1/mcp/servers`; each server is
  * validated (SSRF-guarded) on save and loaded alongside the agent's built-in
- * tools at conversation start.
+ * tools at conversation start. Each row also shows a LIVE connection status
+ * (re-probed with the server's stored, decrypted auth via
+ * `POST /api/v1/mcp/servers/$id/probe`), not just the last manual "Test
+ * connection" timestamp — see `LiveStatusBadge`.
  *
  * Distinct from the welcome-screen `AgentMcpPanel` (localStorage quick-config):
  * this surface PERSISTS per-user, server-side, with auth + a template library.
@@ -12,6 +15,7 @@
 
 import {
   CheckCircle2Icon,
+  CircleDashedIcon,
   Loader2Icon,
   PlugZapIcon,
   PlusIcon,
@@ -51,6 +55,7 @@ import {
   useCreateMcpServer,
   useDeleteMcpServer,
   useMcpRegistryServers,
+  useMcpServerStatus,
   usePatchMcpServer,
 } from '@/lib/swr/use-mcp-registry'
 import { cn } from '@/lib/utils'
@@ -110,6 +115,38 @@ function TransportBadge({ transport }: { transport: McpTransport }) {
   )
 }
 
+/** Live connected/error/unreachable status, re-probed with the stored auth. */
+function LiveStatusBadge({ id, enabled }: { id: string; enabled: boolean }) {
+  const { status } = useMcpServerStatus(id, enabled)
+
+  if (!enabled) return null
+
+  if (status === 'connecting') {
+    return (
+      <span className="text-muted-foreground flex items-center gap-1 text-[10.5px]">
+        <Loader2Icon className="size-3 animate-spin" />
+        Checking…
+      </span>
+    )
+  }
+
+  if (status === 'connected') {
+    return (
+      <span className="flex items-center gap-1 text-[10.5px] text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2Icon className="size-3" />
+        Connected
+      </span>
+    )
+  }
+
+  return (
+    <span className="text-destructive flex items-center gap-1 text-[10.5px]">
+      <CircleDashedIcon className="size-3" />
+      Unreachable
+    </span>
+  )
+}
+
 function AuthBadge({
   authKind,
   headerName,
@@ -156,6 +193,7 @@ function ServerRow({ server }: { server: McpRegistrationDto }) {
             authKind={server.authKind}
             headerName={server.authHeaderName}
           />
+          <LiveStatusBadge id={server.id} enabled={server.enabled} />
         </div>
         <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate font-mono text-[11px]">
           <span className="truncate">{server.url}</span>
