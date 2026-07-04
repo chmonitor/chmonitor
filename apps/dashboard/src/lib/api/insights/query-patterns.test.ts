@@ -35,6 +35,11 @@ describe('parseRangeHours', () => {
     expect(parseRangeHours('6')).toBe(6)
   })
 
+  test('floors a fractional value (feeds a ClickHouse UInt32 param)', () => {
+    expect(parseRangeHours('1.5')).toBe(1)
+    expect(Number.isInteger(parseRangeHours('1.5'))).toBe(true)
+  })
+
   test('clamps to the max window', () => {
     expect(parseRangeHours('999999', 24, 720)).toBe(720)
   })

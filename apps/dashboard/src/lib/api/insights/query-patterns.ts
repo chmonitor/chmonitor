@@ -37,7 +37,9 @@ export function parseRangeHours(
   if (!raw) return fallbackHours
   const parsed = Number(raw)
   if (!Number.isFinite(parsed) || parsed <= 0) return fallbackHours
-  return Math.min(parsed, maxHours)
+  // Floor to an integer — this feeds a ClickHouse UInt32 query param, which
+  // rejects fractional values (e.g. `?range=1.5` would 500 the query).
+  return Math.min(Math.floor(parsed), maxHours)
 }
 
 /**

@@ -21,7 +21,15 @@ mock.module('cloudflare:workers', () => ({
   },
 }))
 
+import * as realFeaturePermissions from '@/lib/feature-permissions/server'
+
+// Spread the real module so other test files' named imports (e.g.
+// `isAnonymousPublicReadRequest`, used by name-edge-cache.test.ts) keep
+// resolving when this mock.module call is still active in the same test
+// worker — Bun's mock.module replaces the module registry entry globally,
+// not per-file, even under `--isolate`.
 mock.module('@/lib/feature-permissions/server', () => ({
+  ...realFeaturePermissions,
   authorizeFeatureRequest: async () => null,
 }))
 
