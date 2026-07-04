@@ -113,6 +113,16 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
   hover/focus "Details" hint. Drive drill-down generically from a per-item field
   (e.g. each health check's `detailChartName`) rendered via `ResultTable`, not
   per-card code — see `components/health/{health-card-shell,health-detail-rows}.tsx`.
+- **Severity-tiered "many checks at a glance":** don't give every item equal
+  visual weight. Items that need attention expand to full cards; healthy/normal
+  items collapse into ONE dense, quiet bordered list (`divide-y … rounded-xl
+  border`) of `[status dot] [muted icon] [title] [sublabel] [value] [chevron]`
+  rows — no per-row sparkline (a flat healthy trend is decoration). Partition the
+  already severity-sorted, filter-narrowed list into cards vs rows so the same
+  split also drives the filter tabs. Keep the aggregate banner restrained (subtle
+  tint + thin left accent rail, not a saturated fill; let the tabs carry the
+  counts). Reference: `components/health/{health-grid,health-card-shell,
+  health-summary-banner}.tsx` (`HealthCardShell` `variant: 'card' | 'row'`).
 - Graceful revalidation: keep data on `staleError`, show hover-revealed amber
   `ChartStaleIndicator`; only blank out on initial `error && !hasData`.
 - Icons: `lucide-react`, `size-4` / `size-3.5`, `strokeWidth={1.5}`.

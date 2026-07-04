@@ -1,6 +1,7 @@
 import { GitMerge, Wrench } from 'lucide-react'
 
 import type { ComputedMutations } from '@/lib/health/health-status'
+import type { HealthCardVariant } from './health-card-shell'
 import type { HealthCheckDef, RelatedLink } from './health-checks'
 
 import { HealthCardShell } from './health-card-shell'
@@ -15,6 +16,8 @@ interface MutationsCardProps {
   spark?: number[]
   /** ClickHouse version, forwarded to the detail dialog. */
   clickhouseVersion?: string
+  /** Expanded card (issues) or dense row (healthy) — decided by the grid. */
+  variant?: HealthCardVariant
 }
 
 const MUTATIONS_LINKS: readonly RelatedLink[] = [
@@ -91,6 +94,7 @@ function MutationsCard({
   computed,
   spark,
   clickhouseVersion,
+  variant,
 }: MutationsCardProps & { def: HealthCheckDef }) {
   const [detailOpen, setDetailOpen] = useState(false)
 
@@ -106,6 +110,7 @@ function MutationsCard({
         links={def.relatedLinks}
         hostId={hostId}
         onExpand={() => setDetailOpen(true)}
+        variant={variant}
       />
 
       <HealthDetailDialog

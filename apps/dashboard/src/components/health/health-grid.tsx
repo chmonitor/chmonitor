@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { HealthStatus } from '@/lib/health/health-status'
 import type { HistoryMap } from '@/lib/health/history-storage'
+import type { HealthCardVariant } from './health-card-shell'
 import type { HealthCounts } from './health-summary-banner'
 
 import { HealthCard } from './health-card'
@@ -53,7 +54,7 @@ interface GridItem {
   order: number
   /** Alert payload, dispatched on escalation regardless of the active filter. */
   alert: { title: string; value: number | null; label: string }
-  render: (spark: number[] | undefined) => ReactNode
+  render: (spark: number[] | undefined, variant: HealthCardVariant) => ReactNode
 }
 
 /** Short "Ns ago" relative label for the auto-refresh indicator. */
@@ -124,7 +125,7 @@ export function HealthGrid() {
           value: computed.value,
           label: computed.label,
         },
-        render: (spark) => (
+        render: (spark, variant) => (
           <HealthCard
             key={check.id}
             check={check}
@@ -133,6 +134,7 @@ export function HealthGrid() {
             computed={computed}
             spark={spark}
             clickhouseVersion={result.clickhouseVersion}
+            variant={variant}
           />
         ),
       })
@@ -152,13 +154,14 @@ export function HealthGrid() {
         value: stuck.value,
         label: stuck.label,
       },
-      render: (spark) => (
+      render: (spark, variant) => (
         <StuckMutationsCard
           key="stuck-mutations"
           hostId={hostId}
           computed={stuck}
           spark={spark}
           clickhouseVersion={results[STUCK_MUTATIONS_CHART]?.clickhouseVersion}
+          variant={variant}
         />
       ),
     })
@@ -177,7 +180,7 @@ export function HealthGrid() {
         value: running.value,
         label: running.label,
       },
-      render: (spark) => (
+      render: (spark, variant) => (
         <RunningMutationsCard
           key="running-mutations"
           hostId={hostId}
@@ -186,6 +189,7 @@ export function HealthGrid() {
           clickhouseVersion={
             results[RUNNING_MUTATIONS_CHART]?.clickhouseVersion
           }
+          variant={variant}
         />
       ),
     })
@@ -333,10 +337,61 @@ export function HealthGrid() {
             : 'No checks in this view.'}
         </div>
       ) : (
+        <HealthResults items={visible} history={history} hostId={hostId} />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Renders the checks with a two-tier hierarchy so problems dominate and healthy
+ * checks recede:
+ *
+ * - **Issues** (critical / warning) → full cards in a responsive grid, at the
+ *   top, so an OOM incident is not buried under a wall of green.
+ * - **Everything else** (ok / unavailable) → one dense, quiet list of rows.
+ *
+ * Because `items` is already severity-sorted and filter-narrowed upstream, this
+ * partition also drives the filter tabs for free: the "Needs attention" tab
+ * yields only cards, the "Healthy" tab only rows.
+ */
+function HealthResults({
+  items,
+  history,
+  hostId,
+}: {
+  items: GridItem[]
+  history: HistoryMap
+  hostId: number
+}) {
+  const cardItems = items.filter(
+    (i) => i.status === 'critical' || i.status === 'warning'
+  )
+  const rowItems = items.filter(
+    (i) => i.status !== 'critical' && i.status !== 'warning'
+  )
+  const spark = (item: GridItem) => history[historyKey(hostId, item.id)]
+
+  return (
+    <div className="flex flex-col gap-6">
+      {cardItems.length > 0 && (
         <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-          {visible.map((item) =>
-            item.render(history[historyKey(hostId, item.id)])
+          {cardItems.map((item) => item.render(spark(item), 'card'))}
+        </div>
+      )}
+
+      {rowItems.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {/* Only label the quiet list when issues sit above it — the loud →
+              calm transition needs a marker; a filtered-only view does not. */}
+          {cardItems.length > 0 && (
+            <div className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Operational · {rowItems.length}
+            </div>
           )}
+          <div className="divide-y overflow-hidden rounded-xl border bg-card">
+            {rowItems.map((item) => item.render(spark(item), 'row'))}
+          </div>
         </div>
       )}
     </div>

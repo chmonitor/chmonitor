@@ -1,5 +1,6 @@
 import type { ComputedCheck, HealthStatus } from '@/lib/health/health-status'
 import type { Thresholds } from '@/lib/health/thresholds-storage'
+import type { HealthCardVariant } from './health-card-shell'
 import type { HealthCheckDef } from './health-checks'
 
 import { HealthCardShell } from './health-card-shell'
@@ -19,6 +20,8 @@ interface HealthCardProps {
   spark?: number[]
   /** ClickHouse version, forwarded to the detail dialog. */
   clickhouseVersion?: string
+  /** Expanded card (issues) or dense row (healthy) — decided by the grid. */
+  variant?: HealthCardVariant
 }
 
 /**
@@ -33,6 +36,7 @@ export function HealthCard({
   computed,
   spark,
   clickhouseVersion,
+  variant,
 }: HealthCardProps) {
   const [detailOpen, setDetailOpen] = useState(false)
   const { status, value, label, displayValue, row } = computed
@@ -49,6 +53,7 @@ export function HealthCard({
         links={check.relatedLinks}
         hostId={hostId}
         onExpand={() => setDetailOpen(true)}
+        variant={variant}
       />
 
       <HealthDetailDialog
