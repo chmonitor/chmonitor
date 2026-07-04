@@ -127,7 +127,7 @@ export const menuItemsConfig: MenuItem[] = [
     description:
       'Alertmanager, Datadog, and generic webhook events ingested via POST /api/events/ingest',
     icon: RssIcon,
-    section: 'main',
+    section: 'others',
     isNew: true,
     permission: { feature: 'health' },
   },
