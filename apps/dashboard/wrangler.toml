@@ -22,6 +22,19 @@ database_name = "chm-cloud"
 database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
 migrations_dir = "./src/db/conversations-migrations"
 
+# KV cache for the /api/v1/data dashboard-query allowlist (issue #2185). Backs
+# the in-memory L1 (cache-manager.ts, 5-min TTL) with an L2 that survives
+# Worker isolate churn on cold starts. Optional/zero-config: code auto-detects
+# this binding (see lib/api/data/dashboard-query-kv-cache.ts, same pattern as
+# lib/version-cache.ts's VERSION_CACHE_KV) and falls back to in-memory-only
+# when absent, so self-hosted/Docker/K8s deploys (no KV binding) are unaffected.
+# A KV miss or read error is always treated as a cache miss (fail-closed) —
+# never as an implicit allow.
+[[kv_namespaces]]
+binding = "DASHBOARD_QUERY_KV"
+id = "98b43d2d6fcf438cbd91e18e38b4212d"
+preview_id = "44390b843ada46d8beb47c99bcf24115"
+
 # Durable Object migrations.
 # The legacy Next.js worker (same name, chmonitor-dash) registered two SQLite
 # Durable Objects: DOQueueHandler (OpenNext queue) and AgentConversationDurableObject
@@ -155,6 +168,14 @@ binding = "CHM_CLOUD_D1"
 database_name = "chm-cloud"
 database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
 migrations_dir = "./src/db/conversations-migrations"
+
+# Reuse the same dashboard-query allowlist KV namespace (shared preview/prod
+# for now, same pattern as CHM_CLOUD_D1 above). Cached entries are non-secret
+# (they mirror rows already readable from the dashboard's own charts table).
+[[env.preview.kv_namespaces]]
+binding = "DASHBOARD_QUERY_KV"
+id = "98b43d2d6fcf438cbd91e18e38b4212d"
+preview_id = "44390b843ada46d8beb47c99bcf24115"
 
 # DO migrations are not inherited by named environments — repeat the chain that
 # drops the legacy preview worker's Durable Objects (see top-level note).

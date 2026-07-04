@@ -1,0 +1,120 @@
+---
+description: Programmatic access to slow query patterns — normalized_query_hash aggregation, calls, duration percentiles, and per-pattern executions.
+icon: LayoutList
+title: Query Insights API
+---
+
+Read the same normalized query-pattern data the [Slow Query Patterns](/slow-query-patterns) page shows, from two REST endpoints — a list of patterns and a per-pattern detail with recent executions.
+
+<TypeTable
+  data={{
+    Routes: { type: "GET /api/v1/insights/query-patterns, GET /api/v1/insights/query-patterns/:normalized_query_hash", description: "List + detail endpoints" },
+    "Feature id": { type: "queries", description: "Same feature gate as the Slow Query Patterns page" },
+    "Default access": { type: "Same as the dashboard's `/api/v1/*` auth posture", description: "See Auth in the Getting Started guide" },
+    "System tables": { type: "system.query_log", description: "Data source" },
+    "ClickHouse grants": { type: "SELECT", description: "SELECT on system.query_log" },
+  }}
+/>
+
+## What it does
+
+`system.query_log` rows are aggregated by `normalized_query_hash` (mirroring ClickHouse Cloud's Query Insights "Slow Patterns" table) — one row per distinct query shape, with call counts, duration percentiles (p50/p95/p99), resource usage (memory, rows/bytes read, rows/bytes written), and error counts. The list endpoint returns this aggregation; the detail endpoint returns one pattern plus the individual `system.query_log` rows (executions) that contributed to it, most-recent first.
+
+Both endpoints reuse the exact SQL the [Slow Query Patterns](/slow-query-patterns) page runs (`buildQueryPatternsSql` in `lib/query-config/queries/slow-query-patterns.ts`) — the numbers always match what the page shows.
+
+### Pages
+
+| Page | Route | What it shows | System tables |
+|---|---|---|---|
+| Slow Query Patterns | `/slow-query-patterns` | The same pattern aggregation, with filtering and drill-down UI | `system.query_log` |
+
+## Using it
+
+### List patterns
+
+```bash
+GET /api/v1/insights/query-patterns?hostId=0&range=24&sort=total_duration:desc
+```
+
+<TypeTable
+  data={{
+    hostId: { type: "integer, optional (default 0)", description: "Host index into CLICKHOUSE_HOST — must be a non-negative integer or the request is rejected with 400" },
+    range: { type: "integer (hours), optional (default 24)", description: "Shorthand for `event_time=withinHours:<hours>` — how far back to aggregate" },
+    sort: { type: "string, optional", description: "`column[:asc|desc]` — reorders the returned rows by any response column (default direction: desc). Omit to keep the SQL's default `total_duration DESC` order." },
+    "user / query_kind / database / event_time": { type: "string, optional", description: "Any Slow Query Patterns filter field as `key=operator:value` (e.g. `user=eq:default`, `query_kind=in:Select`) — the same convention the page's filter bar uses" },
+  }}
+/>
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "normalized_query_hash": "1234567890123456789",
+      "normalized_query": "SELECT * FROM t WHERE id = ?",
+      "calls": 42,
+      "total_duration": 12.5,
+      "avg_duration": 0.3,
+      "p50_duration": 0.25,
+      "p95_duration": 0.8,
+      "p99_duration": 1.1,
+      "max_duration": 1.4,
+      "errors": 0,
+      "user": "default",
+      "query_kind": "Select",
+      "database": "default"
+    }
+  ],
+  "metadata": { "queryId": "...", "duration": 45, "rows": 1, "host": "0", "sql": "..." }
+}
+```
+
+### Get one pattern + its recent executions
+
+```bash
+GET /api/v1/insights/query-patterns/1234567890123456789?hostId=0&range=24
+```
+
+<TypeTable
+  data={{
+    normalized_query_hash: { type: "path param, required", description: "The pattern's hash — a numeric string. A non-numeric value returns 400; an unknown hash returns 404." },
+    hostId: { type: "integer, optional (default 0)", description: "Same validation as the list endpoint" },
+    range: { type: "integer (hours), optional (default 24)", description: "Time window for both the pattern's aggregation and the executions list" },
+  }}
+/>
+
+```json
+{
+  "success": true,
+  "data": {
+    "pattern": { "normalized_query_hash": "1234567890123456789", "calls": 42, "total_duration": 12.5 },
+    "executions": [
+      { "event_time": "2026-07-04 10:00:00", "query_id": "...", "query_duration_ms": 310, "user": "default" }
+    ]
+  },
+  "metadata": { "host": "0", "rangeHours": 24, "rows": 1 }
+}
+```
+
+Executions are capped at 200 rows, most-recent first.
+
+## MCP / programmatic consumption
+
+Both endpoints return plain JSON (`{ success, data, metadata }` / error `{ success: false, error: { type, message } }`) with no HTML or client-only shaping, so they can be called directly by scripts, the AI agent's `query` tool (as `system.query_log` SQL), or any external MCP client that talks to `/api/mcp` — the AI agent itself has no dedicated tool for these endpoints (it reaches the same data with the general-purpose `query` tool), but the endpoints are safe to call from outside the dashboard.
+
+## Notes & limitations
+
+<Callout type="info" title="Requires query logging">
+All data comes from `system.query_log`. If query logging is disabled, both endpoints return an empty pattern list / 404s.
+</Callout>
+
+- `normalized_query_hash` values are ClickHouse `UInt64` — always compare/pass them as strings to avoid JS float precision loss.
+- The `range` window is capped at 90 days (2160 hours) to keep the underlying `system.query_log` scan bounded.
+
+## Related
+
+<Cards>
+  <Card title="Insights" href="/guide/features/insights" description="Top-tables/columns query-log analytics." />
+  <Card title="Queries" href="/guide/features/queries" description="Monitor live, historical, and expensive queries." />
+  <Card title="MCP Server" href="/guide/features/mcp" description="Expose chmonitor's tools to AI clients over MCP." />
+</Cards>

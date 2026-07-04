@@ -20,6 +20,7 @@ mock.module('cloudflare:workers', () => ({
 
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
+  isAnonymousPublicReadRequest: async () => false,
 }))
 
 import * as realRegistry from '@/lib/api/chart-registry'

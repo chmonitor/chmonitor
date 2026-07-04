@@ -4,6 +4,13 @@
  * Barrel export for all shared API utilities.
  */
 
+// Shared edge cache (Cloudflare `caches.default`) for anonymous public-read GET
+export {
+  buildEdgeCacheKey,
+  isEdgeCacheEligible,
+  matchEdgeCache,
+  putEdgeCache,
+} from './edge-cache'
 // Response builders
 export {
   createCachedResponse,

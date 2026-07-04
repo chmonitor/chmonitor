@@ -150,7 +150,23 @@ export async function getApiKeyAuthFailure(
     // Authorization header may carry a Clerk/proxy token rather than a chm_ key.
   }
 
-  // 2. The active auth provider (clerk session, proxy identity, …). Browser
+  // 2. Opt-in public read-only mode (clerk only): let ALL /api/v1/* requests
+  //    through without ever invoking the Clerk provider, and defer to each
+  //    route's authorizeFeatureRequest() for fine-grained enforcement. Public
+  //    features serve data to anonymous visitors; agent/actions and any write
+  //    are `authenticated`/non-`read` and still 401 at the route (writes never
+  //    qualify for the anonymous baseline there — see
+  //    lib/feature-permissions/server.ts).
+  //
+  //    Checked BEFORE the provider call below: whether or not the caller is
+  //    actually signed in, this guard's outcome is the same (`null` = pass) in
+  //    this config, so verifying the Clerk session here first is pure wasted
+  //    work — a full JWT verify (+ cold-start JWKS fetch) on every anonymous
+  //    read on the highest-volume path (#2186).
+  const provider = getAuthProvider()
+  if (provider === 'clerk' && publicReadEnabled()) return null
+
+  // 3. The active auth provider (clerk session, proxy identity, …). Browser
   //    clients send a Clerk `__session` cookie; proxy deployments send a
   //    Cloudflare Access JWT or a trusted identity header.
   //
@@ -159,7 +175,6 @@ export async function getApiKeyAuthFailure(
   //    `none` + no key), so the API key is the ONLY accepted credential. The
   //    `none` provider authenticates everyone, so consulting it here would let
   //    keyless requests through and silently defeat API-key auth.
-  const provider = getAuthProvider()
   if (
     provider !== 'none' &&
     (await resolveServerAuthProvider(provider).authenticateRequest(request))
@@ -167,11 +182,6 @@ export async function getApiKeyAuthFailure(
   ) {
     return null
   }
-
-  // Opt-in public read-only mode (clerk only): let anonymous requests through
-  // and defer to each route's authorizeFeatureRequest(). Public features serve
-  // data; agent/actions are `authenticated` and still 401 at the route.
-  if (provider === 'clerk' && publicReadEnabled()) return null
 
   return jsonError('Authentication required', 401)
 }
@@ -202,8 +212,14 @@ export async function enforceAuth(request: Request): Promise<Response | null> {
     if (result.valid) return null
   }
 
-  // 2. The active auth provider (clerk session, proxy identity, …).
+  // 2. Opt-in public read-only mode (clerk only) — checked BEFORE the provider
+  //    call below so an anonymous-read config never pays for a Clerk verify
+  //    it doesn't need (#2186); see the matching comment in
+  //    `getApiKeyAuthFailure`.
   const provider = getAuthProvider()
+  if (provider === 'clerk' && publicReadEnabled()) return null
+
+  // 3. The active auth provider (clerk session, proxy identity, …).
   if (
     provider !== 'none' &&
     (await resolveServerAuthProvider(provider).authenticateRequest(request))
@@ -211,9 +227,6 @@ export async function enforceAuth(request: Request): Promise<Response | null> {
   ) {
     return null
   }
-
-  // Opt-in public read-only mode (clerk only).
-  if (provider === 'clerk' && publicReadEnabled()) return null
 
   return jsonError('Authentication required', 401)
 }
