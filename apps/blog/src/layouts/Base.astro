@@ -154,6 +154,14 @@ const ogImage = new URL(image, Astro.site).toString()
     :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
     :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
 
+    /* ── theme-aware post screenshots ──
+       Pair two <img data-shot="light"/"dark"> as siblings in post content;
+       only one is ever laid out (the other is display:none). Mirrors the
+       same pattern in apps/landing/src/layouts/Base.astro. */
+    img[data-shot="dark"]{display:none !important}
+    :root[data-theme="dark"] img[data-shot="light"]{display:none !important}
+    :root[data-theme="dark"] img[data-shot="dark"]{display:block !important}
+
     /* ── blog header ── */
     .blog-hero{padding:64px 0 36px;border-bottom:1px solid var(--border-soft);position:relative;overflow:hidden}
     .blog-hero::before{content:"";position:absolute;inset:0;z-index:-1;

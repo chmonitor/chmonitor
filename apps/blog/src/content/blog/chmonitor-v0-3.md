@@ -66,17 +66,58 @@ environment variables.
 docker compose up -d
 ```
 
-## Breaking changes
+## What's landed since launch
 
-v0.3 is a rebuild, so a few things moved:
+v0.3 keeps shipping. Since the initial release:
 
-- **URL structure** changed from `/0/overview` to `/overview?host=0` (static
-  routing + edge caching).
-- **`fetchData()`** now requires a `hostId` parameter — it used to be optional.
-- All data fetching moved **client-side**; there's no SSR data layer anymore.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/overview-dark.png">
+  <img data-shot="light" src="/posts/v0.3/overview-light.png" alt="Overview page with a GitHub-style query activity heatmap" />
+  <img data-shot="dark" src="/posts/v0.3/overview-dark.png" alt="Overview page with a GitHub-style query activity heatmap" />
+</picture>
 
-Since the project has no backwards-compatibility guarantees yet, there's nothing
-to migrate other than bookmarks.
+**A year of query activity, at a glance.** The Overview page now has a
+calendar heatmap of query volume, failures, memory and duration — the same
+glanceable pattern as a GitHub contribution graph.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/cluster-insights-dark.png">
+  <img data-shot="light" src="/posts/v0.3/cluster-insights-light.png" alt="Cluster Insights page with record breakers and detected findings" />
+  <img data-shot="dark" src="/posts/v0.3/cluster-insights-dark.png" alt="Cluster Insights page with record breakers and detected findings" />
+</picture>
+
+**Cluster Insights**, a new page: auto-detected findings (error-rate spikes,
+latency regressions) plus record breakers — largest scan, fastest scan speed,
+longest query, total storage — surfaced without building a single dashboard.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/sql-console-dark.png">
+  <img data-shot="light" src="/posts/v0.3/sql-console-light.png" alt="SQL Console with query editor, results, EXPLAIN and scan analysis tabs" />
+  <img data-shot="dark" src="/posts/v0.3/sql-console-dark.png" alt="SQL Console with query editor, results, EXPLAIN and scan analysis tabs" />
+</picture>
+
+**SQL Console**: run read-only SQL with history, one-click EXPLAIN, query log
+and scan analysis, without leaving the dashboard for a separate client.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/storage-dark.png">
+  <img data-shot="light" src="/posts/v0.3/storage-light.png" alt="Storage breakdown by database, table and part" />
+  <img data-shot="dark" src="/posts/v0.3/storage-dark.png" alt="Storage breakdown by database, table and part" />
+</picture>
+
+**Storage breakdown** by database, table and part, so you know exactly where
+the bytes go.
+
+<img src="/posts/v0.3/keeper.png" alt="Keeper page with session, watches, quorum role and per-node stats" />
+
+**ClickHouse Keeper monitoring**: session state, watches, quorum role and
+per-node Raft stats for every Keeper node.
+
+Alerting also grew a **custom alert rule builder** (define your own thresholds
+and conditions, not just the built-in health checks) and an **email adapter**
+(Mailgun/SendGrid) alongside the existing Slack/Discord webhooks — see
+[Alerting to Slack and Discord](https://docs.chmonitor.dev/guide/guides/alerting-slack-discord)
+for the webhook walkthrough.
 
 ## Changelog
 
