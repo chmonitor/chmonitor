@@ -80,6 +80,11 @@ export interface DataTableContentProps<
   /** When set, rows render an expand chevron and clicking a row toggles a detail panel below it. */
   expandable?: true | ExpandableConfig
   /**
+   * When set (and `expandable` is not), clicking a row (outside interactive
+   * elements) calls this with the row's data — e.g. to open a detail Sheet.
+   */
+  onRowClick?: (row: TData) => void
+  /**
    * Active view. `'cards'`/`'table'` force that layout at every breakpoint;
    * `'auto'` (the default) is CSS-responsive — cards on mobile, table on
    * desktop.
@@ -134,6 +139,7 @@ export const DataTableContent = memo(function DataTableContent<
   onResetColumnOrder: _onResetColumnOrder,
   compact = false,
   expandable,
+  onRowClick,
   view = 'auto',
   offerViewToggle = false,
   onViewChange: _onViewChange,
@@ -223,6 +229,7 @@ export const DataTableContent = memo(function DataTableContent<
           activeFilterCount={activeFilterCount}
           rowClassName={queryConfig.rowClassName}
           expandable={expandable}
+          onRowClick={onRowClick}
           renderKey={resolvedRenderKey}
         />
       </TableBody>

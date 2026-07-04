@@ -148,6 +148,16 @@ export const menuItemsConfig: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        title: 'Recent Queries',
+        href: '/recent-queries',
+        description:
+          'Reverse-chronological log of individual query executions — the per-query drill-down for Query Insights',
+        icon: CounterClockwiseClockIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+        isNew: true,
+      },
+      {
         title: 'Failed Queries',
         href: '/failed-queries',
         description:

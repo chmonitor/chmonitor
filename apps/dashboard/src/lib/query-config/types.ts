@@ -58,6 +58,12 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
   /** Per-query ClickHouse settings (e.g. result limits, timezone). */
   clickhouseSettings?: ClickHouseSettings
   /**
+   * Opt out of the ClickHouse query-cache settings (#2182) that
+   * `executeTableConfig` applies by default to this (read-only) query. Set
+   * this when the result must never be served from the query cache.
+   */
+  disableQueryCache?: boolean
+  /**
    * Auto-refresh interval (ms) for client polling. Foundation carries it so
    * the later client layer can read it; the server executor ignores it.
    */

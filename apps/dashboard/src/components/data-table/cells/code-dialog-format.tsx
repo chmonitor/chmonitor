@@ -56,7 +56,7 @@ export interface CodeDialogOptions {
    * Render a plain, non-interactive truncated preview instead of a dialog
    * trigger. Use when the cell lives inside a clickable/expandable row: a
    * nested `<button>` would otherwise swallow the row click (see
-   * `shouldExpandOnRowClick`). The full content is expected to be surfaced
+   * `isRowClickTarget`). The full content is expected to be surfaced
    * elsewhere (e.g. an expanded detail panel). Defaults to false.
    */
   inline?: boolean

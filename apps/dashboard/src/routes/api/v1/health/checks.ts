@@ -24,7 +24,11 @@ import type { DataStatus } from '@/lib/api/types'
 
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
-import { getChartQuery, hasChart } from '@/lib/api/chart-registry'
+import {
+  cachePolicyToQueryCacheTtlSeconds,
+  getChartQuery,
+  hasChart,
+} from '@/lib/api/chart-registry'
 import { executeChartQuery } from '@/lib/api/query-executor'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
@@ -186,6 +190,10 @@ export const Route = createFileRoute('/api/v1/health/checks')({
                   timezone,
                   optional: queryDef.optional,
                   tableCheck: queryDef.tableCheck,
+                  ttlSeconds: cachePolicyToQueryCacheTtlSeconds(
+                    queryDef.cachePolicy
+                  ),
+                  disableQueryCache: queryDef.disableQueryCache,
                 }
               )
 

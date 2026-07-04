@@ -1,9 +1,9 @@
 import { ClockIcon, DatabaseIcon, LayersIcon, UserIcon } from 'lucide-react'
 
-import type { FilterSchema } from '@/lib/filters/types'
 import type { QueryConfig, VersionedSql } from '@/types/query-config'
 
 import { FILTER_PLACEHOLDER } from '@/lib/filters/where-builder'
+import { queryInsightsFilterSchema } from '@/lib/query-config/queries/query-insights-filters'
 import { QUERY_LOG } from '@/lib/table-notes'
 import { ColumnFormat } from '@/types/column-format'
 
@@ -20,6 +20,7 @@ const rawRowsSelect = `
         user,
         query_kind,
         current_database,
+        client_name,
         event_time,
         query_duration_ms,
         memory_usage,
@@ -30,91 +31,14 @@ const rawRowsSelect = `
         exception_code,
         ProfileEvents`
 
-const queryLogDynamicOptions = (column: string) => ({
-  table: 'system.query_log',
-  column,
-  where: 'event_time > now() - toIntervalDay(7)',
-})
-
 /**
- * Schema-driven filter definition for the Slow Query Patterns page.
- * Time window defaults to the last 24 hours so the aggregation stays cheap;
- * the user can widen or narrow it (and filter by user/query_kind/database)
- * from the filter bar.
+ * Filter definition for the Slow Query Patterns page — the shared Query
+ * Insights schema (time / user / query kind / database / client), re-exported
+ * under this page's historical name. See
+ * {@link queryInsightsFilterSchema} for the single source of truth shared
+ * with Recent Queries (#2262) and the overview grid (#2260).
  */
-export const slowQueryPatternsFilterSchema: FilterSchema = {
-  fields: [
-    {
-      key: 'event_time',
-      column: 'event_time',
-      label: 'Time',
-      type: 'datetime',
-      operators: ['withinHours', 'between', 'gte', 'lte'],
-      icon: ClockIcon,
-      options: [
-        { label: 'Last 1 hour', value: '1' },
-        { label: 'Last 6 hours', value: '6' },
-        { label: 'Last 24 hours', value: '24' },
-        { label: 'Last 7 days', value: '168' },
-        { label: 'Last 30 days', value: '720' },
-      ],
-      description: 'Relative window or an explicit date range.',
-      defaultValue: { operator: 'withinHours', value: '24' },
-    },
-    {
-      key: 'user',
-      column: 'user',
-      label: 'User',
-      type: 'select',
-      operators: ['in', 'notIn', 'eq', 'ne', 'contains'],
-      dynamicOptions: queryLogDynamicOptions('user'),
-      icon: UserIcon,
-      description: 'Restrict the underlying executions to this user.',
-    },
-    {
-      key: 'query_kind',
-      column: 'query_kind',
-      label: 'Query kind',
-      type: 'select',
-      operators: ['in', 'eq', 'ne'],
-      icon: LayersIcon,
-      options: [
-        { label: 'Select', value: 'Select' },
-        { label: 'Insert', value: 'Insert' },
-        { label: 'Create', value: 'Create' },
-        { label: 'Alter', value: 'Alter' },
-        { label: 'Drop', value: 'Drop' },
-        { label: 'Rename', value: 'Rename' },
-        { label: 'Optimize', value: 'Optimize' },
-        { label: 'System', value: 'System' },
-        { label: 'Show', value: 'Show' },
-        { label: 'Set', value: 'Set' },
-        { label: 'Backup', value: 'Backup' },
-      ],
-    },
-    {
-      key: 'database',
-      column: 'current_database',
-      label: 'Database',
-      type: 'select',
-      operators: ['in', 'eq', 'ne', 'contains'],
-      dynamicOptions: queryLogDynamicOptions('current_database'),
-      icon: DatabaseIcon,
-    },
-  ],
-  presets: [
-    {
-      name: 'Last hour',
-      icon: ClockIcon,
-      filters: [{ key: 'event_time', operator: 'withinHours', value: '1' }],
-    },
-    {
-      name: 'Selects only',
-      icon: LayersIcon,
-      filters: [{ key: 'query_kind', operator: 'in', value: 'Select' }],
-    },
-  ],
-}
+export const slowQueryPatternsFilterSchema = queryInsightsFilterSchema
 
 /**
  * Build the versioned slow-query-patterns SQL, parameterized by the WHERE
@@ -141,6 +65,7 @@ ${rawRowsSelect}
     base_metrics AS (
       SELECT
           normalized_query_hash,
+          toString(normalized_query_hash) AS normalized_query_hash_str,
           any(query) AS normalized_query,
           any(user) AS user,
           any(query_kind) AS query_kind,
@@ -199,6 +124,7 @@ ${rawRowsSelect},
     base_metrics AS (
       SELECT
           normalized_query_hash,
+          toString(normalized_query_hash) AS normalized_query_hash_str,
           any(query) AS normalized_query,
           any(user) AS user,
           any(query_kind) AS query_kind,

@@ -13,12 +13,14 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
 import {
   getMenuCountQuery,
   hasMenuCountKey,
 } from '@/lib/api/menu-count-registry'
+import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
 import { HostIdSchema, MenuCountKeySchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -28,6 +30,12 @@ import {
 import { ApiErrorType } from '@/lib/api/types'
 
 const ROUTE_CONTEXT = { route: '/api/v1/menu-counts/$key', method: 'GET' }
+
+/**
+ * TTL (seconds) for the ClickHouse query cache on menu-count queries (#2182)
+ * — mirrors the `CacheControl.MEDIUM` (60s) header this route already sets.
+ */
+const MENU_COUNT_CACHE_TTL_SECONDS = 60
 
 interface MenuCountResponse {
   readonly count: number | null
@@ -150,11 +158,21 @@ async function handler(
 
     bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
+    // Read-only GET path: safe to opt into the ClickHouse query cache
+    // (#2182). getClickHouseVersion caches per host for 24h, so this is
+    // cheap; buildQueryCacheSettings fails closed on an unknown version.
+    const cacheSettings = buildQueryCacheSettings({
+      version: await getClickHouseVersion(hostId),
+      ttlSeconds: MENU_COUNT_CACHE_TTL_SECONDS,
+      disabled: menuCount.disableQueryCache,
+    })
+
     // Execute the query
     const result = await fetchData({
       query: menuCount.query,
       format: 'JSONEachRow',
       hostId,
+      clickhouse_settings: cacheSettings,
     })
 
     // Handle errors - for optional tables, return null count only when the

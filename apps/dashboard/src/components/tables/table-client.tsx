@@ -53,6 +53,13 @@ interface TableClientProps {
    * a duplicated control wired to the same URL state.
    */
   showFilterBar?: boolean
+  /**
+   * When set, clicking a row (outside interactive elements) calls this with
+   * the row's data instead of the default behavior — e.g. to open a detail
+   * Sheet. Desktop table rows only; the mobile card view does not yet
+   * support this.
+   */
+  onRowClick?: (row: Record<string, unknown>) => void
 }
 
 const tableRowFormatter = new Intl.NumberFormat('en-US')
@@ -159,6 +166,7 @@ export const TableClient = function TableClient({
   filterableColumns,
   enableRowSelection = false,
   showFilterBar = true,
+  onRowClick,
 }: TableClientProps) {
   const hostId = useHostId()
   const hostStatus = useHostStatus(hostId)
@@ -487,6 +495,7 @@ export const TableClient = function TableClient({
       enableRowSelection={enableRowSelection}
       metadata={metadata}
       showFilterBar={showFilterBar}
+      onRowClick={onRowClick}
     />
   )
 }

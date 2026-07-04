@@ -38,6 +38,25 @@ import { zookeeperCharts } from './charts/zookeeper-charts'
 /** Cache policy → Cache-Control TTL bucket (handler maps to headers). */
 export type CachePolicy = 'realtime' | 'standard' | 'historical'
 
+/**
+ * Maps a chart's cache policy to the ClickHouse server-side query-cache TTL
+ * (seconds) — mirrors the Cache-Control `s-maxage` buckets the route sets
+ * for the same policy (see routes/api/v1/charts/$name.ts), since both bound
+ * the same staleness. See query-cache-settings.ts for the caching itself.
+ */
+export function cachePolicyToQueryCacheTtlSeconds(
+  cachePolicy?: CachePolicy
+): number {
+  switch (cachePolicy) {
+    case 'realtime':
+      return 10
+    case 'historical':
+      return 120
+    default:
+      return 30
+  }
+}
+
 /** A single chart row — permissive, like the dashboard's ChartDataPoint. */
 export interface ChartDataPoint {
   [key: string]: unknown
@@ -68,6 +87,13 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   tableCheck?: string | string[]
   cachePolicy?: CachePolicy
   /**
+   * Opt out of the ClickHouse query-cache settings (#2182) the route applies
+   * by default for read-only chart polling. Set this when a chart's result
+   * must never be served from the query cache (e.g. it should reflect a
+   * change made moments ago more eagerly than `cachePolicy`'s TTL allows).
+   */
+  disableQueryCache?: boolean
+  /**
    * Deployment-level feature gate (e.g. METRICS_PERMISSION on system charts).
    * The route enforces it via `authorizeFeatureRequest` before executing, so
    * `CHM_DISABLED_FEATURES` / `CHM_AUTH_REQUIRED_FEATURES` are honored.
@@ -79,6 +105,8 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
 export interface MultiChartQueryResult {
   queries: Array<{ key: string; query: string; optional?: boolean }>
   cachePolicy?: CachePolicy
+  /** Opt out of query-cache settings; see `ChartQueryResult.disableQueryCache`. */
+  disableQueryCache?: boolean
   /** Deployment-level feature gate; enforced by the route before executing. */
   permission?: FeaturePermission
 }

@@ -12,6 +12,7 @@ mock.module('cloudflare:workers', () => ({
 const mockFetchData = mock(
   async (_args: {
     query: string
+    clickhouse_settings?: Record<string, unknown>
   }): Promise<{
     data: unknown[] | null
     error: unknown
@@ -20,6 +21,23 @@ const mockFetchData = mock(
 
 mock.module('@chm/clickhouse-client', () => ({
   fetchData: mockFetchData,
+}))
+
+// Fixed, modern version so buildQueryCacheSettings applies the query-cache
+// settings deterministically (#2182) — avoids a real network call from the
+// route's getClickHouseVersion() lookup. Spread the real module so
+// `meetsMinVersion` (used by query-cache-settings.ts) still works.
+const realClickHouseVersion = await import(
+  '@chm/clickhouse-client/clickhouse-version'
+)
+mock.module('@chm/clickhouse-client/clickhouse-version', () => ({
+  ...realClickHouseVersion,
+  getClickHouseVersion: async () => ({
+    major: 24,
+    minor: 8,
+    patch: 0,
+    raw: '24.8.0',
+  }),
 }))
 
 describe('menu-counts API GET handler', () => {
@@ -77,6 +95,16 @@ describe('menu-counts API GET handler', () => {
     expect(mockFetchData.mock.calls.length).toBe(2)
     expect(mockFetchData.mock.calls[0]?.[0]?.query).toContain('database, name')
     expect(mockFetchData.mock.calls[1]?.[0]?.query).toContain('AS')
+
+    // #2182: the combined (batched) count query is a read-only GET path —
+    // it must opt into the ClickHouse query cache, bounded by a TTL.
+    const combinedSettings =
+      mockFetchData.mock.calls[1]?.[0]?.clickhouse_settings
+    expect(combinedSettings?.use_query_cache).toBe(1)
+    expect(combinedSettings?.query_cache_ttl).toBe(60)
+    expect(
+      combinedSettings?.query_cache_nondeterministic_function_handling
+    ).toBe('save')
   })
 
   test('falls back to sequential loop when combined query fails', async () => {
