@@ -163,7 +163,14 @@ const sentryMiddleware = createMiddleware().server(
     if (!options) return next()
 
     let result: Awaited<ReturnType<typeof next>> | undefined
-    await wrapRequestHandler(
+    // For responses it classifies as "streaming" (e.g. text/plain without a
+    // Content-Length, like /healthz), wrapRequestHandler pipes res.body
+    // through its own TransformStream and returns a NEW Response wrapping
+    // that piped stream — which locks the original response's body. We MUST
+    // use that returned Response (not the original `result.response`): the
+    // original's body is now a locked/orphaned stream, so re-serializing it
+    // throws "Body has already been used" at the Cloudflare edge.
+    const wrappedResponse = await wrapRequestHandler(
       { options, request, context: undefined },
       async () => {
         result = await next()
@@ -175,6 +182,9 @@ const sentryMiddleware = createMiddleware().server(
       }
     )
     // `result` is always assigned when wrapRequestHandler resolves without throwing.
+    if (result && wrappedResponse instanceof Response) {
+      result.response = wrappedResponse
+    }
     return result as Awaited<ReturnType<typeof next>>
   }
 )
