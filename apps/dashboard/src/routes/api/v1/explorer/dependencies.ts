@@ -18,6 +18,7 @@ import { getHostIdFromParams, type RouteContext } from '@/lib/api/error-handler'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { getTableQuery } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 const ROUTE = '/api/v1/explorer/dependencies'
 
@@ -61,7 +62,8 @@ export const Route = createFileRoute('/api/v1/explorer/dependencies')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         const { searchParams } = new URL(request.url)
         const routeContext: RouteContext = { route: ROUTE, method: 'GET' }
@@ -80,6 +82,30 @@ export const Route = createFileRoute('/api/v1/explorer/dependencies')({
           )
         }
         const hostId = getHostIdFromParams(searchParams, routeContext)
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        const numericHostId =
+          typeof hostId === 'number' ? hostId : Number(hostId)
+        if (await isDemoHostBlockedForRequest(numericHostId, bindings)) {
+          return Response.json({
+            success: true,
+            data: [],
+            metadata: {
+              queryId: '',
+              duration: 0,
+              rows: 0,
+              host: String(hostId),
+              unavailable: {
+                reason: 'demo_hidden',
+                message: 'The demo host is hidden for signed-in accounts.',
+              },
+            },
+          })
+        }
+
         const direction = searchParams.get('direction') || 'downstream'
 
         // Validate required params up front so missing database/table returns

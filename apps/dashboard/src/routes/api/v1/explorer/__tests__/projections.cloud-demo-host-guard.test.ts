@@ -1,10 +1,8 @@
 /**
- * #2172 — route-level regression: GET /api/v1/tables/$name must reject a
- * hand-crafted non-negative `hostId` for an authenticated cloud principal
- * (the hidden demo host), while leaving OSS and anonymous-cloud callers
- * unaffected. Mirrors charts/__tests__/cloud-demo-host-guard.test.ts. See
- * lib/cloud/reject-demo-host.ts for the unit-level coverage of the underlying
- * boolean logic.
+ * #2172 — route-level regression: GET /api/v1/explorer/projections must
+ * reject a hand-crafted non-negative `hostId` for an authenticated cloud
+ * principal (the hidden demo host), while leaving OSS and anonymous-cloud
+ * callers unaffected. Mirrors charts/__tests__/cloud-demo-host-guard.test.ts.
  */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -22,6 +20,10 @@ mock.module('cloudflare:workers', () => ({
   },
 }))
 
+mock.module('@/lib/api/server-env', () => ({
+  bridgeClickHouseEnv: mock(() => undefined),
+}))
+
 import * as realProvider from '@/lib/auth/provider'
 
 mock.module('@/lib/auth/provider', () => ({
@@ -33,45 +35,58 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
   auth: async () => (signedIn ? { userId: 'user_123' } : { userId: null }),
 }))
 
-import * as realRegistry from '@/lib/api/table-registry'
+import * as realTableRegistry from '@/lib/api/table-registry'
 
 mock.module('@/lib/api/table-registry', () => ({
-  ...realRegistry,
-  hasTable: () => true,
-  getAvailableTables: () => ['t'],
-  getTableQuery: () => ({
-    queryConfig: { name: 't', sql: 'SELECT 1' },
-    queryParams: {},
-  }),
+  ...realTableRegistry,
+  getTableQuery: () => ({ queryConfig: {}, queryParams: {} }),
+}))
+
+const executeTableConfig = mock(async () => ({
+  result: {
+    data: [],
+    metadata: { queryId: '', duration: 0, rows: 0, host: '0' },
+    error: null,
+  },
+  executedSql: 'SELECT 1',
 }))
 
 import * as realExecutor from '@/lib/api/query-executor'
-
-const executeTableConfig = mock(async () => ({
-  result: { data: [], metadata: {} },
-  executedSql: 'SELECT 1',
-  clickhouseVersion: null,
-}))
 
 mock.module('@/lib/api/query-executor', () => ({
   ...realExecutor,
   executeTableConfig,
 }))
 
-const { handler } = await import('@/routes/api/v1/tables/$name')
+type GetHandler = (ctx: { request: Request }) => Promise<Response>
 
-async function get(hostId: string) {
-  return handler(new Request(`http://x/api/v1/tables/t?hostId=${hostId}`), 't')
+function getGetHandler(route: { options: { server?: unknown } }): GetHandler {
+  const handlers = (route.options.server as { handlers?: { GET?: GetHandler } })
+    ?.handlers
+  const fn = handlers?.GET
+  if (!fn) throw new Error('Route has no GET handler')
+  return fn
 }
 
-describe('GET /api/v1/tables/$name — cloud demo-host guard (#2172)', () => {
+const { Route } = await import('../projections')
+const handler = getGetHandler(Route)
+
+function get(hostId: string): Promise<Response> {
+  return handler({
+    request: new Request(
+      `http://x/api/v1/explorer/projections?hostId=${hostId}&database=default&table=t`
+    ),
+  })
+}
+
+describe('GET /api/v1/explorer/projections — cloud demo-host guard (#2172)', () => {
   beforeEach(() => {
     cloudMode = false
     signedIn = false
     executeTableConfig.mockClear()
   })
 
-  test('OSS: authenticated caller + hostId=0 is unaffected (reaches executor)', async () => {
+  test('OSS: authenticated caller + hostId=0 is unaffected (reaches ClickHouse)', async () => {
     cloudMode = false
     signedIn = true
     const res = await get('0')
@@ -79,7 +94,7 @@ describe('GET /api/v1/tables/$name — cloud demo-host guard (#2172)', () => {
     expect(executeTableConfig).toHaveBeenCalled()
   })
 
-  test('anonymous cloud: hostId=0 is unaffected (reaches executor)', async () => {
+  test('anonymous cloud: hostId=0 is unaffected (reaches ClickHouse)', async () => {
     cloudMode = true
     signedIn = false
     const res = await get('0')
@@ -96,17 +111,10 @@ describe('GET /api/v1/tables/$name — cloud demo-host guard (#2172)', () => {
     const body = (await res.json()) as {
       success: boolean
       data: unknown[]
-      metadata: { unavailable: boolean }
+      metadata: { unavailable: { reason: string } }
     }
     expect(body.success).toBe(true)
     expect(body.data).toEqual([])
-    expect(body.metadata.unavailable).toBe(true)
-  })
-
-  test('authenticated cloud + negative hostId is invalid at this route boundary (400)', async () => {
-    cloudMode = true
-    signedIn = true
-    const res = await get('-1')
-    expect(res.status).toBe(400)
+    expect(body.metadata.unavailable.reason).toBe('demo_hidden')
   })
 })

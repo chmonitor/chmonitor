@@ -26,6 +26,7 @@ import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
 import { getChartQuery, hasChart } from '@/lib/api/chart-registry'
 import { executeChartQuery } from '@/lib/api/query-executor'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 /** Per-check result returned in the batched response. */
@@ -90,6 +91,36 @@ export const Route = createFileRoute('/api/v1/health/checks')({
               error: { type: 'validation', message: 'No charts requested' },
             },
             { status: 400 }
+          )
+        }
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. Reject the whole
+        // batch with the same per-check "unavailable" shape used for a
+        // missing optional table, rather than a 403/leak. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          const checks: Record<string, HealthCheckEntry> = {}
+          for (const name of charts) {
+            checks[name] = {
+              data: [],
+              error: {
+                type: 'demo_hidden',
+                message: 'The demo host is hidden for signed-in accounts.',
+              },
+            }
+          }
+          return new Response(
+            JSON.stringify({ success: true, host: String(hostId), checks }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control':
+                  'public, s-maxage=10, stale-while-revalidate=30',
+              },
+            }
           )
         }
 

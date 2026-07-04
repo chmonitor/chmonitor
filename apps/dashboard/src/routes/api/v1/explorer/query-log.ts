@@ -16,6 +16,7 @@ import { fetchData } from '@chm/clickhouse-client'
 import { error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 // Columns available across supported ClickHouse versions (>= 22.8). Version
 // -specific columns (e.g. `projections`) are intentionally omitted; projection
@@ -52,7 +53,8 @@ export const Route = createFileRoute('/api/v1/explorer/query-log')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         const { searchParams } = new URL(request.url)
         const hostIdRaw = searchParams.get('hostId')
@@ -83,6 +85,26 @@ export const Route = createFileRoute('/api/v1/explorer/query-log')({
             { status: 400 }
           )
         }
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          return Response.json({
+            success: true,
+            data: null,
+            metadata: {
+              queryId: '',
+              found: false,
+              unavailable: {
+                reason: 'demo_hidden',
+                message: 'The demo host is hidden for signed-in accounts.',
+              },
+            },
+          })
+        }
+
         if (!queryId) {
           return Response.json(
             {

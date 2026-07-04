@@ -11,6 +11,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { getClient } from '@chm/clickhouse-client'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 // ---------------------------------------------------------------------------
 // Env helpers (mirrors healthz.ts)
@@ -53,9 +54,31 @@ export const Route = createFileRoute('/api/v1/notifications')({
           )
         }
 
-        const configs = getClickHouseConfigsFromEnv(
-          env as Record<string, string | undefined>
-        )
+        const bindings = env as Record<string, string | undefined>
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          const body = {
+            success: true,
+            data: {
+              notifications: [],
+              totalCount: 0,
+            } satisfies NotificationsResponse,
+            unavailable: {
+              reason: 'demo_hidden',
+              message: 'The demo host is hidden for signed-in accounts.',
+            },
+          }
+          return new Response(JSON.stringify(body), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+
+        const configs = getClickHouseConfigsFromEnv(bindings)
 
         if (configs.length === 0) {
           return Response.json(

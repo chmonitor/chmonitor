@@ -14,7 +14,9 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { captureIncidentSnapshot } from '@/lib/health/incident-snapshot'
 
 export const Route = createFileRoute('/api/v1/health/snapshot')({
@@ -31,6 +33,31 @@ export const Route = createFileRoute('/api/v1/health/snapshot')({
               error: { type: 'validation', message: 'Invalid hostId' },
             },
             { status: 400 }
+          )
+        }
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        const bindings = env as Record<string, string | undefined>
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          return Response.json(
+            {
+              success: true,
+              snapshot: null,
+              unavailable: {
+                reason: 'demo_hidden',
+                message: 'The demo host is hidden for signed-in accounts.',
+              },
+            },
+            {
+              status: 200,
+              headers: {
+                'Cache-Control':
+                  'public, s-maxage=5, stale-while-revalidate=15',
+              },
+            }
           )
         }
 

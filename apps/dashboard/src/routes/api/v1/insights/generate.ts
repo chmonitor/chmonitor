@@ -25,13 +25,15 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { generateInsights } from '@/lib/insights/generate-insights'
 import { isInsightPromptStyle } from '@/lib/insights/prompts'
 import { resolveInsightModel } from '@/lib/insights/resolve-model'
 
 async function handlePost(request: Request): Promise<Response> {
-  bridgeClickHouseEnv(env as Record<string, string | undefined>)
+  const bindings = env as Record<string, string | undefined>
+  bridgeClickHouseEnv(bindings)
   const requestId = generateRequestId()
 
   // Write gate: this POST runs the expensive collect → LLM enrich → persist
@@ -53,6 +55,24 @@ async function handlePost(request: Request): Promise<Response> {
       return Response.json(
         { error: 'Invalid host parameter: must be a non-negative integer' },
         { status: 400, headers: { 'X-Request-ID': requestId } }
+      )
+    }
+
+    // Cloud demo-hiding invariant (#2172): user connections always use
+    // negative hostIds, so a non-negative id from a signed-in cloud
+    // principal can only be the hidden env/demo host. No-op for OSS and
+    // anonymous cloud callers (both legitimately use host=0).
+    if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+      return Response.json(
+        {
+          insights: [],
+          count: 0,
+          unavailable: {
+            reason: 'demo_hidden',
+            message: 'The demo host is hidden for signed-in accounts.',
+          },
+        },
+        { headers: { 'X-Request-ID': requestId } }
       )
     }
 

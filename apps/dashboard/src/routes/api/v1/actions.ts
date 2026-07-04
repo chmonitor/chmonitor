@@ -15,6 +15,7 @@ import { ErrorLogger, log } from '@chm/logger'
 import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { quoteTableIdentifier } from '@/lib/api/shared/sql-identifier'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -165,7 +166,8 @@ export const Route = createFileRoute('/api/v1/actions')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         // Feature-permission gate: mutating actions (KILL QUERY / OPTIMIZE
         // TABLE) honor CHM_FEATURE_ACTIONS_ACCESS / disabled-feature config
@@ -204,6 +206,34 @@ export const Route = createFileRoute('/api/v1/actions')({
                 'Invalid parameter: hostId must be a non-negative integer',
             },
             { status: 400 }
+          )
+        }
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. querySettings
+        // echoes real ClickHouse data back, so the whole endpoint (including
+        // the killQuery/optimizeTable mutations) is guarded here rather than
+        // per-action. No-op for OSS and anonymous cloud callers (both
+        // legitimately use hostId=0).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: 'The demo host is hidden for signed-in accounts.',
+              data: [],
+              unavailable: {
+                reason: 'demo_hidden',
+                message: 'The demo host is hidden for signed-in accounts.',
+              },
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Request-ID': requestId,
+              },
+            }
           )
         }
 

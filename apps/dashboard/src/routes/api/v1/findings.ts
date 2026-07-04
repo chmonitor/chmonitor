@@ -20,6 +20,7 @@ import { fetchData } from '@chm/clickhouse-client'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { FINDINGS_TABLE } from '@/lib/app-tables'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 type FindingSeverity = 'info' | 'warning' | 'critical'
 
@@ -137,7 +138,8 @@ export const Route = createFileRoute('/api/v1/findings')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         const requestId = generateRequestId()
 
@@ -151,6 +153,24 @@ export const Route = createFileRoute('/api/v1/findings')({
                 error: 'Invalid host parameter: must be a non-negative integer',
               },
               { status: 400, headers: { 'X-Request-ID': requestId } }
+            )
+          }
+
+          // Cloud demo-hiding invariant (#2172): user connections always use
+          // negative hostIds, so a non-negative id from a signed-in cloud
+          // principal can only be the hidden env/demo host. No-op for OSS
+          // and anonymous cloud callers (both legitimately use host=0).
+          if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+            return Response.json(
+              {
+                findings: [],
+                count: 0,
+                unavailable: {
+                  reason: 'demo_hidden',
+                  message: 'The demo host is hidden for signed-in accounts.',
+                },
+              },
+              { headers: { 'X-Request-ID': requestId } }
             )
           }
 

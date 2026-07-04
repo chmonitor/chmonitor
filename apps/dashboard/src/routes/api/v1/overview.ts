@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/error-handler'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 const ROUTE_CONTEXT = { route: '/api/v1/overview' }
 
@@ -32,7 +33,8 @@ export const Route = createFileRoute('/api/v1/overview')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         const url = new URL(request.url)
         const hostIdRaw = url.searchParams.get('hostId')
@@ -53,6 +55,23 @@ export const Route = createFileRoute('/api/v1/overview')({
             },
             { status: 400 }
           )
+        }
+
+        // Cloud demo-hiding invariant (#2172): reject a non-negative hostId
+        // for an authenticated cloud principal (the hidden env/demo host).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          return Response.json({
+            success: true,
+            data: null,
+            metadata: {
+              rows: 0,
+              duration: 0,
+              unavailable: {
+                reason: 'demo_hidden',
+                message: 'The demo host is hidden for signed-in accounts.',
+              },
+            },
+          })
         }
 
         try {

@@ -1,5 +1,5 @@
 /**
- * Tests for routes/api/v1/actions.ts — error sanitization
+ * Tests for routes/api/v1/actions.ts — error sanitization + cloud demo-host guard
  *
  * Verifies that each action handler (killQuery, optimizeTable, querySettings)
  * redacts raw ClickHouse error details from client-visible response messages.
@@ -14,6 +14,12 @@
  *   - The sanitized bucket string IS present (proves redaction, not just silence)
  *   - HTTP status is 500 (error path, unchanged by this fix)
  *
+ * The final describe block (`cloud demo-host guard (#2172)`) verifies POST
+ * /api/v1/actions rejects a hand-crafted non-negative hostId for an
+ * authenticated cloud principal, while leaving OSS and anonymous-cloud
+ * callers unaffected — mirrors charts/$name.ts's
+ * `__tests__/cloud-demo-host-guard.test.ts`.
+ *
  * Mocking strategy (mirrors menu-counts/__tests__/index.test.ts):
  *   - mock.module() for cloudflare:workers, @chm/clickhouse-client, @chm/logger,
  *     @/lib/api/server-env, @/lib/feature-permissions/server
@@ -21,15 +27,21 @@
  *     Bun's module registry sees the stubs.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // --- Module mocks (must be before any import of the Route module) ---
+
+let cloudMode = false
+let signedIn = false
 
 mock.module('cloudflare:workers', () => ({
   env: {
     CLICKHOUSE_HOST: 'http://localhost:8123',
     CLICKHOUSE_USER: 'default',
     CLICKHOUSE_PASSWORD: '',
+    get CHM_CLOUD_MODE() {
+      return cloudMode ? 'true' : 'false'
+    },
   },
 }))
 
@@ -46,6 +58,17 @@ mock.module('@chm/logger', () => ({
   ErrorLogger: { logError: mock(() => undefined) },
   log: mock(() => undefined),
   isDebugEnabled: mock(() => false),
+}))
+
+import * as realProvider from '@/lib/auth/provider'
+
+mock.module('@/lib/auth/provider', () => ({
+  ...realProvider,
+  isClerkAuthProvider: () => true,
+}))
+
+mock.module('@clerk/tanstack-react-start/server', () => ({
+  auth: async () => (signedIn ? { userId: 'user_123' } : { userId: null }),
 }))
 
 // Mutable mock so each test can configure its own behavior
@@ -99,6 +122,11 @@ function getPostHandler(route: { options: { server?: unknown } }): PostHandler {
  */
 const SECRET_TOKEN = 'system.secret_table'
 const RAW_CH_ERROR = `Table ${SECRET_TOKEN} does not exist`
+
+afterEach(() => {
+  cloudMode = false
+  signedIn = false
+})
 
 // --- Tests ---
 
@@ -297,5 +325,65 @@ describe('actions route — PERMISSION error bucket is also redacted', () => {
 
     // Sanitized to permission bucket
     expect(body.message).toContain('Permission denied')
+  })
+})
+
+describe('POST /api/v1/actions — cloud demo-host guard (#2172)', () => {
+  beforeEach(() => {
+    cloudMode = false
+    signedIn = false
+    mockFetchData.mockClear()
+    mockFetchData.mockImplementation(async () => ({ data: [], error: null }))
+  })
+
+  test('OSS: authenticated caller + hostId=0 is unaffected (reaches ClickHouse)', async () => {
+    cloudMode = false
+    signedIn = true
+    const { Route } = await import('../actions')
+    const handler = getPostHandler(Route)
+    const response = await handler({
+      request: makeRequest(
+        { action: 'killQuery', params: { queryId: 'abc-123' } },
+        0
+      ),
+    })
+    expect(response.status).toBe(200)
+    expect(mockFetchData).toHaveBeenCalled()
+  })
+
+  test('anonymous cloud: hostId=0 is unaffected (reaches ClickHouse)', async () => {
+    cloudMode = true
+    signedIn = false
+    const { Route } = await import('../actions')
+    const handler = getPostHandler(Route)
+    const response = await handler({
+      request: makeRequest(
+        { action: 'killQuery', params: { queryId: 'abc-123' } },
+        0
+      ),
+    })
+    expect(response.status).toBe(200)
+    expect(mockFetchData).toHaveBeenCalled()
+  })
+
+  test('authenticated cloud + hostId=0: rejected with structured empty response', async () => {
+    cloudMode = true
+    signedIn = true
+    const { Route } = await import('../actions')
+    const handler = getPostHandler(Route)
+    const response = await handler({
+      request: makeRequest(
+        { action: 'killQuery', params: { queryId: 'abc-123' } },
+        0
+      ),
+    })
+    expect(response.status).toBe(200)
+    expect(mockFetchData).not.toHaveBeenCalled()
+    const body = (await response.json()) as {
+      success: boolean
+      unavailable: { reason: string }
+    }
+    expect(body.success).toBe(true)
+    expect(body.unavailable.reason).toBe('demo_hidden')
   })
 })

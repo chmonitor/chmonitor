@@ -16,6 +16,7 @@ import { debug, error } from '@chm/logger'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { EXPLORER_QUERY_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -217,11 +218,38 @@ async function executeQuery(params: {
   )
 }
 
+function demoHiddenResponse(hostId: number): Response {
+  return Response.json(
+    {
+      success: true,
+      data: [],
+      metadata: {
+        queryId: '',
+        duration: 0,
+        rows: 0,
+        host: String(hostId),
+        unavailable: {
+          reason: 'demo_hidden',
+          message: 'The demo host is hidden for signed-in accounts.',
+        },
+      },
+    },
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=0',
+      },
+    }
+  )
+}
+
 export const Route = createFileRoute('/api/v1/explorer/query')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         // Arbitrary SQL execution is a WRITE capability: anonymous read-only
         // callers (CHM_CLERK_PUBLIC_READ) are blocked; authenticated callers and
@@ -262,6 +290,14 @@ export const Route = createFileRoute('/api/v1/explorer/query')({
           )
         }
 
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          return demoHiddenResponse(hostId)
+        }
+
         const sql = searchParams.get('sql') ?? ''
         const format = searchParams.get('format') ?? 'JSONEachRow'
         const timezone = searchParams.get('timezone')
@@ -298,7 +334,8 @@ export const Route = createFileRoute('/api/v1/explorer/query')({
       },
 
       POST: async ({ request }) => {
-        bridgeClickHouseEnv(env as Record<string, string | undefined>)
+        const bindings = env as Record<string, string | undefined>
+        bridgeClickHouseEnv(bindings)
 
         // Arbitrary SQL execution is a WRITE capability (see GET handler).
         const authError = await authorizeFeatureRequest(
@@ -358,6 +395,14 @@ export const Route = createFileRoute('/api/v1/explorer/query')({
             },
             { status: 400 }
           )
+        }
+
+        // Cloud demo-hiding invariant (#2172): user connections always use
+        // negative hostIds, so a non-negative id from a signed-in cloud
+        // principal can only be the hidden env/demo host. No-op for OSS and
+        // anonymous cloud callers (both legitimately use hostId=0).
+        if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+          return demoHiddenResponse(hostId)
         }
 
         debug('[POST /api/v1/explorer/query]', { hostId, format, timezone })

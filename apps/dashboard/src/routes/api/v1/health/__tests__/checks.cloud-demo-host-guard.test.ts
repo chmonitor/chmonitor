@@ -1,9 +1,8 @@
 /**
- * #2172 — route-level regression: GET /api/v1/charts/$name must reject a
+ * #2172 — route-level regression: GET /api/v1/health/checks must reject a
  * hand-crafted non-negative `hostId` for an authenticated cloud principal
  * (the hidden demo host), while leaving OSS and anonymous-cloud callers
- * unaffected. See lib/cloud/reject-demo-host.ts for the unit-level coverage
- * of the underlying boolean logic.
+ * unaffected. Mirrors charts/__tests__/cloud-demo-host-guard.test.ts.
  */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -41,7 +40,6 @@ import * as realRegistry from '@/lib/api/chart-registry'
 mock.module('@/lib/api/chart-registry', () => ({
   ...realRegistry,
   hasChart: () => true,
-  getAvailableCharts: () => ['c'],
   getChartQuery: () => ({ query: 'SELECT 1', optional: false }),
 }))
 
@@ -60,20 +58,35 @@ mock.module('@/lib/api/query-executor', () => ({
   executeChartQuery,
 }))
 
-const { handler } = await import('@/routes/api/v1/charts/$name')
+type GetHandler = (ctx: { request: Request }) => Promise<Response>
 
-async function get(hostId: string) {
-  return handler(new Request(`http://x/api/v1/charts/c?hostId=${hostId}`), 'c')
+function getGetHandler(route: { options: { server?: unknown } }): GetHandler {
+  const handlers = (route.options.server as { handlers?: { GET?: GetHandler } })
+    ?.handlers
+  const fn = handlers?.GET
+  if (!fn) throw new Error('Route has no GET handler')
+  return fn
 }
 
-describe('GET /api/v1/charts/$name — cloud demo-host guard (#2172)', () => {
+const { Route } = await import('../checks')
+const handler = getGetHandler(Route)
+
+function get(hostId: string): Promise<Response> {
+  return handler({
+    request: new Request(
+      `http://x/api/v1/health/checks?hostId=${hostId}&charts=c`
+    ),
+  })
+}
+
+describe('GET /api/v1/health/checks — cloud demo-host guard (#2172)', () => {
   beforeEach(() => {
     cloudMode = false
     signedIn = false
     executeChartQuery.mockClear()
   })
 
-  test('OSS: authenticated caller + hostId=0 is unaffected (reaches executor)', async () => {
+  test('OSS: authenticated caller + hostId=0 is unaffected (reaches the executor)', async () => {
     cloudMode = false
     signedIn = true
     const res = await get('0')
@@ -81,7 +94,7 @@ describe('GET /api/v1/charts/$name — cloud demo-host guard (#2172)', () => {
     expect(executeChartQuery).toHaveBeenCalled()
   })
 
-  test('anonymous cloud: hostId=0 is unaffected (reaches executor)', async () => {
+  test('anonymous cloud: hostId=0 is unaffected (reaches the executor)', async () => {
     cloudMode = true
     signedIn = false
     const res = await get('0')
@@ -97,23 +110,10 @@ describe('GET /api/v1/charts/$name — cloud demo-host guard (#2172)', () => {
     expect(executeChartQuery).not.toHaveBeenCalled()
     const body = (await res.json()) as {
       success: boolean
-      data: unknown[]
-      metadata: { unavailable: { reason: string } }
+      checks: Record<string, { data: unknown[]; error?: { type: string } }>
     }
     expect(body.success).toBe(true)
-    expect(body.data).toEqual([])
-    expect(body.metadata.unavailable.reason).toBe('demo_hidden')
-  })
-
-  test('authenticated cloud + negative hostId is invalid at this route (own-host fetches never hit /charts with hostId<0)', async () => {
-    // The chart route's own boundary rejects negative hostId regardless of
-    // cloud/auth state — user-connection hosts are served by a different
-    // route (user-connections/charts). Confirms the demo guard never fires
-    // for a negative id (short-circuits before isSignedInServer is even
-    // relevant), matching isDemoHostBlockedForRequest's own unit coverage.
-    cloudMode = true
-    signedIn = true
-    const res = await get('-1')
-    expect(res.status).toBe(400)
+    expect(body.checks.c.data).toEqual([])
+    expect(body.checks.c.error?.type).toBe('demo_hidden')
   })
 })
