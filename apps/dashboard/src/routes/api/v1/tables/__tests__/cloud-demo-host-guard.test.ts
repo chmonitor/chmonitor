@@ -93,7 +93,11 @@ describe('GET /api/v1/tables/$name — cloud demo-host guard (#2172)', () => {
     const res = await get('0')
     expect(res.status).toBe(200)
     expect(executeTableConfig).not.toHaveBeenCalled()
-    const body = await res.json()
+    const body = (await res.json()) as {
+      success: boolean
+      data: unknown[]
+      metadata: { unavailable: boolean }
+    }
     expect(body.success).toBe(true)
     expect(body.data).toEqual([])
     expect(body.metadata.unavailable).toBe(true)
