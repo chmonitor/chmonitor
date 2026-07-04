@@ -54,6 +54,34 @@ module.exports = {
       },
     },
 
+    // ── lib/target must stay a platform-detection leaf (issue #2187) ──────
+    // Orthogonal to deployment-mode (oss|cloud), edition, cloud, and any store.
+    // It only detects the deploy platform and exposes bindings/env — it must
+    // never reach "up" into product/config layers.
+    {
+      name: 'target-module-is-leaf',
+      severity: 'error',
+      comment:
+        'lib/target must not import deployment-mode / edition / cloud / any store — it is a pure platform-detection leaf (issue #2187).',
+      from: { path: '^apps/dashboard/src/lib/target/' },
+      to: {
+        // Match both resolved paths and the raw `@/` alias specifier
+        // (depcruise has no alias resolver configured, so aliased imports keep
+        // their `@/…` source string).
+        path: [
+          '^apps/dashboard/src/lib/cloud/',
+          '^apps/dashboard/src/lib/config/deployment-mode',
+          '^apps/dashboard/src/lib/edition/',
+          '^apps/dashboard/src/lib/stores/',
+          '^@/lib/cloud/',
+          '^@/lib/config/deployment-mode',
+          '^@/lib/edition/',
+          '^@/lib/stores/',
+          '/(zustand|redux|@reduxjs)/',
+        ],
+      },
+    },
+
     // ── @chm/clickhouse-client must not depend on @chm/mcp-server ────────
     {
       name: 'clickhouse-client-layer',
