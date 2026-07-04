@@ -237,6 +237,26 @@ function jsonFeatureError(
   })
 }
 
+/**
+ * Whether `request` is anonymous AND the deployment grants anonymous read
+ * (`publicReadEnabled()`).
+ *
+ * Reuses the exact same auth resolution `authorizeFeatureRequest` uses (cheap
+ * anonymous baseline, no Clerk call for the common anonymous case; Clerk/proxy
+ * check otherwise) so this can never disagree with the per-feature gate about
+ * who counts as "signed in". Intended for callers that need a strict
+ * anonymous/authenticated split BEFORE any feature-specific decision — e.g.
+ * the shared edge-cache gate (#2181), where writing an authenticated caller's
+ * response into `caches.default` would leak it to every other visitor.
+ */
+export async function isAnonymousPublicReadRequest(
+  request: Request
+): Promise<boolean> {
+  if (!publicReadEnabled()) return false
+  const config = getAppConfig()
+  return !(await isAuthenticatedRequest(request, config))
+}
+
 export async function authorizeFeatureRequest(
   permission: FeaturePermission | undefined,
   request: Request,

@@ -27,6 +27,7 @@ import { mergeCharts } from './charts/merge-charts'
 import { overviewCharts } from './charts/overview-charts'
 import { pageViewCharts } from './charts/page-view-charts'
 import { queryCharts } from './charts/query-charts'
+import { queryInsightsCharts } from './charts/query-insights-charts'
 import { queryPerfCharts } from './charts/query-perf-charts'
 import { replicationCharts } from './charts/replication-charts'
 import { securityCharts } from './charts/security-charts'
@@ -153,4 +154,5 @@ registerChartQueries({
   ...dictionaryCharts,
   ...queryPerfCharts,
   ...insightCharts,
+  ...queryInsightsCharts,
 })

@@ -138,6 +138,16 @@ export const menuItemsConfig: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        title: 'Query Insights',
+        href: '/queries/insights',
+        description:
+          'QPS, latency percentiles, operations breakdown, rows read/returned, cache hit ratio, and errors over time',
+        icon: ActivityIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
         title: 'Failed Queries',
         href: '/failed-queries',
         description:
@@ -160,6 +170,15 @@ export const menuItemsConfig: MenuItem[] = [
         href: '/slow-queries',
         description: 'Top 10 slowest finished queries by duration',
         icon: CounterClockwiseClockIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
+        title: 'Slow Query Patterns',
+        href: '/slow-query-patterns',
+        description:
+          'Normalized query patterns aggregated by hash — calls, duration percentiles, and resource usage per pattern',
+        icon: LayersIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
       },

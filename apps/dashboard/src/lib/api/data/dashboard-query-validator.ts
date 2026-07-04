@@ -15,6 +15,10 @@
  */
 
 import { getCachedDashboardQueries } from './cache-manager'
+import {
+  getKVCachedDashboardQueries,
+  setKVCachedDashboardQueries,
+} from './dashboard-query-kv-cache'
 import { fetchData } from '@chm/clickhouse-client'
 import { error } from '@chm/logger'
 import { DASHBOARD_CHARTS_TABLE } from '@/lib/app-tables'
@@ -57,10 +61,26 @@ export async function validateDashboardQuery(
   hostId: number
 ): Promise<DashboardQueryValidationResult> {
   try {
-    // Check cache first to avoid repeated database queries
+    // Check the in-memory L1 cache first to avoid repeated database queries
     const cachedQueries = getCachedDashboardQueries(hostId)
     if (cachedQueries?.has(query)) {
       return { valid: true }
+    }
+
+    // L2: Cloudflare KV cache — survives Worker isolate churn (cold starts,
+    // L1 TTL expiry). A miss/error/absent-binding here is NOT a security
+    // decision: it always falls through to the authoritative ClickHouse
+    // lookup below, so fail-closed semantics hold regardless of KV state.
+    const kvCachedQueries = await getKVCachedDashboardQueries(hostId)
+    if (kvCachedQueries) {
+      // Warm L1 from L2 so subsequent requests on this isolate skip KV too.
+      const { updateDashboardQueryCache } = await import('./cache-manager')
+      updateDashboardQueryCache(hostId, kvCachedQueries)
+      if (kvCachedQueries.has(query)) {
+        return { valid: true }
+      }
+      // Not found in the KV snapshot — fall through to the authoritative
+      // ClickHouse check below (the allowlist may have changed since caching).
     }
 
     // Query the dashboard table to verify this query exists
@@ -89,9 +109,10 @@ export async function validateDashboardQuery(
       queries.add(row.query)
     }
 
-    // Update cache with new queries
+    // Update caches with the freshly validated allowlist (L1 in-memory + L2 KV)
     const { updateDashboardQueryCache } = await import('./cache-manager')
     updateDashboardQueryCache(hostId, queries)
+    await setKVCachedDashboardQueries(hostId, queries)
 
     // Check if the query exists in the table
     if (!queries.has(query)) {
