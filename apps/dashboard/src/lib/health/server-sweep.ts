@@ -500,28 +500,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       // firing sweep re-evaluates fresh and delivers/commits normally.
       alertsSuppressed++
       ackedSuppressed++
-      try {
-        await recordAlertEvent({
-          eventTime: new Date().toISOString(),
-          hostId,
-          hostLabel: name,
-          rule: ruleId,
-          severity: decision.severity as 'warning' | 'critical',
-          prevSeverity:
-            decision.previousSeverity === 'ok'
-              ? null
-              : decision.previousSeverity,
-          decisionKind: 'acked',
-          delivered: false,
-          value,
-          channel: 'acked',
-        })
-      } catch (err) {
-        debug(
-          `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
-          err instanceof Error ? err.message : String(err)
-        )
-      }
+      // TODO(27): historyStore.record({ ..., decisionKind: 'acked', delivered: false })
       return
     }
 
