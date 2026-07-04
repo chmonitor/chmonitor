@@ -185,7 +185,13 @@ describe('health actions — diagnostic', () => {
     expect(call.hostId).toBe(3)
     expect(call.clickhouse_settings?.readonly).toBe('1')
 
-    const body = await res.json()
+    const body = (await res.json()) as {
+      success: boolean
+      kind: string
+      rows: unknown[]
+      rowCount: number
+      truncated: boolean
+    }
     expect(body.success).toBe(true)
     expect(body.kind).toBe('diagnostic')
     expect(body.rows).toHaveLength(50)
