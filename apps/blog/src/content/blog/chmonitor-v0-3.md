@@ -113,6 +113,46 @@ the bytes go.
 **ClickHouse Keeper monitoring**: session state, watches, quorum role and
 per-node Raft stats for every Keeper node.
 
+<img src="/posts/v0.3/cluster-topology.png" alt="Cluster Topology diagram showing Keeper quorum, ClickHouse nodes and replication links" />
+
+**Cluster Topology**: nodes, shards, replicas, and Keeper quorum drawn as a
+live diagram — click any node for an inspector panel with latency, znodes and
+virtual cluster membership.
+
+<img src="/posts/v0.3/ai-agent.png" alt="AI Agent chat with suggested questions, connected MCP server and skill toggles" />
+
+**The AI agent**, wired straight into a host: suggested questions by category
+(insights, schema, storage, queries), live skill/tool toggles, and an MCP
+server already connected — ask about your cluster in plain language.
+
+<img src="/posts/v0.3/data-explorer.png" alt="Data Explorer rendering a table dependency graph with materialized view edges" />
+
+**Data Explorer**: every table in a database rendered as a dependency graph —
+materialized views, dictionaries and sources connected by typed edges (`TO`,
+`dictGet`, `joinGet`) instead of guessing from `SHOW CREATE TABLE`.
+
+<img src="/posts/v0.3/running-queries.png" alt="Running Queries page with live charts and a table of active queries" />
+
+**Running Queries**, live: active count, memory and per-user breakdown as
+charts up top, the actual query table below, auto-refreshing every 5 seconds.
+
+<img src="/posts/v0.3/explain-tree.png" alt="EXPLAIN Query page showing the execution plan as an interactive tree" />
+
+**EXPLAIN as a tree**: pick Plan, Pipeline, AST, Syntax or Estimate, and read
+the execution plan as a collapsible tree instead of a wall of text.
+
+<img src="/posts/v0.3/health-audit.png" alt="Generated audit prompt for a critical replication lag health check" />
+
+**Health → audit prompt**: a critical check (replication lag, in this case)
+turns into a ready-to-paste prompt with the metric, raw data row, system
+tables and common causes — hand it to any AI/coding agent for a diagnosis.
+
+<img src="/posts/v0.3/mcp-server.png" alt="MCP Server page with endpoint URL and setup guides for Claude Desktop, Claude Code and Cursor" />
+
+**MCP Server**, self-serve: the endpoint URL plus copy-paste setup for Claude
+Desktop, Claude Code, Cursor or any Streamable HTTP MCP client — read-only
+access to schemas, queries and performance from your own tooling.
+
 Alerting also grew a **custom alert rule builder** (define your own thresholds
 and conditions, not just the built-in health checks) and an **email adapter**
 (Mailgun/SendGrid) alongside the existing Slack/Discord webhooks — see
