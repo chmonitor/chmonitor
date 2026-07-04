@@ -373,6 +373,14 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
    */
   clickhouseSettings?: ClickHouseSettings
   /**
+   * Opt out of the ClickHouse query-cache settings (#2182) that
+   * `executeTableConfig` applies by default to this (read-only) query. Set
+   * this when the result must never be served from the query cache — e.g. it
+   * should reflect a change made moments ago sooner than `refreshInterval`
+   * allows.
+   */
+  disableQueryCache?: boolean
+  /**
    * The documents or url to be used when query is errors. e.g. log table missing due to cluster configuration.
    */
   docs?: string

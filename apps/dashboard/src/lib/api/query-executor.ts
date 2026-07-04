@@ -19,6 +19,7 @@
  */
 
 import type { FetchDataResult } from '@chm/clickhouse-client'
+import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import type { VersionedSql } from '@chm/sql-builder'
 import type { ClickHouseBindings } from '@/lib/api/server-env'
 import type { QueryConfig } from '@/lib/query-config'
@@ -33,9 +34,34 @@ import {
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
 import { error } from '@chm/logger'
+import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { withClickHouseQuerySpan } from '@/lib/otel/query-span'
 import { getSqlForDisplay } from '@/lib/query-config'
+
+/**
+ * Default ClickHouse query-cache TTL (seconds) for a table config that does
+ * not set `refreshInterval` (#2182). Mirrors the "standard" chart TTL.
+ */
+const DEFAULT_TABLE_CACHE_TTL_SECONDS = 30
+const MIN_CACHE_TTL_SECONDS = 5
+const MAX_CACHE_TTL_SECONDS = 300
+
+/**
+ * Table configs already carry `refreshInterval` (ms) as their client-side
+ * poll cadence — reuse it as the query-cache TTL so cached results never
+ * outlive the UI's own refresh rate, clamped to a sane range.
+ */
+function tableCacheTtlSeconds(refreshIntervalMs?: number): number {
+  if (!refreshIntervalMs || refreshIntervalMs <= 0) {
+    return DEFAULT_TABLE_CACHE_TTL_SECONDS
+  }
+  const seconds = Math.round(refreshIntervalMs / 1000)
+  return Math.min(
+    Math.max(seconds, MIN_CACHE_TTL_SECONDS),
+    MAX_CACHE_TTL_SECONDS
+  )
+}
 
 /**
  * Interval allowlist for time-bucketing charts. Inlined (not imported from
@@ -73,14 +99,29 @@ function toNumericHostId(hostId: number | string): number {
  * Pick the SQL string to execute for the current CH version.
  * Priority: VersionedSql[] (`sql`) → plain string (`sql`). The deprecated
  * `variants` form is not handled here (port it if a ported config needs it).
+ *
+ * Always resolves the ClickHouse version (cached 24h per host by
+ * getClickHouseVersion — see clickhouse-version.ts), even for plain-string
+ * SQL: query-cache settings (#2182) must be gated on it, since sending
+ * `use_query_cache` to a pre-23.5 host throws "Unknown setting" and fails
+ * the query outright.
  */
 async function selectSqlForHost(
   sql: string | VersionedSql[],
   numericHostId: number
-): Promise<{ sql: string; version: string | undefined }> {
-  if (typeof sql === 'string') return { sql, version: undefined }
-  const version = await getClickHouseVersion(numericHostId)
-  return { sql: selectVersionedSql(sql, version), version: version?.raw }
+): Promise<{
+  sql: string
+  version: string | undefined
+  clickhouseVersion: ClickHouseVersion | null
+}> {
+  const clickhouseVersion = await getClickHouseVersion(numericHostId)
+  const selectedSql =
+    typeof sql === 'string' ? sql : selectVersionedSql(sql, clickhouseVersion)
+  return {
+    sql: selectedSql,
+    version: clickhouseVersion?.raw,
+    clickhouseVersion,
+  }
 }
 
 /** Options shared by table/chart execution. */
@@ -117,10 +158,20 @@ export async function executeTableConfig<
   if (options.bindings) bridgeClickHouseEnv(options.bindings)
 
   const numericHostId = toNumericHostId(hostId)
-  const { sql: executedSql, version } = await selectSqlForHost(
-    queryConfig.sql,
-    numericHostId
-  )
+  const {
+    sql: executedSql,
+    version,
+    clickhouseVersion,
+  } = await selectSqlForHost(queryConfig.sql, numericHostId)
+
+  // Read-only GET path (routes/api/v1/tables/$name.ts, explorer/*): safe to
+  // opt into the ClickHouse query cache (#2182). `queryConfig.clickhouseSettings`
+  // is spread after so a config can still override any of these explicitly.
+  const cacheSettings = buildQueryCacheSettings({
+    version: clickhouseVersion,
+    ttlSeconds: tableCacheTtlSeconds(queryConfig.refreshInterval),
+    disabled: queryConfig.disableQueryCache,
+  })
 
   const result = await withClickHouseQuerySpan(() =>
     fetchData<T[]>({
@@ -129,6 +180,7 @@ export async function executeTableConfig<
       hostId,
       format: 'JSONEachRow',
       clickhouse_settings: {
+        ...cacheSettings,
         ...queryConfig.clickhouseSettings,
         ...(options.timezone ? { session_timezone: options.timezone } : {}),
       },
@@ -174,24 +226,38 @@ export async function executeChartQuery(
   opts: ExecuteOptions & {
     optional?: boolean
     tableCheck?: string | string[]
+    /** ClickHouse query-cache TTL (seconds); omit/0 to skip caching. */
+    ttlSeconds?: number
+    /** Per-chart opt-out of the query cache; see ChartQueryResult. */
+    disableQueryCache?: boolean
   } = {}
 ): Promise<ExecuteChartResult> {
   if (opts.bindings) bridgeClickHouseEnv(opts.bindings)
 
   const numericHostId = toNumericHostId(hostId)
-  const { sql: executedSql, version } = await selectSqlForHost(
-    sql,
-    numericHostId
-  )
+  const {
+    sql: executedSql,
+    version,
+    clickhouseVersion,
+  } = await selectSqlForHost(sql, numericHostId)
+
+  // Read-only GET path (routes/api/v1/charts/$name.ts, health/checks.ts):
+  // safe to opt into the ClickHouse query cache (#2182).
+  const cacheSettings = buildQueryCacheSettings({
+    version: clickhouseVersion,
+    ttlSeconds: opts.ttlSeconds ?? 0,
+    disabled: opts.disableQueryCache,
+  })
 
   const result = await withClickHouseQuerySpan(() =>
     fetchJsonEachRowAsNormalizedJson({
       query: executedSql,
       query_params: queryParams,
       hostId,
-      clickhouse_settings: opts.timezone
-        ? { session_timezone: opts.timezone }
-        : undefined,
+      clickhouse_settings: {
+        ...cacheSettings,
+        ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
+      },
       queryConfig: opts.optional
         ? {
             name: chartName,
@@ -224,7 +290,12 @@ export async function executeChartQuery(
 export async function executeMultiChartQuery(
   queries: Array<{ key: string; query: string; optional?: boolean }>,
   hostId: number | string,
-  opts: ExecuteOptions = {}
+  opts: ExecuteOptions & {
+    /** ClickHouse query-cache TTL (seconds); omit/0 to skip caching. */
+    ttlSeconds?: number
+    /** Opt-out of the query cache; see MultiChartQueryResult. */
+    disableQueryCache?: boolean
+  } = {}
 ): Promise<{
   results: Array<{
     key: string
@@ -234,6 +305,15 @@ export async function executeMultiChartQuery(
 }> {
   if (opts.bindings) bridgeClickHouseEnv(opts.bindings)
 
+  // Read-only GET path (routes/api/v1/charts/$name.ts summary charts): safe
+  // to opt into the ClickHouse query cache (#2182). Resolved once per call —
+  // getClickHouseVersion caches per host for 24h, so this is cheap.
+  const cacheSettings = buildQueryCacheSettings({
+    version: await getClickHouseVersion(toNumericHostId(hostId)),
+    ttlSeconds: opts.ttlSeconds ?? 0,
+    disabled: opts.disableQueryCache,
+  })
+
   const results = await Promise.all(
     queries.map(async (q) => {
       try {
@@ -241,9 +321,10 @@ export async function executeMultiChartQuery(
           fetchJsonEachRowAsNormalizedJson({
             query: q.query,
             hostId,
-            clickhouse_settings: opts.timezone
-              ? { session_timezone: opts.timezone }
-              : undefined,
+            clickhouse_settings: {
+              ...cacheSettings,
+              ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
+            },
           })
         )
         return { key: q.key, dataJson: r.dataJson ?? 'null', error: r.error }

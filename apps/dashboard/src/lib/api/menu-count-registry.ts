@@ -14,6 +14,11 @@ export interface MenuCountQuery {
   query: string
   optional?: boolean
   tableCheck?: string
+  /**
+   * Opt out of the ClickHouse query-cache settings (#2182) the menu-counts
+   * routes apply by default to every count query.
+   */
+  disableQueryCache?: boolean
 }
 
 /**

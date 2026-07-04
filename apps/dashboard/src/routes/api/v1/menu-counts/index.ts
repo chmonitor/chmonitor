@@ -18,12 +18,14 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
 import {
   getAvailableMenuCountKeys,
   getMenuCountQuery,
 } from '@/lib/api/menu-count-registry'
+import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
 import { HostIdSchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -33,6 +35,12 @@ import {
 import { ApiErrorType } from '@/lib/api/types'
 
 const ROUTE_CONTEXT = { route: '/api/v1/menu-counts', method: 'GET' }
+
+/**
+ * TTL (seconds) for the ClickHouse query cache on menu-count queries (#2182)
+ * — mirrors the `CacheControl.MEDIUM` (60s) header this route already sets.
+ */
+const MENU_COUNT_CACHE_TTL_SECONDS = 60
 
 interface MenuCountsResponse {
   readonly counts: Record<string, number | null>
@@ -48,7 +56,8 @@ interface MenuCountsResponse {
 async function resolveCount(
   countKey: string,
   hostId: number,
-  requestId: string
+  requestId: string,
+  cacheSettings: ReturnType<typeof buildQueryCacheSettings>
 ): Promise<number | null | undefined> {
   const menuCount = getMenuCountQuery(countKey)
   if (!menuCount) return undefined
@@ -57,6 +66,9 @@ async function resolveCount(
     query: menuCount.query,
     format: 'JSONEachRow',
     hostId,
+    clickhouse_settings: menuCount.disableQueryCache
+      ? undefined
+      : cacheSettings,
   })
 
   if (result.error) {
@@ -126,6 +138,14 @@ export async function handler(request: Request): Promise<Response> {
 
     bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
+    // Read-only GET path: safe to opt into the ClickHouse query cache
+    // (#2182). getClickHouseVersion caches per host for 24h, so this is
+    // cheap; buildQueryCacheSettings fails closed on an unknown version.
+    const cacheSettings = buildQueryCacheSettings({
+      version: await getClickHouseVersion(hostId),
+      ttlSeconds: MENU_COUNT_CACHE_TTL_SECONDS,
+    })
+
     const keys = getAvailableMenuCountKeys()
 
     // 1. Query system.tables to check which optional tables exist
@@ -149,6 +169,7 @@ export async function handler(request: Request): Promise<Response> {
     // 2. Build combined subqueries
     const selectSubqueries: string[] = []
     const counts: Record<string, number | null> = {}
+    let combinedQueryCacheDisabled = false
 
     for (const key of keys) {
       const menuCount = getMenuCountQuery(key)
@@ -162,6 +183,11 @@ export async function handler(request: Request): Promise<Response> {
         }
       }
 
+      // A single opted-out key disables caching for the whole combined
+      // query — there's no way to cache only part of one UNION-of-subqueries
+      // SELECT.
+      if (menuCount.disableQueryCache) combinedQueryCacheDisabled = true
+
       // Wrap the registry query as a subquery
       selectSubqueries.push(
         `(SELECT count FROM (${menuCount.query})) AS \`${key}\``
@@ -174,6 +200,9 @@ export async function handler(request: Request): Promise<Response> {
         query: combinedQuery,
         format: 'JSONEachRow',
         hostId,
+        clickhouse_settings: combinedQueryCacheDisabled
+          ? undefined
+          : cacheSettings,
       })
 
       if (result.error) {
@@ -188,7 +217,7 @@ export async function handler(request: Request): Promise<Response> {
         )
         const resolved = await Promise.all(
           keys.map(async (k) => {
-            const val = await resolveCount(k, hostId, requestId)
+            const val = await resolveCount(k, hostId, requestId, cacheSettings)
             return [k, val] as const
           })
         )

@@ -11,6 +11,7 @@ import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
 import { validateChartParams } from '@/lib/api/chart-param-validator'
 import {
+  cachePolicyToQueryCacheTtlSeconds,
   getAvailableCharts,
   getChartQuery,
   hasChart,
@@ -187,7 +188,12 @@ export async function handler(
       const { results } = await executeMultiChartQuery(
         queryDef.queries.map((q) => ({ key: q.key, query: q.query })),
         hostId,
-        { bindings, timezone }
+        {
+          bindings,
+          timezone,
+          ttlSeconds: cachePolicyToQueryCacheTtlSeconds(queryDef.cachePolicy),
+          disableQueryCache: queryDef.disableQueryCache,
+        }
       )
 
       const combinedEntries: string[] = []
@@ -232,6 +238,8 @@ export async function handler(
         timezone,
         optional: queryDef.optional,
         tableCheck: queryDef.tableCheck,
+        ttlSeconds: cachePolicyToQueryCacheTtlSeconds(queryDef.cachePolicy),
+        disableQueryCache: queryDef.disableQueryCache,
       }
     )
 
