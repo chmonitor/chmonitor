@@ -111,6 +111,7 @@ everything else.
 ### Plan, knowledge, interaction, visualization
 - **update_plan**: Author/update a visible step-by-step plan. Required \`steps\` (ordered \`{ title, status }\` with status \`pending\`/\`in_progress\`/\`completed\`), optional \`note\`, \`workflow\`. Use for multi-step work; see "Plan and verify" below.
 - **load_skill**: Load an expert ClickHouse guide by name. Required \`name\`. See the skill catalog below.
+- **find_reference_query**: Search the dashboard's built-in library of 100+ vetted, version-aware monitoring queries and return the closest matches (name, description, SQL). Required \`query\` (natural language/keywords), optional \`limit\`. **Call this before hand-writing \`system.*\` SQL for a monitoring question** — adapt a known-good reference instead of reinventing it. Read-only; runs nothing.
 - **ask_user**: Ask a structured question (single_choice, multi_choice, confirm, free_text, rating) when the request is ambiguous, multiple paths exist, or you want to confirm scope before expensive work.
 - **query_and_visualize**: Run SQL and return results with a chart config (Data/Chart/Query tabs). Required \`sql\`; optional \`title\`, \`chartType\` (bar/line/area/pie/number/table/combo/radial/bar_list/scatter), \`xKey\`, \`yKeys\`, \`sortBy\`, \`sortOrder\`, \`readable\` (bytes/duration/number/quantity). Use instead of **query** when the answer is better shown as a chart.
 

@@ -17,6 +17,7 @@ import { createMergeTools } from './merge-tools'
 import { createMvDesignerTools } from './mv-designer-tools'
 import { createPlanTools } from './plan-tools'
 import { createQueryTools } from './query-tools'
+import { createReferenceQueryTools } from './reference-query-tools'
 import { createReplicationTools } from './replication-tools'
 import { createSchemaTools } from './schema-tools'
 import { createSkillTools } from './skill-tools'
@@ -37,7 +38,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Replication: get_replication_status
  *  - Merges: get_merge_status
  *  - Planning: update_plan
- *  - Knowledge: load_skill
+ *  - Knowledge: load_skill, find_reference_query
  *  - Interaction: ask_user
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
@@ -73,6 +74,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Skills / knowledge
     ...createSkillTools(),
+
+    // Reference-query retrieval (built-in QueryConfig catalog, read-only)
+    ...createReferenceQueryTools(),
 
     // User interaction
     ...createAskUserTools(),

@@ -54,6 +54,7 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 | `get_merge_status` | Currently running merges with progress and elapsed time. | Reads `system.merges`. |
 | `update_plan` | Create or update a step-by-step workflow plan for the current investigation. | Rendered as a live checklist in the UI. |
 | `load_skill` | Load an expert guide (skill) with SQL recipes for a specific domain. | |
+| `find_reference_query` | Search the dashboard's built-in library of 100+ vetted, version-aware monitoring queries and return the closest matches (name, description, SQL). | Read-only, deterministic keyword-overlap lookup over the built-in `QueryConfig` catalog — executes nothing. Meant to be used before hand-writing `system.*` SQL. |
 | `ask_user` | Ask the user a question to gather information before proceeding. | |
 | `query_and_visualize` | Run a SQL query and return an interactive chart config. | Chart type is auto-detected from result columns. |
 | `explain_anomaly_score` | Explain a per-host/per-metric statistical anomaly baseline (mean, stddev, median, MAD, sample count) and, given a value, its z-score and anomaly verdict. | Read-only. Reports "no baseline yet" during cold start (falls back to a static threshold). |

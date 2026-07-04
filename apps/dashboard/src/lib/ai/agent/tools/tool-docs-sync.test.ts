@@ -86,11 +86,11 @@ const MCP_SERVER_TOOL_NAMES = [
 ] as const
 
 describe('AI agent tool docs stay in sync with the code', () => {
-  test('createAllTools(0, true) exposes 26 default + 3 gated control tools', () => {
-    // Loud guard: if this drops to 26, AGENT_ENABLE_CONTROL_TOOLS was not
+  test('createAllTools(0, true) exposes 27 default + 3 gated control tools', () => {
+    // Loud guard: if this drops to 27, AGENT_ENABLE_CONTROL_TOOLS was not
     // honored above and the control-tool assertions below would silently
     // never run.
-    expect(toolNames.length).toBe(29)
+    expect(toolNames.length).toBe(30)
   })
 
   test('every agent tool is documented in ai-agent/capabilities.mdx', () => {
