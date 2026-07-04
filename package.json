@@ -33,6 +33,7 @@
     "test:query-config": "cd apps/dashboard && bun run test:query-config",
     "test:coverage": "(cd apps/dashboard && bun run test:coverage) && bun run test:packages",
     "test:packages": "bun test packages --isolate --coverage --coverage-reporter=lcov --coverage-reporter=text",
+    "test:packages:ci": "bun test packages --isolate --coverage --coverage-reporter=lcov",
     "test:component": "cd apps/dashboard && bun run test:component",
     "test:component:headless": "cd apps/dashboard && bun run test:component:headless",
     "test:e2e": "cd apps/dashboard && bun run test:e2e",
