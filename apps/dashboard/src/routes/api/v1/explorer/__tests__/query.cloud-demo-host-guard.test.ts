@@ -24,7 +24,10 @@ mock.module('@/lib/api/server-env', () => ({
   bridgeClickHouseEnv: mock(() => undefined),
 }))
 
+import * as realFeaturePermissions from '@/lib/feature-permissions/server'
+
 mock.module('@/lib/feature-permissions/server', () => ({
+  ...realFeaturePermissions,
   authorizeFeatureRequest: mock(async () => null),
 }))
 

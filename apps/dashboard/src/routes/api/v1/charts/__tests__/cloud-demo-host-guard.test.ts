@@ -21,7 +21,10 @@ mock.module('cloudflare:workers', () => ({
   },
 }))
 
+import * as realFeaturePermissions from '@/lib/feature-permissions/server'
+
 mock.module('@/lib/feature-permissions/server', () => ({
+  ...realFeaturePermissions,
   authorizeFeatureRequest: async () => null,
 }))
 
