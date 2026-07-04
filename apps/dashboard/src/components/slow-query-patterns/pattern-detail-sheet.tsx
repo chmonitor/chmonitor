@@ -9,9 +9,12 @@
  *   filters and time range, so no extra query is needed here.
  * - Recent / Notable runs: `GET /api/v1/insights/query-patterns/:hash`
  *   (#2266) — reused rather than duplicating a second "executions for one
- *   pattern" query. "Notable" (slowest / largest result / errored) is
- *   derived client-side from that same up-to-200-row response, the same
- *   window cap the endpoint itself already applies.
+ *   pattern" query. "Recent" reads the endpoint's reverse-chronological
+ *   `executions` (capped at 200 rows). "Notable" (slowest / largest result /
+ *   errored) reads the endpoint's separately server-ranked `notable` list —
+ *   NOT derived by sorting `executions` client-side, since that list is
+ *   capped and would silently rank within "the last 200 runs" rather than
+ *   the full time window for any pattern hot enough to exceed the cap.
  * - Advisor: reuses `/api/v1/advisor` + `AdvisorRecommendationsPanel`, the
  *   same engine and renderer as the `/advisor` page.
  *
@@ -45,7 +48,10 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { isValidQueryHash } from '@/lib/api/insights/query-patterns'
+import {
+  isValidQueryHash,
+  type NotableRunReason,
+} from '@/lib/api/insights/query-patterns'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { useSearchParams } from '@/lib/next-compat'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -99,6 +105,7 @@ interface PatternDetailApiResponse {
   data: {
     pattern: Record<string, unknown>
     executions: PatternExecutionRow[]
+    notable: Array<PatternExecutionRow & { reason: NotableRunReason }>
   }
 }
 interface AdvisorApiResponse extends AdvisorRecommendationsOutput {
@@ -145,13 +152,6 @@ async function fetchAdvisor(url: string): Promise<AdvisorApiResponse> {
   return body
 }
 
-/** Best-effort top-N helper for the "Notable runs" tab — sorts a copy so the
- * caller's array/order (reverse-chronological, as the API returns it) is
- * untouched for the "Recent" tab. */
-function topN<T>(rows: T[], by: (row: T) => number, n: number): T[] {
-  return [...rows].sort((a, b) => by(b) - by(a)).slice(0, n)
-}
-
 /** Only mounted while the Sheet is open — gates the drilldown/advisor fetches. */
 function PatternDetailSheetContent({
   pattern,
@@ -187,15 +187,15 @@ function PatternDetailSheetContent({
   })
 
   const byReason = useMemo(() => {
-    const executions = detailData?.data.executions ?? []
+    const notable = detailData?.data.notable ?? []
     return {
       // Already reverse-chronological from the API.
-      recent: executions.slice(0, 20),
-      slowest: topN(executions, (r) => Number(r.query_duration_ms || 0), 5),
-      largest_result: topN(executions, (r) => Number(r.result_rows || 0), 5),
-      errored: executions
-        .filter((r) => Number(r.exception_code || 0) !== 0)
-        .slice(0, 5),
+      recent: (detailData?.data.executions ?? []).slice(0, 20),
+      // Server-ranked (see buildPatternNotableRunsConfig) — NOT sliced from
+      // `executions`, which is capped and would misrank hot patterns.
+      slowest: notable.filter((r) => r.reason === 'slowest'),
+      largest_result: notable.filter((r) => r.reason === 'largest_result'),
+      errored: notable.filter((r) => r.reason === 'errored'),
     }
   }, [detailData])
 

@@ -25,6 +25,9 @@ const executionRows = [
   { event_time: '2026-07-04 00:00:00', query_id: 'a' },
   { event_time: '2026-07-03 23:59:00', query_id: 'b' },
 ]
+const notableRows = [
+  { event_time: '2026-07-04 00:00:00', query_id: 'a', reason: 'slowest' },
+]
 
 let patternData: Record<string, unknown>[] = [patternRow]
 
@@ -42,6 +45,16 @@ const executeTableConfig = mock(
           metadata: { queryId: 'p1', duration: 5, rows: patternData.length },
         },
         executedSql: 'SELECT /* pattern */ 1',
+        clickhouseVersion: '24.8',
+      }
+    }
+    if (config.name === 'insights-query-pattern-notable-runs') {
+      return {
+        result: {
+          data: notableRows,
+          metadata: { queryId: 'n1', duration: 3, rows: notableRows.length },
+        },
+        executedSql: 'SELECT /* notable */ 1',
         clickhouseVersion: '24.8',
       }
     }
@@ -78,6 +91,7 @@ interface DetailSuccessBody {
   data: {
     pattern: Record<string, unknown>
     executions: Record<string, unknown>[]
+    notable: Record<string, unknown>[]
   }
   metadata: { host: string; rangeHours: number }
 }
@@ -124,24 +138,26 @@ describe('GET /api/v1/insights/query-patterns/$hash — shape', () => {
     patternData = [patternRow]
   })
 
-  test('returns the pattern + its recent executions', async () => {
+  test('returns the pattern + its recent executions + notable runs', async () => {
     const res = await call('123456789')
     expect(res.status).toBe(200)
     const body = (await res.json()) as DetailSuccessBody
     expect(body.success).toBe(true)
     expect(body.data.pattern).toEqual(patternRow)
     expect(body.data.executions).toEqual(executionRows)
+    expect(body.data.notable).toEqual(notableRows)
     expect(body.metadata.host).toBe('0')
     expect(body.metadata.rangeHours).toBe(24)
   })
 
-  test('passes the same normalized_query_hash + range to both queries', async () => {
+  test('passes the same normalized_query_hash + range to all three queries', async () => {
     await call('123456789', '?range=6')
-    expect(executeTableConfig).toHaveBeenCalledTimes(2)
+    expect(executeTableConfig).toHaveBeenCalledTimes(3)
     for (const c of executeTableConfig.mock.calls) {
       expect(c[2]).toMatchObject({
         normalized_query_hash: '123456789',
         range_hours: 6,
+        notable_limit: 5,
       })
     }
   })

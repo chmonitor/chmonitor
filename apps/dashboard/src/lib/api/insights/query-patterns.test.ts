@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   buildPatternDetailConfig,
   buildPatternExecutionsConfig,
+  buildPatternNotableRunsConfig,
   isValidQueryHash,
   parseRangeHours,
   sortPatternRows,
@@ -94,5 +95,27 @@ describe('buildPatternDetailConfig / buildPatternExecutionsConfig', () => {
     const config = buildPatternExecutionsConfig()
     expect(config.sql as string).toContain('ORDER BY event_time DESC')
     expect(config.sql as string).toContain('executions_limit')
+  })
+})
+
+describe('buildPatternNotableRunsConfig', () => {
+  test('ranks each notable category independently, not sliced from a shared cap', () => {
+    const sql = buildPatternNotableRunsConfig().sql as string
+    // Each branch must have its own ORDER BY + LIMIT against the full
+    // hash/time-filtered `base` CTE — never a slice of a capped result set,
+    // or a hot pattern's true slowest/largest run silently falls outside it.
+    expect(sql).toContain('ORDER BY query_duration_ms DESC')
+    expect(sql).toContain('ORDER BY result_rows DESC')
+    expect(sql).toContain('WHERE exception_code != 0')
+    expect(sql.match(/notable_limit/g)?.length).toBe(3)
+    expect(sql).toContain("'slowest' AS reason")
+    expect(sql).toContain("'largest_result' AS reason")
+    expect(sql).toContain("'errored' AS reason")
+  })
+
+  test('scopes to the pattern hash and time window', () => {
+    const sql = buildPatternNotableRunsConfig().sql as string
+    expect(sql).toContain('normalized_query_hash')
+    expect(sql).toContain('range_hours')
   })
 })

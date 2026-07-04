@@ -91,13 +91,20 @@ GET /api/v1/insights/query-patterns/1234567890123456789?hostId=0&range=24
     "pattern": { "normalized_query_hash": "1234567890123456789", "calls": 42, "total_duration": 12.5 },
     "executions": [
       { "event_time": "2026-07-04 10:00:00", "query_id": "...", "query_duration_ms": 310, "user": "default" }
+    ],
+    "notable": [
+      { "event_time": "2026-07-03 22:00:00", "query_id": "...", "query_duration_ms": 4200, "reason": "slowest" }
     ]
   },
   "metadata": { "host": "0", "rangeHours": 24, "rows": 1 }
 }
 ```
 
-Executions are capped at 200 rows, most-recent first.
+`executions` is capped at 200 rows, most-recent first. `notable` is a separate,
+server-ranked query (5 rows per category: `slowest` by duration, `largest_result`
+by result rows, `errored` by exception, most-recent first) over the full
+`rangeHours` window — not a client-side slice of `executions` — so it stays
+correct for patterns with more than 200 executions in the window.
 
 ## MCP / programmatic consumption
 

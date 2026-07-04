@@ -21,6 +21,7 @@ import { error } from '@chm/logger'
 import {
   buildPatternDetailConfig,
   buildPatternExecutionsConfig,
+  buildPatternNotableRunsConfig,
   isValidQueryHash,
   parseRangeHours,
 } from '@/lib/api/insights/query-patterns'
@@ -28,6 +29,9 @@ import { executeTableConfig } from '@/lib/api/query-executor'
 
 /** Cap on individual executions returned per pattern. */
 const EXECUTIONS_LIMIT = 200
+
+/** Cap on rows returned per "Notable runs" category (slowest/largest/errored). */
+const NOTABLE_LIMIT = 5
 
 export async function handler(
   request: Request,
@@ -70,14 +74,18 @@ export async function handler(
     normalized_query_hash: hash,
     range_hours: rangeHours,
     executions_limit: EXECUTIONS_LIMIT,
+    notable_limit: NOTABLE_LIMIT,
   }
 
   try {
-    const [patternExec, executionsExec] = await Promise.all([
+    const [patternExec, executionsExec, notableExec] = await Promise.all([
       executeTableConfig(buildPatternDetailConfig(), hostId, queryParams, {
         bindings,
       }),
       executeTableConfig(buildPatternExecutionsConfig(), hostId, queryParams, {
+        bindings,
+      }),
+      executeTableConfig(buildPatternNotableRunsConfig(), hostId, queryParams, {
         bindings,
       }),
     ])
@@ -108,6 +116,19 @@ export async function handler(
         { status: 500 }
       )
     }
+    if (notableExec.result.error) {
+      return Response.json(
+        {
+          success: false,
+          error: {
+            type: 'query_error',
+            message: notableExec.result.error.message,
+            details: notableExec.result.error.details,
+          },
+        },
+        { status: 500 }
+      )
+    }
 
     const pattern = (patternExec.result.data ?? [])[0]
     if (!pattern) {
@@ -124,20 +145,22 @@ export async function handler(
     }
 
     const executions = executionsExec.result.data ?? []
+    const notable = notableExec.result.data ?? []
 
     return Response.json(
       {
         success: true,
-        data: { pattern, executions },
+        data: { pattern, executions, notable },
         metadata: {
           queryId: String(patternExec.result.metadata.queryId || ''),
           duration:
             Number(patternExec.result.metadata.duration || 0) +
-            Number(executionsExec.result.metadata.duration || 0),
+            Number(executionsExec.result.metadata.duration || 0) +
+            Number(notableExec.result.metadata.duration || 0),
           rows: executions.length,
           host: String(hostId),
           rangeHours,
-          sql: `${patternExec.executedSql.trim()}\n\n${executionsExec.executedSql.trim()}`,
+          sql: `${patternExec.executedSql.trim()}\n\n${executionsExec.executedSql.trim()}\n\n${notableExec.executedSql.trim()}`,
           clickhouseVersion: patternExec.clickhouseVersion,
         },
       },
