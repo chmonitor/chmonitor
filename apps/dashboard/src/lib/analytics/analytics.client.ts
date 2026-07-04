@@ -7,12 +7,14 @@
 // default for self-hosted instances. Also a hard no-op when the browser's Do
 // Not Track signal is set, or the DO_NOT_TRACK env convention opts out.
 //
-// Locked-down PostHog config: no autocapture (would capture form/input/text
-// content — a PII vector), no automatic pageview/pageleave capture (funnel
-// pages are tracked explicitly), no session recording, cookieless
-// (localStorage) persistence so there is no cookie-banner requirement.
-// distinct_id stays PostHog's anonymous default — this app never calls
-// identify() with anything user-derived.
+// Full-capture PostHog config: autocapture (clicks, form submits), automatic
+// pageview + pageleave, and manual exception capture are all ON so the product
+// team gets end-to-end product analytics. Session recording stays OFF, and
+// persistence stays cookieless (localStorage) so there is still no cookie-banner
+// requirement. distinct_id stays PostHog's anonymous default — this app never
+// calls identify() with anything user-derived. NOTE: autocapture can record the
+// text of clicked elements; the two rails above (off-by-default key gate + Do
+// Not Track) keep self-hosted instances silent by default.
 
 import type { AnalyticsEvent, AnalyticsProps } from './events'
 
@@ -58,9 +60,11 @@ export async function initAnalyticsClient(): Promise<void> {
   posthog.init(key as string, {
     api_host: import.meta.env.VITE_ANALYTICS_HOST || 'https://us.i.posthog.com',
     persistence: 'localStorage',
-    autocapture: false,
-    capture_pageview: false,
-    capture_pageleave: false,
+    autocapture: true,
+    // 'history_change' (not boolean true) so SPA route changes fire $pageview —
+    // boolean true only captures the initial hard load. See posthog-js docs.
+    capture_pageview: 'history_change',
+    capture_pageleave: 'if_capture_pageview',
     disable_session_recording: true,
   })
   posthogInstance = posthog
@@ -68,6 +72,22 @@ export async function initAnalyticsClient(): Promise<void> {
   for (const { event, props } of pending.splice(0)) {
     posthog.capture(event, redactProps(props))
   }
+}
+
+/**
+ * Report a client-side crash to PostHog (`$exception`). A no-op when analytics
+ * is disabled or not yet initialized, so call sites need no guard of their own.
+ * Called from the React error boundaries alongside the Sentry report.
+ */
+export function captureAnalyticsException(
+  error: unknown,
+  context?: AnalyticsProps
+): void {
+  if (disabled || !posthogInstance) return
+  posthogInstance.captureException(
+    error,
+    context ? redactProps(context) : undefined
+  )
 }
 
 /**

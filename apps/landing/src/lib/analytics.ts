@@ -1,9 +1,9 @@
 // Product analytics (PostHog) for the marketing site. OFF by default — a hard
 // no-op unless PUBLIC_ANALYTICS_KEY is set. Respects the browser Do Not Track
 // signal. Cookieless (localStorage persistence) — no cookie-banner required.
-// Autocapture, session recording, and automatic pageview capture are all
-// disabled; every event sent by this app is one of the explicit, allowlisted
-// calls below.
+// Autocapture and automatic pageview/pageleave capture are ON (session
+// recording stays off, persistence stays cookieless) so the marketing funnel is
+// tracked end-to-end; the explicit, allowlisted calls below still fire on top.
 //
 // Counterpart to apps/dashboard/src/lib/analytics/ (same privacy posture, same
 // event-catalog philosophy, separate PostHog project). See
@@ -44,9 +44,11 @@ export async function initAnalytics(): Promise<void> {
       (import.meta.env.PUBLIC_ANALYTICS_HOST as string | undefined) ||
       'https://us.i.posthog.com',
     persistence: 'localStorage',
-    autocapture: false,
-    capture_pageview: false,
-    capture_pageleave: false,
+    autocapture: true,
+    // 'history_change' also captures the initial load and any client-side
+    // navigation (e.g. Astro view transitions). See posthog-js docs.
+    capture_pageview: 'history_change',
+    capture_pageleave: 'if_capture_pageview',
     disable_session_recording: true,
   })
   posthogInstance = posthog

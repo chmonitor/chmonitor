@@ -272,5 +272,14 @@ const ogImage = new URL(image, Astro.site).toString()
       })
     } catch (e) {}
   </script>
+  <script>
+    // Opt-in, off-by-default product analytics (PostHog) — see
+    // ../lib/analytics.ts for the full privacy contract. A no-op without
+    // PUBLIC_ANALYTICS_KEY, so this never runs for anyone who hasn't
+    // configured it.
+    import { initAnalytics } from '../lib/analytics'
+
+    initAnalytics()
+  </script>
 </body>
 </html>

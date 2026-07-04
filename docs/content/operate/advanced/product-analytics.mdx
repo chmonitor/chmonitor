@@ -1,13 +1,19 @@
 ---
-description: Opt-in PostHog funnel analytics for the SaaS product — off by default, no PII, Do Not Track respected, cookieless.
+description: Opt-in PostHog product analytics across every chmonitor surface — off by default, Do Not Track respected, cookieless, no session recording.
 icon: TrendingUp
 title: Product Analytics
 ---
 
-chmonitor can optionally send **conversion funnel events** (landing page views,
-signups, cluster connects, upgrades, checkouts) to [PostHog](https://posthog.com)
-for the hosted SaaS product's growth/business side. It is **OFF by default** —
-a hard no-op — until you configure an analytics key.
+chmonitor can optionally send **product analytics** — automatic pageviews,
+autocaptured interactions (clicks, form submits), client- and server-side
+crashes, plus explicit conversion funnel events (signups, cluster connects,
+upgrades, checkouts) — to [PostHog](https://posthog.com) for the hosted SaaS
+product's growth/business side. It is **OFF by default** — a hard no-op — until
+you configure an analytics key.
+
+Coverage spans every surface of chmonitor.dev: the **dashboard**
+(`dash.chmonitor.dev`, incl. server/API crash capture), the **docs** site
+(`docs.chmonitor.dev`), the **landing** site, and the **blog**.
 
 This is a different system from [Product Telemetry](/operate/advanced/telemetry)
 (anonymous, on-by-default, aggregate OSS instance telemetry to chmonitor's own
@@ -19,17 +25,20 @@ chmonitor.
 ## Opt in — off by default
 
 <Callout type="info" title="No key, no network call">
-Without `CHM_ANALYTICS_KEY` (dashboard) / `PUBLIC_ANALYTICS_KEY` (landing site)
-set, none of this code makes a network call, loads PostHog, or sets a cookie.
-Self-hosted instances stay completely untouched by default.
+Without `CHM_ANALYTICS_KEY` (dashboard) / `VITE_ANALYTICS_KEY` (docs) /
+`PUBLIC_ANALYTICS_KEY` (landing + blog) set, none of this code makes a network
+call, loads PostHog, or sets a cookie. Self-hosted instances stay completely
+untouched by default.
 </Callout>
 
 | Variable | Surface | Purpose |
 |---|---|---|
-| `CHM_ANALYTICS_KEY` | Dashboard (derives client `VITE_ANALYTICS_KEY`) | PostHog project key. Empty = disabled. |
+| `CHM_ANALYTICS_KEY` | Dashboard (derives client `VITE_ANALYTICS_KEY`; also read server-side for crash capture) | PostHog project key. Empty = disabled. |
 | `CHM_ANALYTICS_HOST` | Dashboard (derives client `VITE_ANALYTICS_HOST`) | PostHog ingestion host. Empty = PostHog Cloud (US). |
-| `PUBLIC_ANALYTICS_KEY` | Landing site (Astro) | PostHog project key. Empty = disabled. |
-| `PUBLIC_ANALYTICS_HOST` | Landing site (Astro) | PostHog ingestion host. Empty = PostHog Cloud (US). |
+| `VITE_ANALYTICS_KEY` | Docs site (TanStack Start) | PostHog project key. Empty = disabled. |
+| `VITE_ANALYTICS_HOST` | Docs site (TanStack Start) | PostHog ingestion host. Empty = PostHog Cloud (US). |
+| `PUBLIC_ANALYTICS_KEY` | Landing + blog (Astro) | PostHog project key. Empty = disabled. |
+| `PUBLIC_ANALYTICS_HOST` | Landing + blog (Astro) | PostHog ingestion host. Empty = PostHog Cloud (US). |
 
 Both `*_HOST` variables let you point at a **self-hosted PostHog** instance
 instead of PostHog Cloud, keeping the whole stack self-hostable in spirit.
@@ -64,19 +73,32 @@ entirely. The dashboard additionally honors the cross-tool `DO_NOT_TRACK`/
 | `upgrade_click` | An "Upgrade" call-to-action is clicked |
 | `checkout_started` | A Polar checkout session is created, right before redirect |
 
-## What is NOT collected
+## What is captured
 
-- Query text, SQL statements, hostnames, IP addresses, or connection strings
-- Email addresses, names, or any other user-identifying field
-- Form input or free text — **autocapture is disabled**
-- Session recordings — **disabled**
-- Automatic pageview/pageleave capture — **disabled**; only the explicit events above are sent
+- **Automatic pageviews and pageleaves** on every surface (SPA route changes included)
+- **Autocaptured interactions** — clicks and form submissions (PostHog autocapture)
+- **Crashes** — client-side React error boundaries report a `$exception`; the
+  dashboard Worker additionally reports server/API exceptions via PostHog's
+  stateless `/capture/` endpoint (the Worker runs on workerd, so it cannot use
+  `posthog-node`)
+- **Explicit funnel events** — the typed events listed above
 
-Dashboard-side events are redacted defensively before leaving the process,
-reusing the same `redactProps` allowlist [Product Telemetry](/operate/advanced/telemetry)
-uses (drops any prop whose key implies sensitive content, or whose value looks
-like an email/IP/URL). Landing-side `cta_click` targets are static identifiers
-authored in the marketing site's own markup, never derived from user input.
+## What is still NOT collected
+
+- **Session recordings** — `disable_session_recording: true` on every surface
+- No `identify()` is ever called with a user-derived id — every distinct id
+  stays PostHog's anonymous default
+- Explicit dashboard events are redacted defensively before leaving the process,
+  reusing the same `redactProps` allowlist [Product Telemetry](/operate/advanced/telemetry)
+  uses (drops any prop whose key implies sensitive content, or whose value looks
+  like an email/IP/URL); server-side crash props are redacted the same way
+
+<Callout type="warn" title="Autocapture can record clicked-element text">
+Because autocapture is enabled, PostHog may record the text of clicked elements.
+The two safety rails that keep self-hosted instances silent are unchanged: it is
+**off unless a key is set**, and the browser **Do Not Track** signal disables it
+entirely.
+</Callout>
 
 PostHog is configured cookieless (`persistence: 'localStorage'`), so no cookie
 banner is required for this feature.

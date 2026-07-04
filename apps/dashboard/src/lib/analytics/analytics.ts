@@ -27,3 +27,16 @@ export const trackEvent = createIsomorphicFn().client(
     )
   }
 )
+
+/**
+ * Report a client-side crash to PostHog (`$exception`). No-op on the server,
+ * and a no-op client-side unless analytics is configured. Called from the React
+ * error boundaries alongside the Sentry report.
+ */
+export const captureException = createIsomorphicFn().client(
+  (error: unknown, context?: AnalyticsProps) => {
+    void import('./analytics.client').then((m) =>
+      m.captureAnalyticsException(error, context)
+    )
+  }
+)

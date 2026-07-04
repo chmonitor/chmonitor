@@ -20,6 +20,7 @@ import { setVersionCacheL2Provider } from '@chm/clickhouse-client/clickhouse-ver
 import { setTableExistenceL2Provider } from '@chm/clickhouse-client/table-existence-cache'
 import { clerkMiddleware } from '@clerk/tanstack-react-start/server'
 import { wrapRequestHandler } from '@sentry/cloudflare'
+import { captureServerException } from '@/lib/analytics/analytics.server'
 import {
   bridgeApiKeyEnv,
   bridgePublicReadEnv,
@@ -209,6 +210,31 @@ const otelMiddleware = createMiddleware().server(async ({ next }) => {
   }
 })
 
+// ---------------------------------------------------------------------------
+// PostHog server-side crash capture
+// ---------------------------------------------------------------------------
+// Records server/API exceptions to PostHog as `$exception` events, mirroring
+// the client-side crash capture. A no-op unless CHM_ANALYTICS_KEY is set in the
+// Worker env (see lib/analytics/analytics.server.ts). Registered just inside the
+// Sentry middleware so it wraps the whole downstream chain (otel, auth, route
+// handlers). It re-throws so existing error handling — including Sentry — is
+// unchanged. The capture is awaited inline (no ExecutionContext is exposed for
+// waitUntil, same as sentryMiddleware); only reached on the rare error path.
+const analyticsServerMiddleware = createMiddleware().server(
+  async ({ next, request }) => {
+    try {
+      return await next()
+    } catch (error) {
+      await captureServerException(
+        env as Record<string, string | undefined>,
+        error,
+        { path: new URL(request.url).pathname }
+      )
+      throw error
+    }
+  }
+)
+
 export const startInstance = createStart(() => {
   // Order matters: Sentry is first (outermost) so it captures errors from every
   // other middleware; otel is next so its root span covers the rest of the
@@ -216,6 +242,7 @@ export const startInstance = createStart(() => {
   // what's left and patches the response on the way out.
   const middleware = [
     sentryMiddleware,
+    analyticsServerMiddleware,
     otelMiddleware,
     securityHeadersMiddleware,
   ]

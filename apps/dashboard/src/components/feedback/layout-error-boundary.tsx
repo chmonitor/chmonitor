@@ -3,6 +3,7 @@ import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 
 import { ErrorLogger } from '@chm/logger'
 import { Button } from '@/components/ui/button'
+import { captureException } from '@/lib/analytics/analytics'
 import { reportClientError } from '@/lib/observability/sentry'
 
 /**
@@ -52,6 +53,8 @@ export function LayoutErrorBoundary({
         })
         // Report to Sentry (no-op when disabled / on the server).
         reportClientError(err, { boundary: 'LayoutErrorBoundary' })
+        // Report the crash to PostHog too (no-op when analytics is disabled).
+        captureException(err, { boundary: 'LayoutErrorBoundary' })
       }}
     >
       {children}
