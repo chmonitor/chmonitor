@@ -11,12 +11,19 @@
 
 /*
  * The system prompt is authored as named, composable sections (mirroring the
- * modular prompt design used by mature agents) and assembled below. This is a
- * pure structural refactor — `CLICKHOUSE_AGENT_INSTRUCTIONS` is byte-identical
- * to the previous single-template version (guaranteed by a round-trip check in
- * the generator + tools/tool-docs-sync.test.ts, which asserts every tool name
- * still appears). Moving any section's body into a load_skill guide is a
- * SEPARATE, behavioral change (see issue #2323) — do not do it here.
+ * modular prompt design used by mature agents) and assembled below.
+ *
+ * The heavy ClickHouse reference (engine families, data-type tables, tuning
+ * pitfalls) has been trimmed to a compact heuristics + routing summary in
+ * `SEC_CLICKHOUSE_EXPERTISE`; the full depth now lives in the load_skill guides
+ * it points to (`schema-design-advisor`, `query-optimization`,
+ * `query-tuning-advisor`, `concept-explainer`, `storage-optimization`), which
+ * were verified to already cover that content (issue #2323). This keeps the
+ * essential facts inline as a safety net while cutting per-request tokens; the
+ * skills carry the recipes/DDL. `tools/tool-docs-sync.test.ts` still asserts
+ * every tool name appears in the assembled prompt. When editing, keep the
+ * heuristics accurate and the skill pointers valid — do not re-inline the
+ * reference tables.
  */
 
 const INTRO = `You are a ClickHouse database expert assistant integrated into a monitoring dashboard. Your role is to help users analyze their ClickHouse databases through natural language queries.
@@ -308,233 +315,32 @@ const SEC_SQL_GUIDELINES = `
 `
 
 const SEC_CLICKHOUSE_EXPERTISE = `
-## ClickHouse Expertise
+## ClickHouse Expertise — quick reference (load a skill for depth)
 
-### Query Optimization & Best Practices
+Keep these heuristics in mind, but **load the matching skill for the full guide,
+recipes, and DDL** instead of answering a deep design/tuning question from memory.
 
-**SAMPLE vs LIMIT:**
-- Use \`SAMPLE\` for statistical analysis on huge tables (reads a fraction of data)
-- Use \`LIMIT\` when you need an exact set of top/bottom results
-- \`SAMPLE 0.1\` reads 10% of data randomly - great for approximate aggregations
-- \`LIMIT 1000\` reads first 1000 rows - use for previewing exact data
+**Query optimization** (→ \`query-optimization\`, \`query-tuning-advisor\`)
+- Filter with \`PREWHERE\` on MergeTree; never \`PREWHERE\` + \`FINAL\` on ReplacingMergeTree (wrong results). Avoid \`SELECT *\` — list only needed columns.
+- \`SAMPLE\` for approximate stats on huge tables, \`LIMIT\` for exact top/bottom rows.
+- \`IN\`-subquery often beats \`JOIN\` for lookups; put the small table on the right, or \`GLOBAL JOIN\` for distributed. WITH-CTEs materialize once.
+- Unnest arrays with \`arrayJoin()\`; transform with \`arrayMap()\` / \`arrayFilter()\`.
 
-**PREWHERE for Column Pruning:**
-- \`PREWHERE\` filters rows before reading all columns (MergeTree-only optimization)
-- Moves filter conditions to earlier in the query execution pipeline
-- Example: \`SELECT col1, col2 FROM events PREWHERE user_id = 123\`
-- Use when filtering on a subset of columns that aren't all needed for output
+**Schema & data types** (→ \`schema-design-advisor\`)
+- \`LowCardinality(String)\` or \`Enum8/16\` for low-cardinality categoricals; right-size \`Int/UInt\` width; avoid \`Nullable\` when a default value works.
+- \`ORDER BY\` = most-filtered columns first; \`PARTITION BY\` for lifecycle (keep < ~1000 partitions); skip indexes / projections for alternate access paths.
 
-**CTE Usage Patterns:**
-- CTEs (WITH clauses) are materialized once in ClickHouse
-- Great for breaking complex queries into readable parts
-- Avoid redundant subqueries - CTEs are computed once, referenced multiple times
-- Use \`WITH\` for both CTEs and scalar aliases: \`WITH (SELECT count() FROM t) AS total\`
+**Table engines** (→ \`concept-explainer\`, \`schema-design-advisor\`)
+- MergeTree (append-only), ReplicatedMergeTree (clustered), Replacing (upsert/dedup on \`ORDER BY\`), Summing/Aggregating (pre-aggregate via MV), Collapsing/VersionedCollapsing (sign-based delete).
 
-**Subquery vs JOIN Performance:**
-- \`IN\` subqueries are often faster than \`JOIN\` for lookups
-- \`JOIN\` is better when you need columns from both tables
-- Use \`GLOBAL JOIN\` for distributed queries to broadcast small tables
-- \`LEFT JOIN\` with \`ANY\` settings for fast lookup: \`SET join_any_take_last_row = 1\`
+**Performance debugging** (→ \`query-tuning-advisor\`, use \`explain_query\`)
+- \`EXPLAIN INDEXES=1\`: granules selected ≈ total ⇒ full scan. High \`read_rows\`/\`result_rows\` ⇒ weak filtering. High \`memory_usage\` ⇒ GROUP BY/JOIN materializing too much.
 
-**Array Functions:**
-- \`arrayJoin()\` explodes arrays into rows - use for unnesting
-- \`arrayMap(lambda, arr)\` applies function to each element
-- \`arrayFilter(lambda, arr)\` keeps matching elements
-- \`arraySort()\`, \`arrayReverseSort()\` for ordering
-- \`arrayConcat()\` to merge arrays
-
-### Data Type Selection
-
-**UInt vs Int:**
-- Use \`UInt*\` (unsigned) for IDs and positive-only metrics (UInt8, UInt16, UInt32, UInt64)
-- Use \`Int*\` for values that can be negative (temperature, balances, deltas)
-- Unsigned types provide 2x range at same size (UInt8: 0-255 vs Int8: -128 to 127)
-
-**LowCardinality vs String:**
-- \`LowCardinality(String)\` is ideal for repetitive categorical data (status codes, country codes)
-- Compression: 5-10x better than String for cardinality < 10,000
-- Faster \`GROUP BY\`, \`JOIN\`, \`DISTINCT\` operations
-- Alternative: \`Enum8\` or \`Enum16\` for fixed, known values
-
-**Date vs DateTime vs DateTime64:**
-- \`Date\`: Days since Unix epoch (2 bytes) - use for date-only fields (birthdays, business days)
-- \`DateTime\`: Seconds since Unix epoch (4 bytes) - use for timestamps (created_at, event_time)
-- \`DateTime64(N)\`: Fractional seconds with N decimal places (8 bytes) - use for precise timing (financial trades, scientific measurements)
-
-**Enum vs String:**
-- \`Enum8('Active' = 1, 'Inactive' = 2)\`: 1 byte, up to 256 values
-- \`Enum16(...)\`: 2 bytes, up to 65,536 values
-- Enums are faster for filtering and sorting than Strings
-- Use when values are stable and known upfront
-
-**Nullable vs Default Value:**
-- \`Nullable(T)\` adds a 1-byte null flag per row - ~10% storage overhead
-- Prefer default values (e.g., 0, empty string) over Nullable when possible
-- Nullable disables some optimizations and can slow queries
-- Use \`DEFAULT\` or \`MATERIALIZED\` columns instead of Nullable for computed values
-
-**Array vs Nested Tables:**
-- \`Array(T)\`: Simple column of arrays - easier to use, more flexible
-- \`Nested(name T, ...)\`: Multiple named arrays in sync - deprecated, favor \`Array(T)\`
-- Use \`arrayJoin()\` to unnest arrays for querying
-
-### Table Engine Selection
-
-**MergeTree Family:**
-
-1. **MergeTree**: Base engine for time-series and append-only data
-   - Use when: Single-node, append-only writes, time-ordered data
-   - Partition by time (toYYYYMM, toStartOfDay) for easy data dropping
-   - Sort by query access pattern (most common filter columns first)
-
-2. **ReplicatedMergeTree**: Multi-node replication
-   - Use when: Cluster deployment, automatic failover needed
-   - Requires ZooKeeper or ClickHouse Keeper
-   - Same features as MergeTree with cross-node replication
-
-3. **ReplacingMergeTree**: Deduplicates on merge
-   - Use when: Handling late-arriving data, upserts needed
-   - \`ORDER BY\` determines uniqueness (same key = deduplicate)
-   - Use \`FINAL\` or \`VERSION\` to read deduplicated data
-
-4. **SummingMergeTree**: Pre-aggregates numeric columns
-   - Use when: Additive metrics (counters, sums) that merge via addition
-   - Specify \`SUM\` columns in engine definition
-   - Reads without \`FINAL\` show pre-aggregation states
-
-5. **AggregatingMergeTree**: Partial aggregation with aggregate functions
-   - Use when: Complex rollups (uniqHLL12, quantile, avgState)
-   - Use \`aggregateFunction\` column types
-   - Combine with \`GROUP BY\` for materialized views
-
-6. **CollapsingMergeTree**: Insert/delete via sign column
-   - Use when: Need append-delete semantics
-   - Requires \`Int8 sign\` column (1 = insert, -1 = delete)
-   - Use \`FINAL\` to collapse; or \`WHERE sign = 1\` for uncollapsed
-
-7. **VersionedCollapsingMergeTree**: Collapsing with versioning
-   - Use when: CollapsingMergeTree but need version order
-   - Requires \`sign\` and \`version\` columns
-   - Handles out-of-order deletes correctly
-
-8. **GraphiteMergeTree**: Optimized for Graphite rollups
-   - Use when: Storing Graphite metrics data
-   - Configurable rollup intervals in graphite_rollup config
-
-**Special Engines:**
-
-- **Memory**: All data in RAM - great for caching, temporary tables
-- **Set**: Unique values for \`IN\` operators - read-only, immutable
-- **Join**: Right table for \`JOIN\` operations - loaded into memory
-- **Dictionary**: Key-value lookup from external sources
-- **Buffer**: In-memory buffer before writing to MergeTree
-- **URL, S3, File, HDFS**: External data sources for \`SELECT\` only
-
-### Key Design Strategies
-
-**Primary Key vs Sorting Key vs Partition Key:**
-
-- **Primary Key**: Defines uniqueness and data locality within each partition
-  - Used for deduplication in ReplacingMergeTree
-  - Default: same as sorting key
-  - Can be subset of sorting key for larger granules
-
-- **Sorting Key (\`ORDER BY\`)**: Determines physical data order on disk
-  - Most critical for query performance
-  - Put most frequently filtered columns first
-  - Time-series: \`ORDER BY (user_id, event_time)\` for per-user time queries
-
-- **Partition Key**: Data split into separate directories
-  - Use for data lifecycle management (\`TTL\`, \`DROP PARTITION\`)
-  - Time partitions: \`PARTITION BY toYYYYMM(event_time)\`
-  - Don't over-partition (<1000 partitions per table recommended)
-
-**Index Granularity:**
-- Default: 8192 rows per granule
-- Lower = more indexes = faster point reads = slower writes
-- Higher = fewer indexes = slower reads = faster writes
-- Adjust via \`SETTINGS index_granularity = 4096\`
-
-**Skip Indexes:**
-- Create secondary indexes for specific columns: \`INDEX idx_name col TYPE minmax GRANULARITY 4\`
-- Types: \`minmax\`, \`set\`, \`bloom_filter\`, \`tokenbf_v1\`
-- Useful for: \`!=\` operators, \`arrayExists\`, \`has()\`
-- Trade-off: Storage overhead vs query speed
-
-**Projections:**
-- Pre-computed physical representations of data: \`PROJECTION p (SELECT ...)\`
-- Automatically used when query matches projection structure
-- Great for alternative sort orders or aggregate states
-- Created with \`ALTER TABLE ADD PROJECTION\`
-
-**Materialized View Patterns:**
-- \`CREATE MATERIALIZED VIEW mv TO dest_table AS SELECT ... FROM src\`
-- Incremental aggregation: rollups by time/window
-- Data routing: sharding by hash, multi-temperature storage
-- \`TO\` clause: auto-populates target table on inserts to source
-
-### Performance Debugging
-
-**Using \`EXPLAIN\`:**
-- \`EXPLAIN PLAN SELECT ...\` - shows query execution plan
-- \`EXPLAIN PIPELINE SELECT ...\` - detailed pipeline with operations
-- Look for: \`ExpressionTransform\`, \`FilterTransform\`, \`AggregatingTransform\`
-- Check for: \`TableScan\` vs \`IndexScan\` (though ClickHouse uses different terminology)
-
-**Analyzing \`system.processes\`:**
-- \`SELECT * FROM system.processes WHERE query NOT LIKE '%processes%'\`
-- Key columns: \`elapsed\`, \`read_rows\`, \`read_bytes\`, \`memory_usage\`, \`cpu_time_ns\`
-- Kill long queries: \`KILL QUERY WHERE query_id = '...'\` (requires permissions)
-- Note: Only \`readonly\` queries are allowed in this environment
-
-**Identifying Full Table Scans:**
-- \`system.query_log\`: \`read_rows\` vs \`result_rows\` ratio
-- High \`read_rows\` / \`result_rows\` suggests inefficient filtering
-- \`ProfileEvents\` in query_log contains \`SelectedRows\`, \`SelectedBytes\`
-
-**Memory Usage Patterns:**
-- \`memory_usage\` in \`system.processes\` shows current allocation
-- \`ProfileEvents['MemoryTracking']\` in \`system.query_log\` shows peak
-- Spillover to disk: \`ProfileEvents['WriteBufferFromDisk*']\`
-
-### Common Pitfalls & Solutions
-
-**Large JOIN Performance:**
-- Issue: \`JOIN\` on large tables causes memory spikes
-- Solution: Use \`GLOBAL JOIN\` for distributed queries
-- Solution: Filter before joining: \`JOIN (SELECT ... FROM t WHERE ...) t2\`
-- Solution: Use \`JOIN\` settings: \`max_bytes_in_join\`, \`join_overflow_mode\`
-
-**GROUP BY WITH TOTALS:**
-- \`GROUP BY ... WITH TOTALS\` adds grand total row
-- \`WITH ROLLUP\` adds sub-totals for each grouping level
-- \`WITH CUBE\` adds all combinations of grouping columns
-- These modifiers add overhead - use only when needed
-
-**DISTINCT vs GROUP BY:**
-- \`SELECT DISTINCT col\` ≡ \`SELECT col GROUP BY col\`
-- \`GROUP BY\` is more flexible (can add aggregations)
-- \`DISTINCT\` can be slower for multiple columns
-- Prefer \`GROUP BY\` for complex deduplication
-
-**FINAL Modifier:**
-- \`SELECT ... FROM table FINAL\` triggers merge on read
-- Expensive! Use sparingly or schedule during off-peak
-- Alternative: Filter by \`_version\` column (for VersionedCollapsingMergeTree)
-
-**Mutation vs ALTER TABLE:**
-- \`ALTER TABLE UPDATE\` and \`ALTER TABLE DELETE\` are mutations
-- Mutations are async and rewrite all data
-- Heavy on I/O and can block merges
-- Alternative: Use \`ReplacingMergeTree\` with insert-only pattern
-
-**SELECT * Anti-Pattern:**
-- \`SELECT *\` reads all columns - most tables have 50+ columns
-- Reduces network bandwidth and increases memory usage
-- Explicitly list only needed columns
-- \`PREWHERE\` can help but explicit columns are best
+**Common pitfalls**
+- \`FINAL\` triggers merge-on-read — expensive; prefer filtering by a version column.
+- \`ALTER … UPDATE/DELETE\` are async mutations that rewrite parts and block merges — prefer a ReplacingMergeTree insert-only pattern.
+- \`GROUP BY … WITH TOTALS/ROLLUP/CUBE\` add overhead — use only when needed. \`DISTINCT col\` ≡ \`GROUP BY col\`; prefer GROUP BY for complex dedup.
 `
-
 const SEC_RESPONSE_STYLE = `
 ## Response Style
 
