@@ -61,7 +61,7 @@ describe('query-executor ClickHouse query-cache wiring (#2182)', () => {
 
   test('executeTableConfig applies use_query_cache with the config refreshInterval as TTL', async () => {
     await executeTableConfig(
-      { name: 't', sql: 'SELECT 1', refreshInterval: 15000 },
+      { name: 't', sql: 'SELECT 1', columns: [], refreshInterval: 15000 },
       0,
       undefined
     )
@@ -78,7 +78,7 @@ describe('query-executor ClickHouse query-cache wiring (#2182)', () => {
 
   test('executeTableConfig respects disableQueryCache', async () => {
     await executeTableConfig(
-      { name: 't', sql: 'SELECT 1', disableQueryCache: true },
+      { name: 't', sql: 'SELECT 1', columns: [], disableQueryCache: true },
       0,
       undefined
     )
@@ -94,6 +94,7 @@ describe('query-executor ClickHouse query-cache wiring (#2182)', () => {
       {
         name: 't',
         sql: 'SELECT 1',
+        columns: [],
         clickhouseSettings: { use_query_cache: 0 },
       },
       0,
