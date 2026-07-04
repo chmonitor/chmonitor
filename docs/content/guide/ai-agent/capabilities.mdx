@@ -1,17 +1,17 @@
 ---
 title: Capabilities
-description: Full reference for the agent's 23+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
+description: Full reference for the agent's 26+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
 icon: Sparkles
 ---
 
-The agent exposes a small set of **powerful primitives** (23 tools, plus 3 env-gated control tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
+The agent exposes a small set of **powerful primitives** (26 tools, plus 3 env-gated control tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
 
 ## Tools
 
 | Category | What it covers | Tools |
 |---|---|---|
 | Schema & exploration | Databases, tables, columns, ad-hoc SQL | `query`, `list_databases`, `list_tables`, `get_table_schema`, `explore_table_schema` |
-| Query analysis | Running, slow, failed queries; EXPLAIN; pre-flight cost estimate | `get_running_queries`, `get_slow_queries`, `get_failed_queries`, `explain_query`, `estimate_query_cost` |
+| Query analysis | Running, slow, failed queries; normalized slow patterns; EXPLAIN; pre-flight cost estimate | `get_running_queries`, `get_slow_queries`, `list_slow_query_patterns`, `get_failed_queries`, `explain_query`, `estimate_query_cost` |
 | Health, storage, replication, merges | Metrics, disks, parts, replication, merges | `get_metrics`, `get_disk_usage`, `get_table_parts`, `get_replication_status`, `get_merge_status` |
 | Capacity planning | Disk-full forecast, TTL/retention advice (recommend-only) | `forecast_disk_capacity`, `suggest_ttl_adjustment` |
 | Aggregation advisor | Design MV/projection DDL from frequent aggregation queries, with a size estimate (recommend-only) | `recommend_materialized_view` |
@@ -40,6 +40,7 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 | `explore_table_schema` | Three-mode exploration: no args → databases; database only → tables; database + table → full schema with indexes and keys. | |
 | `get_running_queries` | Currently running queries ordered by elapsed time. | Reads `system.processes`. |
 | `get_slow_queries` | Slowest completed queries from the query log. | Reads `system.query_log`. |
+| `list_slow_query_patterns` | Normalized slow query patterns — `system.query_log` grouped by `normalized_query_hash`, with calls, total/avg/p50/p95/p99/max duration, CPU time, peak memory, read/write bytes, errors, and cache-hit ratio per pattern. | Read-only. Use for "which query shape is expensive overall" — unlike `get_slow_queries`, which ranks individual executions. First step of the `query-optimization` diagnose loop. |
 | `get_failed_queries` | Recent failed queries with error details. | Reads `system.query_log`. |
 | `explain_query` | EXPLAIN PLAN / PIPELINE / PLAN with indexes for a query. | |
 | `estimate_query_cost` | Pre-flight cost estimate (rows scanned, bytes read, peak memory, wall time, confidence) from EXPLAIN alone. | Read-only and recommend-only — runs EXPLAIN only, never executes the analyzed query. |

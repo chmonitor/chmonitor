@@ -138,6 +138,16 @@ export const menuItemsConfig: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        title: 'Query Insights',
+        href: '/queries/insights',
+        description:
+          'QPS, latency percentiles, operations breakdown, rows read/returned, cache hit ratio, and errors over time',
+        icon: ActivityIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
         title: 'Failed Queries',
         href: '/failed-queries',
         description:

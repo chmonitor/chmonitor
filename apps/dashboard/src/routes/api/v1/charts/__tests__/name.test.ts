@@ -19,9 +19,13 @@ mock.module('cloudflare:workers', () => ({
   },
 }))
 
-// Feature gate always allows in these tests.
+// Feature gate always allows in these tests. `isAnonymousPublicReadRequest`
+// (used by the shared edge-cache gate, #2181) is stubbed `false` — these
+// tests aren't exercising caching behavior, so the route should skip the
+// edge cache entirely and just run its normal response path.
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
+  isAnonymousPublicReadRequest: async () => false,
 }))
 
 // Controllable chart registry: an optional chart and a non-optional one. Spread
