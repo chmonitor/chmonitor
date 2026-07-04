@@ -77,4 +77,25 @@ export const queryPerfChartImports: ChartRegistryMap = {
       })
     )
   ),
+  'query-insights-memory': lazy(() =>
+    import('@/components/charts/query-performance/query-insights-memory').then(
+      (m) => ({
+        default: m.ChartQueryInsightsMemory,
+      })
+    )
+  ),
+  'query-insights-read-throughput': lazy(() =>
+    import(
+      '@/components/charts/query-performance/query-insights-read-throughput'
+    ).then((m) => ({
+      default: m.ChartQueryInsightsReadThroughput,
+    }))
+  ),
+  'query-insights-top-users': lazy(() =>
+    import(
+      '@/components/charts/query-performance/query-insights-top-users'
+    ).then((m) => ({
+      default: m.ChartQueryInsightsTopUsers,
+    }))
+  ),
 }

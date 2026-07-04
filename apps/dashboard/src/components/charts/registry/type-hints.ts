@@ -33,6 +33,9 @@ export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'query-insights-rows': 'area',
   'query-insights-cache-hit-ratio': 'bar',
   'query-insights-errors': 'area',
+  'query-insights-memory': 'area',
+  'query-insights-read-throughput': 'area',
+  'query-insights-top-users': 'bar',
 
   // Merge Charts - area and metric
   'merge-count': 'area',

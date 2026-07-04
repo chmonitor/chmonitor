@@ -18,6 +18,9 @@ describe('queryInsightsCharts', () => {
     expect(names).toContain('query-insights-rows')
     expect(names).toContain('query-insights-cache-hit-ratio')
     expect(names).toContain('query-insights-errors')
+    expect(names).toContain('query-insights-memory')
+    expect(names).toContain('query-insights-read-throughput')
+    expect(names).toContain('query-insights-top-users')
   })
 
   test.each(
@@ -71,5 +74,29 @@ describe('queryInsightsCharts', () => {
     expect(result.query).toMatch(/quantile\(0\.50\)/)
     expect(result.query).toMatch(/quantile\(0\.95\)/)
     expect(result.query).toMatch(/quantile\(0\.99\)/)
+  })
+
+  test('memory tile aggregates avg + p95/p99 peak memory_usage', () => {
+    const result = queryInsightsCharts['query-insights-memory'](
+      defaultParams
+    ) as any
+    expect(result.query).toMatch(/avg\(memory_usage\)/)
+    expect(result.query).toMatch(/quantile\(0\.95\)\(memory_usage\)/)
+    expect(result.query).toMatch(/quantile\(0\.99\)\(memory_usage\)/)
+  })
+
+  test('read throughput tile sums read_bytes and result_bytes', () => {
+    const result = queryInsightsCharts['query-insights-read-throughput'](
+      defaultParams
+    ) as any
+    expect(result.query).toMatch(/sum\(read_bytes\)/)
+    expect(result.query).toMatch(/sum\(result_bytes\)/)
+  })
+
+  test('top users tile groups by user', () => {
+    const result = queryInsightsCharts['query-insights-top-users'](
+      defaultParams
+    ) as any
+    expect(result.query).toMatch(/GROUP BY user/)
   })
 })

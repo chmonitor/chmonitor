@@ -134,4 +134,63 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
   `
     return { query, sql: [{ since: '19.1', sql: query }] }
   },
+
+  // Tile 7: Memory usage — avg + p95/p99 of per-query peak memory_usage.
+  'query-insights-memory': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = `
+    SELECT ${applyInterval(interval, 'event_time')},
+           round(avg(memory_usage)) AS avg_memory,
+           round(quantile(0.95)(memory_usage)) AS p95_memory,
+           round(quantile(0.99)(memory_usage)) AS p99_memory
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+          ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY event_time
+    ORDER BY event_time ASC
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+    SETTINGS max_execution_time = 25
+  `
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 8: Read throughput — bytes read from storage vs bytes returned.
+  'query-insights-read-throughput': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = `
+    SELECT ${applyInterval(interval, 'event_time')},
+           sum(read_bytes) AS read_bytes,
+           sum(result_bytes) AS result_bytes
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+          ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY event_time
+    ORDER BY event_time ASC
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+    SETTINGS max_execution_time = 25
+  `
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 9: Top users — query volume broken down by the user who ran them.
+  'query-insights-top-users': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = `
+    SELECT
+      user,
+      COUNT() AS query_count,
+      round(100 * query_count / sum(query_count) OVER (), 2) AS percentage
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+          ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY user
+    ORDER BY query_count DESC
+    LIMIT 8
+    SETTINGS max_execution_time = 25
+  `
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
 }

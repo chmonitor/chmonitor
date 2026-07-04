@@ -253,7 +253,7 @@ export const ChartZoomDialog = function ChartZoomDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={contentRef}
-        className="max-w-[95vw] w-[95vw] flex flex-col p-0 pb-6"
+        className="w-[80vw] max-w-[80vw] sm:max-w-[80vw] flex flex-col p-0 pb-6"
         style={{ height: dialogHeight, maxHeight: '95vh' }}
       >
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
