@@ -268,20 +268,44 @@ plus a short list of what you changed:
 
 ## Screenshots
 
-![](.github/screenshots/screenshot_1.png)
-![](.github/screenshots/screenshot_2.png)
-![](.github/screenshots/screenshot_3.png)
-![](.github/screenshots/screenshot_4.png)
-![](.github/screenshots/screenshot_5.png)
-![](.github/screenshots/screenshot_6.png)
-![](.github/screenshots/screenshot_7.png)
-![](.github/screenshots/screenshot_8.png)
-![](.github/screenshots/screenshot_9.png)
-![](.github/screenshots/screenshot_10.png)
-![](.github/screenshots/screenshot_11.png)
-![](.github/screenshots/screenshot_12.png)
-![](.github/screenshots/screenshot_13.png)
-![](.github/screenshots/screenshot_14.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark.png">
+  <img alt="Overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/cluster-topology-dark.png">
+  <img alt="Cluster Topology: nodes, shards, replicas and the Keeper quorum, live" src=".github/screenshots/cluster-topology-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/cluster-insights-dark.png">
+  <img alt="Cluster Insights: auto-detected findings plus record-breaking queries and storage stats" src=".github/screenshots/cluster-insights-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/ai-agent-dark.png">
+  <img alt="AI Agent: ask questions about schema, storage, queries and health" src=".github/screenshots/ai-agent-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/sql-console-dark.png">
+  <img alt="SQL Console: read-only SQL with history, EXPLAIN and scan analysis" src=".github/screenshots/sql-console-light.png">
+</picture>
+
+![Running Queries: live charts and a detailed table of executing queries](.github/screenshots/running-queries-light.png)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/data-explorer-graph-dark.png">
+  <img alt="Data Explorer: dependency graph between tables, views and dictionaries" src=".github/screenshots/data-explorer-graph-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/storage-dark.png">
+  <img alt="Storage: disk usage by database, table and part" src=".github/screenshots/storage-light.png">
+</picture>
+
+![Keeper: session, watches, quorum role and per-node Keeper stats](.github/screenshots/keeper.png)
 
 ## Feedback and Contributions
 

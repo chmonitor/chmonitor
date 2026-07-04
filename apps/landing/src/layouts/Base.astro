@@ -263,6 +263,15 @@ const ogImage = new URL(image, Astro.site).toString()
     :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
     :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
 
+    /* ── theme-aware screenshots ──
+       Pair two <img data-shot="light"/"dark"> as siblings in any .gcard/.feat-shot/
+       .cslide/.de-card slot; only one is ever laid out (the other is display:none),
+       so no wrapper or positioning is needed. Screenshots with no dark variant
+       just omit data-shot and always show. */
+    img[data-shot="dark"]{display:none !important}
+    :root[data-theme="dark"] img[data-shot="light"]{display:none !important}
+    :root[data-theme="dark"] img[data-shot="dark"]{display:block !important}
+
     /* ── hero ── */
     .hero{padding:52px 0 72px;text-align:center;position:relative;overflow:hidden}
     /* static CSS fallback: shows before the shader island hydrates and whenever

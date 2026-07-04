@@ -13,18 +13,12 @@
     "cf:deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@astrojs/react": "^6.0.0",
     "@astrojs/sitemap": "^3.3.0",
-    "@paper-design/shaders-react": "0.0.76",
     "astro": "^7.0.0",
-    "posthog-js": "^1.396.5",
-    "react": "^19",
-    "react-dom": "^19"
+    "posthog-js": "^1.396.5"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "sharp": "^0.34.0",
     "wrangler": "^4.97.0"
   },

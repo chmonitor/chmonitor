@@ -1,5 +1,4 @@
 ---
-import HeroHalftone from './HeroHalftone.tsx'
 import { formatCount, getGitHubStats } from '../lib/github-stars'
 
 // Build-time star count for the hero GitHub badge, shared with SocialProof so
@@ -9,23 +8,30 @@ const { stars } = await getGitHubStats()
 const starLabel = formatCount(stars)
 
 // Leads with the advisor/agent + alerts + topology + insights wedge (plan 60);
-// the rest keep their prior relative order.
+// the rest keep their prior relative order. Cards with a `dark` src render as a
+// theme-swapped pair (see the [data-shot] rules in Base.astro); cards with only
+// `src` are single screenshots with no captured dark variant.
 const galleryCards = [
-  { tab: 'AI Agent', src: '/landing-assets/hero-agent.png', alt: 'chmonitor AI agent' },
+  { tab: 'AI Agent', src: '/landing-assets/ai-agent-light.png', dark: '/landing-assets/ai-agent-dark.png', alt: 'chmonitor AI agent' },
   { tab: 'Alerts', src: '/landing-assets/hero-health.png', alt: 'chmonitor health summary and alert thresholds' },
-  { tab: 'Cluster Topology', src: '/landing-assets/hero-topology.png', alt: 'chmonitor cluster topology' },
-  { tab: 'Cluster Insights', src: '/landing-assets/g-insights.png', alt: 'chmonitor cluster insights' },
-  { tab: 'Overview', src: '/landing-assets/hero-overview.png', alt: 'chmonitor cluster overview' },
-  { tab: 'Running Queries', src: '/landing-assets/g-running.png', alt: 'chmonitor running queries' },
+  { tab: 'Cluster Topology', src: '/landing-assets/cluster-topology-light.png', dark: '/landing-assets/cluster-topology-dark.png', alt: 'chmonitor cluster topology' },
+  { tab: 'Cluster Insights', src: '/landing-assets/cluster-insights-light.png', dark: '/landing-assets/cluster-insights-dark.png', alt: 'chmonitor cluster insights: record breakers, query and storage stats' },
+  { tab: 'Overview', src: '/landing-assets/overview-light.png', dark: '/landing-assets/overview-dark.png', alt: 'chmonitor cluster overview with query activity heatmap' },
+  { tab: 'Running Queries', src: '/landing-assets/running-queries-light.png', alt: 'chmonitor running queries' },
   { tab: 'Explain Query', src: '/landing-assets/g-explain.png', alt: 'chmonitor explain query' },
   { tab: 'Most Expensive Queries', src: '/landing-assets/g-expensive.png', alt: 'chmonitor most expensive queries' },
-  { tab: 'Data Explorer', src: '/landing-assets/g-data-explorer.png', alt: 'chmonitor data explorer' },
+  { tab: 'Data Explorer', src: '/landing-assets/data-explorer-graph-light.png', dark: '/landing-assets/data-explorer-graph-dark.png', alt: 'chmonitor data explorer dependency graph' },
+  { tab: 'SQL Console', src: '/landing-assets/sql-console-light.png', dark: '/landing-assets/sql-console-dark.png', alt: 'chmonitor SQL console' },
+  { tab: 'Storage', src: '/landing-assets/storage-light.png', dark: '/landing-assets/storage-dark.png', alt: 'chmonitor storage breakdown' },
+  { tab: 'Keeper', src: '/landing-assets/keeper.png', alt: 'chmonitor ClickHouse Keeper overview' },
   { tab: 'Metrics', src: '/landing-assets/g-metrics.png', alt: 'chmonitor metrics' },
 ]
 ---
 <section class="ehero">
   <div class="ehero-card">
-    <div class="ehero-shader"><HeroHalftone client:idle={{ timeout: 300 }} /></div>
+    <div class="ehero-shader">
+      <img src="/landing-assets/hero-cmyk-2.jpg" alt="" width="2752" height="1536" loading="eager" decoding="async" fetchpriority="high" />
+    </div>
     <div class="ehero-scrim" aria-hidden="true"></div>
 
     <span class="ehero-status">
@@ -81,13 +87,15 @@ const galleryCards = [
           {/* Only the first card is a plausible above-the-fold/LCP candidate;
               the rest scroll in via the auto-scrolling marquee, so native lazy
               loading has ample lead time before they're ever visible. */}
-          <img src={card.src} alt={card.alt} width="600" height="360" loading={i === 0 ? 'eager' : 'lazy'} decoding={i === 0 ? 'sync' : 'async'} />
+          <img src={card.src} data-shot={card.dark && 'light'} alt={card.alt} width="600" height="360" loading={i === 0 ? 'eager' : 'lazy'} decoding={i === 0 ? 'sync' : 'async'} />
+          {card.dark && <img src={card.dark} data-shot="dark" alt={card.alt} width="600" height="360" loading={i === 0 ? 'eager' : 'lazy'} decoding={i === 0 ? 'sync' : 'async'} />}
         </div>
       ))}
       {galleryCards.map((card) => (
         <div class="gcard" aria-hidden="true">
           <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span><span class="gtab">{card.tab}</span></div>
-          <img src={card.src} alt="" width="600" height="360" loading="lazy" decoding="async" />
+          <img src={card.src} data-shot={card.dark && 'light'} alt="" width="600" height="360" loading="lazy" decoding="async" />
+          {card.dark && <img src={card.dark} data-shot="dark" alt="" width="600" height="360" loading="lazy" decoding="async" />}
         </div>
       ))}
     </div>
@@ -116,7 +124,7 @@ const galleryCards = [
     box-shadow: 0 30px 90px -50px rgba(0,0,0,.55);
   }
   .ehero-shader { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-  .ehero-shader :global(canvas) { display: block; width: 100% !important; height: 100% !important; }
+  .ehero-shader img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 
   /* Readability plate: a soft centered wash so the copy stays legible over the
      busy right side of the halftone (the source image is calm-left / busy-right,

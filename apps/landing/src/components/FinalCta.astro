@@ -1,9 +1,8 @@
----
-import HeroHalftone from './HeroHalftone.tsx'
----
   <section class="fcta">
     <div class="fcta-card">
-      <div class="fcta-shader"><HeroHalftone client:visible /></div>
+      <div class="fcta-shader">
+        <img src="/landing-assets/hero-cmyk-3.jpg" alt="" width="2752" height="1536" loading="lazy" decoding="async" />
+      </div>
       <div class="fcta-scrim" aria-hidden="true"></div>
 
       <div class="cta reveal">
@@ -38,7 +37,7 @@ import HeroHalftone from './HeroHalftone.tsx'
     background: #0b0b0e; box-shadow: 0 30px 90px -50px rgba(0,0,0,.55);
   }
   .fcta-shader { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-  .fcta-shader :global(canvas) { display: block; width: 100% !important; height: 100% !important; }
+  .fcta-shader img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
   .fcta-scrim {
     position: absolute; inset: 0; z-index: 1; pointer-events: none;
     background:

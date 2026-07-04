@@ -73,11 +73,11 @@ export const useCases: UseCase[] = [
       'Running, slow, failed and expensive queries — with kill and recommend-only EXPLAIN suggestions.',
     subhead:
       "See every running, slow, failed and expensive query as it happens, with duration, memory and rows read, then act: kill a runaway query or review a recommend-only EXPLAIN suggestion for the one that's actually slow.",
-    heroImage: '/landing-assets/queries-running.png',
+    heroImage: '/landing-assets/running-queries-light.png',
     heroImageAlt:
       'chmonitor running queries view with live charts and a detailed table',
     heroImageWidth: 1024,
-    heroImageHeight: 570,
+    heroImageHeight: 719,
     benefits: [
       {
         icon: QUERY_GRID_ICON,
@@ -151,11 +151,11 @@ export const useCases: UseCase[] = [
       'Replica lag, read-only replicas and replication queues, on a live topology map.',
     subhead:
       'Track replica lag, read-only replicas, the replication queue and distributed DDL across every shard — visualized on a live cluster topology map, with alerts when replication falls behind.',
-    heroImage: '/landing-assets/topology.png',
+    heroImage: '/landing-assets/cluster-topology-light.png',
     heroImageAlt:
       'chmonitor cluster topology: ClickHouse nodes, shards, replicas and the Keeper quorum with live replication links',
     heroImageWidth: 1024,
-    heroImageHeight: 564,
+    heroImageHeight: 670,
     benefits: [
       {
         icon: TOPOLOGY_ICON,
