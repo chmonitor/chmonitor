@@ -91,7 +91,10 @@ describe('POST /api/v1/health/opsgenie-test — dispatch', () => {
 
   test('sends a real test dispatch when configured', async () => {
     process.env.HEALTH_ALERT_OPSGENIE_API_KEY = 'my-key'
-    const fetchImpl = mock(async () => new Response('ok', { status: 202 }))
+    const fetchImpl = mock(
+      async (_url: string, _init?: RequestInit) =>
+        new Response('ok', { status: 202 })
+    )
     const res = await handlePost(makeRequest(), {
       fetchImpl: fetchImpl as unknown as typeof fetch,
       resolveHostAddresses: async () => ['93.184.216.34'],
@@ -99,9 +102,9 @@ describe('POST /api/v1/health/opsgenie-test — dispatch', () => {
 
     expect(res.status).toBe(200)
     expect(fetchImpl).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit]
+    const [url, init] = fetchImpl.mock.calls[0]
     expect(url).toBe('https://api.opsgenie.com/v2/alerts')
-    expect((init.headers as Record<string, string>).Authorization).toBe(
+    expect((init?.headers as Record<string, string>).Authorization).toBe(
       'GenieKey my-key'
     )
   })
