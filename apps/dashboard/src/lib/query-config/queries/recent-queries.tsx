@@ -2,6 +2,7 @@ import { ClockIcon, DatabaseIcon, LayersIcon, UserIcon } from 'lucide-react'
 
 import type { QueryConfig } from '@/types/query-config'
 
+import { RecentQueryExpandedDetails } from '@/components/data-table/cells/recent-query-expanded-details'
 import { FILTER_PLACEHOLDER } from '@/lib/filters/where-builder'
 import { queryInsightsFilterSchema } from '@/lib/query-config/queries/query-insights-filters'
 import { QUERY_LOG } from '@/lib/table-notes'
@@ -50,7 +51,8 @@ export const recentQueriesConfig: QueryConfig = {
         memory_usage,
         formatReadableSize(memory_usage) AS readable_memory_usage,
         client_name,
-        exception_code
+        exception_code,
+        exception
     FROM (
       SELECT * FROM system.query_log
       WHERE type IN ('QueryFinish', 'ExceptionWhileProcessing')
@@ -90,9 +92,21 @@ export const recentQueriesConfig: QueryConfig = {
     event_time: { size: 180, minSize: 150, maxSize: 220 },
     query_kind: { size: 120, minSize: 100, maxSize: 160 },
     query: { size: 360, minSize: 240, maxSize: 520 },
-    query_duration: { size: 110, minSize: 96, maxSize: 140 },
+    // Header label "query_duration" (14 chars) + sort caret + info icon needs
+    // more room than the old 110px, which clipped it to "query_durat…".
+    query_duration: { size: 132, minSize: 120, maxSize: 160 },
     database: { size: 140, minSize: 100, maxSize: 200 },
     user: { size: 104, minSize: 88, maxSize: 140 },
+    // The metric columns below had no explicit sizing and fell back to the
+    // content-width estimator, which sizes to the (short) formatted values and
+    // clips the longer snake_case header labels (e.g. "result_rows",
+    // "memory_usage"). Give each enough room for its header plus the info-icon
+    // + sort-caret chrome.
+    readable_read_rows: { size: 132, minSize: 116, maxSize: 180 },
+    readable_read_bytes: { size: 132, minSize: 116, maxSize: 180 },
+    readable_result_rows: { size: 138, minSize: 122, maxSize: 190 },
+    readable_memory_usage: { size: 150, minSize: 132, maxSize: 210 },
+    client_name: { size: 132, minSize: 112, maxSize: 200 },
   },
   columnFormats: {
     action: [
@@ -120,6 +134,15 @@ export const recentQueriesConfig: QueryConfig = {
     readable_read_bytes: 'Bytes read from disk/memory while executing',
     readable_result_rows: 'Rows returned to the client',
     readable_memory_usage: 'Peak memory used by the query',
+  },
+  /**
+   * Click-to-expand inline detail panel below each row. The collapsed row
+   * truncates the SQL and hides several fields; the panel surfaces the full
+   * syntax-highlighted query, identity/runtime metrics, and — for failed rows
+   * — the full exception message.
+   */
+  expandable: {
+    renderExpanded: (row) => <RecentQueryExpandedDetails row={row} />,
   },
   relatedCharts: [
     ['query-count', {}],
