@@ -19,10 +19,14 @@ export function queryLogDynamicOptions(column: string) {
 
 /**
  * Time-range field shared by every Query Insights surface. Exported
- * separately (not just inline in {@link queryInsightsFilterSchema}) so the
- * pattern detail flyout's drilldown schema (`query-pattern-drilldown.ts`) can
- * reuse the exact same field — same operators, same default — without a
- * `.find()` + non-null assertion into the schema's `fields` array.
+ * separately (not just inline in {@link queryInsightsFilterSchema}) so a
+ * future consumer that only needs the time field — without pulling in the
+ * whole schema, or writing a `.find()` + non-null assertion into its
+ * `fields` array — can reuse the exact same field: same key, operators, and
+ * default. The pattern detail flyout (`pattern-detail-sheet.tsx`) reads the
+ * page's `event_time` URL value directly instead, since it forwards it to
+ * `/api/v1/insights/query-patterns/:hash`'s `range` (hours) param rather
+ * than through the filter-schema WHERE-builder.
  */
 export const eventTimeFilterField: FilterField = {
   key: 'event_time',
