@@ -122,6 +122,27 @@ src/lib/ai/agent/__tests__/scenarios.test.ts --isolate`; it also runs as part
 of the existing `bun run test` / `bun run test:coverage` CI job since those
 already glob all of `src/`.
 
+### Behavioral (tool-first) tracking — `bun run test:agent`
+
+The mocked golden scenarios above verify tool *wiring and safety*, but the
+answer text is authored by the test, so they cannot measure whether a **live
+model** actually chooses to call a tool. That behavioral signal — the
+"Operating Rules (tool-first)" section of the system prompt — is tracked by a
+[promptfoo](https://promptfoo.dev) suite at `tests/agent/promptfooconfig.yaml`,
+run against a running dev server:
+
+```bash
+export AGENT_API_TOKEN=your-token   # bearer for /api/v1/agent
+bun run dev                         # in another shell
+bun run test:agent                  # promptfoo eval; `test:agent:view` for the UI
+```
+
+Each golden asserts the agent emits a `[tool:...]` call (not a memory answer)
+and stays under a latency threshold. Treat the pass rate + latency as the
+**self-improvement metric**: when tuning the prompt for faster/more-accurate
+tool use, re-run this suite before and after and keep the numbers moving the
+right way. Add a golden here whenever you change tool-selection behavior.
+
 ## Writing New Component Tests
 
 When contributing new component tests, please follow these guidelines:

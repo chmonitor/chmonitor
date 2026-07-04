@@ -38,6 +38,8 @@
     "test:component:headless": "cd apps/dashboard && bun run test:component:headless",
     "test:e2e": "cd apps/dashboard && bun run test:e2e",
     "test:e2e:headless": "cd apps/dashboard && bun run test:e2e:headless",
+    "test:agent": "promptfoo eval -c tests/agent/promptfooconfig.yaml",
+    "test:agent:view": "promptfoo view",
     "cf:deploy": "cd apps/dashboard && bun run cf:deploy",
     "cf:config": "bun scripts/set-secrets.ts --from-env",
     "cf:typegen": "cd apps/dashboard && bun run cf-typegen",

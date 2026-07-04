@@ -106,6 +106,39 @@ tests:
       - type: not-regex
         value: '\\[error:'
 
+  # --- Tool-first behavior tracking (self-improvement regression signal) ---
+  # These goldens exist to MEASURE the "Operating Rules (tool-first)" prompt
+  # section over time: the agent must ground factual/state answers in a tool
+  # call rather than answering from memory, use specific primitives, and not
+  # stall on routine reads. A drop in pass rate here means a prompt regression.
+
+  - description: 'Grounding — version question must be answered via a tool, not from memory'
+    vars:
+      prompt: 'What ClickHouse version is this server running?'
+    assert:
+      - type: contains
+        value: '[tool:'
+      - type: not-regex
+        value: '\\[error:'
+
+  - description: 'Specific primitive — slow-query ask should call a tool'
+    vars:
+      prompt: 'What are the slowest queries in the last hour?'
+    assert:
+      - type: contains
+        value: '[tool:'
+      - type: not-regex
+        value: '\\[error:'
+
+  - description: 'Act, don''t ask — routine read should not stall on a clarifying question'
+    vars:
+      prompt: 'Show disk usage for this server'
+    assert:
+      - type: contains
+        value: '[tool:'
+      - type: not-regex
+        value: '\\[error:'
+
 evaluateOptions:
   maxConcurrency: 1
   cache: false
