@@ -7,7 +7,7 @@ function AgentsPage() {
   return <AgentsPageClient />
 }
 
-export const Route = createFileRoute('/(dashboard)/agents')({
+export const Route = createFileRoute('/(dashboard)/agents/')({
   component: AgentsPage,
   head: () => pageOgHead('agents'),
 })

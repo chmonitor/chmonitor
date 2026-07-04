@@ -1,20 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/page-header'
-import { McpServerManager } from '@/components/mcp/mcp-server-manager'
-
-function McpServersPage() {
-  return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
-      <PageHeader
-        title="MCP servers"
-        description="Register external Model Context Protocol servers. Their tools load alongside the agent's built-in tools at the start of every conversation."
-      />
-      <McpServerManager />
-    </div>
-  )
-}
-
+/**
+ * `/mcp-servers` moved into the "MCP Servers" tab of `/agents/settings`
+ * (menu/IA cleanup — the standalone registration page is now one section of
+ * the fuller Agent Settings page). Redirect so old bookmarks/links keep
+ * working.
+ */
 export const Route = createFileRoute('/(dashboard)/mcp-servers')({
-  component: McpServersPage,
+  beforeLoad: () => {
+    // `href` (not `to` + `search`) — `/agents/settings` doesn't declare a
+    // typed `tab` search param (its Tabs state reads the raw query string via
+    // the `next-compat` shim, matching the rest of the app), so a raw href
+    // is simpler than fighting the router's typed search for one param.
+    throw redirect({ href: '/agents/settings?tab=mcp' })
+  },
 })

@@ -19,6 +19,7 @@ const DASHBOARD_ROUTES = [
   '/insights',
   '/about',
   '/agents',
+  '/agents/settings',
   '/ai-chat',
   '/asynchronous-metrics',
   '/backups',

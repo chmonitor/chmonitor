@@ -19,7 +19,8 @@
  * sends the enabled ones in each agent request body, and the agent connects
  * them (SSRF-guarded) alongside the built-in tools for that conversation. For
  * per-user servers that PERSIST server-side (D1) with auth + a template
- * library, see the MCP Servers manager route (`/mcp-servers`).
+ * library, see the "MCP Servers" tab on the Agent Settings page
+ * (`/agents/settings?tab=mcp`).
  */
 
 import { PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react'

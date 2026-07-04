@@ -91,6 +91,12 @@ const NAV_ROUTES = [
     href: '/agents',
     keywords: ['ai', 'chat', 'assistant', 'llm'],
   },
+  {
+    id: 'nav-agent-settings',
+    label: 'Agent Settings',
+    href: '/agents/settings',
+    keywords: ['ai', 'mcp', 'model', 'skills', 'provider', 'settings'],
+  },
 ] as const
 
 /**

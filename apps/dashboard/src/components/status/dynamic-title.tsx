@@ -24,6 +24,7 @@ const ROUTE_TITLE_MAP: Record<string, string> = {
   '/': 'Overview',
   '/overview': 'Overview',
   '/agents': 'AI Agent',
+  '/agents/settings': 'Agent Settings',
   '/insights': 'Insights',
   '/health': 'Health',
   '/running-queries': 'Running Queries',

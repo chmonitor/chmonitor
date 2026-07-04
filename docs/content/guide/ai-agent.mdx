@@ -52,6 +52,24 @@ Then open `/agents` in the dashboard, pick a host, and start asking questions. T
 
 For full configuration options see [Configuration](/guide/ai-agent/configuration).
 
+## Agent Settings page
+
+`/agents/settings` is the full-page home for everything agent-related, reached
+from the sidebar under *AI Agent → Agent Settings* (or the "Open full agent
+settings" link in the chat page's settings panel). It groups five tabs:
+
+- **Provider** — read-only status of configured LLM providers (`GET
+  /api/v1/agents/config-check`); provider/model/API keys are still set via
+  environment variables at deploy time (see [Configuration](/guide/ai-agent/configuration)).
+- **Models** — the same model picker used on the chat page and its sidebar.
+- **System prompt** — read-only view of the instructions sent to the model on
+  every request; there is no per-user override yet.
+- **Skills** — the full skill library with search and per-skill toggles.
+- **MCP servers** — the persistent, per-user MCP server registry (see
+  [Persistent MCP server registry](#persistent-mcp-server-registry-per-user)
+  below). This replaces the old standalone `/mcp-servers` page, which now
+  redirects to `/agents/settings?tab=mcp`.
+
 ## Child pages
 
 <Cards>
@@ -224,7 +242,7 @@ The panel probes each enabled server on load (`POST /api/v1/mcp/probe`) to show 
 
 ### Persistent MCP server registry (per-user)
 
-The sidebar panel above stores servers in the browser (`localStorage`). For servers that **persist server-side per user** — with authentication and a template library — use the **MCP Servers** page (`/mcp-servers`, in the sidebar under *AI Agent*).
+The sidebar panel above stores servers in the browser (`localStorage`). For servers that **persist server-side per user** — with authentication and a template library — use the **MCP Servers** tab on the **Agent Settings** page (`/agents/settings?tab=mcp`, in the sidebar under *AI Agent → Agent Settings*). The old standalone `/mcp-servers` route redirects here.
 
 - **Register** a server with a name, endpoint URL, transport (`http` streamable or `sse`), and optional auth (a **bearer token** or a **custom header**). Saving first runs a **Test connection** probe and stores the server only if it connects — so the tool count shown reflects what the server actually advertised.
 - **Template library** — one-click presets prefill the form for **Slack**, **GitHub**, and **Datadog** (endpoint + expected auth kind); you supply your own token.

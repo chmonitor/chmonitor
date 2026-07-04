@@ -29,6 +29,7 @@ import { McpConnectAgentDialog } from '@/components/agents/welcome/mcp-connect-a
 import { SkillDetailDialog } from '@/components/agents/welcome/skill-detail-dialog'
 import { SkillsLibraryDialog } from '@/components/agents/welcome/skills-library-dialog'
 import { SUGGESTED_PROMPTS } from '@/components/agents/welcome/suggested-prompts'
+import { AppLink } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -257,6 +258,13 @@ export function AgentSettingsSidebar({
             <DrawerDescription className="text-[11.5px]">
               Host, model, tools, and skills.
             </DrawerDescription>
+            <AppLink
+              href="/agents/settings"
+              className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-[11px] underline underline-offset-2"
+            >
+              Open full agent settings
+              <ArrowRightIcon className="size-2.5" />
+            </AppLink>
           </DrawerHeader>
           <div className="overflow-y-auto px-4 pb-6">{sections}</div>
         </DrawerContent>
@@ -289,9 +297,16 @@ export function AgentSettingsSidebar({
             <PanelRightCloseIcon className="size-3.5" />
           </Button>
         </div>
-        <p className="text-muted-foreground mb-4 text-[11.5px]">
+        <p className="text-muted-foreground mb-1 text-[11.5px]">
           Host, model, tools, and skills.
         </p>
+        <AppLink
+          href="/agents/settings"
+          className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-[11px] underline underline-offset-2"
+        >
+          Open full agent settings
+          <ArrowRightIcon className="size-2.5" />
+        </AppLink>
         {sections}
       </div>
     </aside>
