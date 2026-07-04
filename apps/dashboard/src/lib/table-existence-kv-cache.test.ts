@@ -6,8 +6,7 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 
 function createFakeKv() {
   const store = new Map<string, { value: string; expirationTtl?: number }>()
-  return {
-    store,
+  const kv = {
     get: async (key: string, _options?: { type?: string }) => {
       const entry = store.get(key)
       return entry ? JSON.parse(entry.value) : null
@@ -20,6 +19,7 @@ function createFakeKv() {
       store.set(key, { value, expirationTtl: options?.expirationTtl })
     },
   } as unknown as KVNamespace
+  return { kv, store }
 }
 
 describe('getTableExistenceCache — Node/self-hosted degradation (issue #2183)', () => {
@@ -35,7 +35,7 @@ describe('getTableExistenceCache — Node/self-hosted degradation (issue #2183)'
   })
 
   it('gets and sets through the injected KV binding', async () => {
-    const kv = createFakeKv()
+    const { kv } = createFakeKv()
     const cache = getTableExistenceCache(kv)
 
     expect(await cache.get('0:system.backup_log')).toBeNull()
@@ -44,10 +44,10 @@ describe('getTableExistenceCache — Node/self-hosted degradation (issue #2183)'
   })
 
   it('writes with the given TTL under a namespaced key', async () => {
-    const kv = createFakeKv()
+    const { kv, store } = createFakeKv()
     const cache = getTableExistenceCache(kv)
     await cache.set('0:system.backup_log', false, 300)
-    expect(kv.store.get('ch-table-exists:0:system.backup_log')).toEqual({
+    expect(store.get('ch-table-exists:0:system.backup_log')).toEqual({
       value: 'false',
       expirationTtl: 300,
     })
@@ -55,7 +55,7 @@ describe('getTableExistenceCache — Node/self-hosted degradation (issue #2183)'
 
   it('memoizes the instance across calls', () => {
     const first = getTableExistenceCache(null)
-    const second = getTableExistenceCache(createFakeKv())
+    const second = getTableExistenceCache(createFakeKv().kv)
     expect(second).toBe(first)
   })
 })

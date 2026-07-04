@@ -15,8 +15,7 @@ const version1 = {
 
 function createFakeKv() {
   const store = new Map<string, { value: string; expirationTtl?: number }>()
-  return {
-    store,
+  const kv = {
     get: async (key: string, _options?: { type?: string }) => {
       const entry = store.get(key)
       return entry ? JSON.parse(entry.value) : null
@@ -29,6 +28,7 @@ function createFakeKv() {
       store.set(key, { value, expirationTtl: options?.expirationTtl })
     },
   } as unknown as KVNamespace
+  return { kv, store }
 }
 
 describe('InMemoryCache', () => {
@@ -52,7 +52,7 @@ describe('InMemoryCache', () => {
 
 describe('CloudflareKVCache', () => {
   it('gets and sets through the injected KV binding', async () => {
-    const kv = createFakeKv()
+    const { kv } = createFakeKv()
     const cache = new CloudflareKVCache(kv)
 
     expect(await cache.get(0)).toBeNull()
@@ -61,10 +61,10 @@ describe('CloudflareKVCache', () => {
   })
 
   it('writes with the given TTL', async () => {
-    const kv = createFakeKv()
+    const { kv, store } = createFakeKv()
     const cache = new CloudflareKVCache(kv)
     await cache.set(1, version1, 86400)
-    expect(kv.store.get('ch-version:1')?.expirationTtl).toBe(86400)
+    expect(store.get('ch-version:1')?.expirationTtl).toBe(86400)
   })
 })
 
@@ -82,14 +82,14 @@ describe('getVersionCache — Node/self-hosted degradation (issue #2183)', () =>
   })
 
   it('uses the KV adapter when a binding is passed (Cloudflare path)', async () => {
-    const kv = createFakeKv()
+    const { kv } = createFakeKv()
     const cache = getVersionCache(kv)
     expect(cache).toBeInstanceOf(CloudflareKVCache)
   })
 
   it('memoizes the instance across calls', () => {
     const first = getVersionCache(null)
-    const second = getVersionCache(createFakeKv())
+    const second = getVersionCache(createFakeKv().kv)
     expect(second).toBe(first)
   })
 })
