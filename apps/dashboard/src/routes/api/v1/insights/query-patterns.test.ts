@@ -50,6 +50,16 @@ function request(query: string): Request {
   return new Request(`http://x/api/v1/insights/query-patterns${query}`)
 }
 
+interface PatternsResponseBody {
+  success: boolean
+  data: Array<{
+    normalized_query_hash: string
+    calls: number
+    total_duration: number
+  }>
+  metadata: { host: string; rows: number }
+}
+
 describe('GET /api/v1/insights/query-patterns — hostId validation', () => {
   beforeEach(() => {
     executeTableConfig.mockClear()
@@ -70,6 +80,13 @@ describe('GET /api/v1/insights/query-patterns — hostId validation', () => {
     expect((await handler(request('?hostId=abc'))).status).toBe(400)
   })
 
+  test('accepts the `host` shorthand param when hostId is absent', async () => {
+    const res = await handler(request('?host=3'))
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as PatternsResponseBody
+    expect(body.metadata.host).toBe('3')
+  })
+
   test('defaults to host 0 when hostId is absent', async () => {
     const res = await handler(request(''))
     expect(res.status).toBe(200)
@@ -79,7 +96,7 @@ describe('GET /api/v1/insights/query-patterns — hostId validation', () => {
   test('accepts a valid hostId and returns the aggregated rows', async () => {
     const res = await handler(request('?hostId=2'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = (await res.json()) as PatternsResponseBody
     expect(body.success).toBe(true)
     expect(body.data).toHaveLength(2)
     expect(body.metadata.host).toBe('2')
@@ -95,19 +112,19 @@ describe('GET /api/v1/insights/query-patterns — filter/sort ergonomics', () =>
   test('translates range=N into event_time=withinHours:N', async () => {
     await handler(request('?range=6'))
     const call = getTableQuery.mock.calls[0]
-    expect(call[1].searchParams).toEqual({ event_time: 'withinHours:6' })
+    expect(call?.[1].searchParams).toEqual({ event_time: 'withinHours:6' })
   })
 
   test('an explicit event_time filter wins over range', async () => {
     await handler(request('?range=6&event_time=withinHours:1'))
     const call = getTableQuery.mock.calls[0]
-    expect(call[1].searchParams.event_time).toBe('withinHours:1')
+    expect(call?.[1].searchParams?.event_time).toBe('withinHours:1')
   })
 
   test('forwards other filter fields untouched', async () => {
     await handler(request('?user=eq:default&query_kind=in:Select'))
     const call = getTableQuery.mock.calls[0]
-    expect(call[1].searchParams).toEqual({
+    expect(call?.[1].searchParams).toEqual({
       user: 'eq:default',
       query_kind: 'in:Select',
     })
@@ -115,13 +132,13 @@ describe('GET /api/v1/insights/query-patterns — filter/sort ergonomics', () =>
 
   test('sort=calls:asc re-orders the rows ascending by calls', async () => {
     const res = await handler(request('?sort=calls:asc'))
-    const body = await res.json()
-    expect(body.data.map((r: { calls: number }) => r.calls)).toEqual([1, 2])
+    const body = (await res.json()) as PatternsResponseBody
+    expect(body.data.map((r) => r.calls)).toEqual([1, 2])
   })
 
   test('sort=total_duration:desc (default direction) keeps larger first', async () => {
     const res = await handler(request('?sort=total_duration'))
-    const body = await res.json()
-    expect(body.data[0].total_duration).toBe(50)
+    const body = (await res.json()) as PatternsResponseBody
+    expect(body.data[0]?.total_duration).toBe(50)
   })
 })

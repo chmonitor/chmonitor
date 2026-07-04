@@ -32,8 +32,11 @@ export async function handler(request: Request): Promise<Response> {
   const bindings = env as Record<string, string | undefined>
   const { searchParams } = new URL(request.url)
 
-  // Validate hostId
-  const hostIdStr = searchParams.get('hostId') ?? '0'
+  // Validate hostId. `hostId` is the canonical param
+  // (docs/knowledge/api-hostid-validation.md); `host` is accepted too so
+  // `?host=` from the issue's shorthand also works.
+  const hostIdStr =
+    searchParams.get('hostId') ?? searchParams.get('host') ?? '0'
   const hostId = Number(hostIdStr)
   if (!Number.isInteger(hostId) || hostId < 0) {
     return Response.json(
@@ -49,7 +52,8 @@ export async function handler(request: Request): Promise<Response> {
   // query_kind, database). `range` is shorthand for `event_time=withinHours:`.
   const filterParams: Record<string, string> = {}
   for (const [key, value] of searchParams.entries()) {
-    if (key === 'hostId' || key === 'sort' || key === 'range') continue
+    if (key === 'hostId' || key === 'host' || key === 'sort' || key === 'range')
+      continue
     filterParams[key] = value
   }
   const range = searchParams.get('range')

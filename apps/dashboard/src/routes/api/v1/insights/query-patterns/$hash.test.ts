@@ -28,26 +28,33 @@ const executionRows = [
 
 let patternData: Record<string, unknown>[] = [patternRow]
 
-const executeTableConfig = mock(async (config: { name: string }) => {
-  if (config.name === 'insights-query-pattern-detail') {
+const executeTableConfig = mock(
+  async (
+    config: { name: string },
+    _hostId: number | string,
+    _queryParams: Record<string, unknown> | undefined,
+    _options: Record<string, unknown>
+  ) => {
+    if (config.name === 'insights-query-pattern-detail') {
+      return {
+        result: {
+          data: patternData,
+          metadata: { queryId: 'p1', duration: 5, rows: patternData.length },
+        },
+        executedSql: 'SELECT /* pattern */ 1',
+        clickhouseVersion: '24.8',
+      }
+    }
     return {
       result: {
-        data: patternData,
-        metadata: { queryId: 'p1', duration: 5, rows: patternData.length },
+        data: executionRows,
+        metadata: { queryId: 'e1', duration: 7, rows: executionRows.length },
       },
-      executedSql: 'SELECT /* pattern */ 1',
+      executedSql: 'SELECT /* executions */ 1',
       clickhouseVersion: '24.8',
     }
   }
-  return {
-    result: {
-      data: executionRows,
-      metadata: { queryId: 'e1', duration: 7, rows: executionRows.length },
-    },
-    executedSql: 'SELECT /* executions */ 1',
-    clickhouseVersion: '24.8',
-  }
-})
+)
 
 mock.module('@/lib/api/query-executor', () => ({ executeTableConfig }))
 
@@ -60,6 +67,19 @@ async function call(hash: string, query = ''): Promise<Response> {
     new Request(`http://x/api/v1/insights/query-patterns/${hash}${query}`),
     hash
   )
+}
+
+interface DetailErrorBody {
+  success: false
+  error: { type: string; message: string }
+}
+interface DetailSuccessBody {
+  success: true
+  data: {
+    pattern: Record<string, unknown>
+    executions: Record<string, unknown>[]
+  }
+  metadata: { host: string; rangeHours: number }
 }
 
 describe('GET /api/v1/insights/query-patterns/$hash — validation', () => {
@@ -92,7 +112,7 @@ describe('GET /api/v1/insights/query-patterns/$hash — validation', () => {
     patternData = []
     const res = await call('999')
     expect(res.status).toBe(404)
-    const body = await res.json()
+    const body = (await res.json()) as DetailErrorBody
     expect(body.success).toBe(false)
     expect(body.error.type).toBe('not_found')
   })
@@ -107,7 +127,7 @@ describe('GET /api/v1/insights/query-patterns/$hash — shape', () => {
   test('returns the pattern + its recent executions', async () => {
     const res = await call('123456789')
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = (await res.json()) as DetailSuccessBody
     expect(body.success).toBe(true)
     expect(body.data.pattern).toEqual(patternRow)
     expect(body.data.executions).toEqual(executionRows)
