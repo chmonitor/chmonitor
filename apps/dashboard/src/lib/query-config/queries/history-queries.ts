@@ -25,15 +25,82 @@ import { QUERY_LOG } from '@/lib/table-notes'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * Query tail shared by every version variant. The {@link FILTER_PLACEHOLDER}
- * marker is replaced server-side with a parameterized `WHERE` clause built
- * from the {@link historyQueryFilterSchema}.
+ * Raw columns projected by the inner subquery — the minimal set the outer
+ * SELECT needs to derive every `readable_*` / `pct_*` display column. Filters
+ * reference base columns (`written_rows`, `tables`, `client_agent`, …) that are
+ * NOT in this list, which is fine: the {@link FILTER_PLACEHOLDER} `WHERE` is
+ * applied INSIDE the subquery directly on `system.query_log`, where every base
+ * column is in scope regardless of what the projection selects.
  */
-const historyQueryTail = `
-          FROM system.query_log
-          ${FILTER_PLACEHOLDER}
-          ORDER BY event_time DESC
-          LIMIT 250`
+const baseInnerColumns = [
+  'type',
+  'query_id',
+  'query_duration_ms',
+  'event_time',
+  'query',
+  'user',
+  'read_rows',
+  'written_rows',
+  'result_rows',
+  'memory_usage',
+  'query_kind',
+  'client_name',
+]
+
+/**
+ * Build one version variant of the History Queries SQL.
+ *
+ * `extraColumns` are version-gated raw columns carried through from the
+ * subquery to the outer projection (`query_cache_usage` since 24.1,
+ * `client_agent` since 26.6).
+ *
+ * Performance shape: the {@link FILTER_PLACEHOLDER} `WHERE` and
+ * `ORDER BY event_time DESC LIMIT 250` live in the INNER subquery over
+ * `system.query_log`. `event_time` is part of the table's sorting key, so
+ * ClickHouse prunes granules and the `LIMIT` short-circuits the scan. The
+ * `MAX(...) OVER ()` window columns are computed in the OUTER query over those
+ * ≤250 rows — NOT over the whole filtered set. This keeps `pct_*` "relative to
+ * the displayed page" (matching the expand panel's label) and avoids buffering
+ * the entire filtered window: measured 884k → 41k rows read on a 1-day window.
+ */
+function buildHistoryQuerySql(extraColumns: string[]): string {
+  const innerColumns = [...baseInnerColumns, ...extraColumns]
+  const outerExtras = extraColumns.length
+    ? `,\n              ${extraColumns.join(',\n              ')}`
+    : ''
+
+  return `
+          SELECT
+              type,
+              query_id,
+              query_duration_ms,
+              query_duration_ms / 1000 as query_duration,
+              event_time,
+              query,
+              user,
+              read_rows,
+              formatReadableQuantity(read_rows) AS readable_read_rows,
+              round(100 * read_rows / MAX(read_rows) OVER ()) AS pct_read_rows,
+              written_rows,
+              formatReadableQuantity(written_rows) AS readable_written_rows,
+              round(100 * written_rows / MAX(written_rows) OVER ()) AS pct_written_rows,
+              result_rows,
+              formatReadableQuantity(result_rows) AS readable_result_rows,
+              memory_usage,
+              formatReadableSize(memory_usage) AS readable_memory_usage,
+              round(100 * memory_usage / MAX(memory_usage) OVER ()) AS pct_memory_usage,
+              query_kind,
+              client_name${outerExtras}
+          FROM (
+              SELECT
+                  ${innerColumns.join(',\n                  ')}
+              FROM system.query_log
+              ${FILTER_PLACEHOLDER}
+              ORDER BY event_time DESC
+              LIMIT 250
+          )
+          ORDER BY event_time DESC`
+}
 
 /** Service users excluded from the result by default (configurable per deploy). */
 const defaultExcludedUsers = process.env.CLICKHOUSE_EXCLUDE_USER_DEFAULT || ''
@@ -68,6 +135,12 @@ export const historyQueryFilterSchema: FilterSchema = {
         { label: 'Last 30 days', value: '720' },
       ],
       description: 'Relative window or an explicit date range.',
+      // Default to the last 24h so the page never issues an unbounded scan of
+      // the full `system.query_log` history. `event_time` is part of the
+      // table's sorting key, so this predicate prunes granules/partitions and
+      // is the primary performance lever — users can widen (7d/30d) or clear it
+      // via the filter bar. Renders as an active "Time: Last 24 hours" chip.
+      defaultValue: { operator: 'withinHours', value: '24' },
     },
     {
       key: 'user',
@@ -370,89 +443,17 @@ export const historyQueriesConfig: QueryConfig = {
     {
       since: '23.8',
       description: 'Base query without query_cache_usage',
-      sql: `
-          SELECT
-              type,
-              query_id,
-              query_duration_ms,
-              query_duration_ms / 1000 as query_duration,
-              event_time,
-              query,
-              user,
-              read_rows,
-              formatReadableQuantity(read_rows) AS readable_read_rows,
-              round(100 * read_rows / MAX(read_rows) OVER ()) AS pct_read_rows,
-              written_rows,
-              formatReadableQuantity(written_rows) AS readable_written_rows,
-              round(100 * written_rows / MAX(written_rows) OVER ()) AS pct_written_rows,
-              result_rows,
-              formatReadableQuantity(result_rows) AS readable_result_rows,
-              memory_usage,
-              formatReadableSize(memory_usage) AS readable_memory_usage,
-              round(100 * memory_usage / MAX(memory_usage) OVER ()) AS pct_memory_usage,
-              query_kind,
-              client_name
-${historyQueryTail}
-      `,
+      sql: buildHistoryQuerySql([]),
     },
     {
       since: '24.1',
       description: 'Added query_cache_usage column',
-      sql: `
-          SELECT
-              type,
-              query_id,
-              query_duration_ms,
-              query_duration_ms / 1000 as query_duration,
-              event_time,
-              query,
-              user,
-              read_rows,
-              formatReadableQuantity(read_rows) AS readable_read_rows,
-              round(100 * read_rows / MAX(read_rows) OVER ()) AS pct_read_rows,
-              written_rows,
-              formatReadableQuantity(written_rows) AS readable_written_rows,
-              round(100 * written_rows / MAX(written_rows) OVER ()) AS pct_written_rows,
-              result_rows,
-              formatReadableQuantity(result_rows) AS readable_result_rows,
-              memory_usage,
-              formatReadableSize(memory_usage) AS readable_memory_usage,
-              round(100 * memory_usage / MAX(memory_usage) OVER ()) AS pct_memory_usage,
-              query_kind,
-              query_cache_usage,
-              client_name
-${historyQueryTail}
-      `,
+      sql: buildHistoryQuerySql(['query_cache_usage']),
     },
     {
       since: '26.6',
       description: 'Added client_agent column (CH 26.6+)',
-      sql: `
-          SELECT
-              type,
-              query_id,
-              query_duration_ms,
-              query_duration_ms / 1000 as query_duration,
-              event_time,
-              query,
-              user,
-              read_rows,
-              formatReadableQuantity(read_rows) AS readable_read_rows,
-              round(100 * read_rows / MAX(read_rows) OVER ()) AS pct_read_rows,
-              written_rows,
-              formatReadableQuantity(written_rows) AS readable_written_rows,
-              round(100 * written_rows / MAX(written_rows) OVER ()) AS pct_written_rows,
-              result_rows,
-              formatReadableQuantity(result_rows) AS readable_result_rows,
-              memory_usage,
-              formatReadableSize(memory_usage) AS readable_memory_usage,
-              round(100 * memory_usage / MAX(memory_usage) OVER ()) AS pct_memory_usage,
-              query_kind,
-              query_cache_usage,
-              client_name,
-              client_agent
-${historyQueryTail}
-      `,
+      sql: buildHistoryQuerySql(['query_cache_usage', 'client_agent']),
     },
   ],
 

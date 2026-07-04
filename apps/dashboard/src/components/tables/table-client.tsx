@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { DataTable } from '@/components/data-table/data-table'
+import { FilterBar } from '@/components/filters/filter-bar'
 import { TableSkeleton } from '@/components/skeletons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -204,6 +205,11 @@ export const TableClient = function TableClient({
 
   // Get SQL for display in toolbars
   const sql = queryConfig.sql ? getSqlForDisplay(queryConfig.sql) : undefined
+
+  // Whether the schema-driven filter bar should render. When true, the empty
+  // state keeps the filter bar mounted (see the zero-rows branch) so filters
+  // stay reachable instead of disappearing with the table.
+  const showSchemaFilterBar = Boolean(showFilterBar && queryConfig.filterSchema)
 
   if (error) {
     const serverVersion = hostStatus.data?.version
@@ -447,7 +453,7 @@ export const TableClient = function TableClient({
   }
 
   if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
+    const emptyCard = (
       <Card
         className={cn(
           'rounded-md border-warning/30 bg-warning/5 shadow-none py-2 group relative',
@@ -460,9 +466,13 @@ export const TableClient = function TableClient({
         <CardContent className="p-6">
           <div className="flex flex-col items-center gap-4">
             <EmptyState
-              variant="no-data"
+              variant={showSchemaFilterBar ? 'filtered-empty' : 'no-data'}
               title={title || 'No Data'}
-              description="No data available for this query. Try adjusting your filters or check back later."
+              description={
+                showSchemaFilterBar
+                  ? 'No queries match the current filters. Adjust or clear them above to widen the results.'
+                  : 'No data available for this query. Try adjusting your filters or check back later.'
+              }
             />
             {queryConfig.suggestion && (
               <SuggestionCard
@@ -473,6 +483,33 @@ export const TableClient = function TableClient({
           </div>
         </CardContent>
       </Card>
+    )
+
+    // Keep the schema-driven filter bar mounted even with zero rows, so the
+    // user can widen/clear filters without the controls vanishing. Only the
+    // results area below shows the empty state. Non-schema tables keep the
+    // plain empty card.
+    if (!showSchemaFilterBar) return emptyCard
+
+    return (
+      <div className={cn('flex min-w-0 flex-col', className)}>
+        <div className="flex flex-col gap-2.5 pb-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-bold tracking-tight text-foreground">
+                {title}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
+                {description || queryConfig.description}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 bg-card/65 dark:bg-card/40 border border-border/60 p-2 rounded-xl shadow-xs">
+            <FilterBar queryConfig={queryConfig} />
+          </div>
+        </div>
+        {emptyCard}
+      </div>
     )
   }
 
