@@ -56,6 +56,12 @@ export interface QueryPageLayoutProps {
   defaultPageSize?: number
   /** Maximum height for the table card */
   maxTableHeight?: string
+  /**
+   * When set, clicking a table row (outside interactive elements) calls this
+   * with the row's data instead of the default behavior — e.g. to open a
+   * detail Sheet. Desktop table rows only; ignored when `tableSlot` is used.
+   */
+  onRowClick?: (row: Record<string, unknown>) => void
 }
 
 export const QueryPageLayout = function QueryPageLayout({
@@ -70,6 +76,7 @@ export const QueryPageLayout = function QueryPageLayout({
   enableRowSelection = false,
   defaultPageSize,
   maxTableHeight,
+  onRowClick,
 }: QueryPageLayoutProps) {
   const { config, isLoading } = useFeaturePermissions()
   const relatedCharts = queryConfig.relatedCharts || []
@@ -126,6 +133,7 @@ export const QueryPageLayout = function QueryPageLayout({
                 className="flex min-w-0 flex-1 flex-col"
                 enableRowSelection={enableRowSelection}
                 defaultPageSize={defaultPageSize}
+                onRowClick={onRowClick}
               />
             )}
           </FadeIn>

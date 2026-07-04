@@ -133,6 +133,12 @@ interface DataTableProps<TData extends RowData> {
    */
   expandable?: true | ExpandableConfig
   /**
+   * When set (and `expandable` is not), clicking a row (outside interactive
+   * elements) calls this with the row's data — e.g. to open a detail Sheet.
+   * Desktop table rows only; the mobile card view does not yet support this.
+   */
+  onRowClick?: (row: TData) => void
+  /**
    * Render the schema-driven filter bar above the table when a `filterSchema`
    * is present on the QueryConfig. Defaults to true.
    */
@@ -190,6 +196,7 @@ export function DataTable<
   columnOrderStorageKey,
   compact = false,
   expandable: expandableProp,
+  onRowClick,
   showFilterBar = true,
 }: DataTableProps<TData>) {
   // Resolve expansion config: explicit prop wins over QueryConfig declaration
@@ -699,6 +706,7 @@ export function DataTable<
           onResetColumnOrder={handleResetColumnOrder}
           compact={compact}
           expandable={expandable}
+          onRowClick={onRowClick}
           view={view}
           offerViewToggle={offerViewToggle}
           onViewChange={setUserView}

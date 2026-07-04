@@ -25,11 +25,11 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 /**
- * Heuristic: don't trigger row expand when the user clicks an interactive
- * element inside a row (button, link, input, etc.) or any subtree marked
- * with `data-no-expand`.
+ * Heuristic: don't trigger a row's click behavior (expand, or `onRowClick`)
+ * when the user clicks an interactive element inside a row (button, link,
+ * input, etc.) or any subtree marked with `data-no-expand`.
  */
-function shouldExpandOnRowClick(target: EventTarget | null): boolean {
+function isRowClickTarget(target: EventTarget | null): boolean {
   // Use Element so SVG descendants (icons) inside cells still toggle the row.
   if (!(target instanceof Element)) return false
   return !target.closest(
@@ -66,6 +66,11 @@ export interface VirtualizedTableRowProps<TData extends RowData> {
   rowClassName?: RowClassNameFn
   /** When set, row clicks (outside interactive elements) toggle expansion. */
   expandable?: true | ExpandableConfig
+  /**
+   * When set (and `expandable` is not), row clicks (outside interactive
+   * elements) call this with the row's data instead of toggling expansion.
+   */
+  onRowClick?: (row: TData) => void
 }
 
 /**
@@ -86,11 +91,13 @@ export const VirtualizedTableRow = memo(function VirtualizedTableRow<
   virtualRow,
   rowClassName,
   expandable,
+  onRowClick,
 }: VirtualizedTableRowProps<TData>) {
   const { cellClassName } = useTableDensityContext()
   const customClass = rowClassName?.(row.original as Record<string, unknown>)
   const canExpand = Boolean(expandable) && row.getCanExpand()
   const isExpanded = canExpand && row.getIsExpanded()
+  const isClickable = canExpand || Boolean(onRowClick)
   return (
     <TableRow
       key={row.id}
@@ -100,15 +107,19 @@ export const VirtualizedTableRow = memo(function VirtualizedTableRow<
       onClick={
         canExpand
           ? (e) => {
-              if (shouldExpandOnRowClick(e.target)) row.toggleExpanded()
+              if (isRowClickTarget(e.target)) row.toggleExpanded()
             }
-          : undefined
+          : onRowClick
+            ? (e) => {
+                if (isRowClickTarget(e.target)) onRowClick(row.original)
+              }
+            : undefined
       }
       className={cn(
         'border-b border-border/50 transition-colors hover:bg-accent/50',
         virtualRow.index % 2 === 1 && 'odd:bg-muted/30',
         row.getIsSelected() && 'border-l-2 border-l-primary',
-        canExpand && 'cursor-pointer',
+        isClickable && 'cursor-pointer',
         isExpanded && 'bg-accent/30 hover:bg-accent/30',
         customClass
       )}
@@ -146,6 +157,11 @@ export interface StandardTableRowProps<TData extends RowData> {
   rowClassName?: RowClassNameFn
   /** When set, row clicks (outside interactive elements) toggle expansion. */
   expandable?: true | ExpandableConfig
+  /**
+   * When set (and `expandable` is not), row clicks (outside interactive
+   * elements) call this with the row's data instead of toggling expansion.
+   */
+  onRowClick?: (row: TData) => void
 }
 
 /**
@@ -161,11 +177,18 @@ export interface StandardTableRowProps<TData extends RowData> {
  */
 export const StandardTableRow = memo(function StandardTableRow<
   TData extends RowData,
->({ row, index, rowClassName, expandable }: StandardTableRowProps<TData>) {
+>({
+  row,
+  index,
+  rowClassName,
+  expandable,
+  onRowClick,
+}: StandardTableRowProps<TData>) {
   const { cellClassName } = useTableDensityContext()
   const customClass = rowClassName?.(row.original as Record<string, unknown>)
   const canExpand = Boolean(expandable) && row.getCanExpand()
   const isExpanded = canExpand && row.getIsExpanded()
+  const isClickable = canExpand || Boolean(onRowClick)
   return (
     <TableRow
       key={row.id}
@@ -174,15 +197,19 @@ export const StandardTableRow = memo(function StandardTableRow<
       onClick={
         canExpand
           ? (e) => {
-              if (shouldExpandOnRowClick(e.target)) row.toggleExpanded()
+              if (isRowClickTarget(e.target)) row.toggleExpanded()
             }
-          : undefined
+          : onRowClick
+            ? (e) => {
+                if (isRowClickTarget(e.target)) onRowClick(row.original)
+              }
+            : undefined
       }
       className={cn(
         'border-b border-border/50 transition-colors hover:bg-accent/50',
         index % 2 === 1 && 'odd:bg-muted/30',
         row.getIsSelected() && 'border-l-2 border-l-primary',
-        canExpand && 'cursor-pointer',
+        isClickable && 'cursor-pointer',
         isExpanded && 'bg-accent/30 hover:bg-accent/30',
         customClass
       )}
@@ -225,6 +252,8 @@ export interface TableBodyRowsProps<TData extends RowData> {
   virtualizer: Virtualizer | null
   rowClassName?: RowClassNameFn
   expandable?: true | ExpandableConfig
+  /** See {@link StandardTableRowProps.onRowClick}. */
+  onRowClick?: (row: TData) => void
   /**
    * Signature of the table state that affects row output (sorting, pagination,
    * expansion, sizing, order, visibility, selection). The `table` instance has
@@ -255,6 +284,7 @@ export const TableBodyRows = memo(function TableBodyRows<
   virtualizer,
   rowClassName,
   expandable,
+  onRowClick,
 }: TableBodyRowsProps<TData>) {
   const rows = table.getRowModel().rows
   const colSpan = Math.max(table.getVisibleLeafColumns().length, 1)
@@ -295,6 +325,7 @@ export const TableBodyRows = memo(function TableBodyRows<
                 virtualRow={virtualRow}
                 rowClassName={rowClassName}
                 expandable={expandable}
+                onRowClick={onRowClick}
               />
               {expandable && row.getIsExpanded() && (
                 <ExpandedRow<TData>
@@ -333,6 +364,7 @@ export const TableBodyRows = memo(function TableBodyRows<
             index={index}
             rowClassName={rowClassName}
             expandable={expandable}
+            onRowClick={onRowClick}
           />
           {expandable && row.getIsExpanded() && (
             <ExpandedRow<TData>
@@ -425,6 +457,8 @@ export interface TableBodyProps<
   activeFilterCount: number
   rowClassName?: RowClassNameFn
   expandable?: true | ExpandableConfig
+  /** See {@link StandardTableRowProps.onRowClick}. */
+  onRowClick?: (row: TData) => void
   /** See {@link TableBodyRowsProps.renderKey}. Forwarded to the row renderer. */
   renderKey?: string
 }
@@ -458,6 +492,7 @@ export const TableBody = memo(function TableBody<
   activeFilterCount,
   rowClassName,
   expandable,
+  onRowClick,
   renderKey,
 }: TableBodyProps<TData, TValue>) {
   const rows = table.getRowModel().rows
@@ -471,6 +506,7 @@ export const TableBody = memo(function TableBody<
           virtualizer={virtualizer}
           rowClassName={rowClassName}
           expandable={expandable}
+          onRowClick={onRowClick}
           renderKey={renderKey}
         />
       ) : (
