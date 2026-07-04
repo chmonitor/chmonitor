@@ -212,9 +212,7 @@ export function createQueryTools(hostId: number) {
       }),
       execute: async (input: unknown) => {
         const { getTableQuery } = await import('@/lib/api/table-registry')
-        const { executeTableConfig } = await import(
-          '@/lib/api/query-executor'
-        )
+        const { executeTableConfig } = await import('@/lib/api/query-executor')
         const {
           limit = 10,
           lastHours = 24,
