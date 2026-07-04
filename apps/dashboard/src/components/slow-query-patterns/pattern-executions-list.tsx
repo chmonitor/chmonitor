@@ -1,7 +1,10 @@
 /**
  * Compact execution list shared by the pattern detail flyout's "Recent" and
  * "Notable runs" tabs (`pattern-detail-sheet.tsx`). Rows come from
- * `query-pattern-drilldown.ts`, grouped client-side by `reason`.
+ * `GET /api/v1/insights/query-patterns/:hash` (#2266,
+ * `lib/api/insights/query-patterns.ts`'s `buildPatternExecutionsConfig`) —
+ * reused as-is rather than duplicating a second "executions for one pattern"
+ * query.
  *
  * Deliberately a plain shadcn `Table`, not the full `DataTable` machinery —
  * this list lives inside a `Sheet` alongside stat cards and tabs; the
@@ -22,20 +25,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatReadableQuantity } from '@/lib/format-readable'
 import { formatDuration } from '@/lib/utils'
 
+/** Shape of one row in `/api/v1/insights/query-patterns/:hash`'s
+ * `data.executions[]` — see `buildPatternExecutionsConfig` in
+ * `lib/api/insights/query-patterns.ts`. */
 export interface PatternExecutionRow {
-  reason: string
   query_id: string
   event_time: string
-  query_duration: number | string
-  readable_read_rows: string
-  readable_result_rows: string
-  readable_memory_usage: string
-  exception_code: number | string
   user: string
+  query_kind: string
   database: string
-  client_name: string
+  query_duration_ms: number | string
+  memory_usage: number | string
+  readable_memory_usage: string
+  read_rows: number | string
+  read_bytes: number | string
+  readable_read_bytes: string
+  result_rows: number | string
+  written_bytes: number | string
+  exception_code: number | string
+  exception: string
+  query: string
 }
 
 export function PatternExecutionsList({
@@ -76,13 +88,13 @@ export function PatternExecutionsList({
                 <RelatedTimeFormat value={row.event_time} />
               </TableCell>
               <TableCell className="whitespace-nowrap font-mono text-xs tabular-nums">
-                {formatDuration(Number(row.query_duration || 0) * 1000)}
+                {formatDuration(Number(row.query_duration_ms || 0))}
               </TableCell>
               <TableCell className="whitespace-nowrap text-xs tabular-nums">
-                {row.readable_result_rows}
+                {formatReadableQuantity(Number(row.result_rows || 0))}
                 <span className="text-muted-foreground">
                   {' '}
-                  / {row.readable_read_rows} read
+                  / {formatReadableQuantity(Number(row.read_rows || 0))} read
                 </span>
               </TableCell>
               <TableCell className="whitespace-nowrap text-xs tabular-nums">
@@ -104,7 +116,7 @@ export function PatternExecutionsList({
                   {hasError && (
                     <AlertTriangleIcon
                       className="size-3.5 shrink-0 text-destructive"
-                      aria-label={`Exception code ${row.exception_code}`}
+                      aria-label={`Exception code ${row.exception_code}: ${row.exception}`}
                     />
                   )}
                   <Link

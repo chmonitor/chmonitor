@@ -71,6 +71,18 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
 - **Data tables:** `components/data-table/` — resizing, wrap toggle, sorting
   (`sorting-fns.ts`), pagination, faceted filters, row actions, SQL display.
   Synthetic ids `__expand`/`select`/`action` are non-data.
+- **Clickable table row → detail Sheet flyout:** `DataTable`'s `onRowClick`
+  prop (threaded through `TableClient` → `QueryPageLayout`, desktop rows
+  only — mutually exclusive with `expandable`, which owns row clicks when
+  set) fires with the row's data when the click lands outside interactive
+  cell content (same guard as inline expansion, `isRowClickTarget` in
+  `renderers/table-body.tsx`). The page holds `useState` for the selected
+  row + Sheet open flag and renders a `<Sheet>`-based detail component
+  alongside `<PageLayout>`. Reference:
+  `routes/(dashboard)/slow-query-patterns.tsx` +
+  `components/slow-query-patterns/pattern-detail-sheet.tsx` — the Sheet's
+  heavy content lives in a child component only mounted while `open` is
+  true, so its data fetches don't run while the flyout is closed.
 - **Empty:** `components/ui/empty-state.tsx`, variants `no-data | no-results |
   error | loading | offline | table-missing | timeout | filtered-empty`.
 - **Skeletons:** `components/skeletons/` — match final layout (no layout shift).

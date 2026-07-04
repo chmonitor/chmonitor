@@ -68,7 +68,6 @@ import { profilerConfig } from './queries/profiler'
 import { queryCacheConfig } from './queries/query-cache'
 import { queryConditionCacheConfig } from './queries/query-condition-cache'
 import { queryDetailConfig } from './queries/query-detail'
-import { queryPatternDrilldownConfig } from './queries/query-pattern-drilldown'
 import { queryViewsLogConfig } from './queries/query-views-log'
 import { recentQueriesConfig } from './queries/recent-queries'
 import { runningQueriesConfig } from './queries/running-queries'
@@ -178,7 +177,6 @@ export const queries: Array<QueryConfig> = [
   expensiveQueriesByMemoryConfig,
   slowQueriesConfig,
   slowQueryPatternsConfig,
-  queryPatternDrilldownConfig,
   userProcessesConfig,
   queryMetricLogConfig,
 

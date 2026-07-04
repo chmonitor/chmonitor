@@ -26,7 +26,8 @@ Both endpoints reuse the exact SQL the [Slow Query Patterns](/slow-query-pattern
 
 | Page | Route | What it shows | System tables |
 |---|---|---|---|
-| Slow Query Patterns | `/slow-query-patterns` | The same pattern aggregation, with filtering and drill-down UI | `system.query_log` |
+| Slow Query Patterns | `/slow-query-patterns` | The same pattern aggregation, with filtering; clicking a row opens a detail flyout (aggregate stats, recent executions, notable runs, an Explain/Explorer shortcut, and an Advisor recommendation for that pattern) | `system.query_log` |
+| Recent Queries | `/recent-queries` | Reverse-chronological, non-aggregated `system.query_log` — the per-execution counterpart to Slow Query Patterns, sharing the same time/user/query-kind/database/client filters | `system.query_log` |
 
 ## Using it
 
@@ -41,7 +42,7 @@ GET /api/v1/insights/query-patterns?hostId=0&range=24&sort=total_duration:desc
     hostId: { type: "integer, optional (default 0)", description: "Host index into CLICKHOUSE_HOST — must be a non-negative integer or the request is rejected with 400" },
     range: { type: "integer (hours), optional (default 24)", description: "Shorthand for `event_time=withinHours:<hours>` — how far back to aggregate" },
     sort: { type: "string, optional", description: "`column[:asc|desc]` — reorders the returned rows by any response column (default direction: desc). Omit to keep the SQL's default `total_duration DESC` order." },
-    "user / query_kind / database / event_time": { type: "string, optional", description: "Any Slow Query Patterns filter field as `key=operator:value` (e.g. `user=eq:default`, `query_kind=in:Select`) — the same convention the page's filter bar uses" },
+    "user / query_kind / database / client_name / event_time": { type: "string, optional", description: "Any Slow Query Patterns filter field as `key=operator:value` (e.g. `user=eq:default`, `query_kind=in:Select`) — the same convention the page's filter bar uses" },
   }}
 />
 

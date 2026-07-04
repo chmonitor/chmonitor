@@ -7,13 +7,17 @@
  *   slow-query-patterns query already computed calls / duration percentiles /
  *   resource usage / errors for this exact pattern under the page's active
  *   filters and time range, so no extra query is needed here.
- * - Recent / Notable runs: `query-pattern-drilldown.ts`, one UNION ALL query
- *   grouped client-side by its `reason` column.
+ * - Recent / Notable runs: `GET /api/v1/insights/query-patterns/:hash`
+ *   (#2266) — reused rather than duplicating a second "executions for one
+ *   pattern" query. "Notable" (slowest / largest result / errored) is
+ *   derived client-side from that same up-to-200-row response, the same
+ *   window cap the endpoint itself already applies.
  * - Advisor: reuses `/api/v1/advisor` + `AdvisorRecommendationsPanel`, the
  *   same engine and renderer as the `/advisor` page.
  *
- * Respects the host page's active `event_time` filter by forwarding it
- * unchanged into the drilldown query (see {@link buildDrilldownSearchParams}).
+ * Respects the host page's active `event_time` filter by translating a
+ * `withinHours:N` value into the endpoint's `range` (hours) param — the only
+ * time-window shape it accepts (see {@link resolveRangeHours}).
  */
 import { ExternalLinkIcon, LightbulbIcon, WandSparklesIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -41,9 +45,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { isValidQueryHash } from '@/lib/api/insights/query-patterns'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { useSearchParams } from '@/lib/next-compat'
-import { useTableData } from '@/lib/query/use-table-data'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { formatDuration } from '@/lib/utils'
@@ -76,38 +80,76 @@ function buildStatDisplayRow(
   return row
 }
 
-/** Forward the host page's active `event_time` filter unchanged (same
- * `operator:value` URL encoding — see `lib/filters/url-state.ts`) so the
- * drilldown reflects the same window the clicked row's stats were computed
- * under. Absent → both sides fall back to the shared schema's own default. */
-function buildDrilldownSearchParams(
-  normalizedQueryHash: string,
-  eventTimeParam: string | null
-): Record<string, string> {
-  const params: Record<string, string> = {
-    normalized_query_hash: `eq:${normalizedQueryHash}`,
-  }
-  if (eventTimeParam) params.event_time = eventTimeParam
-  return params
+/**
+ * Translate the host page's active `event_time` filter (`operator:value`,
+ * see `lib/filters/url-state.ts`) into the hours the insights detail
+ * endpoint's `range` param expects. It only understands a relative-hours
+ * window, so an explicit `between`/`gte`/`lte` date-range filter on the page
+ * can't be translated exactly — falls back to the endpoint's own 24h default
+ * in that case (and when no filter is active).
+ */
+function resolveRangeHours(eventTimeParam: string | null): number | null {
+  if (!eventTimeParam?.startsWith('withinHours:')) return null
+  const hours = Number(eventTimeParam.slice('withinHours:'.length))
+  return Number.isFinite(hours) && hours > 0 ? hours : null
 }
 
+interface PatternDetailApiResponse {
+  success: true
+  data: {
+    pattern: Record<string, unknown>
+    executions: PatternExecutionRow[]
+  }
+}
 interface AdvisorApiResponse extends AdvisorRecommendationsOutput {
   success: true
 }
-interface AdvisorApiError {
+interface ApiErrorResponse {
   success: false
-  error: string
+  error: { message: string } | string
+}
+
+function errorMessage(body: ApiErrorResponse, fallback: string): string {
+  return typeof body.error === 'string'
+    ? body.error
+    : body.error.message || fallback
+}
+
+async function fetchPatternDetail(
+  url: string
+): Promise<PatternDetailApiResponse> {
+  const res = await apiFetch(url)
+  const body = (await res.json()) as PatternDetailApiResponse | ApiErrorResponse
+  if (!res.ok || !body.success) {
+    throw new Error(
+      errorMessage(
+        body as ApiErrorResponse,
+        `Failed to load pattern detail (HTTP ${res.status})`
+      )
+    )
+  }
+  return body
 }
 
 async function fetchAdvisor(url: string): Promise<AdvisorApiResponse> {
   const res = await apiFetch(url)
-  const body = (await res.json()) as AdvisorApiResponse | AdvisorApiError
+  const body = (await res.json()) as AdvisorApiResponse | ApiErrorResponse
   if (!res.ok || !body.success) {
     throw new Error(
-      (body as AdvisorApiError).error || `Analysis failed (HTTP ${res.status})`
+      errorMessage(
+        body as ApiErrorResponse,
+        `Analysis failed (HTTP ${res.status})`
+      )
     )
   }
   return body
+}
+
+/** Best-effort top-N helper for the "Notable runs" tab — sorts a copy so the
+ * caller's array/order (reverse-chronological, as the API returns it) is
+ * untouched for the "Recent" tab. */
+function topN<T>(rows: T[], by: (row: T) => number, n: number): T[] {
+  return [...rows].sort((a, b) => by(b) - by(a)).slice(0, n)
 }
 
 /** Only mounted while the Sheet is open — gates the drilldown/advisor fetches. */
@@ -124,37 +166,38 @@ function PatternDetailSheetContent({
     pattern.normalized_query_hash_str ?? pattern.normalized_query_hash ?? ''
   )
 
-  const drilldownParams = useMemo(
-    () =>
-      buildDrilldownSearchParams(
-        normalizedQueryHash,
-        searchParams.get('event_time')
-      ),
-    [normalizedQueryHash, searchParams]
-  )
+  const rangeHours = resolveRangeHours(searchParams.get('event_time'))
+  const detailUrl = isValidQueryHash(normalizedQueryHash)
+    ? `/api/v1/insights/query-patterns/${normalizedQueryHash}?${new URLSearchParams(
+        {
+          hostId: String(hostId),
+          ...(rangeHours ? { range: String(rangeHours) } : {}),
+        }
+      ).toString()}`
+    : null
 
   const {
-    data: drilldownRows,
+    data: detailData,
     isLoading: isDrilldownLoading,
     error: drilldownError,
-  } = useTableData<PatternExecutionRow>(
-    'query-pattern-drilldown',
-    hostId,
-    drilldownParams
-  )
+  } = useQuery<PatternDetailApiResponse>({
+    queryKey: ['pattern-detail-executions', detailUrl],
+    queryFn: () => fetchPatternDetail(detailUrl as string),
+    enabled: Boolean(detailUrl),
+  })
 
   const byReason = useMemo(() => {
-    const groups: Record<string, PatternExecutionRow[]> = {
-      recent: [],
-      slowest: [],
-      largest_result: [],
-      errored: [],
+    const executions = detailData?.data.executions ?? []
+    return {
+      // Already reverse-chronological from the API.
+      recent: executions.slice(0, 20),
+      slowest: topN(executions, (r) => Number(r.query_duration_ms || 0), 5),
+      largest_result: topN(executions, (r) => Number(r.result_rows || 0), 5),
+      errored: executions
+        .filter((r) => Number(r.exception_code || 0) !== 0)
+        .slice(0, 5),
     }
-    for (const row of drilldownRows) {
-      groups[row.reason]?.push(row)
-    }
-    return groups
-  }, [drilldownRows])
+  }, [detailData])
 
   const advisorUrl = normalizedQuery
     ? `/api/v1/advisor?${new URLSearchParams({ hostId: String(hostId), sql: normalizedQuery }).toString()}`
