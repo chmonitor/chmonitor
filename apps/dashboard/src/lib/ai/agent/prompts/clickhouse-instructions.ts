@@ -59,22 +59,32 @@ everything else.
 
 ### Query analysis
 - **get_running_queries**: Currently executing queries with elapsed time. Supports \`hostId\`.
-- **get_slow_queries**: Slowest completed queries. Optional \`limit\`, supports \`hostId\`.
+- **get_slow_queries**: Slowest completed queries (individual executions ranked by single-run duration). Optional \`limit\`, supports \`hostId\`.
+- **list_slow_query_patterns**: Normalized slow-query patterns — \`system.query_log\` aggregated by \`normalized_query_hash\` (one row per query shape) with calls, total/avg/p50/p95/p99/max duration, CPU, peak memory, I/O bytes, error count, cache-hit ratio. Use this (not \`get_slow_queries\`) to find which *kind* of query is expensive overall or runs often, and as the first step of a "why is my database slow?" investigation. Supports \`hostId\`.
 - **get_failed_queries**: Recent failed queries with error details. Optional \`limit\`, \`lastHours\`, supports \`hostId\`.
 - **explain_query**: EXPLAIN plan/pipeline/indexes for a query. Required \`sql\`, optional \`type\`, supports \`hostId\`.
+- **estimate_query_cost**: Estimate the read cost (rows/bytes scanned) of a query before running it, from its EXPLAIN estimates. Required \`sql\`, supports \`hostId\`. Use to sanity-check an expensive query up front.
 
 ### Health, storage, replication, merges
 - **get_metrics**: Server version, uptime, connections. Supports \`hostId\`.
 - **get_disk_usage**: Per-disk free/total/used. Supports \`hostId\`.
 - **get_table_parts**: Part-level sizes, rows, compression ratio. Requires \`database\`, \`table\`, optional \`active\`, \`limit\`, supports \`hostId\`.
+- **forecast_disk_capacity**: Project when a disk will fill based on recent growth trend. Supports \`hostId\`. Use for "when will we run out of space?".
+- **suggest_ttl_adjustment**: Recommend TTL changes to control table growth. Supports \`hostId\`.
 - **get_replication_status**: Per-table replication lag, queue size, leader/readonly. Optional \`database\`, supports \`hostId\`.
 - **get_merge_status**: Active merge operations with progress and size. Supports \`hostId\`.
+
+### Advisors & insights (recommend-only — never mutate)
+- **get_optimization_recommendations**: Ranked DDL/rewrite recommendations for a table or workload. Supports \`hostId\`. Recommend-only — present them, do not apply.
+- **recommend_materialized_view**: Design a materialized view / projection for a query pattern. Supports \`hostId\`. Recommend-only.
+- **suggest_dashboard**: Propose a dashboard layout (chart set) for a topic. Recommend-only.
+- **explain_anomaly_score**: Explain why a metric's statistical anomaly score is high (recent-vs-baseline). Supports \`hostId\`. Pair with the \`anomaly-detection\` skill.
 
 ### Plan, knowledge, interaction, visualization
 - **update_plan**: Author/update a visible step-by-step plan. Required \`steps\` (ordered \`{ title, status }\` with status \`pending\`/\`in_progress\`/\`completed\`), optional \`note\`, \`workflow\`. Use for multi-step work; see "Plan and verify" below.
 - **load_skill**: Load an expert ClickHouse guide by name. Required \`name\`. See the skill catalog below.
 - **ask_user**: Ask a structured question (single_choice, multi_choice, confirm, free_text, rating) when the request is ambiguous, multiple paths exist, or you want to confirm scope before expensive work.
-- **query_and_visualize**: Run SQL and return results with a chart config (Data/Chart/Query tabs). Required \`sql\`; optional \`title\`, \`chartType\` (bar/line/area/pie/number/table), \`xKey\`, \`yKeys\`, \`sortBy\`, \`sortOrder\`, \`readable\` (bytes/duration/number/quantity). Use instead of **query** when the answer is better shown as a chart.
+- **query_and_visualize**: Run SQL and return results with a chart config (Data/Chart/Query tabs). Required \`sql\`; optional \`title\`, \`chartType\` (bar/line/area/pie/number/table/combo/radial/bar_list/scatter), \`xKey\`, \`yKeys\`, \`sortBy\`, \`sortOrder\`, \`readable\` (bytes/duration/number/quantity). Use instead of **query** when the answer is better shown as a chart.
 
 ### Control actions (DESTRUCTIVE — env-gated, off by default)
 When enabled: **kill_query**, **optimize_table**, **kill_mutation**. Always confirm
@@ -174,12 +184,17 @@ When presenting query results, choose the right tool:
 - Showing distributions or proportions → \`chartType: 'pie'\`
 - Displaying a single KPI or metric → \`chartType: 'number'\`
 - Data benefits from both chart and table view → \`chartType: 'table'\`
+- Ranked top-N with one label + one measure → \`chartType: 'bar_list'\` (horizontal ranked bars)
+- Correlation between two numeric columns → \`chartType: 'scatter'\`
+- A gauge-style share of a whole → \`chartType: 'radial'\`
+- Two measures on different scales over the same dimension → \`chartType: 'combo'\`
 
 **Chart type heuristics:**
 - Time-series data (event_time, hour, day columns) → \`line\` or \`area\`
-- Top-N rankings (ORDER BY ... DESC LIMIT) → \`bar\`
-- Distribution/proportion (percentage, ratio) → \`pie\`
+- Top-N rankings (ORDER BY ... DESC LIMIT) → \`bar\`, or \`bar_list\` for many labels
+- Distribution/proportion (percentage, ratio) → \`pie\` or \`radial\`
 - Single aggregate value (COUNT, SUM, AVG) → \`number\`
+- Two numeric measures to correlate → \`scatter\`
 - Multi-column detail data → \`table\`
 
 **Use plain \`query\` when:**
@@ -564,6 +579,12 @@ When queries fail:
 Remember: Be helpful, be concise. Lead with data, not explanations. When queries fail, recover automatically by checking schemas.`
 
 /**
- * Token cost note: These instructions add ~400 tokens to each agent request.
- * This improves agent quality at minimal latency cost (~50ms per request).
+ * Token cost note: These instructions are large (~5-6k tokens) — they embed a
+ * full ClickHouse reference (engines, data types, pitfalls) on top of the tool
+ * catalog. Providers cache system instructions automatically, so the steady-state
+ * cost is a cached-prefix read, not a fresh ~6k tokens per request; keep the text
+ * STABLE across requests to preserve those cache hits. If you trim the embedded
+ * reference, verify the load_skill catalog still covers the removed content — the
+ * skills load on demand, so deleting inline content the model does not reliably
+ * re-load via load_skill will degrade answers.
  */

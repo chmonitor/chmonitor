@@ -41,6 +41,9 @@ afterAll(() => {
 })
 
 const { createAllTools } = await import('./index')
+const { CLICKHOUSE_AGENT_INSTRUCTIONS } = await import(
+  '../prompts/clickhouse-instructions'
+)
 const toolNames = Object.keys(createAllTools(0, true))
 
 const REPO_ROOT = join(
@@ -95,6 +98,16 @@ describe('AI agent tool docs stay in sync with the code', () => {
       // Backtick-delimited match — a bare substring match would let e.g.
       // `query` pass just because it's a substring of `explain_query`.
       expect(CAPABILITIES_DOC).toContain(`\`${name}\``)
+    }
+  })
+
+  test('every agent tool is named in the system prompt', () => {
+    // The model can only reliably call tools the system prompt tells it about.
+    // capabilities.mdx (checked above) is user-facing docs the model never sees;
+    // this guards the prompt the model actually reads. Control tools are gated
+    // off at runtime but still described in the prompt, so all names must appear.
+    for (const name of toolNames) {
+      expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(`**${name}**`)
     }
   })
 
