@@ -127,7 +127,11 @@ describe('POST /api/v1/billing/can-downgrade', () => {
     expect(exceeded).toEqual([])
   })
 
-  test('Max→Pro with 5 hosts (Pro caps at 3) reports hosts exceeded', async () => {
+  test('Max→Pro with 5 hosts (Pro soft-caps hosts via hostOverage) does NOT report hosts exceeded', async () => {
+    // Pro publishes `hostOverage` (soft cap): `checkHostSoftCap` never blocks
+    // a plan with an overage policy — it meters billable overage instead.
+    // Warning "hosts exceeded" here would be the same dishonest-paywall shape
+    // this route explicitly avoids for `aiRequestsPerDay` — nothing is lost.
     ownerUsage = {
       plan: getPlan('max'),
       hostsUsed: 5,
@@ -139,9 +143,25 @@ describe('POST /api/v1/billing/can-downgrade', () => {
     const res = await handlePost(makeRequest({ targetPlanId: 'pro' }))
     expect(res.status).toBe(200)
     const { ok, exceeded } = await readOk(res)
+    expect(ok).toBe(true)
+    expect(exceeded).toEqual([])
+  })
+
+  test('Pro→Free with 3 hosts (Free hard-caps at 1, hostOverage: null) reports hosts exceeded', async () => {
+    ownerUsage = {
+      plan: getPlan('pro'),
+      hostsUsed: 3,
+      seatsUsed: 1,
+      aiUsedToday: 0,
+      aiSpentThisMonth: 0,
+    }
+
+    const res = await handlePost(makeRequest({ targetPlanId: 'free' }))
+    expect(res.status).toBe(200)
+    const { ok, exceeded } = await readOk(res)
     expect(ok).toBe(false)
     expect(exceeded).toContainEqual(
-      expect.objectContaining({ metric: 'hosts', used: 5, targetLimit: 3 })
+      expect.objectContaining({ metric: 'hosts', used: 3, targetLimit: 1 })
     )
   })
 
@@ -164,16 +184,19 @@ describe('POST /api/v1/billing/can-downgrade', () => {
   })
 
   test('a deferred metric never appears in exceeded even when numerically over', async () => {
+    // Target Free (hard-capped) so this exercises the enforcement-status
+    // branch specifically — Pro/Max targets already skip `hosts` regardless
+    // of enforcement status because they soft-cap via `hostOverage`.
     enforcementRegistry.hosts = { status: 'deferred', note: 'beta' }
     ownerUsage = {
-      plan: getPlan('max'),
-      hostsUsed: 5, // over Pro's 3-host cap
-      seatsUsed: 1, // within Pro's 3-seat cap
+      plan: getPlan('pro'),
+      hostsUsed: 3, // over Free's 1-host cap
+      seatsUsed: 1, // within Free's 1-seat cap
       aiUsedToday: 0,
       aiSpentThisMonth: 0,
     }
 
-    const res = await handlePost(makeRequest({ targetPlanId: 'pro' }))
+    const res = await handlePost(makeRequest({ targetPlanId: 'free' }))
     expect(res.status).toBe(200)
     const { ok, exceeded } = await readOk(res)
     expect(ok).toBe(true)

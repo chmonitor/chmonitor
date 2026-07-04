@@ -17,8 +17,9 @@
  * numerically over the target plan's cap and (b) classified `enforced` in
  * `lib/billing/plan-enforcement.ts` (`LIMIT_ENFORCEMENT`) — a `deferred` limit
  * must never manufacture a warning. See the metric notes below `buildExceeded`
- * for why `aiRequestsPerDay` and `retentionDays` stay in the `ExceededMetric`
- * type but are never actually populated.
+ * for why `hosts`, `aiRequestsPerDay`, and `retentionDays` stay in the
+ * `ExceededMetric` type but are only conditionally (`hosts`) or never
+ * (`aiRequestsPerDay` / `retentionDays`) actually populated.
  *
  * The exceeded decision uses strict `used > targetLimit` (NOT the entitlement
  * helpers' `.allowed`, which answers "room for one more" and would false-warn
@@ -52,8 +53,21 @@ import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 const ROUTE = { route: '/api/v1/billing/can-downgrade', method: 'POST' }
 
 /**
- * Metrics `can-downgrade` is capable of reporting. Only `hosts` and `seats` are
- * ever actually populated in `exceeded` today:
+ * Metrics `can-downgrade` is capable of reporting. Only `seats`, and `hosts`
+ * when the target plan hard-caps, are ever actually populated in `exceeded`
+ * today:
+ * - `hosts` is a SOFT cap on every plan that publishes `plan.hostOverage`
+ *   (Pro/Max) — `routes/api/v1/user-connections.ts` gates host creation via
+ *   `checkHostSoftCap`, which never blocks a plan with an overage policy; it
+ *   only meters billable overage (`host-usage-store.ts`). Downgrading to a
+ *   plan with `hostOverage` set never actually removes host access, so
+ *   flagging it via the hard-cap `checkHostLimit` (`used > targetLimit`) would
+ *   be the same dishonest warning this route explicitly avoids for
+ *   `aiRequestsPerDay` below. `hosts` is only checked (and can only appear in
+ *   `exceeded`) when the TARGET plan hard-caps (`hostOverage == null`, e.g.
+ *   Free) — currently unreachable from the billing UI (its "Change to <plan>"
+ *   CTA only targets Pro/Max, both soft-capped) but kept correct in case a
+ *   hard-capped target ever becomes reachable.
  * - `aiRequestsPerDay` is a SOFT cap on every paid tier — `checkAiDailyLimit`
  *   returns `allowed: true` whenever the plan has `aiOverage` set (Pro/Max bill
  *   overage instead of blocking). A numeric "over" against a paid target isn't
@@ -63,8 +77,8 @@ const ROUTE = { route: '/api/v1/billing/can-downgrade', method: 'POST' }
  *   no "current usage" resolver anywhere in the codebase (no "oldest stored
  *   data" metric) — inventing one here would risk a warning not backed by a
  *   real, measured gate.
- * Both stay in the union so the response shape matches the spec and can be
- * extended later without a breaking type change.
+ * All three stay in the union so the response shape matches the spec and can
+ * be extended later without a breaking type change.
  */
 export type ExceededMetric =
   | 'hosts'
@@ -153,18 +167,26 @@ async function handlePost(request: Request): Promise<Response> {
     const usage = await resolveOwnerUsage(owner, userId)
     const targetPlan = getPlan(targetPlanId)
 
-    const exceeded = buildExceeded([
-      {
-        key: 'hosts',
-        metric: 'hosts',
-        check: checkHostLimit(targetPlan, usage.hostsUsed),
-      },
+    const specs: MetricSpec[] = [
       {
         key: 'seats',
         metric: 'seats',
         check: checkSeatLimit(targetPlan, usage.seatsUsed),
       },
-    ])
+    ]
+    // Only a hard-capped target (`hostOverage == null`, e.g. Free) can actually
+    // lose host access — a soft-capped target (Pro/Max) bills overage instead
+    // of blocking, so it must not appear in `exceeded` (see the doc comment
+    // above `ExceededMetric`).
+    if (targetPlan.hostOverage == null) {
+      specs.push({
+        key: 'hosts',
+        metric: 'hosts',
+        check: checkHostLimit(targetPlan, usage.hostsUsed),
+      })
+    }
+
+    const exceeded = buildExceeded(specs)
 
     return createSuccessResponse({ ok: exceeded.length === 0, exceeded })
   } catch {
