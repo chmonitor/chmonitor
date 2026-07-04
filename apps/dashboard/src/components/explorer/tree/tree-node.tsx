@@ -135,7 +135,10 @@ export const TreeNode = function TreeNode({
                   )}
                 />
               ))}
-            <span className="truncate">{label}</span>
+            {/* `truncate` clips visually via CSS ellipsis while keeping the
+                full name in the DOM; `select-text` keeps it double-click
+                selectable + copyable even inside this clickable button. */}
+            <span className="truncate select-text">{label}</span>
             {badge && <div className="ml-auto">{badge}</div>}
           </SidebarMenuButton>
         </div>

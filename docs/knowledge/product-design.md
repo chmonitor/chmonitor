@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-06-29
+updated: 2026-07-04
 tags:
   - design-system
   - ui
@@ -76,18 +76,45 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
 - **Skeletons:** `components/skeletons/` — match final layout (no layout shift).
 - **First-run:** `components/host/first-run-gate.tsx` →
   `first-run-empty-state.tsx` (cloud signed-in / cloud anon / self-hosted).
+- **Dashboard widget grid** (plan 57, `components/dashboard/`): `grid.tsx`
+  lays out `DashboardWidget[]` (chart/table/stat/text, `@/types/dashboard-layout`)
+  on a fixed 12-column CSS grid; view mode is plain positioned `div`s, arrange
+  mode adds `@dnd-kit/core` drag-to-move + pointer-event corner resize, both
+  rejecting (snap-back) a move/resize that collides with another widget
+  (`widgetsCollide`/`findFreePosition`). `widget-frame.tsx` is the shared
+  chrome (title bar, drag handle, remove, resize handle — edit-mode-only).
+  A dashboard-scoped `DashboardTimeRangeProvider`
+  (`components/dashboard/time-range-context.tsx`, distinct from the app-wide
+  `lib/context/time-range-context.tsx`) drives every chart widget's baseline
+  `lastHours`/`interval` via explicit props, which outrank both the chart's
+  own default and the global header time-range picker.
 
 ## UX conventions
 
 - `?host=N` routing; `useHostId()` (`lib/swr`); preserve params via
   `buildUrl(pathname, { host }, searchParams)`.
 - Hooks at deepest consumer — no `hostId` prop drilling.
+- **Clickable summary card → detail dialog:** make the WHOLE card the target
+  (`role="button"` + `tabIndex={0}` + `onClick` + `onKeyDown={activateOnEnterOrSpace(open)}`
+  from `lib/a11y.ts` — never a nested `<button>`); inner links call
+  `e.stopPropagation()` (NOT `preventDefault`) so they still navigate. Reveal a
+  hover/focus "Details" hint. Drive drill-down generically from a per-item field
+  (e.g. each health check's `detailChartName`) rendered via `ResultTable`, not
+  per-card code — see `components/health/{health-card-shell,health-detail-rows}.tsx`.
 - Graceful revalidation: keep data on `staleError`, show hover-revealed amber
   `ChartStaleIndicator`; only blank out on initial `error && !hasData`.
 - Icons: `lucide-react`, `size-4` / `size-3.5`, `strokeWidth={1.5}`.
 - Class idioms: card `rounded-xl border bg-card shadow-sm`; dense text
   `text-[13px]`; meta `text-xs text-muted-foreground`; hero title `text-xl
   font-semibold tracking-tight`.
+- Overflow strip: for a single-row scroller that must not wrap, use
+  `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
+  tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped
+  vertically. When it overflows, show a chevron button + a
+  `from-background`→`transparent` edge fade per scrollable side and page with
+  `scrollBy({ left: ±clientWidth*0.85, behavior: 'smooth' })`; re-measure on
+  scroll, `ResizeObserver`, and content-count change. Reference:
+  `components/insights/insights-strip.tsx`.
 
 ## Brand
 

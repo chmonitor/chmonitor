@@ -1,11 +1,8 @@
-import type { LucideIcon } from 'lucide-react'
-import { AlertTriangle, ArrowRight, Info, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, X } from 'lucide-react'
 
-import type {
-  InsightCard as InsightCardData,
-  InsightSeverity,
-} from '@/lib/insights/types'
+import type { InsightCard as InsightCardData } from '@/lib/insights/types'
 
+import { SEVERITY_META } from '@/components/insights/severity-meta'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,41 +10,6 @@ import { Card } from '@/components/ui/card'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/utils/format-relative-time'
-
-interface SeverityStyle {
-  icon: LucideIcon
-  iconBg: string
-  iconColor: string
-  badge: string
-  badgeLabel: string
-}
-
-const SEVERITY: Record<InsightSeverity, SeverityStyle> = {
-  critical: {
-    icon: AlertTriangle,
-    iconBg: 'bg-rose-100 dark:bg-rose-950/50',
-    iconColor: 'text-rose-600 dark:text-rose-400',
-    badge:
-      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-400',
-    badgeLabel: 'Critical',
-  },
-  warning: {
-    icon: TriangleAlert,
-    iconBg: 'bg-amber-100 dark:bg-amber-950/50',
-    iconColor: 'text-amber-600 dark:text-amber-400',
-    badge:
-      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400',
-    badgeLabel: 'Warning',
-  },
-  info: {
-    icon: Info,
-    iconBg: 'bg-muted',
-    iconColor: 'text-muted-foreground',
-    badge:
-      'border-border bg-muted/50 text-muted-foreground dark:bg-muted/30 dark:text-muted-foreground',
-    badgeLabel: 'Info',
-  },
-}
 
 interface InsightCardProps {
   insight: InsightCardData
@@ -62,7 +24,7 @@ export function InsightCard({
   onDismiss,
   className,
 }: InsightCardProps) {
-  const style = SEVERITY[insight.severity]
+  const style = SEVERITY_META[insight.severity]
   const Icon = style.icon
 
   const generatedMs = insight.generatedAt
@@ -78,7 +40,13 @@ export function InsightCard({
       : undefined
 
   return (
-    <Card className={cn('h-full gap-0 p-4 transition-colors', className)}>
+    <Card
+      className={cn(
+        'h-full gap-0 border-l-2 p-4 transition-colors',
+        style.accent,
+        className
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div
           className={cn(
@@ -113,7 +81,7 @@ export function InsightCard({
             variant="outline"
             className={cn('text-[10px] font-medium', style.badge)}
           >
-            {style.badgeLabel}
+            {style.label}
           </Badge>
           {hasGeneratedAt ? (
             <time

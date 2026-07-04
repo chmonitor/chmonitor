@@ -17,10 +17,12 @@ export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'query-count-by-user': 'bar',
   'query-duration': 'area',
   'query-memory': 'area',
+  'query-metric-log-memory': 'area',
   'query-type': 'bar',
   'failed-query-count': 'area',
   'failed-query-count-by-user': 'bar',
   'query-cache': 'metric',
+  'query-cache-usage': 'bar',
   'query-duration-percentiles': 'area',
   'slow-query-occurrences': 'bar',
 

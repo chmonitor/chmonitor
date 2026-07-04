@@ -26,7 +26,7 @@ export const menuCountRegistry: Record<string, MenuCountQuery> = {
     query: `SELECT COUNT() as count FROM system.tables WHERE lower(database) NOT IN ('system', 'information_schema') AND is_temporary = 0 AND engine LIKE '%MergeTree%'`,
   },
   'tables-overview': {
-    query: `SELECT countDistinct(database || table) as count FROM system.parts`,
+    query: `SELECT countDistinct(database, table) as count FROM system.parts WHERE active`,
   },
   'distributed-ddl-queue': {
     query: `SELECT COUNT() as count FROM system.distributed_ddl_queue WHERE status != 'Finished'`,

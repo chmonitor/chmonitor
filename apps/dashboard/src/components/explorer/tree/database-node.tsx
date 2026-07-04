@@ -70,6 +70,8 @@ export const DatabaseNode = function DatabaseNode({
     queryKey: [url],
     queryFn: () => fetcher(url),
     enabled: shouldFetch,
+    // Table list per database changes rarely — cache across expand/collapse and remounts.
+    staleTime: 5 * 60_000,
   })
 
   const tables = response?.data

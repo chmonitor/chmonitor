@@ -2,19 +2,23 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   ExternalLinkIcon,
-  InfoCircledIcon,
 } from '@radix-ui/react-icons'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { splitSqlStatements } from '@chm/sql-builder'
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { ExplainResult } from '@/components/explain/explain-result'
+import {
+  QueryPicker,
+  type QueryPickSelection,
+} from '@/components/explain/query-picker'
 import { ErrorAlert } from '@/components/feedback'
 import { SaveFavoriteButton } from '@/components/query-favorites'
 import { TableSkeleton } from '@/components/skeletons'
+import { useQueryLog } from '@/components/sql-console/hooks/use-query-log'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Label } from '@/components/ui/label'
@@ -335,6 +339,42 @@ function ExplainContent() {
     useState<Record<string, number>>(buildDefaultSettings)
   const [activeQuery, setActiveQuery] = useState('0')
 
+  // ── query_id prefill (deep-link from a query row, or the query picker) ──
+  // Resolve the SQL for ?query_id=<id> from system.query_log and load it into
+  // the editor. Reuses the SQL-console query-log hook, whose lookup matches the
+  // spec: WHERE query_id = <id> AND type != 'QueryStart' ORDER BY event_time
+  // DESC LIMIT 1.
+  const queryIdFromUrl = searchParams.get('query_id')
+  const {
+    data: qlRow,
+    isLoading: qlLoading,
+    error: qlError,
+  } = useQueryLog(hostId, queryIdFromUrl, Boolean(queryIdFromUrl))
+  // Track the last id we prefilled from (not a boolean) so that re-picking a
+  // query after its id was stripped from the URL prefills again.
+  const lastPrefilledId = useRef<string | null>(null)
+
+  useEffect(() => {
+    // Reset the guard once query_id leaves the URL so the next pick re-runs.
+    if (!queryIdFromUrl) lastPrefilledId.current = null
+  }, [queryIdFromUrl])
+
+  useEffect(() => {
+    if (!queryIdFromUrl || lastPrefilledId.current === queryIdFromUrl) return
+    const sql = typeof qlRow?.query === 'string' ? qlRow.query : ''
+    if (!sql.trim()) return
+    lastPrefilledId.current = queryIdFromUrl
+    setQueryInput(sql)
+    setCommittedQuery(sql) // auto-run the current EXPLAIN tab
+    setActiveQuery('0')
+    // Strip query_id from the URL so a refresh — or later manual edits — isn't
+    // clobbered by re-fetching the original query. host / mode are preserved.
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('query_id')
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [queryIdFromUrl, qlRow, pathname, router, searchParams])
+
   const setMode = (newMode: string) => {
     setModeState(newMode)
     const params = new URLSearchParams(searchParams.toString())
@@ -373,76 +413,130 @@ function ExplainContent() {
     setActiveQuery('0')
   }
 
+  // Query picker: recent/running queries carry full SQL (fill the editor
+  // directly); slow queries are stored truncated, so resolve them by query_id
+  // through the prefill path above.
+  const handlePick = (selection: QueryPickSelection) => {
+    if ('sql' in selection) {
+      setQueryInput(selection.sql)
+      setCommittedQuery(selection.sql)
+      setActiveQuery('0')
+      return
+    }
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('query_id', selection.queryId)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
+  // A ?query_id is still resolving to editor content (loading / not-found).
+  const prefillPending =
+    Boolean(queryIdFromUrl) && lastPrefilledId.current !== queryIdFromUrl
+
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <InfoCircledIcon className="size-5" />
-            Explain Query
-            <div className="ml-auto flex items-center gap-2">
-              <SaveFavoriteButton
-                sql={committedQuery}
-                hostId={hostId}
-                database={null}
-              />
-              <a
-                href="https://clickhouse.com/docs/sql-reference/statements/explain"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground text-xs font-normal"
-              >
-                Docs <ExternalLinkIcon className="inline size-3" />
-              </a>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs value={mode} onValueChange={setMode}>
-            <div className="overflow-x-auto">
-              <TabsList>
-                {EXPLAIN_MODES.map((m) => (
-                  <TabsTrigger key={m.value} value={m.value}>
-                    {m.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </Tabs>
-
-          {!mode && (
-            <PlanSettingsPanel
-              settings={planSettings}
-              onToggle={toggleSetting}
-            />
-          )}
-
-          <div className="space-y-2">
-            <Suspense fallback={<EditorFallback />}>
-              <SqlEditor
-                value={queryInput}
-                onChange={setQueryInput}
-                onRun={handleExplain}
-                placeholder="Enter SQL query to explain..."
-              />
-            </Suspense>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-muted-foreground text-xs">
-                Press Cmd/Ctrl + Enter to explain. Separate multiple queries
-                with{' '}
-                <code className="bg-muted rounded px-1 text-[11px]">;</code>
-              </p>
-              <Button onClick={handleExplain} disabled={!queryInput.trim()}>
-                Explain
-              </Button>
-            </div>
+      {/* Toolbar: EXPLAIN modes on the left, query actions on the right. The
+          scroll wrapper pins overflow to the x-axis — a bare `overflow-x-auto`
+          also computes `overflow-y` to `auto` and paints a phantom vertical
+          scrollbar; `py-0.5` keeps the tab focus ring from being clipped. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={mode} onValueChange={setMode}>
+          <div className="overflow-x-auto overflow-y-hidden py-0.5">
+            <TabsList>
+              {EXPLAIN_MODES.map((m) => (
+                <TabsTrigger key={m.value} value={m.value}>
+                  {m.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
-        </CardContent>
-      </Card>
+        </Tabs>
 
+        <div className="flex items-center gap-2">
+          <QueryPicker hostId={hostId} onSelect={handlePick} />
+          <SaveFavoriteButton
+            sql={committedQuery}
+            hostId={hostId}
+            database={null}
+          />
+          <a
+            href="https://clickhouse.com/docs/sql-reference/statements/explain"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium"
+          >
+            Docs <ExternalLinkIcon className="size-3" />
+          </a>
+        </div>
+      </div>
+
+      {/* Plan settings (EXPLAIN PLAN only) */}
+      {!mode && (
+        <PlanSettingsPanel settings={planSettings} onToggle={toggleSetting} />
+      )}
+
+      {/* Editor + run bar. The editor is its own bordered, focus-ring surface,
+          so there's no extra card wrapper and no nested-scroll "slop". */}
+      <div className="space-y-2">
+        <Suspense fallback={<EditorFallback />}>
+          <SqlEditor
+            value={queryInput}
+            onChange={setQueryInput}
+            onRun={handleExplain}
+            placeholder="Enter a SQL query to explain, or pick a recent, running, or slow query…"
+          />
+        </Suspense>
+
+        {prefillPending && (
+          <div className="text-xs">
+            {qlLoading ? (
+              <span className="text-muted-foreground">
+                Loading query{' '}
+                <code className="bg-muted rounded px-1 text-[11px]">
+                  {queryIdFromUrl}
+                </code>
+                …
+              </span>
+            ) : qlError ? (
+              <span className="text-amber-600 dark:text-amber-400">
+                Couldn't load query{' '}
+                <code className="bg-muted rounded px-1 text-[11px]">
+                  {queryIdFromUrl}
+                </code>
+                : {qlError.message}
+              </span>
+            ) : qlRow === null ? (
+              // Settled null = genuinely not found. A found row renders nothing
+              // here: the effect is about to fill the editor and strip the id.
+              <span className="text-amber-600 dark:text-amber-400">
+                Query{' '}
+                <code className="bg-muted rounded px-1 text-[11px]">
+                  {queryIdFromUrl}
+                </code>{' '}
+                isn't in{' '}
+                <code className="bg-muted rounded px-1 text-[11px]">
+                  system.query_log
+                </code>{' '}
+                yet — paste its SQL below to explain it.
+              </span>
+            ) : null}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-muted-foreground text-xs">
+            Press Cmd/Ctrl + Enter to explain. Separate multiple queries with{' '}
+            <code className="bg-muted rounded px-1 text-[11px]">;</code>
+          </p>
+          <Button onClick={handleExplain} disabled={!queryInput.trim()}>
+            Explain
+          </Button>
+        </div>
+      </div>
+
+      {/* Results */}
       {statements.length > 1 ? (
         <Tabs value={activeQuery} onValueChange={setActiveQuery}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-hidden py-0.5">
             <TabsList>
               {statements.map((_, i) => (
                 <TabsTrigger key={i} value={String(i)}>
@@ -471,7 +565,15 @@ function ExplainContent() {
           planSettings={planSettings}
           treeRenderable={treeRenderable}
         />
-      ) : null}
+      ) : prefillPending ? null : (
+        <div className="rounded-xl border border-dashed bg-card/40 px-6 py-10">
+          <EmptyState
+            variant="no-data"
+            title="Nothing to explain yet"
+            description="Enter a SQL query above, or pick a recent, running, or slow query, then press Explain to see its execution plan."
+          />
+        </div>
+      )}
     </div>
   )
 }

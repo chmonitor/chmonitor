@@ -10,17 +10,17 @@ export const tablesOverviewDeclarative: DeclarativeQueryConfig = {
         detached_parts AS
         (
             SELECT
-                format('{}.{}', database, \`table\`) AS \`table\`,
+                format('{}.{}', dp.database, dp.\`table\`) AS \`table\`,
                 count() AS detached_parts_count,
                 sum(bytes_on_disk) AS detached_bytes_on_disk,
                 formatReadableSize(detached_bytes_on_disk) AS readable_detached_bytes_on_disk
-            FROM system.detached_parts
-            GROUP BY 1
+            FROM system.detached_parts AS dp
+            GROUP BY dp.database, dp.\`table\`
         ),
         parts AS
         (
             SELECT
-                format('{}.{}', database, \`table\`) AS \`table\`,
+                format('{}.{}', parts.database, parts.\`table\`) AS \`table\`,
                 sum(rows) AS total_rows,
                 formatReadableQuantity(total_rows) AS readable_total_rows,
                 round((100 * total_rows) / nullIf(max(total_rows) OVER (), 0)) AS pct_total_rows,
@@ -57,8 +57,7 @@ export const tablesOverviewDeclarative: DeclarativeQueryConfig = {
                 round((100 * parts_count) / nullIf(max(parts_count) OVER (), 0)) AS pct_parts_count
             FROM system.parts AS parts
             WHERE active
-            GROUP BY 1
-            ORDER BY compressed DESC
+            GROUP BY parts.database, parts.\`table\`
         )
       SELECT
         parts.*,
@@ -67,6 +66,7 @@ export const tablesOverviewDeclarative: DeclarativeQueryConfig = {
         splitByChar('.', parts.table)[2] AS _table
       FROM parts
       LEFT JOIN detached_parts USING (\`table\`)
+      ORDER BY compressed DESC
     `,
   columns: [
     'table',

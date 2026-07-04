@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-06-20
+updated: 2026-07-04
 tags:
   - insights
   - findings
@@ -32,6 +32,7 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
 | Stage | Module |
 |-------|--------|
 | Collect (deterministic) | `src/lib/insights/collectors.ts` |
+| Operational classifiers (pure) | `src/lib/insights/operational-checks.ts` |
 | Enrich (optional LLM) | `src/lib/insights/llm-enrich.ts` |
 | Orchestrate + persist | `src/lib/insights/generate-insights.ts` |
 | Read + de-dupe | `src/lib/insights/read-insights.ts` |
@@ -42,6 +43,17 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
   porting the SQL/severity heuristics from the agent's `anomaly-tools.ts` /
   `insights-tools.ts`. They **never throw** — any failure yields `[]` so the
   feature degrades on read-only clusters or missing system tables.
+- **Operational collectors** (`collectOperational` in `collectors.ts`) add cheap
+  point-in-time checks across categories — detached parts (`storage`), stuck /
+  failing mutations + FAILED dictionaries (`reliability`), and the longest
+  running live query (`performance`) — each a single count/aggregate on a small
+  system table. Their **classification is split into pure functions** in
+  `operational-checks.ts` (thresholds → `InsightCandidate | null`), mirroring the
+  anomaly collector's `decideSeverity`, so severity logic is unit-tested without
+  ClickHouse I/O (`operational-checks.test.ts`). Adding a metric here **must** be
+  paired with a `deriveAction` case in `read-insights.ts` — the findings store
+  keeps scalars only, so the action link is re-derived from `metric`/`category`
+  on every read; an unmatched metric silently loses its link after a reload.
 - **Enrichment is optional.** When a provider key resolves
   (`isProviderConfigured(resolveProvider(DEFAULT_MODEL).providerId)`), candidates
   pass through one `generateObject` call that tightens wording. With no key (or
@@ -208,11 +220,28 @@ validated server-side** — omitting them reproduces the original behavior.
 
 ## UI
 
-- `src/components/insights/insights-panel.tsx` — overview hero (status strip →
-  KPIs → **insights** → tabs). Renders a slim "Generate insights" CTA when empty.
+Two tailored surfaces share the same `useInsights` hook (so counts + dismissals
+stay in sync) and the same card + severity styling:
+
+- `src/components/insights/insights-strip.tsx` — **overview `/overview` strip**:
+  every active insight in a **single horizontally-scrollable row** with the
+  scrollbar hidden (`scrollbar-hide`). On overflow a chevron button + edge fade
+  appear per scrollable side and page by ~one viewport (`scrollBy`); overflow is
+  re-measured on scroll, container resize, and card-count change. Header carries
+  a **"View all insights"** deep link to `/insights`.
+- `src/components/insights/insights-panel.tsx` — **`/insights` page board**:
+  insights **grouped by category** (Anomalies / Performance / Storage /
+  Reliability, extensible to Queries / Cost) with section headers, a segmented
+  **filter row** (All · a tinted **"Needs attention"** tab for critical+warning ·
+  one tab per present category), and header severity count badges.
 - `src/components/insights/insight-card.tsx` — shadcn `Card` wrapper (never edits
-  `components/ui/`), severity-toned accent, dismiss `X`, and a derived action
-  link (e.g. View tables / Open running queries / Ask the agent).
+  `components/ui/`), a **severity-toned left-accent border**, dismiss `X`, and a
+  derived action link (e.g. View tables / Open running queries / Ask the agent).
+- `src/components/insights/severity-meta.ts` — **single source** for severity
+  label (`info` renders as **"Notice"**), icon, and token classes, shared by the
+  card, strip, and board so they never drift.
+- `src/components/insights/insights-empty-cta.tsx` — shared slim "Generate
+  insights" CTA rendered by both the strip and the board when a host has none.
 - `src/components/insights/insights-popover.tsx` — **global header popover**
   (mirrors `NotificationsPopover`), mounted in `header-actions.tsx` so insights
   surface on every page: severity-toned count badge, top insights with deep
@@ -227,4 +256,19 @@ validated server-side** — omitting them reproduces the original behavior.
 - Health-sweep findings are **not** written to the findings table (only webhook
   dispatch), so reading `source='ai-insight'` returns exactly engine output.
 - Tests: `src/lib/insights/insights.test.ts` (pure key + dismissal logic; shims
-  `window`/`localStorage`). Run with `bun test src/lib/insights`.
+  `window`/`localStorage`). Run with `bun test src/lib/insights`. Note the
+  operational classifiers are tested in `operational-checks.test.ts` (pure, no
+  I/O) rather than `collectors.test.ts`, which is poisoned in the full-suite run
+  by a process-global `mock.module('./collectors')` in
+  `generate-insights.throttle.test.ts` (pre-existing; those 6 collector tests
+  pass in isolation).
+
+## Follow-ups
+
+- **More detectors.** The operational collectors are a starter set. Natural next
+  detectors (each still a cheap single system-table read + a pure classifier in
+  `operational-checks.ts`): long-running merges (`system.merges`), high
+  `parts_to_throw_insert` pressure, growing `system.replication_queue`, dropped
+  connections / rejected inserts, and `cost`-category signals (e.g. cold-storage
+  candidates). Each new metric needs a matching `deriveAction` case and a
+  category in the board's `CATEGORY_META`.

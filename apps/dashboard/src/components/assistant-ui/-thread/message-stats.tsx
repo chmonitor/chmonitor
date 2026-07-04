@@ -241,6 +241,9 @@ export function MessageStatsFooter() {
   const timing = useMessageTiming()
   const metadata = useMessage((msg) => msg.metadata)
   const createdAt = useMessage((msg) => msg.createdAt)
+  // While the message is still streaming, its relative timestamp only ever reads
+  // "just now" — noisy next to the starting spinner. Hide it until completion.
+  const isRunning = useMessage((msg) => msg.status?.type === 'running')
   // assistant-ui exposes the AI SDK parts array as `message.content`
   const content = useMessage((msg) => msg.content) as readonly unknown[]
 
@@ -271,7 +274,7 @@ export function MessageStatsFooter() {
 
   const hasTokens = totalTokens > 0
   const hasDuration = timing?.totalStreamTime != null
-  const hasTimestamp = createdAt instanceof Date
+  const hasTimestamp = createdAt instanceof Date && !isRunning
   const hasModel = (usage?.resolvedModel ?? usage?.model) != null
 
   if (!hasTokens && !hasDuration && !hasTimestamp) return null

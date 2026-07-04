@@ -1,20 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { Suspense } from 'react'
-import { PageLayout } from '@/components/layout/query-page'
-import { PageSkeleton } from '@/components/skeletons'
-import { userProcessesConfig } from '@/lib/query-config/tables/user-processes'
-
-function UserProcessesPageContent() {
-  return <PageLayout queryConfig={userProcessesConfig} title="User Processes" />
-}
+import { UserProcessesView } from '@/components/user-processes'
 
 function UserProcessesPage() {
-  return (
-    <Suspense fallback={<PageSkeleton />}>
-      <UserProcessesPageContent />
-    </Suspense>
-  )
+  return <UserProcessesView />
 }
 
 export const Route = createFileRoute('/(dashboard)/user-processes')({

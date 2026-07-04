@@ -4,7 +4,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
-  Loader2Icon,
   Maximize2Icon,
 } from 'lucide-react'
 
@@ -15,9 +14,10 @@ import type { QueryConfig } from '@/types/query-config'
 import { QueryInsightsCard } from './query-insights-card'
 import { isCloudflareWorkers } from '@chm/clickhouse-client/runtime/cloudflare-workers'
 import { getToolMetadata } from '@chm/mcp-server/data'
-import { type ComponentProps, useEffect, useState } from 'react'
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
 import { AgentChartRenderer } from '@/components/agents/agent-chart-renderer'
+import { AgentDashboardSuggestion } from '@/components/agents/agent-dashboard-suggestion'
 import { AgentDataSources } from '@/components/agents/agent-data-sources'
 import {
   AgentIssuesPanel,
@@ -35,6 +35,11 @@ import {
 } from '@/components/agents/ask-user-widget'
 import { DataTable } from '@/components/data-table/data-table'
 import { Badge } from '@/components/ui/badge'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Dialog,
   DialogContent,
@@ -110,6 +115,13 @@ function getPromotedOutputType(output: unknown) {
   }
   if (outputObj.type === 'workflow_plan' && Array.isArray(outputObj.steps)) {
     return 'workflow_plan' as const
+  }
+  if (
+    outputObj.type === 'dashboard_suggestion' &&
+    typeof outputObj.layout === 'object' &&
+    outputObj.layout !== null
+  ) {
+    return 'dashboard_suggestion' as const
   }
   if (outputObj.type === 'agent_issues' && Array.isArray(outputObj.issues)) {
     return 'agent_issues' as const
@@ -235,7 +247,7 @@ function ExpandTableButton({
   )
 }
 
-export function renderToolOutput(output: unknown) {
+function renderStructuredOutput(output: unknown): ReactNode {
   if (output == null) return null
 
   const outputObj = output as Record<string, unknown>
@@ -309,6 +321,25 @@ export function renderToolOutput(output: unknown) {
         workflow={outputObj.workflow as string | undefined}
         total={outputObj.total as number | undefined}
         completed={outputObj.completed as number | undefined}
+      />
+    )
+  }
+
+  if (
+    outputObj.type === 'dashboard_suggestion' &&
+    typeof outputObj.layout === 'object' &&
+    outputObj.layout !== null
+  ) {
+    return (
+      <AgentDashboardSuggestion
+        request={outputObj.request as string}
+        name={outputObj.name as string}
+        layout={
+          outputObj.layout as ComponentProps<
+            typeof AgentDashboardSuggestion
+          >['layout']
+        }
+        chartCount={outputObj.chartCount as number}
       />
     )
   }
@@ -391,10 +422,111 @@ export function renderToolOutput(output: unknown) {
     return <ResultTable rows={outputObj.rows as unknown[]} maxRows={100} />
   }
 
+  // No structured renderer matched → let the caller decide (raw JSON is shown
+  // via renderRawOutput, kept behind a collapsed "Response" disclosure).
+  return null
+}
+
+/**
+ * Raw fallback: the tool output as a JSON / text blob. Rendered only when no
+ * structured renderer matches, and kept behind a collapsed disclosure so it
+ * never clutters the row.
+ */
+function renderRawOutput(output: unknown): ReactNode {
   return (
     <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
       {typeof output === 'string' ? output : JSON.stringify(output, null, 2)}
     </pre>
+  )
+}
+
+/**
+ * Renders a tool output. Structured shapes (charts, tables, insight /
+ * diagnostic cards) render richly; anything else falls back to the raw JSON
+ * blob. `renderStructuredOutput` is the SINGLE source of truth for "is there a
+ * rich render?" — callers that must distinguish rich vs. raw call it directly
+ * (non-null ⇒ rich), so the render path and the disclosure decision never drift.
+ */
+export function renderToolOutput(output: unknown): ReactNode {
+  return renderStructuredOutput(output) ?? renderRawOutput(output)
+}
+
+/**
+ * Animated ellipsis — the single "in progress" motion for a running tool.
+ * Three dots pulse in a staggered wave; `bg-current` inherits the label colour.
+ */
+function AnimatedDots() {
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden>
+      {[0, 200, 400].map((delay) => (
+        <span
+          key={delay}
+          className="size-1 shrink-0 animate-pulse rounded-full bg-current"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </span>
+  )
+}
+
+/**
+ * The one, unmistakable "Running…" acknowledgement — replaces the old scattered
+ * label + "Executing…" badge + body spinner with a single animated indicator.
+ */
+function RunningIndicator() {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+      Running
+      <AnimatedDots />
+    </span>
+  )
+}
+
+/**
+ * Collapsed-by-default subsection inside an expanded tool row (Parameters / raw
+ * Response). Matches the reasoning + tool-group chevron and collapse animation.
+ */
+function RowDisclosure({
+  label,
+  count,
+  defaultOpen = false,
+  children,
+}: {
+  readonly label: string
+  readonly count?: number
+  readonly defaultOpen?: boolean
+  readonly children: ReactNode
+}) {
+  return (
+    <Collapsible defaultOpen={defaultOpen} className="group/disclosure">
+      <CollapsibleTrigger className="flex w-full items-center gap-1 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
+        <ChevronRightIcon className="size-3 shrink-0 transition-transform duration-200 group-data-[state=open]/disclosure:rotate-90" />
+        <span>{label}</span>
+        {count != null ? (
+          <span className="tabular-nums tracking-normal text-muted-foreground/60">
+            {count}
+          </span>
+        ) : null}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        <div className="pt-1 pb-1.5">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+/**
+ * Non-promoted tool output. Rich structured renders (ResultTable, charts,
+ * advisor recommendations) stay visible; a raw JSON blob collapses behind a
+ * "Response" disclosure so the row stays clean by default.
+ */
+function ToolResponse({ output }: { readonly output: unknown }) {
+  const structured = renderStructuredOutput(output)
+  if (structured != null) {
+    return <div className="pb-1">{structured}</div>
+  }
+  return (
+    <RowDisclosure label="Response">{renderRawOutput(output)}</RowDisclosure>
   )
 }
 
@@ -410,13 +542,19 @@ export function ToolCallPart({
   const hasOutput = part.state === 'output-available'
   const hasError = part.state === 'output-error'
   const shouldAutoExpand = isStreaming || hasError || isStarting
+  // A tool is "active" while its input is streaming in or it is executing —
+  // the whole window that shows the single animated "Running…" indicator.
+  const isActive = isStarting || isStreaming
   const [isExpanded, setIsExpanded] = useState(shouldAutoExpand)
 
   useEffect(() => {
     if (shouldAutoExpand) setIsExpanded(true)
   }, [shouldAutoExpand])
 
-  // Auto-collapse when the message finishes streaming and tool has output
+  // Collapse a finished row into tidy history only once the WHOLE turn is done
+  // (`isMessageStreaming` is the message-level streaming flag, not this tool's).
+  // Staying expanded until then keeps the active row + its output visible right
+  // through the assistant's final text, instead of collapsing mid-stream.
   useEffect(() => {
     if (!isMessageStreaming && hasOutput && !hasError && isExpanded) {
       const timer = setTimeout(() => setIsExpanded(false), 800)
@@ -430,6 +568,12 @@ export function ToolCallPart({
       .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
       .join(', ')
   })()
+
+  const inputParamCount =
+    part.input && typeof part.input === 'object'
+      ? Object.keys(part.input as Record<string, unknown>).length
+      : 0
+  const hasInputParams = inputParamCount > 0
 
   const toolParams = (() => {
     const tool = getToolMetadata(toolName)
@@ -479,17 +623,20 @@ export function ToolCallPart({
           <div
             className={cn(
               'size-1.5 shrink-0 rounded-full',
-              isStarting && 'animate-pulse bg-yellow-500',
-              isStreaming && 'animate-ping bg-yellow-400',
+              isActive && 'animate-pulse bg-amber-500',
               hasOutput && 'bg-emerald-500',
               hasError && 'bg-red-500'
             )}
           />
 
           <div className="flex min-w-0 items-center gap-1.5">
-            <span className="text-muted-foreground text-xs">
-              {hasError ? 'Failed' : hasOutput ? 'Ran' : 'Running'}
-            </span>
+            {isActive ? (
+              <RunningIndicator />
+            ) : (
+              <span className="text-muted-foreground text-xs">
+                {hasError ? 'Failed' : 'Ran'}
+              </span>
+            )}
             <span className="font-mono text-xs font-medium">{toolName}</span>
             {inputParams && (
               <span className="text-muted-foreground/70 truncate font-mono text-xs">
@@ -499,18 +646,10 @@ export function ToolCallPart({
           </div>
 
           <div className="ml-auto flex items-center gap-1.5">
-            {isStreaming && (
-              <Badge
-                variant="outline"
-                className="shrink-0 text-[10px] text-yellow-600"
-              >
-                Executing…
-              </Badge>
-            )}
             {hasOutput && (
               <Badge
                 variant="outline"
-                className="shrink-0 text-[10px] text-green-600"
+                className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400"
               >
                 ✓ Done
               </Badge>
@@ -518,7 +657,7 @@ export function ToolCallPart({
             {hasError && (
               <Badge
                 variant="outline"
-                className="shrink-0 text-[10px] text-red-600"
+                className="shrink-0 text-[10px] text-red-600 dark:text-red-400"
               >
                 ✗ Failed
               </Badge>
@@ -548,45 +687,37 @@ export function ToolCallPart({
         )}
       </div>
 
-      {/* Expanded body — indented under the accent bar, no extra background */}
+      {/* Expanded body — indented under the accent bar, no extra background.
+          Clean by default: rich output stays visible, while the raw params
+          dump and raw JSON response collapse into opt-in disclosures. */}
       {isExpanded ? (
         <div className="pl-4 pt-1">
-          {isStreaming ? (
-            <div className="py-1.5">
-              <div className="flex items-center gap-2">
-                <Loader2Icon className="size-4 animate-spin text-yellow-500" />
-                <span className="text-xs text-muted-foreground">
-                  Executing {toolName}…
-                </span>
-              </div>
+          {hasError && Boolean(part.errorText) ? (
+            <div className="pb-1.5 text-sm text-destructive">
+              {String(part.errorText)}
             </div>
           ) : null}
 
+          {/* Output: the interactive ask-user widget and rich structured
+              renders stay visible; a raw JSON blob collapses behind "Response".
+              Promoted outputs render outside this block (always visible). */}
           {hasOutput && part.output != null && !promotedOutput ? (
-            <div className="pb-1">
-              {isAskUserOutput(part.output) && onToolResult ? (
+            isAskUserOutput(part.output) && onToolResult ? (
+              <div className="pb-1">
                 <AskUserWidget
                   output={part.output}
                   toolCallId={part.toolCallId}
                   onSubmit={onToolResult}
                 />
-              ) : (
-                renderToolOutput(part.output)
-              )}
-            </div>
-          ) : null}
-
-          {hasError && Boolean(part.errorText) ? (
-            <div className="py-1.5 text-sm text-destructive">
-              {String(part.errorText)}
-            </div>
-          ) : null}
-
-          {part.input && typeof part.input === 'object' ? (
-            <div className="border-t border-border/40 pt-2 pb-1.5">
-              <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                Parameters
               </div>
+            ) : (
+              <ToolResponse output={part.output} />
+            )
+          ) : null}
+
+          {/* Parameters — collapsed by default so the row reads clean */}
+          {hasInputParams ? (
+            <RowDisclosure label="Parameters" count={inputParamCount}>
               <div className="space-y-1">
                 {Object.entries(part.input as Record<string, unknown>).map(
                   ([key, value]) => {
@@ -621,7 +752,7 @@ export function ToolCallPart({
                   }
                 )}
               </div>
-            </div>
+            </RowDisclosure>
           ) : null}
         </div>
       ) : null}

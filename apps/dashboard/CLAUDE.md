@@ -118,8 +118,8 @@ Built on the **Vercel AI SDK** (not LangGraph). `clickhouse-agent.ts` is the
 runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
-Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 13
-tool modules exposing ~25 tools total (22 by default; the 3 destructive
+Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 14
+tool modules exposing 28 tools total (25 by default; the 3 destructive
 `control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`):
 
 | Module | Tools |
@@ -137,6 +137,7 @@ tool modules exposing ~25 tools total (22 by default; the 3 destructive
 | `insight-tools` | `explain_anomaly_score` |
 | `advisor-tools` | `get_optimization_recommendations` |
 | `mv-designer-tools` | `recommend_materialized_view` |
+| `dashboard-tools` | `suggest_dashboard` |
 | `control-tools` (gated) | `kill_query`, `optimize_table`, `kill_mutation` |
 
 `helpers.ts` and `sql-analysis.ts` are shared helpers, not tool modules. The

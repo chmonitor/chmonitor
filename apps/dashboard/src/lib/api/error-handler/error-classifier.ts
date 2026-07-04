@@ -5,7 +5,11 @@
  * for consistent error handling across the API layer.
  */
 
-import type { ErrorClassification } from './types'
+import type {
+  BillingLimitClassification,
+  BillingLimitReason,
+  ErrorClassification,
+} from './types'
 
 import { ApiErrorType } from '@/lib/api/types'
 
@@ -141,4 +145,91 @@ function matchesAnyKeyword(
   keywords: ReadonlyArray<string>
 ): boolean {
   return keywords.some((keyword) => message.includes(keyword))
+}
+
+/**
+ * Maps the server-side `LimitReason` (`lib/billing/entitlements.ts`) to the
+ * short client reason the PaywallModal renders. `alert_rule_limit` is
+ * deliberately absent — no route emits a 402 for it yet (see
+ * `lib/billing/plan-enforcement.ts`), so it falls through to `null`.
+ */
+const LIMIT_REASON_MAP: Record<string, BillingLimitReason> = {
+  host_limit: 'host',
+  seat_limit: 'seat',
+  ai_daily_limit: 'ai_daily',
+  ai_budget_limit: 'ai_budget',
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+/**
+ * A billing 402 body has shipped in two shapes so far, and this reads either
+ * without requiring the routes to agree on one:
+ *  - `createApiErrorResponse` (routes/api/v1/user-connections.ts): nested
+ *    `{ error: { message, details: { reason, planId } } }`.
+ *  - the agent route's raw `Response` (routes/api/v1/agent.ts): flat
+ *    `{ error: <message string>, details: { reason, planId } }`.
+ * Returns the raw (long-form) reason string, unmapped — callers translate it.
+ */
+function extractLimitFields(
+  body: unknown
+): { rawReason: string; message?: string; planId?: string } | null {
+  if (!isRecord(body)) return null
+
+  // Nested shape: error is itself an object carrying message + details.
+  if (isRecord(body.error)) {
+    const details = body.error.details
+    const rawReason = isRecord(details) ? details.reason : undefined
+    if (typeof rawReason !== 'string') return null
+    return {
+      rawReason,
+      message:
+        typeof body.error.message === 'string' ? body.error.message : undefined,
+      planId:
+        isRecord(details) && typeof details.planId === 'string'
+          ? details.planId
+          : undefined,
+    }
+  }
+
+  // Flat shape: error is the message string itself; details sits at the top.
+  const details = body.details
+  const rawReason = isRecord(details) ? details.reason : undefined
+  if (typeof rawReason !== 'string') return null
+  return {
+    rawReason,
+    message: typeof body.error === 'string' ? body.error : undefined,
+    planId:
+      isRecord(details) && typeof details.planId === 'string'
+        ? details.planId
+        : undefined,
+  }
+}
+
+/**
+ * Classifies a fetch response's status + parsed JSON body as a billing-limit
+ * 402, for the global PaywallModal (see `components/billing/paywall-modal.tsx`).
+ * Returns `null` for anything else — non-402s, and 402s that aren't a
+ * recognized billing-limit shape (e.g. a future `alert_rule_limit`) — so the
+ * caller's existing error handling stays untouched for everything else.
+ */
+export function classifyBillingLimit(
+  status: number,
+  body: unknown
+): BillingLimitClassification | null {
+  if (status !== 402) return null
+
+  const fields = extractLimitFields(body)
+  if (!fields) return null
+
+  const reason = LIMIT_REASON_MAP[fields.rawReason]
+  if (!reason) return null
+
+  return {
+    reason,
+    message: fields.message || "You've hit a plan limit. Upgrade for more.",
+    planId: fields.planId || 'free',
+  }
 }

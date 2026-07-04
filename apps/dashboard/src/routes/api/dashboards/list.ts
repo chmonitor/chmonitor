@@ -51,7 +51,7 @@ async function handleGet(): Promise<Response> {
 
     const responseData = dashboards.map((d) => ({
       name: d.name,
-      charts: d.charts,
+      layout: d.layout,
     }))
 
     const response = createSuccessResponse(

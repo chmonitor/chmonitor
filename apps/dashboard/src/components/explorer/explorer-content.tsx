@@ -24,7 +24,7 @@ interface ExplorerContentProps {
 // Track which tabs have been visited for this table to enable pre-loading
 function useTabVisitTracker(tableKey: string | null, currentTab: ExplorerTab) {
   const [visitedTabs, setVisitedTabs] = useState<Set<ExplorerTab>>(
-    () => new Set<ExplorerTab>(['overview', 'data', currentTab])
+    () => new Set<ExplorerTab>(['overview', currentTab])
   )
   const prevTableKey = useRef<string | null>(null)
 
@@ -32,7 +32,7 @@ function useTabVisitTracker(tableKey: string | null, currentTab: ExplorerTab) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: currentTab is only used to seed the set on table reset
   useEffect(() => {
     if (tableKey !== prevTableKey.current) {
-      setVisitedTabs(new Set<ExplorerTab>(['overview', 'data', currentTab]))
+      setVisitedTabs(new Set<ExplorerTab>(['overview', currentTab]))
       prevTableKey.current = tableKey
     }
   }, [tableKey])
@@ -130,13 +130,16 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
           {visitedTabs.has('overview') && <OverviewTab />}
         </TabsContent>
 
-        {/* Data tab: always force-mounted to preserve pagination state */}
+        {/* Data tab: render only once visited so the first paint on the
+            default Overview tab doesn't fire a hidden `SELECT * ... LIMIT`
+            preview against the user's table. Once opened it stays force-mounted,
+            preserving pagination state when switching tabs. */}
         <TabsContent
           value="data"
           className={cn('mt-4', tab !== 'data' && 'hidden flex-none')}
           forceMount
         >
-          <DataTab />
+          {visitedTabs.has('data') && <DataTab />}
         </TabsContent>
 
         {/* Structure tab: don't force-mount due to complex filter state */}

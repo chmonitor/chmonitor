@@ -1,13 +1,16 @@
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, SparklesIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { useExplorerState } from '../hooks/use-explorer-state'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
+import { formatSql } from '@/lib/sql-format'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
+import { dedent } from '@/lib/utils'
 
 interface DdlRow {
   create_table_query: string
@@ -26,60 +29,14 @@ const fetcher = async (url: string): Promise<ApiResponse<DdlRow[]>> => {
   return res.json()
 }
 
-/**
- * Simple SQL formatter for ClickHouse DDL statements.
- * Adds line breaks and indentation for readability.
- */
-function formatSql(sql: string): string {
-  if (!sql) return sql
-
-  // Keywords that should start on a new line (no indent)
-  const topLevelKeywords = [
-    'CREATE TABLE',
-    'CREATE MATERIALIZED VIEW',
-    'CREATE VIEW',
-    'CREATE DICTIONARY',
-    'ENGINE',
-    'ORDER BY',
-    'PARTITION BY',
-    'PRIMARY KEY',
-    'SAMPLE BY',
-    'TTL',
-    'SETTINGS',
-    'COMMENT',
-  ]
-
-  // Keywords that should start on a new line (with indent)
-  const indentedKeywords = ['TO', 'AS SELECT', 'AS']
-
-  let formatted = sql.trim()
-
-  // Add newline before top-level keywords
-  topLevelKeywords.forEach((keyword) => {
-    const regex = new RegExp(`\\s+(${keyword})\\b`, 'gi')
-    formatted = formatted.replace(regex, `\n$1`)
-  })
-
-  // Add newline and indent before certain keywords
-  indentedKeywords.forEach((keyword) => {
-    const regex = new RegExp(`\\s+(${keyword})\\b`, 'gi')
-    formatted = formatted.replace(regex, `\n  $1`)
-  })
-
-  // Format column definitions - add newline after opening paren in CREATE TABLE
-  formatted = formatted.replace(/\(\s*`/g, '(\n  `')
-  formatted = formatted.replace(/,\s*`/g, ',\n  `')
-
-  // Close the column list on its own line
-  formatted = formatted.replace(/`\s*\)\s*(ENGINE)/gi, '`\n)\n$1')
-
-  return formatted
-}
-
 export function DdlTab() {
   const hostId = useHostId()
   const { database, table } = useExplorerState()
   const [copied, setCopied] = useState(false)
+  // Pretty-format on by default — DDL is small, so formatting is cheap and the
+  // formatted form is what most people want to read. In-memory only (no shared
+  // preference) so it stays independent of the Request Info "Beautify" toggle.
+  const [isBeautified, setIsBeautified] = useState(true)
 
   const url =
     database && table
@@ -97,10 +54,29 @@ export function DdlTab() {
   })
 
   const ddl = response?.data?.[0]?.create_table_query
+  const raw = ddl ? dedent(ddl) : ''
+
+  // Lazily format the DDL when beautify is on. Show the raw DDL while the
+  // formatter chunk loads (no flash) and reset on table change so we never
+  // render a previous table's formatted SQL under the new header.
+  const [formatted, setFormatted] = useState<string | null>(null)
+  useEffect(() => {
+    setFormatted(null)
+    if (!isBeautified || !ddl) return
+    let cancelled = false
+    formatSql(ddl).then((result) => {
+      if (!cancelled) setFormatted(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isBeautified, ddl])
+
+  const displaySql = isBeautified ? (formatted ?? raw) : raw
 
   const handleCopy = async () => {
-    if (ddl) {
-      await navigator.clipboard.writeText(ddl)
+    if (displaySql) {
+      await navigator.clipboard.writeText(displaySql)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
@@ -138,29 +114,39 @@ export function DdlTab() {
     )
   }
 
-  const formattedDdl = ddl ? formatSql(ddl) : ''
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Table DDL</CardTitle>
-        <Button variant="outline" size="sm" onClick={handleCopy}>
-          {copied ? (
-            <>
-              <Check className="mr-2 size-4" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="mr-2 size-4" />
-              Copy
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <SparklesIcon className="size-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Beautify</span>
+            <Switch
+              size="sm"
+              checked={isBeautified}
+              onCheckedChange={setIsBeautified}
+              aria-label="Toggle SQL formatting"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCopy}>
+            {copied ? (
+              <>
+                <Check className="mr-2 size-4" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="mr-2 size-4" />
+                Copy
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 font-mono text-sm leading-relaxed">
-          <code>{formattedDdl}</code>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 font-mono text-xs leading-relaxed">
+          <code>{displaySql}</code>
         </pre>
       </CardContent>
     </Card>

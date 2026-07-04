@@ -74,6 +74,15 @@ describe('billing plans', () => {
     expect(BILLING_PLANS.enterprise.aiOverage).toBeNull()
   })
 
+  test('host overage policy: soft-cap on paid tiers, hard-cap on Free/Enterprise', () => {
+    // Free hard-caps (no expansion); Enterprise is moot (hosts already unlimited).
+    expect(BILLING_PLANS.free.hostOverage).toBeNull()
+    expect(BILLING_PLANS.enterprise.hostOverage).toBeNull()
+    // Pro/Max publish a per-host overage price within the advertised $15-19 range.
+    expect(BILLING_PLANS.pro.hostOverage).toEqual({ usdPer: 15 })
+    expect(BILLING_PLANS.max.hostOverage).toEqual({ usdPer: 19 })
+  })
+
   test('new feature capabilities sit on the right tiers', () => {
     expect(planHasCapability('free', 'data_export')).toBe(false)
     expect(planHasCapability('pro', 'data_export')).toBe(true)

@@ -1,0 +1,104 @@
+---
+title: Slack app
+description: Install the native chmonitor Slack app — OAuth setup, the /chmonitor slash command (status, read-only query, alerts), a Home tab, and Acknowledge buttons on alert messages.
+icon: MessageSquare
+---
+
+The **native Slack app** brings chmonitor into Slack: a `/chmonitor` slash
+command, a Home tab summary, and an **Acknowledge** button on alert messages —
+so on-call can triage from where they already are.
+
+The app is **optional** and **off by default**. With no Slack credentials set,
+every `/api/v1/slack/*` route is disabled and nothing else changes — self-hosted
+and OSS deployments are unaffected.
+
+## What you get
+
+- `/chmonitor status [hostId]` — a cluster health summary (memory, disk, running
+  queries, merges, replication lag).
+- `/chmonitor query <SQL>` — run **one read-only `SELECT`** and see the result as
+  a table. Queries are hard-capped (read-only, row limit, and a short execution
+  timeout) so they always answer within Slack's 3-second budget.
+- `/chmonitor alert` — the most recent firing alerts (from alert history).
+- A **Home tab** with a per-host health summary and a link to the dashboard.
+- An **Acknowledge** button on pushed alert messages that records who
+  acknowledged the alert and edits the message to show it.
+
+## 1. Create the Slack app from the manifest
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** →
+   **From a manifest**.
+2. Paste [`docs/slack/manifest.yml`](https://github.com/chmonitor/chmonitor/blob/main/docs/slack/manifest.yml)
+   from the repo.
+3. **Replace every `dash.chmonitor.dev`** in the manifest with your own
+   deployment host. The four request URLs must point at your running dashboard:
+
+   | Purpose | URL |
+   |---|---|
+   | Slash command | `https://<your-host>/api/v1/slack/commands` |
+   | Interactivity | `https://<your-host>/api/v1/slack/interactions` |
+   | Events | `https://<your-host>/api/v1/slack/events` |
+   | OAuth redirect | `https://<your-host>/api/v1/slack/oauth` |
+
+The bot requests only two scopes: `commands` and `chat:write`.
+
+## 2. Configure the environment
+
+From the app's **Basic Information → App Credentials**, set these on your
+dashboard deployment:
+
+| Variable | Secret? | Purpose |
+|---|---|---|
+| `SLACK_CLIENT_ID` | no | Identifies the app during OAuth install. |
+| `SLACK_CLIENT_SECRET` | **yes** | Exchanges the OAuth `code` for a bot token. |
+| `SLACK_SIGNING_SECRET` | **yes** | Verifies every inbound Slack request, and derives the at-rest bot-token encryption key. |
+| `SLACK_OAUTH_REDIRECT_URL` | no | Optional. Defaults to `<origin>/api/v1/slack/oauth`; set it if the derived origin is wrong (e.g. behind a proxy). |
+| `SLACK_TOKEN_ENCRYPTION_KEY` | **yes** | Optional. A dedicated 32-byte base64 key to encrypt stored bot tokens independently of the signing secret. |
+
+Set the secrets as Worker/container secrets — **never** commit them. On
+Cloudflare, `bun scripts/set-secrets.ts`; on Docker/K8s, your secret store.
+
+<Callout type="warn">
+Installations (workspace bot tokens) are stored in **Cloudflare D1**
+(`CHM_CLOUD_D1`), encrypted at rest. If your deployment has no D1 configured,
+the OAuth callback will report that it could not save the connection. D1 is the
+only supported install store.
+</Callout>
+
+## 3. Install into a workspace
+
+Visit `https://<your-host>/api/v1/slack/install` and approve the app. chmonitor
+redirects you to Slack, exchanges the code for a bot token, encrypts it, and
+stores it. You can now use `/chmonitor` in that workspace.
+
+## Acknowledge buttons
+
+When your health-alert webhook points at a **Slack incoming webhook** *and* the
+Slack app is configured, alert messages are posted as rich blocks with an
+**Acknowledge** button. Clicking it records the acknowledgement (who and when)
+and edits the message in place. Without the Slack app, alerts remain plain-text —
+nothing changes for existing setups.
+
+<Callout type="warn">
+Slack delivers a button click to the **interactivity URL of the app that owns
+the message**. So the **Acknowledge** button only reaches
+`/api/v1/slack/interactions` when the incoming webhook in
+`HEALTH_ALERT_WEBHOOK_URL` belongs to **this** chmonitor Slack app (the one whose
+interactivity URL you set in step 1). If the webhook was created by a different
+or legacy Slack app, the button still renders but the click is routed elsewhere
+and the acknowledgement is never recorded. A future release will post alerts via
+the stored bot token to a chosen channel so ACK works regardless of which app
+owns the webhook.
+</Callout>
+
+## Security notes
+
+- Every inbound Slack request is verified against `X-Slack-Signature` +
+  `X-Slack-Request-Timestamp` (HMAC-SHA256, constant-time, 5-minute replay
+  window) **before** the body is trusted. The signature is the auth — these
+  routes never require sign-in.
+- The OAuth `state` parameter is HMAC-signed (CSRF) and short-lived.
+- Bot tokens are AES-256-GCM encrypted at rest and never logged.
+- `/chmonitor query` is read-only (`readonly=2` — write queries blocked while
+  per-query caps still apply — plus SELECT-only validation) and row/time capped,
+  so it can never mutate your cluster.

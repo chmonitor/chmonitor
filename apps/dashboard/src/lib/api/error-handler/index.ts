@@ -24,6 +24,8 @@
 // Re-export all types
 export type {
   ApiHandler,
+  BillingLimitClassification,
+  BillingLimitReason,
   ErrorClassification,
   ErrorDetails,
   RouteContext,
@@ -31,7 +33,7 @@ export type {
 } from './types'
 
 // Export error classifier functions
-export { classifyError } from './error-classifier'
+export { classifyBillingLimit, classifyError } from './error-classifier'
 // Export error response builder functions
 export {
   createErrorResponse,

@@ -126,25 +126,25 @@ export function IndexesTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-3 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
+            <Card key={i} className="gap-2 py-3">
+              <CardHeader className="px-4">
+                <Skeleton className="h-5 w-32" />
               </CardHeader>
-              <CardContent>
-                <Skeleton className="h-16 w-full" />
+              <CardContent className="px-4">
+                <Skeleton className="h-12 w-full" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-24" />
+        <Card className="gap-3 py-4">
+          <CardHeader className="px-4">
+            <Skeleton className="h-5 w-24" />
           </CardHeader>
-          <CardContent>
-            <Skeleton className="h-32 w-full" />
+          <CardContent className="px-4">
+            <Skeleton className="h-24 w-full" />
           </CardContent>
         </Card>
       </div>
@@ -153,9 +153,9 @@ export function IndexesTab() {
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-sm text-destructive">
+      <Card className="gap-3 py-4">
+        <CardContent className="px-4">
+          <div className="text-xs text-destructive">
             Failed to load data: {error.message}
           </div>
         </CardContent>
@@ -167,42 +167,46 @@ export function IndexesTab() {
     {
       label: 'Partition Key',
       value: indexData?.partition_key,
-      icon: <Database className="size-4" />,
+      icon: <Database className="size-3.5" />,
     },
     {
       label: 'Sorting Key',
       value: indexData?.sorting_key,
-      icon: <Key className="size-4" />,
+      icon: <Key className="size-3.5" />,
     },
     {
       label: 'Primary Key',
       value: indexData?.primary_key,
-      icon: <Key className="size-4" />,
+      icon: <Key className="size-3.5" />,
     },
     {
       label: 'Sampling Key',
       value: indexData?.sampling_key,
-      icon: <Settings className="size-4" />,
+      icon: <Settings className="size-3.5" />,
     },
   ]
 
+  // Dense table: shorter header row + tighter cell padding, applied at the call
+  // site so the shared shadcn Table primitive stays untouched.
+  const denseTable = 'text-xs [&_th]:h-8 [&_td]:py-1.5'
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {/* Engine Info */}
       {indexData?.engine && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Settings className="size-4" />
+        <Card className="gap-3 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Settings className="size-3.5" />
               Engine
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="font-medium">{indexData.engine}</div>
+          <CardContent className="px-4">
+            <div className="space-y-1.5">
+              <div className="text-sm font-medium">{indexData.engine}</div>
               {indexData.engine_full &&
                 indexData.engine_full !== indexData.engine && (
-                  <pre className="overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-3 font-mono text-sm">
+                  <pre className="overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2.5 font-mono text-xs">
                     <code>{formatEngineFull(indexData.engine_full)}</code>
                   </pre>
                 )}
@@ -212,22 +216,22 @@ export function IndexesTab() {
       )}
 
       {/* Keys Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {keyFields.map(({ label, value, icon }) => (
-          <Card key={label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
+          <Card key={label} className="gap-2 py-3">
+            <CardHeader className="px-4">
+              <CardTitle className="flex items-center gap-2 text-sm">
                 {icon}
                 {label}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4">
               {value ? (
-                <pre className="overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-3 font-mono text-sm">
+                <pre className="overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2.5 font-mono text-xs">
                   <code>{value}</code>
                 </pre>
               ) : (
-                <p className="text-sm text-muted-foreground">Not set</p>
+                <p className="text-xs text-muted-foreground">Not set</p>
               )}
             </CardContent>
           </Card>
@@ -235,31 +239,31 @@ export function IndexesTab() {
       </div>
 
       {/* Skip Indexes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="size-4" />
+      <Card className="gap-3 py-4">
+        <CardHeader className="px-4">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Filter className="size-3.5" />
             Skip Indexes
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           {skipIndexesLoading ? (
-            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-12 w-full" />
           ) : skipIndexesError ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Skip indexes data unavailable
             </p>
           ) : skipIndexes.length > 0 ? (
-            <Table>
+            <Table className={denseTable}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Expression</TableHead>
-                  <TableHead>Granularity</TableHead>
-                  <TableHead>Compressed</TableHead>
-                  <TableHead>Uncompressed</TableHead>
-                  <TableHead>Ratio</TableHead>
+                  <TableHead className="text-right">Granularity</TableHead>
+                  <TableHead className="text-right">Compressed</TableHead>
+                  <TableHead className="text-right">Uncompressed</TableHead>
+                  <TableHead className="text-right">Ratio</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -274,16 +278,24 @@ export function IndexesTab() {
                     <TableCell>
                       <code className="text-xs">{idx.expr}</code>
                     </TableCell>
-                    <TableCell>{idx.granularity}</TableCell>
-                    <TableCell>{idx.compressed_size}</TableCell>
-                    <TableCell>{idx.uncompressed_size}</TableCell>
-                    <TableCell>{idx.compression_ratio}x</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {idx.granularity}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {idx.compressed_size}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {idx.uncompressed_size}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {idx.compression_ratio}x
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               No skip indexes defined for this table
             </p>
           )}
@@ -291,41 +303,51 @@ export function IndexesTab() {
       </Card>
 
       {/* Projections */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Layers className="size-4" />
+      <Card className="gap-3 py-4">
+        <CardHeader className="px-4">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Layers className="size-3.5" />
             Projections
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           {projections.length > 0 ? (
-            <Table>
+            <Table className={denseTable}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Compressed</TableHead>
-                  <TableHead>Uncompressed</TableHead>
-                  <TableHead>Ratio</TableHead>
-                  <TableHead>Rows</TableHead>
-                  <TableHead>Parts</TableHead>
+                  <TableHead className="text-right">Compressed</TableHead>
+                  <TableHead className="text-right">Uncompressed</TableHead>
+                  <TableHead className="text-right">Ratio</TableHead>
+                  <TableHead className="text-right">Rows</TableHead>
+                  <TableHead className="text-right">Parts</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {projections.map((proj) => (
                   <TableRow key={proj.name}>
                     <TableCell className="font-medium">{proj.name}</TableCell>
-                    <TableCell>{proj.compressed_size}</TableCell>
-                    <TableCell>{proj.uncompressed_size}</TableCell>
-                    <TableCell>{proj.compression_ratio}x</TableCell>
-                    <TableCell>{proj.rows}</TableCell>
-                    <TableCell>{proj.parts}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {proj.compressed_size}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {proj.uncompressed_size}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {proj.compression_ratio}x
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {proj.rows}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {proj.parts}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               No projections defined for this table
             </p>
           )}

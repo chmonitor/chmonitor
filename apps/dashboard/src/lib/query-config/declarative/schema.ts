@@ -118,6 +118,7 @@ const codeDialogFormatArgsSchema = z.object({
   dialog_classname: z.string().optional(),
   show_explorer_link: z.boolean().optional(),
   force_dialog: z.boolean().optional(),
+  inline: z.boolean().optional(),
   show_query_plan: z.boolean().optional(),
 })
 

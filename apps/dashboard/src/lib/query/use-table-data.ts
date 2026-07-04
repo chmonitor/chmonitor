@@ -8,6 +8,7 @@ import {
   fetchTableForHost,
   isCustomHost,
 } from '@/lib/host-fetch/resolve-host-fetch'
+import { hostConnectionKey } from '@/lib/query/host-query-key'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
@@ -67,8 +68,7 @@ export function useTableData<T = unknown>(
     hostId,
     JSON.stringify(searchParams ?? {}),
     timezone,
-    hosts.length,
-    browserConnection?.id,
+    hostConnectionKey(hostId, browserConnection),
   ] as const
 
   const resolvedRefetchInterval =
@@ -144,6 +144,11 @@ export function useTableData<T = unknown>(
     metadata: data?.metadata,
     error: error ?? undefined,
     isLoading,
+    // `isPending` is true whenever no successful response has loaded yet for
+    // the current query key — including the dispatched-but-not-yet-fetching /
+    // paused / first-paint window where `isFetching` is false. Consumers use it
+    // to keep a skeleton up so the empty-state never flashes before data lands.
+    isPending,
     isValidating,
     refresh: () => refetch().then(() => undefined),
     hasData,

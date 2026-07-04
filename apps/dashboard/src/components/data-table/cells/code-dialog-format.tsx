@@ -53,6 +53,14 @@ export interface CodeDialogOptions {
   /** Force the dialog trigger for short content; defaults to false. */
   force_dialog?: boolean
   /**
+   * Render a plain, non-interactive truncated preview instead of a dialog
+   * trigger. Use when the cell lives inside a clickable/expandable row: a
+   * nested `<button>` would otherwise swallow the row click (see
+   * `shouldExpandOnRowClick`). The full content is expected to be surfaced
+   * elsewhere (e.g. an expanded detail panel). Defaults to false.
+   */
+  inline?: boolean
+  /**
    * Add a "Query Plan" tab that runs `EXPLAIN` for the SQL. Only takes effect
    * when the detected language is SQL. Defaults to false.
    */
@@ -404,6 +412,22 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
       /* noop */
     }
   }, [clearCopyTimer, content])
+
+  // Inline mode: a plain, non-interactive truncated preview so a clickable
+  // parent row (e.g. an expandable table row) is never blocked by this cell.
+  if (options?.inline) {
+    return (
+      <code
+        className={cn(
+          'block min-w-0 truncate font-mono text-xs text-muted-foreground',
+          options?.trigger_classname
+        )}
+        title={value}
+      >
+        {formatted}
+      </code>
+    )
+  }
 
   if (!options?.force_dialog && formatted.length < truncate_length) {
     return (

@@ -4,6 +4,7 @@ import type { AuditPromptInput } from '@/lib/health/audit-prompt'
 import type { HealthCheckDef } from './health-checks'
 
 import { HealthAuditPromptDialog } from './health-audit-prompt-dialog'
+import { HealthDetailRows } from './health-detail-rows'
 import { useState } from 'react'
 import { AppLink } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
@@ -91,7 +92,7 @@ export function HealthDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <DialogTitle>{check.title}</DialogTitle>
@@ -132,7 +133,20 @@ export function HealthDetailDialog({
                 </div>
               </div>
 
-              {row && Object.keys(row).length > 0 && (
+              {check.detailChartName && (
+                <>
+                  <Separator />
+                  <HealthDetailRows
+                    chartName={check.detailChartName}
+                    hostId={hostId}
+                    title={check.detailTitle ?? 'Affected rows'}
+                    description={check.detailDescription}
+                    emptyMessage={check.detailEmptyMessage}
+                  />
+                </>
+              )}
+
+              {!check.detailChartName && row && Object.keys(row).length > 0 && (
                 <>
                   <Separator />
                   <div>

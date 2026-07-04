@@ -501,14 +501,16 @@ ${historyQueryTail}
     query_duration: ColumnFormat.Duration,
     query_kind: ColumnFormat.ColoredBadge,
     query_cache_usage: ColumnFormat.ColoredBadge,
+    // Inline preview (not a dialog trigger): a nested button would swallow the
+    // row click and block inline expansion. The full SQL lives in the expanded
+    // row's "Full query" code section, mirroring the running-queries detail.
     query: [
       ColumnFormat.CodeDialog,
       {
         max_truncate: 100,
         hide_query_comment: true,
-        dialog_title: 'Query',
         trigger_classname: '!max-w-[280px] overflow-hidden',
-        force_dialog: true,
+        inline: true,
       },
     ],
     event_time: ColumnFormat.RelatedTime,

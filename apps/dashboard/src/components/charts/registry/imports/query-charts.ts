@@ -29,6 +29,11 @@ export const queryChartImports: ChartRegistryMap = {
       default: m.ChartQueryMemory,
     }))
   ),
+  'query-metric-log-memory': lazy(() =>
+    import('@/components/charts/query/query-metric-log-memory').then((m) => ({
+      default: m.ChartQueryMetricLogMemory,
+    }))
+  ),
   'query-type': lazy(() =>
     import('@/components/charts/query/query-type').then((m) => ({
       default: m.ChartQueryType,
@@ -49,6 +54,11 @@ export const queryChartImports: ChartRegistryMap = {
   'query-cache': lazy(() =>
     import('@/components/charts/query/query-cache').then((m) => ({
       default: m.ChartQueryCache,
+    }))
+  ),
+  'query-cache-usage': lazy(() =>
+    import('@/components/charts/query/query-cache-usage').then((m) => ({
+      default: m.ChartQueryCacheUsage,
     }))
   ),
   'top-query-fingerprints': lazy(() =>

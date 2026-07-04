@@ -1,5 +1,6 @@
-import { QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, QueryClient } from '@tanstack/react-query'
 
+import { createQueryClient } from '../query-client'
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 
 describe('QueryProvider swr:revalidate integration', () => {
@@ -60,5 +61,34 @@ describe('QueryProvider swr:revalidate integration', () => {
 
   it('does not call invalidateQueries before the event fires', () => {
     expect(invalidateSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('createQueryClient default query options', () => {
+  // These defaults are the mechanism behind "cached data on navigation":
+  // gcTime keeps a page's data alive between visits, staleTime avoids a
+  // refetch (and thus a possible loading state) on a quick revisit, and
+  // placeholderData keeps prior data on screen during in-place key changes.
+  // Assert the intent so a regression that reintroduces the revisit flash
+  // (e.g. resetting staleTime to a few seconds) fails here.
+
+  it('treats cached data as fresh for 30s so quick revisits skip the refetch', () => {
+    const queries = createQueryClient().getDefaultOptions().queries
+    expect(queries?.staleTime).toBe(30_000)
+  })
+
+  it('uses keepPreviousData so in-place key changes never blank to a skeleton', () => {
+    const queries = createQueryClient().getDefaultOptions().queries
+    expect(queries?.placeholderData).toBe(keepPreviousData)
+  })
+
+  it('retains inactive query data for 30 min so navigation revisits render from cache', () => {
+    const queries = createQueryClient().getDefaultOptions().queries
+    expect(queries?.gcTime).toBe(30 * 60_000)
+  })
+
+  it('does not refetch on window focus', () => {
+    const queries = createQueryClient().getDefaultOptions().queries
+    expect(queries?.refetchOnWindowFocus).toBe(false)
   })
 })

@@ -1,0 +1,58 @@
+# chmonitor — Slack app manifest (plan 37).
+#
+# Create the app at https://api.slack.com/apps → "Create New App" → "From a
+# manifest", paste this file, then replace EVERY `dash.chmonitor.dev` below with
+# your own deployment host (self-hosters use their own domain). The four request
+# URLs must all point at your running dashboard's /api/v1/slack/* routes.
+#
+# After creating the app, read its credentials into your environment:
+#   SLACK_CLIENT_ID, SLACK_CLIENT_SECRET  (Basic Information → App Credentials)
+#   SLACK_SIGNING_SECRET                  (Basic Information → App Credentials)
+# Then install via <your-origin>/api/v1/slack/install (the OAuth start route).
+#
+# Keep the bot scopes here IN SYNC with SLACK_BOT_SCOPES in
+# apps/dashboard/src/lib/slack/config.ts.
+
+display_information:
+  name: chmonitor
+  description: ClickHouse monitoring in Slack — cluster status, read-only queries, and alert acknowledgement.
+  background_color: "#0b0b0c"
+
+features:
+  bot_user:
+    display_name: chmonitor
+    always_online: true
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: false
+    home_tab_deep_link_enabled: false
+  slash_commands:
+    - command: /chmonitor
+      url: https://dash.chmonitor.dev/api/v1/slack/commands
+      description: ClickHouse status, a read-only query, or firing alerts
+      usage_hint: "status | query <SQL> | alert"
+      should_escape: false
+
+oauth_config:
+  redirect_urls:
+    - https://dash.chmonitor.dev/api/v1/slack/oauth
+  scopes:
+    bot:
+      # commands   — receive the /chmonitor slash command
+      # chat:write — post/update alert messages (the Acknowledge edit)
+      - commands
+      - chat:write
+
+settings:
+  event_subscriptions:
+    request_url: https://dash.chmonitor.dev/api/v1/slack/events
+    bot_events:
+      # Publish the Home tab when a user opens the app's Home.
+      - app_home_opened
+  interactivity:
+    is_enabled: true
+    # Receives the "Acknowledge" button clicks (block_actions).
+    request_url: https://dash.chmonitor.dev/api/v1/slack/interactions
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

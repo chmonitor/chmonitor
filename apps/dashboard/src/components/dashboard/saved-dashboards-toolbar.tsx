@@ -10,6 +10,8 @@
 
 import { BookmarkIcon, TrashIcon } from '@radix-ui/react-icons'
 
+import type { DashboardLayout } from '@/types/dashboard-layout'
+
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,14 +29,14 @@ import {
 } from '@/lib/dashboard-storage'
 
 interface SavedDashboardsToolbarProps {
-  /** Currently selected chart names */
-  selectedCharts: string[]
+  /** Currently active layout, to save */
+  layout: DashboardLayout
   /** Called when user loads a saved dashboard */
-  onLoad: (charts: string[]) => void
+  onLoad: (layout: DashboardLayout) => void
 }
 
 export function SavedDashboardsToolbar({
-  selectedCharts,
+  layout,
   onLoad,
 }: SavedDashboardsToolbarProps) {
   const [savedNames, setSavedNames] = useState<string[]>([])
@@ -57,22 +59,22 @@ export function SavedDashboardsToolbar({
   }, [])
 
   async function handleLoad(name: string) {
-    const charts = await loadDashboard(name)
-    if (charts) {
+    const loaded = await loadDashboard(name)
+    if (loaded) {
       setActiveName(name)
-      onLoad(charts)
+      onLoad(loaded)
     }
   }
 
   async function handleSave() {
-    if (selectedCharts.length === 0) {
-      alert('Add at least one chart before saving.')
+    if (layout.widgets.length === 0) {
+      alert('Add at least one widget before saving.')
       return
     }
     const name = window.prompt('Dashboard name:')?.trim()
     if (!name) return
     try {
-      await saveDashboard(name, selectedCharts)
+      await saveDashboard(name, layout)
       setActiveName(name)
       await refreshList()
     } catch (err) {

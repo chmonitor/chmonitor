@@ -85,3 +85,32 @@ exposure is visible in logs and cannot be silently forgotten.
 - `packages/mcp-server/src/http.ts` — auth gate (`defaultAuthenticator`)
 - `packages/mcp-server/src/auth/` — api-key + Clerk OAuth verifiers
 - Tests: `packages/mcp-server/src/__tests__/http.test.ts`
+
+## Consuming external MCP servers (per-user registry)
+
+The opposite direction: the in-app **agent** can also load tools from *external*
+MCP servers a user registers. This is a **cloud (D1) feature**, strictly
+per-user, and additive — self-hosted without D1 falls back to the browser
+(`localStorage`) sidebar panel and stays whole.
+
+- **Store / D1** — `apps/dashboard/src/lib/ai/agent/mcp/registration-store.ts`
+  (table `mcp_server_registrations`, migration
+  `db/conversations-migrations/0015_mcp_server_registrations.sql`). Every
+  read/write is `WHERE user_id = ?`; owner-guarded upsert
+  (`ON CONFLICT ... WHERE user_id = excluded.user_id`). Auth secrets encrypted at
+  rest via `registry-crypto.ts` (AES-256-GCM, same key material as
+  `connection-store/crypto.ts`), never returned by the API.
+- **Connect / SSRF (SEC-04)** — `connect-custom-servers.ts`: `validateServer`
+  (test-before-save, always closes the client) and `loadUserRegisteredServers`
+  (best-effort, `[]` when no D1). The transport is **pinned behind
+  `createHostValidationFetch()`** (same posture as `connection-query/
+  connection-client.ts` for ClickHouse hosts) so the actual outbound connection
+  is validated, not just a pre-check.
+- **Agent wiring** — `routes/api/v1/agent.ts` merges request-body servers +
+  D1 registrations (deduped by endpoint), connects once *below* the 402 billing
+  gate, and closes on the pre-stream throw path.
+- **Routes / UI** — `routes/api/v1/mcp/servers.ts` (CRUD) + `mcp/probe.ts`
+  (test), `routes/(dashboard)/mcp-servers.tsx` +
+  `components/mcp/mcp-server-manager.tsx` (manager with template library:
+  Slack / GitHub / Datadog). See `docs/content/guide/ai-agent.mdx` §"Persistent
+  MCP server registry".

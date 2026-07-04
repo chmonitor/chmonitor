@@ -173,7 +173,7 @@ export const TableClient = function TableClient({
     [JSON.stringify(searchParams), hostId]
   )
 
-  const { data, metadata, error, isLoading, isValidating, refresh } =
+  const { data, metadata, error, isPending, isValidating, refresh } =
     useTableData<Record<string, unknown>>(
       queryConfig.name,
       hostId,
@@ -181,10 +181,14 @@ export const TableClient = function TableClient({
       refreshInterval
     )
 
-  // Show skeleton during initial load OR if validating with no existing data
-  // This prevents showing "no data" while waiting for the first response
+  // Keep the skeleton up until the query has actually settled. `isPending` is
+  // true whenever no successful response has loaded yet — including the brief
+  // dispatched-but-not-yet-fetching / paused / first-paint window where
+  // `isFetching` (and thus `isValidating`) is false. Without it the empty-state
+  // below would flash before the first result arrives. Also keep the skeleton
+  // while re-validating from an empty cache.
   const isInitialLoading =
-    isLoading || (isValidating && (!data || data.length === 0))
+    isPending || (isValidating && (!data || data.length === 0))
 
   if (isInitialLoading) {
     return <TableSkeleton />

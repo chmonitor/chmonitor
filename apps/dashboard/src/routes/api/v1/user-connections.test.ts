@@ -67,6 +67,12 @@ mock.module('@/lib/billing/org-host-count', () => ({
   countOwnerHosts: () => countOwnerHosts(),
 }))
 
+let recordHostOverage = mock(async (_ownerId: string, _hosts: number) => {})
+mock.module('@/lib/billing/host-usage-store', () => ({
+  recordHostOverage: (ownerId: string, hosts: number) =>
+    recordHostOverage(ownerId, hosts),
+}))
+
 mock.module('@/lib/browser-connections/host-url', () => ({
   validateHostUrl: async (_host: string) => null,
   createHostValidationFetch: () => fetch,
@@ -130,6 +136,7 @@ beforeEach(() => {
   )
   getPlanForOwner = mock(async () => BILLING_PLANS.pro)
   countOwnerHosts = mock(async () => ({ count: 0, memberUserIds: ['user_1'] }))
+  recordHostOverage = mock(async () => {})
   queryConnection = mock(async () => [])
   storeCreate = mock(
     async (_userId: string, input: { name: string }, _limit?: unknown) => ({
@@ -160,9 +167,10 @@ describe('POST /api/v1/user-connections — audit wiring', () => {
     })
   })
 
-  test('a host-limit denial (over cap) logs connection.created:denied instead of creating', async () => {
+  test('Free hard-caps: a denial (over cap) logs connection.created:denied instead of creating', async () => {
+    getPlanForOwner = mock(async () => BILLING_PLANS.free)
     countOwnerHosts = mock(async () => ({
-      count: BILLING_PLANS.pro.hosts as number,
+      count: BILLING_PLANS.free.hosts as number,
       memberUserIds: ['user_1'],
     }))
 
@@ -177,6 +185,39 @@ describe('POST /api/v1/user-connections — audit wiring', () => {
       action: 'create',
       result: 'denied',
     })
+  })
+
+  test('Pro soft-caps: a host past the included allowance is allowed and metered as overage', async () => {
+    countOwnerHosts = mock(async () => ({
+      count: BILLING_PLANS.pro.hosts as number,
+      memberUserIds: ['user_1'],
+    }))
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(200)
+    expect(storeCreate).toHaveBeenCalledTimes(1)
+    // Soft-capped plans skip the atomic hard limit entirely.
+    expect(storeCreate.mock.calls[0]?.[2]).toEqual({
+      memberUserIds: ['user_1'],
+      limit: null,
+    })
+    expect(recordHostOverage).toHaveBeenCalledTimes(1)
+    expect(recordHostOverage).toHaveBeenCalledWith('org_1', 1)
+    expect(logEventImpl).toHaveBeenCalledTimes(1)
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      orgId: 'org_1',
+      event: 'connection.created',
+      action: 'create',
+      result: 'success',
+    })
+  })
+
+  test('under the included allowance: no overage is metered', async () => {
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(200)
+    expect(recordHostOverage).not.toHaveBeenCalled()
   })
 
   test('a user-scoped owner (no active Clerk org) is never audit-logged', async () => {

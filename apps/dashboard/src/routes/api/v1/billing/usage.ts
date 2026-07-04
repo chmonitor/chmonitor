@@ -32,7 +32,9 @@ import {
   checkAiDailyLimit,
   checkHostLimit,
   checkSeatLimit,
+  hostOverageUsd,
 } from '@/lib/billing/entitlements'
+import { getHostOverageThisMonth } from '@/lib/billing/host-usage-store'
 import { countOwnerHosts } from '@/lib/billing/org-host-count'
 import {
   getPlanForOwner,
@@ -112,14 +114,35 @@ async function resolveAiSpentThisMonth(ownerId: string): Promise<number> {
   }
 }
 
+/**
+ * Peak billable overage host count `ownerId` has recorded this month (plan
+ * 18). Defensive like the other meters — a store hiccup degrades to 0.
+ */
+async function resolveHostOverageThisMonth(ownerId: string): Promise<number> {
+  try {
+    return await getHostOverageThisMonth(ownerId)
+  } catch {
+    return 0
+  }
+}
+
 async function handleGet(): Promise<Response> {
   try {
     const owner = await resolveBillingOwner()
     const userId = await resolveConnectionUserId()
 
-    const [plan, sub, hostsUsed, seatsUsed, aiUsedToday, aiSpentThisMonth]: [
+    const [
+      plan,
+      sub,
+      hostsUsed,
+      seatsUsed,
+      aiUsedToday,
+      aiSpentThisMonth,
+      hostOverageThisMonth,
+    ]: [
       Plan,
       Awaited<ReturnType<typeof resolveOwnerSubscription>>,
+      number,
       number,
       number,
       number,
@@ -131,6 +154,7 @@ async function handleGet(): Promise<Response> {
       resolveSeatsUsed(owner),
       resolveAiUsedToday(owner.id),
       resolveAiSpentThisMonth(owner.id),
+      resolveHostOverageThisMonth(owner.id),
     ])
 
     return createSuccessResponse({
@@ -141,6 +165,8 @@ async function handleGet(): Promise<Response> {
       aiMessages: toMeter(checkAiDailyLimit(plan, aiUsedToday)),
       aiSpentThisMonth,
       aiMonthlyUsdBudget: plan.aiMonthlyUsdBudget,
+      hostOverageThisMonth,
+      hostOverageUsd: hostOverageUsd(plan, hostOverageThisMonth),
       renewal: {
         currentPeriodEnd: sub?.currentPeriodEnd ?? null,
         cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,

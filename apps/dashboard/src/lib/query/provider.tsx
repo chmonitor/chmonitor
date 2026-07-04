@@ -1,7 +1,8 @@
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 
+import { createQueryClient } from './query-client'
 import { useEffect, useState } from 'react'
 import { USER_CONNECTIONS_QUERY_PREFIX } from '@/lib/hooks/use-user-connections'
 
@@ -27,52 +28,6 @@ const PERSIST_MAX_AGE_MS = 24 * 60 * 60_000
 // data could render against a mismatched schema. The git SHA is inlined at
 // build time (see vite.config.ts CLIENT_ENV); 'dev' covers local builds.
 const PERSIST_BUSTER = import.meta.env.VITE_GIT_SHA || 'dev'
-
-function createQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        // SWR dedupingInterval: 5000ms
-        // Requests made within this window share the same in-flight fetch
-        // and the cached result is considered fresh for this long.
-        staleTime: 5_000,
-
-        // Keep inactive (unmounted) query data in cache for 30 min before
-        // garbage-collecting it. Orthogonal to staleTime: this does NOT
-        // affect freshness — data still revalidates per staleTime — it only
-        // controls how long a cached result survives after its last consumer
-        // unmounts. A monitoring dashboard hops between pages constantly;
-        // with the 5 min default, returning to a page after the GC window
-        // shows a loading skeleton. 30 min lets the user navigate back to an
-        // instant stale-while-revalidate render (cached data shown, refetch
-        // in background) instead of a blank skeleton. (TanStack Query
-        // default gcTime is 5 min.)
-        //
-        // gcTime also bounds what survives a persist round-trip: only queries
-        // whose gcTime has not elapsed are restored from localStorage on load.
-        gcTime: 30 * 60_000,
-
-        // SWR revalidateOnFocus: false
-        // Don't refetch when the browser tab regains focus.
-        refetchOnWindowFocus: false,
-
-        // SWR errorRetryCount: 3
-        // Retry failed queries up to 3 times before surfacing the error.
-        retry: 3,
-
-        // SWR onErrorRetry uses exponential backoff starting at 1 s (errorRetryInterval: 1000),
-        // doubling each attempt and capped at 30 s.
-        // attempt index is 0-based; match SWR's 2^n * 1000 formula.
-        retryDelay: (attempt) => Math.min(30_000, 1_000 * 2 ** attempt),
-
-        // SWR sets no global refreshInterval — polling is opt-in per query.
-        // TanStack Query default (false) matches: no background refetch unless
-        // the caller passes refetchInterval explicitly.
-        refetchInterval: false,
-      },
-    },
-  })
-}
 
 export function QueryProvider({ children }: QueryProviderProps) {
   const [queryClient] = useState(createQueryClient)

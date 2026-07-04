@@ -10,6 +10,7 @@
 import { createAdvisorTools } from './advisor-tools'
 import { createAskUserTools } from './ask-user-tools'
 import { createControlTools } from './control-tools'
+import { createDashboardTools } from './dashboard-tools'
 import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
@@ -41,6 +42,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Insights: explain_anomaly_score
  *  - Advisor: get_optimization_recommendations
  *  - Advisor: recommend_materialized_view
+ *  - Dashboards: suggest_dashboard
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
@@ -84,6 +86,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
     ...createAdvisorTools(hostId),
     // Advisor (MV/projection designer, recommend-only)
     ...createMvDesignerTools(hostId),
+
+    // Dashboards (AI-generated layout suggestions, recommend-only)
+    ...createDashboardTools(),
 
     // Control actions (destructive) — off unless explicitly enabled
     ...(enableControlTools && includeControlTools

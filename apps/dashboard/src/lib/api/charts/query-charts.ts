@@ -116,6 +116,34 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
+  // Sampled memory envelope from system.query_metric_log (per-query samples,
+  // one row per query per sampling interval). Bucketed max(memory) + max(peak)
+  // over the window shows the memory high-water mark across all queries over
+  // time. optional + tableCheck: the table is opt-in and absent on many
+  // servers, so the executor skips it gracefully rather than erroring.
+  'query-metric-log-memory': ({
+    interval = 'toStartOfFiveMinutes',
+    lastHours = 6,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      optional: true,
+      tableCheck: 'system.query_metric_log',
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           max(memory_usage) AS memory_usage,
+           max(peak_memory_usage) AS peak_memory_usage,
+           formatReadableSize(max(memory_usage)) AS readable_memory_usage,
+           formatReadableSize(max(peak_memory_usage)) AS readable_peak_memory_usage
+    FROM system.query_metric_log
+    ${timeFilter ? `WHERE ${timeFilter}` : ''}
+    GROUP BY event_time
+    ORDER BY event_time ASC
+    SETTINGS max_execution_time = 25
+  `,
+    }
+  },
+
   'query-type': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -229,7 +257,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
       SELECT ${applyInterval(interval, 'event_time')},
              COUNT() AS query_count
       FROM merge('system', '^query_log')
-      WHERE
+      PREWHERE
             type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
             ${timeFilter ? `AND ${timeFilter}` : ''}
       GROUP BY 1
@@ -240,7 +268,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
                type AS query_type,
                COUNT() AS count
         FROM merge('system', '^query_log')
-        WHERE
+        PREWHERE
               type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
               ${timeFilter ? `AND ${timeFilter}` : ''}
         GROUP BY 1, 2
@@ -292,7 +320,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
            user,
            countDistinct(query_id) AS count
     FROM merge('system', '^query_log')
-    WHERE
+    PREWHERE
           type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY 1, 2

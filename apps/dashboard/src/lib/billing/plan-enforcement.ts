@@ -63,6 +63,7 @@ export const CAPABILITY_ENFORCEMENT: Record<PlanCapability, Enforcement> = {
 /** Numeric limits advertised by every plan. */
 export type LimitKey =
   | 'hosts'
+  | 'hostOverage'
   | 'seats'
   | 'alertRules'
   | 'retentionDays'
@@ -75,11 +76,16 @@ export type LimitKey =
 export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
   hosts: {
     status: 'enforced',
-    gate: 'routes/api/v1/user-connections.ts handlePost → checkHostLimit (pooled by countOwnerHosts)',
+    gate: 'routes/api/v1/user-connections.ts handlePost → checkHostSoftCap (pooled by countOwnerHosts): Free hard-caps (402), Pro/Max soft-cap (allowed past the included allowance)',
+  },
+  hostOverage: {
+    status: 'deferred',
+    reason:
+      'local meter live (host-usage-store.ts recordHostOverage → host_usage_monthly, peak per owner/month, surfaced as hostOverageThisMonth/hostOverageUsd on usage.ts); Polar usage-based reporting pending product setup — do not claim billed revenue until that lands',
   },
   seats: {
     status: 'enforced',
-    gate: 'routes/api/v1/webhooks/clerk.ts organizationMembership.created → checkSeatLimit (rolls back over-limit member)',
+    gate: 'routes/api/v1/org/invite.ts handlePost → preCheckSeatLimit (pre-emptive 402 before the invite is created — the ONLY entry point today is a direct call to this route; the hosted Clerk <OrganizationProfile/> widget cannot be repointed at it, see components/clerk/organization-members.tsx, so its invites still rely solely on the fallback below); routes/api/v1/webhooks/clerk.ts organizationMembership.created → checkSeatLimit (rolls back over-limit member — defense-in-depth fallback, and the ONLY gate the widget invite path currently hits)',
   },
   alertRules: {
     status: 'deferred',

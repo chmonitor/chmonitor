@@ -25,6 +25,7 @@ import type { Skill } from '@/components/agents/welcome/skills-data'
 import { useEffect, useState } from 'react'
 import { AgentMcpPanel } from '@/components/agents/welcome/agent-mcp-panel'
 import { AgentModelPicker } from '@/components/agents/welcome/agent-model-picker'
+import { McpConnectAgentDialog } from '@/components/agents/welcome/mcp-connect-agent-dialog'
 import { SkillDetailDialog } from '@/components/agents/welcome/skill-detail-dialog'
 import { SkillsLibraryDialog } from '@/components/agents/welcome/skills-library-dialog'
 import { SUGGESTED_PROMPTS } from '@/components/agents/welcome/suggested-prompts'
@@ -45,7 +46,6 @@ import {
   CONVERSATION_BACKEND_LABELS,
   useConversationBackend,
 } from '@/lib/hooks/use-conversation-backend'
-import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
 
 interface AgentSettingsSidebarProps {
@@ -74,7 +74,7 @@ export function AgentSettingsSidebar({
   const topSkills = skills.slice(0, 3)
   const [skillDetail, setSkillDetail] = useState<Skill | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
-  const hostId = useHostId()
+  const [connectOpen, setConnectOpen] = useState(false)
 
   // The parent opens this sidebar via a post-mount effect (`!isMobile`), so the
   // very first commit on desktop transitions `open` false → true. Animating the
@@ -116,9 +116,10 @@ export function AgentSettingsSidebar({
         <AgentMcpPanel />
         {/* For users who run their own agent/IDE and want to point it at this
             cluster's MCP endpoint directly. */}
-        <a
-          href={`/mcp?host=${hostId}`}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1.5 flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-[11.5px] transition-colors"
+        <button
+          type="button"
+          onClick={() => setConnectOpen(true)}
+          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed px-3 py-2 text-left text-[11.5px] transition-colors"
         >
           <PlugZapIcon className="size-3.5 shrink-0" />
           <span className="min-w-0 flex-1">
@@ -130,7 +131,7 @@ export function AgentSettingsSidebar({
             </span>
           </span>
           <ArrowRightIcon className="size-3 shrink-0" />
-        </a>
+        </button>
       </SidebarSection>
 
       {/* SKILLS */}
@@ -237,6 +238,8 @@ export function AgentSettingsSidebar({
       />
 
       <SkillsLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} />
+
+      <McpConnectAgentDialog open={connectOpen} onOpenChange={setConnectOpen} />
     </>
   )
 

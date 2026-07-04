@@ -158,6 +158,7 @@ export function HealthGrid() {
           hostId={hostId}
           computed={stuck}
           spark={spark}
+          clickhouseVersion={results[STUCK_MUTATIONS_CHART]?.clickhouseVersion}
         />
       ),
     })
@@ -182,6 +183,9 @@ export function HealthGrid() {
           hostId={hostId}
           computed={running}
           spark={spark}
+          clickhouseVersion={
+            results[RUNNING_MUTATIONS_CHART]?.clickhouseVersion
+          }
         />
       ),
     })

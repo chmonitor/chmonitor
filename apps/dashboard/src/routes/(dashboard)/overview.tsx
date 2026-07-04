@@ -5,7 +5,7 @@ import type { OverviewChartConfig } from './-charts-config'
 import { OVERVIEW_TABS } from './-charts-config'
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
 import { ClientOnly } from '@/components/client-only'
-import { InsightsPanel } from '@/components/insights/insights-panel'
+import { InsightsStrip } from '@/components/insights/insights-strip'
 import { cardStyles } from '@/components/overview-charts/card-styles'
 import { OverviewCharts } from '@/components/overview-charts/overview-charts-client'
 import { OverviewStatusStrip } from '@/components/overview-charts/overview-status-strip'
@@ -227,7 +227,7 @@ function OverviewPageContent() {
       <OverviewCharts className="mb-4 sm:mb-6" />
 
       <ClientOnly fallback={null}>
-        <InsightsPanel hostId={hostId} className="mb-4 sm:mb-6" />
+        <InsightsStrip hostId={hostId} className="mb-4 sm:mb-6" />
       </ClientOnly>
 
       <ClientOnly

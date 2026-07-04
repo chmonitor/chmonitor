@@ -14,8 +14,17 @@
  * permitted on loopback hosts (dev convenience).
  */
 
+import {
+  isMcpRegistryEnabled,
+  type McpAuth,
+  type McpConnectInput,
+  type McpRegistrationStore,
+  type McpTransport,
+  mcpRegistrationStore,
+} from './registration-store'
 import { createMCPClient } from '@ai-sdk/mcp'
 import {
+  createHostValidationFetch,
   type ResolveHostAddresses,
   validateHostUrl,
 } from '@/lib/browser-connections/host-url'
@@ -24,6 +33,10 @@ export interface CustomMcpServerInput {
   id: string
   name: string
   endpoint: string
+  /** Transport to open the client over. Defaults to 'http'. */
+  transport?: McpTransport
+  /** Structured auth; defaults to no auth. */
+  auth?: McpAuth
 }
 
 export interface McpConnectionResult {
@@ -35,6 +48,31 @@ export interface McpConnectionResult {
     toolCount: number
     error?: string
   }>
+}
+
+/** Minimal MCP client surface used here (subset of the AI SDK client). */
+interface McpClientLike {
+  tools: () => Promise<Record<string, unknown>>
+  close: () => Promise<void>
+}
+
+/**
+ * Factory for opening an MCP client. Injected in tests so the connect/close
+ * lifecycle (and failure paths) can be driven without a live network call —
+ * the default builds a real, SSRF-pinned AI SDK client (see
+ * {@link defaultCreateMcpClient}).
+ */
+export type McpClientFactory = (args: {
+  url: string
+  transport: McpTransport
+  headers?: Record<string, string>
+  serverName: string
+}) => Promise<McpClientLike>
+
+/** Options accepted across the connect helpers (test seams). */
+export interface ConnectOptions {
+  createClient?: McpClientFactory
+  resolveHostAddresses?: ResolveHostAddresses
 }
 
 /** Maximum number of custom servers to connect per request. */
@@ -188,8 +226,10 @@ export function sanitizeServerName(name: string): string {
  * Per-server failures are isolated — one bad server does not affect others.
  */
 export async function connectCustomMcpServers(
-  servers: CustomMcpServerInput[]
+  servers: CustomMcpServerInput[],
+  opts?: ConnectOptions
 ): Promise<McpConnectionResult> {
+  const createClient = opts?.createClient ?? defaultCreateMcpClient
   const clients: Array<{ close: () => Promise<void> }> = []
   const allTools: Record<string, unknown> = {}
   const statuses: McpConnectionResult['statuses'] = []
@@ -197,7 +237,7 @@ export async function connectCustomMcpServers(
   const toConnect = servers.slice(0, MAX_SERVERS)
 
   for (const server of toConnect) {
-    if (!(await isAllowedMcpUrl(server.endpoint))) {
+    if (!(await isAllowedMcpUrl(server.endpoint, opts?.resolveHostAddresses))) {
       statuses.push({
         id: server.id,
         status: 'error',
@@ -209,10 +249,7 @@ export async function connectCustomMcpServers(
     }
 
     try {
-      const { client, tools } = await connectWithTimeout(
-        server.endpoint,
-        server.name
-      )
+      const { client, tools } = await connectWithTimeout(server, createClient)
       clients.push(client)
 
       const prefix = `mcp_${sanitizeServerName(server.name)}_`
@@ -254,22 +291,163 @@ export async function connectCustomMcpServers(
 }
 
 // ---------------------------------------------------------------------------
+// Validate (test-before-save) + per-user loading
+// ---------------------------------------------------------------------------
+
+/**
+ * Test-connect to a single MCP endpoint WITHOUT persisting: SSRF-guard the URL,
+ * open the (SSRF-pinned) client, list its advertised tools, and ALWAYS close
+ * the client — on success AND on throw (the BUG-03 close-always invariant).
+ * Returns the real advertised tool names on success, or a reason on failure.
+ */
+export async function validateServer(
+  input: CustomMcpServerInput,
+  opts?: ConnectOptions
+): Promise<{ ok: boolean; tools?: string[]; error?: string }> {
+  if (!(await isAllowedMcpUrl(input.endpoint, opts?.resolveHostAddresses))) {
+    return {
+      ok: false,
+      error:
+        'Endpoint URL not allowed (use https:, or http:// for localhost only)',
+    }
+  }
+
+  const createClient = opts?.createClient ?? defaultCreateMcpClient
+  let client: McpClientLike | null = null
+  try {
+    const result = await connectWithTimeout(input, createClient)
+    client = result.client
+    return { ok: true, tools: Object.keys(result.tools) }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: msg.slice(0, 200) }
+  } finally {
+    // Close whether tools() succeeded or the connect threw after opening.
+    if (client) await client.close().catch(() => {})
+  }
+}
+
+/**
+ * Resolve a user's ENABLED, D1-persisted registrations into connect inputs
+ * (decrypted server-side). Best-effort: any failure (no D1 binding on
+ * self-hosted, decrypt error) resolves to `[]` so the conversation still runs
+ * with built-in tools — never throws into the agent request.
+ */
+export async function loadUserRegisteredServers(
+  userId: string,
+  opts?: { store?: Pick<McpRegistrationStore, 'listEnabledConnectInputs'> }
+): Promise<CustomMcpServerInput[]> {
+  // Self-hosted/OSS without a D1 binding has no registry — skip silently. A
+  // missing registry is a normal condition, not an error worth logging on every
+  // agent conversation. Tests inject a store, so they bypass this gate.
+  if (!opts?.store && !isMcpRegistryEnabled()) return []
+  try {
+    const store = opts?.store ?? mcpRegistrationStore
+    const inputs = await store.listEnabledConnectInputs(userId)
+    return inputs.map(connectInputToCustomServer)
+  } catch (e) {
+    console.error('[mcp-registry] loadUserRegisteredServers failed:', e)
+    return []
+  }
+}
+
+function connectInputToCustomServer(
+  input: McpConnectInput
+): CustomMcpServerInput {
+  return {
+    id: input.id,
+    name: input.name,
+    endpoint: input.url,
+    transport: input.transport,
+    auth: input.auth,
+  }
+}
+
+/**
+ * Merge multiple custom-server lists into one, de-duplicated by normalized
+ * endpoint (earlier lists win). Prevents connecting the same endpoint twice —
+ * and blowing past the per-call cap / colliding tool keys — when a user's
+ * request carries both request-body servers and their D1 registrations.
+ */
+export function mergeMcpServers(
+  ...lists: CustomMcpServerInput[][]
+): CustomMcpServerInput[] {
+  const seen = new Set<string>()
+  const merged: CustomMcpServerInput[] = []
+  for (const list of lists) {
+    for (const server of list) {
+      const key = normalizeEndpoint(server.endpoint)
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(server)
+    }
+  }
+  return merged
+}
+
+function normalizeEndpoint(endpoint: string): string {
+  const trimmed = endpoint.trim().toLowerCase()
+  return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed
+}
+
+// ---------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------
 
 /**
+ * Build outbound auth headers from a registration's structured auth. Returns
+ * undefined for no auth so the transport sends none.
+ */
+function buildAuthHeaders(auth?: McpAuth): Record<string, string> | undefined {
+  if (!auth || auth.kind === 'none') return undefined
+  if (auth.kind === 'bearer') return { Authorization: `Bearer ${auth.token}` }
+  return { [auth.headerName]: auth.value }
+}
+
+/**
+ * Default MCP client factory: opens a real AI SDK client over the requested
+ * transport, PINNED behind the shared host-validation fetch. This closes SEC-04
+ * — the actual outbound connection is validated the same way the pre-check is,
+ * defeating the DNS-rebind TOCTOU (identical posture to `connection-client.ts`
+ * for user-supplied ClickHouse hosts: pins on Node, IP-literal-only on Workers).
+ */
+const defaultCreateMcpClient: McpClientFactory = async ({
+  url,
+  transport,
+  headers,
+  serverName,
+}) => {
+  const client = await createMCPClient({
+    transport: {
+      type: transport,
+      url,
+      ...(headers ? { headers } : {}),
+      fetch: createHostValidationFetch(),
+    },
+    onUncaughtError: (e) => {
+      console.error(`[MCP] Uncaught error from "${serverName}":`, e)
+    },
+  })
+  return {
+    tools: () => client.tools() as Promise<Record<string, unknown>>,
+    close: () => client.close(),
+  }
+}
+
+/**
  * Connect to an MCP endpoint and fetch its tools, with a hard timeout.
- * Cleans up the client if the timeout fires before connect completes.
+ * Cleans up the client if the timeout fires OR if tools() throws after the
+ * client opened, so a failed listing never leaks an open connection.
  */
 async function connectWithTimeout(
-  endpoint: string,
-  serverName: string
+  server: CustomMcpServerInput,
+  createClient: McpClientFactory
 ): Promise<{
-  client: { close: () => Promise<void> }
+  client: McpClientLike
   tools: Record<string, unknown>
 }> {
   let settled = false
-  let resolvedClient: { close: () => Promise<void> } | null = null
+  let resolvedClient: McpClientLike | null = null
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -284,11 +462,11 @@ async function connectWithTimeout(
 
     ;(async () => {
       try {
-        const client = await createMCPClient({
-          transport: { type: 'http', url: endpoint },
-          onUncaughtError: (e) => {
-            console.error(`[MCP] Uncaught error from "${serverName}":`, e)
-          },
+        const client = await createClient({
+          url: server.endpoint,
+          transport: server.transport ?? 'http',
+          headers: buildAuthHeaders(server.auth),
+          serverName: server.name,
         })
         resolvedClient = client
         const tools = await client.tools()
@@ -306,6 +484,11 @@ async function connectWithTimeout(
         if (settled) return
         settled = true
         clearTimeout(timer)
+        // If the client opened but tools() threw, close it before rejecting so
+        // a failed listing never leaks an open connection (BUG-03 class).
+        if (resolvedClient) {
+          resolvedClient.close().catch(() => {})
+        }
         reject(e)
       }
     })()

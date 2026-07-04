@@ -55,6 +55,10 @@ export const expensiveQueriesConfig: QueryConfig = {
   tableCheck: 'system.query_log',
   defaultParams: {
     last_hours: '24',
+    // Per-event duration floor (seconds). 0 keeps the default view unchanged —
+    // every finished/exception query counts — while letting the user narrow to
+    // individually-slow queries via the UI selector.
+    min_duration_s: '0',
   },
   filterParamPresets: [
     { name: 'Last 1h', key: 'last_hours', value: '1' },
@@ -62,6 +66,11 @@ export const expensiveQueriesConfig: QueryConfig = {
     { name: 'Last 24h', key: 'last_hours', value: '24' },
     { name: 'Last 7d', key: 'last_hours', value: '168' },
     { name: 'Last 30d', key: 'last_hours', value: '720' },
+    { name: 'Any', key: 'min_duration_s', value: '0' },
+    { name: '> 1s', key: 'min_duration_s', value: '1' },
+    { name: '> 5s', key: 'min_duration_s', value: '5' },
+    { name: '> 30s', key: 'min_duration_s', value: '30' },
+    { name: '> 60s', key: 'min_duration_s', value: '60' },
   ],
   sql: [
     {
@@ -102,7 +111,8 @@ export const expensiveQueriesConfig: QueryConfig = {
             formatReadableSize(sum(written_bytes)) AS written_bytes,
             formatReadableSize(sum(result_bytes)) AS result_bytes
         FROM merge('system', '^query_log')
-        WHERE (event_time > (now() - interval {last_hours:UInt64} hour)) AND (type IN (2, 4))
+        PREWHERE (type IN (2, 4)) AND (event_time > (now() - interval {last_hours:UInt64} hour))
+        WHERE query_duration_ms >= {min_duration_s:UInt64} * 1000
         GROUP BY normalized_query_hash
     )
     SELECT
@@ -162,7 +172,8 @@ export const expensiveQueriesConfig: QueryConfig = {
             formatReadableSize(sum(written_bytes)) AS written_bytes,
             formatReadableSize(sum(result_bytes)) AS result_bytes
         FROM merge('system', '^query_log')
-        WHERE (event_time > (now() - interval {last_hours:UInt64} hour)) AND (type IN (2, 4))
+        PREWHERE (type IN (2, 4)) AND (event_time > (now() - interval {last_hours:UInt64} hour))
+        WHERE query_duration_ms >= {min_duration_s:UInt64} * 1000
         GROUP BY normalized_query_hash
     )
     SELECT
@@ -223,7 +234,8 @@ export const expensiveQueriesConfig: QueryConfig = {
             formatReadableSize(sum(written_bytes)) AS written_bytes,
             formatReadableSize(sum(result_bytes)) AS result_bytes
         FROM merge('system', '^query_log')
-        WHERE (event_time > (now() - interval {last_hours:UInt64} hour)) AND (type IN (2, 4))
+        PREWHERE (type IN (2, 4)) AND (event_time > (now() - interval {last_hours:UInt64} hour))
+        WHERE query_duration_ms >= {min_duration_s:UInt64} * 1000
         GROUP BY normalized_query_hash
     )
     SELECT

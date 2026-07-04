@@ -89,8 +89,9 @@ mock.module('@/lib/billing/user-subscription', () => ({
 // adds organizations.deleteOrganizationMembership and keeps
 // organizations.getOrganizationMembershipList (org-host-count.test.ts) plus
 // users.getOrganizationMembershipList / organizations.createOrganization
-// (polar.test.ts) so registration for this shared specifier is
-// order-independent.
+// (polar.test.ts) plus auth / organizations.createOrganizationInvitation
+// (routes/api/v1/org/invite.test.ts) so registration for this shared
+// specifier is order-independent.
 let getOrganizationMembershipList = mock(
   async (_args: { organizationId: string; limit: number }) => ({
     data: [] as unknown[],
@@ -105,7 +106,16 @@ let usersGetOrganizationMembershipList = mock(
 let createOrganization = mock(
   async (_args: { name: string; createdBy: string }) => ({ id: 'org_new' })
 )
+const createOrganizationInvitation = mock(
+  async (_args: {
+    organizationId: string
+    emailAddress: string
+    role: string
+    inviterUserId?: string
+  }) => ({ id: 'inv_1' })
+)
 mock.module('@clerk/tanstack-react-start/server', () => ({
+  auth: async () => ({ userId: 'user_admin', orgId: 'org_1' }),
   clerkClient: () => ({
     users: {
       getOrganizationMembershipList: (args: { userId: string }) =>
@@ -122,6 +132,12 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
         organizationId: string
         userId: string
       }) => deleteOrganizationMembership(args),
+      createOrganizationInvitation: (args: {
+        organizationId: string
+        emailAddress: string
+        role: string
+        inviterUserId?: string
+      }) => createOrganizationInvitation(args),
     },
   }),
 }))

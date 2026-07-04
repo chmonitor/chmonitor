@@ -10,18 +10,23 @@ import {
 
 import type { DerivedQuery } from './types'
 
-import { ProgressCell } from './cells'
+import { DoneBadge, ProgressCell } from './cells'
 import { ExpandedRow } from './expanded-row'
 import { useKillQuery } from './use-kill-query'
 import { memo } from 'react'
 import { formatDuration } from '@/components/query-tables/format-duration'
 import { KindBadge } from '@/components/query-tables/kind-badge'
 import { formatReadableSize } from '@/lib/format-readable'
+import { cn } from '@/lib/utils'
 
 interface QueryCardProps {
   d: DerivedQuery
   expanded: boolean
   onToggle: () => void
+  /** Query has finished and its card is retained in a "Done" state. */
+  done?: boolean
+  /** Drop this retained Done card from the list. */
+  onDismiss?: () => void
 }
 
 /**
@@ -33,6 +38,8 @@ export const QueryCard = memo(function QueryCard({
   d,
   expanded,
   onToggle,
+  done,
+  onDismiss,
 }: QueryCardProps) {
   const { isKilling, handleKill } = useKillQuery(d.id)
   const ExpandIcon = expanded ? ChevronDown : ChevronRight
@@ -42,7 +49,11 @@ export const QueryCard = memo(function QueryCard({
     <div
       data-testid="running-query-card"
       data-expanded={expanded || undefined}
-      className="overflow-hidden rounded-lg border border-border/60 bg-card/40"
+      className={cn(
+        'overflow-hidden rounded-lg border border-border/60 bg-card/40',
+        done &&
+          'border-emerald-300/60 bg-emerald-50/40 dark:border-emerald-900/50 dark:bg-emerald-950/20'
+      )}
     >
       <button
         type="button"
@@ -52,6 +63,7 @@ export const QueryCard = memo(function QueryCard({
       >
         {/* Header: kind badge + short id + expand affordance */}
         <div className="flex min-w-0 items-center gap-2">
+          {done && <DoneBadge />}
           <KindBadge kind={d.kind} />
           <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
             #{d.id ? d.id.slice(0, 8) : 'n/a'}
@@ -92,11 +104,17 @@ export const QueryCard = memo(function QueryCard({
           </span>
         </div>
 
-        <ProgressCell d={d} />
+        <ProgressCell d={d} done={done} />
       </button>
 
       {expanded && (
-        <ExpandedRow d={d} onKill={handleKill} isKilling={isKilling} />
+        <ExpandedRow
+          d={d}
+          onKill={handleKill}
+          isKilling={isKilling}
+          done={done}
+          onDismiss={onDismiss}
+        />
       )}
     </div>
   )

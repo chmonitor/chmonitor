@@ -1,4 +1,13 @@
+import { buildPagerDutyBody } from './adapters'
 import { loadAlertSettings } from './alert-settings-storage'
+
+// Duplicated (not imported) from `pagerduty-config.ts` on purpose: that
+// module reads server-only env vars (`process.env`), and this file is
+// client-side (browser `window`/`localStorage` checks below) — importing it
+// would pull a server-only module into the client bundle. The endpoint
+// itself is fixed and public (same for every PagerDuty service), so a
+// literal here carries no secret.
+const PAGERDUTY_EVENTS_API_URL = 'https://events.pagerduty.com/v2/enqueue'
 
 /** Actionable health severities used for escalation/recovery bookkeeping. */
 export type HealthAlertStatus = 'ok' | 'warning' | 'critical'
@@ -150,6 +159,50 @@ export async function fireWebhook(
     clearTimeout(timeout)
   }
 }
+/**
+ * Send a test PagerDuty event (trigger, immediately followed by resolve) to a
+ * specific service's routing key, via the `/api/v1/health/webhook` proxy's
+ * `provider`-hint path (verbatim body forward — see `webhook.ts`) so the
+ * setup dialog (plan 34) never needs a direct browser→PagerDuty fetch.
+ */
+export async function firePagerDutyTest(
+  alert: HealthAlertEvent,
+  routingKey: string
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const body = buildPagerDutyBody(
+      {
+        severity: alert.severity,
+        hostLabel: `host ${alert.hostId}`,
+        hostId: alert.hostId,
+        metric: alert.checkId,
+        value: alert.value,
+        title: alert.title,
+        label: alert.label,
+        timestamp: new Date().toISOString(),
+      },
+      { routingKey }
+    )
+    const res = await fetch('/api/v1/health/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: PAGERDUTY_EVENTS_API_URL,
+        provider: 'pagerduty',
+        payload: body,
+      }),
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export async function dispatchAlert(alert: HealthAlertEvent): Promise<void> {
   try {
     const settings = loadAlertSettings()

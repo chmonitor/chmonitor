@@ -7,6 +7,7 @@
  * only indirectly, through the `/api/dashboards/*` route handlers.
  */
 
+import type { DashboardLayout } from '@/types/dashboard-layout'
 import type {
   DashboardStore,
   PublicSharedDashboard,
@@ -15,6 +16,7 @@ import type {
 
 import { DashboardStoreError } from './types'
 import { getPlatformBindings } from '@chm/platform'
+import { normalizeLayout } from '@/types/dashboard-layout'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 
@@ -77,20 +79,24 @@ export const D1_GET_DASHBOARD_BY_SLUG_SQL = `SELECT name, layout_json
    FROM dashboards
    WHERE share_slug = ?1 AND is_shared = 1`
 
-function rowToDashboard(row: D1DashboardRow): StoredDashboard {
-  let charts: string[]
+function parseLayoutJson(layoutJson: string): DashboardLayout {
+  let parsed: unknown = null
   try {
-    const parsed = JSON.parse(row.layout_json)
-    charts = Array.isArray(parsed) ? (parsed as string[]) : []
+    parsed = JSON.parse(layoutJson)
   } catch {
-    charts = []
+    parsed = null
   }
+  // normalizeLayout handles both the current DashboardLayout shape and the
+  // legacy bare `string[]` shape stored by pre-plan-57 rows — never throws.
+  return normalizeLayout(parsed)
+}
 
+function rowToDashboard(row: D1DashboardRow): StoredDashboard {
   return {
     id: row.id,
     ownerId: row.owner_id,
     name: row.name,
-    charts,
+    layout: parseLayoutJson(row.layout_json),
     isShared: row.is_shared === 1,
     shareSlug: row.share_slug,
     updatedAt: row.updated_at,
@@ -170,7 +176,7 @@ export class D1DashboardStore implements DashboardStore {
           dashboard.id,
           dashboard.ownerId,
           dashboard.name,
-          JSON.stringify(dashboard.charts),
+          JSON.stringify(dashboard.layout),
           dashboard.isShared ? 1 : 0,
           dashboard.shareSlug,
           dashboard.updatedAt
@@ -190,18 +196,18 @@ export class D1DashboardStore implements DashboardStore {
   async saveByName(
     ownerId: string,
     name: string,
-    charts: string[]
+    layout: DashboardLayout
   ): Promise<StoredDashboard> {
     const existing = await this.get(ownerId, name)
     const now = Date.now()
 
     const dashboard: StoredDashboard = existing
-      ? { ...existing, charts, updatedAt: now }
+      ? { ...existing, layout, updatedAt: now }
       : {
           id: crypto.randomUUID(),
           ownerId,
           name,
-          charts,
+          layout,
           isShared: false,
           shareSlug: null,
           updatedAt: now,
@@ -283,15 +289,7 @@ export class D1DashboardStore implements DashboardStore {
 
       if (!row) return null
 
-      let charts: string[]
-      try {
-        const parsed = JSON.parse(row.layout_json)
-        charts = Array.isArray(parsed) ? (parsed as string[]) : []
-      } catch {
-        charts = []
-      }
-
-      return { name: row.name, charts }
+      return { name: row.name, layout: parseLayoutJson(row.layout_json) }
     } catch (error) {
       if (error instanceof DashboardStoreError) throw error
       throw new DashboardStoreError(

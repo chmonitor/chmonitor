@@ -168,8 +168,11 @@ export function SlowQueriesView() {
             <div className="flex items-center gap-2">
               Slow Queries
               {rows.length > 0 && (
-                <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-medium tabular-nums text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
-                  slowest {slowest.toFixed(1)}s
+                <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                  slowest
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {slowest.toFixed(1)}s
+                  </span>
                 </span>
               )}
             </div>

@@ -1,6 +1,7 @@
 import { Database, Server, Table as TableIcon } from 'lucide-react'
 
 import { useExplorerState } from './hooks/use-explorer-state'
+import { CopyButton } from '@/components/mcp/copy-button'
 import { AppLink as Link } from '@/components/ui/app-link'
 import {
   Breadcrumb,
@@ -10,6 +11,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+
+/** Small, quiet copy affordance revealed on hover of its breadcrumb crumb. */
+const CRUMB_COPY_CLASS =
+  'size-6 p-0 text-muted-foreground opacity-0 transition-opacity group-hover/crumb:opacity-100 focus-visible:opacity-100'
 
 interface ExplorerBreadcrumbProps {
   hostName?: string
@@ -36,7 +41,7 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
         {database && (
           <>
             <BreadcrumbSeparator />
-            <BreadcrumbItem>
+            <BreadcrumbItem className="group/crumb">
               {table ? (
                 <BreadcrumbLink asChild>
                   <Link
@@ -53,6 +58,7 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
                   {database}
                 </BreadcrumbPage>
               )}
+              <CopyButton text={database} className={CRUMB_COPY_CLASS} />
             </BreadcrumbItem>
           </>
         )}
@@ -60,11 +66,12 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
         {table && (
           <>
             <BreadcrumbSeparator />
-            <BreadcrumbItem>
+            <BreadcrumbItem className="group/crumb">
               <BreadcrumbPage className="flex items-center gap-1.5">
                 <TableIcon className="size-3.5" />
                 {table}
               </BreadcrumbPage>
+              <CopyButton text={table} className={CRUMB_COPY_CLASS} />
             </BreadcrumbItem>
           </>
         )}

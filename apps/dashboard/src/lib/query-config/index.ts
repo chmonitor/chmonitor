@@ -15,6 +15,7 @@ import { anomalyQueries } from './anomaly/anomaly-queries'
 import {
   explorerAllDependenciesConfig,
   explorerColumnsConfig,
+  explorerDatabaseCountsConfig,
   explorerDatabaseDependenciesConfig,
   explorerDatabasesConfig,
   explorerDdlConfig,
@@ -130,6 +131,7 @@ import { viewRefreshesConfig } from './tables/view-refreshes'
 export const queries: Array<QueryConfig> = [
   // Explorer
   explorerDatabasesConfig,
+  explorerDatabaseCountsConfig,
   explorerTablesConfig,
   explorerColumnsConfig,
   explorerDdlConfig,

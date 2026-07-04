@@ -23,8 +23,16 @@ import { cn } from '@/lib/utils'
 interface Database {
   name: string
   engine: string
-  item_count: number
 }
+
+interface DatabaseCount {
+  name: string
+  item_count: number | string
+}
+
+// Schema shape changes rarely; skip refetching the database list on every
+// remount of the empty-state within this window.
+const SCHEMA_STALE_TIME = 5 * 60_000
 
 function getDatabaseIcon(engine: string): {
   icon: LucideIcon
@@ -79,28 +87,47 @@ interface ApiResponse<T> {
   metadata?: Record<string, unknown>
 }
 
-const fetcher = async (url: string): Promise<ApiResponse<Database[]>> => {
+const fetcher = async <T,>(url: string): Promise<ApiResponse<T>> => {
   const res = await apiFetch(url)
   if (!res.ok) {
     throw new Error(`Failed to fetch databases: ${res.statusText}`)
   }
-  return res.json() as Promise<ApiResponse<Database[]>>
+  return res.json() as Promise<ApiResponse<T>>
 }
 
 export function ExplorerEmptyState() {
   const hostId = useHostId()
   const { setDatabase, setTab } = useExplorerState()
-  const queryKey = [`/api/v1/explorer/databases?hostId=${hostId}`]
+  const databasesUrl = `/api/v1/explorer/databases?hostId=${hostId}`
   const {
     data: response,
     error,
     isLoading,
   } = useQuery<ApiResponse<Database[]>>({
-    queryKey,
-    queryFn: () => fetcher(`/api/v1/explorer/databases?hostId=${hostId}`),
+    queryKey: [databasesUrl],
+    queryFn: () => fetcher<Database[]>(databasesUrl),
+    staleTime: SCHEMA_STALE_TIME,
+  })
+
+  // Table counts stream in separately so the database cards can paint on names
+  // immediately instead of waiting on a cluster-wide system.tables enumeration.
+  const countsUrl = `/api/v1/tables/explorer-database-counts?hostId=${hostId}`
+  const { data: countsResponse, isLoading: countsLoading } = useQuery<
+    ApiResponse<DatabaseCount[]>
+  >({
+    queryKey: [countsUrl],
+    queryFn: () => fetcher<DatabaseCount[]>(countsUrl),
+    staleTime: SCHEMA_STALE_TIME,
   })
 
   const databases = response?.data
+
+  const countByName = new Map<string, number>(
+    (countsResponse?.data ?? []).map((row) => [
+      row.name,
+      Number(row.item_count),
+    ])
+  )
 
   return (
     <div className="flex h-full flex-col gap-6 p-8">
@@ -157,6 +184,7 @@ export function ExplorerEmptyState() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {databases.map((db) => {
               const { icon: Icon, color, bg } = getDatabaseIcon(db.engine)
+              const count = countByName.get(db.name)
               return (
                 <Card
                   key={db.name}
@@ -177,9 +205,13 @@ export function ExplorerEmptyState() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{db.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {db.item_count} {db.item_count === 1 ? 'item' : 'items'}
-                      </p>
+                      {count === undefined && countsLoading ? (
+                        <Skeleton className="mt-1 h-3 w-12" />
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {count ?? 0} {count === 1 ? 'item' : 'items'}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </Card>
