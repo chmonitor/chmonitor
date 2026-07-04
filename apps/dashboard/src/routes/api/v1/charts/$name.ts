@@ -30,6 +30,12 @@ import {
   getApiRateLimitPerMin,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
+import {
+  buildEdgeCacheKey,
+  isEdgeCacheEligible,
+  matchEdgeCache,
+  putEdgeCache,
+} from '@/lib/api/shared/edge-cache'
 import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -181,6 +187,27 @@ export async function handler(
   )
   if (permissionResponse) return permissionResponse
 
+  // Shared edge cache (#2181): only ever consulted for an anonymous request
+  // on a deployment that has opted into public read access — see
+  // `isEdgeCacheEligible`'s doc comment for why this gate must never be
+  // relaxed. `edgeCacheKey` stays `undefined` (cache skipped entirely) for
+  // every other request, including any authenticated/per-user caller.
+  const edgeCacheEligible = await isEdgeCacheEligible(request)
+  const edgeCacheKey = edgeCacheEligible
+    ? buildEdgeCacheKey('charts', {
+        name,
+        hostId,
+        interval,
+        lastHours,
+        params: chartParams ? JSON.stringify(chartParams) : undefined,
+        timezone,
+      })
+    : undefined
+  if (edgeCacheKey) {
+    const cached = await matchEdgeCache(edgeCacheKey)
+    if (cached) return cached
+  }
+
   try {
     // Multi-query chart (summary charts)
     if ('queries' in queryDef) {
@@ -263,13 +290,17 @@ export async function handler(
           },
         },
       })
-      return new Response(body, {
+      const unavailableResponse = new Response(body, {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
         },
       })
+      if (edgeCacheKey) {
+        await putEdgeCache(edgeCacheKey, unavailableResponse)
+      }
+      return unavailableResponse
     }
 
     if (result.error) {
@@ -318,13 +349,17 @@ export async function handler(
           ? 'public, s-maxage=120, stale-while-revalidate=300'
           : 'public, s-maxage=30, stale-while-revalidate=60'
 
-    return new Response(body, {
+    const successResponse = new Response(body, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': cacheControl,
       },
     })
+    if (edgeCacheKey) {
+      await putEdgeCache(edgeCacheKey, successResponse)
+    }
+    return successResponse
   } catch (err) {
     error(`[GET /api/v1/charts/${name}] Unhandled exception:`, err)
     // Classify so an upstream connectivity exception surfaces as 503/504
