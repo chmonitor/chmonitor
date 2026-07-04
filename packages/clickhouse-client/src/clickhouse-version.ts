@@ -49,6 +49,41 @@ const versionCache = new Map<
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 /**
+ * L2 cache contract for `getClickHouseVersion` (issue #2183) — survives Worker
+ * isolate churn, unlike the per-isolate `versionCache` Map above.
+ *
+ * This package must not import `apps/dashboard` (dependency-cruiser
+ * `no-packages-to-apps`), so the KV-backed implementation lives app-side
+ * (`apps/dashboard/src/lib/version-cache.ts`) and is injected here via
+ * `setVersionCacheL2Provider`, registered once from `src/start.ts`. When no
+ * provider is registered (self-hosted Node/Docker path, or before the app
+ * wires it up), this is a pure no-op and `getClickHouseVersion` behaves
+ * exactly as before — L1-memory-only.
+ */
+export interface VersionCacheL2 {
+  get(hostId: number): Promise<ClickHouseVersion | null>
+  set(
+    hostId: number,
+    version: ClickHouseVersion,
+    ttlSeconds: number
+  ): Promise<void>
+}
+
+let l2CacheProvider: (() => VersionCacheL2 | null) | null = null
+
+/**
+ * Register (or clear, with `null`) the L2 cache provider. The provider is a
+ * factory rather than an instance so registration can happen eagerly at
+ * module load (`start.ts`) without constructing the KV adapter before the
+ * Worker env is available.
+ */
+export function setVersionCacheL2Provider(
+  provider: (() => VersionCacheL2 | null) | null
+): void {
+  l2CacheProvider = provider
+}
+
+/**
  * Parse a version string like "24.3.1.1" into components
  */
 export function parseVersion(versionStr: string): ClickHouseVersion {
@@ -98,10 +133,27 @@ export function meetsMinVersion(
 export async function getClickHouseVersion(
   hostId: number
 ): Promise<ClickHouseVersion | null> {
-  // Check cache first
+  // L1: check the per-isolate cache first
   const cached = versionCache.get(hostId)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.version
+  }
+
+  // L2: KV cache (survives Worker isolate churn). No-op when no provider is
+  // registered (self-hosted Node/Docker, or Cloudflare before the KV
+  // namespace is provisioned — see #2183).
+  const l2 = l2CacheProvider?.()
+  if (l2) {
+    try {
+      const l2Version = await l2.get(hostId)
+      if (l2Version) {
+        versionCache.set(hostId, { version: l2Version, timestamp: Date.now() })
+        debug(`[clickhouse-version] L2 (KV) cache hit for host ${hostId}`)
+        return l2Version
+      }
+    } catch (err) {
+      logError('[clickhouse-version] L2 cache get error:', err)
+    }
   }
 
   try {
@@ -133,6 +185,14 @@ export async function getClickHouseVersion(
 
     const version = parseVersion(versionStr)
     versionCache.set(hostId, { version, timestamp: Date.now() })
+
+    if (l2) {
+      try {
+        await l2.set(hostId, version, CACHE_TTL_MS / 1000)
+      } catch (err) {
+        logError('[clickhouse-version] L2 cache set error:', err)
+      }
+    }
 
     debug(`[clickhouse-version] Host ${hostId}: ${version.raw}`)
     return version

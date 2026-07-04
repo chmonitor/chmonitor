@@ -16,6 +16,8 @@
 import { createMiddleware, createStart } from '@tanstack/react-start'
 
 import { env } from 'cloudflare:workers'
+import { setVersionCacheL2Provider } from '@chm/clickhouse-client/clickhouse-version'
+import { setTableExistenceL2Provider } from '@chm/clickhouse-client/table-existence-cache'
 import { clerkMiddleware } from '@clerk/tanstack-react-start/server'
 import { wrapRequestHandler } from '@sentry/cloudflare'
 import {
@@ -28,12 +30,42 @@ import { resolveServerSentryOptions } from '@/lib/observability/sentry.server'
 import { forceFlushOtel, getOtelTracer } from '@/lib/otel/exporter'
 import { withSpan } from '@/lib/otel/with-span'
 import { withSecurityHeaders } from '@/lib/security-headers'
+import { getTableExistenceCache } from '@/lib/table-existence-kv-cache'
+import { getVersionCache, VERSION_CACHE_KV_BINDING } from '@/lib/version-cache'
 
 // Returning a Response from a request middleware short-circuits the chain and
 // sends that Response without running the route handler (same mechanism the
 // built-in CSRF middleware uses). Calling `next()` proceeds normally.
+let kvCacheWired = false
+
+/**
+ * Wire the version + table-existence KV L2 caches (issue #2183) the first
+ * time a request middleware actually runs. This MUST stay inside a
+ * `.server()` callback body, not module top-level scope: TanStack Start
+ * splits everything outside `.server()` callbacks into an isomorphic chunk
+ * that does not carry the `cloudflare:workers` virtual module, so reading
+ * `env` at top level here breaks the build (top-level `env` reads elsewhere
+ * in this file are fine ONLY because the pre-existing ones already lived
+ * inside `.server()` bodies).
+ */
+function wireVersionCacheKvOnce(): void {
+  if (kvCacheWired) return
+  kvCacheWired = true
+
+  const binding = (env as Record<string, unknown> | undefined)?.[
+    VERSION_CACHE_KV_BINDING
+  ]
+  const kv =
+    binding && typeof binding === 'object' ? (binding as KVNamespace) : null
+
+  setVersionCacheL2Provider(() => getVersionCache(kv))
+  setTableExistenceL2Provider(() => getTableExistenceCache(kv))
+}
+
 const apiAuthMiddleware = createMiddleware().server(
   async ({ next, request }) => {
+    wireVersionCacheKvOnce()
+
     // Bridge the Worker env secret onto process.env so apiKeyAuthEnabled() /
     // verifyApiKey() (which read process.env.CHM_API_KEY_SECRET) can see it.
     bridgeApiKeyEnv(env as Record<string, string | undefined>)

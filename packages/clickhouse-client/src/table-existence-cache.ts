@@ -8,8 +8,10 @@ import { LRUCache } from 'lru-cache'
  * - maxSize: 1MB total memory limit
  * - TTL: 5 minutes
  */
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
 const cache = new LRUCache<string, boolean>({
-  ttl: 5 * 60 * 1000, // 5 minutes
+  ttl: CACHE_TTL_MS,
   max: 500, // Reduced from 1000 for memory efficiency
   maxSize: 1024 * 1024, // 1MB total cache size limit
   sizeCalculation: () => 1, // Each entry counts as 1 unit (simplified size tracking)
@@ -17,6 +19,34 @@ const cache = new LRUCache<string, boolean>({
     debug(`[Table Cache] Evicted: ${key} = ${value}`)
   },
 })
+
+/**
+ * L2 cache contract for `checkTableExists` (issue #2183) — survives Worker
+ * isolate churn, unlike the per-isolate LRU above.
+ *
+ * This package must not import `apps/dashboard` (dependency-cruiser
+ * `no-packages-to-apps`), so the KV-backed implementation lives app-side
+ * (`apps/dashboard/src/lib/table-existence-kv-cache.ts`) and is injected here
+ * via `setTableExistenceL2Provider`, registered once from `src/start.ts`. When
+ * no provider is registered (self-hosted Node/Docker path), this is a pure
+ * no-op and `checkTableExists` behaves exactly as before — L1-LRU-only.
+ */
+export interface TableExistenceCacheL2 {
+  get(key: string): Promise<boolean | null>
+  set(key: string, exists: boolean, ttlSeconds: number): Promise<void>
+}
+
+let l2CacheProvider: (() => TableExistenceCacheL2 | null) | null = null
+
+/**
+ * Register (or clear, with `null`) the L2 cache provider — see
+ * `setVersionCacheL2Provider` in `clickhouse-version.ts` for the same pattern.
+ */
+export function setTableExistenceL2Provider(
+  provider: (() => TableExistenceCacheL2 | null) | null
+): void {
+  l2CacheProvider = provider
+}
 
 export async function checkTableExists(
   hostId: number,
@@ -27,6 +57,23 @@ export async function checkTableExists(
   const cached = cache.get(key)
   if (cached !== undefined) {
     return cached
+  }
+
+  // L2: KV cache (survives Worker isolate churn). No-op when no provider is
+  // registered (self-hosted Node/Docker, or Cloudflare before the KV
+  // namespace is provisioned — see #2183).
+  const l2 = l2CacheProvider?.()
+  if (l2) {
+    try {
+      const l2Exists = await l2.get(key)
+      if (l2Exists !== null) {
+        cache.set(key, l2Exists)
+        debug(`[Table Cache] L2 (KV) cache hit for ${key}`)
+        return l2Exists
+      }
+    } catch (err) {
+      error('[Table Cache] L2 cache get error:', err)
+    }
   }
 
   try {
@@ -46,6 +93,13 @@ export async function checkTableExists(
     const exists = parseInt(data?.[0]?.count || '0', 10) > 0
 
     cache.set(key, exists)
+    if (l2) {
+      try {
+        await l2.set(key, exists, CACHE_TTL_MS / 1000)
+      } catch (err) {
+        error('[Table Cache] L2 cache set error:', err)
+      }
+    }
     return exists
   } catch (err) {
     error(`Error checking table ${database}.${table}:`, err)

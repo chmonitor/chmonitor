@@ -31,6 +31,9 @@ const {
   getTableInfoMessage,
   SYSTEM_TABLE_INFO,
   checkTableExists,
+  getClickHouseVersion,
+  setVersionCacheL2Provider,
+  clearVersionCache,
 } = await import(
   new URL('../clickhouse-version.ts?test=version', import.meta.url).href
 )
@@ -495,5 +498,91 @@ describe('checkTableExists', () => {
 
     const result = await checkTableExists(0, 'system', 'query_log')
     expect(result).toBe(false)
+  })
+})
+
+describe('getClickHouseVersion — L2 (KV) cache wiring (issue #2183)', () => {
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
+    process.env.CLICKHOUSE_USER = 'default'
+    process.env.CLICKHOUSE_PASSWORD = ''
+    resetEnvCache()
+    clientPool.clear()
+    clearVersionCache()
+    setVersionCacheL2Provider(null)
+    mockCreateClient.mockReset()
+    mockClientQuery.mockReset()
+    mockCreateClient.mockReturnValue(mockClient)
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ version: '24.3.1.1' }]),
+    })
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+    setVersionCacheL2Provider(null)
+  })
+
+  it('returns the L2 cache hit without querying ClickHouse', async () => {
+    const cached = parseVersion('23.8.0')
+    setVersionCacheL2Provider(() => ({
+      get: async () => cached,
+      set: async () => {},
+    }))
+
+    const result = await getClickHouseVersion(0)
+
+    expect(result).toEqual(cached)
+    expect(mockClientQuery).not.toHaveBeenCalled()
+  })
+
+  it('queries ClickHouse and populates the L2 cache on an L2 miss', async () => {
+    const setSpy = mock(async () => {})
+    setVersionCacheL2Provider(() => ({
+      get: async () => null,
+      set: setSpy,
+    }))
+
+    const result = await getClickHouseVersion(0)
+
+    expect(result).toEqual(parseVersion('24.3.1.1'))
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
+    expect(setSpy).toHaveBeenCalledTimes(1)
+    const [hostId, version, ttlSeconds] = setSpy.mock.calls[0]
+    expect(hostId).toBe(0)
+    expect(version).toEqual(parseVersion('24.3.1.1'))
+    expect(ttlSeconds).toBe(24 * 60 * 60) // 24h, matching the L1 TTL
+  })
+
+  it('degrades to L1-memory-only when no L2 provider is registered (Node/self-hosted path)', async () => {
+    // No `setVersionCacheL2Provider` call — mirrors the Node/self-hosted
+    // build, where `src/start.ts` never wires a provider because
+    // `target().kv(...)` (or the resolved binding) is null.
+    const first = await getClickHouseVersion(0)
+    expect(first).toEqual(parseVersion('24.3.1.1'))
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
+
+    // Second call within the TTL window hits the L1 map, not ClickHouse again.
+    const second = await getClickHouseVersion(0)
+    expect(second).toEqual(parseVersion('24.3.1.1'))
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not throw when the L2 provider rejects', async () => {
+    setVersionCacheL2Provider(() => ({
+      get: async () => {
+        throw new Error('KV unavailable')
+      },
+      set: async () => {
+        throw new Error('KV unavailable')
+      },
+    }))
+
+    const result = await getClickHouseVersion(0)
+    expect(result).toEqual(parseVersion('24.3.1.1'))
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
   })
 })

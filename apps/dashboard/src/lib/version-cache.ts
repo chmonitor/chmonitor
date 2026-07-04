@@ -4,8 +4,13 @@
  * Zero-config cache layer for ClickHouse version caching.
  * Auto-detects environment and uses appropriate caching strategy:
  * 1. Cloudflare Workers KV (if VERSION_CACHE_KV binding exists)
- * 2. Redis (if REDIS_URL is set)
- * 3. In-memory fallback (always works)
+ * 2. In-memory fallback (always works — self-hosted Node/Docker, or
+ *    Cloudflare before the KV namespace is provisioned)
+ *
+ * Registered as the L2 provider for
+ * `@chm/clickhouse-client/clickhouse-version`'s per-isolate L1 cache from
+ * `src/start.ts` (issue #2183) — that package can't import this file directly
+ * (dependency-cruiser forbids `packages/` → `apps/`).
  *
  * Usage:
  * ```typescript
@@ -21,20 +26,8 @@ import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-versio
 
 import { debug, warn } from '@chm/logger'
 
-/**
- * Cloudflare KV Namespace type (for Workers environments)
- */
-interface KVNamespace {
-  get(
-    key: string,
-    options?: { type?: 'text' | 'json' | 'arrayBuffer' | 'stream' }
-  ): Promise<unknown>
-  put(
-    key: string,
-    value: string,
-    options?: { expirationTtl?: number }
-  ): Promise<void>
-}
+/** The wrangler.toml binding name this module reads (see issue #2183). */
+export const VERSION_CACHE_KV_BINDING = 'VERSION_CACHE_KV'
 
 /**
  * Cache adapter interface
@@ -84,21 +77,8 @@ export class InMemoryCache implements VersionCacheAdapter {
 export class CloudflareKVCache implements VersionCacheAdapter {
   private kv: KVNamespace
 
-  constructor(binding?: KVNamespace) {
-    // Try to get KV binding from globalThis or provided binding
-    if (binding) {
-      this.kv = binding
-    } else if (
-      typeof globalThis !== 'undefined' &&
-      'VERSION_CACHE_KV' in globalThis
-    ) {
-      // Cast through unknown to satisfy TypeScript
-      this.kv = (
-        globalThis as unknown as { VERSION_CACHE_KV: KVNamespace }
-      ).VERSION_CACHE_KV
-    } else {
-      throw new Error('VERSION_CACHE_KV binding not found')
-    }
+  constructor(binding: KVNamespace) {
+    this.kv = binding
     debug('[version-cache] Using Cloudflare KV cache')
   }
 
@@ -138,118 +118,6 @@ export class CloudflareKVCache implements VersionCacheAdapter {
 }
 
 /**
- * Redis cache implementation
- */
-export class RedisCache implements VersionCacheAdapter {
-  private redis: {
-    get: (key: string) => Promise<string | null>
-    setex: (key: string, ttl: number, value: string) => Promise<void>
-    disconnect: () => Promise<void>
-  } | null = null
-
-  private initPromise: Promise<void> | null = null
-
-  constructor(redisUrl?: string) {
-    const url = redisUrl || process.env.REDIS_URL
-    if (!url) {
-      throw new Error('REDIS_URL not set')
-    }
-
-    // Initialize Redis asynchronously
-    this.initPromise = this.init(url)
-  }
-
-  private async init(url: string): Promise<void> {
-    try {
-      // Dynamic import to avoid bundling if not used
-      // @ts-expect-error - ioredis is optional peer dependency
-      const ioredisModule = await import('ioredis').catch(() => null)
-      if (!ioredisModule) {
-        warn('[version-cache] ioredis not installed, Redis cache unavailable')
-        this.redis = null
-        return
-      }
-
-      const Redis = ioredisModule.default
-      const client = new Redis(url, {
-        lazyConnect: true,
-        retryStrategy: (times: number) => {
-          if (times > 3) {
-            warn('[version-cache] Redis max retries reached')
-            return null // Stop retrying
-          }
-          return Math.min(times * 100, 2000)
-        },
-      })
-
-      await client.connect()
-      this.redis = client as {
-        get: (key: string) => Promise<string | null>
-        setex: (key: string, ttl: number, value: string) => Promise<void>
-        disconnect: () => Promise<void>
-      }
-
-      debug('[version-cache] Using Redis cache')
-    } catch (err) {
-      warn('[version-cache] Redis initialization error:', err)
-      this.redis = null
-    }
-  }
-
-  private async waitForInit(): Promise<boolean> {
-    if (this.initPromise) {
-      await this.initPromise
-      this.initPromise = null
-    }
-    return this.redis !== null
-  }
-
-  private getKey(hostId: number): string {
-    return `ch-version:${hostId}`
-  }
-
-  async get(hostId: number): Promise<ClickHouseVersion | null> {
-    try {
-      const ready = await this.waitForInit()
-      if (!ready || !this.redis) return null
-
-      const key = this.getKey(hostId)
-      const value = await this.redis.get(key)
-      if (!value) return null
-
-      debug(`[version-cache] Redis cache hit for host ${hostId}`)
-      return JSON.parse(value) as ClickHouseVersion
-    } catch (err) {
-      warn('[version-cache] Redis get error:', err)
-      return null
-    }
-  }
-
-  async set(
-    hostId: number,
-    version: ClickHouseVersion,
-    ttlSeconds: number
-  ): Promise<void> {
-    try {
-      const ready = await this.waitForInit()
-      if (!ready || !this.redis) return
-
-      const key = this.getKey(hostId)
-      await this.redis.setex(key, ttlSeconds, JSON.stringify(version))
-      debug(`[version-cache] Redis cached version for host ${hostId}`)
-    } catch (err) {
-      warn('[version-cache] Redis set error:', err)
-    }
-  }
-
-  async disconnect(): Promise<void> {
-    if (this.redis) {
-      await this.redis.disconnect()
-    }
-  }
-}
-
-/**
  * Singleton cache instance
  */
 let cacheInstance: VersionCacheAdapter | null = null
@@ -259,35 +127,30 @@ let cacheInstance: VersionCacheAdapter | null = null
  *
  * Priority order:
  * 1. Cloudflare Workers KV (if VERSION_CACHE_KV binding exists)
- * 2. Redis (if REDIS_URL is set)
- * 3. In-memory fallback
+ * 2. In-memory fallback
  *
  * @returns Cache adapter instance
  */
-export function getVersionCache(): VersionCacheAdapter {
+export function getVersionCache(kv?: KVNamespace | null): VersionCacheAdapter {
   if (cacheInstance) return cacheInstance
 
-  // 1. Check Cloudflare KV
-  if (typeof globalThis !== 'undefined' && 'VERSION_CACHE_KV' in globalThis) {
+  // 1. Use the Cloudflare KV binding when the caller resolved one (null on
+  // Node/self-hosted, or on Cloudflare before `[[kv_namespaces]]` is
+  // provisioned). Resolving the binding is the caller's job (`start.ts`,
+  // inside a `.server()` middleware body) — this module must not import
+  // `cloudflare:workers` itself. TanStack Start splits code outside
+  // `.server()` callbacks into an isomorphic chunk without that virtual
+  // module, so importing it here breaks the build (#2183).
+  if (kv) {
     try {
-      cacheInstance = new CloudflareKVCache()
+      cacheInstance = new CloudflareKVCache(kv)
       return cacheInstance
     } catch (err) {
       warn('[version-cache] Failed to initialize KV cache:', err)
     }
   }
 
-  // 2. Check Redis
-  if (process.env.REDIS_URL) {
-    try {
-      cacheInstance = new RedisCache()
-      return cacheInstance
-    } catch (err) {
-      warn('[version-cache] Failed to initialize Redis cache:', err)
-    }
-  }
-
-  // 3. Fallback to in-memory
+  // 2. Fallback to in-memory
   debug('[version-cache] Using in-memory cache (fallback)')
   cacheInstance = new InMemoryCache()
   return cacheInstance
