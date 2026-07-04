@@ -904,8 +904,46 @@ update_plan(steps=[
   {
     name: 'query-optimization',
     description:
-      'Advanced query tuning: join algorithms, skip index selection, EXPLAIN interpretation, ProfileEvents profiling, and optimizer settings.',
+      'Advanced query tuning: join algorithms, skip index selection, EXPLAIN interpretation, ProfileEvents profiling, and optimizer settings. Also the autonomous diagnose-loop for open-ended questions like why is my database slow?',
     content: `# Query Optimization
+
+## Autonomous Diagnose Loop ("why is my database slow?")
+
+Use this loop when the question is open-ended — no specific query was named —
+and the agent must find what's slow on its own, not just tune a query the user
+already pasted (for that, load \`query-tuning-advisor\` instead).
+
+**Recommend-only, same as \`advisor-tools\` and \`control-tools\`: this loop never
+executes DDL, never rewrites a query in place, and never runs an optimize/kill
+action on its own. Every step below only reads system tables; the final output
+is DDL/rewrite text for the user to review and run themselves.**
+
+1. **List slow patterns** — call \`list_slow_query_patterns\` (not
+   \`get_slow_queries\`, which returns individual runs, not grouped patterns).
+   Defaults to the last 24h, ranked by total duration. Identify the top 1-3
+   patterns by \`total_duration\` (overall cost) and separately note any pattern
+   with a high \`p99_duration\` relative to \`p50_duration\` (tail-latency outlier)
+   or a nonzero \`errors\` count.
+2. **EXPLAIN the worst pattern** — take \`normalized_query\` from step 1 and call
+   \`explain_query\` with \`type: 'indexes'\` first (are granules being pruned?),
+   then \`type: 'plan'\` if the indexes output doesn't explain the cost (e.g. a
+   large JOIN build side or heavy aggregation step). See "EXPLAIN Analysis"
+   below for what to look for.
+3. **Get ranked recommendations** — call \`get_optimization_recommendations\`
+   with the same query (\`sql\` or a \`queryId\` from \`system.query_log\`) to get
+   ranked skip-index / projection / partition-key / PREWHERE suggestions with
+   DDL text, rationale, risk, and effort.
+4. **Propose, don't apply** — present the top 1-2 recommendations with their
+   DDL/rewrite text, expected impact, and risk. If a pattern also looks like a
+   good materialized-view/projection candidate (same GROUP BY shape recurring
+   often — see \`calls\` in step 1), also call \`recommend_materialized_view\` and
+   present that as an alternative. Explicitly tell the user these are
+   recommendations to review and run themselves — mirror the control-tools
+   confirmation posture, just for read-only advice instead of a destructive
+   action.
+5. Repeat for the next pattern only if the user wants more than one addressed,
+   or if step 1 flagged both a total-duration offender and a separate
+   tail-latency/error offender.
 
 ## JOIN Strategies
 - \`join_algorithm\` setting: \`hash\` (default, in-memory), \`partial_merge\` (spills to disk for large right table), \`auto\` (lets ClickHouse decide)

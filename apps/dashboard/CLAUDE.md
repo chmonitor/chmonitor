@@ -119,13 +119,13 @@ runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
 Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 14
-tool modules exposing 28 tools total (25 by default; the 3 destructive
+tool modules exposing 29 tools total (26 by default; the 3 destructive
 `control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`):
 
 | Module | Tools |
 |--------|-------|
 | `schema-tools` | `query`, `list_databases`, `list_tables`, `get_table_schema`, `explore_table_schema` |
-| `query-tools` | `get_running_queries`, `get_slow_queries`, `get_failed_queries`, `explain_query` |
+| `query-tools` | `get_running_queries`, `get_slow_queries`, `list_slow_query_patterns`, `get_failed_queries`, `explain_query`, `estimate_query_cost` |
 | `health-tools` | `get_metrics`, `get_disk_usage` |
 | `storage-tools` | `get_table_parts`, `forecast_disk_capacity`, `suggest_ttl_adjustment` |
 | `replication-tools` | `get_replication_status` |

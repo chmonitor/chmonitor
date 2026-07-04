@@ -26,7 +26,7 @@ The agent connects through the **same ClickHouse host and user** as the rest of 
 | Category | What the agent covers |
 |---|---|
 | Schema exploration | List databases, tables, columns; explore tables relevant to a topic |
-| Query analysis | Running, slow, failed, and expensive queries; EXPLAIN plans; pre-flight cost estimates; optimization advice |
+| Query analysis | Running, slow, failed, and expensive queries; normalized slow query patterns; EXPLAIN plans; pre-flight cost estimates; optimization advice |
 | System health | Server metrics, disks, errors, anomaly detection |
 | Storage, merges & mutations | Part sizes, active merges, stuck mutations, merge throughput |
 | Replication & cluster | Replication lag, queue, ZooKeeper/Keeper status, cluster topology |
@@ -241,7 +241,7 @@ The MCP server exposes a smaller, read-only-only subset of tools for external MC
 clients — not the full agent toolset. For the complete tool list the in-app AI
 Agent uses (schema, query analysis, health, storage, replication, merges,
 capacity planning, the query advisor, aggregation/MV advisor, planning, skills,
-visualization, insights, and dashboard suggestions — 27 tools total, plus 3
+visualization, insights, and dashboard suggestions — 26 tools total, plus 3
 env-gated control tools), see [Capabilities](/guide/ai-agent/capabilities).
 
 | Tool | Purpose |

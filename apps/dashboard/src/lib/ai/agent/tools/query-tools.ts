@@ -180,6 +180,87 @@ export function createQueryTools(hostId: number) {
       },
     }),
 
+    list_slow_query_patterns: dynamicTool({
+      description:
+        'List NORMALIZED slow query patterns — system.query_log aggregated by normalized_query_hash, one row per distinct query shape, with calls, total/avg/p50/p95/p99/max duration, CPU time, peak memory, read/write bytes, error count, and cache-hit ratio. Use this (not `get_slow_queries`) when the question is about which *kind* of query is expensive overall or runs often, or as the first step of a "why is my database slow?" investigation — `get_slow_queries` instead returns individual query executions ranked by single-run duration and does not group repeated queries together.',
+      inputSchema: z.object({
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .default(10)
+          .describe(
+            'Number of top patterns to return, ranked by total duration'
+          ),
+        lastHours: z
+          .number()
+          .int()
+          .min(1)
+          .max(720)
+          .optional()
+          .default(24)
+          .describe('Time window in hours (default 24)'),
+        user: z.string().optional().describe('Restrict to this user'),
+        queryKind: z
+          .string()
+          .optional()
+          .describe('Restrict to this query_kind (e.g. Select, Insert)'),
+        database: z.string().optional().describe('Restrict to this database'),
+        hostId: hostIdSchema,
+      }),
+      execute: async (input: unknown) => {
+        const { getTableQuery } = await import('@/lib/api/table-registry')
+        const { executeTableConfig } = await import(
+          '@/lib/api/query-executor'
+        )
+        const {
+          limit = 10,
+          lastHours = 24,
+          user,
+          queryKind,
+          database,
+          hostId: toolHostId,
+        } = input as {
+          limit?: number
+          lastHours?: number
+          user?: string
+          queryKind?: string
+          database?: string
+          hostId?: number
+        }
+        const resolvedHostId = resolveHostId(toolHostId, hostId)
+
+        const searchParams: Record<string, string> = {
+          event_time: `withinHours:${lastHours}`,
+        }
+        if (user) searchParams.user = `eq:${user}`
+        if (queryKind) searchParams.query_kind = `eq:${queryKind}`
+        if (database) searchParams.database = `eq:${database}`
+
+        const tableQuery = getTableQuery('slow-query-patterns', {
+          hostId: resolvedHostId,
+          searchParams,
+        })
+        if (!tableQuery) {
+          throw new Error('slow-query-patterns query config not found')
+        }
+
+        const { result } = await executeTableConfig(
+          tableQuery.queryConfig,
+          resolvedHostId,
+          tableQuery.queryParams
+        )
+
+        if (result.error) {
+          throw new Error(result.error.message)
+        }
+
+        return (result.data ?? []).slice(0, limit)
+      },
+    }),
+
     estimate_query_cost: dynamicTool({
       description:
         'Pre-flight cost estimate for a query from EXPLAIN alone: estimated rows scanned, bytes read, peak memory, and wall time, plus a confidence level and any caveats. Read-only and recommend-only — runs EXPLAIN only and never executes the analyzed query. Use this before running a query you suspect might be expensive, or to rank optimization impact.',
