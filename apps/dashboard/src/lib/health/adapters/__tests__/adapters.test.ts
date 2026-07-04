@@ -553,6 +553,7 @@ describe('detectAdapter', () => {
         'slack',
         'discord',
         'pagerduty',
+        'opsgenie',
         'generic-json',
         'email',
       ].sort()
