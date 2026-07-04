@@ -47,6 +47,7 @@ import {
   renderGroupedPart,
 } from './-thread/chain-of-thought'
 import { ThreadComposer, WelcomeComposer } from './-thread/composer'
+import { FollowUpChips } from './-thread/follow-up-chips'
 import { FollowUpSuggestions } from './-thread/follow-up-suggestions'
 import { MessageStatsFooter } from './-thread/message-stats'
 import { SessionStats } from './-thread/session-stats'
@@ -77,6 +78,7 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller'
+import { getFollowUpPrompts } from '@/lib/ai/agent/follow-up-prompts'
 import { resolveConversationBackend } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
 import { track } from '@/lib/telemetry'
@@ -373,10 +375,75 @@ const AssistantMessage: FC = () => {
 
             {/* Tasks #3 + #12: per-message stats + timestamp */}
             <MessageStatsFooter />
+
+            {/* Deterministic, rule-based follow-up chips (issue #2324) */}
+            <AssistantFollowUpChips />
           </MessageContent>
         </Message>
       </MessagePrimitive.Root>
     </MessageScrollerItem>
+  )
+}
+
+/** Joins the text parts of a message's `content`/parts array into one string. */
+function messagePartsText(parts: readonly unknown[]): string {
+  return (parts as { type?: string; text?: string }[])
+    .filter((part) => part?.type === 'text')
+    .map((part) => part.text ?? '')
+    .join(' ')
+}
+
+/**
+ * Deterministic follow-up chips (issue #2324) — rendered only under the last
+ * assistant message, once it has finished streaming. Unlike
+ * `FollowUpSuggestions` (LLM-generated, AgentState-only), these are computed
+ * instantly client-side from the last exchange via
+ * `lib/ai/agent/follow-up-prompts.ts`, so they work for every conversation
+ * backend.
+ */
+function AssistantFollowUpChips() {
+  const isLast = useMessage((m) => m.isLast)
+  const isRunning = useMessage((m) => m.status?.type === 'running')
+  // assistant-ui exposes the AI SDK parts array as `message.content`
+  // (same pattern as MessageStatsFooter above).
+  const content = useMessage((m) => m.content) as readonly unknown[]
+  const messages = useThread((t) => t.messages)
+  const threadRuntime = useThreadRuntime()
+  const { ensureAuthed } = useAgentAuthGate()
+
+  if (!isLast || isRunning) return null
+
+  const lastAssistantText = messagePartsText(content)
+
+  const toolsUsed = (content as { type?: string; toolName?: string }[])
+    .filter((part) => part?.type === 'tool-call')
+    .map((part) => part.toolName)
+    .filter((name): name is string => Boolean(name))
+
+  const lastUserMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === 'user')
+  const lastUserText = messagePartsText(
+    (lastUserMessage?.content ?? []) as readonly unknown[]
+  )
+
+  const prompts = getFollowUpPrompts({
+    lastUserText,
+    lastAssistantText,
+    toolsUsed,
+  })
+
+  const handleSelect = (text: string) => {
+    if (!ensureAuthed()) return
+    threadRuntime.append({
+      role: 'user',
+      content: [{ type: 'text', text }],
+    })
+    track('ai_query_sent')
+  }
+
+  return (
+    <FollowUpChips prompts={prompts} onSelect={handleSelect} className="mt-1" />
   )
 }
 
