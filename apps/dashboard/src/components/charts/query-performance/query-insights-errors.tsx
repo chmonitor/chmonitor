@@ -12,6 +12,7 @@ export const ChartQueryInsightsErrors = createAreaChart({
   dataTestId: 'query-insights-errors-chart',
   dateRangeConfig: 'query-activity',
   areaChartProps: {
+    anomalyOverlay: { category: 'errors' },
     readable: 'number',
     stack: false,
     showLegend: false,

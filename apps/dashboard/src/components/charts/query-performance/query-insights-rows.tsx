@@ -12,6 +12,7 @@ export const ChartQueryInsightsRows = createAreaChart({
   dataTestId: 'query-insights-rows-chart',
   dateRangeConfig: 'query-activity',
   areaChartProps: {
+    anomalyOverlay: { category: 'read_rows' },
     readable: 'quantity',
     stack: false,
     showLegend: true,

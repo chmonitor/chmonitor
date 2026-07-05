@@ -207,6 +207,15 @@ export interface AreaChartProps extends BaseChartProps {
    * to deploy window"), reusing the existing date-range mechanism.
    */
   onDeploymentSelect?: (deployment: AreaChartDeploymentMarker) => void
+
+  /**
+   * Opt-in Statistics-Insights anomaly overlay: draws a moving-average line +
+   * ±k·σ band (and flags out-of-band points) on the given `category`, plus an
+   * absolute threshold line. Undefined = zero rendering change. The band/MA/
+   * threshold visibility and parameters come from `useStatsInsightsSettings`,
+   * so this only names WHICH series to analyze — the operator controls the how.
+   */
+  anomalyOverlay?: { category: string }
 }
 
 export interface RadialChartProps extends Omit<BaseChartProps, 'onClick'> {

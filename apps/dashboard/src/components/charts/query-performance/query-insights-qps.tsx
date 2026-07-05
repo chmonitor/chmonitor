@@ -12,6 +12,7 @@ export const ChartQueryInsightsQps = createAreaChart({
   dataTestId: 'query-insights-qps-chart',
   dateRangeConfig: 'query-activity',
   areaChartProps: {
+    anomalyOverlay: { category: 'qps' },
     readable: 'number',
     stack: false,
     showLegend: false,

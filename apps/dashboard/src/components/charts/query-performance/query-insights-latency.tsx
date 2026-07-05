@@ -17,6 +17,7 @@ export const ChartQueryInsightsLatency = createAreaChart({
   dataTestId: 'query-insights-latency-chart',
   dateRangeConfig: 'query-activity',
   areaChartProps: {
+    anomalyOverlay: { category: 'avg_duration_ms' },
     readable: 'duration',
     stack: false,
     showLegend: true,

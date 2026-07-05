@@ -12,6 +12,7 @@ export const ChartQueryInsightsMemory = createAreaChart({
   dataTestId: 'query-insights-memory-chart',
   dateRangeConfig: 'query-activity',
   areaChartProps: {
+    anomalyOverlay: { category: 'avg_memory' },
     readable: 'bytes',
     stack: false,
     showLegend: true,

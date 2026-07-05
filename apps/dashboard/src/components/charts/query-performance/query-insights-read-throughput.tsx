@@ -12,6 +12,7 @@ export const ChartQueryInsightsReadThroughput = createAreaChart({
   dataTestId: 'query-insights-read-throughput-chart',
   dateRangeConfig: 'query-activity',
   areaChartProps: {
+    anomalyOverlay: { category: 'read_bytes' },
     readable: 'bytes',
     stack: false,
     showLegend: true,
