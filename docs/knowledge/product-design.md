@@ -180,10 +180,12 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   border`) of `[status dot] [muted icon] [title] [sublabel] [value] [chevron]`
   rows — no per-row sparkline (a flat healthy trend is decoration). Partition the
   already severity-sorted, filter-narrowed list into cards vs rows so the same
-  split also drives the filter tabs. Keep the aggregate banner restrained (subtle
-  tint + thin left accent rail, not a saturated fill; let the tabs carry the
-  counts). Reference: `components/health/{health-grid,health-card-shell,
-  health-summary-banner}.tsx` (`HealthCardShell` `variant: 'card' | 'row'`).
+  split also drives the filter tabs. Keep the aggregate banner restrained: a
+  subtle tint plus the colored icon + title carry the severity — NO left accent
+  rail (a saturated rail reads as slop; removed 2026-07-05), no saturated fill,
+  no count pills (let the tabs carry the counts). Reference:
+  `components/health/{health-grid,health-card-shell,health-summary-banner}.tsx`
+  (`HealthCardShell` `variant: 'card' | 'row'`).
 - Graceful revalidation: keep data on `staleError`, show hover-revealed amber
   `ChartStaleIndicator`; only blank out on initial `error && !hasData`.
 - Icons: `lucide-react`, `size-4` / `size-3.5`, `strokeWidth={1.5}`.

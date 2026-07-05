@@ -15,8 +15,6 @@ interface BannerTheme {
   sub: string
   /** Card surface tint + border. Kept faint — the banner sets a tone, not a flag. */
   container: string
-  /** Left accent rail color. */
-  rail: string
   icon_: string
   title_: string
 }
@@ -28,7 +26,6 @@ function resolveTheme({ critical, warning, ok }: HealthCounts): BannerTheme {
       title: 'Action required',
       sub: `${critical} critical issue${critical > 1 ? 's' : ''}${warning > 0 ? ` and ${warning} warning${warning > 1 ? 's' : ''}` : ''} need attention`,
       container: 'border-red-500/20 bg-red-500/[0.035]',
-      rail: 'bg-red-500',
       icon_: 'text-red-600 dark:text-red-500',
       title_: 'text-red-600 dark:text-red-500',
     }
@@ -39,7 +36,6 @@ function resolveTheme({ critical, warning, ok }: HealthCounts): BannerTheme {
       title: 'Minor issues',
       sub: `${warning} warning${warning > 1 ? 's' : ''} worth a look — nothing critical`,
       container: 'border-amber-500/20 bg-amber-500/[0.035]',
-      rail: 'bg-amber-500',
       icon_: 'text-amber-600 dark:text-amber-500',
       title_: 'text-amber-600 dark:text-amber-500',
     }
@@ -53,7 +49,6 @@ function resolveTheme({ critical, warning, ok }: HealthCounts): BannerTheme {
         : 'Waiting for health checks to report',
     // Healthy is the quietest state: a plain card surface, no tint.
     container: 'border-border bg-card',
-    rail: 'bg-emerald-500',
     icon_: 'text-emerald-600 dark:text-emerald-500',
     title_: 'text-foreground',
   }
@@ -61,9 +56,9 @@ function resolveTheme({ critical, warning, ok }: HealthCounts): BannerTheme {
 
 /**
  * Aggregate health banner: a restrained, severity-toned summary line (action
- * required / minor issues / all healthy). A thin left rail and a subtle tint
- * carry the severity — no saturated fill, no count pills (the filter tabs below
- * already carry the critical / warning / healthy tallies).
+ * required / minor issues / all healthy). A subtle tint plus the colored icon +
+ * title carry the severity — no accent rail, no saturated fill, no count pills
+ * (the filter tabs below already carry the critical / warning / healthy tallies).
  */
 export function HealthSummaryBanner({ counts }: { counts: HealthCounts }) {
   const theme = resolveTheme(counts)
@@ -72,15 +67,11 @@ export function HealthSummaryBanner({ counts }: { counts: HealthCounts }) {
   return (
     <div
       className={cn(
-        'relative flex items-center gap-3 overflow-hidden rounded-xl border py-3.5 pl-5 pr-4',
+        'flex items-center gap-3 rounded-xl border py-3.5 pl-4 pr-4',
         theme.container
       )}
       role="status"
     >
-      <span
-        aria-hidden
-        className={cn('absolute inset-y-0 left-0 w-1', theme.rail)}
-      />
       <Icon className={cn('size-5 flex-none', theme.icon_)} aria-hidden />
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className={cn('text-sm font-semibold', theme.title_)}>
