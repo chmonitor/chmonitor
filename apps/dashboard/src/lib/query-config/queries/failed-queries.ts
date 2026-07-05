@@ -235,6 +235,10 @@ export const failedQueriesConfig: QueryConfig = {
         max_truncate: 100,
         dialog_title: 'Exception',
         trigger_classname: '!max-w-[280px] overflow-hidden',
+        // Exception payloads are often long, wide stack-ish text — give them a
+        // wider dialog than the default so lines wrap less; the body still
+        // scrolls (ScrollArea) when the content overflows vertically.
+        dialog_classname: 'w-[min(97vw,1400px)]',
       },
     ],
     stack_trace: [
@@ -243,6 +247,7 @@ export const failedQueriesConfig: QueryConfig = {
         max_truncate: 100,
         dialog_title: 'Stack Trace',
         trigger_classname: '!max-w-[280px] overflow-hidden',
+        dialog_classname: 'w-[min(97vw,1400px)]',
       },
     ],
     client: ColumnFormat.CodeDialog,
