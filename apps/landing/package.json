@@ -22,9 +22,12 @@
     "sharp": "^0.34.0",
     "wrangler": "^4.97.0"
   },
-  "bun": {
+  "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp"
+      "core-js",
+      "esbuild",
+      "sharp",
+      "workerd"
     ]
   }
 }

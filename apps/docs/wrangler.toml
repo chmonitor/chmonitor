@@ -3,7 +3,7 @@
 # TanStack Start + @cloudflare/vite-plugin produces a native Workers bundle;
 # `main` is the server entry resolved by the plugin at build time.
 #
-# Deploy: cd apps/docs && bun run build && wrangler deploy
+# Deploy: cd apps/docs && pnpm run build && wrangler deploy
 
 name = "chmonitor-docs"
 main = "@tanstack/react-start/server-entry"

@@ -42,7 +42,7 @@ const JSON_PATH = join(ROOT, 'dist', 'server', 'wrangler.json')
 
 if (!existsSync(JSON_PATH)) {
   console.error(`❌ Generated config not found: ${JSON_PATH}`)
-  console.error('   Run `bun run build` first.')
+  console.error('   Run `pnpm run build` first.')
   process.exit(1)
 }
 

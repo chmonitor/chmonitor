@@ -118,7 +118,7 @@ The active server-side auth provider is set by `CHM_AUTH_PROVIDER`. See [Authent
 
 | Variable | Default | Description |
 |---|---|---|
-| `VITE_CLERK_PUBLISHABLE_KEY` | — | Clerk publishable key (`pk_...`). Build-time — must be set before `bun run build`. |
+| `VITE_CLERK_PUBLISHABLE_KEY` | — | Clerk publishable key (`pk_...`). Build-time — must be set before `pnpm run build`. |
 | `CLERK_SECRET_KEY` | — | Clerk secret key (`sk_...`). Runtime only. Never expose to the browser. |
 | `CHM_CLERK_PUBLIC_READ` | `false` | When `true`, anonymous visitors can view read-only monitoring content; writes (AI agent, control actions, arbitrary SQL) still require sign-in. Runtime only. See [Clerk → Public read-only mode](/authentication/clerk#public-read-only-mode). |
 

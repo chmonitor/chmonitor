@@ -85,8 +85,8 @@ The TanStack Start app builds to **two targets** from one codebase, selected by
 
 | Target | Build | Runtime | `cloudflare:workers` resolves to |
 |--------|-------|---------|-----------------------------------|
-| `node` (Docker / k8s) | `bun run build:node:ci` → `.output/server/index.mjs` | Nitro `node-server` on `node:24-alpine` | `src/lib/cloudflare-workers-shim.ts` (`env` = `process.env`) |
-| `cloudflare` (default `bun run build` / `cf:build`) | `@cloudflare/vite-plugin` → workerd bundle | Cloudflare Workers | workerd built-in binding |
+| `node` (Docker / k8s) | `pnpm run build:node:ci` → `.output/server/index.mjs` | Nitro `node-server` on `node:24-alpine` | `src/lib/cloudflare-workers-shim.ts` (`env` = `process.env`) |
+| `cloudflare` (default `pnpm run build` / `cf:build`) | `@cloudflare/vite-plugin` → workerd bundle | Cloudflare Workers | workerd built-in binding |
 
 ### The contract (enforced by test)
 
@@ -130,7 +130,7 @@ from the shim first.
 | Platform | Build Command | Entry Point |
 |----------|--------------|-------------|
 | **Docker** | `docker build` | `.next/standalone/server.js` |
-| **Cloudflare** | `bun run cf:build` | `.open-next/worker.js` |
+| **Cloudflare** | `pnpm run cf:build` | `.open-next/worker.js` |
 
 Both use `next build` with `output: 'standalone'` in `next.config.ts`.
 
@@ -139,12 +139,12 @@ Both use `next build` with `output: 'standalone'` in `next.config.ts`.
 The same script deploys from both CI and local:
 
 ```bash
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 
 This runs `scripts/cloudflare-deploy.ts` which executes:
 
-1. `bun run cf:build` — Next.js build + OpenNext transform
+1. `pnpm run cf:build` — Next.js build + OpenNext transform
 2. `wrangler deploy --minify` — Deploy to Workers
 3. `opennextjs-cloudflare populateCache remote` — Populate KV cache
 
@@ -155,8 +155,8 @@ This runs `scripts/cloudflare-deploy.ts` which executes:
 ### Step-by-step (equivalent to CI)
 
 ```bash
-bun run cf:config    # Set secrets from .env.production.local
-bun run cf:build     # Build + OpenNext transform
+pnpm run cf:config    # Set secrets from .env.production.local
+pnpm run cf:build     # Build + OpenNext transform
 wrangler deploy --minify
 opennextjs-cloudflare populateCache remote
 ```
@@ -164,7 +164,7 @@ opennextjs-cloudflare populateCache remote
 ### CI
 
 Production deploys on push to `main` via `.github/workflows/cloudflare.yml`. It uses
-the same `bun run cf:build` command and the same env var names — secrets come
+the same `pnpm run cf:build` command and the same env var names — secrets come
 from GitHub Secrets instead of local files.
 
 ## Docker
@@ -184,8 +184,8 @@ docker run -d -p 3000:3000 \
 
 ### Multi-stage Build
 
-1. **deps**: `bun install --frozen-lockfile`
-2. **builder**: `bun run build` → `.next/standalone/`
+1. **deps**: `pnpm install --frozen-lockfile`
+2. **builder**: `pnpm run build` → `.next/standalone/`
 3. **runner**: Production image with only necessary files
 
 ### Environment Variables
@@ -200,7 +200,7 @@ docker run -d -p 3000:3000 \
 ### Health Check
 
 ```bash
-bun run docker:health
+pnpm run docker:health
 ```
 
 ## Cloudflare Environment Configuration
@@ -213,7 +213,7 @@ CLICKHOUSE_MAX_EXECUTION_TIME = "60"
 CLOUDFLARE_WORKERS = "1"
 ```
 
-**Secrets** (set via `bun run cf:config` or manually):
+**Secrets** (set via `pnpm run cf:config` or manually):
 ```bash
 wrangler secret put CLICKHOUSE_PASSWORD
 ```
@@ -230,7 +230,7 @@ wrangler secret put CLICKHOUSE_PASSWORD
 ### Health Check
 
 ```bash
-bun run cf:health
+pnpm run cf:health
 ```
 
 ## Edge Routing & Host Redirects (4-worker topology)
@@ -277,8 +277,8 @@ Edit** (manages the rule) **and Zone › Zone › Read** (the script resolves th
 zone id first, so a token missing read still fails):
 
 ```bash
-bun run cf:redirect-rule            # apply
-bun run cf:redirect-rule --dry-run  # preview the ruleset payload
+pnpm run cf:redirect-rule            # apply
+pnpm run cf:redirect-rule --dry-run  # preview the ruleset payload
 ```
 
 ## Troubleshooting
@@ -289,5 +289,5 @@ bun run cf:redirect-rule --dry-run  # preview the ruleset payload
 | `__name is not defined` (CF) | `wrangler.toml` has `keep_names = false` |
 | Build lock error | Remove `.next/lock` and retry |
 | Secrets not updating | See [secret-rotation.md](secret-rotation.md) — redeploy after updating |
-| `/api/mcp` → 503 "MCP API key auth is not configured" | `CHM_API_KEY_SECRET` empty on `chmonitor-mcp`. Worker secrets don't survive a rename. Set the GitHub secret (`bun run gh:sync-secrets`) and redeploy; CI pushes it to both workers. |
-| `cloud.chmonitor.dev` returns 200 instead of 301 | Edge Redirect Rule missing — run `bun run cf:redirect-rule`. Middleware can't fix this (prerendered root skips the worker). |
+| `/api/mcp` → 503 "MCP API key auth is not configured" | `CHM_API_KEY_SECRET` empty on `chmonitor-mcp`. Worker secrets don't survive a rename. Set the GitHub secret (`pnpm run gh:sync-secrets`) and redeploy; CI pushes it to both workers. |
+| `cloud.chmonitor.dev` returns 200 instead of 301 | Edge Redirect Rule missing — run `pnpm run cf:redirect-rule`. Middleware can't fix this (prerendered root skips the worker). |

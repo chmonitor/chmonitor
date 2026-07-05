@@ -2,26 +2,35 @@
 # Built from the repo root (context: .) so both apps/dashboard/ and the shared
 # packages/ sources (resolved via ../../ Vite aliases) are reachable.
 #
-# apps/dashboard installs in ISOLATION (its own bun.lock; NOT a root workspace
-# member) — its vite bundling resolves shared @chm/* package deps from the app's
-# own node_modules, so the install must happen inside the app dir.
+# apps/dashboard installs in ISOLATION (its own pnpm-lock.yaml + pnpm-workspace.yaml;
+# NOT a member of the repo-root workspace) — its vite bundling resolves shared
+# @chm/* package deps from the app's own node_modules, so the install must happen
+# inside the app dir.
+#
+# pnpm is the package manager (via corepack); bun stays only as the runtime for
+# the node build entrypoint (scripts/build-node-ci.ts), so the bun binary is
+# copied into the node-based build image.
 ARG GITHUB_SHA=unknown
 ARG GITHUB_REF=unknown
 
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1-alpine AS bunbin
+
+FROM node:24-alpine AS base
 WORKDIR /app
+COPY --from=bunbin /usr/local/bin/bun /usr/local/bin/bun
+RUN apk add --no-cache libstdc++ libgcc && \
+    corepack enable && corepack prepare pnpm@10.18.0 --activate
 
 # ── deps ──────────────────────────────────────────────────────────────────
-# Install the isolated app's own dependencies. packages/ is copied so bun can
-# resolve transitive deps of @chm/clickhouse-client during the frozen install.
+# Install the isolated app's own dependencies. packages/ is copied so pnpm can
+# resolve the ../../packages/* workspace members during the frozen install.
 FROM base AS deps
 ENV NODE_ENV=production
 RUN apk add --no-cache libc6-compat
-COPY apps/dashboard/package.json apps/dashboard/bun.lock* ./apps/dashboard/
+COPY apps/dashboard/package.json apps/dashboard/pnpm-lock.yaml apps/dashboard/pnpm-workspace.yaml ./apps/dashboard/
 COPY packages/ ./packages/
 WORKDIR /app/apps/dashboard
-RUN --mount=type=cache,id=bun-tsr,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ── builder ────────────────────────────────────────────────────────────────
 FROM base AS builder
@@ -37,7 +46,7 @@ COPY packages/ /app/packages/
 COPY tsconfig.base.json /app/tsconfig.base.json
 # design-system/ is needed at build time: docs-theme.css @imports
 # ../../../../../../design-system/docs-tokens.css, which Vite/PostCSS resolve
-# during `bun run build:node:ci`. Without this the Docker build fails with a
+# during `pnpm run build:node:ci`. Without this the Docker build fails with a
 # "Can't resolve .../design-system/docs-tokens.css" error (it's outside apps/dashboard/).
 COPY design-system/ /app/design-system/
 COPY apps/dashboard/ /app/apps/dashboard/
@@ -51,7 +60,7 @@ WORKDIR /app/apps/dashboard
 # render server leaves a ref'd socket open), which would hang `RUN` until the
 # CI/Docker timeout. The wrapper detects completion (prerender marker + on-disk
 # artifacts) and reaps the lingering process group, exiting cleanly.
-RUN bun run build:node:ci
+RUN pnpm run build:node:ci
 
 # ── runner ─────────────────────────────────────────────────────────────────
 # The Nitro node-server output is a plain Node bundle — run on node:24-alpine

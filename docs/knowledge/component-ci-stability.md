@@ -215,7 +215,7 @@ Keep these fixes narrow:
 - Kill stale Cypress processes before rerunning focused specs. Orphaned Cypress
   apps can keep ports and webpack caches busy.
 - If local UI testing is allowed, verify focused specs first, then run
-  `bun run test:component:headless`.
+  `pnpm run test:component:headless`.
 - If local UI testing is paused, use GitHub CI logs for component-test evidence
   and run non-UI checks only.
 - If the full component run is still too slow, inspect the next failing spec

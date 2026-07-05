@@ -23,7 +23,7 @@ cd clickhouse-monitoring
 The project uses [Bun](https://bun.sh). Install it first if you don't have it.
 
 ```bash
-bun install
+pnpm install
 ```
 
 **3. Create `.env.local`**
@@ -64,7 +64,7 @@ Make sure the user you set in step 3 has the right grants. See:
 
 ```bash
 cd apps/dashboard
-bun run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -73,6 +73,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 **`localhost` connection refused** — If ClickHouse is not running locally, update `CLICKHOUSE_HOST` to point at your remote instance.
 
-**Type errors on first run** — Run `bun run type-check` from the repo root. Some generated types require a build pass first.
+**Type errors on first run** — Run `pnpm run type-check` from the repo root. Some generated types require a build pass first.
 
 **Missing system tables** — See [Enable system tables](/getting-started/clickhouse-enable-system-tables).

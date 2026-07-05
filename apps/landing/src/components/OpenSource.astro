@@ -53,7 +53,7 @@
             <div class="term-body">
               <div><span class="p">$</span> git clone https://github.com/chmonitor/chmonitor.git</div>
               <div><span class="p">$</span> cd chmonitor</div>
-              <div><span class="p">$</span> bun install</div>
+              <div><span class="p">$</span> pnpm install</div>
               <div>&nbsp;</div>
               <div><span class="c"># production env + a token with Workers deploy permission</span></div>
               <div><span class="p">$</span> cat &lt;&lt;'EOF' &gt; .env.prod</div>
@@ -63,8 +63,8 @@
               <div>CLICKHOUSE_PASSWORD=change-me</div>
               <div>EOF</div>
               <div>&nbsp;</div>
-              <div><span class="p">$</span> bun run cf:config&nbsp;&nbsp;&nbsp;<span class="c"># push secrets to the Worker</span></div>
-              <div><span class="p">$</span> bun run cf:deploy&nbsp;&nbsp;&nbsp;<span class="c"># build + deploy</span></div>
+              <div><span class="p">$</span> pnpm run cf:config&nbsp;&nbsp;&nbsp;<span class="c"># push secrets to the Worker</span></div>
+              <div><span class="p">$</span> pnpm run cf:deploy&nbsp;&nbsp;&nbsp;<span class="c"># build + deploy</span></div>
             </div>
           </div>
         </div>

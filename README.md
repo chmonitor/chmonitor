@@ -73,7 +73,7 @@ Prefer to look before you install? Try the live demo above — no setup required
 This project supports deployment to Cloudflare Workers with static site generation and API routes.
 
 **Prerequisites:**
-- Node.js 18+ and Bun
+- Node.js 18+ and pnpm (bun is still used internally as the test runner and for `.ts` scripts)
 - Cloudflare Workers account
 - Wrangler CLI: `npm install -g wrangler`
 
@@ -83,7 +83,7 @@ This project supports deployment to Cloudflare Workers with static site generati
 ```bash
 git clone https://github.com/chmonitor/chmonitor.git
 cd clickhouse-monitoring
-bun install
+pnpm install
 ```
 
 2. Configure environment variables in `.env.local`:
@@ -139,15 +139,15 @@ without auth.
 # OR use OAuth: npx wrangler login
 
 # Unified deploy (config, build, deploy, cache — same as CI)
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 
 **Manual Deployment Steps:**
 ```bash
 # Step by step (same as CI)
-bun run cf:config        # Set secrets from .env.production.local
+pnpm run cf:config        # Set secrets from .env.production.local
 cd apps/dashboard
-bun run build            # Vite build → native Workers bundle (+ tsc --noEmit)
+pnpm run build            # Vite build → native Workers bundle (+ tsc --noEmit)
 wrangler deploy --minify
 ```
 

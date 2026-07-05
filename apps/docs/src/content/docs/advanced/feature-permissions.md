@@ -173,7 +173,7 @@ VITE_CLERK_PUBLISHABLE_KEY=pk_live_your_key
 CLERK_SECRET_KEY=sk_live_your_key
 ```
 
-> `VITE_*` vars are build-time inlined — set them before running `bun run build`. See [Migrate to v0.3](/migrating/v0-3) if you are upgrading from the legacy Next.js app and need the old `NEXT_PUBLIC_*` names.
+> `VITE_*` vars are build-time inlined — set them before running `pnpm run build`. See [Migrate to v0.3](/migrating/v0-3) if you are upgrading from the legacy Next.js app and need the old `NEXT_PUBLIC_*` names.
 
 **Agent API token (agent API endpoints only — does not provide UI-level user authentication):**
 

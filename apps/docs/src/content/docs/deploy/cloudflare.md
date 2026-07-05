@@ -5,7 +5,7 @@ editUrl: "https://github.com/duyet/clickhouse-monitoring/edit/main/docs/content/
 
 Deploy chmonitor to Cloudflare Workers. Best for globally cached, serverless hosting with no servers to manage.
 
-The dashboard app (`apps/dashboard`) uses the `@cloudflare/vite-plugin` to build a native Cloudflare Workers bundle — no OpenNext adapter required. The deploy script is just `bun run build && wrangler deploy`.
+The dashboard app (`apps/dashboard`) uses the `@cloudflare/vite-plugin` to build a native Cloudflare Workers bundle — no OpenNext adapter required. The deploy script is just `pnpm run build && wrangler deploy`.
 
 ## One-click deploy
 
@@ -24,13 +24,13 @@ This deploys the `apps/dashboard` worker (TanStack Start). You will be prompted 
 ```bash
 git clone https://github.com/duyet/clickhouse-monitoring.git
 cd clickhouse-monitoring/apps/dashboard
-bun install
+pnpm install
 
 ## Set credentials and build
 export CLICKHOUSE_HOST=https://clickhouse.example.com:8443
 
 ## Build the Cloudflare Workers bundle and deploy
-bun run cf:deploy   # vite build → wrangler deploy
+pnpm run cf:deploy   # vite build → wrangler deploy
 ```
 
 For secrets (ClickHouse password, LLM keys, etc.), use `wrangler secret put`:
@@ -48,10 +48,10 @@ There are two kinds of variables:
 
 | Kind | Where to set | Who reads it | Example |
 |---|---|---|---|
-| **Build-time client vars** | CI env / shell before `bun run build` | Browser JS (VITE-inlined) | `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| **Build-time client vars** | CI env / shell before `pnpm run build` | Browser JS (VITE-inlined) | `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` |
 | **Runtime Worker vars** | `wrangler.toml` `[vars]` or `wrangler secret put` | Worker process only | `CLICKHOUSE_HOST`, `LLM_API_KEY`, `CLERK_SECRET_KEY` |
 
-`VITE_*` vars are baked into the JS bundle at build time. Setting them in `wrangler.toml [vars]` has no effect — they must be in the environment when `bun run build` runs (e.g. CI secrets).
+`VITE_*` vars are baked into the JS bundle at build time. Setting them in `wrangler.toml [vars]` has no effect — they must be in the environment when `pnpm run build` runs (e.g. CI secrets).
 
 Runtime Worker vars (`wrangler.toml [vars]` and secrets) are never visible in the browser.
 
@@ -98,7 +98,7 @@ wrangler secret put CRON_SECRET
 wrangler secret put CHM_API_KEY_SECRET
 ```
 
-After `wrangler secret put`, redeploy so the Worker picks up the change: `bun run cf:deploy`.
+After `wrangler secret put`, redeploy so the Worker picks up the change: `pnpm run cf:deploy`.
 
 ## Configure
 
@@ -268,7 +268,7 @@ CHM_CLOUD_D1_DATABASE_ID = "<database-id>"
 Run migrations:
 
 ```bash
-bun run cf:migrate-conversations
+pnpm run cf:migrate-conversations
 ```
 
 **Durable Object store:**
@@ -305,7 +305,7 @@ HEALTH_ALERT_MIN_SEVERITY = "warning"
 
 ### Branding
 
-Set these in CI before running `bun run build` (they are baked into the JS bundle):
+Set these in CI before running `pnpm run build` (they are baked into the JS bundle):
 
 ```bash
 VITE_TITLE_SHORT=MyCluster
@@ -317,7 +317,7 @@ VITE_POSTHOG_KEY=phc_...
 ## Deploy
 
 ```bash
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 
 This runs: `vite build` (produces the Cloudflare Workers bundle) → `wrangler deploy`.
@@ -327,7 +327,7 @@ This runs: `vite build` (produces the Cloudflare Workers bundle) → `wrangler d
 ## Preview locally
 
 ```bash
-bun run cf:preview
+pnpm run cf:preview
 ```
 
 ## Cloudflare bindings
@@ -344,8 +344,8 @@ The TanStack Start build via `@cloudflare/vite-plugin` does not require KV, R2, 
 ## Upgrading
 
 1. Pull the latest code: `git pull`.
-2. Update dependencies: `bun install`.
-3. Rebuild and deploy: `bun run cf:deploy`.
+2. Update dependencies: `pnpm install`.
+3. Rebuild and deploy: `pnpm run cf:deploy`.
 
 Worker secrets persist across deploys; you only need to re-run `wrangler secret put` when a value changes.
 
@@ -353,8 +353,8 @@ For breaking changes between major versions, see [Migrating to v0.3](/migrating/
 
 ## Troubleshooting
 
-**`wrangler deploy` ships nothing or stale assets:** run `bun run build` (or `bun run cf:deploy`, which does both) before `wrangler deploy` — the Vite build must produce the Workers bundle first.
+**`wrangler deploy` ships nothing or stale assets:** run `pnpm run build` (or `pnpm run cf:deploy`, which does both) before `wrangler deploy` — the Vite build must produce the Workers bundle first.
 
 **Runtime errors / blank pages:** check Workers logs in the Cloudflare dashboard. Verify secrets are set (`wrangler secret list`) and redeploy after any `wrangler secret put`.
 
-**Build-time client var not taking effect:** `VITE_*` vars must be set in the environment when `bun run build` runs, not in `wrangler.toml [vars]`.
+**Build-time client var not taking effect:** `VITE_*` vars must be set in the environment when `pnpm run build` runs, not in `wrangler.toml [vars]`.

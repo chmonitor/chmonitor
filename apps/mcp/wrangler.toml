@@ -13,7 +13,7 @@
 # Bindings: shares ClickHouse env vars + CHM_API_KEY_SECRET secret. No
 # KV/D1/R2 — MCP tools only query ClickHouse over HTTP.
 #
-# Secrets to set (or run `bun run cf:config`):
+# Secrets to set (or run `pnpm run cf:config`):
 #   wrangler secret put CHM_API_KEY_SECRET --config wrangler-mcp.toml
 #   wrangler secret put CLICKHOUSE_PASSWORD --config wrangler-mcp.toml
 #   # Optional — enables Clerk OAuth verification for MCP clients. When set, a

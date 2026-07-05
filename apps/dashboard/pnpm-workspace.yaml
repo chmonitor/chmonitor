@@ -1,0 +1,6 @@
+# apps/dashboard is an isolated workspace root (not a member of the repo-root
+# workspace): its Vite build resolves shared @chm/* packages from ../../packages/*
+# and its own node_modules. pnpm uses the nearest pnpm-workspace.yaml, so running
+# `pnpm install` here scopes to this app + the shared packages only.
+packages:
+  - ../../packages/*

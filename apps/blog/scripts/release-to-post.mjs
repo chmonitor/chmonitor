@@ -2,8 +2,8 @@
 // Scaffolds a DRAFT release blog post from a GitHub release.
 //
 // Usage (from apps/blog/):
-//   bun run release-to-post <tag>                        # fetch via `gh` CLI
-//   bun run release-to-post <tag> -- --from-file f.json   # offline/test input
+//   pnpm run release-to-post <tag>                        # fetch via `gh` CLI
+//   pnpm run release-to-post <tag> -- --from-file f.json   # offline/test input
 //
 // This never publishes anything — it writes src/content/blog/<slug>.md with
 // `draft: true` and leaves the claim-verification checklist comment intact,
@@ -25,7 +25,7 @@ function parseArgs(argv) {
   const fileFlagIndex = argv.indexOf('--from-file')
   const fromFile = fileFlagIndex >= 0 ? argv[fileFlagIndex + 1] : null
   if (!tag) {
-    console.error('Usage: bun run release-to-post <tag> [-- --from-file <path>]')
+    console.error('Usage: pnpm run release-to-post <tag> [-- --from-file <path>]')
     process.exit(1)
   }
   return { tag, fromFile }

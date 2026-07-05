@@ -7,7 +7,7 @@ icon: Database
 Pick the conversation store that fits your platform. Each backend uses the same build-time flag and a runtime backend selector.
 
 <Callout type="info" title="Build-time flag required">
-All server-side backends require `CHM_FEATURE_CONVERSATION_DB=true` set **before** `bun run build`. Its client `VITE_FEATURE_CONVERSATION_DB` is derived from it at build time and baked into the bundle, so it cannot be changed without a rebuild. `CONVERSATION_STORE_BACKEND` is a runtime variable and can be set or changed without rebuilding.
+All server-side backends require `CHM_FEATURE_CONVERSATION_DB=true` set **before** `pnpm run build`. Its client `VITE_FEATURE_CONVERSATION_DB` is derived from it at build time and baked into the bundle, so it cannot be changed without a rebuild. `CONVERSATION_STORE_BACKEND` is a runtime variable and can be set or changed without rebuilding.
 </Callout>
 
 ## Platform recommendation
@@ -58,8 +58,8 @@ CHM_CLOUD_D1_DATABASE_ID=<uuid>
 Provision and migrate:
 
 ```bash
-bun run cf:setup-conversations
-bun run cf:migrate-conversations
+pnpm run cf:setup-conversations
+pnpm run cf:migrate-conversations
 ```
 
 The setup script creates the D1 database, stores the UUID in `wrangler.toml`, and adds the `CHM_CLOUD_D1` binding. The migration script applies the schema. During CI deploys, set `CHM_CLOUD_D1_DATABASE_ID` as a secret so `wrangler deploy` includes the binding. Without it, the binding is excluded from the deploy.

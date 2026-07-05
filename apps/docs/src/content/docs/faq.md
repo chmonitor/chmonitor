@@ -11,7 +11,7 @@ Check that `CLICKHOUSE_HOST` is a full URL including scheme and port, e.g. `http
 
 **I changed ClickHouse credentials but the dashboard still fails.**
 
-Restart or redeploy the app after updating credentials. For Cloudflare Workers, run `bun run cf:config` to push the new secrets, then redeploy (`bun run cf:deploy`). The worker connection pool caches credentials at startup.
+Restart or redeploy the app after updating credentials. For Cloudflare Workers, run `pnpm run cf:config` to push the new secrets, then redeploy (`pnpm run cf:deploy`). The worker connection pool caches credentials at startup.
 
 ## System tables and empty pages
 

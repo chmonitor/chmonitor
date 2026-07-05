@@ -1,6 +1,6 @@
 ---
 title: Local development
-description: Run the chmonitor dashboard from source with Bun and TanStack Start to develop and test changes before deploying.
+description: Run the chmonitor dashboard from source with pnpm and TanStack Start to develop and test changes before deploying.
 icon: TerminalSquare
 ---
 
@@ -29,10 +29,10 @@ cd clickhouse-monitoring
 
 ### Install dependencies
 
-The project uses [Bun](https://bun.sh). Install it first if you don't have it.
+The project uses [pnpm](https://pnpm.io) (`pnpm@10.18.0`) as its package manager. Install it first if you don't have it.
 
 ```bash
-bun install
+pnpm install
 ```
 
 </Step>
@@ -87,7 +87,7 @@ Make sure the user you set in the previous step has the right grants:
 
 ```bash
 cd apps/dashboard
-bun run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -105,7 +105,7 @@ The dashboard should hot-reload as you edit source, and the overview page should
 <Callout type="warn" title="Common issues">
 
 - **`localhost` connection refused** — If ClickHouse is not running locally, update `CLICKHOUSE_HOST` to point at your remote instance.
-- **Type errors on first run** — Run `bun run type-check` from the repo root. Some generated types require a build pass first.
+- **Type errors on first run** — Run `pnpm run type-check` from the repo root. Some generated types require a build pass first.
 - **Missing system tables** — See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables).
 
 </Callout>

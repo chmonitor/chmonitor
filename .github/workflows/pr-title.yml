@@ -25,18 +25,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       # Install so commitlint resolves from the repo's pinned devDependencies
       # (incl. the conventional-changelog-conventionalcommits transitive dep),
       # instead of a flaky `bunx --bun commitlint@latest` npm fetch at check time.
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Validate PR title is a conventional commit
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           echo "Validating PR title: $PR_TITLE"
-          echo "$PR_TITLE" | bunx commitlint --config commitlint.config.js
+          echo "$PR_TITLE" | pnpm exec commitlint --config commitlint.config.js

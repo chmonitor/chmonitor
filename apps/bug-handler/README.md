@@ -52,16 +52,16 @@ The token needs `issues:write` on the target repository.
 
 ```bash
 # Production
-bun run deploy
+pnpm run deploy
 
 # Preview environment
-bun run deploy:preview
+pnpm run deploy:preview
 ```
 
 Override non-secret vars at deploy time if needed:
 
 ```bash
-bun run deploy --var GITHUB_REPOSITORY:myorg/myrepo --var BUG_ISSUE_LABELS:bug,p1
+pnpm run deploy --var GITHUB_REPOSITORY:myorg/myrepo --var BUG_ISSUE_LABELS:bug,p1
 ```
 
 ## Preview vs production
@@ -69,14 +69,14 @@ bun run deploy --var GITHUB_REPOSITORY:myorg/myrepo --var BUG_ISSUE_LABELS:bug,p
 | | Production | Preview |
 |---|---|---|
 | Worker name | `chmonitor-bug-handler` | `preview-chmonitor-bug-handler` |
-| Deploy command | `bun run deploy` | `bun run deploy:preview` |
+| Deploy command | `pnpm run deploy` | `pnpm run deploy:preview` |
 | Routing rule | Set up on main zone | Set up on preview zone / separate address |
 
 ## Development
 
 ```bash
-bun install
-bun run type-check   # tsc --noEmit
+pnpm install
+pnpm run type-check   # tsc --noEmit
 bun test src/        # unit + integration tests
-bunx biome check src/
+pnpm exec biome check src/
 ```

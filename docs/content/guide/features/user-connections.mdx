@@ -31,7 +31,7 @@ Server storage needs **four** things present together. If any one is missing the
 4. **A database backend** — `CHM_CLOUD_D1` on Cloudflare, or `DATABASE_URL` / `POSTGRES_URL` on Docker / Kubernetes.
 
 <Callout type="info" title="One canonical name">
-Set the canonical `CHM_*` name once. The browser-side `VITE_FEATURE_USER_CONNECTIONS_DB` / `VITE_AUTH_PROVIDER` are **derived** from `CHM_FEATURE_USER_CONNECTIONS_DB` / `CHM_AUTH_PROVIDER` at build time (see `vite.config.ts`) — you don't set them separately. Because the client value is inlined at build time, set these before `bun run build` (or build a custom image), then keep them in the runtime env too.
+Set the canonical `CHM_*` name once. The browser-side `VITE_FEATURE_USER_CONNECTIONS_DB` / `VITE_AUTH_PROVIDER` are **derived** from `CHM_FEATURE_USER_CONNECTIONS_DB` / `CHM_AUTH_PROVIDER` at build time (see `vite.config.ts`) — you don't set them separately. Because the client value is inlined at build time, set these before `pnpm run build` (or build a custom image), then keep them in the runtime env too.
 </Callout>
 
 <Steps>

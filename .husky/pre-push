@@ -8,12 +8,12 @@
 set -e
 
 echo "🔍 Running full Biome check..."
-bun run check
+pnpm run check
 
 echo "🧪 Running dashboard unit tests..."
-bun run test:unit
+pnpm run test:unit
 
 echo "📦 Running package unit tests..."
-bun run test:packages
+pnpm run test:packages
 
 echo "✅ Pre-push checks passed!"

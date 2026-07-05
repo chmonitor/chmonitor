@@ -43,5 +43,13 @@
     "typescript": "^6.0.0",
     "vite": "^8.0.16",
     "wrangler": "^4.97.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "core-js",
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }

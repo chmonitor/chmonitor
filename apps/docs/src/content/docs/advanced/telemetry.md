@@ -66,7 +66,7 @@ The ClickHouse version is always truncated to `MAJOR.MINOR` (e.g. `24.8`) — ne
 CHM_TELEMETRY=on
 ```
 
-**Client build-time** (inlined at `bun run build` / `vite build`):
+**Client build-time** (inlined at `pnpm run build` / `vite build`):
 
 ```bash
 VITE_TELEMETRY_ENABLED=true

@@ -62,6 +62,6 @@ Revisit only if approaching the 3 MiB limit, or if a cold-start regression is me
 
 ```bash
 cd apps/dashboard
-bun run build
+pnpm run build
 bun wrangler deploy --minify --dry-run 2>&1 | grep -iE "Total Upload|gzip:"
 ```

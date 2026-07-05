@@ -151,10 +151,10 @@ The field names above (`name`, `sql[].since`, `sql[].sql`, `columns`,
 4. **Validate locally.**
    ```bash
    # Validate schema + run declarative catalog tests
-   bun run test:query-config
+   pnpm run test:query-config
 
    # Biome lint (must pass before PR)
-   bun run check
+   pnpm run check
    ```
    The `test:query-config` suite runs the schema validator against every catalog
    entry and compares serializable fields against the legacy TS configs for

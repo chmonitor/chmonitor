@@ -49,19 +49,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Bun Cache
-        uses: actions/cache@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-tsr-v1-${{ hashFiles('apps/dashboard/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-tsr-v1-
+          node-version: 22
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build for Cloudflare
         # Use a GENERIC placeholder Clerk test key so the bundle includes Clerk
@@ -75,7 +72,7 @@ jobs:
           VITE_GIT_REF: ${{ github.head_ref || github.ref_name }}
           VITE_CI: 'true'
           VITE_DEPLOY_TARGET: cf
-        run: bunx vite build
+        run: pnpm exec vite build
 
       - name: Measure bundle size (wrangler dry-run)
         id: size
@@ -84,7 +81,7 @@ jobs:
           BUNDLE_SIZE_ERROR_KIB: ${{ env.BUNDLE_SIZE_ERROR_KIB }}
         run: |
           set -euo pipefail
-          DRY_OUTPUT=$(bunx wrangler deploy --minify --dry-run 2>&1)
+          DRY_OUTPUT=$(pnpm exec wrangler deploy --minify --dry-run 2>&1)
           echo "$DRY_OUTPUT"
 
           # Parse "gzip: X.XX MiB" from wrangler output.

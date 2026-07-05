@@ -3,7 +3,7 @@
   "globalDependencies": [
     "tsconfig.base.json",
     "biome.json",
-    "bun.lock",
+    "pnpm-lock.yaml",
     "scripts/**"
   ],
   "tasks": {

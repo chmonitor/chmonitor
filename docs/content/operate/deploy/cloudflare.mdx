@@ -6,13 +6,13 @@ icon: Cloud
 
 Deploy chmonitor to Cloudflare Workers — best for globally cached, serverless hosting with no servers to manage.
 
-The dashboard app (`apps/dashboard`) uses the `@cloudflare/vite-plugin` to build a native Cloudflare Workers bundle — no OpenNext adapter required. The deploy script is just `bun run build && wrangler deploy`.
+The dashboard app (`apps/dashboard`) uses the `@cloudflare/vite-plugin` to build a native Cloudflare Workers bundle — no OpenNext adapter required. The deploy script is just `pnpm run build && wrangler deploy`.
 
 ## Prerequisites
 
 <Callout type="info" title="What you need">
 - Cloudflare account
-- Bun installed locally or in CI
+- pnpm installed locally or in CI
 - `CLOUDFLARE_API_TOKEN` with Workers deploy permissions (or run `wrangler login` for OAuth)
 </Callout>
 
@@ -31,7 +31,7 @@ This deploys the `apps/dashboard` worker (TanStack Start). You will be prompted 
 ```bash
 git clone https://github.com/chmonitor/chmonitor.git
 cd clickhouse-monitoring/apps/dashboard
-bun install
+pnpm install
 ```
 </Step>
 
@@ -48,7 +48,7 @@ wrangler secret put CLICKHOUSE_PASSWORD
 ### Build and deploy
 
 ```bash
-bun run cf:deploy   # vite build → wrangler deploy
+pnpm run cf:deploy   # vite build → wrangler deploy
 ```
 </Step>
 
@@ -75,10 +75,10 @@ There are two kinds of variables — mixing them up is the most common source of
 
 | Kind | Where to set | Who reads it | Example |
 |---|---|---|---|
-| **Build-time client vars** | CI env / shell before `bun run build` | Browser JS (VITE-inlined) | `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` (derived from `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY`) |
+| **Build-time client vars** | CI env / shell before `pnpm run build` | Browser JS (VITE-inlined) | `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` (derived from `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY`) |
 | **Runtime Worker vars** | `wrangler.toml` `[vars]` or `wrangler secret put` | Worker process only | `CLICKHOUSE_HOST`, `LLM_API_KEY`, `CLERK_SECRET_KEY` |
 
-`VITE_*` vars are baked into the JS bundle at build time. Setting them in `wrangler.toml [vars]` has no effect — they must be in the environment when `bun run build` runs (e.g. CI secrets).
+`VITE_*` vars are baked into the JS bundle at build time. Setting them in `wrangler.toml [vars]` has no effect — they must be in the environment when `pnpm run build` runs (e.g. CI secrets).
 
 <Callout type="info" title="One canonical name">
 You usually don't set `VITE_*` directly. Set the canonical `CHM_*` name (e.g. `CHM_AUTH_PROVIDER`) in the build environment and `vite.config.ts` derives the matching `VITE_*`. A dual-surface setting must be present at build time (so the `VITE_*` inlines) **and** as a runtime `[var]` (so the server reads `CHM_*`) — same name, both places. See [One canonical name per setting](/reference/environment-variables#one-canonical-name-per-setting).
@@ -128,7 +128,7 @@ wrangler secret put CHM_API_KEY_SECRET
 ```
 
 <Callout type="info" title="Redeploy after secret changes">
-After `wrangler secret put`, redeploy so the Worker picks up the change: `bun run cf:deploy`.
+After `wrangler secret put`, redeploy so the Worker picks up the change: `pnpm run cf:deploy`.
 </Callout>
 
 ## Configure
@@ -212,7 +212,7 @@ wrangler secret put CHM_API_KEY_SECRET
 Set the canonical names at build time in CI (the client `VITE_AUTH_PROVIDER` / `VITE_CLERK_PUBLISHABLE_KEY` derive from them):
 
 ```bash
-# In your CI environment / GitHub Actions secrets, before `bun run build`:
+# In your CI environment / GitHub Actions secrets, before `pnpm run build`:
 CHM_AUTH_PROVIDER=clerk
 CHM_CLERK_PUBLISHABLE_KEY=pk_live_...   # public publishable key
 ```
@@ -279,7 +279,7 @@ Never put `LLM_API_KEY` in a `VITE_*` var or `[vars]` — use `wrangler secret p
 
 ### Conversation store
 
-Server-side persistence requires `CHM_FEATURE_CONVERSATION_DB=true` set **at build time** (in CI before `bun run build`; the client `VITE_FEATURE_CONVERSATION_DB` derives from it), plus Clerk auth. The backend is then selected at runtime.
+Server-side persistence requires `CHM_FEATURE_CONVERSATION_DB=true` set **at build time** (in CI before `pnpm run build`; the client `VITE_FEATURE_CONVERSATION_DB` derives from it), plus Clerk auth. The backend is then selected at runtime.
 
 <Tabs items={["D1 (recommended)", "AgentState", "Postgres"]}>
 <Tab value="D1 (recommended)">
@@ -315,7 +315,7 @@ CHM_FEATURE_CONVERSATION_DB=true
 Run migrations:
 
 ```bash
-bun run cf:migrate-conversations
+pnpm run cf:migrate-conversations
 ```
 
 </Tab>
@@ -364,7 +364,7 @@ HEALTH_ALERT_MIN_SEVERITY = "warning"
 
 ### Branding
 
-Set these in CI before running `bun run build` (they are baked into the JS bundle):
+Set these in CI before running `pnpm run build` (they are baked into the JS bundle):
 
 ```bash
 VITE_TITLE_SHORT=MyCluster
@@ -376,7 +376,7 @@ VITE_POSTHOG_KEY=phc_...
 ## Deploy
 
 ```bash
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 
 This runs: `vite build` (produces the Cloudflare Workers bundle) → `wrangler deploy`.
@@ -390,7 +390,7 @@ The chmonitor monorepo's own `wrangler.toml` declares **no** `[vars]`. Its non-s
 ### Preview locally
 
 ```bash
-bun run cf:preview
+pnpm run cf:preview
 ```
 
 ## Cloudflare bindings
@@ -419,7 +419,7 @@ git pull
 ### Update dependencies
 
 ```bash
-bun install
+pnpm install
 ```
 </Step>
 
@@ -427,7 +427,7 @@ bun install
 ### Rebuild and deploy
 
 ```bash
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 </Step>
 </Steps>
@@ -440,13 +440,13 @@ For breaking changes between major versions, see [Migrating to v0.3](/reference/
 
 <Accordions>
 <Accordion title="wrangler deploy ships nothing or stale assets">
-Run `bun run build` (or `bun run cf:deploy`, which does both) before `wrangler deploy` — the Vite build must produce the Workers bundle first.
+Run `pnpm run build` (or `pnpm run cf:deploy`, which does both) before `wrangler deploy` — the Vite build must produce the Workers bundle first.
 </Accordion>
 <Accordion title="Runtime errors / blank pages">
 Check Workers logs in the Cloudflare dashboard. Verify secrets are set (`wrangler secret list`) and redeploy after any `wrangler secret put`.
 </Accordion>
 <Accordion title="Build-time client var not taking effect">
-`VITE_*` vars must be set in the environment when `bun run build` runs, not in `wrangler.toml [vars]`.
+`VITE_*` vars must be set in the environment when `pnpm run build` runs, not in `wrangler.toml [vars]`.
 </Accordion>
 </Accordions>
 

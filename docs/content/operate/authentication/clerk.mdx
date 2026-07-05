@@ -22,7 +22,7 @@ Use Clerk when you want browser-based sign-in with user accounts. The browser au
 
 ## Prerequisites
 
-A Clerk application with its publishable and secret keys. The client `VITE_AUTH_PROVIDER` / `VITE_CLERK_PUBLISHABLE_KEY` values are derived from the canonical `CHM_*` names at build time, so set them before `bun run build`. `CLERK_SECRET_KEY` (the `sk_...` key) is the runtime secret and stays server-side.
+A Clerk application with its publishable and secret keys. The client `VITE_AUTH_PROVIDER` / `VITE_CLERK_PUBLISHABLE_KEY` values are derived from the canonical `CHM_*` names at build time, so set them before `pnpm run build`. `CLERK_SECRET_KEY` (the `sk_...` key) is the runtime secret and stays server-side.
 
 <Callout type="info" title="Migrating from Next.js?">
 If migrating from the legacy Next.js app, see [Migrate to v0.3](/reference/migrating/v0-3) for the `NEXT_PUBLIC_*` → `VITE_*` rename.

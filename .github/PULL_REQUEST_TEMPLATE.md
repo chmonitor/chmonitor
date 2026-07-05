@@ -13,11 +13,11 @@
 
 <!-- How did you verify this works? Tick the boxes that apply. -->
 
-- [ ] `bun run lint` passes with no errors
-- [ ] `bun run build` passes (includes `tsc --noEmit`)
-- [ ] `bun run type-check:test` passes (catches test-file type errors not covered by the build — see CONTRIBUTING.md §Type-check gap)
-- [ ] `bun run test:unit` passes
-- [ ] Tested manually in local dev (`bun run dev`)
+- [ ] `pnpm run lint` passes with no errors
+- [ ] `pnpm run build` passes (includes `tsc --noEmit`)
+- [ ] `pnpm run type-check:test` passes (catches test-file type errors not covered by the build — see CONTRIBUTING.md §Type-check gap)
+- [ ] `pnpm run test:unit` passes
+- [ ] Tested manually in local dev (`pnpm run dev`)
 - [ ] Docs updated in `docs/content/` if behaviour or config changed
 - [ ] `docs/content/ai-agent.mdx` updated if agent tools/skills/env vars changed
 

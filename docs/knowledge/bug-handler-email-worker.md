@@ -17,7 +17,7 @@ agent can pick up.
 Sentry alert → email → Cloudflare Email Routing → bug-handler worker → GitHub issue
 ```
 
-Built like `apps/telemetry`: own `bun.lock` (not in the root workspace), own
+Built like `apps/telemetry`: own `pnpm-lock.yaml` (not in the root workspace), own
 `wrangler.toml` with a `[env.preview]`, deployed by its own job in
 `.github/workflows/cloudflare.yml`.
 

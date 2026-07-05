@@ -1,14 +1,14 @@
 ---
 title: Self-host (Node / standalone)
-description: Run chmonitor on any server using Node.js or Bun — bare VMs, dedicated servers, or any environment where you manage the process directly.
+description: Run chmonitor on any server using Node.js — bare VMs, dedicated servers, or any environment where you manage the process directly.
 icon: Server
 ---
 
-Run chmonitor on any server using Node.js or Bun — best for bare VMs, dedicated servers, or any environment where you manage the process directly.
+Run chmonitor on any server using Node.js — best for bare VMs, dedicated servers, or any environment where you manage the process directly.
 
 ## Prerequisites
 
-- Bun installed on the server.
+- Node.js and pnpm (`pnpm@10.18.0`, via corepack) installed on the server.
 - A reachable ClickHouse endpoint with a monitoring user.
 - A process supervisor (systemd) and, optionally, a reverse proxy (nginx).
 
@@ -21,7 +21,7 @@ Run chmonitor on any server using Node.js or Bun — best for bare VMs, dedicate
 ```bash
 git clone https://github.com/chmonitor/chmonitor.git
 cd clickhouse-monitoring
-bun install
+pnpm install
 ```
 </Step>
 
@@ -39,8 +39,8 @@ export CLICKHOUSE_PASSWORD='change-me'
 ### Build and start
 
 ```bash
-bun run build
-bun run start
+pnpm run build
+pnpm run start
 ```
 
 Open `http://localhost:3000`.
@@ -61,7 +61,7 @@ CLICKHOUSE_MAX_EXECUTION_TIME=30
 CLICKHOUSE_TZ=UTC
 EOF
 
-bun run start
+pnpm run start
 ```
 
 ## Verify
@@ -160,12 +160,12 @@ export CHM_API_KEY_SECRET='a-long-random-secret'
 
 ```bash
 # Build with the canonical names (the client VITE_* derive from them):
-# CHM_AUTH_PROVIDER=clerk CHM_CLERK_PUBLISHABLE_KEY=pk_live_... bun run build
+# CHM_AUTH_PROVIDER=clerk CHM_CLERK_PUBLISHABLE_KEY=pk_live_... pnpm run build
 export CHM_AUTH_PROVIDER='clerk'   # also needed at runtime
 export CLERK_SECRET_KEY='sk_live_...'
 ```
 
-Set `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY` before `bun run build` (the client values are inlined at build time), then keep `CHM_AUTH_PROVIDER` and the `CLERK_SECRET_KEY` secret in the runtime env.
+Set `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY` before `pnpm run build` (the client values are inlined at build time), then keep `CHM_AUTH_PROVIDER` and the `CLERK_SECRET_KEY` secret in the runtime env.
 
 </Tab>
 <Tab value="Proxy — CF Access">
@@ -278,10 +278,10 @@ Add a crontab entry:
 Branding vars are inlined at build time:
 
 ```bash
-VITE_TITLE_SHORT=MyCluster VITE_LOGO=/logo.png bun run build
+VITE_TITLE_SHORT=MyCluster VITE_LOGO=/logo.png pnpm run build
 ```
 
-These are inlined at build time — set them before running `bun run build`.
+These are inlined at build time — set them before running `pnpm run build`.
 
 ## systemd unit
 
@@ -295,7 +295,7 @@ Type=simple
 User=chmonitor
 WorkingDirectory=/opt/chmonitor
 EnvironmentFile=/etc/chmonitor/env
-ExecStart=/usr/local/bin/bun run start
+ExecStart=/usr/local/bin/pnpm run start
 Restart=always
 RestartSec=5
 
@@ -323,8 +323,8 @@ systemctl enable --now chmonitor
 ```bash
 cd /opt/chmonitor
 git pull
-bun install
-bun run build
+pnpm install
+pnpm run build
 systemctl restart chmonitor
 ```
 

@@ -120,7 +120,7 @@ middleware (#1397, PR #1428) restores that parity.
 
 - **Pages: 82/82** return matching status on both deployments (`/tmp/compare-prod.sh`).
 - **APIs**: both key-gated (401 to anonymous) once #1428 deploys.
-- Build gate: `bun run build` (`vite build && tsc --noEmit`) must be green; 112 pages
+- Build gate: `pnpm run build` (`vite build && tsc --noEmit`) must be green; 112 pages
   prerender. The dashboard is wired into CI (the `dashboard` job).
 
 ### Visual parity — app chrome + theme (was the big gap)

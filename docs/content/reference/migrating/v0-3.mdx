@@ -148,7 +148,7 @@ VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
 ### Deploy
 
 ```bash
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 </Step>
 <Step>
@@ -206,7 +206,7 @@ git checkout v0.3.0
 ### Install dependencies
 
 ```bash
-bun install
+pnpm install
 ```
 </Step>
 <Step>
@@ -225,8 +225,8 @@ CLICKHOUSE_HOST=http://localhost:8123
 ### Rebuild and restart
 
 ```bash
-bun run build
-bun run start
+pnpm run build
+pnpm run start
 ```
 </Step>
 <Step>

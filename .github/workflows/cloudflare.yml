@@ -81,6 +81,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
@@ -113,14 +121,6 @@ jobs:
               - 'apps/telemetry/**'
               - '.github/workflows/cloudflare.yml'
 
-      - name: Bun Cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-tsr-v1-${{ hashFiles('apps/dashboard/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-tsr-v1-
-
       - name: Generate OG images
         # Regenerate social-share PNGs from the committed Satori template +
         # vendored fonts (assets/og-fonts). Runs at repo root because the
@@ -134,8 +134,8 @@ jobs:
           github.ref_type == 'tag'
         working-directory: .
         run: |
-          bun install --frozen-lockfile
-          bun run og:generate
+          pnpm install --frozen-lockfile
+          pnpm run og:generate
 
       - name: Install dependencies
         if: >-
@@ -144,7 +144,7 @@ jobs:
           github.event_name == 'release' ||
           github.ref_type == 'tag'
         working-directory: apps/dashboard
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build for Cloudflare
         # All non-secret client + server config (auth provider, Clerk pk_test/
@@ -174,9 +174,9 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bun run build:preview
+            pnpm run build:preview
           else
-            bun run build:production
+            pnpm run build:production
           fi
 
       - name: Type-check dashboard tests
@@ -189,7 +189,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun run type-check:test
+        run: pnpm run type-check:test
 
       - name: Patch wrangler config with env sections
         # Worker [vars] come from the committed .env.production (+ .env.preview). Only
@@ -281,7 +281,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy --minify
+        run: pnpm exec wrangler deploy --minify
 
       - name: Apply D1 migrations (production)
         # Bring the chm-cloud D1 schema up to date BEFORE the new worker goes
@@ -301,7 +301,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler d1 migrations apply chm-cloud --remote
+        run: pnpm exec wrangler d1 migrations apply chm-cloud --remote
 
       - name: Deploy production
         if: >-
@@ -313,7 +313,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy --minify
+        run: pnpm exec wrangler deploy --minify
 
       - name: Verify deployment
         # Skip for dependabot PRs — no preview was deployed (see Set secrets).
@@ -369,7 +369,7 @@ jobs:
           github.event_name == 'release' ||
           github.ref_type == 'tag'
         working-directory: .
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Set MCP worker secrets
         if: >-
@@ -546,6 +546,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -579,8 +587,8 @@ jobs:
           github.ref_type == 'tag'
         working-directory: .
         run: |
-          bun install --frozen-lockfile
-          bun run og:generate
+          pnpm install --frozen-lockfile
+          pnpm run og:generate
 
       - name: Install dependencies
         if: >-
@@ -588,7 +596,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         if: >-
@@ -596,7 +604,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun run build
+        run: pnpm run build
 
       - name: Deploy preview
         if: >-
@@ -608,7 +616,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy --env preview
+        run: pnpm exec wrangler deploy --env preview
 
       - name: Deploy production
         if: >-
@@ -620,7 +628,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy
+        run: pnpm exec wrangler deploy
 
   # ──────────────────────────────────────────────────────────────────────────
   # Docs (apps/docs): Fumadocs on TanStack Start, deployed as a CF Worker.
@@ -642,10 +650,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: 1.3.14
+          node-version: 22
 
       - name: Detect changes
         id: filter
@@ -669,7 +680,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         if: >-
@@ -677,7 +688,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun run build
+        run: pnpm run build
 
       - name: Deploy preview
         if: >-
@@ -689,7 +700,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy --env preview
+        run: pnpm exec wrangler deploy --env preview
 
       - name: Deploy production
         if: >-
@@ -701,7 +712,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy
+        run: pnpm exec wrangler deploy
 
   # ──────────────────────────────────────────────────────────────────────────
   # Blog (apps/blog): standalone Astro static-assets worker. Built outside the
@@ -725,10 +736,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: 1.3.14
+          node-version: 22
 
       - name: Detect changes
         id: filter
@@ -748,7 +762,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         if: >-
@@ -756,7 +770,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun run build
+        run: pnpm run build
 
       - name: Deploy preview
         if: >-
@@ -768,7 +782,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy --env preview
+        run: pnpm exec wrangler deploy --env preview
 
       - name: Deploy production
         if: >-
@@ -780,7 +794,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy
+        run: pnpm exec wrangler deploy
 
   # ──────────────────────────────────────────────────────────────────────────
   # Bug-handler (apps/bug-handler): standalone Cloudflare EMAIL Worker. Receives
@@ -804,6 +818,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
@@ -825,7 +847,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Test
         if: >-
@@ -841,7 +863,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: bun run type-check
+        run: pnpm run type-check
 
       # Inject the runtime config NOT committed to wrangler.toml:
       #   --var GITHUB_REPOSITORY           repo issues are filed in (this repo)
@@ -864,7 +886,7 @@ jobs:
           TARGET_ADDRESS: ${{ vars.BUG_HANDLER_TARGET_ADDRESS }}
           ASSIGNEES: ${{ vars.BUG_HANDLER_ASSIGNEES }}
         run: |
-          bunx wrangler deploy --minify --env preview \
+          pnpm exec wrangler deploy --minify --env preview \
             --var GITHUB_REPOSITORY:"${{ github.repository }}" \
             --var BUG_HANDLER_TARGET_ADDRESS:"$TARGET_ADDRESS" \
             --var BUG_ISSUE_ASSIGNEES:"$ASSIGNEES"
@@ -882,7 +904,7 @@ jobs:
           TARGET_ADDRESS: ${{ vars.BUG_HANDLER_TARGET_ADDRESS }}
           ASSIGNEES: ${{ vars.BUG_HANDLER_ASSIGNEES }}
         run: |
-          bunx wrangler deploy --minify \
+          pnpm exec wrangler deploy --minify \
             --var GITHUB_REPOSITORY:"${{ github.repository }}" \
             --var BUG_HANDLER_TARGET_ADDRESS:"$TARGET_ADDRESS" \
             --var BUG_ISSUE_ASSIGNEES:"$ASSIGNEES"
@@ -910,7 +932,7 @@ jobs:
             exit 0
           fi
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            printf '%s' "$BUG_HANDLER_GITHUB_TOKEN" | bunx wrangler secret put GITHUB_TOKEN --env preview
+            printf '%s' "$BUG_HANDLER_GITHUB_TOKEN" | pnpm exec wrangler secret put GITHUB_TOKEN --env preview
           else
-            printf '%s' "$BUG_HANDLER_GITHUB_TOKEN" | bunx wrangler secret put GITHUB_TOKEN
+            printf '%s' "$BUG_HANDLER_GITHUB_TOKEN" | pnpm exec wrangler secret put GITHUB_TOKEN
           fi

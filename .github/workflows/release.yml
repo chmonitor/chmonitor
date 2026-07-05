@@ -292,16 +292,16 @@ jobs:
           ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-
-      - name: Bun Cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-v1-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-v1-
 
       - name: Extract release metadata
         id: meta
@@ -320,7 +320,7 @@ jobs:
       # install in isolation inside apps/dashboard, NOT at the repo root.
       - name: Install dependencies
         working-directory: apps/dashboard
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # Standalone = the Nitro node-server output (.output). Use the build:node:ci
       # wrapper, NOT a bare vite build: the prerender finishes but the process
@@ -332,7 +332,7 @@ jobs:
           VITE_GIT_REF: ${{ steps.meta.outputs.tag }}
           VITE_CI: "true"
         working-directory: apps/dashboard
-        run: bun run build:node:ci
+        run: pnpm run build:node:ci
 
       # Cloudflare = the workerd bundle (dist/) from the default vite build. This
       # target uses @cloudflare/vite-plugin (not nitro) and exits cleanly.
@@ -342,7 +342,7 @@ jobs:
           VITE_GIT_REF: ${{ steps.meta.outputs.tag }}
           VITE_CI: "true"
         working-directory: apps/dashboard
-        run: bunx vite build
+        run: pnpm exec vite build
 
       - name: Package release archives
         run: |
@@ -350,12 +350,14 @@ jobs:
           tar -czf "clickhouse-monitor-${TAG}-standalone.tar.gz" \
             apps/dashboard/.output \
             apps/dashboard/package.json \
-            apps/dashboard/bun.lock
+            apps/dashboard/pnpm-lock.yaml \
+            apps/dashboard/pnpm-workspace.yaml
           tar -czf "clickhouse-monitor-${TAG}-cloudflare.tar.gz" \
             apps/dashboard/dist \
             apps/dashboard/wrangler.toml \
             apps/dashboard/package.json \
-            apps/dashboard/bun.lock
+            apps/dashboard/pnpm-lock.yaml \
+            apps/dashboard/pnpm-workspace.yaml
           shasum -a 256 "clickhouse-monitor-${TAG}-standalone.tar.gz" "clickhouse-monitor-${TAG}-cloudflare.tar.gz" > SHA256SUMS
 
       # Centralized release notes: tiered AI summary (Copilot → GitHub Models →

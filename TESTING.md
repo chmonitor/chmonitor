@@ -119,10 +119,10 @@ matching a distinctive substring of the real SQL each tool issues.
 
 Run just this suite with `cd apps/dashboard && bun test
 src/lib/ai/agent/__tests__/scenarios.test.ts --isolate`; it also runs as part
-of the existing `bun run test` / `bun run test:coverage` CI job since those
+of the existing `pnpm run test` / `pnpm run test:coverage` CI job since those
 already glob all of `src/`.
 
-### Behavioral (tool-first) tracking — `bun run test:agent`
+### Behavioral (tool-first) tracking — `pnpm run test:agent`
 
 The mocked golden scenarios above verify tool *wiring and safety*, but the
 answer text is authored by the test, so they cannot measure whether a **live
@@ -134,8 +134,8 @@ run against a running dev server:
 ```bash
 export AGENT_API_TOKEN=your-token   # bearer for /api/v1/agent
 export OPENROUTER_API_KEY=your-key  # grader for the llm-rubric goldens below
-bun run dev                         # in another shell
-bun run test:agent                  # promptfoo eval; `test:agent:view` for the UI
+pnpm run dev                         # in another shell
+pnpm run test:agent                  # promptfoo eval; `test:agent:view` for the UI
 ```
 
 Each golden asserts the agent emits a `[tool:...]` call (not a memory answer)
@@ -190,7 +190,7 @@ All component tests are automatically run as part of the Continuous Integration 
 ### All Tests (Recommended)
 
 ```bash
-bun run test
+pnpm run test
 ```
 
 This runs unit tests with mocked dependencies - fast and reliable.
@@ -198,7 +198,7 @@ This runs unit tests with mocked dependencies - fast and reliable.
 ### Query Configuration Tests
 
 ```bash
-bun run test-queries-config
+pnpm run test-queries-config
 ```
 
 Tests query configurations with mocked database responses.
@@ -206,15 +206,15 @@ Tests query configurations with mocked database responses.
 ### Component Tests
 
 ```bash
-bun run test:component:headless  # Run component tests
-bun run test:e2e:headless        # Run end-to-end tests
+pnpm run test:component:headless  # Run component tests
+pnpm run test:e2e:headless        # Run end-to-end tests
 ```
 
 ### With Coverage
 
 ```bash
-bun run jest              # Excludes query-config tests
-bun run test-queries-config  # Only query-config tests
+pnpm run jest              # Excludes query-config tests
+pnpm run test-queries-config  # Only query-config tests
 ```
 
 ## Test Environment Setup
@@ -241,7 +241,7 @@ export CLICKHOUSE_USER=default
 export CLICKHOUSE_PASSWORD=
 
 # Run tests (integration tests will now execute)
-bun run test
+pnpm run test
 ```
 
 ## Writing New Tests
