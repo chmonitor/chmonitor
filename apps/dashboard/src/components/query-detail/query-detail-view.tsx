@@ -21,6 +21,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { highlightCode } from '@/components/ai-elements/code-block'
 import { HLJS_TOKEN_CLASSES } from '@/components/ai-elements/hljs-token-classes'
 import { KpiCard } from '@/components/overview-charts/kpi-card'
+import { QueryStagesChart } from '@/components/query-detail/query-stages-chart'
 import { TableSkeleton } from '@/components/skeletons'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
@@ -717,6 +718,10 @@ export const QueryDetailView = function QueryDetailView({
 
       {/* ── 3. SQL block ── */}
       {queryText && <SqlBlock query={queryText} />}
+
+      {/* ── 3b. Query stages ── per-processor duration breakdown. Renders
+          nothing when the optional processors_profile_log table is empty. */}
+      <QueryStagesChart queryId={queryId} />
 
       {/* ── 4. Insights ── client-side red flags derived from the row. */}
       {insights.length > 0 && (
