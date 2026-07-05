@@ -53,6 +53,9 @@ importers:
       '@chm/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@clerk/backend':
+        specifier: ^3.10.0
+        version: 3.10.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@clerk/tanstack-react-start':
         specifier: ^1.3.2
         version: 1.4.12(@tanstack/react-router@1.170.17(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@tanstack/react-start@1.168.27(crossws@0.4.8(srvx@0.11.20))(esbuild@0.28.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(rolldown@1.1.4)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(yaml@2.9.0)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -363,6 +366,9 @@ importers:
       typescript:
         specifier: ^6
         version: 6.0.3
+      undici:
+        specifier: ^7.24.8
+        version: 7.28.0
       vite:
         specifier: ^8.0.16
         version: 8.1.3(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(yaml@2.9.0)
