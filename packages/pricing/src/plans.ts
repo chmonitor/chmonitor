@@ -217,6 +217,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     ],
     highlights: [
       'Everything in Max',
+      'Dedicated single-tenant instance',
       'Unlimited hosts & seats',
       'Bring-your-own LLM key (BYOK)',
       'SSO / SAML, RBAC, audit logs',

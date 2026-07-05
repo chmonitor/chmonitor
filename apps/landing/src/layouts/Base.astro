@@ -28,7 +28,7 @@ const ogImage = new URL(image, Astro.site).toString()
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#f97316" />
+  <meta name="theme-color" content="#2563eb" />
   <meta name="twitter:site" content="@chmonitor" />
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
@@ -61,16 +61,13 @@ const ogImage = new URL(image, Astro.site).toString()
        paints text fast with swap fallback. -->
   <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <!-- Fraunces (variable, latin) — the editorial display serif used for the hero
-       headline + section accents. Roman preloaded (above the fold); italic loads
-       on demand. Self-hosted, same as Geist — no cross-origin font request. -->
-  <link rel="preload" href="/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin />
   <style>
     @font-face{font-family:'Geist';font-style:normal;font-weight:400 700;font-display:swap;src:url('/fonts/geist-latin.woff2') format('woff2')}
     @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/jetbrains-mono-latin.woff2') format('woff2')}
-    @font-face{font-family:'Fraunces';font-style:normal;font-weight:400 900;font-display:swap;src:url('/fonts/fraunces-latin.woff2') format('woff2')}
-    @font-face{font-family:'Fraunces';font-style:italic;font-weight:400 900;font-display:swap;src:url('/fonts/fraunces-italic-latin.woff2') format('woff2')}
-    :root{--serif:'Fraunces',Georgia,'Times New Roman',serif}
+    /* Single sans family across the site (shadcn-style). `--serif` retained as an
+       alias → Geist sans so headings that referenced it stop rendering the old
+       editorial serif; the Fraunces webfont is dropped (−~60KB preload). */
+    :root{--serif:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
   </style>
   <script is:inline>
     // Resolve theme before paint (no flash): saved choice wins, else OS pref.
@@ -103,8 +100,14 @@ const ogImage = new URL(image, Astro.site).toString()
       --btn-primary-bg:#09090b;
       --btn-primary-bg-hover:#26262b;
       --btn-primary-fg:#ffffff;
+      /* Brand accent — aligned to the dashboard's shadcn theme (Rhea preset):
+         blue primary, matches oklch(0.488 0.243 264.376) ≈ blue-600. Charts stay
+         warm (amber ramp) for the "cool UI, warm data" split the dashboard uses.
+         --orange is a back-compat alias so existing refs render the new blue. */
+      --primary:#2563eb;
+      --primary-fg:#ffffff;
+      --orange:var(--primary);
       --amber:#f59e0b;
-      --orange:#f97316;
       --emerald:#10b981;
       --violet:#8b5cf6;
       --blue:#3b82f6;
@@ -112,7 +115,7 @@ const ogImage = new URL(image, Astro.site).toString()
       --maxw:1140px;
       --shadow-card:0 1px 2px rgba(9,9,11,.04), 0 1px 0 rgba(9,9,11,.02);
       --shadow-float:0 24px 60px -28px rgba(9,9,11,.30), 0 8px 24px -16px rgba(9,9,11,.18);
-      --shadow-glow:0 0 120px -20px rgba(249,115,22,.35);
+      --shadow-glow:0 0 120px -20px rgba(37,99,235,.35);
     }
     /* ── dark mode: tokens flip, layout unchanged. Applied when
        html[data-theme="dark"]. The head script resolves the saved choice / OS
@@ -131,6 +134,10 @@ const ogImage = new URL(image, Astro.site).toString()
       --card:#141418;
       --nav-bg:rgba(11,11,14,.72);
       --browser-bar:#17171c;
+      /* Dark-mode brand blue, brightened like the dashboard's dark --primary
+         (oklch 0.61 0.21 264) so accent text/borders stay WCAG-AA on near-black. */
+      --primary:#3b82f6;
+      --shadow-glow:0 0 120px -20px rgba(59,130,246,.4);
       --btn-primary-bg:#fafafa;
       --btn-primary-bg-hover:#e4e4e7;
       --btn-primary-fg:#09090b;
@@ -278,7 +285,7 @@ const ogImage = new URL(image, Astro.site).toString()
        WebGL is unavailable (the shader renders nothing then). */
     .hero::before{content:"";position:absolute;inset:0;z-index:-1;
       background:
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249,115,22,.14), transparent 65%),
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37,99,235,.16), transparent 65%),
         radial-gradient(ellipse 60% 40% at 80% 10%, rgba(245,158,11,.08), transparent 55%),
         radial-gradient(ellipse 50% 35% at 15% 20%, rgba(16,185,129,.05), transparent 50%);}
     /* hero content must layer above the ::before background */
@@ -451,7 +458,7 @@ const ogImage = new URL(image, Astro.site).toString()
     /* ── final CTA ── */
     .cta{text-align:center;border:1px solid var(--border);border-radius:22px;padding:64px 32px;position:relative;overflow:hidden;background:var(--card)}
     .cta::before{content:"";position:absolute;inset:0;z-index:0;
-      background:radial-gradient(620px 280px at 50% -40px, rgba(249,115,22,.12), transparent 70%)}
+      background:radial-gradient(620px 280px at 50% -40px, rgba(37,99,235,.13), transparent 70%)}
     .cta > *{position:relative;z-index:1}
     .cta h2{font-family:var(--serif);font-size:clamp(32px,4vw,48px);letter-spacing:-.02em;font-weight:600;line-height:1.06;text-wrap:balance}
     .cta p{margin:16px auto 0;max-width:50ch;font-size:17px;color:var(--muted-fg)}
@@ -534,8 +541,8 @@ const ogImage = new URL(image, Astro.site).toString()
     .cmp-table th:first-child{min-width:160px}
     .cmp-table td{padding:14px 20px;border-top:1px solid var(--border-soft);vertical-align:top;color:var(--muted-fg);text-wrap:pretty}
     .cmp-table td:first-child{font-weight:600;color:var(--fg);white-space:nowrap}
-    .cmp-table td.cmp-highlight{background:rgba(249,115,22,.04)}
-    .cmp-table th.cmp-highlight{background:rgba(249,115,22,.06)}
+    .cmp-table td.cmp-highlight{background:rgba(37,99,235,.05)}
+    .cmp-table th.cmp-highlight{background:rgba(37,99,235,.07)}
     .cmp-yes{color:var(--emerald)}
     .cmp-no{color:#f43f5e}
     .cmp-partial{color:var(--amber)}
