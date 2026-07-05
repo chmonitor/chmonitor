@@ -1,10 +1,13 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BarChart3 } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { InsightsPreview } from '@/components/insights/insights-preview'
 import { InsightsSettingsForm } from '@/components/insights/insights-settings-form'
 import { AppLink } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Separator } from '@/components/ui/separator'
 import { useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
@@ -129,13 +132,44 @@ function InsightsSettingsPage() {
         </div>
       </div>
 
-      {/* Settings left, live example right — stacks on mobile. */}
-      <div className="grid gap-5 lg:grid-cols-[1fr_minmax(320px,380px)]">
-        <InsightsSettingsForm />
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          <InsightsPreview hostId={hostId} autoRun />
+      {/* AI Insights — model, prompt style, enrichment; settings left, live example right. */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <InsightsGlyph />
+          <h2 className="text-sm font-medium text-foreground">AI Insights</h2>
         </div>
-      </div>
+        <div className="grid gap-5 lg:grid-cols-[1fr_minmax(320px,380px)]">
+          <InsightsSettingsForm />
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <InsightsPreview hostId={hostId} autoRun />
+          </div>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* Statistics Insights — Record Breakers, Query Insights, and the other
+          Cluster Statistics sections on /insights. No per-section controls
+          exist yet; this is a placeholder so the settings surface stays
+          visible rather than silently absent. */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="size-4 shrink-0 text-muted-foreground" />
+          <h2 className="text-sm font-medium text-foreground">
+            Statistics Insights
+          </h2>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <EmptyState
+              variant="no-data"
+              compact
+              title="No settings yet"
+              description="Record Breakers, Query Insights, and the other Cluster Statistics sections are always shown. Per-section visibility controls are planned."
+            />
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
 }

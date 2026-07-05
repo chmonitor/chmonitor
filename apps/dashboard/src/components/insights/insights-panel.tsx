@@ -117,15 +117,25 @@ export function InsightsPanel({ hostId, className }: InsightsPanelProps) {
       .sort((a, b) => a.topRank - b.topRank || b.items.length - a.items.length)
   }, [insights])
 
-  // Empty + idle → slim CTA row, so the panel never shows an empty box.
+  // Empty + idle → slim CTA row, so the panel never shows an empty box. Still
+  // carries the section header so "AI Insights" reads as a peer of "Cluster
+  // Statistics" below it, rather than a stray banner.
   if (!hasInsights && !isLoading) {
     return (
-      <InsightsEmptyCta
-        hostId={hostId}
-        isGenerating={isGenerating}
-        onGenerate={generate}
-        className={className}
-      />
+      <section
+        className={cn('flex flex-col gap-3', className)}
+        aria-label="AI insights"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 shrink-0 text-muted-foreground" />
+          <h2 className="text-sm font-medium text-foreground">AI Insights</h2>
+        </div>
+        <InsightsEmptyCta
+          hostId={hostId}
+          isGenerating={isGenerating}
+          onGenerate={generate}
+        />
+      </section>
     )
   }
 

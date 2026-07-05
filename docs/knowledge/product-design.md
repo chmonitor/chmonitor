@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-04
+updated: 2026-07-05
 tags:
   - design-system
   - ui
@@ -129,6 +129,16 @@ sheet, sidebar, skeleton, tabs, tooltip (+ more).
 - Class idioms: card `rounded-xl border bg-card shadow-sm`; dense text
   `text-[13px]`; meta `text-xs text-muted-foreground`; hero title `text-xl
   font-semibold tracking-tight`.
+- **Paired page sections (e.g. AI-generated vs. plain-statistics content):**
+  give each section an identical-weight header — `icon (size-4, muted-foreground)
+  + <h2 className="text-sm font-medium text-foreground">` — never let one
+  section get a bold heading and the other just a bare CTA banner; that reads as
+  one being an afterthought. If a section has no content/settings yet, render a
+  labeled placeholder (`EmptyState variant="no-data" compact` inside a `Card`)
+  rather than omitting the section. Reference: `/insights` (`AI Insights` vs
+  `Cluster Statistics`) and `/insights-settings` (`AI Insights` vs
+  `Statistics Insights`) — `components/insights/insights-panel.tsx`,
+  `routes/(dashboard)/insights-settings.tsx`.
 - Overflow strip: for a single-row scroller that must not wrap, use
   `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
   tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped

@@ -66,6 +66,12 @@ primary secondary accent destructive border input ring`. Charts:
   `from-background`→`transparent` edge fade per scrollable side, paging via
   `scrollBy`. Re-measure on scroll / `ResizeObserver` / content-count change.
   Copy `components/insights/insights-strip.tsx`.
+- **Paired page sections** (e.g. AI-generated vs. plain-statistics content):
+  identical-weight header on both — `icon (size-4, muted-foreground) + <h2
+  className="text-sm font-medium text-foreground">`. An empty section still
+  gets the header, with an `EmptyState variant="no-data" compact` placeholder
+  card below it rather than being omitted. See `/insights` and
+  `/insights-settings` (`AI Insights` vs `Statistics Insights`).
 
 ## Charts — always wrap state, never hand-roll it
 
