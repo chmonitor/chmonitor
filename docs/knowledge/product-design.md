@@ -60,6 +60,30 @@ dialog, drawer, dropdown-menu, empty-state, form, hover-card, icon-button, input
 input-group, label, popover, progress, resizable, scroll-area, select, separator,
 sheet, sidebar, skeleton, tabs, tooltip (+ more).
 
+**Base UI backing (post-#2361).** The primitives are the shadcn **Base UI**
+(`@base-ui/react`) distribution, not Radix. When adding/upgrading a primitive or
+writing overlay CSS, remember Base UI's contract differs from Radix in ways
+`tsc` cannot catch (they live only in `className` strings and keyframes) — this
+caused a class of silent runtime breakage in #2361/#2363/#2364:
+
+- **Orientation is a value, not a boolean.** Base UI emits
+  `data-orientation="horizontal|vertical"`. The shadcn components style off
+  `data-horizontal:` / `data-vertical:` variants, which require the
+  `@custom-variant data-horizontal (&[data-orientation='horizontal'])` (and
+  vertical) declarations in `styles.css`. Without them Tailwind v4 compiles
+  `data-horizontal:` to `&[data-horizontal]`, which never matches → tabs /
+  separator / scroll-area / button-group get the wrong flex axis.
+- **State is boolean attributes, not `data-state`.** Base UI popups emit
+  `data-open` / `data-closed` (use `data-open:` / `data-closed:`), never
+  `data-[state=open]`. Collapsible trigger emits `data-panel-open`.
+- **CSS vars are renamed.** `--radix-*` → Base UI names: menu/popover width
+  `--anchor-width`, popover available height `--available-height`, accordion
+  `--accordion-panel-height`, collapsible `--collapsible-panel-height`. A stale
+  `--radix-*` reference silently drops the animation/layout it drove.
+- **`asChild` → `render`.** Base UI uses a `render` prop, not `asChild`.
+- Ground-truth attribute/var names live in
+  `node_modules/@base-ui/react/**/*DataAttributes.js` / `*CssVars.js`.
+
 ## Anti-patterns ("AI slop")
 
 Signals that a component was over-decorated rather than designed — each of
@@ -94,6 +118,17 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   indicator, retry, optional date-range + log-scale. Fetch with `useChartData`
   (`lib/swr/use-chart-data.ts`). Card styles centralised in
   `components/charts/chart-card-styles.ts`.
+- **Anomaly overlay (Statistics Insights):** the `AreaChart` primitive takes an
+  opt-in `anomalyOverlay: { category }` prop (`types/charts.ts`). When set, it
+  draws a trailing moving-average line + ±k·σ band (a `fill:none` Area is the
+  line — recharts' `AreaChart` ignores `<Line>` children) and flags out-of-band
+  points with a custom Area `dot` (this recharts build can't resolve
+  `<ReferenceDot>`), plus an optional absolute threshold `ReferenceLine`. The
+  band uses a **prior-only window** (excludes the current point) so a spike can't
+  mask its own anomaly. Params/visibility come from `useStatsInsightsSettings`
+  (localStorage + CustomEvent, mirrors `useInsightsSettings`); the pure math +
+  tests live in `lib/insights/anomaly-overlay.ts`. Undefined prop ⇒ zero change
+  for every other area chart. Enabled on the `/queries/insights` charts.
 - **Data tables:** `components/data-table/` — resizing, wrap toggle, sorting
   (`sorting-fns.ts`), pagination, faceted filters, row actions, SQL display.
   Synthetic ids `__expand`/`select`/`action` are non-data.
@@ -159,12 +194,22 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   give each section an identical-weight header — `icon (size-4, muted-foreground)
   + <h2 className="text-sm font-medium text-foreground">` — never let one
   section get a bold heading and the other just a bare CTA banner; that reads as
-  one being an afterthought. If a section has no content/settings yet, render a
-  labeled placeholder (`EmptyState variant="no-data" compact` inside a `Card`)
-  rather than omitting the section. Reference: `/insights` (`AI Insights` vs
-  `Cluster Statistics`) and `/insights-settings` (`AI Insights` vs
-  `Statistics Insights`) — `components/insights/insights-panel.tsx`,
+  one being an afterthought. If a section genuinely has no content/settings yet,
+  render a labeled placeholder (`EmptyState variant="no-data" compact` inside a
+  `Card`) rather than omitting the section. Reference: `/insights` (`AI Insights`
+  vs `Cluster Statistics`) and `/insights-settings` (`AI Insights` vs
+  `Statistics Insights`, now a real `StatsInsightsSettingsForm`) —
+  `components/insights/insights-panel.tsx`,
   `routes/(dashboard)/insights-settings.tsx`.
+- **Preview / "Example" surfaces must not depend on live infra or an LLM.** A
+  settings-page example, template gallery, or onboarding sample should render
+  from deterministic mock data parameterized by the current settings — never a
+  live query or model call that shows a scary "Couldn't generate — cluster
+  unreachable/read-only" error to an anonymous or read-only visitor. Keep it
+  seed-rotated (not `Math.random()`) so it's SSR-safe, and label it (a "Sample"
+  badge + a one-line footnote that it's illustrative, not live analysis).
+  Reference: `components/insights/insights-preview.tsx` +
+  `lib/insights/mock-preview.ts`.
 - Overflow strip: for a single-row scroller that must not wrap, use
   `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
   tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped

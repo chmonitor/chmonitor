@@ -72,10 +72,21 @@ primary secondary accent destructive border input ring`. Charts:
   Copy `components/insights/insights-strip.tsx`.
 - **Paired page sections** (e.g. AI-generated vs. plain-statistics content):
   identical-weight header on both — `icon (size-4, muted-foreground) + <h2
-  className="text-sm font-medium text-foreground">`. An empty section still
-  gets the header, with an `EmptyState variant="no-data" compact` placeholder
-  card below it rather than being omitted. See `/insights` and
-  `/insights-settings` (`AI Insights` vs `Statistics Insights`).
+  className="text-sm font-medium text-foreground">`. A *genuinely* empty section
+  still gets the header, with an `EmptyState variant="no-data" compact`
+  placeholder card, rather than being omitted. See `/insights` and
+  `/insights-settings` (`AI Insights` vs `Statistics Insights` — the latter is
+  now a real `StatsInsightsSettingsForm`).
+- **Preview / "Example" surfaces**: render from deterministic mock data
+  parameterized by settings (seed-rotated, SSR-safe), never a live query/LLM
+  call — no "Couldn't generate" error for anon/read-only visitors. Label it
+  "Sample". See `components/insights/insights-preview.tsx`.
+- **Base UI primitives** (`components/ui/*` = shadcn Base UI, not Radix): style
+  overlays off `data-open`/`data-closed`/`data-orientation` (needs the
+  `@custom-variant data-horizontal|vertical` in `styles.css`) and Base UI CSS
+  vars (`--anchor-width`, `--available-height`, `--collapsible-panel-height`),
+  NOT `data-[state=…]` / `--radix-*`. Use the `render` prop, not `asChild`. Full
+  detail in the knowledge doc's "Base UI backing" section.
 
 ## Charts — always wrap state, never hand-roll it
 
