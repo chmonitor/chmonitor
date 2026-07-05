@@ -28,7 +28,7 @@ const AreaChartSkeleton = () => (
     {/* Simulated wave SVG with gradient sweep */}
     <div className="relative w-full h-[90px] mt-auto">
       <svg
-        className="w-full h-full text-primary/10 dark:text-primary/5"
+        className="w-full h-full text-muted-foreground/15 dark:text-muted-foreground/10"
         viewBox="0 0 400 100"
         preserveAspectRatio="none"
       >
@@ -81,7 +81,7 @@ const LineChartSkeleton = () => (
     {/* Simulated wave SVG with gradient sweep */}
     <div className="relative w-full h-[90px] mt-auto">
       <svg
-        className="w-full h-full text-primary/20 dark:text-primary/10"
+        className="w-full h-full text-muted-foreground/25 dark:text-muted-foreground/15"
         viewBox="0 0 400 100"
         preserveAspectRatio="none"
       >
@@ -148,7 +148,7 @@ const MetricCardSkeleton = () => (
     </div>
 
     {/* Trend Sparkline line */}
-    <div className="w-[30%] h-12 self-end pb-1 opacity-25 dark:opacity-15 text-primary">
+    <div className="w-[30%] h-12 self-end pb-1 opacity-25 dark:opacity-15 text-muted-foreground">
       <svg
         className="h-full w-full"
         viewBox="0 0 100 30"
