@@ -3,10 +3,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { InsightsPreview } from '@/components/insights/insights-preview'
 import { InsightsSettingsForm } from '@/components/insights/insights-settings-form'
+import { StatsInsightsSettingsForm } from '@/components/insights/stats-insights-settings-form'
 import { AppLink } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState } from '@/components/ui/empty-state'
 import { Separator } from '@/components/ui/separator'
 import { useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
@@ -146,10 +145,9 @@ function InsightsSettingsPage() {
 
       <Separator />
 
-      {/* Statistics Insights — Record Breakers, Query Insights, and the other
-          Cluster Statistics sections on /insights. No per-section controls
-          exist yet; this is a placeholder so the settings surface stays
-          visible rather than silently absent. */}
+      {/* Statistics Insights — anomaly overlays (moving-average band + absolute
+          threshold) drawn on the statistical charts (/queries/insights, Cluster
+          Statistics). These settings are consumed by the chart overlays. */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <BarChart3 className="size-4 shrink-0 text-muted-foreground" />
@@ -157,16 +155,11 @@ function InsightsSettingsPage() {
             Statistics Insights
           </h2>
         </div>
-        <Card>
-          <CardContent className="pt-6">
-            <EmptyState
-              variant="no-data"
-              compact
-              title="No settings yet"
-              description="Record Breakers, Query Insights, and the other Cluster Statistics sections are always shown. Per-section visibility controls are planned."
-            />
-          </CardContent>
-        </Card>
+        <p className="text-muted-foreground text-xs">
+          Anomaly detection overlays for the statistical charts — a
+          moving-average band and an optional absolute threshold.
+        </p>
+        <StatsInsightsSettingsForm />
       </section>
     </div>
   )
