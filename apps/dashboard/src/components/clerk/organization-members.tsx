@@ -4,6 +4,7 @@ import {
   OrganizationProfile,
   useOrganization,
 } from '@clerk/tanstack-react-start'
+import { CloudOnlyNotice } from '@/components/cloud-only-notice'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,7 +31,11 @@ import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
  */
 export function OrganizationMembers() {
   if (!isClerkEnabled() || !isCloudModeClient()) {
-    return <NoOrgState selfHosted />
+    // OSS / non-cloud: the sidebar already hides this route; this guards direct
+    // URL access. Shown as a clean "cloud feature" notice rather than the old
+    // misleading "No organization yet" card (which implied the user could —
+    // and should — create one).
+    return <CloudOnlyNotice feature="Organizations" />
   }
   return (
     <div className="mx-auto max-w-4xl space-y-6 py-8">
@@ -116,7 +121,7 @@ function PlanSection() {
   )
 }
 
-function NoOrgState({ selfHosted = false }: { selfHosted?: boolean }) {
+function NoOrgState() {
   return (
     <div className="mx-auto max-w-xl py-16">
       <Card>
@@ -126,22 +131,19 @@ function NoOrgState({ selfHosted = false }: { selfHosted?: boolean }) {
           </div>
           <CardTitle>No organization yet</CardTitle>
           <CardDescription>
-            {selfHosted
-              ? 'Organizations are a cloud feature.'
-              : 'Upgrade to Pro or Max to create a team workspace — invite members, assign roles, and share your plan.'}
+            Upgrade to Pro or Max to create a team workspace — invite members,
+            assign roles, and share your plan.
           </CardDescription>
         </CardHeader>
-        {!selfHosted && (
-          <CardContent className="flex justify-center">
-            <Button
-              render={
-                <a href="/billing">
-                  <Sparkles className="size-4" /> View plans
-                </a>
-              }
-            />
-          </CardContent>
-        )}
+        <CardContent className="flex justify-center">
+          <Button
+            render={
+              <a href="/billing">
+                <Sparkles className="size-4" /> View plans
+              </a>
+            }
+          />
+        </CardContent>
       </Card>
     </div>
   )

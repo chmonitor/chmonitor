@@ -20,6 +20,7 @@ import {
 import { PlanComparison } from '@/components/billing/plan-comparison'
 import { UsageSummary } from '@/components/billing/usage-summary'
 import { ClerkSignInButton as ClerkSignInButtonImpl } from '@/components/clerk/clerk-sign-in-button'
+import { CloudOnlyNotice } from '@/components/cloud-only-notice'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -38,6 +39,7 @@ import {
   useBillingSubscription,
 } from '@/lib/billing/use-billing'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 
 /**
  * Sign-in primitives gated behind the build-time `isClerkEnabled()` constant —
@@ -333,6 +335,17 @@ function BillingSignedOut() {
   )
 }
 
+/**
+ * Route guard. The sidebar already hides /billing on OSS (app-sidebar.tsx
+ * `cloudOnlyHrefs`); this guards direct URL access so the billing UI never
+ * renders on a self-hosted build. Rendered as a wrapper so BillingPage's hooks
+ * stay below the guard without a conditional-return-before-hooks smell.
+ */
+function BillingRoute() {
+  if (!isCloudModeClient()) return <CloudOnlyNotice feature="Billing" />
+  return <BillingPage />
+}
+
 export const Route = createFileRoute('/(dashboard)/billing')({
-  component: BillingPage,
+  component: BillingRoute,
 })
