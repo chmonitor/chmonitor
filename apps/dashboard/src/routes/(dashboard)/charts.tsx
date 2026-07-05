@@ -1,9 +1,10 @@
 import { BarChart3 } from 'lucide-react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
 import { getChartComponent, hasChart } from '@/components/charts/chart-registry'
 import { ChartSkeleton, ChartsOnlyPageSkeleton } from '@/components/skeletons'
+import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useSearchParams } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
