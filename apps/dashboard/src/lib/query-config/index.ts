@@ -66,6 +66,7 @@ import { historyQueriesConfig } from './queries/history-queries'
 import { parallelizationConfig } from './queries/parallelization'
 import { profilerConfig } from './queries/profiler'
 import { queryCacheConfig } from './queries/query-cache'
+import { queryChildrenConfig } from './queries/query-children'
 import { queryConditionCacheConfig } from './queries/query-condition-cache'
 import { queryDetailConfig } from './queries/query-detail'
 import { queryViewsLogConfig } from './queries/query-views-log'
@@ -168,6 +169,7 @@ export const queries: Array<QueryConfig> = [
   queryConditionCacheConfig,
   queryViewsLogConfig,
   queryDetailConfig,
+  queryChildrenConfig,
   runningQueriesConfig,
   historyQueriesConfig,
   recentQueriesConfig,
