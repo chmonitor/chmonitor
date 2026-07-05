@@ -156,8 +156,8 @@ export function ToolGroupContent({
     <CollapsibleContent
       className={cn(
         'overflow-hidden',
-        'data-[state=closed]:animate-collapsible-up',
-        'data-[state=open]:animate-collapsible-down'
+        'data-closed:animate-collapsible-up',
+        'data-open:animate-collapsible-down'
       )}
     >
       <div className={cn('flex flex-col gap-0', className)}>{children}</div>

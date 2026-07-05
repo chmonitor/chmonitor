@@ -24,6 +24,12 @@
   --animate-shimmer: shimmer 1.5s infinite;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  /* Override tw-animate-css's collapsible animations, which drive height off the
+     Radix var `--radix-collapsible-content-height`. Base UI's Collapsible.Panel
+     exposes `--collapsible-panel-height` instead, so the imported keyframes
+     resolved to nothing and the expand/collapse was dead. */
+  --animate-collapsible-down: collapsible-down 0.2s ease-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-out;
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-scale-in: scale-in 0.2s ease-out;
   --animate-pulse-subtle: pulse-subtle 3s ease-in-out infinite;
@@ -40,12 +46,28 @@
       height: 0;
     }
     to {
-      height: var(--radix-accordion-content-height);
+      height: var(--accordion-panel-height);
     }
   }
   @keyframes accordion-up {
     from {
-      height: var(--radix-accordion-content-height);
+      height: var(--accordion-panel-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes collapsible-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--collapsible-panel-height);
+    }
+  }
+  @keyframes collapsible-up {
+    from {
+      height: var(--collapsible-panel-height);
     }
     to {
       height: 0;

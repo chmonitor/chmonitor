@@ -149,8 +149,8 @@ export function ReasoningContent({
     <CollapsibleContent
       className={cn(
         'overflow-hidden',
-        'data-[state=closed]:animate-collapsible-up',
-        'data-[state=open]:animate-collapsible-down'
+        'data-closed:animate-collapsible-up',
+        'data-open:animate-collapsible-down'
       )}
     >
       <div className={cn('px-3 py-2', className)}>{children}</div>

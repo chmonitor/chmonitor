@@ -106,7 +106,7 @@ export function ComposerToolbar({
         <PopoverContent
           align="start"
           sideOffset={4}
-          className="flex max-h-[min(28rem,var(--radix-popover-content-available-height))] w-[340px] flex-col overflow-hidden p-1"
+          className="flex max-h-[min(28rem,var(--available-height))] w-[340px] flex-col overflow-hidden p-1"
         >
           <div className="text-muted-foreground shrink-0 px-2 py-1.5 text-[10px] font-semibold tracking-wider uppercase">
             Skills
@@ -193,7 +193,7 @@ export function ComposerToolbar({
         <PopoverContent
           align="start"
           sideOffset={4}
-          className="flex max-h-[min(28rem,var(--radix-popover-content-available-height))] w-[320px] flex-col overflow-hidden p-1"
+          className="flex max-h-[min(28rem,var(--available-height))] w-[320px] flex-col overflow-hidden p-1"
         >
           <div className="text-muted-foreground flex shrink-0 items-center justify-between px-2 py-1.5 text-[10px] font-semibold tracking-wider uppercase">
             <span>Tools</span>
