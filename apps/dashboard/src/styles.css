@@ -6,6 +6,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Base UI orientation variants. Base UI emits `data-orientation="horizontal|vertical"`
+   (verified against @base-ui/react tabs/separator/scroll-area). The shadcn Base UI
+   components (tabs, separator, scroll-area, button-group) style off `data-horizontal:`
+   / `data-vertical:` (and their `group-` forms). Without these declarations Tailwind v4
+   compiles `data-horizontal:` to `&[data-horizontal]`, which never matches
+   `data-orientation="horizontal"` — leaving those components with the wrong flex axis
+   (e.g. Tabs list + panel sit side-by-side and the panel collapses to empty). */
+@custom-variant data-horizontal (&[data-orientation='horizontal']);
+@custom-variant data-vertical (&[data-orientation='vertical']);
+
 /* Theme extensions ported from the Next app's tailwind.config.js. The Next
    globals.css loads them via `@config '../tailwind.config.js'`; the TanStack
    app is pure Tailwind v4 CSS-first, so they live inline here. Keyframes and
