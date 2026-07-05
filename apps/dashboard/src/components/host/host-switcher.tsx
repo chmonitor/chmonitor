@@ -1,5 +1,6 @@
-import { ChevronsUpDown, GlobeIcon, PlusIcon } from 'lucide-react'
+import { ChevronsUpDown, GlobeIcon, Info, Pencil, PlusIcon } from 'lucide-react'
 
+import { HostDetailsDialog } from './host-details-dialog'
 import { HostMenuRow } from './host-menu-row'
 import { HostVersionWithStatus } from './host-version-status'
 import {
@@ -25,9 +26,14 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { canEditHost } from '@/lib/host-permissions'
 import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
-import { isServerHost, useMergedHosts } from '@/lib/swr/use-merged-hosts'
+import {
+  isServerHost,
+  type MergedHostInfo,
+  useMergedHosts,
+} from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn, getHost } from '@/lib/utils'
 
@@ -45,6 +51,10 @@ export function HostSwitcher() {
   const { hosts, isLoading, error, isUnauthorized } = useMergedHosts()
   const currentHostId = useHostId()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  // Controlled so a per-row "details/edit" click can close the menu before the
+  // dialog opens — otherwise the dropdown's focus trap fights the dialog's.
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [detailsHost, setDetailsHost] = useState<MergedHostInfo | null>(null)
 
   const activeHost =
     hosts.find((h) => h.id === currentHostId) ?? hosts[0] ?? null
@@ -205,7 +215,7 @@ export function HostSwitcher() {
       <SidebarMenu>
         <SidebarMenuItem>
           {showDropdown ? (
-            <DropdownMenu>
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
               <DropdownMenuTrigger
                 render={
                   <SidebarMenuButton
@@ -265,24 +275,55 @@ export function HostSwitcher() {
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                {hosts.map((host) => (
-                  <DropdownMenuItem
-                    key={`${host.source}-${host.id}`}
-                    onClick={() => handleHostChange(host.id)}
-                    className="gap-2 p-2"
-                    data-testid={`host-option-${host.id}`}
-                  >
-                    {!isServerHost(host.source) && (
-                      <GlobeIcon className="size-3 shrink-0 text-muted-foreground" />
-                    )}
-                    <HostMenuRow
-                      hostId={isServerHost(host.source) ? host.id : null}
-                      hostName={host.name || getHost(host.host)}
-                      isActive={host.id === currentHostId}
-                      skipStatus={!isServerHost(host.source)}
-                    />
-                  </DropdownMenuItem>
-                ))}
+                {hosts.map((host) => {
+                  const hostLabel = host.name || getHost(host.host)
+                  const editable = canEditHost(host.source)
+                  return (
+                    <DropdownMenuItem
+                      key={`${host.source}-${host.id}`}
+                      onClick={() => handleHostChange(host.id)}
+                      className="gap-2 p-2"
+                      data-testid={`host-option-${host.id}`}
+                    >
+                      {!isServerHost(host.source) && (
+                        <GlobeIcon className="size-3 shrink-0 text-muted-foreground" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <HostMenuRow
+                          hostId={isServerHost(host.source) ? host.id : null}
+                          hostName={hostLabel}
+                          isActive={host.id === currentHostId}
+                          skipStatus={!isServerHost(host.source)}
+                        />
+                      </div>
+                      {/* stopPropagation keeps the click from also switching the
+                          active host; closing the menu first avoids a focus-trap
+                          clash with the dialog that opens next. */}
+                      <button
+                        type="button"
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:bg-accent hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        aria-label={
+                          editable
+                            ? `Edit ${hostLabel}`
+                            : `View ${hostLabel} details`
+                        }
+                        data-testid={`host-option-${host.id}-details`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          setDetailsHost(host)
+                          setMenuOpen(false)
+                        }}
+                      >
+                        {editable ? (
+                          <Pencil className="size-3.5" />
+                        ) : (
+                          <Info className="size-3.5" />
+                        )}
+                      </button>
+                    </DropdownMenuItem>
+                  )
+                })}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setAddDialogOpen(true)}
@@ -327,6 +368,13 @@ export function HostSwitcher() {
         </SidebarMenuItem>
       </SidebarMenu>
       <AddHostDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <HostDetailsDialog
+        host={detailsHost}
+        open={detailsHost !== null}
+        onOpenChange={(o) => {
+          if (!o) setDetailsHost(null)
+        }}
+      />
     </>
   )
 }

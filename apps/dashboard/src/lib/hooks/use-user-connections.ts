@@ -99,6 +99,32 @@ export function useUserConnectionsMutations() {
     }>
   }
 
+  const updateConnection = async (
+    id: string,
+    input: {
+      name: string
+      host: string
+      user: string
+      /** Omit/blank to leave the stored password unchanged (server-side guard). */
+      password?: string
+    }
+  ): Promise<{
+    success: boolean
+    data: UserConnectionInfo
+  }> => {
+    const response = await apiFetch(`/api/v1/user-connections/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    await throwIfNotOk(response, 'Failed to update connection')
+    invalidate()
+    return response.json() as Promise<{
+      success: boolean
+      data: UserConnectionInfo
+    }>
+  }
+
   const deleteConnection = async (id: string) => {
     const response = await apiFetch(`/api/v1/user-connections/${id}`, {
       method: 'DELETE',
@@ -107,5 +133,5 @@ export function useUserConnectionsMutations() {
     invalidate()
   }
 
-  return { createConnection, deleteConnection, invalidate }
+  return { createConnection, updateConnection, deleteConnection, invalidate }
 }
