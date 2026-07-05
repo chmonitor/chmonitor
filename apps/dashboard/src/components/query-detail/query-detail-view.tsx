@@ -1,8 +1,10 @@
 import {
   AlertCircle,
+  Check,
   ChevronDown,
   ChevronRight,
   Clock,
+  Copy,
   Database,
   ExternalLink,
   HardDrive,
@@ -11,16 +13,22 @@ import {
   RowsIcon,
   Server,
   User as UserIcon,
+  Wand2,
 } from 'lucide-react'
 
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { highlightCode } from '@/components/ai-elements/code-block'
+import { HLJS_TOKEN_CLASSES } from '@/components/ai-elements/hljs-token-classes'
 import { KpiCard } from '@/components/overview-charts/kpi-card'
 import { TableSkeleton } from '@/components/skeletons'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { formatReadableSize } from '@/lib/format-readable'
 import { useTableData } from '@/lib/query/use-table-data'
+import { formatSql } from '@/lib/sql-format'
 import { useHostId } from '@/lib/swr/use-host'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
@@ -218,27 +226,99 @@ const CollapsibleSection = function CollapsibleSection({
   )
 }
 
-/** Inline SQL block with copy-to-clipboard. Not a modal — beautify off by default per project rule. */
+/**
+ * Inline SQL panel: syntax-highlighted (highlight.js) with a lazy-loaded
+ * Beautify toggle (off by default — `sql-formatter` is ~484K and only fetched
+ * on first toggle) and copy-to-clipboard. Mirrors the DialogSQL /
+ * CodeDialogFormat pattern and shares the `'sql-beautify'` localStorage key so
+ * a user's beautify preference carries across SQL surfaces.
+ *
+ * The preference is read in an effect (not as the initial state) to avoid an
+ * SSR/prerender hydration mismatch when localStorage disagrees with the
+ * server-rendered default (false).
+ */
+const SQL_BEAUTIFY_KEY = 'sql-beautify'
+
+function readSqlBeautifyPref(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem(SQL_BEAUTIFY_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function writeSqlBeautifyPref(value: boolean) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SQL_BEAUTIFY_KEY, String(value))
+  } catch {
+    /* noop */
+  }
+}
+
 function SqlBlock({ query }: { query: string }) {
+  const [beautify, setBeautify] = useState(false)
+  const [content, setContent] = useState(query)
   const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const beautifyId = useId()
+
+  // Apply the persisted preference after mount (avoids hydration mismatch).
+  useEffect(() => {
+    setBeautify(readSqlBeautifyPref())
+  }, [])
+
+  // Show the raw query immediately; when Beautify is on, swap in the formatted
+  // version once the lazy sql-formatter chunk resolves (falls back to raw).
+  useEffect(() => {
+    if (!beautify) {
+      setContent(query)
+      return
+    }
+    let cancelled = false
+    formatSql(query).then((formatted) => {
+      if (!cancelled) setContent(formatted)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [query, beautify])
+
+  const highlightedHtml = useMemo(() => {
+    if (!content) return ''
+    try {
+      return highlightCode(content, 'sql', true)
+    } catch {
+      return ''
+    }
+  }, [content])
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+    },
+    []
+  )
+
+  const lineCount = content ? content.split('\n').length : 0
 
   const handleCopy = async () => {
     if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText)
       return
     try {
-      await navigator.clipboard.writeText(query)
+      await navigator.clipboard.writeText(content)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 2000)
     } catch {
       /* noop */
     }
   }
 
-  const lineCount = (query.match(/\n/g)?.length ?? 0) + 1
-
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           SQL
         </span>
@@ -247,19 +327,47 @@ function SqlBlock({ query }: { query: string }) {
             {query.length.toLocaleString()} chars · {lineCount}{' '}
             {lineCount === 1 ? 'line' : 'lines'}
           </span>
+          <Label
+            htmlFor={beautifyId}
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+          >
+            <Wand2 className="size-3" />
+            Beautify
+            <Switch
+              id={beautifyId}
+              checked={beautify}
+              onCheckedChange={(checked) => {
+                setBeautify(checked)
+                writeSqlBeautifyPref(checked)
+              }}
+              aria-label="Toggle SQL beautification"
+              className="scale-75"
+            />
+          </Label>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[11px] text-muted-foreground"
+            className="h-6 gap-1 px-2 text-[11px] text-muted-foreground"
             onClick={handleCopy}
           >
+            {copied ? (
+              <Check className="size-3" />
+            ) : (
+              <Copy className="size-3" />
+            )}
             {copied ? 'Copied' : 'Copy'}
           </Button>
         </div>
       </div>
-      <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-[11.5px] leading-relaxed text-foreground">
-        {query}
-      </pre>
+      <div className="max-h-[320px] overflow-auto">
+        <div
+          className={cn(
+            'px-4 py-3 font-mono text-[11.5px] leading-relaxed',
+            HLJS_TOKEN_CLASSES
+          )}
+          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+        />
+      </div>
     </div>
   )
 }
