@@ -46,7 +46,7 @@ body:
         - Cloudflare Workers (dash.chmonitor.dev)
         - Docker / docker compose
         - Kubernetes / Helm
-        - Local dev (bun run dev)
+        - Local dev (pnpm run dev)
         - Other
     validations:
       required: true

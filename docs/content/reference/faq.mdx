@@ -18,7 +18,7 @@ Check that `CLICKHOUSE_HOST` is a full URL including scheme and port, e.g. `http
 
 <Accordion title="I changed ClickHouse credentials but the dashboard still fails.">
 
-Restart or redeploy the app after updating credentials. For Cloudflare Workers, run `bun run cf:config` to push the new secrets, then redeploy (`bun run cf:deploy`). The worker connection pool caches credentials at startup.
+Restart or redeploy the app after updating credentials. For Cloudflare Workers, run `pnpm run cf:config` to push the new secrets, then redeploy (`pnpm run cf:deploy`). The worker connection pool caches credentials at startup.
 
 </Accordion>
 
@@ -94,7 +94,7 @@ Check that `LLM_API_KEY` is set and that `LLM_API_BASE` points at a reachable Op
 
 By default, history lives in browser `localStorage`. To persist it server-side:
 
-1. Set `CHM_FEATURE_CONVERSATION_DB=true` at build time (before `bun run build`; the client `VITE_FEATURE_CONVERSATION_DB` is derived from it). Also requires Clerk auth.
+1. Set `CHM_FEATURE_CONVERSATION_DB=true` at build time (before `pnpm run build`; the client `VITE_FEATURE_CONVERSATION_DB` is derived from it). Also requires Clerk auth.
 2. Set `CONVERSATION_STORE_BACKEND` at runtime to `agentstate`, `d1`, `postgres`, or `memory`.
 
 See [Conversation History](/guide/ai-agent/conversation-history) and [Store Backends](/guide/ai-agent/conversation-history/backends).

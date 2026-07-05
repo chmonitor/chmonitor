@@ -36,7 +36,7 @@ LLM_MODEL=openrouter/free
 Run the build to ensure all dependencies are properly installed:
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 ## Usage
@@ -164,7 +164,7 @@ echo $LLM_API_KEY
 echo $LLM_MODEL
 
 # Restart your development server
-bun run dev
+pnpm run dev
 ```
 
 **Queries timeout frequently:**

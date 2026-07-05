@@ -10,7 +10,7 @@ Run chmonitor on any server using Node.js or Bun. Best for bare VMs, dedicated s
 ```bash
 git clone https://github.com/duyet/clickhouse-monitoring.git
 cd clickhouse-monitoring
-bun install
+pnpm install
 
 ## Set your ClickHouse credentials
 export CLICKHOUSE_HOST='https://clickhouse.example.com:8443'
@@ -18,8 +18,8 @@ export CLICKHOUSE_USER='monitoring'
 export CLICKHOUSE_PASSWORD='change-me'
 
 ## Build and start
-bun run build
-bun run start
+pnpm run build
+pnpm run start
 ```
 
 Open `http://localhost:3000`.
@@ -39,7 +39,7 @@ CLICKHOUSE_TZ=UTC
 NEXT_QUERY_CACHE_TTL=3600
 EOF
 
-bun run start
+pnpm run start
 ```
 
 ## Configure
@@ -127,7 +127,7 @@ export CHM_API_KEY_SECRET='a-long-random-secret'
 export CHM_AUTH_PROVIDER='clerk'
 export CLERK_SECRET_KEY='sk_live_...'
 ## VITE_* vars must be set at build time, not runtime:
-## VITE_AUTH_PROVIDER=clerk VITE_CLERK_PUBLISHABLE_KEY=pk_live_... bun run build
+## VITE_AUTH_PROVIDER=clerk VITE_CLERK_PUBLISHABLE_KEY=pk_live_... pnpm run build
 ```
 
 **Proxy — Cloudflare Access:**
@@ -230,10 +230,10 @@ Add a crontab entry:
 Branding vars are inlined at build time:
 
 ```bash
-VITE_TITLE_SHORT=MyCluster VITE_LOGO=/logo.png bun run build
+VITE_TITLE_SHORT=MyCluster VITE_LOGO=/logo.png pnpm run build
 ```
 
-These are inlined at build time — set them before running `bun run build`.
+These are inlined at build time — set them before running `pnpm run build`.
 
 ## systemd unit
 
@@ -247,7 +247,7 @@ Type=simple
 User=chmonitor
 WorkingDirectory=/opt/chmonitor
 EnvironmentFile=/etc/chmonitor/env
-ExecStart=/usr/local/bin/bun run start
+ExecStart=/usr/local/bin/pnpm run start
 Restart=always
 RestartSec=5
 
@@ -275,8 +275,8 @@ systemctl enable --now chmonitor
 ```bash
 cd /opt/chmonitor
 git pull
-bun install
-bun run build
+pnpm install
+pnpm run build
 systemctl restart chmonitor
 ```
 

@@ -52,9 +52,9 @@ Returns `200` — liveness only.
 
 ```bash
 cd apps/telemetry
-bun install
-bun run deploy            # production → telemetry.chmonitor.dev
-bun run deploy:preview    # preview    → preview.telemetry.chmonitor.dev
+pnpm install
+pnpm run deploy            # production → telemetry.chmonitor.dev
+pnpm run deploy:preview    # preview    → preview.telemetry.chmonitor.dev
 ```
 
 No secrets required. The Analytics Engine dataset is created on first write.
@@ -72,7 +72,7 @@ cd apps/telemetry
 wrangler d1 create chm_telemetry             # copy the database_id
 # paste it into the commented [[d1_databases]] block in wrangler.toml, then:
 wrangler d1 migrations apply chm_telemetry   # applies migrations/0001_init.sql
-bun run deploy
+pnpm run deploy
 ```
 
 The D1 write is a no-op until the binding exists, so deploying without D1 is safe

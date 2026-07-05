@@ -185,9 +185,9 @@ free forever (auth `none` ⇒ unlimited, plans inert).
 
 ## Gotchas
 
-- `apps/dashboard` is NOT a root bun workspace — run `bun install` *inside*
+- `apps/dashboard` is NOT a root pnpm workspace — run `pnpm install` *inside*
   `apps/dashboard`, not just at the monorepo root.
-- The dashboard `build` script calls `vite` directly; run via `bun run build`
+- The dashboard `build` script calls `vite` directly; run via `pnpm run build`
   from inside `apps/dashboard` (its local `.bin`), not from the repo root.
 - Build needs `VITE_CLOUD_MODE`/`VITE_FEATURE_USER_CONNECTIONS_DB` inlined to
   exercise cloud behaviour locally — they are build-time, not runtime, on the

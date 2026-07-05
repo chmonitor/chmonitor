@@ -399,7 +399,7 @@ col('bytes').readable().invalid()  // ✗ TypeScript error
 Run tests:
 
 ```bash
-bun run jest lib/sql-builder/__tests__/
+pnpm run jest lib/sql-builder/__tests__/
 ```
 
 Coverage:

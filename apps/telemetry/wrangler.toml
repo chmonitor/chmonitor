@@ -6,7 +6,7 @@
 # Cloudflare account only).
 #
 # Deploy:
-#   cd apps/telemetry && bun run deploy
+#   cd apps/telemetry && pnpm run deploy
 #
 # Point instances at it by setting, on the dashboard deployment:
 #   CHM_TELEMETRY=on

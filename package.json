@@ -4,11 +4,7 @@
   "version": "0.2.9",
   "private": true,
   "homepage": "https://docs.chmonitor.dev",
-  "workspaces": [
-    "apps/mcp",
-    "packages/*"
-  ],
-  "packageManager": "bun@1.3.3",
+  "packageManager": "pnpm@10.18.0",
   "engines": {
     "node": ">=22.22.1"
   },
@@ -18,10 +14,10 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "build:landing": "cd apps/landing && bun install --frozen-lockfile && bun run build",
-    "build:docs": "cd apps/docs && bun install --frozen-lockfile && bun run build",
+    "build:landing": "cd apps/landing && pnpm install --frozen-lockfile && pnpm run build",
+    "build:docs": "cd apps/docs && pnpm install --frozen-lockfile && pnpm run build",
     "og:generate": "bun run scripts/generate-og-images.ts",
-    "start": "cd apps/dashboard && bun run start:node",
+    "start": "cd apps/dashboard && pnpm run start:node",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "fmt": "biome format --write .",
@@ -29,27 +25,27 @@
     "check:fix": "biome check --write .",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
-    "test:unit": "cd apps/dashboard && bun run test",
-    "test:query-config": "cd apps/dashboard && bun run test:query-config",
-    "test:coverage": "(cd apps/dashboard && bun run test:coverage) && bun run test:packages",
+    "test:unit": "cd apps/dashboard && pnpm run test",
+    "test:query-config": "cd apps/dashboard && pnpm run test:query-config",
+    "test:coverage": "(cd apps/dashboard && pnpm run test:coverage) && pnpm run test:packages",
     "test:packages": "bun test packages --isolate --coverage --coverage-reporter=lcov --coverage-reporter=text",
     "test:packages:ci": "bun test packages --isolate --coverage --coverage-reporter=lcov",
-    "test:component": "cd apps/dashboard && bun run test:component",
-    "test:component:headless": "cd apps/dashboard && bun run test:component:headless",
-    "test:e2e": "cd apps/dashboard && bun run test:e2e",
-    "test:e2e:headless": "cd apps/dashboard && bun run test:e2e:headless",
+    "test:component": "cd apps/dashboard && pnpm run test:component",
+    "test:component:headless": "cd apps/dashboard && pnpm run test:component:headless",
+    "test:e2e": "cd apps/dashboard && pnpm run test:e2e",
+    "test:e2e:headless": "cd apps/dashboard && pnpm run test:e2e:headless",
     "test:agent": "promptfoo eval -c tests/agent/promptfooconfig.yaml",
     "test:agent:view": "promptfoo view",
-    "cf:deploy": "cd apps/dashboard && bun run cf:deploy",
+    "cf:deploy": "cd apps/dashboard && pnpm run cf:deploy",
     "cf:config": "bun scripts/set-secrets.ts --from-env",
-    "cf:typegen": "cd apps/dashboard && bun run cf-typegen",
+    "cf:typegen": "cd apps/dashboard && pnpm run cf-typegen",
     "cf:health": "curl -sSf https://dash.chmonitor.dev/api/healthz | jq .",
     "setup:agent-conversations-clickhouse": "bun scripts/create-agent-conversations-clickhouse.ts",
     "cf:redirect-rule": "bun scripts/cloudflare-redirect-rule.ts",
     "docker:health": "docker compose exec app wget -q -O /dev/null http://localhost:3000/api/healthz || exit 1",
     "depcruise": "depcruise apps packages --config .dependency-cruiser.cjs --exclude 'node_modules|\\.next|\\.open-next|dist|\\.turbo|__tests__|\\.test\\.|\\.spec\\.|\\.cy\\.'",
     "build:skills": "bun run scripts/build-skills-registry.ts",
-    "preinstall": "npx only-allow bun",
+    "preinstall": "npx only-allow pnpm",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -64,12 +60,6 @@
     "turbo": "^2.9.15",
     "typescript": "^6.0.0"
   },
-  "bun": {
-    "onlyBuiltDependencies": [
-      "cypress",
-      "sharp"
-    ]
-  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "biome check --write --no-errors-on-unmatched"
@@ -79,14 +69,22 @@
     ]
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "cypress",
+      "esbuild",
+      "sharp",
+      "workerd"
+    ],
     "overrides": {
       "@codemirror/state": "6.6.0",
       "@codemirror/view": "6.43.0",
       "@codemirror/language": "6.12.3",
       "@codemirror/autocomplete": "6.20.2",
+      "@anthropic-ai/sdk": "0.92.0",
       "ajv": "^8.20.0",
       "axios": "^1.16.0",
       "brace-expansion": "^5.0.6",
+      "csstype": ">=3.0.0",
       "dompurify": "3.4.2",
       "fast-uri": "^4.0.0",
       "fast-xml-parser": "^5.8.0",
@@ -107,44 +105,9 @@
       "qs": "^6.15.2",
       "serialize-javascript": "^7.0.5",
       "undici": "^8.3.0",
+      "ws": "8.20.1",
       "uuid": "^14.0.0",
       "zod": "^4.3.6"
     }
-  },
-  "overrides": {
-    "@codemirror/state": "6.6.0",
-    "@codemirror/view": "6.43.0",
-    "@codemirror/language": "6.12.3",
-    "@codemirror/autocomplete": "6.20.2",
-    "@anthropic-ai/sdk": "0.92.0",
-    "@types/react": "$@types/react",
-    "@types/react-dom": "$@types/react-dom",
-    "ajv": "^8.20.0",
-    "axios": "^1.16.0",
-    "brace-expansion": "^5.0.6",
-    "csstype": ">=3.0.0",
-    "dompurify": "3.4.2",
-    "fast-uri": "^4.0.0",
-    "file-type": "^22.0.1",
-    "hono": "^4.12.18",
-    "@hono/node-server": "^2.0.0",
-    "express-rate-limit": "^8.2.2",
-    "ip-address": "^10.2.0",
-    "langsmith": "^0.6.0",
-    "lodash": "^4.18.1",
-    "minimatch": "^10.2.5",
-    "path-to-regexp": "^8.4.2",
-    "picomatch": "^4.0.3",
-    "postcss": "^8.5.15",
-    "protobufjs": "8.2.0",
-    "@protobufjs/utf8": "^1.1.1",
-    "@babel/plugin-transform-modules-systemjs": "^8.0.0",
-    "qs": "^6.15.2",
-    "serialize-javascript": "^7.0.5",
-    "undici": "^8.3.0",
-    "ws": "8.20.1",
-    "fast-xml-parser": "^5.8.0",
-    "uuid": "^14.0.0",
-    "zod": "^4.3.6"
   }
 }

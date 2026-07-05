@@ -26,9 +26,9 @@ Astro resolves its native `zod@3`. It has its own `bun.lock`.
 
 ```bash
 cd apps/docs
-bun install
-bun run dev      # http://localhost:4321  (search is inert in dev; built at deploy)
-bun run build    # -> dist/ (runs sync-docs, then astro build incl. Pagefind)
+pnpm install
+pnpm run dev      # http://localhost:4321  (search is inert in dev; built at deploy)
+pnpm run build    # -> dist/ (runs sync-docs, then astro build incl. Pagefind)
 ```
 
 ## Content

@@ -4,9 +4,6 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "../../packages/*"
-  ],
   "repository": {
     "url": "https://github.com/chmonitor/chmonitor"
   },
@@ -19,8 +16,8 @@
     "build:node:ci": "bun scripts/build-node-ci.ts",
     "start:node": "node .output/server/index.mjs",
     "preview": "vite preview",
-    "deploy": "bun run build:production && bun scripts/patch-wrangler-env.ts && wrangler deploy --minify",
-    "cf:deploy": "bun run build:production && bun scripts/patch-wrangler-env.ts && wrangler deploy --minify",
+    "deploy": "pnpm run build:production && bun scripts/patch-wrangler-env.ts && wrangler deploy --minify",
+    "cf:deploy": "pnpm run build:production && bun scripts/patch-wrangler-env.ts && wrangler deploy --minify",
     "cf:dry-run": "CHM_BUILD_ENV=production vite build && bun scripts/patch-wrangler-env.ts && wrangler deploy --dry-run",
     "cf-typegen": "wrangler types",
     "cf:sync-clerk": "bun scripts/sync-clerk.ts",
@@ -54,6 +51,7 @@
     "@chm/pricing": "workspace:*",
     "@chm/sql-builder": "workspace:*",
     "@chm/types": "workspace:*",
+    "@clerk/backend": "^3.10.0",
     "@clerk/tanstack-react-start": "^1.3.2",
     "@clickhouse/client-web": "^1.18.5",
     "@codemirror/autocomplete": "^6.20.2",
@@ -159,7 +157,18 @@
     "happy-dom": "^20.10.6",
     "nitro": "^3.0.260522-beta",
     "typescript": "^6",
+    "undici": "^7.24.8",
     "vite": "^8.0.16",
     "wrangler": "^4.97.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "core-js",
+      "cypress",
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }

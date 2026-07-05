@@ -208,37 +208,37 @@ When the user says **"remember"** something — write it to `docs/knowledge/`, n
 
 ## Commands
 
-**Note: This project uses `bun` as the package manager.** Use `bun` instead of `pnpm` or `npm` for all commands.
+**Note: This project uses `pnpm` as the package manager (`pnpm@10.18.0`, via corepack).** Use `pnpm` instead of `npm`/`yarn`/`bun` for installing dependencies and running package scripts. `bun` is still installed, but ONLY as the **test runner** (`bun test`, used by the `test:*` scripts) and as a **runtime for `.ts` scripts** (`bun scripts/foo.ts`) — never for package management. The monorepo keeps isolated per-app workspaces: the repo-root `pnpm-workspace.yaml` covers `apps/mcp` + `packages/*`, while `apps/dashboard`, `apps/landing`, `apps/docs`, `apps/blog`, and `apps/bug-handler` each install in isolation with their own `pnpm-lock.yaml` + `pnpm-workspace.yaml`.
 
 ### Setup
 
-- `bun install` - Install all dependencies (required before dev/build). Bun is enforced by the `preinstall` hook, and `prepare` installs Husky hooks.
+- `pnpm install` - Install all dependencies (required before dev/build). pnpm is enforced by the `preinstall` hook (`npx only-allow pnpm`), and `prepare` installs Husky hooks.
 
 ### Development
 
-- `bun run dev` - Start development server (Vite dev, via turbo)
-- `bun run build` - Build for production (Vite build + tsc --noEmit)
-- `bun run start` - Start production server (node target)
+- `pnpm run dev` - Start development server (Vite dev, via turbo)
+- `pnpm run build` - Build for production (Vite build + tsc --noEmit)
+- `pnpm run start` - Start production server (node target)
 
-**Verification workflow:** After making changes, always run `bun run build` to catch type errors. The build includes TypeScript type checking via `tsc --noEmit`. If `node_modules/` is missing, run `bun install` first.
+**Verification workflow:** After making changes, always run `pnpm run build` to catch type errors. The build includes TypeScript type checking via `tsc --noEmit`. If `node_modules/` is missing, run `pnpm install` first.
 
 ### Testing
 
-- `bun run test` - Run the full Bun test suite
-- `bun run test:unit` - Run targeted unit tests for core app/component suites
-- `bun run test:query-config` - Run query-config-specific tests
-- `bun run test:coverage` - Run tests with coverage output
-- `bun run test:watch` - Run tests in watch mode
-- `bun run test:component` - Open Cypress component tests
-- `bun run test:component:headless` - Run Cypress component tests headless
-- `bun run test:e2e` - Open Cypress e2e tests
-- `bun run test:e2e:headless` - Run Cypress e2e tests headless
+- `pnpm run test` - Run the full test suite (bun test runner, orchestrated via turbo)
+- `pnpm run test:unit` - Run targeted unit tests for core app/component suites
+- `pnpm run test:query-config` - Run query-config-specific tests
+- `pnpm run test:coverage` - Run tests with coverage output
+- `pnpm run test:watch` - Run tests in watch mode
+- `pnpm run test:component` - Open Cypress component tests
+- `pnpm run test:component:headless` - Run Cypress component tests headless
+- `pnpm run test:e2e` - Open Cypress e2e tests
+- `pnpm run test:e2e:headless` - Run Cypress e2e tests headless
 
 ### Code Quality
 
-- `bun run lint` - Run Biome linting
-- `bun run fmt` - Format code with Biome
-- `bun run depcruise` - Validate dependency boundaries (no cycles, layering, no packages→apps)
+- `pnpm run lint` - Run Biome linting
+- `pnpm run fmt` - Format code with Biome
+- `pnpm run depcruise` - Validate dependency boundaries (no cycles, layering, no packages→apps)
 - If Biome CLI and `biome.json` schema versions drift, run `biome migrate` before linting changes.
 
 ### Deployment
@@ -248,7 +248,7 @@ When the user says **"remember"** something — write it to `docs/knowledge/`, n
 The same deploy command works in both CI and local environments:
 
 ```bash
-cd apps/dashboard && bun run cf:deploy
+cd apps/dashboard && pnpm run cf:deploy
 ```
 
 This runs inside `apps/dashboard` and executes:
@@ -263,14 +263,14 @@ Falls back to `wrangler login` OAuth for local development.
 
 #### Cloudflare Workers Commands
 
-- `cd apps/dashboard && bun run cf:deploy` — Build + deploy to Cloudflare Workers
-- `bun run cf:config` — Set Cloudflare secrets from `.env.production.local` or `.env.local`
-- `cd apps/dashboard && bun run cf-typegen` — Regenerate Cloudflare environment typings
+- `cd apps/dashboard && pnpm run cf:deploy` — Build + deploy to Cloudflare Workers
+- `pnpm run cf:config` — Set Cloudflare secrets from `.env.production.local` or `.env.local`
+- `cd apps/dashboard && pnpm run cf-typegen` — Regenerate Cloudflare environment typings
 
 #### Docker Deployment
 
 - `docker compose up -d` — Quick start
-- `bun run docker:health` — Check Docker health
+- `pnpm run docker:health` — Check Docker health
 
 #### Prerequisites
 
@@ -294,15 +294,15 @@ of local files.
 
 ### Additional Workflows
 
-- `bun run check` / `bun run check:fix` - Run Biome's full check suite, with optional write mode
-- `bun run lint:fix` - Apply Biome lint fixes
-- `bun run type-check` - Run standalone TypeScript verification
-- `bun run test:unit`, `bun run test:query-config`, `bun run test:coverage` - Narrow test runs for common workflows
-- `bun run build:skills` - Regenerate the AI skills registry from `.agents/skills/`
-- `bun run scripts/build-ch-schema-docs.ts` - Regenerate ClickHouse schema docs (`--version`, `--table`, `--verbose`)
-- `bun scripts/set-secrets.ts` - Set Cloudflare Worker secrets directly (same operation as `bun run cf:config`)
-- `bun run docker:health` / `bun run cf:health` - Check Docker or deployed health endpoints
-- `bun run lint && bun run build` - Quick local CI parity check (matches core lint/build workflow jobs)
+- `pnpm run check` / `pnpm run check:fix` - Run Biome's full check suite, with optional write mode
+- `pnpm run lint:fix` - Apply Biome lint fixes
+- `pnpm run type-check` - Run standalone TypeScript verification
+- `pnpm run test:unit`, `pnpm run test:query-config`, `pnpm run test:coverage` - Narrow test runs for common workflows
+- `pnpm run build:skills` - Regenerate the AI skills registry from `.agents/skills/`
+- `bun run scripts/build-ch-schema-docs.ts` - Regenerate ClickHouse schema docs (`--version`, `--table`, `--verbose`) — runs on the bun runtime (a `.ts` script)
+- `bun scripts/set-secrets.ts` - Set Cloudflare Worker secrets directly (bun runtime; same operation as `pnpm run cf:config`)
+- `pnpm run docker:health` / `pnpm run cf:health` - Check Docker or deployed health endpoints
+- `pnpm run lint && pnpm run build` - Quick local CI parity check (matches core lint/build workflow jobs)
 - Code-smell/dead-code automation: see [docs/knowledge/core-memory.md](docs/knowledge/core-memory.md)
 - Since-last-run scan scope: `git log --since='<ISO_TIME>' --name-only --pretty=format: | sed '/^$/d' | sort -u`
 - Since-last-run scan scope (source commits only): `git log --since='<ISO_TIME>' --no-merges --name-only --pretty=format: | sed '/^$/d' | sort -u`
@@ -315,13 +315,13 @@ of local files.
 - Failed-job logs in restricted cache environments: `XDG_CACHE_HOME=/private/tmp/gh-cache gh run view <RUN_ID> --job <JOB_ID> --log-failed`
 - E2E page-load flake triage: `XDG_CACHE_HOME=/private/tmp/gh-cache gh run view <RUN_ID> --job <JOB_ID> --log-failed | grep -n -E "Timed out after waiting .* for your remote page to load"`
 - Worktree fallback for PR operations: if automation checkout is detached (`git status --short --branch` shows `HEAD (no branch)`), stale versus `origin/main`, or git metadata writes fail (`FETCH_HEAD`/`HEAD.lock`/`index.lock`), run `git -C /Users/duet/project/clickhouse-monitor fetch origin`; if that checkout is dirty, create a clean worktree under `/private/tmp` for commit/PR commands
-- Cloudflare worker size dry-run: `bun wrangler deploy --minify --dry-run`
+- Cloudflare worker size dry-run: `pnpm exec wrangler deploy --minify --dry-run`
 - Code-smell automation workflow now records findings in `docs/knowledge/core-memory.md`, then validates `gh run list --branch main --limit 10 ...` and keeps a dedicated memory note under `/Users/duet/.codex/automations/code-smell-detector/memory.md`.
 
 **Docs content workflow**: `docs/content/**` is the committed source of truth for the docs. The standalone **Fumadocs** site (TanStack Start, deployed to Cloudflare Workers → docs.chmonitor.dev) at `apps/docs` generates its content collection from it via `scripts/sync-docs.mjs` on every build. There is no per-release versioning.
 
-- `cd apps/docs && bun run dev` - Preview the docs site locally (sync-docs → `vite dev`)
-- `cd apps/docs && bun run build` - Full build (sync-docs → generate-og → `vite build`)
+- `cd apps/docs && pnpm run dev` - Preview the docs site locally (sync-docs → `vite dev`)
+- `cd apps/docs && pnpm run build` - Full build (sync-docs → generate-og → `vite build`)
 - Edit only `docs/content/**`; the generated `apps/docs/content/docs/**` is regenerated and gitignored.
 
 **IMPORTANT — keep the AI Agent docs in sync**: `docs/content/guide/ai-agent.mdx` is
@@ -558,9 +558,9 @@ export const backupsConfig: QueryConfig = {
 
 #### Testing Strategy
 
-- **Bun test** for unit and query-config tests (`bun run test`, `bun run test:unit`, `bun run test:query-config`)
+- **Bun test** is the test runner for unit and query-config tests, invoked via pnpm scripts (`pnpm run test`, `pnpm run test:unit`, `pnpm run test:query-config`)
 - **Cypress** for component and e2e tests
-- **Query-config tests** run with `bun run test:query-config` against ClickHouse service containers in CI
+- **Query-config tests** run with `pnpm run test:query-config` against ClickHouse service containers in CI
 - Component tests include visual regression testing
 - Test files are co-located with components (`.cy.tsx` files)
 

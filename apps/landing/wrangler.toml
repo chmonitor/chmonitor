@@ -4,7 +4,7 @@
 # by Workers Assets (no `main` script). public/_redirects (copied into dist)
 # sends /docs* to docs.chmonitor.dev.
 #
-# Deploy: cd apps/landing && bun run build && wrangler deploy
+# Deploy: cd apps/landing && pnpm run build && wrangler deploy
 #
 # Note: the chmonitor.dev apex is a custom domain. It currently lives on the
 # legacy worker; the live cutover detaches it there before the first deploy

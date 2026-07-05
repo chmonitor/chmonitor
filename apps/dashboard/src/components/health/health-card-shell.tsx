@@ -126,9 +126,10 @@ function interactiveProps(title: string, onExpand: (() => void) | undefined) {
 }
 
 /**
- * Dense single-line layout for healthy / unavailable checks. No sparkline — a
- * healthy check sits flat, so a trend line here would be pure decoration. Links
- * stay reachable via the detail dialog, keeping the row uncluttered.
+ * Dense single-line layout for healthy / unavailable checks. Carries a small
+ * trend sparkline — even a flat healthy line answers "was this always 0, or
+ * did it just drop?" at a glance, without the row growing into a full card.
+ * Links stay reachable via the detail dialog, keeping the row uncluttered.
  */
 function HealthCheckRow({
   icon: Icon,
@@ -136,8 +137,11 @@ function HealthCheckRow({
   status,
   displayValue,
   sublabel,
+  spark,
   onExpand,
 }: HealthCardShellProps) {
+  const series = toSeries(spark)
+
   return (
     <div
       {...interactiveProps(title, onExpand)}
@@ -165,6 +169,15 @@ function HealthCheckRow({
       <span className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:block">
         {sublabel}
       </span>
+      {series && (
+        <div className="hidden h-4 w-12 flex-none sm:block" aria-hidden>
+          <MiniAreaChart
+            data={series}
+            label={title}
+            color={SPARK_COLOR[status]}
+          />
+        </div>
+      )}
       <span
         className={cn(
           'ml-auto flex-none font-mono text-sm font-semibold tabular-nums sm:ml-0',

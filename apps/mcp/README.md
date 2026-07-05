@@ -23,8 +23,8 @@ handlers at build time so they never collide.
 ```bash
 cd apps/mcp
 cp .dev.vars.example .dev.vars   # set ClickHouse env vars + CHM_API_KEY_SECRET
-bun run dev                      # wrangler dev
-bun run typegen                  # regenerate Cloudflare env typings
+pnpm run dev                      # wrangler dev
+pnpm run typegen                  # regenerate Cloudflare env typings
 ```
 
 ## Bindings & auth
@@ -37,7 +37,7 @@ API-key auth is enabled, requests must present a bearer token; CORS is open
 ## Deploy
 
 ```bash
-bun run deploy        # wrangler deploy --minify
+pnpm run deploy        # wrangler deploy --minify
 ```
 
 A `preview` environment mirrors the main worker at

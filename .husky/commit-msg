@@ -5,4 +5,4 @@
 # Validates commit messages follow conventional commit format
 # ─────────────────────────────────────────────────────────────────────────────
 
-bun x commitlint --edit "$1"
+pnpm exec commitlint --edit "$1"

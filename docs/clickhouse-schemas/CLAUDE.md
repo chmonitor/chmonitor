@@ -39,7 +39,7 @@ If any column is NOT available in all versions from 23.8+:
 2. **Check existing patterns** in `lib/query-config/`
 3. **Write the config** following patterns
 4. **Add variants** if needed
-5. **Verify types** compile with `bun run type-check`
+5. **Verify types** compile with `pnpm run type-check`
 
 ## Quick Reference
 

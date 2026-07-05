@@ -125,7 +125,7 @@ it enables mutating tools (`optimize_table`, `kill_query`, `kill_mutation`). A
 
 | Variable | Type | Default | Purpose |
 |---|---|---|---|
-| `VITE_FEATURE_CONVERSATION_DB` | Build-time | `false` | Enable server-side conversation storage. Derived from canonical `CHM_FEATURE_CONVERSATION_DB` — set that one before `bun run build`. Requires Clerk. |
+| `VITE_FEATURE_CONVERSATION_DB` | Build-time | `false` | Enable server-side conversation storage. Derived from canonical `CHM_FEATURE_CONVERSATION_DB` — set that one before `pnpm run build`. Requires Clerk. |
 | `CONVERSATION_STORE_BACKEND` | Runtime | (auto) | Backend: `agentstate`, `d1`, `postgres`, or `memory`. Auto-selects when unset. |
 
 For per-backend env vars and setup, see [Conversation history](/guide/ai-agent/conversation-history) and [Store backends](/guide/ai-agent/conversation-history/backends).

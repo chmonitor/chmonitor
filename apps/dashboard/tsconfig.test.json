@@ -36,7 +36,9 @@
         "./node_modules/@modelcontextprotocol/sdk/dist/esm/server/webStandardStreamableHttp.d.ts"
       ],
       "zod/v3": ["./node_modules/zod/v3/index.d.ts"],
-      "@clickhouse/client": ["./node_modules/@clickhouse/client"],
+      "@clickhouse/client": [
+        "./node_modules/@clickhouse/client-web/dist/index.d.ts"
+      ],
       "@clickhouse/client-web": [
         "./node_modules/@clickhouse/client-web/dist/index.d.ts"
       ],

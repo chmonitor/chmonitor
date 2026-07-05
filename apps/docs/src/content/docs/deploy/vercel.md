@@ -20,9 +20,9 @@ Or deploy manually:
 | Setting | Value |
 |---|---|
 | Framework preset | Next.js |
-| Build command | `bun run build` (or `npm run build`) |
+| Build command | `pnpm run build` (or `npm run build`) |
 | Output directory | `.next` |
-| Install command | `bun install` |
+| Install command | `pnpm install` |
 | Node.js version | 22.x or later |
 
 ## Configure

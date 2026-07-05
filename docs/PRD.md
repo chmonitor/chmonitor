@@ -877,10 +877,10 @@ chmonitor queries 40+ ClickHouse system tables including:
 
 | Method | Command | Target |
 |--------|---------|--------|
-| Cloudflare Workers | `bun run cf:deploy` | Edge (primary) |
+| Cloudflare Workers | `pnpm run cf:deploy` | Edge (primary) |
 | Docker | `docker compose up -d` | Self-hosted |
 | Kubernetes | Helm chart at `deploy/helm/` | Self-hosted / on-prem |
-| Node.js | `bun run build:node && bun run start:node` | Any server |
+| Node.js | `pnpm run build:node && pnpm run start:node` | Any server |
 | Vercel | `vercel deploy` | Serverless |
 
 ### D. Environment Variables Reference

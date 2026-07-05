@@ -72,10 +72,10 @@ green throughout. See [[deployment]].
    (e.g. `@/types/query-config`, which imports components), extract only the
    clean pieces it needs into a leaf package (`VersionedSql`, `getAllSqlStrings`,
    a minimal `QueryConfigLike`) and re-export from the app type. No shims.
-5. **Verify locally before PR:** `bun install` → `bun run type-check` (0 errors)
-   → `bun run build` (standalone at `apps/dashboard/.next/standalone/apps/dashboard/server.js`)
+5. **Verify locally before PR:** `pnpm install` → `pnpm run type-check` (0 errors)
+   → `pnpm run build` (standalone at `apps/dashboard/.next/standalone/apps/dashboard/server.js`)
    → for worker/cf changes `bun wrangler deploy --dry-run --config apps/mcp/wrangler.toml`
-   → run BOTH `bun run test:unit` (apps/dashboard) AND `bun test packages` (package tests
+   → run BOTH `pnpm run test:unit` (apps/dashboard) AND `bun test packages` (package tests
    live outside apps/dashboard's suite — CI runs them via a dedicated step).
 6. **Open PR + `gh pr merge <n> --auto --squash`.** Required checks: build, lint,
    preview, test-queries-config, build-docker-pr. `unit-tests` and
@@ -85,7 +85,7 @@ green throughout. See [[deployment]].
 7. **main moves under long PRs.** Rebase: git rename-detection auto-merges
    upstream edits to moved files; only `package.json`/`bun.lock` truly conflict —
    resolve by regenerating the split + `git checkout origin/main -- bun.lock &&
-   bun install`.
+   pnpm install`.
 8. **Checkpoint to session memory** between phases (the refactor spans many
    context windows).
 
@@ -100,13 +100,13 @@ green throughout. See [[deployment]].
   first lockfile walking up (same as `@opennextjs/aws`).
 - **Bun hoists deps to the ROOT `node_modules`** (no `apps/dashboard/node_modules`);
   `@chm/*` are symlinks there. Dockerfile copies only root node_modules, BUT must
-  `COPY apps/<app>/package.json` for EACH app before `bun install --frozen-lockfile`
+  `COPY apps/<app>/package.json` for EACH app before `pnpm install --frozen-lockfile`
   (currently dashboard + mcp), or it errors "lockfile had changes, but frozen".
   `packages/` is covered by `COPY packages/`.
 - **tsc heap OOM** on a cold full check: `NODE_OPTIONS=--max-old-space-size=6144`
   on apps/dashboard `build` + `type-check`. Delete stale `tsconfig.tsbuildinfo`.
 - **Dual zod copies** after a workspace split → TS2589. Pin `"zod"` in root
-  `overrides` AND `pnpm.overrides`, then `bun install --force` (plain install
+  `overrides` AND `pnpm.overrides`, then `pnpm install --force` (plain install
   won't re-dedupe).
 - **OpenNext monorepo detection** uses the first lockfile walking up from cwd; run
   `cf:build`/wrangler with the worker's own config and let it resolve.

@@ -57,7 +57,7 @@ There are two categories of environment variables:
 
 | Category | When resolved | How to set | Example |
 |---|---|---|---|
-| **Build-time** | When `bun run build` runs | CI environment / shell before the build | `VITE_FEATURE_CONVERSATION_DB`, `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| **Build-time** | When `pnpm run build` runs | CI environment / shell before the build | `VITE_FEATURE_CONVERSATION_DB`, `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` |
 | **Runtime** | When the server process starts per request | `wrangler.toml [vars]`, `wrangler secret put`, Docker `-e`, k8s ConfigMap/Secret | `CLICKHOUSE_HOST`, `CONVERSATION_STORE_BACKEND` |
 
 <Callout type="warn" title="VITE_* variables are build-time only">
@@ -225,7 +225,7 @@ expose them to the browser.
 | Variable | Default | Purpose |
 |---|---|---|
 | `CHM_CLERK_PUBLISHABLE_KEY` | — | Clerk publishable key (`pk_...`, public). **Canonical** — the client `VITE_CLERK_PUBLISHABLE_KEY` is derived from it at build time. |
-| `VITE_CLERK_PUBLISHABLE_KEY` | (from `CHM_CLERK_PUBLISHABLE_KEY`) | Client-side build-time value. Auto-derived; only set explicitly to override. Must be present before `bun run build`. |
+| `VITE_CLERK_PUBLISHABLE_KEY` | (from `CHM_CLERK_PUBLISHABLE_KEY`) | Client-side build-time value. Auto-derived; only set explicitly to override. Must be present before `pnpm run build`. |
 | `CLERK_SECRET_KEY` | — | Clerk secret key (`sk_...`). Runtime only, secret. Never expose to the browser. |
 | `CHM_CLERK_PUBLIC_READ` | `false` | When `true`, anonymous visitors can view read-only monitoring content; writes (AI agent, control actions, arbitrary SQL) still require sign-in. Runtime only. See [Clerk → public read-only mode](/operate/authentication/clerk#public-read-only-mode). |
 
@@ -339,7 +339,7 @@ persistence with two steps:
 ### Enable the feature (build-time)
 
 Set `CHM_FEATURE_CONVERSATION_DB=true` (the client `VITE_FEATURE_CONVERSATION_DB`
-is derived from it at build time — must be present before `bun run build`). Also
+is derived from it at build time — must be present before `pnpm run build`). Also
 requires Clerk auth (`CHM_AUTH_PROVIDER=clerk`).
 </Step>
 <Step>
@@ -352,7 +352,7 @@ Configure a backend at runtime via `CONVERSATION_STORE_BACKEND`.
 | Variable | Default | Purpose |
 |---|---|---|
 | `CHM_FEATURE_CONVERSATION_DB` | `false` | **Canonical.** Set `true` to enable server-side conversation persistence. Requires Clerk. Drives the build-time `VITE_FEATURE_CONVERSATION_DB`. |
-| `VITE_FEATURE_CONVERSATION_DB` | (from `CHM_FEATURE_CONVERSATION_DB`) | Client-side build-time value. Auto-derived; only set explicitly to override. Must be present before `bun run build`. |
+| `VITE_FEATURE_CONVERSATION_DB` | (from `CHM_FEATURE_CONVERSATION_DB`) | Client-side build-time value. Auto-derived; only set explicitly to override. Must be present before `pnpm run build`. |
 | `CONVERSATION_STORE_BACKEND` | (auto) | **Runtime.** Backend: `agentstate`, `d1`, `postgres`, or `memory`. When unset, the server auto-selects the first available backend (AgentState if key present → D1 binding → Postgres via `DATABASE_URL` → Memory). |
 
 **AgentState backend:**

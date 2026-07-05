@@ -16,7 +16,7 @@ related:
 
 ## Rule
 
-After running `wrangler secret put` (or `bun run cf:config`), you **MUST redeploy** to flush the connection pool cache.
+After running `wrangler secret put` (or `pnpm run cf:config`), you **MUST redeploy** to flush the connection pool cache.
 
 ## Why
 
@@ -26,10 +26,10 @@ ClickHouse client instances are pooled and cached at runtime. When secrets are u
 
 ```bash
 # Update secrets
-bun run cf:config
+pnpm run cf:config
 
 # MUST redeploy after
-bun run cf:deploy
+pnpm run cf:deploy
 ```
 
 ## Related

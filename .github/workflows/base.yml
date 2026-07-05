@@ -92,16 +92,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Bun Cache
-        uses: actions/cache@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-v1-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-v1-
+          node-version: 22
 
       - name: Setup Rust
         if: ${{ inputs.job-type == 'build' }}
@@ -121,17 +118,17 @@ jobs:
 
       - name: Install dependencies
         if: ${{ inputs.job-type == 'build' || inputs.job-type == 'lint' }}
-        run: bun install
+        run: pnpm install
 
       # === Linting ===
       - name: Lint
         if: ${{ inputs.job-type == 'lint' }}
-        run: bun run turbo run lint
+        run: pnpm exec turbo run lint
 
       # === App Build ===
       - name: Build App
         if: ${{ inputs.job-type == 'build' }}
-        run: bun run turbo run build
+        run: pnpm exec turbo run build
 
       - name: Upload WASM artifact
         if: ${{ inputs.job-type == 'build' && !inputs.skip-rust }}

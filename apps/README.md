@@ -29,11 +29,11 @@ resolves its native `zod@3`. See each app's README for details.
 
 ```bash
 # From the repo root — turbo fans out to workspace members:
-bun run dev            # dashboard + mcp (turbo run dev)
+pnpm run dev            # dashboard + mcp (turbo run dev)
 
 # The standalone Astro apps build via dedicated root scripts:
-bun run build:docs     # apps/docs    -> dist/
-bun run build:landing  # apps/landing -> dist/
+pnpm run build:docs     # apps/docs    -> dist/
+pnpm run build:landing  # apps/landing -> dist/
 ```
 
 Each app can also be run directly from its own directory — see the per-app

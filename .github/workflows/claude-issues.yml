@@ -156,8 +156,8 @@ jobs:
             3. For ClickHouse query configs, respect versioned-SQL patterns and the
                column-availability docs. Never customise `components/ui/` directly.
             4. Verify locally before pushing (best-effort on the runner):
-               `bun install` then `bun run lint && bun run build`, plus the narrowest
-               relevant tests (`bun run test:unit` / `bun run test:query-config`).
+               `pnpm install` then `pnpm run lint && pnpm run build`, plus the narrowest
+               relevant tests (`pnpm run test:unit` / `pnpm run test:query-config`).
                If a check cannot run in CI, say so explicitly in the PR — do not claim
                it passed.
             5. Commit with semantic format and the required co-author trailer:

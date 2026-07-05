@@ -3,7 +3,7 @@
 # Static-assets-only Worker: Astro builds to ./dist, served directly by Workers
 # Assets (no `main` script).
 #
-# Deploy: cd apps/blog && bun run build && wrangler deploy
+# Deploy: cd apps/blog && pnpm run build && wrangler deploy
 
 name = "chmonitor-blog"
 compatibility_date = "2026-05-28"

@@ -12,8 +12,8 @@ content-collection schema in `src/content.config.ts`.
 
 ```bash
 cd apps/blog
-bun install
-bun run dev        # http://localhost:4321
+pnpm install
+pnpm run dev        # http://localhost:4321
 ```
 
 ## Add a post
@@ -68,14 +68,14 @@ Launch films live in `chmonitor/launch/<version>/` and are copied into
 - **RSS**: `src/pages/rss.xml.ts` (via `@astrojs/rss`) builds `/rss.xml` from
   the same content collection as the post list; linked from `Base.astro`'s
   `<head>` and the footer.
-- **Release → draft post**: `bun run release-to-post <tag>` (fetches via `gh
+- **Release → draft post**: `pnpm run release-to-post <tag>` (fetches via `gh
   release view`, or `-- --from-file <json>` for offline/CI use) scaffolds a
   `draft: true` post from `templates/release-post.md`. It never publishes —
   a human still runs the claim-verification checklist and flips `draft` to
   `false`.
 - **Landing footer widget**: `apps/landing` is a separate Astro app with its
   own CI job, so it can't reach into this app's content collection at build
-  time. `bun run sync-latest-posts` regenerates a committed snapshot at
+  time. `pnpm run sync-latest-posts` regenerates a committed snapshot at
   `apps/landing/src/data/latest-posts.json` (published, non-draft posts,
   newest first) that `Footer.astro` renders as "Latest from the blog". Run it
   after publishing and commit the snapshot alongside the post.
@@ -84,7 +84,7 @@ Launch films live in `chmonitor/launch/<version>/` and are copied into
 
 ```bash
 cd apps/blog
-bun run build
+pnpm run build
 wrangler deploy            # → chmonitor-blog worker, blog.chmonitor.dev
 ```
 

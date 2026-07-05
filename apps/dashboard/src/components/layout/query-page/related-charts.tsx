@@ -24,8 +24,8 @@ import { cn } from '@/lib/utils'
 export interface RelatedChartsProps {
   relatedCharts: QueryConfig['relatedCharts']
   gridClass?: string
-  /** Row indices that are collapsed (only used for multi-row layout) */
-  collapsedRows?: Set<number>
+  /** Whether a given row index is collapsed (only used for multi-row layout) */
+  isRowCollapsed?: (rowIndex: number) => boolean
   /** Callback to toggle a specific row (only used for multi-row layout) */
   onToggleRow?: (rowIndex: number) => void
 }
@@ -33,7 +33,7 @@ export interface RelatedChartsProps {
 export const RelatedCharts = function RelatedCharts({
   relatedCharts,
   gridClass,
-  collapsedRows,
+  isRowCollapsed,
   onToggleRow,
 }: RelatedChartsProps) {
   if (!relatedCharts || relatedCharts.length === 0) {
@@ -53,7 +53,7 @@ export const RelatedCharts = function RelatedCharts({
           key={`row-${rowIndex}`}
           rowIndex={rowIndex}
           charts={rowCharts}
-          isCollapsed={collapsedRows?.has(rowIndex) ?? false}
+          isCollapsed={isRowCollapsed?.(rowIndex) ?? false}
           onToggle={() => onToggleRow?.(rowIndex)}
         />
       ))}

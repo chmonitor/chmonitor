@@ -9,7 +9,10 @@ conventions (commit style, cloud-vs-OSS mode, deploy, testing, ClickHouse
 version compatibility, the knowledge graph), read the **root
 [`../../CLAUDE.md`](../../CLAUDE.md)** first, and see **[`../../docs/PRD.md`](../../docs/PRD.md)**
 (§10.2) for the product/architecture spec. Package name: `dashboard`; package
-manager is `bun`.
+manager is `pnpm` (`pnpm@10.18.0`). This app installs in isolation — its own
+`pnpm-lock.yaml` + `pnpm-workspace.yaml` (which pulls in `../../packages/*`), NOT
+a member of the repo-root workspace. `bun` remains only as the test runner
+(`bun test`) and for executing `.ts` scripts (e.g. `scripts/build-node-ci.ts`).
 
 ## Directory map (`src/`)
 
@@ -177,5 +180,5 @@ a tool, skill, or agent env var.
 
 ## Verification
 
-Run `bun run build` (Vite build + `tsc --noEmit`) after changes; `bun run lint`
+Run `pnpm run build` (Vite build + `tsc --noEmit`) after changes; `pnpm run lint`
 for Biome. See the root CLAUDE.md for the full test/deploy commands.

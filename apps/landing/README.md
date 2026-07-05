@@ -20,12 +20,12 @@ Astro resolves its native `zod@3`. It has its own `bun.lock`.
 
 ```bash
 cd apps/landing
-bun install
-bun run dev      # http://localhost:4321
-bun run build    # -> dist/
+pnpm install
+pnpm run dev      # http://localhost:4321
+pnpm run build    # -> dist/
 ```
 
-Or from the repo root: `bun run build:landing`.
+Or from the repo root: `pnpm run build:landing`.
 
 ## Deploy
 

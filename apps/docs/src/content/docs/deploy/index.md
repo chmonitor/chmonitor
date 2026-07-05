@@ -16,7 +16,7 @@ Deploy chmonitor wherever your ClickHouse runs. Pick the platform that matches y
 | [Kubernetes](/deploy/k8s) | Cluster-managed, multi-replica | none / clerk / proxy | Helm chart vendored in-repo; kustomize alternative |
 | [Cloudflare Workers](/deploy/cloudflare) | Edge / serverless | none / clerk / Cloudflare Access | D1 + Durable Objects for conversation store; Cron Trigger for health sweep |
 | [Vercel](/deploy/vercel) | Quick hosted preview (Next.js legacy app) | none / clerk / API key / reverse proxy | Use postgres or clickhouse for conversation store; no D1/DO |
-| [Node / standalone](/deploy/self-host) | Custom server, systemd, bare VM | none / clerk / proxy | `bun run start` or `node server.js`; put behind nginx |
+| [Node / standalone](/deploy/self-host) | Custom server, systemd, bare VM | none / clerk / proxy | `pnpm run start` or `node server.js`; put behind nginx |
 
 ## Configuration categories
 

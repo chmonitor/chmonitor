@@ -16,19 +16,19 @@ The pipeline is **Satori** (HTML/CSS object tree → SVG) + **@resvg/resvg-js**
 TTFs are vendored under `assets/og-fonts/`, so no network access is needed.
 
 - Generator: [`scripts/generate-og-images.ts`](../../scripts/generate-og-images.ts)
-- Run: `bun run og:generate`
+- Run: `pnpm run og:generate`
 
 The PNGs are **regenerated automatically on every Cloudflare deploy** and also
 committed to each app's `public/` dir:
 
 - **CI deploy** (`.github/workflows/cloudflare.yml`) — each of the `dashboard`,
   `landing`, and `docs` jobs runs a "Generate OG images" step (root install +
-  `bun run og:generate`) before the app build, so the deployed image always
+  `pnpm run og:generate`) before the app build, so the deployed image always
   matches the current template. The step runs at repo root because the
   generator's deps live in the root workspace, not in the standalone apps.
 - **Committed PNGs** — serve as the baseline for local dev and the build-check
   workflows (`landing.yml` / `docs.yml`), which don't run the generator. Keep
-  them in sync by running `bun run og:generate` and committing after template
+  them in sync by running `pnpm run og:generate` and committing after template
   changes.
 
 ## Outputs
@@ -69,7 +69,7 @@ description, headTitle?}`) plus `pageOgHead(slug)`. It feeds **two** consumers:
 ## Editing / adding a card
 
 - **Dashboard page** — add an entry to `OG_PAGES` in `apps/dashboard/src/lib/og.ts`
-  and `head: () => pageOgHead('<slug>')` in the route, then `bun run og:generate`
+  and `head: () => pageOgHead('<slug>')` in the route, then `pnpm run og:generate`
   and commit the PNG.
 - **App-level cards** (landing, docs, dashboard home) — edit the `CARDS` array in
   `scripts/generate-og-images.ts`.

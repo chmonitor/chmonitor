@@ -56,22 +56,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Bun Cache
-        uses: actions/cache@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-v1-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-v1-
+          node-version: 22
 
       - name: Install dependencies
-        run: bun install
+        run: pnpm install
 
       - name: Validate dependency boundaries
-        run: bun run depcruise
+        run: pnpm run depcruise
 
   # PRs: amd64 only for fast feedback (~3-5 min)
   build-docker-pr:
