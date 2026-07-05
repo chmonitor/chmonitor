@@ -478,6 +478,10 @@ export const QueryDetailView = function QueryDetailView({
     .trim()
   const clientName = toStr(row.client_name)
   const clientHost = toStr(row.client_hostname)
+  // Lineage: if this is a leaf of a distributed/parallel query, link back to
+  // the initial (root) query_id. Empty for root queries themselves.
+  const initialQueryId = toStr(row.initial_query_id)
+  const stackTrace = toStr(row.stack_trace)
 
   const durationSecs = toNumber(row.query_duration)
   const readRows = toNumber(row.read_rows)
@@ -590,6 +594,22 @@ export const QueryDetailView = function QueryDetailView({
           {tables && <MetaField label="Tables" value={tables} icon={Server} />}
           {clientName && <MetaField label="Client" value={clientName} />}
           {clientHost && <MetaField label="Client host" value={clientHost} />}
+          {initialQueryId && initialQueryId !== queryId && (
+            <MetaField
+              label="Initial query"
+              value={
+                <Link
+                  href={buildUrl('/query', {
+                    query_id: initialQueryId,
+                    host: hostId,
+                  })}
+                  className="font-mono text-[12.5px] hover:underline"
+                >
+                  {initialQueryId}
+                </Link>
+              }
+            />
+          )}
         </dl>
 
         {/* Exception text */}
@@ -600,6 +620,20 @@ export const QueryDetailView = function QueryDetailView({
             </p>
             <pre className="max-h-[120px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-rose-700 dark:text-rose-300">
               {toStr(row.exception_text)}
+            </pre>
+          </div>
+        )}
+
+        {/* Stack trace (ClickHouse logs it for ExceptionBeforeStart /
+            ExceptionWhileProcessing rows). Shown alongside or independently
+            of exception_text since it carries the C++ frame breakdown. */}
+        {stackTrace && (
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/20">
+            <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              Stack trace
+            </p>
+            <pre className="max-h-[240px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-rose-700/90 dark:text-rose-300/90">
+              {stackTrace}
             </pre>
           </div>
         )}
@@ -633,8 +667,8 @@ export const QueryDetailView = function QueryDetailView({
           label="Data read"
           value={readableReadBytes}
           sub={
-            toStr(row.writable_written_bytes)
-              ? `${toStr(row.writable_written_bytes)} written`
+            toStr(row.readable_written_bytes)
+              ? `${toStr(row.readable_written_bytes)} written`
               : undefined
           }
         />
