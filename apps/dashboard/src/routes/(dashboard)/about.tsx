@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator'
 
 const GITHUB_REPO =
   packageInfo.repository?.url || 'https://github.com/chmonitor/chmonitor'
-const LICENSE = 'MIT'
+const LICENSE = 'GPL-3.0'
 
 function FeatureCard({
   icon: Icon,
@@ -236,7 +236,7 @@ function AboutPage() {
 
       <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
         <p>
-          Released under the <Badge variant="outline">{LICENSE}</Badge> License
+          Released under the <Badge variant="outline">{LICENSE}</Badge> license.
         </p>
       </div>
     </div>
