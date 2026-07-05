@@ -2,7 +2,12 @@
 
 import type { LanguageModelUsage } from 'ai'
 
-import { type ComponentProps, createContext, useContext } from 'react'
+import {
+  type ComponentProps,
+  createContext,
+  type ReactElement,
+  useContext,
+} from 'react'
 import { getUsage } from 'tokenlens'
 import { Button } from '@/components/ui/button'
 import {
@@ -57,7 +62,7 @@ export const Context = ({
       modelId,
     }}
   >
-    <HoverCard closeDelay={0} openDelay={0} {...props} />
+    <HoverCard {...props} />
   </ContextContext.Provider>
 )
 
@@ -113,16 +118,18 @@ export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
   }).format(usedPercent)
 
   return (
-    <HoverCardTrigger asChild>
-      {children ?? (
-        <Button type="button" variant="ghost" {...props}>
-          <span className="font-medium text-muted-foreground">
-            {renderedPercent}
-          </span>
-          <ContextIcon />
-        </Button>
-      )}
-    </HoverCardTrigger>
+    <HoverCardTrigger
+      render={
+        (children ?? (
+          <Button type="button" variant="ghost" {...props}>
+            <span className="font-medium text-muted-foreground">
+              {renderedPercent}
+            </span>
+            <ContextIcon />
+          </Button>
+        )) as ReactElement
+      }
+    />
   )
 }
 

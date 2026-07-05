@@ -15,6 +15,7 @@ import {
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -72,26 +73,28 @@ export const TreeNode = function TreeNode({
           style={{ paddingLeft: `${paddingLeft}px` }}
         >
           {hasChildren && (
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${label}`}
-                className="flex size-4 items-center justify-center rounded-sm hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-                onClick={(e) => {
-                  e.stopPropagation()
-                }}
-              >
-                {isLoading ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : (
-                  <ChevronRight
-                    className={cn(
-                      'size-3 transition-transform',
-                      isExpanded && 'rotate-90'
-                    )}
-                  />
-                )}
-              </button>
+            <CollapsibleTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${label}`}
+                  className="flex size-4 items-center justify-center rounded-sm hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                  }}
+                />
+              }
+            >
+              {isLoading ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <ChevronRight
+                  className={cn(
+                    'size-3 transition-transform',
+                    isExpanded && 'rotate-90'
+                  )}
+                />
+              )}
             </CollapsibleTrigger>
           )}
           {!hasChildren && <div className="size-4" />}
@@ -112,20 +115,24 @@ export const TreeNode = function TreeNode({
           >
             {Icon &&
               (iconTooltip ? (
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Icon
-                      className={cn(
-                        'size-4 shrink-0',
-                        isHighlighted && 'text-primary',
-                        iconClassName
-                      )}
+                <TooltipProvider delay={300}>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Icon
+                          className={cn(
+                            'size-4 shrink-0',
+                            isHighlighted && 'text-primary',
+                            iconClassName
+                          )}
+                        />
+                      }
                     />
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="text-xs">
-                    {iconTooltip}
-                  </TooltipContent>
-                </Tooltip>
+                    <TooltipContent side="right" className="text-xs">
+                      {iconTooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               ) : (
                 <Icon
                   className={cn(

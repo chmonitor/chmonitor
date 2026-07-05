@@ -95,15 +95,13 @@ export function InsightCard({
         </div>
         {action && actionHref ? (
           <Button
-            asChild
             variant="ghost"
             size="sm"
             className="h-6 gap-1 px-0 text-xs font-normal text-muted-foreground hover:text-foreground"
+            render={<Link href={actionHref} />}
           >
-            <Link href={actionHref}>
-              {action.label}
-              <ArrowRight className="size-3" />
-            </Link>
+            {action.label}
+            <ArrowRight className="size-3" />
           </Button>
         ) : null}
       </div>

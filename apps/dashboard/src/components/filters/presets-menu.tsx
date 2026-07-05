@@ -24,11 +24,17 @@ export function PresetsMenu({ presets, onApply }: PresetsMenuProps) {
     // table) on open and strips them on close — forcing a full-page a11y/style
     // recompute that reads as a "full page re-render" each time Presets opens.
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5 px-3 rounded-lg">
-          <SparklesIcon className="size-3.5" />
-          Presets
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 px-3 rounded-lg"
+          />
+        }
+      >
+        <SparklesIcon className="size-3.5" />
+        Presets
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-52">
         {presets.map((preset) => {

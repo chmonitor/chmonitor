@@ -36,13 +36,15 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {!isControlled && (
-        <DialogTrigger asChild>
-          {children || (
-            <Button variant="ghost" size="icon" aria-label="Open settings">
-              <Settings className="size-4" />
-            </Button>
-          )}
-        </DialogTrigger>
+        <DialogTrigger
+          render={
+            children || (
+              <Button variant="ghost" size="icon" aria-label="Open settings">
+                <Settings className="size-4" />
+              </Button>
+            )
+          }
+        />
       )}
       <DialogContent className="sm:max-w-md" data-testid="settings-dialog">
         <DialogHeader>

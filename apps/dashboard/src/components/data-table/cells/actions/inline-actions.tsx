@@ -81,20 +81,22 @@ export function InlineActions<TData extends RowData>({
             const isKilling = killingId === String(value)
             return (
               <Tooltip key={action}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 text-muted-foreground hover:text-destructive"
-                    onClick={handleKill}
-                    disabled={isKilling}
-                  >
-                    {isKilling ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Icon className="size-3.5" />
-                    )}
-                  </Button>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-destructive"
+                      onClick={handleKill}
+                      disabled={isKilling}
+                    />
+                  }
+                >
+                  {isKilling ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Icon className="size-3.5" />
+                  )}
                 </TooltipTrigger>
                 <TooltipContent>{config.label}</TooltipContent>
               </Tooltip>
@@ -113,17 +115,17 @@ export function InlineActions<TData extends RowData>({
 
           return (
             <Tooltip key={action}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 text-muted-foreground hover:text-foreground"
-                  asChild
-                >
-                  <Link href={href}>
-                    <Icon className="size-3.5" />
-                  </Link>
-                </Button>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-muted-foreground hover:text-foreground"
+                    render={<Link href={href} />}
+                  />
+                }
+              >
+                <Icon className="size-3.5" />
               </TooltipTrigger>
               <TooltipContent>{config.label}</TooltipContent>
             </Tooltip>

@@ -120,11 +120,14 @@ export function ExpandedRow({ d }: { d: DerivedQuery }) {
             </Button>
           }
         />
-        <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
-          <Link href={explorerUrl}>
-            <ExternalLink className="size-3.5" />
-            Open in Explorer
-          </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5"
+          render={<Link href={explorerUrl} />}
+        >
+          <ExternalLink className="size-3.5" />
+          Open in Explorer
         </Button>
       </div>
     </div>

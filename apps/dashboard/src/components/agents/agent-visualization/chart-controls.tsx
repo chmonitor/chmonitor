@@ -48,7 +48,12 @@ function ColumnSelect({
   return (
     <div className="flex items-center gap-1.5 text-xs">
       <span className="text-muted-foreground whitespace-nowrap">{label}</span>
-      <Select value={value} onValueChange={onValueChange}>
+      <Select
+        value={value}
+        onValueChange={(val) => {
+          if (val != null) onValueChange(val)
+        }}
+      >
         <SelectTrigger className={cn('h-7 text-xs', width)}>
           <SelectValue />
         </SelectTrigger>
@@ -204,7 +209,12 @@ export function ChartControls({
         {/* Sort */}
         <div className="flex items-center gap-1.5 text-xs">
           <span className="text-muted-foreground whitespace-nowrap">Sort</span>
-          <Select value={sortValue} onValueChange={onSortChange}>
+          <Select
+            value={sortValue}
+            onValueChange={(val) => {
+              if (val != null) onSortChange(val)
+            }}
+          >
             <SelectTrigger className="h-7 text-xs w-[140px]">
               <SelectValue />
             </SelectTrigger>

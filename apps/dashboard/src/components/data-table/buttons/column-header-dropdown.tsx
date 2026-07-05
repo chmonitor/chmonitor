@@ -70,22 +70,24 @@ export const ColumnHeaderDropdown = function ColumnHeaderDropdown({
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className={cn(
-            'size-10 sm:size-7',
-            'opacity-0 group-hover:opacity-40 hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100',
-            'transition'
-          )}
-          aria-label={`Column options for ${column.id}`}
-        >
-          <EllipsisVerticalIcon data-icon="inline-start" />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className={cn(
+              'size-10 sm:size-7',
+              'opacity-0 group-hover:opacity-40 hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100',
+              'transition'
+            )}
+            aria-label={`Column options for ${column.id}`}
+          />
+        }
+      >
+        <EllipsisVerticalIcon data-icon="inline-start" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-40" sticky="always">
+      <DropdownMenuContent align="start" className="w-40">
         {canSort && (
           <>
             <DropdownMenuItem onClick={handleSortAsc}>

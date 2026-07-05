@@ -35,16 +35,18 @@ export const DensityToggle = function DensityToggle({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 sm:size-5 opacity-40 hover:opacity-100 transition-opacity rounded-full"
-          aria-label="Row density"
-          title="Row density"
-        >
-          <Icon className="size-3 sm:size-3" />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 sm:size-5 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+            aria-label="Row density"
+            title="Row density"
+          />
+        }
+      >
+        <Icon className="size-3 sm:size-3" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup

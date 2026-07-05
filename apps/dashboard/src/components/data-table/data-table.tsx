@@ -410,9 +410,8 @@ export function DataTable<
           onClick={(e) => e.stopPropagation()}
         >
           <Checkbox
-            checked={
-              isSomeSelected && !isAllSelected ? 'indeterminate' : isAllSelected
-            }
+            checked={isAllSelected}
+            indeterminate={isSomeSelected && !isAllSelected}
             onCheckedChange={(checked) =>
               table.toggleAllPageRowsSelected(checked === true)
             }

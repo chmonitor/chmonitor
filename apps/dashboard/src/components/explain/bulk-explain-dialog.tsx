@@ -265,13 +265,11 @@ export function BulkExplainDialog({
                   : `${totalSuggestions} suggestion${totalSuggestions === 1 ? '' : 's'} found.`}
               </span>
               <Button
-                asChild
                 variant="outline"
                 size="sm"
                 className="h-8 text-[12px]"
-              >
-                <a href={agentUrl}>Ask AI about all findings</a>
-              </Button>
+                render={<a href={agentUrl}>Ask AI about all findings</a>}
+              />
             </div>
           )}
         </div>

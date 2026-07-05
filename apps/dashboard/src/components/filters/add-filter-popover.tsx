@@ -48,15 +48,17 @@ export function AddFilterPopover({
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 border-dashed rounded-lg"
-        >
-          <PlusIcon className="size-3.5" />
-          Add filter
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-dashed rounded-lg"
+          />
+        }
+      >
+        <PlusIcon className="size-3.5" />
+        Add filter
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         {selectedField ? (

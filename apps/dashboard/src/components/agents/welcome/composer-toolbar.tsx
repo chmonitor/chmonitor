@@ -85,27 +85,28 @@ export function ComposerToolbar({
 
       {/* Skills popover */}
       <Popover open={skillsOpen} onOpenChange={setSkillsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
-          >
-            <SparklesIcon className="size-3" />
-            <span>
-              <span className="text-foreground font-medium tabular-nums">
-                {activeSkillCount}
-              </span>
-              <span className="tabular-nums">/{totalSkillCount}</span> skills
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
+            />
+          }
+        >
+          <SparklesIcon className="size-3" />
+          <span>
+            <span className="text-foreground font-medium tabular-nums">
+              {activeSkillCount}
             </span>
-          </Button>
+            <span className="tabular-nums">/{totalSkillCount}</span> skills
+          </span>
         </PopoverTrigger>
         <PopoverContent
           align="start"
           sideOffset={4}
           className="flex max-h-[min(28rem,var(--radix-popover-content-available-height))] w-[340px] flex-col overflow-hidden p-1"
-          collisionPadding={8}
         >
           <div className="text-muted-foreground shrink-0 px-2 py-1.5 text-[10px] font-semibold tracking-wider uppercase">
             Skills
@@ -171,27 +172,28 @@ export function ComposerToolbar({
 
       {/* Tools popover — flat list, per-tool toggle */}
       <Popover open={toolsOpen} onOpenChange={setToolsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
-          >
-            <WrenchIcon className="size-3" />
-            <span>
-              <span className="text-foreground font-medium tabular-nums">
-                {enabledToolCount}
-              </span>
-              <span className="tabular-nums">/{allTools.length}</span> tools
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
+            />
+          }
+        >
+          <WrenchIcon className="size-3" />
+          <span>
+            <span className="text-foreground font-medium tabular-nums">
+              {enabledToolCount}
             </span>
-          </Button>
+            <span className="tabular-nums">/{allTools.length}</span> tools
+          </span>
         </PopoverTrigger>
         <PopoverContent
           align="start"
           sideOffset={4}
           className="flex max-h-[min(28rem,var(--radix-popover-content-available-height))] w-[320px] flex-col overflow-hidden p-1"
-          collisionPadding={8}
         >
           <div className="text-muted-foreground flex shrink-0 items-center justify-between px-2 py-1.5 text-[10px] font-semibold tracking-wider uppercase">
             <span>Tools</span>

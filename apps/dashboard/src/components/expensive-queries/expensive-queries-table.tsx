@@ -158,14 +158,12 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
 
         {/* More filters */}
         <Popover>
-          <PopoverTrigger asChild>
-            <ToolbarButton active={moreFiltersActive}>
-              <ListFilter className="size-3.5" />
-              More filters
-              {moreFiltersActive && (
-                <span className="ml-0.5 size-1.5 rounded-full bg-blue-500" />
-              )}
-            </ToolbarButton>
+          <PopoverTrigger render={<ToolbarButton active={moreFiltersActive} />}>
+            <ListFilter className="size-3.5" />
+            More filters
+            {moreFiltersActive && (
+              <span className="ml-0.5 size-1.5 rounded-full bg-blue-500" />
+            )}
           </PopoverTrigger>
           <PopoverContent align="start" className="w-64 space-y-3">
             <div>

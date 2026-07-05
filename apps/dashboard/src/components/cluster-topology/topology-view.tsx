@@ -353,13 +353,11 @@ export function TopologyView({
             <Button
               variant="default"
               size="sm"
-              asChild
               className="h-7 gap-1.5 px-2 text-[12px]"
+              render={<Link href={detailHref} />}
             >
-              <Link href={detailHref}>
-                <ExternalLinkIcon className="h-3 w-3" />
-                Cluster details
-              </Link>
+              <ExternalLinkIcon className="h-3 w-3" />
+              Cluster details
             </Button>
           )}
         </div>

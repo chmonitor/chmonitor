@@ -111,17 +111,19 @@ export const CsvExportButton = function CsvExportButton<
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 opacity-40 hover:opacity-100 transition-opacity rounded-full"
-          aria-label="Export to CSV"
-          title="Export to CSV"
-          disabled={!hasData}
-        >
-          <Download className="size-3 sm:size-3" strokeWidth={2} />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+            aria-label="Export to CSV"
+            title="Export to CSV"
+            disabled={!hasData}
+          />
+        }
+      >
+        <Download className="size-3 sm:size-3" strokeWidth={2} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem

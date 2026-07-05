@@ -46,22 +46,24 @@ export const IconButton = memo(function IconButton({
 }: IconButtonProps & { suppressHydrationWarning?: boolean }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            sizeClasses[size],
-            'text-muted-foreground',
-            'relative before:content-[""] before:absolute before:-inset-4',
-            className
-          )}
-          aria-label={tooltip}
-          suppressHydrationWarning={suppressHydrationWarning}
-          {...props}
-        >
-          <span className={iconSizes[size]}>{icon}</span>
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              sizeClasses[size],
+              'text-muted-foreground',
+              'relative before:content-[""] before:absolute before:-inset-4',
+              className
+            )}
+            aria-label={tooltip}
+            suppressHydrationWarning={suppressHydrationWarning}
+            {...props}
+          />
+        }
+      >
+        <span className={iconSizes[size]}>{icon}</span>
       </TooltipTrigger>
       <TooltipContent side={tooltipSide} className="flex items-center gap-2">
         <span>{tooltip}</span>

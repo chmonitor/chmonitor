@@ -60,7 +60,12 @@ export function ClickHouseHostSelector({
 
   return (
     <>
-      <Select value={current.id.toString()} onValueChange={handleValueChange}>
+      <Select
+        value={current.id.toString()}
+        onValueChange={(val) => {
+          if (val != null) handleValueChange(val)
+        }}
+      >
         <SelectTrigger
           className="w-auto border-0 p-1 shadow-none focus:ring-0"
           data-testid="host-selector"

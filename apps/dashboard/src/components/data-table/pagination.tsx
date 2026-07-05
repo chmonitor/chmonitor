@@ -89,7 +89,9 @@ export function DataTablePagination<TData extends RowData = RowData>({
         <p className="hidden sm:block text-sm font-medium">Rows per page</p>
         <Select
           value={`${table.getState().pagination.pageSize}`}
-          onValueChange={handlePageSizeChange}
+          onValueChange={(value) => {
+            if (value != null) handlePageSizeChange(value)
+          }}
         >
           <SelectTrigger
             aria-label="Rows per page"

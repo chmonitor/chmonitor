@@ -41,15 +41,17 @@ function ActionMenuComponent<TData extends RowData, TValue>({
 }: ActionMenuProps<TData, TValue>) {
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="size-10 sm:size-8 p-0"
-          aria-label="Open menu"
-        >
-          <span className="sr-only">Open menu</span>
-          <MoreHorizontal className="size-4" />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            className="size-10 sm:size-8 p-0"
+            aria-label="Open menu"
+          />
+        }
+      >
+        <span className="sr-only">Open menu</span>
+        <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>

@@ -84,42 +84,42 @@ export function ModelCombobox({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          role="combobox"
-          aria-expanded={open}
-          aria-label="Model"
-          disabled={disabled}
-          className={cn(
-            'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs ring-offset-background',
-            'placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'hover:bg-accent/40 transition-colors'
-          )}
-        >
-          <span className="flex min-w-0 items-center gap-1.5">
-            {currentModel ? (
-              <>
-                <ProviderIcon
-                  provider={currentModel.provider}
-                  className="shrink-0 text-muted-foreground"
-                />
-                <span className="truncate font-mono text-xs">
-                  {triggerLabel}
-                </span>
-                {currentModel.isFree && (
-                  <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    free
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="text-muted-foreground">{triggerLabel}</span>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={open}
+            aria-label="Model"
+            disabled={disabled}
+            className={cn(
+              'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs ring-offset-background',
+              'placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              'hover:bg-accent/40 transition-colors'
             )}
-          </span>
-          <ChevronDown className="ml-2 size-3.5 shrink-0 text-muted-foreground" />
-        </button>
+          />
+        }
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          {currentModel ? (
+            <>
+              <ProviderIcon
+                provider={currentModel.provider}
+                className="shrink-0 text-muted-foreground"
+              />
+              <span className="truncate font-mono text-xs">{triggerLabel}</span>
+              {currentModel.isFree && (
+                <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  free
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-muted-foreground">{triggerLabel}</span>
+          )}
+        </span>
+        <ChevronDown className="ml-2 size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
 
       <PopoverContent className="w-72 p-0" align="start" sideOffset={4}>

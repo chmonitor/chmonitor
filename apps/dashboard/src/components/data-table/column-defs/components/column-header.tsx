@@ -22,6 +22,7 @@ import { COMMON_COLUMN_DESCRIPTIONS } from '@/components/data-table/renderers/ta
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -132,24 +133,28 @@ export function ColumnHeader<TData extends RowData>({
 
         {/* Info Icon with Tooltip */}
         {resolvedDescription && (
-          <Tooltip delayDuration={300}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label={`About ${name} column`}
-                className="text-muted-foreground/40 hover:text-muted-foreground transition-colors p-0.5 rounded cursor-help shrink-0"
-                onClick={(e) => e.stopPropagation()}
+          <TooltipProvider delay={300}>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label={`About ${name} column`}
+                    className="text-muted-foreground/40 hover:text-muted-foreground transition-colors p-0.5 rounded cursor-help shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                }
               >
                 <InfoIcon className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="top"
-              className="max-w-xs bg-popover text-popover-foreground border shadow-md font-normal lowercase normal-case"
-            >
-              <p className="text-xs">{resolvedDescription}</p>
-            </TooltipContent>
-          </Tooltip>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-xs bg-popover text-popover-foreground border shadow-md font-normal lowercase normal-case"
+              >
+                <p className="text-xs">{resolvedDescription}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
 
         {schemaFilter && (

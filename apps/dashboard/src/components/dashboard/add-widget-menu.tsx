@@ -58,11 +58,9 @@ export function AddWidgetMenu({ onAdd }: AddWidgetMenuProps) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            <PlusIcon className="mr-1 size-3" />
-            Add Widget
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+          <PlusIcon className="mr-1 size-3" />
+          Add Widget
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setDialog('table')}>
@@ -123,7 +121,12 @@ function AddTableDialog({ open, onOpenChange, onAdd }: DialogProps) {
         </DialogHeader>
         <div className="grid gap-2 py-2">
           <Label htmlFor="add-table-query">Query</Label>
-          <Select value={name} onValueChange={setName}>
+          <Select
+            value={name}
+            onValueChange={(value) => {
+              if (value != null) setName(value)
+            }}
+          >
             <SelectTrigger id="add-table-query" className="w-full">
               <SelectValue placeholder="Select a query…" />
             </SelectTrigger>

@@ -50,22 +50,24 @@ export const ChartCsvExportButton = function ChartCsvExportButton({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleExport}
-          aria-label="Export to CSV"
-          className={cn(
-            'size-6 rounded-full transition-opacity',
-            'relative before:content-[""] before:absolute before:-inset-4',
-            alwaysVisible
-              ? 'opacity-40 hover:opacity-100'
-              : 'opacity-0 group-hover:opacity-40 hover:!opacity-100'
-          )}
-        >
-          <Download className="size-3.5" strokeWidth={2} />
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleExport}
+            aria-label="Export to CSV"
+            className={cn(
+              'size-6 rounded-full transition-opacity',
+              'relative before:content-[""] before:absolute before:-inset-4',
+              alwaysVisible
+                ? 'opacity-40 hover:opacity-100'
+                : 'opacity-0 group-hover:opacity-40 hover:!opacity-100'
+            )}
+          />
+        }
+      >
+        <Download className="size-3.5" strokeWidth={2} />
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs">
         Export to CSV

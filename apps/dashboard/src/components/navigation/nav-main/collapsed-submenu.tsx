@@ -129,17 +129,19 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
   return (
     <ClientOnly fallback={<div className="cursor-pointer">{trigger}</div>}>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div
-            role="button"
-            tabIndex={0}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-            onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
-            className="cursor-pointer"
-          >
-            {trigger}
-          </div>
+        <PopoverTrigger
+          render={
+            <div
+              role="button"
+              tabIndex={0}
+              onMouseEnter={() => setOpen(true)}
+              onMouseLeave={() => setOpen(false)}
+              onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
+              className="cursor-pointer"
+            />
+          }
+        >
+          {trigger}
         </PopoverTrigger>
         <PopoverContent
           align="start"

@@ -356,19 +356,19 @@ export const TableClient = function TableClient({
                     <GuidanceMarkdown content={guidance.enableInstructions} />
                     {guidance.docsUrl && (
                       <Button
-                        asChild
                         variant="link"
                         size="sm"
                         className="h-auto justify-start p-0 text-xs"
-                      >
-                        <a
-                          href={guidance.docsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View ClickHouse documentation ↗
-                        </a>
-                      </Button>
+                        render={
+                          <a
+                            href={guidance.docsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View ClickHouse documentation ↗
+                          </a>
+                        }
+                      />
                     )}
                   </div>
                 ) : (
@@ -377,19 +377,19 @@ export const TableClient = function TableClient({
                       This feature requires additional ClickHouse configuration.
                     </p>
                     <Button
-                      asChild
                       variant="link"
                       size="sm"
                       className="h-auto justify-start p-0 text-xs"
-                    >
-                      <a
-                        href="https://clickhouse.com/docs/en/operations/system-tables"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View ClickHouse documentation ↗
-                      </a>
-                    </Button>
+                      render={
+                        <a
+                          href="https://clickhouse.com/docs/en/operations/system-tables"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View ClickHouse documentation ↗
+                        </a>
+                      }
+                    />
                   </div>
                 )}
                 {showRetry && (

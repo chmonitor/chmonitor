@@ -47,12 +47,20 @@ export function AppSidebar() {
             the external site (docs.chmonitor.dev), so this leaves the app. */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="sm" tooltip="Docs">
-              <a href={DOCS_SITE_URL} target="_blank" rel="noopener noreferrer">
-                <BookOpenIcon />
-                <span>Docs</span>
-              </a>
-            </SidebarMenuButton>
+            <SidebarMenuButton
+              size="sm"
+              tooltip="Docs"
+              render={
+                <a
+                  href={DOCS_SITE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <BookOpenIcon />
+                  <span>Docs</span>
+                </a>
+              }
+            />
           </SidebarMenuItem>
         </SidebarMenu>
         <NavUser user={GUEST_USER} />

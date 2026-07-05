@@ -39,21 +39,23 @@ function ScaleToggle() {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleScale}
-          aria-label={isLogScale ? 'Disable log scale' : 'Enable log scale'}
-          className={cn(
-            'size-6 rounded-full transition-opacity',
-            'relative before:content-[""] before:absolute before:-inset-4',
-            'opacity-0 group-hover:opacity-40 hover:!opacity-100',
-            isLogScale && 'text-amber-500 group-hover:opacity-70'
-          )}
-        >
-          <ScalingIcon className="size-3.5" strokeWidth={2} />
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleScale}
+            aria-label={isLogScale ? 'Disable log scale' : 'Enable log scale'}
+            className={cn(
+              'size-6 rounded-full transition-opacity',
+              'relative before:content-[""] before:absolute before:-inset-4',
+              'opacity-0 group-hover:opacity-40 hover:!opacity-100',
+              isLogScale && 'text-amber-500 group-hover:opacity-70'
+            )}
+          />
+        }
+      >
+        <ScalingIcon className="size-3.5" strokeWidth={2} />
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs">
         {isLogScale

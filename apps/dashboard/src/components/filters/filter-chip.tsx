@@ -73,23 +73,22 @@ export function FilterChip({
   return (
     <div className="inline-flex h-7 max-w-full items-center rounded-md border bg-card pl-2 pr-0.5 text-xs">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {FieldIcon && (
-              <FieldIcon
-                className="size-3.5 text-muted-foreground"
-                aria-hidden
-              />
-            )}
-            <span className="font-medium">{field.label}</span>
-            <span className="text-muted-foreground">{operatorLabel}</span>
-            <span className="max-w-[120px] truncate font-semibold text-primary sm:max-w-[180px]">
-              {valueText}
-            </span>
-          </button>
+        <PopoverTrigger
+          render={
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          }
+        >
+          {FieldIcon && (
+            <FieldIcon className="size-3.5 text-muted-foreground" aria-hidden />
+          )}
+          <span className="font-medium">{field.label}</span>
+          <span className="text-muted-foreground">{operatorLabel}</span>
+          <span className="max-w-[120px] truncate font-semibold text-primary sm:max-w-[180px]">
+            {valueText}
+          </span>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto p-3">
           <FilterEditor

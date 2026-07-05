@@ -76,7 +76,7 @@ export function ModelWindowSection({
         </Label>
         <Select
           value={settings.window}
-          onValueChange={(value) => update({ window: value })}
+          onValueChange={(value) => update({ window: value ?? undefined })}
         >
           <SelectTrigger className="w-full" aria-label="Lookback window">
             <SelectValue />

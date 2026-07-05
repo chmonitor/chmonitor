@@ -48,8 +48,12 @@ export const Plan = ({
   ...props
 }: PlanProps) => (
   <PlanContext.Provider value={{ isStreaming }}>
-    <Collapsible asChild data-slot="plan" {...props}>
-      <Card className={cn('shadow-none', className)}>{children}</Card>
+    <Collapsible
+      data-slot="plan"
+      {...props}
+      render={<Card className={cn('shadow-none', className)} />}
+    >
+      {children}
     </Collapsible>
   </PlanContext.Provider>
 )
@@ -115,9 +119,9 @@ export const PlanAction = (props: PlanActionProps) => (
 export type PlanContentProps = ComponentProps<typeof CardContent>
 
 export const PlanContent = (props: PlanContentProps) => (
-  <CollapsibleContent asChild>
-    <CardContent data-slot="plan-content" {...props} />
-  </CollapsibleContent>
+  <CollapsibleContent
+    render={<CardContent data-slot="plan-content" {...props} />}
+  />
 )
 
 export type PlanFooterProps = ComponentProps<'div'>
@@ -126,19 +130,24 @@ export const PlanFooter = (props: PlanFooterProps) => (
   <CardFooter data-slot="plan-footer" {...props} />
 )
 
-export type PlanTriggerProps = ComponentProps<typeof CollapsibleTrigger>
+export type PlanTriggerProps = Omit<
+  ComponentProps<typeof CollapsibleTrigger>,
+  'render'
+>
 
 export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
-  <CollapsibleTrigger asChild>
-    <Button
-      className={cn('size-8', className)}
-      data-slot="plan-trigger"
-      size="icon"
-      variant="ghost"
-      {...props}
-    >
-      <ChevronsUpDownIcon className="size-4" />
-      <span className="sr-only">Toggle plan</span>
-    </Button>
+  <CollapsibleTrigger
+    render={
+      <Button
+        className={cn('size-8', className)}
+        data-slot="plan-trigger"
+        size="icon"
+        variant="ghost"
+        {...(props as ComponentProps<typeof Button>)}
+      />
+    }
+  >
+    <ChevronsUpDownIcon className="size-4" />
+    <span className="sr-only">Toggle plan</span>
   </CollapsibleTrigger>
 )

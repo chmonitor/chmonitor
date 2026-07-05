@@ -123,15 +123,17 @@ export function LoadSummary({ rows }: LoadSummaryProps) {
               if (share <= 0) return null
               return (
                 <Tooltip key={sev}>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={cn(
-                        'h-full transition-all',
-                        SEVERITY_META[sev].bar
-                      )}
-                      style={{ width: `${share}%` }}
-                    />
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <div
+                        className={cn(
+                          'h-full transition-all',
+                          SEVERITY_META[sev].bar
+                        )}
+                        style={{ width: `${share}%` }}
+                      />
+                    }
+                  />
                   <TooltipContent>
                     {SEVERITY_META[sev].label}:{' '}
                     {formatReadableSecondDuration(

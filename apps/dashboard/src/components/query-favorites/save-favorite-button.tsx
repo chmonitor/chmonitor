@@ -33,26 +33,28 @@ export function SaveFavoriteButton({
     <>
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!trimmed}
-              onClick={() => {
-                if (!already) setOpen(true)
-              }}
-              className={cn(already && 'text-amber-500')}
-              aria-label={
-                already ? 'Already saved as favorite' : 'Save as favorite'
-              }
-            >
-              <Star
-                className={cn(
-                  'size-3.5',
-                  already && 'fill-amber-500 text-amber-500'
-                )}
+          <TooltipTrigger
+            render={
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!trimmed}
+                onClick={() => {
+                  if (!already) setOpen(true)
+                }}
+                className={cn(already && 'text-amber-500')}
+                aria-label={
+                  already ? 'Already saved as favorite' : 'Save as favorite'
+                }
               />
-            </Button>
+            }
+          >
+            <Star
+              className={cn(
+                'size-3.5',
+                already && 'fill-amber-500 text-amber-500'
+              )}
+            />
           </TooltipTrigger>
           <TooltipContent>
             {already ? 'Saved as favorite' : 'Save as favorite'}

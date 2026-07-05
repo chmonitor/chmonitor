@@ -75,25 +75,27 @@ function CopyableValue({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={cn(
-            'font-mono font-medium text-right truncate min-w-0 hover:text-primary cursor-pointer transition-colors inline-flex items-center gap-1 group/copy max-w-full',
-            className
-          )}
-        >
-          <span className="truncate flex-1 min-w-0">{value}</span>
-          {copied ? (
-            <Check className="size-3 text-green-500 shrink-0" strokeWidth={2} />
-          ) : (
-            <Copy
-              className="size-3 opacity-30 group-hover/copy:opacity-100 shrink-0 transition-opacity"
-              strokeWidth={1.5}
-            />
-          )}
-        </button>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={cn(
+              'font-mono font-medium text-right truncate min-w-0 hover:text-primary cursor-pointer transition-colors inline-flex items-center gap-1 group/copy max-w-full',
+              className
+            )}
+          />
+        }
+      >
+        <span className="truncate flex-1 min-w-0">{value}</span>
+        {copied ? (
+          <Check className="size-3 text-green-500 shrink-0" strokeWidth={2} />
+        ) : (
+          <Copy
+            className="size-3 opacity-30 group-hover/copy:opacity-100 shrink-0 transition-opacity"
+            strokeWidth={1.5}
+          />
+        )}
       </TooltipTrigger>
       <TooltipContent
         side="bottom"
@@ -456,21 +458,23 @@ export const ChartZoomButton = function ChartZoomButton({
 }: ChartZoomButtonProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClick}
-          disabled={disabled}
-          aria-label="Zoom chart"
-          className={cn(
-            'size-6 rounded-full transition-opacity',
-            'relative before:content-[""] before:absolute before:-inset-4',
-            'opacity-0 group-hover:opacity-40 hover:!opacity-100'
-          )}
-        >
-          <Maximize2Icon className="size-3.5" strokeWidth={2} />
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label="Zoom chart"
+            className={cn(
+              'size-6 rounded-full transition-opacity',
+              'relative before:content-[""] before:absolute before:-inset-4',
+              'opacity-0 group-hover:opacity-40 hover:!opacity-100'
+            )}
+          />
+        }
+      >
+        <Maximize2Icon className="size-3.5" strokeWidth={2} />
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs">
         Zoom to

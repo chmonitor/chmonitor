@@ -52,11 +52,9 @@ export const GithubHeatmapChart = function GithubHeatmapChart({
         endDate={endDate}
         rectRender={(props, data) => {
           return (
-            <TooltipProvider delayDuration={0}>
+            <TooltipProvider delay={0}>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <rect {...props} />
-                </TooltipTrigger>
+                <TooltipTrigger render={<rect {...props} />} />
                 <TooltipContent>
                   <p>{data.count}</p>
                 </TooltipContent>

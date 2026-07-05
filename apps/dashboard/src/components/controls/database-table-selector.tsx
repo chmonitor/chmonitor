@@ -124,7 +124,12 @@ export function DatabaseTableSelector({
         {isLoadingDatabases ? (
           <Skeleton className="h-9 w-[180px]" />
         ) : (
-          <Select value={database ?? ''} onValueChange={handleDatabaseChange}>
+          <Select
+            value={database ?? ''}
+            onValueChange={(value) => {
+              if (value != null) handleDatabaseChange(value)
+            }}
+          >
             <SelectTrigger
               className="w-[180px]"
               data-testid="database-selector"
@@ -155,7 +160,9 @@ export function DatabaseTableSelector({
         ) : (
           <Select
             value={table ?? ''}
-            onValueChange={handleTableChange}
+            onValueChange={(value) => {
+              if (value != null) handleTableChange(value)
+            }}
             disabled={!database}
           >
             <SelectTrigger className="w-[180px]" data-testid="table-selector">

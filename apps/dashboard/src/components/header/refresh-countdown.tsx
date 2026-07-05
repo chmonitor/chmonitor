@@ -46,24 +46,26 @@ export const RefreshCountdown = function RefreshCountdown() {
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'h-8 shrink-0 gap-1.5 px-2 text-xs font-normal',
-            isRefreshing && 'animate-pulse'
-          )}
-          aria-label={`Auto refresh ${reloadInterval ? `in ${formatReadableSecondDuration(remaining)}` : 'disabled'}. Click to change.`}
-        >
-          <RefreshCw
-            className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')}
-            aria-hidden="true"
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'h-8 shrink-0 gap-1.5 px-2 text-xs font-normal',
+              isRefreshing && 'animate-pulse'
+            )}
+            aria-label={`Auto refresh ${reloadInterval ? `in ${formatReadableSecondDuration(remaining)}` : 'disabled'}. Click to change.`}
           />
-          <span className="hidden font-mono text-muted-foreground tabular-nums sm:inline">
-            {reloadInterval ? formatReadableSecondDuration(remaining) : 'Off'}
-          </span>
-        </Button>
+        }
+      >
+        <RefreshCw
+          className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')}
+          aria-hidden="true"
+        />
+        <span className="hidden font-mono text-muted-foreground tabular-nums sm:inline">
+          {reloadInterval ? formatReadableSecondDuration(remaining) : 'Off'}
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuItem onClick={handleRefresh}>Refresh now</DropdownMenuItem>

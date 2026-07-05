@@ -90,7 +90,13 @@ export function LogFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select value={severityFromUrl} onValueChange={handleSeverityChange}>
+      <Select
+        value={severityFromUrl}
+        onValueChange={(value) => {
+          if (value == null) return
+          handleSeverityChange(value)
+        }}
+      >
         <SelectTrigger className="h-8 w-36 text-xs">
           <SelectValue placeholder="Severity" />
         </SelectTrigger>

@@ -134,10 +134,13 @@ function ExplorerLink({ query }: { query: string }) {
   const hostId = useHostId()
   const href = buildExplorerQueryUrl(query, hostId)
   return (
-    <Button variant="ghost" size="icon" className="size-7" asChild>
-      <Link href={href} title="Open in Explorer">
-        <ExternalLinkIcon className="size-3.5" />
-      </Link>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-7"
+      render={<Link href={href} title="Open in Explorer" />}
+    >
+      <ExternalLinkIcon className="size-3.5" />
     </Button>
   )
 }
@@ -472,20 +475,22 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className={cn(
-            'group/cell h-auto max-w-full justify-start gap-1.5 p-0 text-left font-normal hover:bg-transparent',
-            options?.trigger_classname
-          )}
-        >
-          <code className="min-w-0 truncate font-mono text-xs text-muted-foreground transition-colors group-hover/cell:text-foreground truncated">
-            {formatted}
-          </code>
-          <SizeIcon className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors group-hover/cell:text-muted-foreground" />
-        </Button>
+      <DialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn(
+              'group/cell h-auto max-w-full justify-start gap-1.5 p-0 text-left font-normal hover:bg-transparent',
+              options?.trigger_classname
+            )}
+          />
+        }
+      >
+        <code className="min-w-0 truncate font-mono text-xs text-muted-foreground transition-colors group-hover/cell:text-foreground truncated">
+          {formatted}
+        </code>
+        <SizeIcon className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors group-hover/cell:text-muted-foreground" />
       </DialogTrigger>
       <DialogContent
         className={cn(

@@ -155,7 +155,12 @@ export function RecentAlertsCard() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={hostFilter} onValueChange={setHostFilter}>
+        <Select
+          value={hostFilter}
+          onValueChange={(value) => {
+            if (value != null) setHostFilter(value)
+          }}
+        >
           <SelectTrigger className="h-8 w-[160px] text-[13px]">
             <SelectValue placeholder="All hosts" />
           </SelectTrigger>

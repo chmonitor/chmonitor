@@ -218,10 +218,8 @@ export function SqlConsole({
 
         <div className="flex items-center gap-2">
           <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-            <SheetTrigger asChild>
-              <Button size="sm" variant="outline">
-                <History className="mr-1.5 size-3.5" /> History
-              </Button>
+            <SheetTrigger render={<Button size="sm" variant="outline" />}>
+              <History className="mr-1.5 size-3.5" /> History
             </SheetTrigger>
             <SheetContent
               side="right"
@@ -245,10 +243,8 @@ export function SqlConsole({
           </Sheet>
 
           <Sheet open={favoritesOpen} onOpenChange={setFavoritesOpen}>
-            <SheetTrigger asChild>
-              <Button size="sm" variant="outline">
-                <Bookmark className="mr-1.5 size-3.5" /> Favorites
-              </Button>
+            <SheetTrigger render={<Button size="sm" variant="outline" />}>
+              <Bookmark className="mr-1.5 size-3.5" /> Favorites
             </SheetTrigger>
             <SheetContent
               side="right"

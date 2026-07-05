@@ -45,24 +45,26 @@ export function ColumnFilterPopover({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Filter ${field.label}`}
-          data-no-expand
-          onClick={(e) => e.stopPropagation()}
-          className={cn(
-            'inline-flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors',
-            'hover:bg-accent hover:text-foreground',
-            active && 'bg-primary/10 text-primary hover:bg-primary/20'
-          )}
-        >
-          {active ? (
-            <span className="size-1.5 rounded-full bg-current" aria-hidden />
-          ) : (
-            <FilterIcon className="size-3" aria-hidden />
-          )}
-        </button>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            aria-label={`Filter ${field.label}`}
+            data-no-expand
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'inline-flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors',
+              'hover:bg-accent hover:text-foreground',
+              active && 'bg-primary/10 text-primary hover:bg-primary/20'
+            )}
+          />
+        }
+      >
+        {active ? (
+          <span className="size-1.5 rounded-full bg-current" aria-hidden />
+        ) : (
+          <FilterIcon className="size-3" aria-hidden />
+        )}
       </PopoverTrigger>
       <PopoverContent
         align="start"

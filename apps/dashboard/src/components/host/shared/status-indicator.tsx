@@ -56,24 +56,26 @@ export const StatusIndicator = function StatusIndicator({
   const statusText = isOnline ? 'Online' : 'Offline'
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className={cn('relative flex cursor-pointer', size)}
-            role="status"
-            aria-label={statusText}
-          >
+        <TooltipTrigger
+          render={
             <span
-              className={cn(
-                'absolute inline-flex rounded-full',
-                size,
-                !className && 'bg-red-400',
-                className
-              )}
-              aria-hidden="true"
+              className={cn('relative flex cursor-pointer', size)}
+              role="status"
+              aria-label={statusText}
             />
-          </span>
+          }
+        >
+          <span
+            className={cn(
+              'absolute inline-flex rounded-full',
+              size,
+              !className && 'bg-red-400',
+              className
+            )}
+            aria-hidden="true"
+          />
         </TooltipTrigger>
         <TooltipContent side="bottom">
           {title.map((t, i) => (

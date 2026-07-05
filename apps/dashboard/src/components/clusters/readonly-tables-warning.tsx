@@ -60,25 +60,27 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'gap-1.5 h-8 px-2.5',
-            'text-destructive hover:text-destructive',
-            'hover:bg-destructive/10',
-            'transition-opacity',
-            alwaysVisible || isOpen
-              ? 'opacity-100'
-              : 'opacity-0 group-hover:opacity-100'
-          )}
-          aria-label={`${count} readonly tables - click for details`}
-        >
-          <AlertTriangle className="size-4" />
-          <span className="font-medium tabular-nums">{count}</span>
-          <span className="text-xs font-normal">readonly</span>
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'gap-1.5 h-8 px-2.5',
+              'text-destructive hover:text-destructive',
+              'hover:bg-destructive/10',
+              'transition-opacity',
+              alwaysVisible || isOpen
+                ? 'opacity-100'
+                : 'opacity-0 group-hover:opacity-100'
+            )}
+            aria-label={`${count} readonly tables - click for details`}
+          />
+        }
+      >
+        <AlertTriangle className="size-4" />
+        <span className="font-medium tabular-nums">{count}</span>
+        <span className="text-xs font-normal">readonly</span>
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-80 p-4">
@@ -126,12 +128,10 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
               variant="default"
               size="sm"
               className="h-7 gap-1.5 text-xs"
-              asChild
+              render={<Link href={readonlyTablesUrl} />}
             >
-              <Link href={readonlyTablesUrl}>
-                View all
-                <ExternalLink className="size-3" />
-              </Link>
+              View all
+              <ExternalLink className="size-3" />
             </Button>
           </div>
         </div>

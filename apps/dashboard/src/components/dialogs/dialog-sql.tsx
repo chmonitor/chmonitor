@@ -384,20 +384,22 @@ export function RequestInfoContent({
             <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover/sql:opacity-100 transition-opacity">
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="size-8 rounded-lg"
-                      onClick={() => handleCopy(displaySQL)}
-                      aria-label={copied ? 'Copied!' : 'Copy SQL'}
-                    >
-                      {copied ? (
-                        <Check className="size-4 text-green-500" />
-                      ) : (
-                        <Copy className="size-4" />
-                      )}
-                    </Button>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="size-8 rounded-lg"
+                        onClick={() => handleCopy(displaySQL)}
+                        aria-label={copied ? 'Copied!' : 'Copy SQL'}
+                      />
+                    }
+                  >
+                    {copied ? (
+                      <Check className="size-4 text-green-500" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
                   </TooltipTrigger>
                   <TooltipContent side="left">
                     {copied ? 'Copied!' : 'Copy SQL'}

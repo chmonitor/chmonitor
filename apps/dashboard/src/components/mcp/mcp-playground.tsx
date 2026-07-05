@@ -128,7 +128,12 @@ export function McpPlayground() {
         {/* Tool selector */}
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">Tool</Label>
-          <Select value={selectedTool} onValueChange={handleToolChange}>
+          <Select
+            value={selectedTool}
+            onValueChange={(name) => {
+              if (name != null) handleToolChange(name)
+            }}
+          >
             <SelectTrigger className="h-9 text-xs">
               <SelectValue />
             </SelectTrigger>

@@ -93,21 +93,23 @@ export const CardToolbar = function CardToolbar({
         />
       )}
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Open chart actions"
-            className={cn(
-              'size-6 transition-opacity rounded-full',
-              'relative before:content-[""] before:absolute before:-inset-4',
-              alwaysVisible
-                ? 'opacity-40 hover:opacity-100'
-                : 'opacity-0 group-hover:opacity-40 hover:!opacity-100'
-            )}
-          >
-            <MoreHorizontal className="size-3.5" strokeWidth={2} />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Open chart actions"
+              className={cn(
+                'size-6 transition-opacity rounded-full',
+                'relative before:content-[""] before:absolute before:-inset-4',
+                alwaysVisible
+                  ? 'opacity-40 hover:opacity-100'
+                  : 'opacity-0 group-hover:opacity-40 hover:!opacity-100'
+              )}
+            />
+          }
+        >
+          <MoreHorizontal className="size-3.5" strokeWidth={2} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[140px]">
           {hasRequestInfo && (

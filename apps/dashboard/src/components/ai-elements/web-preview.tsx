@@ -107,17 +107,19 @@ export const WebPreviewNavigationButton = ({
 }: WebPreviewNavigationButtonProps) => (
   <TooltipProvider>
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          className="size-8 p-0 hover:text-foreground"
-          disabled={disabled}
-          onClick={onClick}
-          size="sm"
-          variant="ghost"
-          {...props}
-        >
-          {children}
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            className="size-8 p-0 hover:text-foreground"
+            disabled={disabled}
+            onClick={onClick}
+            size="sm"
+            variant="ghost"
+            {...props}
+          />
+        }
+      >
+        {children}
       </TooltipTrigger>
       <TooltipContent>
         <p>{tooltip}</p>
@@ -216,19 +218,21 @@ export const WebPreviewConsole = ({
       open={consoleOpen}
       {...props}
     >
-      <CollapsibleTrigger asChild>
-        <Button
-          className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50"
-          variant="ghost"
-        >
-          Console
-          <ChevronDownIcon
-            className={cn(
-              'h-4 w-4 transition-transform duration-200',
-              consoleOpen && 'rotate-180'
-            )}
+      <CollapsibleTrigger
+        render={
+          <Button
+            className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50"
+            variant="ghost"
           />
-        </Button>
+        }
+      >
+        Console
+        <ChevronDownIcon
+          className={cn(
+            'h-4 w-4 transition-transform duration-200',
+            consoleOpen && 'rotate-180'
+          )}
+        />
       </CollapsibleTrigger>
       <CollapsibleContent
         className={cn(

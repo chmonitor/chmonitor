@@ -117,16 +117,20 @@ function AboutPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" asChild>
-                <a
-                  href={GITHUB_REPO.replace('git+', '').replace('.git', '')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-2 size-4" />
-                  View Repository
-                </a>
-              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                render={
+                  <a
+                    href={GITHUB_REPO.replace('git+', '').replace('.git', '')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="mr-2 size-4" />
+                    View Repository
+                  </a>
+                }
+              />
             </CardContent>
           </Card>
 
@@ -141,16 +145,20 @@ function AboutPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" asChild>
-                <a
-                  href={`${GITHUB_REPO.replace('git+', '').replace('.git', '')}#readme`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <BookOpen className="mr-2 size-4" />
-                  Read Docs
-                </a>
-              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                render={
+                  <a
+                    href={`${GITHUB_REPO.replace('git+', '').replace('.git', '')}#readme`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <BookOpen className="mr-2 size-4" />
+                    Read Docs
+                  </a>
+                }
+              />
             </CardContent>
           </Card>
         </div>

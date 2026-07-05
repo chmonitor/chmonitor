@@ -88,15 +88,20 @@ export function PeerDBConnectionStatus() {
     .join(' · ')
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="outline" className={cn('gap-1.5', meta.className)}>
-            <Icon
-              className={cn('size-3', state === 'checking' && 'animate-spin')}
+        <TooltipTrigger
+          render={
+            <Badge
+              variant="outline"
+              className={cn('gap-1.5', meta.className)}
             />
-            PeerDB: {meta.label}
-          </Badge>
+          }
+        >
+          <Icon
+            className={cn('size-3', state === 'checking' && 'animate-spin')}
+          />
+          PeerDB: {meta.label}
         </TooltipTrigger>
         <TooltipContent>{tooltip}</TooltipContent>
       </Tooltip>

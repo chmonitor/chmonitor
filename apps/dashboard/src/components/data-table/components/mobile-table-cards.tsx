@@ -131,17 +131,19 @@ export function MobileSortMenu<TData extends RowData>({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 max-w-full gap-2 text-xs"
-          data-testid="mobile-table-sort"
-        >
-          <ArrowUpDown className="size-3.5 shrink-0" />
-          <span className="min-w-0 truncate">{activeLabel}</span>
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 max-w-full gap-2 text-xs"
+            data-testid="mobile-table-sort"
+          />
+        }
+      >
+        <ArrowUpDown className="size-3.5 shrink-0" />
+        <span className="min-w-0 truncate">{activeLabel}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

@@ -20,7 +20,7 @@ export const HostPrefixedLink = ({
   ...props
 }: {
   href: string
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
   /**
    * Hrefs of sibling menu items rendered alongside this link (e.g. the other

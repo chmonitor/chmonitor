@@ -240,17 +240,21 @@ function PatternDetailSheetContent({
           {normalizedQuery || '—'}
         </pre>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" asChild>
-            <Link href={explorerHref}>
-              <ExternalLinkIcon className="mr-1.5 size-3.5" />
-              Open in Explorer
-            </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link href={explorerHref} />}
+          >
+            <ExternalLinkIcon className="mr-1.5 size-3.5" />
+            Open in Explorer
           </Button>
-          <Button size="sm" variant="outline" asChild>
-            <Link href={explainHref}>
-              <LightbulbIcon className="mr-1.5 size-3.5" />
-              Explain
-            </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link href={explainHref} />}
+          >
+            <LightbulbIcon className="mr-1.5 size-3.5" />
+            Explain
           </Button>
         </div>
       </SheetHeader>

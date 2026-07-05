@@ -106,7 +106,12 @@ function InboundEventsPage() {
 
       {/* Filter bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <Select value={source} onValueChange={setSource}>
+        <Select
+          value={source}
+          onValueChange={(value) => {
+            if (value != null) setSource(value)
+          }}
+        >
           <SelectTrigger className="h-8 w-full sm:w-44">
             <SelectValue placeholder="Source" />
           </SelectTrigger>
@@ -117,7 +122,12 @@ function InboundEventsPage() {
             <SelectItem value="generic">Generic</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={severity} onValueChange={setSeverity}>
+        <Select
+          value={severity}
+          onValueChange={(value) => {
+            if (value != null) setSeverity(value)
+          }}
+        >
           <SelectTrigger className="h-8 w-full sm:w-44">
             <SelectValue placeholder="Severity" />
           </SelectTrigger>

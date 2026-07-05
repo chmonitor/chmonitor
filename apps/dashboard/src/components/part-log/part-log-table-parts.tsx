@@ -211,19 +211,19 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
           variant="default"
           size="sm"
           className="h-7 gap-1.5 text-[11.5px]"
-          asChild
-        >
-          <a
-            href={buildUrl('/tables', {
-              host: hostId,
-              database: row.database,
-              table: row.table_name,
-            })}
-          >
-            <ZoomIn className="size-3" />
-            Inspect part
-          </a>
-        </Button>
+          render={
+            <a
+              href={buildUrl('/tables', {
+                host: hostId,
+                database: row.database,
+                table: row.table_name,
+              })}
+            >
+              <ZoomIn className="size-3" />
+              Inspect part
+            </a>
+          }
+        />
         <Button
           variant="outline"
           size="sm"
@@ -237,31 +237,31 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
           variant="outline"
           size="sm"
           className="h-7 gap-1.5 text-[11.5px]"
-          asChild
-        >
-          <a href={buildUrl('/merges', { host: hostId })}>
-            <Merge className="size-3" />
-            Merge tree
-          </a>
-        </Button>
+          render={
+            <a href={buildUrl('/merges', { host: hostId })}>
+              <Merge className="size-3" />
+              Merge tree
+            </a>
+          }
+        />
         <div className="ml-auto" />
         <Button
           variant="outline"
           size="sm"
           className="h-7 gap-1.5 text-[11.5px]"
-          asChild
-        >
-          <a
-            href={buildUrl('/tables', {
-              host: hostId,
-              database: row.database,
-              table: row.table_name,
-            })}
-          >
-            <ExternalLink className="size-3" />
-            Open in Tables
-          </a>
-        </Button>
+          render={
+            <a
+              href={buildUrl('/tables', {
+                host: hostId,
+                database: row.database,
+                table: row.table_name,
+              })}
+            >
+              <ExternalLink className="size-3" />
+              Open in Tables
+            </a>
+          }
+        />
       </div>
     </div>
   )

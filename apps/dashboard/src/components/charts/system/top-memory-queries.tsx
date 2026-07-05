@@ -131,17 +131,23 @@ function QueryDetailDialog({
 
         {/* Action footer */}
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-3">
-          <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
-            <Link href={explorerUrl}>
-              <ExternalLink className="size-3.5" />
-              Open in Explorer
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5"
+            render={<Link href={explorerUrl} />}
+          >
+            <ExternalLink className="size-3.5" />
+            Open in Explorer
           </Button>
-          <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
-            <Link href={explainUrl}>
-              <Lightbulb className="size-3.5" />
-              Explain
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5"
+            render={<Link href={explainUrl} />}
+          >
+            <Lightbulb className="size-3.5" />
+            Explain
           </Button>
         </div>
       </DialogContent>

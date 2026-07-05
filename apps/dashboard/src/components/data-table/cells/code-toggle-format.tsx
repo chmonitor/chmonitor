@@ -26,8 +26,8 @@ export const CodeToggleFormat = function CodeToggleFormat<
 >({ row, value, options }: CodeToggleFormatProps<TData>): React.ReactNode {
   const truncate_length = options?.max_truncate || CODE_TRUNCATE_LENGTH
 
-  const handleValueChange = (accordionValue: string) => {
-    row.toggleExpanded(accordionValue === 'code')
+  const handleValueChange = (accordionValue: string[]) => {
+    row.toggleExpanded(accordionValue.includes('code'))
   }
 
   if (value.length < truncate_length) {
@@ -42,9 +42,7 @@ export const CodeToggleFormat = function CodeToggleFormat<
 
   return (
     <Accordion
-      type="single"
-      defaultValue={row.getIsExpanded() ? 'code' : undefined}
-      collapsible={row.getIsExpanded()}
+      defaultValue={row.getIsExpanded() ? ['code'] : []}
       onValueChange={handleValueChange}
     >
       <AccordionItem value="code" className="border-0">

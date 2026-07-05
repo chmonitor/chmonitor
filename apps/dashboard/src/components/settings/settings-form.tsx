@@ -107,7 +107,7 @@ export function SettingsForm({
         </div>
         <Select
           value={settings.timezone}
-          onValueChange={(value) => onUpdate({ timezone: value })}
+          onValueChange={(value) => onUpdate({ timezone: value ?? undefined })}
         >
           <SelectTrigger id="timezone" className="h-9">
             <SelectValue placeholder="Select timezone" />

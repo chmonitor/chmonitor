@@ -43,24 +43,26 @@ export const ChartStaleIndicator = function ChartStaleIndicator({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            'size-6 transition-opacity rounded-full',
-            'text-amber-500 dark:text-amber-400',
-            'hover:bg-amber-500/10 dark:hover:bg-amber-400/10',
-            'relative before:content-[""] before:absolute before:-inset-4',
-            alwaysVisible || isOpen
-              ? 'opacity-60 hover:opacity-100'
-              : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
-          )}
-          aria-label="Data may be stale - click for details"
-          title="Data may be stale"
-        >
-          <AlertCircle className="size-3.5" strokeWidth={2} />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'size-6 transition-opacity rounded-full',
+              'text-amber-500 dark:text-amber-400',
+              'hover:bg-amber-500/10 dark:hover:bg-amber-400/10',
+              'relative before:content-[""] before:absolute before:-inset-4',
+              alwaysVisible || isOpen
+                ? 'opacity-60 hover:opacity-100'
+                : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
+            )}
+            aria-label="Data may be stale - click for details"
+            title="Data may be stale"
+          />
+        }
+      >
+        <AlertCircle className="size-3.5" strokeWidth={2} />
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-72 p-4">

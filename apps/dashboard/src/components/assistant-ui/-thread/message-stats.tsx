@@ -344,10 +344,10 @@ export function MessageStatsFooter() {
       {/* Timestamp with tooltip */}
       {hasTimestamp && (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="cursor-default tabular-nums">
-              {formatRelative(createdAt as Date)}
-            </span>
+          <TooltipTrigger
+            render={<span className="cursor-default tabular-nums" />}
+          >
+            {formatRelative(createdAt as Date)}
           </TooltipTrigger>
           <TooltipContent side="top" className="text-xs">
             {formatAbsolute(createdAt as Date)}
@@ -358,14 +358,16 @@ export function MessageStatsFooter() {
       {/* Details dialog trigger */}
       {(hasTokens || hasDuration) && (
         <Dialog>
-          <DialogTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-0.5 hover:text-foreground transition-colors"
-              aria-label="View response details"
-            >
-              <InfoIcon className="size-2.5 shrink-0" />
-            </button>
+          <DialogTrigger
+            render={
+              <button
+                type="button"
+                className="flex items-center gap-0.5 hover:text-foreground transition-colors"
+                aria-label="View response details"
+              />
+            }
+          >
+            <InfoIcon className="size-2.5 shrink-0" />
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>

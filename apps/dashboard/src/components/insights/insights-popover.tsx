@@ -120,24 +120,22 @@ export function InsightsPopover() {
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <div className="relative hidden sm:flex">
-          <IconButton
-            tooltip={`${total} AI insight${total === 1 ? '' : 's'}`}
-            icon={<Sparkles className="size-4" />}
-            className="hidden sm:flex"
-          />
-          {total > 0 && (
-            <Badge
-              className={cn(
-                'absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center border-transparent p-0 text-[10px] font-medium tabular-nums',
-                badgeTone
-              )}
-            >
-              {total > 99 ? '99+' : total}
-            </Badge>
-          )}
-        </div>
+      <PopoverTrigger render={<div className="relative hidden sm:flex" />}>
+        <IconButton
+          tooltip={`${total} AI insight${total === 1 ? '' : 's'}`}
+          icon={<Sparkles className="size-4" />}
+          className="hidden sm:flex"
+        />
+        {total > 0 && (
+          <Badge
+            className={cn(
+              'absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center border-transparent p-0 text-[10px] font-medium tabular-nums',
+              badgeTone
+            )}
+          >
+            {total > 99 ? '99+' : total}
+          </Badge>
+        )}
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-80 p-0">
@@ -160,11 +158,9 @@ export function InsightsPopover() {
               size="icon"
               className="size-7 text-muted-foreground"
               aria-label="AI Insights settings"
-              asChild
+              render={<Link href={settingsHref} />}
             >
-              <Link href={settingsHref}>
-                <Settings2 className="size-3.5" />
-              </Link>
+              <Settings2 className="size-3.5" />
             </Button>
             <Button
               variant="ghost"
@@ -215,12 +211,12 @@ export function InsightsPopover() {
             variant="ghost"
             size="sm"
             className="h-7 gap-1 px-2 text-xs"
-            asChild
+            render={
+              <Link href={overviewHref} onClick={() => setIsOpen(false)} />
+            }
           >
-            <Link href={overviewHref} onClick={() => setIsOpen(false)}>
-              View all
-              <ArrowRight className="size-3" />
-            </Link>
+            View all
+            <ArrowRight className="size-3" />
           </Button>
         </div>
       </PopoverContent>

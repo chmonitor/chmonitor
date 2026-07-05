@@ -34,9 +34,10 @@ export function FeatureUnavailable({
                 : `The ${feature} feature is disabled for this deployment.`}
             </p>
           </div>
-          <Button asChild variant="outline">
-            <a href={`/overview?host=${hostId}`}>Go to overview</a>
-          </Button>
+          <Button
+            variant="outline"
+            render={<a href={`/overview?host=${hostId}`}>Go to overview</a>}
+          />
         </CardContent>
       </Card>
     </div>

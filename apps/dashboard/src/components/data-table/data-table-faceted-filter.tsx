@@ -44,16 +44,18 @@ export function DataTableFacetedFilter({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          data-is-activate={selectedCount > 0}
-          className="data-[is-activate=true]:bg-accent"
-        >
-          <ListFilterIcon className="mr-2 size-4" />
-          {title}
-          {selectedCount > 0 && ` (${selectedCount})`}
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            data-is-activate={selectedCount > 0}
+            className="data-[is-activate=true]:bg-accent"
+          />
+        }
+      >
+        <ListFilterIcon className="mr-2 size-4" />
+        {title}
+        {selectedCount > 0 && ` (${selectedCount})`}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-fit min-w-[170px]">
         {filters.map(({ name, key, value, ...preset }) => (

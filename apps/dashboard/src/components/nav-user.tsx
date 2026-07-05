@@ -111,7 +111,7 @@ export function NavUser({
         <SidebarMenuItem>
           <ClientOnly fallback={userButton}>
             <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>{userButton}</DropdownMenuTrigger>
+              <DropdownMenuTrigger render={userButton} />
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                 side={isMobile ? 'bottom' : 'right'}
@@ -156,18 +156,20 @@ export function NavUser({
                     <Info className="size-4" />
                     <span>About</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a
-                      href="https://github.com/chmonitor/chmonitor"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2"
-                      data-testid="nav-user-github"
-                    >
-                      <ExternalLink className="size-4" />
-                      <span>GitHub Repo</span>
-                    </a>
-                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    render={
+                      <a
+                        href="https://github.com/chmonitor/chmonitor"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2"
+                        data-testid="nav-user-github"
+                      >
+                        <ExternalLink className="size-4" />
+                        <span>GitHub Repo</span>
+                      </a>
+                    }
+                  />
                   {canUseSettings && (
                     <DropdownMenuItem
                       className="flex items-center gap-2"

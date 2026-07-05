@@ -63,14 +63,16 @@ export const ChartRow = function ChartRow({
       <div className="group relative">
         {/* Collapsed state - compact chart summaries, click to expand */}
         {isCollapsed && (
-          <CollapsibleTrigger asChild>
-            <div className="group/row relative flex h-10 w-full min-w-0 items-center gap-2 rounded-lg border border-dashed bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer px-3">
-              <ChartRowSummary charts={charts} />
-              <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
-                Show
-                <ChevronDownIcon className="size-3" />
-              </span>
-            </div>
+          <CollapsibleTrigger
+            render={
+              <div className="group/row relative flex h-10 w-full min-w-0 items-center gap-2 rounded-lg border border-dashed bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer px-3" />
+            }
+          >
+            <ChartRowSummary charts={charts} />
+            <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
+              Show
+              <ChevronDownIcon className="size-3" />
+            </span>
           </CollapsibleTrigger>
         )}
 
@@ -137,22 +139,24 @@ export const ChartRow = function ChartRow({
                 })}
               </div>
               {/* Hide pill - bottom center, shows on hover */}
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'absolute z-50 h-6 px-3 gap-1',
-                    'bottom-2 left-1/2 -translate-x-1/2',
-                    'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-                    'bg-muted hover:bg-muted/80 text-muted-foreground',
-                    'rounded-full text-xs'
-                  )}
-                  aria-label="Collapse row"
-                >
-                  <ChevronUpIcon className="size-3" />
-                  <span>Hide</span>
-                </Button>
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'absolute z-50 h-6 px-3 gap-1',
+                      'bottom-2 left-1/2 -translate-x-1/2',
+                      'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                      'bg-muted hover:bg-muted/80 text-muted-foreground',
+                      'rounded-full text-xs'
+                    )}
+                    aria-label="Collapse row"
+                  />
+                }
+              >
+                <ChevronUpIcon className="size-3" />
+                <span>Hide</span>
               </CollapsibleTrigger>
             </div>
           )}

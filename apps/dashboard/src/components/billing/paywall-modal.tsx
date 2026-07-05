@@ -132,9 +132,9 @@ export function PaywallModal({
           </Button>
           {showHardCta &&
             (action.kind === 'contact' ? (
-              <Button asChild>
-                <a href="mailto:hello@chmonitor.dev">Contact us</a>
-              </Button>
+              <Button
+                render={<a href="mailto:hello@chmonitor.dev">Contact us</a>}
+              />
             ) : (
               <Button
                 onClick={onUpgrade}

@@ -36,14 +36,19 @@ export function SuggestionChip({
   if (!expanded) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge
-            variant="outline"
-            className={cn('cursor-pointer text-[11px] font-medium', badgeClass)}
-            onClick={() => setExpanded(true)}
-          >
-            {suggestion.title}
-          </Badge>
+        <TooltipTrigger
+          render={
+            <Badge
+              variant="outline"
+              className={cn(
+                'cursor-pointer text-[11px] font-medium',
+                badgeClass
+              )}
+              onClick={() => setExpanded(true)}
+            />
+          }
+        >
+          {suggestion.title}
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs text-xs">
           {suggestion.rationale}

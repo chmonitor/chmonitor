@@ -53,37 +53,39 @@ export const MenuListItem = function MenuListItem({
 
   return (
     <li>
-      <NavigationMenuLink asChild>
-        <HostPrefixedLink
-          href={item.href}
-          siblingHrefs={siblingHrefs}
-          className="group"
-          data-active={isActive ? 'true' : undefined}
-          data-testid={
-            item.href === '/clusters'
-              ? 'nav-clusters'
-              : item.href === '/table'
-                ? 'nav-databases'
-                : undefined
-          }
+      <NavigationMenuLink
+        render={
+          <HostPrefixedLink
+            href={item.href}
+            siblingHrefs={siblingHrefs}
+            className="group"
+            data-active={isActive ? 'true' : undefined}
+            data-testid={
+              item.href === '/clusters'
+                ? 'nav-clusters'
+                : item.href === '/table'
+                  ? 'nav-databases'
+                  : undefined
+            }
+          />
+        }
+      >
+        <div
+          className={cn(
+            'relative block space-y-0.5 rounded-md px-2.5 py-2 leading-none no-underline outline-hidden transition-colors select-none',
+            'hover:bg-accent/60 hover:text-foreground',
+            'focus:bg-accent/60 focus:text-foreground',
+            'group-data-[active=true]:bg-accent/50 group-data-[active=true]:text-foreground'
+          )}
         >
-          <div
-            className={cn(
-              'relative block space-y-0.5 rounded-md px-2.5 py-2 leading-none no-underline outline-hidden transition-colors select-none',
-              'hover:bg-accent/60 hover:text-foreground',
-              'focus:bg-accent/60 focus:text-foreground',
-              'group-data-[active=true]:bg-accent/50 group-data-[active=true]:text-foreground'
-            )}
-          >
-            <ActiveIndicator position="left" />
-            <div className="overflow-hidden text-[13px] leading-tight font-medium text-ellipsis">
-              {title}
-            </div>
-            <p className="text-muted-foreground line-clamp-1 text-xs leading-relaxed mt-0.5">
-              {item.description}
-            </p>
+          <ActiveIndicator position="left" />
+          <div className="overflow-hidden text-[13px] leading-tight font-medium text-ellipsis">
+            {title}
           </div>
-        </HostPrefixedLink>
+          <p className="text-muted-foreground line-clamp-1 text-xs leading-relaxed mt-0.5">
+            {item.description}
+          </p>
+        </div>
       </NavigationMenuLink>
     </li>
   )

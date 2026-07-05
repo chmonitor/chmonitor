@@ -96,7 +96,12 @@ export function SavedDashboardsToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select value={activeName} onValueChange={handleLoad}>
+      <Select
+        value={activeName}
+        onValueChange={(value) => {
+          if (value != null) void handleLoad(value)
+        }}
+      >
         <SelectTrigger
           className="w-full sm:w-48"
           aria-label={

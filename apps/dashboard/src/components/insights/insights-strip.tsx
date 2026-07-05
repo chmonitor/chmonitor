@@ -92,12 +92,10 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
             variant="ghost"
             size="sm"
             className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-            asChild
+            render={<AppLink href={buildUrl('/insights', { host: hostId })} />}
           >
-            <AppLink href={buildUrl('/insights', { host: hostId })}>
-              View all insights
-              <ArrowRight className="size-3.5" />
-            </AppLink>
+            View all insights
+            <ArrowRight className="size-3.5" />
           </Button>
           <Button
             type="button"
@@ -121,11 +119,13 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
             size="icon"
             className="size-7 text-muted-foreground hover:text-foreground"
             aria-label="AI Insights settings"
-            asChild
+            render={
+              <AppLink
+                href={buildUrl('/insights-settings', { host: hostId })}
+              />
+            }
           >
-            <AppLink href={buildUrl('/insights-settings', { host: hostId })}>
-              <Settings2 className="size-3.5" />
-            </AppLink>
+            <Settings2 className="size-3.5" />
           </Button>
         </div>
       </div>

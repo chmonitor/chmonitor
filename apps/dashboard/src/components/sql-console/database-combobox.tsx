@@ -56,21 +56,23 @@ export function DatabaseCombobox({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          role="combobox"
-          aria-expanded={open}
-          aria-label="Current database"
-          className="gap-1.5 font-normal"
-        >
-          <Database className="size-3.5 opacity-70" />
-          <span className="max-w-[140px] truncate">
-            {value || 'Default database'}
-          </span>
-          <ChevronsUpDown className="size-3.5 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            role="combobox"
+            aria-expanded={open}
+            aria-label="Current database"
+            className="gap-1.5 font-normal"
+          />
+        }
+      >
+        <Database className="size-3.5 opacity-70" />
+        <span className="max-w-[140px] truncate">
+          {value || 'Default database'}
+        </span>
+        <ChevronsUpDown className="size-3.5 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[240px] p-0" align="start">
         <Command>

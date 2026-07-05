@@ -37,22 +37,24 @@ export function ExpandableCell({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="link"
-          className={cn(
-            'block h-auto max-w-xs truncate p-0 text-left font-normal text-foreground',
-            'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:decoration-muted-foreground/80',
-            className
-          )}
-          title="Click to expand"
-          onClick={(e) => {
-            e.stopPropagation()
-          }}
-        >
-          {stringValue.slice(0, maxLength)}…
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="link"
+            className={cn(
+              'block h-auto max-w-xs truncate p-0 text-left font-normal text-foreground',
+              'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:decoration-muted-foreground/80',
+              className
+            )}
+            title="Click to expand"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          />
+        }
+      >
+        {stringValue.slice(0, maxLength)}…
       </PopoverTrigger>
       <PopoverContent
         className="max-h-64 w-[calc(100vw-2rem)] overflow-y-auto p-3 sm:w-96"

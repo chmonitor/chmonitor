@@ -151,16 +151,18 @@ function KeeperTypeBadge({ version }: { version: string | undefined }) {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant="outline"
-          className={cn(
-            'text-[10.5px] font-semibold px-1.5 py-0 cursor-default',
-            KEEPER_TYPE_STYLES[type]
-          )}
-        >
-          {label}
-        </Badge>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10.5px] font-semibold px-1.5 py-0 cursor-default',
+              KEEPER_TYPE_STYLES[type]
+            )}
+          />
+        }
+      >
+        {label}
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[260px] text-center">
         {version ? `Detected from version: ${version}` : 'Version not reported'}
@@ -232,27 +234,29 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
           <KeeperTypeBadge version={row.version} />
           {/* Connection status dot */}
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span
-                className={cn(
-                  'inline-flex items-center justify-center size-4 rounded-full cursor-default',
-                  connected
-                    ? 'bg-emerald-100 dark:bg-emerald-900/30'
-                    : 'bg-rose-100 dark:bg-rose-900/30'
-                )}
-              >
-                {connected ? (
-                  <Wifi
-                    className="size-2.5 text-emerald-600 dark:text-emerald-400"
-                    aria-label="Connected"
-                  />
-                ) : (
-                  <WifiOff
-                    className="size-2.5 text-rose-600 dark:text-rose-400"
-                    aria-label="Disconnected"
-                  />
-                )}
-              </span>
+            <TooltipTrigger
+              render={
+                <span
+                  className={cn(
+                    'inline-flex items-center justify-center size-4 rounded-full cursor-default',
+                    connected
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                      : 'bg-rose-100 dark:bg-rose-900/30'
+                  )}
+                />
+              }
+            >
+              {connected ? (
+                <Wifi
+                  className="size-2.5 text-emerald-600 dark:text-emerald-400"
+                  aria-label="Connected"
+                />
+              ) : (
+                <WifiOff
+                  className="size-2.5 text-rose-600 dark:text-rose-400"
+                  aria-label="Disconnected"
+                />
+              )}
             </TooltipTrigger>
             <TooltipContent side="top">
               {connected ? 'Connected' : 'Disconnected'}
@@ -429,7 +433,7 @@ export function KeeperNodeCards() {
   }
 
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delay={300}>
       <div className="flex flex-col gap-4">
         {Array.from(clusters.entries()).map(([clusterName, nodes]) => (
           <div key={clusterName} className="flex flex-col gap-2">

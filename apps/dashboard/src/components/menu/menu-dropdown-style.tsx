@@ -27,15 +27,17 @@ export const MenuDropdownStyle = function MenuDropdownStyle({
 }: MenuProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className={className}
-          aria-label="Open menu"
-          aria-haspopup="true"
-        >
-          <HamburgerMenuIcon className="size-3" aria-hidden="true" />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            className={className}
+            aria-label="Open menu"
+            aria-haspopup="true"
+          />
+        }
+      >
+        <HamburgerMenuIcon className="size-3" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-56"

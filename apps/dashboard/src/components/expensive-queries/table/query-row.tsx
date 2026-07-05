@@ -184,18 +184,20 @@ export const QueryRow = memo(function QueryRow({
               }
             />
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
-                  aria-label="Open in Explorer"
-                  asChild
-                >
-                  <Link href={buildExplorerQueryUrl(d.query, hostId)}>
-                    <ExternalLink className="size-3.5" />
-                  </Link>
-                </Button>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
+                    aria-label="Open in Explorer"
+                    render={
+                      <Link href={buildExplorerQueryUrl(d.query, hostId)} />
+                    }
+                  />
+                }
+              >
+                <ExternalLink className="size-3.5" />
               </TooltipTrigger>
               <TooltipContent>Open in Explorer</TooltipContent>
             </Tooltip>

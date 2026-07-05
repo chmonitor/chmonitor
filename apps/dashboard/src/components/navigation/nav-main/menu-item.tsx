@@ -87,7 +87,6 @@ const SingleMenuItem = function SingleMenuItem({
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        asChild
         isActive={isActive}
         tooltip={
           available
@@ -95,17 +94,18 @@ const SingleMenuItem = function SingleMenuItem({
             : `${item.title} (System table not found on this host)`
         }
         className={available ? '' : 'opacity-50 text-muted-foreground/50'}
+        render={
+          <HostPrefixedLink
+            href={item.href}
+            className="flex w-full items-center"
+            onClick={closeMobileSidebar}
+          />
+        }
       >
-        <HostPrefixedLink
-          href={item.href}
-          className="flex w-full items-center"
-          onClick={closeMobileSidebar}
-        >
-          {item.icon && <item.icon className="size-4 shrink-0" />}
-          <span className="group-data-[state=collapsed]/sidebar:hidden">
-            {item.title}
-          </span>
-        </HostPrefixedLink>
+        {item.icon && <item.icon className="size-4 shrink-0" />}
+        <span className="group-data-[state=collapsed]/sidebar:hidden">
+          {item.title}
+        </span>
       </SidebarMenuButton>
       {item.isNew && (
         <SidebarMenuBadge>
@@ -150,42 +150,42 @@ const SubMenuItem = function SubMenuItem({
   return (
     <SidebarMenuSubItem>
       <SidebarMenuSubButton
-        asChild
         isActive={isMenuItemActiveAmongSiblings(
           subItem.href,
           siblingHrefs,
           pathname
         )}
         className={available ? '' : 'opacity-50 text-muted-foreground/50'}
+        render={
+          <HostPrefixedLink
+            href={subItem.href}
+            siblingHrefs={siblingHrefs}
+            className="flex w-full items-center gap-2"
+            onClick={closeMobileSidebar}
+          />
+        }
       >
-        <HostPrefixedLink
-          href={subItem.href}
-          siblingHrefs={siblingHrefs}
-          className="flex w-full items-center gap-2"
-          onClick={closeMobileSidebar}
-        >
-          <span className="group-data-[state=collapsed]/sidebar:hidden min-w-0 truncate">
-            {subItem.title}
+        <span className="group-data-[state=collapsed]/sidebar:hidden min-w-0 truncate">
+          {subItem.title}
+        </span>
+        {subItem.isNew && (
+          <span className="ml-auto flex shrink-0">
+            <Suspense fallback={null}>
+              <NewBadge href={subItem.href} isNew={subItem.isNew} />
+            </Suspense>
           </span>
-          {subItem.isNew && (
-            <span className="ml-auto flex shrink-0">
-              <Suspense fallback={null}>
-                <NewBadge href={subItem.href} isNew={subItem.isNew} />
-              </Suspense>
-            </span>
-          )}
-          {subItem.countKey && (
-            <span className="ml-auto flex shrink-0">
-              <Suspense fallback={null}>
-                <CountBadge
-                  countKey={subItem.countKey}
-                  countLabel={subItem.countLabel}
-                  countVariant={subItem.countVariant}
-                />
-              </Suspense>
-            </span>
-          )}
-        </HostPrefixedLink>
+        )}
+        {subItem.countKey && (
+          <span className="ml-auto flex shrink-0">
+            <Suspense fallback={null}>
+              <CountBadge
+                countKey={subItem.countKey}
+                countLabel={subItem.countLabel}
+                countVariant={subItem.countVariant}
+              />
+            </Suspense>
+          </span>
+        )}
       </SidebarMenuSubButton>
     </SidebarMenuSubItem>
   )
@@ -249,44 +249,44 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   // Entire button (text + chevron) triggers toggle
   return (
     <Collapsible
-      asChild
       defaultOpen={hasActiveChild}
       className="group/collapsible"
+      render={<SidebarMenuItem />}
     >
-      <SidebarMenuItem>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton isActive={hasActiveChild} tooltip={item.title}>
-            {item.icon && <item.icon className="size-4" />}
-            <span>{item.title}</span>
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        {item.countKey && (
-          <SidebarMenuBadge>
-            <Suspense fallback={null}>
-              <CountBadge
-                countKey={item.countKey}
-                countLabel={item.countLabel}
-                countVariant={item.countVariant}
-              />
-            </Suspense>
-          </SidebarMenuBadge>
-        )}
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {item.items?.map((subItem) => (
-              <SubMenuItem
-                key={subItem.href}
-                subItem={subItem}
-                pathname={pathname}
-                hostId={hostId}
-                siblingHrefs={siblingHrefs}
-                closeMobileSidebar={closeMobileSidebar}
-              />
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </SidebarMenuItem>
+      <CollapsibleTrigger
+        render={
+          <SidebarMenuButton isActive={hasActiveChild} tooltip={item.title} />
+        }
+      >
+        {item.icon && <item.icon className="size-4" />}
+        <span>{item.title}</span>
+        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+      </CollapsibleTrigger>
+      {item.countKey && (
+        <SidebarMenuBadge>
+          <Suspense fallback={null}>
+            <CountBadge
+              countKey={item.countKey}
+              countLabel={item.countLabel}
+              countVariant={item.countVariant}
+            />
+          </Suspense>
+        </SidebarMenuBadge>
+      )}
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {item.items?.map((subItem) => (
+            <SubMenuItem
+              key={subItem.href}
+              subItem={subItem}
+              pathname={pathname}
+              hostId={hostId}
+              siblingHrefs={siblingHrefs}
+              closeMobileSidebar={closeMobileSidebar}
+            />
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
     </Collapsible>
   )
 }

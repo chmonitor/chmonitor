@@ -84,38 +84,40 @@ function DataSourceItem({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            'flex w-full items-center gap-2 px-3 py-2 text-left',
-            'hover:bg-muted/30 transition-colors',
-            isOpen && 'bg-muted/20'
-          )}
+      <CollapsibleTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              'flex w-full items-center gap-2 px-3 py-2 text-left',
+              'hover:bg-muted/30 transition-colors',
+              isOpen && 'bg-muted/20'
+            )}
+          />
+        }
+      >
+        <ChevronToggle open={isOpen} />
+
+        <TableIcon className="size-3.5 shrink-0 text-muted-foreground" />
+
+        <span className="flex-1 min-w-0 text-xs font-semibold text-foreground truncate">
+          {source.database}.{source.table}
+        </span>
+
+        <Badge
+          variant="outline"
+          className="shrink-0 px-1.5 py-0 text-[10px] font-normal"
         >
-          <ChevronToggle open={isOpen} />
+          {source.engine}
+        </Badge>
 
-          <TableIcon className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {source.size}
+        </span>
 
-          <span className="flex-1 min-w-0 text-xs font-semibold text-foreground truncate">
-            {source.database}.{source.table}
-          </span>
-
-          <Badge
-            variant="outline"
-            className="shrink-0 px-1.5 py-0 text-[10px] font-normal"
-          >
-            {source.engine}
-          </Badge>
-
-          <span className="shrink-0 text-[11px] text-muted-foreground">
-            {source.size}
-          </span>
-
-          <span className="shrink-0 text-[11px] text-muted-foreground">
-            {source.totalRows.toLocaleString()} rows
-          </span>
-        </button>
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {source.totalRows.toLocaleString()} rows
+        </span>
       </CollapsibleTrigger>
 
       <CollapsibleContent>
@@ -167,35 +169,37 @@ export function AgentDataSources({
   return (
     <div className="rounded-md border border-border/60 bg-muted/20 overflow-hidden">
       <Collapsible open={isGroupOpen} onOpenChange={setIsGroupOpen}>
-        <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors"
-          >
-            <ChevronToggle open={isGroupOpen} />
+        <CollapsibleTrigger
+          render={
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors"
+            />
+          }
+        >
+          <ChevronToggle open={isGroupOpen} />
 
-            <DatabaseIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          <DatabaseIcon className="size-3.5 shrink-0 text-muted-foreground" />
 
-            <span className="text-xs font-medium text-foreground">
-              Discovered sources
-            </span>
+          <span className="text-xs font-medium text-foreground">
+            Discovered sources
+          </span>
 
-            {searchTerm && (
-              <Badge
-                variant="secondary"
-                className="px-1.5 py-0 text-[10px] font-normal"
-              >
-                {searchTerm}
-              </Badge>
-            )}
-
+          {searchTerm && (
             <Badge
               variant="secondary"
               className="px-1.5 py-0 text-[10px] font-normal"
             >
-              {sources.length} {sources.length === 1 ? 'table' : 'tables'}
+              {searchTerm}
             </Badge>
-          </button>
+          )}
+
+          <Badge
+            variant="secondary"
+            className="px-1.5 py-0 text-[10px] font-normal"
+          >
+            {sources.length} {sources.length === 1 ? 'table' : 'tables'}
+          </Badge>
         </CollapsibleTrigger>
 
         <CollapsibleContent>

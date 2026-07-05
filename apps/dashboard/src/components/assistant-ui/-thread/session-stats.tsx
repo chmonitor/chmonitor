@@ -134,12 +134,14 @@ export function SessionStats() {
 
       {hasTokens && (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="flex cursor-default items-center gap-0.5">
-              <CpuIcon className="size-2.5 shrink-0" />
-              <span className="font-mono tabular-nums">
-                {totals.totalTokens.toLocaleString()}
-              </span>
+          <TooltipTrigger
+            render={
+              <span className="flex cursor-default items-center gap-0.5" />
+            }
+          >
+            <CpuIcon className="size-2.5 shrink-0" />
+            <span className="font-mono tabular-nums">
+              {totals.totalTokens.toLocaleString()}
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-xs">

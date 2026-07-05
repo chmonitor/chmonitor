@@ -82,20 +82,22 @@ export function MvStalenessBadge({ hostId, className }: MvStalenessBadgeProps) {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant="outline"
-          className={cn(
-            'inline-flex items-center gap-1 cursor-default select-none',
-            failed > 0
-              ? 'border-destructive/40 bg-destructive/10 text-destructive'
-              : 'border-amber-400 bg-amber-100 text-amber-700 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
-            className
-          )}
-        >
-          <AlertTriangle className="size-3" />
-          {label}
-        </Badge>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="outline"
+            className={cn(
+              'inline-flex items-center gap-1 cursor-default select-none',
+              failed > 0
+                ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                : 'border-amber-400 bg-amber-100 text-amber-700 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
+              className
+            )}
+          />
+        }
+      >
+        <AlertTriangle className="size-3" />
+        {label}
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-60 text-xs">
         {total} materialized view{total === 1 ? '' : 's'} need attention.

@@ -250,7 +250,12 @@ function SingleValueInput({
   // Relative time window — pick from the field's preset options.
   if (field.type === 'datetime' && operator === 'withinHours') {
     return (
-      <Select value={value} onValueChange={onChange}>
+      <Select
+        value={value}
+        onValueChange={(v) => {
+          if (v != null) onChange(v)
+        }}
+      >
         <SelectTrigger className="h-8 flex-1">
           <SelectValue placeholder="Select range" />
         </SelectTrigger>

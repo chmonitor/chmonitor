@@ -88,7 +88,12 @@ export function QuickFilters({
               <div key={config.key} className="flex items-center gap-2">
                 {Icon && <Icon className="size-3.5 text-muted-foreground" />}
                 <span className="text-xs text-muted-foreground">{label}:</span>
-                <Select value={currentValue} onValueChange={handleValueChange}>
+                <Select
+                  value={currentValue}
+                  onValueChange={(value) => {
+                    if (value != null) handleValueChange(value)
+                  }}
+                >
                   <SelectTrigger className="h-7 w-[140px] text-xs">
                     <SelectValue placeholder={label} />
                   </SelectTrigger>

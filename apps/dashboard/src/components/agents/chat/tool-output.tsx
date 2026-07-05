@@ -216,16 +216,18 @@ function ExpandTableButton({
 }) {
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-          aria-label="Expand table"
-          title="Expand table"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <Maximize2Icon className="size-3" />
-        </button>
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+            aria-label="Expand table"
+            title="Expand table"
+            onClick={(event) => event.stopPropagation()}
+          />
+        }
+      >
+        <Maximize2Icon className="size-3" />
       </DialogTrigger>
       <DialogContent className="flex max-h-[90vh] max-w-[95vw] flex-col">
         <DialogHeader>

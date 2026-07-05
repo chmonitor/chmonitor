@@ -269,6 +269,7 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             <Select
               value={pdServiceId}
               onValueChange={(id) => {
+                if (id == null) return
                 setPdServiceId(id)
                 const svc = pdServices.find((s) => s.id === id)
                 setPdServiceName(svc?.name ?? '')

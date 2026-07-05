@@ -211,12 +211,12 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
 
         {/* User filter */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <ToolbarButton active={filterUser !== 'all'}>
-              <UserIcon className="size-3.5" />
-              {filterUser === 'all' ? 'All users' : filterUser}
-              <ChevronDown className="size-3 opacity-60" />
-            </ToolbarButton>
+          <DropdownMenuTrigger
+            render={<ToolbarButton active={filterUser !== 'all'} />}
+          >
+            <UserIcon className="size-3.5" />
+            {filterUser === 'all' ? 'All users' : filterUser}
+            <ChevronDown className="size-3 opacity-60" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuLabel>Filter by user</DropdownMenuLabel>
@@ -239,14 +239,12 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
 
         {/* More filters */}
         <Popover>
-          <PopoverTrigger asChild>
-            <ToolbarButton active={moreFiltersActive}>
-              <ListFilter className="size-3.5" />
-              More filters
-              {moreFiltersActive && (
-                <span className="ml-0.5 size-1.5 rounded-full bg-blue-500" />
-              )}
-            </ToolbarButton>
+          <PopoverTrigger render={<ToolbarButton active={moreFiltersActive} />}>
+            <ListFilter className="size-3.5" />
+            More filters
+            {moreFiltersActive && (
+              <span className="ml-0.5 size-1.5 rounded-full bg-blue-500" />
+            )}
           </PopoverTrigger>
           <PopoverContent align="start" className="w-60 space-y-3">
             <div>

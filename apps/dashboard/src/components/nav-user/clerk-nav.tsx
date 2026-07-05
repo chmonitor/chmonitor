@@ -107,16 +107,16 @@ export function ClerkNavWrapper() {
         {!isSignedIn && (
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               size="sm"
               tooltip="View plans"
               data-testid="nav-user-plans"
-            >
-              <a href="/billing">
-                <CreditCard />
-                <span>View plans</span>
-              </a>
-            </SidebarMenuButton>
+              render={
+                <a href="/billing">
+                  <CreditCard />
+                  <span>View plans</span>
+                </a>
+              }
+            />
           </SidebarMenuItem>
         )}
         <SidebarMenuItem>
@@ -146,54 +146,56 @@ export function ClerkNavWrapper() {
           {/* Signed in - show user menu with avatar */}
           {isSignedIn && (
             <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  data-testid="nav-user-trigger"
-                >
-                  <Avatar className="avatar size-8 rounded-lg">
-                    <AvatarImage
-                      src={user?.imageUrl}
-                      alt={user?.fullName ?? 'User'}
-                    />
-                    <AvatarFallback className="rounded-lg">
-                      {getUserInitials(user?.fullName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span
-                        className="truncate font-medium"
-                        data-testid="nav-user-name"
-                      >
-                        {user?.fullName ?? 'User'}
-                      </span>
-                      {planLabel && (
-                        <Badge
-                          className={cn(
-                            'h-4 shrink-0 cursor-pointer px-1.5 text-[10px]',
-                            planBadgeClassName(planLabel)
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.location.href = '/billing'
-                          }}
-                          data-testid="nav-user-plan-badge"
-                        >
-                          {planLabel}
-                        </Badge>
-                      )}
-                    </span>
+              <DropdownMenuTrigger
+                render={
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                    data-testid="nav-user-trigger"
+                  />
+                }
+              >
+                <Avatar className="avatar size-8 rounded-lg">
+                  <AvatarImage
+                    src={user?.imageUrl}
+                    alt={user?.fullName ?? 'User'}
+                  />
+                  <AvatarFallback className="rounded-lg">
+                    {getUserInitials(user?.fullName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="flex min-w-0 items-center gap-1.5">
                     <span
-                      className="truncate text-xs text-muted-foreground"
-                      data-testid="nav-user-email"
+                      className="truncate font-medium"
+                      data-testid="nav-user-name"
                     >
-                      {user?.primaryEmailAddress?.emailAddress}
+                      {user?.fullName ?? 'User'}
                     </span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
-                </SidebarMenuButton>
+                    {planLabel && (
+                      <Badge
+                        className={cn(
+                          'h-4 shrink-0 cursor-pointer px-1.5 text-[10px]',
+                          planBadgeClassName(planLabel)
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.location.href = '/billing'
+                        }}
+                        data-testid="nav-user-plan-badge"
+                      >
+                        {planLabel}
+                      </Badge>
+                    )}
+                  </span>
+                  <span
+                    className="truncate text-xs text-muted-foreground"
+                    data-testid="nav-user-email"
+                  >
+                    {user?.primaryEmailAddress?.emailAddress}
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
@@ -292,18 +294,20 @@ export function ClerkNavWrapper() {
                     <Info className="size-4" />
                     <span>About</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a
-                      href="https://github.com/chmonitor/chmonitor"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2"
-                      data-testid="nav-user-github"
-                    >
-                      <ExternalLink className="size-4" />
-                      <span>GitHub Repo</span>
-                    </a>
-                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    render={
+                      <a
+                        href="https://github.com/chmonitor/chmonitor"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2"
+                        data-testid="nav-user-github"
+                      >
+                        <ExternalLink className="size-4" />
+                        <span>GitHub Repo</span>
+                      </a>
+                    }
+                  />
                   {canUseSettings && (
                     <DropdownMenuItem
                       className="flex items-center gap-2"

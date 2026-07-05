@@ -72,25 +72,28 @@ export const DateRangeSelector = function DateRangeSelector({
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild disabled={disabled}>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'h-6 gap-1 px-1.5 text-xs font-medium text-muted-foreground transition-opacity',
-            'hover:bg-muted hover:text-foreground rounded-md',
-            'focus-visible:ring-1 focus-visible:ring-ring',
-            'relative before:content-[""] before:absolute before:-inset-4',
-            disabled && 'opacity-50 cursor-not-allowed',
-            alwaysVisible || isOpen
-              ? 'opacity-40 hover:opacity-100'
-              : 'opacity-0 group-hover:opacity-40 hover:!opacity-100',
-            className
-          )}
-        >
-          <span>{currentOption.label}</span>
-          <ChevronDown className="size-3" />
-        </Button>
+      <DropdownMenuTrigger
+        disabled={disabled}
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'h-6 gap-1 px-1.5 text-xs font-medium text-muted-foreground transition-opacity',
+              'hover:bg-muted hover:text-foreground rounded-md',
+              'focus-visible:ring-1 focus-visible:ring-ring',
+              'relative before:content-[""] before:absolute before:-inset-4',
+              disabled && 'opacity-50 cursor-not-allowed',
+              alwaysVisible || isOpen
+                ? 'opacity-40 hover:opacity-100'
+                : 'opacity-0 group-hover:opacity-40 hover:!opacity-100',
+              className
+            )}
+          />
+        }
+      >
+        <span>{currentOption.label}</span>
+        <ChevronDown className="size-3" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="p-1.5">

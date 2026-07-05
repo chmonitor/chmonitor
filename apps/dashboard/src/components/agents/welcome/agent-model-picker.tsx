@@ -188,81 +188,83 @@ export function AgentModelPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        {variant === 'toolbar' ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]',
-              className
-            )}
-          >
-            <span
+      <PopoverTrigger
+        render={
+          variant === 'toolbar' ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               className={cn(
-                'inline-block size-1.5 rounded-full',
-                providerDotClass(selected.provider)
+                'text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]',
+                className
               )}
-            />
-            <span className="font-mono">
-              <span className={providerColorClass(selected.provider)}>
-                {selected.provider}
-              </span>
-              <span className="text-muted-foreground">:</span>
-              <span className="text-foreground">{selected.name}</span>
-            </span>
-          </Button>
-        ) : (
-          <button
-            type="button"
-            className={cn(
-              'bg-background border-input hover:bg-muted/40 flex h-auto min-h-10 w-full items-center gap-2 rounded-md border px-3 py-1.5 text-left transition-colors',
-              className
-            )}
-          >
-            <span
-              className={cn(
-                'inline-block size-1.5 shrink-0 rounded-full',
-                providerDotClass(selected.provider)
-              )}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-mono text-[12px]">
+            >
+              <span
+                className={cn(
+                  'inline-block size-1.5 rounded-full',
+                  providerDotClass(selected.provider)
+                )}
+              />
+              <span className="font-mono">
                 <span className={providerColorClass(selected.provider)}>
                   {selected.provider}
                 </span>
                 <span className="text-muted-foreground">:</span>
                 <span className="text-foreground">{selected.name}</span>
+              </span>
+            </Button>
+          ) : (
+            <button
+              type="button"
+              className={cn(
+                'bg-background border-input hover:bg-muted/40 flex h-auto min-h-10 w-full items-center gap-2 rounded-md border px-3 py-1.5 text-left transition-colors',
+                className
+              )}
+            >
+              <span
+                className={cn(
+                  'inline-block size-1.5 shrink-0 rounded-full',
+                  providerDotClass(selected.provider)
+                )}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-mono text-[12px]">
+                  <span className={providerColorClass(selected.provider)}>
+                    {selected.provider}
+                  </span>
+                  <span className="text-muted-foreground">:</span>
+                  <span className="text-foreground">{selected.name}</span>
+                </div>
+                <div className="text-muted-foreground text-[10px] tabular-nums">
+                  {selected.formattedContextLength} ctx
+                  {selected.pricing
+                    ? ` · $${selected.pricing.inputPerMillion.toFixed(2)}/M in`
+                    : selected.isFree
+                      ? ' · free'
+                      : ''}
+                </div>
               </div>
-              <div className="text-muted-foreground text-[10px] tabular-nums">
-                {selected.formattedContextLength} ctx
-                {selected.pricing
-                  ? ` · $${selected.pricing.inputPerMillion.toFixed(2)}/M in`
-                  : selected.isFree
-                    ? ' · free'
-                    : ''}
-              </div>
-            </div>
-            {(() => {
-              const tone = badgeTone(selected)
-              if (!tone) return null
-              return (
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    'h-4 shrink-0 px-1.5 text-[10px] font-normal',
-                    tone.className
-                  )}
-                >
-                  {tone.label}
-                </Badge>
-              )
-            })()}
-            <ChevronDownIcon className="text-muted-foreground size-3 shrink-0 opacity-60" />
-          </button>
-        )}
-      </PopoverTrigger>
+              {(() => {
+                const tone = badgeTone(selected)
+                if (!tone) return null
+                return (
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      'h-4 shrink-0 px-1.5 text-[10px] font-normal',
+                      tone.className
+                    )}
+                  >
+                    {tone.label}
+                  </Badge>
+                )
+              })()}
+              <ChevronDownIcon className="text-muted-foreground size-3 shrink-0 opacity-60" />
+            </button>
+          )
+        }
+      />
       <PopoverContent align="start" sideOffset={4} className="w-[340px] p-1">
         <ScrollArea className="max-h-[360px]">
           <div className="space-y-1">

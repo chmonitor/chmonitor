@@ -20,17 +20,19 @@ export const ResetColumnOrderButton = function ResetColumnOrderButton({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 opacity-40 hover:opacity-100 transition-opacity rounded-full"
-            onClick={onReset}
-            disabled={disabled}
-            aria-label="Reset column order"
-          >
-            <ResetIcon className="size-3 sm:size-3" strokeWidth={2} />
-          </Button>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+              onClick={onReset}
+              disabled={disabled}
+              aria-label="Reset column order"
+            />
+          }
+        >
+          <ResetIcon className="size-3 sm:size-3" strokeWidth={2} />
         </TooltipTrigger>
         <TooltipContent>
           <p>Reset column order to default</p>

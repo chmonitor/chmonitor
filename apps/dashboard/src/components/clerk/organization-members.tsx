@@ -104,13 +104,13 @@ function PlanSection() {
           </p>
         </div>
         <Button
-          asChild
           size="sm"
           variant={isFree ? 'default' : 'outline'}
           className="shrink-0"
-        >
-          <a href="/billing">{isFree ? 'Upgrade' : 'Manage billing'}</a>
-        </Button>
+          render={
+            <a href="/billing">{isFree ? 'Upgrade' : 'Manage billing'}</a>
+          }
+        />
       </CardContent>
     </Card>
   )
@@ -133,11 +133,13 @@ function NoOrgState({ selfHosted = false }: { selfHosted?: boolean }) {
         </CardHeader>
         {!selfHosted && (
           <CardContent className="flex justify-center">
-            <Button asChild>
-              <a href="/billing">
-                <Sparkles className="size-4" /> View plans
-              </a>
-            </Button>
+            <Button
+              render={
+                <a href="/billing">
+                  <Sparkles className="size-4" /> View plans
+                </a>
+              }
+            />
           </CardContent>
         )}
       </Card>

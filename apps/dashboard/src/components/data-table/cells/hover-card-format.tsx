@@ -37,7 +37,7 @@ export const HoverCardFormat = function HoverCardFormat<
     typeof value === 'bigint' ? value.toString() : (value as React.ReactNode)
 
   return (
-    <HoverCard openDelay={0}>
+    <HoverCard>
       <HoverCardTrigger aria-label="Show details">
         {normalizedValue}
       </HoverCardTrigger>

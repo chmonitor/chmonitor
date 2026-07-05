@@ -314,21 +314,25 @@ export const DataTableHeader = memo(function DataTableHeader<
           <div className="flex flex-wrap items-center gap-2">
             {/* Filters Button with Advanced Popover */}
             <Popover open={isFiltersOpen} onOpenChange={handleOpenFilters}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={advancedFilters.length > 0 ? 'secondary' : 'outline'}
-                  size="sm"
-                  disabled={filterableColumns.length === 0}
-                  className="gap-1.5 px-3 border-border/50 rounded-lg text-xs"
-                >
-                  <FilterIcon className="size-3.5" />
-                  <span>Filters</span>
-                  {advancedFilters.length > 0 && (
-                    <span className="flex items-center justify-center size-4 bg-primary text-[10px] font-bold text-primary-foreground rounded-full">
-                      {advancedFilters.length}
-                    </span>
-                  )}
-                </Button>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant={
+                      advancedFilters.length > 0 ? 'secondary' : 'outline'
+                    }
+                    size="sm"
+                    disabled={filterableColumns.length === 0}
+                    className="gap-1.5 px-3 border-border/50 rounded-lg text-xs"
+                  />
+                }
+              >
+                <FilterIcon className="size-3.5" />
+                <span>Filters</span>
+                {advancedFilters.length > 0 && (
+                  <span className="flex items-center justify-center size-4 bg-primary text-[10px] font-bold text-primary-foreground rounded-full">
+                    {advancedFilters.length}
+                  </span>
+                )}
               </PopoverTrigger>
               <PopoverContent
                 align="end"
@@ -355,7 +359,9 @@ export const DataTableHeader = memo(function DataTableHeader<
                       <Select
                         value={draft.columnId}
                         onValueChange={(val) =>
-                          updateFilterDraft(draft.id, { columnId: val })
+                          updateFilterDraft(draft.id, {
+                            columnId: val ?? undefined,
+                          })
                         }
                       >
                         <SelectTrigger

@@ -60,11 +60,9 @@ export function ChartPicker({ selectedCharts, onChange }: ChartPickerProps) {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PlusCircledIcon className="mr-1 size-3" />
-          Add Charts
-        </Button>
+      <PopoverTrigger render={<Button variant="outline" size="sm" />}>
+        <PlusCircledIcon className="mr-1 size-3" />
+        Add Charts
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="end">
         <div className="max-h-[420px] overflow-y-auto p-2">

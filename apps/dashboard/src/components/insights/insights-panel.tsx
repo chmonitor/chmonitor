@@ -213,11 +213,13 @@ export function InsightsPanel({ hostId, className }: InsightsPanelProps) {
             size="icon"
             className="size-7 text-muted-foreground hover:text-foreground"
             aria-label="AI Insights settings"
-            asChild
+            render={
+              <AppLink
+                href={buildUrl('/insights-settings', { host: hostId })}
+              />
+            }
           >
-            <AppLink href={buildUrl('/insights-settings', { host: hostId })}>
-              <Settings2 className="size-3.5" />
-            </AppLink>
+            <Settings2 className="size-3.5" />
           </Button>
         </div>
       </div>

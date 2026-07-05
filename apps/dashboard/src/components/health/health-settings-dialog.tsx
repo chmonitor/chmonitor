@@ -213,11 +213,9 @@ export function HealthSettingsDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Settings className="mr-2 size-4" />
-          Settings
-        </Button>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <Settings className="mr-2 size-4" />
+        Settings
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>

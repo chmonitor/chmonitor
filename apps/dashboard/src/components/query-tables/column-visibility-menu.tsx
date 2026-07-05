@@ -27,14 +27,16 @@ export function ColumnVisibilityMenu<TKey extends string>({
 }: ColumnVisibilityMenuProps<TKey>) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="Column settings"
-          className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <SlidersHorizontal className="size-3.5" />
-        </button>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            aria-label="Column settings"
+            className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          />
+        }
+      >
+        <SlidersHorizontal className="size-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuLabel>Columns</DropdownMenuLabel>

@@ -241,9 +241,11 @@ function BillingPage() {
                       : `Upgrade to ${plan.name}`}
                   </Button>
                 ) : plan.id === 'enterprise' ? (
-                  <Button variant="outline" className="w-full" asChild>
-                    <a href="mailto:hello@chmonitor.dev">Contact us</a>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    render={<a href="mailto:hello@chmonitor.dev">Contact us</a>}
+                  />
                 ) : (
                   <Button variant="outline" className="w-full" disabled>
                     Free forever
@@ -307,15 +309,19 @@ function BillingSignedOut() {
                   <Button size="lg">Sign in / Create account</Button>
                 </ClerkSignInButton>
               ) : null}
-              <Button variant="ghost" size="lg" asChild>
-                <a
-                  href="https://docs.chmonitor.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Read the docs <ExternalLinkIcon className="size-4" />
-                </a>
-              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                render={
+                  <a
+                    href="https://docs.chmonitor.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Read the docs <ExternalLinkIcon className="size-4" />
+                  </a>
+                }
+              />
             </div>
           </CardContent>
         </div>

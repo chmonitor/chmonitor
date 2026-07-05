@@ -153,7 +153,12 @@ function AddWindowForm({ onCreated }: { onCreated: () => void }) {
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
           <Label className="text-xs text-muted-foreground">Host</Label>
-          <Select value={hostValue} onValueChange={setHostValue}>
+          <Select
+            value={hostValue}
+            onValueChange={(value) => {
+              if (value != null) setHostValue(value)
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

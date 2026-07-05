@@ -58,21 +58,23 @@ export const IntervalSelect = function IntervalSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-label="Select time interval"
-          className="w-[100px] justify-between"
-        >
-          {interval
-            ? intervals.find(
-                (i) => i.value.toLowerCase() === interval.toLowerCase()
-              )?.label
-            : 'Select...'}
-          <CaretSortIcon className="ml-2 size-4 shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-label="Select time interval"
+            className="w-[100px] justify-between"
+          />
+        }
+      >
+        {interval
+          ? intervals.find(
+              (i) => i.value.toLowerCase() === interval.toLowerCase()
+            )?.label
+          : 'Select...'}
+        <CaretSortIcon className="ml-2 size-4 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[100px] p-0">
         <Command>

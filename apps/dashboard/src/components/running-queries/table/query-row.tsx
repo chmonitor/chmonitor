@@ -238,97 +238,105 @@ export const QueryRow = memo(function QueryRow({
           >
             {done ? (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 text-muted-foreground hover:text-foreground"
-                    onClick={onDismiss}
-                    aria-label="Dismiss finished query"
-                  >
-                    <X className="size-3.5" />
-                  </Button>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-foreground"
+                      onClick={onDismiss}
+                      aria-label="Dismiss finished query"
+                    />
+                  }
+                >
+                  <X className="size-3.5" />
                 </TooltipTrigger>
                 <TooltipContent>Dismiss</TooltipContent>
               </Tooltip>
             ) : (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 text-muted-foreground hover:text-rose-600"
-                    onClick={handleKill}
-                    disabled={isKilling || !d.id}
-                    aria-label="Kill query"
-                  >
-                    {isKilling ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <CircleX className="size-3.5" />
-                    )}
-                  </Button>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-rose-600"
+                      onClick={handleKill}
+                      disabled={isKilling || !d.id}
+                      aria-label="Kill query"
+                    />
+                  }
+                >
+                  {isKilling ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <CircleX className="size-3.5" />
+                  )}
                 </TooltipTrigger>
                 <TooltipContent>Kill query</TooltipContent>
               </Tooltip>
             )}
             {explainUrl && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
-                    aria-label="Explain query"
-                    asChild
-                  >
-                    <Link href={explainUrl}>
-                      <Workflow className="size-3.5" />
-                    </Link>
-                  </Button>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
+                      aria-label="Explain query"
+                      render={<Link href={explainUrl} />}
+                    />
+                  }
+                >
+                  <Workflow className="size-3.5" />
                 </TooltipTrigger>
                 <TooltipContent>Explain query</TooltipContent>
               </Tooltip>
             )}
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
-                  aria-label="Open in Explorer"
-                  asChild
-                >
-                  <Link href={buildExplorerQueryUrl(d.query, hostId)}>
-                    <ExternalLink className="size-3.5" />
-                  </Link>
-                </Button>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
+                    aria-label="Open in Explorer"
+                    render={
+                      <Link href={buildExplorerQueryUrl(d.query, hostId)} />
+                    }
+                  />
+                }
+              >
+                <ExternalLink className="size-3.5" />
               </TooltipTrigger>
               <TooltipContent>Open in Explorer</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
-                  aria-label={
-                    queryDetailUrl ? 'Query detail' : 'Query ID unavailable'
-                  }
-                  asChild={Boolean(queryDetailUrl)}
-                  disabled={!queryDetailUrl}
-                >
-                  {queryDetailUrl ? (
-                    <Link href={queryDetailUrl}>
-                      <ScanSearch className="size-3.5" />
-                    </Link>
-                  ) : (
-                    <span>
-                      <ScanSearch className="size-3.5" />
-                    </span>
-                  )}
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
+                    aria-label={
+                      queryDetailUrl ? 'Query detail' : 'Query ID unavailable'
+                    }
+                    disabled={!queryDetailUrl}
+                    render={
+                      queryDetailUrl ? (
+                        <Link href={queryDetailUrl}>
+                          <ScanSearch className="size-3.5" />
+                        </Link>
+                      ) : (
+                        <span>
+                          <ScanSearch className="size-3.5" />
+                        </span>
+                      )
+                    }
+                  />
+                }
+              />
               <TooltipContent>
                 {queryDetailUrl ? 'Query detail' : 'Query ID unavailable'}
               </TooltipContent>

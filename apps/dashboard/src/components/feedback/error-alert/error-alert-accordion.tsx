@@ -30,7 +30,7 @@ export function ErrorAlertAccordion({
 }: ErrorAlertAccordionProps) {
   return (
     <div className="mt-3">
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion className="w-full">
         <AccordionItem className="border-0" value="item-1">
           <AccordionTrigger className="px-0 py-2 text-sm hover:no-underline">
             <div className="flex items-center gap-2">

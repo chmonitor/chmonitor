@@ -439,28 +439,26 @@ export const QueryDetailView = function QueryDetailView({
                 variant="outline"
                 size="sm"
                 className="h-7 gap-1.5"
-                asChild
+                render={
+                  <Link
+                    href={buildUrl('/explain', {
+                      query_id: queryId,
+                      host: hostId,
+                    })}
+                  />
+                }
               >
-                <Link
-                  href={buildUrl('/explain', {
-                    query_id: queryId,
-                    host: hostId,
-                  })}
-                >
-                  <ListTree className="size-3.5" />
-                  Explain query
-                </Link>
+                <ListTree className="size-3.5" />
+                Explain query
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 gap-1.5"
-                asChild
+                render={<Link href={explorerUrl} />}
               >
-                <Link href={explorerUrl}>
-                  <ExternalLink className="size-3.5" />
-                  Open in Explorer
-                </Link>
+                <ExternalLink className="size-3.5" />
+                Open in Explorer
               </Button>
             </div>
           )}

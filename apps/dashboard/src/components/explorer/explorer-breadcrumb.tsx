@@ -27,14 +27,16 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
     <Breadcrumb data-role="explorer-breadcrumb">
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link
-              href={`/explorer?host=${hostId}`}
-              className="flex items-center gap-1.5"
-            >
-              <Server className="size-3.5" />
-              {hostName || `Host ${hostId}`}
-            </Link>
+          <BreadcrumbLink
+            render={
+              <Link
+                href={`/explorer?host=${hostId}`}
+                className="flex items-center gap-1.5"
+              />
+            }
+          >
+            <Server className="size-3.5" />
+            {hostName || `Host ${hostId}`}
           </BreadcrumbLink>
         </BreadcrumbItem>
 
@@ -43,14 +45,16 @@ export function ExplorerBreadcrumb({ hostName }: ExplorerBreadcrumbProps) {
             <BreadcrumbSeparator />
             <BreadcrumbItem className="group/crumb">
               {table ? (
-                <BreadcrumbLink asChild>
-                  <Link
-                    href={`/explorer?host=${hostId}&database=${encodeURIComponent(database)}`}
-                    className="flex items-center gap-1.5"
-                  >
-                    <Database className="size-3.5" />
-                    {database}
-                  </Link>
+                <BreadcrumbLink
+                  render={
+                    <Link
+                      href={`/explorer?host=${hostId}&database=${encodeURIComponent(database)}`}
+                      className="flex items-center gap-1.5"
+                    />
+                  }
+                >
+                  <Database className="size-3.5" />
+                  {database}
                 </BreadcrumbLink>
               ) : (
                 <BreadcrumbPage className="flex items-center gap-1.5">

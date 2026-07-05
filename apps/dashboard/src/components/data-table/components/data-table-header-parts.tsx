@@ -75,17 +75,19 @@ export function DisplayOptionsDropdown<TData extends RowData>({
 }: DisplayOptionsDropdownProps<TData>) {
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 px-3 border-border/50 rounded-lg text-xs"
-          aria-label="Column Options"
-          title="Column Options"
-        >
-          <Settings2Icon className="size-3.5" />
-          <span>Display options</span>
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 px-3 border-border/50 rounded-lg text-xs"
+            aria-label="Column Options"
+            title="Column Options"
+          />
+        }
+      >
+        <Settings2Icon className="size-3.5" />
+        <span>Display options</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

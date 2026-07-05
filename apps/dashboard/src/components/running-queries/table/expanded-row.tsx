@@ -111,37 +111,43 @@ export function ExpandedRow({
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
-          <Link href={explorerUrl}>
-            <ExternalLink className="size-3.5" />
-            Open in Explorer
-          </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5"
+          render={<Link href={explorerUrl} />}
+        >
+          <ExternalLink className="size-3.5" />
+          Open in Explorer
         </Button>
         <Button
           variant="outline"
           size="sm"
           className="h-7 gap-1.5"
-          asChild={Boolean(detailUrl)}
           disabled={!detailUrl}
-        >
-          {detailUrl ? (
-            <Link href={detailUrl}>
-              <ScanSearch className="size-3.5" />
-              Query detail
-            </Link>
-          ) : (
-            <span className="inline-flex h-7 items-center gap-1.5">
-              <ScanSearch className="size-3.5" />
-              Query detail
-            </span>
-          )}
-        </Button>
+          render={
+            detailUrl ? (
+              <Link href={detailUrl}>
+                <ScanSearch className="size-3.5" />
+                Query detail
+              </Link>
+            ) : (
+              <span className="inline-flex h-7 items-center gap-1.5">
+                <ScanSearch className="size-3.5" />
+                Query detail
+              </span>
+            )
+          }
+        />
         {explainUrl && (
-          <Button variant="outline" size="sm" className="h-7 gap-1.5" asChild>
-            <Link href={explainUrl}>
-              <Workflow className="size-3.5" />
-              Explain
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5"
+            render={<Link href={explainUrl} />}
+          >
+            <Workflow className="size-3.5" />
+            Explain
           </Button>
         )}
         {done ? (

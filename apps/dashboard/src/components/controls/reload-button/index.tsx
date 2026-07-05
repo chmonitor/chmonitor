@@ -63,25 +63,27 @@ export const ReloadButton = function ReloadButton({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          aria-label="Reload"
-          className={cn(
-            'flex flex-row gap-2',
-            className,
-            isLoading ? 'animate-pulse' : ''
-          )}
-        >
-          <span className="font-mono">
-            {formatReadableSecondDuration(countDown)}
-          </span>
-          <ReloadIcon
-            aria-label="Reload icon"
-            data-testid="reload-icon"
-            className={cn('size-4', isLoading ? 'animate-spin' : '')}
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            aria-label="Reload"
+            className={cn(
+              'flex flex-row gap-2',
+              className,
+              isLoading ? 'animate-pulse' : ''
+            )}
           />
-        </Button>
+        }
+      >
+        <span className="font-mono">
+          {formatReadableSecondDuration(countDown)}
+        </span>
+        <ReloadIcon
+          aria-label="Reload icon"
+          data-testid="reload-icon"
+          className={cn('size-4', isLoading ? 'animate-spin' : '')}
+        />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className="w-56">

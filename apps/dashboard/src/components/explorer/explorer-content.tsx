@@ -125,7 +125,7 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
         <TabsContent
           value="overview"
           className={cn('mt-4', tab !== 'overview' && 'hidden flex-none')}
-          forceMount
+          keepMounted
         >
           {visitedTabs.has('overview') && <OverviewTab />}
         </TabsContent>
@@ -137,7 +137,7 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
         <TabsContent
           value="data"
           className={cn('mt-4', tab !== 'data' && 'hidden flex-none')}
-          forceMount
+          keepMounted
         >
           {visitedTabs.has('data') && <DataTab />}
         </TabsContent>
@@ -151,7 +151,7 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
         <TabsContent
           value="ddl"
           className={cn('mt-4', tab !== 'ddl' && 'hidden flex-none')}
-          forceMount
+          keepMounted
         >
           {visitedTabs.has('ddl') && <DdlTab />}
         </TabsContent>
@@ -160,7 +160,7 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
         <TabsContent
           value="indexes"
           className={cn('mt-4', tab !== 'indexes' && 'hidden flex-none')}
-          forceMount
+          keepMounted
         >
           {visitedTabs.has('indexes') && <IndexesTab />}
         </TabsContent>
@@ -169,7 +169,7 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
         <TabsContent
           value="dependencies"
           className={cn('mt-4', tab !== 'dependencies' && 'hidden flex-none')}
-          forceMount
+          keepMounted
         >
           {visitedTabs.has('dependencies') && <DependenciesTab />}
         </TabsContent>
