@@ -201,7 +201,7 @@ function HealthCheckCard({
     <div
       {...interactiveProps(title, onExpand)}
       className={cn(
-        'group relative flex min-h-[188px] flex-col overflow-hidden rounded-xl border bg-card p-4 shadow-sm transition-all',
+        'group flex min-h-[188px] flex-col overflow-hidden rounded-xl border bg-card p-4 shadow-sm transition-all',
         onExpand &&
           'cursor-pointer hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         status === 'critical'
@@ -211,19 +211,6 @@ function HealthCheckCard({
             : 'hover:border-foreground/20'
       )}
     >
-      {/* Status accent: a thin left rail carrying the severity color. */}
-      <span
-        aria-hidden
-        className={cn(
-          'absolute inset-y-0 left-0 w-[3px]',
-          status === 'critical'
-            ? 'bg-red-500'
-            : status === 'warning'
-              ? 'bg-amber-500'
-              : 'bg-transparent'
-        )}
-      />
-
       {/* Header: plain icon glyph + title · severity pill */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">

@@ -92,7 +92,9 @@ export function HealthDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent
+          className={cn('max-w-3xl', check.detailChartName && 'sm:max-w-5xl')}
+        >
           <DialogHeader>
             <div className="flex items-center gap-2">
               <DialogTitle>{check.title}</DialogTitle>
@@ -103,7 +105,7 @@ export function HealthDetailDialog({
             )}
           </DialogHeader>
 
-          <ScrollArea className="max-h-[60vh] pr-3">
+          <ScrollArea className="min-w-0 max-h-[60vh] pr-3">
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div className="rounded-md border p-3">
