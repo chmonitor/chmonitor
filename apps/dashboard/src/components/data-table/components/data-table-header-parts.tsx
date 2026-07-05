@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -93,9 +94,11 @@ export function DisplayOptionsDropdown<TData extends RowData>({
         align="end"
         className="w-56 max-h-[80vh] overflow-y-auto rounded-xl shadow-lg"
       >
-        <DropdownMenuLabel className="text-xs font-semibold px-2.5 py-1.5 text-muted-foreground uppercase tracking-wider">
-          Density
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs font-semibold px-2.5 py-1.5 text-muted-foreground uppercase tracking-wider">
+            Density
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         {onDensityChange && (
           <DropdownMenuRadioGroup
             value={density}
@@ -126,9 +129,11 @@ export function DisplayOptionsDropdown<TData extends RowData>({
           </DropdownMenuRadioGroup>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-semibold px-2.5 py-1.5 text-muted-foreground uppercase tracking-wider">
-          Columns
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs font-semibold px-2.5 py-1.5 text-muted-foreground uppercase tracking-wider">
+            Columns
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <div className="px-1">
           {table
             .getAllColumns()

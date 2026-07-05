@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -54,7 +55,9 @@ function ActionMenuComponent<TData extends RowData, TValue>({
         <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <NoSsr>
           <Suspense fallback={null}>

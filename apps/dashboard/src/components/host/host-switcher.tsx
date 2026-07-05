@@ -12,6 +12,7 @@ import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -258,9 +259,11 @@ export function HostSwitcher() {
                 side={isMobile ? 'bottom' : 'right'}
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  ClickHouse Hosts
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    ClickHouse Hosts
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {hosts.map((host) => (
                   <DropdownMenuItem

@@ -4,6 +4,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -39,7 +40,9 @@ export function ColumnVisibilityMenu<TKey extends string>({
         <SlidersHorizontal className="size-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel>Columns</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Columns</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {columns.map((col) => (
           <DropdownMenuCheckboxItem

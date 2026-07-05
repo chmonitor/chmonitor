@@ -34,6 +34,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -219,7 +220,9 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
             <ChevronDown className="size-3 opacity-60" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Filter by user</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Filter by user</DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
               value={filterUser}

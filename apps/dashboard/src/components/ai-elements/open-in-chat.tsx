@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -228,7 +229,9 @@ export const OpenInItem = (props: OpenInItemProps) => (
 export type OpenInLabelProps = ComponentProps<typeof DropdownMenuLabel>
 
 export const OpenInLabel = (props: OpenInLabelProps) => (
-  <DropdownMenuLabel {...props} />
+  <DropdownMenuGroup>
+    <DropdownMenuLabel {...props} />
+  </DropdownMenuGroup>
 )
 
 export type OpenInSeparatorProps = ComponentProps<typeof DropdownMenuSeparator>

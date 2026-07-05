@@ -203,47 +203,49 @@ export function ClerkNavWrapper() {
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="avatar size-8 rounded-lg">
-                      <AvatarImage
-                        src={user?.imageUrl}
-                        alt={user?.fullName ?? 'User'}
-                      />
-                      <AvatarFallback className="rounded-lg">
-                        {getUserInitials(user?.fullName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">
-                        {user?.fullName ?? 'User'}
-                      </span>
-                      <span className="truncate text-xs">
-                        {user?.primaryEmailAddress?.emailAddress}
-                      </span>
-                      <span className="mt-1 flex items-center gap-1.5">
-                        {organization && (
-                          <span className="text-muted-foreground flex min-w-0 items-center gap-1 text-[11px]">
-                            <Building2 className="size-3 shrink-0" />
-                            <span className="truncate">
-                              {organization.name}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                      <Avatar className="avatar size-8 rounded-lg">
+                        <AvatarImage
+                          src={user?.imageUrl}
+                          alt={user?.fullName ?? 'User'}
+                        />
+                        <AvatarFallback className="rounded-lg">
+                          {getUserInitials(user?.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-medium">
+                          {user?.fullName ?? 'User'}
+                        </span>
+                        <span className="truncate text-xs">
+                          {user?.primaryEmailAddress?.emailAddress}
+                        </span>
+                        <span className="mt-1 flex items-center gap-1.5">
+                          {organization && (
+                            <span className="text-muted-foreground flex min-w-0 items-center gap-1 text-[11px]">
+                              <Building2 className="size-3 shrink-0" />
+                              <span className="truncate">
+                                {organization.name}
+                              </span>
                             </span>
-                          </span>
-                        )}
-                        {planLabel && planLabel !== 'free' && (
-                          <Badge
-                            className={cn(
-                              'h-4 px-1.5 text-[10px]',
-                              planBadgeClassName(planLabel)
-                            )}
-                          >
-                            {planLabel}
-                          </Badge>
-                        )}
-                      </span>
+                          )}
+                          {planLabel && planLabel !== 'free' && (
+                            <Badge
+                              className={cn(
+                                'h-4 px-1.5 text-[10px]',
+                                planBadgeClassName(planLabel)
+                              )}
+                            >
+                              {planLabel}
+                            </Badge>
+                          )}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </DropdownMenuLabel>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem

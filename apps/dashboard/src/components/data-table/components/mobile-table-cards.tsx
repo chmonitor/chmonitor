@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -149,7 +150,9 @@ export function MobileSortMenu<TData extends RowData>({
         align="end"
         className="max-h-80 w-56 overflow-y-auto"
       >
-        <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        </DropdownMenuGroup>
         {sortableColumns.map((column) => {
           const label = getColumnLabel(column)
           const isAsc =

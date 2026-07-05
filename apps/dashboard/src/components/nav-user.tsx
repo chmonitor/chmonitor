@@ -118,34 +118,38 @@ export function NavUser({
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="avatar size-8 rounded-lg">
-                      <AvatarImage
-                        src={displayUser.avatar}
-                        alt={displayUser.name}
-                      />
-                      <AvatarFallback className="rounded-lg">G</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">
-                        {displayUser.name}
-                      </span>
-                      <span className="truncate text-xs">
-                        {displayUser.email}
-                      </span>
-                      {authSourceLabel && (
-                        <span
-                          className="mt-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
-                          data-testid="nav-user-auth-source"
-                        >
-                          <ShieldCheck className="size-3 shrink-0" />
-                          <span className="truncate">{authSourceLabel}</span>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                      <Avatar className="avatar size-8 rounded-lg">
+                        <AvatarImage
+                          src={displayUser.avatar}
+                          alt={displayUser.name}
+                        />
+                        <AvatarFallback className="rounded-lg">
+                          G
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-medium">
+                          {displayUser.name}
                         </span>
-                      )}
+                        <span className="truncate text-xs">
+                          {displayUser.email}
+                        </span>
+                        {authSourceLabel && (
+                          <span
+                            className="mt-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
+                            data-testid="nav-user-auth-source"
+                          >
+                            <ShieldCheck className="size-3 shrink-0" />
+                            <span className="truncate">{authSourceLabel}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </DropdownMenuLabel>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem
