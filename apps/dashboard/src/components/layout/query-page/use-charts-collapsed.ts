@@ -18,7 +18,6 @@ interface ChartsRowsState {
 
 export interface UseChartsCollapsedReturn {
   isCollapsed: boolean
-  collapsedRows: Set<number>
   toggleCollapsed: () => void
   toggleRow: (index: number) => void
   isRowCollapsed: (index: number) => boolean
@@ -76,11 +75,14 @@ export function useChartsCollapsed(
     typeof window !== 'undefined' ? loadFromStorage() : DEFAULT_STATE
   )
 
+  // The master switch resets per-row overrides — a row explicitly toggled
+  // under one master state (e.g. "Show" while collapsed) shouldn't carry an
+  // ambiguous meaning once the master state flips again.
   const toggleCollapsed = () => {
     setState((prev) => {
       const newState = {
         allCollapsed: !prev.allCollapsed,
-        collapsedRows: prev.collapsedRows,
+        collapsedRows: [],
       }
       persistState(newState)
       return newState
@@ -106,13 +108,18 @@ export function useChartsCollapsed(
     })
   }
 
+  // When the master switch is off, collapsedRows lists rows individually
+  // collapsed. When it's on, every row is collapsed by default and
+  // collapsedRows instead lists exceptions the user expanded back out (via
+  // the row's own "Show" control) — so toggleRow's plain flip works
+  // correctly in both directions without knowing which mode it's in.
   const isRowCollapsed = (index: number): boolean => {
-    return state.collapsedRows.includes(index)
+    const isException = state.collapsedRows.includes(index)
+    return state.allCollapsed ? !isException : isException
   }
 
   return {
     isCollapsed: state.allCollapsed,
-    collapsedRows: new Set(state.collapsedRows),
     toggleCollapsed,
     toggleRow,
     isRowCollapsed,

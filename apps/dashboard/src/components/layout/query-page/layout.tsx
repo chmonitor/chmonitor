@@ -80,7 +80,7 @@ export const QueryPageLayout = function QueryPageLayout({
 }: QueryPageLayoutProps) {
   const { config, isLoading } = useFeaturePermissions()
   const relatedCharts = queryConfig.relatedCharts || []
-  const { isCollapsed, toggleCollapsed, collapsedRows, toggleRow } =
+  const { isCollapsed, toggleCollapsed, isRowCollapsed, toggleRow } =
     useChartsCollapsed()
   const hasCharts = relatedCharts.length > 0
   const featureState = resolveFeatureState(queryConfig.permission, config)
@@ -103,16 +103,17 @@ export const QueryPageLayout = function QueryPageLayout({
       {hasCharts && (
         <div className="flex flex-col gap-2">
           <ChartsToggle isCollapsed={isCollapsed} onToggle={toggleCollapsed} />
-          {!isCollapsed && (
-            <FadeIn duration={200}>
-              <RelatedCharts
-                relatedCharts={relatedCharts}
-                gridClass={chartsGridClass}
-                collapsedRows={collapsedRows}
-                onToggleRow={toggleRow}
-              />
-            </FadeIn>
-          )}
+          {/* Always mounted — collapsing shows a lightweight per-row summary
+              (ChartRowSummary/ChartChip, its own slow-polling fetch) instead
+              of the full chart grid, rather than unmounting it entirely. */}
+          <FadeIn duration={200}>
+            <RelatedCharts
+              relatedCharts={relatedCharts}
+              gridClass={chartsGridClass}
+              isRowCollapsed={isRowCollapsed}
+              onToggleRow={toggleRow}
+            />
+          </FadeIn>
         </div>
       )}
 
