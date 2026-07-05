@@ -60,6 +60,32 @@ dialog, drawer, dropdown-menu, empty-state, form, hover-card, icon-button, input
 input-group, label, popover, progress, resizable, scroll-area, select, separator,
 sheet, sidebar, skeleton, tabs, tooltip (+ more).
 
+## Anti-patterns ("AI slop")
+
+Signals that a component was over-decorated rather than designed — each of
+these adds a channel that duplicates a signal another element already carries.
+Prefer ONE clear signal per piece of state, not several redundant ones.
+
+- **No decorative full-saturation accent bars/rails on cards.** A colored
+  left/top border stripe on top of an already-colored card border is
+  redundant — severity should already read from the border color, a status
+  pill/badge, and/or the value color. Incident: `health-card-shell.tsx` had
+  both a subtle `border-amber-500/30` AND a full-opacity 3px left rail for
+  the same warning state — the rail was removed, the border alone carries it.
+- **No gradient blobs / glow orbs behind icons or headers** unless the brand
+  system itself uses them (it doesn't — see Brand below). A plain icon in a
+  bordered square (`InsightsGlyph` pattern) reads cleaner than a soft-glow
+  circle.
+- **Don't stack more than one severity/status signal per element** — pick the
+  cheapest that reads clearly (usually: border/text color + a labeled pill).
+  Sparklines, icons, and badges are fine in combination when each carries
+  *different* information (trend vs. category vs. severity), not the same one
+  restated.
+- **Prefer the design system's existing idiom over inventing a new visual
+  language.** Before adding a new card treatment, dialog style, or badge
+  variant, grep for an existing one in `components/` — see "Canonical idioms"
+  in the `product-design` skill.
+
 ## Component patterns
 
 - **Charts:** `ChartContainer` (`components/charts/chart-container.tsx`) handles

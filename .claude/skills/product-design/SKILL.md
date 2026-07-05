@@ -36,6 +36,10 @@ values and file paths: `docs/knowledge/product-design.md`.
    `useHostId()` / `useChartData()` itself — do NOT prop-drill `hostId`.
 5. **`?host=N` routing**, never dynamic `/N/...` segments. Preserve other search
    params with `buildUrl(pathname, { host }, searchParams)`.
+6. **No "AI slop" decoration** — one clear signal per state, not several
+   redundant ones. No full-saturation accent bars/rails stacked on an
+   already-colored border; no gradient blobs/glow orbs behind icons. See
+   "Anti-patterns" in `docs/knowledge/product-design.md`.
 
 ## Tokens (semantic — use these names, not hex/oklch literals)
 
