@@ -342,6 +342,10 @@ const ogImage = new URL(image, Astro.site).toString()
     .sec-head h2{font-family:var(--serif);font-size:clamp(30px,3.6vw,44px);line-height:1.08;letter-spacing:-.02em;font-weight:600;margin-top:14px;text-wrap:balance}
     .sec-head p{margin-top:14px;font-size:17px;color:var(--muted-fg);max-width:62ch;text-wrap:pretty}
 
+    /* Drop the faux browser-window chrome on screenshots (traffic-light bars) —
+       cropped, frame-less shots read cleaner and match the shadcn hero grid. */
+    .feat-shot .browser-bar,.gcard .browser-bar,.de-card .browser-bar{display:none}
+
     /* ── feature rows ── */
     .feature{display:grid;grid-template-columns:0.92fr 1.08fr;gap:56px;align-items:center}
     .feature + .feature{margin-top:104px}
@@ -354,7 +358,8 @@ const ogImage = new URL(image, Astro.site).toString()
     .feat-list{margin-top:20px;display:flex;flex-direction:column;gap:11px}
     .feat-list li{display:flex;gap:11px;font-size:14.5px;color:var(--fg-soft);list-style:none}
     .feat-list svg{width:17px;height:17px;color:var(--emerald);flex:0 0 auto;margin-top:2px}
-    .feat-shot{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow-float)}
+    .feat-shot{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow-card);transition:border-color .18s ease,box-shadow .18s ease}
+    .feat-shot:hover{border-color:var(--border-hover)}
     .feat-shot .browser-bar{height:20px}
     .feat-shot .lights i{width:9px;height:9px}
     .feat-shot img{display:block;width:100%;height:auto}
