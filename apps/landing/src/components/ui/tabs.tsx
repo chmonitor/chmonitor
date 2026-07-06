@@ -71,8 +71,8 @@ function TabsTrigger({
         'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
         'disabled:pointer-events-none disabled:opacity-50',
         selected
-          ? 'bg-background text-foreground shadow-sm'
-          : 'hover:text-foreground',
+          ? 'bg-background text-foreground shadow-sm dark:bg-card'
+          : 'text-muted-foreground hover:text-foreground',
         className
       )}
       onClick={() => onValueChange(value)}
