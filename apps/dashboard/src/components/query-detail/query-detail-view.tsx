@@ -1,26 +1,37 @@
 import {
   AlertCircle,
+  Check,
   ChevronDown,
   ChevronRight,
   Clock,
+  Copy,
   Database,
   ExternalLink,
   HardDrive,
+  Lightbulb,
   ListTree,
   MemoryStick,
   RowsIcon,
   Server,
   User as UserIcon,
+  Wand2,
 } from 'lucide-react'
 
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { highlightCode } from '@/components/ai-elements/code-block'
+import { HLJS_TOKEN_CLASSES } from '@/components/ai-elements/hljs-token-classes'
 import { KpiCard } from '@/components/overview-charts/kpi-card'
+import { QueryStagesChart } from '@/components/query-detail/query-stages-chart'
 import { TableSkeleton } from '@/components/skeletons'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { formatReadableSize } from '@/lib/format-readable'
+import { deriveQueryInsights } from '@/lib/query/query-insights'
 import { useTableData } from '@/lib/query/use-table-data'
+import { formatSql } from '@/lib/sql-format'
 import { useHostId } from '@/lib/swr/use-host'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
@@ -71,6 +82,22 @@ interface QueryDetailRow {
   interfaces?: string
   ProfileEvents?: Record<string, number | string>
   Settings?: Record<string, string>
+  [key: string]: unknown
+}
+
+/** Row from the `query-children` config (distributed/parallel query leaves). */
+interface ChildQueryRow {
+  query_id?: string
+  type?: string
+  event_time?: string
+  query_duration?: number | string
+  user?: string
+  query_kind?: string
+  read_rows?: number | string
+  readable_read_rows?: string
+  memory_usage?: number | string
+  readable_memory_usage?: string
+  query_preview?: string
   [key: string]: unknown
 }
 
@@ -218,27 +245,99 @@ const CollapsibleSection = function CollapsibleSection({
   )
 }
 
-/** Inline SQL block with copy-to-clipboard. Not a modal — beautify off by default per project rule. */
+/**
+ * Inline SQL panel: syntax-highlighted (highlight.js) with a lazy-loaded
+ * Beautify toggle (off by default — `sql-formatter` is ~484K and only fetched
+ * on first toggle) and copy-to-clipboard. Mirrors the DialogSQL /
+ * CodeDialogFormat pattern and shares the `'sql-beautify'` localStorage key so
+ * a user's beautify preference carries across SQL surfaces.
+ *
+ * The preference is read in an effect (not as the initial state) to avoid an
+ * SSR/prerender hydration mismatch when localStorage disagrees with the
+ * server-rendered default (false).
+ */
+const SQL_BEAUTIFY_KEY = 'sql-beautify'
+
+function readSqlBeautifyPref(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem(SQL_BEAUTIFY_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function writeSqlBeautifyPref(value: boolean) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SQL_BEAUTIFY_KEY, String(value))
+  } catch {
+    /* noop */
+  }
+}
+
 function SqlBlock({ query }: { query: string }) {
+  const [beautify, setBeautify] = useState(false)
+  const [content, setContent] = useState(query)
   const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const beautifyId = useId()
+
+  // Apply the persisted preference after mount (avoids hydration mismatch).
+  useEffect(() => {
+    setBeautify(readSqlBeautifyPref())
+  }, [])
+
+  // Show the raw query immediately; when Beautify is on, swap in the formatted
+  // version once the lazy sql-formatter chunk resolves (falls back to raw).
+  useEffect(() => {
+    if (!beautify) {
+      setContent(query)
+      return
+    }
+    let cancelled = false
+    formatSql(query).then((formatted) => {
+      if (!cancelled) setContent(formatted)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [query, beautify])
+
+  const highlightedHtml = useMemo(() => {
+    if (!content) return ''
+    try {
+      return highlightCode(content, 'sql', true)
+    } catch {
+      return ''
+    }
+  }, [content])
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+    },
+    []
+  )
+
+  const lineCount = content ? content.split('\n').length : 0
 
   const handleCopy = async () => {
     if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText)
       return
     try {
-      await navigator.clipboard.writeText(query)
+      await navigator.clipboard.writeText(content)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 2000)
     } catch {
       /* noop */
     }
   }
 
-  const lineCount = (query.match(/\n/g)?.length ?? 0) + 1
-
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           SQL
         </span>
@@ -247,19 +346,47 @@ function SqlBlock({ query }: { query: string }) {
             {query.length.toLocaleString()} chars · {lineCount}{' '}
             {lineCount === 1 ? 'line' : 'lines'}
           </span>
+          <Label
+            htmlFor={beautifyId}
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+          >
+            <Wand2 className="size-3" />
+            Beautify
+            <Switch
+              id={beautifyId}
+              checked={beautify}
+              onCheckedChange={(checked) => {
+                setBeautify(checked)
+                writeSqlBeautifyPref(checked)
+              }}
+              aria-label="Toggle SQL beautification"
+              className="scale-75"
+            />
+          </Label>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[11px] text-muted-foreground"
+            className="h-6 gap-1 px-2 text-[11px] text-muted-foreground"
             onClick={handleCopy}
           >
+            {copied ? (
+              <Check className="size-3" />
+            ) : (
+              <Copy className="size-3" />
+            )}
             {copied ? 'Copied' : 'Copy'}
           </Button>
         </div>
       </div>
-      <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-[11.5px] leading-relaxed text-foreground">
-        {query}
-      </pre>
+      <div className="max-h-[320px] overflow-auto">
+        <div
+          className={cn(
+            'px-4 py-3 font-mono text-[11.5px] leading-relaxed',
+            HLJS_TOKEN_CLASSES
+          )}
+          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+        />
+      </div>
     </div>
   )
 }
@@ -294,7 +421,19 @@ export const QueryDetailView = function QueryDetailView({
     { query_id: queryId }
   )
 
+  // Child queries spawned by this one (distributed/parallel leaves). Fetched
+  // unconditionally to keep hook order stable; rendered only when non-empty.
+  const { data: childrenData } = useTableData<ChildQueryRow>(
+    'query-children',
+    hostId,
+    { query_id: queryId }
+  )
+
   const row = data?.[0]
+
+  // Cheap client-side red-flags from the loaded row (exception, slow, memory,
+  // full-scan, low selectivity). Memoized on the row reference.
+  const insights = useMemo(() => (row ? deriveQueryInsights(row) : []), [row])
 
   // Hooks must be called unconditionally — compute from `row` (may be undefined)
   // before any early returns.
@@ -370,6 +509,10 @@ export const QueryDetailView = function QueryDetailView({
     .trim()
   const clientName = toStr(row.client_name)
   const clientHost = toStr(row.client_hostname)
+  // Lineage: if this is a leaf of a distributed/parallel query, link back to
+  // the initial (root) query_id. Empty for root queries themselves.
+  const initialQueryId = toStr(row.initial_query_id)
+  const stackTrace = toStr(row.stack_trace)
 
   const durationSecs = toNumber(row.query_duration)
   const readRows = toNumber(row.read_rows)
@@ -482,6 +625,22 @@ export const QueryDetailView = function QueryDetailView({
           {tables && <MetaField label="Tables" value={tables} icon={Server} />}
           {clientName && <MetaField label="Client" value={clientName} />}
           {clientHost && <MetaField label="Client host" value={clientHost} />}
+          {initialQueryId && initialQueryId !== queryId && (
+            <MetaField
+              label="Initial query"
+              value={
+                <Link
+                  href={buildUrl('/query', {
+                    query_id: initialQueryId,
+                    host: hostId,
+                  })}
+                  className="font-mono text-[12.5px] hover:underline"
+                >
+                  {initialQueryId}
+                </Link>
+              }
+            />
+          )}
         </dl>
 
         {/* Exception text */}
@@ -492,6 +651,20 @@ export const QueryDetailView = function QueryDetailView({
             </p>
             <pre className="max-h-[120px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-rose-700 dark:text-rose-300">
               {toStr(row.exception_text)}
+            </pre>
+          </div>
+        )}
+
+        {/* Stack trace (ClickHouse logs it for ExceptionBeforeStart /
+            ExceptionWhileProcessing rows). Shown alongside or independently
+            of exception_text since it carries the C++ frame breakdown. */}
+        {stackTrace && (
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/20">
+            <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              Stack trace
+            </p>
+            <pre className="max-h-[240px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-rose-700/90 dark:text-rose-300/90">
+              {stackTrace}
             </pre>
           </div>
         )}
@@ -525,8 +698,8 @@ export const QueryDetailView = function QueryDetailView({
           label="Data read"
           value={readableReadBytes}
           sub={
-            toStr(row.writable_written_bytes)
-              ? `${toStr(row.writable_written_bytes)} written`
+            toStr(row.readable_written_bytes)
+              ? `${toStr(row.readable_written_bytes)} written`
               : undefined
           }
         />
@@ -546,12 +719,89 @@ export const QueryDetailView = function QueryDetailView({
       {/* ── 3. SQL block ── */}
       {queryText && <SqlBlock query={queryText} />}
 
-      {/* ── 4. ProfileEvents + Settings ── */}
+      {/* ── 3b. Query stages ── per-processor duration breakdown. Renders
+          nothing when the optional processors_profile_log table is empty. */}
+      <QueryStagesChart queryId={queryId} />
+
+      {/* ── 4. Insights ── client-side red flags derived from the row. */}
+      {insights.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <Lightbulb className="size-3.5" />
+            Insights
+          </h2>
+          <ul className="space-y-2.5">
+            {insights.map((insight) => (
+              <li key={insight.id} className="flex items-start gap-2.5">
+                <span
+                  className={cn(
+                    'mt-1 size-2 shrink-0 rounded-full',
+                    insight.severity === 'critical'
+                      ? 'bg-rose-500'
+                      : insight.severity === 'warning'
+                        ? 'bg-amber-500'
+                        : 'bg-sky-500'
+                  )}
+                />
+                <div className="min-w-0">
+                  <p className="text-[12.5px] font-medium">{insight.title}</p>
+                  <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                    {insight.detail}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ── 5. ProfileEvents + Settings ── */}
       {profileEntries.length > 0 && (
         <CollapsibleSection title="Profile Events" entries={profileEntries} />
       )}
       {settingsEntries.length > 0 && (
         <CollapsibleSection title="Query Settings" entries={settingsEntries} />
+      )}
+
+      {/* ── 6. Child queries ── distributed/parallel leaves spawned by this
+          root (initial_query_id match). Linked back into /query detail. */}
+      {childrenData && childrenData.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Child queries
+            </span>
+            <span className="text-[10.5px] tabular-nums text-muted-foreground">
+              {childrenData.length} spawned by this query
+            </span>
+          </div>
+          <ul className="divide-y divide-border">
+            {childrenData.map((child) => (
+              <li
+                key={String(child.query_id)}
+                className="flex items-center gap-3 px-4 py-2"
+              >
+                <Link
+                  href={buildUrl('/query', {
+                    query_id: String(child.query_id),
+                    host: hostId,
+                  })}
+                  className="min-w-0 flex-1 truncate font-mono text-[12px] hover:underline"
+                >
+                  {String(child.query_id)}
+                </Link>
+                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  {formatDurationSeconds(toNumber(child.query_duration))}
+                </span>
+                {toStr(child.readable_read_rows) && (
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {toStr(child.readable_read_rows)} rows
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )
