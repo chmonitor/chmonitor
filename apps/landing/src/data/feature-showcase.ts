@@ -1,9 +1,14 @@
-import type { LucideIcon } from 'lucide-react'
-import { Bell, Bot, Database, GitBranch, LineChart, Search } from 'lucide-react'
+export type FeatureIconId =
+  | 'bot'
+  | 'search'
+  | 'git-branch'
+  | 'bell'
+  | 'database'
+  | 'line-chart'
 
 export type FeatureSection = {
   id: string
-  icon: LucideIcon
+  icon: FeatureIconId
   eyebrow: string
   title: string
   description: string
@@ -20,7 +25,7 @@ export type FeatureSection = {
 export const FEATURE_SECTIONS: FeatureSection[] = [
   {
     id: 'feature-ai-agent',
-    icon: Bot,
+    icon: 'bot',
     eyebrow: 'AI Agent',
     title: 'Ask your cluster anything',
     description:
@@ -38,7 +43,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
   },
   {
     id: 'feature-queries',
-    icon: Search,
+    icon: 'search',
     eyebrow: 'Query monitoring',
     title: 'Every query, explained',
     description:
@@ -57,7 +62,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
   },
   {
     id: 'feature-topology',
-    icon: GitBranch,
+    icon: 'git-branch',
     eyebrow: 'Cluster topology',
     title: 'See the whole cluster at a glance',
     description:
@@ -74,7 +79,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
   },
   {
     id: 'feature-alerting',
-    icon: Bell,
+    icon: 'bell',
     eyebrow: 'Alerting',
     title: 'Know before your users do',
     description:
@@ -93,7 +98,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
   },
   {
     id: 'feature-explorer',
-    icon: Database,
+    icon: 'database',
     eyebrow: 'Data Explorer',
     title: 'Explore tables and how they connect',
     description:
@@ -110,7 +115,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
   },
   {
     id: 'feature-insights',
-    icon: LineChart,
+    icon: 'line-chart',
     eyebrow: 'Insights',
     title: "Know your cluster's vitals",
     description:

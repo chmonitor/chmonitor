@@ -67,7 +67,7 @@ const breadcrumbJsonLd = {
                 <tr>
                   <th></th>
                   {compareColumns.map((c) => (
-                    <th class={c === 'Pro' ? 'cmp-highlight' : ''}>{c}</th>
+                    <th>{c}</th>
                   ))}
                 </tr>
               </thead>
@@ -81,7 +81,7 @@ const breadcrumbJsonLd = {
                       <tr>
                         <td>{row.label}</td>
                         {row.values.map((v, i) => (
-                          <td class={compareColumns[i] === 'Pro' ? 'cmp-highlight' : ''}>
+                          <td>
                             {v === true ? (
                               <span set:html={checkSvg} />
                             ) : v === false ? (

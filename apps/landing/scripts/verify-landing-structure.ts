@@ -51,13 +51,31 @@ for (const text of forbidden) {
 }
 
 const zoomCount = (html.match(/data-screenshot-zoom/g) ?? []).length
-if (zoomCount < 1) {
+if (zoomCount < 6) {
   console.error(
-    `EXPECTED screenshot zoom in feature sections, got ${zoomCount}`
+    `EXPECTED 6 screenshot zoom triggers in static HTML, got ${zoomCount}`
   )
   failed = true
 } else {
-  console.log(`OK: ${zoomCount} screenshot zoom triggers (feature showcase)`)
+  console.log(
+    `OK: ${zoomCount} screenshot zoom triggers (static feature showcase)`
+  )
+}
+
+if (!html.includes('/landing-assets/ai-agent-new-dark.webp')) {
+  console.error('MISSING static feature screenshot img in prerendered HTML')
+  failed = true
+} else {
+  console.log('OK: feature screenshots prerendered in HTML')
+}
+
+if (html.includes('astro-island')) {
+  console.error(
+    'FORBIDDEN astro-island hydration on homepage — use static Astro'
+  )
+  failed = true
+} else {
+  console.log('OK: no React islands on homepage')
 }
 
 // Screenshot surfaces must be borderless (shadow-only wrappers).

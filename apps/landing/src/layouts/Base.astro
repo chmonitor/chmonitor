@@ -290,6 +290,13 @@ const ogImage = new URL(image, Astro.site).toString()
     :root[data-theme="dark"] img[data-shot="light"]{display:none !important}
     :root[data-theme="dark"] img[data-shot="dark"]{display:block !important}
 
+    /* ── screenshot zoom (native dialog) ── */
+    .screenshot-zoom-dialog{border:none;padding:0;background:transparent;max-width:min(96vw,1200px);width:100%}
+    .screenshot-zoom-dialog::backdrop{background:rgba(0,0,0,.72)}
+    .screenshot-zoom-dialog .screenshot-zoom-close{position:fixed;top:16px;right:16px;z-index:2;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--foreground);font-size:24px;line-height:1;cursor:pointer}
+    .screenshot-zoom-body{max-height:85vh;overflow:auto;border-radius:var(--radius)}
+    .screenshot-zoom-body img{display:block;width:100%;height:auto}
+
     /* ── hero ── */
     .hero{padding:52px 0 72px;text-align:center;position:relative;overflow:hidden}
     /* static CSS fallback: shows before the shader island hydrates and whenever
@@ -600,6 +607,12 @@ const ogImage = new URL(image, Astro.site).toString()
 </head>
 <body>
   <slot />
+  <dialog id="screenshot-zoom-dialog" class="screenshot-zoom-dialog" aria-label="Full size screenshot">
+    <form method="dialog">
+      <button type="submit" class="screenshot-zoom-close" aria-label="Close">×</button>
+    </form>
+    <div class="screenshot-zoom-body"></div>
+  </dialog>
   <script is:inline>
     document.documentElement.classList.add('js');
     // gallery marquee: always auto-scrolls, pauses only while pressed, drag to scroll
@@ -723,6 +736,55 @@ const ogImage = new URL(image, Astro.site).toString()
 
         render(false);
         start();
+      });
+    })();
+    // hero rotating slogans (static first line in HTML; JS only cycles)
+    (function(){
+      var el = document.querySelector('[data-hero-slogan]');
+      if(!el) return;
+      var raw = el.getAttribute('data-slogans') || '[]';
+      var slogans = [];
+      try { slogans = JSON.parse(raw); } catch (_) {}
+      if(!Array.isArray(slogans) || slogans.length < 2) return;
+      if(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+      var i = 0;
+      setInterval(function(){
+        el.style.opacity = '0';
+        setTimeout(function(){
+          i = (i + 1) % slogans.length;
+          el.textContent = slogans[i];
+          el.style.opacity = '1';
+        }, 280);
+      }, 4500);
+    })();
+    // screenshot zoom (native <dialog>, no React)
+    (function(){
+      var dlg = document.getElementById('screenshot-zoom-dialog');
+      if(!dlg) return;
+      var body = dlg.querySelector('.screenshot-zoom-body');
+      if(!body) return;
+      function open(btn){
+        var src = btn.getAttribute('data-zoom-src');
+        var srcDark = btn.getAttribute('data-zoom-src-dark');
+        var alt = btn.getAttribute('data-zoom-alt') || '';
+        if(!src) return;
+        body.innerHTML = '';
+        if(srcDark){
+          var light = document.createElement('img');
+          light.src = src; light.alt = alt; light.setAttribute('data-shot','light');
+          var dark = document.createElement('img');
+          dark.src = srcDark; dark.alt = ''; dark.setAttribute('data-shot','dark'); dark.setAttribute('aria-hidden','true');
+          body.appendChild(light); body.appendChild(dark);
+        } else {
+          var img = document.createElement('img');
+          img.src = src; img.alt = alt;
+          body.appendChild(img);
+        }
+        if(typeof dlg.showModal === 'function') dlg.showModal();
+      }
+      document.addEventListener('click', function(e){
+        var btn = e.target && e.target.closest ? e.target.closest('[data-screenshot-zoom]') : null;
+        if(btn) open(btn);
       });
     })();
     // reveal on scroll

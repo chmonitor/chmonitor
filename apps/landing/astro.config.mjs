@@ -6,8 +6,8 @@ import { defineConfig } from 'astro/config'
 
 export default defineConfig({
   site: 'https://chmonitor.dev',
-  // Mostly static. The hero is a single interactive shadcn React island
-  // (client:load); every other section stays zero-JS static markup.
+  // Fully static HTML at build time. Interactivity (billing toggle, screenshot
+  // zoom, hero slogans, changelog filter) uses small inline scripts in Astro.
   integrations: [sitemap(), react()],
   vite: {
     plugins: [tailwindcss()],

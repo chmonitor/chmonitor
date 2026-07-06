@@ -48,7 +48,6 @@ const PRESENTATION: Record<
     cta: { label: 'Start free', href: DASH, primary: true },
   },
   pro: {
-    highlight: true,
     cta: { label: 'Start free', href: DASH, primary: true },
   },
   max: { cta: { label: 'Start free', href: DASH } },

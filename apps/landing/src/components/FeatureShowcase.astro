@@ -1,0 +1,87 @@
+---
+import ScreenshotShot from './ScreenshotShot.astro'
+import { FEATURE_SECTIONS } from '../data/feature-showcase'
+
+const checkSvg = `<svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>`
+
+const icons: Record<string, string> = {
+  bot: `<svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg>`,
+  search: `<svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
+  'git-branch': `<svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>`,
+  bell: `<svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
+  database: `<svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>`,
+  'line-chart': `<svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 12 4-4 4 4 5-5"/></svg>`,
+}
+---
+
+<section
+  id="features"
+  class="border-border/60 border-t bg-muted/20 py-20 sm:py-28"
+  data-feature-sections={FEATURE_SECTIONS.length}
+>
+  <div class="mx-auto max-w-6xl px-6">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="font-medium text-primary text-sm">What you get</p>
+      <h2 class="mt-3 text-balance font-semibold text-3xl tracking-tight sm:text-4xl">
+        Everything about your cluster, in one place
+      </h2>
+      <p class="mt-4 text-pretty text-muted-foreground text-sm sm:text-base">
+        Purpose-built views over ClickHouse system tables — queries,
+        replication, storage, and health. No exporters, no extra storage.
+      </p>
+    </div>
+
+    <div class="mt-20 flex flex-col gap-24 sm:gap-28">
+      {
+        FEATURE_SECTIONS.map((section) => (
+          <article
+            id={section.id}
+            class="scroll-mt-20 grid items-center gap-10 min-[881px]:grid-cols-2 min-[881px]:gap-16"
+          >
+            <div
+              class={
+                section.reverse
+                  ? 'min-[881px]:order-2'
+                  : 'min-[881px]:order-1'
+              }
+            >
+              <span set:html={icons[section.icon]} />
+              <p class="mt-4 font-medium text-primary text-sm">
+                {section.eyebrow}
+              </p>
+              <h3 class="mt-2 text-balance font-semibold text-2xl tracking-tight sm:text-3xl">
+                {section.title}
+              </h3>
+              <p class="mt-3 max-w-[46ch] text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
+                {section.description}
+              </p>
+              <ul class="mt-6 flex list-none flex-col gap-2.5">
+                {section.bullets.map((bullet) => (
+                  <li class="flex gap-2.5 text-foreground text-sm leading-snug">
+                    <span set:html={checkSvg} />
+                    {bullet}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div
+              class={
+                section.reverse
+                  ? 'min-[881px]:order-1'
+                  : 'min-[881px]:order-2'
+              }
+            >
+              <ScreenshotShot
+                id={section.id}
+                src={section.screenshot.src}
+                srcDark={section.screenshot.srcDark}
+                alt={section.screenshot.alt}
+              />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,222 @@
+---
+import type { ChangelogFeatureGroup } from '../lib/parse-changelog-features'
+import { scopeChipLabel } from '../lib/parse-changelog-features'
+
+interface Props {
+  groups: ChangelogFeatureGroup[]
+  totalCount: number
+}
+
+const { groups, totalCount } = Astro.props
+const scopes = groups.map((g) => g.scope)
+---
+
+<section
+  id="ship-log"
+  class="py-12 sm:py-16"
+  data-feature-count={totalCount}
+  data-features-catalog
+>
+  <div class="mx-auto max-w-6xl px-6">
+    <div class="max-w-2xl">
+      <h2 class="text-balance font-semibold text-2xl tracking-tight sm:text-3xl">
+        Shipped features
+      </h2>
+      <p class="mt-2 text-pretty text-muted-foreground text-sm sm:text-base">
+        Grouped by scope from CHANGELOG.md.
+      </p>
+    </div>
+
+    <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div class="relative max-w-md flex-1">
+        <svg
+          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <input
+          type="search"
+          id="features-catalog-search"
+          class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pl-9 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          placeholder="Filter features…"
+          aria-label="Filter changelog features"
+        />
+      </div>
+      <p class="text-muted-foreground text-sm tabular-nums" data-features-visible>
+        Showing {totalCount} of {totalCount}
+      </p>
+    </div>
+
+    <div
+      class="mt-4 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      role="toolbar"
+      aria-label="Filter by scope"
+      data-features-scope-bar
+    >
+      <button
+        type="button"
+        data-scope=""
+        data-on="true"
+        class="feature-scope-chip inline-flex h-7 max-w-[9.5rem] shrink-0 items-center gap-1.5 rounded-full bg-primary px-2.5 text-xs font-medium text-primary-foreground transition-colors"
+      >
+        <span class="truncate">All</span>
+        <span class="tabular-nums text-[10px] text-primary-foreground/80">{totalCount}</span>
+      </button>
+      {
+        scopes.map((scope) => {
+          const group = groups.find((g) => g.scope === scope)
+          return (
+            <button
+              type="button"
+              data-scope={scope}
+              title={scope}
+              class="feature-scope-chip inline-flex h-7 max-w-[9.5rem] shrink-0 items-center gap-1.5 rounded-full bg-muted/80 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <span class="truncate">{scopeChipLabel(scope)}</span>
+              {group ? (
+                <span class="tabular-nums text-[10px] text-muted-foreground/80">
+                  {group.features.length}
+                </span>
+              ) : null}
+            </button>
+          )
+        })
+      }
+    </div>
+
+    <div class="mt-8 max-h-[70vh] overflow-y-auto pr-2">
+      <div class="grid gap-4 sm:grid-cols-2" data-features-grid>
+        {
+          groups.map((group) => (
+            <article
+              class="feature-group-card rounded-xl border border-border bg-card text-card-foreground shadow-sm"
+              data-scope={group.scope}
+            >
+              <div class="flex items-center justify-between gap-2 border-b border-border/60 px-6 py-4">
+                <h3 class="truncate font-mono text-sm">{group.scope}</h3>
+                <span class="inline-flex shrink-0 items-center rounded-full border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground tabular-nums">
+                  {group.features.length}
+                </span>
+              </div>
+              <div class="space-y-0 px-6 py-4">
+                {
+                  group.features.map((feature, i) => {
+                    const searchText = [
+                      feature.title,
+                      feature.scope,
+                      feature.version ?? '',
+                      feature.issue ?? '',
+                    ]
+                      .join(' ')
+                      .toLowerCase()
+                    return (
+                      <div
+                        class:list={['feature-item', i > 0 && 'border-t border-border/60 pt-2 mt-2']}
+                        data-search={searchText}
+                      >
+                        <p class="text-foreground text-sm leading-snug">
+                          {feature.title}
+                        </p>
+                        {
+                          feature.version ? (
+                            <p class="mt-0.5 text-muted-foreground text-xs">
+                              v{feature.version}
+                              {feature.issue ? ` · #${feature.issue}` : ''}
+                            </p>
+                          ) : null
+                        }
+                      </div>
+                    )
+                  })
+                }
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .feature-scope-chip[data-on='true'] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .feature-scope-chip[data-on='true'] span:last-child {
+    color: color-mix(in oklch, var(--primary-foreground) 80%, transparent);
+  }
+  .feature-group-card[data-hidden='true'],
+  .feature-item[data-hidden='true'] {
+    display: none;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var root = document.querySelector('[data-features-catalog]')
+    if (!root) return
+    var input = root.querySelector('#features-catalog-search')
+    var grid = root.querySelector('[data-features-grid]')
+    var counter = root.querySelector('[data-features-visible]')
+    var chips = root.querySelectorAll('.feature-scope-chip')
+    var cards = root.querySelectorAll('.feature-group-card')
+    var total = parseInt(root.getAttribute('data-feature-count') || '0', 10)
+    var activeScope = ''
+
+    function setChip(scope) {
+      activeScope = scope
+      chips.forEach(function (chip) {
+        var on = chip.getAttribute('data-scope') === scope
+        chip.setAttribute('data-on', on ? 'true' : 'false')
+        chip.classList.toggle('bg-primary', on)
+        chip.classList.toggle('text-primary-foreground', on)
+        chip.classList.toggle('bg-muted/80', !on)
+        chip.classList.toggle('text-muted-foreground', !on)
+      })
+      apply()
+    }
+
+    function apply() {
+      var q = (input && input.value ? input.value : '').trim().toLowerCase()
+      var visible = 0
+      cards.forEach(function (card) {
+        var scope = card.getAttribute('data-scope') || ''
+        if (activeScope && scope !== activeScope) {
+          card.setAttribute('data-hidden', 'true')
+          return
+        }
+        var items = card.querySelectorAll('.feature-item')
+        var shown = 0
+        items.forEach(function (item) {
+          var hay = item.getAttribute('data-search') || ''
+          var match = !q || hay.indexOf(q) !== -1
+          item.setAttribute('data-hidden', match ? 'false' : 'true')
+          if (match) shown++
+        })
+        card.setAttribute('data-hidden', shown === 0 ? 'true' : 'false')
+        visible += shown
+      })
+      if (counter) {
+        counter.textContent = 'Showing ' + visible + ' of ' + total
+      }
+    }
+
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var scope = chip.getAttribute('data-scope') || ''
+        setChip(activeScope === scope && scope ? '' : scope)
+      })
+    })
+    if (input) input.addEventListener('input', apply)
+    apply()
+  })()
+</script>

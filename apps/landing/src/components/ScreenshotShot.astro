@@ -1,0 +1,43 @@
+---
+interface Props {
+  id: string
+  src: string
+  srcDark?: string
+  alt: string
+}
+
+const { id, src, srcDark, alt } = Astro.props
+const paired = Boolean(srcDark)
+---
+
+<button
+  type="button"
+  data-screenshot-zoom={id}
+  data-zoom-src={src}
+  data-zoom-src-dark={srcDark}
+  data-zoom-alt={alt}
+  class="relative block w-full overflow-hidden leading-none"
+  aria-label={`View full size: ${alt}`}
+>
+  <img
+    src={src}
+    {...(paired ? { 'data-shot': 'light' as const } : {})}
+    alt={alt}
+    loading="lazy"
+    decoding="async"
+    class="block h-auto w-full align-top"
+  />
+  {
+    srcDark ? (
+      <img
+        src={srcDark}
+        data-shot="dark"
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        class="block h-auto w-full align-top"
+      />
+    ) : null
+  }
+</button>

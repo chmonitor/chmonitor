@@ -1,10 +1,126 @@
 ---
+import { HERO_SLOGANS } from '../lib/hero-slogans'
 import { formatCount, getGitHubStats } from '../lib/github-stars'
-import { HeroContent } from './HeroContent'
-import '../styles/globals.css'
 
 const { stars } = await getGitHubStats()
 const starLabel = formatCount(stars)
+
+const HERO_FEATURES = [
+  'Real-time queries, merges and replication from system tables',
+  'Running, slow and expensive query views with EXPLAIN',
+  'Cluster topology, replica lag and Keeper health',
+  'Disk, memory and merge backlog on one overview',
+  'Threshold alerts to Slack, Opsgenie, PagerDuty and webhooks',
+  'AI advisor for schema and tuning — MCP-ready, read-only default',
+] as const
+
+const checkSvg = `<svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>`
+const arrowSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
+const bookSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>`
+const starSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>`
+const githubSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`
+
+const btnPrimary =
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-6 h-10 text-sm font-medium text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+const btnOutline =
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-6 h-10 text-sm font-medium shadow-xs transition-all hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+const btnGhost =
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 h-10 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 ---
 
-<HeroContent client:load starLabel={starLabel} />
+<section class="relative isolate overflow-hidden pb-16 sm:pb-20" data-hero>
+  <div
+    aria-hidden="true"
+    class="pointer-events-none absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(ellipse_70%_50%_at_50%_-20%,color-mix(in_oklch,var(--primary)_8%,transparent),transparent)]"
+  />
+
+  <div class="relative mx-auto max-w-6xl px-6 pt-16 sm:pt-20 lg:pt-24">
+    <div class="mx-auto max-w-3xl text-center">
+      <a
+        href="https://github.com/chmonitor/chmonitor"
+        target="_blank"
+        rel="noopener"
+        class="inline-flex"
+        data-hero-oss
+      >
+        <span class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-emerald-700 text-sm font-medium dark:text-emerald-300">
+          <span set:html={githubSvg} />
+          Open source · GPL-3.0 · self-host free
+        </span>
+      </a>
+
+      <h1 class="mt-5 text-balance font-semibold text-[clamp(2.25rem,5.5vw,3.75rem)] text-foreground leading-[1.05] tracking-[-0.03em]">
+        The ops dashboard for ClickHouse
+        <span class="block text-primary">
+          queries, merges, replication — live
+        </span>
+      </h1>
+
+      <p
+        data-hero-slogan
+        data-slogans={JSON.stringify(HERO_SLOGANS)}
+        aria-live="polite"
+        class="mx-auto mt-3 min-h-[1.6em] max-w-xl text-pretty font-medium text-lg text-primary tracking-tight transition-opacity duration-300 sm:text-xl"
+      >
+        {HERO_SLOGANS[0]}
+      </p>
+
+      <p class="mx-auto mt-4 max-w-xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
+        Live dashboards from <span class="text-foreground">system.query_log</span>,
+        <span class="text-foreground">system.parts</span>, and replication tables —
+        self-hosted or on <span class="text-foreground">dash.chmonitor.dev</span>.
+      </p>
+
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <a
+          href="https://dash.chmonitor.dev"
+          target="_blank"
+          rel="noopener"
+          data-cta="hero-primary"
+          class={btnPrimary}
+        >
+          Start free
+          <span set:html={arrowSvg} />
+        </a>
+        <a
+          href="https://docs.chmonitor.dev"
+          target="_blank"
+          rel="noopener"
+          data-cta="hero-self-host"
+          class={btnOutline}
+        >
+          <span set:html={bookSvg} />
+          Self-host
+        </a>
+        {
+          starLabel ? (
+            <a
+              href="https://github.com/chmonitor/chmonitor"
+              target="_blank"
+              rel="noopener"
+              data-cta="github-star-hero"
+              class={btnGhost}
+            >
+              <span set:html={starSvg} />
+              <span class="tabular-nums">{starLabel}</span>
+            </a>
+          ) : null
+        }
+      </div>
+    </div>
+
+    <ul
+      class="mx-auto mt-12 grid max-w-3xl list-none gap-x-8 gap-y-3 sm:grid-cols-2"
+      data-hero-features
+    >
+      {
+        HERO_FEATURES.map((feature) => (
+          <li class="flex gap-2.5 text-left text-foreground text-sm leading-snug">
+            <span set:html={checkSvg} />
+            {feature}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
