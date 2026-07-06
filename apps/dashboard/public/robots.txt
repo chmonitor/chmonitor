@@ -3,6 +3,7 @@
 # content. Allow crawling of the shell but keep crawlers out of the API and
 # health endpoints, which have no SEO value and only waste crawl budget.
 User-agent: *
+Content-Signal: ai-train=no, search=yes, ai-input=no
 Allow: /
 Disallow: /api/
 Disallow: /healthz

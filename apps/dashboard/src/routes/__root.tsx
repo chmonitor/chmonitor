@@ -8,6 +8,7 @@ import {
 import appCss from '../styles.css?url'
 import { type ReactNode, useEffect } from 'react'
 import { ClerkAuthProvider } from '@/components/clerk/clerk-auth-provider'
+import { WebMcpRegistration } from '@/components/webmcp'
 import { SignupAnalyticsTracker } from '@/lib/analytics/signup-tracker'
 import { isClerkClientEnabled } from '@/lib/clerk/clerk-client'
 import { AppProvider } from '@/lib/context/app-context'
@@ -168,6 +169,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       </head>
       <body className="bg-background font-sans antialiased">
         <StructuredData />
+        <WebMcpRegistration />
         <ClerkAuthProvider>
           <TimezoneProvider>
             <ThemeProvider>
