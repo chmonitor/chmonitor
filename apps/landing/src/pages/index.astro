@@ -2,7 +2,6 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Hero from '../components/Hero.astro'
-import ProductHighlights from '../components/ProductHighlights.tsx'
 import FeatureShowcase from '../components/FeatureShowcase.tsx'
 import Comparison from '../components/Comparison.astro'
 import Pricing from '../components/Pricing.astro'
@@ -16,7 +15,6 @@ import { useCases } from '../data/use-cases'
   <Nav />
   <main id="top">
     <Hero />
-    <ProductHighlights client:visible />
     <FeatureShowcase client:visible />
     <Comparison />
     <UseCaseLinks items={useCases} eyebrow="Use cases" heading="Explore by use case" soft />

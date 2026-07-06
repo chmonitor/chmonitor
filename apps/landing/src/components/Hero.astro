@@ -1,11 +1,10 @@
 ---
 import { formatCount, getGitHubStats } from '../lib/github-stars'
-import HeroIsland from './HeroIsland.tsx'
+import { HeroContent } from './HeroContent'
+import '../styles/globals.css'
 
-// Build-time star count for the hero GitHub badge/button. Empty string when the
-// fetch fails — the button then renders without a fabricated number.
 const { stars } = await getGitHubStats()
 const starLabel = formatCount(stars)
 ---
 
-<HeroIsland client:load starLabel={starLabel} />
+<HeroContent starLabel={starLabel} />
