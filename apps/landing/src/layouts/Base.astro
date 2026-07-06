@@ -87,6 +87,12 @@ const ogImage = new URL(image, Astro.site).toString()
     })()
   </script>
   <style is:global>
+    /* All of the legacy hand-authored global CSS lives in @layer base so that
+       Tailwind's @layer utilities (declared after base in globals.css) reliably
+       overrides it. Without this, the unlayered `*{margin:0;padding:0}` reset and
+       `a{color:inherit}` beat EVERY Tailwind margin/padding/text-color utility
+       (unlayered rules win over any layered rule), breaking the shadcn sections. */
+    @layer base {
     :root{
       --bg:#ffffff;
       --bg-soft:#fafafa;
@@ -589,6 +595,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .cl-body .cl-notes{margin-top:10px;font-size:14px;color:var(--muted-fg);line-height:1.7;text-wrap:pretty}
     .cl-body .cl-notes a{color:var(--orange)}
     @media (max-width:640px){.cl-entry{grid-template-columns:1fr;gap:8px}}
+    }
   </style>
 </head>
 <body>
