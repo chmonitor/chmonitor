@@ -8,7 +8,6 @@ import {
   Table,
   TextSearch,
 } from 'lucide-react'
-import { menuItemsConfig } from '@/menu'
 
 import { detectQuickNav, parseTableName } from './command-palette-utils'
 import * as React from 'react'
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/command'
 import { IconButton } from '@/components/ui/icon-button'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
-import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
+import { getVisibleMenuItems } from '@/lib/menu/visible-items'
 import { useRouter, useSearchParams } from '@/lib/next-compat'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
@@ -77,7 +76,7 @@ export const CommandPalette = function CommandPalette({
   const [internalOpen, setInternalOpen] = React.useState(false)
   const [inputValue, setInputValue] = useState('')
   const { config } = useFeaturePermissions()
-  const menuItems = filterMenuItemsByPermissions(menuItemsConfig, config)
+  const menuItems = getVisibleMenuItems(config)
 
   const open = controlledOpen ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen

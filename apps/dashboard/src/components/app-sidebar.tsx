@@ -1,5 +1,4 @@
 import { BookOpenIcon } from 'lucide-react'
-import { menuItemsConfig } from '@/menu'
 
 import { HostSwitcher } from '@/components/host/host-switcher'
 import { SampleClusterBanner } from '@/components/host/sample-cluster-banner'
@@ -15,21 +14,15 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { GUEST_USER } from '@/lib/clerk/guest-user'
-import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { DOCS_SITE_URL } from '@/lib/docs-site'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
-import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
+import { getVisibleMenuItems } from '@/lib/menu/visible-items'
 
 export function AppSidebar() {
   const { config } = useFeaturePermissions()
-  const cloudMode = isCloudModeClient()
-  // Billing + Organization are cloud-only surfaces — self-hosting is free
-  // forever and has no orgs, so these would only confuse self-hosters.
-  const cloudOnlyHrefs = new Set(['/billing', '/organization'])
-  const menuItems = filterMenuItemsByPermissions(
-    menuItemsConfig,
-    config
-  ).filter((item) => cloudMode || !cloudOnlyHrefs.has(item.href))
+  // Feature-permission + cloud-only (Billing/Organization) gates resolved in
+  // one place — see lib/menu/visible-items.ts.
+  const menuItems = getVisibleMenuItems(config)
 
   return (
     <Sidebar collapsible="icon" variant="inset">
