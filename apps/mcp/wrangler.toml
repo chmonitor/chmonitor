@@ -50,6 +50,13 @@ compatibility_flags = [
 [observability]
 enabled = true
 
+# Workers Cache (launched 2026-07-06): safe to enable — MCP requests are authed
+# and carry an `Authorization` bearer (auto-bypassed by Workers Cache), and no
+# response here sets a public `Cache-Control`, so nothing is cached. Enabled for
+# parity; behaviour is unchanged. See docs/knowledge/workers-cache.md.
+[cache]
+enabled = true
+
 # Workers Routes — more specific than the dashboard worker's
 # dash.chmonitor.dev/* custom domain, so they win first.
 # Trailing-slash and future sub-path variants (/api/mcp/, /api/mcp/session/…)

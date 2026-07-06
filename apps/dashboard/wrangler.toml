@@ -14,6 +14,18 @@ compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 [observability]
 enabled = true
 
+# Workers Cache (launched 2026-07-06): Cloudflare's tiered cache sits in front of
+# this Worker. Enabled, but with NO public caching of any dashboard route — the
+# dashboard is per-user (Clerk) and per-host, so every SSR / data / API response
+# stays uncached. This flag is safe by default: only responses with an explicit
+# `Cache-Control: public` are ever stored, and this app deliberately sets none
+# (data routes use `no-store` / `private`, or `s-maxage` which targets a shared
+# CDN cache, not this worker cache's `public` directive). Clerk auth cookies are
+# NOT `Authorization` headers, so we never mark a dashboard response `public`.
+# See docs/knowledge/workers-cache.md.
+[cache]
+enabled = true
+
 # D1 database for AI agent conversations + per-user connections + billing
 # subscriptions (subscription-store / user-connections / conversation-store).
 [[d1_databases]]
