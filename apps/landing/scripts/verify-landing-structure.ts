@@ -27,6 +27,7 @@ const forbidden = [
   'Live demo',
   'Tabbed product preview',
   'UI monitoring for ClickHouse',
+  '/#feature-index',
 ] as const
 
 let failed = false
