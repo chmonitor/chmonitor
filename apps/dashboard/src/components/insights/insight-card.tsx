@@ -42,7 +42,7 @@ export function InsightCard({
   return (
     <Card
       className={cn(
-        'h-full gap-0 border-l-2 p-4 transition-colors',
+        'h-full gap-0 p-4 transition-colors',
         style.accent,
         className
       )}

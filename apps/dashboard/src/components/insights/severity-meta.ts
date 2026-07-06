@@ -22,7 +22,7 @@ export interface SeverityMeta {
   readonly iconColor: string
   /** Tinted outline-badge classes (also used for header count badges). */
   readonly badge: string
-  /** Left-border accent color (paired with `border-l-2`) to surface severity. */
+  /** Full-border accent color for the card (all four sides), by severity. */
   readonly accent: string
 }
 
@@ -34,7 +34,7 @@ export const SEVERITY_META: Record<InsightSeverity, SeverityMeta> = {
     iconColor: 'text-rose-600 dark:text-rose-400',
     badge:
       'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-400',
-    accent: 'border-l-rose-400 dark:border-l-rose-500',
+    accent: 'border-rose-300 dark:border-rose-700/60',
   },
   warning: {
     label: 'Warning',
@@ -43,7 +43,7 @@ export const SEVERITY_META: Record<InsightSeverity, SeverityMeta> = {
     iconColor: 'text-amber-600 dark:text-amber-400',
     badge:
       'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400',
-    accent: 'border-l-amber-400 dark:border-l-amber-500',
+    accent: 'border-amber-300 dark:border-amber-700/60',
   },
   info: {
     label: 'Notice',
@@ -52,7 +52,7 @@ export const SEVERITY_META: Record<InsightSeverity, SeverityMeta> = {
     iconColor: 'text-muted-foreground',
     badge:
       'border-border bg-muted/50 text-muted-foreground dark:bg-muted/30 dark:text-muted-foreground',
-    accent: 'border-l-border',
+    accent: 'border-border',
   },
 }
 
