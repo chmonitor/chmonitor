@@ -1,7 +1,6 @@
 import { Search } from 'lucide-react'
 
 import type { ChangelogFeatureGroup } from '@/lib/parse-changelog-features'
-import { scopeChipLabel } from '@/lib/parse-changelog-features'
 
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { scopeChipLabel } from '@/lib/parse-changelog-features'
 import { cn } from '@/lib/utils'
 import '@/styles/globals.css'
 
@@ -92,12 +92,11 @@ export default function FeaturesCatalog({ groups, totalCount }: Props) {
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="max-w-2xl">
-          <p className="font-medium text-primary text-sm">Feature index</p>
-          <h2 className="mt-2 text-balance font-semibold text-3xl tracking-tight sm:text-4xl">
-            Every CHANGELOG feature
+          <h2 className="text-balance font-semibold text-2xl tracking-tight sm:text-3xl">
+            Shipped features
           </h2>
-          <p className="mt-3 text-pretty text-muted-foreground text-sm sm:text-base">
-            Parsed from CHANGELOG.md — grouped by scope, searchable.
+          <p className="mt-2 text-pretty text-muted-foreground text-sm sm:text-base">
+            Grouped by scope from CHANGELOG.md.
           </p>
         </div>
 
@@ -155,7 +154,10 @@ export default function FeaturesCatalog({ groups, totalCount }: Props) {
                     <span className="truncate font-mono text-sm">
                       {group.scope}
                     </span>
-                    <Badge variant="secondary" className="shrink-0 tabular-nums">
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 tabular-nums"
+                    >
                       {group.features.length}
                     </Badge>
                   </CardTitle>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-
 import { HERO_SLOGANS } from '@/lib/hero-slogans'
 import { cn } from '@/lib/utils'
 

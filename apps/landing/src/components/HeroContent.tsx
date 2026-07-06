@@ -1,8 +1,8 @@
 import { ArrowRight, BookOpen, Check, Star } from 'lucide-react'
 
+import { HeroRotatingSlogan } from '@/components/HeroRotatingSlogan'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { HeroRotatingSlogan } from '@/components/HeroRotatingSlogan'
 import { cn } from '@/lib/utils'
 
 const HERO_FEATURES = [
@@ -22,7 +22,10 @@ type Props = {
 export function HeroContent({ starLabel = '', className }: Props) {
   return (
     <section
-      className={cn('relative isolate overflow-hidden pb-16 sm:pb-20', className)}
+      className={cn(
+        'relative isolate overflow-hidden pb-16 sm:pb-20',
+        className
+      )}
       data-hero
     >
       <div
@@ -47,8 +50,11 @@ export function HeroContent({ starLabel = '', className }: Props) {
             </Badge>
           </a>
 
-          <h1 className="mt-5 text-balance font-semibold text-[clamp(2rem,5vw,3.5rem)] text-foreground leading-[1.08] tracking-[-0.03em]">
-            UI monitoring for ClickHouse
+          <h1 className="mt-5 text-balance font-semibold text-[clamp(2.25rem,5.5vw,3.75rem)] text-foreground leading-[1.05] tracking-[-0.03em]">
+            The ops dashboard for ClickHouse
+            <span className="block text-primary">
+              queries, merges, replication — live
+            </span>
           </h1>
 
           <HeroRotatingSlogan />

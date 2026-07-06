@@ -11,13 +11,14 @@ const html = readFileSync(distIndex, 'utf8')
 const required = [
   'data-hero',
   'data-hero-features',
-  'data-feature-index-promo',
-  'UI monitoring for ClickHouse',
+  'The ops dashboard for ClickHouse',
   'data-hero-slogan',
-  '/changelog#ship-log',
 ] as const
 
 const forbidden = [
+  'Complete feature list',
+  'Every CHANGELOG feature, searchable',
+  'data-feature-index-promo',
   'Ship log',
   'Open source, built in public',
   'data-hero-demo-input',
@@ -25,6 +26,7 @@ const forbidden = [
   'Ask the agent a question',
   'Live demo',
   'Tabbed product preview',
+  'UI monitoring for ClickHouse',
 ] as const
 
 let failed = false
@@ -49,7 +51,9 @@ for (const text of forbidden) {
 
 const zoomCount = (html.match(/data-screenshot-zoom/g) ?? []).length
 if (zoomCount < 1) {
-  console.error(`EXPECTED screenshot zoom in feature sections, got ${zoomCount}`)
+  console.error(
+    `EXPECTED screenshot zoom in feature sections, got ${zoomCount}`
+  )
   failed = true
 } else {
   console.log(`OK: ${zoomCount} screenshot zoom triggers (feature showcase)`)
@@ -72,12 +76,11 @@ if (borderedZoom === 0 && zoomCount > 0) {
   console.log('OK: screenshot zoom wrappers are borderless')
 }
 
-const homeFeatureCount = html.match(/data-feature-count="(\d+)"/)
-if (!homeFeatureCount) {
-  console.error('MISSING data-feature-count on homepage (feature index promo)')
+if (html.includes('data-feature-count=')) {
+  console.error('FORBIDDEN data-feature-count on homepage')
   failed = true
 } else {
-  console.log(`OK: homepage feature index promo count=${homeFeatureCount[1]}`)
+  console.log('OK: no feature-count promo on homepage')
 }
 
 const distChangelog = join(process.cwd(), 'dist/changelog/index.html')

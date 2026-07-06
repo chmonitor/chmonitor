@@ -21,7 +21,11 @@ function FeatureBlock({
           section.reverse ? 'min-[881px]:order-2' : 'min-[881px]:order-1'
         }
       >
-        <Icon className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        <Icon
+          className="size-5 text-muted-foreground"
+          strokeWidth={1.5}
+          aria-hidden
+        />
         <p className="mt-4 font-medium text-primary text-sm">
           {section.eyebrow}
         </p>
