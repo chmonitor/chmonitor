@@ -21,9 +21,7 @@ function FeatureBlock({
           section.reverse ? 'min-[881px]:order-2' : 'min-[881px]:order-1'
         }
       >
-        <div className="inline-flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground">
-          <Icon className="size-4" strokeWidth={1.5} />
-        </div>
+        <Icon className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
         <p className="mt-4 font-medium text-primary text-sm">
           {section.eyebrow}
         </p>
@@ -78,9 +76,8 @@ export default function FeatureShowcase() {
             Everything about your cluster, in one place
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground text-sm sm:text-base">
-            chmonitor reads ClickHouse system tables directly — no exporters, no
-            extra storage. Each view is purpose-built so you can spot the
-            problem and move on.
+            Purpose-built views over ClickHouse system tables — queries,
+            replication, storage, and health. No exporters, no extra storage.
           </p>
         </div>
 

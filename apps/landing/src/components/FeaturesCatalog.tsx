@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react'
 
 import type { ChangelogFeatureGroup } from '@/lib/parse-changelog-features'
+import { scopeChipLabel } from '@/lib/parse-changelog-features'
 
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -8,11 +9,52 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import '@/styles/globals.css'
 
 type Props = {
   groups: ChangelogFeatureGroup[]
   totalCount: number
+}
+
+function ScopeChip({
+  active,
+  label,
+  title,
+  count,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  title: string
+  count?: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-7 max-w-[9.5rem] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors',
+        active
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground'
+      )}
+    >
+      <span className="truncate">{label}</span>
+      {count !== undefined ? (
+        <span
+          className={cn(
+            'tabular-nums text-[10px]',
+            active ? 'text-primary-foreground/80' : 'text-muted-foreground/80'
+          )}
+        >
+          {count}
+        </span>
+      ) : null}
+    </button>
+  )
 }
 
 export default function FeaturesCatalog({ groups, totalCount }: Props) {
@@ -75,30 +117,33 @@ export default function FeaturesCatalog({ groups, totalCount }: Props) {
           </p>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
+        <div
+          className="mt-4 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="toolbar"
+          aria-label="Filter by scope"
+        >
+          <ScopeChip
+            active={activeScope === null}
+            label="All"
+            title="All scopes"
+            count={totalCount}
             onClick={() => setActiveScope(null)}
-            className="rounded-full"
-          >
-            <Badge variant={activeScope === null ? 'default' : 'outline'}>
-              All scopes
-            </Badge>
-          </button>
-          {scopes.map((scope) => (
-            <button
-              key={scope}
-              type="button"
-              onClick={() =>
-                setActiveScope(activeScope === scope ? null : scope)
-              }
-              className="rounded-full"
-            >
-              <Badge variant={activeScope === scope ? 'default' : 'outline'}>
-                {scope}
-              </Badge>
-            </button>
-          ))}
+          />
+          {scopes.map((scope) => {
+            const group = groups.find((g) => g.scope === scope)
+            return (
+              <ScopeChip
+                key={scope}
+                active={activeScope === scope}
+                label={scopeChipLabel(scope)}
+                title={scope}
+                count={group?.features.length}
+                onClick={() =>
+                  setActiveScope(activeScope === scope ? null : scope)
+                }
+              />
+            )
+          })}
         </div>
 
         <ScrollArea className="mt-8 max-h-[70vh] pr-2">
@@ -106,9 +151,13 @@ export default function FeaturesCatalog({ groups, totalCount }: Props) {
             {filtered.map((group) => (
               <Card key={group.scope}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between text-base">
-                    <span>{group.scope}</span>
-                    <Badge variant="secondary">{group.features.length}</Badge>
+                  <CardTitle className="flex items-center justify-between gap-2 text-base">
+                    <span className="truncate font-mono text-sm">
+                      {group.scope}
+                    </span>
+                    <Badge variant="secondary" className="shrink-0 tabular-nums">
+                      {group.features.length}
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-0 pb-4">

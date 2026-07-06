@@ -56,10 +56,10 @@ const faqJsonLd = {
 
     <div class="reveal mx-auto mt-12 max-w-3xl">
       {faqs.map(({ q, a }) => (
-        <details class="faq-item group border-b border-border first:border-t">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium text-foreground [&::-webkit-details-marker]:hidden">
+        <details class="changelog-faq group border-b border-border first:border-t">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
             {q}
-            <svg class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <svg class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
           <div class="faq-ans pb-5 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary/80 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]" set:html={a} />
         </details>

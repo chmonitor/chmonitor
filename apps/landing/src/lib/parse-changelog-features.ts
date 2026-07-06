@@ -78,6 +78,13 @@ export function groupChangelogFeatures(
     .map(([scope, groupFeatures]) => ({ scope, features: groupFeatures }))
 }
 
+/** Compact label for scope filter chips (full id stays in title/tooltip). */
+export function scopeChipLabel(scope: string, maxLen = 16): string {
+  const normalized = scope.replace(/^ch-/, '').replace(/,/g, '·')
+  if (normalized.length <= maxLen) return normalized
+  return `${normalized.slice(0, maxLen - 1)}…`
+}
+
 /** Count ✨ Features bullets — used by tests to prove parser completeness. */
 export function countFeatureBulletsInMarkdown(markdown: string): number {
   const lines = markdown.split('\n')

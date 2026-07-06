@@ -2,6 +2,7 @@ import {
   countFeatureBulletsInMarkdown,
   groupChangelogFeatures,
   parseChangelogFeatures,
+  scopeChipLabel,
 } from './parse-changelog-features'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -19,6 +20,13 @@ describe('parseChangelogFeatures', () => {
     const regexCount = countFeatureBulletsInMarkdown(markdown)
     expect(parsed.length).toBe(regexCount)
     expect(parsed.length).toBeGreaterThan(100)
+  })
+
+  test('scopeChipLabel shortens long scope ids', () => {
+    expect(scopeChipLabel('agent')).toBe('agent')
+    expect(scopeChipLabel('ch-capabilities')).toBe('capabilities')
+    expect(scopeChipLabel('billing,config')).toBe('billing·config')
+    expect(scopeChipLabel('expensive-queries').length).toBeLessThanOrEqual(16)
   })
 
   test('exposes every scope group with at least one feature', () => {

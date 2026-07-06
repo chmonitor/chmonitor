@@ -2,15 +2,16 @@ import { ArrowRight, BookOpen, Check, Star } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
+import { HeroRotatingSlogan } from '@/components/HeroRotatingSlogan'
 import { cn } from '@/lib/utils'
 
 const HERO_FEATURES = [
   'Real-time queries, merges and replication from system tables',
-  'Slow-query patterns, EXPLAIN and memory-heavy workload ranking',
-  'Cluster topology, replica lag and Keeper health in one view',
-  'AI agent with schema, diagnostics and tuning tools — MCP-ready',
+  'Running, slow and expensive query views with EXPLAIN',
+  'Cluster topology, replica lag and Keeper health',
+  'Disk, memory and merge backlog on one overview',
   'Threshold alerts to Slack, Opsgenie, PagerDuty and webhooks',
-  'Self-host on Docker, Kubernetes or Workers — or start on cloud',
+  'AI advisor for schema and tuning — MCP-ready, read-only default',
 ] as const
 
 type Props = {
@@ -26,7 +27,7 @@ export function HeroContent({ starLabel = '', className }: Props) {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[380px] bg-[radial-gradient(ellipse_70%_50%_at_50%_-20%,color-mix(in_oklch,var(--primary)_10%,transparent),transparent)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(ellipse_70%_50%_at_50%_-20%,color-mix(in_oklch,var(--primary)_8%,transparent),transparent)]"
       />
 
       <div className="relative mx-auto max-w-6xl px-6 pt-16 sm:pt-20 lg:pt-24">
@@ -46,15 +47,18 @@ export function HeroContent({ starLabel = '', className }: Props) {
             </Badge>
           </a>
 
-          <h1 className="mt-5 text-balance font-semibold text-[clamp(2.25rem,5.5vw,3.75rem)] text-foreground leading-[1.05] tracking-[-0.03em]">
-            The AI ops agent for ClickHouse
-            <span className="block text-primary">— everywhere it runs</span>
+          <h1 className="mt-5 text-balance font-semibold text-[clamp(2rem,5vw,3.5rem)] text-foreground leading-[1.08] tracking-[-0.03em]">
+            UI monitoring for ClickHouse
           </h1>
 
+          <HeroRotatingSlogan />
+
           <p className="mx-auto mt-4 max-w-xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
-            Monitor slow queries, merges and replication lag from live system
-            tables — with an advisor that recommends what to change, not just
-            charts.
+            Live dashboards from{' '}
+            <span className="text-foreground">system.query_log</span>,{' '}
+            <span className="text-foreground">system.parts</span>, and
+            replication tables — self-hosted or on{' '}
+            <span className="text-foreground">dash.chmonitor.dev</span>.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">

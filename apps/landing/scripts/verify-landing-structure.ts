@@ -11,16 +11,20 @@ const html = readFileSync(distIndex, 'utf8')
 const required = [
   'data-hero',
   'data-hero-features',
-  'AI ops agent for ClickHouse',
+  'data-feature-index-promo',
+  'UI monitoring for ClickHouse',
+  'data-hero-slogan',
+  '/changelog#ship-log',
 ] as const
 
 const forbidden = [
   'Ship log',
-  'features shipped',
   'Open source, built in public',
   'data-hero-demo-input',
   'data-hero-prompt-input',
   'Ask the agent a question',
+  'Live demo',
+  'Tabbed product preview',
 ] as const
 
 let failed = false
@@ -66,6 +70,14 @@ while ((zoomTag = zoomTagRe.exec(html)) !== null) {
 }
 if (borderedZoom === 0 && zoomCount > 0) {
   console.log('OK: screenshot zoom wrappers are borderless')
+}
+
+const homeFeatureCount = html.match(/data-feature-count="(\d+)"/)
+if (!homeFeatureCount) {
+  console.error('MISSING data-feature-count on homepage (feature index promo)')
+  failed = true
+} else {
+  console.log(`OK: homepage feature index promo count=${homeFeatureCount[1]}`)
 }
 
 const distChangelog = join(process.cwd(), 'dist/changelog/index.html')

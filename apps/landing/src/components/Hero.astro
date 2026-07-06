@@ -7,4 +7,4 @@ const { stars } = await getGitHubStats()
 const starLabel = formatCount(stars)
 ---
 
-<HeroContent starLabel={starLabel} />
+<HeroContent client:load starLabel={starLabel} />

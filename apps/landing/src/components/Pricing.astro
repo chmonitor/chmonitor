@@ -52,15 +52,15 @@ const outlineBtnAuto =
       </span>
       <div class="bill-toggle inline-flex gap-0.5 rounded-full border border-border bg-card p-1" role="tablist" aria-label="Billing period">
         <button type="button" data-period="monthly" role="tab" aria-selected="false" class="billing-toggle-btn inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">Monthly</button>
-        <button type="button" data-period="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
-          Yearly <span class="save text-xs font-semibold text-emerald-600 dark:text-emerald-400">{monthsFreeText(yearlyMonthsFreeValue)} free</span>
+        <button type="button" data-period="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+          Yearly <span class="save text-xs font-semibold">{monthsFreeText(yearlyMonthsFreeValue)} free</span>
         </button>
       </div>
     </div>
 
     <div class="cloud-grid reveal mt-5 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4" data-period="yearly">
       {tiers.map((t) => (
-        <div class={`flex flex-col rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-ring/40 ${t.highlight ? 'border-primary' : 'border-border'}`}>
+        <div class={`flex flex-col rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-ring/40 ${t.highlight ? 'border-primary/60 ring-1 ring-primary/20' : 'border-border'}`}>
           <div>
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-semibold text-lg tracking-tight">{t.name}</span>
@@ -134,7 +134,19 @@ const outlineBtnAuto =
     /* Billing toggle: active-pill contrast flips with theme (same tokens as
        the rest of the page — .active fills with the foreground color, so
        text must invert to the background color to stay readable). */
-    .billing-toggle-btn.active { background: var(--foreground); color: var(--background); }
+    .billing-toggle-btn.active {
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+    .billing-toggle-btn.active .save {
+      color: color-mix(in oklch, var(--primary-foreground) 85%, transparent);
+    }
+    .billing-toggle-btn:not(.active) .save {
+      color: oklch(0.55 0.14 155);
+    }
+    [data-theme='dark'] .billing-toggle-btn:not(.active) .save {
+      color: oklch(0.72 0.17 155);
+    }
 
     /* Monthly/yearly amount + billed-note swap, driven by the toggle above. */
     .cloud-grid .amt { display: none; }
