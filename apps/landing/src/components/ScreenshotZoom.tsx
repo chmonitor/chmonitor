@@ -29,7 +29,7 @@ export function ScreenshotZoom({ id, src, srcDark, alt, className }: Props) {
       >
         <img
           src={src}
-          data-shot="light"
+          {...(srcDark ? { 'data-shot': 'light' as const } : {})}
           alt={alt}
           loading="lazy"
           decoding="async"
