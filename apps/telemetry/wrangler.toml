@@ -25,6 +25,14 @@ compatibility_flags = ["global_fetch_strictly_public"]
 [observability]
 enabled = true
 
+# Workers Cache (launched 2026-07-06): safe to enable — the ingest path is POST
+# (never cached), and the only GET responses are the static text banner at `/`
+# and `/health`, which set no public `Cache-Control`, so nothing is actually
+# stored. Enabled for parity; behaviour is unchanged.
+# See docs/knowledge/workers-cache.md.
+[cache]
+enabled = true
+
 # Analytics Engine — hot store (3-month retention, ad-hoc SQL). No binding-side
 # config needed beyond the dataset name; rows go in via writeDataPoint().
 [[analytics_engine_datasets]]

@@ -293,6 +293,43 @@ The `query` tool — the only tool that accepts arbitrary SQL — validates ever
 
 All other MCP tools run fixed SELECT queries and pass `readonly: '1'` to the ClickHouse connection — they cannot issue writes regardless of the validator.
 
+
+## Agent Discovery & RFC Compliance
+
+chmonitor conforms to modern agent-discovery standards, allowing AI agents to automatically locate services, APIs, and documentation.
+
+### Discovery Metadata Endpoints
+
+The dashboard exposes the following standardized `.well-known` endpoints at the domain root:
+
+- **Link Headers (RFC 8288)**: The homepage `/` and `/overview` respond with `Link` headers pointing to the API Catalog and the MCP Server Card.
+- **API Catalog (RFC 9727)**: `GET /.well-known/api-catalog` returns linkset JSON (`application/linkset+json`) describing the `/api/v1` base URL, OpenAPI descriptor, health endpoint, and documentation.
+- **OAuth Protected Resource (RFC 9728)**: `GET /.well-known/oauth-protected-resource` returns protected resource metadata for `/api/v1`.
+- **OAuth Authorization Server (RFC 8414)**: `GET /.well-known/oauth-authorization-server` advertises issuer endpoints and includes the `agent_auth` configuration for agent registration.
+- **OpenID Connect Discovery**: `GET /.well-known/openid-configuration` returns OIDC discovery metadata.
+- **MCP Server Card (SEP-1649)**: `GET /.well-known/mcp/server-card.json` advertises the built-in MCP server info, capabilities, and the transport endpoint (`/api/mcp`).
+- **Agent Skills Index**: `GET /.well-known/agent-skills/index.json` indexes all expert ClickHouse-domain agent skills (`type: "skill-md"`) with their SHA-256 digests. Individual skill contents are readable under `/.well-known/agent-skills/:name/SKILL.md`.
+- **Auth.md instructions**: `GET /auth.md` serves markdown instructions for agent authentication and registration.
+
+### Content Negotiation (Markdown for Agents)
+
+When an AI agent requests any frontend route (e.g. `/` or `/overview`) with the header `Accept: text/markdown`, chmonitor returns a clean, token-optimized Markdown summary of the page and features (using `Content-Type: text/markdown` and including `x-markdown-tokens`). Browser requests without the markdown accept header still receive normal HTML.
+
+### DNS for AI Discovery (DNS-AID)
+
+To advertise your chmonitor instance to AI agents at the DNS level, publish a **DNS-AID** record under your domain. 
+
+For example, add an `HTTPS` / `SVCB` DNS record at `_index._agents.yourdomain.com`:
+
+```yaml
+_index._agents.yourdomain.com. IN HTTPS 1 yourdomain.com. (
+    alpn="h2,http/1.1"
+    port="443"
+)
+```
+
+Ensure the DNS zone is signed with **DNSSEC** so validating resolvers can authenticate the discovery records.
+
 ## Security
 
 <Callout type="warn" title="Security guidelines">

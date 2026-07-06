@@ -790,22 +790,25 @@ export const menuItemsConfig: MenuItem[] = [
     ],
   },
   {
-    // Cloud (SaaS) plan + host limits. Hidden in self-host (filtered by cloud
-    // mode in app-sidebar.tsx) since self-hosting is free forever.
+    // Cloud (SaaS) plan + host limits. Self-hosting is free forever, so this
+    // only makes sense in the cloud product — `cloudOnly` hides it in OSS
+    // across every nav surface (see getVisibleMenuItems).
     title: 'Billing',
     href: '/billing',
     icon: CircleDollarSignIcon,
     section: 'others',
     permission: { feature: 'billing' },
+    cloudOnly: true,
   },
   {
     // Cloud (SaaS) team management — members, roles, invitations. Cloud-only
-    // (filtered in app-sidebar.tsx). Org is created on a paid upgrade.
+    // (an org is created on a paid upgrade); `cloudOnly` hides it in OSS.
     title: 'Organization',
     href: '/organization',
     icon: UsersIcon,
     section: 'others',
     permission: { feature: 'billing' },
+    cloudOnly: true,
   },
   {
     title: 'System',

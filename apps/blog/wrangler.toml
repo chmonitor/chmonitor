@@ -8,6 +8,15 @@
 name = "chmonitor-blog"
 compatibility_date = "2026-05-28"
 
+# Workers Cache (launched 2026-07-06): Cloudflare's tiered cache in front of this
+# Worker. This is a static-assets-only Worker (Astro → Workers Assets), and the
+# built assets already ship their own `Cache-Control` headers, so there is no
+# server entry to set headers in — enabling this simply layers Cloudflare's
+# tiered edge cache in front of them. Safe by default: nothing is stored without
+# an explicit public `Cache-Control`. See docs/knowledge/workers-cache.md.
+[cache]
+enabled = true
+
 [assets]
 directory = "./dist"
 

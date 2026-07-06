@@ -1,6 +1,5 @@
-import { describe, expect, test } from 'bun:test'
-
 import { formatMicros, segmentWidthPct } from './format-micros'
+import { describe, expect, test } from 'bun:test'
 
 describe('formatMicros', () => {
   test('sub-millisecond values render as µs', () => {

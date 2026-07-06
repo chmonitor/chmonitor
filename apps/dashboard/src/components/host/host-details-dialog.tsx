@@ -86,7 +86,7 @@ export function HostDetailsDialog({
   // so reopening never shows a stale edit form from a previous host.
   useEffect(() => {
     if (open) setMode('view')
-  }, [open, host?.id])
+  }, [open])
 
   if (!host || !meta) return null
 

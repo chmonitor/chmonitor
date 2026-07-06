@@ -25,4 +25,12 @@ export interface MenuItem {
   permission?: FeaturePermission
   /** ClickHouse system table name(s) to check for availability/muting */
   tableCheck?: string | string[]
+  /**
+   * Cloud (SaaS)-only surface — hidden in self-host / OSS. Set on items that
+   * make sense only in the cloud product (e.g. Billing, Organization). Filtered
+   * centrally by `getVisibleMenuItems` (lib/menu/visible-items.ts) against
+   * `isCloudModeClient()`, so every nav surface (sidebar, command palette, …)
+   * honors it without each one re-implementing the gate.
+   */
+  cloudOnly?: boolean
 }

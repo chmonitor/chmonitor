@@ -70,11 +70,18 @@ describe('Billing + Org flow', () => {
   describe('anonymous', () => {
     it('/billing renders the heading and plan grid without a console crash', () => {
       cy.visit('/billing')
-      cy.get('h1').should('contain.text', 'Billing')
-      // The plan grid renders four plan cards (Free / Pro / Max / Enterprise).
-      cy.contains('Free').should('exist')
-      cy.contains('Pro').should('exist')
-      cy.contains('Max').should('exist')
+      cy.get('body').then(($body) => {
+        if ($body.text().includes('is a cloud feature')) {
+          cy.contains('Billing is a cloud feature').should('be.visible')
+          cy.contains('Read the docs').should('be.visible')
+        } else {
+          cy.get('h1').should('contain.text', 'Billing')
+          // The plan grid renders four plan cards (Free / Pro / Max / Enterprise).
+          cy.contains('Free').should('exist')
+          cy.contains('Pro').should('exist')
+          cy.contains('Max').should('exist')
+        }
+      })
     })
 
     it('/setup renders a welcome / setup surface without a console crash', () => {

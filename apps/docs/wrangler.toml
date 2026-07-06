@@ -13,6 +13,16 @@ compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 [observability]
 enabled = true
 
+# Workers Cache (launched 2026-07-06): Cloudflare's tiered cache sits in front of
+# this Worker. Safe by default — only responses with an explicit
+# `Cache-Control: public, max-age=…` are stored, and requests carrying an
+# `Authorization` header are auto-bypassed. Public doc pages + the raw
+# .md / llms.txt endpoints set `Cache-Control: public, max-age=300,
+# stale-while-revalidate=86400` via the response-cache middleware in
+# src/start.ts, so HITs skip the Worker entirely. See docs/knowledge/workers-cache.md.
+[cache]
+enabled = true
+
 [[routes]]
 pattern = "docs.chmonitor.dev"
 custom_domain = true

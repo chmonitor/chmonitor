@@ -41,7 +41,6 @@ export function getHostSourceMeta(
         label: 'Server (synced)',
         note: 'Stored encrypted on the server and synced across devices when signed in.',
       }
-    case 'browser':
     default:
       return {
         label: 'This browser',
