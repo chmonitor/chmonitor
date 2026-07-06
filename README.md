@@ -284,6 +284,11 @@ plus a short list of what you changed:
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/chmonitor-health-dark.png">
+  <img alt="Health: color-coded checks with editable thresholds and alert history" src=".github/screenshots/chmonitor-health-light.png">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/ai-agent-dark.png">
   <img alt="AI Agent: ask questions about schema, storage, queries and health" src=".github/screenshots/ai-agent-light.png">
 </picture>

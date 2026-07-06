@@ -113,10 +113,10 @@ export const useCases: UseCase[] = [
       'A color-coded health board with Slack/Discord alerts and recovery notifications.',
     subhead:
       'One board of color-coded health checks — replication lag, failed queries, disk, memory, stuck mutations — with alerts to Slack or Discord when something turns red, and again when it recovers.',
-    heroImage: '/landing-assets/health-summary.png',
+    heroImage: '/landing-assets/chmonitor-health-light.png',
     heroImageAlt: 'chmonitor cluster health summary board',
-    heroImageWidth: 1024,
-    heroImageHeight: 564,
+    heroImageWidth: 1932,
+    heroImageHeight: 1322,
     benefits: [
       {
         icon: HEALTH_ICON,

@@ -10,6 +10,7 @@ export type FeatureSection = {
   bullets: string[]
   screenshot: {
     src: string
+    srcDark?: string
     alt: string
   }
   /** Flip screenshot to the left on wide screens */
@@ -84,7 +85,8 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'One-click AI audit prompt for any failing check',
     ],
     screenshot: {
-      src: '/landing-assets/health-summary.png',
+      src: '/landing-assets/chmonitor-health-light.png',
+      srcDark: '/landing-assets/chmonitor-health-dark.png',
       alt: 'Health checks with editable warning and critical thresholds',
     },
     reverse: true,

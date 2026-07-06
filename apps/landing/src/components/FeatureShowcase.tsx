@@ -59,6 +59,7 @@ function FeatureBlock({
         <ScreenshotZoom
           id={section.id}
           src={section.screenshot.src}
+          srcDark={section.screenshot.srcDark}
           alt={section.screenshot.alt}
         />
       </div>

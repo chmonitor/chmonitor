@@ -1,5 +1,3 @@
-import { Expand } from 'lucide-react'
-
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogImage } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -7,11 +5,14 @@ import { cn } from '@/lib/utils'
 type Props = {
   id: string
   src: string
+  srcDark?: string
   alt: string
   className?: string
 }
 
-export function ScreenshotZoom({ id, src, alt, className }: Props) {
+const shotClass = 'block w-full h-auto align-top'
+
+export function ScreenshotZoom({ id, src, srcDark, alt, className }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -20,28 +21,54 @@ export function ScreenshotZoom({ id, src, alt, className }: Props) {
         type="button"
         data-screenshot-zoom={id}
         className={cn(
-          'group relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-zinc-950 leading-none shadow-[0_24px_80px_-12px_rgba(0,0,0,0.35)] transition-transform duration-500 hover:scale-[1.008] dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.65)]',
+          'relative block w-full overflow-hidden rounded-2xl bg-zinc-950 leading-none shadow-[0_24px_80px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.65)]',
           className
         )}
         onClick={() => setOpen(true)}
-        aria-label={`Zoom ${alt}`}
+        aria-label={`View full size: ${alt}`}
       >
         <img
           src={src}
+          data-shot="light"
           alt={alt}
           loading="lazy"
           decoding="async"
-          className="block w-full h-auto align-top"
+          className={shotClass}
         />
-        <span className="pointer-events-none absolute top-4 right-4 inline-flex items-center gap-1.5 rounded-md bg-background/90 px-2.5 py-1.5 text-foreground text-xs opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100">
-          <Expand className="size-3.5" />
-          Zoom
-        </span>
+        {srcDark ? (
+          <img
+            src={srcDark}
+            data-shot="dark"
+            alt=""
+            aria-hidden
+            loading="lazy"
+            decoding="async"
+            className={shotClass}
+          />
+        ) : null}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="border-none bg-transparent p-0 shadow-none">
-          <DialogImage src={src} alt={alt} />
+          {srcDark ? (
+            <div className="max-h-[85vh] overflow-auto rounded-lg">
+              <img
+                src={src}
+                data-shot="light"
+                alt={alt}
+                className="block w-full rounded-lg"
+              />
+              <img
+                src={srcDark}
+                data-shot="dark"
+                alt=""
+                aria-hidden
+                className="block w-full rounded-lg"
+              />
+            </div>
+          ) : (
+            <DialogImage src={src} alt={alt} />
+          )}
         </DialogContent>
       </Dialog>
     </>
