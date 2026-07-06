@@ -1,204 +1,305 @@
-import { ArrowRight, BookOpen, Play, Star } from 'lucide-react'
+import {
+  Activity,
+  ArrowRight,
+  BookOpen,
+  Bot,
+  Database,
+  Expand,
+  Play,
+  Search,
+  Star,
+  Zap,
+} from 'lucide-react'
 
+import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogImage } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { HERO_DEMO_TABS } from '@/lib/hero-demo'
+import { resolveScreenshotZoom } from '@/lib/screenshot-zoom'
 import '@/styles/globals.css'
 
-// Cropped, frame-less feature shots (v0.3 dark set). No browser chrome — each
-// card shows the feature content only. webp, ~68KB avg. `span` drives the bento
-// grid: featured shots take two columns on wide viewports.
-const features: { label: string; src: string; alt: string; span?: boolean }[] =
-  [
-    {
-      label: 'Overview · AI Insights',
-      src: '/landing-assets/overview-insights-dark.webp',
-      alt: 'Overview with AI insights across replicas, merges and compression',
-      span: true,
-    },
-    {
-      label: 'AI Agent',
-      src: '/landing-assets/ai-agent-new-dark.webp',
-      alt: 'AI agent recommending partition keys, skip indexes and PREWHERE rewrites',
-      span: true,
-    },
-    {
-      label: 'Cluster Topology',
-      src: '/landing-assets/cluster-topology-new-dark.webp',
-      alt: 'Cluster topology map of shards and replicas',
-    },
-    {
-      label: 'Query Heatmap',
-      src: '/landing-assets/query-heatmap-dark.webp',
-      alt: 'Query activity heatmap over time',
-    },
-    {
-      label: 'Running Queries',
-      src: '/landing-assets/running-queries-new-dark.webp',
-      alt: 'Live running queries with real-time resource usage',
-    },
-    {
-      label: 'Slow Queries',
-      src: '/landing-assets/slow-queries-new-dark.webp',
-      alt: 'Slow queries with occurrence chart and worst-first table',
-    },
-    {
-      label: 'Memory-Peak Queries',
-      src: '/landing-assets/queries-memory-dark.webp',
-      alt: 'Queries ranked by peak memory usage',
-    },
-    {
-      label: 'Explain Plan',
-      src: '/landing-assets/explain-new-dark.webp',
-      alt: 'EXPLAIN query plan tree',
-    },
-    {
-      label: 'Storage',
-      src: '/landing-assets/storage-new-dark.webp',
-      alt: 'Storage overview: disk usage, compression and largest tables',
-    },
-    {
-      label: 'Record Breakers',
-      src: '/landing-assets/record-breakers-dark.webp',
-      alt: 'Record breakers and cluster statistics',
-    },
-    {
-      label: 'Data Explorer',
-      src: '/landing-assets/data-explorer-new-dark.webp',
-      alt: 'Data explorer table dependency graph',
-    },
-    {
-      label: 'PeerDB Mirrors',
-      src: '/landing-assets/peerdb-new-dark.webp',
-      alt: 'PeerDB mirrors with replication status and peer topology',
-    },
-  ]
+const GALLERY_SHOTS = HERO_DEMO_TABS.map((tab) => ({
+  id: tab.id,
+  src: tab.screenshot.src,
+  alt: tab.screenshot.alt,
+  label: tab.label,
+}))
+
+const TAB_ICONS: Record<string, typeof Activity> = {
+  overview: Activity,
+  agent: Bot,
+  queries: Search,
+  health: Zap,
+  explorer: Database,
+}
 
 export default function HeroIsland({ starLabel = '' }: { starLabel?: string }) {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [agentPhase, setAgentPhase] = useState(0)
+  const [zoomOpen, setZoomOpen] = useState(false)
+  const [zoomId, setZoomId] = useState<string | null>(null)
+
+  const zoomShot = zoomId ? resolveScreenshotZoom(GALLERY_SHOTS, zoomId) : null
+
+  useEffect(() => {
+    if (activeTab !== 'agent') {
+      setAgentPhase(0)
+      return
+    }
+    setAgentPhase(0)
+    const timers = [
+      setTimeout(() => setAgentPhase(1), 600),
+      setTimeout(() => setAgentPhase(2), 1800),
+      setTimeout(() => setAgentPhase(3), 3200),
+    ]
+    return () => timers.forEach(clearTimeout)
+  }, [activeTab])
+
+  const agentLines = useMemo(
+    () => [
+      'Scanning system.query_log on host 2…',
+      'Found 847 executions · p99 4.2s · peak memory 2.1 GiB',
+      'Recommend: partition by toYYYYMM(event_date), add minmax skip index on user_id',
+    ],
+    []
+  )
+
+  function openZoom(id: string) {
+    setZoomId(id)
+    setZoomOpen(true)
+  }
+
   return (
-    <section className="relative isolate overflow-hidden">
-      {/* token-driven ambient glow — no raster */}
-      <div
-        aria-hidden
-        className="-z-10 pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(ellipse_70%_60%_at_50%_-10%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_70%)]"
-      />
+    <section className="relative isolate overflow-hidden" data-hero-demo>
+      <div className="mx-auto max-w-6xl px-6 pt-16 pb-10 sm:pt-20 lg:pt-24">
+        <div className="grid items-end gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
+          <div className="text-left">
+            <a
+              href="https://github.com/chmonitor/chmonitor"
+              target="_blank"
+              rel="noopener"
+              className="inline-block"
+            >
+              <Badge
+                variant="outline"
+                className="rounded-full px-3 py-1 text-xs font-normal"
+              >
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                Open source · GPL-3.0
+                <ArrowRight className="size-3" />
+              </Badge>
+            </a>
 
-      <div className="mx-auto max-w-5xl px-6 pt-20 pb-14 text-center sm:pt-24">
-        <a
-          href="https://github.com/chmonitor/chmonitor"
-          target="_blank"
-          rel="noopener"
-          className="inline-block"
-        >
-          <Badge
-            variant="secondary"
-            className="cursor-pointer rounded-full px-3 py-1 text-sm font-normal"
-          >
-            <span className="relative flex size-1.5">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-70" />
-              <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-            </span>
-            Live cluster telemetry · open source, GPL-3.0
-            <ArrowRight className="ml-0.5 size-3.5" />
-          </Badge>
-        </a>
+            <h1 className="mt-5 text-balance font-semibold text-foreground text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.03em]">
+              Your ClickHouse
+              <br />
+              <span className="text-primary">command center</span>
+            </h1>
 
-        <h1 className="mt-6 text-balance font-semibold text-4xl text-foreground leading-[1.05] tracking-tight sm:text-6xl">
-          Monitor ClickHouse <span className="text-primary">as it runs</span>
-        </h1>
+            <p className="mt-5 max-w-xl text-pretty text-base text-muted-foreground leading-relaxed sm:text-lg">
+              Queries, merges, replication and health — live from system tables.
+              An AI agent that reads your schema before recommending. Alerts to
+              Slack, PagerDuty or any webhook.
+            </p>
 
-        <p className="mx-auto mt-5 max-w-2xl text-pretty text-base text-muted-foreground leading-relaxed sm:text-lg">
-          Live query, merge and replication visibility straight from your
-          cluster's system tables — plus an AI agent that recommends partition
-          keys, skip indexes and PREWHERE rewrites, and threshold alerts to any
-          webhook. Self-host on Docker or K8s, or use the hosted Cloud.
-        </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a
+                href="https://dash.chmonitor.dev"
+                target="_blank"
+                rel="noopener"
+                data-cta="hero-primary"
+                className={buttonVariants({ size: 'lg' })}
+              >
+                Open dashboard
+                <ArrowRight className="size-4" />
+              </a>
+              <a
+                href="https://docs.chmonitor.dev"
+                target="_blank"
+                rel="noopener"
+                className={buttonVariants({ variant: 'outline', size: 'lg' })}
+              >
+                <BookOpen className="size-4" />
+                Quickstart
+              </a>
+              <a
+                href="https://github.com/chmonitor/chmonitor"
+                target="_blank"
+                rel="noopener"
+                data-cta="github-star-hero"
+                aria-label={
+                  starLabel
+                    ? `Star chmonitor on GitHub — ${starLabel} stars`
+                    : 'Star chmonitor on GitHub'
+                }
+                className={buttonVariants({ variant: 'ghost', size: 'lg' })}
+              >
+                <Star className="size-4" />
+                {starLabel ? (
+                  <span className="font-medium tabular-nums">{starLabel}</span>
+                ) : (
+                  'Star on GitHub'
+                )}
+              </a>
+            </div>
+          </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <a
-            href="https://dash.chmonitor.dev"
-            target="_blank"
-            rel="noopener"
-            data-cta="hero-primary"
-            className={buttonVariants({ size: 'lg' })}
-          >
-            Open dashboard
-            <ArrowRight className="size-4" />
-          </a>
-          <a
-            href="https://dash.chmonitor.dev"
-            target="_blank"
-            rel="noopener"
-            data-cta="hero-live-demo"
-            className={buttonVariants({ variant: 'outline', size: 'lg' })}
-          >
-            <Play className="size-4" />
-            Live demo
-          </a>
-          <a
-            href="https://docs.chmonitor.dev"
-            target="_blank"
-            rel="noopener"
-            className={buttonVariants({ variant: 'ghost', size: 'lg' })}
-          >
-            <BookOpen className="size-4" />
-            Quickstart
-          </a>
-          <a
-            href="https://github.com/chmonitor/chmonitor"
-            target="_blank"
-            rel="noopener"
-            data-cta="github-star-hero"
-            aria-label={
-              starLabel
-                ? `Star chmonitor on GitHub — ${starLabel} stars`
-                : 'Star chmonitor on GitHub'
-            }
-            className={buttonVariants({ variant: 'ghost', size: 'lg' })}
-          >
-            <Star className="size-4" />
-            Star
-            {starLabel ? (
-              <span className="font-medium tabular-nums">{starLabel}</span>
-            ) : null}
-          </a>
+          <div className="relative">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full justify-start overflow-x-auto">
+                {HERO_DEMO_TABS.map((tab) => {
+                  const Icon = TAB_ICONS[tab.id] ?? Activity
+                  return (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="gap-1.5"
+                    >
+                      <Icon className="size-3.5" />
+                      {tab.label}
+                    </TabsTrigger>
+                  )
+                })}
+              </TabsList>
+
+              {HERO_DEMO_TABS.map((tab) => (
+                <TabsContent key={tab.id} value={tab.id}>
+                  <Card className="overflow-hidden border-border/60 bg-card/80 backdrop-blur-sm">
+                    <CardContent className="p-0">
+                      <div className="flex items-center justify-between gap-3 border-border/50 border-b px-4 py-3">
+                        <div>
+                          <p className="font-medium text-foreground text-sm">
+                            {tab.headline}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {tab.description}
+                          </p>
+                        </div>
+                        {tab.metrics ? (
+                          <div className="hidden gap-4 sm:flex">
+                            {tab.metrics.map((m) => (
+                              <div key={m.label} className="text-right">
+                                <p className="font-medium text-foreground text-sm tabular-nums">
+                                  {m.value}
+                                </p>
+                                <p className="text-muted-foreground text-[11px]">
+                                  {m.label}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {tab.id === 'agent' ? (
+                        <div className="space-y-2 border-border/50 border-b px-4 py-3">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 font-medium text-muted-foreground text-xs">
+                              You
+                            </span>
+                            <p className="rounded-md bg-muted px-2.5 py-1.5 text-foreground text-xs">
+                              {tab.prompt}
+                            </p>
+                          </div>
+                          {agentPhase > 0 ? (
+                            <div className="flex items-start gap-2">
+                              <Bot className="mt-0.5 size-3.5 text-primary" />
+                              <div className="space-y-1">
+                                {agentLines.slice(0, agentPhase).map((line) => (
+                                  <p
+                                    key={line}
+                                    className="text-foreground text-xs leading-relaxed"
+                                  >
+                                    {line}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="pl-5 text-muted-foreground text-xs">
+                              Agent thinking…
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        data-screenshot-zoom={tab.id}
+                        className="group relative block w-full cursor-zoom-in"
+                        onClick={() => openZoom(tab.id)}
+                        aria-label={`Zoom ${tab.label} screenshot`}
+                      >
+                        <img
+                          src={tab.screenshot.src}
+                          alt={tab.screenshot.alt}
+                          className="aspect-[16/10] w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.01]"
+                        />
+                        <span className="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-foreground text-xs opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                          <Expand className="size-3" />
+                          Zoom
+                        </span>
+                      </button>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              ))}
+            </Tabs>
+
+            <p className="mt-3 flex items-center gap-2 text-muted-foreground text-xs">
+              <Play className="size-3" />
+              Interactive preview — switch tabs to explore product surfaces
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Feature matrix — cropped, frame-less shots on a bento grid. */}
-      <div className="mx-auto max-w-6xl px-6 pb-6">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {features.map((f, i) => (
-            <figure
-              key={f.src}
-              className={cnCard(f.span)}
-              style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}
+      <div className="mx-auto max-w-6xl px-6 pb-14">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-medium text-foreground text-sm">
+            Every surface, one dashboard
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            Click any shot to zoom
+          </p>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {GALLERY_SHOTS.map((shot) => (
+            <button
+              key={shot.id}
+              type="button"
+              data-screenshot-zoom={shot.id}
+              className="group cursor-zoom-in text-left"
+              onClick={() => openZoom(shot.id)}
+              aria-label={`Zoom ${shot.label}`}
             >
-              <div className="overflow-hidden">
+              <div className="overflow-hidden rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-[1.02]">
                 <img
-                  src={f.src}
-                  alt={f.alt}
+                  src={shot.src}
+                  alt={shot.alt}
                   loading="lazy"
                   decoding="async"
-                  className="aspect-[16/10] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+                  className="aspect-[16/10] w-full object-cover object-top"
                 />
               </div>
-              <figcaption className="border-border/60 border-t px-3 py-2 text-left font-medium text-muted-foreground text-xs">
-                {f.label}
-              </figcaption>
-            </figure>
+              <p className="mt-1.5 font-medium text-muted-foreground text-[11px]">
+                {shot.label}
+              </p>
+            </button>
           ))}
         </div>
       </div>
+
+      <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+        <DialogContent className="p-3">
+          {zoomShot ? (
+            <DialogImage src={zoomShot.src} alt={zoomShot.alt} />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </section>
   )
-}
-
-function cnCard(span?: boolean) {
-  return [
-    'group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-ring/40',
-    'animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500',
-    span ? 'col-span-2' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
 }
