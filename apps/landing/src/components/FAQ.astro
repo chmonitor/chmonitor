@@ -46,25 +46,28 @@ const faqJsonLd = {
 ---
 <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
 
-<section id="faq" class="band band-soft">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="eyebrow">FAQ</span>
-      <h2>Common questions</h2>
-      <p>Answers to what evaluators ask most before deploying chmonitor.</p>
+<section id="faq" class="py-20 sm:py-24">
+  <div class="mx-auto max-w-6xl px-6">
+    <div class="reveal mx-auto max-w-2xl text-center">
+      <p class="text-sm font-medium text-primary">FAQ</p>
+      <h2 class="mt-3 text-balance font-semibold text-3xl sm:text-4xl tracking-tight">Common questions</h2>
+      <p class="mt-4 text-pretty text-muted-foreground">Answers to what evaluators ask most before deploying chmonitor.</p>
     </div>
 
-    <div class="faq-list reveal">
+    <div class="reveal mx-auto mt-12 max-w-3xl">
       {faqs.map(({ q, a }) => (
-        <details class="faq-item">
-          <summary>{q}</summary>
-          <div class="faq-ans" set:html={a} />
+        <details class="faq-item group border-b border-border first:border-t">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium text-foreground [&::-webkit-details-marker]:hidden">
+            {q}
+            <svg class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="faq-ans pb-5 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary/80 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]" set:html={a} />
         </details>
       ))}
     </div>
 
-    <p style="margin-top:28px;font-size:14px;color:var(--muted-fg)" class="reveal">
-      More questions? <a href="https://github.com/chmonitor/chmonitor/discussions" target="_blank" rel="noopener" style="color:var(--orange)">Ask on GitHub Discussions</a>.
+    <p class="reveal mt-7 text-center text-sm text-muted-foreground">
+      More questions? <a href="https://github.com/chmonitor/chmonitor/discussions" target="_blank" rel="noopener" class="text-primary underline underline-offset-4 hover:text-primary/80">Ask on GitHub Discussions</a>.
     </p>
   </div>
 </section>

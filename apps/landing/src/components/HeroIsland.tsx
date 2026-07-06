@@ -94,13 +94,17 @@ export default function HeroIsland({ starLabel = '' }: { starLabel?: string }) {
             variant="secondary"
             className="cursor-pointer rounded-full px-3 py-1 text-sm font-normal"
           >
-            Open source · GPL-3.0
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+            </span>
+            Live cluster telemetry · open source, GPL-3.0
             <ArrowRight className="ml-0.5 size-3.5" />
           </Badge>
         </a>
 
         <h1 className="mt-6 text-balance font-semibold text-4xl text-foreground leading-[1.05] tracking-tight sm:text-6xl">
-          Monitor ClickHouse as it runs
+          Monitor ClickHouse <span className="text-primary">as it runs</span>
         </h1>
 
         <p className="mx-auto mt-5 max-w-2xl text-pretty text-base text-muted-foreground leading-relaxed sm:text-lg">
@@ -164,16 +168,22 @@ export default function HeroIsland({ starLabel = '' }: { starLabel?: string }) {
       {/* Feature matrix — cropped, frame-less shots on a bento grid. */}
       <div className="mx-auto max-w-6xl px-6 pb-6">
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {features.map((f) => (
-            <figure key={f.src} className={cnCard(f.span)}>
-              <img
-                src={f.src}
-                alt={f.alt}
-                loading="lazy"
-                decoding="async"
-                className="aspect-[16/10] w-full object-cover object-top"
-              />
-              <figcaption className="border-border/60 border-t px-3 py-2 text-left text-muted-foreground text-xs font-medium">
+          {features.map((f, i) => (
+            <figure
+              key={f.src}
+              className={cnCard(f.span)}
+              style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}
+            >
+              <div className="overflow-hidden">
+                <img
+                  src={f.src}
+                  alt={f.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[16/10] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+                />
+              </div>
+              <figcaption className="border-border/60 border-t px-3 py-2 text-left font-medium text-muted-foreground text-xs">
                 {f.label}
               </figcaption>
             </figure>
@@ -187,6 +197,7 @@ export default function HeroIsland({ starLabel = '' }: { starLabel?: string }) {
 function cnCard(span?: boolean) {
   return [
     'group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-ring/40',
+    'animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500',
     span ? 'col-span-2' : '',
   ]
     .filter(Boolean)

@@ -1,97 +1,88 @@
-  <section id="features" class="band band-soft">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <span class="eyebrow">What you get</span>
-        <h2>Everything about your cluster, in one place</h2>
-        <p>chmonitor reads ClickHouse system tables directly, no exporters, no extra storage. Each view is purpose-built so you can spot the problem and move on.</p>
+  <section id="features" class="border-y border-border bg-muted/30 py-20 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6">
+      <div class="reveal mx-auto max-w-2xl text-center">
+        <p class="text-sm font-medium text-primary">What you get</p>
+        <h2 class="mt-3 text-balance font-semibold text-3xl sm:text-4xl tracking-tight">Everything about your cluster, in one place</h2>
+        <p class="mt-4 text-pretty text-muted-foreground">chmonitor reads ClickHouse system tables directly, no exporters, no extra storage. Each view is purpose-built so you can spot the problem and move on.</p>
       </div>
 
       <!-- AI Agent -->
-      <div id="feature-ai-agent" class="feature" style="margin-top:64px">
-        <div class="feat-text reveal">
-          <span class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2 13.5 9.5 21 11l-7.5 1.5L12 20l-1.5-7.5L3 11l7.5-1.5z"/></svg></span>
-          <h3>Ask your cluster anything</h3>
-          <p>The built-in AI agent connects over MCP and answers questions about schemas, storage, query performance and health, then links you straight to the matching view.</p>
-          <ul class="feat-list">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Chat about schema, storage, slow queries and system health</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Recommend-only advisor: skip indexes, projections, partition keys and PREWHERE rewrites, ranked by estimated impact &mdash; nothing is ever applied for you</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Bring your own model, skills and MCP tools</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Read-only MCP endpoint for Claude, Cursor or any client</li>
+      <div id="feature-ai-agent" class="mt-16 grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div class="reveal">
+          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-violet-500/10">
+            <svg class="size-5 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2 13.5 9.5 21 11l-7.5 1.5L12 20l-1.5-7.5L3 11l7.5-1.5z"/></svg>
+          </span>
+          <h3 class="mt-4 font-semibold text-2xl tracking-tight">Ask your cluster anything</h3>
+          <p class="mt-3 max-w-[46ch] text-muted-foreground">The built-in AI agent connects over MCP and answers questions about schemas, storage, query performance and health, then links you straight to the matching view.</p>
+          <ul class="mt-5 flex flex-col gap-3">
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Chat about schema, storage, slow queries and system health</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Recommend-only advisor: skip indexes, projections, partition keys and PREWHERE rewrites, ranked by estimated impact &mdash; nothing is ever applied for you</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Bring your own model, skills and MCP tools</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Read-only MCP endpoint for Claude, Cursor or any client</li>
           </ul>
         </div>
-        <div class="feat-shot reveal">
-          <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
-          <div class="carousel" data-autoplay="4600">
-            <div class="ctrack">
-              <div class="cslide">
-                <img src="/landing-assets/ai-agent-light.png" data-shot="light" alt="chmonitor AI agent chat" width="1024" height="729" loading="lazy" decoding="async" />
-                <img src="/landing-assets/ai-agent-dark.png" data-shot="dark" alt="chmonitor AI agent chat" width="1024" height="728" loading="lazy" decoding="async" />
-              </div>
-              <div class="cslide">
-                <img src="/landing-assets/mcp-server-light.png" data-shot="light" alt="chmonitor MCP server setup" width="1024" height="884" loading="lazy" decoding="async" />
-                <img src="/landing-assets/mcp-server-dark.png" data-shot="dark" alt="chmonitor MCP server setup" width="1024" height="880" loading="lazy" decoding="async" />
-              </div>
-            </div>
-            <div class="cdots"></div>
-          </div>
+        <div class="reveal overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-ring/40">
+          <img src="/landing-assets/ai-agent-new-dark.webp" alt="chmonitor AI agent chat" width="1600" height="1199" loading="lazy" decoding="async" class="block h-auto w-full" />
         </div>
       </div>
 
       <!-- Queries -->
-      <div id="feature-queries" class="feature flip">
-        <div class="feat-text reveal">
-          <span class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-          <h3>Every query, explained</h3>
-          <p>Running, history, failed, slowest and most expensive queries, each with duration, memory, rows read and the full statement. Filter by user, slice by time and find the culprit fast.</p>
-          <ul class="feat-list">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Queries by user and top query patterns over time</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Saved filter presets and one-click EXPLAIN</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Kill long-running queries right from the table</li>
+      <div id="feature-queries" class="mt-20 grid items-center gap-10 sm:mt-24 lg:grid-cols-2 lg:gap-16">
+        <div class="reveal lg:order-2">
+          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-blue-500/10">
+            <svg class="size-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          </span>
+          <h3 class="mt-4 font-semibold text-2xl tracking-tight">Every query, explained</h3>
+          <p class="mt-3 max-w-[46ch] text-muted-foreground">Running, history, failed, slowest and most expensive queries, each with duration, memory, rows read and the full statement. Filter by user, slice by time and find the culprit fast.</p>
+          <ul class="mt-5 flex flex-col gap-3">
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Queries by user and top query patterns over time</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Saved filter presets and one-click EXPLAIN</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Kill long-running queries right from the table</li>
           </ul>
         </div>
-        <div class="feat-shot reveal">
-          <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
-          <img src="/landing-assets/running-queries-light.png" alt="chmonitor running queries with live charts and table" width="1024" height="719" loading="lazy" decoding="async" />
+        <div class="reveal overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-ring/40 lg:order-1">
+          <img src="/landing-assets/running-queries-new-dark.webp" alt="chmonitor running queries with live charts and table" width="1600" height="1146" loading="lazy" decoding="async" class="block h-auto w-full" />
         </div>
       </div>
 
       <!-- Cluster Topology -->
-      <div id="feature-topology" class="feature">
-        <div class="feat-text reveal">
-          <span class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="1.7"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="3" width="6" height="6" rx="1.5"/><rect x="9" y="15" width="6" height="6" rx="1.5"/><path d="M6 9v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9"/><path d="M12 13v2"/></svg></span>
-          <h3>See the whole cluster at a glance</h3>
-          <p>An interactive topology map of nodes, shards, replicas and the Keeper quorum, with live replication and coordination links, health states and an inspector for every cluster.</p>
-          <ul class="feat-list">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> ClickHouse nodes and Keeper quorum with leader &amp; followers</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Physical and logical clusters, overlapping virtual clusters</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Per-node CPU, memory and latency, healthy / warn / unreachable</li>
+      <div id="feature-topology" class="mt-20 grid items-center gap-10 sm:mt-24 lg:grid-cols-2 lg:gap-16">
+        <div class="reveal">
+          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-emerald-500/10">
+            <svg class="size-5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="3" width="6" height="6" rx="1.5"/><rect x="9" y="15" width="6" height="6" rx="1.5"/><path d="M6 9v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9"/><path d="M12 13v2"/></svg>
+          </span>
+          <h3 class="mt-4 font-semibold text-2xl tracking-tight">See the whole cluster at a glance</h3>
+          <p class="mt-3 max-w-[46ch] text-muted-foreground">An interactive topology map of nodes, shards, replicas and the Keeper quorum, with live replication and coordination links, health states and an inspector for every cluster.</p>
+          <ul class="mt-5 flex flex-col gap-3">
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> ClickHouse nodes and Keeper quorum with leader &amp; followers</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Physical and logical clusters, overlapping virtual clusters</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Per-node CPU, memory and latency, healthy / warn / unreachable</li>
           </ul>
         </div>
-        <div class="feat-shot reveal">
-          <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
-          <img src="/landing-assets/cluster-topology-light.png" data-shot="light" alt="chmonitor cluster topology: ClickHouse nodes, shards, replicas and the Keeper quorum with live replication links" width="1024" height="670" loading="lazy" decoding="async" />
-          <img src="/landing-assets/cluster-topology-dark.png" data-shot="dark" alt="chmonitor cluster topology: ClickHouse nodes, shards, replicas and the Keeper quorum with live replication links" width="1024" height="670" loading="lazy" decoding="async" />
+        <div class="reveal overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-ring/40">
+          <img src="/landing-assets/cluster-topology-new-dark.webp" alt="chmonitor cluster topology: ClickHouse nodes, shards, replicas and the Keeper quorum with live replication links" width="1600" height="1328" loading="lazy" decoding="async" class="block h-auto w-full" />
         </div>
       </div>
 
       <!-- Alerting -->
-      <div id="feature-alerting" class="feature flip">
-        <div class="feat-text reveal">
-          <span class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
-          <h3>Know before your users do</h3>
-          <p>Built-in health checks watch replication lag, readonly replicas, failed queries, OOM kills, disk and memory, each with a warning and critical threshold you can tune per check. When one fires, chmonitor pushes it straight to your team and logs it to history.</p>
-          <ul class="feat-list">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> One webhook URL, Slack or Discord &mdash; no extra glue to wire up</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Editable warning / critical thresholds per check, with a full history of every fire and recovery</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> One-click AI audit prompt turns any alert into a ready-to-paste diagnosis for your favorite AI agent</li>
+      <div id="feature-alerting" class="mt-20 grid items-center gap-10 sm:mt-24 lg:grid-cols-2 lg:gap-16">
+        <div class="reveal lg:order-2">
+          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-amber-500/10">
+            <svg class="size-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </span>
+          <h3 class="mt-4 font-semibold text-2xl tracking-tight">Know before your users do</h3>
+          <p class="mt-3 max-w-[46ch] text-muted-foreground">Built-in health checks watch replication lag, readonly replicas, failed queries, OOM kills, disk and memory, each with a warning and critical threshold you can tune per check. When one fires, chmonitor pushes it straight to your team and logs it to history.</p>
+          <ul class="mt-5 flex flex-col gap-3">
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> One webhook URL, Slack or Discord &mdash; no extra glue to wire up</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Editable warning / critical thresholds per check, with a full history of every fire and recovery</li>
+            <li class="flex gap-2 text-sm text-foreground"><svg class="mt-0.5 size-4 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> One-click AI audit prompt turns any alert into a ready-to-paste diagnosis for your favorite AI agent</li>
           </ul>
         </div>
-        <div class="feat-shot reveal">
-          <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
-          <div class="carousel" data-autoplay="4600">
-            <div class="ctrack">
-              <div class="cslide"><img src="/landing-assets/health-summary.png" alt="chmonitor health checks with editable warning and critical thresholds" width="1024" height="564" loading="lazy" decoding="async" /></div>
-              <div class="cslide"><img src="/landing-assets/health-audit.png" alt="chmonitor AI audit prompt generated from a critical replication lag alert" width="1024" height="684" loading="lazy" decoding="async" /></div>
+        <div class="reveal overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-ring/40 lg:order-1">
+          <div class="carousel aspect-[16/9.7]" data-autoplay="4600">
+            <div class="ctrack h-full">
+              <div class="cslide h-full w-full"><img src="/landing-assets/health-summary.png" alt="chmonitor health checks with editable warning and critical thresholds" width="1024" height="564" loading="lazy" decoding="async" class="block h-full w-full object-cover object-top" /></div>
+              <div class="cslide h-full w-full"><img src="/landing-assets/health-audit.png" alt="chmonitor AI audit prompt generated from a critical replication lag alert" width="1024" height="684" loading="lazy" decoding="async" class="block h-full w-full object-cover object-top" /></div>
             </div>
             <div class="cdots"></div>
           </div>

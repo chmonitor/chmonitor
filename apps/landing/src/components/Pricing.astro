@@ -8,67 +8,82 @@ import {
   yearlyMonthsFreeValue,
 } from '../data/pricing'
 
-const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
-const arrowSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
+const checkSvg = `<svg class="inline-block size-4 shrink-0 align-middle text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
+const arrowSvg = `<svg class="inline-block size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
 
 const { compact = false } = Astro.props
+
+const primaryBtn =
+  'inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 h-10 text-sm font-medium text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+const outlineBtn =
+  'inline-flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-6 h-10 text-sm font-medium shadow-xs transition-all hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+const outlineBtnAuto =
+  'inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-6 h-10 text-sm font-medium shadow-xs transition-all hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 ---
-<section id="pricing" class="band">
-  <div class="wrap">
+<section id="pricing" class="py-20 sm:py-24">
+  <div class="mx-auto max-w-6xl px-6">
     {!compact && (
-    <div class="sec-head reveal" style="text-align:center">
-      <span class="eyebrow">Pricing</span>
-      <h2>Self-host free. Cloud for teams.</h2>
-      <p>chmonitor is open source — self-hosting is always free under GPL-3.0. The hosted cloud connects a cluster without any setup. Cloud pricing is not finalised; <strong>early access is free to try</strong> and seats are limited.</p>
+    <div class="reveal mx-auto max-w-2xl text-center">
+      <p class="text-sm font-medium text-primary">Pricing</p>
+      <h2 class="mt-3 text-balance font-semibold text-3xl sm:text-4xl tracking-tight">Self-host free. Cloud for teams.</h2>
+      <p class="mt-4 text-pretty text-muted-foreground">chmonitor is open source — self-hosting is always free under GPL-3.0. The hosted cloud connects a cluster without any setup. Cloud pricing is not finalised; <strong class="text-foreground">early access is free to try</strong> and seats are limited.</p>
     </div>
     )}
 
     <!-- Self-host: always free -->
-    <div class="selfhost-banner reveal">
-      <div class="sh-text">
-        <div class="sh-title">
-          <strong>Self-host</strong>
-          <span class="ptag ptag-free">Free forever</span>
+    <div class="reveal mt-9 flex flex-col items-start justify-between gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center">
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-2.5">
+          <strong class="text-base font-semibold text-foreground">Self-host</strong>
+          <span class="inline-flex items-center gap-1 rounded-full border border-transparent bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">Free forever</span>
         </div>
-        <p class="sh-desc">Run it on your own infrastructure — Docker, Cloudflare Workers, or Kubernetes. All features, unlimited clusters, and your data stays with you.</p>
+        <p class="max-w-[62ch] text-pretty text-sm text-muted-foreground">Run it on your own infrastructure — Docker, Cloudflare Workers, or Kubernetes. All features, unlimited clusters, and your data stays with you.</p>
       </div>
-      <a class="btn btn-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
+      <a class={outlineBtnAuto} href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
         Read the quickstart <span set:html={arrowSvg} />
       </a>
     </div>
 
     <!-- Cloud plans -->
-    <div class="cloud-head reveal">
-      <span class="ea-badge">Early access — paid plans free while in beta</span>
-      <div class="bill-toggle" role="tablist" aria-label="Billing period">
-        <button type="button" data-period="monthly" role="tab" aria-selected="false">Monthly</button>
-        <button type="button" data-period="yearly" role="tab" aria-selected="true" class="active">
-          Yearly <span class="save">{monthsFreeText(yearlyMonthsFreeValue)} free</span>
+    <div class="reveal mt-8 flex flex-wrap items-center justify-between gap-4">
+      <span class="inline-flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
+        <span class="size-1.5 rounded-full bg-amber-500"></span>
+        Early access — paid plans free while in beta
+      </span>
+      <div class="bill-toggle inline-flex gap-0.5 rounded-full border border-border bg-card p-1" role="tablist" aria-label="Billing period">
+        <button type="button" data-period="monthly" role="tab" aria-selected="false" class="billing-toggle-btn inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors">Monthly</button>
+        <button type="button" data-period="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors">
+          Yearly <span class="save text-xs font-semibold text-emerald-600 dark:text-emerald-400">{monthsFreeText(yearlyMonthsFreeValue)} free</span>
         </button>
       </div>
     </div>
 
-    <div class="cloud-grid reveal" data-period="yearly">
+    <div class="cloud-grid reveal mt-5 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4" data-period="yearly">
       {tiers.map((t) => (
-        <div class={`price-card${t.highlight ? ' price-card-highlight' : ''}`}>
-          <div class="price-hd">
-            <div>
-              <span class="pname">{t.name}</span>
-              {t.badge && <span class={`ptag ${t.badge.cls}`}>{t.badge.label}</span>}
+        <div class={`flex flex-col rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-ring/40 ${t.highlight ? 'border-primary' : 'border-border'}`}>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-lg tracking-tight">{t.name}</span>
+              {t.highlight && (
+                <span class="inline-flex items-center rounded-full border border-transparent bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">Recommended</span>
+              )}
+              {t.badge && (
+                <span class="inline-flex items-center gap-1 rounded-full border border-transparent bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">{t.badge.label}</span>
+              )}
             </div>
-            <div class="pamount">
+            <div class="pamount mt-4 flex items-baseline gap-1.5">
               {t.monthly === null ? (
-                <span>Custom</span>
+                <span class="font-semibold text-3xl tracking-tight">Custom</span>
               ) : t.monthly === 0 ? (
-                <span>$0 <small>/ mo</small></span>
+                <span class="font-semibold text-3xl tracking-tight">$0 <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
               ) : (
                 <>
-                  <span class="amt amt-monthly">${t.monthly} <small>/ mo</small></span>
-                  <span class="amt amt-yearly"><span class="amt-was">${t.monthly}</span> ${t.yearlyPerMo} <small>/ mo</small></span>
+                  <span class="amt amt-monthly font-semibold text-3xl tracking-tight">${t.monthly} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
+                  <span class="amt amt-yearly font-semibold text-3xl tracking-tight"><span class="amt-was mr-1 text-base font-medium text-muted-foreground line-through">${t.monthly}</span>${t.yearlyPerMo} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
                 </>
               )}
             </div>
-            <div class="pbilled">
+            <div class="pbilled mt-2 min-h-[1rem] text-xs text-muted-foreground">
               {(t.monthly ?? 0) > 0 && (
                 <>
                   <span class="bill-monthly">billed monthly</span>
@@ -76,74 +91,57 @@ const { compact = false } = Astro.props
                 </>
               )}
             </div>
-            <div class="pdesc">{t.tagline}</div>
+            <p class="mt-3 min-h-10 text-pretty text-sm text-muted-foreground">{t.tagline}</p>
           </div>
-          <div class="price-body">
-            <ul class="price-rows">
-              {t.rows.map((r) => (
-                <li class={`price-row${r.startsWith('Everything in') ? ' price-row-inherited' : ''}`}><span set:html={checkSvg} />{r}</li>
-              ))}
-            </ul>
-            <div class="price-cta">
-              <a
-                class={`btn ${t.cta.primary ? 'btn-primary' : 'btn-ghost'}`}
-                style={t.cta.primary && t.highlight ? 'width:100%;justify-content:center;background:var(--orange);border-color:var(--orange);color:#fff' : 'width:100%;justify-content:center'}
-                href={t.cta.href}
-                target="_blank"
-                rel="noopener"
-                data-cta={`pricing-${t.name.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                {t.cta.label} <span set:html={arrowSvg} />
-              </a>
-            </div>
+          <ul class="mt-6 space-y-2.5">
+            {t.rows.map((r) => (
+              <li class={`flex items-start gap-2 text-sm text-foreground ${r.startsWith('Everything in') ? 'font-medium' : ''}`}>
+                <span set:html={checkSvg} />
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+          <div class="mt-auto pt-6">
+            <a
+              class={t.highlight ? primaryBtn : outlineBtn}
+              href={t.cta.href}
+              target="_blank"
+              rel="noopener"
+              data-cta={`pricing-${t.name.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              {t.cta.label} <span set:html={arrowSvg} />
+            </a>
           </div>
         </div>
       ))}
     </div>
 
     {!compact && (
-    <div class="compare-link reveal" style="text-align:center;margin-top:26px">
-      <a class="btn btn-ghost" href="/pricing">
+    <div class="reveal mt-7 text-center">
+      <a class={outlineBtnAuto} href="/pricing">
         Compare all plans &amp; features <span set:html={arrowSvg} />
       </a>
     </div>
     )}
 
-    <div class="callout reveal" style="margin-top:28px">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-      <div>chmonitor only reads from ClickHouse system tables. It never writes to your data. Connect using a least-privilege <code>SELECT</code>-only user for maximum safety.</div>
+    <div class="reveal mt-7 flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+      <svg class="mt-0.5 size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+      <div>chmonitor only reads from ClickHouse system tables. It never writes to your data. Connect using a least-privilege <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">SELECT</code>-only user for maximum safety.</div>
     </div>
   </div>
 
   <style>
-    .selfhost-banner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:36px;padding:16px 20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow-card)}
-    .selfhost-banner .sh-text{display:flex;flex-direction:column;gap:8px}
-    .selfhost-banner .sh-title{display:flex;align-items:center;gap:10px}
-    .selfhost-banner .sh-title strong{font-size:16px;color:var(--fg)}
-    .selfhost-banner .sh-desc{margin:0;font-size:14px;color:var(--muted-fg);text-wrap:pretty;max-width:62ch}
-    .cloud-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:30px}
-    .ea-badge{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--orange)}
-    .ea-badge::before{content:"";width:7px;height:7px;border-radius:999px;background:var(--orange)}
-    .bill-toggle{display:inline-flex;padding:4px;gap:2px;border:1px solid var(--border);border-radius:999px;background:var(--card)}
-    .bill-toggle button{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;font-weight:600;color:var(--muted-fg);background:transparent;border:0;border-radius:999px;padding:7px 16px;cursor:pointer}
-    .bill-toggle button.active{background:var(--fg);color:var(--bg)}
-    .bill-toggle .save{font-size:11px;font-weight:600;color:var(--emerald)}
-    /* The active pill is var(--fg): near-black in light mode, near-white in dark
-       mode. So the accent must flip per theme to stay readable on it. */
-    .bill-toggle button.active .save{color:#34d399} /* light mode: black pill → light green */
-    :root[data-theme="dark"] .bill-toggle button.active .save{color:#047857} /* dark mode: white pill → dark green */
-    .cloud-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:18px;align-items:stretch}
-    .cloud-grid .pamount{display:flex;align-items:baseline;gap:6px}
-    .cloud-grid .amt{display:none}
-    .cloud-grid[data-period="monthly"] .amt-monthly{display:inline}
-    .cloud-grid[data-period="yearly"] .amt-yearly{display:inline}
-    /* Yearly: show the monthly price struck through so the saving is obvious. */
-    .cloud-grid .amt-was{font-size:.5em;font-weight:600;color:var(--muted-fg);text-decoration:line-through;margin-right:4px}
-    .pbilled{font-size:12px;color:var(--muted-fg);margin-top:8px;min-height:16px}
-    .cloud-grid[data-period="monthly"] .bill-yearly{display:none}
-    .cloud-grid[data-period="yearly"] .bill-monthly{display:none}
-    @media (max-width:1000px){.cloud-grid{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:560px){.cloud-grid{grid-template-columns:1fr}.selfhost-banner{flex-direction:column;align-items:flex-start}}
+    /* Billing toggle: active-pill contrast flips with theme (same tokens as
+       the rest of the page — .active fills with the foreground color, so
+       text must invert to the background color to stay readable). */
+    .billing-toggle-btn.active { background: var(--foreground); color: var(--background); }
+
+    /* Monthly/yearly amount + billed-note swap, driven by the toggle above. */
+    .cloud-grid .amt { display: none; }
+    .cloud-grid[data-period='monthly'] .amt-monthly { display: inline; }
+    .cloud-grid[data-period='yearly'] .amt-yearly { display: inline; }
+    .cloud-grid[data-period='monthly'] .bill-yearly { display: none; }
+    .cloud-grid[data-period='yearly'] .bill-monthly { display: none; }
   </style>
 
   <script is:inline>

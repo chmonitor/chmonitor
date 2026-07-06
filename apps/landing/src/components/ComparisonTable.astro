@@ -1,14 +1,14 @@
 ---
 /**
  * Shared, data-driven comparison matrix for the /vs-* pages. Renders chmonitor
- * vs one named competitor across N rows. Reuses the same `.cmp-*` classes as
- * the homepage `Comparison.astro` table (defined once, globally, in
- * `layouts/Base.astro`) — no new CSS needed.
+ * vs one named competitor across N rows. Mirrors the shadcn/Tailwind table
+ * styling used by the homepage `Comparison.astro` table (kept identical here
+ * so the two never drift, since there's no shared global CSS class to hook).
  *
  * Row cells are either a plain phrase (`kind: 'plain'`, e.g. "Setup time" or
  * "Cost", where a check/cross would be meaningless) or a check/cross/partial
  * icon plus a short explanation. Pass a `note` slot for the sourced,
- * dated disclaimer under the table (mirrors `pricing.astro`'s `.cmp-note`).
+ * dated disclaimer under the table (mirrors `pricing.astro`'s note row).
  */
 export type CellKind = 'yes' | 'no' | 'partial' | 'plain'
 
@@ -31,9 +31,9 @@ interface Props {
 
 const { competitor, rows } = Astro.props
 
-const ICON_YES = `<svg class="cmp-yes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="m5 12 5 5L20 7"/></svg>`
-const ICON_NO = `<svg class="cmp-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="m18 6-12 12M6 6l12 12"/></svg>`
-const ICON_PARTIAL = `<svg class="cmp-partial" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="M5 12h14"/></svg>`
+const ICON_YES = `<svg class="inline-block size-[18px] shrink-0 align-middle text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
+const ICON_NO = `<svg class="inline-block size-[18px] shrink-0 align-middle text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m18 6-12 12M6 6l12 12"/></svg>`
+const ICON_PARTIAL = `<svg class="inline-block size-[18px] shrink-0 align-middle text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`
 
 function iconFor(kind: CellKind): string {
   switch (kind) {
@@ -48,26 +48,34 @@ function iconFor(kind: CellKind): string {
   }
 }
 ---
-<div class="cmp-wrap reveal">
-  <div class="cmp-scroll">
-    <table class="cmp-table">
+<div class="reveal overflow-hidden rounded-xl border border-border shadow-sm">
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[640px] border-collapse text-sm">
       <thead>
-        <tr>
-          <th></th>
-          <th class="cmp-highlight">chmonitor</th>
-          <th>{competitor}</th>
+        <tr class="bg-muted">
+          <th class="min-w-[160px] whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"></th>
+          <th class="whitespace-nowrap bg-primary/5 px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">chmonitor</th>
+          <th class="whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{competitor}</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
-          <tr>
-            <td>{row.label}</td>
-            <td class="cmp-highlight">{row.chm.kind !== 'plain' && <Fragment set:html={iconFor(row.chm.kind)} />} {row.chm.text}</td>
-            <td>{row.them.kind !== 'plain' && <Fragment set:html={iconFor(row.them.kind)} />} {row.them.text}</td>
+          <tr class="border-t border-border">
+            <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">{row.label}</td>
+            <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground">
+              <span class="inline-flex items-start gap-2">
+                {row.chm.kind !== 'plain' && <Fragment set:html={iconFor(row.chm.kind)} />} {row.chm.text}
+              </span>
+            </td>
+            <td class="px-5 py-3.5 text-pretty text-muted-foreground">
+              <span class="inline-flex items-start gap-2">
+                {row.them.kind !== 'plain' && <Fragment set:html={iconFor(row.them.kind)} />} {row.them.text}
+              </span>
+            </td>
           </tr>
         ))}
       </tbody>
     </table>
   </div>
-  <div class="cmp-note"><slot name="note" /></div>
+  <div class="border-t border-border bg-muted px-5 py-3.5 text-xs text-muted-foreground"><slot name="note" /></div>
 </div>
