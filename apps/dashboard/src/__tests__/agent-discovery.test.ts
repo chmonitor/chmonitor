@@ -2,6 +2,69 @@ import { agentDiscoveryHandler, securityHeadersHandler } from '@/start'
 
 import { describe, expect, test } from 'bun:test'
 
+// Type definitions for agent discovery responses
+interface LinkSetItem {
+  anchor: string
+  'service-doc'?: Array<{ href: string }>
+  status?: Array<{ href: string }>
+  rel?: string
+  type?: string
+  href?: string
+}
+
+interface LinkSetResponse {
+  linkset: LinkSetItem[]
+}
+
+interface OpenAPIInfo {
+  title: string
+  version: string
+}
+
+interface OpenAPIResponse {
+  openapi: string
+  info: OpenAPIInfo
+  paths: Record<string, unknown>
+}
+
+interface OAuthProtectedResource {
+  resource: string
+  authorization_servers: string[]
+}
+
+interface OAuthAuthorizationServer {
+  issuer: string
+  authorization_endpoint: string
+  token_endpoint: string
+  response_types_supported: string[]
+  agent_auth?: {
+    skill: string
+    register_uri: string
+  }
+}
+
+interface OpenIDConfiguration {
+  issuer: string
+  jwks_uri: string
+}
+
+interface MCPServerCard {
+  serverInfo: {
+    name: string
+    description: string
+    version: string
+  }
+  endpoint: string
+}
+
+interface AgentSkillsDiscovery {
+  $schema: string
+  skills: Array<{
+    url: string
+    digest: string
+  }>
+}
+
 describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
   const nextMock = async () => {
     return { response: new Response('HTML content') }
@@ -70,13 +133,13 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
       'application/linkset+json'
     )
 
-    const data = await res.json()
+    const data = (await res.json()) as LinkSetResponse
     expect(data.linkset).toBeDefined()
     expect(data.linkset[0].anchor).toBe('https://example.com/api/v1')
-    expect(data.linkset[0]['service-doc'][0].href).toBe(
+    expect(data.linkset[0]['service-doc']![0].href).toBe(
       'https://docs.chmonitor.dev/reference/api'
     )
-    expect(data.linkset[0].status[0].href).toBe(
+    expect(data.linkset[0].status![0].href).toBe(
       'https://example.com/api/health'
     )
   })
@@ -93,7 +156,7 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
       'application/openapi+json'
     )
 
-    const data = await res.json()
+    const data = (await res.json()) as OpenAPIResponse
     expect(data.openapi).toBe('3.0.0')
     expect(data.info.title).toBe('chmonitor API')
   })
@@ -110,7 +173,7 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('application/json')
 
-    const data = await res.json()
+    const data = (await res.json()) as OAuthProtectedResource
     expect(data.resource).toBe('https://example.com/api/v1')
     expect(data.authorization_servers[0]).toBe('https://example.com/api/auth')
   })
@@ -127,10 +190,10 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('application/json')
 
-    const data = await res.json()
+    const data = (await res.json()) as OAuthAuthorizationServer
     expect(data.issuer).toBe('https://example.com/api/auth')
-    expect(data.agent_auth.skill).toBe('agent-auth')
-    expect(data.agent_auth.register_uri).toBe(
+    expect(data.agent_auth!.skill).toBe('agent-auth')
+    expect(data.agent_auth!.register_uri).toBe(
       'https://example.com/api/v1/agent/register'
     )
   })
@@ -147,7 +210,7 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('application/json')
 
-    const data = await res.json()
+    const data = (await res.json()) as OpenIDConfiguration
     expect(data.issuer).toBe('https://example.com/api/auth')
     expect(data.jwks_uri).toBe('https://example.com/.well-known/jwks.json')
   })
@@ -164,7 +227,7 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('application/json')
 
-    const data = await res.json()
+    const data = (await res.json()) as MCPServerCard
     expect(data.serverInfo.name).toBe('chmonitor-mcp-server')
     expect(data.endpoint).toBe('/api/mcp')
   })
@@ -181,7 +244,7 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('application/json')
 
-    const data = await res.json()
+    const data = (await res.json()) as AgentSkillsDiscovery
     expect(data.$schema).toBe(
       'https://schemas.agentskills.io/discovery/0.2.0/schema.json'
     )
