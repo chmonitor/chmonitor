@@ -9,6 +9,7 @@
     "build": "astro build",
     "test": "bun test",
     "preview": "astro preview",
+    "verify:structure": "bun scripts/verify-landing-structure.ts",
     "build:og": "bun run scripts/build-og.ts",
     "cf:deploy": "wrangler deploy"
   },

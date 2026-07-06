@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
+import FeaturesCatalog from '../components/FeaturesCatalog.tsx'
+import { loadChangelogFeatures } from '../data/changelog-features'
 
 interface Release {
   tag_name: string
@@ -11,6 +13,8 @@ interface Release {
   body: string
   prerelease: boolean
 }
+
+const { groups, totalCount } = loadChangelogFeatures()
 
 let releases: Release[] = []
 try {
@@ -28,9 +32,6 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-// Render the changelog (git history) for a release as a short, image-free list.
-// Keeps only the actual change lines (`*`/`-`), strips images and the
-// "by @user in #PR" / footer noise, and caps each version to a few entries.
 const MAX_ITEMS = 5
 function mdToHtml(md: string): string {
   if (!md) return ''
@@ -38,16 +39,15 @@ function mdToHtml(md: string): string {
   for (const raw of md.split('\n')) {
     const line = raw.trim()
     if (!line) continue
-    // Stop at trailing sections (New Contributors, Full Changelog link, etc.)
     if (/^#{1,6}\s*(new contributors|full changelog)/i.test(line)) break
     if (/^\*\*full changelog\*\*/i.test(line)) break
-    if (/^#{1,6}\s/.test(line)) continue // skip headings ("What's Changed")
+    if (/^#{1,6}\s/.test(line)) continue
     const m = line.match(/^[*-]\s+(.*)/)
-    if (!m) continue // only keep list items = the changelog
+    if (!m) continue
     const text = m[1]
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // strip markdown images
-      .replace(/<img[^>]*>/gi, '') // strip raw <img> tags
-      .replace(/\s+by\s+@[\w-]+\s+in\s+\S+/i, '') // drop "by @user in #PR"
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/<img[^>]*>/gi, '')
+      .replace(/\s+by\s+@[\w-]+\s+in\s+\S+/i, '')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
@@ -70,8 +70,8 @@ const breadcrumbJsonLd = {
 }
 ---
 <Base
-  title="chmonitor Changelog — Release Notes & Updates"
-  description="Every chmonitor release: dashboard features, AI agent improvements, query monitoring and self-hosting updates. Synced from GitHub releases."
+  title="chmonitor Changelog — Release Notes & Full Feature Ship Log"
+  description="Every chmonitor release plus the complete searchable ship log parsed from CHANGELOG.md — dashboard features, AI agent, alerting and self-hosting updates."
   image="/og/og-changelog.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
@@ -111,18 +111,18 @@ const breadcrumbJsonLd = {
             <p style="color:var(--muted-fg)">Release list could not be loaded at build time.</p>
             <a class="btn btn-ghost" style="margin-top:16px;display:inline-flex" href="https://github.com/chmonitor/chmonitor/releases" target="_blank" rel="noopener">
               View all releases on GitHub
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:13px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </a>
           </div>
         )}
       </div>
     </section>
+
+    <FeaturesCatalog client:visible groups={groups} totalCount={totalCount} />
   </main>
   <Footer />
 
   <style>
-    /* Promoted page title: match the global .sec-head h2 type scale so the
-       h1 renders identically to the previous heading. */
     .sec-head h1{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
   </style>
 </Base>

@@ -40,7 +40,7 @@ export function ScreenshotZoom({
           decoding="async"
           className={cn('w-full object-cover object-top', aspectClass)}
         />
-        <span className="pointer-events-none absolute top-4 right-4 inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/90 px-2.5 py-1.5 text-foreground text-xs opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none absolute top-4 right-4 inline-flex items-center gap-1.5 rounded-md bg-background/90 px-2.5 py-1.5 text-foreground text-xs opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100">
           <Expand className="size-3.5" />
           Zoom
         </span>

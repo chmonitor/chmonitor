@@ -43,9 +43,10 @@ export default function FeaturesCatalog({ groups, totalCount }: Props) {
 
   return (
     <section
-      id="features"
-      className="border-border/60 border-t py-20 sm:py-24"
+      id="ship-log"
+      className="py-12 sm:py-16"
       data-feature-count={totalCount}
+      data-features-catalog
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="max-w-2xl">
