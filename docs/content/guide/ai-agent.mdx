@@ -321,7 +321,7 @@ To advertise your chmonitor instance to AI agents at the DNS level, publish a **
 
 For example, add an `HTTPS` / `SVCB` DNS record at `_index._agents.yourdomain.com`:
 
-```dns
+```yaml
 _index._agents.yourdomain.com. IN HTTPS 1 yourdomain.com. (
     alpn="h2,http/1.1"
     port="443"
