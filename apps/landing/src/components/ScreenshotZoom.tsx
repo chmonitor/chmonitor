@@ -21,7 +21,7 @@ export function ScreenshotZoom({ id, src, srcDark, alt, className }: Props) {
         type="button"
         data-screenshot-zoom={id}
         className={cn(
-          'relative block w-full overflow-hidden rounded-2xl bg-zinc-950 leading-none shadow-[0_24px_80px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.65)]',
+          'relative block w-full overflow-hidden leading-none',
           className
         )}
         onClick={() => setOpen(true)}
