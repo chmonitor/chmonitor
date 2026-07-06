@@ -369,8 +369,8 @@ const ogImage = new URL(image, Astro.site).toString()
     .feat-list{margin-top:20px;display:flex;flex-direction:column;gap:11px}
     .feat-list li{display:flex;gap:11px;font-size:14.5px;color:var(--fg-soft);list-style:none}
     .feat-list svg{width:17px;height:17px;color:var(--emerald);flex:0 0 auto;margin-top:2px}
-    .feat-shot{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow-card);transition:border-color .18s ease,box-shadow .18s ease}
-    .feat-shot:hover{border-color:var(--border-hover)}
+    .feat-shot{border:none;border-radius:var(--radius);overflow:hidden;background:transparent;box-shadow:0 24px 80px -12px rgba(0,0,0,.35);transition:transform .5s ease,box-shadow .18s ease}
+    .feat-shot:hover{transform:scale(1.008)}
     .feat-shot .browser-bar{height:20px}
     .feat-shot .lights i{width:9px;height:9px}
     .feat-shot img{display:block;width:100%;height:auto}

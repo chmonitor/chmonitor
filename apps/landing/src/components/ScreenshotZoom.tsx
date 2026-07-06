@@ -27,7 +27,7 @@ export function ScreenshotZoom({
         type="button"
         data-screenshot-zoom={id}
         className={cn(
-          'group relative block w-full cursor-zoom-in overflow-hidden rounded-xl shadow-2xl shadow-black/20 transition-transform duration-500 hover:scale-[1.01] dark:shadow-black/50',
+          'group relative block w-full cursor-zoom-in overflow-hidden rounded-2xl shadow-[0_24px_80px_-12px_rgba(0,0,0,0.35)] transition-transform duration-500 hover:scale-[1.008] dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.65)]',
           className
         )}
         onClick={() => setOpen(true)}

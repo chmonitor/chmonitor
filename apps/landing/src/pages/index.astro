@@ -4,18 +4,13 @@ import Nav from '../components/Nav.astro'
 import Hero from '../components/Hero.astro'
 import ProductHighlights from '../components/ProductHighlights.tsx'
 import FeatureShowcase from '../components/FeatureShowcase.tsx'
-import ChangelogTeaser from '../components/ChangelogTeaser.tsx'
-import SocialProof from '../components/SocialProof.astro'
 import Comparison from '../components/Comparison.astro'
 import Pricing from '../components/Pricing.astro'
 import FAQ from '../components/FAQ.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
 import UseCaseLinks from '../components/UseCaseLinks.astro'
-import { loadChangelogFeatures } from '../data/changelog-features'
 import { useCases } from '../data/use-cases'
-
-const { groups, totalCount } = loadChangelogFeatures()
 ---
 <Base>
   <Nav />
@@ -23,8 +18,6 @@ const { groups, totalCount } = loadChangelogFeatures()
     <Hero />
     <ProductHighlights client:visible />
     <FeatureShowcase client:visible />
-    <ChangelogTeaser client:visible totalCount={totalCount} scopeCount={groups.length} />
-    <SocialProof />
     <Comparison />
     <UseCaseLinks items={useCases} eyebrow="Use cases" heading="Explore by use case" soft />
     <Pricing compact />

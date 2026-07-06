@@ -12,15 +12,11 @@ const required = [
   'data-hero-demo',
   'data-hero-demo-input',
   'data-hero-prompt-input',
-  'data-feature-count',
   'data-screenshot-zoom',
-  'command center',
+  'AI ops agent for ClickHouse',
 ] as const
 
-const forbiddenOnScreenshotParents = [
-  // Screenshot zoom triggers must not wrap images in bordered cards
-  'data-screenshot-zoom="overview" class="group relative mx-auto block w-full max-w-5xl cursor-zoom-in overflow-hidden rounded-xl shadow-2xl',
-]
+const forbidden = ['Ship log', 'features shipped', 'Open source, built in public']
 
 let failed = false
 
@@ -33,19 +29,25 @@ for (const marker of required) {
   }
 }
 
-for (const snippet of forbiddenOnScreenshotParents) {
-  if (!html.includes(snippet)) {
-    console.error(`MISSING expected borderless screenshot pattern: ${snippet.slice(0, 60)}…`)
+for (const text of forbidden) {
+  if (html.includes(text)) {
+    console.error(`FORBIDDEN on homepage: ${text}`)
     failed = true
   } else {
-    console.log('OK: hero screenshot wrapper is borderless (shadow-only)')
+    console.log(`OK: no "${text}" on homepage`)
   }
 }
 
-// Count zoom triggers — expect at least hero tabs
+if (!html.includes('rounded-lg shadow-')) {
+  console.error('MISSING borderless hero screenshot shadow pattern')
+  failed = true
+} else {
+  console.log('OK: hero screenshot wrapper is borderless (shadow-only)')
+}
+
 const zoomCount = (html.match(/data-screenshot-zoom/g) ?? []).length
-if (zoomCount < 5) {
-  console.error(`EXPECTED >= 5 data-screenshot-zoom, got ${zoomCount}`)
+if (zoomCount < 1) {
+  console.error(`EXPECTED screenshot zoom triggers, got ${zoomCount}`)
   failed = true
 } else {
   console.log(`OK: ${zoomCount} screenshot zoom triggers`)

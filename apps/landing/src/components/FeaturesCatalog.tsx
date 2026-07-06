@@ -50,13 +50,12 @@ export default function FeaturesCatalog({ groups, totalCount }: Props) {
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="max-w-2xl">
-          <p className="font-medium text-primary text-sm">Ship log</p>
+          <p className="font-medium text-primary text-sm">Feature index</p>
           <h2 className="mt-2 text-balance font-semibold text-3xl tracking-tight sm:text-4xl">
-            {totalCount} features shipped
+            Every CHANGELOG feature
           </h2>
           <p className="mt-3 text-pretty text-muted-foreground text-sm sm:text-base">
-            Every entry from CHANGELOG.md — grouped by scope, searchable.
-            Nothing hidden behind marketing copy.
+            Parsed from CHANGELOG.md — grouped by scope, searchable.
           </p>
         </div>
 
