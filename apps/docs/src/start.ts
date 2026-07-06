@@ -47,8 +47,7 @@ const llmMiddleware = createMiddleware().server(({ next, request }) => {
 // caching, and any response that already declares `Cache-Control` is respected.
 // Requests carrying `Authorization` are additionally auto-bypassed by Workers
 // Cache itself. See docs/knowledge/workers-cache.md.
-const PUBLIC_CACHE_CONTROL =
-  'public, max-age=300, stale-while-revalidate=86400'
+const PUBLIC_CACHE_CONTROL = 'public, max-age=300, stale-while-revalidate=86400'
 
 const cacheHeadersMiddleware = createMiddleware().server(
   async ({ next, request }) => {
@@ -68,7 +67,7 @@ const cacheHeadersMiddleware = createMiddleware().server(
     }
 
     return result
-  },
+  }
 )
 
 export const startInstance = createStart(() => ({

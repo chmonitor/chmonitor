@@ -2,8 +2,8 @@ import { Activity } from 'lucide-react'
 
 import { useMemo } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useTableData } from '@/lib/query/use-table-data'
 import { formatMicros, segmentWidthPct } from '@/lib/query/format-micros'
+import { useTableData } from '@/lib/query/use-table-data'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
 

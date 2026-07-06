@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chmonitor.dev — 2026 H2 Market & Strategy Report</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin:0; background:#f6f7f9; color:#15181d; font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+.wrap { max-width:920px; margin:0 auto; padding:0 20px 80px; }
+header { background:linear-gradient(135deg,#facc15 0%,#f59e0b 100%); color:#1a1200; padding:44px 20px 40px; }
+header .inner { max-width:920px; margin:0 auto; }
+header h1 { margin:0 0 6px; font-size:30px; letter-spacing:-.5px; }
+header p { margin:0; font-size:16px; opacity:.85; }
+.tag { display:inline-block; background:rgba(0,0,0,.14); border-radius:999px; padding:3px 11px; font-size:12px; font-weight:600; margin-bottom:14px; }
+h2 { font-size:21px; margin:38px 0 8px; letter-spacing:-.3px; padding-bottom:6px; border-bottom:2px solid #ececec; }
+h3 { font-size:16px; margin:22px 0 6px; }
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin:24px 0; }
+.kpi { background:#fff; border:1px solid #e7e7e9; border-radius:12px; padding:16px; }
+.kpi .n { font-size:24px; font-weight:700; color:#b45309; }
+.kpi .l { font-size:12.5px; color:#5c626b; margin-top:2px; }
+.card { background:#fff; border:1px solid #e7e7e9; border-radius:12px; padding:18px 20px; margin:16px 0; }
+.callout { background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:8px; padding:14px 16px; margin:16px 0; }
+table { width:100%; border-collapse:collapse; margin:14px 0; font-size:13.5px; background:#fff; border-radius:10px; overflow:hidden; border:1px solid #e7e7e9; }
+th,td { text-align:left; padding:9px 12px; border-bottom:1px solid #eee; }
+th { background:#fafafa; font-weight:600; }
+tr:last-child td { border-bottom:none; }
+.bar-row { display:flex; align-items:center; gap:10px; margin:7px 0; font-size:13.5px; }
+.bar-row .name { width:180px; flex:none; }
+.bar { height:22px; border-radius:5px; background:#f59e0b; }
+.bar.us { background:#16a34a; }
+.bar-row .val { font-weight:600; font-size:12.5px; color:#444; }
+.pill { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; }
+.p0 { background:#fee2e2; color:#991b1b; } .p1 { background:#fef3c7; color:#92400e; } .p2 { background:#e0e7ff; color:#3730a3; }
+ul { margin:6px 0 6px 2px; padding-left:20px; }
+li { margin:3px 0; }
+code { background:#f1f1f3; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+.muted { color:#6b7280; font-size:13px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:640px){ .grid2{grid-template-columns:1fr;} .bar-row .name{width:120px;} }
+footer { text-align:center; color:#9aa0a6; font-size:12.5px; margin-top:40px; }
+a { color:#b45309; }
+</style>
+</head>
+<body>
+<header><div class="inner">
+  <span class="tag">INTERNAL · 2026 H2 · generated 2026-07-06</span>
+  <h1>chmonitor.dev — Market &amp; Strategy Report</h1>
+  <p>"pganalyze for ClickHouse" — market research, billing, SEO &amp; the 6-month plan</p>
+</div></header>
+
+<div class="wrap">
+
+<div class="kpis">
+  <div class="kpi"><div class="n">$5k</div><div class="l">6-month MRR target</div></div>
+  <div class="kpi"><div class="n">60</div><div class="l">paying accounts (6-mo)</div></div>
+  <div class="kpi"><div class="n">~5×</div><div class="l">cheaper than pganalyze</div></div>
+  <div class="kpi"><div class="n">0</div><div class="l">rivals with a CH advisor</div></div>
+</div>
+
+<div class="callout"><strong>Bottom line:</strong> the wedge is real and unoccupied — nobody
+ships a pganalyze-style scored advisor for ClickHouse. The price is right; what's broken is
+<strong>collection</strong> (AI overage never bills, 402s return raw JSON, no billing UI).
+Turning collection on is <em>found money</em> and the highest-ROI work in the roadmap.</div>
+
+<h2>1 · The five findings</h2>
+<div class="card">
+<ol>
+<li><strong>Clean, unoccupied wedge.</strong> Competitors are raw dashboards (Grafana, ch-ui, clickhouse-monitoring), human consulting (Altinity), reactive LLM chat (ClickHouse Cloud Ask AI), or preview-grade telemetry (Datadog DBM is <em>preview-only</em> for ClickHouse as of July 2026). None gives continuous, scored, prescriptive tuning.</li>
+<li><strong>The pains are tuning problems, not bugs</strong> — exactly what an advisor monetizes: too-many-parts, MEMORY_LIMIT_EXCEEDED, merge storms, expensive mutations, roll-your-own alerting, Cloud cost anxiety.</li>
+<li><strong>Pricing is well-anchored.</strong> $29/$99 undercuts pganalyze ($149/$399) ~5× and Datadog DBM (~$70/host). Approve the anchors; fix the leaks.</li>
+<li><strong>The MCP server is a distribution channel</strong> competitors lack — list on MCP Registry, PulseMCP, cursor.directory, Smithery.</li>
+<li><strong>Watch ClickHouse Cloud's native AI</strong> — the one real threat. Moat: the self-hosted / Altinity / BYOC surface + fleet view they structurally won't serve.</li>
+</ol>
+</div>
+
+<h2>2 · Competitive pricing (verified July 2026)</h2>
+<div class="card">
+<div class="bar-row"><span class="name">chmonitor Pro</span><div class="bar us" style="width:29px"></div><span class="val">$29/mo</span></div>
+<div class="bar-row"><span class="name">chmonitor Max</span><div class="bar us" style="width:99px"></div><span class="val">$99/mo</span></div>
+<div class="bar-row"><span class="name">Grafana Cloud Pro</span><div class="bar" style="width:19px"></div><span class="val">$19/mo (viz only)</span></div>
+<div class="bar-row"><span class="name">SigNoz Teams</span><div class="bar" style="width:49px"></div><span class="val">$49/mo (wrong cat.)</span></div>
+<div class="bar-row"><span class="name">ClickHouse Cloud Basic</span><div class="bar" style="width:66px"></div><span class="val">$66.52/mo</span></div>
+<div class="bar-row"><span class="name">Datadog DBM</span><div class="bar" style="width:70px"></div><span class="val">~$70/host</span></div>
+<div class="bar-row"><span class="name">pganalyze Production</span><div class="bar" style="width:149px"></div><span class="val">$149/mo — the analog</span></div>
+<div class="bar-row"><span class="name">pganalyze Scale</span><div class="bar" style="width:220px"></div><span class="val">$399/mo (+$100/server)</span></div>
+<p class="muted">Bars scaled to price. chmonitor (green) is the value play; pganalyze is the true analog and the model to replicate on features.</p>
+</div>
+
+<h2>3 · Billing verdict &amp; optimizations</h2>
+<div class="grid2">
+<div class="card"><h3>Fix collection first</h3>
+<ul>
+<li><span class="pill p0">P0</span> AI overage never accumulates → bills $0 past allowance</li>
+<li><span class="pill p0">P0</span> 402 returns raw JSON, not a paywall — biggest CVR leak</li>
+<li><span class="pill p0">P0</span> No in-app billing surface (plan/usage/renewal)</li>
+<li><span class="pill p1">P1</span> Per-host overage unplugged — hosts hard-cap</li>
+</ul>
+<p class="muted">Infra already exists → highest ROI in the roadmap.</p>
+</div>
+<div class="card"><h3>Then optimize</h3>
+<ul>
+<li>Explicit included-host counts (Pro 1 / Max 3) — kill sticker shock</li>
+<li>Replica = 0.5 host (copy pganalyze)</li>
+<li>Lead with <strong>BYOK</strong> on the AI advisor (2026 expectation)</li>
+<li>Test a <strong>$199 Fleet</strong> mid-anchor for 5–10 host clusters</li>
+<li>Annual (~2 months free) after e2e tests pass</li>
+</ul>
+</div>
+</div>
+<div class="callout"><strong>Will people pay?</strong> Yes — conditionally on (1) an advisor
+recommendation good enough to trust on first run, (2) a visible purchase path, (3) a free
+tier with real standalone value. The paying segment exists and pays more than we ask.</div>
+
+<h2>4 · SEO — build order</h2>
+<table>
+<tr><th>Wave</th><th>Pages</th><th>Why</th></tr>
+<tr><td><strong>1 · Error pages</strong></td><td>too-many-parts · MEMORY_LIMIT_EXCEEDED · memory-limit-total · merges-slower-than-inserts</td><td>Thin SERPs, highest intent — each page is a product demo</td></tr>
+<tr><td><strong>2 · Flagship</strong></td><td><code>system.query_log</code> slow-query how-to</td><td>The SEO page <em>is</em> the product workflow</td></tr>
+<tr><td><strong>3 · Optimization hub</strong></td><td>partition keys · PREWHERE vs WHERE · projections vs MVs · skip indices · external GROUP BY</td><td>Medium difficulty; win with deep example-driven content</td></tr>
+<tr><td><strong>4 · Comparisons</strong></td><td>vs TimescaleDB · vs Postgres · vs Druid/Pinot</td><td>High difficulty — only near-ICP matchups</td></tr>
+</table>
+<p class="muted">Moat vs content farms: embed real diagnostic SQL + expected output + a one-click chmonitor demo. Aggregators can't.</p>
+
+<h2>5 · Go-to-market channels</h2>
+<div class="card"><ol>
+<li><strong>OSS / GitHub-led</strong> — README as a landing page; zero-signup CLI; PR onto awesome-clickhouse; on-ramp from <code>duyet/clickhouse-monitoring</code> (~219★, cited in CH docs).</li>
+<li><strong>ClickHouse community</strong> — Slack (~4k), meetups (teaching talk), GitHub discussions. Be helpful first.</li>
+<li><strong>Technical SEO content</strong> — the "5 min of ClickHouse" engine, 1 deep post/week.</li>
+<li><strong>Show HN</strong> — one big shot after README + live demo + onboarding are polished.</li>
+<li><strong>MCP / AI-agent distribution</strong> — the competitor-free channel. "Ask Claude why your ClickHouse query is slow."</li>
+<li><strong>Newsletters &amp; Reddit</strong> — amplification. (Note: Pragmatic Engineer newsletter takes no sponsorships — podcast only.)</li>
+</ol></div>
+
+<h2>6 · The 6-month sequence</h2>
+<table>
+<tr><th>#</th><th>Move</th><th>Ships</th></tr>
+<tr><td>1</td><td>Instrument the funnel + baseline stars/installs/followers</td><td>Plan 62 · M1</td></tr>
+<tr><td>2</td><td><strong>Turn on the money</strong> + kill sticker shock</td><td>Plans 14–17 · B1</td></tr>
+<tr><td>3</td><td>SEO error pages + MCP/README distribution</td><td>S1/S2 · M3/M4</td></tr>
+<tr><td>4</td><td><strong>Ship the wedge</strong> — programmatic DDL advisor</td><td>Plans 46–52</td></tr>
+<tr><td>5</td><td>Polish demo/onboarding → <strong>fire the Show HN</strong></td><td>Plans 60/65/66</td></tr>
+<tr><td>6</td><td>Sustain content engine + pricing experiments</td><td>M2 · S3/S4 · B3/B4</td></tr>
+</table>
+
+<h2>7 · 15 implementation issues generated</h2>
+<div class="card">
+<p><strong>Billing:</strong> B1 included-host counts · B2 replica=0.5 · B3 BYOK · B4 $199 Fleet · B5 annual.
+<br><strong>SEO:</strong> S1 error cluster · S2 query_log flagship · S3 optimization hub · S4 comparisons · S5 OG/meta/Lighthouse.
+<br><strong>Marketing:</strong> M1 funnel analytics · M2 blog engine · M3 MCP listings · M4 README/awesome-clickhouse · M5 local CLI.</p>
+<p class="muted">Each maps to real files and becomes a GitHub issue via <code>docs/internal/2026h2-market/create-github-issues.sh --apply</code>
+(the agent's sandbox had no <code>gh</code>/token, so run it on your authenticated machine). Existing plans 14–70 already have <code>plans/round3-issues.csv</code>.</p>
+</div>
+
+<footer>chmonitor.dev · internal strategy report · full docs in <code>docs/internal/2026h2-market/</code> · figures verified July 2026, unverified items flagged in the source research</footer>
+</div>
+</body>
+</html>

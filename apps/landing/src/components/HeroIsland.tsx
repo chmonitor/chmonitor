@@ -1,7 +1,6 @@
 import { ArrowRight, BookOpen, Play, Star } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button'
 import '@/styles/globals.css'
 
