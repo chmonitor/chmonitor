@@ -101,10 +101,379 @@ export default {
 
     if (req.method === 'OPTIONS') return noContent()
 
-    if (req.method === 'GET' && (pathname === '/' || pathname === '/health')) {
-      return new Response('chmonitor telemetry collector\n', {
+    if (req.method === 'GET' && pathname === '/health') {
+      return new Response('OK\n', {
         status: 200,
         headers: { 'content-type': 'text/plain', ...CORS },
+      })
+    }
+
+    if (req.method === 'GET' && pathname === '/') {
+      // Serve the analytics dashboard HTML
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chmonitor Telemetry Analytics</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 1.2rem;
+    }
+
+    .error {
+      background: #fee;
+      border: 1px solid #fcc;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      color: #c33;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #e9ecef;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bar-label {
+      min-width: 120px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .bar-track {
+      flex: 1;
+      background: #e9ecef;
+      height: 24px;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+    }
+
+    .bar-value {
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border: 1px solid #b3d9ff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .info-box h3 {
+      color: #004085;
+      margin-bottom: 10px;
+    }
+
+    .info-box p {
+      color: #004085;
+      line-height: 1.6;
+    }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .bar-label {
+        margin-bottom: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 chmonitor Telemetry</h1>
+    <p class="subtitle">Anonymous ClickHouse monitoring adoption analytics</p>
+
+    <div id="loading" class="loading">Loading analytics...</div>
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div id="content" style="display: none;">
+      <div class="info-box">
+        <h3>🔒 Privacy-First Analytics</h3>
+        <p>
+          All data is <strong>100% anonymous</strong>. No IPs, hostnames, or identifying information.
+          Only COUNT(DISTINCT) of SHA-256 hashed instance IDs. Each install generates a unique
+          hash that cannot be reversed to identify the original instance.
+        </p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Installs</div>
+          <div class="stat-value" id="total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Data Source</div>
+          <div class="stat-value" id="source">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Updated</div>
+          <div class="stat-value" id="updated" style="font-size: 1rem;">-</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🚀 Deployment Targets</h2>
+        <div id="deploy-targets" class="bar-chart"></div>
+      </div>
+
+      <div class="section">
+        <h2>📦 ClickHouse Versions</h2>
+        <div id="ch-versions" class="bar-chart"></div>
+      </div>
+
+      <div class="section">
+        <h2>🌍 Geographic Distribution</h2>
+        <div id="countries" class="bar-chart"></div>
+      </div>
+
+      <div class="section">
+        <h2>💻 Platform Distribution</h2>
+        <div id="platforms" class="bar-chart"></div>
+      </div>
+
+      <div class="footer">
+        <p>
+          Data updates every hour • Powered by <a href="https://chmonitor.dev" style="color: #667eea;">chmonitor</a> •
+          <a href="https://github.com/chmonitor/chmonitor" style="color: #667eea;">GitHub</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadAnalytics() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const content = document.getElementById('content');
+
+      try {
+        const response = await fetch('https://telemetry.chmonitor.dev/v1/summary');
+
+        if (!response.ok) {
+          throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+
+        // Update stats cards
+        document.getElementById('total').textContent = data.total_installs.toLocaleString();
+        document.getElementById('source').textContent = data.source.split('(')[0].trim();
+        document.getElementById('updated').textContent = new Date(data.generated_at).toLocaleString();
+
+        // Render deployment targets
+        renderBarChart('deploy-targets', data.by_deploy_target);
+
+        // Render ClickHouse versions
+        renderBarChart('ch-versions', data.by_ch_version);
+
+        // Render countries
+        renderBarChart('countries', data.by_country);
+
+        // Render platforms
+        renderBarChart('platforms', data.by_platform);
+
+      } catch (err) {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        error.textContent = \`Failed to load analytics: \${err.message}\`;
+        console.error('Analytics loading error:', err);
+      }
+    }
+
+    function renderBarChart(containerId, data) {
+      const container = document.getElementById(containerId);
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No data available</p>';
+        return;
+      }
+
+      const maxValue = Math.max(...data.map(item => item.installs));
+
+      container.innerHTML = data
+        .sort((a, b) => b.installs - a.installs)
+        .map(item => {
+          const percentage = (item.installs / maxValue) * 100;
+          const key = Object.keys(item).find(k => k !== 'installs');
+          const label = item[key];
+
+          return \`
+            <div class="bar-item">
+              <div class="bar-label">\${formatLabel(label)}</div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: \${percentage}%;">
+                  <span class="bar-value">\${item.installs.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          \`;
+        })
+        .join('');
+    }
+
+    function formatLabel(label) {
+      if (label === 'unknown') return 'Unknown';
+      if (label === 'docker') return 'Docker';
+      if (label === 'helm') return 'Helm';
+      if (label === 'cf') return 'Cloudflare';
+      if (label === 'dev') return 'Development';
+      if (label === 'windows') return 'Windows';
+      if (label === 'macos') return 'macOS';
+      if (label === 'linux') return 'Linux';
+      if (label === 'android') return 'Android';
+      if (label === 'ios') return 'iOS';
+      if (label === 'oss') return 'OSS';
+      if (label === 'altinity') return 'Altinity';
+      if (label === 'cloud') return 'Cloud';
+      return label;
+    }
+
+    // Load analytics on page load
+    loadAnalytics();
+  </script>
+</body>
+</html>`
+
+      return new Response(html, {
+        status: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'public, max-age=300', // 5 min cache
+          ...CORS,
+        },
       })
     }
 
