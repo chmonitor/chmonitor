@@ -124,201 +124,189 @@ export default {
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #ffffff;
+      color: #000000;
+      padding: 40px 20px;
+      line-height: 1.5;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      padding: 40px;
+    }
+
+    header {
+      margin-bottom: 40px;
     }
 
     h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
     }
 
     .subtitle {
-      color: #666;
-      margin-bottom: 30px;
-      font-size: 1.1rem;
+      color: #666666;
+      font-size: 1rem;
     }
 
     .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-      font-size: 1.2rem;
+      padding: 40px 0;
+      color: #666666;
     }
 
     .error {
-      background: #fee;
-      border: 1px solid #fcc;
-      border-radius: 8px;
+      border: 1px solid #000000;
       padding: 20px;
       margin: 20px 0;
-      color: #c33;
+      color: #000000;
+      background: #ffffff;
+    }
+
+    .info-box {
+      border: 1px solid #000000;
+      padding: 20px;
+      margin-bottom: 40px;
+    }
+
+    .info-box h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .info-box p {
+      font-size: 0.9rem;
+      color: #333333;
     }
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 20px;
       margin-bottom: 40px;
+      border-top: 1px solid #000000;
+      border-bottom: 1px solid #000000;
+      padding: 20px 0;
     }
 
     .stat-card {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 20px;
-      border: 1px solid #e9ecef;
+      background: #ffffff;
     }
 
     .stat-label {
-      font-size: 0.9rem;
-      color: #666;
+      font-size: 0.8rem;
+      color: #666666;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
     }
 
     .stat-value {
-      font-size: 2rem;
-      font-weight: bold;
-      color: #667eea;
+      font-size: 1.75rem;
+      font-weight: 700;
     }
 
     .section {
-      margin-bottom: 40px;
+      margin-bottom: 45px;
     }
 
     .section h2 {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
+      font-weight: 600;
       margin-bottom: 20px;
-      color: #333;
-      border-bottom: 2px solid #667eea;
-      padding-bottom: 10px;
+      border-bottom: 1px solid #000000;
+      padding-bottom: 8px;
     }
 
     .bar-chart {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .bar-item {
       display: flex;
       align-items: center;
-      gap: 12px;
+      font-size: 0.9rem;
     }
 
     .bar-label {
-      min-width: 120px;
-      font-weight: 500;
-      color: #555;
+      width: 150px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .bar-track {
-      flex: 1;
-      background: #e9ecef;
-      height: 24px;
-      border-radius: 4px;
-      overflow: hidden;
-      position: relative;
+      flex-grow: 1;
+      height: 12px;
+      background: #f0f0f0;
+      margin: 0 16px;
     }
 
     .bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      transition: width 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 8px;
+      background: #000000;
     }
 
     .bar-value {
-      color: white;
-      font-size: 0.85rem;
+      width: 80px;
+      text-align: right;
       font-weight: 600;
-    }
-
-    .info-box {
-      background: #e7f3ff;
-      border: 1px solid #b3d9ff;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-
-    .info-box h3 {
-      color: #004085;
-      margin-bottom: 10px;
-    }
-
-    .info-box p {
-      color: #004085;
-      line-height: 1.6;
+      flex-shrink: 0;
     }
 
     .footer {
-      margin-top: 40px;
+      margin-top: 60px;
       padding-top: 20px;
-      border-top: 1px solid #e9ecef;
-      text-align: center;
-      color: #666;
-      font-size: 0.9rem;
+      border-top: 1px solid #e0e0e0;
+      font-size: 0.85rem;
+      color: #666666;
     }
 
-    @media (max-width: 768px) {
-      .container {
-        padding: 20px;
-      }
+    .footer a {
+      color: #000000;
+      text-decoration: underline;
+    }
 
-      h1 {
-        font-size: 2rem;
-      }
+    .footer a:hover {
+      text-decoration: none;
+    }
 
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
+    @media (max-width: 600px) {
       .bar-item {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: wrap;
       }
-
-      .bar-label {
-        margin-bottom: 4px;
+      .bar-track {
+        width: 100%;
+        margin: 8px 0;
+        order: 3;
+      }
+      .bar-value {
+        margin-left: auto;
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📊 chmonitor Telemetry</h1>
-    <p class="subtitle">Anonymous ClickHouse monitoring adoption analytics</p>
+    <header>
+      <h1>chmonitor Telemetry</h1>
+      <p class="subtitle">Anonymous ClickHouse monitoring adoption analytics</p>
+    </header>
 
     <div id="loading" class="loading">Loading analytics...</div>
     <div id="error" class="error" style="display: none;"></div>
 
     <div id="content" style="display: none;">
       <div class="info-box">
-        <h3>🔒 Privacy-First Analytics</h3>
+        <h3>Privacy-First Analytics</h3>
         <p>
-          All data is <strong>100% anonymous</strong>. No IPs, hostnames, or identifying information.
-          Only COUNT(DISTINCT) of SHA-256 hashed instance IDs. Each install generates a unique
+          All data is 100% anonymous. No IPs, hostnames, or identifying information are recorded.
+          Only COUNT(DISTINCT) of SHA-256 hashed instance IDs are processed. Each install generates a unique
           hash that cannot be reversed to identify the original instance.
         </p>
       </div>
@@ -334,34 +322,39 @@ export default {
         </div>
         <div class="stat-card">
           <div class="stat-label">Last Updated</div>
-          <div class="stat-value" id="updated" style="font-size: 1rem;">-</div>
+          <div class="stat-value" id="updated" style="font-size: 1rem; line-height: 1.75rem;">-</div>
         </div>
       </div>
 
       <div class="section">
-        <h2>🚀 Deployment Targets</h2>
+        <h2>Deployment Targets</h2>
         <div id="deploy-targets" class="bar-chart"></div>
       </div>
 
       <div class="section">
-        <h2>📦 ClickHouse Versions</h2>
+        <h2>ClickHouse Versions</h2>
         <div id="ch-versions" class="bar-chart"></div>
       </div>
 
       <div class="section">
-        <h2>🌍 Geographic Distribution</h2>
+        <h2>Geographic Distribution</h2>
         <div id="countries" class="bar-chart"></div>
       </div>
 
       <div class="section">
-        <h2>💻 Platform Distribution</h2>
+        <h2>Platform Distribution</h2>
         <div id="platforms" class="bar-chart"></div>
+      </div>
+
+      <div class="section" id="ch-flavor-section" style="display: none;">
+        <h2>ClickHouse Flavors</h2>
+        <div id="ch-flavors" class="bar-chart"></div>
       </div>
 
       <div class="footer">
         <p>
-          Data updates every hour • Powered by <a href="https://chmonitor.dev" style="color: #667eea;">chmonitor</a> •
-          <a href="https://github.com/chmonitor/chmonitor" style="color: #667eea;">GitHub</a>
+          Data updates every hour • Powered by <a href="https://chmonitor.dev">chmonitor</a> •
+          <a href="https://github.com/chmonitor/chmonitor">GitHub</a>
         </p>
       </div>
     </div>
@@ -395,7 +388,11 @@ export default {
         document.getElementById('updated').textContent = new Date(data.generated_at).toLocaleString();
 
         // Render deployment targets
-        renderBarChart('deploy-targets', data.by_deploy_target);
+        const deployTargetsArray = Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
+          deploy_target: target,
+          installs: installs
+        }));
+        renderBarChart('deploy-targets', deployTargetsArray);
 
         // Render ClickHouse versions
         renderBarChart('ch-versions', data.by_ch_version);
@@ -405,6 +402,12 @@ export default {
 
         // Render platforms
         renderBarChart('platforms', data.by_platform);
+
+        // Render ClickHouse flavors (if available)
+        if (data.by_ch_flavor && data.by_ch_flavor.length > 0) {
+          document.getElementById('ch-flavor-section').style.display = 'block';
+          renderBarChart('ch-flavors', data.by_ch_flavor);
+        }
 
       } catch (err) {
         loading.style.display = 'none';
@@ -434,10 +437,9 @@ export default {
             <div class="bar-item">
               <div class="bar-label">\${formatLabel(label)}</div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: \${percentage}%;">
-                  <span class="bar-value">\${item.installs.toLocaleString()}</span>
-                </div>
+                <div class="bar-fill" style="width: \${percentage}%;"></div>
               </div>
+              <div class="bar-value">\${item.installs.toLocaleString()}</div>
             </div>
           \`;
         })
