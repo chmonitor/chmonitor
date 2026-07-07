@@ -1,9 +1,8 @@
 # wrangler.toml — chmonitor telemetry collector
 #
 # Public, write-only ingest for the anonymous instance ping + aggregate events
-# emitted by apps/dashboard/src/lib/telemetry. Records to Cloudflare Analytics
-# Engine (no database to manage; queried via the AE SQL API from the project's
-# Cloudflare account only).
+# emitted by apps/dashboard/src/lib/telemetry. Records to Cloudflare D1
+# (forever retention, free tier).
 #
 # Deploy:
 #   cd apps/telemetry && pnpm run deploy
@@ -25,30 +24,13 @@ compatibility_flags = ["global_fetch_strictly_public"]
 [observability]
 enabled = true
 
-# Workers Cache (launched 2026-07-06): safe to enable — the ingest path is POST
-# (never cached), and the only GET responses are the static text banner at `/`
-# and `/health`, which set no public `Cache-Control`, so nothing is actually
-# stored. Enabled for parity; behaviour is unchanged.
-# See docs/knowledge/workers-cache.md.
 [cache]
 enabled = true
 
-# Analytics Engine — hot store (3-month retention, ad-hoc SQL). No binding-side
-# config needed beyond the dataset name; rows go in via writeDataPoint().
-[[analytics_engine_datasets]]
-binding = "CHM_TELEMETRY_AE"
-dataset = "chm_telemetry"
-
-# D1 — forever store (optional). AE auto-deletes after 3 months; D1 keeps one
-# deduped row per install per day indefinitely. The worker no-ops the D1 write
-# unless this binding exists, so it deploys AE-only until you create the DB:
+# D1 — primary store (forever retention). One deduped row per install per UTC
+# day; events stored in a separate table. Free tier, no cron, no API token.
 #
-#   wrangler d1 create chm_telemetry           # copy the printed database_id below
-#   wrangler d1 migrations apply chm_telemetry # applies migrations/0001_init.sql
-#
-# Provisioned 2026-07-07 (duyet account). Binding name MUST be CHM_TELEMETRY_DB
-# to match Env in src/index.ts (NOT the `chm_telemetry` wrangler's snippet
-# suggests). Removing this block reverts to AE-only (3-month) retention.
+# Provisioned 2026-07-07 (duyet account).
 [[d1_databases]]
 binding = "CHM_TELEMETRY_DB"
 database_name = "chm_telemetry"
@@ -65,10 +47,6 @@ custom_domain = true
 # ─────────────────────────────────────────────────────────────────────────────
 [env.preview]
 name = "preview-chmonitor-telemetry"
-
-[[env.preview.analytics_engine_datasets]]
-binding = "CHM_TELEMETRY_AE"
-dataset = "chm_telemetry_preview"
 
 [[env.preview.routes]]
 pattern = "preview.telemetry.chmonitor.dev"

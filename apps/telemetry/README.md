@@ -3,7 +3,7 @@
 The ingest endpoint that `CHM_TELEMETRY_ENDPOINT` points at. It receives the
 anonymous instance ping (and optional aggregate events) emitted by
 [`apps/dashboard/src/lib/telemetry`](../dashboard/src/lib/telemetry) and records
-them to **Cloudflare Analytics Engine**.
+them to **Cloudflare D1** (forever retention, free tier).
 
 This closes the gap described in
 [`docs/content/operate/advanced/telemetry.mdx`](../../docs/content/operate/advanced/telemetry.mdx):
@@ -36,17 +36,33 @@ against a closed shape; unknown fields are ignored.
 ### `GET /` or `/health`
 Returns `200` — liveness only.
 
-## Storage layout (Analytics Engine `chm_telemetry`)
+## Storage layout (D1 `chm_telemetry`)
 
-| column   | ping                | event                       |
-|----------|---------------------|-----------------------------|
-| `index1` | `instance_hash`     | event name                  |
-| `blob1`  | `ping`              | `event`                     |
-| `blob2`  | `deploy_target`     | event name                  |
-| `blob3`  | `ch_version`        | `deploy_target`             |
-| `blob4`  | —                   | `ch_version`                |
-| `blob5`  | —                   | `ch_flavor`                 |
-| `double1`| `1`                 | `1`                         |
+### `ping_daily` table
+| column        | type    | description |
+|---------------|---------|-------------|
+| `day`         | TEXT    | `YYYY-MM-DD` (UTC) |
+| `instance_hash` | TEXT  | SHA-256 install id |
+| `deploy_target` | TEXT  | docker/helm/cf/dev/unknown |
+| `ch_version`  | TEXT    | MAJOR.MINOR or NULL |
+| `ch_flavor`   | TEXT    | oss/altinity/cloud/unknown |
+| `country`     | TEXT    | ISO 3166-1 alpha-2 or NULL |
+| `platform`    | TEXT    | windows/macos/linux/android/ios/unknown |
+| `chm_version` | TEXT    | semver-like CHM version |
+| `install_place` | TEXT  | deployment environment hash |
+
+Primary key: `(day, instance_hash)` — one row per install per day.
+
+### `events` table
+| column        | type    | description |
+|---------------|---------|-------------|
+| `id`          | INTEGER | auto-increment |
+| `day`         | TEXT    | `YYYY-MM-DD` (UTC) |
+| `event`       | TEXT    | event name |
+| `deploy_target` | TEXT  | docker/helm/cf/dev/unknown |
+| `ch_version`  | TEXT    | MAJOR.MINOR or NULL |
+| `ch_flavor`   | TEXT    | oss/altinity/cloud/unknown |
+| `created_at`  | TEXT    | datetime('now') |
 
 ## Deploy
 
@@ -57,72 +73,34 @@ pnpm run deploy            # production → telemetry.chmonitor.dev
 pnpm run deploy:preview    # preview    → preview.telemetry.chmonitor.dev
 ```
 
-No secrets required. The Analytics Engine dataset is created on first write.
+No secrets required. The D1 database is created on first deploy.
 CI deploys this automatically on push to `main` (see `.github/workflows/cloudflare.yml`).
-
-### Optional: forever retention with D1
-
-Analytics Engine keeps data for only **3 months**, then auto-deletes. To keep
-metrics indefinitely (CF-native, free tier, no cron, no API token), attach D1 —
-the worker then also writes one deduped row per install per UTC day, which D1
-keeps forever:
-
-```bash
-cd apps/telemetry
-wrangler d1 create chm_telemetry             # copy the database_id
-# paste it into the commented [[d1_databases]] block in wrangler.toml, then:
-wrangler d1 migrations apply chm_telemetry   # applies migrations/0001_init.sql
-pnpm run deploy
-```
-
-The D1 write is a no-op until the binding exists, so deploying without D1 is safe
-(AE-only). Query forever-retained installs:
-
-```sql
-SELECT day, deploy_target, ch_version, COUNT(*) AS installs
-FROM ping_daily GROUP BY day, deploy_target, ch_version ORDER BY day DESC;
-```
 
 ## Querying (active installs, by version / deploy target)
 
-Analytics Engine is read via the SQL API with a Cloudflare API token that has
-**Account Analytics: Read**:
+D1 is queried via the Cloudflare REST API or the `/v1/summary` endpoint:
 
 ```bash
-curl "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/analytics_engine/sql" \
+curl "https://telemetry.chmonitor.dev/v1/summary"
+```
+
+Or query D1 directly:
+
+```bash
+curl "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/raw" \
   -H "Authorization: Bearer $CF_API_TOKEN" \
-  -d "
-    SELECT
-      blob2 AS deploy_target,
-      blob3 AS ch_version,
-      count(DISTINCT index1) AS active_installs
-    FROM chm_telemetry
-    WHERE blob1 = 'ping' AND timestamp > now() - INTERVAL '30' DAY
-    GROUP BY deploy_target, ch_version
-    ORDER BY active_installs DESC
-  "
+  -d '{"sql":"SELECT deploy_target, COUNT(DISTINCT instance_hash) AS installs FROM ping_daily GROUP BY deploy_target"}'
 ```
 
-Total active installs in the last 30 days:
-```sql
-SELECT count(DISTINCT index1) AS active_installs
-FROM chm_telemetry
-WHERE blob1 = 'ping' AND timestamp > now() - INTERVAL '30' DAY
+## Migrating from Analytics Engine
+
+If you previously used Analytics Engine, run the one-time migration script:
+
+```bash
+CF_ACCOUNT_ID=<your-account-id> CF_API_TOKEN=<your-api-token> bun scripts/migrate-ae-to-d1.ts
 ```
 
-Event volume by name (when the event sink is wired):
-```sql
-SELECT blob2 AS event, sum(double1) AS n
-FROM chm_telemetry
-WHERE blob1 = 'event' AND timestamp > now() - INTERVAL '30' DAY
-GROUP BY event ORDER BY n DESC
-```
-
-> Note: Analytics Engine adaptively samples high-volume datasets. For a self-host
-> telemetry volume this is effectively exact; if it ever samples, multiply
-> `double1` sums by `_sample_interval` for unbiased counts. Distinct-install
-> counts via `count(DISTINCT index1)` remain accurate because `index1` is the
-> sampling key.
+This pulls all historical data from AE into D1 (last 90 days).
 
 ## On by default; how to opt out
 
