@@ -192,13 +192,18 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Average query duration
+  // Query duration percentile (p95/p99/p100) — default p99
   'insight-avg-duration': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
+    const percentile = (params.params?.percentile as string) || 'p99'
+    const durationExpr =
+      percentile === 'p100'
+        ? 'max(query_duration_ms)'
+        : `quantile(${percentile === 'p95' ? '0.95' : '0.99'})(query_duration_ms)`
     return {
       query: `
         SELECT
-          avg(query_duration_ms) as avg_duration_ms,
+          ${durationExpr} as avg_duration_ms,
           count() as query_count
         FROM system.query_log
         WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}

@@ -25,7 +25,9 @@ import {
   BusiestDayQueriesStat,
   BusiestSecondStat,
   ErrorRateStat,
+  PercentileSelector,
 } from './traffic-stats'
+import { useState } from 'react'
 
 function SectionLabel({ title }: { readonly title: string }) {
   return (
@@ -42,8 +44,15 @@ export function StatsGrid({
   readonly hostId: number
   readonly lastHours?: number
 }) {
+  const [percentile, setPercentile] = useState('99')
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Global percentile toggle */}
+      <div className="flex items-center justify-end">
+        <PercentileSelector value={percentile} onChange={setPercentile} />
+      </div>
+
       {/* Record Breakers */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <SectionLabel title="Record Breakers" />
@@ -85,7 +94,11 @@ export function StatsGrid({
         <BusiestDayQueriesStat hostId={hostId} lastHours={lastHours} />
         <BusiestDayBytesStat hostId={hostId} lastHours={lastHours} />
         <BusiestSecondStat hostId={hostId} lastHours={lastHours} />
-        <AvgDurationStat hostId={hostId} lastHours={lastHours} />
+        <AvgDurationStat
+          hostId={hostId}
+          lastHours={lastHours}
+          percentile={percentile}
+        />
       </div>
 
       {/* Error Rate */}

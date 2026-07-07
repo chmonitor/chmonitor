@@ -6,9 +6,44 @@ import {
   TimerIcon,
 } from 'lucide-react'
 
+import type { Dispatch, SetStateAction } from 'react'
+
 import { StatCard, statEmpty, statLoading } from './stat-card'
 import { useChartData } from '@/lib/query/use-chart-data'
-import { formatDuration } from '@/lib/utils'
+import { cn, formatDuration } from '@/lib/utils'
+
+const PERCENTILES = ['95', '99', '100'] as const
+
+export function PercentileSelector({
+  value,
+  onChange,
+}: {
+  readonly value: string
+  readonly onChange: Dispatch<SetStateAction<string>>
+}) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className="text-muted-foreground font-medium">Percentile</span>
+      <div className="flex rounded-lg border bg-muted p-0.5">
+        {PERCENTILES.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onChange(p)}
+            className={cn(
+              'rounded-md px-2 py-1 text-xs font-medium transition-colors',
+              value === p
+                ? 'bg-background text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            p{p}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function formatDay(day: string | Date): string {
   return new Date(day).toLocaleDateString('en-US', {
@@ -99,19 +134,28 @@ export function BusiestSecondStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-export function AvgDurationStat({ hostId, lastHours }: RangeStatProps) {
+interface PercentileStatProps extends RangeStatProps {
+  readonly percentile: string
+}
+
+export function AvgDurationStat({
+  hostId,
+  lastHours,
+  percentile,
+}: PercentileStatProps) {
   const { data, isLoading, error, sql, metadata } = useChartData({
     chartName: 'insight-avg-duration',
     hostId,
     lastHours,
+    params: { percentile },
   })
-  if (isLoading) return statLoading('Average Query Duration')
-  if (error || !data?.length)
-    return statEmpty('Average Query Duration', sql, data, metadata)
+  const label = `Average Query Duration (p${percentile})`
+  if (isLoading) return statLoading(label)
+  if (error || !data?.length) return statEmpty(label, sql, data, metadata)
   const d = data[0] as { avg_duration_ms: number; query_count: number }
   return (
     <StatCard
-      title="Average Query Duration"
+      title={label}
       icon={<TimerIcon className="size-3.5 text-indigo-500" />}
       sql={sql}
       data={data}
