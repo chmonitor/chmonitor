@@ -33,7 +33,7 @@ const cardColors = [
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="text-sm font-medium text-primary">Pricing</p>
       <h2 class="mt-3 text-balance font-extrabold text-3xl sm:text-4xl tracking-[-0.04em]">Self-host free. Cloud for teams.</h2>
-      <p class="mt-4 text-pretty text-muted-foreground">chmonitor is open source — self-hosting is always free under GPL-3.0. The hosted cloud connects a cluster without any setup. Cloud pricing is not finalised; <strong class="text-foreground">early access is free to try</strong> and seats are limited.</p>
+      <p class="mt-4 text-pretty text-muted-foreground">chmonitor is open source — self-hosting is always free under GPL-3.0, with every feature and unlimited clusters. The hosted cloud connects a cluster in minutes when you'd rather not run anything yourself.</p>
     </div>
     )}
 
@@ -53,10 +53,6 @@ const cardColors = [
 
     <!-- Cloud plans -->
     <div class="reveal mt-8 flex flex-wrap items-center justify-between gap-4">
-      <span class="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-        <span class="size-1.5 rounded-full bg-neutral-500"></span>
-        Early access — paid plans free while in beta
-      </span>
       <div class="bill-toggle inline-flex gap-0.5 rounded-full bg-card p-1" role="tablist" aria-label="Billing period">
         <button type="button" data-period="monthly" role="tab" aria-selected="false" class="billing-toggle-btn inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus-visible:ring-0">Monthly</button>
         <button type="button" data-period="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors active:scale-[.98] border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus-visible:ring-0">
@@ -127,11 +123,6 @@ const cardColors = [
       </a>
     </div>
     )}
-
-    <div class="reveal mt-7 flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
-      <svg class="mt-0.5 size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-      <div>chmonitor only reads from ClickHouse system tables. It never writes to your data. Connect using a least-privilege <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">SELECT</code>-only user for maximum safety.</div>
-    </div>
   </div>
 
   <style>

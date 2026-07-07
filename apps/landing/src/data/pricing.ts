@@ -45,12 +45,12 @@ const PRESENTATION: Record<
 > = {
   free: {
     badge: { label: 'Early access', cls: 'ptag-beta' },
-    cta: { label: 'Start free', href: DASH, primary: true },
+    cta: { label: 'Get started', href: DASH, primary: true },
   },
   pro: {
-    cta: { label: 'Start free', href: DASH, primary: true },
+    cta: { label: 'Get started', href: DASH, primary: true },
   },
-  max: { cta: { label: 'Start free', href: DASH } },
+  max: { cta: { label: 'Get started', href: DASH } },
   enterprise: {
     cta: { label: 'Contact us', href: 'mailto:hello@chmonitor.dev' },
   },
@@ -211,6 +211,6 @@ export const pricingFaqs: PricingFaq[] = [
   },
   {
     q: 'Do you read or write my data?',
-    a: 'chmonitor only reads from ClickHouse system tables and never writes to your data. Connect with a least-privilege SELECT-only user for maximum safety.',
+    a: 'chmonitor only reads from ClickHouse system tables and never writes to your data. Connect with a read-only SELECT user for maximum safety.',
   },
 ]
