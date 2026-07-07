@@ -111,22 +111,19 @@ const ogImage = new URL(image, Astro.site).toString()
       --btn-primary-bg:#09090b;
       --btn-primary-bg-hover:#26262b;
       --btn-primary-fg:#ffffff;
-      /* Brand accent — aligned to the dashboard's shadcn theme (Rhea preset):
-         blue primary, matches oklch(0.488 0.243 264.376) ≈ blue-600. Charts stay
-         warm (amber ramp) for the "cool UI, warm data" split the dashboard uses.
-         --orange is a back-compat alias so existing refs render the new blue. */
-      --primary:#2563eb;
+      /* Brand accent — neutral black/white for a clean aesthetic. */
+      --primary:#1a1a1a;
       --primary-fg:#ffffff;
       --orange:var(--primary);
-      --amber:#f59e0b;
-      --emerald:#10b981;
-      --violet:#8b5cf6;
-      --blue:#3b82f6;
-      --radius:14px;
+      --amber:#71717a;
+      --emerald:#1a1a1a;
+      --violet:#71717a;
+      --blue:#1a1a1a;
+      --radius:12px;
       --maxw:1140px;
       --shadow-card:0 1px 2px rgba(9,9,11,.04), 0 1px 0 rgba(9,9,11,.02);
       --shadow-float:0 24px 60px -28px rgba(9,9,11,.30), 0 8px 24px -16px rgba(9,9,11,.18);
-      --shadow-glow:0 0 120px -20px rgba(37,99,235,.35);
+      --shadow-glow:none;
     }
     /* ── dark mode: tokens flip, layout unchanged. Applied when
        html[data-theme="dark"]. The head script resolves the saved choice / OS
@@ -145,10 +142,9 @@ const ogImage = new URL(image, Astro.site).toString()
       --card:#141418;
       --nav-bg:rgba(11,11,14,.72);
       --browser-bar:#17171c;
-      /* Dark-mode brand blue, brightened like the dashboard's dark --primary
-         (oklch 0.61 0.21 264) so accent text/borders stay WCAG-AA on near-black. */
-      --primary:#3b82f6;
-      --shadow-glow:0 0 120px -20px rgba(59,130,246,.4);
+      /* Dark-mode brand neutral */
+      --primary:#fafafa;
+      --shadow-glow:none;
       --btn-primary-bg:#fafafa;
       --btn-primary-bg-hover:#e4e4e7;
       --btn-primary-fg:#09090b;

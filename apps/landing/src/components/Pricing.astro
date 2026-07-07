@@ -8,7 +8,7 @@ import {
   yearlyMonthsFreeValue,
 } from '../data/pricing'
 
-const checkSvg = `<svg class="inline-block size-4 shrink-0 align-middle text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
+const checkSvg = `<svg class="inline-block size-4 shrink-0 align-middle text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
 const arrowSvg = `<svg class="inline-block size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
 
 const { compact = false } = Astro.props
@@ -25,17 +25,17 @@ const outlineBtnAuto =
     {!compact && (
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="text-sm font-medium text-primary">Pricing</p>
-      <h2 class="mt-3 text-balance font-semibold text-3xl sm:text-4xl tracking-tight">Self-host free. Cloud for teams.</h2>
+      <h2 class="mt-3 text-balance font-extrabold text-3xl sm:text-4xl tracking-[-0.04em]">Self-host free. Cloud for teams.</h2>
       <p class="mt-4 text-pretty text-muted-foreground">chmonitor is open source — self-hosting is always free under GPL-3.0. The hosted cloud connects a cluster without any setup. Cloud pricing is not finalised; <strong class="text-foreground">early access is free to try</strong> and seats are limited.</p>
     </div>
     )}
 
     <!-- Self-host: always free -->
-    <div class="reveal mt-9 flex flex-col items-start justify-between gap-5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-5 shadow-sm sm:flex-row sm:items-center" data-pricing-oss>
+    <div class="reveal mt-9 flex flex-col items-start justify-between gap-5 rounded-xl border border-border bg-card p-5 shadow-xs sm:flex-row sm:items-center" data-pricing-oss>
       <div class="flex flex-col gap-2">
         <div class="flex items-center gap-2.5">
           <strong class="text-base font-semibold text-foreground">Self-host</strong>
-          <span class="inline-flex items-center gap-1 rounded-full border border-transparent bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">Free forever</span>
+          <span class="inline-flex items-center gap-1 rounded-full border border-border bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">Free forever</span>
         </div>
         <p class="max-w-[62ch] text-pretty text-sm text-muted-foreground">Run it on your own infrastructure — Docker, Cloudflare Workers, or Kubernetes. All features, unlimited clusters, and your data stays with you.</p>
       </div>
@@ -46,8 +46,8 @@ const outlineBtnAuto =
 
     <!-- Cloud plans -->
     <div class="reveal mt-8 flex flex-wrap items-center justify-between gap-4">
-      <span class="inline-flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
-        <span class="size-1.5 rounded-full bg-amber-500"></span>
+      <span class="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        <span class="size-1.5 rounded-full bg-neutral-500"></span>
         Early access — paid plans free while in beta
       </span>
       <div class="bill-toggle inline-flex gap-0.5 rounded-full border border-border bg-card p-1" role="tablist" aria-label="Billing period">
@@ -60,23 +60,23 @@ const outlineBtnAuto =
 
     <div class="cloud-grid reveal mt-5 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4" data-period="yearly">
       {tiers.map((t) => (
-        <div class="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
+        <div class={`flex flex-col rounded-xl border p-6 shadow-xs transition-colors ${t.name === 'Pro' ? 'bg-[#f3f8fc] border-transparent dark:bg-[#111927]' : 'bg-card border-border'}`}>
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-semibold text-lg tracking-tight">{t.name}</span>
+              <span class="font-bold text-lg tracking-tight">{t.name}</span>
               {t.badge && (
-                <span class="inline-flex items-center gap-1 rounded-full border border-transparent bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">{t.badge.label}</span>
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">{t.badge.label}</span>
               )}
             </div>
             <div class="pamount mt-4 flex items-baseline gap-1.5">
               {t.monthly === null ? (
-                <span class="font-semibold text-3xl tracking-tight">Custom</span>
+                <span class="font-extrabold text-4xl tracking-[-0.04em]">Custom</span>
               ) : t.monthly === 0 ? (
-                <span class="font-semibold text-3xl tracking-tight">$0 <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
+                <span class="font-extrabold text-4xl tracking-[-0.04em]">$0 <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
               ) : (
                 <>
-                  <span class="amt amt-monthly font-semibold text-3xl tracking-tight">${t.monthly} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
-                  <span class="amt amt-yearly font-semibold text-3xl tracking-tight"><span class="amt-was mr-1 text-base font-medium text-muted-foreground line-through">${t.monthly}</span>${t.yearlyPerMo} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
+                  <span class="amt amt-monthly font-extrabold text-4xl tracking-[-0.04em]">${t.monthly} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
+                  <span class="amt amt-yearly font-extrabold text-4xl tracking-[-0.04em]"><span class="amt-was mr-1 text-base font-medium text-muted-foreground line-through">${t.monthly}</span>${t.yearlyPerMo} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
                 </>
               )}
             </div>
