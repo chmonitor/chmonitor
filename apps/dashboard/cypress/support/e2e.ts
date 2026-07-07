@@ -25,7 +25,15 @@ Cypress.on('uncaught:exception', (err) => {
   }
 
   // React hydration mismatches in prerendered HTML — cosmetic, not functional.
-  if (msg.includes('Hydration') || msg.includes('hydration')) {
+  if (
+    msg.includes('Hydration') ||
+    msg.includes('hydration') ||
+    msg.includes('Minified React error #418') ||
+    msg.includes('Minified React error #419') ||
+    msg.includes('Minified React error #421') ||
+    msg.includes('Minified React error #423') ||
+    msg.includes('Minified React error #425')
+  ) {
     return false
   }
 
