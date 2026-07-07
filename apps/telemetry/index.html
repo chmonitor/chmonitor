@@ -6,7 +6,7 @@
   <title>chmonitor Telemetry Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Sorts+Mill+Goudy:ital@0;1&family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -16,10 +16,10 @@
 
     :root {
       --bg: #ffffff;
-      --fg: #2c2c2b;
-      --fg-muted: #939391;
+      --fg: #1a1a1a;
+      --fg-muted: #666666;
       --border: #e5e5e5;
-      --bg-box: #f7f7f5;
+      --bg-box: #f5f5f5;
       --accent: #2383e2;
     }
 
@@ -27,37 +27,109 @@
       font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background: var(--bg);
       color: var(--fg);
-      padding: 80px 20px;
+      padding: 0;
+      margin: 0;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
 
+    .nav-bar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 16px 24px;
+    }
+
+    .nav-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--fg);
+      text-decoration: none;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+    }
+
+    .logo span {
+      color: var(--accent);
+      margin: 0 1px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+    }
+
+    .nav-links a {
+      color: var(--fg-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--fg);
+    }
+
+    .btn-primary {
+      background: var(--fg);
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background: #333333;
+    }
+
     .container {
       max-width: 680px;
-      margin: 0 auto;
+      margin: 80px auto 0;
+      padding: 0 24px;
     }
 
     header {
       margin-bottom: 60px;
-      text-align: left;
+      text-align: center;
     }
 
     h1 {
-      font-family: "Sorts Mill Goudy", "Playfair Display", "Noto Serif", Georgia, serif;
-      font-size: 2.5rem;
-      font-weight: 400;
+      font-size: 3rem;
+      font-weight: 800;
       color: var(--fg);
-      margin-bottom: 12px;
-      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
     }
 
     .subtitle {
       color: var(--fg-muted);
-      font-size: 1.05rem;
+      font-size: 1.25rem;
+      font-weight: 400;
+      max-width: 500px;
+      margin: 0 auto;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
     }
 
     .loading {
-      padding: 60px 0;
+      padding: 80px 0;
       color: var(--fg-muted);
       font-size: 0.95rem;
       text-align: center;
@@ -75,18 +147,19 @@
 
     .info-box {
       border: 1px solid var(--border);
-      background: var(--bg-box);
-      padding: 24px;
-      margin-bottom: 60px;
-      border-radius: 8px;
+      background: #ffffff;
+      padding: 28px;
+      margin-bottom: 48px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .info-box h3 {
-      font-family: "Sorts Mill Goudy", "Playfair Display", "Noto Serif", Georgia, serif;
-      font-size: 1.25rem;
-      font-weight: 400;
+      font-size: 1.1rem;
+      font-weight: 600;
       color: var(--fg);
       margin-bottom: 8px;
+      letter-spacing: -0.02em;
     }
 
     .info-box p {
@@ -98,16 +171,16 @@
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 24px;
-      margin-bottom: 60px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 40px 0;
+      margin-bottom: 48px;
     }
 
     .stat-card {
-      background: transparent;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      padding: 36px 28px;
+      border-radius: 12px;
       text-align: left;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .stat-label {
@@ -115,28 +188,28 @@
       color: var(--fg-muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      margin-bottom: 8px;
-      font-weight: 500;
+      margin-bottom: 12px;
+      font-weight: 600;
     }
 
     .stat-value {
-      font-family: "Sorts Mill Goudy", "Playfair Display", "Noto Serif", Georgia, serif;
-      font-size: 3.5rem;
-      font-weight: 400;
+      font-size: 4rem;
+      font-weight: 800;
       color: var(--fg);
       line-height: 1;
+      letter-spacing: -0.05em;
     }
 
     .section {
-      margin-bottom: 60px;
+      margin-bottom: 56px;
     }
 
     .section h2 {
-      font-family: "Sorts Mill Goudy", "Playfair Display", "Noto Serif", Georgia, serif;
-      font-size: 1.6rem;
-      font-weight: 400;
+      font-size: 1.5rem;
+      font-weight: 700;
       color: var(--fg);
-      margin-bottom: 30px;
+      margin-bottom: 24px;
+      letter-spacing: -0.03em;
       border-bottom: 1px solid var(--border);
       padding-bottom: 12px;
     }
@@ -161,12 +234,13 @@
       text-overflow: ellipsis;
       color: var(--fg);
       font-weight: 500;
+      letter-spacing: -0.01em;
     }
 
     .bar-track {
       flex-grow: 1;
       height: 8px;
-      background: var(--bg-box);
+      background: #f5f5f5;
       margin: 0 24px;
       border-radius: 4px;
       overflow: hidden;
@@ -189,7 +263,7 @@
 
     .footer {
       margin-top: 80px;
-      padding-top: 30px;
+      padding: 40px 0;
       border-top: 1px solid var(--border);
       font-size: 0.85rem;
       color: var(--fg-muted);
@@ -207,8 +281,14 @@
     }
 
     @media (max-width: 600px) {
-      body {
-        padding: 40px 16px;
+      .container {
+        margin-top: 40px;
+      }
+      h1 {
+        font-size: 2.25rem;
+      }
+      .subtitle {
+        font-size: 1.1rem;
       }
       .bar-item {
         flex-wrap: wrap;
@@ -225,10 +305,22 @@
   </style>
 </head>
 <body>
+  <nav class="nav-bar">
+    <div class="nav-container">
+      <a href="https://chmonitor.dev" class="logo">chm<span>/</span>nitor</a>
+      <div class="nav-links">
+        <a href="https://chmonitor.dev">Overview</a>
+        <a href="https://docs.chmonitor.dev">Docs</a>
+        <a href="https://github.com/chmonitor/chmonitor">GitHub</a>
+      </div>
+      <a href="https://github.com/chmonitor/chmonitor" class="btn-primary">Get Started</a>
+    </div>
+  </nav>
+
   <div class="container">
     <header>
-      <h1>chmonitor Telemetry</h1>
-      <p class="subtitle">Anonymous ClickHouse monitoring adoption analytics</p>
+      <h1>Telemetry Analytics.</h1>
+      <p class="subtitle">Adoption statistics and installation insights for the open-source ClickHouse monitoring dashboard.</p>
     </header>
 
     <div id="loading" class="loading">Loading analytics...</div>
