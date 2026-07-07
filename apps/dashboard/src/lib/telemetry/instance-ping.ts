@@ -45,9 +45,12 @@ export const DEFAULT_TELEMETRY_ENDPOINT =
 export function shouldPing(
   now: number,
   lastPingAt: number | null,
-  intervalMs: number = PING_INTERVAL_MS
+  intervalMs: number = PING_INTERVAL_MS,
+  lastPingVersion?: string | null,
+  newVersion?: string
 ): boolean {
   if (lastPingAt === null) return true
+  if (!lastPingVersion && newVersion) return true
   return now - lastPingAt >= intervalMs
 }
 
@@ -173,7 +176,12 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
 
   const rawLastPing = getItem(STORAGE_KEY_LAST_PING)
   const lastPingAt = rawLastPing !== null ? Number(rawLastPing) : null
-  if (!shouldPing(now, lastPingAt)) return 'skipped-too-soon'
+  const lastPingVersion = getItem('chm_telemetry_last_ping_version')
+  if (
+    !shouldPing(now, lastPingAt, PING_INTERVAL_MS, lastPingVersion, version)
+  ) {
+    return 'skipped-too-soon'
+  }
 
   // Get-or-create stable local instance ID (never transmitted raw)
   let instanceId = getItem(STORAGE_KEY_INSTANCE_ID)
@@ -205,6 +213,9 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   // Persist timestamp regardless of whether post succeeded.  This prevents
   // hammering a broken endpoint every page load.
   setItem(STORAGE_KEY_LAST_PING, String(now))
+  if (version) {
+    setItem('chm_telemetry_last_ping_version', version)
+  }
 
   return 'pinged'
 }
@@ -232,7 +243,8 @@ async function sha256hex(s: string): Promise<string> {
  * - Guards against non-browser environments (SSR, prerender, unit tests).
  */
 export function maybePingInstance(
-  runtimeEnv?: Record<string, string | undefined>
+  runtimeEnv?: Record<string, string | undefined>,
+  chVersion?: string
 ): void {
   // Guard: require browser globals before attempting anything.
   if (
@@ -278,7 +290,7 @@ export function maybePingInstance(
         body,
         keepalive: true,
       }).then(() => undefined),
-    version: undefined, // caller may populate via a separate ClickHouse query
+    version: chVersion, // caller may populate via a separate ClickHouse query
     deployTarget: getDeployTarget(),
     detectFlavor: detectChFlavor,
     detectCountry: detectCountry,

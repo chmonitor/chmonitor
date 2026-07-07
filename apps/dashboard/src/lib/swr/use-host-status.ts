@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'
 import { NON_CRITICAL_RETRY, visibilityAwareInterval } from './config'
+import { maybePingInstance } from '@/lib/telemetry'
 
 /** API response format for host status */
 type HostStatusApiResponse = {
@@ -71,6 +72,10 @@ export function useHostStatus(
       const json: HostStatusApiResponse = await res.json()
       if (!json.success || !json.data) {
         throw new Error(json.error || 'No data returned')
+      }
+      // Thread the ClickHouse version to telemetry ping
+      if (json.data.version) {
+        maybePingInstance(undefined, json.data.version)
       }
       return {
         version: json.data.version,

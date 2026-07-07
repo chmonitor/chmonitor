@@ -39,6 +39,22 @@ describe('shouldPing', () => {
     expect(shouldPing(NOW, NOW - 500, 1000)).toBe(false)
     expect(shouldPing(NOW, NOW - 1000, 1000)).toBe(true)
   })
+
+  test('returns true when recently pinged but without version, and now version is provided', () => {
+    expect(shouldPing(NOW, NOW - 100, PING_INTERVAL_MS, null, '24.8')).toBe(
+      true
+    )
+    expect(shouldPing(NOW, NOW - 100, PING_INTERVAL_MS, '', '24.8')).toBe(true)
+  })
+
+  test('returns false when recently pinged with a version, and same or new version is provided', () => {
+    expect(shouldPing(NOW, NOW - 100, PING_INTERVAL_MS, '24.8', '24.8')).toBe(
+      false
+    )
+    expect(shouldPing(NOW, NOW - 100, PING_INTERVAL_MS, '24.8', '25.1')).toBe(
+      false
+    )
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -158,11 +174,27 @@ describe('runInstancePing gates', () => {
       now,
       storageOverrides: {
         chm_telemetry_last_ping_at: String(now - 100), // 100ms ago — far below interval
+        chm_telemetry_last_ping_version: '24.8.1.2',
       },
     })
     const result = await runInstancePing(deps)
     expect(result).toBe('skipped-too-soon')
     expect(deps.posts).toHaveLength(0)
+  })
+
+  test('pings again within interval if previous ping had no version and now version is provided', async () => {
+    const now = 1_700_000_000_000
+    const deps = makeDeps({
+      now,
+      version: '24.8.1.2',
+      storageOverrides: {
+        chm_telemetry_last_ping_at: String(now - 100),
+      },
+    })
+    const result = await runInstancePing(deps)
+    expect(result).toBe('pinged')
+    expect(deps.posts).toHaveLength(1)
+    expect(deps.store.chm_telemetry_last_ping_version).toBe('24.8.1.2')
   })
 })
 
