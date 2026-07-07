@@ -13,8 +13,12 @@
 //   - No IPs, hostnames, query text, or free-text are stored. The request IP is
 //     never written to Analytics Engine.
 //
-// There is no auth: this is a public, write-only ingest. It cannot be read back
-// over HTTP — only the project's Cloudflare account can query the dataset.
+// Auth: /v1/ping and /v1/event are unauthenticated, write-only ingest paths.
+// The ONLY read-back over HTTP is GET /v1/summary — a public, AGGREGATE-ONLY
+// view (distinct-install counts by deploy_target / ch_version). No
+// instance_hash, IP, hostname, or free-text is ever exposed by it — only
+// integer COUNT(DISTINCT instance_hash) values. The raw dataset remains
+// queryable only from the project's Cloudflare account (D1 + Analytics Engine).
 
 export interface Env {
   CHM_TELEMETRY_AE: AnalyticsEngineDataset
@@ -46,7 +50,7 @@ const MAJOR_MINOR = /^\d{1,3}\.\d{1,3}$/
 
 const CORS: Record<string, string> = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'content-type',
   'access-control-max-age': '86400',
 }
@@ -92,6 +96,10 @@ export default {
         status: 200,
         headers: { 'content-type': 'text/plain', ...CORS },
       })
+    }
+
+    if (req.method === 'GET' && pathname === '/v1/summary') {
+      return handleSummary(env, req)
     }
 
     if (req.method !== 'POST') return bad(405, 'method not allowed')
@@ -163,4 +171,116 @@ export default {
 
     return bad(404, 'not found')
   },
+}
+
+// ---------------------------------------------------------------------------
+// GET /v1/summary — public, aggregate-only install counts (anonymous).
+// ---------------------------------------------------------------------------
+// Reads the D1 forever-store (ping_daily). Every number is a
+// COUNT(DISTINCT instance_hash) — distinct installs. Optional
+// ?deploy_target=docker|helm|cf|dev|unknown scopes total + by_ch_version to
+// that target (by_deploy_target is always global). Cached at the edge for 1h.
+//
+// Data accumulates from the moment the D1 binding was wired (2026-07-07)
+// forward; Analytics Engine still holds the prior ~3 months but is not
+// binding-readable, so historical totals are not reflected here.
+async function handleSummary(env: Env, req: Request): Promise<Response> {
+  const base = summaryShape({ total: 0, byDeployTarget: {}, byChVersion: [] })
+
+  if (!env.CHM_TELEMETRY_DB) {
+    return json({ ...base, enabled: false }, 503)
+  }
+
+  const { searchParams } = new URL(req.url)
+  const targetParam = searchParams.get('deploy_target')
+  const scoped =
+    targetParam && DEPLOY_TARGETS.has(targetParam) ? targetParam : null
+
+  // Same WHERE clause for total + by-version when scoped; by_deploy_target
+  // stays global so the breakdown is always visible.
+  const where = scoped ? 'WHERE deploy_target = ?' : ''
+  const stmt = (sql: string) =>
+    scoped
+      ? env.CHM_TELEMETRY_DB!.prepare(sql).bind(scoped)
+      : env.CHM_TELEMETRY_DB!.prepare(sql)
+
+  try {
+    const [totalRow, byTarget, byVersion] = await Promise.all([
+      stmt(
+        `SELECT COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where}`
+      ).first<{
+        n: number
+      }>(),
+      env
+        .CHM_TELEMETRY_DB!.prepare(
+          'SELECT deploy_target, COUNT(DISTINCT instance_hash) AS n FROM ping_daily GROUP BY deploy_target'
+        )
+        .all<{ deploy_target: string; n: number }>(),
+      stmt(
+        `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+      ).all<{ v: string; n: number }>(),
+    ])
+
+    const byDeployTarget: Record<string, number> = {}
+    for (const r of byTarget.results ?? []) {
+      byDeployTarget[r.deploy_target] = Number(r.n)
+    }
+
+    return json(
+      summaryShape({
+        total: Number(totalRow?.n ?? 0),
+        byDeployTarget,
+        byChVersion: (byVersion.results ?? []).map((r) => ({
+          ch_version: r.v,
+          installs: Number(r.n),
+        })),
+        scopedToDeployTarget: scoped,
+      }),
+      200
+    )
+  } catch {
+    return json({ ...base, enabled: true, error: 'summary query failed' }, 500)
+  }
+}
+
+interface SummaryBody {
+  summary: string
+  anonymous: boolean
+  enabled: boolean
+  scoped_to_deploy_target: string | null
+  total_installs: number
+  by_deploy_target: Record<string, number>
+  by_ch_version: { ch_version: string; installs: number }[]
+  source: string
+  generated_at: string
+}
+
+function summaryShape(input: {
+  total: number
+  byDeployTarget: Record<string, number>
+  byChVersion: { ch_version: string; installs: number }[]
+  scopedToDeployTarget?: string | null
+}): SummaryBody {
+  return {
+    summary: 'chmonitor install counts',
+    anonymous: true,
+    enabled: true,
+    scoped_to_deploy_target: input.scopedToDeployTarget ?? null,
+    total_installs: input.total,
+    by_deploy_target: input.byDeployTarget,
+    by_ch_version: input.byChVersion,
+    source: 'D1 ping_daily (COUNT DISTINCT of opaque SHA-256 instance id)',
+    generated_at: new Date().toISOString(),
+  }
+}
+
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'public, max-age=3600, stale-while-revalidate=86400',
+      ...CORS,
+    },
+  })
 }

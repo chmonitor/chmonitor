@@ -46,12 +46,14 @@ dataset = "chm_telemetry"
 #   wrangler d1 create chm_telemetry           # copy the printed database_id below
 #   wrangler d1 migrations apply chm_telemetry # applies migrations/0001_init.sql
 #
-# then uncomment:
-# [[d1_databases]]
-# binding = "CHM_TELEMETRY_DB"
-# database_name = "chm_telemetry"
-# database_id = "<paste id from `wrangler d1 create`>"
-# migrations_dir = "migrations"
+# Provisioned 2026-07-07 (duyet account). Binding name MUST be CHM_TELEMETRY_DB
+# to match Env in src/index.ts (NOT the `chm_telemetry` wrangler's snippet
+# suggests). Removing this block reverts to AE-only (3-month) retention.
+[[d1_databases]]
+binding = "CHM_TELEMETRY_DB"
+database_name = "chm_telemetry"
+database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
+migrations_dir = "migrations"
 
 # Custom domain — auto-provisions DNS + cert on the chmonitor.dev zone.
 [[routes]]
