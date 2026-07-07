@@ -316,14 +316,6 @@ export default {
           <div class="stat-label">Total Installs</div>
           <div class="stat-value" id="total">0</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Data Source</div>
-          <div class="stat-value" id="source">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Last Updated</div>
-          <div class="stat-value" id="updated" style="font-size: 1rem; line-height: 1.75rem;">-</div>
-        </div>
       </div>
 
       <div class="section">
@@ -384,8 +376,6 @@ export default {
 
         // Update stats cards
         document.getElementById('total').textContent = data.total_installs.toLocaleString();
-        document.getElementById('source').textContent = data.source.split('(')[0].trim();
-        document.getElementById('updated').textContent = new Date(data.generated_at).toLocaleString();
 
         // Render deployment targets
         const deployTargetsArray = Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
