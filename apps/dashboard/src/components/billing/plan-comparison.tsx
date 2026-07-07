@@ -1,7 +1,25 @@
-import { Check, Minus, Sparkles } from 'lucide-react'
+import {
+  Bell,
+  BellRing,
+  Bot,
+  Brain,
+  Check,
+  Download,
+  Eye,
+  Headphones,
+  History,
+  LayoutDashboard,
+  Minus,
+  Network,
+  Server,
+  ShieldCheck,
+  Sliders,
+  Sparkles,
+  Terminal,
+  Users,
+  Webhook,
+} from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-import { CAPABILITY_ENFORCEMENT } from '@/lib/billing/plan-enforcement'
 import {
   BILLING_PLAN_LIST,
   type Plan,
@@ -33,12 +51,14 @@ import { cn } from '@/lib/utils'
 
 type LimitRow = {
   label: string
+  icon: React.ComponentType<{ className?: string }>
   /** Cell value per plan. */
   value: (plan: Plan) => string
 }
 
 type FeatureRow = {
   label: string
+  icon: React.ComponentType<{ className?: string }>
   /**
    * Capabilities this row represents. Used to look up enforcement status: a row
    * whose capabilities are all `deferred` renders the "included for everyone"
@@ -53,19 +73,32 @@ type FeatureRow = {
 }
 
 const LIMIT_ROWS: LimitRow[] = [
-  { label: 'ClickHouse hosts', value: planHosts },
-  { label: 'Team seats', value: planSeats },
-  { label: 'Alert rules', value: planAlertRules },
-  { label: 'Conversation & insights history', value: planRetention },
-  { label: 'AI usage', value: planAiUsage },
+  { label: 'ClickHouse hosts', icon: Server, value: planHosts },
+  { label: 'Team seats', icon: Users, value: planSeats },
+  { label: 'Alert rules', icon: BellRing, value: planAlertRules },
+  {
+    label: 'Conversation & insights history',
+    icon: History,
+    value: planRetention,
+  },
+  { label: 'AI usage', icon: Brain, value: planAiUsage },
 ]
 
 const FEATURE_ROWS: FeatureRow[] = [
-  { label: 'Full monitoring dashboard', capabilities: ['core_monitoring'] },
-  { label: 'AI agent', capabilities: ['ai_agent'] },
-  { label: 'Scheduled AI Insights', capabilities: ['ai_insights_scheduled'] },
+  {
+    label: 'Full monitoring dashboard',
+    icon: LayoutDashboard,
+    capabilities: ['core_monitoring'],
+  },
+  { label: 'AI agent', icon: Bot, capabilities: ['ai_agent'] },
+  {
+    label: 'Scheduled AI Insights',
+    icon: Sparkles,
+    capabilities: ['ai_insights_scheduled'],
+  },
   {
     label: 'Alerting',
+    icon: Bell,
     capabilities: ['alerting_basic', 'alerting_advanced'],
     value: (plan) =>
       planHasCapability(plan.id, 'alerting_advanced')
@@ -74,26 +107,43 @@ const FEATURE_ROWS: FeatureRow[] = [
           ? 'Basic'
           : false,
   },
-  { label: 'Anomaly detection', capabilities: ['anomaly_detection'] },
-  { label: 'Data export & reports', capabilities: ['data_export'] },
-  { label: 'Custom dashboards', capabilities: ['custom_dashboards'] },
-  { label: 'Webhook integrations', capabilities: ['webhook_integrations'] },
-  { label: 'Fleet view', capabilities: ['fleet_view'] },
-  { label: 'API / MCP access', capabilities: ['api_mcp_access'] },
-  { label: 'SSO / SAML, RBAC, audit logs', capabilities: ['sso_rbac_audit'] },
-  { label: 'Priority support', capabilities: ['priority_support'] },
+  {
+    label: 'Anomaly detection',
+    icon: Eye,
+    capabilities: ['anomaly_detection'],
+  },
+  {
+    label: 'Data export & reports',
+    icon: Download,
+    capabilities: ['data_export'],
+  },
+  {
+    label: 'Custom dashboards',
+    icon: Sliders,
+    capabilities: ['custom_dashboards'],
+  },
+  {
+    label: 'Webhook integrations',
+    icon: Webhook,
+    capabilities: ['webhook_integrations'],
+  },
+  { label: 'Fleet view', icon: Network, capabilities: ['fleet_view'] },
+  {
+    label: 'API / MCP access',
+    icon: Terminal,
+    capabilities: ['api_mcp_access'],
+  },
+  {
+    label: 'SSO / SAML, RBAC, audit logs',
+    icon: ShieldCheck,
+    capabilities: ['sso_rbac_audit'],
+  },
+  {
+    label: 'Priority support',
+    icon: Headphones,
+    capabilities: ['priority_support'],
+  },
 ]
-
-/**
- * A feature is "included for everyone" when every capability it represents is
- * marked `deferred` in the enforcement registry — i.e. advertised but not gated
- * per tier yet (free during beta).
- */
-function isIncludedForEveryone(row: FeatureRow): boolean {
-  return row.capabilities.every(
-    (capability) => CAPABILITY_ENFORCEMENT[capability].status === 'deferred'
-  )
-}
 
 function Cell({ value }: { value: string | boolean }) {
   if (value === true) {
@@ -117,18 +167,6 @@ function Cell({ value }: { value: string | boolean }) {
     )
   }
   return <span className="text-[13px] font-medium">{value}</span>
-}
-
-function BetaIncludedBadge() {
-  return (
-    <Badge
-      variant="outline"
-      className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-    >
-      <Sparkles className="size-3" strokeWidth={2} aria-hidden="true" />
-      Beta — included for everyone
-    </Badge>
-  )
 }
 
 export function PlanComparison({ currentPlanId }: { currentPlanId: PlanId }) {
@@ -175,7 +213,10 @@ export function PlanComparison({ currentPlanId }: { currentPlanId: PlanId }) {
             {LIMIT_ROWS.map((row) => (
               <tr key={row.label} className="border-b last:border-0">
                 <td className="px-4 py-2.5 text-left text-muted-foreground">
-                  {row.label}
+                  <span className="flex items-center gap-2">
+                    <row.icon className="size-4 shrink-0 text-muted-foreground/70" />
+                    <span>{row.label}</span>
+                  </span>
                 </td>
                 {plans.map((plan) => (
                   <td
@@ -195,37 +236,29 @@ export function PlanComparison({ currentPlanId }: { currentPlanId: PlanId }) {
             {FEATURE_ROWS.map((row) => (
               <tr key={row.label} className="border-b last:border-0">
                 <td className="px-4 py-2.5 text-left text-muted-foreground">
-                  {row.label}
+                  <span className="flex items-center gap-2">
+                    <row.icon className="size-4 shrink-0 text-muted-foreground/70" />
+                    <span>{row.label}</span>
+                  </span>
                 </td>
-                {isIncludedForEveryone(row) ? (
-                  <td
-                    colSpan={plans.length}
-                    className="px-4 py-2.5 text-center"
-                  >
-                    <span className="inline-flex items-center justify-center">
-                      <BetaIncludedBadge />
-                    </span>
-                  </td>
-                ) : (
-                  plans.map((plan) => {
-                    const value: string | boolean = row.value
-                      ? row.value(plan)
-                      : planHasCapability(plan.id, row.capabilities[0])
-                    return (
-                      <td
-                        key={plan.id}
-                        className={cn(
-                          'px-4 py-2.5 text-center',
-                          plan.id === currentPlanId && 'bg-muted/30'
-                        )}
-                      >
-                        <span className="inline-flex items-center justify-center">
-                          <Cell value={value} />
-                        </span>
-                      </td>
-                    )
-                  })
-                )}
+                {plans.map((plan) => {
+                  const value: string | boolean = row.value
+                    ? row.value(plan)
+                    : planHasCapability(plan.id, row.capabilities[0])
+                  return (
+                    <td
+                      key={plan.id}
+                      className={cn(
+                        'px-4 py-2.5 text-center',
+                        plan.id === currentPlanId && 'bg-muted/30'
+                      )}
+                    >
+                      <span className="inline-flex items-center justify-center">
+                        <Cell value={value} />
+                      </span>
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>

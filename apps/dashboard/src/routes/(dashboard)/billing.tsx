@@ -153,7 +153,7 @@ function BillingPage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground text-sm">
-          Manage your plan and host limits. Early access is free while in beta.
+          Manage your plan and host limits.
         </p>
       </div>
 
@@ -285,8 +285,7 @@ function BillingSignedOut() {
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground text-sm">
-          Plans and host limits for the hosted cloud. Early access is free while
-          in beta.
+          Plans and host limits for the hosted cloud.
         </p>
       </div>
 
