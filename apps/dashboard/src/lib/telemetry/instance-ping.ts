@@ -66,9 +66,19 @@ export function buildPingPayload(input: {
   chFlavor?: string
   country?: string
   platform?: string
+  chmVersion?: string
+  installPlace?: string
 }): Record<string, string> {
-  const { instanceHash, version, deployTarget, chFlavor, country, platform } =
-    input
+  const {
+    instanceHash,
+    version,
+    deployTarget,
+    chFlavor,
+    country,
+    platform,
+    chmVersion,
+    installPlace,
+  } = input
   const chVersion = version ? parseMajorMinor(version) : undefined
   const payload: Record<string, string> = {
     instance_hash: instanceHash,
@@ -85,6 +95,12 @@ export function buildPingPayload(input: {
   }
   if (platform !== undefined) {
     payload.platform = platform
+  }
+  if (chmVersion !== undefined) {
+    payload.chm_version = chmVersion
+  }
+  if (installPlace !== undefined) {
+    payload.install_place = installPlace
   }
   return payload
 }
@@ -135,6 +151,8 @@ export interface PingDeps {
   post: (url: string, body: string) => Promise<void>
   /** Raw ClickHouse version string (optional) */
   version?: string
+  /** ClickHouse server hostname (optional) */
+  chHostname?: string
   /** Deploy target string */
   deployTarget: string
   /** Detect ClickHouse flavor (oss/altinity/cloud/unknown) */
@@ -143,6 +161,10 @@ export interface PingDeps {
   detectCountry: () => string
   /** Detect platform/OS from userAgent (generic categories only) */
   detectPlatform: () => string
+  /** CHM product version string (e.g. '0.3.1') */
+  chmVersion?: string
+  /** Compute install_place hash from deployment environment signals */
+  computeInstallPlace: () => Promise<string | undefined>
 }
 
 /**
@@ -169,6 +191,8 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
     detectFlavor,
     detectCountry,
     detectPlatform,
+    chmVersion,
+    computeInstallPlace,
   } = deps
 
   if (!enabled) return 'skipped-disabled'
@@ -185,8 +209,21 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
 
   // Get-or-create stable local instance ID (never transmitted raw)
   let instanceId = getItem(STORAGE_KEY_INSTANCE_ID)
-  if (!instanceId) {
-    instanceId = randomId()
+  const currentChHostname = deps.chHostname || ''
+  const storedChHostname = getItem('chm_telemetry_ch_hostname') || ''
+
+  if (
+    !instanceId ||
+    (currentChHostname && currentChHostname !== storedChHostname)
+  ) {
+    if (typeof window !== 'undefined' && window.location) {
+      instanceId = `${window.location.hostname}|${currentChHostname || 'default'}`
+      if (currentChHostname) {
+        setItem('chm_telemetry_ch_hostname', currentChHostname)
+      }
+    } else {
+      instanceId = randomId()
+    }
     setItem(STORAGE_KEY_INSTANCE_ID, instanceId)
   }
 
@@ -194,6 +231,7 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   const chFlavor = version ? detectFlavor(version) : undefined
   const country = detectCountry()
   const platform = detectPlatform()
+  const installPlace = await computeInstallPlace()
 
   const payload = buildPingPayload({
     instanceHash,
@@ -202,6 +240,8 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
     chFlavor,
     country,
     platform,
+    chmVersion,
+    installPlace,
   })
 
   try {
@@ -244,7 +284,8 @@ async function sha256hex(s: string): Promise<string> {
  */
 export function maybePingInstance(
   runtimeEnv?: Record<string, string | undefined>,
-  chVersion?: string
+  chVersion?: string,
+  chHostname?: string
 ): void {
   // Guard: require browser globals before attempting anything.
   if (
@@ -291,10 +332,33 @@ export function maybePingInstance(
         keepalive: true,
       }).then(() => undefined),
     version: chVersion, // caller may populate via a separate ClickHouse query
+    chHostname,
     deployTarget: getDeployTarget(),
     detectFlavor: detectChFlavor,
     detectCountry: detectCountry,
     detectPlatform: detectPlatform,
+    // CHM product version from the build-time env var
+    chmVersion: import.meta.env.VITE_GIT_REF?.replace(/^v/, '') || undefined,
+    computeInstallPlace: async () => {
+      // Compute a stable hash from deployment environment signals. The hash
+      // identifies the deployment location (k8s cluster, Docker host, etc.)
+      // without exposing the raw values.
+      try {
+        const signals: string[] = []
+        // Browser hostname (e.g. 'chm.mycompany.com') — same for all users
+        // hitting the same deployment.
+        if (typeof window !== 'undefined' && window.location) {
+          signals.push(window.location.hostname)
+        }
+        // Deploy target contributes to the signal so different deploy
+        // methods on the same host are distinguishable.
+        signals.push(getDeployTarget())
+        if (signals.length === 0) return undefined
+        return sha256hex(signals.join('|'))
+      } catch {
+        return undefined
+      }
+    },
   }
 
   // Fire-and-forget — errors are swallowed by runInstancePing + this catch.

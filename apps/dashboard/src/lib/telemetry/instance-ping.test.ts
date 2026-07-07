@@ -106,6 +106,17 @@ describe('buildPingPayload', () => {
     expect(Object.values(payload).includes(rawId)).toBe(false)
     expect(payload.instance_hash).toBe('hashed-value')
   })
+
+  test('includes chm_version and install_place when provided', () => {
+    const payload = buildPingPayload({
+      instanceHash: 'abc123',
+      deployTarget: 'docker',
+      chmVersion: '0.3.1',
+      installPlace: 'abcde12345',
+    })
+    expect(payload.chm_version).toBe('0.3.1')
+    expect(payload.install_place).toBe('abcde12345')
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,6 +155,7 @@ function makeDeps(
     detectFlavor: () => 'oss',
     detectCountry: () => 'us',
     detectPlatform: () => 'linux',
+    computeInstallPlace: async () => 'test-install-place-hash',
     store,
     posts,
     ...overrides,

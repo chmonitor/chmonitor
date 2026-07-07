@@ -57,6 +57,8 @@ const EVENTS = new Set([
 
 const HEX64 = /^[0-9a-f]{64}$/
 const MAJOR_MINOR = /^\d{1,3}\.\d{1,3}$/
+// CHM product version (e.g. '0.3.1') — semver-like, 1-3 dot-separated numbers.
+const SEMVER = /^\d{1,3}\.\d{1,3}(\.\d{1,5})?$/
 
 const CORS: Record<string, string> = {
   'access-control-allow-origin': '*',
@@ -77,6 +79,11 @@ function asEnum(v: unknown, set: Set<string>, fallback: string): string {
 /** Accept only a MAJOR.MINOR version string, else ''. */
 function asVersion(v: unknown): string {
   return typeof v === 'string' && MAJOR_MINOR.test(v) ? v : ''
+}
+
+/** Accept a semver-like CHM version string (e.g. '0.3.1'), else ''. */
+function asChmVersion(v: unknown): string {
+  return typeof v === 'string' && SEMVER.test(v) ? v : ''
 }
 
 async function readBody(req: Request): Promise<unknown | null> {
@@ -130,9 +137,9 @@ export default {
       --bg: #ffffff;
       --fg: #1a1a1a;
       --fg-muted: #666666;
-      --border: #e5e5e5;
+      --border: #f0f0f3;
       --bg-box: #f5f5f5;
-      --accent: #2383e2;
+      --accent: #f97316;
     }
 
     body {
@@ -147,8 +154,8 @@ export default {
 
     .nav-bar {
       border-bottom: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -171,11 +178,11 @@ export default {
       letter-spacing: -0.03em;
       display: flex;
       align-items: center;
+      gap: 10px;
     }
 
     .logo span {
-      color: var(--accent);
-      margin: 0 1px;
+      color: var(--fg);
     }
 
     .nav-links {
@@ -196,45 +203,46 @@ export default {
     }
 
     .btn-primary {
-      background: var(--fg);
+      background: #09090b;
       color: #ffffff;
       padding: 10px 20px;
-      border-radius: 6px;
+      border-radius: 8px;
       text-decoration: none;
       font-size: 0.9rem;
-      font-weight: 500;
-      transition: background 0.15s ease;
+      font-weight: 650;
+      transition: all 0.15s ease;
     }
 
     .btn-primary:hover {
-      background: #333333;
+      background: #27272a;
+      transform: translateY(-1px);
     }
 
     .container {
       max-width: 680px;
-      margin: 80px auto 0;
+      margin: 60px auto 0;
       padding: 0 24px;
     }
 
     header {
-      margin-bottom: 60px;
+      margin-bottom: 48px;
       text-align: center;
     }
 
     h1 {
       font-size: 3rem;
-      font-weight: 800;
+      font-weight: 850;
       color: var(--fg);
       margin-bottom: 16px;
       letter-spacing: -0.04em;
-      line-height: 1.15;
+      line-height: 1.1;
     }
 
     .subtitle {
       color: var(--fg-muted);
-      font-size: 1.25rem;
-      font-weight: 400;
-      max-width: 500px;
+      font-size: 1.15rem;
+      font-weight: 450;
+      max-width: 520px;
       margin: 0 auto;
       letter-spacing: -0.01em;
       line-height: 1.5;
@@ -248,79 +256,95 @@ export default {
     }
 
     .error {
-      border: 1px solid #d44c47;
+      border: none;
       padding: 24px;
       margin: 40px 0;
-      color: #d44c47;
-      background: #fff;
-      border-radius: 8px;
+      color: #df3c3c;
+      background: #fef2f2;
+      border-radius: 12px;
       font-size: 0.95rem;
     }
 
     .info-box {
-      border: 1px solid var(--border);
-      background: #ffffff;
+      border: none;
+      background: #fffbeb;
       padding: 28px;
-      margin-bottom: 48px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-bottom: 40px;
+      border-radius: 14px;
     }
 
     .info-box h3 {
       font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--fg);
+      font-weight: 700;
+      color: #92400e;
       margin-bottom: 8px;
       letter-spacing: -0.02em;
     }
 
     .info-box p {
       font-size: 0.9rem;
-      color: var(--fg-muted);
+      color: #b45309;
       line-height: 1.6;
     }
 
     .stats-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
       margin-bottom: 48px;
     }
 
     .stat-card {
-      border: 1px solid var(--border);
-      background: #ffffff;
-      padding: 36px 28px;
-      border-radius: 12px;
+      border: none;
+      background: #f0f7ff;
+      padding: 32px 28px;
+      border-radius: 14px;
       text-align: left;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .stat-card.environments {
+      background: #f5f3ff;
+    }
+
+    .stat-card.environments .stat-label {
+      color: #6b21a8;
+    }
+
+    .stat-card.environments .stat-value {
+      color: #581c87;
     }
 
     .stat-label {
-      font-size: 0.85rem;
-      color: var(--fg-muted);
+      font-size: 0.8rem;
+      color: #1e3a8a;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      margin-bottom: 12px;
-      font-weight: 600;
+      margin-bottom: 8px;
+      font-weight: 700;
     }
 
     .stat-value {
-      font-size: 4rem;
-      font-weight: 800;
-      color: var(--fg);
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #1e40af;
       line-height: 1;
       letter-spacing: -0.05em;
     }
 
     .section {
-      margin-bottom: 56px;
+      margin-bottom: 48px;
     }
 
     .section h2 {
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 1.35rem;
+      font-weight: 800;
       color: var(--fg);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       letter-spacing: -0.03em;
       border-bottom: 1px solid var(--border);
       padding-bottom: 12px;
@@ -329,7 +353,7 @@ export default {
     .bar-chart {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .bar-item {
@@ -345,22 +369,22 @@ export default {
       overflow: hidden;
       text-overflow: ellipsis;
       color: var(--fg);
-      font-weight: 500;
+      font-weight: 550;
       letter-spacing: -0.01em;
     }
 
     .bar-track {
       flex-grow: 1;
       height: 8px;
-      background: #f5f5f5;
-      margin: 0 24px;
+      background: #f4f4f7;
+      margin: 0 20px;
       border-radius: 4px;
       overflow: hidden;
     }
 
     .bar-fill {
       height: 100%;
-      background: var(--fg);
+      background: #f97316;
       border-radius: 4px;
       transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -368,14 +392,14 @@ export default {
     .bar-value {
       width: 80px;
       text-align: right;
-      font-weight: 600;
+      font-weight: 700;
       flex-shrink: 0;
       color: var(--fg);
     }
 
     .footer {
-      margin-top: 80px;
-      padding: 40px 0;
+      margin-top: 64px;
+      padding: 32px 0;
       border-top: 1px solid var(--border);
       font-size: 0.85rem;
       color: var(--fg-muted);
@@ -389,18 +413,89 @@ export default {
     }
 
     .footer a:hover {
-      color: var(--accent);
+      color: #f97316;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0b0e;
+        --fg: #f4f4f5;
+        --fg-muted: #8a8a93;
+        --border: #1e1e24;
+      }
+
+      .nav-bar {
+        background: rgba(11, 11, 14, 0.85);
+      }
+
+      .logo span {
+        color: #f4f4f5;
+      }
+
+      .btn-primary {
+        background: #fafafa;
+        color: #09090b;
+      }
+
+      .btn-primary:hover {
+        background: #e4e4e7;
+      }
+
+      .info-box {
+        background: #1e1910;
+      }
+
+      .info-box h3 {
+        color: #fef08a;
+      }
+
+      .info-box p {
+        color: #fef08a;
+        opacity: 0.85;
+      }
+
+      .stat-card {
+        background: #111827;
+      }
+
+      .stat-card.environments {
+        background: #1e1b4b;
+      }
+
+      .stat-card.environments .stat-label {
+        color: #c084fc;
+      }
+
+      .stat-card.environments .stat-value {
+        color: #e9d5ff;
+      }
+
+      .stat-label {
+        color: #60a5fa;
+      }
+
+      .stat-value {
+        color: #93c5fd;
+      }
+
+      .bar-track {
+        background: #181820;
+      }
     }
 
     @media (max-width: 600px) {
       .container {
-        margin-top: 40px;
+        margin-top: 32px;
       }
       h1 {
         font-size: 2.25rem;
       }
       .subtitle {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
       }
       .bar-item {
         flex-wrap: wrap;
@@ -419,7 +514,12 @@ export default {
 <body>
   <nav class="nav-bar">
     <div class="nav-container">
-      <a href="https://chmonitor.dev" class="logo">chm<span>/</span>nitor</a>
+      <a href="https://chmonitor.dev" class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chmonitor">
+          <rect x="3.3" y="13.05" width="3.8" height="15.45" fill="#f97316"/><rect x="8.7" y="3.5" width="3.8" height="25" fill="#f97316"/><rect x="14.1" y="13.25" width="3.8" height="15.25" fill="#f97316"/><rect x="19.5" y="6.25" width="3.8" height="22.25" fill="#f97316"/><rect x="24.9" y="16.8" width="3.8" height="11.7" fill="#f97316"/><rect x="3.3" y="9.75" width="3.8" height="3.3" fill="#10b981"/>
+        </svg>
+        <span>chmonitor</span>
+      </a>
       <div class="nav-links">
         <a href="https://chmonitor.dev">Overview</a>
         <a href="https://docs.chmonitor.dev">Docs</a>
@@ -453,6 +553,10 @@ export default {
           <div class="stat-label">Total Installs</div>
           <div class="stat-value" id="total">0</div>
         </div>
+        <div class="stat-card environments">
+          <div class="stat-label">Total Environments</div>
+          <div class="stat-value" id="total-places">0</div>
+        </div>
       </div>
 
       <div class="section">
@@ -463,6 +567,11 @@ export default {
       <div class="section">
         <h2>ClickHouse Versions</h2>
         <div id="ch-versions" class="bar-chart"></div>
+      </div>
+
+      <div class="section">
+        <h2>chmonitor Versions</h2>
+        <div id="chm-versions" class="bar-chart"></div>
       </div>
 
       <div class="section">
@@ -513,6 +622,9 @@ export default {
 
         // Update stats cards
         document.getElementById('total').textContent = data.total_installs.toLocaleString();
+        if (data.total_places !== undefined) {
+          document.getElementById('total-places').textContent = data.total_places.toLocaleString();
+        }
 
         // Render deployment targets
         const deployTargetsArray = Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
@@ -523,6 +635,11 @@ export default {
 
         // Render ClickHouse versions
         renderBarChart('ch-versions', data.by_ch_version);
+
+        // Render chmonitor versions
+        if (data.by_chm_version) {
+          renderBarChart('chm-versions', data.by_chm_version);
+        }
 
         // Render countries
         renderBarChart('countries', data.by_country);
@@ -631,12 +748,30 @@ export default {
           ? data.country.toLowerCase()
           : 'unknown'
       const platform = asEnum(data.platform, PLATFORMS, 'unknown')
+      const chmVersion = asChmVersion(data.chm_version)
+      // install_place: a separate opaque hash identifying the deployment
+      // environment (k8s cluster, Docker host, etc.). Must be a valid SHA-256
+      // hex digest — same format as instance_hash.
+      const installPlace =
+        typeof data.install_place === 'string' && HEX64.test(data.install_place)
+          ? data.install_place
+          : ''
 
       env.CHM_TELEMETRY_AE.writeDataPoint({
         // index1 — distinct-install key. Count installs with uniqExact(index1).
         indexes: [instanceHash],
-        // blob1=kind, blob2=deploy_target, blob3=ch_version, blob4=ch_flavor, blob5=country, blob6=platform
-        blobs: ['ping', deployTarget, chVersion, chFlavor, country, platform],
+        // blob1=kind, blob2=deploy_target, blob3=ch_version, blob4=ch_flavor,
+        // blob5=country, blob6=platform, blob7=chm_version, blob8=install_place
+        blobs: [
+          'ping',
+          deployTarget,
+          chVersion,
+          chFlavor,
+          country,
+          platform,
+          chmVersion,
+          installPlace,
+        ],
         doubles: [1],
       })
 
@@ -648,7 +783,7 @@ export default {
         const day = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
         ctx.waitUntil(
           env.CHM_TELEMETRY_DB.prepare(
-            'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
           )
             .bind(
               day,
@@ -657,7 +792,9 @@ export default {
               chVersion || null,
               chFlavor || null,
               country || null,
-              platform || null
+              platform || null,
+              chmVersion || null,
+              installPlace || null
             )
             .run()
             .then(() => undefined)
@@ -734,31 +871,45 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
       : env.CHM_TELEMETRY_DB!.prepare(sql)
 
   try {
-    const [totalRow, byTarget, byVersion, byFlavor, byCountry, byPlatform] =
-      await Promise.all([
-        stmt(
-          `SELECT COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where}`
-        ).first<{
-          n: number
-        }>(),
-        env
-          .CHM_TELEMETRY_DB!.prepare(
-            'SELECT deploy_target, COUNT(DISTINCT instance_hash) AS n FROM ping_daily GROUP BY deploy_target'
-          )
-          .all<{ deploy_target: string; n: number }>(),
-        stmt(
-          `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
-        ).all<{ v: string; n: number }>(),
-        stmt(
-          `SELECT COALESCE(ch_flavor, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
-        ).all<{ v: string; n: number }>(),
-        stmt(
-          `SELECT COALESCE(country, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC LIMIT 10`
-        ).all<{ v: string; n: number }>(),
-        stmt(
-          `SELECT COALESCE(platform, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
-        ).all<{ v: string; n: number }>(),
-      ])
+    const [
+      totalRow,
+      byTarget,
+      byVersion,
+      byFlavor,
+      byCountry,
+      byPlatform,
+      byChmVersion,
+      totalPlaces,
+    ] = await Promise.all([
+      stmt(
+        `SELECT COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where}`
+      ).first<{
+        n: number
+      }>(),
+      env
+        .CHM_TELEMETRY_DB!.prepare(
+          'SELECT deploy_target, COUNT(DISTINCT instance_hash) AS n FROM ping_daily GROUP BY deploy_target'
+        )
+        .all<{ deploy_target: string; n: number }>(),
+      stmt(
+        `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+      ).all<{ v: string; n: number }>(),
+      stmt(
+        `SELECT COALESCE(ch_flavor, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+      ).all<{ v: string; n: number }>(),
+      stmt(
+        `SELECT COALESCE(country, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC LIMIT 10`
+      ).all<{ v: string; n: number }>(),
+      stmt(
+        `SELECT COALESCE(platform, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+      ).all<{ v: string; n: number }>(),
+      stmt(
+        `SELECT COALESCE(chm_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+      ).all<{ v: string; n: number }>(),
+      stmt(
+        `SELECT COUNT(DISTINCT install_place) AS n FROM ping_daily ${where} WHERE install_place IS NOT NULL`
+      ).first<{ n: number }>(),
+    ])
 
     const byDeployTarget: Record<string, number> = {}
     for (const r of byTarget.results ?? []) {
@@ -768,6 +919,7 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
     return json(
       summaryShape({
         total: Number(totalRow?.n ?? 0),
+        totalPlaces: Number(totalPlaces?.n ?? 0),
         byDeployTarget,
         byChVersion: (byVersion.results ?? []).map((r) => ({
           ch_version: r.v,
@@ -785,6 +937,10 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
           platform: r.v,
           installs: Number(r.n),
         })),
+        byChmVersion: (byChmVersion.results ?? []).map((r) => ({
+          chm_version: r.v,
+          installs: Number(r.n),
+        })),
         scopedToDeployTarget: scoped,
       }),
       200
@@ -800,22 +956,26 @@ interface SummaryBody {
   enabled: boolean
   scoped_to_deploy_target: string | null
   total_installs: number
+  total_places: number
   by_deploy_target: Record<string, number>
   by_ch_version: { ch_version: string; installs: number }[]
   by_ch_flavor: { ch_flavor: string; installs: number }[]
   by_country: { country: string; installs: number }[]
   by_platform: { platform: string; installs: number }[]
+  by_chm_version: { chm_version: string; installs: number }[]
   source: string
   generated_at: string
 }
 
 function summaryShape(input: {
   total: number
+  totalPlaces?: number
   byDeployTarget: Record<string, number>
   byChVersion: { ch_version: string; installs: number }[]
   byChFlavor: { ch_flavor: string; installs: number }[]
   byCountry: { country: string; installs: number }[]
   byPlatform: { platform: string; installs: number }[]
+  byChmVersion?: { chm_version: string; installs: number }[]
   scopedToDeployTarget?: string | null
 }): SummaryBody {
   return {
@@ -824,11 +984,13 @@ function summaryShape(input: {
     enabled: true,
     scoped_to_deploy_target: input.scopedToDeployTarget ?? null,
     total_installs: input.total,
+    total_places: input.totalPlaces ?? 0,
     by_deploy_target: input.byDeployTarget,
     by_ch_version: input.byChVersion,
     by_ch_flavor: input.byChFlavor,
     by_country: input.byCountry,
     by_platform: input.byPlatform,
+    by_chm_version: input.byChmVersion ?? [],
     source: 'D1 ping_daily (COUNT DISTINCT of opaque SHA-256 instance id)',
     generated_at: new Date().toISOString(),
   }

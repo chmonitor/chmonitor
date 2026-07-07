@@ -12,7 +12,7 @@
 # copied into the node-based build image.
 ARG GITHUB_SHA=unknown
 ARG GITHUB_REF=unknown
-ARG VITE_DEPLOY_TARGET=unknown
+ARG VITE_DEPLOY_TARGET=docker
 
 FROM oven/bun:1-alpine AS bunbin
 

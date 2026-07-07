@@ -162,10 +162,14 @@ const CLIENT_ENV = {
   VITE_TELEMETRY_ENDPOINT:
     e.VITE_TELEMETRY_ENDPOINT ?? 'https://telemetry.chmonitor.dev/v1/ping',
   VITE_GIT_SHA:
-    e.VITE_GIT_SHA ?? e.NEXT_PUBLIC_GIT_SHA ?? git('rev-parse HEAD'),
+    e.VITE_GIT_SHA ??
+    e.NEXT_PUBLIC_GIT_SHA ??
+    e.GITHUB_SHA ??
+    git('rev-parse HEAD'),
   VITE_GIT_REF:
     e.VITE_GIT_REF ??
     e.NEXT_PUBLIC_GIT_REF ??
+    e.GITHUB_REF ??
     git('rev-parse --abbrev-ref HEAD'),
   VITE_BUILD_TIMESTAMP:
     e.VITE_BUILD_TIMESTAMP ??

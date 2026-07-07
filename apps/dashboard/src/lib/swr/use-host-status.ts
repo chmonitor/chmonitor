@@ -73,9 +73,9 @@ export function useHostStatus(
       if (!json.success || !json.data) {
         throw new Error(json.error || 'No data returned')
       }
-      // Thread the ClickHouse version to telemetry ping
+      // Thread the ClickHouse version and hostname to telemetry ping
       if (json.data.version) {
-        maybePingInstance(undefined, json.data.version)
+        maybePingInstance(undefined, json.data.version, json.data.hostname)
       }
       return {
         version: json.data.version,

@@ -171,6 +171,30 @@ and conditions, not just the built-in health checks) and an **email adapter**
 [Alerting to Slack and Discord](https://docs.chmonitor.dev/guide/guides/alerting-slack-discord)
 for the webhook walkthrough.
 
+## Migrating to v0.3
+
+v0.3 introduces a few breaking configuration and packaging changes. Follow these steps to upgrade your self-hosted instances:
+
+### 1. Docker Image Name Change
+The canonical Docker image name has changed from `duyet/clickhouse-monitoring` to **`chmonitor/chmonitor`** (hosted on GitHub Container Registry). 
+
+Update your `docker-compose.yml` or Kubernetes manifests to pull the new image:
+```yaml
+image: ghcr.io/chmonitor/chmonitor:latest
+```
+*(Note: The legacy image name `ghcr.io/duyet/clickhouse-monitoring` remains as an alias pointing to the same build, but it is deprecated and will not receive updates in future major versions.)*
+
+### 2. Helm Chart Updates
+The Helm chart repository has been updated. The chart is now published to the OCI registry at `oci://ghcr.io/chmonitor/chmonitor`.
+
+To install or upgrade using the new OCI registry chart:
+```bash
+helm upgrade --install my-chm oci://ghcr.io/chmonitor/chmonitor --version 0.3.0
+```
+
+### 3. Unified Environment Variables
+All configuration variables are now unified under the standard `CHM_` prefix (e.g., `CHM_TELEMETRY`, `CHM_DEPLOYMENT_MODE`) instead of duplicate or client/server-specific names. Client variables (`VITE_`) are automatically derived from `CHM_` at build time. Check `apps/dashboard/.env.example` in the repository for the latest environment variable reference.
+
 ## Changelog
 
 | Area | What changed |
