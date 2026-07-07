@@ -20,6 +20,7 @@ services:
       args:
         GITHUB_REF: local
         GITHUB_SHA: local-build
+        VITE_DEPLOY_TARGET: docker
     ports:
       - "3000:3000"
     # Optional single-source env file: `cp apps/dashboard/.env.example .env` and

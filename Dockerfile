@@ -12,6 +12,7 @@
 # copied into the node-based build image.
 ARG GITHUB_SHA=unknown
 ARG GITHUB_REF=unknown
+ARG VITE_DEPLOY_TARGET=unknown
 
 FROM oven/bun:1-alpine AS bunbin
 
@@ -36,10 +37,12 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 FROM base AS builder
 ARG GITHUB_SHA
 ARG GITHUB_REF
+ARG VITE_DEPLOY_TARGET
 ENV NODE_ENV=production \
     GITHUB_SHA=${GITHUB_SHA} \
     GITHUB_REF=${GITHUB_REF} \
-    BUILD_TARGET=node
+    BUILD_TARGET=node \
+    VITE_DEPLOY_TARGET=${VITE_DEPLOY_TARGET}
 # packages/ is needed at build time for the @chm/* source aliases (../../).
 COPY packages/ /app/packages/
 # tsconfig.base.json lives at the repo root and is extended by apps/dashboard/tsconfig.json.
