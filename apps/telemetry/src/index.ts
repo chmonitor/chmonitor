@@ -21,12 +21,7 @@
 // queryable only from the project's Cloudflare account (D1 + Analytics Engine).
 
 export interface Env {
-  CHM_TELEMETRY_AE: AnalyticsEngineDataset
-  // Optional forever-retention store. Analytics Engine keeps data for only 3
-  // months; when a D1 binding is present we ALSO record one deduped row per
-  // install per UTC day, which D1 keeps indefinitely (CF-native, free tier).
-  // Deploy works without it (AE-only) until the binding is configured.
-  CHM_TELEMETRY_DB?: D1Database
+  CHM_TELEMETRY_DB: D1Database
 }
 
 const MAX_BODY_BYTES = 2048
@@ -757,50 +752,26 @@ export default {
           ? data.install_place
           : ''
 
-      env.CHM_TELEMETRY_AE.writeDataPoint({
-        // index1 — distinct-install key. Count installs with uniqExact(index1).
-        indexes: [instanceHash],
-        // blob1=kind, blob2=deploy_target, blob3=ch_version, blob4=ch_flavor,
-        // blob5=country, blob6=platform, blob7=chm_version, blob8=install_place
-        blobs: [
-          'ping',
-          deployTarget,
-          chVersion,
-          chFlavor,
-          country,
-          platform,
-          chmVersion,
-          installPlace,
-        ],
-        doubles: [1],
-      })
-
-      // Forever retention (optional): AE keeps only 3 months, so when a D1
-      // binding is present also record one deduped row per install per UTC day.
-      // INSERT OR IGNORE on (day, instance_hash) keeps storage to one row per
-      // install per day; D1 retains it indefinitely. Runs after the response.
-      if (env.CHM_TELEMETRY_DB) {
-        const day = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
-        ctx.waitUntil(
-          env.CHM_TELEMETRY_DB.prepare(
-            'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-          )
-            .bind(
-              day,
-              instanceHash,
-              deployTarget,
-              chVersion || null,
-              chFlavor || null,
-              country || null,
-              platform || null,
-              chmVersion || null,
-              installPlace || null
-            )
-            .run()
-            .then(() => undefined)
-            .catch(() => undefined)
+      const day = new Date().toISOString().slice(0, 10)
+      ctx.waitUntil(
+        env.CHM_TELEMETRY_DB.prepare(
+          'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
-      }
+          .bind(
+            day,
+            instanceHash,
+            deployTarget,
+            chVersion || null,
+            chFlavor || null,
+            country || null,
+            platform || null,
+            chmVersion || null,
+            installPlace || null
+          )
+          .run()
+          .then(() => undefined)
+          .catch(() => undefined)
+      )
       return noContent()
     }
 
@@ -818,13 +789,16 @@ export default {
       const chVersion = asVersion(props.ch_version)
       const chFlavor = asEnum(props.ch_flavor, CH_FLAVORS, 'unknown')
 
-      env.CHM_TELEMETRY_AE.writeDataPoint({
-        // events carry no instance identity — index by event name.
-        indexes: [event],
-        // blob1=kind, blob2=event, blob3=deploy_target, blob4=ch_version, blob5=ch_flavor
-        blobs: ['event', event, deployTarget, chVersion, chFlavor],
-        doubles: [1],
-      })
+      const day = new Date().toISOString().slice(0, 10)
+      ctx.waitUntil(
+        env.CHM_TELEMETRY_DB.prepare(
+          'INSERT INTO events (day, event, deploy_target, ch_version, ch_flavor) VALUES (?, ?, ?, ?, ?)'
+        )
+          .bind(day, event, deployTarget, chVersion || null, chFlavor || null)
+          .run()
+          .then(() => undefined)
+          .catch(() => undefined)
+      )
       return noContent()
     }
 
