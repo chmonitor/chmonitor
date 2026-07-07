@@ -12,7 +12,13 @@
 //     be mistaken for an IPv4 address and cannot fingerprint a specific patch release.
 
 import { isTelemetryEnabled } from './config'
-import { getDeployTarget, parseMajorMinor } from './environment'
+import {
+  detectChFlavor,
+  detectCountry,
+  detectPlatform,
+  getDeployTarget,
+  parseMajorMinor,
+} from './environment'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -54,8 +60,12 @@ export function buildPingPayload(input: {
   instanceHash: string
   version?: string
   deployTarget: string
+  chFlavor?: string
+  country?: string
+  platform?: string
 }): Record<string, string> {
-  const { instanceHash, version, deployTarget } = input
+  const { instanceHash, version, deployTarget, chFlavor, country, platform } =
+    input
   const chVersion = version ? parseMajorMinor(version) : undefined
   const payload: Record<string, string> = {
     instance_hash: instanceHash,
@@ -63,6 +73,15 @@ export function buildPingPayload(input: {
   }
   if (chVersion !== undefined) {
     payload.ch_version = chVersion
+  }
+  if (chFlavor !== undefined) {
+    payload.ch_flavor = chFlavor
+  }
+  if (country !== undefined) {
+    payload.country = country
+  }
+  if (platform !== undefined) {
+    payload.platform = platform
   }
   return payload
 }
@@ -115,6 +134,12 @@ export interface PingDeps {
   version?: string
   /** Deploy target string */
   deployTarget: string
+  /** Detect ClickHouse flavor (oss/altinity/cloud/unknown) */
+  detectFlavor: (version: string | null | undefined) => string
+  /** Detect country from timezone (privacy-safe) */
+  detectCountry: () => string
+  /** Detect platform/OS from userAgent (generic categories only) */
+  detectPlatform: () => string
 }
 
 /**
@@ -138,6 +163,9 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
     post,
     version,
     deployTarget,
+    detectFlavor,
+    detectCountry,
+    detectPlatform,
   } = deps
 
   if (!enabled) return 'skipped-disabled'
@@ -155,7 +183,18 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   }
 
   const instanceHash = await hash(instanceId)
-  const payload = buildPingPayload({ instanceHash, version, deployTarget })
+  const chFlavor = version ? detectFlavor(version) : undefined
+  const country = detectCountry()
+  const platform = detectPlatform()
+
+  const payload = buildPingPayload({
+    instanceHash,
+    version,
+    deployTarget,
+    chFlavor,
+    country,
+    platform,
+  })
 
   try {
     await post(endpoint, JSON.stringify(payload))
@@ -241,6 +280,9 @@ export function maybePingInstance(
       }).then(() => undefined),
     version: undefined, // caller may populate via a separate ClickHouse query
     deployTarget: getDeployTarget(),
+    detectFlavor: detectChFlavor,
+    detectCountry: detectCountry,
+    detectPlatform: detectPlatform,
   }
 
   // Fire-and-forget — errors are swallowed by runInstancePing + this catch.

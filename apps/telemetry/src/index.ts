@@ -37,6 +37,16 @@ const MAX_BODY_BYTES = 2048
 // keep this worker a zero-dependency standalone deploy unit; keep them in sync.
 const DEPLOY_TARGETS = new Set(['docker', 'helm', 'cf', 'dev', 'unknown'])
 const CH_FLAVORS = new Set(['oss', 'altinity', 'cloud', 'unknown'])
+const PLATFORMS = new Set([
+  'windows',
+  'macos',
+  'linux',
+  'android',
+  'ios',
+  'unknown',
+])
+// ISO 3166-1 alpha-2 codes (common countries only - validate format, not membership)
+const COUNTRY_CODE = /^[a-z]{2}$/i
 const EVENTS = new Set([
   'app_loaded',
   'cluster_connected',
@@ -117,12 +127,18 @@ export default {
       }
       const deployTarget = asEnum(data.deploy_target, DEPLOY_TARGETS, 'unknown')
       const chVersion = asVersion(data.ch_version)
+      const chFlavor = asEnum(data.ch_flavor, CH_FLAVORS, 'unknown')
+      const country =
+        typeof data.country === 'string' && COUNTRY_CODE.test(data.country)
+          ? data.country.toLowerCase()
+          : 'unknown'
+      const platform = asEnum(data.platform, PLATFORMS, 'unknown')
 
       env.CHM_TELEMETRY_AE.writeDataPoint({
         // index1 — distinct-install key. Count installs with uniqExact(index1).
         indexes: [instanceHash],
-        // blob1=kind, blob2=deploy_target, blob3=ch_version
-        blobs: ['ping', deployTarget, chVersion],
+        // blob1=kind, blob2=deploy_target, blob3=ch_version, blob4=ch_flavor, blob5=country, blob6=platform
+        blobs: ['ping', deployTarget, chVersion, chFlavor, country, platform],
         doubles: [1],
       })
 
@@ -134,9 +150,17 @@ export default {
         const day = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
         ctx.waitUntil(
           env.CHM_TELEMETRY_DB.prepare(
-            'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version) VALUES (?, ?, ?, ?)'
+            'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform) VALUES (?, ?, ?, ?, ?, ?, ?)'
           )
-            .bind(day, instanceHash, deployTarget, chVersion || null)
+            .bind(
+              day,
+              instanceHash,
+              deployTarget,
+              chVersion || null,
+              chFlavor || null,
+              country || null,
+              platform || null
+            )
             .run()
             .then(() => undefined)
             .catch(() => undefined)
@@ -185,7 +209,14 @@ export default {
 // forward; Analytics Engine still holds the prior ~3 months but is not
 // binding-readable, so historical totals are not reflected here.
 async function handleSummary(env: Env, req: Request): Promise<Response> {
-  const base = summaryShape({ total: 0, byDeployTarget: {}, byChVersion: [] })
+  const base = summaryShape({
+    total: 0,
+    byDeployTarget: {},
+    byChVersion: [],
+    byChFlavor: [],
+    byCountry: [],
+    byPlatform: [],
+  })
 
   if (!env.CHM_TELEMETRY_DB) {
     return json({ ...base, enabled: false }, 503)
@@ -205,21 +236,31 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
       : env.CHM_TELEMETRY_DB!.prepare(sql)
 
   try {
-    const [totalRow, byTarget, byVersion] = await Promise.all([
-      stmt(
-        `SELECT COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where}`
-      ).first<{
-        n: number
-      }>(),
-      env
-        .CHM_TELEMETRY_DB!.prepare(
-          'SELECT deploy_target, COUNT(DISTINCT instance_hash) AS n FROM ping_daily GROUP BY deploy_target'
-        )
-        .all<{ deploy_target: string; n: number }>(),
-      stmt(
-        `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
-      ).all<{ v: string; n: number }>(),
-    ])
+    const [totalRow, byTarget, byVersion, byFlavor, byCountry, byPlatform] =
+      await Promise.all([
+        stmt(
+          `SELECT COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where}`
+        ).first<{
+          n: number
+        }>(),
+        env
+          .CHM_TELEMETRY_DB!.prepare(
+            'SELECT deploy_target, COUNT(DISTINCT instance_hash) AS n FROM ping_daily GROUP BY deploy_target'
+          )
+          .all<{ deploy_target: string; n: number }>(),
+        stmt(
+          `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+        ).all<{ v: string; n: number }>(),
+        stmt(
+          `SELECT COALESCE(ch_flavor, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+        ).all<{ v: string; n: number }>(),
+        stmt(
+          `SELECT COALESCE(country, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC LIMIT 10`
+        ).all<{ v: string; n: number }>(),
+        stmt(
+          `SELECT COALESCE(platform, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+        ).all<{ v: string; n: number }>(),
+      ])
 
     const byDeployTarget: Record<string, number> = {}
     for (const r of byTarget.results ?? []) {
@@ -232,6 +273,18 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
         byDeployTarget,
         byChVersion: (byVersion.results ?? []).map((r) => ({
           ch_version: r.v,
+          installs: Number(r.n),
+        })),
+        byChFlavor: (byFlavor.results ?? []).map((r) => ({
+          ch_flavor: r.v,
+          installs: Number(r.n),
+        })),
+        byCountry: (byCountry.results ?? []).map((r) => ({
+          country: r.v,
+          installs: Number(r.n),
+        })),
+        byPlatform: (byPlatform.results ?? []).map((r) => ({
+          platform: r.v,
           installs: Number(r.n),
         })),
         scopedToDeployTarget: scoped,
@@ -251,6 +304,9 @@ interface SummaryBody {
   total_installs: number
   by_deploy_target: Record<string, number>
   by_ch_version: { ch_version: string; installs: number }[]
+  by_ch_flavor: { ch_flavor: string; installs: number }[]
+  by_country: { country: string; installs: number }[]
+  by_platform: { platform: string; installs: number }[]
   source: string
   generated_at: string
 }
@@ -259,6 +315,9 @@ function summaryShape(input: {
   total: number
   byDeployTarget: Record<string, number>
   byChVersion: { ch_version: string; installs: number }[]
+  byChFlavor: { ch_flavor: string; installs: number }[]
+  byCountry: { country: string; installs: number }[]
+  byPlatform: { platform: string; installs: number }[]
   scopedToDeployTarget?: string | null
 }): SummaryBody {
   return {
@@ -269,6 +328,9 @@ function summaryShape(input: {
     total_installs: input.total,
     by_deploy_target: input.byDeployTarget,
     by_ch_version: input.byChVersion,
+    by_ch_flavor: input.byChFlavor,
+    by_country: input.byCountry,
+    by_platform: input.byPlatform,
     source: 'D1 ping_daily (COUNT DISTINCT of opaque SHA-256 instance id)',
     generated_at: new Date().toISOString(),
   }

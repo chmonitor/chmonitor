@@ -69,3 +69,72 @@ export function detectChFlavor(version: string | null | undefined): ChFlavor {
   if (/^\d/.test(version.trim())) return 'oss'
   return 'unknown'
 }
+
+/**
+ * Detect country from browser timezone (privacy-safe alternative to IP geolocation).
+ * Returns ISO 3166-1 alpha-2 country code or 'unknown'.
+ *
+ * Privacy contract:
+ *   - Uses timezone mapping, NOT IP geolocation (no IP involved)
+ *   - Returns 'unknown' when timezone cannot be mapped to a country
+ *   - Uses Intl API which is built into the browser
+ */
+export function detectCountry(): string {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (!timezone) return 'unknown'
+
+    // Map common timezones to countries (simplified, privacy-safe)
+    const tzToCountry: Record<string, string> = {
+      'America/New_York': 'us',
+      'America/Chicago': 'us',
+      'America/Denver': 'us',
+      'America/Los_Angeles': 'us',
+      'America/Phoenix': 'us',
+      'Europe/London': 'gb',
+      'Europe/Paris': 'fr',
+      'Europe/Berlin': 'de',
+      'Europe/Madrid': 'es',
+      'Europe/Rome': 'it',
+      'Asia/Tokyo': 'jp',
+      'Asia/Shanghai': 'cn',
+      'Asia/Hong_Kong': 'hk',
+      'Asia/Singapore': 'sg',
+      'Asia/Seoul': 'kr',
+      'Asia/Dubai': 'ae',
+      'Asia/Kolkata': 'in',
+      'Australia/Sydney': 'au',
+      'Australia/Melbourne': 'au',
+      'Pacific/Auckland': 'nz',
+    }
+
+    return tzToCountry[timezone] || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
+/**
+ * Detect platform/OS from navigator.userAgent (generic categories only).
+ * Returns 'windows', 'macos', 'linux', 'android', 'ios', or 'unknown'.
+ *
+ * Privacy contract:
+ *   - Only generic OS families, not specific versions
+ *   - Returns 'unknown' when userAgent is unavailable or unparseable
+ *   - No device fingerprinting or unique identifiers
+ */
+export function detectPlatform(): string {
+  if (typeof navigator === 'undefined' || !navigator.userAgent) {
+    return 'unknown'
+  }
+
+  const ua = navigator.userAgent.toLowerCase()
+
+  if (ua.includes('android')) return 'android'
+  if (ua.includes('iphone') || ua.includes('ipad')) return 'ios'
+  if (ua.includes('mac os') || ua.includes('macintosh')) return 'macos'
+  if (ua.includes('windows')) return 'windows'
+  if (ua.includes('linux')) return 'linux'
+
+  return 'unknown'
+}
