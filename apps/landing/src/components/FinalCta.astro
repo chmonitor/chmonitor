@@ -1,3 +1,6 @@
+---
+import { btnOnDarkOutline, btnOnDarkPrimary } from '../lib/button-classes'
+---
 <section class="pt-6 pb-20 sm:pb-28">
   <div class="mx-auto max-w-[1200px] px-6">
     <!-- Fixed pure-black CTA (x.ai field) — monochrome, no brand accent color. -->
@@ -19,7 +22,7 @@
         </p>
         <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
           <a
-            class="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 h-10 text-sm font-medium text-black transition-colors hover:bg-white/90 active:scale-[.98]"
+            class={btnOnDarkPrimary}
             href="https://dash.chmonitor.dev"
             target="_blank"
             rel="noopener"
@@ -29,7 +32,7 @@
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
           <a
-            class="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-5 h-10 text-sm font-medium text-white transition-colors hover:bg-white/10 active:scale-[.98]"
+            class={btnOnDarkOutline}
             href="https://docs.chmonitor.dev"
             target="_blank"
             rel="noopener"
@@ -37,7 +40,7 @@
             Read the Docs
           </a>
           <a
-            class="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-5 h-10 text-sm font-medium text-white transition-colors hover:bg-white/10 active:scale-[.98]"
+            class={btnOnDarkOutline}
             href="https://github.com/chmonitor/chmonitor"
             target="_blank"
             rel="noopener"

@@ -1,4 +1,9 @@
 ---
+import {
+  btnGhost,
+  btnOutline,
+  btnPrimary,
+} from '../lib/button-classes'
 import { formatCount, getGitHubStats } from '../lib/github-stars'
 
 const { stars } = await getGitHubStats()
@@ -18,14 +23,6 @@ const arrowSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="cu
 const bookSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>`
 const starSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>`
 const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`
-
-/* shadcn Button classes (Geist: 40px, 6px radius, medium weight) */
-const btnPrimary =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-5 h-10 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-const btnOutline =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-5 h-10 text-sm font-medium transition-colors hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-const btnGhost =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 h-10 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 ---
 
 <section class="relative isolate overflow-hidden pb-20 sm:pb-28" data-hero>

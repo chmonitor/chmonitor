@@ -8,17 +8,20 @@ import {
   yearlyMonthsFreeValue,
 } from '../data/pricing'
 
+import {
+  btnOutline,
+  btnOutlineBlock,
+  btnPrimaryBlock,
+} from '../lib/button-classes'
+
 const checkSvg = `<svg class="inline-block size-4 shrink-0 align-middle text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
 const arrowSvg = `<svg class="inline-block size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
 
 const { compact = false } = Astro.props
 
-const primaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 h-10 text-sm font-medium text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-const outlineBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-6 h-10 text-sm font-medium shadow-xs transition-all hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-const outlineBtnAuto =
-  'inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-6 h-10 text-sm font-medium shadow-xs transition-all hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+const primaryBtn = btnPrimaryBlock
+const outlineBtn = btnOutlineBlock
+const outlineBtnAuto = btnOutline
 
 const cardColors = [
   'bg-[#f3f4f6]/70 border-transparent dark:bg-neutral-900/40', // Free
