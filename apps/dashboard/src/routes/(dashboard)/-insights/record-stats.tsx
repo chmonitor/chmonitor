@@ -106,7 +106,7 @@ export function LongestQueryStat({
   if (
     d.query_duration_ms === null ||
     d.query_duration_ms === undefined ||
-    isNaN(Number(d.query_duration_ms))
+    Number.isNaN(Number(d.query_duration_ms))
   ) {
     return statEmpty(label, sql, data, metadata)
   }
