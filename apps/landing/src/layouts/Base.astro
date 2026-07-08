@@ -506,10 +506,16 @@ const ogImage = new URL(image, Astro.site).toString()
 
     /* ── responsive ── */
     @media (max-width:1024px){
-      /* swap the inline nav + CTA cluster for a single hamburger → drawer */
+      /* swap the inline nav + CTA cluster for a single hamburger → drawer.
+         Hide every desktop CTA in .nav-cta (anchors + legacy .btn), keep only
+         the hamburger. (CTAs moved off `.btn` onto shared Tailwind classes.) */
       .nav-links{display:none}
-      .nav-cta > .theme-toggle,.nav-cta > .btn{display:none}
+      .nav-cta > .theme-toggle,
+      .nav-cta > a,
+      .nav-cta > .btn{display:none}
       .nav-toggle{display:inline-flex}
+      .nav-row{gap:12px}
+      .wrap{padding:0 16px}
     }
     @media (max-width:880px){
       .feature,.os{grid-template-columns:1fr;gap:34px}
@@ -524,7 +530,9 @@ const ogImage = new URL(image, Astro.site).toString()
       .cap-grid{grid-template-columns:1fr}
       /* comfortable 44px tap targets on phones */
       .nav-toggle,.nav-drawer-close,.theme-toggle{width:44px;height:44px}
-      .foot-col a{padding:5px 0}
+      .foot-col a{padding:5px 0;min-height:44px;display:inline-flex;align-items:center}
+      .wrap{padding:0 16px}
+      .nav-row{height:52px}
     }
 
     /* ── social proof ── */

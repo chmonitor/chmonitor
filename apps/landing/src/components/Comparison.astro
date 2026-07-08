@@ -3,16 +3,20 @@ const checkSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle tex
 const crossSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m18 6-12 12M6 6l12 12"/></svg>`
 const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`
 ---
-<section id="comparison" class="bg-muted/30 py-20 sm:py-24">
-  <div class="mx-auto max-w-6xl px-6">
+<section id="comparison" class="bg-muted/30 py-14 sm:py-20 md:py-24">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="text-sm font-medium text-primary">Why chmonitor</p>
-      <h2 class="mt-3 text-balance font-semibold text-3xl sm:text-4xl tracking-tight">Purpose-built for ClickHouse</h2>
-      <p class="mt-4 text-pretty text-muted-foreground">General-purpose tools treat ClickHouse as one data source among many. chmonitor reads its system tables directly and tracks nothing else. Here's how it stacks up against the most common alternatives.</p>
+      <h2 class="mt-3 text-balance font-semibold text-2xl sm:text-3xl md:text-4xl tracking-tight">Purpose-built for ClickHouse</h2>
+      <p class="mt-4 text-pretty text-sm sm:text-base text-muted-foreground">General-purpose tools treat ClickHouse as one data source among many. chmonitor reads its system tables directly and tracks nothing else. Here's how it stacks up against the most common alternatives.</p>
     </div>
 
-    <div class="reveal mt-10 overflow-hidden rounded-xl border border-border shadow-sm">
-      <div class="overflow-x-auto">
+    <div class="reveal mt-8 sm:mt-10 overflow-hidden rounded-xl border border-border shadow-sm">
+      <!-- Scroll hint for narrow viewports — table is wider than phone screens -->
+      <p class="sm:hidden border-b border-border bg-muted/50 px-4 py-2 text-center text-[11px] text-muted-foreground">
+        Swipe to compare →
+      </p>
+      <div class="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
         <table class="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr class="bg-muted">

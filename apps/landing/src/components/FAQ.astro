@@ -46,23 +46,23 @@ const faqJsonLd = {
 ---
 <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
 
-<section id="faq" class="py-20 sm:py-24">
-  <div class="mx-auto max-w-6xl px-6">
+<section id="faq" class="py-14 sm:py-20 md:py-24">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="text-sm font-medium text-primary">FAQ</p>
-      <h2 class="mt-3 text-balance font-extrabold text-4xl sm:text-5xl tracking-[-0.04em]">
+      <h2 class="mt-3 text-balance font-extrabold text-2xl sm:text-4xl md:text-5xl tracking-[-0.04em]">
         Questions &amp; answers
       </h2>
-      <p class="mt-4 text-pretty text-muted-foreground">Answers to what evaluators ask most before deploying chmonitor.</p>
+      <p class="mt-4 text-pretty text-sm sm:text-base text-muted-foreground">Answers to what evaluators ask most before deploying chmonitor.</p>
     </div>
 
-    <div class="reveal mx-auto mt-12 max-w-3xl">
+    <div class="reveal mx-auto mt-8 sm:mt-12 max-w-3xl">
       {faqs.map(({ q, a }) => (
         <details class="changelog-faq group border-b border-border first:border-t">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
-            {q}
-            <span class="text-xl font-normal text-muted-foreground group-open:hidden">+</span>
-            <span class="text-xl font-normal text-muted-foreground hidden group-open:inline">&minus;</span>
+          <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+            <span class="min-w-0 flex-1 text-pretty">{q}</span>
+            <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
+            <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
           </summary>
           <div class="faq-ans pb-5 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary/80 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]" set:html={a} />
         </details>

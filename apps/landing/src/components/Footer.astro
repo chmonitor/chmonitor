@@ -7,8 +7,8 @@ function fmtDate(iso: string) {
 }
 ---
   <footer class="border-t border-border">
-    <div class="mx-auto max-w-6xl px-6 py-16">
-      <div class="flex flex-col gap-12 lg:flex-row lg:justify-between">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
+      <div class="flex flex-col gap-10 sm:gap-12 lg:flex-row lg:justify-between">
         <div class="max-w-xs">
           <a class="brand flex items-center gap-2.5 text-base font-semibold tracking-tight" href="/">
             <span class="mark" aria-hidden="true">
@@ -18,8 +18,8 @@ function fmtDate(iso: string) {
           </a>
           <p class="mt-4 text-pretty text-sm text-muted-foreground">chmonitor reads your cluster's system tables and turns them into views your whole team can act on, no more memorising table names or hand-writing diagnostic SQL.</p>
         </div>
-        <div class="flex flex-wrap gap-x-12 gap-y-10">
-          <div class="min-w-36">
+        <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:flex sm:flex-wrap sm:gap-x-12">
+          <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</h5>
             <div class="mt-3 flex flex-col gap-2.5">
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/#top">Overview</a>
@@ -33,7 +33,7 @@ function fmtDate(iso: string) {
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/changelog#ship-log">Feature index</a>
             </div>
           </div>
-          <div class="min-w-36">
+          <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Use cases</h5>
             <div class="mt-3 flex flex-col gap-2.5">
               {useCases.map((u) => (
@@ -41,7 +41,7 @@ function fmtDate(iso: string) {
               ))}
             </div>
           </div>
-          <div class="min-w-36">
+          <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Open source</h5>
             <div class="mt-3 flex flex-col gap-2.5">
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">GitHub</a>
@@ -50,7 +50,7 @@ function fmtDate(iso: string) {
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor/releases" target="_blank" rel="noopener">Releases</a>
             </div>
           </div>
-          <div class="min-w-36">
+          <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Legal &amp; trust</h5>
             <div class="mt-3 flex flex-col gap-2.5">
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor/blob/main/LICENSE" target="_blank" rel="noopener">License (GPL-3.0)</a>
@@ -59,7 +59,7 @@ function fmtDate(iso: string) {
             </div>
           </div>
           {latestPosts.length > 0 && (
-            <div class="min-w-44 max-w-52">
+            <div class="col-span-2 min-w-0 sm:col-span-1 sm:min-w-44 sm:max-w-52">
               <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Latest from the blog</h5>
               <div class="mt-3 flex flex-col gap-3">
                 {latestPosts.map((post) => (
@@ -74,7 +74,7 @@ function fmtDate(iso: string) {
           )}
         </div>
       </div>
-      <div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground">
+      <div class="mt-10 sm:mt-12 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 border-t border-border pt-6 text-sm text-muted-foreground">
         <span>© 2026 chmonitor · Open source (GPL-3.0)</span>
         <span class="font-mono text-xs">Not affiliated with ClickHouse, Inc.</span>
       </div>

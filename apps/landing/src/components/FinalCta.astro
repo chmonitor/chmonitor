@@ -1,28 +1,28 @@
 ---
 import { btnOnDarkOutline, btnOnDarkPrimary } from '../lib/button-classes'
 ---
-<section class="pt-6 pb-20 sm:pb-28">
-  <div class="mx-auto max-w-[1200px] px-6">
+<section class="pt-4 sm:pt-6 pb-14 sm:pb-20 md:pb-28">
+  <div class="mx-auto max-w-[1200px] px-4 sm:px-6">
     <!-- Fixed pure-black CTA (x.ai field) — monochrome, no brand accent color. -->
-    <div class="reveal relative isolate overflow-hidden rounded-2xl border border-white/10 bg-black">
+    <div class="reveal relative isolate overflow-hidden rounded-xl sm:rounded-2xl border border-white/10 bg-black">
       <div
         class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(255,255,255,0.08),transparent_70%)]"
         aria-hidden="true"
       ></div>
 
-      <div class="relative mx-auto max-w-2xl px-6 py-16 text-center sm:py-20">
-        <span class="mb-6 flex justify-center" aria-hidden="true">
-          <img src="/brand/logo-mark.svg" alt="" class="size-9 opacity-90" />
+      <div class="relative mx-auto max-w-2xl px-4 sm:px-6 py-12 text-center sm:py-20">
+        <span class="mb-5 sm:mb-6 flex justify-center" aria-hidden="true">
+          <img src="/brand/logo-mark.svg" alt="" class="size-8 sm:size-9 opacity-90" />
         </span>
-        <h2 class="text-balance font-semibold text-3xl text-white tracking-[-0.04em] sm:text-4xl">
+        <h2 class="text-balance font-semibold text-2xl text-white tracking-[-0.04em] sm:text-4xl">
           Start monitoring — advisor and alerts built in
         </h2>
-        <p class="mt-4 text-pretty text-white/55 text-base leading-relaxed">
+        <p class="mt-3 sm:mt-4 text-pretty text-white/55 text-sm sm:text-base leading-relaxed">
           Open the hosted dashboard and connect a cluster, or self-host with Docker, Kubernetes, or from source. Self-hosting is always free.
         </p>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+        <div class="mt-7 sm:mt-8 flex w-full max-w-sm sm:max-w-none mx-auto flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5">
           <a
-            class={btnOnDarkPrimary}
+            class={`${btnOnDarkPrimary} w-full sm:w-auto`}
             href="https://dash.chmonitor.dev"
             target="_blank"
             rel="noopener"
@@ -32,7 +32,7 @@ import { btnOnDarkOutline, btnOnDarkPrimary } from '../lib/button-classes'
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
           <a
-            class={btnOnDarkOutline}
+            class={`${btnOnDarkOutline} w-full sm:w-auto`}
             href="https://docs.chmonitor.dev"
             target="_blank"
             rel="noopener"
@@ -40,7 +40,7 @@ import { btnOnDarkOutline, btnOnDarkPrimary } from '../lib/button-classes'
             Read the Docs
           </a>
           <a
-            class={btnOnDarkOutline}
+            class={`${btnOnDarkOutline} w-full sm:w-auto`}
             href="https://github.com/chmonitor/chmonitor"
             target="_blank"
             rel="noopener"

@@ -25,46 +25,46 @@ const starSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="cur
 const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`
 ---
 
-<section class="relative isolate overflow-hidden pb-20 sm:pb-28" data-hero>
+<section class="relative isolate overflow-hidden pb-14 sm:pb-20 md:pb-28" data-hero>
   <!-- x.ai-style ambient field: faint radial + grid, no color noise -->
   <div
     class="pointer-events-none absolute inset-0 -z-10"
     aria-hidden="true"
   >
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,120,120,0.12),transparent_60%)] dark:bg-[radial-gradient(ellipse_70%_45%_at_50%_-10%,rgba(255,255,255,0.08),transparent_55%)]"></div>
-    <div class="absolute inset-0 opacity-[0.35] dark:opacity-[0.2] [background-image:linear-gradient(to_right,rgba(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgb(128,128,128,0.06)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_40%,transparent_100%)]"></div>
+    <div class="absolute inset-0 opacity-[0.35] dark:opacity-[0.2] [background-image:linear-gradient(to_right,rgb(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgb(128,128,128,0.06)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_40%,transparent_100%)]"></div>
   </div>
 
-  <div class="relative mx-auto max-w-[1200px] px-6 pt-20 sm:pt-28 lg:pt-32">
+  <div class="relative mx-auto max-w-[1200px] px-4 sm:px-6 pt-14 sm:pt-24 lg:pt-32">
     <div class="mx-auto max-w-3xl text-center">
       <a
         href="https://github.com/chmonitor/chmonitor"
         target="_blank"
         rel="noopener"
-        class="inline-flex"
+        class="inline-flex max-w-full"
         data-hero-oss
       >
-        <span class="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-muted-foreground text-xs font-medium tracking-wide backdrop-blur-sm transition-colors hover:border-foreground/20 hover:text-foreground">
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-muted-foreground text-[11px] sm:text-xs font-medium tracking-wide backdrop-blur-sm transition-colors hover:border-foreground/20 hover:text-foreground">
           <span class="inline-flex items-center justify-center size-3.5 shrink-0" set:html={githubSvg} />
-          Open source · GPL-3.0 · self-host free
+          <span class="truncate">Open source · GPL-3.0 · self-host free</span>
         </span>
       </a>
 
-      <h1 class="mt-10 text-balance font-semibold text-[clamp(2.75rem,7vw,4.5rem)] text-foreground leading-[0.98] tracking-[-0.06em]">
+      <h1 class="mt-6 sm:mt-10 text-balance font-semibold text-[clamp(2.125rem,8.5vw,4.5rem)] text-foreground leading-[1.05] sm:leading-[0.98] tracking-[-0.05em] sm:tracking-[-0.06em]">
         The ops dashboard<br class="hidden sm:block" /> for ClickHouse.
       </h1>
 
-      <p class="mx-auto mt-7 max-w-xl text-pretty text-muted-foreground text-base leading-relaxed sm:text-lg font-normal">
+      <p class="mx-auto mt-5 sm:mt-7 max-w-xl text-pretty text-muted-foreground text-[15px] leading-relaxed sm:text-lg font-normal">
         Monitor queries, merges, parts, replication, and health. An AI advisor on top — open source, self-host free.
       </p>
 
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+      <div class="mt-7 sm:mt-8 flex w-full max-w-md sm:max-w-none mx-auto flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5">
         <a
           href="https://dash.chmonitor.dev"
           target="_blank"
           rel="noopener"
           data-cta="hero-primary"
-          class={btnPrimary}
+          class={`${btnPrimary} w-full sm:w-auto`}
         >
           Start Free
           <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
@@ -74,7 +74,7 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
           target="_blank"
           rel="noopener"
           data-cta="hero-self-host"
-          class={btnOutline}
+          class={`${btnOutline} w-full sm:w-auto`}
         >
           <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={bookSvg} />
           Self-Host
@@ -86,7 +86,7 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
               target="_blank"
               rel="noopener"
               data-cta="github-star-hero"
-              class={btnGhost}
+              class={`${btnGhost} w-full sm:w-auto`}
             >
               <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={starSvg} />
               <span class="tabular-nums">{starLabel}</span>
@@ -97,7 +97,7 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
     </div>
 
     <ul
-      class="mx-auto mt-16 grid max-w-3xl list-none gap-x-10 gap-y-3.5 sm:grid-cols-2 border-t border-border pt-10"
+      class="mx-auto mt-10 sm:mt-16 grid max-w-3xl list-none gap-x-10 gap-y-3 sm:gap-y-3.5 sm:grid-cols-2 border-t border-border pt-8 sm:pt-10"
       data-hero-features
     >
       {
