@@ -11,21 +11,28 @@ import { useChartData } from '@/lib/query/use-chart-data'
 interface RangeStatProps {
   readonly hostId: number
   readonly lastHours?: number
+  readonly percentile: string
 }
 
-export function TotalQueriesStat({ hostId, lastHours }: RangeStatProps) {
+export function TotalQueriesStat({
+  hostId,
+  lastHours,
+  percentile,
+}: RangeStatProps) {
   const { data, isLoading, error, sql, metadata } = useChartData({
     chartName: 'insight-total-queries',
     hostId,
     lastHours,
+    params: { percentile },
   })
   if (isLoading) return statLoading('Total Queries')
   if (error || !data?.length)
     return statEmpty('Total Queries', sql, data, metadata)
   const d = data[0] as { total_queries: number; readable_count: string }
+  const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
-      title="Total Queries"
+      title={`Total Queries${pLabel}`}
       icon={<SearchIcon className="size-3.5 text-sky-500" />}
       sql={sql}
       data={data}
@@ -36,19 +43,25 @@ export function TotalQueriesStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-export function TotalScannedStat({ hostId, lastHours }: RangeStatProps) {
+export function TotalScannedStat({
+  hostId,
+  lastHours,
+  percentile,
+}: RangeStatProps) {
   const { data, isLoading, error, sql, metadata } = useChartData({
     chartName: 'insight-total-scanned',
     hostId,
     lastHours,
+    params: { percentile },
   })
   if (isLoading) return statLoading('Total Data Scanned')
   if (error || !data?.length)
     return statEmpty('Total Data Scanned', sql, data, metadata)
   const d = data[0] as { total_bytes: number; readable_total: string }
+  const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
-      title="Total Data Scanned"
+      title={`Total Data Scanned${pLabel}`}
       icon={<HardDriveIcon className="size-3.5 text-violet-500" />}
       sql={sql}
       data={data}
@@ -59,19 +72,25 @@ export function TotalScannedStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-export function TotalRowsReadStat({ hostId, lastHours }: RangeStatProps) {
+export function TotalRowsReadStat({
+  hostId,
+  lastHours,
+  percentile,
+}: RangeStatProps) {
   const { data, isLoading, error, sql, metadata } = useChartData({
     chartName: 'insight-total-rows-read',
     hostId,
     lastHours,
+    params: { percentile },
   })
   if (isLoading) return statLoading('Total Rows Read')
   if (error || !data?.length)
     return statEmpty('Total Rows Read', sql, data, metadata)
   const d = data[0] as { total_rows: number; readable_total: string }
+  const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
-      title="Total Rows Read"
+      title={`Total Rows Read${pLabel}`}
       icon={<ScrollTextIcon className="size-3.5 text-blue-500" />}
       sql={sql}
       data={data}
@@ -82,19 +101,25 @@ export function TotalRowsReadStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-export function PeakMemoryStat({ hostId, lastHours }: RangeStatProps) {
+export function PeakMemoryStat({
+  hostId,
+  lastHours,
+  percentile,
+}: RangeStatProps) {
   const { data, isLoading, error, sql, metadata } = useChartData({
     chartName: 'insight-peak-memory',
     hostId,
     lastHours,
+    params: { percentile },
   })
   if (isLoading) return statLoading('Peak Memory')
   if (error || !data?.length)
     return statEmpty('Peak Memory', sql, data, metadata)
   const d = data[0] as { peak_memory: number; readable_peak: string }
+  const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
-      title="Peak Memory"
+      title={`Peak Memory${pLabel}`}
       icon={<MemoryStickIcon className="size-3.5 text-pink-500" />}
       sql={sql}
       data={data}

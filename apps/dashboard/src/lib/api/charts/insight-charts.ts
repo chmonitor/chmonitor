@@ -13,6 +13,18 @@ function percentileThreshold(percentile: string, column: string): string {
     : `quantile(0.${percentile})(${column})`
 }
 
+/**
+ * Build a WHERE filter that excludes queries whose duration exceeds the given
+ * percentile threshold. For p100 no filter is applied (include everything).
+ */
+function percentileDurationFilter(
+  percentile: string,
+  timeFilter: string
+): string {
+  if (percentile === '100') return ''
+  return `AND query_duration_ms <= (SELECT quantile(0.${percentile})(query_duration_ms) FROM system.query_log WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter})`
+}
+
 export const insightCharts: Record<string, ChartQueryBuilder> = {
   'insight-largest-scan': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
@@ -183,14 +195,11 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Query duration percentile (p95/p99/p100) — default p99
+  // Query duration percentile (p95/p99/p100)
   'insight-avg-duration': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
-    const percentile = (params.params?.percentile as string) || 'p99'
-    const durationExpr =
-      percentile === 'p100'
-        ? 'max(query_duration_ms)'
-        : `quantile(${percentile === 'p95' ? '0.95' : '0.99'})(query_duration_ms)`
+    const percentile = (params.params?.percentile as string) || '99'
+    const durationExpr = percentileThreshold(percentile, 'query_duration_ms')
     return {
       query: `
         SELECT
@@ -224,6 +233,8 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
   // Total queries executed in the period
   'insight-total-queries': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
+    const percentile = (params.params?.percentile as string) || '99'
+    const durationFilter = percentileDurationFilter(percentile, timeFilter)
     return {
       query: `
         SELECT
@@ -231,6 +242,7 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
           formatReadableQuantity(count()) as readable_count
         FROM system.query_log
         WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
+          ${durationFilter}
       `,
     }
   },
@@ -238,6 +250,8 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
   // Total data scanned across all queries
   'insight-total-scanned': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
+    const percentile = (params.params?.percentile as string) || '99'
+    const durationFilter = percentileDurationFilter(percentile, timeFilter)
     return {
       query: `
         SELECT
@@ -245,6 +259,7 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
           formatReadableSize(sum(read_bytes)) as readable_total
         FROM system.query_log
         WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
+          ${durationFilter}
       `,
     }
   },
@@ -252,6 +267,8 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
   // Total rows read across all queries
   'insight-total-rows-read': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
+    const percentile = (params.params?.percentile as string) || '99'
+    const durationFilter = percentileDurationFilter(percentile, timeFilter)
     return {
       query: `
         SELECT
@@ -259,6 +276,7 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
           formatReadableQuantity(sum(read_rows)) as readable_total
         FROM system.query_log
         WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
+          ${durationFilter}
       `,
     }
   },
@@ -266,6 +284,8 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
   // Peak memory usage across all completed queries
   'insight-peak-memory': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
+    const percentile = (params.params?.percentile as string) || '99'
+    const durationFilter = percentileDurationFilter(percentile, timeFilter)
     return {
       query: `
         SELECT
@@ -273,6 +293,7 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
           formatReadableSize(max(memory_usage)) as readable_peak
         FROM system.query_log
         WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
+          ${durationFilter}
       `,
     }
   },

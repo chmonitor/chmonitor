@@ -77,10 +77,26 @@ export function StatsGrid({
       {/* Query Insights */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <SectionLabel title="Query Insights" />
-        <TotalQueriesStat hostId={hostId} lastHours={lastHours} />
-        <TotalScannedStat hostId={hostId} lastHours={lastHours} />
-        <TotalRowsReadStat hostId={hostId} lastHours={lastHours} />
-        <PeakMemoryStat hostId={hostId} lastHours={lastHours} />
+        <TotalQueriesStat
+          hostId={hostId}
+          lastHours={lastHours}
+          percentile={percentile}
+        />
+        <TotalScannedStat
+          hostId={hostId}
+          lastHours={lastHours}
+          percentile={percentile}
+        />
+        <TotalRowsReadStat
+          hostId={hostId}
+          lastHours={lastHours}
+          percentile={percentile}
+        />
+        <PeakMemoryStat
+          hostId={hostId}
+          lastHours={lastHours}
+          percentile={percentile}
+        />
       </div>
 
       {/* Cluster Activity */}
