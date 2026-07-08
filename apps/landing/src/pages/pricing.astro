@@ -38,7 +38,7 @@ const breadcrumbJsonLd = {
   <Nav />
   <main id="top">
     <!-- Page header -->
-    <section class="band" style="padding-bottom:0">
+    <section class="band price-intro" style="padding-bottom:0">
       <div class="wrap">
         <div class="sec-head price-head reveal">
           <span class="eyebrow">Pricing</span>
@@ -61,6 +61,7 @@ const breadcrumbJsonLd = {
         </div>
 
         <div class="cmp-wrap reveal">
+          <p class="cmp-swipe-hint">Swipe to compare →</p>
           <div class="cmp-scroll">
             <table class="cmp-table price-cmp">
               <thead>
@@ -138,8 +139,8 @@ const breadcrumbJsonLd = {
     .price-head .eyebrow{justify-content:center}
     /* Promoted page title: match the global .sec-head h2 type scale so the
        h1 looks identical to the section headings below it. */
-    .price-head h1{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
-    .price-head p{margin-inline:auto}
+    .price-head h1{font-size:clamp(1.75rem,6vw,2.5rem);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
+    .price-head p{margin-inline:auto;font-size:clamp(14px,3.5vw,17px)}
 
     .price-cmp .cmp-yes{stroke:var(--emerald)}
     .price-cmp .cmp-no{stroke:var(--muted-fg);opacity:.45}
@@ -147,15 +148,27 @@ const breadcrumbJsonLd = {
     .price-cmp td,.price-cmp th{text-align:center}
     .price-cmp td:first-child,.price-cmp th:first-child{text-align:left}
     .price-cmp .cmp-group td{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-fg);background:var(--card-soft, rgba(127,127,127,.06));padding-top:14px}
-    .cmp-note{margin-top:20px;text-align:center;font-size:13px;color:var(--muted-fg)}
+    .cmp-swipe-hint{display:none;margin:0;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg-soft);text-align:center;font-size:11px;color:var(--muted-fg)}
+    .cmp-scroll{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+    .cmp-note{margin-top:20px;text-align:center;font-size:13px;color:var(--muted-fg);padding:0 4px}
     .cmp-note a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
 
     .pfaq{max-width:760px;margin:36px auto 0;display:flex;flex-direction:column;gap:10px}
     .pfaq-item{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);overflow:hidden}
-    .pfaq-item summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;padding:16px 20px;font-weight:600;font-size:15px;list-style:none}
+    .pfaq-item summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:16px 18px;min-height:52px;font-weight:600;font-size:15px;list-style:none;text-align:left}
     .pfaq-item summary::-webkit-details-marker{display:none}
     .pfaq-item summary svg{width:18px;height:18px;flex-shrink:0;transition:transform .2s ease;color:var(--muted-fg)}
     .pfaq-item[open] summary svg{transform:rotate(180deg)}
-    .pfaq-a{padding:0 20px 18px;font-size:14px;line-height:1.6;color:var(--muted-fg);text-wrap:pretty}
+    .pfaq-a{padding:0 18px 18px;font-size:14px;line-height:1.6;color:var(--muted-fg);text-wrap:pretty}
+
+    @media (max-width:640px){
+      .price-intro.band{padding-top:48px}
+      .band{padding:56px 0}
+      .cmp-swipe-hint{display:block}
+      .price-cmp th,.price-cmp td{padding:12px 14px;font-size:13px}
+      .pfaq{margin-top:24px;gap:8px}
+      .pfaq-item summary{padding:14px 14px;font-size:14px}
+      .pfaq-a{padding:0 14px 14px;font-size:13.5px}
+    }
   </style>
 </Base>
