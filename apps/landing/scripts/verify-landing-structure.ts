@@ -11,8 +11,11 @@ const html = readFileSync(distIndex, 'utf8')
 const required = [
   'data-hero',
   'data-hero-features',
-  'The ops dashboard for ClickHouse',
-  'data-hero-slogan',
+  // Headline may include a <br> between "dashboard" and "for" — match pieces.
+  'The ops dashboard',
+  'for ClickHouse',
+  'data-cta="hero-primary"',
+  'data-cta="hero-self-host"',
 ] as const
 
 const forbidden = [
@@ -28,6 +31,9 @@ const forbidden = [
   'Tabbed product preview',
   'UI monitoring for ClickHouse',
   '/#feature-index',
+  // Removed rotating slogan surface — do not reintroduce a false match via JS.
+  'data-hero-slogan',
+  'data-slogans',
 ] as const
 
 let failed = false

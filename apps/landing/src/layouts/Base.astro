@@ -743,25 +743,6 @@ const ogImage = new URL(image, Astro.site).toString()
         start();
       });
     })();
-    // hero rotating slogans (static first line in HTML; JS only cycles)
-    (function(){
-      var el = document.querySelector('[data-hero-slogan]');
-      if(!el) return;
-      var raw = el.getAttribute('data-slogans') || '[]';
-      var slogans = [];
-      try { slogans = JSON.parse(raw); } catch (_) {}
-      if(!Array.isArray(slogans) || slogans.length < 2) return;
-      if(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-      var i = 0;
-      setInterval(function(){
-        el.style.opacity = '0';
-        setTimeout(function(){
-          i = (i + 1) % slogans.length;
-          el.textContent = slogans[i];
-          el.style.opacity = '1';
-        }, 280);
-      }, 4500);
-    })();
     // screenshot zoom (native <dialog>, no React)
     (function(){
       var dlg = document.getElementById('screenshot-zoom-dialog');
