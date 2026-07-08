@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
-export type ChartSkeletonType = 'area' | 'bar' | 'line' | 'metric' | 'table'
+export type ChartSkeletonType =
+  | 'area'
+  | 'bar'
+  | 'line'
+  | 'metric'
+  | 'table'
+  | 'stat'
 
 interface ChartSkeletonProps {
   className?: string
@@ -165,6 +171,14 @@ const MetricCardSkeleton = () => (
   </div>
 )
 
+/** Compact stat card skeleton */
+const StatSkeleton = () => (
+  <div className="flex flex-col gap-1.5 py-1 px-1">
+    <Skeleton className="h-6 w-24 opacity-80" />
+    <Skeleton className="h-3 w-32 opacity-50" />
+  </div>
+)
+
 /** Tabular skeleton mirroring actual tables */
 const TableSkeletonMini = () => (
   <div className="w-full h-full min-h-[140px] flex flex-col pt-1">
@@ -211,6 +225,8 @@ export const ChartSkeleton = function ChartSkeleton({
         return <MetricCardSkeleton />
       case 'table':
         return <TableSkeletonMini />
+      case 'stat':
+        return <StatSkeleton />
       default:
         return <AreaChartSkeleton />
     }

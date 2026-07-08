@@ -29,6 +29,14 @@ export function TotalQueriesStat({
   if (error || !data?.length)
     return statEmpty('Total Queries', sql, data, metadata)
   const d = data[0] as { total_queries: number; readable_count: string }
+  if (
+    d.total_queries === null ||
+    d.total_queries === undefined ||
+    d.readable_count === null ||
+    d.readable_count === undefined
+  ) {
+    return statEmpty('Total Queries', sql, data, metadata)
+  }
   const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
@@ -58,6 +66,14 @@ export function TotalScannedStat({
   if (error || !data?.length)
     return statEmpty('Total Data Scanned', sql, data, metadata)
   const d = data[0] as { total_bytes: number; readable_total: string }
+  if (
+    d.total_bytes === null ||
+    d.total_bytes === undefined ||
+    d.readable_total === null ||
+    d.readable_total === undefined
+  ) {
+    return statEmpty('Total Data Scanned', sql, data, metadata)
+  }
   const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
@@ -87,6 +103,14 @@ export function TotalRowsReadStat({
   if (error || !data?.length)
     return statEmpty('Total Rows Read', sql, data, metadata)
   const d = data[0] as { total_rows: number; readable_total: string }
+  if (
+    d.total_rows === null ||
+    d.total_rows === undefined ||
+    d.readable_total === null ||
+    d.readable_total === undefined
+  ) {
+    return statEmpty('Total Rows Read', sql, data, metadata)
+  }
   const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard
@@ -116,6 +140,14 @@ export function PeakMemoryStat({
   if (error || !data?.length)
     return statEmpty('Peak Memory', sql, data, metadata)
   const d = data[0] as { peak_memory: number; readable_peak: string }
+  if (
+    d.peak_memory === null ||
+    d.peak_memory === undefined ||
+    d.readable_peak === null ||
+    d.readable_peak === undefined
+  ) {
+    return statEmpty('Peak Memory', sql, data, metadata)
+  }
   const pLabel = percentile === '100' ? '' : ` (p${percentile})`
   return (
     <StatCard

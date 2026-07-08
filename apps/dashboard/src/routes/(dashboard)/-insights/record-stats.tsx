@@ -28,6 +28,15 @@ export function LargestScanStat({
   if (isLoading) return statLoading(label)
   if (error || !data?.length) return statEmpty(label, sql, data, metadata)
   const d = data[0] as Record<string, unknown>
+  if (
+    d.read_bytes === null ||
+    d.read_bytes === undefined ||
+    d.readable_bytes === null ||
+    d.readable_bytes === undefined ||
+    d.readable_bytes === 'NaN'
+  ) {
+    return statEmpty(label, sql, data, metadata)
+  }
   return (
     <StatCard
       title={label}
@@ -55,6 +64,15 @@ export function FastestScanStat({
   if (isLoading) return statLoading(label)
   if (error || !data?.length) return statEmpty(label, sql, data, metadata)
   const d = data[0] as Record<string, unknown>
+  if (
+    d.bytes_per_second === null ||
+    d.bytes_per_second === undefined ||
+    d.readable_speed === null ||
+    d.readable_speed === undefined ||
+    d.readable_speed === 'NaN'
+  ) {
+    return statEmpty(label, sql, data, metadata)
+  }
   return (
     <StatCard
       title={label}
@@ -82,6 +100,13 @@ export function LongestQueryStat({
   if (isLoading) return statLoading(label)
   if (error || !data?.length) return statEmpty(label, sql, data, metadata)
   const d = data[0] as Record<string, unknown>
+  if (
+    d.query_duration_ms === null ||
+    d.query_duration_ms === undefined ||
+    isNaN(Number(d.query_duration_ms))
+  ) {
+    return statEmpty(label, sql, data, metadata)
+  }
   return (
     <StatCard
       title={label}
@@ -103,6 +128,14 @@ export function TotalStorageStat({ hostId }: { readonly hostId: number }) {
   if (error || !data?.length)
     return statEmpty('Total Storage', sql, data, metadata)
   const d = data[0] as Record<string, unknown>
+  if (
+    d.total_compressed === null ||
+    d.total_compressed === undefined ||
+    d.total_tables === null ||
+    d.total_tables === undefined
+  ) {
+    return statEmpty('Total Storage', sql, data, metadata)
+  }
   return (
     <StatCard
       title="Total Storage"

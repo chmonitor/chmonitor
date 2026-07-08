@@ -156,7 +156,8 @@ export const ChartEmpty = function ChartEmpty({
       <CardContent
         className={cn(
           compact ? chartCard.contentCompact : chartCard.content,
-          'relative flex flex-col items-center justify-center py-6 sm:py-8 overflow-hidden'
+          'relative flex flex-col items-center justify-center overflow-hidden',
+          compact ? 'py-2 min-h-[50px]' : 'py-6 sm:py-8'
         )}
       >
         {/* Grid pattern overlay */}
@@ -164,30 +165,39 @@ export const ChartEmpty = function ChartEmpty({
 
         <div
           className={cn(
-            'mb-3 sm:mb-4 rounded-full p-3 transition-all duration-300 relative',
+            compact ? 'mb-1 p-1' : 'mb-3 sm:mb-4 p-3',
+            'rounded-full transition-all duration-300 relative',
             'bg-primary/5 dark:bg-primary/10 group-hover:bg-primary/10 dark:group-hover:bg-primary/20',
             'border border-primary/10 dark:border-primary/20 group-hover:border-primary/20 dark:group-hover:border-primary/30',
             'after:absolute after:inset-0 after:rounded-full after:bg-primary/20 after:blur-md after:opacity-0 group-hover:after:opacity-50 after:transition-opacity after:duration-300'
           )}
         >
           <Inbox
-            className="h-5 w-5 sm:h-6 sm:w-6 text-primary/60 dark:text-primary/50 group-hover:text-primary/80 group-hover:scale-110 transition-all duration-300"
+            className={cn(
+              compact ? 'h-3.5 w-3.5' : 'h-5 w-5 sm:h-6 sm:w-6',
+              'text-primary/60 dark:text-primary/50 group-hover:text-primary/80 group-hover:scale-110 transition-all duration-300'
+            )}
             strokeWidth={1.5}
           />
         </div>
 
-        <p className="text-sm font-medium text-muted-foreground text-center">
+        <p
+          className={cn(
+            'font-medium text-muted-foreground text-center',
+            compact ? 'text-[11px]' : 'text-sm'
+          )}
+        >
           {title ? `${title} - No data` : 'No data available'}
         </p>
 
-        {(description || !title) && (
+        {!compact && (description || !title) && (
           <p className="mt-1 text-xs text-muted-foreground/60 max-w-xs text-center leading-relaxed">
             {description ||
               'There is no data to display. This could be due to no activity in the selected time period.'}
           </p>
         )}
 
-        {onRetry && (
+        {!compact && onRetry && (
           <Button
             variant="outline"
             size="sm"
@@ -199,7 +209,7 @@ export const ChartEmpty = function ChartEmpty({
           </Button>
         )}
 
-        {suggestion && (
+        {!compact && suggestion && (
           <div className="mt-4 sm:mt-5 w-full max-w-xs interactive-element">
             <SuggestionCard suggestion={suggestion} />
           </div>

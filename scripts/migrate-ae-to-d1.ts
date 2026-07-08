@@ -26,20 +26,20 @@ async function queryAE(sql: string): Promise<unknown[]> {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${CF_API_TOKEN}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'text/plain',
     },
-    body: JSON.stringify({ query: sql }),
+    body: sql,
   })
-  const json = (await res.json()) as {
-    success: boolean
-    result: unknown[]
-    errors?: unknown[]
-  }
-  if (!json.success) {
-    console.error('AE query failed:', json.errors)
+  if (!res.ok) {
+    console.error(`AE query failed: HTTP ${res.status} ${await res.text()}`)
     return []
   }
-  return json.result as unknown[]
+  const json = (await res.json()) as {
+    meta: unknown[]
+    data: Record<string, string>[]
+    rows: number
+  }
+  return json.data ?? []
 }
 
 async function executeD1(sql: string): Promise<void> {
@@ -82,7 +82,7 @@ async function migratePings() {
       blob6 AS platform,
       blob7 AS chm_version,
       blob8 AS install_place,
-      toTimestamp(timestamp) AS timestamp
+      timestamp
     FROM ${AE_DATASET}
     WHERE blob1 = 'ping'
     ORDER BY timestamp
@@ -155,7 +155,7 @@ async function migrateEvents() {
       blob3 AS deploy_target,
       blob4 AS ch_version,
       blob5 AS ch_flavor,
-      toTimestamp(timestamp) AS timestamp
+      timestamp
     FROM ${AE_DATASET}
     WHERE blob1 = 'event'
     ORDER BY timestamp
