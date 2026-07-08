@@ -314,6 +314,7 @@ export async function handler(
           duration: 0,
           rows: 0,
           host: String(hostId),
+          sql: result.executedSql.trim(),
           unavailable: {
             reason: 'table_not_found',
             message: result.error.message,
@@ -338,6 +339,8 @@ export async function handler(
       // Preserve the client's classification (e.g. an unreachable upstream is
       // ssl_error/network_error → 503) instead of flattening every failure to a
       // 500. See statusForFetchDataError for the rationale.
+      // Always include metadata.sql so empty/error cards can still open the
+      // "review query" toolbar even when the host rejects the query.
       return Response.json(
         {
           success: false,
@@ -345,6 +348,14 @@ export async function handler(
             type: result.error.type,
             message: result.error.message,
             details: result.error.details,
+          },
+          metadata: {
+            queryId: '',
+            duration: 0,
+            rows: 0,
+            host: String(hostId),
+            sql: result.executedSql.trim(),
+            clickhouseVersion: result.clickhouseVersion,
           },
         },
         { status: statusForFetchDataError(result.error.type) }

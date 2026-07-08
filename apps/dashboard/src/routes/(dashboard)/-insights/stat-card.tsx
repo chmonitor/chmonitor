@@ -12,7 +12,7 @@ export function statLoading(title: string) {
     <ChartSkeleton
       title={title}
       type="stat"
-      className="min-h-[90px]"
+      className="min-h-[72px]"
       headerClassName="py-1"
     />
   )
@@ -32,7 +32,7 @@ export function statEmpty(
       data={data}
       metadata={metadata}
       compact
-      className="min-h-[90px]"
+      className="min-h-[72px]"
       headerClassName="py-1"
     />
   )

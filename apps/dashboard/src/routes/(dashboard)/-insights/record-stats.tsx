@@ -28,12 +28,15 @@ export function LargestScanStat({
   if (isLoading) return statLoading(label)
   if (error || !data?.length) return statEmpty(label, sql, data, metadata)
   const d = data[0] as Record<string, unknown>
+  const readable = d.readable_bytes
+  const bytes = d.read_bytes
   if (
-    d.read_bytes === null ||
-    d.read_bytes === undefined ||
-    d.readable_bytes === null ||
-    d.readable_bytes === undefined ||
-    d.readable_bytes === 'NaN'
+    bytes === null ||
+    bytes === undefined ||
+    Number.isNaN(Number(bytes)) ||
+    readable === null ||
+    readable === undefined ||
+    String(readable).toLowerCase() === 'nan'
   ) {
     return statEmpty(label, sql, data, metadata)
   }
@@ -44,7 +47,7 @@ export function LargestScanStat({
       sql={sql}
       data={data}
       metadata={metadata}
-      value={String(d.readable_bytes)}
+      value={String(readable)}
     />
   )
 }

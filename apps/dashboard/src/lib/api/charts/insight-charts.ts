@@ -7,22 +7,74 @@ import type { ChartQueryBuilder } from './types'
 
 import { buildTimeFilter } from '@/lib/clickhouse-query'
 
+/**
+ * Aggregate expression for a percentile (or max for p100).
+ * Uses quantileTDigest — lower memory than exact quantile on large query_log.
+ */
 function percentileThreshold(percentile: string, column: string): string {
   return percentile === '100'
     ? `max(${column})`
-    : `quantile(0.${percentile})(${column})`
+    : `quantileTDigest(0.${percentile})(${column})`
 }
 
 /**
  * Build a WHERE filter that excludes queries whose duration exceeds the given
  * percentile threshold. For p100 no filter is applied (include everything).
+ *
+ * `timeFilter` is a bare condition from buildTimeFilter (no leading AND).
  */
 function percentileDurationFilter(
   percentile: string,
   timeFilter: string
 ): string {
   if (percentile === '100') return ''
-  return `AND query_duration_ms <= (SELECT quantile(0.${percentile})(query_duration_ms) FROM system.query_log WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter})`
+  const timeClause = timeFilter ? `AND ${timeFilter}` : ''
+  return `AND query_duration_ms <= (
+    SELECT ${percentileThreshold(percentile, 'query_duration_ms')}
+    FROM system.query_log
+    WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeClause}
+  )`
+}
+
+/** Shared WHERE for finished initial queries, optionally time-bounded. */
+function finishedQueryWhere(timeFilter: string, extra = ''): string {
+  const timeClause = timeFilter ? `AND ${timeFilter}` : ''
+  const extraClause = extra ? `AND ${extra}` : ''
+  return `type = 'QueryFinish' AND is_initial_query = 1 ${timeClause} ${extraClause}`
+}
+
+/**
+ * Single-pass aggregate card: compute the threshold once in a subquery, then
+ * format for display. Avoids evaluating max/quantile twice in the SELECT list.
+ */
+function scalarAggregateQuery(
+  thresholdExpr: string,
+  alias: string,
+  readableAlias: string,
+  where: string,
+  formatReadable = true
+): string {
+  if (formatReadable) {
+    return `
+      SELECT
+        formatReadableSize(v) AS ${readableAlias},
+        v AS ${alias}
+      FROM (
+        SELECT ${thresholdExpr} AS v
+        FROM system.query_log
+        WHERE ${where}
+      )
+    `
+  }
+  return `
+    SELECT
+      v AS ${alias}
+    FROM (
+      SELECT ${thresholdExpr} AS v
+      FROM system.query_log
+      WHERE ${where}
+    )
+  `
 }
 
 export const insightCharts: Record<string, ChartQueryBuilder> = {
@@ -31,13 +83,12 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     const percentile = (params.params?.percentile as string) || '99'
     const threshold = percentileThreshold(percentile, 'read_bytes')
     return {
-      query: `
-        SELECT
-          formatReadableSize(${threshold}) as readable_bytes,
-          ${threshold} as read_bytes
-        FROM system.query_log
-        WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
-      `,
+      query: scalarAggregateQuery(
+        threshold,
+        'read_bytes',
+        'readable_bytes',
+        finishedQueryWhere(timeFilter, 'read_bytes > 0')
+      ),
     }
   },
 
@@ -47,13 +98,15 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     const speedExpr = `read_bytes / greatest(query_duration_ms, 1) * 1000`
     const threshold = percentileThreshold(percentile, speedExpr)
     return {
-      query: `
-        SELECT
-          formatReadableSize(${threshold}) as readable_speed,
-          ${threshold} as bytes_per_second
-        FROM system.query_log
-        WHERE type = 'QueryFinish' AND is_initial_query = 1 AND query_duration_ms > 0 ${timeFilter ? `AND ${timeFilter}` : ''}
-      `,
+      query: scalarAggregateQuery(
+        threshold,
+        'bytes_per_second',
+        'readable_speed',
+        finishedQueryWhere(
+          timeFilter,
+          'query_duration_ms > 0 AND read_bytes > 0'
+        )
+      ),
     }
   },
 
@@ -62,12 +115,13 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     const percentile = (params.params?.percentile as string) || '99'
     const threshold = percentileThreshold(percentile, 'query_duration_ms')
     return {
-      query: `
-        SELECT
-          ${threshold} as query_duration_ms
-        FROM system.query_log
-        WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
-      `,
+      query: scalarAggregateQuery(
+        threshold,
+        'query_duration_ms',
+        'readable_duration',
+        finishedQueryWhere(timeFilter),
+        false
+      ),
     }
   },
 
@@ -203,10 +257,10 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     return {
       query: `
         SELECT
-          ${durationExpr} as avg_duration_ms,
-          count() as query_count
+          ${durationExpr} AS avg_duration_ms,
+          count() AS query_count
         FROM system.query_log
-        WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeFilter ? `AND ${timeFilter}` : ''}
+        WHERE ${finishedQueryWhere(timeFilter)}
       `,
     }
   },

@@ -51,4 +51,43 @@ describe('insightCharts', () => {
       }
     }
   })
+
+  test('largest-scan uses single-pass aggregate and valid time filter', () => {
+    const result = insightCharts['insight-largest-scan']({
+      lastHours: 24,
+      params: { percentile: '99' },
+    })
+    expect('query' in result).toBe(true)
+    if (!('query' in result)) return
+    expect(result.query).toContain('quantileTDigest(0.99)(read_bytes)')
+    expect(result.query).toContain('AND event_time >=')
+    expect(result.query).toContain('read_bytes > 0')
+    // Aggregate evaluated once in a subquery, not twice in the SELECT list.
+    const matches = result.query.match(
+      /quantileTDigest\(0\.99\)\(read_bytes\)/g
+    )
+    expect(matches?.length).toBe(1)
+  })
+
+  test('largest-scan p100 uses max()', () => {
+    const result = insightCharts['insight-largest-scan']({
+      lastHours: 24,
+      params: { percentile: '100' },
+    })
+    if (!('query' in result)) throw new Error('expected query')
+    expect(result.query).toContain('max(read_bytes)')
+    expect(result.query).not.toContain('quantileTDigest')
+  })
+
+  test('total-queries percentile filter includes AND before time filter', () => {
+    const result = insightCharts['insight-total-queries']({
+      lastHours: 24,
+      params: { percentile: '99' },
+    })
+    if (!('query' in result)) throw new Error('expected query')
+    // Regression: missing AND produced invalid SQL like
+    // "is_initial_query = 1 event_time >="
+    expect(result.query).toMatch(/is_initial_query = 1\s+AND\s+event_time/)
+    expect(result.query).not.toMatch(/is_initial_query = 1\s+event_time/)
+  })
 })

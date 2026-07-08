@@ -157,7 +157,7 @@ export const ChartEmpty = function ChartEmpty({
         className={cn(
           compact ? chartCard.contentCompact : chartCard.content,
           'relative flex flex-col items-center justify-center overflow-hidden',
-          compact ? 'py-2 min-h-[50px]' : 'py-6 sm:py-8'
+          compact ? 'py-1 px-2 min-h-[44px]' : 'py-6 sm:py-8'
         )}
       >
         {/* Grid pattern overlay */}
@@ -187,7 +187,12 @@ export const ChartEmpty = function ChartEmpty({
             compact ? 'text-[11px]' : 'text-sm'
           )}
         >
-          {title ? `${title} - No data` : 'No data available'}
+          {/* Compact cards already show the title in the header — keep body short. */}
+          {compact
+            ? 'No data'
+            : title
+              ? `${title} - No data`
+              : 'No data available'}
         </p>
 
         {!compact && (description || !title) && (

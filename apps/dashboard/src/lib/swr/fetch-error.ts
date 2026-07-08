@@ -8,12 +8,20 @@ interface ApiErrorBody {
     type?: string
     details?: { missingTables?: readonly string[]; [key: string]: unknown }
   }
+  /** Present on chart/table error responses so the UI can still review SQL. */
+  metadata?: {
+    sql?: string
+    [key: string]: unknown
+  }
 }
 
 export interface FetchError extends Error {
   status?: number
   type?: string
   details?: { missingTables?: readonly string[]; [key: string]: unknown }
+  /** SQL from the failed request, when the API included it in the body. */
+  sql?: string
+  metadata?: ApiErrorBody['metadata']
 }
 
 export async function throwIfNotOk(
@@ -33,6 +41,13 @@ export async function throwIfNotOk(
   if (errorData.error) {
     error.type = errorData.error.type
     error.details = errorData.error.details
+  }
+
+  if (errorData.metadata) {
+    error.metadata = errorData.metadata
+    if (typeof errorData.metadata.sql === 'string') {
+      error.sql = errorData.metadata.sql
+    }
   }
 
   throw error

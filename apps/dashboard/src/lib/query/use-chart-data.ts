@@ -186,10 +186,21 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
     }
   }, [error, hasData, isLoading])
 
+  // Prefer successful-response metadata; fall back to SQL attached on the
+  // thrown FetchError so empty/error cards can still open "review query".
+  const errorSql =
+    error && 'sql' in error && typeof error.sql === 'string'
+      ? error.sql
+      : undefined
+  const errorMetadata =
+    error && 'metadata' in error && error.metadata
+      ? (error.metadata as ChartMetadata)
+      : undefined
+
   return {
     data: dataArray ?? [],
-    metadata: data?.metadata,
-    sql: data?.metadata?.sql,
+    metadata: data?.metadata ?? errorMetadata,
+    sql: data?.metadata?.sql ?? errorSql,
     error: error ?? undefined,
     isLoading,
     isValidating,

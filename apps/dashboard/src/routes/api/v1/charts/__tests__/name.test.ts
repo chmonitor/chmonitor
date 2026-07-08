@@ -145,9 +145,12 @@ describe('GET /api/v1/charts/$name — optional table degradation', () => {
     const body = (await response.json()) as {
       success: boolean
       error: { type: string; message: string }
+      metadata?: { sql?: string }
     }
     expect(body.success).toBe(false)
     expect(body.error.type).toBe('query_error')
+    // SQL stays available so empty/error cards can open "review query".
+    expect(body.metadata?.sql).toBe('SELECT 1')
   })
 
   test('unreachable upstream (525/ssl_error) → 503, not 500', async () => {

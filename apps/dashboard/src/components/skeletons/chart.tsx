@@ -268,7 +268,11 @@ export const ChartSkeleton = function ChartSkeleton({
       </CardHeader>
 
       <CardContent
-        className={cn(chartCard.content, 'relative overflow-hidden')}
+        className={cn(
+          type === 'stat' ? chartCard.contentCompact : chartCard.content,
+          'relative overflow-hidden',
+          type === 'stat' && 'py-1 px-2'
+        )}
       >
         {renderContent()}
       </CardContent>
