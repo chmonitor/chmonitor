@@ -72,12 +72,14 @@ const icons: Record<string, string> = {
                   : 'min-[881px]:order-2'
               }
             >
-              <ScreenshotShot
-                id={section.id}
-                src={section.screenshot.src}
-                srcDark={section.screenshot.srcDark}
-                alt={section.screenshot.alt}
-              />
+              <div class="overflow-hidden rounded-xl shadow-[0_20px_60px_-18px_rgba(0,0,0,0.28)] dark:shadow-[0_20px_60px_-18px_rgba(0,0,0,0.65)]">
+                <ScreenshotShot
+                  id={section.id}
+                  src={section.screenshot.src}
+                  srcDark={section.screenshot.srcDark}
+                  alt={section.screenshot.alt}
+                />
+              </div>
             </div>
           </article>
         ))

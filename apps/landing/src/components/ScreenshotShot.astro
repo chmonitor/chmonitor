@@ -16,8 +16,7 @@ const paired = Boolean(srcDark)
   data-zoom-src={src}
   data-zoom-src-dark={srcDark}
   data-zoom-alt={alt}
-  class="relative block w-full overflow-hidden leading-none border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
-  style="border: 0; outline: none; background: none; padding: 0;"
+  class="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl bg-transparent p-0 leading-none outline-none transition-shadow duration-200 hover:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.35)] dark:hover:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
   aria-label={`View full size: ${alt}`}
 >
   <img
