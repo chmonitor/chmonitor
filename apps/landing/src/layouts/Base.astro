@@ -33,7 +33,7 @@ const ogImage = new URL(image, Astro.site).toString()
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#000000" />
   <meta name="twitter:site" content="@chmonitor" />
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
@@ -93,68 +93,64 @@ const ogImage = new URL(image, Astro.site).toString()
        `a{color:inherit}` beat EVERY Tailwind margin/padding/text-color utility
        (unlayered rules win over any layered rule), breaking the shadcn sections. */
     @layer base {
+    /* Geist (vercel.com/design.md) + x.ai monochrome field.
+       Light: white / gray-1000. Dark: pure black, white type. */
     :root{
       --bg:#ffffff;
       --bg-soft:#fafafa;
-      --fg:#09090b;
-      --fg-soft:#3f3f46;
-      --muted-fg:#71717a;
-      --border:#e7e7ea;
-      --border-soft:#f1f1f3;
-      --border-hover:#dcdce0;
-      --muted:#f4f4f5;
-      /* card/elevated surface — flips dark in the dark-mode block below */
+      --fg:#171717;
+      --fg-soft:#4d4d4d;
+      --muted-fg:#666666;
+      --border:#eaeaea;
+      --border-soft:#f2f2f2;
+      --border-hover:#c9c9c9;
+      --muted:#f2f2f2;
       --card:#ffffff;
-      --nav-bg:rgba(255,255,255,.78);
-      --browser-bar:#fbfbfc;
-      /* primary button is a token PAIR so it never inverts to light-on-light */
-      --btn-primary-bg:#09090b;
-      --btn-primary-bg-hover:#26262b;
+      --nav-bg:rgba(255,255,255,.80);
+      --browser-bar:#fafafa;
+      --btn-primary-bg:#171717;
+      --btn-primary-bg-hover:#000000;
       --btn-primary-fg:#ffffff;
-      /* Brand accent — neutral black/white for a clean aesthetic. */
-      --primary:#1a1a1a;
+      --primary:#171717;
       --primary-fg:#ffffff;
       --orange:var(--primary);
-      --amber:#71717a;
-      --emerald:#1a1a1a;
-      --violet:#71717a;
-      --blue:#1a1a1a;
-      --radius:12px;
-      --maxw:1140px;
-      --shadow-card:0 1px 2px rgba(9,9,11,.04), 0 1px 0 rgba(9,9,11,.02);
-      --shadow-float:0 24px 60px -28px rgba(9,9,11,.30), 0 8px 24px -16px rgba(9,9,11,.18);
+      --amber:#666666;
+      --emerald:#171717;
+      --violet:#666666;
+      --blue:#171717;
+      /* Geist everyday radius */
+      --radius:6px;
+      --maxw:1200px;
+      --shadow-card:0 2px 2px rgba(0,0,0,.04);
+      --shadow-float:0 1px 1px rgba(0,0,0,.02), 0 4px 8px -4px rgba(0,0,0,.04), 0 16px 24px -8px rgba(0,0,0,.06);
       --shadow-glow:none;
     }
-    /* ── dark mode: tokens flip, layout unchanged. Applied when
-       html[data-theme="dark"]. The head script resolves the saved choice / OS
-       preference to a concrete data-theme before paint; the nav toggle flips it.
-       Single token block — no duplication. Off-black (no pure #000), cool-gray. ── */
     :root[data-theme="dark"]{
-      --bg:#0b0b0e;
-      --bg-soft:#101014;
-      --fg:#f4f4f5;
-      --fg-soft:#c4c4cb;
-      --muted-fg:#8a8a93;
-      --border:#26262c;
-      --border-soft:#1c1c21;
-      --border-hover:#34343c;
-      --muted:#1a1a1f;
-      --card:#141418;
-      --nav-bg:rgba(11,11,14,.72);
-      --browser-bar:#17171c;
-      /* Dark-mode brand neutral */
-      --primary:#fafafa;
+      /* x.ai-style pure black canvas */
+      --bg:#000000;
+      --bg-soft:#0a0a0a;
+      --fg:#ededed;
+      --fg-soft:#a1a1a1;
+      --muted-fg:#888888;
+      --border:#1a1a1a;
+      --border-soft:#111111;
+      --border-hover:#2a2a2a;
+      --muted:#111111;
+      --card:#0a0a0a;
+      --nav-bg:rgba(0,0,0,.72);
+      --browser-bar:#0a0a0a;
+      --primary:#ededed;
       --shadow-glow:none;
-      --btn-primary-bg:#fafafa;
-      --btn-primary-bg-hover:#e4e4e7;
-      --btn-primary-fg:#09090b;
-      --shadow-card:0 1px 2px rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.3);
-      --shadow-float:0 24px 60px -28px rgba(0,0,0,.7), 0 8px 24px -16px rgba(0,0,0,.5);
+      --btn-primary-bg:#ededed;
+      --btn-primary-bg-hover:#ffffff;
+      --btn-primary-fg:#0a0a0a;
+      --shadow-card:0 2px 2px rgba(0,0,0,.4);
+      --shadow-float:0 1px 1px rgba(0,0,0,.2), 0 4px 8px -4px rgba(0,0,0,.4), 0 16px 24px -8px rgba(0,0,0,.5);
     }
     *{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
-    /* keep in-page jump targets clear of the sticky 64px nav */
-    :target{scroll-margin-top:84px}
+    /* keep in-page jump targets clear of the sticky nav */
+    :target{scroll-margin-top:72px}
     body{
       background:var(--bg);
       color:var(--fg);
@@ -169,15 +165,15 @@ const ogImage = new URL(image, Astro.site).toString()
     .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
     .eyebrow{font-size:12px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;color:var(--muted-fg)}
 
-    /* ── buttons ── */
-    .btn{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;
-      font-size:14.5px;font-weight:560;font-weight:600;white-space:nowrap;transition:.16s ease;border:1px solid transparent;cursor:pointer}
+    /* ── buttons (Geist: 40px height, 6px radius, no lift) ── */
+    .btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--radius);
+      font-size:14px;font-weight:500;white-space:nowrap;transition:background .15s ease,border-color .15s ease,color .15s ease;border:1px solid transparent;cursor:pointer}
     .btn svg{width:16px;height:16px}
     .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg)}
-    .btn-primary:hover{background:var(--btn-primary-bg-hover);transform:translateY(-1px)}
+    .btn-primary:hover{background:var(--btn-primary-bg-hover)}
     .btn-ghost{background:var(--card);color:var(--fg);border-color:var(--border)}
     .btn-ghost:hover{background:var(--muted);border-color:var(--border-hover)}
-    .btn-sm{height:36px;padding:0 14px;font-size:13.5px;border-radius:9px}
+    .btn-sm{height:32px;padding:0 10px;font-size:13px;border-radius:var(--radius)}
 
     /* ── logo mark ── */
     .mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -195,8 +191,8 @@ const ogImage = new URL(image, Astro.site).toString()
       transition:border-color .2s ease}
     /* Only draw the divider once the page has scrolled off the very top. */
     header.nav.is-scrolled{border-bottom-color:var(--border-soft)}
-    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:28px;height:64px}
-    .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:650;font-weight:600;font-size:16px;letter-spacing:-.01em}
+    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:24px;height:56px}
+    .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:600;font-size:15px;letter-spacing:-.02em}
     .nav-links{display:flex;align-items:center;gap:22px}
     .nav-links a{font-size:14px;color:var(--muted-fg);font-weight:500;white-space:nowrap;transition:color .15s}
     .nav-links a:hover{color:var(--fg)}

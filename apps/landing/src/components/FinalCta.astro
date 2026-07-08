@@ -1,29 +1,47 @@
-<section class="pt-6 pb-20 sm:pb-24">
-  <div class="mx-auto max-w-6xl px-6">
-    <!-- Deliberately dark in BOTH themes: a spotlight CTA band anchored by the
-         dark hero image. Colors are fixed (not theme tokens) so light mode keeps
-         the same dark look. -->
-    <div class="reveal relative isolate overflow-hidden rounded-xl bg-neutral-950 shadow-sm">
-      <div class="absolute inset-0 -z-10" aria-hidden="true">
-        <img src="/landing-assets/hero-cmyk-3.jpg" alt="" width="2752" height="1536" loading="lazy" decoding="async" class="h-full w-full object-cover object-center" />
-      </div>
-      <div aria-hidden="true" class="absolute inset-0 -z-10 bg-gradient-to-b from-black/70 via-black/40 to-black/80"></div>
+<section class="pt-6 pb-20 sm:pb-28">
+  <div class="mx-auto max-w-[1200px] px-6">
+    <!-- Fixed pure-black CTA (x.ai field) — monochrome, no brand accent color. -->
+    <div class="reveal relative isolate overflow-hidden rounded-2xl border border-white/10 bg-black">
+      <div
+        class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(255,255,255,0.08),transparent_70%)]"
+        aria-hidden="true"
+      ></div>
 
-      <div class="relative mx-auto max-w-2xl px-6 py-16 text-center sm:py-22">
-        <span class="mb-5 flex justify-center" aria-hidden="true">
-          <img src="/brand/logo-mark.svg" alt="chmonitor" class="size-10" />
+      <div class="relative mx-auto max-w-2xl px-6 py-16 text-center sm:py-20">
+        <span class="mb-6 flex justify-center" aria-hidden="true">
+          <img src="/brand/logo-mark.svg" alt="" class="size-9 opacity-90" />
         </span>
-        <h2 class="text-balance font-semibold text-3xl text-white tracking-tight sm:text-4xl">Start monitoring — with an <span class="text-[#3b82f6]">advisor</span> and <span class="text-[#3b82f6]">alerts</span> built in</h2>
-        <p class="mt-4 text-pretty text-white/70">Open the hosted dashboard and connect a cluster, or self-host with Docker, Kubernetes, or from source. Self-hosting is always free.</p>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <a class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 h-10 text-sm font-medium text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-[.98]" href="https://dash.chmonitor.dev" target="_blank" rel="noopener" data-cta="final-primary">
-            Open dashboard
+        <h2 class="text-balance font-semibold text-3xl text-white tracking-[-0.04em] sm:text-4xl">
+          Start monitoring — advisor and alerts built in
+        </h2>
+        <p class="mt-4 text-pretty text-white/55 text-base leading-relaxed">
+          Open the hosted dashboard and connect a cluster, or self-host with Docker, Kubernetes, or from source. Self-hosting is always free.
+        </p>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+          <a
+            class="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 h-10 text-sm font-medium text-black transition-colors hover:bg-white/90 active:scale-[.98]"
+            href="https://dash.chmonitor.dev"
+            target="_blank"
+            rel="noopener"
+            data-cta="final-primary"
+          >
+            Open Dashboard
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
-          <a class="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-6 h-10 text-sm font-medium text-white shadow-xs backdrop-blur-sm transition-all hover:bg-white/20 active:scale-[.98]" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
-            Read the docs
+          <a
+            class="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-5 h-10 text-sm font-medium text-white transition-colors hover:bg-white/10 active:scale-[.98]"
+            href="https://docs.chmonitor.dev"
+            target="_blank"
+            rel="noopener"
+          >
+            Read the Docs
           </a>
-          <a class="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-6 h-10 text-sm font-medium text-white shadow-xs backdrop-blur-sm transition-all hover:bg-white/20 active:scale-[.98]" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
+          <a
+            class="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-5 h-10 text-sm font-medium text-white transition-colors hover:bg-white/10 active:scale-[.98]"
+            href="https://github.com/chmonitor/chmonitor"
+            target="_blank"
+            rel="noopener"
+          >
             <svg class="size-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
             GitHub
           </a>

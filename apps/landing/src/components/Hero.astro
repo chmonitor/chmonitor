@@ -1,5 +1,4 @@
 ---
-import { HERO_SLOGANS } from '../lib/hero-slogans'
 import { formatCount, getGitHubStats } from '../lib/github-stars'
 
 const { stars } = await getGitHubStats()
@@ -14,22 +13,32 @@ const HERO_FEATURES = [
   'AI advisor for schema and tuning — MCP-ready, read-only default',
 ] as const
 
-const checkSvg = `<svg class="mt-0.5 size-4 shrink-0 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>`
+const checkSvg = `<svg class="mt-0.5 size-3.5 shrink-0 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>`
 const arrowSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
 const bookSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>`
 const starSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>`
-const githubSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`
+const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`
 
+/* shadcn Button classes (Geist: 40px, 6px radius, medium weight) */
 const btnPrimary =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-6 h-10 text-sm font-medium text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-5 h-10 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 const btnOutline =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-6 h-10 text-sm font-medium shadow-xs transition-all hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-5 h-10 text-sm font-medium transition-colors hover:bg-accent active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 const btnGhost =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 h-10 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 h-10 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 ---
 
-<section class="relative isolate overflow-hidden pb-16 sm:pb-20" data-hero>
-  <div class="relative mx-auto max-w-6xl px-6 pt-16 sm:pt-20 lg:pt-24">
+<section class="relative isolate overflow-hidden pb-20 sm:pb-28" data-hero>
+  <!-- x.ai-style ambient field: faint radial + grid, no color noise -->
+  <div
+    class="pointer-events-none absolute inset-0 -z-10"
+    aria-hidden="true"
+  >
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,120,120,0.12),transparent_60%)] dark:bg-[radial-gradient(ellipse_70%_45%_at_50%_-10%,rgba(255,255,255,0.08),transparent_55%)]"></div>
+    <div class="absolute inset-0 opacity-[0.35] dark:opacity-[0.2] [background-image:linear-gradient(to_right,rgba(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgb(128,128,128,0.06)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_40%,transparent_100%)]"></div>
+  </div>
+
+  <div class="relative mx-auto max-w-[1200px] px-6 pt-20 sm:pt-28 lg:pt-32">
     <div class="mx-auto max-w-3xl text-center">
       <a
         href="https://github.com/chmonitor/chmonitor"
@@ -38,21 +47,21 @@ const btnGhost =
         class="inline-flex"
         data-hero-oss
       >
-        <span class="inline-flex items-center gap-2 rounded-full border border-border bg-neutral-100 dark:bg-neutral-800 px-4 py-1.5 text-neutral-800 text-sm font-medium dark:text-neutral-200">
-          <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={githubSvg} />
+        <span class="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-muted-foreground text-xs font-medium tracking-wide backdrop-blur-sm transition-colors hover:border-foreground/20 hover:text-foreground">
+          <span class="inline-flex items-center justify-center size-3.5 shrink-0" set:html={githubSvg} />
           Open source · GPL-3.0 · self-host free
         </span>
       </a>
 
-      <h1 class="mt-8 text-balance font-extrabold text-[clamp(2.5rem,6vw,4.25rem)] text-foreground leading-[1.1] tracking-[-0.05em]">
-        The ops dashboard for ClickHouse.
+      <h1 class="mt-10 text-balance font-semibold text-[clamp(2.75rem,7vw,4.5rem)] text-foreground leading-[0.98] tracking-[-0.06em]">
+        The ops dashboard<br class="hidden sm:block" /> for ClickHouse.
       </h1>
 
-      <p class="mx-auto mt-6 max-w-xl text-pretty text-muted-foreground text-lg leading-relaxed sm:text-xl font-normal">
-        An open-source dashboard to monitor ClickHouse. Reads system tables directly — queries, merges, parts, replication, health, and an AI advisor.
+      <p class="mx-auto mt-7 max-w-xl text-pretty text-muted-foreground text-base leading-relaxed sm:text-lg font-normal">
+        Monitor queries, merges, parts, replication, and health. An AI advisor on top — open source, self-host free.
       </p>
 
-      <div class="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
         <a
           href="https://dash.chmonitor.dev"
           target="_blank"
@@ -60,7 +69,7 @@ const btnGhost =
           data-cta="hero-primary"
           class={btnPrimary}
         >
-          Start free
+          Start Free
           <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
         </a>
         <a
@@ -71,7 +80,7 @@ const btnGhost =
           class={btnOutline}
         >
           <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={bookSvg} />
-          Self-host
+          Self-Host
         </a>
         {
           starLabel ? (
@@ -91,14 +100,14 @@ const btnGhost =
     </div>
 
     <ul
-      class="mx-auto mt-12 grid max-w-3xl list-none gap-x-8 gap-y-3 sm:grid-cols-2"
+      class="mx-auto mt-16 grid max-w-3xl list-none gap-x-10 gap-y-3.5 sm:grid-cols-2 border-t border-border pt-10"
       data-hero-features
     >
       {
         HERO_FEATURES.map((feature) => (
-          <li class="flex gap-2.5 text-left text-foreground text-sm leading-snug">
+          <li class="flex gap-2.5 text-left text-muted-foreground text-sm leading-snug">
             <span set:html={checkSvg} />
-            {feature}
+            <span class="text-foreground/90">{feature}</span>
           </li>
         ))
       }
