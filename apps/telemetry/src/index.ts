@@ -839,6 +839,9 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
   // Same WHERE clause for total + by-version when scoped; by_deploy_target
   // stays global so the breakdown is always visible.
   const where = scoped ? 'WHERE deploy_target = ?' : ''
+  const installPlacesWhere = scoped
+    ? 'WHERE deploy_target = ? AND install_place IS NOT NULL'
+    : 'WHERE install_place IS NOT NULL'
   const stmt = (sql: string) =>
     scoped
       ? env.CHM_TELEMETRY_DB!.prepare(sql).bind(scoped)
@@ -881,7 +884,7 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
         `SELECT COALESCE(chm_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
       ).all<{ v: string; n: number }>(),
       stmt(
-        `SELECT COUNT(DISTINCT install_place) AS n FROM ping_daily ${where} WHERE install_place IS NOT NULL`
+        `SELECT COUNT(DISTINCT install_place) AS n FROM ping_daily ${installPlacesWhere}`
       ).first<{ n: number }>(),
     ])
 
