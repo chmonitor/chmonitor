@@ -1,0 +1,72 @@
+---
+title: Fix "Memory limit (total) exceeded"
+description: Diagnose ClickHouse's server-wide "Memory limit (total) exceeded" error — check max_server_memory_usage, concurrent query load, and cache sizes.
+icon: Server
+---
+
+`Code: 241. DB::Exception: Memory limit (total) exceeded: would use X GiB (attempt to allocate chunk of Y bytes), maximum: Z GiB` looks like [Memory limit (for query) exceeded](/guide/guides/memory-limit-exceeded), but the `(total)` wording matters: this is the **server-wide** cap (`max_server_memory_usage`, defaulting to roughly 90% of physical RAM), tripped by every concurrent query, merge, and cache combined — not one query's own budget. It can fire even when no single query looks expensive.
+
+## Why it happens
+
+- **Too many concurrent queries.** Each one uses a moderate amount of memory, but the sum crosses the server cap.
+- **Oversized caches.** `mark_cache_size` and `uncompressed_cache_size` are configured too large relative to available RAM.
+- **Merges and mutations competing for memory** alongside queries — a merge storm (see [Merges slower than inserts](/guide/guides/merges-slower-than-inserts)) or a large `ALTER … UPDATE/DELETE` adds to the same budget.
+- **Replication buffers** on a busy replica queueing a lot of in-flight data.
+
+## Diagnose
+
+Check current and historical server-wide memory usage, then find what's consuming it:
+
+```sql
+-- Current total memory tracked by the server
+SELECT value AS current_memory_bytes, formatReadableSize(value) AS current_memory
+FROM system.metrics
+WHERE metric = 'MemoryTracking';
+```
+
+```sql
+-- Memory usage trend over the last few hours (asynchronous_metrics is sampled periodically)
+SELECT event_time, value AS memory_bytes
+FROM system.asynchronous_metric_log
+WHERE metric = 'MemoryTracking' AND event_time > now() - INTERVAL 6 HOUR
+ORDER BY event_time;
+```
+
+```sql
+-- Everything currently holding memory, heaviest first
+SELECT
+    query_id,
+    user,
+    elapsed,
+    formatReadableSize(memory_usage) AS current_memory,
+    query
+FROM system.processes
+ORDER BY memory_usage DESC
+LIMIT 20;
+```
+
+Confirm the configured ceiling with `SELECT * FROM system.server_settings WHERE name = 'max_server_memory_usage'` (ClickHouse 24.x+), or check `max_server_memory_usage` / `max_server_memory_usage_to_ram_ratio` in `config.xml` / `config.d/*.xml` on older versions.
+
+## Fix
+
+- **Limit concurrency** — cap `max_concurrent_queries` and per-user `max_memory_usage_for_user` so no single user or workload can consume the whole budget.
+- **Shrink caches** if they're oversized for the box — `mark_cache_size`, `uncompressed_cache_size`, and the primary-index cache all count against the same total.
+- **Raise `max_server_memory_usage`** if the host genuinely has spare RAM the default 90% ratio isn't using.
+- **Spread load** across more replicas or shards instead of concentrating queries on one node.
+- **Address merge/mutation pressure** if that's the contributor — see [Too many parts](/guide/guides/too-many-parts) and [Merges slower than inserts](/guide/guides/merges-slower-than-inserts).
+
+<Callout type="warn" title="Don't just raise the ceiling">
+Raising `max_server_memory_usage` without addressing runaway concurrency risks the Linux OOM killer taking down the whole `clickhouse-server` process instead of one query failing cleanly — a much worse outage. See Altinity's ["Rescuing ClickHouse from the Linux OOM Killer"](https://altinity.com/blog/rescuing-clickhouse-from-the-linux-oom-killer) for the failure mode this is protecting against.
+</Callout>
+
+## See it in chmonitor
+
+The [Metrics](/guide/features/metrics) page tracks `MemoryTracking` and other server counters live, and [Health](/guide/features/health) rolls memory pressure into the at-a-glance status grid so you see it trending up before the server rejects a query. Try it on the [live demo](https://dash.chmonitor.dev/metrics).
+
+## Related
+
+<Cards>
+<Card title='Fix "Memory limit (for query) exceeded"' href="/guide/guides/memory-limit-exceeded" description="The per-query memory cap, and how it differs from the server-wide limit." />
+<Card title="Merges slower than inserts" href="/guide/guides/merges-slower-than-inserts" description="Diagnose merge backlogs that compete for the same memory budget." />
+<Card title="Metrics" href="/guide/features/metrics" description="Live server counters and background-calculated resource metrics." />
+</Cards>

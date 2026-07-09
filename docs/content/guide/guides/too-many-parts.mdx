@@ -1,0 +1,82 @@
+---
+title: Fix "Too many parts"
+description: Diagnose and fix ClickHouse's "Too many parts" error — why inserts get throttled, system.parts diagnostic queries, insert batching, and merge-tree tuning.
+icon: Layers
+---
+
+`Code: 252. DB::Exception: Too many parts (N). Merges are processing significantly slower than inserts` means ClickHouse has stopped accepting new `INSERT`s into a table because the background merge process can't combine data parts as fast as they're being created. It hits everyone from small side projects to large production clusters — it's the single most common MergeTree failure.
+
+## Why it happens
+
+Every `INSERT` creates at least one new data part per partition. Background merges continuously combine small parts into larger ones so reads stay fast. When inserts outpace merges, the part count climbs until ClickHouse protects itself:
+
+- **Frequent small inserts.** Row-at-a-time or micro-batch inserts (application-side "insert on every event") create far more parts than the merge scheduler can absorb.
+- **Over-partitioned tables.** A partition key with too many distinct values (for example `PARTITION BY (toDate(ts), user_id)` instead of just `toDate(ts)`) multiplies the number of parts per insert.
+- **Merges genuinely falling behind.** Slow disks, an undersized merge pool, or a burst of large mutations can make merges the bottleneck even with a sane insert pattern — see [Merges slower than inserts](/guide/guides/merges-slower-than-inserts) for that root cause.
+
+## Diagnose
+
+Find which tables are closest to the throttle. ClickHouse starts delaying inserts at `parts_to_delay_insert` (default 3000 active parts in one partition) and rejects them outright at `parts_to_throw_insert` (default 3000 as well on recent versions, historically higher):
+
+```sql
+SELECT
+    database,
+    table,
+    count() AS active_parts,
+    max(modification_time) AS last_part_created
+FROM system.parts
+WHERE active
+GROUP BY database, table
+ORDER BY active_parts DESC
+LIMIT 20;
+```
+
+`active_parts` above 1,000–2,000 for any single table is worth investigating before it becomes an outage. To see whether merges are keeping pace, compare recent insert volume against merge volume from `system.part_log`:
+
+```sql
+SELECT
+    event_type,
+    count() AS events,
+    sum(rows) AS total_rows
+FROM system.part_log
+WHERE table = 'your_table' AND event_time > now() - INTERVAL 1 HOUR
+GROUP BY event_type;
+```
+
+A `NewPart` count far higher than `MergeParts` over the same window confirms inserts are outrunning merges.
+
+## Fix
+
+<Steps>
+<Step>
+### Batch inserts
+
+Send fewer, larger inserts instead of one row (or a handful of rows) at a time — ClickHouse is built for batches of thousands to tens of thousands of rows. If your producers can't batch client-side, enable [async inserts](https://clickhouse.com/docs/optimize/asynchronous-inserts) (`async_insert=1`) so the server batches for you.
+</Step>
+<Step>
+### Reduce partition cardinality
+
+Re-check the partition key. `PARTITION BY toYYYYMM(date)` (monthly) or `toDate(date)` (daily) is usually right; partitioning by a high-cardinality column, or combining date with another column, multiplies part counts for no query-performance benefit. See [ClickHouse's partitioning key guide](https://clickhouse.com/docs/best-practices/choosing-a-partitioning-key).
+</Step>
+<Step>
+### Give merges more headroom
+
+If the insert pattern is already sane, the merge pool may be undersized for your write rate — raise `background_pool_size` / `background_merge_scheduling_pool_size` (requires a restart). See [Merges slower than inserts](/guide/guides/merges-slower-than-inserts) for the full diagnostic.
+</Step>
+</Steps>
+
+<Callout type="warn" title="Don't just raise the throttle">
+Increasing `parts_to_throw_insert` / `parts_to_delay_insert` makes the error message go away without fixing the underlying imbalance — merges keep falling further behind until queries slow down anyway. Treat it as a temporary buffer while you fix the insert pattern or merge capacity, not the fix itself.
+</Callout>
+
+## See it in chmonitor
+
+The [Tables](/guide/features/tables) page shows live active-part counts per table, sorted so the tables closest to the throttle surface first — no need to run the query above by hand. Try it on the [live demo](https://dash.chmonitor.dev/tables-overview).
+
+## Related
+
+<Cards>
+<Card title="Merges slower than inserts" href="/guide/guides/merges-slower-than-inserts" description="Diagnose the merge-side bottleneck that causes too-many-parts." />
+<Card title="Tables" href="/guide/features/tables" description="Live storage, part counts, and replication health across every database." />
+<Card title="Troubleshooting" href="/guide/guides/troubleshooting" description="Diagnose connection, auth, performance, and Kubernetes probe failures." />
+</Cards>

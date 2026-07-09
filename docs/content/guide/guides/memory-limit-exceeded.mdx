@@ -1,0 +1,100 @@
+---
+title: Fix "Memory limit (for query) exceeded"
+description: Diagnose ClickHouse MEMORY_LIMIT_EXCEEDED errors — find the offending query in system.query_log, tune max_memory_usage, and enable external aggregation.
+icon: Gauge
+---
+
+`Code: 241. DB::Exception: Memory limit (for query) exceeded: would use X GiB (attempt to allocate chunk of Y bytes), maximum: Z GiB` is ClickHouse killing a single query because it crossed its **per-query** memory cap (`max_memory_usage`, applied per user profile). This is the most common `MEMORY_LIMIT_EXCEEDED` variant — for the server-wide version (message says `(total)` instead of `(for query)`), see [Fix "Memory limit (total) exceeded"](/guide/guides/memory-limit-total-exceeded).
+
+## Why it happens
+
+A query's memory use is dominated by state it has to hold, not the size of the table it scans:
+
+- **High-cardinality `GROUP BY` / `DISTINCT`.** Every distinct key gets a row in an in-memory hash table.
+- **Large `JOIN`s.** The default hash-join algorithm loads the right-hand table fully into memory.
+- **`ORDER BY` without `LIMIT`,** or a `LIMIT` too large to sort in a bounded buffer.
+- **Window functions** over wide partitions, which buffer rows per partition.
+
+## Diagnose
+
+Find which queries actually hit the limit, and who's running the current heaviest ones:
+
+```sql
+-- Recent queries that failed with MEMORY_LIMIT_EXCEEDED (code 241)
+SELECT
+    event_time,
+    user,
+    query_duration_ms,
+    memory_usage,
+    formatReadableSize(memory_usage) AS peak_memory,
+    query
+FROM system.query_log
+WHERE type = 'ExceptionWhileProcessing' AND exception_code = 241
+ORDER BY event_time DESC
+LIMIT 20;
+```
+
+```sql
+-- Currently running queries, heaviest first
+SELECT
+    query_id,
+    user,
+    elapsed,
+    formatReadableSize(memory_usage) AS current_memory,
+    query
+FROM system.processes
+ORDER BY memory_usage DESC
+LIMIT 20;
+```
+
+## Fix
+
+<Tabs items={["Rewrite the query", "Spill to disk", "Change the JOIN algorithm", "Raise the limit"]}>
+<Tab value="Rewrite the query">
+
+Filter earlier (push `WHERE` conditions before aggregation), select only the columns you need, and pre-aggregate with a materialized view if the same expensive `GROUP BY` runs repeatedly.
+
+</Tab>
+<Tab value="Spill to disk">
+
+Let ClickHouse spill intermediate state to disk instead of failing outright:
+
+```sql
+SET max_bytes_before_external_group_by = 10000000000; -- 10 GiB
+SET max_bytes_before_external_sort = 10000000000;
+```
+
+This trades speed for reliability — the query gets slower, not killed.
+
+</Tab>
+<Tab value="Change the JOIN algorithm">
+
+For a large right-hand table, switch off the default in-memory hash join:
+
+```sql
+SET join_algorithm = 'partial_merge'; -- or 'grace_hash' on newer versions
+```
+
+</Tab>
+<Tab value="Raise the limit">
+
+If the box has real headroom, raise the per-user cap in the user profile (`max_memory_usage`, and `max_memory_usage_for_user` for the sum across that user's concurrent queries). Only do this after confirming the server-wide budget can absorb it — see [Memory limit (total) exceeded](/guide/guides/memory-limit-total-exceeded).
+
+</Tab>
+</Tabs>
+
+<Callout type="info" title="Reference">
+ClickHouse's own [memory-limit-exceeded knowledge base entry](https://clickhouse.com/docs/knowledgebase/memory-limit-exceeded-for-query) has more on the per-query accounting model.
+</Callout>
+
+## See it in chmonitor
+
+The [Queries](/guide/features/queries) feature's expensive-queries view ranks running and historical queries by memory, so you can catch the culprit before it fails again. Try it on the [live demo](https://dash.chmonitor.dev/expensive-queries-by-memory).
+
+## Related
+
+<Cards>
+<Card title='Fix "Memory limit (total) exceeded"' href="/guide/guides/memory-limit-total-exceeded" description="The server-wide memory cap, and how it differs from the per-query limit." />
+<Card title="Queries" href="/guide/features/queries" description="Live, historical, failed, and expensive query monitoring." />
+<Card title="Troubleshooting" href="/guide/guides/troubleshooting" description="Diagnose connection, auth, performance, and Kubernetes probe failures." />
+</Cards>

@@ -1,0 +1,87 @@
+---
+title: Fix "Merges are processing significantly slower than inserts"
+description: Diagnose ClickHouse merge backlogs — read system.merges and system.part_log, find the I/O or thread bottleneck, and tune the background merge pool.
+icon: Timer
+---
+
+`Code: 252. DB::Exception: Too many parts (N). Merges are processing significantly slower than inserts` is the same error as [Too many parts](/guide/guides/too-many-parts), but this page is for the other side of it: your **write rate has outpaced the background merge scheduler**, not that the insert pattern itself is wrong. If batching and partitioning already look sane, the bottleneck is merge capacity.
+
+## Why it happens
+
+- **Undersized merge pool.** `background_pool_size` / `background_merge_scheduling_pool_size` too small for the sustained write rate — not enough worker threads to merge parts as fast as they arrive.
+- **Slow disks.** Merges are I/O-heavy (read every source part, write the merged part). Network-attached storage without enough IOPS, or spinning disks under a high write rate, can't sustain it.
+- **Very large parts.** `max_bytes_to_merge_at_max_space_in_pool` (default 150 GiB) lets merges grow large; a single big merge can occupy a worker for a long time and delay everything queued behind it.
+- **Concurrent mutations.** `ALTER … UPDATE/DELETE` runs through the same merge pool and competes with regular merges for threads.
+- **A single hot partition** serializing merges that could otherwise run in parallel across partitions.
+
+## Diagnose
+
+See what's merging right now, then look at the trend:
+
+```sql
+-- Active merges: what's running, how far along, how long it's taken
+SELECT
+    database,
+    table,
+    round(progress * 100, 2) AS pct_done,
+    elapsed,
+    is_mutation,
+    formatReadableSize(total_size_bytes_compressed) AS merge_size
+FROM system.merges
+ORDER BY elapsed DESC;
+```
+
+```sql
+-- Merge count and duration over the last hour — a rising queue means merges are losing ground
+SELECT
+    toStartOfMinute(event_time) AS minute,
+    countIf(event_type = 'NewPart') AS parts_created,
+    countIf(event_type = 'MergeParts') AS parts_merged
+FROM system.part_log
+WHERE event_time > now() - INTERVAL 1 HOUR
+GROUP BY minute
+ORDER BY minute;
+```
+
+`parts_created` consistently outrunning `parts_merged` confirms the backlog is on the merge side, not a one-off spike.
+
+## Fix
+
+<Steps>
+<Step>
+### Give merges more workers
+
+Raise `background_pool_size` and `background_merge_scheduling_pool_size` in server config (requires a restart). This is the direct fix when the write rate is legitimate and merges just don't have enough threads.
+</Step>
+<Step>
+### Move to faster storage
+
+If `system.merges` shows long elapsed times relative to `merge_size`, merges are I/O-bound — local NVMe will outperform network-attached storage here by a wide margin.
+</Step>
+<Step>
+### Reduce merge cost
+
+Avoid partition keys that concentrate all writes into one huge partition (see [Too many parts](/guide/guides/too-many-parts)), and prefer codecs/compression settings that don't blow up merge CPU cost on every pass.
+</Step>
+<Step>
+### Slow the insert side as a stop-gap
+
+While merge capacity catches up, client-side batching buys time immediately. Raising `parts_to_delay_insert` throttles writes on purpose so merges can catch up — treat it as temporary, not a fix.
+</Step>
+</Steps>
+
+<Callout type="info" title="This is the root cause behind too-many-parts">
+If you landed here from a `Too many parts` error, this page is the deeper diagnostic — the insert-side fixes on that page (batching, partition key) only help if merges genuinely have spare capacity to catch up once inserts slow down.
+</Callout>
+
+## See it in chmonitor
+
+The [Operations](/guide/features/operations) feature's Merges and Merge performance pages show active merges and historical duration trends live, so a growing backlog is visible before it throttles inserts. Try it on the [live demo](https://dash.chmonitor.dev/merges).
+
+## Related
+
+<Cards>
+<Card title="Too many parts" href="/guide/guides/too-many-parts" description="The insert-side symptom this merge backlog causes." />
+<Card title='Fix "Memory limit (total) exceeded"' href="/guide/guides/memory-limit-total-exceeded" description="Merges and mutations compete for the same server-wide memory budget." />
+<Card title="Operations" href="/guide/features/operations" description="Track active merges, mutations, part moves, and the part-event timeline." />
+</Cards>
