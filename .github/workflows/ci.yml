@@ -57,10 +57,10 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -110,7 +110,7 @@ jobs:
       packages: write
     steps:
       - name: Login to Container registry
-        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -182,7 +182,7 @@ jobs:
       packages: write
     steps:
       - name: Login to Container registry
-        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -253,7 +253,7 @@ jobs:
 
     steps:
       - name: Login to Container registry
-        uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
