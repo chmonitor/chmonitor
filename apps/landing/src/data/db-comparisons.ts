@@ -45,7 +45,7 @@ export const timescaledbRows: DbComparisonRow[] = [
       },
       {
         kind: 'yes',
-        text: "Full Postgres ACID transactions and a mature relational join planner, inherited unchanged",
+        text: 'Full Postgres ACID transactions and a mature relational join planner, inherited unchanged',
       },
     ],
   },
@@ -71,7 +71,7 @@ export const timescaledbRows: DbComparisonRow[] = [
       },
       {
         kind: 'yes',
-        text: "Handles continuous small writes gracefully via Postgres MVCC — the common time-series/IoT ingestion pattern",
+        text: 'Handles continuous small writes gracefully via Postgres MVCC — the common time-series/IoT ingestion pattern',
       },
     ],
   },
@@ -143,8 +143,14 @@ export const postgresRows: DbComparisonRow[] = [
   {
     label: 'Storage model',
     cells: [
-      { kind: 'plain', text: 'Column-oriented (MergeTree): each column stored and compressed contiguously' },
-      { kind: 'plain', text: 'Row-oriented (heap + MVCC): each row stored contiguously, tuned for point lookups and transactions' },
+      {
+        kind: 'plain',
+        text: 'Column-oriented (MergeTree): each column stored and compressed contiguously',
+      },
+      {
+        kind: 'plain',
+        text: 'Row-oriented (heap + MVCC): each row stored contiguously, tuned for point lookups and transactions',
+      },
     ],
   },
   {
@@ -180,7 +186,10 @@ export const postgresRows: DbComparisonRow[] = [
         kind: 'partial',
         text: 'JOIN support and the query planner have improved a lot, but denormalizing wide tables is still the idiomatic ClickHouse pattern for best performance',
       },
-      { kind: 'yes', text: 'A mature cost-based planner handles complex multi-table joins well out of the box' },
+      {
+        kind: 'yes',
+        text: 'A mature cost-based planner handles complex multi-table joins well out of the box',
+      },
     ],
   },
   {
@@ -190,7 +199,10 @@ export const postgresRows: DbComparisonRow[] = [
         kind: 'partial',
         text: 'Performance depends on the primary key sort order plus skip indices — no general-purpose secondary index',
       },
-      { kind: 'yes', text: 'Rich secondary indexing: B-tree, GIN, GiST, BRIN, partial and expression indexes' },
+      {
+        kind: 'yes',
+        text: 'Rich secondary indexing: B-tree, GIN, GiST, BRIN, partial and expression indexes',
+      },
     ],
   },
   {
@@ -200,7 +212,10 @@ export const postgresRows: DbComparisonRow[] = [
         kind: 'partial',
         text: 'Tuned for fewer, heavier analytical queries rather than thousands of small concurrent transactions',
       },
-      { kind: 'yes', text: 'MVCC handles many concurrent small transactions cleanly — the OLTP sweet spot' },
+      {
+        kind: 'yes',
+        text: 'MVCC handles many concurrent small transactions cleanly — the OLTP sweet spot',
+      },
     ],
   },
   {
@@ -208,7 +223,7 @@ export const postgresRows: DbComparisonRow[] = [
     cells: [
       {
         kind: 'yes',
-        text: "Columnar compression routinely reaches 10x+ on typical analytical data, cutting both storage and I/O",
+        text: 'Columnar compression routinely reaches 10x+ on typical analytical data, cutting both storage and I/O',
       },
       {
         kind: 'partial',
@@ -233,7 +248,10 @@ export const postgresRows: DbComparisonRow[] = [
     label: 'Licensing',
     cells: [
       { kind: 'plain', text: 'Apache 2.0' },
-      { kind: 'plain', text: 'The PostgreSQL License — a permissive, OSI-approved license with effectively no restrictions' },
+      {
+        kind: 'plain',
+        text: 'The PostgreSQL License — a permissive, OSI-approved license with effectively no restrictions',
+      },
     ],
   },
   {
@@ -255,7 +273,10 @@ export const druidPinotRows: DbComparisonRow[] = [
   {
     label: 'Primary design goal',
     cells: [
-      { kind: 'plain', text: 'General-purpose OLAP: one engine for ad hoc SQL analytics and dashboards' },
+      {
+        kind: 'plain',
+        text: 'General-purpose OLAP: one engine for ad hoc SQL analytics and dashboards',
+      },
       {
         kind: 'plain',
         text: 'Real-time OLAP for sub-second interactive dashboards over streaming plus historical data',
@@ -277,7 +298,10 @@ export const druidPinotRows: DbComparisonRow[] = [
         kind: 'plain',
         text: 'Multiple specialized services — Coordinator, Overlord, Broker, Historical, MiddleManager — plus ZooKeeper and deep storage (S3/HDFS)',
       },
-      { kind: 'plain', text: 'Three-tier — Controller, Broker, Server — plus ZooKeeper and deep storage' },
+      {
+        kind: 'plain',
+        text: 'Three-tier — Controller, Broker, Server — plus ZooKeeper and deep storage',
+      },
     ],
   },
   {
@@ -291,7 +315,10 @@ export const druidPinotRows: DbComparisonRow[] = [
         kind: 'yes',
         text: 'Built natively for continuous Kafka/Kinesis ingestion with segment-based real-time-to-historical handoff',
       },
-      { kind: 'yes', text: 'Same native streaming design — events are indexed as soon as they land, for immediate queryability' },
+      {
+        kind: 'yes',
+        text: 'Same native streaming design — events are indexed as soon as they land, for immediate queryability',
+      },
     ],
   },
   {
@@ -301,8 +328,14 @@ export const druidPinotRows: DbComparisonRow[] = [
         kind: 'partial',
         text: 'Scales to high concurrency but is tuned more for large ad hoc scans than guaranteed sub-second SLAs at massive QPS',
       },
-      { kind: 'yes', text: 'Optimized for sub-second interactive dashboard queries' },
-      { kind: 'yes', text: 'Explicitly built for very high QPS, single-digit-millisecond point and aggregation lookups' },
+      {
+        kind: 'yes',
+        text: 'Optimized for sub-second interactive dashboard queries',
+      },
+      {
+        kind: 'yes',
+        text: 'Explicitly built for very high QPS, single-digit-millisecond point and aggregation lookups',
+      },
     ],
   },
   {
@@ -325,44 +358,80 @@ export const druidPinotRows: DbComparisonRow[] = [
   {
     label: 'Operational complexity',
     cells: [
-      { kind: 'yes', text: 'Fewer moving parts: no mandatory ZooKeeper for a single-node or simple replicated setup' },
+      {
+        kind: 'yes',
+        text: 'Fewer moving parts: no mandatory ZooKeeper for a single-node or simple replicated setup',
+      },
       {
         kind: 'no',
         text: 'A heavier footprint: multiple specialized services, ZooKeeper and deep storage are required even for small deployments',
       },
-      { kind: 'no', text: 'Same story: ZooKeeper, deep storage and multiple service tiers required from day one' },
+      {
+        kind: 'no',
+        text: 'Same story: ZooKeeper, deep storage and multiple service tiers required from day one',
+      },
     ],
   },
   {
     label: 'Deployment footprint (small workloads)',
     cells: [
-      { kind: 'yes', text: 'Runs comfortably as a single node for small-to-medium workloads, then scales out' },
-      { kind: 'no', text: 'Architected for distributed operation from the start — comparatively heavy for a small deployment' },
+      {
+        kind: 'yes',
+        text: 'Runs comfortably as a single node for small-to-medium workloads, then scales out',
+      },
+      {
+        kind: 'no',
+        text: 'Architected for distributed operation from the start — comparatively heavy for a small deployment',
+      },
       { kind: 'no', text: 'Same — designed distributed-first' },
     ],
   },
   {
     label: 'Proven at scale',
     cells: [
-      { kind: 'plain', text: 'General analytics and log/event data — including product-analytics backends like PostHog' },
-      { kind: 'plain', text: 'Real-time streaming dashboards at companies including Netflix and Confluent' },
-      { kind: 'plain', text: 'User-facing real-time features at LinkedIn (50+ products) and Uber, serving 100K+ QPS at millisecond latency' },
+      {
+        kind: 'plain',
+        text: 'General analytics and log/event data — including product-analytics backends like PostHog',
+      },
+      {
+        kind: 'plain',
+        text: 'Real-time streaming dashboards at companies including Netflix and Confluent',
+      },
+      {
+        kind: 'plain',
+        text: 'User-facing real-time features at LinkedIn (50+ products) and Uber, serving 100K+ QPS at millisecond latency',
+      },
     ],
   },
   {
     label: 'Licensing',
     cells: [
       { kind: 'plain', text: 'Apache 2.0' },
-      { kind: 'plain', text: 'Apache 2.0 (Apache Software Foundation project)' },
-      { kind: 'plain', text: 'Apache 2.0 (Apache Software Foundation project)' },
+      {
+        kind: 'plain',
+        text: 'Apache 2.0 (Apache Software Foundation project)',
+      },
+      {
+        kind: 'plain',
+        text: 'Apache 2.0 (Apache Software Foundation project)',
+      },
     ],
   },
   {
     label: 'Best fit',
     cells: [
-      { kind: 'plain', text: 'Pick this for general-purpose analytics, ad hoc SQL, and the simplest ops of the three' },
-      { kind: 'plain', text: 'Pick this for streaming-native, sub-second interactive dashboards over time-partitioned event data' },
-      { kind: 'plain', text: 'Pick this for extremely high-QPS, low-latency analytics features baked directly into a product' },
+      {
+        kind: 'plain',
+        text: 'Pick this for general-purpose analytics, ad hoc SQL, and the simplest ops of the three',
+      },
+      {
+        kind: 'plain',
+        text: 'Pick this for streaming-native, sub-second interactive dashboards over time-partitioned event data',
+      },
+      {
+        kind: 'plain',
+        text: 'Pick this for extremely high-QPS, low-latency analytics features baked directly into a product',
+      },
     ],
   },
 ]
