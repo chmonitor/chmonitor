@@ -1,11 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import {
+  capResultRows,
   hostIdSchema,
   runReadonlyFetch,
-  runReadonlyQuery,
   toErrorResult,
   toJsonResult,
+  truncationNote,
 } from './helpers'
 import { z } from 'zod/v3'
 
@@ -29,19 +30,50 @@ export function registerExploreTableSchemaTool(server: McpServer) {
     async ({ database, table, hostId }) => {
       // Mode 1: No params — list databases
       if (!database) {
-        return runReadonlyQuery(
-          'SELECT name, engine, comment FROM system.databases ORDER BY name',
-          hostId
-        )
+        const result = await runReadonlyFetch({
+          query:
+            'SELECT name, engine, comment FROM system.databases ORDER BY name',
+          hostId,
+        })
+
+        if (result.error) {
+          return toErrorResult(`Error: ${result.error.message}`)
+        }
+
+        if (!Array.isArray(result.data)) {
+          return toJsonResult(result.data)
+        }
+
+        const { data, truncated } = capResultRows(result.data)
+        return toJsonResult({
+          data,
+          truncated,
+          ...(truncated && { note: truncationNote() }),
+        })
       }
 
       // Mode 2: Database only — list tables with details
       if (!table) {
-        return runReadonlyQuery(
-          `SELECT name, engine, partition_key, sorting_key, total_rows, formatReadableSize(total_bytes) AS size FROM system.tables WHERE database = {database:String} AND is_temporary = 0 AND name NOT LIKE '.inner_%' ORDER BY total_bytes DESC`,
+        const result = await runReadonlyFetch({
+          query: `SELECT name, engine, partition_key, sorting_key, total_rows, formatReadableSize(total_bytes) AS size FROM system.tables WHERE database = {database:String} AND is_temporary = 0 AND name NOT LIKE '.inner_%' ORDER BY total_bytes DESC`,
           hostId,
-          { query_params: { database } }
-        )
+          query_params: { database },
+        })
+
+        if (result.error) {
+          return toErrorResult(`Error: ${result.error.message}`)
+        }
+
+        if (!Array.isArray(result.data)) {
+          return toJsonResult(result.data)
+        }
+
+        const { data, truncated } = capResultRows(result.data)
+        return toJsonResult({
+          data,
+          truncated,
+          ...(truncated && { note: truncationNote() }),
+        })
       }
 
       // Mode 3: Database + table — full schema with relationships
@@ -86,11 +118,27 @@ export function registerExploreTableSchemaTool(server: McpServer) {
         ? metadataResult.data[0]
         : metadataResult.data
 
+      const cappedColumns = capResultRows(
+        Array.isArray(columnsResult.data) ? columnsResult.data : []
+      )
+      const cappedUpstream = capResultRows(
+        Array.isArray(upstreamResult.data) ? upstreamResult.data : []
+      )
+      const cappedDownstream = capResultRows(
+        Array.isArray(downstreamResult.data) ? downstreamResult.data : []
+      )
+      const truncated =
+        cappedColumns.truncated ||
+        cappedUpstream.truncated ||
+        cappedDownstream.truncated
+
       const combined = {
         table: tableMetadata,
-        columns: columnsResult.data,
-        upstream_dependencies: upstreamResult.data,
-        downstream_dependencies: downstreamResult.data,
+        columns: cappedColumns.data,
+        upstream_dependencies: cappedUpstream.data,
+        downstream_dependencies: cappedDownstream.data,
+        truncated,
+        ...(truncated && { note: truncationNote() }),
       }
 
       return toJsonResult(combined)

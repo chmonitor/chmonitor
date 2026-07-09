@@ -1,6 +1,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
-import { hostIdSchema, runReadonlyQuery } from './helpers'
+import {
+  capResultRows,
+  hostIdSchema,
+  runReadonlyFetch,
+  runReadonlyQuery,
+  toErrorResult,
+  toJsonResult,
+  truncationNote,
+} from './helpers'
 import { z } from 'zod/v3'
 
 export function registerTableTools(server: McpServer) {
@@ -11,12 +19,29 @@ export function registerTableTools(server: McpServer) {
       database: z.string().describe('Database name'),
       hostId: hostIdSchema,
     },
-    async ({ database, hostId }) =>
-      runReadonlyQuery(
-        'SELECT name, engine, total_rows, formatReadableSize(total_bytes) AS size FROM system.tables WHERE database = {database:String} ORDER BY total_bytes DESC',
+    async ({ database, hostId }) => {
+      const result = await runReadonlyFetch({
+        query:
+          'SELECT name, engine, total_rows, formatReadableSize(total_bytes) AS size FROM system.tables WHERE database = {database:String} ORDER BY total_bytes DESC',
         hostId,
-        { query_params: { database } }
-      )
+        query_params: { database },
+      })
+
+      if (result.error) {
+        return toErrorResult(`Error: ${result.error.message}`)
+      }
+
+      if (!Array.isArray(result.data)) {
+        return toJsonResult(result.data)
+      }
+
+      const { data, truncated } = capResultRows(result.data)
+      return toJsonResult({
+        data,
+        truncated,
+        ...(truncated && { note: truncationNote() }),
+      })
+    }
   )
 
   server.tool(

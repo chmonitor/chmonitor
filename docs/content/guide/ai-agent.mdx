@@ -277,13 +277,13 @@ env-gated control tools), see [Capabilities](/guide/ai-agent/capabilities).
 |---|---|
 | `query` | Execute a read-only SQL query (SELECT / WITH / DESCRIBE / EXPLAIN only). Results are capped at 1000 rows (`truncated: true` + a note when hit). |
 | `list_databases` | List all databases with their engines and comments |
-| `list_tables` | List tables in a database with row counts and sizes |
+| `list_tables` | List tables in a database with row counts and sizes. Results are capped at 1000 rows (`truncated: true` + a note when hit). |
 | `get_table_schema` | Get column definitions for a table including types, defaults, and comments |
 | `get_metrics` | Key server metrics: version, uptime, active connections, memory usage |
 | `get_running_queries` | Currently running queries ordered by elapsed time |
 | `get_slow_queries` | Slowest completed queries from the query log |
 | `get_merge_status` | Currently running merge operations with progress and elapsed time |
-| `explore_table_schema` | Three-mode schema exploration: databases → tables → full schema with relationships |
+| `explore_table_schema` | Three-mode schema exploration: databases → tables → full schema with relationships. Each list (databases, tables, columns, dependencies) is capped at 1000 rows (`truncated: true` + a note when hit). |
 | `analyze_performance` | Structured performance snapshot — slow queries, high part counts, merge backlog, memory/disk pressure — with severity ratings |
 | `get_optimization_recommendations` | Analyze a slow query (by `queryId` or raw `sql`) and return ranked skip-index/projection/partition-key/PREWHERE recommendations with DDL, risk, effort, and an estimated impact — recommend-only, never executed |
 
@@ -295,7 +295,9 @@ All other MCP tools run fixed SELECT queries and pass `readonly: '1'` to the Cli
 
 ### Result size caps
 
-The freeform-SQL tools (`query` in both the in-app agent and the MCP server, plus the agent's `query_and_visualize`) cap results to 1000 rows before serializing them back to the model — dedicated tools cap independently (e.g. `list_tables` at 500 rows). The SQL itself is never rewritten (no `LIMIT` injection); a query that returns more than the cap comes back with only the first 1000 rows, `truncated: true`, and a `note` telling the model to add its own `LIMIT` or aggregation to see the full result set. Queries at or under the cap are unaffected (`truncated: false`, no `note`).
+The freeform-SQL tools (`query` in both the in-app agent and the MCP server, plus the agent's `query_and_visualize`) cap results to 1000 rows before serializing them back to the model. The SQL itself is never rewritten (no `LIMIT` injection); a query that returns more than the cap comes back with only the first 1000 rows, `truncated: true`, and a `note` telling the model to add its own `LIMIT` or aggregation to see the full result set. Queries at or under the cap are unaffected (`truncated: false`, no `note`).
+
+Dedicated (fixed-query) tools cap independently rather than relying on the model to add a `LIMIT`: the in-app agent's `list_tables`/`explore_table_schema` inject a SQL `LIMIT 500`, while the standalone MCP server's `list_tables` and `explore_table_schema` reuse the same post-fetch `capResultRows`/`truncationNote` helpers as its `query` tool, capping each returned list (databases, tables, columns, upstream/downstream dependencies) at 1000 rows with the same `truncated`/`note` shape.
 
 
 ## Agent Discovery & RFC Compliance
