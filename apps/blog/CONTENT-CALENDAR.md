@@ -39,7 +39,7 @@ published (`draft: false`, merged to main)
 | 3 | how-to | Ask your cluster anything: the AI agent over MCP | clickhouse ai agent mcp | `/guide/ai-agent` | planned |
 | 4 | troubleshooting | Why is my ClickHouse replication lagging? | clickhouse replication lag | `/guide/features` (replication section) | planned |
 | 5 | how-to | The query advisor: DDL recommendations you review, not that run themselves | clickhouse query optimization advisor | `/guide/ai-agent` (advisor tools) | planned |
-| 6 | case-study | Diagnosing a slow-query regression start to finish | clickhouse slow query diagnosis | `/guide/features` | planned |
+| 6 | case-study | Diagnosing a slow-query regression start to finish | clickhouse slow query diagnosis | `/guide/features` | done (`find-slow-clickhouse-queries.md`, published 2026-07-10, covers this slot as a how-to) |
 | 7 | troubleshooting | Reading `system.merges` when merges pile up | clickhouse merges stuck | `/guide/features` | planned |
 | 8 | how-to | Self-hosting chmonitor on Docker in five minutes | self-host clickhouse dashboard docker | `/operate/deploy/docker` | planned |
 | 9 | how-to | Self-hosting chmonitor on Kubernetes | clickhouse monitoring kubernetes | `/operate/deploy/k8s` | planned |

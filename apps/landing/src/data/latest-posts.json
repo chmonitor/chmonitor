@@ -1,14 +1,32 @@
 [
   {
-    "title": "Alerting to Slack and Discord",
-    "date": "2026-07-03",
+    "title": "Finding your slowest ClickHouse queries with system.query_log",
+    "date": "2026-07-10",
     "tag": "How-to",
-    "url": "https://docs.chmonitor.dev/guide/guides/alerting-slack-discord"
+    "url": "https://blog.chmonitor.dev/find-slow-clickhouse-queries/"
   },
   {
-    "title": "chmonitor v0.3 — a full rebuild",
-    "date": "2026-06-29",
-    "tag": "Release",
-    "url": "https://blog.chmonitor.dev/v0.3/"
+    "title": "5 min of ClickHouse: Escaping MEMORY_LIMIT_EXCEEDED Without Buying a Bigger Box",
+    "date": "2026-07-10",
+    "tag": "5 min of ClickHouse",
+    "url": "https://blog.chmonitor.dev/clickhouse-memory-limit-exceeded/"
+  },
+  {
+    "title": "5 min of ClickHouse: Partition Key Mistakes That Quietly Kill Performance",
+    "date": "2026-07-09",
+    "tag": "5 min of ClickHouse",
+    "url": "https://blog.chmonitor.dev/clickhouse-partition-key-mistakes/"
+  },
+  {
+    "title": "5 min of ClickHouse: Projections vs Materialized Views — A Decision Tree",
+    "date": "2026-07-07",
+    "tag": "5 min of ClickHouse",
+    "url": "https://blog.chmonitor.dev/clickhouse-projections-vs-materialized-views/"
+  },
+  {
+    "title": "5 min of ClickHouse: PREWHERE vs WHERE — How Granule Skipping Actually Works",
+    "date": "2026-07-06",
+    "tag": "5 min of ClickHouse",
+    "url": "https://blog.chmonitor.dev/clickhouse-prewhere-vs-where/"
   }
 ]
