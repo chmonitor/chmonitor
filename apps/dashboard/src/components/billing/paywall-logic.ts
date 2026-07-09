@@ -65,8 +65,37 @@ export function formatReasonCap(
 }
 
 /**
+ * Whether `candidate` actually unblocks a user stuck at `current`'s cap for
+ * `field`. Usually that means a strictly higher (or unlimited) numeric cap —
+ * but `hosts` is special: Pro/Max never hard-cap (they publish `hostOverage`
+ * and soft-cap into billable overage instead), so a plan gaining an overage
+ * policy unblocks a hard-capped plan even at an EQUAL included host count
+ * (Free 1 host hard cap -> Pro 1 host included + overage). Without this, a
+ * Free user hitting the host wall would be routed past Pro straight to Max,
+ * even though Pro already removes the block.
+ */
+function tierClearsCap(
+  current: Plan,
+  candidate: Plan,
+  field: 'hosts' | 'seats' | 'aiRequestsPerDay' | 'aiMonthlyUsdBudget'
+): boolean {
+  const currentValue = current[field]
+  const candidateValue = candidate[field]
+  if (candidateValue === null) return true
+  if (currentValue !== null && candidateValue > currentValue) return true
+  if (
+    field === 'hosts' &&
+    current.hostOverage == null &&
+    candidate.hostOverage != null
+  ) {
+    return true
+  }
+  return false
+}
+
+/**
  * First plan after `currentPlanId` (in free -> pro -> max -> enterprise order)
- * whose cap for `reason` exceeds the current plan's cap. Null when the
+ * that unblocks `reason`'s cap (see {@link tierClearsCap}). Null when the
  * current plan is already the top tier for that metric (shouldn't happen in
  * practice — Enterprise caps are all unlimited, so it never trips a 402).
  */
@@ -79,14 +108,10 @@ export function findNextTier(
     (p) => p.id === currentPlanId
   )
   const safeIndex = currentIndex === -1 ? 0 : currentIndex
-  const currentValue = BILLING_PLAN_LIST[safeIndex][field]
+  const currentPlan = BILLING_PLAN_LIST[safeIndex]
 
   for (let i = safeIndex + 1; i < BILLING_PLAN_LIST.length; i++) {
-    const candidateValue = BILLING_PLAN_LIST[i][field]
-    if (
-      candidateValue === null ||
-      (currentValue !== null && candidateValue > currentValue)
-    ) {
+    if (tierClearsCap(currentPlan, BILLING_PLAN_LIST[i], field)) {
       return BILLING_PLAN_LIST[i]
     }
   }

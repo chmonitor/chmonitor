@@ -107,9 +107,9 @@ describe('plan-enforcement — monthly AI USD budget really blocks', () => {
 describe('plan-enforcement — host cap really blocks', () => {
   test('Pro blocks at its host limit, allows below it', () => {
     const pro = BILLING_PLANS.pro
-    expect(pro.hosts).toBe(3)
-    expect(checkHostLimit(pro, 2).allowed).toBe(true)
-    expect(checkHostLimit(pro, 3).allowed).toBe(false)
+    expect(pro.hosts).toBe(1)
+    expect(checkHostLimit(pro, 0).allowed).toBe(true)
+    expect(checkHostLimit(pro, 1).allowed).toBe(false)
   })
 
   test('Enterprise (unlimited hosts) never blocks', () => {
@@ -126,8 +126,8 @@ describe('plan-enforcement — cross-surface render parity', () => {
   test('limit cells render the agreed strings for every tier', () => {
     expect(BILLING_PLAN_LIST.map(planHosts)).toEqual([
       '1',
+      '1',
       '3',
-      '10',
       'Unlimited',
     ])
     expect(BILLING_PLAN_LIST.map(planSeats)).toEqual([

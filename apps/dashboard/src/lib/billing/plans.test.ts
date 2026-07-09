@@ -14,8 +14,8 @@ describe('billing plans', () => {
   })
 
   test('seats/hosts per tier match the deal', () => {
-    expect([BILLING_PLANS.pro.seats, BILLING_PLANS.pro.hosts]).toEqual([3, 3])
-    expect([BILLING_PLANS.max.seats, BILLING_PLANS.max.hosts]).toEqual([10, 10])
+    expect([BILLING_PLANS.pro.seats, BILLING_PLANS.pro.hosts]).toEqual([3, 1])
+    expect([BILLING_PLANS.max.seats, BILLING_PLANS.max.hosts]).toEqual([10, 3])
   })
 
   test('yearly = 10× monthly (≈2 months free)', () => {

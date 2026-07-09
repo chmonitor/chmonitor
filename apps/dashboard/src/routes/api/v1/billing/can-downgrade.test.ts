@@ -206,7 +206,7 @@ describe('POST /api/v1/billing/can-downgrade', () => {
   test('exact-fit usage (used === targetLimit) is not exceeded', async () => {
     ownerUsage = {
       plan: getPlan('max'),
-      hostsUsed: 3, // exactly Pro's cap — fits, should not warn
+      hostsUsed: 1, // exactly Pro's cap — fits, should not warn
       seatsUsed: 3,
       aiUsedToday: 0,
       aiSpentThisMonth: 0,

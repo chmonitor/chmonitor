@@ -123,8 +123,8 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     priceMonthlyUsd: 29,
     priceYearlyUsd: 290,
     seats: 3,
-    hosts: 3,
-    hostOverage: { usdPer: 15 }, // soft-cap: 4th+ host bills $15/mo each
+    hosts: 1,
+    hostOverage: { usdPer: 15 }, // soft-cap: 2nd+ host bills $15/mo each
     aiMonthlyUsdBudget: 5,
     aiRequestsPerDay: 100,
     aiOverage: { usdPer: 5, messages: 2000 },
@@ -140,7 +140,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     ],
     highlights: [
       'Everything in Free',
-      '3 hosts included, 3 seats — extra hosts $15/mo each',
+      '1 host included, 3 seats — extra hosts $15/mo each',
       'AI agent — 100 messages / day, then $5 / 2,000',
       'Scheduled AI Insights',
       'Basic alerting — up to 10 rules',
@@ -156,8 +156,8 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     priceMonthlyUsd: 99,
     priceYearlyUsd: 990,
     seats: 10,
-    hosts: 10,
-    hostOverage: { usdPer: 19 }, // soft-cap: 11th+ host bills $19/mo each
+    hosts: 3,
+    hostOverage: { usdPer: 19 }, // soft-cap: 4th+ host bills $19/mo each
     aiMonthlyUsdBudget: 20,
     aiRequestsPerDay: 1000,
     aiOverage: { usdPer: 5, messages: 2000 },
@@ -178,7 +178,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     ],
     highlights: [
       'Everything in Pro',
-      '10 hosts included, 10 seats — extra hosts $19/mo each',
+      '3 hosts included, 10 seats — extra hosts $19/mo each',
       'AI agent — 1,000 messages / day, then $5 / 2,000',
       'Fleet view + advanced alerting (Slack, PagerDuty)',
       'Custom dashboards + webhook integrations',
