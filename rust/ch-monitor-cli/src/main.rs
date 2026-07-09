@@ -21,6 +21,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+mod diagnose;
+
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 struct FileConfig {
     base_url: Option<String>,
@@ -59,6 +61,22 @@ enum Commands {
     },
     Tui {
         chart: Option<String>,
+    },
+    /// Zero-signup local diagnostics: connect directly to a ClickHouse host
+    /// (no chmonitor account/backend needed) and print a scored health report.
+    Diagnose {
+        /// ClickHouse HTTP interface URL, e.g. http://localhost:8123
+        #[arg(long, env = "CLICKHOUSE_HOST")]
+        ch_host: Option<String>,
+        #[arg(long, env = "CLICKHOUSE_USER", default_value = "default")]
+        ch_user: String,
+        #[arg(long, env = "CLICKHOUSE_PASSWORD", default_value = "")]
+        ch_password: String,
+        #[arg(long, env = "CLICKHOUSE_DATABASE", default_value = "default")]
+        ch_database: String,
+        /// Print the report as JSON instead of a table.
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -360,6 +378,58 @@ async fn main() -> Result<()> {
         Commands::Tui { chart } => {
             let c = chart.unwrap_or(cfg.default_chart.clone());
             run_tui(&client, &cfg, &c).await?
+        }
+        Commands::Diagnose {
+            ch_host,
+            ch_user,
+            ch_password,
+            ch_database,
+            json,
+        } => {
+            let Some(raw_host) = ch_host else {
+                bail!(
+                    "no ClickHouse host given — pass --ch-host or set CLICKHOUSE_HOST \
+                     (e.g. CLICKHOUSE_HOST=http://localhost:8123 chm diagnose)"
+                );
+            };
+            // Multi-host clusters use a comma-separated CLICKHOUSE_HOST (same env var
+            // the dashboard reads); this zero-signup CLI diagnoses one host at a time.
+            let first_host = raw_host
+                .split(',')
+                .next()
+                .map(str::trim)
+                .filter(|h| !h.is_empty())
+                .unwrap_or(&raw_host);
+            if raw_host.contains(',') {
+                eprintln!(
+                    "note: CLICKHOUSE_HOST has multiple hosts — diagnosing only the first ({first_host}). Use the dashboard for multi-host clusters."
+                );
+            }
+            let url = if first_host.starts_with("http://") || first_host.starts_with("https://") {
+                first_host.to_string()
+            } else {
+                format!("http://{first_host}")
+            };
+
+            let ch_cfg = diagnose::ChConfig {
+                url,
+                user: ch_user,
+                password: ch_password,
+                database: ch_database,
+            };
+            let report = diagnose::run_diagnostics(&client, &ch_cfg).await?;
+            if json {
+                println!("{}", diagnose::render_json(&report)?);
+            } else {
+                print!("{}", diagnose::render_text(&report));
+            }
+            if report
+                .findings
+                .iter()
+                .any(|f| f.severity == diagnose::Severity::Critical)
+            {
+                std::process::exit(1);
+            }
         }
     }
 

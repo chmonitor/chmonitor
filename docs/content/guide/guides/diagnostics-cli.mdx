@@ -1,0 +1,86 @@
+---
+title: Zero-signup diagnostics CLI
+description: Run a local, read-only ClickHouse health scan with no chmonitor account — chm diagnose connects straight to your cluster and prints a scored report.
+icon: Stethoscope
+---
+
+`chm diagnose` is a one-shot health check for a ClickHouse cluster that needs **no chmonitor account and no backend** — the binary talks directly to ClickHouse's HTTP interface, runs a fixed set of read-only checks, and prints a scored report to your terminal.
+
+<Callout type="info" title="Different from the rest of the CLI">
+The other `chm` subcommands (`hosts`, `chart`, `table`, `tui`) talk to a running chmonitor dashboard's API. `chm diagnose` is standalone — point it at a ClickHouse host and it works with nothing else installed or configured.
+</Callout>
+
+## Install / run
+
+No install step is required if you have the Rust toolchain — build and run straight from the monorepo:
+
+```bash
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
+  cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose
+```
+
+Or build a release binary once and reuse it (see [Releases](/reference/releases) for prebuilt binaries — tag format `chm-v*`):
+
+```bash
+cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
+  ./rust/target/release/ch-monitor-cli diagnose
+```
+
+## Configuration
+
+Same env var names the dashboard uses, so if you already have `CLICKHOUSE_HOST`/`CLICKHOUSE_USER`/`CLICKHOUSE_PASSWORD` set for a self-hosted deploy, `diagnose` picks them up as-is. Flags override env vars.
+
+| Env var | Flag | Default | Notes |
+|---|---|---|---|
+| `CLICKHOUSE_HOST` | `--ch-host` | — (required) | e.g. `http://localhost:8123`. A bare `host:port` is assumed `http://`. |
+| `CLICKHOUSE_USER` | `--ch-user` | `default` | |
+| `CLICKHOUSE_PASSWORD` | `--ch-password` | *(empty)* | |
+| `CLICKHOUSE_DATABASE` | `--ch-database` | `default` | |
+| — | `--json` | off | Machine-readable report instead of a table (useful in CI). |
+
+<Callout type="warn" title="One host at a time">
+A comma-separated multi-host `CLICKHOUSE_HOST` (the format the dashboard uses for clusters) diagnoses only the **first** host — `diagnose` prints a note and moves on. For multi-host/multi-replica clusters, run the full dashboard instead.
+</Callout>
+
+## What it checks
+
+Twelve independent, read-only checks across the system tables that matter most for day-to-day ClickHouse health:
+
+| Category | Checks |
+|---|---|
+| Performance | Query error rate (1h), p95 query duration (1h), longest live query, longest in-progress merge |
+| Storage | Most-fragmented table (active parts), worst compression ratio, detached parts |
+| Reliability | Read-only replicas, replication lag, stuck mutations, failed dictionaries |
+| Capacity | Fullest disk |
+
+Every query forces ClickHouse's `readonly` setting — **`chm diagnose` never mutates the target cluster.** Each check is independent and best-effort: a missing table or a permission error just skips that one finding rather than failing the whole run, so it degrades gracefully against minimal or locked-down deployments.
+
+## Reading the report
+
+```text
+chmonitor diagnostics — http://localhost:8123
+ClickHouse 24.8.1.1 · uptime 3.2h
+
+Score: 82/100 (B) · 12 checks run · 2 findings
+
+┌──────────┬─────────────┬─────────────────────────────┬──────────────────────────────┐
+│ Severity │ Category    │ Finding                      │ Detail                        │
+├──────────┼─────────────┼───────────────────────────────────────────────────────────────┤
+│ WARNING  │ storage     │ default.events is fragmented │ 412 active parts (2.1 GiB)... │
+│ NOTICE   │ reliability │ Replication is lagging       │ Most-delayed replica is 90s...│
+└──────────┴─────────────┴─────────────────────────────┴──────────────────────────────┘
+
+Deep dive, live charts, and the AI advisor: https://dash.chmonitor.dev (hosted) or self-host: https://docs.chmonitor.dev
+```
+
+- **Score** starts at 100 and deducts per finding (critical −20, warning −8, notice −2, floored at 0), bucketed into a letter grade.
+- **Exit code** is `1` if any finding is critical, `0` otherwise — safe to wire into a CI step or cron job.
+- Each finding's detail line names the exact next step (e.g. `OPTIMIZE`, review a partition key, check `system.mutations.latest_fail_reason`).
+
+For live charts, alerting, the AI advisor, and multi-host clusters, point the same ClickHouse credentials at the full dashboard — [self-host it](/operate/deploy) or use the hosted [dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=docs).
+
+<Cards>
+<Card title="Troubleshooting" href="/guide/guides/troubleshooting" description="Diagnose connection, auth, performance, and Kubernetes probe failures." />
+<Card title="Self-host chmonitor" href="/operate/deploy" description="Docker, Kubernetes, or Cloudflare Workers." />
+</Cards>
