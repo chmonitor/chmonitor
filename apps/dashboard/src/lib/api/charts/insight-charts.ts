@@ -8,13 +8,38 @@ import type { ChartQueryBuilder } from './types'
 import { buildTimeFilter } from '@/lib/clickhouse-query'
 
 /**
+ * Default percentile when the request omits or supplies an invalid value.
+ */
+const DEFAULT_PERCENTILE = '99'
+
+/**
+ * Coerce a request-supplied `percentile` param to a safe numeric string before
+ * it is spliced into raw SQL as the quantile level (`0.${p}`).
+ *
+ * SECURITY (issue #2464): `percentile` reaches ClickHouse via string
+ * interpolation, not a bind parameter, so an unvalidated value is direct SQL
+ * injection (e.g. `50)),arbitrary--`). This endpoint is unauthenticated on the
+ * default self-hosted posture and public-read for cloud anonymous visitors, so
+ * the value MUST be constrained here. Accept only an integer 1–100 (the UI
+ * offers p95 / p99 / p100); anything else — non-numeric, out of range, or an
+ * injection payload — falls back to the default p99. The returned value is
+ * re-derived from the parsed integer, so the string that ever reaches SQL can
+ * only be digits.
+ */
+function sanitizePercentile(percentile: string): string {
+  if (!/^\d{1,3}$/.test(percentile)) return DEFAULT_PERCENTILE
+  const n = Number.parseInt(percentile, 10)
+  if (!Number.isInteger(n) || n < 1 || n > 100) return DEFAULT_PERCENTILE
+  return String(n)
+}
+
+/**
  * Aggregate expression for a percentile (or max for p100).
  * Uses quantileTDigest — lower memory than exact quantile on large query_log.
  */
 function percentileThreshold(percentile: string, column: string): string {
-  return percentile === '100'
-    ? `max(${column})`
-    : `quantileTDigest(0.${percentile})(${column})`
+  const p = sanitizePercentile(percentile)
+  return p === '100' ? `max(${column})` : `quantileTDigest(0.${p})(${column})`
 }
 
 /**
@@ -27,10 +52,11 @@ function percentileDurationFilter(
   percentile: string,
   timeFilter: string
 ): string {
-  if (percentile === '100') return ''
+  const p = sanitizePercentile(percentile)
+  if (p === '100') return ''
   const timeClause = timeFilter ? `AND ${timeFilter}` : ''
   return `AND query_duration_ms <= (
-    SELECT ${percentileThreshold(percentile, 'query_duration_ms')}
+    SELECT ${percentileThreshold(p, 'query_duration_ms')}
     FROM system.query_log
     WHERE type = 'QueryFinish' AND is_initial_query = 1 ${timeClause}
   )`
