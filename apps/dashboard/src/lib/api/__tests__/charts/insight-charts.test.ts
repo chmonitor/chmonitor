@@ -128,9 +128,13 @@ describe('insightCharts', () => {
       '99 ',
     ]
 
+    // bun's `.each` spreads each tuple row into the callback args, so the
+    // callback receives the chart name directly (not a tuple to destructure).
+    // The 1-tuple mapping is only there to satisfy tsc's `.each` overloads,
+    // which reject a readonly array of bare strings.
     describe.each(percentileCharts.map((c) => [c] as const))(
       'chart "%s"',
-      ([chartName]) => {
+      (chartName) => {
         test.each(
           maliciousValues
         )('rejects malicious percentile %p (no injected fragment, safe fallback)', (percentile) => {
