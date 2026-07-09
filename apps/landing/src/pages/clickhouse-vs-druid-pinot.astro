@@ -1,0 +1,135 @@
+---
+// Database-vs-database SEO comparison page (near-ICP, plans/05-implementation-tasks.md S4).
+// Three-way: ClickHouse vs Apache Druid vs Apache Pinot.
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import DbComparisonTable from '../components/DbComparisonTable.astro'
+import ComparisonLinks from '../components/ComparisonLinks.astro'
+import FinalCta from '../components/FinalCta.astro'
+import Footer from '../components/Footer.astro'
+import { druidPinotRows } from '../data/db-comparisons'
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'ClickHouse vs Druid vs Pinot', item: canonical },
+  ],
+}
+
+const faqs = [
+  {
+    q: 'Which is faster: ClickHouse, Druid, or Pinot?',
+    a: "It depends what you're measuring. Pinot is built for the lowest point-lookup latency at very high QPS (single-digit milliseconds), Druid for sub-second interactive dashboard queries over streaming data, and ClickHouse for the broadest ad hoc analytical SQL — including large scans Druid and Pinot aren't optimized for.",
+  },
+  {
+    q: 'Why do Druid and Pinot need ZooKeeper and ClickHouse mostly doesn\'t?',
+    a: "Druid and Pinot were architected from the start as distributed, multi-service systems (coordinator, broker, historical/server nodes) that need a coordination layer. ClickHouse can run as a single node and uses its own built-in Keeper only when you add replication — a smaller operational surface for small-to-medium deployments.",
+  },
+  {
+    q: 'Is ClickHouse a real-time OLAP database like Druid or Pinot?',
+    a: 'It can ingest from Kafka and query fresh data, but its idiomatic ingestion pattern is larger batch inserts — frequent tiny inserts create excess parts that need merging. Druid and Pinot are purpose-built for continuous streaming ingestion with immediate queryability, which is their core differentiator.',
+  },
+  {
+    q: 'Which one should I pick for a startup?',
+    a: "For most teams, ClickHouse: simplest to operate as a single node, the richest SQL for ad hoc exploration, and it scales out when you need it. Reach for Druid or Pinot specifically when you're building a user-facing product feature that needs guaranteed low-latency queries at very high concurrency.",
+  },
+]
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+---
+<Base
+  title="ClickHouse vs Druid vs Pinot — Honest 2026 Comparison"
+  description="A 3-way comparison of ClickHouse, Apache Druid and Apache Pinot: architecture, real-time ingestion, query latency, operational complexity and when to pick each, with sources."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head reveal">
+          <span class="eyebrow">ClickHouse vs Druid vs Pinot</span>
+          <h1>Three real-time OLAP engines, three different jobs</h1>
+          <p>ClickHouse, Apache Druid and Apache Pinot are often shortlisted together, but they were built for different problems: general-purpose SQL analytics, streaming-native interactive dashboards, and ultra-low-latency user-facing features, respectively. Here's the honest, row-by-row comparison — including where the other two win.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Comparison matrix</span>
+          <h2>ClickHouse vs Apache Druid vs Apache Pinot</h2>
+          <p>Where each engine actually wins.</p>
+        </div>
+        <DbComparisonTable subjects={['ClickHouse', 'Apache Druid', 'Apache Pinot']} rows={druidPinotRows}>
+          <Fragment slot="note">
+            Druid and Pinot details reflect public docs as of July 2026 and may change — verify at <a href="https://druid.apache.org/docs/latest/design/architecture/" target="_blank" rel="noopener">druid.apache.org</a> and <a href="https://docs.pinot.apache.org/architecture-and-concepts/concepts/architecture" target="_blank" rel="noopener">docs.pinot.apache.org</a>. ClickHouse rows reflect the open-source engine.
+          </Fragment>
+        </DbComparisonTable>
+      </div>
+    </section>
+
+    <section id="fit" class="band">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Decision guide</span>
+          <h2>Which one fits your workload</h2>
+          <p>All three are open-source, distributed, and OLAP-flavored — the split is in what they optimize for.</p>
+        </div>
+        <div class="cap-grid">
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+            <h4>Choose ClickHouse for general-purpose analytics</h4>
+            <p>The richest SQL dialect of the three, the simplest single-node-to-cluster operational path, and the best fit for ad hoc exploratory queries.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l3-4 3 3 4-6"/></svg></span>
+            <h4>Choose Druid for streaming dashboards</h4>
+            <p>Native segment-based real-time-to-historical ingestion built for sub-second, always-fresh interactive dashboards over event data.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+            <h4>Choose Pinot for user-facing latency SLAs</h4>
+            <p>Purpose-built for single-digit-millisecond queries at very high QPS — the right tool when the query result is rendered directly in your product.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">FAQ</span>
+          <h2>Questions &amp; answers</h2>
+        </div>
+        <div class="reveal mx-auto mt-8 sm:mt-10 max-w-3xl">
+          {faqs.map(({ q, a }) => (
+            <details class="changelog-faq group border-b border-border first:border-t">
+              <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+                <span class="min-w-0 flex-1 text-pretty">{q}</span>
+                <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
+                <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
+              </summary>
+              <div class="faq-ans pb-5 text-muted-foreground">{a}</div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <ComparisonLinks current="clickhouse-vs-druid-pinot" />
+    <FinalCta />
+  </main>
+  <Footer />
+</Base>

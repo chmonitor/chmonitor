@@ -1,0 +1,142 @@
+---
+// Database-vs-database SEO comparison page (near-ICP, plans/05-implementation-tasks.md S4).
+// Distinct from /vs-grafana etc, which compare chmonitor against a monitoring tool —
+// this compares the underlying databases and tells people who land here where
+// chmonitor fits once they've picked one.
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import DbComparisonTable from '../components/DbComparisonTable.astro'
+import ComparisonLinks from '../components/ComparisonLinks.astro'
+import FinalCta from '../components/FinalCta.astro'
+import Footer from '../components/Footer.astro'
+import { timescaledbRows } from '../data/db-comparisons'
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'ClickHouse vs TimescaleDB', item: canonical },
+  ],
+}
+
+const faqs = [
+  {
+    q: 'Is TimescaleDB faster than ClickHouse?',
+    a: 'For single-row reads/writes and standard relational queries, yes — it inherits PostgreSQL\'s OLTP performance. For wide ad hoc aggregations across billions of rows, ClickHouse\'s columnar engine is generally faster because it only reads the columns a query touches and scans them in a vectorized, compressed form.',
+  },
+  {
+    q: 'Can TimescaleDB replace ClickHouse for analytics?',
+    a: 'For moderate-scale time-series analytics with relational needs (joins, ACID transactions), yes. For high-cardinality, exploratory analytics over huge historical datasets, or workloads that need to scale out across many nodes, ClickHouse is the better fit — TimescaleDB sunset multi-node distributed hypertables in v2.13.',
+  },
+  {
+    q: 'Do I need ClickHouse if I already use PostgreSQL?',
+    a: "Not necessarily. If your analytical queries run fast enough on Postgres (with or without TimescaleDB), keep one database. Reach for ClickHouse when GROUP BY/aggregation queries over your largest tables get too slow even with the right indexes — that's the point where columnar storage starts to matter.",
+  },
+  {
+    q: 'How do I monitor a ClickHouse cluster once I pick it?',
+    a: 'chmonitor reads ClickHouse system tables directly — no exporters or agents — and ships pre-built pages for queries, merges, parts and replication, plus a recommend-only advisor and an AI agent. It self-hosts for free or runs as a hosted cloud.',
+  },
+]
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+---
+<Base
+  title="ClickHouse vs TimescaleDB — Honest 2026 Comparison"
+  description="ClickHouse vs TimescaleDB compared: columnar OLAP vs a Postgres time-series extension — storage, joins, compression, distributed scale, licensing and when to pick each, with sources."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head reveal">
+          <span class="eyebrow">ClickHouse vs TimescaleDB</span>
+          <h1>A columnar OLAP engine vs a Postgres time-series extension</h1>
+          <p>TimescaleDB gives you time-series superpowers without leaving PostgreSQL — full SQL, joins, ACID transactions, one familiar operational surface. ClickHouse trades that relational comfort for raw columnar scan speed at a scale TimescaleDB isn't built to reach. Neither is "better" in the abstract — here's the honest, row-by-row comparison.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Comparison matrix</span>
+          <h2>ClickHouse vs TimescaleDB</h2>
+          <p>Where each database actually wins — TimescaleDB included.</p>
+        </div>
+        <DbComparisonTable subjects={['ClickHouse', 'TimescaleDB']} rows={timescaledbRows}>
+          <Fragment slot="note">
+            TimescaleDB details reflect public docs as of July 2026 and may change — verify at <a href="https://docs.timescale.com/about/latest/timescaledb-editions/" target="_blank" rel="noopener">Tiger Data's edition comparison</a>, the <a href="https://www.tigerdata.com/legal/licenses" target="_blank" rel="noopener">Timescale License page</a> and the <a href="https://github.com/timescale/timescaledb/blob/main/docs/MultiNodeDeprecation.md" target="_blank" rel="noopener">multi-node deprecation notice</a>. ClickHouse rows reflect the open-source engine, not any specific vendor's build.
+          </Fragment>
+        </DbComparisonTable>
+      </div>
+    </section>
+
+    <section id="fit" class="band">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Decision guide</span>
+          <h2>Which one fits your workload</h2>
+          <p>The honest split: relational comfort and moderate scale vs columnar speed at high cardinality and volume.</p>
+        </div>
+        <div class="cap-grid">
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+            <h4>Choose ClickHouse for high-cardinality analytics</h4>
+            <p>Event/log analytics, product analytics, or any workload doing wide ad hoc GROUP BY across billions of rows where indexes stop helping.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+            <h4>Choose ClickHouse to scale out across nodes</h4>
+            <p>Native sharding and replication handle petabyte-scale clusters — the model TimescaleDB moved away from when it sunset multi-node.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <h4>Choose TimescaleDB for relational time-series</h4>
+            <p>IoT/financial metrics with real joins, ACID transactions, and referential integrity — standard Postgres semantics you don't want to give up.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <h4>Choose TimescaleDB for one skillset, one system</h4>
+            <p>If your app data and your time-series data both live comfortably in Postgres, one operational surface beats running two databases.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">FAQ</span>
+          <h2>Questions &amp; answers</h2>
+        </div>
+        <div class="reveal mx-auto mt-8 sm:mt-10 max-w-3xl">
+          {faqs.map(({ q, a }) => (
+            <details class="changelog-faq group border-b border-border first:border-t">
+              <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+                <span class="min-w-0 flex-1 text-pretty">{q}</span>
+                <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
+                <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
+              </summary>
+              <div class="faq-ans pb-5 text-muted-foreground">{a}</div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <ComparisonLinks current="clickhouse-vs-timescaledb" />
+    <FinalCta />
+  </main>
+  <Footer />
+</Base>

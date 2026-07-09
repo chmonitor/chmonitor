@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import ComparisonTable from '../components/ComparisonTable.astro'
+import ComparisonLinks from '../components/ComparisonLinks.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
 import { datadogRows } from '../data/comparisons'
@@ -80,6 +81,7 @@ const breadcrumbJsonLd = {
       </div>
     </section>
 
+    <ComparisonLinks current="vs-datadog" />
     <FinalCta />
   </main>
   <Footer />

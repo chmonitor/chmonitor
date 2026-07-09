@@ -1,0 +1,139 @@
+---
+// Database-vs-database SEO comparison page (near-ICP, plans/05-implementation-tasks.md S4).
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import DbComparisonTable from '../components/DbComparisonTable.astro'
+import ComparisonLinks from '../components/ComparisonLinks.astro'
+import FinalCta from '../components/FinalCta.astro'
+import Footer from '../components/Footer.astro'
+import { postgresRows } from '../data/db-comparisons'
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'ClickHouse vs Postgres', item: canonical },
+  ],
+}
+
+const faqs = [
+  {
+    q: 'Is ClickHouse faster than PostgreSQL for analytics?',
+    a: 'For aggregations over large historical tables, generally yes — ClickHouse only reads the columns a query touches and executes in a vectorized, compressed form, so it scans and aggregates far more rows per second than a row-store. For single-row lookups and small, well-indexed queries, Postgres is at least as fast and often faster.',
+  },
+  {
+    q: 'Can I just add indexes to PostgreSQL instead of adopting ClickHouse?',
+    a: "For moderate data volumes, yes — the right B-tree/BRIN indexes and enough RAM take Postgres a long way. The point where that stops working is roughly when full-table scans over your largest fact tables become routine; that's the signal to consider a columnar engine.",
+  },
+  {
+    q: "Should I replace Postgres with ClickHouse, or run both?",
+    a: 'Most teams run both: PostgreSQL for transactional application data (orders, users, billing) and ClickHouse for analytics (events, logs, metrics), often replicating from Postgres into ClickHouse via CDC or the built-in PostgreSQL table engine.',
+  },
+  {
+    q: 'Does ClickHouse support JOINs like PostgreSQL?',
+    a: "Yes, but the two differ. ClickHouse's join support and query planner have improved substantially, but denormalizing wide tables is still the idiomatic pattern for best performance at scale — Postgres's cost-based planner handles complex multi-table joins more naturally out of the box.",
+  },
+]
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+---
+<Base
+  title="ClickHouse vs Postgres for Analytics — Honest 2026 Comparison"
+  description="ClickHouse vs PostgreSQL for analytical workloads: columnar vs row storage, aggregation speed, joins, indexing and concurrency — the real trade-offs, with sources."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head reveal">
+          <span class="eyebrow">ClickHouse vs Postgres</span>
+          <h1>Columnar analytics vs the world's most trusted relational database</h1>
+          <p>PostgreSQL is the safe, general-purpose default — transactions, joins, indexes, a mature ecosystem, and it handles a surprising amount of analytics with the right indexes. ClickHouse gives up some of that relational comfort for columnar scan speed at a scale Postgres wasn't built for. Here's where each one actually wins.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="matrix" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Comparison matrix</span>
+          <h2>ClickHouse vs PostgreSQL</h2>
+          <p>Where each database actually wins — Postgres included.</p>
+        </div>
+        <DbComparisonTable subjects={['ClickHouse', 'PostgreSQL']} rows={postgresRows}>
+          <Fragment slot="note">
+            PostgreSQL details reflect the mainline engine and its public documentation as of July 2026 — verify at <a href="https://www.postgresql.org/docs/" target="_blank" rel="noopener">postgresql.org/docs</a>. Columnar/analytics extensions (Citus, TimescaleDB) are noted separately where relevant since they aren't part of core Postgres. ClickHouse rows reflect the open-source engine.
+          </Fragment>
+        </DbComparisonTable>
+      </div>
+    </section>
+
+    <section id="fit" class="band">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">Decision guide</span>
+          <h2>Which one fits your workload</h2>
+          <p>The honest split: transactional correctness and flexibility vs raw aggregation speed at scale.</p>
+        </div>
+        <div class="cap-grid">
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+            <h4>Choose ClickHouse for large-scale aggregation</h4>
+            <p>Event/log analytics, product analytics, or any dashboard doing GROUP BY across billions of historical rows where indexes stop helping.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg></span>
+            <h4>Choose ClickHouse for cheap, fast storage</h4>
+            <p>10x+ columnar compression on typical analytical data cuts both storage cost and the I/O each query has to do.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <h4>Choose Postgres for transactional data</h4>
+            <p>Orders, users, billing — anywhere you need ACID transactions, row-level updates, and referential integrity as first-class guarantees.</p>
+          </div>
+          <div class="cap reveal">
+            <span class="cap-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <h4>Choose Postgres for moderate-scale analytics</h4>
+            <p>If your reporting queries fit comfortably within what a well-indexed table and enough RAM can cover, you don't need a second database yet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="band band-soft">
+      <div class="wrap">
+        <div class="sec-head reveal" style="text-align:center">
+          <span class="eyebrow">FAQ</span>
+          <h2>Questions &amp; answers</h2>
+        </div>
+        <div class="reveal mx-auto mt-8 sm:mt-10 max-w-3xl">
+          {faqs.map(({ q, a }) => (
+            <details class="changelog-faq group border-b border-border first:border-t">
+              <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+                <span class="min-w-0 flex-1 text-pretty">{q}</span>
+                <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
+                <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
+              </summary>
+              <div class="faq-ans pb-5 text-muted-foreground">{a}</div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <ComparisonLinks current="clickhouse-vs-postgres" />
+    <FinalCta />
+  </main>
+  <Footer />
+</Base>

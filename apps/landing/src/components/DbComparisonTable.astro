@@ -1,0 +1,78 @@
+---
+/**
+ * Generic N-column comparison matrix for database-vs-database SEO pages
+ * (`/clickhouse-vs-*`), as distinct from `ComparisonTable.astro` which is
+ * hardcoded to "chmonitor vs one monitoring competitor". This one takes an
+ * arbitrary list of subject names (2 for a head-to-head, 3 for a three-way
+ * like Druid/Pinot) so it isn't chmonitor-specific.
+ *
+ * The first subject is always ClickHouse and gets the highlighted column,
+ * mirroring the chmonitor column treatment in `ComparisonTable.astro`.
+ */
+export type CellKind = 'yes' | 'no' | 'partial' | 'plain'
+
+export interface ComparisonCell {
+  kind: CellKind
+  text: string
+}
+
+export interface DbComparisonRow {
+  label: string
+  /** One cell per entry in `subjects`, same order. */
+  cells: ComparisonCell[]
+}
+
+interface Props {
+  /** Column headers, e.g. ["ClickHouse", "TimescaleDB"] or 3-way. */
+  subjects: string[]
+  rows: DbComparisonRow[]
+}
+
+const { subjects, rows } = Astro.props
+
+const ICON_YES = `<svg class="inline-block size-[18px] shrink-0 align-middle text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
+const ICON_NO = `<svg class="inline-block size-[18px] shrink-0 align-middle text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m18 6-12 12M6 6l12 12"/></svg>`
+const ICON_PARTIAL = `<svg class="inline-block size-[18px] shrink-0 align-middle text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`
+
+function iconFor(kind: CellKind): string {
+  switch (kind) {
+    case 'yes':
+      return ICON_YES
+    case 'no':
+      return ICON_NO
+    case 'partial':
+      return ICON_PARTIAL
+    default:
+      return ''
+  }
+}
+---
+<div class="reveal overflow-hidden rounded-xl border border-border shadow-sm">
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[640px] border-collapse text-sm">
+      <thead>
+        <tr class="bg-muted">
+          <th class="min-w-[160px] whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"></th>
+          {subjects.map((subject, i) => (
+            <th class={`whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground ${i === 0 ? 'bg-primary/5' : ''}`}>{subject}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr class="border-t border-border">
+            <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">{row.label}</td>
+            {row.cells.map((cell, i) => (
+              <td class={`px-5 py-3.5 text-pretty text-muted-foreground ${i === 0 ? 'bg-primary/5' : ''}`}>
+                <span class="inline-flex items-start gap-2">
+                  {cell.kind !== 'plain' && <Fragment set:html={iconFor(cell.kind)} />} {cell.text}
+                </span>
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <div class="border-t border-border bg-muted px-5 py-3.5 text-xs text-muted-foreground"><slot name="note" /></div>
+</div>

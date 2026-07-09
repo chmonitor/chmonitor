@@ -1,0 +1,34 @@
+---
+/**
+ * Cross-links every /vs-* and /clickhouse-vs-* comparison page to its
+ * siblings so the SEO comparison cluster is fully interlinked (S4). Two
+ * families share this one list: "chmonitor vs monitoring tool" pages and
+ * "ClickHouse vs other database" pages.
+ */
+interface Props {
+  /** Slug of the current page (without leading slash), excluded from the list. */
+  current: string
+}
+
+const { current } = Astro.props
+
+const links = [
+  { slug: 'vs-grafana', label: 'chmonitor vs Grafana' },
+  { slug: 'vs-datadog', label: 'chmonitor vs Datadog' },
+  { slug: 'vs-clickhouse-cloud', label: 'chmonitor vs ClickHouse Cloud' },
+  { slug: 'clickhouse-vs-timescaledb', label: 'ClickHouse vs TimescaleDB' },
+  { slug: 'clickhouse-vs-postgres', label: 'ClickHouse vs Postgres' },
+  { slug: 'clickhouse-vs-druid-pinot', label: 'ClickHouse vs Druid vs Pinot' },
+]
+
+const others = links.filter((l) => l.slug !== current)
+---
+<p class="reveal mt-5 text-center text-sm text-muted-foreground">
+  More comparisons:{' '}
+  {others.map((l, i) => (
+    <>
+      <a class="font-semibold text-primary underline underline-offset-4 hover:text-primary/80" href={`/${l.slug}`}>{l.label}</a>
+      {i < others.length - 1 ? ' · ' : ''}
+    </>
+  ))}
+</p>
