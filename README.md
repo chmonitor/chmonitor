@@ -1,15 +1,27 @@
-# chmonitor Dashboard
+# chmonitor — the operational advisor for ClickHouse
 
 [![Build and Test](https://github.com/chmonitor/chmonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/chmonitor/chmonitor/actions/workflows/ci.yml)
+[![GitHub stars](https://img.shields.io/github/stars/chmonitor/chmonitor?style=flat&logo=github&label=stars)](https://github.com/chmonitor/chmonitor/stargazers)
 <!-- NOTE: this uptime badge still uses the pre-rebrand `clickhouse-monitoring-vercel-app` slug and may be stale; verify against the live uptime source before relying on it. -->
 [![All-time uptime](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduyet%2Fuptime%2FHEAD%2Fapi%2Fclickhouse-monitoring-vercel-app%2Fuptime.json)](https://duyet.github.io/uptime/history/clickhouse-monitoring-vercel-app)
 [![Latest release](https://img.shields.io/github/v/release/chmonitor/chmonitor?sort=semver&label=release)](https://github.com/chmonitor/chmonitor/releases)
 [![Docker image](https://img.shields.io/badge/ghcr.io-chmonitor%2Fchmonitor-2496ED?logo=docker&logoColor=white)](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor)
 [![License](https://img.shields.io/github/license/chmonitor/chmonitor)](LICENSE)
 
-**chmonitor is an operational advisor for self-hosted ClickHouse** — not just a metrics viewer. It reads `system.*` and recommends projections, skip indexes, partition keys, PREWHERE rewrites, and materialized views (it *recommends*, and never auto-applies DDL), on top of the real-time query/cluster/replication monitoring you'd expect. Managed-ClickHouse AI tools stay locked to their own Cloud; chmonitor works the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud.
+**chmonitor is an operational advisor for ClickHouse** — not just a metrics viewer. It reads `system.*` and recommends projections, skip indexes, partition keys, PREWHERE rewrites, and materialized views (it *recommends*, and never auto-applies DDL), on top of the real-time query/cluster/replication monitoring you'd expect. Managed-ClickHouse AI tools stay locked to their own Cloud; chmonitor works the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud — self-host it free (GPL-3.0) or use the hosted [Cloud](#self-hosted-oss-vs-cloud-saas), same codebase either way.
 
-A modern dashboard (TanStack Start, as of **v0.3**) that provides real-time insights into ClickHouse clusters through system tables. Every page is pre-rendered at build time with client-side data fetching for optimal performance and CDN caching.
+<p align="center">
+  <a href="https://dash.chmonitor.dev/?ref=github"><strong>Live demo</strong></a> ·
+  <a href="https://chmonitor.dev/?ref=github">chmonitor.dev</a> ·
+  <a href="https://docs.chmonitor.dev">Docs</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#screenshots">Screenshots</a>
+</p>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark.png">
+  <img alt="chmonitor overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-light.png">
+</picture>
 
 > **Upgrading from v0.2?** v0.3 rebuilds the app on TanStack Start. ClickHouse
 > connection vars are unchanged; browser vars move from `NEXT_PUBLIC_*` to
@@ -17,26 +29,30 @@ A modern dashboard (TanStack Start, as of **v0.3**) that provides real-time insi
 > **[Upgrading to v0.3](#upgrading-to-v03)** below or the full
 > [Migrate to v0.3](https://docs.chmonitor.dev/migrating/v0-3) guide.
 
-<p align="center">
-  <strong>Live:</strong> <a href="https://dash.chmonitor.dev/?ref=github">dash.chmonitor.dev</a> | <a href="https://chmonitor.dev/?ref=github">chmonitor.dev</a> | <a href="#screenshots">Screenshots</a>
-</p>
+## Features
 
-**Features:**
+| Monitoring | AI & extensibility |
+|---|---|
+| **Query Monitoring** — running queries, history, resources (memory, parts read, file_open), expensive/slow/failed queries, query profiler | **AI Advisor** — projection, skip-index, partition-key, PREWHERE and materialized-view recommendations from `system.*` and EXPLAIN — recommend-only, never auto-applies DDL |
+| **Cluster Overview** — memory/CPU, distributed queue, global & MergeTree settings, metrics, asynchronous metrics | **AI Agent** — built-in chat for natural-language questions against your ClickHouse cluster |
+| **Data Explorer** — interactive database tree, fast tab switching, column-level detail, projections, dictionaries | **MCP Server** — Model Context Protocol endpoint for AI tool integration (Claude, Cursor, etc.) |
+| **Table Analytics** — size, row count, compression, part sizes, detached parts, readonly tables, view refreshes | **Rust CLI** — standalone terminal and TUI monitoring tool |
+| **Visualization** — 30+ metric charts for queries, resources, merges, performance and system health | **Security & Access** — users, roles, security settings |
+| **Merge & Replication** — merge operations, merge performance, replication queue, replicas | **Developer Tools** — Zookeeper explorer, query EXPLAIN, query kill, distributed DDL queue, mutations |
+| **Multi-Host Support** — monitor multiple ClickHouse instances from a single dashboard | |
 
-- **Query Monitoring**: Running queries, query history, resources (memory, parts read, file_open), expensive queries, slow queries, failed queries, query profiler
-- **Cluster Overview**: Memory/CPU usage, distributed queue, global settings, MergeTree settings, metrics, asynchronous metrics
-- **Data Explorer**: Interactive database tree browser with fast tab switching and column-level details, projections, dictionaries
-- **Table Analytics**: Size, row count, compression, part sizes with column-level granularity, detached parts, readonly tables, view refreshes
-- **Visualization**: 30+ metric charts for queries, resources, merges, performance, and system health
-- **Merge & Replication**: Merge operations, merge performance, replication queue, replicas
-- **Security & Access**: Users, roles, security settings
-- **Developer Tools**: Zookeeper explorer, query EXPLAIN, query kill, distributed DDL queue, mutations
-- **Multi-Host Support**: Monitor multiple ClickHouse instances from a single dashboard
-- **AI Advisor**: Query optimization advisor, materialized-view/projection designer, capacity forecast + TTL advisor, and EXPLAIN-based query cost estimator — all recommend-only, never auto-applies DDL
-- **AI Agent**: Built-in AI chat for natural language queries against your ClickHouse cluster
-- **MCP Server**: Model Context Protocol endpoint for AI tool integration (Claude, Cursor, etc.)
-- **Rust CLI**: Standalone terminal and TUI monitoring tool
+## Self-hosted (OSS) vs Cloud (SaaS)
 
+Same codebase, same features — the only difference is who runs it. See
+[Editions](docs/content/operate/advanced/editions.mdx) for the open-core feature gates.
+
+| | Self-hosted (OSS) | Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github)) |
+|---|---|---|
+| Cost | Free forever, GPL-3.0 | Free tier, then Pro $29/mo, Max $99/mo, Enterprise custom |
+| Runs on | Your infra — Docker, Kubernetes, bare metal, Cloudflare Workers | Hosted by us on Cloudflare's global edge |
+| ClickHouse hosts | Unlimited | 1 (Free) · 3 (Pro) · 10 (Max) · unlimited (Enterprise) |
+| Setup | `docker run` one-liner below | Sign up — no install |
+| Try without an account | — | Public read-only demo cluster |
 
 ## Quick start
 
@@ -57,8 +73,8 @@ Open **<http://localhost:3000>**. Pin a release tag instead of `latest` for prod
 
 ## Deployment
 
-chmonitor is **self-hosted** — run it next to your ClickHouse with the same
-`CLICKHOUSE_*` connection vars on any of these targets:
+To self-host, run it next to your ClickHouse with the same `CLICKHOUSE_*`
+connection vars on any of these targets:
 
 - **[Docker](#docker)** — one `docker run`; the fastest path to a live dashboard.
 - **[Cloudflare Workers](#cloudflare-workers)** — global edge deploy (how the
@@ -82,7 +98,7 @@ This project supports deployment to Cloudflare Workers with static site generati
 1. Clone and install dependencies:
 ```bash
 git clone https://github.com/chmonitor/chmonitor.git
-cd clickhouse-monitoring
+cd chmonitor
 pnpm install
 ```
 
@@ -267,11 +283,6 @@ plus a short list of what you changed:
 **Knowledge Graph** — developer-facing notes in `docs/knowledge/` with decisions, conventions, and architecture docs. See [docs/knowledge/README.md](docs/knowledge/README.md) for the index.
 
 ## Screenshots
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark.png">
-  <img alt="Overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-light.png">
-</picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/cluster-topology-dark.png">
