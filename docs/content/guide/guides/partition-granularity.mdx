@@ -1,0 +1,87 @@
+---
+title: "ClickHouse partition granularity: day vs month"
+description: How to size a ClickHouse PARTITION BY expression — the trade-offs between daily and monthly partitions, and the diagnostic SQL to tell if yours is too fine or too coarse.
+icon: History
+---
+
+Part of the [ClickHouse query optimization guide](/guide/guides/clickhouse-query-optimization).
+Read [partition key best practices](/guide/guides/partition-key-best-practices) first if
+you haven't chosen the partition expression itself yet — this page is about
+**how fine** to make it.
+
+## The trade-off
+
+| | Daily (`toDate(...)`) | Monthly (`toYYYYMM(...)`) |
+|---|---|---|
+| **TTL / retention granularity** | Drop exactly one day instantly (`DROP PARTITION`) | Coarsest unit you can drop is a month |
+| **Backfill / reprocess granularity** | Reprocess a single bad day cheaply | Reprocessing touches a whole month |
+| **Merge efficiency** | More partitions to track; fine if daily volume is large | Fewer, larger partitions merge more efficiently |
+| **Part count risk** | High risk of many small parts if daily volume is small | Lower risk — more data lands in the same partition |
+| **Best for** | High-volume tables (multi-GB+ compressed per day) | Low-to-medium volume tables |
+
+Neither is universally "correct" — the right choice depends on how much data
+lands in a single partition, not on a fixed calendar unit.
+
+## Rule of thumb
+
+Size the partition expression so each partition ends up in the **hundreds of MB
+to low single-digit GB** compressed, and so the table has **at most a few
+thousand active partitions** across its whole retention window. Below that,
+you're paying partition/merge overhead for no benefit; above it, you get the
+too-many-parts symptoms described in
+[partition key best practices](/guide/guides/partition-key-best-practices).
+
+- **Small or bursty daily volume (< ~500 MB/day compressed)** → partition
+  monthly (`toYYYYMM(event_date)`), or even weekly for a middle ground
+  (`toStartOfWeek(event_date)`).
+- **High, steady daily volume (multi-GB+/day)** → partition daily
+  (`toDate(event_date)`); you get fast per-day TTL/reprocessing without
+  starving individual partitions of merge candidates.
+- **Very high volume tables (tens of GB+/day)** → daily is usually still
+  right; going finer than a day rarely pays off since ClickHouse already
+  prunes efficiently within a partition via `ORDER BY` and skip indices.
+
+## Diagnose an existing table
+
+This ranks partitions by part count within one table — a large number of
+partitions each holding only 1-2 tiny parts means the granularity is too fine
+for the actual insert volume:
+
+```sql
+SELECT
+    partition,
+    count() AS parts_in_partition,
+    formatReadableSize(sum(data_compressed_bytes)) AS partition_size,
+    formatReadableSize(avg(data_compressed_bytes)) AS avg_part_size
+FROM system.parts
+WHERE active
+  AND database = 'default'
+  AND table = 'events'
+GROUP BY partition
+ORDER BY parts_in_partition DESC
+LIMIT 20;
+```
+
+If most partitions show 1-3 parts at a few MB each, the granularity is
+oversized for the volume — move to a coarser expression (day → week/month). If
+a handful of partitions carry hundreds of parts each and merges can't keep up,
+the granularity may actually be too coarse for the insert rate, or (more
+likely) the underlying merge pool is undersized — check `background_pool_size`
+and the merge backlog on the Health page before repartitioning.
+
+## Changing granularity
+
+Like the partition key itself, granularity can't be altered in place — it's
+part of the same immutable `PARTITION BY` expression. Create a new table with
+the new expression, backfill with `INSERT INTO new SELECT * FROM old`, then
+swap. Test the new granularity on a copy of representative data before
+committing on a large table.
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
+<Card title="Partition key best practices" href="/guide/guides/partition-key-best-practices" description="Choosing the expression itself — the too-many-parts trap." />
+<Card title="External GROUP BY" href="/guide/guides/external-group-by" description="What to do when a genuinely large scan still runs out of memory." />
+<Card title="Tables" href="/guide/features/tables" description="Per-table part and partition counts, no SQL required." />
+</Cards>

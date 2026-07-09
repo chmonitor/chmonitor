@@ -1,0 +1,122 @@
+---
+title: ClickHouse partition key best practices
+description: How to choose a PARTITION BY key that keeps merges fast — why a high-cardinality partition key causes a too-many-parts spiral, and the diagnostic SQL to catch it early.
+icon: Layers
+---
+
+Part of the [ClickHouse query optimization guide](/guide/guides/clickhouse-query-optimization).
+
+`PARTITION BY` is the single most common source of "why does my ClickHouse
+cluster have thousands of parts and merges never catch up" — and it's almost
+always the same mistake: treating the partition key like an index.
+
+## What the partition key is actually for
+
+The partition key is a **data-lifecycle** mechanism, not a query-acceleration
+mechanism:
+
+- It groups parts so `ALTER TABLE ... DROP PARTITION` and TTL moves/deletes can
+  happen instantly, at the partition level, without rewriting data.
+- Merges only ever combine parts **within the same partition** — ClickHouse
+  never merges across partitions.
+- Query filtering and sort-order pruning are the job of the table's `ORDER BY`
+  (primary key) and skip indices, not the partition key. See
+  [PREWHERE vs WHERE](/guide/guides/prewhere-vs-where) and the
+  [skip indices guide](/guide/guides/skip-indices-guide) for that.
+
+<Callout type="warn" title="The partition key is immutable after table creation">
+There is no `ALTER TABLE ... MODIFY PARTITION BY`. Changing the partition key
+means creating a new table with the desired `PARTITION BY`, backfilling with
+`INSERT INTO new_table SELECT * FROM old_table`, then swapping names. Plan for
+this — it's the reason getting the partition key right early matters.
+</Callout>
+
+## The mistake: high-cardinality partition keys
+
+Because merges only happen inside a partition, a high-cardinality partition key
+means every insert scatters rows across many partitions, each getting its own
+tiny part that can never merge with parts in a different partition. Symptoms:
+
+- `Too many parts` insert-rejection errors.
+- A merge backlog that never drains (see the Health page's merge-backlog check).
+- Thousands of active partitions per table.
+
+Common offenders:
+
+```sql
+-- Bad: one partition per user — cardinality = number of users
+PARTITION BY user_id
+
+-- Bad: one partition per exact timestamp — effectively unbounded cardinality
+PARTITION BY event_time
+
+-- Bad: one partition per UUID
+PARTITION BY request_id
+```
+
+## A good default
+
+For time-series data — the overwhelming majority of ClickHouse tables — partition
+by a truncated date expression, not the raw timestamp:
+
+```sql
+CREATE TABLE events
+(
+    event_time DateTime,
+    event_date Date DEFAULT toDate(event_time),
+    user_id UInt64,
+    ...
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(event_date)   -- monthly; see the granularity guide for day vs month
+ORDER BY (user_id, event_time)      -- this is what accelerates queries
+```
+
+The partition expression should produce **tens to low thousands** of distinct
+values across the table's whole retention window — not millions. See
+[Partition granularity: day vs month](/guide/guides/partition-granularity) for
+how to size it.
+
+## Diagnose an existing table
+
+Run this to rank tables by active parts and partition count — a table with a
+high `active_parts / partitions` ratio close to 1 (one part per partition,
+never merging further) or a huge `partitions` count relative to its retention
+window has a partition-key problem:
+
+```sql
+SELECT
+    database,
+    table,
+    count() AS active_parts,
+    uniqExact(partition) AS partitions,
+    round(count() / uniqExact(partition), 2) AS avg_parts_per_partition,
+    formatReadableSize(sum(data_compressed_bytes)) AS compressed_size,
+    formatReadableSize(sum(data_compressed_bytes) / count()) AS avg_part_size
+FROM system.parts
+WHERE active
+GROUP BY database, table
+HAVING partitions > 100
+ORDER BY partitions DESC
+LIMIT 20;
+```
+
+An `avg_part_size` in the low megabytes (instead of hundreds of MB to a few GB)
+is the clearest signal that partitions are too fine-grained for the insert
+volume.
+
+## chmonitor shows this without SQL
+
+The **Tables Overview** page (`/tables-overview`) surfaces `active_parts` and
+`partitions` per table directly from `system.parts`, and the per-table
+**Partitions** drill-down lists every partition with row count, size, and
+compression ratio so you can spot the skew visually instead of writing SQL.
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
+<Card title="Partition granularity: day vs month" href="/guide/guides/partition-granularity" description="How to size the partition expression itself." />
+<Card title="Skip indices guide" href="/guide/guides/skip-indices-guide" description="What actually accelerates queries once the partition key is fixed." />
+<Card title="Tables" href="/guide/features/tables" description="Storage, parts, and partitions across every database." />
+</Cards>

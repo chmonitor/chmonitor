@@ -1,0 +1,111 @@
+---
+title: "ClickHouse PREWHERE vs WHERE"
+description: How PREWHERE cuts I/O by filtering on cheap columns before reading the rest of the row, when ClickHouse already does this automatically, and how to verify it with EXPLAIN.
+icon: Search
+---
+
+Part of the [ClickHouse query optimization guide](/guide/guides/clickhouse-query-optimization).
+
+ClickHouse is columnar — each column is stored and read independently. `PREWHERE`
+exploits that: it reads only the columns needed to evaluate the filter first,
+decides which granules survive, and only then reads the remaining `SELECT`
+columns for the rows that passed. A plain `WHERE` clause on a MergeTree table
+gets the same treatment automatically in most cases — but not always, and
+knowing the difference matters for wide tables with heavy columns.
+
+## How it actually saves I/O
+
+Consider a table with a small `type` column and a large `stack_trace` string
+column. Without `PREWHERE`, a naive engine would read both columns for every
+granule before filtering. With `PREWHERE`, ClickHouse reads `type` first,
+evaluates the filter per granule, and only reads `stack_trace` for the
+granules that survived:
+
+```sql
+SELECT
+    type,
+    query_id,
+    concat('\n', stack_trace) AS stack_trace
+FROM system.query_log
+-- PREWHERE reads the small type + event_time columns first and skips
+-- granules with no exceptions, so the heavy stack_trace column is only
+-- read for the few rows that actually match.
+PREWHERE type IN ('ExceptionBeforeStart', 'ExceptionWhileProcessing')
+    AND event_time > now() - INTERVAL 1 HOUR
+ORDER BY query_start_time DESC
+LIMIT 1000;
+```
+
+This is the exact pattern chmonitor's own Failed Queries page uses against
+`system.query_log`.
+
+## When you don't need to write it yourself
+
+Since ClickHouse 19.x, the `optimize_move_to_prewhere` setting (default `1`)
+automatically moves eligible conditions from `WHERE` into `PREWHERE` for
+MergeTree-family tables. For a simple single-condition filter on a MergeTree
+table, writing `WHERE` is usually enough — the optimizer does the rewrite for
+you.
+
+Write `PREWHERE` explicitly when:
+
+- You have **multiple AND'd conditions** and want to control which one is
+  evaluated first — put the cheapest, most selective condition first, since
+  each is evaluated in sequence per granule.
+- The query targets a `Distributed` or complex view where the optimizer's
+  automatic rewrite doesn't reach the underlying MergeTree condition.
+- You want the filter order to be explicit and stable for future readers of
+  the query, not implicit optimizer behavior.
+- The condition involves columns not part of `ORDER BY` — `PREWHERE` still
+  helps here even though the primary key can't prune it, because it avoids
+  reading unrelated heavy columns.
+
+`PREWHERE` only works against columns that physically exist in the table (no
+aliases/computed expressions unless materialized), and only on MergeTree-family
+engines.
+
+## Verify it's actually helping
+
+Run `EXPLAIN` with `actions = 1` and look for a `Prewhere info` block in the
+output — its presence confirms the filter was pushed down:
+
+```sql
+EXPLAIN actions = 1
+SELECT type, query_id
+FROM system.query_log
+WHERE type = 'ExceptionWhileProcessing'
+  AND event_time > now() - INTERVAL 1 HOUR;
+```
+
+Then confirm it's reducing scanned data with `EXPLAIN indexes = 1` —
+`Granules: N/M` should show `N` well below `M` if the filter is pruning
+granules (this also depends on the table's `ORDER BY` and skip indices; see
+the [skip indices guide](/guide/guides/skip-indices-guide) if `N` is still
+close to `M`):
+
+```sql
+EXPLAIN indexes = 1
+SELECT type, query_id
+FROM system.query_log
+WHERE type = 'ExceptionWhileProcessing'
+  AND event_time > now() - INTERVAL 1 HOUR;
+```
+
+For a real before/after comparison, check `read_rows` / `read_bytes` for the
+query in `system.query_log` and compare against the table's total row count.
+
+## chmonitor's Explain page
+
+`/explain` runs `EXPLAIN` interactively against your connected host, so you can
+paste a query and see the `Prewhere info` and granule-pruning output without
+leaving the dashboard. The AI agent's `explain_query` tool does the same thing
+as the first step of its query-tuning workflow.
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
+<Card title="Skip indices guide" href="/guide/guides/skip-indices-guide" description="What to add when PREWHERE alone still scans too many granules." />
+<Card title="Partition key best practices" href="/guide/guides/partition-key-best-practices" description="Make sure the partition layer isn't hiding the real problem first." />
+<Card title="Queries" href="/guide/features/queries" description="Failed Queries, Expensive Queries, and the interactive Explain page." />
+</Cards>

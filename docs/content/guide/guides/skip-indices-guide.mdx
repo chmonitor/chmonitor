@@ -1,0 +1,117 @@
+---
+title: "ClickHouse skip indices: the complete secondary index guide"
+description: minmax, set, bloom_filter, and tokenbf_v1 skip indices explained — what each is for, how GRANULARITY works, and the diagnostic SQL to verify one is actually firing.
+icon: ListChecks
+---
+
+Part of the [ClickHouse query optimization guide](/guide/guides/clickhouse-query-optimization).
+
+ClickHouse "secondary indices" don't work like a B-tree in Postgres or MySQL.
+They're **data-skipping indices**: for each block of granules, ClickHouse stores
+a small summary (a min/max range, a set of values, or a bloom filter), and at
+query time it uses that summary to skip whole granule blocks that can't
+possibly match — without ever reading the underlying column for the skipped
+rows.
+
+## The four index types
+
+| Type | Good for | How it works |
+|---|---|---|
+| `minmax` | Range queries on numeric/date columns not already covered by `ORDER BY` | Stores min/max per granule block; skips blocks entirely outside the range |
+| `set(N)` | Equality / `IN` on low-cardinality columns | Stores up to `N` distinct values per block; if a block has more than `N` unique values, the index gives up and reads everything for that block |
+| `bloom_filter` | Equality on higher-cardinality strings or numbers | Probabilistic membership test per block; false positives read unnecessary blocks, false negatives never happen |
+| `tokenbf_v1` / `ngrambf_v1` | Substring/text search (`LIKE '%term%'`, log/URL search) | Tokenized or n-gram bloom filter over the column's text |
+
+```sql
+-- minmax: good for a numeric column not in ORDER BY
+ALTER TABLE events ADD INDEX idx_amount amount TYPE minmax GRANULARITY 4;
+
+-- set: good for a low-cardinality status/category column
+ALTER TABLE events ADD INDEX idx_status status TYPE set(100) GRANULARITY 4;
+
+-- bloom_filter: good for a higher-cardinality string equality filter
+ALTER TABLE events ADD INDEX idx_request_id request_id TYPE bloom_filter GRANULARITY 4;
+
+-- tokenbf_v1: good for LIKE '%error%' style substring search
+ALTER TABLE events ADD INDEX idx_message message TYPE tokenbf_v1(4096, 3, 0) GRANULARITY 4;
+```
+
+`GRANULARITY N` controls how many index-table granules are grouped into one
+index block. A larger value means a smaller index but coarser skipping — start
+at `4` and tune from there.
+
+<Callout type="warn" title="Adding an index doesn't backfill existing parts">
+`ALTER TABLE ... ADD INDEX` only applies to parts written *after* the change.
+Run `ALTER TABLE ... MATERIALIZE INDEX idx_name` to build it for existing
+parts, or wait for the natural merge cycle to rewrite them.
+</Callout>
+
+## Common mistakes
+
+- **`set(N)` sized too small.** If a granule block has more distinct values
+  than `N`, the index becomes a no-op for that block — it silently falls back
+  to reading everything. Check the real cardinality per block before picking
+  `N`.
+- **Assuming an index fires because you added it.** Always confirm with
+  `EXPLAIN indexes = 1` (below) — a mismatched expression (index on `amount`
+  but the query filters on `round(amount, 2)`) means the index never gets used.
+- **Too many indices on one table.** Every index is maintained on every insert
+  and every merge. An index that never prunes anything is pure write overhead
+  — audit and drop dead ones (below).
+- **Reaching for a skip index before checking `ORDER BY`.** If the column is
+  already a prefix of the table's primary key, a skip index adds nothing —
+  the primary key already prunes it for free.
+
+## Verify an index actually fires
+
+```sql
+EXPLAIN indexes = 1
+SELECT count()
+FROM events
+WHERE request_id = '3f9c1a2e-...';
+```
+
+Look for your index name in the output and confirm `Granules: N/M` shows `N`
+well below `M`. If the index doesn't appear in the plan, the expression
+doesn't match the query's filter, or the condition wasn't eligible for
+pushdown — check [PREWHERE vs WHERE](/guide/guides/prewhere-vs-where) too.
+
+## Audit for dead indices
+
+This flags indices with zero compressed bytes — added but never actually
+built, or built and then never touched by writes worth measuring:
+
+```sql
+SELECT
+    database,
+    table,
+    name,
+    type,
+    expr,
+    granularity,
+    formatReadableSize(data_compressed_bytes) AS compressed_size,
+    if(data_compressed_bytes = 0, 'dead', 'active') AS status
+FROM system.data_skipping_indices
+ORDER BY data_compressed_bytes DESC;
+```
+
+Combine this with `EXPLAIN indexes = 1` output over your real query workload —
+an index with nonzero size that never appears in any plan is a maintenance
+cost with no payoff. Drop it with `ALTER TABLE ... DROP INDEX idx_name`.
+
+## chmonitor tie-in
+
+The Data Explorer's per-table **Skip Indexes** panel lists every index with
+type, expression, granularity, and compression ratio — the same
+`system.data_skipping_indices` data above, without SQL. The AI agent's
+`get_optimization_recommendations` tool proposes specific skip-index DDL
+(with the type and expression already chosen) when it profiles a slow query.
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
+<Card title="PREWHERE vs WHERE" href="/guide/guides/prewhere-vs-where" description="Filter pushdown that works alongside skip indices, not instead of them." />
+<Card title="Partition key best practices" href="/guide/guides/partition-key-best-practices" description="Rule out a partitioning problem before adding indices." />
+<Card title="Data Explorer" href="/guide/features/explorer" description="Browse schema, indices, and projections per table without SQL." />
+</Cards>

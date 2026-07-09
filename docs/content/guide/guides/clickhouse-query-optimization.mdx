@@ -1,0 +1,96 @@
+---
+title: "ClickHouse query optimization: the definitive guide"
+description: Six root causes of slow ClickHouse queries — partition keys, granularity, PREWHERE vs WHERE, projections vs materialized views, skip indices, and external GROUP BY — with diagnostic SQL for each.
+icon: Gauge
+---
+
+Most "ClickHouse is slow" problems trace back to one of six things: a bad partition
+key, the wrong partition granularity, a filter that isn't pushed into `PREWHERE`,
+a missing skip index, the wrong choice between a projection and a materialized
+view, or a `GROUP BY` that runs out of memory. This page is the map — each
+section below links to a full guide with diagnostic SQL you can run against
+`system.parts`, `system.query_log`, and `system.data_skipping_indices` right now.
+
+<Callout type="info" title="chmonitor runs this diagnosis for you">
+Every query below is also what chmonitor's AI agent runs automatically. Ask it
+"why is my ClickHouse cluster slow?" and it works through `list_slow_query_patterns`
+→ `explain_query` → `get_optimization_recommendations`, then proposes ranked
+skip-index, projection, partition-key, and `PREWHERE` fixes as DDL you review and
+run yourself — it never applies anything on its own. See [AI Agent capabilities](/guide/ai-agent/capabilities).
+</Callout>
+
+## The six areas
+
+<Cards>
+<Card title="Partition key best practices" href="/guide/guides/partition-key-best-practices" description="What PARTITION BY is actually for, and why a high-cardinality partition key causes a too-many-parts spiral." />
+<Card title="Partition granularity: day vs month" href="/guide/guides/partition-granularity" description="Trade-offs between fine and coarse partitioning, and how to size partitions correctly." />
+<Card title="PREWHERE vs WHERE" href="/guide/guides/prewhere-vs-where" description="How column-level filter pushdown cuts I/O, and when the optimizer needs help." />
+<Card title="Projections vs materialized views" href="/guide/guides/projections-vs-materialized-views" description="A decision guide for which acceleration mechanism fits your query shape." />
+<Card title="Skip indices (secondary index guide)" href="/guide/guides/skip-indices-guide" description="minmax, set, bloom_filter, and tokenbf_v1 — what each is for and how to verify it fires." />
+<Card title="External GROUP BY (reduce query memory)" href="/guide/guides/external-group-by" description="Spill aggregation to disk instead of hitting MEMORY_LIMIT_EXCEEDED, and cheaper alternatives to try first." />
+</Cards>
+
+## Where to start
+
+Work top to bottom — each step rules out a cheaper explanation before you reach
+for a more invasive fix.
+
+<Steps>
+<Step>
+### Check part and partition health first
+
+A bad [partition key](/guide/guides/partition-key-best-practices) or the wrong
+[granularity](/guide/guides/partition-granularity) causes symptoms everywhere
+else — merge backlogs, slow inserts, and OOM on `GROUP BY` all get worse when a
+table has thousands of tiny parts. Rule this out before tuning anything else.
+
+```sql
+SELECT
+    database,
+    table,
+    count() AS active_parts,
+    uniqExact(partition) AS partitions,
+    formatReadableSize(sum(data_compressed_bytes)) AS compressed_size
+FROM system.parts
+WHERE active
+GROUP BY database, table
+ORDER BY active_parts DESC
+LIMIT 20;
+```
+
+More than a few hundred active parts on one table, or fewer than ~10 MB
+compressed per part, is a partitioning problem — see the two guides above.
+</Step>
+<Step>
+### Check whether the filter is doing its job
+
+For a specific slow query, run `EXPLAIN indexes = 1 <query>` and compare
+`Granules: N/M`. If `N` is close to `M`, the query is scanning almost
+everything — the filter isn't pruning. That's a [PREWHERE](/guide/guides/prewhere-vs-where)
+or [skip index](/guide/guides/skip-indices-guide) problem.
+</Step>
+<Step>
+### Decide how to accelerate the repeated shape
+
+If the same query shape (same `GROUP BY` / `WHERE` pattern) runs often, decide
+between a [projection or a materialized view](/guide/guides/projections-vs-materialized-views)
+to pre-compute it instead of re-scanning raw data every time.
+</Step>
+<Step>
+### Tune memory only after the query is actually necessary
+
+If the query still needs to scan a lot of data by nature (a genuinely
+high-cardinality aggregation), see [external GROUP BY](/guide/guides/external-group-by)
+for spill settings — but only after the steps above, since fixing the index or
+partition problem is usually cheaper than spilling to disk.
+</Step>
+</Steps>
+
+## Related
+
+<Cards>
+<Card title="AI Agent capabilities" href="/guide/ai-agent/capabilities" description="The query-optimization diagnose loop, EXPLAIN interpretation, and ranked recommendations." />
+<Card title="Queries" href="/guide/features/queries" description="Live, historical, failed, and slow query pages — including the interactive Explain page." />
+<Card title="Tables" href="/guide/features/tables" description="Storage, parts, replication, and dictionaries across every database." />
+<Card title="Health" href="/guide/features/health" description="At-a-glance cluster health, including OOM-killed queries and merge backlog." />
+</Cards>

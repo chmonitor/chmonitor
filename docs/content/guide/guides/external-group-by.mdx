@@ -1,0 +1,113 @@
+---
+title: "Reduce ClickHouse query memory with external GROUP BY"
+description: How max_bytes_before_external_group_by spills aggregation to disk to avoid MEMORY_LIMIT_EXCEEDED, cheaper alternatives to try first, and the diagnostic SQL to confirm a spill happened.
+icon: SlidersHorizontal
+---
+
+Part of the [ClickHouse query optimization guide](/guide/guides/clickhouse-query-optimization).
+
+A `GROUP BY` on a high-cardinality key builds an in-memory hash table of
+aggregation state — one entry per distinct key. On a big enough table, that
+hash table can outgrow `max_memory_usage` and the query dies with
+`MEMORY_LIMIT_EXCEEDED` (exception code 241) instead of finishing slowly.
+External aggregation trades that hard failure for spilling to disk.
+
+## How it works
+
+`max_bytes_before_external_group_by` sets a memory threshold per query. Once
+the in-memory aggregation state crosses it, ClickHouse writes the current
+partial state to a temporary file on disk, frees the memory, and keeps
+aggregating — merging all the spilled chunks together at the end. The same
+pattern applies to two related settings:
+
+| Setting | Applies to | Typical guidance |
+|---|---|---|
+| `max_bytes_before_external_group_by` | `GROUP BY` | Session-level. A common starting point is half of `max_memory_usage`. `0` disables spilling entirely. |
+| `max_bytes_before_external_sort` | `ORDER BY` | Same pattern — too low causes unnecessary disk spilling, too high risks OOM. |
+| `max_bytes_before_external_join` | Hash joins | Same ratio guidance, applied to the join's build side. |
+
+```sql
+SET max_bytes_before_external_group_by = 10000000000; -- 10 GB, e.g. half of max_memory_usage
+```
+
+Spilling to disk is strictly slower than staying in memory — treat it as a
+safety valve for genuinely large aggregations, not a substitute for a correctly
+sized `max_memory_usage`.
+
+## Try these first — they're cheaper than spilling
+
+1. **Reduce the `GROUP BY` cardinality with pre-aggregation.** If the same
+   aggregation runs repeatedly, a materialized view that pre-aggregates on
+   insert means each query aggregates far fewer rows. See
+   [projections vs materialized views](/guide/guides/projections-vs-materialized-views).
+2. **Enable two-level aggregation.** `group_by_two_level_threshold` and
+   `group_by_two_level_threshold_bytes` let ClickHouse split the hash table
+   into buckets that merge in parallel across threads, which lowers peak
+   memory without spilling to disk at all.
+3. **Check whether the scan itself is too broad first.** A `GROUP BY` that
+   reads far more rows than necessary because of a missing skip index or
+   partition problem will always use more memory than it needs to — see the
+   [skip indices guide](/guide/guides/skip-indices-guide) and
+   [partition key best practices](/guide/guides/partition-key-best-practices).
+4. **Raise `max_memory_usage` instead, if the cluster has headroom.** Spilling
+   trades memory for disk I/O; if RAM is genuinely available, a higher memory
+   cap is often faster than external aggregation.
+
+Reach for `max_bytes_before_external_group_by` when the aggregation is
+inherently large (e.g. `uniqExact` or `GROUP BY` over a truly high-cardinality
+key across a wide time range) and none of the above reduce it enough.
+
+## Diagnose OOM-killed queries
+
+Find recent queries that hit the memory limit:
+
+```sql
+SELECT
+    event_time,
+    query_id,
+    user,
+    exception_code,
+    formatReadableSize(memory_usage) AS memory_usage,
+    normalizeQuery(query) AS normalized_query
+FROM system.query_log
+WHERE event_time > now() - INTERVAL 1 HOUR
+  AND type IN ('ExceptionWhileProcessing', 'ExceptionBeforeStart')
+  AND (exception_code = 241 OR exception LIKE '%MEMORY_LIMIT_EXCEEDED%')
+ORDER BY event_time DESC
+LIMIT 50;
+```
+
+## Confirm a spill actually happened
+
+If you've already raised `max_bytes_before_external_group_by`, verify it's
+being used rather than assuming — `ProfileEvents` records the spill:
+
+```sql
+SELECT
+    query_id,
+    ProfileEvents['ExternalAggregationWrittenRows']      AS spilled_rows,
+    ProfileEvents['ExternalAggregationCompressedBytes']  AS spilled_bytes
+FROM system.query_log
+WHERE query_id = 'your-query-id'
+  AND type = 'QueryFinish';
+```
+
+Nonzero `spilled_rows` confirms the query actually spilled; zero means it
+finished in memory and the threshold isn't the bottleneck for that run.
+
+## chmonitor tie-in
+
+The Health page's **OOM-Killed Queries** check runs the diagnostic query above
+continuously and alerts when the rate crosses a threshold, with `read_rows`,
+`memory_usage`, and the query text linked from Expensive Queries. The AI
+agent's `query-optimization` skill checks for exactly this pattern — high
+`memory_usage` on an aggregation step — as part of its diagnose loop.
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
+<Card title="Projections vs materialized views" href="/guide/guides/projections-vs-materialized-views" description="Pre-aggregate to shrink the GROUP BY instead of spilling it." />
+<Card title="PREWHERE vs WHERE" href="/guide/guides/prewhere-vs-where" description="Make sure the scan itself isn't wider than it needs to be." />
+<Card title="Health" href="/guide/features/health" description="The OOM-Killed Queries check and cluster-wide memory pressure." />
+</Cards>

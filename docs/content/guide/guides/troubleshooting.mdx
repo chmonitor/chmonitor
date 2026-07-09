@@ -143,7 +143,11 @@ To identify slow queries, open the AI agent and ask:
 
 > "What were the slowest queries in the last 5 minutes?"
 
-Or from the Queries → Slow Queries page.
+Or from the Queries → Slow Queries page. If the slowness is in ClickHouse
+itself rather than the dashboard, see the
+[query optimization guide](/guide/guides/clickhouse-query-optimization) —
+partition keys, `PREWHERE`, skip indices, and `GROUP BY` memory are the most
+common root causes.
 
 </Accordion>
 <Accordion title="Charts refresh too frequently">
@@ -302,4 +306,5 @@ If the host uses `https://`, confirm TLS is allowed or `CLICKHOUSE_VERIFY_CERT=f
 <Card title="Authentication" href="/operate/authentication" description="Compare and configure chmonitor auth providers." />
 <Card title="Upgrading ClickHouse" href="/guide/guides/upgrade-clickhouse" description="Upgrade safely while chmonitor stays connected." />
 <Card title="Zero-signup diagnostics CLI" href="/guide/guides/diagnostics-cli" description="Run a local, read-only health scan with no chmonitor account." />
+<Card title="ClickHouse query optimization" href="/guide/guides/clickhouse-query-optimization" description="Diagnose and fix slow ClickHouse queries — partition keys, PREWHERE, indices, and memory." />
 </Cards>

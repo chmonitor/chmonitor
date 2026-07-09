@@ -1,0 +1,119 @@
+---
+title: "ClickHouse projections vs materialized views"
+description: A decision guide for choosing between a projection and a materialized view in ClickHouse — storage, query rewriting, JOIN support, lifecycle coupling, and diagnostic SQL.
+icon: Boxes
+---
+
+Part of the [ClickHouse query optimization guide](/guide/guides/clickhouse-query-optimization).
+
+Both projections and materialized views pre-compute data so a query doesn't have
+to scan and aggregate raw rows every time. They solve overlapping problems with
+very different trade-offs — picking the wrong one means either rewriting queries
+you didn't want to touch, or coupling a rollup's lifecycle to a raw table you
+wanted to manage independently.
+
+## What each one is
+
+**Projection** — an alternate physical layout of the *same* table, stored
+inside that table's own parts. ClickHouse's query optimizer transparently picks
+the projection when it can answer the query cheaper — you don't change the
+`SELECT`, the table is queried the same way.
+
+```sql
+ALTER TABLE events
+ADD PROJECTION events_by_user
+(
+    SELECT user_id, count(), sum(amount)
+    GROUP BY user_id
+);
+
+-- Existing parts don't get the projection automatically — backfill it:
+ALTER TABLE events MATERIALIZE PROJECTION events_by_user;
+```
+
+**Materialized view (incremental)** — a trigger that fires per inserted block
+on a source table and writes the transformed result into a separate **target**
+table, which you query directly (often `AggregatingMergeTree` for rollups).
+
+```sql
+CREATE TABLE events_by_user_agg
+(
+    user_id UInt64,
+    total_amount AggregateFunction(sum, Float64)
+)
+ENGINE = AggregatingMergeTree
+ORDER BY user_id;
+
+CREATE MATERIALIZED VIEW events_by_user_mv TO events_by_user_agg AS
+SELECT user_id, sumState(amount) AS total_amount
+FROM events
+GROUP BY user_id;
+```
+
+A **refreshable** materialized view (23.12+) is a third option: instead of
+firing per insert, it re-runs a full query on a schedule (`REFRESH EVERY 1
+HOUR`) — useful for expensive cross-table joins/aggregations that don't need to
+be realtime.
+
+## Decision guide
+
+| | Projection | Materialized view |
+|---|---|---|
+| **Query rewrite needed** | No — same `SELECT` against the base table | Yes — query the target table explicitly |
+| **Cross-table JOINs** | No — single table only | Yes |
+| **Storage engine** | Same as the base table | Any — pick a different engine for the rollup |
+| **Lifecycle (TTL / DROP PARTITION)** | Coupled to the base table — drops atomically together | Independent — manage the target table's TTL separately |
+| **Backfill for existing data** | `ALTER TABLE ... MATERIALIZE PROJECTION` | `INSERT INTO target SELECT ... FROM source` |
+| **Write cost** | Every insert/merge maintains the projection too | Every insert fires the trigger query |
+| **Good for** | Transparent acceleration of a handful of common query shapes on one table | Cross-table rollups, different retention for raw vs aggregated data, scheduled (non-realtime) refresh |
+
+**Use a projection** when you want a handful of common `WHERE`/`GROUP BY`
+variants on one table to get faster without touching application SQL, and
+you're fine with the projection sharing the base table's partition lifecycle.
+
+**Use a materialized view** when you need a `JOIN`, want the rollup on a
+different engine or retention policy than the raw table, or want scheduled
+(refreshable) computation instead of per-insert triggering.
+
+## The cost nobody mentions: write amplification
+
+Both mechanisms make **every insert and merge more expensive**, because the
+projection or the MV's target table has to be kept in sync. A projection that
+was added experimentally and never queried is pure overhead — audit for dead
+ones:
+
+```sql
+SELECT
+    database,
+    table,
+    name AS projection_name,
+    count() AS parts,
+    sum(rows) AS total_rows,
+    formatReadableSize(sum(data_compressed_bytes)) AS storage_cost,
+    if(sum(rows) = 0, 'empty', 'active') AS status
+FROM system.projection_parts
+WHERE active
+GROUP BY database, table, projection_name
+ORDER BY sum(data_compressed_bytes) DESC;
+```
+
+A `status` of `empty` alongside real read traffic on the base table usually
+means the projection's shape doesn't actually match what queries ask for, and
+it's safe to `ALTER TABLE ... DROP PROJECTION`.
+
+## chmonitor tie-in
+
+Tables → **Projections** shows this same inventory per table without SQL. The
+AI agent's `recommend_materialized_view` tool proposes a target-table DDL and
+`CREATE MATERIALIZED VIEW` when it spots a repeated aggregation pattern in
+`list_slow_query_patterns` — as a recommendation to review, never applied
+automatically.
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
+<Card title="Skip indices guide" href="/guide/guides/skip-indices-guide" description="A lighter-weight alternative when you just need granule pruning, not pre-aggregation." />
+<Card title="External GROUP BY" href="/guide/guides/external-group-by" description="What to do before the rollup is built, when the raw aggregation still runs out of memory." />
+<Card title="Tables" href="/guide/features/tables" description="Storage and replication across every database, including the Projections view." />
+</Cards>
