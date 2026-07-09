@@ -7,6 +7,9 @@ const {
   isValidTableIdentifier,
   hostIdSchema,
   requiredHostIdSchema,
+  capResultRows,
+  truncationNote,
+  MAX_QUERY_RESULT_ROWS,
 } = await import('../helpers')
 
 describe('resolveHostId', () => {
@@ -82,6 +85,46 @@ describe('hostIdSchema', () => {
     expect(hostIdSchema.safeParse('-2').success).toBe(false)
     expect(hostIdSchema.safeParse(1.5).success).toBe(false)
     expect(hostIdSchema.safeParse('abc').success).toBe(false)
+  })
+})
+
+describe('capResultRows', () => {
+  test('returns data unchanged and truncated: false when under the cap', () => {
+    const data = Array.from({ length: 10 }, (_, i) => i)
+    const result = capResultRows(data, 1000)
+    expect(result.data).toEqual(data)
+    expect(result.truncated).toBe(false)
+  })
+
+  test('returns data unchanged and truncated: false when exactly at the cap', () => {
+    const data = Array.from({ length: 1000 }, (_, i) => i)
+    const result = capResultRows(data, 1000)
+    expect(result.data).toHaveLength(1000)
+    expect(result.truncated).toBe(false)
+  })
+
+  test('truncates to maxRows and flags truncated: true when over the cap', () => {
+    const data = Array.from({ length: 1500 }, (_, i) => i)
+    const result = capResultRows(data, 1000)
+    expect(result.data).toHaveLength(1000)
+    expect(result.data[999]).toBe(999)
+    expect(result.truncated).toBe(true)
+  })
+
+  test('defaults maxRows to MAX_QUERY_RESULT_ROWS (1000)', () => {
+    expect(MAX_QUERY_RESULT_ROWS).toBe(1000)
+    const data = Array.from({ length: 1200 }, (_, i) => i)
+    const result = capResultRows(data)
+    expect(result.data).toHaveLength(1000)
+    expect(result.truncated).toBe(true)
+  })
+})
+
+describe('truncationNote', () => {
+  test('mentions the row cap and how to see the full result set', () => {
+    const note = truncationNote(1000)
+    expect(note).toContain('1000 rows')
+    expect(note).toContain('LIMIT')
   })
 })
 

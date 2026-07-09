@@ -190,5 +190,39 @@ describe('createVisualizationTools', () => {
       expect(result.viz.sortOrder).toBeUndefined()
       expect(result.viz.readable).toBeUndefined()
     })
+
+    test('caps rows at 1000 and flags truncation, building the chart from capped data', async () => {
+      mockFetchData.mockImplementation(async () => ({
+        data: Array.from({ length: 1500 }, (_, i) => ({
+          label: `row_${i}`,
+          value: i,
+        })),
+        error: null,
+      }))
+
+      const tools = createVisualizationTools(0) as any as any
+
+      const result = await tools.query_and_visualize.execute({
+        sql: 'SELECT label, value FROM big_table',
+      })
+
+      expect(result.rows).toHaveLength(1000)
+      expect(result.rowCount).toBe(1000)
+      expect(result.truncated).toBe(true)
+      expect(result.note).toContain('truncated to 1000 rows')
+    })
+
+    test('does not flag truncation for results at or under 1000 rows', async () => {
+      setupVisualizationMocks()
+
+      const tools = createVisualizationTools(0) as any as any
+
+      const result = await tools.query_and_visualize.execute({
+        sql: 'SELECT event_date, tenant_id, event_name, value FROM analytics.events LIMIT 10',
+      })
+
+      expect(result.truncated).toBe(false)
+      expect(result.note).toBeUndefined()
+    })
   })
 })

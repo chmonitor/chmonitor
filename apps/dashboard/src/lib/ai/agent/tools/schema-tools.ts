@@ -1,9 +1,11 @@
 import { z } from 'zod'
 
 import {
+  capResultRows,
   hostIdSchema,
   readOnlyQuery,
   resolveHostId,
+  truncationNote,
   validatedReadOnlyQuery,
 } from './helpers'
 import { dynamicTool } from 'ai'
@@ -22,11 +24,16 @@ export function createSchemaTools(hostId: number) {
           sql: string
           hostId?: number
         }
-        const result = await validatedReadOnlyQuery({
+        const result = (await validatedReadOnlyQuery({
           sql,
           hostId: paramHostId ?? hostId,
-        })
-        return result
+        })) as unknown[]
+        const { data, truncated } = capResultRows(result)
+        return {
+          data,
+          truncated,
+          ...(truncated && { note: truncationNote() }),
+        }
       },
     }),
 

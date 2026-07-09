@@ -146,6 +146,41 @@ export async function validatedReadOnlyQuery(options: {
 }
 
 /**
+ * Max rows returned to the model by the freeform-SQL tools (`query`,
+ * `query_and_visualize`). Dedicated tools cap independently (e.g. list_tables
+ * at 500 rows); this bounds agent-authored SQL that has no LIMIT, matching
+ * the "default to 1000 rows" guidance in SEC_PERFORMANCE_CONSTRAINTS.
+ * Mirrored in packages/mcp-server/src/tools/helpers.ts for the standalone
+ * MCP server's own `query` tool (separate implementation, no shared code).
+ */
+export const MAX_QUERY_RESULT_ROWS = 1000
+
+/**
+ * Cap an array of query result rows to `maxRows`, flagging truncation so the
+ * caller can surface a visible note to the model instead of silently
+ * dropping rows.
+ */
+export function capResultRows<T>(
+  data: T[],
+  maxRows: number = MAX_QUERY_RESULT_ROWS
+): { data: T[]; truncated: boolean } {
+  if (!Array.isArray(data) || data.length <= maxRows) {
+    return { data, truncated: false }
+  }
+  return { data: data.slice(0, maxRows), truncated: true }
+}
+
+/**
+ * Human-readable note explaining a truncated result set, matching the
+ * `list_tables` truncation-note shape/wording.
+ */
+export function truncationNote(
+  maxRows: number = MAX_QUERY_RESULT_ROWS
+): string {
+  return `Results truncated to ${maxRows} rows. Add a LIMIT clause or aggregate the query to see the full result set.`
+}
+
+/**
  * Execute a write query (KILL, OPTIMIZE, etc.) against ClickHouse.
  * No readonly setting. Use only for control actions.
  */

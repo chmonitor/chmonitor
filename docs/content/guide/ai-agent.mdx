@@ -275,7 +275,7 @@ env-gated control tools), see [Capabilities](/guide/ai-agent/capabilities).
 
 | Tool | Purpose |
 |---|---|
-| `query` | Execute a read-only SQL query (SELECT / WITH / DESCRIBE / EXPLAIN only) |
+| `query` | Execute a read-only SQL query (SELECT / WITH / DESCRIBE / EXPLAIN only). Results are capped at 1000 rows (`truncated: true` + a note when hit). |
 | `list_databases` | List all databases with their engines and comments |
 | `list_tables` | List tables in a database with row counts and sizes |
 | `get_table_schema` | Get column definitions for a table including types, defaults, and comments |
@@ -292,6 +292,10 @@ env-gated control tools), see [Capabilities](/guide/ai-agent/capabilities).
 The `query` tool — the only tool that accepts arbitrary SQL — validates every statement before execution via `validateSqlQuery` (`@chm/sql-builder`). It **throws** on any write or DDL statement and on dangerous ClickHouse commands. Allowed prefixes: `SELECT`, `WITH` (CTE), `DESCRIBE`, `EXPLAIN`. Rejected: `INSERT`, `ALTER`, `DROP`, `CREATE`, `TRUNCATE`, `RENAME`, `DELETE`, `UPDATE`, `SYSTEM RELOAD/FLUSH/KILL/SHUTDOWN`, `GRANT`, `REVOKE`, `ATTACH`, `DETACH`, `KILL`, `SET`, multi-statement payloads (`;` chaining), and dangerous table functions (`remote()`, `url()`, `s3()`, etc.).
 
 All other MCP tools run fixed SELECT queries and pass `readonly: '1'` to the ClickHouse connection — they cannot issue writes regardless of the validator.
+
+### Result size caps
+
+The freeform-SQL tools (`query` in both the in-app agent and the MCP server, plus the agent's `query_and_visualize`) cap results to 1000 rows before serializing them back to the model — dedicated tools cap independently (e.g. `list_tables` at 500 rows). The SQL itself is never rewritten (no `LIMIT` injection); a query that returns more than the cap comes back with only the first 1000 rows, `truncated: true`, and a `note` telling the model to add its own `LIMIT` or aggregation to see the full result set. Queries at or under the cap are unaffected (`truncated: false`, no `note`).
 
 
 ## Agent Discovery & RFC Compliance

@@ -90,3 +90,36 @@ export async function runReadonlyQuery(
 
   return toJsonResult(result.data)
 }
+
+/**
+ * Max rows returned to the model by the standalone MCP server's freeform
+ * `query` tool. Mirrors
+ * `apps/dashboard/src/lib/ai/agent/tools/helpers.ts` (`MAX_QUERY_RESULT_ROWS`)
+ * — kept in sync manually since this package cannot import from `apps/*`.
+ */
+export const MAX_QUERY_RESULT_ROWS = 1000
+
+/**
+ * Cap an array of query result rows to `maxRows`, flagging truncation so the
+ * caller can surface a visible note to the model instead of silently
+ * dropping rows. Mirrors `capResultRows` in the dashboard agent's tool
+ * helpers.
+ */
+export function capResultRows<T>(
+  data: T[],
+  maxRows: number = MAX_QUERY_RESULT_ROWS
+): { data: T[]; truncated: boolean } {
+  if (!Array.isArray(data) || data.length <= maxRows) {
+    return { data, truncated: false }
+  }
+  return { data: data.slice(0, maxRows), truncated: true }
+}
+
+/**
+ * Human-readable note explaining a truncated result set.
+ */
+export function truncationNote(
+  maxRows: number = MAX_QUERY_RESULT_ROWS
+): string {
+  return `Results truncated to ${maxRows} rows. Add a LIMIT clause or aggregate the query to see the full result set.`
+}

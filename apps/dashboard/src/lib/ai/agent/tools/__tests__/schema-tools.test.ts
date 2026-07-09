@@ -145,8 +145,10 @@ describe('createSchemaTools', () => {
         sql: 'SELECT * FROM system.tables LIMIT 10',
       })
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result[0].result).toBe('query data')
+      expect(Array.isArray(result.data)).toBe(true)
+      expect(result.data[0].result).toBe('query data')
+      expect(result.truncated).toBe(false)
+      expect(result.note).toBeUndefined()
     })
 
     test('uses provided hostId', async () => {
@@ -159,7 +161,41 @@ describe('createSchemaTools', () => {
         hostId: 2,
       })
 
-      expect(Array.isArray(result)).toBe(true)
+      expect(Array.isArray(result.data)).toBe(true)
+    })
+
+    test('caps results at 1000 rows and flags truncation', async () => {
+      mockFetchData.mockImplementation(async () => ({
+        data: Array.from({ length: 1500 }, (_, i) => ({ id: i })),
+        error: null,
+      }))
+
+      const tools = createSchemaTools(0) as any
+
+      const result = await tools.query.execute({
+        sql: 'SELECT id FROM big_table',
+      })
+
+      expect(result.data).toHaveLength(1000)
+      expect(result.truncated).toBe(true)
+      expect(result.note).toContain('truncated to 1000 rows')
+    })
+
+    test('does not truncate results at or under 1000 rows', async () => {
+      mockFetchData.mockImplementation(async () => ({
+        data: Array.from({ length: 1000 }, (_, i) => ({ id: i })),
+        error: null,
+      }))
+
+      const tools = createSchemaTools(0) as any
+
+      const result = await tools.query.execute({
+        sql: 'SELECT id FROM medium_table',
+      })
+
+      expect(result.data).toHaveLength(1000)
+      expect(result.truncated).toBe(false)
+      expect(result.note).toBeUndefined()
     })
   })
 

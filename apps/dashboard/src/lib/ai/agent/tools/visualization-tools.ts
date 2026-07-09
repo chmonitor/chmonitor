@@ -1,6 +1,12 @@
 import { z } from 'zod'
 
-import { hostIdSchema, resolveHostId, validatedReadOnlyQuery } from './helpers'
+import {
+  capResultRows,
+  hostIdSchema,
+  resolveHostId,
+  truncationNote,
+  validatedReadOnlyQuery,
+} from './helpers'
 import { dynamicTool } from 'ai'
 
 export function createVisualizationTools(hostId: number) {
@@ -78,10 +84,11 @@ export function createVisualizationTools(hostId: number) {
         }
 
         const effectiveHostId = resolveHostId(paramHostId, hostId)
-        const rows = (await validatedReadOnlyQuery({
+        const rawRows = (await validatedReadOnlyQuery({
           sql,
           hostId: effectiveHostId,
         })) as Record<string, unknown>[]
+        const { data: rows, truncated } = capResultRows(rawRows)
 
         const columns = rows.length > 0 ? Object.keys(rows[0]) : []
         const firstRow = rows[0] ?? {}
@@ -135,6 +142,8 @@ export function createVisualizationTools(hostId: number) {
           rows,
           rowCount: rows.length,
           columns,
+          truncated,
+          ...(truncated && { note: truncationNote() }),
           viz: {
             chartType: resolvedChartType,
             xKey: resolvedXKey,

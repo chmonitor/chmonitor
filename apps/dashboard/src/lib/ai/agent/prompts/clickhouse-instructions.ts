@@ -209,7 +209,7 @@ const SEC_PERFORMANCE_CONSTRAINTS = `
 ## Performance Constraints
 
 - **Query timeout**: Queries timeout after 60 seconds
-- **Row limits**: Default to 1000 rows for display; use LIMIT explicitly for larger result sets
+- **Row limits**: \`query\` and \`query_and_visualize\` automatically cap results to 1000 rows (with \`truncated: true\` and a note when hit) — use LIMIT explicitly or aggregate the query instead of relying on the cap for larger result sets
 - **Large table handling**: For tables >100M rows, use SAMPLE clause or aggregate first
 - **Memory awareness**: Be cautious with JOINs on large tables - consider sample sizes
 `
