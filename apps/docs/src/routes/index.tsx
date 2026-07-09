@@ -15,6 +15,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router'
 
 import { forwardRef } from 'react'
+import { siteUrl } from '@/lib/shared'
 
 // lucide-react v1 removed brand icons (incl. GitHub); inline the mark so it
 // stays drop-in compatible with the LucideIcon signature used by the cards.
@@ -42,6 +43,7 @@ import { dashboardUrl, gitConfig } from '@/lib/shared'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
+  head: () => ({ links: [{ rel: 'canonical', href: siteUrl }] }),
 })
 
 interface DocLink {

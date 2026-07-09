@@ -4,7 +4,7 @@
 // hero island's chunk. This is the foundation for the shadcn section rebuild.
 import '../styles/globals.css'
 
-const { title = 'chmonitor — A simple UI to monitor ClickHouse', description = 'An open-source dashboard to monitor ClickHouse: queries, merges, parts, replication, health and an AI agent. Self-host it or use the cloud.', image = '/og/og.png' } = Astro.props
+const { title = 'chmonitor — A simple UI to monitor ClickHouse', description = 'An open-source dashboard to monitor ClickHouse: queries, merges, parts, replication, health and an AI agent. Self-host it or use the cloud.', image = '/og/og.png', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 const ogImage = new URL(image, Astro.site).toString()
 ---
@@ -15,6 +15,7 @@ const ogImage = new URL(image, Astro.site).toString()
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{title}</title>
   <meta name="description" content={description} />
+  {noindex && <meta name="robots" content="noindex, follow" />}
   <link rel="canonical" href={canonical} />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonical} />

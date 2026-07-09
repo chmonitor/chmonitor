@@ -451,6 +451,79 @@ const PAGES: { file: string; copy: Copy }[] = [
       sub2: 'dashboard, AI agent, monitoring.',
     },
   },
+  // SEO use-case pages (plans/64) — src/data/use-cases.ts, wired via
+  // src/layouts/LandingPage.astro's `image` prop.
+  {
+    file: 'og-monitor-queries.png',
+    copy: {
+      eyebrow: 'QUERY MONITORING',
+      h1Line1: 'Monitor ClickHouse',
+      h1Line2: 'queries, live',
+      sub1: 'Running, slow, failed, expensive',
+      sub2: 'kill it, or get an EXPLAIN fix.',
+    },
+  },
+  {
+    file: 'og-cluster-health.png',
+    copy: {
+      eyebrow: 'CLUSTER HEALTH',
+      h1Line1: 'ClickHouse cluster',
+      h1Line2: 'health, at a glance',
+      sub1: 'Every health signal in one board,',
+      sub2: 'with alerts to Slack or Discord.',
+    },
+  },
+  {
+    file: 'og-replication.png',
+    copy: {
+      eyebrow: 'REPLICATION',
+      h1Line1: 'Monitor ClickHouse',
+      h1Line2: 'replication lag',
+      sub1: 'Topology, read-only replicas,',
+      sub2: 'replication and DDL queues.',
+    },
+  },
+  {
+    file: 'og-performance.png',
+    copy: {
+      eyebrow: 'PERFORMANCE',
+      h1Line1: 'ClickHouse query',
+      h1Line2: 'performance tuning',
+      sub1: 'Slowest queries, EXPLAIN suggestions,',
+      sub2: 'capacity and TTL advisor.',
+    },
+  },
+  // Comparison pages (plans/68) — src/pages/vs-*.astro.
+  {
+    file: 'og-vs-clickhouse-cloud.png',
+    copy: {
+      eyebrow: 'VS CLICKHOUSE CLOUD',
+      h1Line1: 'chmonitor vs',
+      h1Line2: 'ClickHouse Cloud',
+      sub1: 'An independent ops and advisor layer,',
+      sub2: 'not a hosting replacement.',
+    },
+  },
+  {
+    file: 'og-vs-datadog.png',
+    copy: {
+      eyebrow: 'VS DATADOG',
+      h1Line1: 'chmonitor vs',
+      h1Line2: 'Datadog',
+      sub1: 'ClickHouse specialist vs full-stack',
+      sub2: 'APM &#8212; honest, feature by feature.',
+    },
+  },
+  {
+    file: 'og-vs-grafana.png',
+    copy: {
+      eyebrow: 'VS GRAFANA',
+      h1Line1: 'chmonitor vs',
+      h1Line2: 'Grafana',
+      sub1: 'ClickHouse-native pages vs a',
+      sub2: 'general-purpose dashboard canvas.',
+    },
+  },
 ]
 
 await render(dark, 'og.png')

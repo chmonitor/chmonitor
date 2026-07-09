@@ -1,7 +1,7 @@
 # chmonitor docs — https://docs.chmonitor.dev
-# Astro's @astrojs/sitemap integration emits sitemap-index.xml but does not
-# write robots.txt, so the Sitemap directive lives here.
+# src/routes/sitemap[.]xml.ts serves the sitemap; it doesn't write robots.txt,
+# so the Sitemap directive lives here.
 User-agent: *
 Allow: /
 
-Sitemap: https://docs.chmonitor.dev/sitemap-index.xml
+Sitemap: https://docs.chmonitor.dev/sitemap.xml

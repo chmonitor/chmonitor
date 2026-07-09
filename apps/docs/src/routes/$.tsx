@@ -16,7 +16,7 @@ import { Suspense } from 'react'
 import { getMDXComponents } from '@/components/mdx'
 import { SidebarFooter } from '@/components/sidebar-footer'
 import { baseOptions } from '@/lib/layout.shared'
-import { gitConfig } from '@/lib/shared'
+import { gitConfig, siteUrl } from '@/lib/shared'
 import { getPageImage, slugsToMarkdownPath, source } from '@/lib/source'
 
 export const Route = createFileRoute('/$')({
@@ -27,6 +27,37 @@ export const Route = createFileRoute('/$')({
     const data = await serverLoader({ data: slugs })
     await clientLoader.preload(data.path)
     return data
+  },
+  // Per-page title/description/canonical/OG — overrides __root.tsx's
+  // site-wide defaults (TanStack Router dedupes `title`/`meta` by
+  // name/property, leaf route wins). Falls back to the generic copy for any
+  // field frontmatter doesn't set.
+  head: ({ loaderData }) => {
+    if (!loaderData) return {}
+    const { title, description, canonicalUrl, ogImageUrl } = loaderData
+    const ogImage = `${siteUrl}${ogImageUrl}`
+    return {
+      meta: [
+        ...(title
+          ? [
+              { title: `${title} | chmonitor docs` },
+              { property: 'og:title', content: title },
+              { name: 'twitter:title', content: title },
+            ]
+          : []),
+        { property: 'og:url', content: canonicalUrl },
+        { property: 'og:image', content: ogImage },
+        { name: 'twitter:image', content: ogImage },
+        ...(description
+          ? [
+              { name: 'description', content: description },
+              { property: 'og:description', content: description },
+              { name: 'twitter:description', content: description },
+            ]
+          : []),
+      ],
+      links: [{ rel: 'canonical', href: canonicalUrl }],
+    }
   },
 })
 
@@ -75,6 +106,9 @@ const serverLoader = createServerFn({ method: 'GET' })
       markdownUrl: slugsToMarkdownPath(page.slugs).url,
       ogImageUrl: getPageImage(page).url,
       pageTree: await source.serializePageTree(source.getPageTree()),
+      title: page.data.title,
+      description: page.data.description,
+      canonicalUrl: `${siteUrl}${page.url}`,
     }
   })
 

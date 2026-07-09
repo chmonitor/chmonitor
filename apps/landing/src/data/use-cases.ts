@@ -63,10 +63,9 @@ const CAPACITY_ICON =
 export const useCases: UseCase[] = [
   {
     slug: 'monitor-queries',
-    title:
-      'chmonitor Query Monitoring — Live, Slow & Expensive ClickHouse Queries',
+    title: 'chmonitor Query Monitoring — Live, Slow & Expensive Queries',
     description:
-      'Monitor ClickHouse queries in real time: running, slow, failed and most expensive, with duration, memory and rows read. Kill runaway queries and review recommend-only EXPLAIN suggestions.',
+      'Monitor ClickHouse queries in real time: running, slow, failed and most expensive, with duration, memory and rows read. Kill runaways or review EXPLAIN suggestions.',
     eyebrow: 'Query monitoring',
     h1: 'Monitor ClickHouse queries in real time',
     cardBlurb:
@@ -104,9 +103,9 @@ export const useCases: UseCase[] = [
   },
   {
     slug: 'cluster-health',
-    title: 'chmonitor Cluster Health — ClickHouse Health Checks & Alerts',
+    title: 'chmonitor Cluster Health — ClickHouse Checks & Alerts',
     description:
-      'ClickHouse cluster health monitoring: replication lag, failed queries, disk, memory and stuck mutations on one board, with alerts to Slack or Discord when a check crosses your threshold.',
+      'ClickHouse cluster health monitoring: replication lag, failed queries, disk, memory and stuck mutations on one board, with alerts to Slack or Discord.',
     eyebrow: 'Cluster health',
     h1: 'ClickHouse cluster health monitoring, at a glance',
     cardBlurb:
@@ -142,9 +141,9 @@ export const useCases: UseCase[] = [
   },
   {
     slug: 'replication',
-    title: 'chmonitor Replication Monitor — ClickHouse Replica Lag & Topology',
+    title: 'chmonitor Replication Monitor — Replica Lag & Topology',
     description:
-      'Monitor ClickHouse replication lag, read-only replicas and the replication queue across every shard, visualized on a live cluster topology map, with alerts when replication falls behind.',
+      'Monitor ClickHouse replication lag, read-only replicas and the replication queue across every shard, visualized on a live cluster topology map.',
     eyebrow: 'Replication',
     h1: 'Monitor ClickHouse replication lag and read-only replicas',
     cardBlurb:
@@ -181,9 +180,9 @@ export const useCases: UseCase[] = [
   },
   {
     slug: 'performance',
-    title: 'chmonitor Performance — ClickHouse Query Tuning & Capacity Advisor',
+    title: 'chmonitor Performance — Query Tuning & Capacity Advisor',
     description:
-      'Find the ClickHouse queries actually costing you time and memory, then get recommend-only tuning suggestions from EXPLAIN and a capacity/TTL advisor. Nothing is applied automatically.',
+      'Find the ClickHouse queries actually costing you time and memory, then get recommend-only tuning suggestions from EXPLAIN and a capacity/TTL advisor.',
     eyebrow: 'Performance',
     h1: 'ClickHouse performance tuning, backed by real query data',
     cardBlurb:

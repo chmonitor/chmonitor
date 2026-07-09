@@ -23,6 +23,10 @@ export const docsVersions: DocsVersionEntry[] = [
 // Empty string means the base URL for doc pages is '/'.
 export const docsRoute = ''
 
+// Canonical origin for the docs site — used to build absolute canonical/OG
+// URLs in per-route `head()` metadata and the sitemap.
+export const siteUrl = 'https://docs.chmonitor.dev'
+
 // Production dashboard URL (linked from the sidebar footer + home hero).
 export const dashboardUrl = 'https://dash.chmonitor.dev'
 

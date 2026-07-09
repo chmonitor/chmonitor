@@ -74,7 +74,7 @@ const softwareJsonLd = {
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 }
 ---
-<Base title={title} description={description}>
+<Base title={title} description={description} image={`/og/og-${slug}.png`}>
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} is:inline />
   <Nav />
