@@ -124,6 +124,87 @@ const SQL_INJECTION_PATTERNS = [
 ]
 
 /**
+ * Strip SQL comments to their whitespace equivalent, leaving string literals and
+ * quoted identifiers untouched.
+ *
+ * ClickHouse treats a comment as insignificant whitespace between tokens, so a
+ * `/* ... *\/` block or `--` / `#` line comment placed between a function name and
+ * its `(` (e.g. `remote/*x*\/(...)`) parses identically to `remote(...)`. The
+ * keyword/function blocklists below only see raw text, so without normalization a
+ * comment can be used to break up an otherwise-blocked token. Replacing each
+ * comment with a single space mirrors ClickHouse's own tokenization: it re-joins
+ * `remote/**\/(` into a matchable `remote (`, while a comment placed *inside* an
+ * identifier (`remo/**\/te`) stays split — exactly as ClickHouse would read it.
+ *
+ * Comment markers are only honored outside string literals (`'...'`), quoted
+ * identifiers (`"..."`), and backtick identifiers (`` `...` ``), so a benign
+ * literal like `'a -- b'` or `'/* not a comment *\/'` is preserved verbatim and
+ * never produces a false positive.
+ *
+ * @param sql - The raw SQL string
+ * @returns The SQL with all comments replaced by single spaces
+ * @internal
+ */
+export function stripSqlComments(sql: string): string {
+  let out = ''
+  let i = 0
+  const n = sql.length
+  // Active string/identifier quote char, or null when in normal SQL context.
+  let quote: "'" | '"' | '`' | null = null
+
+  while (i < n) {
+    const ch = sql[i]
+
+    if (quote !== null) {
+      // Inside a string literal or quoted identifier: copy verbatim, honoring
+      // both backslash escapes (\' \" \`) and SQL-standard doubled quotes ('').
+      if (ch === '\\' && i + 1 < n) {
+        out += ch + sql[i + 1]
+        i += 2
+        continue
+      }
+      if (ch === quote) {
+        if (sql[i + 1] === quote) {
+          // Doubled quote is an escaped quote, still inside the literal.
+          out += ch + sql[i + 1]
+          i += 2
+          continue
+        }
+        quote = null
+      }
+      out += ch
+      i += 1
+      continue
+    }
+
+    // Normal SQL context: detect comment openers before anything else.
+    if (ch === '/' && sql[i + 1] === '*') {
+      // Block comment: skip until the matching */ (or end of input).
+      i += 2
+      while (i < n && !(sql[i] === '*' && sql[i + 1] === '/')) i += 1
+      i += 2 // consume the closing */ (harmless if we hit EOF first)
+      out += ' '
+      continue
+    }
+    if ((ch === '-' && sql[i + 1] === '-') || ch === '#') {
+      // Line comment (`--` or `#`): skip until newline, which is preserved.
+      i += ch === '#' ? 1 : 2
+      while (i < n && sql[i] !== '\n') i += 1
+      out += ' '
+      continue
+    }
+
+    if (ch === "'" || ch === '"' || ch === '`') {
+      quote = ch
+    }
+    out += ch
+    i += 1
+  }
+
+  return out
+}
+
+/**
  * Validate SQL query for basic safety and correctness
  *
  * Detects common SQL injection patterns and ensures the query is non-empty.
@@ -155,21 +236,25 @@ export function validateSqlQuery(sql: string): void {
     throw new Error('SQL query cannot be empty')
   }
 
+  // Normalize comments away BEFORE running keyword/function detection. A block or
+  // line comment placed between a blocked token and its `(` (e.g. `remote/*x*/(`)
+  // otherwise slips past `\s*\(` while parsing identically for ClickHouse. String
+  // literals are left intact so benign `'-- text'` / `'/* text */'` don't trip the
+  // patterns. See {@link stripSqlComments}.
+  const normalized = stripSqlComments(sql)
+
   // Check for SQL injection patterns
   for (const pattern of SQL_INJECTION_PATTERNS) {
-    if (pattern.test(sql)) {
+    if (pattern.test(normalized)) {
       throw new Error(
         'Potentially dangerous SQL detected. Only SELECT, WITH, DESCRIBE, and EXPLAIN queries are allowed.'
       )
     }
   }
 
-  // Strip leading comments before checking the statement type
-  const trimmed = sql
-    .trim()
-    .replace(/^(\/\*[\s\S]*?\*\/\s*|--[^\n]*\n\s*)*/g, '')
-    .trimStart()
-    .toUpperCase()
+  // Check the statement type on the comment-stripped query so a leading comment
+  // (in any position/quantity) cannot disguise the real first keyword.
+  const trimmed = normalized.trim().toUpperCase()
   if (
     !trimmed.startsWith('SELECT') &&
     !trimmed.startsWith('WITH') &&

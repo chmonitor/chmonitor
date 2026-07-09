@@ -762,6 +762,92 @@ describe.skipIf(actuallyMocked)('validateSqlQuery', () => {
     })
   })
 
+  // Regression for issue #2465: the DANGEROUS_FUNCTIONS blocklist used `\s*(`
+  // between the function name and its `(`, which does not match a comment. A
+  // block/line comment placed there (`remote/*x*/(...)`) parses identically for
+  // ClickHouse but slipped past the guard, enabling SSRF/exfiltration via
+  // remote/url/s3/mysql/postgresql/etc. Comments are now normalized to
+  // whitespace before detection, so no comment/whitespace trick reassembles a
+  // blocked call.
+  describe('dangerous functions via comment bypass (issue #2465)', () => {
+    test('rejects the exact issue payloads', () => {
+      expect(() =>
+        validateSqlQuery("SELECT * FROM remote/*x*/('host','db','t')")
+      ).toThrow('Potentially dangerous SQL detected')
+      expect(() =>
+        validateSqlQuery(
+          "SELECT * FROM url/**/('http://169.254.169.254/','CSV','x String')"
+        )
+      ).toThrow('Potentially dangerous SQL detected')
+    })
+
+    test('rejects each dangerous function obfuscated with a block comment', () => {
+      const cases = [
+        "SELECT * FROM remote/*x*/('h','d','t')",
+        "SELECT * FROM remoteSecure/**/('h','d','t')",
+        "SELECT * FROM url/**/('http://x','CSV','a String')",
+        "SELECT * FROM s3/*a*/('bucket/key')",
+        "SELECT * FROM mysql/*a*/('h','d','t','u','p')",
+        "SELECT * FROM postgresql/*a*/('h','d','t','u','p')",
+        "SELECT * FROM jdbc/*a*/('ds','t')",
+        "SELECT * FROM odbc/*a*/('dsn','t')",
+        "SELECT * FROM hdfs/*a*/('hdfs://x','CSV')",
+        "SELECT * FROM file/*a*/('x.csv','CSV')",
+      ]
+      for (const sql of cases) {
+        expect(() => validateSqlQuery(sql)).toThrow(
+          'Potentially dangerous SQL detected'
+        )
+      }
+    })
+
+    test('rejects line-comment (--) obfuscation between name and paren', () => {
+      expect(() =>
+        validateSqlQuery("SELECT * FROM remote --c\n('h','d','t')")
+      ).toThrow('Potentially dangerous SQL detected')
+    })
+
+    test('rejects hash-comment (#) obfuscation between name and paren', () => {
+      expect(() =>
+        validateSqlQuery("SELECT * FROM url #c\n('http://x','CSV','a String')")
+      ).toThrow('Potentially dangerous SQL detected')
+    })
+
+    test('rejects multiple / nested-style and multi-line comment obfuscation', () => {
+      expect(() =>
+        validateSqlQuery("SELECT * FROM remote/*a*//*b*/('h','d','t')")
+      ).toThrow('Potentially dangerous SQL detected')
+      expect(() =>
+        validateSqlQuery("SELECT * FROM s3/* multi\n line\n comment */('b/k')")
+      ).toThrow('Potentially dangerous SQL detected')
+    })
+
+    // A comment-like sequence INSIDE a string literal must NOT be treated as a
+    // comment: stripping it would corrupt the literal and could hide/expose
+    // tokens. These are legitimate read-only queries and must pass unchanged.
+    test('does not false-positive on comment-like text inside string literals', () => {
+      // Block-comment markers inside a literal are data, not a comment. (Note
+      // the literal deliberately contains the exact `remote/*x*/(` bypass string
+      // to prove it is treated as data — `\s*(` never matched it here anyway.)
+      expect(() =>
+        validateSqlQuery("SELECT 'remote/*x*/(1)' AS s FROM system.one")
+      ).not.toThrow()
+      // Line-comment markers (-- and #) inside a literal are data.
+      expect(() =>
+        validateSqlQuery("SELECT '-- not a comment' AS s")
+      ).not.toThrow()
+      expect(() =>
+        validateSqlQuery("SELECT '# not a comment' AS s")
+      ).not.toThrow()
+      // Doubled single-quote escaping keeps the stripper inside the literal.
+      expect(() =>
+        validateSqlQuery("SELECT 'it''s /*fine*/ text' AS s")
+      ).not.toThrow()
+      // A stray */ inside a literal must not desync comment tracking.
+      expect(() => validateSqlQuery("SELECT 'x */ y' AS s")).not.toThrow()
+    })
+  })
+
   describe('non-SELECT queries', () => {
     test('should reject INSERT at start', () => {
       expect(() => validateSqlQuery('INSERT INTO users VALUES (1)')).toThrow()

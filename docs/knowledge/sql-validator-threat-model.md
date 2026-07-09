@@ -3,7 +3,7 @@ id: sql-validator-threat-model
 title: SQL Validator Threat Model & False-Positive Class
 type: decision
 status: active
-updated: 2026-06-20
+updated: 2026-07-10
 tags:
   - security
   - sql
@@ -57,6 +57,26 @@ slow-queries, error-rate-baseline). Root causes + fixes:
 
 The tightened OR-patterns are also **ReDoS-safe** (the old nested `.*` runs risked
 catastrophic backtracking).
+
+## Comment-bypass hardening (2026-07-10, issue #2465)
+
+The keyword/function blocklists are raw-text regexes, and `DANGEROUS_FUNCTIONS`
+matched `<name>\s*(`. `\s*` matches whitespace but **not** a comment, so
+`remote/*x*/('h','d','t')` and `url/**/('http://169.254.169.254/…')` parsed
+identically for ClickHouse (a comment is insignificant whitespace between tokens)
+yet slipped past the guard — an unauthenticated SSRF/exfiltration vector on the
+default `auth: none` self-hosted install.
+
+Fix: `validateSqlQuery` now runs **all** injection/function patterns (and the
+statement-type prefix check) against a comment-normalized copy produced by
+`stripSqlComments`. That helper walks the string and replaces every `/* */`
+block, `--` line, and `#` line comment with a single space — matching
+ClickHouse's own tokenization (`remote/**/(` → `remote (` → blocked; a comment
+*inside* an identifier stays split, as ClickHouse reads it). Crucially it leaves
+string literals (`'…'`), double-quoted and backtick identifiers untouched
+(honoring `\` escapes and doubled quotes), so a benign literal like
+`'-- text'` or `'/* text */'` is never mistaken for a comment. Regression cases
+live in `sql-validator.test.ts` ("dangerous functions via comment bypass").
 
 ## Rule: keep shipped SQL and the validator in sync
 
