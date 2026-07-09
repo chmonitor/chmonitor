@@ -20,11 +20,13 @@ import {
 
 import type { Recommendation } from '@/lib/ai/advisor/recommendation-engine'
 
+import { useEffect, useRef } from 'react'
 import {
   CodeBlock,
   CodeBlockCopyButton,
 } from '@/components/ai-elements/code-block'
 import { Badge } from '@/components/ui/badge'
+import { trackEvent } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils'
 
 // Same rose/amber/sky severity triad used elsewhere for graded status
@@ -125,6 +127,18 @@ export function AdvisorRecommendationsPanel({
 }: {
   output: AdvisorRecommendationsOutput
 }) {
+  // Funnel signal: fires once per mount, the first time this panel renders
+  // with at least one recommendation — whether reached via the /advisor page
+  // or the agent chat tool-output renderer.
+  const fired = useRef(false)
+  useEffect(() => {
+    if (fired.current || output.recommendations.length === 0) return
+    fired.current = true
+    trackEvent('advisor_recommendation_viewed', {
+      recommendation_count: output.recommendations.length,
+    })
+  }, [output.recommendations.length])
+
   return (
     <div className="rounded-md border border-border/60 bg-muted/20">
       <div className="flex items-center justify-between gap-3 border-b border-border/50 px-3 py-2">

@@ -45,6 +45,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { error as logError, log as logInfo } from '@chm/logger'
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
+import { captureServerEvent } from '@/lib/analytics/analytics.server'
 import { logEvent } from '@/lib/audit/logEvent'
 import {
   getPolarClient,
@@ -174,19 +175,24 @@ async function upsertSubscriptionWithRetry(
 /** Test-only export — exercises the full owner-resolution + persistence path. */
 export async function __applySubscriptionForTests(
   data: PolarSubscriptionData,
-  eventTimestamp?: number | null
+  eventTimestamp?: number | null,
+  eventType?: string
 ): Promise<void> {
-  return applySubscription(data, eventTimestamp ?? null)
+  return applySubscription(data, eventTimestamp ?? null, eventType)
 }
 
 /**
  * @param eventTimestamp Unix seconds from the webhook envelope's `timestamp`
  *   — feeds the monotonic write guard in subscription-store.ts so an
  *   out-of-order/replayed older delivery can't overwrite newer state.
+ * @param eventType The raw Polar event type (e.g. `subscription.created`) —
+ *   used only to gate the `upgrade_completed` funnel event so a renewal/
+ *   plan-change `subscription.updated` doesn't double-count as a new upgrade.
  */
 async function applySubscription(
   data: PolarSubscriptionData,
-  eventTimestamp: number | null
+  eventTimestamp: number | null,
+  eventType?: string
 ): Promise<void> {
   const externalId = data.customer?.externalId
   if (!externalId) {
@@ -276,6 +282,20 @@ async function applySubscription(
     if (ownerId !== externalId) invalidateNegativeCache(ownerId)
   }
 
+  // Funnel event: a brand-new subscription just went live. Scoped to
+  // `subscription.created` (not every status update) so renewals and
+  // unrelated field changes on `subscription.updated` don't double-count as
+  // a fresh upgrade. Server-side (not the client `upgrade_click`/
+  // `checkout_started` events) because this is the only point that reflects
+  // money actually moving, confirmed by Polar.
+  if (isPaidPlan && eventType === 'subscription.created') {
+    await captureServerEvent(
+      process.env as Record<string, string | undefined>,
+      'upgrade_completed',
+      { plan_id: mapped.planId, billing_period: mapped.period }
+    )
+  }
+
   // Best-effort audit trail — org-scoped only (a user-type owner has no org
   // to scope the row to; audit is an org-level enterprise feature). Fires
   // regardless of the D1 cache-write outcome above: Polar already confirmed
@@ -339,7 +359,8 @@ async function handlePost(request: Request): Promise<Response> {
       case 'subscription.past_due':
         await applySubscription(
           event.data as unknown as PolarSubscriptionData,
-          toUnixSeconds(event.timestamp)
+          toUnixSeconds(event.timestamp),
+          event.type
         )
         break
       default:

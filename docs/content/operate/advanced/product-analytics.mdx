@@ -70,8 +70,26 @@ entirely. The dashboard additionally honors the cross-tool `DO_NOT_TRACK`/
 | `sample_to_real_converted` | A non-sample host is added after the sample was connected |
 | `first_chart_render` | The first chart renders with real data (once per page load) |
 | `agent_message` | A message is sent to the AI agent |
+| `advisor_recommendation_viewed` | The query advisor shows at least one recommendation (via `/advisor` or the agent chat) |
+| `paywall_hit` | A request comes back with a classified billing-limit 402 and the paywall modal opens (`reason`, `plan_id`) |
 | `upgrade_click` | An "Upgrade" call-to-action is clicked |
 | `checkout_started` | A Polar checkout session is created, right before redirect |
+| `upgrade_completed` | *(server-side)* A new Polar subscription goes live (`subscription.created`, active/trialing) — confirms money actually moved |
+
+The core acquisition→conversion funnel these events trace: `landing_view` →
+`signup` → `cluster_connect` → `advisor_recommendation_viewed` →
+`paywall_hit` → `upgrade_completed`. Build this as a PostHog funnel insight
+(Product analytics → Insights → Funnel) using these events in order.
+
+<Callout type="warn" title="upgrade_completed is not stitched to the same distinct_id">
+`upgrade_completed` fires from the Polar webhook (server-side, no browser
+context), so it's captured under the shared `server` distinct id rather than
+the browser's anonymous id used by every other dashboard event above. Treat it
+as an aggregate count (conversions per period), not as a per-user step in a
+PostHog funnel insight — a true per-user funnel across the webhook boundary
+would need passing the anonymous distinct id through checkout metadata and
+back, which is not implemented.
+</Callout>
 
 ## What is captured
 

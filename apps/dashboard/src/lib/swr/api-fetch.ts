@@ -1,3 +1,4 @@
+import { trackEvent } from '@/lib/analytics/analytics'
 import { classifyBillingLimit } from '@/lib/api/error-handler/error-classifier'
 import { showPaywall } from '@/lib/billing/paywall-store'
 
@@ -7,13 +8,24 @@ import { showPaywall } from '@/lib/billing/paywall-store'
  * body just means nothing to classify — the caller's own error handling
  * (`throwIfNotOk` et al.) still runs unaffected since it reads the original,
  * unconsumed response.
+ *
+ * Also fires the `paywall_hit` funnel event — this is the single chokepoint
+ * where a real billing-limit 402 is classified, so it's the most accurate
+ * place to mark "user hit the paywall" (vs. `upgrade_click`, which only fires
+ * if they act on it).
  */
 async function maybeTriggerPaywall(response: Response): Promise<void> {
   if (typeof window === 'undefined') return
   try {
     const body: unknown = await response.json()
     const classification = classifyBillingLimit(response.status, body)
-    if (classification) showPaywall(classification)
+    if (classification) {
+      showPaywall(classification)
+      trackEvent('paywall_hit', {
+        reason: classification.reason,
+        plan_id: classification.planId,
+      })
+    }
   } catch {
     // Not JSON, or shape we don't recognize — nothing to classify.
   }
