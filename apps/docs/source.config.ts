@@ -19,6 +19,15 @@ export const docs = defineDocs({
 export default defineConfig({
   mdxOptions: {
     remarkPlugins: [remarkMdxMermaid],
+    // Third-party deploy badges (e.g. vercel.com/button,
+    // deploy.workers.cloudflare.com/button) are remote images referenced from
+    // MDX. remark-image fetches every remote image at build time to compute
+    // its dimensions by default — a single timeout on the badge host fails
+    // the whole docs build. Disable that external size lookup so the build
+    // never depends on third-party image host availability (#2462).
+    remarkImageOptions: {
+      external: false,
+    },
     rehypeCodeOptions: {
       // Spread the defaults first so required options (e.g. `themes`) are kept.
       ...rehypeCodeDefaultOptions,
