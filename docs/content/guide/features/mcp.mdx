@@ -16,6 +16,18 @@ Turn your chmonitor instance into a remote Model Context Protocol server so AI a
   }}
 />
 
+## Quickstart
+
+One-command install for Claude Code:
+
+```bash
+claude mcp add --transport http clickhouse-monitor https://your-chmonitor.example.com/api/mcp \
+  --header "Authorization: Bearer chm_your_api_key"
+```
+
+Omit `--header` for an unauthenticated local instance. For Claude Desktop, Cursor, and
+any other MCP client, see [MCP Client Setup](/reference/mcp-clients).
+
 ## What it does
 
 chmonitor exposes a remote MCP (Model Context Protocol) endpoint at `/api/mcp`. External AI tools — Claude Desktop, Cursor, or any MCP-compatible client — can connect and run tools against your ClickHouse cluster without direct database access.

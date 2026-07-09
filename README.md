@@ -278,7 +278,30 @@ plus a short list of what you changed:
 
 **llms.txt** — standardized file that helps AI coding agents discover and understand the codebase structure. Access at `https://your-domain.com/llms.txt` or `/llms.txt` in local development.
 
-**MCP Server** — exposes a Model Context Protocol endpoint at `/api/mcp` for AI tools to query your ClickHouse cluster directly. See [docs/knowledge/mcp-server.md](docs/knowledge/mcp-server.md) for setup.
+**MCP Server** — exposes a Model Context Protocol endpoint at `/api/mcp` for AI tools to query your ClickHouse cluster directly (read-only). One-command install:
+
+```bash
+# Claude Code
+claude mcp add --transport http clickhouse-monitor https://your-chmonitor.example.com/api/mcp \
+  --header "Authorization: Bearer chm_your_api_key"
+```
+
+```json
+// Claude Desktop (claude_desktop_config.json) or Cursor (.cursor/mcp.json)
+{
+  "mcpServers": {
+    "clickhouse-monitor": {
+      "url": "https://your-chmonitor.example.com/api/mcp",
+      "headers": { "Authorization": "Bearer chm_your_api_key" }
+    }
+  }
+}
+```
+
+Omit the `Authorization` header/flag for an unauthenticated local instance. Full client
+walkthroughs (Claude Desktop, Claude Code, Cursor, any MCP client) and auth setup:
+[docs/content/reference/mcp-clients.mdx](docs/content/reference/mcp-clients.mdx) ·
+[docs/knowledge/mcp-server.md](docs/knowledge/mcp-server.md).
 
 **Knowledge Graph** — developer-facing notes in `docs/knowledge/` with decisions, conventions, and architecture docs. See [docs/knowledge/README.md](docs/knowledge/README.md) for the index.
 

@@ -32,7 +32,19 @@ Connect a client, then verify the connection.
 <Step>
 ### Add the server to your client
 
-<Tabs items={['Claude Desktop', 'Cursor']}>
+<Tabs items={['Claude Code', 'Claude Desktop', 'Cursor']}>
+<Tab value="Claude Code">
+
+One command:
+
+```bash
+claude mcp add --transport http clickhouse-monitor https://your-deployment.example.com/api/mcp \
+  --header "Authorization: Bearer chm_your_api_key"
+```
+
+Omit `--header` for a local unauthenticated instance.
+
+</Tab>
 <Tab value="Claude Desktop">
 
 Add to your MCP client config file:

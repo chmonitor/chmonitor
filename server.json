@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.chmonitor/chmonitor",
+  "title": "chmonitor",
+  "description": "Read-only MCP server for ClickHouse: schema, queries, merges, replication, and cluster health.",
+  "websiteUrl": "https://chmonitor.dev",
+  "repository": {
+    "url": "https://github.com/chmonitor/chmonitor",
+    "source": "github",
+    "subfolder": "apps/mcp"
+  },
+  "version": "0.2.9",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://dash.chmonitor.dev/api/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer token: a chm_ API key (see /operate/authentication/api-keys) or a Clerk OAuth access token. Required on the hosted dash.chmonitor.dev instance; self-hosted instances may run without it.",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

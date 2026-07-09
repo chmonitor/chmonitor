@@ -3,7 +3,7 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-05-13
+updated: 2026-07-10
 tags:
   - mcp
   - api
@@ -85,6 +85,24 @@ exposure is visible in logs and cannot be silently forgotten.
 - `packages/mcp-server/src/http.ts` — auth gate (`defaultAuthenticator`)
 - `packages/mcp-server/src/auth/` — api-key + Clerk OAuth verifiers
 - Tests: `packages/mcp-server/src/__tests__/http.test.ts`
+
+## Distribution: registry listing + one-command install
+
+- **`server.json`** (repo root) — the [official MCP Registry](https://github.com/modelcontextprotocol/registry)
+  manifest (`io.github.chmonitor/chmonitor`), pointing at the hosted remote endpoint
+  (`https://dash.chmonitor.dev/api/mcp`, streamable-http). Validate against
+  `https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`
+  before editing (bump `version` whenever the listing changes; publish with
+  `mcp-publisher publish` after `mcp-publisher login github`).
+- **One-command install** — `claude mcp add --transport http ...` snippets live in
+  README.md, `docs/content/guide/features/mcp.mdx` (Quickstart), and
+  `docs/content/reference/mcp-server.mdx` / `mcp-clients.mdx` (full per-client
+  walkthroughs: Claude Code, Claude Desktop, Cursor, generic client). Keep all four in
+  sync when the endpoint path, tool list, or auth header shape changes.
+- **External registry submissions** (official registry, PulseMCP, cursor.directory,
+  Smithery, Glama) are prepared but NOT auto-submitted — exact payload/text for each is
+  in `docs/internal/2026h2-market/mcp-registry-submissions.md` for a maintainer to send
+  manually.
 
 ## Consuming external MCP servers (per-user registry)
 
