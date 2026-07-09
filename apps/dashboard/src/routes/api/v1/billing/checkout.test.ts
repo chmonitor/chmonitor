@@ -43,11 +43,22 @@ mock.module('@/lib/billing/polar-config', () => ({
     customers: { update: async (_args: unknown) => ({}) },
   }),
   getWebhookSecret: () => 'whsec_test',
-  productIdFor: (_planId: string, _period: string) => 'prod_pro',
-  planForProductId: (productId: string) =>
-    productId === 'prod_pro'
-      ? { planId: 'pro', period: 'monthly' as const }
-      : null,
+  productIdFor: (planId: string, period: string) => {
+    if (planId !== 'pro') return null
+    // Distinguishes monthly/yearly so tests can assert the right SKU is sent
+    // to Polar; `max` has no yearly product configured yet (matches a
+    // maintainer who has only provisioned the monthly product so far).
+    if (period === 'monthly') return 'prod_pro_monthly'
+    if (period === 'yearly') return 'prod_pro_yearly'
+    return null
+  },
+  planForProductId: (productId: string) => {
+    if (productId === 'prod_pro_monthly')
+      return { planId: 'pro', period: 'monthly' as const }
+    if (productId === 'prod_pro_yearly')
+      return { planId: 'pro', period: 'yearly' as const }
+    return null
+  },
   isPaidPlanId: (value: string) => value === 'pro' || value === 'max',
 }))
 
@@ -103,6 +114,36 @@ describe('POST /api/v1/billing/checkout — audit wiring', () => {
     )
 
     expect(res.status).toBe(400)
+    expect(checkoutsCreate).not.toHaveBeenCalled()
+    expect(logEventImpl).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/v1/billing/checkout — annual billing', () => {
+  test('period: yearly resolves the yearly product and logs the yearly resource', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'pro', period: 'yearly' })
+    )
+
+    expect(res.status).toBe(200)
+    expect(checkoutsCreate.mock.calls[0]?.[0]).toMatchObject({
+      products: ['prod_pro_yearly'],
+      metadata: { planId: 'pro', period: 'yearly' },
+    })
+    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
+      resource: 'pro:yearly',
+    })
+  })
+
+  test('a plan with no yearly product configured yet fails cleanly with 501, not a crash', async () => {
+    // Mirrors a maintainer who has provisioned the monthly Polar product for a
+    // plan but not yet run the annual step of scripts/polar-setup.ts — the
+    // config-driven lookup must degrade gracefully rather than throw.
+    const res = await handlePost(
+      makeRequest({ planId: 'max', period: 'yearly' })
+    )
+
+    expect(res.status).toBe(501)
     expect(checkoutsCreate).not.toHaveBeenCalled()
     expect(logEventImpl).not.toHaveBeenCalled()
   })

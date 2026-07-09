@@ -69,10 +69,13 @@ mock.module('@/lib/billing/polar-config', () => ({
   }),
   getWebhookSecret: () => 'whsec_test',
   productIdFor: () => null,
-  planForProductId: (productId: string) =>
-    productId === 'prod_pro'
-      ? { planId: 'pro', period: 'monthly' as const }
-      : null,
+  planForProductId: (productId: string) => {
+    if (productId === 'prod_pro')
+      return { planId: 'pro', period: 'monthly' as const }
+    if (productId === 'prod_pro_yearly')
+      return { planId: 'pro', period: 'yearly' as const }
+    return null
+  },
   isPaidPlanId: (value: string) => value === 'pro' || value === 'max',
 }))
 
@@ -172,6 +175,18 @@ describe('applySubscription — D1 write retry', () => {
       applySubscription(subData({ customer: { externalId: 'org_x' } }))
     ).resolves.toBeUndefined()
     expect(upsertSubscription).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('applySubscription — annual billing period', () => {
+  test('a yearly product id persists billingPeriod: yearly to D1', async () => {
+    await applySubscription(subData({ productId: 'prod_pro_yearly' }))
+
+    expect(upsertSubscription).toHaveBeenCalledTimes(1)
+    expect(upsertSubscription.mock.calls[0]?.[0]).toMatchObject({
+      planId: 'pro',
+      billingPeriod: 'yearly',
+    })
   })
 })
 

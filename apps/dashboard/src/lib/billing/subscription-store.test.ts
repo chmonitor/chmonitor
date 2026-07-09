@@ -145,6 +145,36 @@ describe('subscription-store — cancel_at_period_end persistence', () => {
   })
 })
 
+describe('subscription-store — billing_period persistence (annual billing)', () => {
+  test('persists billingPeriod: yearly and reads it back', async () => {
+    // Annual periods carry a currentPeriodEnd ~365 days out rather than ~30 —
+    // the column itself is period-agnostic, but this locks in that a yearly
+    // write round-trips distinctly from the monthly baseInput fixture.
+    await upsertSubscription({
+      ...baseInput,
+      billingPeriod: 'yearly',
+      currentPeriodEnd: baseInput.currentPeriodEnd + 365 * 24 * 60 * 60,
+    })
+    const sub = await getSubscription('org_1')
+    expect(sub?.billingPeriod).toBe('yearly')
+  })
+
+  test('switching from yearly to monthly on a plan change overwrites the stored period', async () => {
+    await upsertSubscription({
+      ...baseInput,
+      billingPeriod: 'yearly',
+      eventTimestamp: 1000,
+    })
+    await upsertSubscription({
+      ...baseInput,
+      billingPeriod: 'monthly',
+      eventTimestamp: 2000,
+    })
+    const sub = await getSubscription('org_1')
+    expect(sub?.billingPeriod).toBe('monthly')
+  })
+})
+
 describe('subscription-store — monotonic write guard', () => {
   test('a newer eventTimestamp overwrites older state', async () => {
     await upsertSubscription({

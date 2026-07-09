@@ -131,13 +131,47 @@ Free by design. Verify `isBillingConfigured()` and the `CHM_POLAR_*` /
 Store- and unit-level coverage exists and should be kept green:
 - `subscription-store.test.ts` — the monotonic guard predicate (newer wins,
   stale rejected, equal = idempotent replay, no-timestamp write-through, first
-  write always applies).
+  write always applies) plus `billing_period` persistence (monthly/yearly
+  round-trip, switching period on a plan change).
 - `polar.test.ts` — `applySubscription` owner re-keying, D1 write retry, unknown
-  product skip, negative-cache invalidation.
+  product skip, negative-cache invalidation, and a yearly product id persisting
+  `billingPeriod: 'yearly'`.
+- `polar-subscription.test.ts` — the negative cache, plus an active annual
+  subscription resolving `billingPeriod: 'yearly'` from Polar's `getStateExternal`.
+- `checkout.test.ts` — audit wiring, a `period: 'yearly'` checkout resolving the
+  yearly Polar product, and a plan with no yearly product configured yet
+  failing cleanly with `501` (not a crash) — the "maintainer hasn't run the
+  annual step of `scripts/polar-setup.ts` yet" case.
+- `user-subscription.test.ts` — `isSubscriptionLive` with annual-length
+  `currentPeriodEnd` windows (~365 days), proving liveness depends only on
+  `status` + `currentPeriodEnd`, never on `billingPeriod` — a yearly
+  subscription is not special-cased.
 
-Route-level checkout/webhook e2e tests (checkout `{url}`/error paths, webhook
-`403`/idempotency, cache-miss reconciliation) are **not yet added**: they require
-new `mock.module` registrations for billing specifiers that sibling billing test
-files already mock in `bun test`'s single process, so they need careful
-superset-mock engineering to avoid cross-file contamination. Tracked in
-`plans/17-checkout-webhook-e2e-tests.md`.
+Route-level checkout/webhook e2e tests (cache-miss reconciliation, fail-open
+without Clerk, full request/response round-trip) are **not yet added** as a
+single `checkout-e2e.test.ts`: they require new `mock.module` registrations for
+billing specifiers that sibling billing test files already mock in `bun test`'s
+single process, so they need careful superset-mock engineering to avoid
+cross-file contamination. Tracked in `plans/17-checkout-webhook-e2e-tests.md`.
+
+## Annual billing (yearly = 10× monthly, ≈2 months free)
+
+Wired end-to-end using the same config-driven pattern as monthly: `period:
+'monthly' | 'yearly'` flows through `checkout.ts` → `productIdFor(planId,
+period)` (env-driven, `CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>`) → the Polar checkout
+→ the webhook's `planForProductId` reverse map → `billingPeriod` persisted in
+D1 (`subscription-store.ts`) → returned by `GET /billing/subscription` →
+rendered as a "Billed monthly/yearly" badge on `/billing`
+(`routes/(dashboard)/billing.tsx`). Pricing (`priceYearlyUsd`,
+`monthlyEquivalentUsd`, `yearlyMonthsFree`) lives in `packages/pricing/src/plans.ts`
+and drives both the landing pricing toggle (`apps/landing/src/components/Pricing.astro`)
+and the in-app `BillingPeriodToggle` (`components/billing/plan-card.tsx`) — no
+duplicated numbers.
+
+Real Polar products for both periods are already provisioned for prod/preview
+(`apps/dashboard/.env.production` / `.env.preview`, created via `bun
+apps/dashboard/scripts/polar-setup.ts`, which derives prices from
+`BILLING_PLANS` so it can never drift from the pricing source of truth). A plan
+with an unconfigured period fails closed: `checkout.ts` returns a clean `501`
+("No Polar product configured for `{planId}/{period}`") instead of throwing,
+and the billing page surfaces it as a toast — no UI crash, no silent no-op.

@@ -29,10 +29,13 @@ mock.module('./polar-config', () => ({
   }),
   getWebhookSecret: () => 'whsec_test',
   productIdFor: () => null,
-  planForProductId: (productId: string) =>
-    productId === 'prod_pro'
-      ? { planId: 'pro', period: 'monthly' as const }
-      : null,
+  planForProductId: (productId: string) => {
+    if (productId === 'prod_pro')
+      return { planId: 'pro', period: 'monthly' as const }
+    if (productId === 'prod_pro_yearly')
+      return { planId: 'pro', period: 'yearly' as const }
+    return null
+  },
   isPaidPlanId: (value: string) => value === 'pro' || value === 'max',
 }))
 
@@ -129,5 +132,26 @@ describe('pullOwnerSubscriptionFromPolar negative cache', () => {
       await pullOwnerSubscriptionFromPolar('user_justpaid')
     expect(afterInvalidate?.planId).toBe('pro')
     expect(getStateExternal).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('pullOwnerSubscriptionFromPolar — annual billing period', () => {
+  test('an active annual subscription resolves billingPeriod: yearly', async () => {
+    getStateExternal = mock(async () => ({
+      activeSubscriptions: [
+        {
+          productId: 'prod_pro_yearly',
+          status: 'active',
+          // ~365 days out, unlike the ~30-day monthly fixtures elsewhere.
+          currentPeriodEnd: '2027-06-01T00:00:00Z',
+          cancelAtPeriodEnd: false,
+        },
+      ],
+    }))
+
+    const sub = await pullOwnerSubscriptionFromPolar('user_annual')
+
+    expect(sub?.planId).toBe('pro')
+    expect(sub?.billingPeriod).toBe('yearly')
   })
 })

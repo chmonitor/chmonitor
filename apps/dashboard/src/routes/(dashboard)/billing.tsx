@@ -167,6 +167,11 @@ function BillingPage() {
                 <Badge variant="secondary">
                   {isLoading ? '…' : statusLabel}
                 </Badge>
+                {hasSubscription && sub?.billingPeriod && (
+                  <Badge variant="outline" className="capitalize">
+                    Billed {sub.billingPeriod}
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
                 {currentPlan.hosts === null
