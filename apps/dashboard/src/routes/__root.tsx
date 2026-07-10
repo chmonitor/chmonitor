@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 
 import appCss from '../styles.css?url'
+import { validateSearch } from './-root-search'
 import { type ReactNode, useEffect } from 'react'
 import { ClerkAuthProvider } from '@/components/clerk/clerk-auth-provider'
 import { WebMcpRegistration } from '@/components/webmcp'
@@ -20,13 +21,6 @@ import { UserConnectionsCacheGuard } from '@/lib/hooks/user-connections-cache-gu
 import { QueryProvider } from '@/lib/query/provider'
 import { getDeployTarget } from '@/lib/telemetry/environment'
 import { ThemeProvider } from '@/lib/theme/theme-provider'
-
-// Typed global `?host=` search param, declared on the ROOT so every route
-// inherits it and useHostId can read it via useSearch({ strict: false }).
-// Mirrors the Next app's host parsing (Number() coerce, fall back to 0).
-interface RootSearch {
-  host: number
-}
 
 // schema.org JSON-LD. `alternateName` lists the brand's keyword variations so
 // search engines map "ch monitor" / "ch monitoring" / "ClickHouse monitoring
@@ -51,15 +45,6 @@ const STRUCTURED_DATA = {
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   sameAs: ['https://github.com/chmonitor/chmonitor'],
 } as const
-
-function validateSearch(search: Record<string, unknown>): RootSearch {
-  const raw = search.host
-  const parsed = Number(raw)
-  return {
-    host:
-      raw === undefined || raw === null || Number.isNaN(parsed) ? 0 : parsed,
-  }
-}
 
 export const Route = createRootRoute({
   validateSearch,
