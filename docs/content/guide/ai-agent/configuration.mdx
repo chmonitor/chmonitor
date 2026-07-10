@@ -87,6 +87,46 @@ curl -H "Authorization: Bearer $AGENT_API_TOKEN" \
      https://your-host/api/v1/agent
 ```
 
+## Cross-source Postgres tools
+
+Set `CHM_FEATURE_POSTGRES_SOURCE=true` to expose the agent's read-only Postgres
+tools (`run_postgres_select_query`, `get_postgres_metrics`,
+`list_postgres_slow_query_patterns`). They resolve a per-call `pgHostId` against
+the `POSTGRES_*` env lists below — a flat positional index, exactly like a
+ClickHouse `hostId` indexes the `CLICKHOUSE_*` lists. All lists are
+comma-separated and index-aligned with `POSTGRES_HOST`; a single `POSTGRES_USER`
+/ `POSTGRES_PASSWORD` broadcasts to every host.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_FEATURE_POSTGRES_SOURCE` | `false` | Master gate. When `true`, the three Postgres tools are added to the agent. Pure env gate (no Clerk) so self-hosted has equal support. |
+| `POSTGRES_HOST` | — | Comma-separated Postgres hosts (`host` or `host:port`). Defines the `pgHostId` id space. |
+| `POSTGRES_PORT` | `5432` | Ports (used when a host has no inline `:port`). |
+| `POSTGRES_USER` | `postgres` | Users; a single value applies to all hosts. |
+| `POSTGRES_PASSWORD` | — | Passwords; a single value applies to all hosts. |
+| `POSTGRES_DATABASE` | `postgres` | Database names. |
+| `POSTGRES_SSLMODE` | — | libpq `sslmode` (`disable` \| `require` \| `verify-full`). |
+| `POSTGRES_NAME` | — | Display names for the sources. |
+
+<Callout type="info" title="Env hosts only, for now">
+The agent's Postgres tools read **env-configured** hosts (`POSTGRES_*`), like the
+ClickHouse tools read `CLICKHOUSE_*`. Per-user (D1) Postgres connections managed
+in the UI are not yet visible to the agent — the same limitation the ClickHouse
+agent tools already have. Env Postgres hosts are operator-supplied and trusted
+(no SSRF re-guard), matching the `CLICKHOUSE_HOST` precedent.
+</Callout>
+
+Point the Postgres user at a **read-only** role. The tools pin the session
+read-only and gate the SQL, but a least-privilege user is defense in depth.
+
+```bash
+CHM_FEATURE_POSTGRES_SOURCE=true
+POSTGRES_HOST=db.internal:5432
+POSTGRES_USER=readonly
+POSTGRES_PASSWORD=secret
+POSTGRES_DATABASE=appdb
+```
+
 ### Least-privilege ClickHouse user
 
 The agent's `query` tool (and the [MCP server](/reference/mcp-server)) run
