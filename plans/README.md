@@ -221,7 +221,7 @@ it protects (76–78, 95).
 | 80 | [background-bar-companions](80-background-bar-companions.md) | bug | P2 | S | — | ⏳ TODO · [#2497](https://github.com/chmonitor/chmonitor/issues/2497) |
 | 81 | [tooltip-breakdown-fixes](81-tooltip-breakdown-fixes.md) | bug | P2 | S | — | ⏳ TODO · [#2498](https://github.com/chmonitor/chmonitor/issues/2498) |
 | 82 | [data-table-utility-columns-sorting](82-data-table-utility-columns-sorting.md) | bug | P2 | S | — | ⏳ TODO · [#2499](https://github.com/chmonitor/chmonitor/issues/2499) |
-| 83 | [fleet-wide-rate-limiting](83-fleet-wide-rate-limiting.md) | security | P2 | M | — | ⏳ TODO · [#2500](https://github.com/chmonitor/chmonitor/issues/2500) (closes #2467) |
+| 83 | [fleet-wide-rate-limiting](83-fleet-wide-rate-limiting.md) | security | P2 | M | — | ✅ DONE · [#2500](https://github.com/chmonitor/chmonitor/issues/2500) (closes #2467) |
 | 84 | [sanitize-500-error-responses](84-sanitize-500-error-responses.md) | security | P2 | S | — | ⏳ TODO · [#2501](https://github.com/chmonitor/chmonitor/issues/2501) |
 | 85 | [bug-handler-fail-closed-senders](85-bug-handler-fail-closed-senders.md) | security | P2 | S | — | ⏳ TODO · [#2502](https://github.com/chmonitor/chmonitor/issues/2502) |
 | 86 | [telemetry-event-insert-bounds](86-telemetry-event-insert-bounds.md) | security | P3 | S | — | ⏳ TODO · [#2503](https://github.com/chmonitor/chmonitor/issues/2503) |

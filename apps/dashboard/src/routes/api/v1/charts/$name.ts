@@ -26,9 +26,10 @@ import {
   isValidInterval,
 } from '@/lib/api/query-executor'
 import {
-  checkRateLimit,
+  checkRateLimitDurable,
   clientIpKey,
   getApiRateLimitPerMin,
+  RATE_LIMIT_BINDING_API,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
 import {
@@ -51,7 +52,11 @@ export async function handler(
 ): Promise<Response> {
   // Rate-limit by client IP before doing any work
   const ip = clientIpKey(request)
-  const rlResult = checkRateLimit(`charts:ip:${ip}`, getApiRateLimitPerMin())
+  const rlResult = await checkRateLimitDurable(
+    `charts:ip:${ip}`,
+    getApiRateLimitPerMin(),
+    RATE_LIMIT_BINDING_API
+  )
   if (!rlResult.allowed) return rateLimitResponse(rlResult.retryAfterSec)
 
   const bindings = env as Record<string, string | undefined>

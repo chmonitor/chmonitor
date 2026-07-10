@@ -58,9 +58,10 @@ import {
   parseModelId,
 } from '@/lib/ai/providers'
 import {
-  checkRateLimit,
+  checkRateLimitDurable,
   clientIpKey,
   getAgentRateLimitPerMin,
+  RATE_LIMIT_BINDING_AGENT,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
@@ -304,7 +305,11 @@ async function handlePost(request: Request): Promise<Response> {
 
   // Rate-limit by IP first, then tighten per identity after auth resolves.
   const ip = clientIpKey(request)
-  const rlResult = checkRateLimit(`agent:ip:${ip}`, getAgentRateLimitPerMin())
+  const rlResult = await checkRateLimitDurable(
+    `agent:ip:${ip}`,
+    getAgentRateLimitPerMin(),
+    RATE_LIMIT_BINDING_AGENT
+  )
   if (!rlResult.allowed) return rateLimitResponse(rlResult.retryAfterSec)
 
   const authResponse = await authorizeAgentApiRequest(request)
@@ -505,9 +510,10 @@ async function handlePost(request: Request): Promise<Response> {
   // across many IPs to exceed its allowance. Anonymous callers keep the per-IP
   // bucket above as their identity, so this only adds a stricter per-user gate.
   if (userId !== 'guest') {
-    const identityRl = checkRateLimit(
+    const identityRl = await checkRateLimitDurable(
       `agent:user:${userId}`,
-      getAgentRateLimitPerMin()
+      getAgentRateLimitPerMin(),
+      RATE_LIMIT_BINDING_AGENT
     )
     if (!identityRl.allowed) return rateLimitResponse(identityRl.retryAfterSec)
   }

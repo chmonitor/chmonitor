@@ -15,7 +15,10 @@ import {
   _MAX_BUCKETS_FOR_TEST,
   _resetBucketsForTest,
   checkRateLimit,
+  checkRateLimitDurable,
   clientIpKey,
+  getRateLimitBinding,
+  type RateLimitBinding,
   rateLimitResponse,
 } from '../rate-limiter'
 import { afterEach, describe, expect, test } from 'bun:test'
@@ -131,5 +134,90 @@ describe('clientIpKey', () => {
   test('returns "unknown" when no IP headers present', () => {
     const req = makeRequest({})
     expect(clientIpKey(req)).toBe('unknown')
+  })
+})
+
+describe('getRateLimitBinding / checkRateLimitDurable (adapter selection)', () => {
+  const BINDING = 'CHM_RATE_LIMIT_TEST'
+
+  afterEach(() => {
+    // Ensure no test leaks a binding onto the shared globalThis.
+    delete (globalThis as Record<string, unknown>)[BINDING]
+  })
+
+  test('getRateLimitBinding returns undefined when no binding on globalThis', () => {
+    expect(getRateLimitBinding(BINDING)).toBeUndefined()
+  })
+
+  test('getRateLimitBinding returns undefined when value lacks limit()', () => {
+    ;(globalThis as Record<string, unknown>)[BINDING] = { nope: true }
+    expect(getRateLimitBinding(BINDING)).toBeUndefined()
+  })
+
+  test('getRateLimitBinding resolves a well-formed binding', () => {
+    const stub: RateLimitBinding = {
+      limit: async () => ({ success: true }),
+    }
+    ;(globalThis as Record<string, unknown>)[BINDING] = stub
+    expect(getRateLimitBinding(BINDING)).toBe(stub)
+  })
+
+  test('delegates to the binding when present (allowed)', async () => {
+    let called = 0
+    const stub: RateLimitBinding = {
+      limit: async ({ key }) => {
+        called++
+        expect(key).toBe('durable-key')
+        return { success: true }
+      },
+    }
+    ;(globalThis as Record<string, unknown>)[BINDING] = stub
+
+    const result = await checkRateLimitDurable('durable-key', 5, BINDING)
+    expect(called).toBe(1)
+    expect(result.allowed).toBe(true)
+    expect(result.retryAfterSec).toBe(0)
+    // Binding path must NOT touch the in-memory bucket store.
+    expect(_bucketCountForTest()).toBe(0)
+  })
+
+  test('delegates to the binding when present (blocked → 429 backoff)', async () => {
+    const stub: RateLimitBinding = { limit: async () => ({ success: false }) }
+    ;(globalThis as Record<string, unknown>)[BINDING] = stub
+
+    const result = await checkRateLimitDurable('blocked-key', 5, BINDING)
+    expect(result.allowed).toBe(false)
+    expect(result.retryAfterSec).toBeGreaterThan(0)
+    expect(_bucketCountForTest()).toBe(0)
+  })
+
+  test('falls back to the in-memory limiter when binding is absent', async () => {
+    const result = await checkRateLimitDurable('fallback-key', 3, BINDING)
+    expect(result.allowed).toBe(true)
+    // In-memory path was used, so a bucket now exists for the key.
+    expect(_bucketCountForTest()).toBe(1)
+  })
+
+  test('in-memory fallback still enforces the limit across calls', async () => {
+    for (let i = 0; i < 3; i++) {
+      const r = await checkRateLimitDurable('fallback-burst', 3, BINDING)
+      expect(r.allowed).toBe(true)
+    }
+    const denied = await checkRateLimitDurable('fallback-burst', 3, BINDING)
+    expect(denied.allowed).toBe(false)
+  })
+
+  test('fails open to the in-memory limiter when the binding throws', async () => {
+    const stub: RateLimitBinding = {
+      limit: async () => {
+        throw new Error('edge counter unavailable')
+      },
+    }
+    ;(globalThis as Record<string, unknown>)[BINDING] = stub
+
+    const result = await checkRateLimitDurable('error-key', 4, BINDING)
+    expect(result.allowed).toBe(true)
+    // Fell through to the Map path.
+    expect(_bucketCountForTest()).toBe(1)
   })
 })

@@ -33,9 +33,10 @@ import {
   createInternalErrorResponse,
 } from '@/lib/api/error-handler'
 import {
-  checkRateLimit,
+  checkRateLimitDurable,
   clientIpKey,
   getApiRateLimitPerMin,
+  RATE_LIMIT_BINDING_API,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
 import {
@@ -58,9 +59,10 @@ async function handleGet(request: Request, slug: string): Promise<Response> {
   // Rate-limit by client IP before doing any work — this is a public,
   // unauthenticated route, so it's the only abuse guard available.
   const ip = clientIpKey(request)
-  const rlResult = checkRateLimit(
+  const rlResult = await checkRateLimitDurable(
     `dashboards-share:ip:${ip}`,
-    getApiRateLimitPerMin()
+    getApiRateLimitPerMin(),
+    RATE_LIMIT_BINDING_API
   )
   if (!rlResult.allowed) return rateLimitResponse(rlResult.retryAfterSec)
 

@@ -30,9 +30,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { error, log, warn } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
 import {
-  checkRateLimit,
+  checkRateLimitDurable,
   clientIpKey,
   getApiRateLimitPerMin,
+  RATE_LIMIT_BINDING_API,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
 import { secretsMatch } from '@/lib/auth/providers/constant-time'
@@ -84,9 +85,10 @@ async function handlePost(
   const denied = authorizeIngest(request)
   if (denied) return denied
 
-  const rl = checkRateLimit(
+  const rl = await checkRateLimitDurable(
     `events-ingest:ip:${clientIpKey(request)}`,
-    getApiRateLimitPerMin()
+    getApiRateLimitPerMin(),
+    RATE_LIMIT_BINDING_API
   )
   if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec)
 

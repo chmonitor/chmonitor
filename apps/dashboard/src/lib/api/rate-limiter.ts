@@ -126,6 +126,87 @@ export function checkRateLimit(
 }
 
 /**
+ * Cloudflare Rate Limiting binding surface (the "unsafe" ratelimit binding).
+ * `limit({ key })` resolves `{ success }` — success=false means the fleet-wide
+ * counter for that key has exceeded the configured limit/period. This counter
+ * lives in Cloudflare's edge (not the isolate), so it is enforced across every
+ * isolate — unlike the in-memory `buckets` Map above.
+ * @see https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+ */
+export interface RateLimitBinding {
+  limit(options: { key: string }): Promise<{ success: boolean }>
+}
+
+/**
+ * Cloudflare's rate-limit binding config uses a fixed `period` (10 or 60s).
+ * The binding does not report a precise retry time, so blocked callers get a
+ * conservative full-period backoff. Our declared bindings use a 60s period.
+ */
+const BINDING_PERIOD_SEC = 60
+
+/**
+ * Resolve a named Cloudflare rate-limit binding from the Worker runtime.
+ *
+ * Bindings are exposed on `globalThis` in the Worker (same detection pattern as
+ * `CHM_DASHBOARD_QUERY_KV` / `CHM_VERSION_CACHE_KV` in
+ * `lib/api/data/dashboard-query-kv-cache.ts`). Returns `undefined` on
+ * Node/Docker/K8s (self-hosted) where no such binding exists, so callers fall
+ * back to the in-memory limiter — preserving current OSS behaviour.
+ */
+export function getRateLimitBinding(
+  name: string
+): RateLimitBinding | undefined {
+  if (typeof globalThis === 'undefined' || !(name in globalThis)) {
+    return undefined
+  }
+  const candidate = (globalThis as Record<string, unknown>)[name]
+  if (candidate && typeof (candidate as RateLimitBinding).limit === 'function') {
+    return candidate as RateLimitBinding
+  }
+  return undefined
+}
+
+/** Binding names declared in wrangler.toml (`[[unsafe.bindings]]`). */
+export const RATE_LIMIT_BINDING_API = 'CHM_RATE_LIMIT_API'
+export const RATE_LIMIT_BINDING_AGENT = 'CHM_RATE_LIMIT_AGENT'
+
+/**
+ * Fleet-wide rate limit check with graceful fallback.
+ *
+ * When a Cloudflare rate-limit binding named `bindingName` is present (Cloud /
+ * Workers), the durable edge counter is authoritative — enforced across ALL
+ * isolates (fixing the per-isolate blind spot of the in-memory Map). When the
+ * binding is absent (self-hosted single-process Node/Docker/K8s) or errors,
+ * this falls back to the in-memory `checkRateLimit` token bucket, so behaviour
+ * is byte-identical to before on OSS deployments (fail-open to current).
+ *
+ * The `{ allowed, retryAfterSec, remaining }` contract is preserved; callers
+ * only swap the sync call for an awaited one.
+ *
+ * @param bucketKey    - Unique identifier (e.g. `charts:ip:1.2.3.4`)
+ * @param limitPerMin  - Fallback per-60s limit for the in-memory path
+ * @param bindingName  - Worker binding to use when present (e.g. `CHM_RATE_LIMIT_API`)
+ */
+export async function checkRateLimitDurable(
+  bucketKey: string,
+  limitPerMin: number,
+  bindingName: string
+): Promise<RateLimitResult> {
+  const binding = getRateLimitBinding(bindingName)
+  if (binding) {
+    try {
+      const { success } = await binding.limit({ key: bucketKey })
+      if (success) return { allowed: true, retryAfterSec: 0, remaining: 0 }
+      return { allowed: false, retryAfterSec: BINDING_PERIOD_SEC, remaining: 0 }
+    } catch {
+      // Fail open to the in-memory limiter on any binding error, rather than
+      // hard-blocking legitimate traffic when the edge counter is unavailable.
+    }
+  }
+  return checkRateLimit(bucketKey, limitPerMin)
+}
+
+/**
  * Build the 429 response with Retry-After header.
  */
 export function rateLimitResponse(retryAfterSec: number): Response {
