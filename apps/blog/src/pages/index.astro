@@ -12,34 +12,79 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
 function fmtDate(d: Date) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+// Category display order + blurbs. "Release" is the highlighted category; the
+// rest render as compact title lists. Categories not in this list fall back to
+// alphabetical order so a new tag always gets a card.
+const CATEGORY_ORDER = [
+  'Release',
+  'How-to',
+  'Troubleshooting',
+  'Case study',
+  '5 min of ClickHouse',
+]
+
+const CATEGORY_TAGLINE = {
+  Release: 'New versions, features, and fixes shipped to chmonitor.',
+  Howto: 'Step-by-step guides to get more from your dashboard.',
+  Troubleshooting: 'Diagnose ClickHouse errors with copy-paste system-table queries.',
+  'Case study': 'Real incidents, diagnosed end to end with chmonitor.',
+  '5 min of ClickHouse': 'One diagnostic query, five minutes, no fluff.',
+}
+
+const seen = {}
+for (const p of posts) seen[p.data.tag] = true
+const extraTags = Object.keys(seen)
+  .filter((t) => !CATEGORY_ORDER.includes(t))
+  .sort()
+
+const allTags = [...CATEGORY_ORDER, ...extraTags]
+
+const groups = allTags
+  .map((tag) => ({
+    tag: tag,
+    tagline: CATEGORY_TAGLINE[tag] || '',
+    items: posts.filter((p) => p.data.tag === tag),
+    featured: tag === 'Release',
+  }))
+  .filter((g) => g.items.length > 0)
 ---
-<Base title="chmonitor blog — release notes & product updates" image="/og/blog/index.png">
+<Base title="chmonitor blog — release notes, guides & ClickHouse diagnostics" image="/og/blog/index.png">
   <Nav />
   <main>
     <section class="blog-hero">
       <div class="wrap">
         <span class="eyebrow sec-eyebrow">Blog</span>
         <h1>What's new in chmonitor</h1>
-        <p>Release notes, product updates and engineering notes from the team building the open-source ClickHouse monitoring dashboard.</p>
+        <p>Release notes, product updates, how-to guides, and ClickHouse diagnostic deep-dives from the team building the open-source ClickHouse monitoring dashboard.</p>
       </div>
     </section>
     <section class="wrap">
-      <div class="post-list">
-        {posts.map((post) => (
-          <a class="post-card" href={`/${postSlug(post)}/`}>
-            <div class="post-meta">
-              <span class="post-tag">{post.data.version ?? post.data.tag}</span>
-              <span class="post-date">{fmtDate(post.data.date)}</span>
-            </div>
-            <div class="post-body">
-              <h2>{post.data.title}</h2>
-              <p>{post.data.description}</p>
-              <span class="post-more">
-                Read more
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </span>
-            </div>
-          </a>
+      <div class="cat-grid">
+        {groups.map((group) => (
+          <section class={`cat-card${group.featured ? ' is-featured' : ''}`}>
+            <header class="cat-head">
+              <h2>{group.tag}</h2>
+              <span class="cat-count">{group.items.length}</span>
+            </header>
+            <p class="cat-tagline">{group.tagline}</p>
+            <ul class="cat-list">
+              {group.items.map((post) => (
+                <li class="cat-item">
+                  <a class="cat-link" href={`/${postSlug(post)}/`}>
+                    <span class="cat-title">{post.data.title}</span>
+                    {!group.featured && <span class="cat-date">{fmtDate(post.data.date)}</span>}
+                  </a>
+                  {group.featured && (
+                    <span class="cat-date">{fmtDate(post.data.date)}</span>
+                  )}
+                  {group.featured && post.data.description && (
+                    <p class="cat-desc">{post.data.description}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
       </div>
     </section>
