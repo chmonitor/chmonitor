@@ -107,6 +107,35 @@ The host did not respond in time — commonly unreachable from the public intern
 </Accordion>
 </Accordions>
 
+## Postgres connections
+
+Postgres sources (behind the `CHM_FEATURE_POSTGRES_SOURCE` feature flag) connect
+over a raw TCP driver rather than HTTP, so the **Test connection** flow reports
+the Postgres driver's own errors — identified by their five-character
+[SQLSTATE](https://www.postgresql.org/docs/current/errcodes-appendix.html) code.
+They map to the same error kinds above:
+
+| Symptom | SQLSTATE | Kind | Fix |
+| --- | --- | --- | --- |
+| _password authentication failed for user…_ | `28P01` / `28000` | Authentication failed | Re-check the username and password. Postgres roles are case-sensitive. |
+| _database "…" does not exist_ | `3D000` | Database not found | Enter an existing database name (case-sensitive), or create it on the server. |
+| _connection to server … failed_ · _ECONNREFUSED_ | `08006` / `08001` | Connection refused | Confirm the port (usually `5432`), that Postgres accepts external connections (`listen_addresses`, `pg_hba.conf`), and that the firewall allows the dashboard. |
+| _the server does not support SSL connections_ | — | TLS / certificate error | The server has TLS disabled but the connection requires it. Set **SSL mode** to `disable`, or enable TLS on the server. |
+| _Connection timeout expired_ | — | Connection timed out | Confirm the host is publicly reachable and inbound traffic is allowed on the Postgres port. |
+
+<Callout type="info" title="Postgres monitoring is read-only">
+Every Postgres session the dashboard opens is pinned read-only
+(`default_transaction_read_only = on`) and only single `SELECT` / `WITH` /
+`SHOW` / `EXPLAIN` statements are allowed — the connection can never write. Use
+the **SSL mode** selector (`require` by default, `verify-full` to verify the
+certificate, `disable` for a plaintext local socket) to match your server.
+</Callout>
+
+For **private** Postgres hosts (`localhost`, `10.x`, `192.168.x`), the same SSRF
+rule applies as for ClickHouse: self-host chmonitor and set
+`CHM_ALLOW_PRIVATE_HOSTS=true`. Reproduce a failure outside the dashboard with
+`psql "postgres://user:pass@host:5432/db"`.
+
 ## Still stuck?
 
 <Callout type="info" title="Reproduce the failure with curl">
