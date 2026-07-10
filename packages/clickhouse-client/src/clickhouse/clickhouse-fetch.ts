@@ -44,6 +44,34 @@ function parseReadBytesFromHeaders(
 }
 
 /**
+ * Parse `rows_before_limit_at_least` out of the `X-ClickHouse-Summary`
+ * response header (#2490). ClickHouse sets this when a query hits
+ * `max_result_rows` with `result_overflow_mode: 'break'` (or a plain LIMIT) —
+ * it reports how many rows existed before the cap/limit truncated the result.
+ * Returns `undefined` when absent/unparseable, mirroring
+ * `parseReadBytesFromHeaders`.
+ */
+function parseRowsBeforeLimitFromHeaders(
+  headers: Record<string, string | string[] | undefined> | undefined
+): number | undefined {
+  const raw = headers?.['x-clickhouse-summary']
+  const text = Array.isArray(raw) ? raw[0] : raw
+  if (!text) return undefined
+
+  try {
+    const summary = JSON.parse(text) as {
+      rows_before_limit_at_least?: string
+    }
+    const value = summary.rows_before_limit_at_least
+      ? Number(summary.rows_before_limit_at_least)
+      : undefined
+    return value !== undefined && Number.isFinite(value) ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Extract an HTTP status code (100–599) from a fetch error message.
  *
  * Strategy:
@@ -345,6 +373,16 @@ export const fetchData = async <
       const readBytes = parseReadBytesFromHeaders(resultSet.response_headers)
       if (readBytes !== undefined) {
         metadata.readBytes = readBytes
+      }
+
+      // Only present when result_overflow_mode='break' (or a plain LIMIT)
+      // truncated the query — lets callers detect and surface truncation
+      // (#2490).
+      const rowsBeforeLimitAtLeast = parseRowsBeforeLimitFromHeaders(
+        resultSet.response_headers
+      )
+      if (rowsBeforeLimitAtLeast !== undefined) {
+        metadata.rows_before_limit_at_least = rowsBeforeLimitAtLeast
       }
 
       // Include raw response for debugging (lazily evaluated to avoid performance overhead)

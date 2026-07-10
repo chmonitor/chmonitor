@@ -216,6 +216,35 @@ describe('clickhouse-fetch', () => {
         expect(result.metadata.readBytes).toBeUndefined()
       })
 
+      it('does not include rows_before_limit_at_least when the result set has no response_headers (#2490)', async () => {
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.rows_before_limit_at_least).toBeUndefined()
+      })
+
+      it('includes rows_before_limit_at_least parsed from the X-ClickHouse-Summary header (#2490)', async () => {
+        mockClientQuery.mockResolvedValueOnce({
+          ...mockResultSet,
+          response_headers: {
+            'x-clickhouse-summary': JSON.stringify({
+              rows_before_limit_at_least: '54321',
+            }),
+          },
+        } as never)
+
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.rows_before_limit_at_least).toBe(54321)
+      })
+
+      it('omits rows_before_limit_at_least when the summary header is unparseable (#2490)', async () => {
+        mockClientQuery.mockResolvedValueOnce({
+          ...mockResultSet,
+          response_headers: { 'x-clickhouse-summary': 'not-json' },
+        } as never)
+
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.rows_before_limit_at_least).toBeUndefined()
+      })
+
       it('does not JSON.stringify the result set when debug is disabled', async () => {
         // isDebugEnabled() is mocked false (simulating DEBUG unset / prod).
         const mockData = [{ big: 'payload' }]

@@ -36,6 +36,10 @@ import {
 import { error } from '@chm/logger'
 import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import {
+  getTableClickHouseSettings,
+  resolveTableResultRowLimit,
+} from '@/lib/api/table-query-settings'
 import { withClickHouseQuerySpan } from '@/lib/otel/query-span'
 import { getSqlForDisplay } from '@/lib/query-config'
 
@@ -141,6 +145,8 @@ export interface ExecuteTableResult<
   executedSql: string
   /** Resolved CH version, if a versioned SQL forced a lookup. */
   clickhouseVersion?: string
+  /** Row cap applied to the query (`0` when disabled), see #2490. */
+  maxResultRows: number
 }
 
 /**
@@ -173,6 +179,21 @@ export async function executeTableConfig<
     disabled: queryConfig.disableQueryCache,
   })
 
+  // Server-side row cap (#2490): stop ClickHouse from shipping unbounded
+  // result sets for `SELECT *`-style table configs. `result_overflow_mode:
+  // 'break'` makes the server truncate instead of erroring, and the
+  // `X-ClickHouse-Summary` response header then reports
+  // `rows_before_limit_at_least` so the route can detect truncation.
+  // `getTableClickHouseSettings` respects a config's own `max_result_rows`
+  // (as long as it doesn't exceed the cap) and is spread last below so it
+  // wins over the query-cache settings for any overlapping keys.
+  const maxResultRows = resolveTableResultRowLimit()
+  const tableSettings = getTableClickHouseSettings(
+    queryConfig,
+    options.timezone,
+    maxResultRows
+  )
+
   const result = await withClickHouseQuerySpan(() =>
     fetchData<T[]>({
       query: executedSql,
@@ -181,8 +202,7 @@ export async function executeTableConfig<
       format: 'JSONEachRow',
       clickhouse_settings: {
         ...cacheSettings,
-        ...queryConfig.clickhouseSettings,
-        ...(options.timezone ? { session_timezone: options.timezone } : {}),
+        ...tableSettings,
       },
       // Pass the config so fetchData can existence-check optional tables.
       queryConfig: queryConfig.optional
@@ -200,7 +220,7 @@ export async function executeTableConfig<
     error(`[executeTableConfig:${queryConfig.name}]`, result.error)
   }
 
-  return { result, executedSql, clickhouseVersion: version }
+  return { result, executedSql, clickhouseVersion: version, maxResultRows }
 }
 
 /** Result of executing a chart query — raw JSON string (no per-row parse). */
