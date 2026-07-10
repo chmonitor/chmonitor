@@ -42,10 +42,10 @@ importers:
         specifier: ^1.396.5
         version: 1.396.5
       react:
-        specifier: ^19.1.0
+        specifier: ^19.2.7
         version: 19.2.7
       react-dom:
-        specifier: ^19.1.0
+        specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
       takumi-js:
         specifier: ^1.8.7

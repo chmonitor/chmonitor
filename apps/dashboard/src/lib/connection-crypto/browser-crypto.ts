@@ -23,16 +23,29 @@ async function openKeyDb(): Promise<IDBDatabase> {
   })
 }
 
-async function getOrCreateDeviceKey(): Promise<CryptoKey> {
+// Single-flight guard: without it, `getOrCreateDeviceKey` is check-then-act
+// (read in a readonly tx, then generate + put in a separate readwrite tx). Two
+// concurrent first calls could both miss the key and each generate a distinct
+// one — last write wins, and ciphertext under the discarded key becomes
+// permanently undecryptable. Memoizing the in-flight promise collapses
+// concurrent callers onto one key. Reset to null on failure so a later call can
+// retry.
+let keyPromise: Promise<CryptoKey> | null = null
+
+async function createDeviceKey(): Promise<CryptoKey> {
   const db = await openKeyDb()
-  const stored = await new Promise<CryptoKey | null>((resolve, reject) => {
-    const tx = db.transaction(KEY_STORE_NAME, 'readonly')
-    const req = tx.objectStore(KEY_STORE_NAME).get(KEY_ID)
+
+  // Re-read inside the readwrite tx before generating, so a key persisted by a
+  // concurrent tab (or an earlier session) wins over a fresh generate.
+  const existing = await new Promise<CryptoKey | null>((resolve, reject) => {
+    const tx = db.transaction(KEY_STORE_NAME, 'readwrite')
+    const store = tx.objectStore(KEY_STORE_NAME)
+    const req = store.get(KEY_ID)
     req.onsuccess = () => resolve((req.result as CryptoKey) ?? null)
     req.onerror = () => reject(req.error)
   })
 
-  if (stored) return stored
+  if (existing) return existing
 
   const key = await crypto.subtle.generateKey(
     { name: ALGORITHM, length: 256 },
@@ -48,6 +61,22 @@ async function getOrCreateDeviceKey(): Promise<CryptoKey> {
   })
 
   return key
+}
+
+export function getOrCreateDeviceKey(): Promise<CryptoKey> {
+  if (keyPromise) return keyPromise
+
+  keyPromise = createDeviceKey().catch((error) => {
+    keyPromise = null
+    throw error
+  })
+
+  return keyPromise
+}
+
+/** Test-only: clear the memoized device-key promise between cases. */
+export function __resetDeviceKeyPromiseForTest(): void {
+  keyPromise = null
 }
 
 export async function encryptJson<T>(value: T): Promise<string> {

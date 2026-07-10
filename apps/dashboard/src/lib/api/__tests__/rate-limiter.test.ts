@@ -7,9 +7,12 @@
  *  - Bucket refills over time
  *  - rateLimitResponse returns a 429 with Retry-After
  *  - clientIpKey extraction from various headers
+ *  - Bucket store stays bounded and evicts old entries under high cardinality
  */
 
 import {
+  _bucketCountForTest,
+  _MAX_BUCKETS_FOR_TEST,
   _resetBucketsForTest,
   checkRateLimit,
   clientIpKey,
@@ -64,6 +67,16 @@ describe('checkRateLimit', () => {
   test('limit=1 allows exactly one request', () => {
     expect(checkRateLimit('tight-key', 1).allowed).toBe(true)
     expect(checkRateLimit('tight-key', 1).allowed).toBe(false)
+  })
+
+  test('bucket store stays bounded and evicts oldest entries past the cap', () => {
+    const cap = _MAX_BUCKETS_FOR_TEST
+    for (let i = 0; i < cap + 50; i++) {
+      checkRateLimit(`bounded-key-${i}`, 5)
+    }
+    expect(_bucketCountForTest()).toBeLessThanOrEqual(cap)
+    // The earliest keys should have been evicted (oldest-first eviction).
+    expect(checkRateLimit('bounded-key-0', 5).remaining).toBe(4)
   })
 })
 

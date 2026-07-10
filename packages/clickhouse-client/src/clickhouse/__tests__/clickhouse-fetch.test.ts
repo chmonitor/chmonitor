@@ -216,6 +216,35 @@ describe('clickhouse-fetch', () => {
         expect(result.metadata.readBytes).toBeUndefined()
       })
 
+      it('does not include rows_before_limit_at_least when the result set has no response_headers (#2490)', async () => {
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.rows_before_limit_at_least).toBeUndefined()
+      })
+
+      it('includes rows_before_limit_at_least parsed from the X-ClickHouse-Summary header (#2490)', async () => {
+        mockClientQuery.mockResolvedValueOnce({
+          ...mockResultSet,
+          response_headers: {
+            'x-clickhouse-summary': JSON.stringify({
+              rows_before_limit_at_least: '54321',
+            }),
+          },
+        } as never)
+
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.rows_before_limit_at_least).toBe(54321)
+      })
+
+      it('omits rows_before_limit_at_least when the summary header is unparseable (#2490)', async () => {
+        mockClientQuery.mockResolvedValueOnce({
+          ...mockResultSet,
+          response_headers: { 'x-clickhouse-summary': 'not-json' },
+        } as never)
+
+        const result = await fetchData(defaultParams)
+        expect(result.metadata.rows_before_limit_at_least).toBeUndefined()
+      })
+
       it('does not JSON.stringify the result set when debug is disabled', async () => {
         // isDebugEnabled() is mocked false (simulating DEBUG unset / prod).
         const mockData = [{ big: 'payload' }]
@@ -420,6 +449,34 @@ describe('clickhouse-fetch', () => {
         expect(result.error).toBeDefined()
         expect(result.error?.type).toBe('table_not_found')
         expect(result.error?.message).toContain('Table not found')
+        expect(mockClientQuery).not.toHaveBeenCalled()
+      })
+
+      // Regression coverage for issue #2505: a transient probe failure
+      // (network/timeout/auth) must be classified as a network error, not
+      // "table not found" — the UI copy for the two must differ.
+      it('should classify a probe failure as a network error, not table_not_found', async () => {
+        const queryConfig: QueryConfigLike = {
+          name: 'test',
+          sql: 'SELECT * FROM system.backup_log',
+          optional: true,
+        } as QueryConfigLike
+
+        mockValidateTableExistence.mockResolvedValue({
+          shouldProceed: false,
+          missingTables: [],
+          reason: 'probe_failed',
+          error:
+            'Could not verify table availability (connection issue): system.backup_log',
+        })
+
+        const result = await fetchData({ ...defaultParams, queryConfig })
+
+        expect(result.data).toBeNull()
+        expect(result.error?.type).toBe('network_error')
+        expect(result.error?.message).toContain(
+          'Could not verify table availability'
+        )
         expect(mockClientQuery).not.toHaveBeenCalled()
       })
 

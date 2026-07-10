@@ -70,9 +70,10 @@ export function FastestScanStat({
   if (
     d.bytes_per_second === null ||
     d.bytes_per_second === undefined ||
+    Number.isNaN(Number(d.bytes_per_second)) ||
     d.readable_speed === null ||
     d.readable_speed === undefined ||
-    d.readable_speed === 'NaN'
+    String(d.readable_speed).toLowerCase() === 'nan'
   ) {
     return statEmpty(label, sql, data, metadata)
   }

@@ -16,8 +16,8 @@
 /* shadcn tokens — Geist (Vercel design.md) + x.ai monochrome. Light: near-white
    surfaces, gray-1000 primary. Dark: pure black field, white primary (x.ai). */
 :root {
-  /* Geist shape: 6px everyday radius */
-  --radius: 0.375rem;
+  /* x.ai shape: sharp corners — 2px everyday radius (max rounded-sm feel) */
+  --radius: 0.125rem;
   --background: #ffffff;
   --foreground: #171717;
   --card: #ffffff;

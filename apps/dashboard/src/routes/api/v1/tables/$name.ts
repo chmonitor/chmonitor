@@ -9,6 +9,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
 import { executeTableConfig } from '@/lib/api/query-executor'
+import { detectTableTruncation } from '@/lib/api/table-query-settings'
 import {
   getAvailableTables,
   getTableQuery,
@@ -121,15 +122,11 @@ export async function handler(
   }
 
   try {
-    const { result, executedSql, clickhouseVersion } = await executeTableConfig(
-      config,
-      hostId,
-      queryParams,
-      {
+    const { result, executedSql, clickhouseVersion, maxResultRows } =
+      await executeTableConfig(config, hostId, queryParams, {
         bindings,
         timezone,
-      }
-    )
+      })
 
     if (result.error) {
       // An OPTIONAL config whose underlying table is simply absent is an
@@ -174,6 +171,15 @@ export async function handler(
     }
 
     const rows = result.data ?? []
+    const rowsBeforeLimit =
+      typeof result.metadata.rows_before_limit_at_least === 'number'
+        ? result.metadata.rows_before_limit_at_least
+        : undefined
+    const { truncated, rowsBeforeCap } = detectTableTruncation({
+      dataLength: rows.length,
+      cap: maxResultRows,
+      rowsBeforeLimit,
+    })
     const metadata = {
       queryId: String(result.metadata.queryId || ''),
       duration: Number(result.metadata.duration || 0),
@@ -182,7 +188,10 @@ export async function handler(
       sql: executedSql.trim(),
       clickhouseVersion,
       timezone,
-      rows_before_limit_at_least: result.metadata.rows_before_limit_at_least,
+      resultRowLimit: maxResultRows > 0 ? maxResultRows : undefined,
+      resultOverflowMode: maxResultRows > 0 ? 'break' : undefined,
+      resultRowsTruncated: truncated,
+      resultRowsBeforeCap: rowsBeforeCap,
     }
 
     return Response.json({ success: true, data: rows, metadata })

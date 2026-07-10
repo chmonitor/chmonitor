@@ -57,6 +57,10 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import {
+  demoHiddenUnavailable,
+  isDemoHostBlockedForRequest,
+} from '@/lib/cloud/reject-demo-host'
 import { keeperInfoConfig } from '@/lib/query-config/keeper/keeper-info'
 import { keeperPresenceConfig } from '@/lib/query-config/keeper/keeper-presence'
 import {
@@ -133,10 +137,52 @@ async function handleGet(request: Request): Promise<Response> {
     const hostId = hostIdResult.data
     const timezone = searchParams.get('timezone') || undefined
 
+    // Cloud demo-hiding invariant (#2172 / #2488): reject a non-negative
+    // hostId for an authenticated cloud principal (the hidden env/demo host).
+    if (
+      await isDemoHostBlockedForRequest(
+        hostId,
+        env as Record<string, string | undefined>
+      )
+    ) {
+      const headers = new Headers({ 'Content-Type': 'application/json' })
+      headers.set('X-Request-ID', requestId)
+      return Response.json(
+        {
+          success: true,
+          data: null,
+          metadata: {
+            queryId: 'cluster-topology',
+            duration: 0,
+            rows: 0,
+            host: String(hostId),
+            unavailable: demoHiddenUnavailable(),
+          },
+        },
+        { headers }
+      )
+    }
+
     debug('[GET /api/v1/cluster-topology] Assembling topology', {
       requestId,
       hostId,
     })
+
+    // Keeper presence + info (steps 2 & 3) don't depend on the structural rows,
+    // so kick them off now to overlap with the structural query below instead of
+    // serializing behind it. They're optional and must never fail the batch.
+    const presencePromise = fetchData<KeeperPresenceRow[]>({
+      query: '',
+      hostId,
+      format: 'JSONEachRow',
+      queryConfig: keeperPresenceConfig,
+    }).catch(() => ({ data: [], error: undefined }) as never)
+    const keeperPromise = fetchData<KeeperInfoRow[]>({
+      query: '',
+      hostId,
+      format: 'JSONEachRow',
+      queryConfig: keeperInfoConfig,
+    }).catch(() => ({ data: [], error: undefined }) as never)
 
     // ── 1. STRUCTURAL truth (must succeed) ──
     const structural = await fetchData<ClusterTopologyRow[]>({
@@ -177,20 +223,10 @@ async function handleGet(request: Request): Promise<Response> {
 
     const clusterRows = (structural.data ?? []) as ClusterTopologyRow[]
 
-    // ── 2 & 3. Keeper presence + info (optional; never fail the batch) ──
+    // ── 2 & 3. Keeper presence + info (started above; awaited here) ──
     const [presenceResult, keeperResult] = await Promise.all([
-      fetchData<KeeperPresenceRow[]>({
-        query: '',
-        hostId,
-        format: 'JSONEachRow',
-        queryConfig: keeperPresenceConfig,
-      }).catch(() => ({ data: [], error: undefined }) as never),
-      fetchData<KeeperInfoRow[]>({
-        query: '',
-        hostId,
-        format: 'JSONEachRow',
-        queryConfig: keeperInfoConfig,
-      }).catch(() => ({ data: [], error: undefined }) as never),
+      presencePromise,
+      keeperPromise,
     ])
 
     const presenceRows = (

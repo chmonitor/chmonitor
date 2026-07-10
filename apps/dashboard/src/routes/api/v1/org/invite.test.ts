@@ -1,16 +1,17 @@
 /**
- * Tests for POST /api/v1/org/invite (plan 20) — the pre-emptive seat-cap gate
- * that rejects an over-cap invite with a 402 BEFORE any Clerk invitation is
- * created, plus the auth/role gates and the fail-open path (plan/member-count
- * resolution throws → invite proceeds ungated, matching self-hosted/OSS
- * "stays whole").
+ * Tests for POST /api/v1/org/invite (plans 20 and 99) — the pre-emptive
+ * seat-cap gate that rejects an over-cap invite with a 402 BEFORE any Clerk
+ * invitation is created (counting both current members AND pending
+ * invitations — plan 99), plus the auth/role gates and the fail-open path
+ * (plan/member/invite resolution throws → invite proceeds ungated, matching
+ * self-hosted/OSS "stays whole").
  *
  * mock.module style mirrors routes/api/v1/webhooks/clerk.test.ts: each mocked
  * export is a stable wrapper delegating to a per-test `let` binding, and
  * `@clerk/tanstack-react-start/server` is mocked with the full superset of
  * methods used across the suite (this file adds
- * `createOrganizationInvitation`) so registration stays order-independent when
- * CI runs `bun test src/ --isolate`.
+ * `createOrganizationInvitation` and `getOrganizationInvitationList`) so
+ * registration stays order-independent when CI runs `bun test src/ --isolate`.
  */
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
@@ -55,6 +56,13 @@ let getOrganizationMembershipList = mock(
     data: [] as unknown[],
   })
 )
+let getOrganizationInvitationList = mock(
+  async (_args: {
+    organizationId: string
+    status?: string[]
+    limit: number
+  }) => ({ data: [] as unknown[] })
+)
 let deleteOrganizationMembership = mock(
   async (_args: { organizationId: string; userId: string }) => ({})
 )
@@ -84,6 +92,11 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
         organizationId: string
         limit: number
       }) => getOrganizationMembershipList(args),
+      getOrganizationInvitationList: (args: {
+        organizationId: string
+        status?: string[]
+        limit: number
+      }) => getOrganizationInvitationList(args),
       createOrganization: (args: { name: string; createdBy: string }) =>
         createOrganization(args),
       deleteOrganizationMembership: (args: {
@@ -106,6 +119,10 @@ function membershipsOfSize(count: number) {
   return { data: Array.from({ length: count }) }
 }
 
+function invitationsOfSize(count: number) {
+  return { data: Array.from({ length: count }) }
+}
+
 function makeRequest(body: unknown = { emailAddress: 'new@example.com' }) {
   return new Request('https://dash.example.com/api/v1/org/invite', {
     method: 'POST',
@@ -124,6 +141,7 @@ beforeEach(() => {
     orgRole: 'org:admin',
   }))
   getOrganizationMembershipList = mock(async () => ({ data: [] }))
+  getOrganizationInvitationList = mock(async () => ({ data: [] }))
   deleteOrganizationMembership = mock(async () => ({}))
   usersGetOrganizationMembershipList = mock(async () => ({ data: [] }))
   createOrganization = mock(async () => ({ id: 'org_new' }))
@@ -220,12 +238,56 @@ describe('POST /api/v1/org/invite — pre-emptive seat gate', () => {
 
     expect(res.status).toBe(200)
     expect(getOrganizationMembershipList).not.toHaveBeenCalled()
+    expect(getOrganizationInvitationList).not.toHaveBeenCalled()
     expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
   })
 
   test('fail-open: plan/member resolution throws (no Clerk) → invite proceeds, no 402', async () => {
     getPlanForOwner = mock(async () => {
       throw new Error('Clerk not configured')
+    })
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(200)
+    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('POST /api/v1/org/invite — pending invitations count toward the seat cap', () => {
+  test('members=2, pending=0 (cap=3): allowed — the Clerk invitation is created', async () => {
+    getOrganizationMembershipList = mock(async () => membershipsOfSize(2))
+    getOrganizationInvitationList = mock(async () => invitationsOfSize(0))
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(200)
+    expect(getOrganizationInvitationList).toHaveBeenCalledWith({
+      organizationId: 'org_1',
+      status: ['pending'],
+      limit: 100,
+    })
+    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
+  })
+
+  test('members=2, pending=1 (cap=3): blocked — 402 reason seat_limit BEFORE the invite is created', async () => {
+    getOrganizationMembershipList = mock(async () => membershipsOfSize(2))
+    getOrganizationInvitationList = mock(async () => invitationsOfSize(1))
+
+    const res = await handlePost(makeRequest())
+    const body = (await res.json()) as {
+      error: { details?: { reason?: string } }
+    }
+
+    expect(res.status).toBe(402)
+    expect(body.error.details?.reason).toBe('seat_limit')
+    expect(createOrganizationInvitation).not.toHaveBeenCalled()
+  })
+
+  test('fail-open: pending-invitation list call throws → check is skipped, invite proceeds', async () => {
+    getOrganizationMembershipList = mock(async () => membershipsOfSize(2))
+    getOrganizationInvitationList = mock(async () => {
+      throw new Error('Clerk API hiccup')
     })
 
     const res = await handlePost(makeRequest())

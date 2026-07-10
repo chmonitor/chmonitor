@@ -1,7 +1,7 @@
 /**
  * POST /api/v1/billing/checkout — start a Polar checkout for a paid plan.
  *
- * Body: { planId: 'pro' | 'max', period: 'monthly' | 'yearly' }
+ * Body: { planId: 'pro' | 'max', period: 'monthly' | 'yearly', posthogDistinctId?: string }
  * Returns: { url } — the Polar-hosted checkout URL to redirect the customer to.
  *
  * `externalCustomerId` is set to the billing-owner id (Clerk org id when the
@@ -9,6 +9,14 @@
  * stamps every resulting webhook with `customer.externalId`. The `metadata`
  * always carries the actual Clerk userId so the webhook can lazily create a
  * Clerk org for the buyer on first payment.
+ *
+ * `posthogDistinctId` (optional, sent by the browser alongside `checkout_started`
+ * — see `useBilling`/`startCheckout`) is forwarded into the Polar checkout
+ * metadata unchanged. Polar propagates it onto the resulting subscription, so
+ * the `subscription.created` webhook can stitch `upgrade_completed` back onto
+ * the same PostHog distinct-id as the rest of the funnel (#2478) instead of the
+ * shared server id. Absent when analytics is disabled/DNT — the webhook falls
+ * back to the shared id in that case, never throwing.
  */
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -40,9 +48,13 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  let body: { planId?: string; period?: string }
+  let body: { planId?: string; period?: string; posthogDistinctId?: string }
   try {
-    body = (await request.json()) as { planId?: string; period?: string }
+    body = (await request.json()) as {
+      planId?: string
+      period?: string
+      posthogDistinctId?: string
+    }
   } catch {
     return createApiErrorResponse(
       {
@@ -54,7 +66,7 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const { planId, period } = body
+  const { planId, period, posthogDistinctId } = body
   if (!planId || !isPaidPlanId(planId)) {
     return createApiErrorResponse(
       {
@@ -103,7 +115,16 @@ async function handlePost(request: Request): Promise<Response> {
       successUrl: `${origin}/billing?status=success`,
       // userId in metadata lets the webhook lazily create a Clerk org for the
       // buyer when externalCustomerId was still a user id (first payment).
-      metadata: { userId, planId, period },
+      // posthogDistinctId (when present) stitches upgrade_completed back onto
+      // the browser's funnel distinct-id (#2478) — omitted entirely rather
+      // than sent as undefined/empty so the webhook's "absent" fallback path
+      // is unambiguous.
+      metadata: {
+        userId,
+        planId,
+        period,
+        ...(posthogDistinctId ? { posthogDistinctId } : {}),
+      },
     })
 
     // Best-effort audit trail — org-scoped only (a first-time upgrade with no

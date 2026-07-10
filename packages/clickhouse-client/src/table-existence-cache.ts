@@ -48,11 +48,21 @@ export function setTableExistenceL2Provider(
   l2CacheProvider = provider
 }
 
+/**
+ * Result of a table-existence probe.
+ * - `true` / `false`: the probe succeeded and definitively determined
+ *   existence.
+ * - `'unknown'`: the probe itself failed (network blip, timeout, auth, …) —
+ *   existence could not be determined. Callers must not treat this the same
+ *   as `false` ("table missing"); see issue #2505.
+ */
+export type TableExistsResult = boolean | 'unknown'
+
 export async function checkTableExists(
   hostId: number,
   database: string,
   table: string
-): Promise<boolean> {
+): Promise<TableExistsResult> {
   const key = `${hostId}:${database}.${table}`
   const cached = cache.get(key)
   if (cached !== undefined) {
@@ -103,7 +113,10 @@ export async function checkTableExists(
     return exists
   } catch (err) {
     error(`Error checking table ${database}.${table}:`, err)
-    return false
+    // Transient probe failure (network/timeout/auth) — NOT "table missing".
+    // Never cached (falls through without `cache.set`/L2 `set`), so the next
+    // probe retries naturally.
+    return 'unknown'
   }
 }
 

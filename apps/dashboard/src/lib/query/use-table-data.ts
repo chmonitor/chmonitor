@@ -9,7 +9,10 @@ import {
   isCustomHost,
 } from '@/lib/host-fetch/resolve-host-fetch'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
-import { tableQueryKey } from '@/lib/query/query-keys'
+import {
+  serializeTableSearchParams,
+  tableQueryKey,
+} from '@/lib/query/query-keys'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
@@ -42,9 +45,11 @@ export function useTableData<T = unknown>(
   const browserConnection =
     hostId !== undefined && hostId < 0 ? getConnectionByHostId(hostId) : null
 
-  // Serialize searchParams so the memo key is value-stable even when a parent
-  // recreates the object each render (inline literal / derived state).
-  const searchParamsKey = searchParams ? JSON.stringify(searchParams) : ''
+  // Serialize searchParams once so it's value-stable for both the memo key and
+  // the query key, even when a parent recreates the object each render (inline
+  // literal / derived state). Reusing the single serialized string also avoids
+  // stringifying `searchParams` twice per render.
+  const searchParamsKey = serializeTableSearchParams(searchParams)
   // biome-ignore lint/correctness/useExhaustiveDependencies: searchParams is read inside but keyed via the value-stable searchParamsKey
   const url = useMemo(() => {
     const params = new URLSearchParams()
@@ -66,7 +71,7 @@ export function useTableData<T = unknown>(
   const queryKey = tableQueryKey({
     queryConfigName,
     hostId,
-    searchParams,
+    searchParamsKey,
     timezone,
     connectionKey: hostConnectionKey(hostId, browserConnection),
   })

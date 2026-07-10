@@ -55,3 +55,19 @@ export async function isDemoHostBlockedForRequest(
   if (hostId < 0) return false
   return isSignedInServer()
 }
+
+/**
+ * Shared "demo hidden" payload for routes that reject a blocked hostId
+ * (#2172 / #2488). Every guarded route embeds this under its own
+ * `unavailable` field alongside a route-specific empty data shape — kept as
+ * a shared constant so the reason code / message aren't duplicated per route.
+ */
+export function demoHiddenUnavailable(): {
+  reason: 'demo_hidden'
+  message: string
+} {
+  return {
+    reason: 'demo_hidden',
+    message: 'The demo host is hidden for signed-in accounts.',
+  }
+}

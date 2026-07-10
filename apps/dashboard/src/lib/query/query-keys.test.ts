@@ -1,5 +1,10 @@
 import { hostConnectionKey } from './host-query-key'
-import { chartQueryKey, tableQueryKey } from './query-keys'
+import {
+  chartQueryKey,
+  serializeChartParams,
+  serializeTableSearchParams,
+  tableQueryKey,
+} from './query-keys'
 import { describe, expect, test } from 'bun:test'
 
 describe('chartQueryKey', () => {
@@ -9,7 +14,7 @@ describe('chartQueryKey', () => {
     const prefetchKey = chartQueryKey({
       chartName: 'overview-cpu',
       hostId,
-      params: null,
+      paramsKey: serializeChartParams(null),
       connectionKey: hostConnectionKey(hostId, null),
     })
 
@@ -22,7 +27,7 @@ describe('chartQueryKey', () => {
       hostId,
       interval: undefined,
       lastHours: undefined,
-      params: undefined,
+      paramsKey: serializeChartParams(undefined),
       timezone: undefined,
       connectionKey: hostConnectionKey(hostId, null),
     })
@@ -46,7 +51,7 @@ describe('chartQueryKey', () => {
       hostId: 2,
       interval: '1 HOUR',
       lastHours: 24,
-      params: { database: 'default' },
+      paramsKey: serializeChartParams({ database: 'default' }),
       timezone: 'UTC',
       connectionKey: 'conn-a',
     })
@@ -71,7 +76,7 @@ describe('tableQueryKey', () => {
     const prefetchKey = tableQueryKey({
       queryConfigName: 'tables',
       hostId,
-      searchParams: {},
+      searchParamsKey: serializeTableSearchParams({}),
       connectionKey: hostConnectionKey(hostId, null),
     })
 
@@ -80,7 +85,7 @@ describe('tableQueryKey', () => {
     const hookKey = tableQueryKey({
       queryConfigName: 'tables',
       hostId,
-      searchParams: undefined,
+      searchParamsKey: serializeTableSearchParams(undefined),
       timezone: undefined,
       connectionKey: hostConnectionKey(hostId, null),
     })
@@ -100,7 +105,7 @@ describe('tableQueryKey', () => {
     const key = tableQueryKey({
       queryConfigName: 'tables',
       hostId: 3,
-      searchParams: { search: 'foo', page: 2 },
+      searchParamsKey: serializeTableSearchParams({ search: 'foo', page: 2 }),
       timezone: 'Asia/Ho_Chi_Minh',
       connectionKey: 'conn-b',
     })

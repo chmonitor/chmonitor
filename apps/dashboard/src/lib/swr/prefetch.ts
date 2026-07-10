@@ -5,7 +5,12 @@ import type { PrefetchConfig } from './route-prefetch-map'
 import { apiFetch } from './api-fetch'
 import { routePrefetchMap } from './route-prefetch-map'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
-import { chartQueryKey, tableQueryKey } from '@/lib/query/query-keys'
+import {
+  chartQueryKey,
+  serializeChartParams,
+  serializeTableSearchParams,
+  tableQueryKey,
+} from '@/lib/query/query-keys'
 
 /**
  * Prefetch chart data and seed the TanStack Query cache.
@@ -28,7 +33,7 @@ function prefetchChart(
   const queryKey = chartQueryKey({
     chartName,
     hostId,
-    params: null,
+    paramsKey: serializeChartParams(null),
     connectionKey: hostConnectionKey(hostId, null),
   })
 
@@ -61,7 +66,7 @@ function prefetchTable(
   const queryKey = tableQueryKey({
     queryConfigName: tableName,
     hostId,
-    searchParams: {},
+    searchParamsKey: serializeTableSearchParams({}),
     connectionKey: hostConnectionKey(hostId, null),
   })
 

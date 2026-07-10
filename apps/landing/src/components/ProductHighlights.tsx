@@ -17,7 +17,7 @@ const HIGHLIGHTS = [
   {
     icon: Bell,
     title: 'Alerting adapters',
-    body: 'Compound rules, maintenance windows, Opsgenie, PagerDuty, Slack and email — routed per host or rule.',
+    body: 'Compound rules, maintenance windows, Opsgenie, PagerDuty and Slack — routed per host or rule.',
   },
   {
     icon: Database,

@@ -2,7 +2,9 @@ import type { QueryConfig } from '@/types/query-config'
 
 import {
   capTableResultRows,
+  detectTableTruncation,
   getTableClickHouseSettings,
+  resolveTableResultRowLimit,
   TABLE_RESULT_OVERFLOW_MODE,
   TABLE_RESULT_ROW_LIMIT,
 } from './table-query-settings'
@@ -13,8 +15,8 @@ import { describe, expect, test } from 'bun:test'
 // ---------------------------------------------------------------------------
 
 describe('constants', () => {
-  test('TABLE_RESULT_ROW_LIMIT is 1000', () => {
-    expect(TABLE_RESULT_ROW_LIMIT).toBe(1_000)
+  test('TABLE_RESULT_ROW_LIMIT is 10000', () => {
+    expect(TABLE_RESULT_ROW_LIMIT).toBe(10_000)
   })
 
   test('TABLE_RESULT_OVERFLOW_MODE is "break"', () => {
@@ -64,12 +66,22 @@ describe('getTableClickHouseSettings', () => {
 
   test('caps max_result_rows at TABLE_RESULT_ROW_LIMIT when config exceeds limit', () => {
     const config = {
-      clickhouseSettings: { max_result_rows: '5000' },
+      clickhouseSettings: { max_result_rows: '50000' },
     } as unknown as QueryConfig
 
     const result = getTableClickHouseSettings(config, undefined)
 
     expect(result.max_result_rows).toBe(String(TABLE_RESULT_ROW_LIMIT))
+  })
+
+  test('keeps a config max_result_rows under the new 10k default (#2490)', () => {
+    const config = {
+      clickhouseSettings: { max_result_rows: '5000' },
+    } as unknown as QueryConfig
+
+    const result = getTableClickHouseSettings(config, undefined)
+
+    expect(result.max_result_rows).toBe('5000')
   })
 
   test('uses TABLE_RESULT_ROW_LIMIT when config max_result_rows is 0', () => {
@@ -271,5 +283,115 @@ describe('capTableResultRows', () => {
 
     expect(result.truncated).toBe(false)
     expect(result.returnedRows).toBe(TABLE_RESULT_ROW_LIMIT)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveTableResultRowLimit
+// ---------------------------------------------------------------------------
+
+describe('resolveTableResultRowLimit', () => {
+  test('returns the default when env is undefined', () => {
+    expect(resolveTableResultRowLimit(undefined)).toBe(TABLE_RESULT_ROW_LIMIT)
+  })
+
+  test('returns the default when env is an empty string', () => {
+    expect(resolveTableResultRowLimit('')).toBe(TABLE_RESULT_ROW_LIMIT)
+  })
+
+  test('parses a positive numeric override', () => {
+    expect(resolveTableResultRowLimit('500')).toBe(500)
+  })
+
+  test('floors a fractional override', () => {
+    expect(resolveTableResultRowLimit('500.9')).toBe(500)
+  })
+
+  test('returns 0 (disabled) when env is "0"', () => {
+    expect(resolveTableResultRowLimit('0')).toBe(0)
+  })
+
+  test('returns 0 (disabled) when env is negative', () => {
+    expect(resolveTableResultRowLimit('-5')).toBe(0)
+  })
+
+  test('returns 0 (disabled) when env is not a number', () => {
+    expect(resolveTableResultRowLimit('not-a-number')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getTableClickHouseSettings — cap disabled
+// ---------------------------------------------------------------------------
+
+describe('getTableClickHouseSettings with cap disabled', () => {
+  test('omits max_result_rows/result_overflow_mode when cap is 0', () => {
+    const result = getTableClickHouseSettings(undefined, undefined, 0)
+
+    expect(result.max_result_rows).toBeUndefined()
+    expect(result.result_overflow_mode).toBeUndefined()
+  })
+
+  test('still spreads config settings and timezone when cap is 0', () => {
+    const config = {
+      clickhouseSettings: { max_execution_time: 60 },
+    } as unknown as QueryConfig
+    const result = getTableClickHouseSettings(config, 'UTC', 0)
+
+    expect(result.max_execution_time).toBe(60)
+    expect(result.session_timezone).toBe('UTC')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// detectTableTruncation
+// ---------------------------------------------------------------------------
+
+describe('detectTableTruncation', () => {
+  test('not truncated when cap is disabled (0)', () => {
+    const result = detectTableTruncation({
+      dataLength: 100,
+      cap: 0,
+      rowsBeforeLimit: 500,
+    })
+    expect(result.truncated).toBe(false)
+    expect(result.rowsBeforeCap).toBeUndefined()
+  })
+
+  test('not truncated when rowsBeforeLimit is undefined', () => {
+    const result = detectTableTruncation({
+      dataLength: 100,
+      cap: 100,
+      rowsBeforeLimit: undefined,
+    })
+    expect(result.truncated).toBe(false)
+  })
+
+  test('not truncated when under cap', () => {
+    const result = detectTableTruncation({
+      dataLength: 50,
+      cap: 100,
+      rowsBeforeLimit: 50,
+    })
+    expect(result.truncated).toBe(false)
+  })
+
+  test('truncated when rowsBeforeLimit exceeds returned rows', () => {
+    const result = detectTableTruncation({
+      dataLength: 100,
+      cap: 100,
+      rowsBeforeLimit: 5000,
+    })
+    expect(result.truncated).toBe(true)
+    expect(result.rowsBeforeCap).toBe(5000)
+  })
+
+  test('not truncated when rowsBeforeLimit equals dataLength exactly', () => {
+    const result = detectTableTruncation({
+      dataLength: 100,
+      cap: 100,
+      rowsBeforeLimit: 100,
+    })
+    expect(result.truncated).toBe(false)
   })
 })

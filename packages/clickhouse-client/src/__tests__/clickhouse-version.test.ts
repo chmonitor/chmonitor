@@ -31,6 +31,8 @@ const {
   getTableInfoMessage,
   SYSTEM_TABLE_INFO,
   checkTableExists,
+  checkTableHasData,
+  checkTableAvailability,
   getClickHouseVersion,
   setVersionCacheL2Provider,
   clearVersionCache,
@@ -493,11 +495,115 @@ describe('checkTableExists', () => {
     expect(result).toBe(false)
   })
 
-  it('returns false when the underlying client query throws', async () => {
+  // Regression coverage for issue #2505: a transient probe failure
+  // (network/timeout/auth) must not be reported the same as a
+  // confirmed-missing table.
+  it('returns "unknown" (not false) when the underlying client query throws', async () => {
     mockClientQuery.mockRejectedValue(new Error('connection refused'))
 
     const result = await checkTableExists(0, 'system', 'query_log')
+    expect(result).toBe('unknown')
+  })
+})
+
+describe('checkTableHasData', () => {
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
+    process.env.CLICKHOUSE_USER = 'default'
+    process.env.CLICKHOUSE_PASSWORD = ''
+    resetEnvCache()
+    clientPool.clear()
+    mockCreateClient.mockReset()
+    mockClientQuery.mockReset()
+    mockCreateClient.mockReturnValue(mockClient)
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ has_data: 1 }]),
+    })
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+  })
+
+  it('returns true when the query reports rows present', async () => {
+    const result = await checkTableHasData(0, 'system.query_log')
+    expect(result).toBe(true)
+  })
+
+  it('returns false when the query reports no rows', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ has_data: 0 }]),
+    })
+
+    const result = await checkTableHasData(0, 'system.query_log')
     expect(result).toBe(false)
+  })
+
+  it('returns "unknown" (not false) when the underlying client query throws', async () => {
+    mockClientQuery.mockRejectedValue(new Error('timeout'))
+
+    const result = await checkTableHasData(0, 'system.query_log')
+    expect(result).toBe('unknown')
+  })
+})
+
+describe('checkTableAvailability', () => {
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
+    process.env.CLICKHOUSE_USER = 'default'
+    process.env.CLICKHOUSE_PASSWORD = ''
+    resetEnvCache()
+    clientPool.clear()
+    mockCreateClient.mockReset()
+    mockClientQuery.mockReset()
+    mockCreateClient.mockReturnValue(mockClient)
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+  })
+
+  it('reports checkFailed (not a confirmed "does not exist") when the existence probe errors', async () => {
+    mockClientQuery.mockRejectedValue(new Error('connection refused'))
+
+    const result = await checkTableAvailability(0, 'system', 'backup_log')
+
+    expect(result.exists).toBe(false)
+    expect(result.checkFailed).toBe(true)
+    expect(result.message).not.toContain('does not exist')
+  })
+
+  it('reports a confirmed missing table without checkFailed when the probe succeeds', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ exists: 0 }]),
+    })
+
+    const result = await checkTableAvailability(0, 'system', 'backup_log')
+
+    expect(result.exists).toBe(false)
+    expect(result.checkFailed).toBeUndefined()
+    expect(result.message).toContain('does not exist')
+  })
+
+  it('reports checkFailed when the table exists but the has-data probe errors', async () => {
+    // 1st call: checkTableExists (inside checkTableAvailability) — succeeds.
+    mockClientQuery.mockResolvedValueOnce({
+      json: () => Promise.resolve([{ exists: 1 }]),
+    })
+    // 2nd call: checkTableHasData — the probe itself fails.
+    mockClientQuery.mockRejectedValueOnce(new Error('timeout'))
+
+    const result = await checkTableAvailability(0, 'system', 'backup_log')
+
+    expect(result.exists).toBe(true)
+    expect(result.hasData).toBe(false)
+    expect(result.checkFailed).toBe(true)
   })
 })
 

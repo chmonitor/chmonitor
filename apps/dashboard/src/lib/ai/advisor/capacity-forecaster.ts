@@ -280,7 +280,10 @@ export function computeTtlSuggestion(
 // ---------------------------------------------------------------------------
 
 async function isPartLogAvailable(hostId: number): Promise<boolean> {
-  return checkTableExists(hostId, 'system', 'part_log')
+  // 'unknown' means the probe itself failed (network/timeout/auth), not a
+  // confirmed answer — treat it as unavailable here, same as this function's
+  // prior fail-closed behavior (never fabricate a forecast, see file header).
+  return (await checkTableExists(hostId, 'system', 'part_log')) === true
 }
 
 async function queryDailyNewPartBytes(

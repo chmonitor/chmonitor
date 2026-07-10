@@ -153,6 +153,9 @@ export function AvgDurationStat({
   if (isLoading) return statLoading(label)
   if (error || !data?.length) return statEmpty(label, sql, data, metadata)
   const d = data[0] as { avg_duration_ms: number; query_count: number }
+  if (Number.isNaN(Number(d.avg_duration_ms))) {
+    return statEmpty(label, sql, data, metadata)
+  }
   return (
     <StatCard
       title={label}

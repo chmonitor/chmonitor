@@ -14,6 +14,7 @@ import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 const DEFAULT_LIMIT = 500
 const MAX_LIMIT = 1000
@@ -45,6 +46,32 @@ export const Route = createFileRoute('/api/v1/tables/')({
             : DEFAULT_LIMIT
 
         debug('[GET /api/v1/tables]', { hostId, limit })
+
+        // Cloud demo-hiding invariant (#2172 / #2488): user connections
+        // always use negative hostIds, so a non-negative id from a
+        // signed-in cloud principal can only be the hidden env/demo host.
+        // No-op for OSS and anonymous cloud callers (both legitimately use
+        // hostId=0).
+        if (
+          await isDemoHostBlockedForRequest(
+            hostId,
+            env as Record<string, string | undefined>
+          )
+        ) {
+          return Response.json({
+            success: true,
+            data: [],
+            metadata: {
+              queryId: '',
+              duration: 0,
+              rows: 0,
+              host: String(hostId),
+              unavailable: true,
+              unavailableReason:
+                'The demo host is hidden for signed-in accounts.',
+            },
+          })
+        }
 
         const result = await fetchData<TableRow[]>({
           query: `

@@ -14,6 +14,10 @@ import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import {
+  demoHiddenUnavailable,
+  isDemoHostBlockedForRequest,
+} from '@/lib/cloud/reject-demo-host'
 
 const SETTINGS_QUERY = `
   SELECT name, value, changed, description, default AS defaultValue
@@ -61,6 +65,25 @@ export const Route = createFileRoute('/api/v1/settings-diff')({
             { success: false, error: 'No ClickHouse hosts configured' },
             { status: 503 }
           )
+        }
+
+        // Cloud demo-hiding invariant (#2172 / #2488): this endpoint fans out
+        // over every env-configured host, which in cloud mode is exactly the
+        // hidden demo host (there is no per-request hostId param — env hosts
+        // ARE hostId 0..N-1). Probing hostId 0 mirrors the other routes'
+        // guard: true only for an authenticated cloud principal.
+        if (
+          await isDemoHostBlockedForRequest(
+            0,
+            env as Record<string, string | undefined>
+          )
+        ) {
+          return Response.json({
+            success: true,
+            hosts: [],
+            rows: [],
+            unavailable: demoHiddenUnavailable(),
+          })
         }
 
         // Fan out: for each host × each table, fire one query. That's 2×N promises.

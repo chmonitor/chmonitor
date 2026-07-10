@@ -1,11 +1,13 @@
 ---
-title: "Finding your slowest ClickHouse queries with system.query_log"
-description: "The exact query_duration_ms > 5000 SQL to surface your slowest ClickHouse queries from system.query_log, what each column means, how it changes across versions, and how to watch for the next one without re-running it by hand."
+title: "Finding your slowest ClickHouse queries with system.query_log: a complete walkthrough"
+description: "A complete walkthrough of the query_duration_ms > 5000 SQL to surface your slowest ClickHouse queries from system.query_log: what each column means, how it changes across versions, and how to watch for the next one without re-running it by hand."
 date: 2026-07-10
 tag: How-to
 ---
 
 This is for anyone running ClickHouse who's been asked "why is this query slow?" and doesn't have a saved query for that. By the end you'll have a copy-pasteable `system.query_log` query that finds your slowest recent queries, know which columns actually matter, and know how to keep watching without re-running it every time.
+
+**Prefer the 5-minute version?** This post is the deep dive — for the condensed version, see [5 min of ClickHouse: Finding Your 10 Slowest Queries from system.query_log](/clickhouse-slowest-queries-system-query-log/).
 
 ## Prerequisites
 
@@ -80,6 +82,7 @@ If you'd rather ask than click, chmonitor's AI agent (connected over MCP, see th
 
 ## Related
 
+- 5-minute version: [5 min of ClickHouse: Finding Your 10 Slowest Queries from system.query_log](/clickhouse-slowest-queries-system-query-log/) — the condensed version of this walkthrough.
 - Docs: [Queries feature](https://docs.chmonitor.dev/guide/features/queries) — the full query-observability surface (running, history, failed, expensive, slow, thread-level, query metric log) this post's diagnostic is one page of.
 - Docs: [Query Insights API](https://docs.chmonitor.dev/guide/features/query-insights) — the REST endpoints behind Slow Query Patterns, if you want the aggregation programmatically.
 - Docs: [AI agent](https://docs.chmonitor.dev/guide/ai-agent) — ask a model to run this diagnostic and explain the result instead of reading raw rows.

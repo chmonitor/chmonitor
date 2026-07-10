@@ -77,14 +77,15 @@ const ogImage = new URL(image, Astro.site).toString()
     :root{--serif:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
   </style>
   <script is:inline>
-    // Resolve theme before paint (no flash): saved choice wins, else OS pref.
+    // Resolve theme before paint (no flash): the landing commits to a dark
+    // (x.ai-style) canvas by default. A saved choice still wins so the toggle
+    // works, but there is no light default and OS light preference is ignored.
     (function () {
       try {
         var saved = localStorage.getItem('chm-theme')
-        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        document.documentElement.setAttribute('data-theme', theme)
+        document.documentElement.setAttribute('data-theme', saved || 'dark')
       } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'light')
+        document.documentElement.setAttribute('data-theme', 'dark')
       }
     })()
   </script>
@@ -120,8 +121,8 @@ const ogImage = new URL(image, Astro.site).toString()
       --emerald:#171717;
       --violet:#666666;
       --blue:#171717;
-      /* Geist everyday radius */
-      --radius:6px;
+      /* x.ai sharp corners */
+      --radius:2px;
       --maxw:1200px;
       --shadow-card:0 2px 2px rgba(0,0,0,.04);
       --shadow-float:0 1px 1px rgba(0,0,0,.02), 0 4px 8px -4px rgba(0,0,0,.04), 0 16px 24px -8px rgba(0,0,0,.06);
@@ -165,7 +166,7 @@ const ogImage = new URL(image, Astro.site).toString()
     a{color:inherit;text-decoration:none}
     .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
     .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
-    .eyebrow{font-size:12px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;color:var(--muted-fg)}
+    .eyebrow{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-fg)}
 
     /* ── buttons (Geist: 40px height, 6px radius, no lift) ── */
     .btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--radius);

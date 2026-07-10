@@ -44,6 +44,10 @@ import {
 } from '@/lib/api/shared/validators'
 import { getTableConfig } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
+import {
+  demoHiddenUnavailable,
+  isDemoHostBlockedForRequest,
+} from '@/lib/cloud/reject-demo-host'
 
 const ROUTE_CONTEXT = { route: '/api/v1/data' } as const
 
@@ -84,6 +88,26 @@ function createSuccessResponse<T>(
     headers: {
       'Content-Type': 'application/json',
       ...SUCCESS_CACHE_HEADERS,
+    },
+  })
+}
+
+/**
+ * Cloud demo-hiding invariant (#2172 / #2488): user connections always use
+ * negative hostIds, so a non-negative id from a signed-in cloud principal can
+ * only be the hidden env/demo host. No-op for OSS and anonymous cloud callers
+ * (both legitimately use hostId=0).
+ */
+function createDemoHiddenResponse(hostId: number): Response {
+  return Response.json({
+    success: true,
+    data: null,
+    metadata: {
+      queryId: '',
+      duration: 0,
+      rows: 0,
+      host: String(hostId),
+      unavailable: demoHiddenUnavailable(),
     },
   })
 }
@@ -190,6 +214,15 @@ const handleGet = withApiHandler(async (request: Request) => {
   }
   const hostId = hostIdResult
 
+  if (
+    await isDemoHostBlockedForRequest(
+      hostId,
+      env as Record<string, string | undefined>
+    )
+  ) {
+    return createDemoHiddenResponse(hostId)
+  }
+
   debug('[GET /api/v1/data]', {
     hostId,
     format: format || 'JSONEachRow',
@@ -281,6 +314,15 @@ const handlePost = withApiHandler(async (request: Request) => {
     queryConfigName,
     timezone,
   })
+
+  if (
+    await isDemoHostBlockedForRequest(
+      Number(hostId),
+      env as Record<string, string | undefined>
+    )
+  ) {
+    return createDemoHiddenResponse(Number(hostId))
+  }
 
   // SECURITY: Reject client-supplied QueryConfig objects to prevent SQL override attacks.
   if (

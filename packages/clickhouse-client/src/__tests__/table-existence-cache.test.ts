@@ -126,4 +126,45 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
     expect(second).toBe(true)
     expect(mockClientQuery).toHaveBeenCalledTimes(1)
   })
+
+  // Regression coverage for issue #2505: a probe failure (network/timeout/
+  // auth) must be distinguishable from a confirmed-missing table.
+  describe('transient probe failures (issue #2505)', () => {
+    it('returns "unknown" (not false) when the probe query throws', async () => {
+      mockClientQuery.mockRejectedValue(new Error('connection refused'))
+
+      const result = await l2cache.checkTableExists(0, 'system', 'backup_log')
+
+      expect(result).toBe('unknown')
+    })
+
+    it('never caches an "unknown" result — the next probe retries ClickHouse', async () => {
+      mockClientQuery.mockRejectedValueOnce(new Error('timeout'))
+      mockClientQuery.mockResolvedValueOnce({
+        json: () => Promise.resolve([{ count: '1' }]),
+      })
+
+      const first = await l2cache.checkTableExists(0, 'system', 'backup_log')
+      expect(first).toBe('unknown')
+      expect(l2cache.tableCacheSize()).toBe(0)
+
+      const second = await l2cache.checkTableExists(0, 'system', 'backup_log')
+      expect(second).toBe(true)
+      expect(mockClientQuery).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not write an "unknown" result to the L2 (KV) cache', async () => {
+      const setSpy = mock(async () => {})
+      l2cache.setTableExistenceL2Provider(() => ({
+        get: async () => null,
+        set: setSpy,
+      }))
+      mockClientQuery.mockRejectedValue(new Error('connection refused'))
+
+      const result = await l2cache.checkTableExists(0, 'system', 'backup_log')
+
+      expect(result).toBe('unknown')
+      expect(setSpy).not.toHaveBeenCalled()
+    })
+  })
 })
