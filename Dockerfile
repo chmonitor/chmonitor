@@ -47,11 +47,6 @@ ENV NODE_ENV=production \
 COPY packages/ /app/packages/
 # tsconfig.base.json lives at the repo root and is extended by apps/dashboard/tsconfig.json.
 COPY tsconfig.base.json /app/tsconfig.base.json
-# design-system/ is needed at build time: docs-theme.css @imports
-# ../../../../../../design-system/docs-tokens.css, which Vite/PostCSS resolve
-# during `pnpm run build:node:ci`. Without this the Docker build fails with a
-# "Can't resolve .../design-system/docs-tokens.css" error (it's outside apps/dashboard/).
-COPY design-system/ /app/design-system/
 COPY apps/dashboard/ /app/apps/dashboard/
 COPY --from=deps /app/apps/dashboard/node_modules /app/apps/dashboard/node_modules
 WORKDIR /app/apps/dashboard
