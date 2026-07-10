@@ -67,6 +67,7 @@ function makeEnvHost(id: number): MergedHostInfo {
     host: 'http://ch:8123',
     user: 'default',
     source: 'env',
+    engine: 'clickhouse',
   }
 }
 
@@ -77,6 +78,7 @@ function makeDatabaseHost(id: number, connectionId: string): MergedHostInfo {
     host: 'http://ch:8123',
     user: 'default',
     source: 'database',
+    engine: 'clickhouse',
     connectionId,
   }
 }
@@ -88,6 +90,7 @@ function makeBrowserHost(id: number): MergedHostInfo {
     host: 'http://ch:8123',
     user: 'default',
     source: 'browser',
+    engine: 'clickhouse',
   }
 }
 
@@ -390,6 +393,7 @@ describe('fetchChartForHost — database source', () => {
       host: 'http://ch',
       user: 'default',
       source: 'database',
+      engine: 'clickhouse',
       // connectionId intentionally omitted
     }
 

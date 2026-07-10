@@ -1,6 +1,11 @@
+import type { SourceEngine } from '@chm/types'
 import type { MergedHostInfo } from '@/lib/swr/use-merged-hosts'
 
-import { canEditHost, getHostSourceMeta } from './host-permissions'
+import {
+  canEditHost,
+  getHostEngineMeta,
+  getHostSourceMeta,
+} from './host-permissions'
 import { describe, expect, test } from 'bun:test'
 
 const SOURCES: MergedHostInfo['source'][] = [
@@ -46,5 +51,32 @@ describe('getHostSourceMeta', () => {
     const demo = getHostSourceMeta('demo')
     expect(env.note.toLowerCase()).toContain('operator')
     expect(demo.note.toLowerCase()).toContain('read-only')
+  })
+})
+
+describe('getHostEngineMeta', () => {
+  const ENGINES: SourceEngine[] = ['clickhouse', 'clickhouse-cloud', 'postgres']
+
+  test('returns the correct label + badge for each engine', () => {
+    expect(getHostEngineMeta('clickhouse')).toEqual({
+      label: 'ClickHouse',
+      badge: 'ClickHouse',
+    })
+    expect(getHostEngineMeta('clickhouse-cloud')).toEqual({
+      label: 'ClickHouse Cloud',
+      badge: 'ClickHouse Cloud',
+    })
+    expect(getHostEngineMeta('postgres')).toEqual({
+      label: 'Postgres',
+      badge: 'Postgres',
+    })
+  })
+
+  test('returns a non-empty label + badge for every engine', () => {
+    for (const engine of ENGINES) {
+      const meta = getHostEngineMeta(engine)
+      expect(meta.label.length).toBeGreaterThan(0)
+      expect(meta.badge.length).toBeGreaterThan(0)
+    }
   })
 })

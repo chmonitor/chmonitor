@@ -47,6 +47,7 @@ const FEATURE_KEYS = [
   'VITE_FEATURE_CONVERSATION_DB',
   'VITE_FEATURE_USER_CONNECTIONS_DB',
   'VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS',
+  'VITE_FEATURE_POSTGRES_SOURCE',
 ] as const
 
 type FeatureEnvKey = (typeof FEATURE_KEYS)[number]
@@ -211,6 +212,33 @@ describe('featureFlags.webhookSubscriptions — Clerk gate (env var = "true")', 
   })
 })
 
+describe('featureFlags.postgresSource — pure env gate (NOT Clerk-gated)', () => {
+  // Unlike the other flags, postgresSource must give OSS/self-hosted equal
+  // support, so it never requires Clerk — the env var alone decides it.
+
+  test('returns false when env var is unset (safe default)', () => {
+    mockIsClerkEnabled.mockReturnValue(true)
+    expect(featureFlags.postgresSource()).toBe(false)
+  })
+
+  test('returns false when env var is "false"', () => {
+    setEnv('VITE_FEATURE_POSTGRES_SOURCE', 'false')
+    expect(featureFlags.postgresSource()).toBe(false)
+  })
+
+  test('returns false when env var is "1" (not strictly "true")', () => {
+    setEnv('VITE_FEATURE_POSTGRES_SOURCE', '1')
+    expect(featureFlags.postgresSource()).toBe(false)
+  })
+
+  test('returns true when env var is "true" EVEN IF Clerk is disabled', () => {
+    // The OSS-parity requirement: no auth backend must not gate Postgres.
+    mockIsClerkEnabled.mockReturnValue(false)
+    setEnv('VITE_FEATURE_POSTGRES_SOURCE', 'true')
+    expect(featureFlags.postgresSource()).toBe(true)
+  })
+})
+
 describe('featureFlags — both flags disabled simultaneously', () => {
   test('neither flag leaks into the other: conversationDb false does not affect userConnectionsDb', () => {
     // Only userConnectionsDb enabled.
@@ -273,6 +301,7 @@ describe('featureFlags — shape invariants', () => {
   test('has exactly the expected keys', () => {
     expect(Object.keys(featureFlags).sort()).toEqual([
       'conversationDb',
+      'postgresSource',
       'userConnectionsDb',
       'webhookSubscriptions',
     ])

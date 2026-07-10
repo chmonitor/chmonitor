@@ -1,3 +1,4 @@
+import type { SourceEngine } from '@chm/types'
 import type { MergedHostInfo } from '@/lib/swr/use-merged-hosts'
 
 /**
@@ -46,5 +47,29 @@ export function getHostSourceMeta(
         label: 'This browser',
         note: 'Stored encrypted in this browser only.',
       }
+  }
+}
+
+export interface HostEngineMeta {
+  /** Full engine name for tooltips / dialog headers. */
+  label: string
+  /** Short badge text for the host switcher. */
+  badge: string
+}
+
+/**
+ * Display metadata for a host's source engine — orthogonal to
+ * {@link getHostSourceMeta} (storage-origin). Rendered as an engine badge in
+ * the host switcher; this is inert plumbing (phase 1, #2448), so nothing calls
+ * it yet and the storage-origin edit rules are untouched.
+ */
+export function getHostEngineMeta(engine: SourceEngine): HostEngineMeta {
+  switch (engine) {
+    case 'clickhouse-cloud':
+      return { label: 'ClickHouse Cloud', badge: 'ClickHouse Cloud' }
+    case 'postgres':
+      return { label: 'Postgres', badge: 'Postgres' }
+    default:
+      return { label: 'ClickHouse', badge: 'ClickHouse' }
   }
 }

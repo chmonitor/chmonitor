@@ -1,3 +1,4 @@
+import type { SourceEngine } from '@chm/types'
 import type { HostInfo } from '@chm/types/host-info'
 
 import { useHosts } from './use-hosts'
@@ -18,6 +19,13 @@ import { useUserConnections } from '@/lib/hooks/use-user-connections'
  */
 export interface MergedHostInfo extends HostInfo {
   source: 'env' | 'demo' | 'browser' | 'database'
+  /**
+   * Source engine — WHAT kind of database this host is, orthogonal to the
+   * storage-origin `source` (WHERE its credentials live). env/demo/browser
+   * hosts are always `'clickhouse'`; database connections carry their stored
+   * engine. Fail-closed: defaults to `'clickhouse'` everywhere.
+   */
+  engine: SourceEngine
   /** True for the public cloud demo — writes/agent are disabled on it. */
   readOnly?: boolean
   /** Server-stored connection UUID when source is database. */
@@ -83,6 +91,7 @@ export function useMergedHosts() {
             (h): MergedHostInfo => ({
               ...h,
               source: envSource,
+              engine: 'clickhouse',
               readOnly: cloudMode,
             })
           )
@@ -94,6 +103,7 @@ export function useMergedHosts() {
           host: c.host,
           user: c.user,
           source: 'browser',
+          engine: 'clickhouse',
         })
       ),
       ...(dbFeatureEnabled && isSignedIn
@@ -104,6 +114,7 @@ export function useMergedHosts() {
               host: c.host,
               user: c.user,
               source: 'database',
+              engine: c.engine,
               connectionId: c.id,
             })
           )

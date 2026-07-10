@@ -89,6 +89,21 @@ export const featureFlags = {
       return false
     }
   },
+
+  /**
+   * Enable the Postgres source engine (RFC #2264, phase 1 #2448).
+   *
+   * Fail-closed: default off. Unlike the Clerk-gated flags above this is a
+   * PURE env gate — Postgres monitoring must have equal self-hosted (OSS)
+   * support and cannot require Clerk, so it never degrades on a no-auth
+   * deployment. Everything Postgres-related stays inert until this is on.
+   *
+   * @default false (unset)
+   * @env VITE_FEATURE_POSTGRES_SOURCE (canonical CHM_FEATURE_POSTGRES_SOURCE)
+   */
+  postgresSource: (): boolean => {
+    return import.meta.env.VITE_FEATURE_POSTGRES_SOURCE === 'true'
+  },
 } as const
 
 /**

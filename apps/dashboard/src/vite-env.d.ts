@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_FEATURE_USER_CONNECTIONS_DB?: string
   // Outbound webhook subscriptions (plan 44). See lib/events/server-feature.ts.
   readonly VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS?: string
+  // Postgres source engine (RFC #2264, phase 1 #2448). Fail-closed, default off.
+  readonly VITE_FEATURE_POSTGRES_SOURCE?: string
   readonly VITE_AUTOCOMPLETE_LIMIT?: string
   readonly VITE_RUNNING_QUERIES_REFRESH_MS?: string
   // Opt-in product telemetry (off by default). See lib/telemetry/.

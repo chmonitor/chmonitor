@@ -131,6 +131,10 @@ const CLIENT_ENV = {
     e.VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS ??
     e.CHM_FEATURE_WEBHOOK_SUBSCRIPTIONS ??
     (isCloud ? 'true' : 'false'),
+  // Postgres source engine (RFC #2264, phase 1 #2448). Fail-closed: default
+  // off in BOTH modes until Postgres connectivity lands — not `isCloud`-gated.
+  VITE_FEATURE_POSTGRES_SOURCE:
+    e.VITE_FEATURE_POSTGRES_SOURCE ?? e.CHM_FEATURE_POSTGRES_SOURCE ?? 'false',
   VITE_AUTOCOMPLETE_LIMIT:
     e.VITE_AUTOCOMPLETE_LIMIT ?? e.NEXT_PUBLIC_AUTOCOMPLETE_LIMIT ?? '',
   VITE_RUNNING_QUERIES_REFRESH_MS:
