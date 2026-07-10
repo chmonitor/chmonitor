@@ -261,10 +261,10 @@ importers:
         specifier: ^1.4.3
         version: 1.6.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react:
-        specifier: ^19
+        specifier: ^19.2.7
         version: 19.2.7
       react-dom:
-        specifier: ^19
+        specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
       react-error-boundary:
         specifier: ^6.1.2
@@ -364,7 +364,7 @@ importers:
         specifier: ^3.0.260522-beta
         version: 3.0.260522-beta(aws4fetch@1.0.20)(chokidar@5.0.0)(dotenv@17.2.2)(jiti@2.7.0)(lru-cache@11.5.1)(miniflare@4.20260701.0)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(yaml@2.9.0))(wrangler@4.107.0(@cloudflare/workers-types@4.20260702.1))
       typescript:
-        specifier: ^6
+        specifier: ^6.0.0
         version: 6.0.3
       undici:
         specifier: ^7.24.8
