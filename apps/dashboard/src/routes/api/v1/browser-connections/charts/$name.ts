@@ -5,8 +5,10 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import { error as logError } from '@chm/logger'
 import { hasChart } from '@/lib/api/chart-registry'
 import { createValidationError } from '@/lib/api/error-handler'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { isValidInterval } from '@/lib/api/query-executor'
 import {
   createErrorResponse,
@@ -87,10 +89,15 @@ async function handlePost(
 
     return createSuccessResponse(result.data, result.metadata)
   } catch (err) {
+    logError(
+      '[POST /api/v1/browser-connections/charts/$name] Query failed',
+      err
+    )
+    const rawMessage = err instanceof Error ? err.message : 'Chart query failed'
     return createErrorResponse(
       {
         type: ApiErrorType.QueryError,
-        message: err instanceof Error ? err.message : 'Chart query failed',
+        message: sanitizeClickHouseError(rawMessage),
       },
       500,
       ROUTE_CONTEXT

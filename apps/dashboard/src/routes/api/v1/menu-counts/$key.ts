@@ -16,6 +16,7 @@ import { fetchData } from '@chm/clickhouse-client'
 import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import {
   getMenuCountQuery,
   hasMenuCountKey,
@@ -254,7 +255,9 @@ async function handler(
     const errorResponse = createErrorResponse(
       {
         type: ApiErrorType.QueryError,
-        message: err instanceof Error ? err.message : 'Unknown error',
+        message: sanitizeClickHouseError(
+          err instanceof Error ? err.message : 'Unknown error'
+        ),
       },
       500,
       ROUTE_CONTEXT

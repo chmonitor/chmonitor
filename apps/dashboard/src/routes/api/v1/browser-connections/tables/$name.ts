@@ -5,7 +5,9 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import { error as logError } from '@chm/logger'
 import { createValidationError } from '@/lib/api/error-handler'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -77,10 +79,15 @@ async function handlePost(
     )
     return createSuccessResponse(result.data, result.metadata)
   } catch (err) {
+    logError(
+      '[POST /api/v1/browser-connections/tables/$name] Query failed',
+      err
+    )
+    const rawMessage = err instanceof Error ? err.message : 'Table query failed'
     return createErrorResponse(
       {
         type: ApiErrorType.QueryError,
-        message: err instanceof Error ? err.message : 'Table query failed',
+        message: sanitizeClickHouseError(rawMessage),
       },
       500,
       ROUTE_CONTEXT

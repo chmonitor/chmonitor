@@ -37,6 +37,7 @@ export { classifyBillingLimit, classifyError } from './error-classifier'
 // Export error response builder functions
 export {
   createErrorResponse,
+  createInternalErrorResponse,
   createNotFoundError,
   createValidationError,
   getStatusCodeForErrorType,

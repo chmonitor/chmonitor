@@ -50,6 +50,7 @@ import { fetchData } from '@chm/clickhouse-client'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { assembleTopology } from '@/components/cluster-topology/model'
 import { createErrorResponse } from '@/lib/api/error-handler'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { HostIdSchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -280,7 +281,9 @@ async function handleGet(request: Request): Promise<Response> {
     const errorResponse = createErrorResponse(
       {
         type: ApiErrorType.QueryError,
-        message: err instanceof Error ? err.message : 'Unknown error',
+        message: sanitizeClickHouseError(
+          err instanceof Error ? err.message : 'Unknown error'
+        ),
       },
       500,
       ROUTE_CONTEXT

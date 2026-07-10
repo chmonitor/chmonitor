@@ -20,6 +20,7 @@ import { env } from 'cloudflare:workers'
 import { checkTableExists } from '@chm/clickhouse-client/table-existence-cache'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { HostIdSchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -185,7 +186,9 @@ export const Route = createFileRoute('/api/v1/table-availability')({
           const errorResponse = createErrorResponse(
             {
               type: ApiErrorType.QueryError,
-              message: err instanceof Error ? err.message : 'Unknown error',
+              message: sanitizeClickHouseError(
+                err instanceof Error ? err.message : 'Unknown error'
+              ),
             },
             500,
             ROUTE_CONTEXT

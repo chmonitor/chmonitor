@@ -18,6 +18,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import {
   buildPatternDetailConfig,
   buildPatternExecutionsConfig,
@@ -180,7 +181,9 @@ export async function handler(
         success: false,
         error: {
           type: 'query_error',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          message: sanitizeClickHouseError(
+            err instanceof Error ? err.message : 'Unknown error'
+          ),
         },
       },
       { status: 500 }

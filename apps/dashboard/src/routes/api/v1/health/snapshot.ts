@@ -16,6 +16,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { captureIncidentSnapshot } from '@/lib/health/incident-snapshot'
 
@@ -80,7 +81,9 @@ export const Route = createFileRoute('/api/v1/health/snapshot')({
               success: false,
               error: {
                 type: 'query_error',
-                message: err instanceof Error ? err.message : 'Unknown error',
+                message: sanitizeClickHouseError(
+                  err instanceof Error ? err.message : 'Unknown error'
+                ),
               },
             },
             { status: 500 }

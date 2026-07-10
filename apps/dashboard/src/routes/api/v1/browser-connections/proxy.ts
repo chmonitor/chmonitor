@@ -17,8 +17,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { DataFormat } from '@clickhouse/client'
 import { createClient } from '@clickhouse/client-web'
 
+import { error as logError } from '@chm/logger'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { createValidationError } from '@/lib/api/error-handler'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -153,12 +155,13 @@ async function handlePost(request: Request): Promise<Response> {
       queryId: result.query_id,
     })
   } catch (err) {
-    const message =
+    logError('[POST /api/v1/browser-connections/proxy] Query failed', err)
+    const rawMessage =
       err instanceof Error ? err.message : 'Query execution failed'
     return createErrorResponse(
       {
         type: ApiErrorType.QueryError,
-        message,
+        message: sanitizeClickHouseError(rawMessage),
         details: { timestamp: new Date().toISOString() },
       },
       500,

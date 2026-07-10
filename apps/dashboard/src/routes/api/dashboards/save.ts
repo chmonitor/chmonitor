@@ -14,7 +14,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { DashboardLayout } from '@/types/dashboard-layout'
 
 import { debug, error, generateRequestId } from '@chm/logger'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import {
   CacheControl,
   createSuccessResponse,
@@ -118,27 +121,21 @@ async function handlePost(request: Request): Promise<Response> {
       headers,
     })
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
     error('[POST /api/dashboards/save] Error:', err, { requestId })
 
-    if (err instanceof DashboardStoreError) {
-      const status = err.code === 'UNAUTHORIZED' ? 403 : 500
+    if (err instanceof DashboardStoreError && err.code === 'UNAUTHORIZED') {
       return createApiErrorResponse(
         {
-          type:
-            err.code === 'UNAUTHORIZED'
-              ? ApiErrorType.PermissionError
-              : ApiErrorType.QueryError,
+          type: ApiErrorType.PermissionError,
           message: err.message,
           details: { timestamp: new Date().toISOString() },
         },
-        status,
+        403,
         ROUTE_CONTEXT
       )
     }
 
-    if (err instanceof SyntaxError && errorMessage.includes('JSON')) {
+    if (err instanceof SyntaxError && err.message.includes('JSON')) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.ValidationError,
@@ -150,15 +147,7 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: { timestamp: new Date().toISOString() },
-      },
-      500,
-      ROUTE_CONTEXT
-    )
+    return createInternalErrorResponse(err, ROUTE_CONTEXT, requestId)
   }
 }
 

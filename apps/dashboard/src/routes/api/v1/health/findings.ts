@@ -12,6 +12,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { error } from '@chm/logger'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { getCurrentFindings } from '@/lib/health/current-findings'
 
 export const Route = createFileRoute('/api/v1/health/findings')({
@@ -37,7 +38,9 @@ export const Route = createFileRoute('/api/v1/health/findings')({
               success: false,
               error: {
                 type: 'query_error',
-                message: err instanceof Error ? err.message : 'Unknown error',
+                message: sanitizeClickHouseError(
+                  err instanceof Error ? err.message : 'Unknown error'
+                ),
               },
             },
             { status: 500 }

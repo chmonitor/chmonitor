@@ -10,7 +10,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { debug, error, generateRequestId } from '@chm/logger'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import {
   CacheControl,
   createSuccessResponse,
@@ -69,35 +72,21 @@ async function handleGet(): Promise<Response> {
       headers,
     })
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
     error('[GET /api/dashboards/list] Error:', err, { requestId })
 
-    if (err instanceof DashboardStoreError) {
-      const status = err.code === 'UNAUTHORIZED' ? 403 : 500
+    if (err instanceof DashboardStoreError && err.code === 'UNAUTHORIZED') {
       return createApiErrorResponse(
         {
-          type:
-            err.code === 'UNAUTHORIZED'
-              ? ApiErrorType.PermissionError
-              : ApiErrorType.QueryError,
+          type: ApiErrorType.PermissionError,
           message: err.message,
           details: { timestamp: new Date().toISOString() },
         },
-        status,
+        403,
         ROUTE_CONTEXT
       )
     }
 
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: { timestamp: new Date().toISOString() },
-      },
-      500,
-      ROUTE_CONTEXT
-    )
+    return createInternalErrorResponse(err, ROUTE_CONTEXT, requestId)
   }
 }
 

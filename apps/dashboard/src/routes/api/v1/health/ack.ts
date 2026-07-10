@@ -26,6 +26,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { error } from '@chm/logger'
+import { createInternalErrorResponse } from '@/lib/api/error-handler'
 import { createErrorResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
@@ -129,14 +130,10 @@ async function handlePost(request: Request): Promise<Response> {
     return Response.json({ success: true, ack }, { status: 200 })
   } catch (err) {
     error('[POST /api/v1/health/ack] Failed to record ACK', err as Error)
-    return createErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: err instanceof Error ? err.message : 'Failed to record ACK',
-      },
-      500,
-      { ...ROUTE_CONTEXT, method: 'POST' }
-    )
+    return createInternalErrorResponse(err, {
+      ...ROUTE_CONTEXT,
+      method: 'POST',
+    })
   }
 }
 

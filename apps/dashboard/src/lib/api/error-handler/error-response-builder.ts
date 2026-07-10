@@ -130,6 +130,78 @@ export function createValidationError(
 }
 
 /**
+ * Creates a sanitized 500 response for an internal/backend error.
+ *
+ * Unlike `createErrorResponse`, this NEVER echoes the raw `err.message` in the
+ * client-facing body — D1/ClickHouse/driver internals must not leak to
+ * clients (see issue #2501). The original error is still logged in full
+ * server-side (via `ErrorLogger` + console `error`) with an optional
+ * `requestId` so it can be correlated with client-side reports.
+ *
+ * @param err - The caught error (any type)
+ * @param context - Route context for logging
+ * @param requestId - Optional request id to surface to the client for correlation
+ * @returns 500 Internal Server Error response with a generic message
+ *
+ * @example
+ * ```ts
+ * } catch (err) {
+ *   return createInternalErrorResponse(err, ROUTE_CONTEXT, requestId)
+ * }
+ * ```
+ */
+export function createInternalErrorResponse(
+  err: unknown,
+  context?: RouteContext,
+  requestId?: string
+): Response {
+  const originalError = err instanceof Error ? err : new Error(String(err))
+
+  ErrorLogger.logError(originalError, {
+    component: `API:${context?.route || 'unknown'}`,
+    action: context?.method || 'unknown',
+    hostId: parseHostId(context?.hostId),
+    errorType: ApiErrorType.QueryError,
+  })
+
+  error(
+    `[API ${context?.method || ''} ${context?.route || ''}] Internal error`,
+    originalError,
+    {
+      component: `API:${context?.route || 'unknown'}`,
+      action: context?.method || 'unknown',
+      errorType: ApiErrorType.QueryError,
+      requestId,
+    }
+  )
+
+  const response: ApiResponse = {
+    success: false,
+    metadata: {
+      queryId: '',
+      duration: 0,
+      rows: 0,
+      host: String(context?.hostId || 'unknown'),
+    },
+    error: {
+      type: ApiErrorType.QueryError,
+      message: 'Internal error',
+      details: {
+        timestamp: new Date().toISOString(),
+        ...(requestId ? { requestId } : {}),
+      },
+    },
+  }
+
+  return Response.json(response, {
+    status: 500,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+/**
  * Creates a not found error response (404 status)
  *
  * @param message - Not found error message

@@ -10,7 +10,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { debug, error, generateRequestId } from '@chm/logger'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import {
   CacheControl,
   createSuccessResponse,
@@ -110,46 +113,33 @@ async function handleGet(id: string): Promise<Response> {
       headers: newHeaders,
     })
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
-
     error('[GET /api/v1/conversations/$id/follow-ups] Error:', err, {
       requestId,
     })
 
     // Handle conversation store errors
-    if (err instanceof ConversationStoreError) {
-      const errorType =
-        err.code === 'NOT_FOUND'
-          ? ApiErrorType.ValidationError
-          : err.code === 'UNAUTHORIZED'
-            ? ApiErrorType.PermissionError
-            : ApiErrorType.QueryError
-
-      const statusCode =
-        err.code === 'NOT_FOUND' || err.code === 'UNAUTHORIZED' ? 404 : 500
-
+    if (
+      err instanceof ConversationStoreError &&
+      (err.code === 'NOT_FOUND' || err.code === 'UNAUTHORIZED')
+    ) {
       return createApiErrorResponse(
         {
-          type: errorType,
+          type:
+            err.code === 'NOT_FOUND'
+              ? ApiErrorType.ValidationError
+              : ApiErrorType.PermissionError,
           message: err.message,
           details: { timestamp: new Date().toISOString() },
         },
-        statusCode,
+        404,
         ROUTE_CONTEXT_GET
       )
     }
 
-    const errorResponse = createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: {
-          timestamp: new Date().toISOString(),
-        },
-      },
-      500,
-      ROUTE_CONTEXT_GET
+    const errorResponse = createInternalErrorResponse(
+      err,
+      ROUTE_CONTEXT_GET,
+      requestId
     )
 
     // Add request ID header to error response

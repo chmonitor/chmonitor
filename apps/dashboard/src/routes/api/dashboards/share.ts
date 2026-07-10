@@ -12,7 +12,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { debug, error, generateRequestId } from '@chm/logger'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import {
   CacheControl,
   createSuccessResponse,
@@ -64,19 +67,18 @@ function storeErrorResponse(
   err: DashboardStoreError,
   context: { route: string; method: string }
 ): Response {
-  const status = err.code === 'UNAUTHORIZED' ? 403 : 500
-  return createApiErrorResponse(
-    {
-      type:
-        err.code === 'UNAUTHORIZED'
-          ? ApiErrorType.PermissionError
-          : ApiErrorType.QueryError,
-      message: err.message,
-      details: { timestamp: new Date().toISOString() },
-    },
-    status,
-    context
-  )
+  if (err.code === 'UNAUTHORIZED') {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: err.message,
+        details: { timestamp: new Date().toISOString() },
+      },
+      403,
+      context
+    )
+  }
+  return createInternalErrorResponse(err, context)
 }
 
 /** Enable read-only sharing; returns the (idempotent) public share slug. */
@@ -129,9 +131,7 @@ async function handlePost(request: Request): Promise<Response> {
     if (err instanceof DashboardStoreError) {
       return storeErrorResponse(err, ROUTE_CONTEXT_POST)
     }
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
-    if (err instanceof SyntaxError && errorMessage.includes('JSON')) {
+    if (err instanceof SyntaxError && err.message.includes('JSON')) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.ValidationError,
@@ -142,15 +142,7 @@ async function handlePost(request: Request): Promise<Response> {
         ROUTE_CONTEXT_POST
       )
     }
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: { timestamp: new Date().toISOString() },
-      },
-      500,
-      ROUTE_CONTEXT_POST
-    )
+    return createInternalErrorResponse(err, ROUTE_CONTEXT_POST, requestId)
   }
 }
 
@@ -205,17 +197,7 @@ async function handleDelete(request: Request): Promise<Response> {
     if (err instanceof DashboardStoreError) {
       return storeErrorResponse(err, ROUTE_CONTEXT_DELETE)
     }
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: { timestamp: new Date().toISOString() },
-      },
-      500,
-      ROUTE_CONTEXT_DELETE
-    )
+    return createInternalErrorResponse(err, ROUTE_CONTEXT_DELETE, requestId)
   }
 }
 

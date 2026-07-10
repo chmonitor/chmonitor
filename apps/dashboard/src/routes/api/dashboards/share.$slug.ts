@@ -28,7 +28,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { debug, error, generateRequestId } from '@chm/logger'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import {
   checkRateLimit,
   clientIpKey,
@@ -41,7 +44,6 @@ import {
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { D1DashboardStore } from '@/lib/dashboard-storage/d1-store'
-import { DashboardStoreError } from '@/lib/dashboard-storage/types'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
 
@@ -122,29 +124,7 @@ async function handleGet(request: Request, slug: string): Promise<Response> {
   } catch (err) {
     error('[GET /api/dashboards/share/$slug] Error:', err, { requestId })
 
-    if (err instanceof DashboardStoreError) {
-      return createApiErrorResponse(
-        {
-          type: ApiErrorType.QueryError,
-          message: err.message,
-          details: { timestamp: new Date().toISOString() },
-        },
-        500,
-        ROUTE_CONTEXT
-      )
-    }
-
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: { timestamp: new Date().toISOString() },
-      },
-      500,
-      ROUTE_CONTEXT
-    )
+    return createInternalErrorResponse(err, ROUTE_CONTEXT, requestId)
   }
 }
 

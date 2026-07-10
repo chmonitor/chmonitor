@@ -18,7 +18,10 @@ import type {
 } from '@/lib/conversation-store/types'
 
 import { debug, error, generateRequestId } from '@chm/logger'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import {
   CacheControl,
   createSuccessResponse,
@@ -148,39 +151,25 @@ async function handleGet(request: Request): Promise<Response> {
       headers: newHeaders,
     })
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
-
     error('[GET /api/v1/conversations] Error:', err, { requestId })
 
     // Handle conversation store errors
-    if (err instanceof ConversationStoreError) {
-      const errorType =
-        err.code === 'UNAUTHORIZED'
-          ? ApiErrorType.PermissionError
-          : ApiErrorType.QueryError
-
+    if (err instanceof ConversationStoreError && err.code === 'UNAUTHORIZED') {
       return createApiErrorResponse(
         {
-          type: errorType,
+          type: ApiErrorType.PermissionError,
           message: err.message,
           details: { timestamp: new Date().toISOString() },
         },
-        err.code === 'UNAUTHORIZED' ? 403 : 500,
+        403,
         ROUTE_CONTEXT_GET
       )
     }
 
-    const errorResponse = createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: {
-          timestamp: new Date().toISOString(),
-        },
-      },
-      500,
-      ROUTE_CONTEXT_GET
+    const errorResponse = createInternalErrorResponse(
+      err,
+      ROUTE_CONTEXT_GET,
+      requestId
     )
 
     // Add request ID header to error response
@@ -324,40 +313,29 @@ async function handlePost(request: Request): Promise<Response> {
       headers: newHeaders,
     })
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : 'Unknown error occurred'
-
     error('[POST /api/v1/conversations] Error:', err, { requestId })
 
     // Handle conversation store errors
-    if (err instanceof ConversationStoreError) {
-      const errorType =
-        err.code === 'VALIDATION_ERROR'
-          ? ApiErrorType.ValidationError
-          : err.code === 'UNAUTHORIZED'
-            ? ApiErrorType.PermissionError
-            : ApiErrorType.QueryError
-
-      const statusCode =
-        err.code === 'VALIDATION_ERROR'
-          ? 400
-          : err.code === 'UNAUTHORIZED'
-            ? 403
-            : 500
-
+    if (
+      err instanceof ConversationStoreError &&
+      (err.code === 'VALIDATION_ERROR' || err.code === 'UNAUTHORIZED')
+    ) {
       return createApiErrorResponse(
         {
-          type: errorType,
+          type:
+            err.code === 'VALIDATION_ERROR'
+              ? ApiErrorType.ValidationError
+              : ApiErrorType.PermissionError,
           message: err.message,
           details: { timestamp: new Date().toISOString() },
         },
-        statusCode,
+        err.code === 'VALIDATION_ERROR' ? 400 : 403,
         ROUTE_CONTEXT_POST
       )
     }
 
     // Handle JSON parsing errors
-    if (err instanceof SyntaxError && errorMessage.includes('JSON')) {
+    if (err instanceof SyntaxError && err.message.includes('JSON')) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.ValidationError,
@@ -369,16 +347,10 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    const errorResponse = createApiErrorResponse(
-      {
-        type: ApiErrorType.QueryError,
-        message: errorMessage,
-        details: {
-          timestamp: new Date().toISOString(),
-        },
-      },
-      500,
-      ROUTE_CONTEXT_POST
+    const errorResponse = createInternalErrorResponse(
+      err,
+      ROUTE_CONTEXT_POST,
+      requestId
     )
 
     // Add request ID header to error response

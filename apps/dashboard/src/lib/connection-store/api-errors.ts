@@ -1,5 +1,8 @@
 import { ConnectionStoreError } from './types'
-import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
+import {
+  createErrorResponse as createApiErrorResponse,
+  createInternalErrorResponse,
+} from '@/lib/api/error-handler'
 import { ApiErrorType } from '@/lib/api/types'
 import { ConversationStoreError } from '@/lib/conversation-store/types'
 
@@ -23,6 +26,9 @@ export function mapConnectionApiError(
             : error.code === 'LIMIT_EXCEEDED'
               ? 402
               : 500
+    if (status === 500) {
+      return createInternalErrorResponse(error, context)
+    }
     return createApiErrorResponse(
       { type: ApiErrorType.PermissionError, message: error.message },
       status,
@@ -31,20 +37,15 @@ export function mapConnectionApiError(
   }
 
   if (error instanceof ConversationStoreError) {
-    const status = error.code === 'UNAUTHORIZED' ? 401 : 500
-    return createApiErrorResponse(
-      { type: ApiErrorType.PermissionError, message: error.message },
-      status,
-      context
-    )
+    if (error.code === 'UNAUTHORIZED') {
+      return createApiErrorResponse(
+        { type: ApiErrorType.PermissionError, message: error.message },
+        401,
+        context
+      )
+    }
+    return createInternalErrorResponse(error, context)
   }
 
-  return createApiErrorResponse(
-    {
-      type: ApiErrorType.QueryError,
-      message: error instanceof Error ? error.message : 'Unknown error',
-    },
-    500,
-    context
-  )
+  return createInternalErrorResponse(error, context)
 }
