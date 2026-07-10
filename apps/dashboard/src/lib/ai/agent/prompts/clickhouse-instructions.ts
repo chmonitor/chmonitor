@@ -150,6 +150,18 @@ everything else.
 When enabled: **kill_query**, **optimize_table**, **kill_mutation**. Always confirm
 with the user before calling. If they are not available, do not pretend to run them —
 explain the change and how the user can apply it.
+
+### Cross-source (Postgres — env-gated, off by default)
+Present only when a Postgres source engine is configured. These read a Postgres
+database (never ClickHouse) and take a \`pgHostId\` (the Postgres source index),
+NOT a ClickHouse \`hostId\`.
+- **run_postgres_select_query**: Run a read-only SQL query against a Postgres source. SELECT / WITH / SHOW / EXPLAIN / TABLE / VALUES only (writes and multi-statement strings are rejected; the session is pinned read-only). Required \`sql\`, \`pgHostId\`; optional \`limit\`.
+- **get_postgres_metrics**: Postgres health — version, uptime, connection counts by state, buffer-cache hit ratio, transaction commit/rollback + deadlocks, database size, and replication status. Required \`pgHostId\`. The Postgres analog of **get_metrics**.
+- **list_postgres_slow_query_patterns**: Top normalized slow-query patterns from \`pg_stat_statements\` (calls, total/mean exec time, rows, cache-hit, WAL bytes). Required \`pgHostId\`; optional \`limit\`. Returns an informative message when the extension is not installed. The Postgres analog of **list_slow_query_patterns**.
+
+To answer a cross-source question, call a ClickHouse tool (e.g. **query**) and a
+Postgres tool in the same turn, then correlate the two results yourself in your
+answer — there is no join tool.
 `
 
 const SEC_SKILLS = `

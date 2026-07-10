@@ -16,6 +16,8 @@ import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
 import { createMvDesignerTools } from './mv-designer-tools'
 import { createPlanTools } from './plan-tools'
+import { createPostgresHealthTools } from './postgres-health-tools'
+import { createPostgresQueryTools } from './postgres-query-tools'
 import { createQueryTools } from './query-tools'
 import { createReferenceQueryTools } from './reference-query-tools'
 import { createReplicationTools } from './replication-tools'
@@ -46,9 +48,15 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Advisor: recommend_materialized_view
  *  - Dashboards: suggest_dashboard
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
+ *  - Postgres (cross-source, env-gated): run_postgres_select_query,
+ *    get_postgres_metrics, list_postgres_slow_query_patterns
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
   const enableControlTools = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
+  // Postgres cross-source tools stay ABSENT (not merely failing) unless the
+  // source engine is enabled — a pure env gate, no Clerk, so OSS has equal
+  // support. Server reads the canonical CHM_* name (VITE_* is the client mirror).
+  const enablePostgresTools = process.env.CHM_FEATURE_POSTGRES_SOURCE === 'true'
 
   return {
     // Schema & exploration
@@ -98,6 +106,15 @@ export function createAllTools(hostId: number, includeControlTools = false) {
     // Control actions (destructive) — off unless explicitly enabled
     ...(enableControlTools && includeControlTools
       ? createControlTools(hostId)
+      : {}),
+
+    // Postgres cross-source tools — off unless CHM_FEATURE_POSTGRES_SOURCE=true.
+    // They take an explicit `pgHostId` per call, so no hostId is threaded here.
+    ...(enablePostgresTools
+      ? {
+          ...createPostgresQueryTools(),
+          ...createPostgresHealthTools(),
+        }
       : {}),
   }
 }

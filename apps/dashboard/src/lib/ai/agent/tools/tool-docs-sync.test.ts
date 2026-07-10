@@ -28,15 +28,24 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const originalControlToolsEnv = process.env.AGENT_ENABLE_CONTROL_TOOLS
-// createAllTools reads this env var at call time (not import time), so it
-// must be set before calling it below — see tools/index.ts.
+const originalPostgresEnv = process.env.CHM_FEATURE_POSTGRES_SOURCE
+// createAllTools reads these env vars at call time (not import time), so they
+// must be set before calling it below — see tools/index.ts. Enabling both the
+// control-tool and Postgres gates makes every gated tool present, so the docs
+// / prompt sync assertions below cover them too.
 process.env.AGENT_ENABLE_CONTROL_TOOLS = 'true'
+process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
 
 afterAll(() => {
   if (originalControlToolsEnv === undefined) {
     delete process.env.AGENT_ENABLE_CONTROL_TOOLS
   } else {
     process.env.AGENT_ENABLE_CONTROL_TOOLS = originalControlToolsEnv
+  }
+  if (originalPostgresEnv === undefined) {
+    delete process.env.CHM_FEATURE_POSTGRES_SOURCE
+  } else {
+    process.env.CHM_FEATURE_POSTGRES_SOURCE = originalPostgresEnv
   }
 })
 
@@ -86,11 +95,11 @@ const MCP_SERVER_TOOL_NAMES = [
 ] as const
 
 describe('AI agent tool docs stay in sync with the code', () => {
-  test('createAllTools(0, true) exposes 27 default + 3 gated control tools', () => {
-    // Loud guard: if this drops to 27, AGENT_ENABLE_CONTROL_TOOLS was not
-    // honored above and the control-tool assertions below would silently
-    // never run.
-    expect(toolNames.length).toBe(30)
+  test('createAllTools(0, true) exposes 27 default + 3 control + 3 Postgres tools', () => {
+    // Loud guard: if this drops below 33, AGENT_ENABLE_CONTROL_TOOLS or
+    // CHM_FEATURE_POSTGRES_SOURCE was not honored above and the gated-tool
+    // assertions below would silently never run.
+    expect(toolNames.length).toBe(33)
   })
 
   test('every agent tool is documented in ai-agent/capabilities.mdx', () => {
