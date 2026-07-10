@@ -122,15 +122,11 @@ export async function handler(
   }
 
   try {
-    const {
-      result,
-      executedSql,
-      clickhouseVersion,
-      maxResultRows,
-    } = await executeTableConfig(config, hostId, queryParams, {
-      bindings,
-      timezone,
-    })
+    const { result, executedSql, clickhouseVersion, maxResultRows } =
+      await executeTableConfig(config, hostId, queryParams, {
+        bindings,
+        timezone,
+      })
 
     if (result.error) {
       // An OPTIONAL config whose underlying table is simply absent is an
