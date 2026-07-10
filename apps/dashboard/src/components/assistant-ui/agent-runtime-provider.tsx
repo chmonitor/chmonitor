@@ -22,12 +22,14 @@ import {
 } from '@assistant-ui/react'
 import { useChatRuntime } from '@assistant-ui/react-ai-sdk'
 import { DefaultChatTransport } from 'ai'
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useMemo, useRef } from 'react'
+import { buildPageContext } from '@/lib/ai/agent/page-context'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import { useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { useToolConfig } from '@/lib/hooks/use-tool-config'
+import { usePathname } from '@/lib/next-compat'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
@@ -54,6 +56,7 @@ function useAgentChatRuntime() {
   const { model } = useAgentModel()
   const sessionId = useMemo(() => crypto.randomUUID(), [])
   const { customServers, disabledServers } = useMcpConfig()
+  const pathname = usePathname()
 
   // Only pass enabled custom servers to the agent route. Derive from the stable
   // `customServers` + `disabledServers` arrays (not `isServerEnabled`, which is a
@@ -67,17 +70,53 @@ function useAgentChatRuntime() {
     [customServers, disabledServers]
   )
 
+  // Grounds an ambiguous question ("why is this slow?") in the page the user
+  // was on when they sent it. Sent only on the first message of a thread, or
+  // when the page changed since the last message that carried it — never on
+  // every turn, so a long-running conversation doesn't keep re-asserting
+  // stale page context after the user navigated away.
+  const lastSentPathnameRef = useRef<string | null>(null)
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: '/api/v1/agent',
         fetch: trackedAgentFetch as typeof globalThis.fetch,
         body: { hostId, model, disabledTools, sessionId, mcpServers },
+        prepareSendMessagesRequest: ({
+          id,
+          messages,
+          body,
+          trigger,
+          messageId,
+        }) => {
+          const isNewThread = messages.length <= 1
+          const pageChanged = lastSentPathnameRef.current !== pathname
+          const shouldSendPageContext =
+            Boolean(pathname) && (isNewThread || pageChanged)
+
+          if (shouldSendPageContext) {
+            lastSentPathnameRef.current = pathname
+          }
+
+          return {
+            body: {
+              ...body,
+              id,
+              messages,
+              trigger,
+              messageId,
+              ...(shouldSendPageContext
+                ? { pageContext: buildPageContext(pathname) }
+                : {}),
+            },
+          }
+        },
       }),
     // mcpServers is a derived array — include it directly so the transport
     // re-creates when the user toggles or adds custom servers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hostId, model, disabledTools, sessionId, mcpServers]
+    [hostId, model, disabledTools, sessionId, mcpServers, pathname]
   )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

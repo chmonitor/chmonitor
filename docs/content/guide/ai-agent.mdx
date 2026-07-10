@@ -226,6 +226,17 @@ curl -X POST https://your-host/api/v1/agent \
 
 `hostId` is a zero-based numeric index; defaults to `0`.
 
+**Page context (optional).** The dashboard chat sends an optional
+`pageContext: { route, label? }` field grounding an ambiguous question in the
+page the user was on when they sent it (e.g. "the user is currently viewing
+the Merges page"). It's only included on the first message of a new thread, or
+when the page changed since it was last sent — never on every turn, so a
+long-running conversation doesn't keep asserting stale context after the user
+navigated away. It's threaded in as its own message ahead of the user's turn,
+not baked into the (byte-stable, cached) system prompt. Purely additive:
+omitting it (MCP and API-token callers have no "page") behaves exactly as
+before.
+
 ## MCP Server
 
 The dashboard exposes an MCP (Model Context Protocol) endpoint at `/api/mcp`. The same implementation runs in the standalone Cloudflare MCP Worker (`apps/mcp`). All tools are read-only by design — write and DDL statements are rejected.

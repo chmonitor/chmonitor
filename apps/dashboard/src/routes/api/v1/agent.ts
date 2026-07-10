@@ -102,6 +102,9 @@ const AGENT_MAX_MESSAGES = 64
 const AGENT_MAX_MESSAGE_PARTS = 64
 const AGENT_MAX_USER_MESSAGE_LENGTH = 8_192
 const AGENT_MAX_PART_TEXT_LENGTH = 2_048
+// Page-context is a short grounding hint ("user is on the Merges page"), not
+// a message body — cap it much tighter than a chat message.
+const AGENT_MAX_PAGE_CONTEXT_FIELD_LENGTH = 200
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
@@ -116,6 +119,58 @@ type AgentRequestBody = {
   disabledTools?: string[]
   sessionId?: string
   mcpServers?: Array<{ id?: unknown; name?: unknown; endpoint?: unknown }>
+  /**
+   * Optional hint about the dashboard page the chat was opened/sent from
+   * (e.g. `{ route: '/merges', label: 'Merges' }`). Purely additive — a
+   * request omitting this field behaves exactly as before. See
+   * `sanitizePageContext` / `buildPageContextLine`.
+   */
+  pageContext?: { route?: unknown; label?: unknown }
+}
+
+/** Sanitized, safe-to-use page-context hint. */
+export type SafePageContext = {
+  readonly route: string
+  readonly label?: string
+}
+
+/**
+ * Validate and clamp the client-supplied `pageContext` hint.
+ *
+ * Returns `undefined` for anything malformed/empty so callers can simply
+ * treat a missing hint and an invalid one the same way (no page context).
+ */
+export function sanitizePageContext(
+  raw: AgentRequestBody['pageContext']
+): SafePageContext | undefined {
+  if (!isObject(raw) || typeof raw.route !== 'string') {
+    return undefined
+  }
+
+  const route = clampText(raw.route.trim(), AGENT_MAX_PAGE_CONTEXT_FIELD_LENGTH)
+  if (!route) {
+    return undefined
+  }
+
+  const label =
+    typeof raw.label === 'string' && raw.label.trim().length > 0
+      ? clampText(raw.label.trim(), AGENT_MAX_PAGE_CONTEXT_FIELD_LENGTH)
+      : undefined
+
+  return label ? { route, label } : { route }
+}
+
+/**
+ * Build the short synthetic context line describing the page the user is on.
+ * Kept out of the (byte-stable, cached) system prompt on purpose — this is
+ * threaded in as a separate message ahead of the user's turn instead.
+ */
+export function buildPageContextLine(
+  pageContext: SafePageContext,
+  hostId: number
+): string {
+  const page = pageContext.label ?? pageContext.route
+  return `Context: the user is currently viewing the "${page}" page (host ${hostId}).`
 }
 
 type SanitizeIncomingMessagesResult =
@@ -709,6 +764,34 @@ async function handlePost(request: Request): Promise<Response> {
       role: 'user',
       parts: [{ type: 'text' as const, text: userMessage }],
     })
+  }
+
+  // Thread a lightweight "the user is looking at page X" hint ahead of the
+  // user's turn — only on the first message of a (new) thread, so a
+  // long-running conversation doesn't keep re-asserting page context after
+  // the user has navigated away. The client only sends `pageContext` on the
+  // first turn or when the page changed; this is a server-side belt-and-
+  // braces check against the same signal (a single user turn in the incoming
+  // history). Deliberately NOT folded into `AGENT_JSON_RENDER_INLINE_PROMPT`
+  // (the cached system prompt) — inserted as its own message instead, so
+  // provider prompt caching on the system prompt is unaffected.
+  const safePageContext = sanitizePageContext(body.pageContext)
+  const isFirstThreadMessage =
+    safeIncomingMessages.filter((m) => m.role === 'user').length <= 1
+  if (safePageContext && isFirstThreadMessage) {
+    const lastMessageIndex = uiMessages.length - 1
+    if (lastMessageIndex >= 0 && uiMessages[lastMessageIndex].role === 'user') {
+      uiMessages.splice(lastMessageIndex, 0, {
+        id: crypto.randomUUID(),
+        role: 'system',
+        parts: [
+          {
+            type: 'text' as const,
+            text: buildPageContextLine(safePageContext, hostId),
+          },
+        ],
+      })
+    }
   }
 
   if (AGENT_DEBUG_LOGS) {
