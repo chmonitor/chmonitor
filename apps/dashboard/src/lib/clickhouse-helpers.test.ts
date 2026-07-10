@@ -65,23 +65,25 @@ describe('validateHostId', () => {
       expect(validateHostId(42)).toBe(42)
     })
 
-    test('negative number returns 0', () => {
-      expect(validateHostId(-1)).toBe(0)
-      expect(validateHostId(-100)).toBe(0)
+    test('negative number throws', () => {
+      expect(() => validateHostId(-1)).toThrow('Invalid hostId: -1')
+      expect(() => validateHostId(-100)).toThrow('Invalid hostId: -100')
     })
 
-    test('non-integer (float) returns 0', () => {
-      expect(validateHostId(1.5)).toBe(0)
-      expect(validateHostId(0.1)).toBe(0)
+    test('non-integer (float) throws', () => {
+      expect(() => validateHostId(1.5)).toThrow('Invalid hostId: 1.5')
+      expect(() => validateHostId(0.1)).toThrow('Invalid hostId: 0.1')
     })
 
-    test('NaN returns 0', () => {
-      expect(validateHostId(Number.NaN)).toBe(0)
+    test('NaN throws', () => {
+      expect(() => validateHostId(Number.NaN)).toThrow('Invalid hostId: NaN')
     })
 
-    test('Infinity returns 0 (not an integer)', () => {
+    test('Infinity throws (not an integer)', () => {
       // Number.isInteger(Infinity) === false → falls into the guard
-      expect(validateHostId(Number.POSITIVE_INFINITY)).toBe(0)
+      expect(() => validateHostId(Number.POSITIVE_INFINITY)).toThrow(
+        'Invalid hostId: Infinity'
+      )
     })
   })
 
@@ -99,46 +101,50 @@ describe('validateHostId', () => {
       expect(validateHostId(' 3 ')).toBe(3)
     })
 
-    test('non-numeric string returns 0', () => {
-      expect(validateHostId('abc')).toBe(0)
-      expect(validateHostId('1a')).toBe(0)
-      expect(validateHostId('a1')).toBe(0)
+    test('non-numeric string throws (no more silent coercion)', () => {
+      expect(() => validateHostId('abc')).toThrow('Invalid hostId: abc')
+      expect(() => validateHostId('1a')).toThrow('Invalid hostId: 1a')
+      expect(() => validateHostId('a1')).toThrow('Invalid hostId: a1')
     })
 
-    test('empty string returns 0', () => {
+    test('trailing garbage after digits throws (unlike parseInt)', () => {
+      expect(() => validateHostId('2abc')).toThrow('Invalid hostId: 2abc')
+    })
+
+    test('empty string returns 0 (treated as missing, like undefined)', () => {
       expect(validateHostId('')).toBe(0)
     })
 
-    test('whitespace-only string returns 0', () => {
+    test('whitespace-only string returns 0 (treated as missing)', () => {
       expect(validateHostId('   ')).toBe(0)
     })
 
-    test('float string returns 0 (contains dot, fails /^\\d+$/ test)', () => {
-      expect(validateHostId('1.5')).toBe(0)
+    test('float string throws (contains dot, fails /^\\d+$/ test)', () => {
+      expect(() => validateHostId('1.5')).toThrow('Invalid hostId: 1.5')
     })
 
-    test('negative numeric string returns 0 (contains minus, fails /^\\d+$/ test)', () => {
-      expect(validateHostId('-1')).toBe(0)
+    test('negative numeric string throws (contains minus, fails /^\\d+$/ test)', () => {
+      expect(() => validateHostId('-1')).toThrow('Invalid hostId: -1')
     })
   })
 
-  describe('other types → 0', () => {
-    test('boolean returns 0', () => {
-      expect(validateHostId(true)).toBe(0)
-      expect(validateHostId(false)).toBe(0)
+  describe('other types → throw', () => {
+    test('boolean throws', () => {
+      expect(() => validateHostId(true)).toThrow('Invalid hostId: true')
+      expect(() => validateHostId(false)).toThrow('Invalid hostId: false')
     })
 
-    test('object returns 0', () => {
-      expect(validateHostId({})).toBe(0)
-      expect(validateHostId({ id: 1 })).toBe(0)
+    test('object throws', () => {
+      expect(() => validateHostId({})).toThrow()
+      expect(() => validateHostId({ id: 1 })).toThrow()
     })
 
-    test('array returns 0', () => {
-      expect(validateHostId([1])).toBe(0)
+    test('array throws', () => {
+      expect(() => validateHostId([1])).toThrow()
     })
 
-    test('symbol returns 0', () => {
-      expect(validateHostId(Symbol('x'))).toBe(0)
+    test('symbol throws', () => {
+      expect(() => validateHostId(Symbol('x'))).toThrow()
     })
   })
 })
@@ -208,11 +214,11 @@ describe('fetchDataWithHost', () => {
     expect((capturedArgs as Record<string, unknown>).hostId).toBe(5)
   })
 
-  test('invalid string hostId falls back to 0', async () => {
-    let capturedHostId: unknown
+  test('invalid string hostId returns a query_error result (no silent fallback)', async () => {
+    let fetchDataCalled = false
 
-    fetchDataImpl = async (args) => {
-      capturedHostId = (args as unknown as Record<string, unknown>).hostId
+    fetchDataImpl = async () => {
+      fetchDataCalled = true
       return {
         data: [],
         metadata: { queryId: '', duration: 0, rows: 0, host: '' },
@@ -220,9 +226,19 @@ describe('fetchDataWithHost', () => {
       }
     }
 
-    await fetchDataWithHost({ query: 'SELECT 1', hostId: 'bad' })
+    const result = await fetchDataWithHost({
+      query: 'SELECT 1',
+      hostId: 'bad',
+    })
 
-    expect(capturedHostId).toBe(0)
+    // fetchData must never be reached with an unvalidated hostId.
+    expect(fetchDataCalled).toBe(false)
+
+    const err = (result as unknown as Record<string, unknown>)
+      .error as unknown as Record<string, unknown>
+    expect(err.type).toBe('query_error')
+    expect(err.message).toBe('Invalid hostId: bad')
+    expect(logErrorCalls).toHaveLength(1)
   })
 
   test('default hostId is 0 when omitted', async () => {

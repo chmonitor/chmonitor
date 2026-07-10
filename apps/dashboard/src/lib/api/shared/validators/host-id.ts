@@ -11,6 +11,19 @@ import type { ApiError } from '@/lib/api/types'
 import { ApiErrorType } from '@/lib/api/types'
 
 /**
+ * Strictly parse a hostId string as a non-negative integer.
+ *
+ * Unlike `parseInt`, this rejects strings with trailing non-digit characters
+ * (e.g. `"2abc"` would otherwise parse as `2`) by requiring the entire string
+ * to be digits before converting.
+ *
+ * @returns The parsed integer, or `NaN` if `raw` is not a valid integer string.
+ */
+function parseStrictHostId(raw: string): number {
+  return /^\d+$/.test(raw) ? Number(raw) : NaN
+}
+
+/**
  * Validate and extract hostId from URL search params
  *
  * @param hostId - The hostId value from URLSearchParams (can be null)
@@ -31,7 +44,7 @@ export function validateHostId(hostId: string | null): number {
     throw new Error('Missing required parameter: hostId')
   }
 
-  const parsed = parseInt(hostId, 10)
+  const parsed = parseStrictHostId(hostId)
 
   if (Number.isNaN(parsed) || parsed < 0) {
     throw new Error('Invalid hostId: must be a non-negative number')
@@ -64,7 +77,7 @@ export function validateHostIdWithError(hostId: unknown): ApiError | undefined {
     typeof hostId === 'number'
       ? hostId
       : typeof hostId === 'string'
-        ? parseInt(hostId, 10)
+        ? parseStrictHostId(hostId)
         : NaN
 
   if (Number.isNaN(parsed) || parsed < 0) {
@@ -105,7 +118,7 @@ export function getAndValidateHostId(
     }
   }
 
-  const parsed = parseInt(hostId, 10)
+  const parsed = parseStrictHostId(hostId)
 
   if (Number.isNaN(parsed) || parsed < 0) {
     return {

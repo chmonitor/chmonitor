@@ -72,31 +72,24 @@ export function validateHostId(hostId: unknown): number {
   }
 
   if (typeof hostId === 'string') {
-    if (!/^\d+$/.test(hostId.trim())) {
-      ErrorLogger.logWarning(`Invalid hostId: ${hostId}`, {
-        component: 'validateHostId',
-      })
+    const trimmed = hostId.trim()
+    // Empty/whitespace-only is treated as "missing" (like undefined/null),
+    // not malformed — callers may pass through an unset form field this way.
+    if (trimmed === '') {
       return 0
     }
-    const parsed = parseInt(hostId, 10)
-    if (Number.isNaN(parsed) || parsed < 0) {
-      ErrorLogger.logWarning(`Invalid hostId: ${hostId}`, {
-        component: 'validateHostId',
-      })
-      return 0
+    if (/^\d+$/.test(trimmed)) {
+      return parseInt(trimmed, 10)
     }
-    return parsed
+    throw new Error(`Invalid hostId: ${hostId}`)
   }
 
   if (typeof hostId === 'number') {
-    if (hostId < 0 || !Number.isInteger(hostId)) {
-      ErrorLogger.logWarning(`Invalid hostId: ${hostId}`, {
-        component: 'validateHostId',
-      })
-      return 0
+    if (Number.isInteger(hostId) && hostId >= 0) {
+      return hostId
     }
-    return hostId
+    throw new Error(`Invalid hostId: ${hostId}`)
   }
 
-  return 0
+  throw new Error(`Invalid hostId: ${String(hostId)}`)
 }

@@ -30,9 +30,16 @@ describe('validateHostId', () => {
     expect(validateHostId('0')).toBe(0)
   })
 
-  test('parses leading-numeric strings the way parseInt does', () => {
-    // parseInt('1abc', 10) === 1; the function does not reject trailing junk.
-    expect(validateHostId('1abc')).toBe(1)
+  test('rejects trailing non-digit characters (unlike parseInt)', () => {
+    // parseInt('1abc', 10) === 1; the strict parser must not silently
+    // truncate at the first non-digit — that risks routing a mistyped/junk
+    // hostId to a real, but wrong, host.
+    expect(() => validateHostId('1abc')).toThrow(
+      'Invalid hostId: must be a non-negative number'
+    )
+    expect(() => validateHostId('2abc')).toThrow(
+      'Invalid hostId: must be a non-negative number'
+    )
   })
 
   test('throws when hostId is null', () => {
