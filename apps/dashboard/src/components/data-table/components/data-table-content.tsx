@@ -17,7 +17,7 @@ import {
   SortableContext,
 } from '@dnd-kit/sortable'
 import { memo, useCallback } from 'react'
-import { EXPAND_COLUMN_ID } from '@/components/data-table/column-defs'
+import { UTILITY_COLUMN_IDS } from '@/components/data-table/column-defs'
 import {
   TableBody as TableBodyRenderer,
   TableHeader as TableHeaderRenderer,
@@ -174,12 +174,12 @@ export const DataTableContent = memo(function DataTableContent<
   )
 
   // Extract column IDs for SortableContext.
-  // Exclude utility columns (__expand chevron, selection checkbox) — they are
-  // pinned to the left and must not be drag-reordered.
+  // Exclude utility columns (__expand chevron, selection checkbox, row action
+  // menu) — they are pinned/fixed and must not be drag-reordered.
   const columnIds = table
     .getAllLeafColumns()
     .map((col) => col.id)
-    .filter((id) => id !== EXPAND_COLUMN_ID && id !== 'select')
+    .filter((id) => !UTILITY_COLUMN_IDS.has(id))
 
   // The memoized body reads row output from the stable `table` instance, so it
   // needs an explicit signal to re-render when that output changes. The parent

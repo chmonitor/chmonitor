@@ -1,6 +1,10 @@
 import type { QueryConfig } from '@/types/query-config'
 
-import { estimateColumnSizes } from './column-defs'
+import {
+  EXPAND_COLUMN_ID,
+  estimateColumnSizes,
+  UTILITY_COLUMN_IDS,
+} from './column-defs'
 import { describe, expect, test } from 'bun:test'
 
 /**
@@ -100,5 +104,28 @@ describe('estimateColumnSizes', () => {
       data
     )
     expect(sizes.v).toBe(size(40))
+  })
+})
+
+// ---------------------------------------------------------------------------
+// UTILITY_COLUMN_IDS
+//
+// WHY: this is the single source of truth for synthetic (non-data) column
+// ids, previously re-listed inline in several places (one of which omitted
+// 'action', letting the row-action column participate in drag-to-reorder).
+// Pinning the exact membership here prevents that drift from recurring.
+// ---------------------------------------------------------------------------
+
+describe('UTILITY_COLUMN_IDS', () => {
+  test('contains exactly the three synthetic column ids', () => {
+    expect(UTILITY_COLUMN_IDS.size).toBe(3)
+    expect(UTILITY_COLUMN_IDS.has(EXPAND_COLUMN_ID)).toBe(true)
+    expect(UTILITY_COLUMN_IDS.has('select')).toBe(true)
+    expect(UTILITY_COLUMN_IDS.has('action')).toBe(true)
+  })
+
+  test('does not treat arbitrary data columns as utility columns', () => {
+    expect(UTILITY_COLUMN_IDS.has('query')).toBe(false)
+    expect(UTILITY_COLUMN_IDS.has('bytes')).toBe(false)
   })
 })

@@ -17,6 +17,7 @@ import { memo, useMemo, useState } from 'react'
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { CsvExportButton } from '@/components/data-table/buttons/csv-export-button'
 import { ResetColumnOrderButton } from '@/components/data-table/buttons/reset-column-order'
+import { UTILITY_COLUMN_IDS } from '@/components/data-table/column-defs'
 import { BulkActions } from '@/components/data-table/components/bulk-actions'
 import {
   DisplayOptionsDropdown,
@@ -145,7 +146,7 @@ export const DataTableHeader = memo(function DataTableHeader<
   const filterableColumns = useMemo(() => {
     const cols = table
       .getAllLeafColumns()
-      .filter((col) => !['__expand', 'select', 'action'].includes(col.id))
+      .filter((col) => !UTILITY_COLUMN_IDS.has(col.id))
     // Pre-compute labels once
     return cols.map((col) => {
       const header = col.columnDef.header

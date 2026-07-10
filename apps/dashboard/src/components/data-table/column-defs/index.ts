@@ -16,5 +16,6 @@ export {
   estimateColumnSizes,
   getColumnDefs,
   normalizeColumnName,
+  UTILITY_COLUMN_IDS,
 } from './column-defs'
 export { isColumnFilterable, parseColumnFormat } from './utils'

@@ -30,8 +30,8 @@ import type {
 
 import { Fragment } from 'react'
 import {
-  EXPAND_COLUMN_ID,
   normalizeColumnName,
+  UTILITY_COLUMN_IDS,
 } from '@/components/data-table/column-defs'
 import { useTableDensityContext } from '@/components/data-table/context/table-density-context'
 import { DefaultExpandedRow } from '@/components/data-table/row-expand/default-renderer'
@@ -54,7 +54,6 @@ import {
 } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
-const UTILITY_COLUMNS = new Set(['select', 'action', EXPAND_COLUMN_ID])
 const PRIMARY_COLUMN_PRIORITY = [
   'query',
   'query_detail',
@@ -106,7 +105,7 @@ function pickPrimaryCell<TData extends RowData>(cells: Cell<TData, unknown>[]) {
     PRIMARY_COLUMN_PRIORITY.map((columnId) =>
       cells.find((cell) => cell.column.id === columnId)
     ).find(Boolean) ??
-    cells.find((cell) => !UTILITY_COLUMNS.has(cell.column.id)) ??
+    cells.find((cell) => !UTILITY_COLUMN_IDS.has(cell.column.id)) ??
     cells[0]
   )
 }
@@ -118,7 +117,9 @@ export function MobileSortMenu<TData extends RowData>({
 }) {
   const sortableColumns = table
     .getVisibleLeafColumns()
-    .filter((column) => column.getCanSort() && !UTILITY_COLUMNS.has(column.id))
+    .filter(
+      (column) => column.getCanSort() && !UTILITY_COLUMN_IDS.has(column.id)
+    )
 
   if (!sortableColumns.length) {
     return null
@@ -266,7 +267,7 @@ const MobileTableCard = function MobileTableCard<TData extends RowData>({
     (cell) =>
       !usedIds.has(cell.id) &&
       !hiddenIds.has(cell.id) &&
-      !UTILITY_COLUMNS.has(cell.column.id)
+      !UTILITY_COLUMN_IDS.has(cell.column.id)
   )
 
   const isSqlPrimary =

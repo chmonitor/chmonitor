@@ -34,6 +34,19 @@ import {
 
 export const EXPAND_COLUMN_ID = '__expand'
 
+/**
+ * Synthetic (non-data) column ids injected by the table system itself:
+ * `EXPAND_COLUMN_ID` (expand/collapse chevron), `select` (row-selection
+ * checkbox), and `action` (row action menu). Client-side filter, search,
+ * sort, card, and drag-reorder logic must exclude these — they carry no
+ * query-config data. Single source of truth; do not re-list these ids inline.
+ */
+export const UTILITY_COLUMN_IDS: ReadonlySet<string> = new Set([
+  EXPAND_COLUMN_ID,
+  'select',
+  'action',
+])
+
 /** Build the synthetic leftmost column that renders an expand/collapse chevron. */
 export function buildExpandColumnDef<
   TData extends RowData,
