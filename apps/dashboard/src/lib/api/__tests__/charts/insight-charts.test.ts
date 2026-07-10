@@ -132,51 +132,50 @@ describe('insightCharts', () => {
     // callback receives the chart name directly (not a tuple to destructure).
     // The 1-tuple mapping is only there to satisfy tsc's `.each` overloads,
     // which reject a readonly array of bare strings.
-    describe.each(percentileCharts.map((c) => [c] as const))(
-      'chart "%s"',
-      (chartName) => {
-        test.each(
-          maliciousValues
-        )('rejects malicious percentile %p (no injected fragment, safe fallback)', (percentile) => {
+    describe.each(
+      percentileCharts.map((c) => [c] as const)
+    )('chart "%s"', (chartName) => {
+      test.each(
+        maliciousValues
+      )('rejects malicious percentile %p (no injected fragment, safe fallback)', (percentile) => {
+        const result = insightCharts[chartName]({
+          lastHours: 24,
+          params: { percentile },
+        })
+        if (!('query' in result)) throw new Error('expected query')
+        const sql = result.query
+        // No hostile fragment survives into the SQL.
+        expect(sql).not.toContain('system.users')
+        expect(sql).not.toContain('UNION')
+        expect(sql).not.toContain('DROP')
+        expect(sql).not.toContain('--')
+        // The quantile level, when present, is always a bare `0.<int>`.
+        const levels = sql.match(/quantileTDigest\(([^)]*)\)/g) ?? []
+        for (const level of levels) {
+          expect(level).toMatch(/^quantileTDigest\(0\.\d{1,3}\)$/)
+        }
+        // Injection payloads fall back to the default p99.
+        if (sql.includes('quantileTDigest')) {
+          expect(sql).toContain('quantileTDigest(0.99)')
+        }
+      })
+
+      test('accepts the legitimate UI values 95/99/100', () => {
+        for (const percentile of ['95', '99', '100']) {
           const result = insightCharts[chartName]({
             lastHours: 24,
             params: { percentile },
           })
           if (!('query' in result)) throw new Error('expected query')
           const sql = result.query
-          // No hostile fragment survives into the SQL.
-          expect(sql).not.toContain('system.users')
-          expect(sql).not.toContain('UNION')
-          expect(sql).not.toContain('DROP')
-          expect(sql).not.toContain('--')
-          // The quantile level, when present, is always a bare `0.<int>`.
-          const levels = sql.match(/quantileTDigest\(([^)]*)\)/g) ?? []
-          for (const level of levels) {
-            expect(level).toMatch(/^quantileTDigest\(0\.\d{1,3}\)$/)
+          if (percentile === '100') {
+            // p100 uses max() / drops the duration filter — no quantile level.
+            expect(sql).not.toContain('quantileTDigest(0.100)')
+          } else {
+            expect(sql).toContain(`quantileTDigest(0.${percentile})`)
           }
-          // Injection payloads fall back to the default p99.
-          if (sql.includes('quantileTDigest')) {
-            expect(sql).toContain('quantileTDigest(0.99)')
-          }
-        })
-
-        test('accepts the legitimate UI values 95/99/100', () => {
-          for (const percentile of ['95', '99', '100']) {
-            const result = insightCharts[chartName]({
-              lastHours: 24,
-              params: { percentile },
-            })
-            if (!('query' in result)) throw new Error('expected query')
-            const sql = result.query
-            if (percentile === '100') {
-              // p100 uses max() / drops the duration filter — no quantile level.
-              expect(sql).not.toContain('quantileTDigest(0.100)')
-            } else {
-              expect(sql).toContain(`quantileTDigest(0.${percentile})`)
-            }
-          }
-        })
-      }
-    )
+        }
+      })
+    })
   })
 })
