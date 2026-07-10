@@ -17,7 +17,8 @@ Use semantic commit format with consistent scope for commit messages and PR titl
 auto-merge (`gh pr merge --auto --squash`) and babysit it (`/github:babysit-pr`):
 watch CI, fix failures, confirm the merge and production deploy. Do NOT ask the
 user whether to babysit — just do it. Known non-required checks (`e2e-test`,
-`e2e-test-tsr`, `component-test`, `unit-tests`) do not block auto-merge.
+`e2e-test-tsr`, `component-test`) do not block auto-merge. `unit-tests` IS a
+required check (required alongside `dashboard` since 2026-07-10, plan 75).
 
 **Stale bot-review gate (authorized override).** When a bot reviewer
 (CodeRabbit / `coderabbitai[bot]`, Sourcery, Gemini) leaves a
