@@ -11,6 +11,28 @@ import { usePathname } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
 import { prefetchRoute } from '@/lib/swr/prefetch'
 
+/**
+ * Menu hrefs may carry their own query string (e.g. `/keeper?path=/`,
+ * `/charts?name=a,b`) that gets lost once split into TanStack Router's
+ * `to`/`search` pair. Merge those params into `search` so the deep-link
+ * intent survives, with `host` always set last so it wins over any
+ * colliding param baked into the href.
+ */
+export function mergeHrefSearch(
+  href: string,
+  hostId: number
+): Record<string, unknown> {
+  const queryString = href.split('?')[1]
+  const search: Record<string, unknown> = {}
+  if (queryString) {
+    for (const [key, value] of new URLSearchParams(queryString)) {
+      search[key] = value
+    }
+  }
+  search.host = hostId
+  return search
+}
+
 export const HostPrefixedLink = ({
   href,
   children,
@@ -61,7 +83,7 @@ export const HostPrefixedLink = ({
   // Pass `host` as a number to match the root route's validateSearch schema —
   // string values get JSON-encoded ("%220%22") which produces 404s during prerender.
   const toPath = href.split('?')[0]
-  const searchParams = { host: hostId }
+  const searchParams = mergeHrefSearch(href, hostId)
 
   // Check if this link is active
   const isActive = siblingHrefs
