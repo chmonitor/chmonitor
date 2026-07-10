@@ -639,6 +639,10 @@ export default defineConfig({
       ),
       '@chm/types': r('../../packages/types/src/index.ts'),
       '@chm/pricing': r('../../packages/pricing/src/index.ts'),
+      // Postgres source client (phase 2, #2449). Bundled from source like the
+      // other @chm/* packages; its `pg` driver resolves from THIS app's
+      // node_modules (own-lockfile), so `pg` is a direct app dependency too.
+      '@chm/postgres-client': r('../../packages/postgres-client/src/index.ts'),
       // Native platform bindings — replaces @chm/platform's @opennextjs/cloudflare
       // adapter with a `cloudflare:workers` env reader (see src/lib/platform-native.ts).
       '@chm/platform': r('./src/lib/platform-native.ts'),
@@ -678,7 +682,12 @@ export default defineConfig({
       '@chm/clickhouse-client',
       '@chm/types',
       '@chm/pricing',
+      '@chm/postgres-client',
       '@chm/mcp-server',
+      // `pg` (+ its `pg-cloudflare` workerd transport) must be bundled: the
+      // Worker/node-server images have no node_modules at runtime, so a left-
+      // externalized driver would be absent. It rides in via @chm/postgres-client.
+      'pg',
       '@clickhouse/client-web',
       // client-web's runtime dep. Must be bundled alongside it: the node-server
       // image ships only .output (no node_modules), so a dep left externalized

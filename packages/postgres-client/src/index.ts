@@ -1,11 +1,13 @@
 /**
  * @chm/postgres-client — Postgres source types.
  *
- * Phase 1 (types-only) sibling to `@chm/clickhouse-client`. This package holds
- * the Postgres connection SHAPE and id-space convention; it deliberately pulls
- * in NO Postgres driver yet (the `cloudflare:sockets` raw-TCP driver lands in
- * Phase 2, #2449). Keeping Postgres types out of `@chm/clickhouse-client` keeps
- * the ClickHouse package from growing an unrelated engine.
+ * Sibling to `@chm/clickhouse-client`. Holds the Postgres connection SHAPE and
+ * id-space convention (below) plus the runtime read-only query client
+ * (`./client`, added in Phase 2, #2449). The `pg` driver runs in BOTH runtimes
+ * off one code path — `pg-cloudflare` (`cloudflare:sockets`) in workerd under
+ * `nodejs_compat`, `net.Socket` on Node — so Cloud and self-hosted share it.
+ * Keeping Postgres out of `@chm/clickhouse-client` keeps the ClickHouse package
+ * from growing an unrelated engine.
  *
  * The `SourceEngine` discriminator is re-exported from `@chm/types` so callers
  * can reach it through either package.
@@ -13,6 +15,15 @@
 
 export type { SourceEngine } from '@chm/types'
 
+export {
+  assertReadOnlyStatement,
+  createPostgresClient,
+  formatPostgresError,
+  getPostgresVersion,
+  type PostgresConnectionConfig,
+  queryPostgres,
+  sslOptionsForMode,
+} from './client'
 export {
   DEFAULT_SOURCE_ENGINE,
   isSourceEngine,

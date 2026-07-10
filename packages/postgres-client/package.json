@@ -9,9 +9,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@chm/types": "workspace:*"
+    "@chm/types": "workspace:*",
+    "pg": "^8.16.0"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.10",
     "typescript": "^6.0.0"
   },
   "files": [
