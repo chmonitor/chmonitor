@@ -707,6 +707,7 @@ describe('fetchTableForHost — database source', () => {
       host: 'http://ch',
       user: 'default',
       source: 'database',
+      engine: 'clickhouse',
     }
 
     await expect(

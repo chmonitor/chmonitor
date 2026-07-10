@@ -54,6 +54,7 @@ class InMemoryConnectionStore implements ConnectionStore {
       hostUrl: input.hostUrl,
       chUser: input.chUser,
       hostId,
+      engine: input.engine ?? 'clickhouse',
       createdAt: now,
       updatedAt: now,
       encryptedPayload,
