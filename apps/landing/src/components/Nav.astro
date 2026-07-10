@@ -144,6 +144,7 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
         var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
         document.documentElement.setAttribute('data-theme', next)
         try { localStorage.setItem('chm-theme', next) } catch (e) {}
+        if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
       })
     })
 

@@ -55,6 +55,20 @@ const ogImage = new URL(image, Astro.site).toString()
         document.documentElement.setAttribute('data-theme', 'light')
       }
     })()
+    // Theme-aware post screenshots: a single <img data-src-light data-src-dark>
+    // per slot picks the right variant for the current theme, so only ONE
+    // image ever downloads (no display:none sibling to fetch on scroll).
+    // Mirrors apps/landing/src/layouts/Base.astro.
+    window.chmSyncThemedImages = function (root) {
+      var theme = document.documentElement.getAttribute('data-theme')
+      var imgs = (root || document).querySelectorAll('img[data-src-light]')
+      for (var i = 0; i < imgs.length; i++) {
+        var img = imgs[i]
+        var dark = img.getAttribute('data-src-dark')
+        var wanted = theme === 'dark' && dark ? dark : img.getAttribute('data-src-light')
+        if (wanted && img.getAttribute('src') !== wanted) img.setAttribute('src', wanted)
+      }
+    }
   </script>
   <style is:global>
     :root{
@@ -155,12 +169,9 @@ const ogImage = new URL(image, Astro.site).toString()
     :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
 
     /* ── theme-aware post screenshots ──
-       Pair two <img data-shot="light"/"dark"> as siblings in post content;
-       only one is ever laid out (the other is display:none). Mirrors the
-       same pattern in apps/landing/src/layouts/Base.astro. */
-    img[data-shot="dark"]{display:none !important}
-    :root[data-theme="dark"] img[data-shot="light"]{display:none !important}
-    :root[data-theme="dark"] img[data-shot="dark"]{display:block !important}
+       A single <img data-src-light data-src-dark> per slot; `window.chmSyncThemedImages`
+       (defined in the head script) picks the right `src` for the current theme,
+       so only ONE variant ever downloads. */
 
     /* ── blog header ── */
     .blog-hero{padding:64px 0 36px;border-bottom:1px solid var(--border-soft);position:relative;overflow:hidden}
@@ -277,15 +288,18 @@ const ogImage = new URL(image, Astro.site).toString()
         var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
         document.documentElement.setAttribute('data-theme', next)
         try { localStorage.setItem('chm-theme', next) } catch (e) {}
+        if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
       })
     }
     try {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
         if (!localStorage.getItem('chm-theme')) {
           document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
+          if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
         }
       })
     } catch (e) {}
+    if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
   </script>
   <script>
     // Opt-in, off-by-default product analytics (PostHog) — see

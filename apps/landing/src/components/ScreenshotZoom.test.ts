@@ -8,14 +8,14 @@ describe('ScreenshotShot theme pairing', () => {
     'utf8'
   )
 
-  test('only tags data-shot on the inline preview when a dark variant exists', () => {
-    expect(source).toContain(
-      "...(paired ? { 'data-shot': 'light' as const } : {})"
-    )
+  test('renders a single themed <img> per slot (no light/dark sibling pair)', () => {
     const previewBlock = source.slice(
       source.indexOf('data-screenshot-zoom'),
       source.indexOf('</button>')
     )
-    expect(previewBlock).not.toContain('data-shot="light"')
+    const imgCount = (previewBlock.match(/<img\b/g) || []).length
+    expect(imgCount).toBe(1)
+    expect(previewBlock).toContain('data-src-light={src}')
+    expect(previewBlock).toContain('data-src-dark={srcDark}')
   })
 })

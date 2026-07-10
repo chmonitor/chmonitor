@@ -70,96 +70,80 @@ docker compose up -d
 
 v0.3 keeps shipping. Since the initial release:
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/overview-dark.png">
-  <img data-shot="light" src="/posts/v0.3/overview-light.png" alt="Overview page with a GitHub-style query activity heatmap" />
-  <img data-shot="dark" src="/posts/v0.3/overview-dark.png" alt="Overview page with a GitHub-style query activity heatmap" />
-</picture>
+<img data-src-light="/posts/v0.3/overview-light.png" data-src-dark="/posts/v0.3/overview-dark.png" src="/posts/v0.3/overview-light.png" alt="Overview page with a GitHub-style query activity heatmap" width="1024" height="727" loading="lazy" />
 
 **A year of query activity, at a glance.** The Overview page now has a
 calendar heatmap of query volume, failures, memory and duration — the same
 glanceable pattern as a GitHub contribution graph.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/cluster-insights-dark.png">
-  <img data-shot="light" src="/posts/v0.3/cluster-insights-light.png" alt="Cluster Insights page with record breakers and detected findings" />
-  <img data-shot="dark" src="/posts/v0.3/cluster-insights-dark.png" alt="Cluster Insights page with record breakers and detected findings" />
-</picture>
+<img data-src-light="/posts/v0.3/cluster-insights-light.png" data-src-dark="/posts/v0.3/cluster-insights-dark.png" src="/posts/v0.3/cluster-insights-light.png" alt="Cluster Insights page with record breakers and detected findings" width="1024" height="664" loading="lazy" />
 
 **Cluster Insights**, a new page: auto-detected findings (error-rate spikes,
 latency regressions) plus record breakers — largest scan, fastest scan speed,
 longest query, total storage — surfaced without building a single dashboard.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/sql-console-dark.png">
-  <img data-shot="light" src="/posts/v0.3/sql-console-light.png" alt="SQL Console with query editor, results, EXPLAIN and scan analysis tabs" />
-  <img data-shot="dark" src="/posts/v0.3/sql-console-dark.png" alt="SQL Console with query editor, results, EXPLAIN and scan analysis tabs" />
-</picture>
+<img data-src-light="/posts/v0.3/sql-console-light.png" data-src-dark="/posts/v0.3/sql-console-dark.png" src="/posts/v0.3/sql-console-light.png" alt="SQL Console with query editor, results, EXPLAIN and scan analysis tabs" width="1024" height="644" loading="lazy" />
 
 **SQL Console**: run read-only SQL with history, one-click EXPLAIN, query log
 and scan analysis, without leaving the dashboard for a separate client.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/posts/v0.3/storage-dark.png">
-  <img data-shot="light" src="/posts/v0.3/storage-light.png" alt="Storage breakdown by database, table and part" />
-  <img data-shot="dark" src="/posts/v0.3/storage-dark.png" alt="Storage breakdown by database, table and part" />
-</picture>
+<img data-src-light="/posts/v0.3/storage-light.png" data-src-dark="/posts/v0.3/storage-dark.png" src="/posts/v0.3/storage-light.png" alt="Storage breakdown by database, table and part" width="1024" height="734" loading="lazy" />
 
 **Storage breakdown** by database, table and part, so you know exactly where
 the bytes go.
 
-<img src="/posts/v0.3/keeper.png" alt="Keeper page with session, watches, quorum role and per-node stats" />
+<img src="/posts/v0.3/keeper.png" alt="Keeper page with session, watches, quorum role and per-node stats" width="1024" height="953" loading="lazy" />
 
 **ClickHouse Keeper monitoring**: session state, watches, quorum role and
 per-node Raft stats for every Keeper node.
 
-<img src="/posts/v0.3/cluster-topology.png" alt="Cluster Topology diagram showing Keeper quorum, ClickHouse nodes and replication links" />
+<img src="/posts/v0.3/cluster-topology.png" alt="Cluster Topology diagram showing Keeper quorum, ClickHouse nodes and replication links" width="1942" height="1612" loading="lazy" />
 
 **Cluster Topology**: nodes, shards, replicas, and Keeper quorum drawn as a
 live diagram — click any node for an inspector panel with latency, znodes and
 virtual cluster membership.
 
-<img src="/posts/v0.3/ai-agent.png" alt="AI Agent chat with suggested questions, connected MCP server and skill toggles" />
+<img src="/posts/v0.3/ai-agent.png" alt="AI Agent chat with suggested questions, connected MCP server and skill toggles" width="2642" height="1980" loading="lazy" />
 
 **The AI agent**, wired straight into a host: suggested questions by category
 (insights, schema, storage, queries), live skill/tool toggles, and an MCP
 server already connected — ask about your cluster in plain language.
 
-<img src="/posts/v0.3/data-explorer.png" alt="Data Explorer rendering a table dependency graph with materialized view edges" />
+<img src="/posts/v0.3/data-explorer.png" alt="Data Explorer rendering a table dependency graph with materialized view edges" width="2732" height="1758" loading="lazy" />
 
 **Data Explorer**: every table in a database rendered as a dependency graph —
 materialized views, dictionaries and sources connected by typed edges (`TO`,
 `dictGet`, `joinGet`) instead of guessing from `SHOW CREATE TABLE`.
 
-<img src="/posts/v0.3/running-queries.png" alt="Running Queries page with live charts and a table of active queries" />
+<img src="/posts/v0.3/running-queries.png" alt="Running Queries page with live charts and a table of active queries" width="2680" height="1920" loading="lazy" />
 
 **Running Queries**, live: active count, memory and per-user breakdown as
 charts up top, the actual query table below, auto-refreshing every 5 seconds.
 
-<img src="/posts/v0.3/explain-tree.png" alt="EXPLAIN Query page showing the execution plan as an interactive tree" />
+<img src="/posts/v0.3/explain-tree.png" alt="EXPLAIN Query page showing the execution plan as an interactive tree" width="1878" height="1212" loading="lazy" />
 
 **EXPLAIN as a tree**: pick Plan, Pipeline, AST, Syntax or Estimate, and read
 the execution plan as a collapsible tree instead of a wall of text.
 
-<img src="/posts/v0.3/health-audit.png" alt="Generated audit prompt for a critical replication lag health check" />
+<img src="/posts/v0.3/health-audit.png" alt="Generated audit prompt for a critical replication lag health check" width="2680" height="1790" loading="lazy" />
 
 **Health → audit prompt**: a critical check (replication lag, in this case)
 turns into a ready-to-paste prompt with the metric, raw data row, system
 tables and common causes — hand it to any AI/coding agent for a diagnosis.
 
-<img src="/posts/v0.3/slow-queries.png" alt="Slow Queries page with an occurrence chart and a sortable table of the slowest finished queries" />
+<img src="/posts/v0.3/slow-queries.png" alt="Slow Queries page with an occurrence chart and a sortable table of the slowest finished queries" width="2662" height="1618" loading="lazy" />
 
 **Slow Queries**: the slowest finished queries from the query log, worst
 first, with an occurrence chart and a one-click "Explain top N" for the whole
 list.
 
-<img src="/posts/v0.3/peerdb-mirrors.png" alt="PeerDB Mirrors page with mirror status, peer topology and per-mirror pipeline phase" />
+<img src="/posts/v0.3/peerdb-mirrors.png" alt="PeerDB Mirrors page with mirror status, peer topology and per-mirror pipeline phase" width="2716" height="1780" loading="lazy" />
 
 **PeerDB Mirrors**: CDC/QRep mirror status, throughput and rows synced across
 every source-to-ClickHouse pipeline, plus a live peer topology and per-mirror
 pipeline phase breakdown.
 
-<img src="/posts/v0.3/mcp-server.png" alt="MCP Server page with endpoint URL and setup guides for Claude Desktop, Claude Code and Cursor" />
+<img src="/posts/v0.3/mcp-server.png" alt="MCP Server page with endpoint URL and setup guides for Claude Desktop, Claude Code and Cursor" width="2946" height="1956" loading="lazy" />
 
 **MCP Server**, self-serve: the endpoint URL plus copy-paste setup for Claude
 Desktop, Claude Code, Cursor or any Streamable HTTP MCP client — read-only

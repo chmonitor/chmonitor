@@ -88,6 +88,20 @@ const ogImage = new URL(image, Astro.site).toString()
         document.documentElement.setAttribute('data-theme', 'dark')
       }
     })()
+    // Theme-aware screenshots: a single <img data-src-light data-src-dark>
+    // per slot picks the right variant for the current theme, so only ONE
+    // image ever downloads (no display:none sibling to fetch on scroll).
+    // Exposed on window so the theme toggle (Nav.astro) can re-run it.
+    window.chmSyncThemedImages = function (root) {
+      var theme = document.documentElement.getAttribute('data-theme')
+      var imgs = (root || document).querySelectorAll('img[data-src-light]')
+      for (var i = 0; i < imgs.length; i++) {
+        var img = imgs[i]
+        var dark = img.getAttribute('data-src-dark')
+        var wanted = theme === 'dark' && dark ? dark : img.getAttribute('data-src-light')
+        if (wanted && img.getAttribute('src') !== wanted) img.setAttribute('src', wanted)
+      }
+    }
   </script>
   <style is:global>
     /* All of the legacy hand-authored global CSS lives in @layer base so that
@@ -277,13 +291,11 @@ const ogImage = new URL(image, Astro.site).toString()
     :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
 
     /* ── theme-aware screenshots ──
-       Pair two <img data-shot="light"/"dark"> as siblings in any .gcard/.feat-shot/
-       .cslide/.de-card slot; only one is ever laid out (the other is display:none),
-       so no wrapper or positioning is needed. Screenshots with no dark variant
-       just omit data-shot and always show. */
-    img[data-shot="dark"]{display:none !important}
-    :root[data-theme="dark"] img[data-shot="light"]{display:none !important}
-    :root[data-theme="dark"] img[data-shot="dark"]{display:block !important}
+       A single <img data-src-light data-src-dark> per slot (no hidden sibling
+       to double-fetch). `src` is set to the light variant at build time so
+       no-JS/bots still render an image; the inline `chmSyncThemedImages()`
+       script (below) overwrites it with the dark variant when needed, before
+       lazy-loaded images enter the viewport. */
 
     /* ── screenshot zoom (native dialog) ── */
     .screenshot-zoom-dialog{position:fixed;inset:0;border:none;padding:0;background:transparent;max-width:min(96vw,1200px);width:100%;height:100%;margin:auto;outline:none}
@@ -292,9 +304,6 @@ const ogImage = new URL(image, Astro.site).toString()
     .screenshot-zoom-dialog .screenshot-zoom-close{position:fixed;top:16px;right:16px;z-index:2;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--foreground);font-size:24px;line-height:1;cursor:pointer}
     .screenshot-zoom-body{max-height:90vh;max-width:100%;overflow:hidden;border-radius:var(--radius);border:1px solid var(--border);background:var(--card)}
     .screenshot-zoom-body img{display:block;max-width:100%;max-height:90vh;width:auto;height:auto;margin:auto;border-radius:var(--radius)}
-    .screenshot-zoom-body img[data-shot="dark"]{display:none !important}
-    :root[data-theme="dark"] .screenshot-zoom-body img[data-shot="light"]{display:none !important}
-    :root[data-theme="dark"] .screenshot-zoom-body img[data-shot="dark"]{display:block !important}
     html:has(.screenshot-zoom-dialog[open]){overflow:hidden}
 
     /* ── hero ── */
@@ -757,18 +766,12 @@ const ogImage = new URL(image, Astro.site).toString()
         var srcDark = btn.getAttribute('data-zoom-src-dark');
         var alt = btn.getAttribute('data-zoom-alt') || '';
         if(!src) return;
+        var theme = document.documentElement.getAttribute('data-theme');
+        var wanted = theme === 'dark' && srcDark ? srcDark : src;
         body.innerHTML = '';
-        if(srcDark){
-          var light = document.createElement('img');
-          light.src = src; light.alt = alt; light.setAttribute('data-shot','light');
-          var dark = document.createElement('img');
-          dark.src = srcDark; dark.alt = ''; dark.setAttribute('data-shot','dark'); dark.setAttribute('aria-hidden','true');
-          body.appendChild(light); body.appendChild(dark);
-        } else {
-          var img = document.createElement('img');
-          img.src = src; img.alt = alt;
-          body.appendChild(img);
-        }
+        var img = document.createElement('img');
+        img.src = wanted; img.alt = alt;
+        body.appendChild(img);
         if(typeof dlg.showModal === 'function') dlg.showModal();
       }
       document.addEventListener('click', function(e){
@@ -779,6 +782,8 @@ const ogImage = new URL(image, Astro.site).toString()
         dlg.close();
       });
     })();
+    // resolve theme-aware screenshot <img> src now that the DOM is parsed
+    if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
     // reveal on scroll
     (function(){
       var els = document.querySelectorAll('.reveal');

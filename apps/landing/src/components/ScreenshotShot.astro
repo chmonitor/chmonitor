@@ -7,7 +7,6 @@ interface Props {
 }
 
 const { id, src, srcDark, alt } = Astro.props
-const paired = Boolean(srcDark)
 ---
 
 <button
@@ -21,23 +20,11 @@ const paired = Boolean(srcDark)
 >
   <img
     src={src}
-    {...(paired ? { 'data-shot': 'light' as const } : {})}
+    data-src-light={src}
+    data-src-dark={srcDark}
     alt={alt}
     loading="lazy"
     decoding="async"
     class="block h-auto w-full align-top"
   />
-  {
-    srcDark ? (
-      <img
-        src={srcDark}
-        data-shot="dark"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-        class="block h-auto w-full align-top"
-      />
-    ) : null
-  }
 </button>
