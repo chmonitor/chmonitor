@@ -6,7 +6,7 @@ const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle t
 <section id="comparison" class="bg-muted/30 py-14 sm:py-20 md:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="reveal mx-auto max-w-2xl text-center">
-      <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Why chmonitor</p>
+      <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-emerald)]">Why chmonitor</p>
       <h2 class="mt-3 text-balance font-semibold text-2xl sm:text-3xl md:text-4xl tracking-tight">Purpose-built for ClickHouse</h2>
       <p class="mt-4 text-pretty text-sm sm:text-base text-muted-foreground">General-purpose tools treat ClickHouse as one data source among many. chmonitor reads its system tables directly and tracks nothing else. Here's how it stacks up against the most common alternatives.</p>
     </div>
@@ -21,7 +21,7 @@ const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle t
           <thead>
             <tr class="bg-muted">
               <th class="min-w-[160px] whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"></th>
-              <th class="whitespace-nowrap bg-primary/5 px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">chmonitor</th>
+              <th class="whitespace-nowrap bg-[var(--brand-orange-soft)] px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">chmonitor</th>
               <th class="whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Grafana + CH plugin</th>
               <th class="whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Datadog</th>
               <th class="whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">CH native /dashboard</th>
@@ -30,56 +30,56 @@ const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle t
           <tbody>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Setup time</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground">~5 min (Docker or CF Workers)</td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground">~5 min (Docker or CF Workers)</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Grafana + datasource plugin install</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Agent on each ClickHouse node</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Enable in ClickHouse config, restart</td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">No exporters / agents needed</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> reads system tables directly</span></td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> reads system tables directly</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={partialSvg} /> optional CH datasource plugin</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> agent required on each node</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> built into CH</span></td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">ClickHouse-specific depth</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground">Purpose-built: merges, parts, replication, query log, system health</td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground">Purpose-built: merges, parts, replication, query log, system health</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Generic SQL panels, you write the queries</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Generic agent metrics; limited CH specifics</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Basic built-in panel; minimal detail</td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">AI agent + MCP</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> built-in AI agent; MCP server at /api/mcp</span></td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> built-in AI agent; MCP server at /api/mcp</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={partialSvg} /> AI Advisor on paid plans</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Alert rules &amp; channels</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Built-in health checks, editable thresholds; one webhook &rarr; Slack or Discord + full alert history</span></td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Built-in health checks, editable thresholds; one webhook &rarr; Slack or Discord + full alert history</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Grafana Alerting: many channels and routing rules, once you've built the CH panels</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Datadog Monitors: broad integrations, mature escalation policies</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Version-aware queries</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> SQL adapts to CH schema by version</span></td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> SQL adapts to CH schema by version</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> you manage query compatibility</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">N/A</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> fixed to bundled version</span></td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Cost</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground">Free self-host; cloud in early access</td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground">Free self-host; cloud in early access</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Grafana OSS free; Grafana Cloud paid</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">~$15–23 per host per month (varies)</td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground">Free (bundled with ClickHouse)</td>
             </tr>
             <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Open source / self-host</td>
-              <td class="bg-primary/5 px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> GPL-3.0; Docker, CF Workers, K8s Helm</span></td>
+              <td class="bg-[var(--brand-orange-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> GPL-3.0; Docker, CF Workers, K8s Helm</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Grafana OSS (AGPL-3.0)</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> SaaS only</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> within ClickHouse</span></td>

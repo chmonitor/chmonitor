@@ -31,7 +31,8 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
     class="pointer-events-none absolute inset-0 -z-10"
     aria-hidden="true"
   >
-    <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,120,120,0.12),transparent_60%)] dark:bg-[radial-gradient(ellipse_70%_45%_at_50%_-10%,rgba(255,255,255,0.08),transparent_55%)]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_18%_-10%,rgba(249,115,22,0.13),transparent_60%)] dark:bg-[radial-gradient(ellipse_65%_50%_at_15%_-12%,rgba(249,115,22,0.16),transparent_58%)]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_85%_110%,rgba(16,185,129,0.12),transparent_60%)] dark:bg-[radial-gradient(ellipse_65%_50%_at_88%_112%,rgba(16,185,129,0.14),transparent_58%)]"></div>
     <div class="absolute inset-0 opacity-[0.35] dark:opacity-[0.2] [background-image:linear-gradient(to_right,rgb(128,128,128,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgb(128,128,128,0.06)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_40%,transparent_100%)]"></div>
   </div>
 
@@ -44,14 +45,14 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
         class="inline-flex max-w-full"
         data-hero-oss
       >
-        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-muted-foreground text-[11px] sm:text-xs font-medium tracking-wide backdrop-blur-sm transition-colors hover:border-foreground/20 hover:text-foreground">
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--brand-orange-soft)] px-3 py-1 text-[var(--brand-orange)] text-[11px] sm:text-xs font-semibold tracking-wide backdrop-blur-sm transition-colors hover:bg-[var(--brand-orange-soft)]/80">
           <span class="inline-flex items-center justify-center size-3.5 shrink-0" set:html={githubSvg} />
           <span class="truncate">Open source · GPL-3.0 · self-host free</span>
         </span>
       </a>
 
       <h1 class="mt-6 sm:mt-10 text-balance font-semibold text-[clamp(2.125rem,8.5vw,4.5rem)] text-foreground leading-[1.05] sm:leading-[0.98] tracking-[-0.05em] sm:tracking-[-0.06em]">
-        The ops dashboard<br class="hidden sm:block" /> for ClickHouse.
+        The ops dashboard<br class="hidden sm:block" /> for <span class="text-[var(--brand-orange)]">ClickHouse</span>.
       </h1>
 
       <p class="mx-auto mt-5 sm:mt-7 max-w-xl text-pretty text-muted-foreground text-[15px] leading-relaxed sm:text-lg font-normal">
@@ -103,7 +104,7 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
       {
         HERO_FEATURES.map((feature) => (
           <li class="flex gap-2.5 text-left text-muted-foreground text-sm leading-snug">
-            <span set:html={checkSvg} />
+            <span class="mt-0.5 size-3.5 shrink-0 text-[var(--brand-emerald)]" set:html={checkSvg} />
             <span class="text-foreground/90">{feature}</span>
           </li>
         ))

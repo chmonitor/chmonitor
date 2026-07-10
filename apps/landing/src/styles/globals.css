@@ -36,6 +36,13 @@
   --border: #eaeaea;
   --input: #eaeaea;
   --ring: #006bff;
+  /* Brand accents: orange = metrics, emerald = health/live. */
+  --brand-orange: #ea7316;
+  --brand-orange-fg: #1a1206;
+  --brand-emerald: #0d9c6c;
+  --brand-emerald-fg: #04140e;
+  --brand-orange-soft: rgba(249, 115, 22, 0.1);
+  --brand-emerald-soft: rgba(16, 185, 129, 0.1);
 }
 
 [data-theme='dark'] {
@@ -57,6 +64,13 @@
   --border: #ffffff1a;
   --input: #ffffff26;
   --ring: #48aeff;
+  /* Brand accents (same hues; soft tints stay translucent for dark). */
+  --brand-orange: #f97316;
+  --brand-orange-fg: #1a1206;
+  --brand-emerald: #10b981;
+  --brand-emerald-fg: #04140e;
+  --brand-orange-soft: rgba(249, 115, 22, 0.14);
+  --brand-emerald-soft: rgba(16, 185, 129, 0.14);
 }
 
 img {

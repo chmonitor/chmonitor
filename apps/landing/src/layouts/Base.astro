@@ -282,9 +282,9 @@ const ogImage = new URL(image, Astro.site).toString()
 
     /* ── theme toggle ── */
     .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;
-      border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
+      border-radius:9px;background:var(--card);color:var(--fg-soft);
       cursor:pointer;transition:.16s ease;flex:0 0 auto;padding:0}
-    .theme-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
+    .theme-toggle:hover{color:var(--fg);background:var(--muted)}
     .theme-toggle svg{width:16px;height:16px}
     .theme-toggle .i-sun{display:none}
     :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
@@ -302,7 +302,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .screenshot-zoom-dialog[open]{display:flex;align-items:center;justify-content:center}
     .screenshot-zoom-dialog::backdrop{background:rgba(0,0,0,.72)}
     .screenshot-zoom-dialog .screenshot-zoom-close{position:fixed;top:16px;right:16px;z-index:2;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--foreground);font-size:24px;line-height:1;cursor:pointer}
-    .screenshot-zoom-body{max-height:90vh;max-width:100%;overflow:hidden;border-radius:var(--radius);border:1px solid var(--border);background:var(--card)}
+    .screenshot-zoom-body{max-height:90vh;max-width:100%;overflow:hidden;border:0;border-radius:var(--radius);background:var(--card)}
     .screenshot-zoom-body img{display:block;max-width:100%;max-height:90vh;width:auto;height:auto;margin:auto;border-radius:var(--radius)}
     html:has(.screenshot-zoom-dialog[open]){overflow:hidden}
 
@@ -632,8 +632,13 @@ const ogImage = new URL(image, Astro.site).toString()
   </dialog>
   <script is:inline>
     document.documentElement.classList.add('js');
+    // Fault-isolated widget init: a throw in any one widget must never abort
+    // the rest of this script — the reveal observer relied on the whole script
+    // running, so a single widget failure left the lower page blank. Any
+    // failure is logged, not fatal.
+    function safe(fn){ try { fn(); } catch (e) { if (window.console) console.error('[landing] widget init failed:', e); } }
     // gallery marquee: always auto-scrolls, pauses only while pressed, drag to scroll
-    (function(){
+    safe(function(){
       var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
       document.querySelectorAll('.gallery-strip').forEach(function(strip){
         var track = strip.querySelector('.marquee');
@@ -684,7 +689,7 @@ const ogImage = new URL(image, Astro.site).toString()
       });
     })();
     // draggable carousels (hero + features)
-    (function(){
+    safe(function(){
       var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
       [].forEach.call(document.querySelectorAll('.carousel'), function(car){
         var track = car.querySelector('.ctrack');
@@ -783,17 +788,30 @@ const ogImage = new URL(image, Astro.site).toString()
       });
     })();
     // resolve theme-aware screenshot <img> src now that the DOM is parsed
-    if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
-    // reveal on scroll
-    (function(){
+    safe(function(){ if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages() });
+  </script>
+  <!-- Reveal-on-scroll runs in its OWN script so a failure in any
+       above widget can never leave the page blank (the lower sections
+       are .reveal → opacity:0 until this observer adds .in). -->
+  <script is:inline>
+    // Reveal on scroll — independent + fail-safe.
+    (function () {
       var els = document.querySelectorAll('.reveal');
-      if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in');}); return; }
-      var io = new IntersectionObserver(function(entries){
-        entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
-      }, { threshold:0.12, rootMargin:'0px 0px -8% 0px' });
-      els.forEach(function(e){ io.observe(e); });
+      // No JS at all (script disabled) or no IntersectionObserver:
+      // show everything immediately rather than leaving a blank page.
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (e) { e.classList.add('in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      els.forEach(function (e) { io.observe(e); });
     })();
-    // install tabs + per-tab copy
+  </script>
+  <script>
     (function(){
       var root = document.getElementById('deployTabs');
       var section = document.getElementById('open-source');

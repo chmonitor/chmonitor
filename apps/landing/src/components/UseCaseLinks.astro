@@ -22,12 +22,12 @@ const { items, eyebrow, heading, soft = false } = Astro.props
     <div class="mt-8 sm:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
         <a
-          class="reveal group flex flex-col rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm transition-colors hover:border-ring/40"
+          class="reveal group flex flex-col rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-emerald)]/30 hover:shadow-md"
           href={`/${item.slug}`}
           data-cta={`usecase-link-${item.slug}`}
         >
           <span
-            class="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground [&_svg]:size-4"
+            class="flex size-9 items-center justify-center rounded-lg bg-[var(--brand-emerald-soft)] text-[var(--brand-emerald)] [&_svg]:size-4"
             set:html={`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${item.benefits[0]?.icon ?? ''}</svg>`}
           />
           <h4 class="mt-4 font-semibold text-foreground">{item.eyebrow}</h4>

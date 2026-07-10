@@ -12,6 +12,7 @@ import {
   btnOutline,
   btnOutlineBlock,
   btnPrimaryBlock,
+  btnPrimaryBrand,
 } from '../lib/button-classes'
 
 const checkSvg = `<svg class="inline-block size-4 shrink-0 align-middle text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
@@ -24,11 +25,12 @@ const outlineBtn = btnOutlineBlock
 const outlineBtnAuto = btnOutline
 
 const cardColors = [
-  'bg-[#f3f4f6]/70 border-transparent dark:bg-neutral-900/40', // Free
-  'bg-[#f0f9ff]/90 border-transparent dark:bg-sky-950/20',     // Pro
-  'bg-[#fdf4ff]/90 border-transparent dark:bg-purple-950/20',  // Max
-  'bg-[#fffbeb]/90 border-transparent dark:bg-amber-950/20',   // Enterprise
+  'bg-[#f3f4f6]/70 border-transparent dark:bg-neutral-900/40',                              // Free — neutral
+  'bg-[var(--brand-orange-soft)] border-[var(--brand-orange)]/30 dark:bg-[#271405]/50',  // Pro — orange (featured)
+  'bg-[var(--brand-emerald-soft)] border-[var(--brand-emerald)]/30 dark:bg-[#04241a]/50', // Max — emerald
+  'bg-[#fdf4ff]/90 border-transparent dark:bg-purple-950/20',                            // Enterprise — neutral violet
 ]
+const featuredCta = [false, true, false, false] // Pro is the featured tier
 ---
 <section id="pricing" class="py-14 sm:py-20 md:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
@@ -66,7 +68,7 @@ const cardColors = [
 
     <div class="cloud-grid reveal mt-5 grid items-stretch gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4" data-period="yearly">
       {tiers.map((t, idx) => (
-        <div class={`flex flex-col rounded-xl border-0 p-5 sm:p-6 shadow-xs transition-colors ${cardColors[idx]}`}>
+        <div class={`flex flex-col rounded-xl border p-5 sm:p-6 shadow-xs transition-colors ${cardColors[idx]}`}>
           <div>
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-bold text-lg tracking-tight">{t.name}</span>
@@ -106,7 +108,7 @@ const cardColors = [
           </ul>
           <div class="mt-auto pt-6">
             <a
-              class={t.cta.primary ? primaryBtn : outlineBtn}
+              class={featuredCta[idx] ? btnPrimaryBrand : (t.cta.primary ? primaryBtn : outlineBtn)}
               href={t.cta.href}
               target="_blank"
               rel="noopener"

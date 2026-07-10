@@ -49,7 +49,7 @@ const faqJsonLd = {
 <section id="faq" class="py-14 sm:py-20 md:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="reveal mx-auto max-w-2xl text-center">
-      <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">FAQ</p>
+      <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-emerald)]">FAQ</p>
       <h2 class="mt-3 text-balance font-extrabold text-2xl sm:text-4xl md:text-5xl tracking-[-0.04em]">
         Questions &amp; answers
       </h2>
@@ -62,7 +62,7 @@ const faqJsonLd = {
           <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
             <span class="min-w-0 flex-1 text-pretty">{q}</span>
             <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
-            <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
+            <span class="shrink-0 text-xl font-normal text-[var(--brand-orange)] hidden group-open:inline" aria-hidden="true">&minus;</span>
           </summary>
           <div class="faq-ans pb-5 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary/80 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]" set:html={a} />
         </details>

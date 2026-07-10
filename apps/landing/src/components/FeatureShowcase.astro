@@ -45,8 +45,8 @@ const icons: Record<string, string> = {
                   : 'min-[881px]:order-1'
               }
             >
-              <span set:html={icons[section.icon]} />
-              <p class="mt-4 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              <span class="inline-flex size-11 items-center justify-center rounded-xl bg-[var(--brand-orange-soft)] [&_svg]:text-[var(--brand-orange)]" set:html={icons[section.icon]} />
+              <p class="mt-4 font-mono text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-orange)]">
                 {section.eyebrow}
               </p>
               <h3 class="mt-2 text-balance font-semibold text-2xl tracking-tight sm:text-3xl">
