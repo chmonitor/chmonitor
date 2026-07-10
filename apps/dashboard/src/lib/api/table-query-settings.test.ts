@@ -66,12 +66,22 @@ describe('getTableClickHouseSettings', () => {
 
   test('caps max_result_rows at TABLE_RESULT_ROW_LIMIT when config exceeds limit', () => {
     const config = {
-      clickhouseSettings: { max_result_rows: '5000' },
+      clickhouseSettings: { max_result_rows: '50000' },
     } as unknown as QueryConfig
 
     const result = getTableClickHouseSettings(config, undefined)
 
     expect(result.max_result_rows).toBe(String(TABLE_RESULT_ROW_LIMIT))
+  })
+
+  test('keeps a config max_result_rows under the new 10k default (#2490)', () => {
+    const config = {
+      clickhouseSettings: { max_result_rows: '5000' },
+    } as unknown as QueryConfig
+
+    const result = getTableClickHouseSettings(config, undefined)
+
+    expect(result.max_result_rows).toBe('5000')
   })
 
   test('uses TABLE_RESULT_ROW_LIMIT when config max_result_rows is 0', () => {
