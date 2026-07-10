@@ -18,7 +18,10 @@ type UsageStore = Map<string, number>
 
 function makeFakeD1(store: UsageStore) {
   function prepare(sql: string) {
-    const isSelect = sql.trimStart().toUpperCase().startsWith('SELECT')
+    const upper = sql.trimStart().toUpperCase()
+    const isSelect = upper.startsWith('SELECT')
+    // releaseAiUsage: UPDATE ... SET count = MAX(0, count - 1) — floors at 0.
+    const isRelease = upper.startsWith('UPDATE')
 
     return {
       bind(...values: unknown[]) {
@@ -26,18 +29,28 @@ function makeFakeD1(store: UsageStore) {
         const day = values[1] as string
         const key = `${ownerId}::${day}`
 
+        function applyWrite() {
+          if (isRelease) {
+            store.set(key, Math.max(0, (store.get(key) ?? 0) - 1))
+          } else {
+            // INSERT ... ON CONFLICT DO UPDATE SET count = count + 1
+            store.set(key, (store.get(key) ?? 0) + 1)
+          }
+        }
+
         return {
           async first<T>() {
-            if (!isSelect) return null
-            const count = store.get(key)
-            if (count == null) return null
-            return { count } as unknown as T
+            if (isSelect) {
+              const count = store.get(key)
+              if (count == null) return null
+              return { count } as unknown as T
+            }
+            // reserveAiUsage: INSERT ... RETURNING count
+            applyWrite()
+            return { count: store.get(key) } as unknown as T
           },
           async run() {
-            if (!isSelect) {
-              // INSERT ... ON CONFLICT DO UPDATE SET count = count + 1
-              store.set(key, (store.get(key) ?? 0) + 1)
-            }
+            if (!isSelect) applyWrite()
             return { success: true, results: [], meta: {} }
           },
         }
@@ -116,6 +129,8 @@ const {
   utcDayKey,
   getAiUsageToday,
   incrementAiUsage,
+  reserveAiUsage,
+  releaseAiUsage,
   getAiSpendThisMonth,
   meterAiOverage,
 } = await import('./ai-usage-store')
@@ -200,6 +215,49 @@ describe('incrementAiUsage + getAiUsageToday round-trip', () => {
     currentDb = null
     // Must not throw
     await incrementAiUsage('user_abc', FIXED_DATE)
+  })
+})
+
+describe('reserveAiUsage + releaseAiUsage lifecycle', () => {
+  let store: UsageStore
+
+  beforeEach(() => {
+    store = new Map()
+    currentDb = makeFakeD1(store)
+  })
+
+  test('reserve returns the post-increment count', async () => {
+    expect(await reserveAiUsage('user_abc', FIXED_DATE)).toBe(1)
+    expect(await reserveAiUsage('user_abc', FIXED_DATE)).toBe(2)
+    expect(await getAiUsageToday('user_abc', FIXED_DATE)).toBe(2)
+  })
+
+  test('reserve returns null when D1 is unavailable (self-hosted skips gating)', async () => {
+    currentDb = null
+    expect(await reserveAiUsage('user_abc', FIXED_DATE)).toBeNull()
+  })
+
+  test('release rolls back a reservation (aborted request consumes no quota)', async () => {
+    await reserveAiUsage('user_abc', FIXED_DATE)
+    await releaseAiUsage('user_abc', FIXED_DATE)
+    expect(await getAiUsageToday('user_abc', FIXED_DATE)).toBe(0)
+  })
+
+  test('release floors at 0 — a double release never over-refunds below zero', async () => {
+    // Simulates the leak-fix guard's worst case: a failure observed by BOTH the
+    // inner execute catch and the onError callback. The store floors at 0 so the
+    // counter cannot go negative even if the release-once guard were bypassed.
+    await reserveAiUsage('user_abc', FIXED_DATE)
+    await releaseAiUsage('user_abc', FIXED_DATE)
+    await releaseAiUsage('user_abc', FIXED_DATE)
+    expect(await getAiUsageToday('user_abc', FIXED_DATE)).toBe(0)
+  })
+
+  test('release is a no-op when D1 is unavailable', async () => {
+    currentDb = null
+    await expect(
+      releaseAiUsage('user_abc', FIXED_DATE)
+    ).resolves.toBeUndefined()
   })
 })
 

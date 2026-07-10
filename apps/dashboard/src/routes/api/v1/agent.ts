@@ -721,6 +721,20 @@ async function handlePost(request: Request): Promise<Response> {
   // Populated synchronously in onStepEnd so it is available after consumeStream().
   let lastStepModelId: string | undefined
 
+  // Roll back the daily reservation exactly once. Both the inner `execute`
+  // catch and the SDK's separate `onError` callback can observe a failure that
+  // produced no output (e.g. an error thrown inside the merged/piped stream
+  // surfaces via onError, outside the inner try/catch), and releaseAiUsage
+  // floors at 0 — so without this guard a double-observed failure would
+  // over-refund a slot. Idempotent: releases at most one reserved slot.
+  let usageReleased = false
+  const releaseReservationOnce = async (): Promise<void> => {
+    if (usageReleased) return
+    if (!billingOwnerId || !reservedDailyUsage) return
+    usageReleased = true
+    await releaseAiUsage(billingOwnerId)
+  }
+
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       let modelMessages: ModelMessage[] = []
@@ -856,10 +870,10 @@ async function handlePost(request: Request): Promise<Response> {
               stats.estimatedCostUsd
             )
           }
-        } else if (billingOwnerId && reservedDailyUsage) {
+        } else {
           // Generation failed before producing any output — release the daily
           // reservation so aborted requests don't consume the user's quota.
-          await releaseAiUsage(billingOwnerId)
+          await releaseReservationOnce()
         }
       }
     },
@@ -869,6 +883,15 @@ async function handlePost(request: Request): Promise<Response> {
         provider: requestedProvider,
       })
       console.error('[Agent API] Classified error:', classified)
+      // A failure can surface here (rather than the inner execute catch) when it
+      // is thrown inside the merged/piped stream after the reservation. If no
+      // output was produced, release the daily reservation so the user is not
+      // charged for a request that yielded nothing. Best-effort + idempotent:
+      // releaseReservationOnce guards against a double release if the inner
+      // catch already released.
+      if (usageSteps.length === 0) {
+        void releaseReservationOnce()
+      }
       return JSON.stringify(classified)
     },
     onEnd: () => {
