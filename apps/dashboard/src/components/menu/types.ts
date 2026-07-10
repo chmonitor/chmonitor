@@ -1,3 +1,4 @@
+import type { SourceEngine } from '@chm/types'
 import type { Icon } from '@chm/types/icon'
 import type { FeaturePermission } from '@/lib/feature-permissions/types'
 import type { BadgeVariant } from '@/types/badge-variant'
@@ -33,4 +34,14 @@ export interface MenuItem {
    * honors it without each one re-implementing the gate.
    */
   cloudOnly?: boolean
+  /**
+   * Source engines this item applies to (issue #2450 — engine-aware menu swap,
+   * decision 4). ABSENT means the ClickHouse family (`clickhouse` +
+   * `clickhouse-cloud`) — i.e. every existing item is unchanged. Postgres-only
+   * items declare `engines: ['postgres']`. Filtered centrally by
+   * `getVisibleMenuItems` against the ACTIVE host's engine, so switching to a
+   * Postgres source swaps the nav menu to Postgres pages while ClickHouse hosts
+   * keep today's exact menu (zero-diff invariant).
+   */
+  engines?: SourceEngine[]
 }

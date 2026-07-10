@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/command'
 import { IconButton } from '@/components/ui/icon-button'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
+import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
 import { useRouter, useSearchParams } from '@/lib/next-compat'
 import { buildUrl } from '@/lib/url/url-builder'
@@ -76,7 +77,8 @@ export const CommandPalette = function CommandPalette({
   const [internalOpen, setInternalOpen] = React.useState(false)
   const [inputValue, setInputValue] = useState('')
   const { config } = useFeaturePermissions()
-  const menuItems = getVisibleMenuItems(config)
+  const engine = useActiveHostEngine()
+  const menuItems = getVisibleMenuItems(config, engine)
 
   const open = controlledOpen ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen

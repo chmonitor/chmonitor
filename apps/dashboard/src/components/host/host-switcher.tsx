@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { usePgConnections } from '@/lib/hooks/use-pg-connections'
 import { canEditHost } from '@/lib/host-permissions'
 import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
@@ -49,7 +50,9 @@ export function HostSwitcher() {
   const searchParams = useSearchParams()
   const { isMobile, state } = useSidebar()
   const { hosts, isLoading, error, isUnauthorized } = useMergedHosts()
+  const { connections: pgConnections } = usePgConnections()
   const currentHostId = useHostId()
+  const activePgId = searchParams.get('pg')
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   // Controlled so a per-row "details/edit" click can close the menu before the
   // dialog opens — otherwise the dropdown's focus trap fights the dialog's.
@@ -75,8 +78,19 @@ export function HostSwitcher() {
   }, [isLoading])
 
   const handleHostChange = (hostId: number) => {
-    const url = buildUrl(pathname, { host: hostId }, searchParams)
+    // Selecting a ClickHouse host clears any active Postgres source (`?pg=`) so
+    // the nav menu reverts to the ClickHouse menu (#2450 engine-aware swap).
+    const next = new URLSearchParams(searchParams)
+    next.delete('pg')
+    const url = buildUrl(pathname, { host: hostId }, next)
     router.push(url)
+  }
+
+  const handlePgChange = (connectionId: string) => {
+    // Route to the Postgres pages carrying the source in the `?pg=` dimension —
+    // never overloaded onto the ClickHouse `?host=` id space.
+    router.push(`/postgres/queries?pg=${encodeURIComponent(connectionId)}`)
+    setMenuOpen(false)
   }
 
   // Show the skeleton only while we still have nothing to render and the load
@@ -324,6 +338,39 @@ export function HostSwitcher() {
                     </DropdownMenuItem>
                   )
                 })}
+                {pgConnections.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">
+                        Postgres Sources
+                      </DropdownMenuLabel>
+                    </DropdownMenuGroup>
+                    {pgConnections.map((pg) => (
+                      <DropdownMenuItem
+                        key={`pg-${pg.connectionId}`}
+                        onClick={() => handlePgChange(pg.connectionId)}
+                        className="gap-2 p-2"
+                        data-testid={`pg-option-${pg.connectionId}`}
+                      >
+                        <GlobeIcon className="size-3 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate text-sm">
+                              {pg.name || pg.host}
+                            </span>
+                            {pg.connectionId === activePgId && (
+                              <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                            )}
+                          </span>
+                        </div>
+                        <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          Postgres
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setAddDialogOpen(true)}

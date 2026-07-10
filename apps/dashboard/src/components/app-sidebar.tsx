@@ -16,13 +16,16 @@ import {
 import { GUEST_USER } from '@/lib/clerk/guest-user'
 import { DOCS_SITE_URL } from '@/lib/docs-site'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
+import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
 
 export function AppSidebar() {
   const { config } = useFeaturePermissions()
-  // Feature-permission + cloud-only (Billing/Organization) gates resolved in
-  // one place — see lib/menu/visible-items.ts.
-  const menuItems = getVisibleMenuItems(config)
+  // Feature-permission + cloud-only (Billing/Organization) + engine gates
+  // resolved in one place — see lib/menu/visible-items.ts. The active engine
+  // swaps the menu to Postgres pages when a Postgres source is selected (#2450).
+  const engine = useActiveHostEngine()
+  const menuItems = getVisibleMenuItems(config, engine)
 
   return (
     <Sidebar collapsible="icon" variant="inset">
