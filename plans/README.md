@@ -235,7 +235,7 @@ it protects (76–78, 95).
 | 94 | [toolchain-version-alignment](94-toolchain-version-alignment.md) | dx | P2 | S | — | ⏳ TODO · [#2511](https://github.com/chmonitor/chmonitor/issues/2511) |
 | 95 | [platform-adapter-tests](95-platform-adapter-tests.md) | tests | P2 | S | — | ⏳ TODO · [#2512](https://github.com/chmonitor/chmonitor/issues/2512) |
 | 96 | [opennext-context-replacement-spike](96-opennext-context-replacement-spike.md) | migration | P3 | M | 95 | ⏳ TODO · [#2513](https://github.com/chmonitor/chmonitor/issues/2513) |
-| 97 | [billing-cycle-metering-alignment](97-billing-cycle-metering-alignment.md) | business-logic | P2 | M | 76 (soft) | ⏳ TODO · [#2514](https://github.com/chmonitor/chmonitor/issues/2514) |
+| 97 | [billing-cycle-metering-alignment](97-billing-cycle-metering-alignment.md) | business-logic | P2 | M | 76 (soft) | ✅ DONE · [#2514](https://github.com/chmonitor/chmonitor/issues/2514) |
 | 98 | [cloud-mode-runtime-consistency](98-cloud-mode-runtime-consistency.md) | investigate | P3 | S–M | — | ⏳ TODO · [#2515](https://github.com/chmonitor/chmonitor/issues/2515) |
 | 99 | [seat-precheck-pending-invites](99-seat-precheck-pending-invites.md) | business-logic | P3 | S | — | ⏳ TODO · [#2516](https://github.com/chmonitor/chmonitor/issues/2516) |
 | 100 | [ai-usage-reservation-release](100-ai-usage-reservation-release.md) | investigate | P3 | S | — | ⏳ TODO · [#2517](https://github.com/chmonitor/chmonitor/issues/2517) |

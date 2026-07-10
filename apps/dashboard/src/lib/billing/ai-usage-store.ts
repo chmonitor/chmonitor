@@ -12,16 +12,16 @@
 import type { Plan } from './plans'
 
 import { getPlatformBindings } from '@chm/platform'
+import { periodKeyForOwner, utcMonthKey } from './period-key'
 
 /** Returns the UTC date string 'YYYY-MM-DD' for the given instant. */
 export function utcDayKey(now: Date = new Date()): string {
   return now.toISOString().slice(0, 10)
 }
 
-/** Returns the UTC month string 'YYYY-MM' for the given instant. */
-export function utcMonthKey(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 7)
-}
+// Re-exported for existing call-sites — see period-key.ts for the
+// subscription-cycle-aware key that now drives the monthly meters below.
+export { utcMonthKey }
 
 function getDb() {
   return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
@@ -170,8 +170,10 @@ async function ensureMonthlyTable(
 }
 
 /**
- * Return USD `ownerId` has spent on AI this month (UTC). Returns 0 when D1 is
- * unavailable or no row exists yet, so OSS deployments are never gated.
+ * Return USD `ownerId` has spent on AI this billing cycle. Keyed by
+ * {@link periodKeyForOwner} — the subscription's cycle window when one is
+ * live, else the calendar UTC month. Returns 0 when D1 is unavailable or no
+ * row exists yet, so OSS deployments are never gated.
  */
 export async function getAiSpendThisMonth(
   ownerId: string,
@@ -181,11 +183,12 @@ export async function getAiSpendThisMonth(
   if (!db) return 0
   try {
     await ensureMonthlyTable(db)
+    const periodKey = await periodKeyForOwner(ownerId, now)
     const row = await db
       .prepare(
         `SELECT spent_usd FROM ai_usage_monthly WHERE owner_id = ?1 AND month = ?2`
       )
-      .bind(ownerId, utcMonthKey(now))
+      .bind(ownerId, periodKey)
       .first<{ spent_usd: number }>()
     return row?.spent_usd ?? 0
   } catch {
@@ -194,9 +197,11 @@ export async function getAiSpendThisMonth(
 }
 
 /**
- * Add `amountUsd` to `ownerId`'s monthly spend accumulator (UTC month). Fed by
- * the already-computed `estimatedCostUsd` after a successful generation. Ignores
- * non-positive / non-finite amounts. No-op when D1 is unavailable.
+ * Add `amountUsd` to `ownerId`'s monthly spend accumulator, keyed by
+ * {@link periodKeyForOwner} (subscription billing cycle, or the calendar UTC
+ * month with no live subscription). Fed by the already-computed
+ * `estimatedCostUsd` after a successful generation. Ignores non-positive /
+ * non-finite amounts. No-op when D1 is unavailable.
  */
 export async function addAiSpend(
   ownerId: string,
@@ -208,6 +213,7 @@ export async function addAiSpend(
   if (!db) return
   try {
     await ensureMonthlyTable(db)
+    const periodKey = await periodKeyForOwner(ownerId, now)
     const updatedAt = Math.floor(now.getTime() / 1000)
     await db
       .prepare(
@@ -217,7 +223,7 @@ export async function addAiSpend(
            spent_usd  = spent_usd + excluded.spent_usd,
            updated_at = excluded.updated_at`
       )
-      .bind(ownerId, utcMonthKey(now), amountUsd, updatedAt)
+      .bind(ownerId, periodKey, amountUsd, updatedAt)
       .run()
   } catch {
     // Swallow: a missing table or transient D1 error must not break the request.
