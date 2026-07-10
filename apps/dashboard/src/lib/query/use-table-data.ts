@@ -9,6 +9,7 @@ import {
   isCustomHost,
 } from '@/lib/host-fetch/resolve-host-fetch'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
+import { tableQueryKey } from '@/lib/query/query-keys'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
@@ -62,14 +63,13 @@ export function useTableData<T = unknown>(
     // searchParams is read inside but keyed via the stable searchParamsKey.
   }, [queryConfigName, hostId, searchParamsKey, timezone])
 
-  const queryKey = [
-    '/api/v1/tables',
+  const queryKey = tableQueryKey({
     queryConfigName,
     hostId,
-    JSON.stringify(searchParams ?? {}),
+    searchParams,
     timezone,
-    hostConnectionKey(hostId, browserConnection),
-  ] as const
+    connectionKey: hostConnectionKey(hostId, browserConnection),
+  })
 
   const resolvedRefetchInterval =
     refreshInterval && refreshInterval > 0

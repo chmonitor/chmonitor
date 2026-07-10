@@ -4,14 +4,20 @@ import type { PrefetchConfig } from './route-prefetch-map'
 
 import { apiFetch } from './api-fetch'
 import { routePrefetchMap } from './route-prefetch-map'
+import { hostConnectionKey } from '@/lib/query/host-query-key'
+import { chartQueryKey, tableQueryKey } from '@/lib/query/query-keys'
 
 /**
  * Prefetch chart data and seed the TanStack Query cache.
- * Uses the same cache key structure as useChartData:
- * ['/api/v1/charts', chartName, hostId, interval, lastHours, JSON.stringify(params || null), timezone]
+ * Builds the cache key via `chartQueryKey` — the same factory `useChartData`
+ * uses — so the seeded entry is actually read on navigation instead of
+ * silently orphaning under a different key (issue #2489).
  *
- * For prefetching we use undefined for optional params (interval, lastHours, params, timezone)
+ * For prefetching we pass no interval/lastHours/timezone and `params: null`
  * since the default overview charts are fetched without these params.
+ * `hostConnectionKey(hostId, null)` matches what the hook computes for an env
+ * host (id >= 0) with no browser connection — the only case hover-prefetch
+ * currently targets.
  */
 function prefetchChart(
   queryClient: QueryClient,
@@ -19,15 +25,12 @@ function prefetchChart(
   hostId: number
 ): void {
   const url = `/api/v1/charts/${chartName}?hostId=${hostId}`
-  const queryKey = [
-    '/api/v1/charts',
+  const queryKey = chartQueryKey({
     chartName,
     hostId,
-    undefined, // interval
-    undefined, // lastHours
-    JSON.stringify(null), // params
-    undefined, // timezone (undefined = no timezone preference)
-  ]
+    params: null,
+    connectionKey: hostConnectionKey(hostId, null),
+  })
 
   apiFetch(url)
     .then((res) => {
@@ -45,8 +48,9 @@ function prefetchChart(
 
 /**
  * Prefetch table data and seed the TanStack Query cache.
- * Uses the same cache key structure as useTableData:
- * ['/api/v1/tables', queryConfigName, hostId, JSON.stringify(searchParams || {}), timezone]
+ * Builds the cache key via `tableQueryKey` — the same factory `useTableData`
+ * uses — so the seeded entry is actually read on navigation instead of
+ * silently orphaning under a different key (issue #2489).
  */
 function prefetchTable(
   queryClient: QueryClient,
@@ -54,13 +58,12 @@ function prefetchTable(
   hostId: number
 ): void {
   const url = `/api/v1/tables/${tableName}?hostId=${hostId}`
-  const queryKey = [
-    '/api/v1/tables',
-    tableName,
+  const queryKey = tableQueryKey({
+    queryConfigName: tableName,
     hostId,
-    JSON.stringify({}), // searchParams
-    undefined, // timezone (undefined = no timezone preference)
-  ]
+    searchParams: {},
+    connectionKey: hostConnectionKey(hostId, null),
+  })
 
   apiFetch(url)
     .then((res) => {

@@ -8,6 +8,7 @@ import {
   isCustomHost,
 } from '@/lib/host-fetch/resolve-host-fetch'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
+import { chartQueryKey } from '@/lib/query/query-keys'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { REFRESH_INTERVAL, type RefreshInterval } from '@/lib/swr/config'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
@@ -91,16 +92,15 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
     return `/api/v1/charts/${chartName}${queryString ? `?${queryString}` : ''}`
   }, [chartName, hostId, interval, lastHours, paramsKey, timezone])
 
-  const queryKey = [
-    '/api/v1/charts',
+  const queryKey = chartQueryKey({
     chartName,
     hostId,
     interval,
     lastHours,
-    JSON.stringify(params ?? null),
+    params,
     timezone,
-    hostConnectionKey(numericHostId, browserConnection),
-  ] as const
+    connectionKey: hostConnectionKey(numericHostId, browserConnection),
+  })
 
   const resolvedRefetchInterval =
     refreshInterval > 0
