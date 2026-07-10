@@ -274,7 +274,7 @@ describe('POST /api/v1/user-connections — Postgres engine branch', () => {
     // The stored input carries the engine + a v2 (kind:'postgres') credential
     // envelope with the Postgres-only fields; hostUrl is the display form.
     expect(storeCreate).toHaveBeenCalledTimes(1)
-    const input = storeCreate.mock.calls[0]?.[1] as {
+    const input = storeCreate.mock.calls[0]?.[1] as unknown as {
       engine?: string
       hostUrl: string
       credentials: Record<string, unknown>
