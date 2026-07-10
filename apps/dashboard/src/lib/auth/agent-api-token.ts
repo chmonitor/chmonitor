@@ -1,15 +1,5 @@
 import { getBearerToken } from '@chm/mcp-server/auth'
-
-function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false
-
-  let diff = 0
-  for (let index = 0; index < a.length; index += 1) {
-    diff |= a[index] ^ b[index]
-  }
-
-  return diff === 0
-}
+import { constantTimeEqual } from '@/lib/auth/providers/constant-time'
 
 async function sha256(input: string): Promise<Uint8Array> {
   const digest = await crypto.subtle.digest(
