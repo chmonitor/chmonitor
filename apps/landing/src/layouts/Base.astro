@@ -35,7 +35,7 @@ const ogImage = new URL(image, Astro.site).toString()
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#1c1b17" media="(prefers-color-scheme: dark)" />
   <meta name="twitter:site" content="@chmonitor" />
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
@@ -63,29 +63,33 @@ const ogImage = new URL(image, Astro.site).toString()
       }
     ]
   })} />
-  <!-- Self-hosted variable fonts (latin subset, ~60KB total). No render-blocking
-       Google Fonts request and no cross-origin connection — same-origin preload
-       paints text fast with swap fallback. -->
+  <!-- Self-hosted fonts (latin subset, ~70KB total): Geist variable sans +
+       Geist Mono static weights. No render-blocking Google Fonts request and no
+       cross-origin connection — same-origin preload paints text fast with swap
+       fallback. Only the 400 mono weight is preloaded; 500/600 load on demand. -->
   <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/geist-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin />
   <style>
     @font-face{font-family:'Geist';font-style:normal;font-weight:400 700;font-display:swap;src:url('/fonts/geist-latin.woff2') format('woff2')}
-    @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/jetbrains-mono-latin.woff2') format('woff2')}
+    /* Geist Mono ships static weights (no variable axis), so declare only the
+       three the landing uses: body code (400), eyebrows (500), labels (600). */
+    @font-face{font-family:'Geist Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/geist-mono-latin-400.woff2') format('woff2')}
+    @font-face{font-family:'Geist Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/geist-mono-latin-500.woff2') format('woff2')}
+    @font-face{font-family:'Geist Mono';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/geist-mono-latin-600.woff2') format('woff2')}
     /* Single sans family across the site (shadcn-style). `--serif` retained as an
        alias → Geist sans so headings that referenced it stop rendering the old
        editorial serif; the Fraunces webfont is dropped (−~60KB preload). */
     :root{--serif:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
   </style>
   <script is:inline>
-    // Resolve theme before paint (no flash): the landing commits to a dark
-    // (x.ai-style) canvas by default. A saved choice still wins so the toggle
-    // works, but there is no light default and OS light preference is ignored.
+    // Resolve theme before paint (no flash): the landing defaults to the light
+    // canvas. A saved choice still wins so the toggle works.
     (function () {
       try {
         var saved = localStorage.getItem('chm-theme')
-        document.documentElement.setAttribute('data-theme', saved || 'dark')
+        document.documentElement.setAttribute('data-theme', saved || 'light')
       } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark')
+        document.documentElement.setAttribute('data-theme', 'light')
       }
     })()
     // Theme-aware screenshots: a single <img data-src-light data-src-dark>
@@ -110,64 +114,82 @@ const ogImage = new URL(image, Astro.site).toString()
        `a{color:inherit}` beat EVERY Tailwind margin/padding/text-color utility
        (unlayered rules win over any layered rule), breaking the shadcn sections. */
     @layer base {
-    /* Geist (vercel.com/design.md) + x.ai monochrome field.
-       Light: white / gray-1000. Dark: pure black, white type. */
+    /* Light: white floor, warm near-black ink. Dark: warm near-black floor —
+       never pure #000. Depth is hairlines, not shadows.
+       Mirrors the shadcn token set in styles/globals.css; keep both in step. */
     :root{
       --bg:#ffffff;
       --bg-soft:#fafafa;
-      --fg:#171717;
-      --fg-soft:#4d4d4d;
-      --muted-fg:#666666;
-      --border:#eaeaea;
-      --border-soft:#f2f2f2;
-      --border-hover:#c9c9c9;
-      --muted:#f2f2f2;
+      --fg:#26251e;
+      --fg-soft:#5a5852;
+      --muted-fg:#807d72;
+      --border:#e7e6e2;
+      --border-soft:#f1f0ed;
+      --border-hover:#cfcdc4;
+      --muted:#f1f0ed;
       --card:#ffffff;
       --nav-bg:rgba(255,255,255,.80);
       --browser-bar:#fafafa;
-      --btn-primary-bg:#171717;
-      --btn-primary-bg-hover:#000000;
+      /* Filled CTA uses the deeper orange: white on #f54e00 is only 3.52:1,
+         which fails AA for a 14px label. #d04200 clears it at 4.71:1. */
+      --btn-primary-bg:#d04200;
+      --btn-primary-bg-hover:#b03800;
       --btn-primary-fg:#ffffff;
-      --primary:#171717;
+      --primary:#26251e;
       --primary-fg:#ffffff;
-      --orange:var(--primary);
-      --amber:#666666;
-      --emerald:#171717;
-      --violet:#666666;
-      --blue:#171717;
-      /* x.ai sharp corners */
-      --radius:2px;
-      --maxw:1200px;
-      --shadow-card:0 2px 2px rgba(0,0,0,.04);
-      --shadow-float:0 1px 1px rgba(0,0,0,.02), 0 4px 8px -4px rgba(0,0,0,.04), 0 16px 24px -8px rgba(0,0,0,.06);
+      /* `--orange` is small-text safe (5.87:1 on white); `--brand` is the vivid
+         accent, valid only for ≥24px text, fills and non-text marks. */
+      --brand:#f54e00;
+      --orange:#b03800;
+      --amber:#807d72;
+      --emerald:#1f8a65;
+      --violet:#807d72;
+      --blue:#26251e;
+      --radius:8px;
+      --radius-card:12px;
+      --maxw:1080px;
+      --shadow-card:none;
+      --shadow-float:0 1px 1px rgba(38,37,30,.04), 0 4px 12px -6px rgba(38,37,30,.10);
       --shadow-glow:none;
     }
     :root[data-theme="dark"]{
-      /* x.ai-style pure black canvas */
-      --bg:#000000;
-      --bg-soft:#0a0a0a;
-      --fg:#ededed;
-      --fg-soft:#a1a1a1;
-      --muted-fg:#888888;
-      --border:#1a1a1a;
-      --border-soft:#111111;
-      --border-hover:#2a2a2a;
-      --muted:#111111;
-      --card:#0a0a0a;
-      --nav-bg:rgba(0,0,0,.72);
-      --browser-bar:#0a0a0a;
-      --primary:#ededed;
+      --bg:#1c1b17;
+      --bg-soft:#211f1a;
+      --fg:#edece6;
+      --fg-soft:#b5b2a8;
+      --muted-fg:#97948a;
+      --border:#38362f;
+      --border-soft:#2e2c26;
+      --border-hover:#4a473e;
+      --muted:#2e2c26;
+      --card:#262520;
+      --nav-bg:rgba(28,27,23,.72);
+      --browser-bar:#211f1a;
+      --primary:#edece6;
+      --primary-fg:#1c1b17;
       --shadow-glow:none;
-      --btn-primary-bg:#ededed;
-      --btn-primary-bg-hover:#ffffff;
-      --btn-primary-fg:#0a0a0a;
-      --shadow-card:0 2px 2px rgba(0,0,0,.4);
-      --shadow-float:0 1px 1px rgba(0,0,0,.2), 0 4px 8px -4px rgba(0,0,0,.4), 0 16px 24px -8px rgba(0,0,0,.5);
+      --btn-primary-bg:#d04200;
+      --btn-primary-bg-hover:#b03800;
+      --btn-primary-fg:#ffffff;
+      --brand:#f54e00;
+      --orange:#f97316;
+      --amber:#97948a;
+      --emerald:#35b184;
+      --violet:#97948a;
+      --blue:#edece6;
+      --shadow-card:none;
+      --shadow-float:0 1px 1px rgba(0,0,0,.2), 0 4px 12px -6px rgba(0,0,0,.5);
     }
     *{margin:0;padding:0;box-sizing:border-box}
+    /* Tailwind's preflight is intentionally not imported (see globals.css), and
+       the `*` reset above never touches `border`. Without this, any <button>
+       that doesn't declare a border of its own paints Chrome's UA default
+       (`1px outset ButtonBorder`) as a hard near-black ring. Components that
+       want a hairline still opt in explicitly. */
+    button{border:0 solid transparent}
     html{scroll-behavior:smooth}
-    /* keep in-page jump targets clear of the sticky nav */
-    :target{scroll-margin-top:72px}
+    /* breathing room above jump targets (the nav no longer overlaps) */
+    :target{scroll-margin-top:24px}
     body{
       background:var(--bg);
       color:var(--fg);
@@ -178,9 +200,9 @@ const ogImage = new URL(image, Astro.site).toString()
     }
 
     a{color:inherit;text-decoration:none}
-    .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+    .mono{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
     .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
-    .eyebrow{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-fg)}
+    .eyebrow{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-fg)}
 
     /* ── buttons (Geist: 40px height, 6px radius, no lift) ── */
     .btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--radius);
@@ -202,13 +224,12 @@ const ogImage = new URL(image, Astro.site).toString()
     .mark-lg.mark--fallback{border-radius:12px}
     .mark-lg svg{width:22px;height:22px}
 
-    /* ── nav ── */
-    header.nav{position:sticky;top:0;z-index:50;background:var(--nav-bg);
-      backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid transparent;
-      transition:border-color .2s ease}
-    /* Only draw the divider once the page has scrolled off the very top. */
-    header.nav.is-scrolled{border-bottom-color:var(--border-soft)}
-    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:24px;height:56px}
+    /* ── nav ──
+       Static, not sticky: the header scrolls away and gives the viewport back
+       to the content. No backdrop blur is needed once it never overlaps. */
+    header.nav{position:relative;z-index:50;background:var(--bg);
+      border-bottom:1px solid var(--border-soft)}
+    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px}
     .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:600;font-size:15px;letter-spacing:-.02em}
     .nav-links{display:flex;align-items:center;gap:22px}
     .nav-links a{font-size:14px;color:var(--muted-fg);font-weight:500;white-space:nowrap;transition:color .15s}
@@ -216,7 +237,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .nav-cta{display:flex;align-items:center;gap:10px;flex:0 0 auto}
     /* hamburger — hidden on desktop, revealed at ≤1024px (see responsive block) */
     .nav-toggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;
-      border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
+      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
       cursor:pointer;padding:0;flex:0 0 auto;transition:.16s ease}
     .nav-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
     .nav-toggle svg{width:18px;height:18px}
@@ -239,7 +260,7 @@ const ogImage = new URL(image, Astro.site).toString()
       height:64px;padding:0 16px 0 22px;border-bottom:1px solid var(--border-soft);flex:0 0 auto}
     .nav-drawer-title{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg)}
     .nav-drawer-close{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
-      border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
+      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
       cursor:pointer;padding:0;transition:.16s ease}
     .nav-drawer-close:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
     .nav-drawer-close svg{width:18px;height:18px}
@@ -267,9 +288,10 @@ const ogImage = new URL(image, Astro.site).toString()
     .nav-trigger svg{width:13px;height:13px;transition:transform .2s ease;opacity:.7}
     .nav-group:hover .nav-trigger,.nav-group:focus-within .nav-trigger{color:var(--fg)}
     .nav-group:hover .nav-trigger svg,.nav-group:focus-within .nav-trigger svg{transform:rotate(180deg)}
+    /* Card radius (12px), hairline depth — no drop shadow. */
     .nav-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(6px);
-      min-width:208px;padding:7px;background:var(--card);border:1px solid var(--border);border-radius:12px;
-      box-shadow:var(--shadow-float);display:flex;flex-direction:column;gap:1px;
+      min-width:208px;padding:7px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card,12px);
+      display:flex;flex-direction:column;gap:1px;
       opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease;z-index:60}
     /* hover bridge so the cursor can cross the gap to the menu */
     .nav-group::after{content:"";position:absolute;top:100%;left:0;right:0;height:14px}
@@ -281,10 +303,11 @@ const ogImage = new URL(image, Astro.site).toString()
     @media (prefers-reduced-motion:reduce){.nav-trigger svg,.nav-menu{transition:none}}
 
     /* ── theme toggle ── */
-    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;
-      border-radius:9px;background:var(--card);color:var(--fg-soft);
+    /* Matches .nav-toggle / .btn: 40px box, 8px radius, hairline border. */
+    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
       cursor:pointer;transition:.16s ease;flex:0 0 auto;padding:0}
-    .theme-toggle:hover{color:var(--fg);background:var(--muted)}
+    .theme-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
     .theme-toggle svg{width:16px;height:16px}
     .theme-toggle .i-sun{display:none}
     :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
@@ -311,10 +334,7 @@ const ogImage = new URL(image, Astro.site).toString()
     /* static CSS fallback: shows before the shader island hydrates and whenever
        WebGL is unavailable (the shader renders nothing then). */
     .hero::before{content:"";position:absolute;inset:0;z-index:-1;
-      background:
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37,99,235,.16), transparent 65%),
-        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(245,158,11,.08), transparent 55%),
-        radial-gradient(ellipse 50% 35% at 15% 20%, rgba(16,185,129,.05), transparent 50%);}
+      background:radial-gradient(ellipse 60% 45% at 50% -15%, rgba(245,78,0,.10), transparent 62%);}
     /* hero content must layer above the ::before background */
     .hero > .wrap,.hero > .gallery-strip{position:relative;z-index:1}
     .hero-actions{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:30px;flex-wrap:wrap}
@@ -385,8 +405,9 @@ const ogImage = new URL(image, Astro.site).toString()
     .feat-list{margin-top:20px;display:flex;flex-direction:column;gap:11px}
     .feat-list li{display:flex;gap:11px;font-size:14.5px;color:var(--fg-soft);list-style:none}
     .feat-list svg{width:17px;height:17px;color:var(--emerald);flex:0 0 auto;margin-top:2px}
-    .feat-shot{border:none;border-radius:var(--radius);overflow:hidden;background:transparent;box-shadow:0 24px 80px -12px rgba(0,0,0,.35);transition:transform .5s ease,box-shadow .18s ease}
-    .feat-shot:hover{transform:scale(1.008)}
+    /* Hairline depth, not shadow. */
+    .feat-shot{border:1px solid var(--border);border-radius:var(--radius-card,12px);overflow:hidden;background:var(--card);transition:border-color .18s ease}
+    .feat-shot:hover{border-color:var(--border-hover)}
     .feat-shot .browser-bar{height:20px}
     .feat-shot .lights i{width:9px;height:9px}
     .feat-shot img{display:block;width:100%;height:auto}
@@ -397,7 +418,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .de-card .feat-shot{margin:0}
     .de-cap{display:flex;align-items:flex-start;gap:11px}
     .de-cap .n{flex:0 0 auto;width:24px;height:24px;border-radius:7px;background:var(--muted);border:1px solid var(--border);
-      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg-soft);font-family:'JetBrains Mono',monospace}
+      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg-soft);font-family:'Geist Mono',monospace}
     .de-cap b{font-size:15px;font-weight:600;letter-spacing:-.01em}
     .de-cap span{display:block;font-size:13.5px;color:var(--muted-fg);margin-top:2px;text-wrap:pretty}
 
@@ -431,18 +452,18 @@ const ogImage = new URL(image, Astro.site).toString()
     .envt th{text-align:left;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-fg);font-weight:600;
       padding:9px 18px;background:var(--bg-soft);border-bottom:1px solid var(--border-soft)}
     .envt td{padding:12px 18px;border-top:1px solid var(--border-soft);vertical-align:top;color:var(--muted-fg);text-wrap:pretty}
-    .envt code{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--fg);background:var(--muted);padding:2px 6px;border-radius:5px;white-space:nowrap}
+    .envt code{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--fg);background:var(--muted);padding:2px 6px;border-radius:5px;white-space:nowrap}
     .envt .req{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px}
     .envt .req.y{background:#fdecd8;color:#b45309}
     .envt .req.n{background:var(--muted);color:var(--muted-fg)}
     .cfg-note{padding:13px 18px;border-top:1px solid var(--border-soft);font-size:12.5px;color:var(--muted-fg);background:var(--bg-soft);text-wrap:pretty}
-    .cfg-note code{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--fg-soft)}
+    .cfg-note code{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--fg-soft)}
 
     /* deploy tabs + panes */
     .deploy{min-width:0}
     .deploy h3{font-size:22px;letter-spacing:-.02em;font-weight:700}
     .deploy-lead{margin-top:12px;font-size:16px;color:var(--muted-fg);max-width:66ch;margin-bottom:26px;text-wrap:pretty}
-    .deploy-lead code{font-family:'JetBrains Mono',monospace;font-size:13.5px;background:var(--muted);padding:1px 6px;border-radius:5px;color:var(--fg)}
+    .deploy-lead code{font-family:'Geist Mono',monospace;font-size:13.5px;background:var(--muted);padding:1px 6px;border-radius:5px;color:var(--fg)}
     .deploy-tabbar{display:flex;gap:2px;border-bottom:1px solid var(--border)}
     .deploy-tab{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:46px;padding:0 10px;background:none;border:none;flex:1 1 0;min-width:0;
       border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--muted-fg);
@@ -453,13 +474,13 @@ const ogImage = new URL(image, Astro.site).toString()
     .deploy-pane{display:none;padding-top:26px}
     .deploy-pane[data-on="true"]{display:block}
     .deploy-note{font-size:15px;color:var(--fg-soft);margin-bottom:18px;max-width:66ch;text-wrap:pretty}
-    .deploy-note code{font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--muted);padding:1px 6px;border-radius:5px;color:var(--fg)}
+    .deploy-note code{font-family:'Geist Mono',monospace;font-size:13px;background:var(--muted);padding:1px 6px;border-radius:5px;color:var(--fg)}
     .deploy-sub{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-fg);margin:24px 0 11px}
     .deploy .terminal + .terminal{margin-top:14px}
     .callout{display:flex;gap:12px;padding:14px 16px;border:1px solid var(--border);border-left:3px solid var(--amber);
       border-radius:10px;background:var(--card);font-size:13.5px;color:var(--fg-soft);margin-top:18px;text-wrap:pretty;line-height:1.6}
     .callout svg{width:17px;height:17px;color:var(--amber);flex:0 0 auto;margin-top:2px}
-    .callout code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--muted);padding:1px 5px;border-radius:4px;color:var(--fg)}
+    .callout code{font-family:'Geist Mono',monospace;font-size:12px;background:var(--muted);padding:1px 5px;border-radius:4px;color:var(--fg)}
 
     .terminal{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#0c0c0f;box-shadow:var(--shadow-float)}
     .term-bar{display:flex;align-items:center;gap:9px;height:40px;padding:0 14px;background:#161619;border-bottom:1px solid #232327}
@@ -476,7 +497,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .term-tab[data-on="true"]{color:#fff;border-bottom-color:var(--orange)}
     .term-pane{display:none}
     .term-pane[data-on="true"]{display:block}
-    .term-body{padding:20px 20px 24px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2;color:#e4e4e7;overflow-x:auto}
+    .term-body{padding:20px 20px 24px;font-family:'Geist Mono',monospace;font-size:13px;line-height:2;color:#e4e4e7;overflow-x:auto}
     .term-body > div{white-space:nowrap}
     .term-body .c{color:#71717a}
     .term-body .p{color:var(--emerald)}
@@ -490,7 +511,7 @@ const ogImage = new URL(image, Astro.site).toString()
     /* ── final CTA ── */
     .cta{text-align:center;border:1px solid var(--border);border-radius:22px;padding:64px 32px;position:relative;overflow:hidden;background:var(--card)}
     .cta::before{content:"";position:absolute;inset:0;z-index:0;
-      background:radial-gradient(620px 280px at 50% -40px, rgba(37,99,235,.13), transparent 70%)}
+      background:radial-gradient(620px 280px at 50% -40px, rgba(245,78,0,.12), transparent 70%)}
     .cta > *{position:relative;z-index:1}
     .cta h2{font-family:var(--serif);font-size:clamp(32px,4vw,48px);letter-spacing:-.02em;font-weight:600;line-height:1.06;text-wrap:balance}
     .cta p{margin:16px auto 0;max-width:50ch;font-size:17px;color:var(--muted-fg)}
@@ -605,7 +626,7 @@ const ogImage = new URL(image, Astro.site).toString()
     details.faq-item[open] summary::after{transform:rotate(180deg)}
     details.faq-item summary:hover{color:var(--orange)}
     .faq-ans{padding:0 0 22px;font-size:15.5px;color:var(--muted-fg);line-height:1.7;max-width:72ch;text-wrap:pretty}
-    .faq-ans code{font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--muted);padding:2px 6px;border-radius:5px;color:var(--fg)}
+    .faq-ans code{font-family:'Geist Mono',monospace;font-size:13px;background:var(--muted);padding:2px 6px;border-radius:5px;color:var(--fg)}
     .faq-ans a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
 
     /* ── changelog ── */
@@ -613,7 +634,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .cl-entry{border-top:1px solid var(--border-soft);padding:28px 0;display:grid;grid-template-columns:160px 1fr;gap:24px;align-items:start}
     .cl-entry:last-child{border-bottom:1px solid var(--border-soft)}
     .cl-meta{display:flex;flex-direction:column;gap:6px}
-    .cl-tag{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;background:var(--muted);font-size:12.5px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--fg-soft);width:fit-content}
+    .cl-tag{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;background:var(--muted);font-size:12.5px;font-weight:600;font-family:'Geist Mono',monospace;color:var(--fg-soft);width:fit-content}
     .cl-date{font-size:12.5px;color:var(--muted-fg)}
     .cl-body h4{font-size:17px;font-weight:600;letter-spacing:-.01em}
     .cl-body .cl-notes{margin-top:10px;font-size:14px;color:var(--muted-fg);line-height:1.7;text-wrap:pretty}

@@ -9,10 +9,10 @@ import {
 } from '../data/pricing'
 
 import {
+  btnInkBlock,
   btnOutline,
   btnOutlineBlock,
   btnPrimaryBlock,
-  btnPrimaryBrand,
 } from '../lib/button-classes'
 
 const checkSvg = `<svg class="inline-block size-4 shrink-0 align-middle text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
@@ -20,20 +20,24 @@ const arrowSvg = `<svg class="inline-block size-4" viewBox="0 0 24 24" fill="non
 
 const { compact = false } = Astro.props
 
-const primaryBtn = btnPrimaryBlock
+// Only the featured tier gets the brand fill; the rest use the ink fill so the
+// brand voltage stays scarce and the featured tier stays legible as featured.
+const primaryBtn = btnInkBlock
 const outlineBtn = btnOutlineBlock
 const outlineBtnAuto = btnOutline
 
+// Tiers are separated by surface, not by hue — the featured tier is marked with
+// a brand hairline rather than a second brand color.
 const cardColors = [
-  'bg-[#f3f4f6]/70 border-transparent dark:bg-neutral-900/40',                              // Free — neutral
-  'bg-[var(--brand-orange-soft)] border-[var(--brand-orange)]/30 dark:bg-[#271405]/50',  // Pro — orange (featured)
-  'bg-[var(--brand-emerald-soft)] border-[var(--brand-emerald)]/30 dark:bg-[#04241a]/50', // Max — emerald
-  'bg-[#fdf4ff]/90 border-transparent dark:bg-purple-950/20',                            // Enterprise — neutral violet
+  'bg-[var(--canvas-soft)] border-border',                       // Free
+  'bg-card border-[var(--brand)]/40 ring-1 ring-[var(--brand)]/20', // Pro (featured)
+  'bg-[var(--canvas-soft)] border-border',                       // Max
+  'bg-[var(--canvas-soft)] border-border',                       // Enterprise
 ]
 const featuredCta = [false, true, false, false] // Pro is the featured tier
 ---
 <section id="pricing" class="py-14 sm:py-20 md:py-24">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+  <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
     {!compact && (
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Pricing</p>
@@ -108,7 +112,7 @@ const featuredCta = [false, true, false, false] // Pro is the featured tier
           </ul>
           <div class="mt-auto pt-6">
             <a
-              class={featuredCta[idx] ? btnPrimaryBrand : (t.cta.primary ? primaryBtn : outlineBtn)}
+              class={featuredCta[idx] ? btnPrimaryBlock : (t.cta.primary ? primaryBtn : outlineBtn)}
               href={t.cta.href}
               target="_blank"
               rel="noopener"

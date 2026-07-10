@@ -13,64 +13,84 @@
    so the shadcn `dark:` variant must key off that attribute. */
 @custom-variant dark (&:is([data-theme='dark'] *));
 
-/* shadcn tokens — Geist (Vercel design.md) + x.ai monochrome. Light: near-white
-   surfaces, gray-1000 primary. Dark: pure black field, white primary (x.ai). */
+/* shadcn tokens. Light: white floor, warm near-black ink. Dark: warm near-black
+   floor (never pure #000). Depth is carried by hairlines, not shadows.
+
+   Orange is split by ROLE, not by shade preference — a single hex cannot clear
+   WCAG AA in all three uses:
+     --brand        vivid accent. 3.52:1 on white → large text (≥24px), fills,
+                    focus rings, and non-text marks ONLY. Never small text.
+     --brand-strong filled-CTA background. White label clears AA at 4.71:1.
+     --brand-ink    orange as small TEXT on canvas/card (eyebrows, inline links).
+                    Goes darker in light (5.87:1), lighter in dark (6.16:1). */
 :root {
-  /* x.ai shape: sharp corners — 2px everyday radius (max rounded-sm feel) */
-  --radius: 0.125rem;
+  /* 8px CTA / form radius; --radius-xl lifts cards to 12px. */
+  --radius: 0.5rem;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #26251e;
   --card: #ffffff;
-  --card-foreground: #171717;
+  --card-foreground: #26251e;
   --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #171717;
+  --popover-foreground: #26251e;
+  --primary: #26251e;
   --primary-foreground: #ffffff;
   --secondary: #fafafa;
-  --secondary-foreground: #171717;
-  --muted: #f2f2f2;
-  --muted-foreground: #666666;
-  --accent: #fafafa;
-  --accent-foreground: #171717;
-  --destructive: #ea001d;
-  --border: #eaeaea;
-  --input: #eaeaea;
-  --ring: #006bff;
-  /* Brand accents: orange = metrics, emerald = health/live. */
-  --brand-orange: #ea7316;
-  --brand-orange-fg: #1a1206;
-  --brand-emerald: #0d9c6c;
-  --brand-emerald-fg: #04140e;
-  --brand-orange-soft: rgba(249, 115, 22, 0.1);
-  --brand-emerald-soft: rgba(16, 185, 129, 0.1);
+  --secondary-foreground: #26251e;
+  --muted: #f1f0ed;
+  --muted-foreground: #5a5852;
+  --accent: #f1f0ed;
+  --accent-foreground: #26251e;
+  --destructive: #cf2d56;
+  --border: #e7e6e2;
+  --input: #cfcdc4;
+  --ring: #f54e00;
+  /* Canvas + hairline scale. Bands use --canvas-soft to separate from the white
+     page floor, since cards are white and carry only a hairline. */
+  --canvas-soft: #fafafa;
+  --surface-strong: #eceae5;
+  --hairline-soft: #f1f0ed;
+  --hairline-strong: #cfcdc4;
+  --muted-soft: #a09c92;
+  /* Brand voltage — used scarcely. */
+  --brand: #f54e00;
+  --brand-strong: #d04200;
+  --brand-ink: #b03800;
+  --on-brand: #ffffff;
+  --brand-soft: rgba(245, 78, 0, 0.09);
+  /* Semantic — confirmation only, never a second brand action color. */
+  --semantic-success: #1f8a65;
 }
 
 [data-theme='dark'] {
-  --background: #000000;
-  --foreground: #ededed;
-  --card: #0a0a0a;
-  --card-foreground: #ededed;
-  --popover: #0a0a0a;
-  --popover-foreground: #ededed;
-  --primary: #ededed;
-  --primary-foreground: #0a0a0a;
-  --secondary: #111111;
-  --secondary-foreground: #ededed;
-  --muted: #111111;
-  --muted-foreground: #a1a1a1;
-  --accent: #111111;
-  --accent-foreground: #ededed;
-  --destructive: #ff676d;
-  --border: #ffffff1a;
-  --input: #ffffff26;
-  --ring: #48aeff;
-  /* Brand accents (same hues; soft tints stay translucent for dark). */
-  --brand-orange: #f97316;
-  --brand-orange-fg: #1a1206;
-  --brand-emerald: #10b981;
-  --brand-emerald-fg: #04140e;
-  --brand-orange-soft: rgba(249, 115, 22, 0.14);
-  --brand-emerald-soft: rgba(16, 185, 129, 0.14);
+  --background: #1c1b17;
+  --foreground: #edece6;
+  --card: #262520;
+  --card-foreground: #edece6;
+  --popover: #262520;
+  --popover-foreground: #edece6;
+  --primary: #edece6;
+  --primary-foreground: #1c1b17;
+  --secondary: #211f1a;
+  --secondary-foreground: #edece6;
+  --muted: #2e2c26;
+  --muted-foreground: #b5b2a8;
+  --accent: #2e2c26;
+  --accent-foreground: #edece6;
+  --destructive: #ff6b8b;
+  --border: #38362f;
+  --input: #4a473e;
+  --ring: #f97316;
+  --canvas-soft: #211f1a;
+  --surface-strong: #33312a;
+  --hairline-soft: #2e2c26;
+  --hairline-strong: #4a473e;
+  --muted-soft: #6f6c63;
+  --brand: #f54e00;
+  --brand-strong: #d04200;
+  --brand-ink: #f97316;
+  --on-brand: #ffffff;
+  --brand-soft: rgba(245, 78, 0, 0.16);
+  --semantic-success: #35b184;
 }
 
 img {
@@ -103,5 +123,5 @@ img {
   --font-sans:
     'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }

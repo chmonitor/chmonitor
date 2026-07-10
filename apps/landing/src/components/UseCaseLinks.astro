@@ -14,20 +14,20 @@ interface Props {
 const { items, eyebrow, heading, soft = false } = Astro.props
 ---
 <section class:list={['py-14 sm:py-20 md:py-24', soft && 'border-y border-border bg-muted/30']}>
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+  <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
     <div class="reveal mx-auto max-w-2xl text-center">
-      <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</p>
-      <h2 class="mt-3 text-balance font-semibold text-2xl sm:text-3xl md:text-4xl tracking-tight">{heading}</h2>
+      <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{eyebrow}</p>
+      <h2 class="mt-3 text-balance font-normal text-[clamp(1.75rem,4vw,2.25rem)] leading-[1.2] tracking-[-0.02em]">{heading}</h2>
     </div>
     <div class="mt-8 sm:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
         <a
-          class="reveal group flex flex-col rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-emerald)]/30 hover:shadow-md"
+          class="reveal group flex flex-col rounded-xl border border-border bg-card p-5 sm:p-6 transition-colors duration-200 hover:border-[var(--hairline-strong)] hover:bg-[var(--canvas-soft)]"
           href={`/${item.slug}`}
           data-cta={`usecase-link-${item.slug}`}
         >
           <span
-            class="flex size-9 items-center justify-center rounded-lg bg-[var(--brand-emerald-soft)] text-[var(--brand-emerald)] [&_svg]:size-4"
+            class="flex size-9 items-center justify-center rounded-lg bg-[var(--surface-strong)] text-foreground [&_svg]:size-4"
             set:html={`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${item.benefits[0]?.icon ?? ''}</svg>`}
           />
           <h4 class="mt-4 font-semibold text-foreground">{item.eyebrow}</h4>

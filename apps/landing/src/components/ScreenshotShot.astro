@@ -4,9 +4,20 @@ interface Props {
   src: string
   srcDark?: string
   alt: string
+  /** Hero shot only: it is the LCP element, so skip lazy-loading. */
+  eager?: boolean
 }
 
-const { id, src, srcDark, alt } = Astro.props
+/*
+ * Depth here is hairline + surface contrast, not shadow. The border belongs on
+ * the PARENT wrapper — verify-landing-structure.ts fails the build if the zoom
+ * trigger's own class contains a border utility.
+ *
+ * Keep notes in frontmatter, not in `<!-- -->`: Astro emits HTML comments to
+ * the page, and that script counts raw string occurrences of the zoom
+ * attribute. A comment naming it would pad the count and mask a regression.
+ */
+const { id, src, srcDark, alt, eager = false } = Astro.props
 ---
 
 <button
@@ -15,7 +26,7 @@ const { id, src, srcDark, alt } = Astro.props
   data-zoom-src={src}
   data-zoom-src-dark={srcDark}
   data-zoom-alt={alt}
-  class="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl bg-transparent p-0 leading-none outline-none transition-shadow duration-200 hover:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.35)] dark:hover:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+  class="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg bg-transparent p-0 leading-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
   aria-label={`View full size: ${alt}`}
 >
   <img
@@ -23,8 +34,9 @@ const { id, src, srcDark, alt } = Astro.props
     data-src-light={src}
     data-src-dark={srcDark}
     alt={alt}
-    loading="lazy"
-    decoding="async"
+    loading={eager ? 'eager' : 'lazy'}
+    fetchpriority={eager ? 'high' : 'auto'}
+    decoding={eager ? 'sync' : 'async'}
     class="block h-auto w-full border-0 align-top"
   />
 </button>

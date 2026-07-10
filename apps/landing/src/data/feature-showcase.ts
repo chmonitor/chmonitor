@@ -90,8 +90,9 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'One-click AI audit prompt for any failing check',
     ],
     screenshot: {
-      src: '/landing-assets/chmonitor-health-light.png',
-      srcDark: '/landing-assets/chmonitor-health-dark.png',
+      // Dark-only, like the other five: a themed pair here would make this the
+      // one band that flips to a light capture on the light canvas.
+      src: '/landing-assets/chmonitor-health-dark.png',
       alt: 'Health checks with editable warning and critical thresholds',
     },
     reverse: true,
@@ -127,8 +128,9 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'SQL console with history, EXPLAIN and scan analysis',
     ],
     screenshot: {
-      src: '/landing-assets/overview-insights-dark.webp',
-      alt: 'Overview with AI insights, heatmap and storage stats',
+      // Not overview-insights-*: the hero already carries that capture.
+      src: '/landing-assets/record-breakers-dark.webp',
+      alt: 'Record-breaking queries ranked by duration, memory and rows read',
     },
     reverse: true,
   },

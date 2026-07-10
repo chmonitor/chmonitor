@@ -127,15 +127,6 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
       })
     })
 
-    // Only show the nav's bottom border once scrolled off the very top, so the
-    // header sits flush with the hero on first paint.
-    var navEl = document.querySelector('header.nav')
-    if (navEl) {
-      var syncStuck = function () { navEl.classList.toggle('is-scrolled', window.scrollY > 4) }
-      syncStuck()
-      window.addEventListener('scroll', syncStuck, { passive: true })
-    }
-
     // Theme toggle: flip data-theme, persist the choice. The head script set the
     // initial value (saved choice or OS preference) before paint. Wire every
     // toggle (desktop nav bar + the mobile drawer) so both stay in sync.
@@ -194,9 +185,9 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
     // Use window.scrollTo with behavior:'instant', not el.scrollIntoView or CSS
     // smooth: an overflow-x:hidden wrapper makes scrollIntoView hit the wrong
     // scroll container, and behavior:'auto' defers to scroll-behavior:smooth
-    // which that wrapper silently cancels. 72px clears the sticky nav (matches
-    // :target scroll-margin-top). Instant is fine for a "jump to feature" link.
-    var NAV_OFFSET = 72
+    // which that wrapper silently cancels. The nav is static, so this is just
+    // breathing room and must match :target scroll-margin-top.
+    var NAV_OFFSET = 24
     var scrollToHash = function (hash) {
       if (!hash || hash === '#') return false
       var el = document.getElementById(decodeURIComponent(hash.slice(1)))
