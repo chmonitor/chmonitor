@@ -584,6 +584,11 @@ export default defineConfig({
     // path — dedupe forces these bare specifiers to resolve from the app root.
     dedupe: [
       '@clickhouse/client-web',
+      // `pg` is a dep of @chm/postgres-client (bundled from source). In the
+      // Docker node build the packages/* dirs are copied WITHOUT node_modules,
+      // so `pg` only exists in the app's own node_modules — dedupe forces this
+      // bare specifier to resolve from the app root, exactly like the deps below.
+      'pg',
       'lru-cache',
       'zod',
       'react',
