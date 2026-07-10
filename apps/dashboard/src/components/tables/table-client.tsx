@@ -3,9 +3,7 @@ import { Info, RefreshCw } from 'lucide-react'
 import type { ApiResponseMetadata } from '@/lib/api/types'
 import type { QueryConfig } from '@/types/query-config'
 
-import { useMemo } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { lazy, Suspense, useMemo } from 'react'
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { DataTable } from '@/components/data-table/data-table'
 import { FilterBar } from '@/components/filters/filter-bar'
@@ -65,9 +63,15 @@ interface TableClientProps {
 
 const tableRowFormatter = new Intl.NumberFormat('en-US')
 
-function GuidanceMarkdown({ content }: { content: string }) {
-  return (
-    <div className="text-foreground/80 leading-relaxed [&>p]:my-0 [&>p+p]:mt-2">
+// react-markdown + remark-gfm are only needed for the rare "table missing"
+// guidance branch below, so load them lazily to keep them out of the shared
+// table chunk used by every dashboard page.
+const LazyGuidanceMarkdownContent = lazy(async () => {
+  const [{ default: ReactMarkdown }, { default: remarkGfm }] =
+    await Promise.all([import('react-markdown'), import('remark-gfm')])
+
+  function GuidanceMarkdownContent({ content }: { content: string }) {
+    return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -109,6 +113,18 @@ function GuidanceMarkdown({ content }: { content: string }) {
       >
         {content}
       </ReactMarkdown>
+    )
+  }
+
+  return { default: GuidanceMarkdownContent }
+})
+
+function GuidanceMarkdown({ content }: { content: string }) {
+  return (
+    <div className="text-foreground/80 leading-relaxed [&>p]:my-0 [&>p+p]:mt-2">
+      <Suspense fallback={<p className="whitespace-pre-line">{content}</p>}>
+        <LazyGuidanceMarkdownContent content={content} />
+      </Suspense>
     </div>
   )
 }
