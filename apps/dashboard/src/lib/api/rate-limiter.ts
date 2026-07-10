@@ -29,6 +29,34 @@ interface Bucket {
 const buckets = new Map<string, Bucket>()
 
 /**
+ * Hard cap on distinct bucket keys (e.g. distinct client IPs) kept in memory.
+ * Without this, high-cardinality public traffic (scrapers, bot sweeps) would
+ * grow `buckets` without bound for the isolate's lifetime.
+ */
+const MAX_BUCKETS = 5_000
+/** Sweep every N calls rather than on every call — cheap amortized cost. */
+const SWEEP_INTERVAL = 500
+/** Buckets idle longer than this (10x the refill window) are stale. */
+const STALE_MS = 600_000
+let callsSinceSweep = 0
+
+/**
+ * Drop stale buckets and enforce the size cap (oldest-first). Map preserves
+ * insertion order, and `checkRateLimit` re-inserts a key on every touch (see
+ * below), so the oldest entries are also the least-recently-used ones.
+ */
+function pruneBuckets(nowMs: number): void {
+  for (const [key, bucket] of buckets) {
+    if (nowMs - bucket.lastRefillMs >= STALE_MS) buckets.delete(key)
+  }
+  while (buckets.size > MAX_BUCKETS) {
+    const oldest = buckets.keys().next().value
+    if (oldest === undefined) break
+    buckets.delete(oldest)
+  }
+}
+
+/**
  * Read a positive-integer env var; fall back to `defaultValue`.
  * Checking process.env is correct here — bridgeClickHouseEnv() copies Worker
  * bindings onto process.env before any API handler runs, so env vars are
@@ -55,11 +83,21 @@ export function checkRateLimit(
   const nowMs = Date.now()
   const windowMs = 60_000 // 1 minute
 
+  callsSinceSweep += 1
+  if (callsSinceSweep >= SWEEP_INTERVAL) {
+    callsSinceSweep = 0
+    pruneBuckets(nowMs)
+  }
+
   let bucket = buckets.get(bucketKey)
   if (!bucket) {
     bucket = { tokens: limitPerMin, lastRefillMs: nowMs }
-    buckets.set(bucketKey, bucket)
+  } else {
+    // Re-insert to move this key to the end of Map iteration order, so
+    // `pruneBuckets`'s oldest-first eviction approximates least-recently-used.
+    buckets.delete(bucketKey)
   }
+  buckets.set(bucketKey, bucket)
 
   // Refill tokens proportional to elapsed time
   const elapsedMs = nowMs - bucket.lastRefillMs
@@ -68,6 +106,8 @@ export function checkRateLimit(
     bucket.tokens = Math.min(limitPerMin, bucket.tokens + refill)
     bucket.lastRefillMs = nowMs
   }
+
+  if (buckets.size > MAX_BUCKETS) pruneBuckets(nowMs)
 
   if (bucket.tokens >= 1) {
     bucket.tokens -= 1
@@ -139,4 +179,13 @@ export function getApiRateLimitPerMin(): number {
  */
 export function _resetBucketsForTest(): void {
   buckets.clear()
+  callsSinceSweep = 0
 }
+
+/** Current number of distinct bucket keys held in memory (for testing only). */
+export function _bucketCountForTest(): number {
+  return buckets.size
+}
+
+/** The hard cap on distinct bucket keys (for testing only). */
+export const _MAX_BUCKETS_FOR_TEST = MAX_BUCKETS
