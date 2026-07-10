@@ -44,7 +44,9 @@ export interface Env {
   // Optional prefix prepended to the issue title (default: '').
   BUG_ISSUE_TITLE_PREFIX?: string
 
-  // Comma-separated allowed sender addresses / domains (default: allow all).
+  // Comma-separated allowed sender addresses / domains. Unset defaults to
+  // Sentry's known sending domains (fail closed); "" rejects every sender;
+  // "*" explicitly allows every sender.
   BUG_ALLOWED_SENDERS?: string
 
   // GitHub API base URL — override for GitHub Enterprise or tests.
@@ -77,10 +79,12 @@ export default {
 
       // 4. Sender allowlist check — use the SMTP envelope sender (message.from)
       //    which is what Cloudflare Email Routing validated at the protocol level,
-      //    not the MIME From header which can be spoofed.
+      //    not the MIME From header which can be spoofed. Log sender + subject
+      //    so operators notice when legitimate mail is being dropped (e.g.
+      //    BUG_ALLOWED_SENDERS misconfigured, or Sentry changed its sending domain).
       if (!isSenderAllowed(message.from, config.allowedSenders)) {
         console.warn(
-          `[bug-handler] rejected envelope sender ${message.from} — not in allowedSenders list`
+          `[bug-handler] rejected envelope sender ${message.from} (subject: "${parsed.subject}") — not in allowedSenders list`
         )
         return
       }

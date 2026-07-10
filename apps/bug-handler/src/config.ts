@@ -30,8 +30,9 @@ export interface BugHandlerConfig {
   // Optional prefix prepended to the issue title (e.g. "[Sentry] ").
   titlePrefix: string
 
-  // When non-empty, only these senders (exact address or @domain suffix) may
-  // create issues.  Empty list = allow all.
+  // Senders (exact address or @domain suffix) allowed to create issues.
+  // See `parseConfig` for how BUG_ALLOWED_SENDERS maps to this list:
+  // unset -> built-in Sentry default, "" -> reject all, "*" -> allow all.
   allowedSenders: string[]
 
   // Base URL for the GitHub REST API.  Overridable for tests / GHES.
@@ -40,6 +41,14 @@ export interface BugHandlerConfig {
 
 const DEFAULT_LABELS = ['bug', 'sentry', 'automated']
 const DEFAULT_API_BASE = 'https://api.github.com'
+
+// This worker exists to turn Sentry alert mail into GitHub issues — when the
+// operator hasn't set BUG_ALLOWED_SENDERS at all, fail closed to Sentry's
+// known sending domains instead of accepting mail from anyone.
+const DEFAULT_ALLOWED_SENDERS = ['@sentry.io', '@notifications.sentry.io']
+
+// Explicit opt-out: BUG_ALLOWED_SENDERS=* accepts mail from any sender.
+const ALLOW_ALL_SENDERS = '*'
 
 /** Split a comma-separated env value into a trimmed, non-empty string array. */
 function splitList(raw: string | undefined): string[] {
@@ -82,10 +91,17 @@ export function parseConfig(
 
   const assignees = splitList(env.BUG_ISSUE_ASSIGNEES)
 
-  // allowedSenders: lower-case for case-insensitive matching
-  const allowedSenders = splitList(env.BUG_ALLOWED_SENDERS).map((s) =>
-    s.toLowerCase()
-  )
+  // allowedSenders: lower-case for case-insensitive matching.
+  //   - unset (BUG_ALLOWED_SENDERS not set at all) -> built-in Sentry-only
+  //     default, so the worker fails closed instead of accepting any sender.
+  //   - "" (explicitly set to empty)               -> reject every sender.
+  //   - "*"                                        -> explicit opt-out,
+  //     allow every sender.
+  //   - comma list                                 -> parsed allowlist.
+  const allowedSenders =
+    env.BUG_ALLOWED_SENDERS === undefined
+      ? DEFAULT_ALLOWED_SENDERS
+      : splitList(env.BUG_ALLOWED_SENDERS).map((s) => s.toLowerCase())
 
   return {
     targetAddress: rawTarget || undefined,
@@ -102,7 +118,12 @@ export function parseConfig(
 /**
  * Return true when `address` is permitted according to the allowedSenders list.
  *
+ * `allowedSenders` is fail-closed: an empty list rejects every sender (see
+ * `parseConfig` for how BUG_ALLOWED_SENDERS maps to this list). To allow
+ * every sender, include the "*" sentinel.
+ *
  * Matching rules (case-insensitive):
+ *   - Wildcard:     "*"                 matches every address
  *   - Exact match:  "alerts@sentry.io"  matches  "alerts@sentry.io"
  *   - Domain match: "@sentry.io"        matches any address ending in @sentry.io
  *   - Plain domain: "sentry.io"         matches any address ending in @sentry.io
@@ -112,7 +133,7 @@ export function isSenderAllowed(
   address: string,
   allowedSenders: string[]
 ): boolean {
-  if (allowedSenders.length === 0) return true
+  if (allowedSenders.includes(ALLOW_ALL_SENDERS)) return true
   const lower = address.toLowerCase()
   return allowedSenders.some((rule) => {
     if (rule.startsWith('@')) {

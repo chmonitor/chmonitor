@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Minimal env that satisfies all required config fields */
+/**
+ * Minimal env that satisfies all required config fields.
+ * BUG_ALLOWED_SENDERS is the explicit "*" opt-out so tests unrelated to the
+ * allowlist itself (happy path, recipient guard, misconfiguration) aren't
+ * affected by the fail-closed default — see the dedicated "sender allowlist"
+ * describe block below for allowlist-specific behavior.
+ */
 const FULL_ENV = {
   BUG_HANDLER_TARGET_ADDRESS: 'bug@chmonitor.dev',
   GITHUB_REPOSITORY: 'chmonitor/chmonitor',
@@ -12,7 +18,7 @@ const FULL_ENV = {
   BUG_ISSUE_LABELS: 'bug,sentry,automated',
   BUG_ISSUE_ASSIGNEES: 'duyetbot',
   BUG_ISSUE_TITLE_PREFIX: '[Sentry] ',
-  BUG_ALLOWED_SENDERS: '',
+  BUG_ALLOWED_SENDERS: '*',
   GITHUB_API_BASE: 'https://api.github.com',
 }
 
@@ -288,20 +294,90 @@ describe('worker.email — recipient guard', () => {
 describe('worker.email — sender allowlist', () => {
   let originalFetch: typeof globalThis.fetch
   let calls: FetchCall[]
+  let consoleWarnSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
     const mock = makeMockFetch()
     calls = mock.calls
     globalThis.fetch = mock.mockFetch as typeof fetch
+    consoleWarnSpy = spyOn(console, 'warn').mockImplementation(() => {})
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
+    consoleWarnSpy.mockRestore()
   })
 
-  it('blocks a sender not in the allowlist', async () => {
+  it('blocks a sender not in the allowlist and logs sender + subject', async () => {
     const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: '@sentry.io' }
+    const message = makeMessage(
+      'bug@chmonitor.dev',
+      'spam@evil.com',
+      SENTRY_ALERT_MIME
+    )
+    const pending: Promise<unknown>[] = []
+    const ctx = {
+      ...makeCtx(),
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p)
+      },
+    } as unknown as ExecutionContext
+
+    await worker.email(message, env, ctx)
+    await Promise.all(pending)
+
+    expect(calls).toHaveLength(0)
+    expect(consoleWarnSpy).toHaveBeenCalled()
+    const msg = (consoleWarnSpy.mock.calls[0] as string[])[0] as string
+    expect(msg).toContain('spam@evil.com')
+    expect(msg).toContain('TypeError')
+  })
+
+  it('allows a sender that matches the allowlist domain', async () => {
+    const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: '@sentry.io' }
+    const message = makeMessage(
+      'bug@chmonitor.dev',
+      'alerts@sentry.io',
+      SENTRY_ALERT_MIME
+    )
+    const pending: Promise<unknown>[] = []
+    const ctx = {
+      ...makeCtx(),
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p)
+      },
+    } as unknown as ExecutionContext
+
+    await worker.email(message, env, ctx)
+    await Promise.all(pending)
+
+    expect(calls).toHaveLength(1)
+  })
+
+  it('falls back to the built-in Sentry default when BUG_ALLOWED_SENDERS is unset, allowing a Sentry sender', async () => {
+    const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: undefined }
+    const message = makeMessage(
+      'bug@chmonitor.dev',
+      'alerts@sentry.io',
+      SENTRY_ALERT_MIME
+    )
+    const pending: Promise<unknown>[] = []
+    const ctx = {
+      ...makeCtx(),
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p)
+      },
+    } as unknown as ExecutionContext
+
+    await worker.email(message, env, ctx)
+    await Promise.all(pending)
+
+    expect(calls).toHaveLength(1)
+  })
+
+  it('falls back to the built-in Sentry default when BUG_ALLOWED_SENDERS is unset, rejecting a non-Sentry sender', async () => {
+    const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: undefined }
     const message = makeMessage(
       'bug@chmonitor.dev',
       'spam@evil.com',
@@ -321,11 +397,32 @@ describe('worker.email — sender allowlist', () => {
     expect(calls).toHaveLength(0)
   })
 
-  it('allows a sender that matches the allowlist domain', async () => {
-    const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: '@sentry.io' }
+  it('rejects every sender when BUG_ALLOWED_SENDERS is explicitly empty', async () => {
+    const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: '' }
     const message = makeMessage(
       'bug@chmonitor.dev',
       'alerts@sentry.io',
+      SENTRY_ALERT_MIME
+    )
+    const pending: Promise<unknown>[] = []
+    const ctx = {
+      ...makeCtx(),
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p)
+      },
+    } as unknown as ExecutionContext
+
+    await worker.email(message, env, ctx)
+    await Promise.all(pending)
+
+    expect(calls).toHaveLength(0)
+  })
+
+  it('allows any sender when BUG_ALLOWED_SENDERS is "*"', async () => {
+    const env = { ...FULL_ENV, BUG_ALLOWED_SENDERS: '*' }
+    const message = makeMessage(
+      'bug@chmonitor.dev',
+      'anyone@example.com',
       SENTRY_ALERT_MIME
     )
     const pending: Promise<unknown>[] = []

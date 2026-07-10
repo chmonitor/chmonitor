@@ -60,6 +60,31 @@ describe('parseConfig — comma-list parsing', () => {
   })
 })
 
+describe('parseConfig — BUG_ALLOWED_SENDERS fail-closed semantics', () => {
+  it('unset -> built-in Sentry-only default', () => {
+    const cfg = parseConfig({})
+    expect(cfg.allowedSenders).toEqual([
+      '@sentry.io',
+      '@notifications.sentry.io',
+    ])
+  })
+
+  it('explicitly empty string -> rejects every sender', () => {
+    const cfg = parseConfig({ BUG_ALLOWED_SENDERS: '' })
+    expect(cfg.allowedSenders).toEqual([])
+  })
+
+  it('"*" -> allows every sender', () => {
+    const cfg = parseConfig({ BUG_ALLOWED_SENDERS: '*' })
+    expect(cfg.allowedSenders).toEqual(['*'])
+  })
+
+  it('explicit list is unchanged by the fail-closed default', () => {
+    const cfg = parseConfig({ BUG_ALLOWED_SENDERS: '@sentry.io' })
+    expect(cfg.allowedSenders).toEqual(['@sentry.io'])
+  })
+})
+
 describe('parseConfig — GITHUB_REPOSITORY parsing', () => {
   it('parses a valid owner/repo', () => {
     const cfg = parseConfig({ GITHUB_REPOSITORY: 'chmonitor/chmonitor' })
@@ -121,8 +146,12 @@ describe('parseConfig — trimming', () => {
 })
 
 describe('isSenderAllowed', () => {
-  it('allows any sender when the list is empty', () => {
-    expect(isSenderAllowed('anyone@anywhere.com', [])).toBe(true)
+  it('rejects any sender when the list is empty (fail closed)', () => {
+    expect(isSenderAllowed('anyone@anywhere.com', [])).toBe(false)
+  })
+
+  it('allows any sender when the list contains the "*" wildcard', () => {
+    expect(isSenderAllowed('anyone@anywhere.com', ['*'])).toBe(true)
   })
 
   it('matches exact address (case-insensitive)', () => {
