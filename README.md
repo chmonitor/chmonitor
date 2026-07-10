@@ -2,8 +2,6 @@
 
 [![Build and Test](https://github.com/chmonitor/chmonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/chmonitor/chmonitor/actions/workflows/ci.yml)
 [![GitHub stars](https://img.shields.io/github/stars/chmonitor/chmonitor?style=flat&logo=github&label=stars)](https://github.com/chmonitor/chmonitor/stargazers)
-<!-- NOTE: this uptime badge still uses the pre-rebrand `clickhouse-monitoring-vercel-app` slug and may be stale; verify against the live uptime source before relying on it. -->
-[![All-time uptime](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduyet%2Fuptime%2FHEAD%2Fapi%2Fclickhouse-monitoring-vercel-app%2Fuptime.json)](https://duyet.github.io/uptime/history/clickhouse-monitoring-vercel-app)
 [![Latest release](https://img.shields.io/github/v/release/chmonitor/chmonitor?sort=semver&label=release)](https://github.com/chmonitor/chmonitor/releases)
 [![Docker image](https://img.shields.io/badge/ghcr.io-chmonitor%2Fchmonitor-2496ED?logo=docker&logoColor=white)](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor)
 [![License](https://img.shields.io/github/license/chmonitor/chmonitor)](LICENSE)
@@ -27,7 +25,7 @@
 > connection vars are unchanged; browser vars move from `NEXT_PUBLIC_*` to
 > `VITE_*` (old names still work as a fallback). See
 > **[Upgrading to v0.3](#upgrading-to-v03)** below or the full
-> [Migrate to v0.3](https://docs.chmonitor.dev/migrating/v0-3) guide.
+> [Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3) guide.
 
 ## Features
 
@@ -80,7 +78,7 @@ connection vars on any of these targets:
 - **[Cloudflare Workers](#cloudflare-workers)** — global edge deploy (how the
   demo at [dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github) runs).
 - **[One-click templates](docs/content/operate/deploy/one-click.mdx)** — Railway, Render, Fly.io.
-- **[Kubernetes (Helm)](https://docs.chmonitor.dev/deploy/k8s)** — for clusters.
+- **[Kubernetes (Helm)](https://docs.chmonitor.dev/operate/deploy/k8s)** — for clusters.
 
 Prefer to look before you install? Try the live demo above — no setup required.
 
@@ -213,7 +211,7 @@ variable prefix, and the old names keep working:
 
 `VITE_*` vars are **build-time inlined** — set them when building the image/Worker,
 not only at runtime. Full per-platform steps:
-[Migrate to v0.3](https://docs.chmonitor.dev/migrating/v0-3).
+[Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3).
 
 ### Migrate your config with an AI assistant
 
@@ -251,20 +249,20 @@ plus a short list of what you changed:
 
 ## Documentation
 
-- **[/docs](/docs)** - Full documentation site (local/docs)
+- **[docs/](/docs)** - Documentation source in this repository (see below for the live site)
 - **llms.txt** - AI agent discovery file for automated code understanding
 - https://zread.ai/chmonitor/chmonitor _(AI Generated)_
 - https://docs.chmonitor.dev
-  - [Getting Started](https://docs.chmonitor.dev/getting-started)
-    - [Local Development](https://docs.chmonitor.dev/getting-started/local)
-    - [User Role and Profile](https://docs.chmonitor.dev/getting-started/clickhouse-requirements)
-    - [Enable System Tables](https://docs.chmonitor.dev/getting-started/clickhouse-enable-system-tables)
-  - [Deployments](https://docs.chmonitor.dev/deploy)
-    - [Vercel](https://docs.chmonitor.dev/deploy/vercel)
-    - [Docker](https://docs.chmonitor.dev/deploy/docker)
-    - [Kubernetes Helm Chart](https://docs.chmonitor.dev/deploy/k8s)
+  - [Getting Started](https://docs.chmonitor.dev/guide/getting-started)
+    - [Local Development](https://docs.chmonitor.dev/guide/getting-started/local)
+    - [User Role and Profile](https://docs.chmonitor.dev/guide/getting-started/clickhouse-requirements)
+    - [Enable System Tables](https://docs.chmonitor.dev/guide/getting-started/clickhouse-enable-system-tables)
+  - [Deployments](https://docs.chmonitor.dev/operate/deploy)
+    - [Vercel](https://docs.chmonitor.dev/operate/deploy/vercel) _(legacy v0.2)_
+    - [Docker](https://docs.chmonitor.dev/operate/deploy/docker)
+    - [Kubernetes Helm Chart](https://docs.chmonitor.dev/operate/deploy/k8s)
     - [One-Click Deploy](docs/content/operate/deploy/one-click.mdx) — Railway / Render / Fly.io community templates
-  - [Advanced](https://docs.chmonitor.dev/advanced)
+  - Advanced
     - [Telemetry](docs/content/operate/advanced/telemetry.mdx) — opt-in, privacy-first usage metrics (off by default)
     - [Editions](docs/content/operate/advanced/editions.mdx) — open-core model: GPL-3.0 community is free forever; enterprise features gated by `CHM_EDITION`
   - [Reference](https://docs.chmonitor.dev/reference)

@@ -1,6 +1,6 @@
 ---
 title: Connection errors
-description: Fix "Test connection" failures in ClickHouse Monitor — host not allowed, invalid URL, authentication failed, missing permissions, DNS, refused, TLS, and timeout errors.
+description: Fix "Test connection" failures in chmonitor — host not allowed, invalid URL, authentication failed, missing permissions, DNS, refused, TLS, and timeout errors.
 icon: PlugZap
 ---
 
@@ -20,7 +20,7 @@ The hosted service at **dash.chmonitor.dev** blocks connections to private, inte
 **Fix**
 
 - Use a public HTTPS endpoint — for example ClickHouse Cloud, or your own server exposed on a public host and port.
-- To monitor a **private** cluster (VPC, homelab, `localhost`, `10.x`, `192.168.x`), **self-host** ClickHouse Monitor inside your network instead. The self-hosted build has no address restriction. See [Deploy](/operate/deploy/self-host).
+- To monitor a **private** cluster (VPC, homelab, `localhost`, `10.x`, `192.168.x`), **self-host** chmonitor inside your network instead. The self-hosted build has no address restriction. See [Deploy](/operate/deploy/self-host).
 
 </Accordion>
 <Accordion title="Invalid host URL">
@@ -117,7 +117,7 @@ echo 'SELECT version()' | curl "https://host:8443/?user=monitoring&password=…"
 ```
 </Callout>
 
-For **private** clusters, [self-host ClickHouse Monitor](/operate/deploy/self-host) — the same dashboard, with no public-network requirement.
+For **private** clusters, [self-host chmonitor](/operate/deploy/self-host) — the same dashboard, with no public-network requirement.
 
 ## Related
 
@@ -125,5 +125,5 @@ For **private** clusters, [self-host ClickHouse Monitor](/operate/deploy/self-ho
 <Card title="Troubleshooting" href="/guide/guides/troubleshooting" description="Diagnose connection, auth, performance, and Kubernetes probe failures." />
 <Card title="ClickHouse requirements" href="/guide/getting-started/clickhouse-requirements" description="The least-privilege monitoring user and grants the dashboard needs." />
 <Card title="Connect a firewalled ClickHouse" href="/guide/guides/connect-firewalled-clickhouse" description="Reach a firewalled cluster from Cloud with a tunnel or dedicated egress IPs." />
-<Card title="Self-host" href="/operate/deploy/self-host" description="Run ClickHouse Monitor inside your network with no public-address restriction." />
+<Card title="Self-host" href="/operate/deploy/self-host" description="Run chmonitor inside your network with no public-address restriction." />
 </Cards>
