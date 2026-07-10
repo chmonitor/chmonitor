@@ -92,6 +92,6 @@ describe('browser-crypto device key', () => {
   it('round-trips encrypt/decrypt with the shared key', async () => {
     const value = { host: 'https://ch.example:8443', user: 'default' }
     const encrypted = await encryptJson(value)
-    expect(await decryptJson(encrypted)).toEqual(value)
+    expect(await decryptJson<typeof value>(encrypted)).toEqual(value)
   })
 })
