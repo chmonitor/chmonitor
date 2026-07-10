@@ -11,8 +11,8 @@
 
 import type { Plan } from './plans'
 
-import { getPlatformBindings } from '@chm/platform'
 import { periodKeyForOwner, utcMonthKey } from './period-key'
+import { getPlatformBindings } from '@chm/platform'
 
 /** Returns the UTC date string 'YYYY-MM-DD' for the given instant. */
 export function utcDayKey(now: Date = new Date()): string {

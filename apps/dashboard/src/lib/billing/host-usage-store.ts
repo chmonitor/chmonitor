@@ -11,8 +11,8 @@
  * Schema: see src/db/conversations-migrations/0017_host_usage_monthly.sql
  */
 
-import { getPlatformBindings } from '@chm/platform'
 import { periodKeyForOwner } from './period-key'
+import { getPlatformBindings } from '@chm/platform'
 
 function getDb() {
   return getPlatformBindings().getD1Database('CHM_CLOUD_D1')

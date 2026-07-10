@@ -42,7 +42,10 @@ function clampDay(year: number, monthIndex: number, day: number): number {
  * day, so a day-31 anchor still resolves sensibly in a 30-day or February
  * month.
  */
-export function cycleStartKey(anchorDay: number, now: Date = new Date()): string {
+export function cycleStartKey(
+  anchorDay: number,
+  now: Date = new Date()
+): string {
   const y = now.getUTCFullYear()
   const m = now.getUTCMonth()
   const d = now.getUTCDate()

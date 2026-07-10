@@ -106,9 +106,9 @@ describe('periodKeyFromSubscription', () => {
 
   test('subscription with null currentPeriodEnd falls back to the calendar UTC month', () => {
     const now = new Date('2026-03-20T00:00:00Z')
-    expect(
-      periodKeyFromSubscription({ currentPeriodEnd: null }, now)
-    ).toBe(utcMonthKey(now))
+    expect(periodKeyFromSubscription({ currentPeriodEnd: null }, now)).toBe(
+      utcMonthKey(now)
+    )
   })
 
   test('a live subscription keys off the cycle anchored to currentPeriodEnd, not the calendar month', () => {
@@ -133,9 +133,9 @@ describe('periodKeyFromSubscription', () => {
     )
     const justBefore = new Date('2026-03-14T23:59:59Z')
     const justAfter = new Date('2026-03-15T00:00:00Z')
-    expect(
-      periodKeyFromSubscription({ currentPeriodEnd }, justBefore)
-    ).toBe('period:2026-02-15')
+    expect(periodKeyFromSubscription({ currentPeriodEnd }, justBefore)).toBe(
+      'period:2026-02-15'
+    )
     expect(periodKeyFromSubscription({ currentPeriodEnd }, justAfter)).toBe(
       'period:2026-03-15'
     )
