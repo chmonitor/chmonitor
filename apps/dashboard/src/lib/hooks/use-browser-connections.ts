@@ -8,6 +8,7 @@ import {
   BROWSER_CONNECTIONS_STORAGE_KEY,
   type BrowserConnection,
   type EncryptedBrowserConnectionsStore,
+  nextBrowserConnectionHostId,
 } from '@/lib/types/browser-connection'
 
 async function loadConnections(): Promise<BrowserConnection[]> {
@@ -30,7 +31,13 @@ async function loadConnections(): Promise<BrowserConnection[]> {
       return decryptJson<BrowserConnection[]>(parsed.encrypted)
     }
   } catch (error) {
-    console.error('Failed to load browser connections:', error)
+    // A decrypt failure here means stored connections are unrecoverable (e.g. a
+    // device key was regenerated). Log a distinct, diagnosable warning rather
+    // than silently dropping them into the empty-list fallback below.
+    console.error(
+      'Failed to load browser connections (stored connections could not be decrypted):',
+      error
+    )
   }
 
   return []
@@ -79,11 +86,15 @@ export function useBrowserConnections() {
       updatedAt: now,
     }
 
-    let result = newConnection
+    // Derive the (negative) hostId deterministically from the current state
+    // BEFORE dispatching, so the returned object is stable and correct. The
+    // React state updater does not run synchronously with this call, so we must
+    // not read the computed hostId back out of it (that returned hostId: 0, the
+    // placeholder, and navigated callers to ?host=0 — the first env host).
+    const hostId = nextBrowserConnectionHostId(connections)
+    const result: BrowserConnection = { ...newConnection, hostId }
+
     setConnections((prev) => {
-      const existingHostIds = prev.map((c) => c.hostId)
-      const hostId = Math.min(...existingHostIds, 0) - 1
-      result = { ...newConnection, hostId }
       const updated = [...prev, result]
       void saveConnections(updated)
       return updated
