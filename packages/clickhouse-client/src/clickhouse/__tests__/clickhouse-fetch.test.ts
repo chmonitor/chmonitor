@@ -423,6 +423,34 @@ describe('clickhouse-fetch', () => {
         expect(mockClientQuery).not.toHaveBeenCalled()
       })
 
+      // Regression coverage for issue #2505: a transient probe failure
+      // (network/timeout/auth) must be classified as a network error, not
+      // "table not found" — the UI copy for the two must differ.
+      it('should classify a probe failure as a network error, not table_not_found', async () => {
+        const queryConfig: QueryConfigLike = {
+          name: 'test',
+          sql: 'SELECT * FROM system.backup_log',
+          optional: true,
+        } as QueryConfigLike
+
+        mockValidateTableExistence.mockResolvedValue({
+          shouldProceed: false,
+          missingTables: [],
+          reason: 'probe_failed',
+          error:
+            'Could not verify table availability (connection issue): system.backup_log',
+        })
+
+        const result = await fetchData({ ...defaultParams, queryConfig })
+
+        expect(result.data).toBeNull()
+        expect(result.error?.type).toBe('network_error')
+        expect(result.error?.message).toContain(
+          'Could not verify table availability'
+        )
+        expect(mockClientQuery).not.toHaveBeenCalled()
+      })
+
       it('should not validate when queryConfig.optional is false', async () => {
         const queryConfig: QueryConfigLike = {
           name: 'test',

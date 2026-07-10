@@ -205,12 +205,16 @@ export async function getClickHouseVersion(
 /**
  * Check if a specific table exists on the host
  * Uses raw client to avoid circular dependency with fetchData
+ *
+ * Returns `'unknown'` (not `false`) when the probe itself fails
+ * (network/timeout/auth) — the caller must not treat that the same as a
+ * confirmed-missing table. See issue #2505.
  */
 export async function checkTableExists(
   hostId: number,
   database: string,
   table: string
-): Promise<boolean> {
+): Promise<boolean | 'unknown'> {
   try {
     const configs = getClickHouseConfigs()
     const clientConfig = configs[hostId]
@@ -228,18 +232,21 @@ export async function checkTableExists(
     const data = (await resultSet.json()) as { exists: number }[]
     return data?.[0]?.exists === 1
   } catch {
-    return false
+    return 'unknown'
   }
 }
 
 /**
  * Check if a table has data (is not empty)
  * Uses raw client to avoid circular dependency with fetchData
+ *
+ * Returns `'unknown'` (not `false`) when the probe itself fails — see
+ * {@link checkTableExists}.
  */
 export async function checkTableHasData(
   hostId: number,
   fullTableName: string
-): Promise<boolean> {
+): Promise<boolean | 'unknown'> {
   try {
     const configs = getClickHouseConfigs()
     const clientConfig = configs[hostId]
@@ -256,7 +263,7 @@ export async function checkTableHasData(
     const data = (await resultSet.json()) as { has_data: number }[]
     return data?.[0]?.has_data === 1
   } catch {
-    return false
+    return 'unknown'
   }
 }
 
@@ -266,6 +273,13 @@ export async function checkTableHasData(
 export interface TableAvailability {
   exists: boolean
   hasData: boolean
+  /**
+   * True when existence/data could not be verified due to a probe failure
+   * (network/timeout/auth) — `exists`/`hasData` are a fail-closed `false` in
+   * this case, NOT a confirmed "missing table" / "empty table" result. See
+   * issue #2505.
+   */
+  checkFailed?: boolean
   message?: string
 }
 
@@ -278,6 +292,14 @@ export async function checkTableAvailability(
   table: string
 ): Promise<TableAvailability> {
   const exists = await checkTableExists(hostId, database, table)
+  if (exists === 'unknown') {
+    return {
+      exists: false,
+      hasData: false,
+      checkFailed: true,
+      message: `Could not verify table ${database}.${table} — connection issue while checking availability.`,
+    }
+  }
   if (!exists) {
     return {
       exists: false,
@@ -287,6 +309,14 @@ export async function checkTableAvailability(
   }
 
   const hasData = await checkTableHasData(hostId, `${database}.${table}`)
+  if (hasData === 'unknown') {
+    return {
+      exists: true,
+      hasData: false,
+      checkFailed: true,
+      message: `Table ${database}.${table} exists, but could not verify whether it has data — connection issue.`,
+    }
+  }
   if (!hasData) {
     return {
       exists: true,

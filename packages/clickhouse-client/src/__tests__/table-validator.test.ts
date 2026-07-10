@@ -255,5 +255,78 @@ describe('Table Validator', () => {
         'backup_log'
       )
     })
+
+    it('should tag a confirmed-missing table with reason "table_missing"', async () => {
+      const { tableExistenceCache } = await import('../table-existence-cache')
+      const mockCheckTableExists =
+        tableExistenceCache.checkTableExists as jest.MockedFunction<
+          typeof tableExistenceCache.checkTableExists
+        >
+      mockCheckTableExists.mockResolvedValue(false)
+
+      const config: QueryConfigLike = {
+        name: 'test',
+        sql: 'SELECT * FROM system.backup_log',
+        columns: ['name'],
+        optional: true,
+        tableCheck: 'system.backup_log',
+      }
+
+      const result = await validateTableExistence(config, 0)
+      expect(result.reason).toBe('table_missing')
+    })
+
+    // Regression coverage for issue #2505: a transient probe failure
+    // (network/timeout/auth) must never be reported the same as a
+    // confirmed-missing table.
+    it('should return shouldProceed false with reason "probe_failed" when the probe errors, without listing the table as missing', async () => {
+      const { tableExistenceCache } = await import('../table-existence-cache')
+      const mockCheckTableExists =
+        tableExistenceCache.checkTableExists as jest.MockedFunction<
+          typeof tableExistenceCache.checkTableExists
+        >
+
+      // Simulate a transient probe failure (checkTableExists resolves
+      // 'unknown', not false, on a network/timeout/auth error).
+      mockCheckTableExists.mockResolvedValue('unknown')
+
+      const config: QueryConfigLike = {
+        name: 'test',
+        sql: 'SELECT * FROM system.backup_log',
+        columns: ['name'],
+        optional: true,
+        tableCheck: 'system.backup_log',
+      }
+
+      const result = await validateTableExistence(config, 0)
+      expect(result.shouldProceed).toBe(false)
+      expect(result.reason).toBe('probe_failed')
+      expect(result.missingTables).toEqual([])
+      expect(result.error).toContain('system.backup_log')
+    })
+
+    it('should prioritize "probe_failed" over "table_missing" when some tables error and others are confirmed missing', async () => {
+      const { tableExistenceCache } = await import('../table-existence-cache')
+      const mockCheckTableExists =
+        tableExistenceCache.checkTableExists as jest.MockedFunction<
+          typeof tableExistenceCache.checkTableExists
+        >
+
+      mockCheckTableExists.mockImplementation(async (_hostId, _db, tbl) =>
+        tbl === 'backup_log' ? 'unknown' : false
+      )
+
+      const config: QueryConfigLike = {
+        name: 'test',
+        sql: 'SELECT * FROM system.backup_log',
+        columns: ['name'],
+        optional: true,
+        tableCheck: ['system.backup_log', 'system.error_log'],
+      }
+
+      const result = await validateTableExistence(config, 0)
+      expect(result.shouldProceed).toBe(false)
+      expect(result.reason).toBe('probe_failed')
+    })
   })
 })

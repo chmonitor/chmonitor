@@ -25,9 +25,19 @@ import type { QueryConfigLike } from '@chm/sql-builder'
 import { tableExistenceCache } from './table-existence-cache'
 import { getAllSqlStrings } from '@chm/sql-builder'
 
+/**
+ * Why `shouldProceed` is false:
+ * - `table_missing`: the probe succeeded and the table definitively does not
+ *   exist (optional-table UX: "requires configuration").
+ * - `probe_failed`: the probe itself errored (network/timeout/auth) —
+ *   existence is unknown, NOT confirmed missing. See issue #2505.
+ */
+export type TableValidationReason = 'table_missing' | 'probe_failed'
+
 export type TableValidationResult = {
   shouldProceed: boolean
   missingTables: string[]
+  reason?: TableValidationReason
   error?: string
 }
 
@@ -113,23 +123,38 @@ export async function validateTableExistence(
   }
 
   // Check all tables in parallel
-  const missingTables = (
-    await Promise.all(
-      tablesToCheck.map(async (fullName) => {
-        const [db, tbl] = fullName.split('.')
-        if (!db || !tbl) return fullName // malformed name
-        const exists = await tableExistenceCache.checkTableExists(
-          hostId,
-          db,
-          tbl
-        )
-        return exists ? null : fullName
-      })
-    )
-  ).filter(Boolean) as string[]
+  const results = await Promise.all(
+    tablesToCheck.map(async (fullName) => {
+      const [db, tbl] = fullName.split('.')
+      if (!db || !tbl) return { fullName, exists: false as const } // malformed name — treat as missing
+      const exists = await tableExistenceCache.checkTableExists(hostId, db, tbl)
+      return { fullName, exists }
+    })
+  )
+
+  // A probe failure (network/timeout/auth) means existence is unknown, not
+  // confirmed missing — surface it distinctly so callers don't render
+  // "table does not exist" for what's actually a transient error.
+  const unknownTables = results
+    .filter((r) => r.exists === 'unknown')
+    .map((r) => r.fullName)
+
+  if (unknownTables.length > 0) {
+    return {
+      shouldProceed: false,
+      missingTables: [],
+      reason: 'probe_failed',
+      error: `Could not verify table availability (connection issue): ${unknownTables.join(', ')}`,
+    }
+  }
+
+  const missingTables = results
+    .filter((r) => r.exists === false)
+    .map((r) => r.fullName)
 
   return {
     shouldProceed: missingTables.length === 0,
     missingTables,
+    reason: missingTables.length > 0 ? 'table_missing' : undefined,
   }
 }

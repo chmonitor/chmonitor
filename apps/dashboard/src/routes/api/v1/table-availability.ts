@@ -70,7 +70,10 @@ async function resolveTableAvailability(
   const tbl = parts.length > 1 ? parts[1] : parts[0]
 
   try {
-    return await checkTableExists(hostId, db, tbl)
+    const result = await checkTableExists(hostId, db, tbl)
+    // 'unknown' = the probe itself failed (network/timeout/auth), not a
+    // confirmed answer — omit from the map, same as the catch below.
+    return result === 'unknown' ? undefined : result
   } catch (err) {
     error('[GET /api/v1/table-availability] Check table error:', err, {
       requestId,

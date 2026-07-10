@@ -196,13 +196,20 @@ export const fetchData = async <
 
       if (!validation.shouldProceed) {
         const missingTables = validation.missingTables
+        // A probe failure (network/timeout/auth) means table existence is
+        // unknown, not confirmed missing — classify it as a network error so
+        // the UI shows a connectivity/retry message instead of "table does
+        // not exist" (issue #2505).
+        const isProbeFailure = validation.reason === 'probe_failed'
         const errorMessage =
           validation.error ||
           `Missing required tables: ${missingTables.join(', ')}`
 
         warn(
-          `Skipping query "${queryConfig.name}" due to missing tables:`,
-          missingTables
+          isProbeFailure
+            ? `Skipping query "${queryConfig.name}" — could not verify table availability:`
+            : `Skipping query "${queryConfig.name}" due to missing tables:`,
+          isProbeFailure ? errorMessage : missingTables
         )
 
         return {
@@ -214,7 +221,7 @@ export const fetchData = async <
             host: clientConfig.host,
           },
           error: {
-            type: 'table_not_found',
+            type: isProbeFailure ? 'network_error' : 'table_not_found',
             message: errorMessage,
             details: {
               missingTables,

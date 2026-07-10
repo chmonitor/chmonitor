@@ -25,9 +25,11 @@ export function getMemoryCache(): QueryCacheAdapter {
 }
 
 export function resetQueryCacheInstance(): void {
+  cacheInstance?.dispose?.()
   cacheInstance = null
 }
 
 export function resetMemoryCacheInstance(): void {
+  memoryCacheInstance?.dispose?.()
   memoryCacheInstance = null
 }
