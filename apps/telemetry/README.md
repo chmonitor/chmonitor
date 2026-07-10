@@ -64,6 +64,12 @@ Primary key: `(day, instance_hash)` — one row per install per day.
 | `ch_flavor`   | TEXT    | oss/altinity/cloud/unknown |
 | `created_at`  | TEXT    | datetime('now') |
 
+Unique index: `(day, event, deploy_target, ch_version, ch_flavor)` (`INSERT OR
+IGNORE`) — `/v1/event` carries no `instance_hash`, so repeated identical
+events within the same UTC day collapse to one row instead of growing
+unbounded. Counts stay directionally correct for the analytics-only
+`events` table; this is not exact per-occurrence counting.
+
 ## Deploy
 
 ```bash

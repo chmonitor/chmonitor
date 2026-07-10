@@ -789,10 +789,13 @@ export default {
       const chVersion = asVersion(props.ch_version)
       const chFlavor = asEnum(props.ch_flavor, CH_FLAVORS, 'unknown')
 
+      // Dedupe per (day, event, deploy_target, ch_version, ch_flavor): no
+      // instance_hash is sent here (unlike /v1/ping), so this coarser tuple
+      // is the bound — see migrations/0004_dedupe_events.sql.
       const day = new Date().toISOString().slice(0, 10)
       ctx.waitUntil(
         env.CHM_TELEMETRY_DB.prepare(
-          'INSERT INTO events (day, event, deploy_target, ch_version, ch_flavor) VALUES (?, ?, ?, ?, ?)'
+          'INSERT OR IGNORE INTO events (day, event, deploy_target, ch_version, ch_flavor) VALUES (?, ?, ?, ?, ?)'
         )
           .bind(day, event, deployTarget, chVersion || null, chFlavor || null)
           .run()
