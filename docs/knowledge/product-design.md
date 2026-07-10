@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-05
+updated: 2026-07-10
 tags:
   - design-system
   - ui
@@ -42,6 +42,28 @@ Chart series: `--chart-1..5` in OKLCH (orange/blue/dark-blue/yellow-green/green)
 plus HSL extras `--chart-6..13`. Semantic badge pairs exist as
 `--badge-{purple,blue,green,amber,pink,slate}` + `*-bg`.
 
+**Series-color arithmetic (one helper).** `area.tsx`, `bar/utils.ts`
+(`colorForCategoryIndex`), and `donut.tsx` all resolve a series/category color
+through the shared `seriesColorVar(index, colors?)` in
+`components/charts/primitives/series-color.ts`: an explicit `colors` list when
+given, else `var(--chart-1..13)` ascending, else golden-angle HSL hue rotation
+beyond the 13 defined tokens. Don't reintroduce a fourth per-primitive
+arithmetic — add overflow handling to `seriesColorVar` instead.
+
+**`bg-chart-N` fallback fills must be static literals.** `ProportionList`
+(`components/charts/primitives/proportion-list.tsx`) and its chart consumers
+(`query-type.tsx`, `log-level-distribution.tsx`, `query-cache-usage.tsx`) pick
+a fallback fill class from the shared `CHART_BG_CLASSES` array
+(`components/charts/chart-bg-classes.ts`) — never build `` `bg-chart-${n}` ``
+at runtime. Tailwind's content scanner only emits classes it can see as
+literals in source; a template string is invisible to it and gets purged from
+the production bundle (it happened to "work" in dev only because another
+file's own literal list kept the classes alive network-wide). Palette-class
+status colors (error/warn/ok swatches in these same files, plus
+`system/disk-usage.tsx`) carry an explicit `dark:` variant
+(`bg-red-500 dark:bg-red-400`-style) since they intentionally bypass the
+`--chart-N` tokens for semantic meaning.
+
 Radius: `--radius: 0.625rem` (10px) → `rounded-sm` 6px / `rounded-md` 9px /
 `rounded-lg` 10px / `rounded-xl` 14px.
 
@@ -59,6 +81,14 @@ breadcrumb, button, button-group, card, carousel, checkbox, collapsible, command
 dialog, drawer, dropdown-menu, empty-state, form, hover-card, icon-button, input,
 input-group, label, popover, progress, resizable, scroll-area, select, separator,
 sheet, sidebar, skeleton, tabs, tooltip (+ more).
+
+**`components/ui/` is for pristine shadcn CLI output only** — no app-specific
+component belongs there (an import of an app hook/lib is the tell). Bespoke
+components that only *look* like they belong (e.g. `debounced-input.tsx`,
+which pulled in `@/lib/hooks`) live under `src/components/` instead — moved to
+`components/inputs/debounced-input.tsx`. Exception: assistant-ui's documented
+setup expects its companion pieces (`message-scroller.tsx`, `attachment.tsx`)
+under `components/ui/`, so those stay put.
 
 **Base UI backing (post-#2361).** The primitives are the shadcn **Base UI**
 (`@base-ui/react`) distribution, not Radix. When adding/upgrading a primitive or

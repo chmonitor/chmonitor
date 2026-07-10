@@ -1,3 +1,4 @@
+import { CHART_BG_CLASSES } from '@/components/charts/chart-bg-classes'
 import { createCustomChart } from '@/components/charts/factory'
 import { ProportionList } from '@/components/charts/primitives/proportion-list'
 import { formatCount } from '@/lib/utils'
@@ -22,7 +23,7 @@ export const ChartQueryInsightsTopUsers = createCustomChart({
         items={data.map((d, index) => ({
           label: d.user || 'Unknown',
           value: d.query_count,
-          colorClass: `bg-chart-${(index % 5) + 1}`,
+          colorClass: CHART_BG_CLASSES[index % CHART_BG_CLASSES.length],
         }))}
         formatValue={(v) => formatCount(v)}
         emptyMessage="No query activity recorded"

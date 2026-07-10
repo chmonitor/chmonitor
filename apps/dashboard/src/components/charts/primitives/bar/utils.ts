@@ -2,6 +2,7 @@
  * Bar chart utility functions
  */
 
+import { seriesColorVar } from '@/components/charts/primitives/series-color'
 import type { ChartConfig } from '@/components/ui/chart'
 
 /**
@@ -44,30 +45,18 @@ export function sortCategoriesByTotal<T extends Record<string, unknown>>(
   return totals.map((t) => t.category)
 }
 
-/** Number of predefined `--chart-N` theme variables available as a fallback. */
-const THEME_CHART_COLORS = 8
-
 /**
  * Resolve a stable, distinct color for the category at `index`.
  *
- * Within the available palette (an explicit `colors` list, or the 8 themed
- * `--chart-N` vars) we use the palette directly. Beyond it — charts with many
- * stacked series like "New Parts Created" — we generate a color by golden-angle
- * hue rotation so every extra series still gets a distinct, readable color
- * instead of falling back to `var(undefined)` (which renders as black).
+ * Delegates to the shared {@link seriesColorVar} helper so bar charts use the
+ * same arithmetic as the area/donut primitives (all 13 themed `--chart-N`
+ * vars, then golden-angle hue rotation for series beyond that).
  */
 export function colorForCategoryIndex(
   index: number,
   colors?: string[]
 ): string {
-  if (colors && colors.length > 0) {
-    if (index < colors.length) return `var(${colors[index]})`
-  } else if (index < THEME_CHART_COLORS) {
-    return `var(--chart-${index + 1})`
-  }
-  // Golden-angle (137.508°) hue rotation keeps successive colors far apart.
-  const hue = Math.round((index * 137.508) % 360)
-  return `hsl(${hue} 70% 55%)`
+  return seriesColorVar(index, colors)
 }
 
 /**

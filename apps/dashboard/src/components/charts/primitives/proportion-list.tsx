@@ -1,3 +1,4 @@
+import { CHART_BG_CLASSES } from '@/components/charts/chart-bg-classes'
 import { cn } from '@/lib/utils'
 
 export interface ProportionItem {
@@ -49,7 +50,8 @@ export function ProportionList({
     <div className={cn('flex flex-col gap-3 p-2', className)}>
       {items.map((item, index) => {
         const pct = computedTotal > 0 ? (item.value / computedTotal) * 100 : 0
-        const fillClass = item.colorClass ?? `bg-chart-${(index % 5) + 1}`
+        const fillClass =
+          item.colorClass ?? CHART_BG_CLASSES[index % CHART_BG_CLASSES.length]
 
         return (
           <div key={item.label} className="flex flex-col gap-1">

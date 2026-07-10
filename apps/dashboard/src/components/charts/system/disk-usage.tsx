@@ -42,9 +42,9 @@ const LEVEL_ACCENT: Record<UsageLevel, string> = {
 }
 
 const LEVEL_DOT: Record<UsageLevel, string> = {
-  ok: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  critical: 'bg-red-500',
+  ok: 'bg-emerald-500 dark:bg-emerald-400',
+  warn: 'bg-amber-500 dark:bg-amber-400',
+  critical: 'bg-red-500 dark:bg-red-400',
 }
 
 function percentUsed(used: number, total: number): number {

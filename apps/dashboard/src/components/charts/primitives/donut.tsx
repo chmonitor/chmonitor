@@ -2,6 +2,7 @@ import { Cell, Label, Pie, PieChart } from 'recharts'
 
 import { DonutChartLabel } from './donut-chart-label'
 import { useDonutValueFormatter } from './use-donut-value-formatter'
+import { seriesColorVar } from '@/components/charts/primitives/series-color'
 import {
   type ChartConfig,
   ChartContainer,
@@ -135,7 +136,7 @@ export const DonutChart = function DonutChart({
       const categoryName = String(row[index])
       config[categoryName] = {
         label: categoryName,
-        color: colors ? `var(${colors[i]})` : `var(--chart-${(i % 10) + 1})`,
+        color: seriesColorVar(i, colors),
       }
     })
     return config
@@ -192,7 +193,7 @@ export const DonutChart = function DonutChart({
           {chartData.map((_entry, index) => (
             <Cell
               key={`cell-${index}`}
-              fill={`var(--chart-${(index % 10) + 1})`}
+              fill={seriesColorVar(index, colors)}
               className="stroke-background hover:opacity-80 transition-opacity"
             />
           ))}

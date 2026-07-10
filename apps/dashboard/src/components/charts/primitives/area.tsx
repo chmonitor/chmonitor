@@ -14,6 +14,7 @@ import {
   renderChartTooltip,
 } from './area-chart-tooltip'
 import { useChartScaleValue } from '@/components/charts/chart-scale-context'
+import { seriesColorVar } from '@/components/charts/primitives/series-color'
 import {
   type ChartConfig,
   ChartContainer,
@@ -204,7 +205,7 @@ export const AreaChart = function AreaChart({
       (acc, category, index) => {
         acc[category] = {
           label: category,
-          color: colors ? `var(${colors[index]})` : `var(--chart-${index + 1})`,
+          color: seriesColorVar(index, colors),
         }
 
         return acc

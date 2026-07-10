@@ -25,7 +25,7 @@ import {
 } from '@/components/data-table/components/data-table-header-parts'
 import { MobileSortMenu } from '@/components/data-table/components/mobile-table-cards'
 import { Button } from '@/components/ui/button'
-import { DebouncedInput } from '@/components/ui/debounced-input'
+import { DebouncedInput } from '@/components/inputs/debounced-input'
 import { Input } from '@/components/ui/input'
 import {
   Popover,

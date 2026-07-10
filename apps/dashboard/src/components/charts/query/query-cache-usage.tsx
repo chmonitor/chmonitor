@@ -1,5 +1,6 @@
 import type { ChartProps } from '@/components/charts/chart-props'
 
+import { CHART_BG_CLASSES } from '@/components/charts/chart-bg-classes'
 import { createCustomChart } from '@/components/charts/factory'
 import { ProportionList } from '@/components/charts/primitives/proportion-list'
 
@@ -10,9 +11,9 @@ interface CacheUsageData {
 }
 
 const cacheColors: Record<string, string> = {
-  None: 'bg-gray-400',
-  Read: 'bg-emerald-500',
-  Write: 'bg-blue-500',
+  None: 'bg-gray-400 dark:bg-gray-500',
+  Read: 'bg-emerald-500 dark:bg-emerald-400',
+  Write: 'bg-blue-500 dark:bg-blue-400',
 }
 
 /**
@@ -34,7 +35,8 @@ export const ChartQueryCacheUsage = createCustomChart({
         items={data.map((d) => ({
           label: d.query_cache_usage,
           value: d.query_count,
-          colorClass: cacheColors[d.query_cache_usage] ?? 'bg-chart-1',
+          colorClass:
+            cacheColors[d.query_cache_usage] ?? CHART_BG_CLASSES[0],
         }))}
         emptyMessage="No cache usage data available"
       />
