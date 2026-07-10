@@ -3,9 +3,11 @@ import { describe, expect, test } from 'bun:test'
 
 // Roadmap/unwired channel and feature names that must never appear as a
 // shipped-feature claim on a use-case page. See use-cases.ts's top comment
-// for the audit trail (Telegram/PagerDuty adapters exist as pure formatters
-// but are not consumed by the health-sweep dispatch — genuinely unwired).
-const DENYLIST = ['telegram', 'pagerduty', 'pager duty', 'opsgenie', 'email']
+// for the audit trail. PagerDuty and Opsgenie were removed from this list
+// once their health-sweep dispatch + settings UI shipped on main (plan 93);
+// the Telegram adapter is still a pure formatter with no dispatch wired, and
+// email transport is held pending a fire-path decision (#2218).
+const DENYLIST = ['telegram', 'email']
 
 // Structured copy fields to scan — NOT the raw source file text, which
 // legitimately mentions denylisted names in comments/docs.

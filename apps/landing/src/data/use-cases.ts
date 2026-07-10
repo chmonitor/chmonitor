@@ -5,9 +5,10 @@
  * Every claim here must map to a real, shipped chmonitor capability: this
  * file IS the honesty-audit surface for those pages. `use-cases.test.ts`
  * enforces the shape (unique slug/title/h1/description) and a denylist of
- * roadmap-only feature names (PagerDuty, Telegram, OpsGenie, email alerts,
- * DDL auto-apply) that are not wired to any UI today — see the alerting
- * adapters audit trail in that file's comments.
+ * roadmap-only feature names (Telegram, email alerts, DDL auto-apply) that
+ * are not wired to any UI today — see the alerting adapters audit trail in
+ * that file's comments. PagerDuty and Opsgenie dispatch from the health
+ * sweep and have settings UI, so they are not denylisted.
  */
 
 export interface UseCaseBenefit {
