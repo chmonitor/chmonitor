@@ -56,6 +56,75 @@ export async function validateHostUrl(
   return typeof result === 'string' ? result : null
 }
 
+/**
+ * SSRF guard for a Postgres source, the TCP-aware sibling of
+ * {@link validateHostUrl}. Postgres connects over raw TCP (not HTTP), so there
+ * is no URL/scheme and no fetch DNS-pinning — but the internal-target rules are
+ * the SAME: reject private/loopback/link-local/CGNAT hosts unless a self-host
+ * operator opted in via `CHM_ALLOW_PRIVATE_HOSTS` (forced off in cloud). It
+ * shares `isInternalIp` / `resolveDnsAddresses` / `arePrivateHostsAllowed` with
+ * the HTTP validator so the two engines can never drift on what "internal" means.
+ *
+ * `host` must be a BARE hostname or IP literal (no scheme, no path, no port —
+ * the port is the separate `port` arg). Returns an error string, or `null` when
+ * the target is safe to connect to.
+ *
+ * Residual note: `pg` re-resolves DNS at connect time, so a hostname that
+ * passes here could in theory rebind to an internal IP before the socket opens
+ * (a DNS-rebind TOCTOU). This mirrors the HTTP path's behaviour in the Workers
+ * runtime (which also can't pin); IP-literal hosts have no such window.
+ */
+export async function validatePostgresHost(
+  host: string,
+  port: number,
+  resolveHostAddresses: ResolveHostAddresses = resolveDnsAddresses,
+  allowPrivate: boolean = arePrivateHostsAllowed()
+): Promise<string | null> {
+  const hostname = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+
+  if (!hostname) {
+    return 'Postgres host is required.'
+  }
+  if (hostname.includes('://') || /[/\s]/.test(hostname)) {
+    return `Invalid Postgres host "${host}". Enter a bare hostname or IP address (e.g. db.example.com), not a URL.`
+  }
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return `Invalid Postgres port "${port}". Must be an integer between 1 and 65535.`
+  }
+
+  if (!allowPrivate) {
+    if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
+      return INTERNAL_ADDRESS_ERROR
+    }
+    if (isInternalIp(hostname)) {
+      return INTERNAL_ADDRESS_ERROR
+    }
+  }
+
+  if (isIpLiteral(hostname)) {
+    return null
+  }
+
+  let addresses: readonly string[]
+  try {
+    addresses = await resolveHostAddresses(hostname)
+  } catch {
+    return DNS_RESOLUTION_ERROR
+  }
+
+  if (addresses.length === 0) {
+    return INTERNAL_ADDRESS_ERROR
+  }
+  if (!allowPrivate && addresses.some(isInternalIp)) {
+    return INTERNAL_ADDRESS_ERROR
+  }
+
+  return null
+}
+
 async function resolveValidatedHostUrl(
   host: string,
   resolveHostAddresses: ResolveHostAddresses = resolveDnsAddresses,

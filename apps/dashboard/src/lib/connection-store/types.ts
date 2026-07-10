@@ -4,10 +4,40 @@
 
 import type { SourceEngine } from '@chm/types'
 
+/**
+ * Credential-envelope discriminator (v2). ABSENT on v1 payloads — which only
+ * ever held ClickHouse creds — so a decrypted v1 blob (no `kind`) reads back as
+ * `'clickhouse'`. Keep this aligned with the browser envelope in
+ * `lib/connection-crypto/browser-crypto.ts` (both JSON-serialize this shape).
+ */
+export type ConnectionKind = 'clickhouse' | 'postgres'
+
+/**
+ * Encrypted-at-rest connection credentials.
+ *
+ * **Envelope v1** (legacy, ClickHouse only): `{ host, user, password }` where
+ * `host` is a full ClickHouse URL. Decodes unchanged — `kind` is `undefined`,
+ * treated as `'clickhouse'`.
+ *
+ * **Envelope v2** (adds Postgres): carries `kind` plus the Postgres-only fields
+ * (`port`, `database`, `sslmode`). For a Postgres source `host` is a BARE
+ * hostname/IP (no scheme) and the TCP endpoint is `host:port`.
+ *
+ * The AES-GCM binary VERSION byte is unchanged — envelope versioning lives at
+ * this JSON-schema level, so old ciphertext round-trips without a re-key.
+ */
 export interface ConnectionCredentials {
+  /** Envelope discriminator; absent (v1) ⇒ `'clickhouse'`. */
+  kind?: ConnectionKind
   host: string
   user: string
   password: string
+  /** Postgres TCP port (v2, Postgres only). */
+  port?: number
+  /** Postgres database name (v2, Postgres only). */
+  database?: string
+  /** libpq `sslmode` (v2, Postgres only): `disable` | `require` | `verify-full`. */
+  sslmode?: string
 }
 
 /** Public-facing connection metadata (no password). */

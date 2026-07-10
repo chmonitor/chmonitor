@@ -1,4 +1,8 @@
-import { createHostValidationFetch, validateHostUrl } from './host-url'
+import {
+  createHostValidationFetch,
+  validateHostUrl,
+  validatePostgresHost,
+} from './host-url'
 import { describe, expect, mock, test } from 'bun:test'
 
 // Injected DNS resolvers (the 2nd param) so tests never hit the network.
@@ -174,5 +178,76 @@ describe('createHostValidationFetch — validation runs at fetch time', () => {
     // fetchPinnedToValidatedAddresses (or the Workers pass-through) ever
     // dispatches a real request.
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('validatePostgresHost — TCP SSRF guard', () => {
+  const resolvePublic = async () => ['93.184.216.34']
+  const resolveLoopback = async () => ['127.0.0.1']
+
+  test('blocks private / loopback / CGNAT by default', async () => {
+    expect(
+      await validatePostgresHost('192.168.1.10', 5432, resolvePublic, false)
+    ).not.toBeNull()
+    expect(
+      await validatePostgresHost('10.0.0.5', 5432, resolvePublic, false)
+    ).not.toBeNull()
+    expect(
+      await validatePostgresHost('100.64.0.1', 5432, resolvePublic, false)
+    ).not.toBeNull()
+    expect(
+      await validatePostgresHost('localhost', 5432, resolveLoopback, false)
+    ).not.toBeNull()
+    // A public hostname that secretly resolves to a loopback address.
+    expect(
+      await validatePostgresHost('sneaky.example', 5432, resolveLoopback, false)
+    ).not.toBeNull()
+  })
+
+  test('allows private hosts when allowPrivate = true (self-host opt-in)', async () => {
+    expect(
+      await validatePostgresHost('127.0.0.1', 54329, resolveLoopback, true)
+    ).toBeNull()
+    expect(
+      await validatePostgresHost('192.168.1.10', 5432, resolvePublic, true)
+    ).toBeNull()
+  })
+
+  test('allows a public host on a valid port', async () => {
+    expect(
+      await validatePostgresHost('db.example.com', 5432, resolvePublic, false)
+    ).toBeNull()
+  })
+
+  test('rejects out-of-range and non-integer ports', async () => {
+    expect(
+      await validatePostgresHost('db.example.com', 0, resolvePublic, true)
+    ).not.toBeNull()
+    expect(
+      await validatePostgresHost('db.example.com', 70000, resolvePublic, true)
+    ).not.toBeNull()
+    expect(
+      await validatePostgresHost('db.example.com', 5432.5, resolvePublic, true)
+    ).not.toBeNull()
+  })
+
+  test('rejects a URL-shaped host (must be a bare hostname/IP)', async () => {
+    expect(
+      await validatePostgresHost(
+        'postgres://db.example.com',
+        5432,
+        resolvePublic,
+        true
+      )
+    ).not.toBeNull()
+    expect(
+      await validatePostgresHost('db.example.com/x', 5432, resolvePublic, true)
+    ).not.toBeNull()
+  })
+
+  test('rejects an empty host', async () => {
+    expect(
+      await validatePostgresHost('', 5432, resolvePublic, true)
+    ).not.toBeNull()
   })
 })
