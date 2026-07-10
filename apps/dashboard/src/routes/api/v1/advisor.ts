@@ -21,6 +21,10 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import {
+  demoHiddenUnavailable,
+  isDemoHostBlockedForRequest,
+} from '@/lib/cloud/reject-demo-host'
 
 const ROUTE_CONTEXT = { route: '/api/v1/advisor' }
 const MAX_QUERY_LENGTH = 100000
@@ -127,6 +131,27 @@ async function runAdvisor(
         ...ROUTE_CONTEXT,
       },
       { status: 400 }
+    )
+  }
+
+  // Cloud demo-hiding invariant (#2172 / #2488): user connections always use
+  // negative hostIds, so a non-negative id from a signed-in cloud principal
+  // can only be the hidden env/demo host. No-op for OSS and anonymous cloud
+  // callers (both legitimately use hostId=0).
+  if (
+    await isDemoHostBlockedForRequest(
+      hostId,
+      env as Record<string, string | undefined>
+    )
+  ) {
+    return Response.json(
+      {
+        success: true,
+        recommendations: [],
+        ...ROUTE_CONTEXT,
+        unavailable: demoHiddenUnavailable(),
+      },
+      { status: 200 }
     )
   }
 

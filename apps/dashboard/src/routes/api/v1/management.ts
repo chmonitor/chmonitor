@@ -12,6 +12,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
@@ -251,6 +252,26 @@ export const Route = createFileRoute('/api/v1/management')({
               error: 'Invalid parameter: hostId must be a non-negative integer',
             },
             { status: 400 }
+          )
+        }
+
+        // Cloud demo-hiding invariant (#2172 / #2488): user connections
+        // always use negative hostIds, so a non-negative id from a
+        // signed-in cloud principal can only be the hidden env/demo host.
+        // This is a mutation endpoint (DDL), so reject outright rather than
+        // returning structured-empty data.
+        if (
+          await isDemoHostBlockedForRequest(
+            hostId,
+            env as Record<string, string | undefined>
+          )
+        ) {
+          return Response.json(
+            {
+              success: false,
+              error: 'The demo host is hidden for signed-in accounts.',
+            },
+            { status: 403 }
           )
         }
 

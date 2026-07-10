@@ -33,6 +33,10 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import {
+  demoHiddenUnavailable,
+  isDemoHostBlockedForRequest,
+} from '@/lib/cloud/reject-demo-host'
 
 const ROUTE_CONTEXT = { route: '/api/v1/menu-counts', method: 'GET' }
 
@@ -130,6 +134,33 @@ export async function handler(request: Request): Promise<Response> {
     }
 
     const hostId = hostIdResult.data
+
+    // Cloud demo-hiding invariant (#2172 / #2488): reject a non-negative
+    // hostId for an authenticated cloud principal (the hidden env/demo host).
+    if (
+      await isDemoHostBlockedForRequest(
+        hostId,
+        env as Record<string, string | undefined>
+      )
+    ) {
+      const headers = new Headers({ 'Content-Type': 'application/json' })
+      headers.set('X-Request-ID', requestId)
+      headers.set('Cache-Control', CacheControl.MEDIUM)
+      return Response.json(
+        {
+          success: true,
+          data: { counts: {} } satisfies MenuCountsResponse,
+          metadata: {
+            queryId: 'menu-counts-batch',
+            duration: 0,
+            rows: 0,
+            host: String(hostId),
+            unavailable: demoHiddenUnavailable(),
+          },
+        },
+        { headers }
+      )
+    }
 
     debug('[GET /api/v1/menu-counts] Fetching batched counts', {
       requestId,
