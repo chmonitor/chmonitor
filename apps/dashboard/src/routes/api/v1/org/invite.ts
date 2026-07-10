@@ -28,11 +28,11 @@
  * The org id is always session-derived via `resolveBillingOwner()`, never a
  * request param, so a caller can only ever invite into their own org.
  *
- * Fail-open (self-hosted/OSS stays whole): plan resolution + member-count
- * enumeration is wrapped in `preCheckSeatLimit`, which returns `null` — "skip
- * the check" — on ANY failure there (Clerk not configured, Clerk API hiccup).
- * A seat-check failure can never block an invite; it can only under-enforce,
- * matching the fail-safe convention used by `countOwnerHosts`
+ * Fail-open (self-hosted/OSS stays whole): plan resolution + member/pending
+ * invite enumeration is wrapped in `preCheckSeatLimit`, which returns `null`
+ * — "skip the check" — on ANY failure there (Clerk not configured, Clerk API
+ * hiccup). A seat-check failure can never block an invite; it can only
+ * under-enforce, matching the fail-safe convention used by `countOwnerHosts`
  * (lib/billing/org-host-count.ts).
  */
 import { createFileRoute } from '@tanstack/react-router'
@@ -98,7 +98,7 @@ function seatLimitResponse(check: LimitCheck): Response {
 
 /**
  * Pre-check the org's seat cap for one more invite. Returns `null` when the
- * check should be SKIPPED — the plan is unlimited, or plan/member-count
+ * check should be SKIPPED — the plan is unlimited, or plan/member/invite
  * resolution threw (most commonly: Clerk isn't configured). Never throws.
  *
  * At invite time the new member has NOT been added yet, so this passes the
@@ -106,6 +106,11 @@ function seatLimitResponse(check: LimitCheck): Response {
  * webhook rollback in webhooks/clerk.ts, which fires after Clerk has already
  * added the member and so subtracts one to ask the same "room for one more?"
  * question against the pre-addition roster.
+ *
+ * Counts pending invitations too, not just current members: without this, an
+ * org already at its seat cap could dispatch unlimited invites (each one only
+ * bounced post-hoc, after accept, by the webhook rollback — a worse UX and a
+ * correctness gap).
  */
 async function preCheckSeatLimit(orgId: string): Promise<LimitCheck | null> {
   try {
@@ -113,13 +118,22 @@ async function preCheckSeatLimit(orgId: string): Promise<LimitCheck | null> {
     if (plan.seats == null) return null // unlimited — nothing to check
 
     const { clerkClient } = await import('@clerk/tanstack-react-start/server')
+    const client = clerkClient()
+    // Both list calls cap at 100 with no pagination — fine while seat caps
+    // top out at 10, but an org with >100 members/pending-invites would
+    // undercount here.
     const memberships =
-      await clerkClient().organizations.getOrganizationMembershipList({
+      await client.organizations.getOrganizationMembershipList({
         organizationId: orgId,
         limit: 100,
       })
+    const pending = await client.organizations.getOrganizationInvitationList({
+      organizationId: orgId,
+      status: ['pending'],
+      limit: 100,
+    })
 
-    return checkSeatLimit(plan, memberships.data.length)
+    return checkSeatLimit(plan, memberships.data.length + pending.data.length)
   } catch {
     return null
   }
