@@ -60,11 +60,12 @@ two PostHog Insights in the `chmonitor.dev` project, not new in-app code:
 
 1. **Funnel insight** — Product analytics → Insights → New → Funnel. Steps, in
    order: `landing_view`, `signup`, `cluster_connect`,
-   `advisor_recommendation_viewed`, `paywall_hit`, `upgrade_completed`. Note the
-   `upgrade_completed` distinct-id caveat in `product-analytics.mdx` — this step
-   is an aggregate count of the step before it, not a stitched per-user
-   conversion, since it's captured server-side from the Polar webhook with no
-   browser context.
+   `advisor_recommendation_viewed`, `paywall_hit`, `upgrade_completed`.
+   `upgrade_completed` is stitched to the same browser distinct-id as the
+   steps before it (#2478 — see `product-analytics.mdx`), so this is now a
+   real per-user conversion step, not just an aggregate count; the fallback to
+   the shared `server` id only applies to pre-#2478 checkouts and manually
+   created Polar subscriptions.
 2. **Trends insight** — `signup`, `cluster_connect`, `checkout_started`,
    `upgrade_completed` as separate trend lines, weekly, to eyeball week-over-week
    funnel health without waiting on the stitched funnel step above.
@@ -81,10 +82,6 @@ against the existing `chmonitor.dev` project and pin them to a dashboard there.
 - **Social followers are entirely unmeasured.** No X/LinkedIn account is wired
   into any repo tooling; this line item needs a human to check the account(s)
   directly, or a future task to pull an API if/when official accounts exist.
-- **`upgrade_completed` is not stitched to the rest of the funnel per-user** —
-  see the callout in `product-analytics.mdx`. Closing this gap would mean
-  passing the browser's anonymous PostHog distinct id through Polar checkout
-  metadata and reading it back out of the webhook payload.
 - **PostHog Insights themselves are not created by this change** — the funnel/
   trends config above is written as instructions for whoever has PostHog
   project access; no PostHog API credential was available in this session to

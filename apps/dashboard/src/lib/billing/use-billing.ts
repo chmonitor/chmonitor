@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import type { PlanId } from '@/lib/billing/plans'
 
-import { trackEvent } from '@/lib/analytics/analytics'
+import { getDistinctId, trackEvent } from '@/lib/analytics/analytics'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
 export interface BillingSubscription {
@@ -76,7 +76,17 @@ export async function startCheckout(
   planId: 'pro' | 'max',
   period: 'monthly' | 'yearly'
 ): Promise<void> {
-  const url = await postForUrl('/api/v1/billing/checkout', { planId, period })
+  // Attach the browser's PostHog distinct-id so the Polar webhook can stitch
+  // upgrade_completed onto the same funnel session (#2478) instead of the
+  // shared server id. Undefined (analytics disabled/DNT/not-yet-init) is
+  // dropped by postForUrl's JSON.stringify — the checkout route treats that
+  // as "absent" and falls back cleanly.
+  const posthogDistinctId = await getDistinctId()
+  const url = await postForUrl('/api/v1/billing/checkout', {
+    planId,
+    period,
+    posthogDistinctId,
+  })
   trackEvent('checkout_started', { plan_id: planId, billing_period: period })
   window.location.href = url
 }

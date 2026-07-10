@@ -81,15 +81,16 @@ The core acquisition→conversion funnel these events trace: `landing_view` →
 `paywall_hit` → `upgrade_completed`. Build this as a PostHog funnel insight
 (Product analytics → Insights → Funnel) using these events in order.
 
-<Callout type="warn" title="upgrade_completed is not stitched to the same distinct_id">
 `upgrade_completed` fires from the Polar webhook (server-side, no browser
-context), so it's captured under the shared `server` distinct id rather than
-the browser's anonymous id used by every other dashboard event above. Treat it
-as an aggregate count (conversions per period), not as a per-user step in a
-PostHog funnel insight — a true per-user funnel across the webhook boundary
-would need passing the anonymous distinct id through checkout metadata and
-back, which is not implemented.
-</Callout>
+context), so it carries the browser's PostHog distinct id rather than the
+shared `server` one: `checkout_started` reads `posthog.get_distinct_id()` and
+forwards it as `posthogDistinctId` on the Polar checkout metadata, Polar
+propagates it onto the resulting subscription, and the
+`subscription.created` webhook reads it back off to stitch
+`upgrade_completed` onto that same distinct id (#2478). Older checkouts or a
+manually-created Polar subscription have no such metadata; the webhook falls
+back to the shared `server` id for those, so it stays a per-user funnel step
+for stitched conversions and an aggregate count otherwise.
 
 ## What is captured
 

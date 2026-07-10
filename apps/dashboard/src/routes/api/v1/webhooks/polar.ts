@@ -68,6 +68,15 @@ interface PolarSubscriptionData {
   productId: string
   customerId: string
   customer?: { externalId?: string | null } | null
+  /**
+   * Copied onto the subscription from the checkout's metadata at creation
+   * (Polar propagates checkout metadata to the resulting subscription).
+   * Carries `posthogDistinctId` when the browser attached one at checkout
+   * time (see `/api/v1/billing/checkout`) — stitches `upgrade_completed`
+   * onto the same PostHog distinct-id as the rest of the funnel instead of
+   * the shared server id, so the funnel's last step stops reporting 0%.
+   */
+  metadata?: Record<string, unknown> | null
 }
 
 function toUnixSeconds(value: Date | string | null | undefined): number | null {
@@ -289,10 +298,14 @@ async function applySubscription(
   // `checkout_started` events) because this is the only point that reflects
   // money actually moving, confirmed by Polar.
   if (isPaidPlan && eventType === 'subscription.created') {
+    const posthogDistinctId = data.metadata?.posthogDistinctId
     await captureServerEvent(
       process.env as Record<string, string | undefined>,
       'upgrade_completed',
-      { plan_id: mapped.planId, billing_period: mapped.period }
+      { plan_id: mapped.planId, billing_period: mapped.period },
+      typeof posthogDistinctId === 'string' && posthogDistinctId
+        ? posthogDistinctId
+        : undefined
     )
   }
 

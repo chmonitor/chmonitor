@@ -107,3 +107,14 @@ export function trackAnalyticsEvent(
   }
   if (pending.length < MAX_PENDING) pending.push({ event, props })
 }
+
+/**
+ * The browser's PostHog anonymous distinct-id, or undefined when analytics is
+ * disabled or PostHog hasn't finished initializing yet. Used to stitch
+ * server-side funnel events (e.g. `upgrade_completed` from the Polar webhook,
+ * #2478) onto the same distinct-id as the rest of the browser funnel.
+ */
+export function getAnalyticsDistinctId(): string | undefined {
+  if (disabled || !posthogInstance) return undefined
+  return posthogInstance.get_distinct_id()
+}

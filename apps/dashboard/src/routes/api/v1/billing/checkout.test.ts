@@ -148,3 +148,40 @@ describe('POST /api/v1/billing/checkout — annual billing', () => {
     expect(logEventImpl).not.toHaveBeenCalled()
   })
 })
+
+// #2478 — posthogDistinctId (sent by the browser alongside checkout_started)
+// must be forwarded onto the Polar checkout metadata unchanged so the
+// subscription.created webhook can stitch upgrade_completed back onto the
+// same funnel distinct-id.
+describe('POST /api/v1/billing/checkout — funnel distinct-id stitching', () => {
+  test('posthogDistinctId in the body is forwarded to Polar checkout metadata', async () => {
+    const res = await handlePost(
+      makeRequest({
+        planId: 'pro',
+        period: 'monthly',
+        posthogDistinctId: 'ph_abc123',
+      })
+    )
+
+    expect(res.status).toBe(200)
+    expect(checkoutsCreate.mock.calls[0]?.[0]).toMatchObject({
+      metadata: {
+        planId: 'pro',
+        period: 'monthly',
+        posthogDistinctId: 'ph_abc123',
+      },
+    })
+  })
+
+  test('missing posthogDistinctId (analytics disabled/DNT) omits it from metadata cleanly', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'pro', period: 'monthly' })
+    )
+
+    expect(res.status).toBe(200)
+    const metadata = checkoutsCreate.mock.calls[0]?.[0] as {
+      metadata: Record<string, unknown>
+    }
+    expect(metadata.metadata).not.toHaveProperty('posthogDistinctId')
+  })
+})

@@ -28,6 +28,22 @@ mock.module('@/lib/audit/logEvent', () => ({
   logEvent: (e: unknown) => logEventImpl(e),
 }))
 
+// #2478 — captures the distinct id the webhook passes for `upgrade_completed`
+// so tests can assert the funnel-stitching fallback (metadata present →
+// browser distinct id; absent → shared default, no throw).
+let captureServerEventImpl = mock(
+  (_env: unknown, _event: string, _props?: unknown, _distinctId?: string) =>
+    Promise.resolve()
+)
+mock.module('@/lib/analytics/analytics.server', () => ({
+  captureServerEvent: (
+    env: unknown,
+    event: string,
+    props?: unknown,
+    distinctId?: string
+  ) => captureServerEventImpl(env, event, props, distinctId),
+}))
+
 let getOrganizationMembershipList = mock(async (_args: { userId: string }) => ({
   data: [] as Array<{ organization?: { id?: string | null } }>,
 }))
@@ -112,6 +128,7 @@ beforeEach(() => {
   upsertSubscription = mock(async () => {})
   invalidateNegativeCache = mock(() => {})
   logEventImpl = mock(() => Promise.resolve())
+  captureServerEventImpl = mock(() => Promise.resolve())
 })
 
 describe('applySubscription — org re-keying', () => {
@@ -248,5 +265,57 @@ describe('applySubscription — audit wiring', () => {
     await applySubscription(subData({ productId: 'prod_unknown' }))
 
     expect(logEventImpl).not.toHaveBeenCalled()
+  })
+})
+
+// #2478 — upgrade_completed must carry the browser's PostHog distinct id
+// (read off subscription.metadata.posthogDistinctId, propagated by Polar from
+// the checkout) so the funnel stitches through the webhook boundary instead of
+// reporting under the shared server id.
+describe('applySubscription — upgrade_completed funnel stitching', () => {
+  test('metadata.posthogDistinctId present → captureServerEvent uses it as the distinct id', async () => {
+    await applySubscription(
+      subData({ metadata: { posthogDistinctId: 'ph_abc123' } }),
+      null,
+      'subscription.created'
+    )
+
+    expect(captureServerEventImpl).toHaveBeenCalledTimes(1)
+    const [, event, props, distinctId] = captureServerEventImpl.mock
+      .calls[0] as [unknown, string, unknown, string | undefined]
+    expect(event).toBe('upgrade_completed')
+    expect(props).toMatchObject({ plan_id: 'pro' })
+    expect(distinctId).toBe('ph_abc123')
+  })
+
+  test('metadata absent → falls back to the shared default id without throwing', async () => {
+    await expect(
+      applySubscription(subData(), null, 'subscription.created')
+    ).resolves.toBeUndefined()
+
+    expect(captureServerEventImpl).toHaveBeenCalledTimes(1)
+    const distinctId = captureServerEventImpl.mock.calls[0]?.[3]
+    expect(distinctId).toBeUndefined()
+  })
+
+  test('a non-string metadata.posthogDistinctId is ignored, not passed through', async () => {
+    await applySubscription(
+      subData({ metadata: { posthogDistinctId: 12345 } }),
+      null,
+      'subscription.created'
+    )
+
+    const distinctId = captureServerEventImpl.mock.calls[0]?.[3]
+    expect(distinctId).toBeUndefined()
+  })
+
+  test('subscription.updated (renewal) never fires upgrade_completed at all', async () => {
+    await applySubscription(
+      subData({ metadata: { posthogDistinctId: 'ph_abc123' } }),
+      null,
+      'subscription.updated'
+    )
+
+    expect(captureServerEventImpl).not.toHaveBeenCalled()
   })
 })
