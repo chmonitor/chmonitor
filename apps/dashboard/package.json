@@ -47,7 +47,6 @@
     "@chm/clickhouse-client": "workspace:*",
     "@chm/logger": "workspace:*",
     "@chm/mcp-server": "workspace:*",
-    "@chm/platform": "workspace:*",
     "@chm/pricing": "workspace:*",
     "@chm/sql-builder": "workspace:*",
     "@chm/types": "workspace:*",
