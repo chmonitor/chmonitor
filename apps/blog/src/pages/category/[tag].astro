@@ -1,0 +1,63 @@
+---
+import { getCollection } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import { postSlug, tagSlug, resolveTag } from '../../lib/slug'
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft)
+  const tags = [...new Set(posts.map((p) => p.data.tag))]
+  return tags.map((tag) => ({
+    params: { tag: tagSlug(tag) },
+    props: { tag },
+  }))
+}
+
+const { tag } = Astro.props
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+)
+
+const resolved = resolveTag(tag, posts)
+if (!resolved) return Astro.redirect('/', 301)
+
+const items = posts.filter((p) => tagSlug(p.data.tag) === tag)
+
+function fmtDate(d: Date) {
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+---
+<Base
+  title={`${resolved} — chmonitor blog`}
+  description={`All chmonitor blog posts tagged "${resolved}".`}
+>
+  <Nav />
+  <main>
+    <section class="blog-hero">
+      <div class="wrap">
+        <span class="eyebrow sec-eyebrow">Blog</span>
+        <h1>{resolved}</h1>
+        <p>{items.length} {items.length === 1 ? 'post' : 'posts'} in this category.</p>
+      </div>
+    </section>
+    <section class="wrap">
+      <ul class="cat-list cat-page-list">
+        {items.map((post) => (
+          <li class="cat-item">
+            <a class="cat-link" href={`/${postSlug(post)}/`}>
+              <span class="cat-title">{post.data.title}</span>
+              <span class="cat-date">{fmtDate(post.data.date)}</span>
+            </a>
+            {post.data.description && <p class="cat-desc">{post.data.description}</p>}
+          </li>
+        ))}
+      </ul>
+      <a class="cat-more" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        All posts
+      </a>
+    </section>
+  </main>
+  <Footer />
+</Base>

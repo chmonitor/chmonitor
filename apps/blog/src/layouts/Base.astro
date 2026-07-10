@@ -174,7 +174,7 @@ const ogImage = new URL(image, Astro.site).toString()
        so only ONE variant ever downloads. */
 
     /* ── blog header ── */
-    .blog-hero{padding:64px 0 36px;border-bottom:1px solid var(--border-soft);position:relative;overflow:hidden}
+    .blog-hero{padding:64px 0 36px;position:relative;overflow:hidden}
     .blog-hero::before{content:"";position:absolute;inset:0;z-index:-1;
       background:radial-gradient(ellipse 70% 50% at 50% -30%, rgba(249,115,22,.10), transparent 65%)}
     .blog-hero h1{font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-.03em;font-weight:700;margin-top:14px}
@@ -183,9 +183,9 @@ const ogImage = new URL(image, Astro.site).toString()
     .sec-eyebrow::before{content:"";width:18px;height:1.5px;background:var(--amber);border-radius:2px}
 
     /* ── category grid (homepage) ── */
-    .cat-grid{padding:8px 0 80px;display:grid;grid-template-columns:repeat(2,1fr);gap:20px;align-items:start}
+    .cat-grid{padding:8px 0 80px;display:grid;grid-template-columns:repeat(2,1fr);gap:20px;align-items:stretch}
     .cat-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
-      padding:24px 26px;transition:.22s cubic-bezier(0.16, 1, 0.3, 1)}
+      padding:24px 26px;transition:.22s cubic-bezier(0.16, 1, 0.3, 1);display:flex;flex-direction:column;height:100%}
     .cat-card:hover{border-color:var(--border-hover);box-shadow:var(--shadow-card)}
     .cat-card.is-featured{grid-column:1 / -1;background:linear-gradient(180deg,#fff8f1 0%,var(--card) 60%);
       border-color:rgba(249,115,22,.35)}
@@ -197,7 +197,14 @@ const ogImage = new URL(image, Astro.site).toString()
       border-radius:999px;padding:1px 9px;font-family:'JetBrains Mono',monospace}
     .cat-tagline{margin-top:8px;font-size:13.5px;color:var(--muted-fg);line-height:1.5;text-wrap:pretty}
     .cat-list{margin-top:16px;list-style:none;display:flex;flex-direction:column;gap:2px;
-      border-top:1px solid var(--border-soft);padding-top:6px}
+      border-top:1px solid var(--border-soft);padding-top:6px;flex:1 1 auto}
+    .cat-more{margin-top:14px;display:inline-flex;align-items:center;gap:6px;
+      font-size:13.5px;font-weight:600;color:var(--orange);transition:gap .15s}
+    .cat-more:hover{gap:9px}
+    .cat-more svg{width:14px;height:14px}
+    .cat-page-list{margin-top:24px;border-top:none;padding-top:0}
+    .cat-page-list .cat-item{padding:16px 0}
+    .cat-page-list .cat-title{font-size:17px;font-weight:600}
     .cat-item{display:flex;flex-direction:column;gap:2px;padding:11px 0;border-bottom:1px solid var(--border-soft)}
     .cat-item:last-child{border-bottom:none}
     .cat-link{display:flex;align-items:baseline;justify-content:space-between;gap:14px;

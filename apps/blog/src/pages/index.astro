@@ -3,7 +3,11 @@ import { getCollection } from 'astro:content'
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
-import { postSlug } from '../lib/slug'
+import { postSlug, tagSlug } from '../lib/slug'
+
+// Cap posts shown per card on the homepage; longer categories get a
+// "View all" link to their dedicated category page.
+const MAX_PER_CARD = 6
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
@@ -19,6 +23,8 @@ function fmtDate(d: Date) {
 const CATEGORY_ORDER = [
   'Release',
   'How-to',
+  'Performance',
+  'Monitoring',
   'Troubleshooting',
   'Case study',
   '5 min of ClickHouse',
@@ -27,6 +33,8 @@ const CATEGORY_ORDER = [
 const CATEGORY_TAGLINE = {
   Release: 'New versions, features, and fixes shipped to chmonitor.',
   Howto: 'Step-by-step guides to get more from your dashboard.',
+  Performance: 'Tune ClickHouse — indexes, parts, queries, and profiling that actually move latency.',
+  Monitoring: 'The dashboards and system-table signals every ClickHouse cluster needs.',
   Troubleshooting: 'Diagnose ClickHouse errors with copy-paste system-table queries.',
   'Case study': 'Real incidents, diagnosed end to end with chmonitor.',
   '5 min of ClickHouse': 'One diagnostic query, five minutes, no fluff.',
@@ -43,11 +51,13 @@ const allTags = [...CATEGORY_ORDER, ...extraTags]
 const groups = allTags
   .map((tag) => ({
     tag: tag,
+    slug: tagSlug(tag),
     tagline: CATEGORY_TAGLINE[tag] || '',
     items: posts.filter((p) => p.data.tag === tag),
     featured: tag === 'Release',
   }))
   .filter((g) => g.items.length > 0)
+  .map((g) => ({ ...g, visible: g.items.slice(0, MAX_PER_CARD) }))
 ---
 <Base title="chmonitor blog — release notes, guides & ClickHouse diagnostics" image="/og/blog/index.png">
   <Nav />
@@ -69,7 +79,7 @@ const groups = allTags
             </header>
             <p class="cat-tagline">{group.tagline}</p>
             <ul class="cat-list">
-              {group.items.map((post) => (
+              {group.visible.map((post) => (
                 <li class="cat-item">
                   <a class="cat-link" href={`/${postSlug(post)}/`}>
                     <span class="cat-title">{post.data.title}</span>
@@ -84,6 +94,12 @@ const groups = allTags
                 </li>
               ))}
             </ul>
+            {group.items.length > group.visible.length && (
+              <a class="cat-more" href={`/category/${group.slug}/`}>
+                View all {group.items.length} posts
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </a>
+            )}
           </section>
         ))}
       </div>
