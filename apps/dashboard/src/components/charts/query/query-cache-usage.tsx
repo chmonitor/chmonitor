@@ -35,8 +35,7 @@ export const ChartQueryCacheUsage = createCustomChart({
         items={data.map((d) => ({
           label: d.query_cache_usage,
           value: d.query_count,
-          colorClass:
-            cacheColors[d.query_cache_usage] ?? CHART_BG_CLASSES[0],
+          colorClass: cacheColors[d.query_cache_usage] ?? CHART_BG_CLASSES[0],
         }))}
         emptyMessage="No cache usage data available"
       />

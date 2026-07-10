@@ -8,8 +8,8 @@ import { AddFilterPopover } from '@/components/filters/add-filter-popover'
 import { FilterChip } from '@/components/filters/filter-chip'
 import { PresetsMenu } from '@/components/filters/presets-menu'
 import { QuickFilters } from '@/components/filters/quick-filters'
-import { Button } from '@/components/ui/button'
 import { DebouncedInput } from '@/components/inputs/debounced-input'
+import { Button } from '@/components/ui/button'
 import {
   parseFiltersFromParams,
   serializeFilter,

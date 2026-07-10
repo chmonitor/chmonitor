@@ -18,8 +18,8 @@
 import { Search, X } from 'lucide-react'
 
 import { memo, useCallback, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { DebouncedInput } from '@/components/inputs/debounced-input'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export interface ColumnFilterProps {

@@ -2,8 +2,9 @@
  * Bar chart utility functions
  */
 
-import { seriesColorVar } from '@/components/charts/primitives/series-color'
 import type { ChartConfig } from '@/components/ui/chart'
+
+import { seriesColorVar } from '@/components/charts/primitives/series-color'
 
 /**
  * Sanitize a category name for use as a CSS variable name.
