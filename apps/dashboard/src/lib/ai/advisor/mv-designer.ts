@@ -38,6 +38,41 @@ const DEFAULT_WINDOW_HOURS = 24 * 7
 const DEFAULT_TOP_N = 20
 /** Row cap for the cardinality sample query — bounded so mining never triggers a full-table scan. */
 const CARDINALITY_SAMPLE_SIZE = 100_000
+/** Max candidate shapes processed concurrently — bounds ClickHouse connection fan-out per request. */
+const SHAPE_CONCURRENCY = 5
+
+/**
+ * Run `fn` over `items` with at most `concurrency` in flight at once,
+ * returning results in the same order as `items`. A rejected `fn` call
+ * resolves to `undefined` at that index rather than rejecting the whole
+ * batch — callers that need per-item error handling should catch inside
+ * `fn` itself; this is just a safety net so one throw can't sink the batch.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<Array<R | undefined>> {
+  const results: Array<R | undefined> = new Array(items.length)
+  let cursor = 0
+
+  async function worker() {
+    while (true) {
+      const index = cursor++
+      if (index >= items.length) return
+      try {
+        results[index] = await fn(items[index], index)
+      } catch {
+        results[index] = undefined
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, worker)
+  )
+  return results
+}
 
 const QUERY_LOG_UNAVAILABLE_MESSAGE =
   'system.query_log is not accessible on this host (disabled, or this ClickHouse user lacks the grant). The MV/projection designer needs it to mine aggregation shapes — refusing to fabricate recommendations without it.'
@@ -618,21 +653,28 @@ export async function designMaterializedViews(params: {
     )
   }
 
-  const recommendations: MvRecommendation[] = []
+  // Multi-table (JOIN) aggregation shapes are out of scope for v1 — an MV can
+  // only trigger cleanly off one source table. Still counted in
+  // shapesAnalyzed below (a real aggregation shape that didn't get a
+  // recommendation), not silently dropped from the coverage accounting.
+  const eligibleShapes = shapes.filter((s) => s.tableCount <= 1)
 
-  for (const shape of shapes) {
-    // Multi-table (JOIN) aggregation shapes are out of scope for v1 — an MV
-    // can only trigger cleanly off one source table. Still counted in
-    // shapesAnalyzed below (a real aggregation shape that didn't get a
-    // recommendation), not silently dropped from the coverage accounting.
-    if (shape.tableCount > 1) continue
-
-    try {
+  // Process candidate shapes with bounded concurrency instead of one at a
+  // time — each shape does several independent ClickHouse round-trips
+  // (size stats, sorting key, cardinality sample), so serial processing of
+  // up to `topN` shapes was the dominant cost. mapWithConcurrency preserves
+  // input order and a per-shape failure (e.g. permission-denied on
+  // system.parts for one table) resolves to `undefined` there rather than
+  // sinking the whole batch.
+  const perShapeResults = await mapWithConcurrency(
+    eligibleShapes,
+    SHAPE_CONCURRENCY,
+    async (shape): Promise<MvRecommendation | undefined> => {
       const [sizeStats, sortingKeyCols] = await Promise.all([
         getTableSizeStats(hostId, shape.database, shape.table),
         getSortingKeyColumns(hostId, shape.database, shape.table),
       ])
-      if (sizeStats.rows === 0) continue
+      if (sizeStats.rows === 0) return undefined
 
       const distinctCombinations = await estimateGroupCardinality(
         hostId,
@@ -669,7 +711,7 @@ export async function designMaterializedViews(params: {
         mvEstimatedBytes: sizeEstimate.estimatedBytes,
       })
 
-      recommendations.push({
+      return {
         kind: design.kind,
         table: formatQualifiedTable(shape.database, shape.table),
         groupByKeys: shape.groupByKeys,
@@ -680,12 +722,13 @@ export async function designMaterializedViews(params: {
         sizeEstimate,
         impact,
         sampleQuery: shape.sampleQuery,
-      })
-    } catch {
-      // Best-effort: a permission-denied/missing table for this one shape
-      // must not sink the whole batch — skip and continue with the rest.
+      }
     }
-  }
+  )
+
+  const recommendations: MvRecommendation[] = perShapeResults.filter(
+    (r): r is MvRecommendation => r !== undefined
+  )
 
   const shapesAnalyzed = shapes.length
   const shapesWithRecommendation = recommendations.length
