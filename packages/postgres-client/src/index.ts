@@ -25,6 +25,11 @@ export {
   sslOptionsForMode,
 } from './client'
 export {
+  getAndValidatePostgresConfig,
+  getPostgresConfigs,
+  type PostgresSourceConfig,
+} from './postgres-config'
+export {
   DEFAULT_SOURCE_ENGINE,
   isSourceEngine,
   parseSourceEngine,
