@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-07-04
+updated: 2026-07-10
 tags:
   - saas
   - cloud
@@ -28,6 +28,30 @@ FAIL-CLOSED to self-hosted. Unset/junk `CHM_CLOUD_MODE` (runtime) or
 `VITE_CLOUD_MODE` (build) → NOT cloud → OSS behaviour unchanged. Cloud is purely
 additive; it never removes a monitoring feature. Mirrors `lib/edition`'s
 fail-open design (edition already lists `cloud` as an enterprise feature).
+
+## Cloud mode is a BUILD-TIME contract (#2515)
+
+Enabling cloud mode requires a **cloud build**, not just a runtime flag. The
+client bundle only ever sees the baked-in `VITE_CLOUD_MODE` (inlined from the
+canonical `CHM_CLOUD_MODE` in `vite.config.ts` at build time); it never reads
+runtime env. So booting a **prebuilt OSS image** (e.g. the published Docker
+image, client built without `VITE_CLOUD_MODE`) with runtime
+`CHM_DEPLOYMENT_MODE=cloud` / `CHM_CLOUD_MODE=true` **splits the product**: the
+server enforces cloud (demo-host guard, private-host blocking) while the client
+renders OSS UI (no demo badges, no welcome flow). The correct way to enable
+cloud is to set `CHM_CLOUD_MODE` **before the build** so the VITE derivation
+runs — which is exactly what `dash.chmonitor.dev` does via committed
+`.env.production` + `CHM_BUILD_ENV=production`.
+
+The reverse (a cloud build with the runtime var unset) is safe — fail-closed
+degrades BOTH halves to OSS together.
+
+**Guard:** `detectCloudModeMismatch(runtimeEnv)` in `lib/cloud/cloud-mode.ts`
+returns `{ server, clientBuild, mismatch }`. `/api/healthz` computes it every
+readiness check, logs a prominent `warn(...)` on mismatch, and surfaces the
+result as `cloudMode` in its JSON so operators (and probes) can spot the
+split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
+`clientBuildValue` arg is injected there to vary the build-time half.
 
 ## Behaviour matrix
 
@@ -57,7 +81,8 @@ Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
 
 ## Files
 
-- `apps/dashboard/src/lib/cloud/cloud-mode.ts` — resolvers + `parseCloudMode`. Tested.
+- `apps/dashboard/src/lib/cloud/cloud-mode.ts` — resolvers + `parseCloudMode` + `detectCloudModeMismatch` (build-time-vs-runtime split-brain guard, #2515). Tested.
+- `apps/dashboard/src/routes/api/healthz.ts` — logs a `warn` and reports `cloudMode` (the mismatch result) on every readiness check.
 - `vite.config.ts` `loadDeployEnv` + CLIENT_ENV + `src/vite-env.d.ts` — client `VITE_CLOUD_MODE` DERIVES from canonical `CHM_CLOUD_MODE` (set once).
 - `apps/dashboard/.env.production` (+ `.env.preview` overlay) — **single source of truth** for the hosted product's non-secret config (`CHM_CLOUD_MODE=true`, `CHM_FEATURE_USER_CONNECTIONS_DB=true`, auth, LLM). `wrangler.toml` declares NO `[vars]`.
 - `scripts/patch-wrangler-env.ts` — reads `.env.production`/`.env.preview`, injects the non-`VITE_` keys as Worker runtime `[vars]` at deploy.

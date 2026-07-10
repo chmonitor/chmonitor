@@ -33,6 +33,17 @@ A dual-surface setting must still be present at **both** build time (so vite
 inlines its `VITE_*`) and runtime (so the server reads it) — but it is the same
 single name in both places.
 
+<Callout type="warn">
+  **Cloud mode is a build-time contract.** `CHM_CLOUD_MODE` /
+  `CHM_DEPLOYMENT_MODE=cloud` must be set **before the build** so `VITE_CLOUD_MODE`
+  is inlined into the client bundle. Setting it only at runtime on a **prebuilt
+  OSS image** (e.g. the published Docker image) splits the product: the server
+  enforces cloud behaviour (demo-host guard) while the client still renders OSS
+  UI. `/api/healthz` detects and warns on this mismatch and reports a `cloudMode`
+  object. The reverse — a cloud build with the runtime var unset — is safe
+  (fail-closed: both halves degrade to OSS).
+</Callout>
+
 ### Client variable prefix by app
 
 Browser-exposed variables are **build-time inlined**. The prefix depends on which

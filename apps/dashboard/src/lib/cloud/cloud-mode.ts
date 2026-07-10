@@ -38,6 +38,54 @@ export function isCloudModeClient(): boolean {
 }
 
 /**
+ * The cloud-mode value BAKED INTO the client bundle at build time.
+ *
+ * The browser UI can only ever reflect this value — it never sees runtime env
+ * (`CHM_CLOUD_MODE` / `CHM_DEPLOYMENT_MODE`). Enabling cloud mode is therefore a
+ * BUILD-TIME contract: it requires a cloud build (VITE_CLOUD_MODE inlined from
+ * the canonical `CHM_CLOUD_MODE` in vite.config.ts), not just a runtime flag.
+ */
+export function clientBuildCloudMode(): boolean {
+  return parseCloudMode(import.meta.env.VITE_CLOUD_MODE)
+}
+
+export interface CloudModeConsistency {
+  /** Cloud mode the SERVER enforces (runtime-aware). */
+  server: boolean
+  /** Cloud mode baked into the CLIENT bundle at build time. */
+  clientBuild: boolean
+  /** True when the two disagree — a split-brain deployment. */
+  mismatch: boolean
+}
+
+/**
+ * Detect a split-brain deployment where the server-resolved cloud mode differs
+ * from the cloud mode baked into the prebuilt client bundle.
+ *
+ * This happens when a prebuilt OSS image (client built WITHOUT `VITE_CLOUD_MODE`)
+ * is booted with runtime `CHM_DEPLOYMENT_MODE=cloud` / `CHM_CLOUD_MODE=true`:
+ * the server then enforces cloud behaviour (demo-host guard, private-host
+ * blocking) while the client renders OSS UI (no demo badges, no welcome flow).
+ *
+ * The reverse (a cloud build with the runtime var unset) is SAFE — fail-closed
+ * means both halves degrade to OSS together, so it is not flagged.
+ *
+ * `clientBuildValue` is injected for testing; production callers use the default
+ * (the actual baked-in build constant).
+ */
+export function detectCloudModeMismatch(
+  runtimeEnv?: Record<string, string | undefined>,
+  clientBuildValue: boolean = clientBuildCloudMode()
+): CloudModeConsistency {
+  const server = isCloudModeServer(runtimeEnv)
+  return {
+    server,
+    clientBuild: clientBuildValue,
+    mismatch: server !== clientBuildValue,
+  }
+}
+
+/**
  * Server-side: runtime `CHM_CLOUD_MODE` wins, falling back to the build-time
  * `VITE_CLOUD_MODE`. Pass the Cloudflare `env` binding on the edge; defaults to
  * `process.env` on Node.

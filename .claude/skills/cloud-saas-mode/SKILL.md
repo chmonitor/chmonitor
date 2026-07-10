@@ -45,6 +45,15 @@ monitoring feature behind cloud mode. (Mirrors `lib/edition` fail-open design.)
 - Self-hosted uses the same names from `apps/dashboard/.env.example` (Docker
   `env_file`, Helm `values.yaml`). Secrets only via `set-secrets.ts` / K8s Secret.
 
+**Cloud mode is a BUILD-TIME contract (#2515).** The client bundle only sees the
+baked-in `VITE_CLOUD_MODE`; it never reads runtime env. Booting a **prebuilt OSS
+image** with runtime `CHM_DEPLOYMENT_MODE=cloud` / `CHM_CLOUD_MODE=true` splits
+the product — server enforces cloud (demo guard) while the client renders OSS UI.
+Enable cloud by setting `CHM_CLOUD_MODE` **before the build** (so the VITE
+derivation runs), not only at runtime. Guard: `detectCloudModeMismatch(env)` →
+`{server, clientBuild, mismatch}`; `/api/healthz` `warn`s and reports `cloudMode`
+on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
+
 ## Behaviour
 
 | | Self-hosted | Cloud |

@@ -1,4 +1,8 @@
-import { isCloudModeServer, parseCloudMode } from './cloud-mode'
+import {
+  detectCloudModeMismatch,
+  isCloudModeServer,
+  parseCloudMode,
+} from './cloud-mode'
 import { describe, expect, test } from 'bun:test'
 
 // ---------------------------------------------------------------------------
@@ -49,5 +53,51 @@ describe('isCloudModeServer', () => {
 
   test('runtime junk → false (does not lock out self-hosted)', () => {
     expect(isCloudModeServer({ CHM_CLOUD_MODE: 'maybe' })).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// detectCloudModeMismatch — split-brain guard for prebuilt bundles.
+// The `clientBuildValue` arg stands in for the baked-in VITE_CLOUD_MODE so the
+// build-time half can be varied under test.
+// ---------------------------------------------------------------------------
+describe('detectCloudModeMismatch', () => {
+  test('OSS bundle + runtime cloud flag → mismatch (the reported defect)', () => {
+    const result = detectCloudModeMismatch(
+      { CHM_DEPLOYMENT_MODE: 'cloud' },
+      false // client bundle built without VITE_CLOUD_MODE
+    )
+    expect(result).toEqual({ server: true, clientBuild: false, mismatch: true })
+  })
+
+  test('runtime CHM_CLOUD_MODE=true on OSS bundle → mismatch', () => {
+    const result = detectCloudModeMismatch({ CHM_CLOUD_MODE: 'true' }, false)
+    expect(result.mismatch).toBe(true)
+  })
+
+  test('cloud bundle + matching runtime cloud → no mismatch', () => {
+    const result = detectCloudModeMismatch({ CHM_CLOUD_MODE: 'true' }, true)
+    expect(result).toEqual({ server: true, clientBuild: true, mismatch: false })
+  })
+
+  test('cloud bundle + runtime unset → no mismatch (fail-closed, both OSS)', () => {
+    // Server falls back to build-time (false in tests); a cloud bundle that
+    // forgot the runtime var degrades to OSS on BOTH halves — safe, not flagged.
+    const result = detectCloudModeMismatch({}, false)
+    expect(result).toEqual({
+      server: false,
+      clientBuild: false,
+      mismatch: false,
+    })
+  })
+
+  test('OSS bundle + no runtime flag → no mismatch', () => {
+    const result = detectCloudModeMismatch({}, false)
+    expect(result.mismatch).toBe(false)
+  })
+
+  test('runtime junk cloud flag on OSS bundle → no mismatch (junk = OSS)', () => {
+    const result = detectCloudModeMismatch({ CHM_CLOUD_MODE: 'maybe' }, false)
+    expect(result.mismatch).toBe(false)
   })
 })

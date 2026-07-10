@@ -6,8 +6,9 @@ import { env } from 'cloudflare:workers'
 // @clickhouse/client (node:os/node:stream/TCP) — excluded from the worker
 // bundle in vite.config.ts.
 import { getClient } from '@chm/clickhouse-client'
-import { error as logError } from '@chm/logger'
+import { error as logError, warn } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
+import { detectCloudModeMismatch } from '@/lib/cloud/cloud-mode'
 
 // Mirrors @chm/clickhouse-client getClickHouseConfigs(), but sources the
 // comma-separated lists from the Cloudflare env binding (workerd does not map
@@ -25,9 +26,25 @@ export const Route = createFileRoute('/api/healthz')({
   server: {
     handlers: {
       GET: async () => {
-        const configs = getClickHouseConfigsFromEnv(
-          env as Record<string, string | undefined>
-        )
+        const runtimeEnv = env as Record<string, string | undefined>
+
+        // Split-brain guard: a prebuilt OSS bundle booted with a runtime cloud
+        // flag makes the server enforce cloud while the client renders OSS UI.
+        // Cloud mode is a build-time contract — surface the mismatch loudly.
+        const cloudMode = detectCloudModeMismatch(runtimeEnv)
+        if (cloudMode.mismatch) {
+          warn(
+            '[/api/healthz] cloud-mode split-brain: server=' +
+              `${cloudMode.server} but the client bundle was built with ` +
+              `cloud=${cloudMode.clientBuild}. Cloud mode is a BUILD-TIME ` +
+              'contract — set CHM_CLOUD_MODE/CHM_DEPLOYMENT_MODE before the ' +
+              'build (so VITE_CLOUD_MODE is inlined), not only at runtime. A ' +
+              'runtime flag alone splits the product (server guards demo hosts, ' +
+              'client shows OSS UI).'
+          )
+        }
+
+        const configs = getClickHouseConfigsFromEnv(runtimeEnv)
 
         if (configs.length === 0) {
           return Response.json(
@@ -35,6 +52,7 @@ export const Route = createFileRoute('/api/healthz')({
               ok: false,
               error: 'No ClickHouse hosts configured',
               hosts: [],
+              cloudMode,
               timestamp: new Date().toISOString(),
             },
             { status: 503 }
@@ -97,6 +115,7 @@ export const Route = createFileRoute('/api/healthz')({
           {
             ok: allUp,
             hosts,
+            cloudMode,
             timestamp: new Date().toISOString(),
           },
           { status: allUp ? 200 : 503 }
