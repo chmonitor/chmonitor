@@ -4,11 +4,37 @@
 
 import { TooltipColorIndicator } from './tooltip-color-indicator'
 
+/** Value of a breakdown entry as produced by `parseBreakdownData`. */
+export type BreakdownValue = number | string | null | undefined
+
 export interface BreakdownSectionProps {
-  breakdownData: Array<[string, any]>
+  breakdownData: Array<[string, BreakdownValue]>
   heading: string
-  item: any
+  /** Recharts tooltip item; only the optional `breakdownLabel` field is read from it. */
+  item: unknown
   breakdownLabel?: string
+}
+
+/**
+ * Color token for the breakdown dot at `index`.
+ *
+ * Mirrors the series color fallback in `primitives/area.tsx`
+ * (`--chart-${index + 1}`, ascending) so each dot follows the same convention
+ * as the series colors. Intentionally has no modulo: it stays identical to the
+ * series arithmetic, which is unbounded past the defined `--chart-1..13`
+ * tokens (pre-existing series behavior, tracked separately).
+ */
+export function breakdownColorVar(index: number): string {
+  return `var(--chart-${index + 1})`
+}
+
+/**
+ * Format a breakdown value for display without throwing on non-numbers.
+ */
+export function formatBreakdownValue(value: BreakdownValue): string {
+  return typeof value === 'number'
+    ? value.toLocaleString()
+    : String(value ?? '')
 }
 
 /**
@@ -46,9 +72,9 @@ export function BreakdownSection({
 
 interface BreakdownRowProps {
   name: string
-  value: any
+  value: BreakdownValue
   index: number
-  item: any
+  item: unknown
   breakdownLabel?: string
 }
 
@@ -62,21 +88,27 @@ function BreakdownRow({
   item,
   breakdownLabel,
 }: BreakdownRowProps) {
+  const rawLabel =
+    breakdownLabel && item && typeof item === 'object'
+      ? (item as Record<string, unknown>)[breakdownLabel]
+      : undefined
+  const label =
+    (typeof rawLabel === 'string' || typeof rawLabel === 'number') && rawLabel
+      ? String(rawLabel)
+      : name
+
   return (
     <div className="flex items-center justify-between gap-2" role="row">
       <div className="flex items-center gap-1.5 min-w-0">
         <TooltipColorIndicator
-          colorVar={`var(--chart-${10 - index})`}
+          colorVar={breakdownColorVar(index)}
           size="small"
         />
-        <span className="truncate">
-          {item[breakdownLabel as keyof typeof item] || name}
-        </span>
+        <span className="truncate">{label}</span>
       </div>
 
       <div className="text-foreground shrink-0 flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
-        {value.toLocaleString()}
-        <span className="text-muted-foreground font-normal"></span>
+        {formatBreakdownValue(value)}
       </div>
     </div>
   )
