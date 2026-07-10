@@ -4,6 +4,13 @@ This is a deepsec scanning workspace. Each registered project has its
 own setup prompt at `data/<id>/SETUP.md` — open the relevant one when
 asked to set a project up.
 
+**pnpm pin**: this workspace intentionally pins its own `packageManager`
+(currently `pnpm@11.2.2`), independent of the repo root's `pnpm@10.18.0`. It is
+an isolated `packages: []` workspace (not a member of the root pnpm-workspace)
+with its own lockfile, so corepack switching pnpm majors here does not affect
+the root install. Do not "fix" this pin to match root without regenerating
+`.deepsec/pnpm-lock.yaml` under the new pnpm version first.
+
 ## Common tasks
 
 - **Set up a project for scanning**: read `data/<id>/SETUP.md` and
