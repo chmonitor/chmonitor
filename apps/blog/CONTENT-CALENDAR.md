@@ -45,6 +45,22 @@ published (`draft: false`, merged to main)
 | 12 | release | (scaffold from the next GitHub release when it ships) | — | `/reference/releases` | planned |
 | 13 | troubleshooting | ClickHouse disk is full — what to do right now | clickhouse disk full emergency | `/guide/features` | done (`clickhouse-disk-full-emergency.md`, published 2026-09-11) |
 
+## Published this cycle (homepage redesign + SEO expansion)
+
+The blog homepage was redesigned into category cards grouped by `tag`, with the
+Release category highlighted full-width and the rest rendered as compact
+post-title lists. Alongside it, six SEO posts were added (all reusing verified
+`system.*` SQL from the docs guides, with bidirectional cross-links):
+
+| Date | Type | Title | Target keyword | Cross-link (docs page) |
+|---|---|---|---|---|
+| 2026-10-02 | 5 min | ClickHouse skip indices that actually prune | clickhouse skip index / data skipping index | `/guide/guides/skip-indices-guide` |
+| 2026-10-09 | 5 min | Spill GROUP BY to disk instead of OOMing | clickhouse external group by / memory limit exceeded | `/guide/guides/external-group-by` |
+| 2026-10-16 | 5 min | Fix "Memory limit (total) exceeded" | clickhouse memory limit total exceeded | `/guide/guides/memory-limit-total-exceeded` |
+| 2026-10-23 | 5 min | Connect a firewalled ClickHouse to chmonitor Cloud | clickhouse behind firewall cloudflare tunnel | `/guide/guides/connect-firewalled-clickhouse` |
+| 2026-10-30 | 5 min | Upgrade ClickHouse safely while chmonitor stays connected | upgrade clickhouse safely | `/guide/guides/upgrade-clickhouse` |
+| 2026-11-06 | how-to | The 6 root causes of slow ClickHouse | clickhouse query optimization | `/guide/guides/clickhouse-query-optimization` |
+
 ## Post-type mix (per 12-week cycle)
 
 - Release: 2 (as releases actually ship — do not invent a cadence releases
