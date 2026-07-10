@@ -138,6 +138,22 @@ async function handleGet(request: Request): Promise<Response> {
       hostId,
     })
 
+    // Keeper presence + info (steps 2 & 3) don't depend on the structural rows,
+    // so kick them off now to overlap with the structural query below instead of
+    // serializing behind it. They're optional and must never fail the batch.
+    const presencePromise = fetchData<KeeperPresenceRow[]>({
+      query: '',
+      hostId,
+      format: 'JSONEachRow',
+      queryConfig: keeperPresenceConfig,
+    }).catch(() => ({ data: [], error: undefined }) as never)
+    const keeperPromise = fetchData<KeeperInfoRow[]>({
+      query: '',
+      hostId,
+      format: 'JSONEachRow',
+      queryConfig: keeperInfoConfig,
+    }).catch(() => ({ data: [], error: undefined }) as never)
+
     // ── 1. STRUCTURAL truth (must succeed) ──
     const structural = await fetchData<ClusterTopologyRow[]>({
       query: '',
@@ -177,20 +193,10 @@ async function handleGet(request: Request): Promise<Response> {
 
     const clusterRows = (structural.data ?? []) as ClusterTopologyRow[]
 
-    // ── 2 & 3. Keeper presence + info (optional; never fail the batch) ──
+    // ── 2 & 3. Keeper presence + info (started above; awaited here) ──
     const [presenceResult, keeperResult] = await Promise.all([
-      fetchData<KeeperPresenceRow[]>({
-        query: '',
-        hostId,
-        format: 'JSONEachRow',
-        queryConfig: keeperPresenceConfig,
-      }).catch(() => ({ data: [], error: undefined }) as never),
-      fetchData<KeeperInfoRow[]>({
-        query: '',
-        hostId,
-        format: 'JSONEachRow',
-        queryConfig: keeperInfoConfig,
-      }).catch(() => ({ data: [], error: undefined }) as never),
+      presencePromise,
+      keeperPromise,
     ])
 
     const presenceRows = (

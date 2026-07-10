@@ -1,5 +1,7 @@
 import type { HostInfo } from '@chm/types/host-info'
 
+import { useMemo } from 'react'
+
 import { useHosts } from './use-hosts'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -72,38 +74,53 @@ export function useMergedHosts() {
   const envSource: MergedHostInfo['source'] = cloudMode ? 'demo' : 'env'
   const showEnvHosts = !(cloudMode && isSignedIn)
 
-  const mergedHosts: MergedHostInfo[] = [
-    ...(showEnvHosts
-      ? envHosts.map(
-          (h): MergedHostInfo => ({
-            ...h,
-            source: envSource,
-            readOnly: cloudMode,
-          })
-        )
-      : []),
-    ...connections.map(
-      (c): MergedHostInfo => ({
-        id: c.hostId,
-        name: c.name,
-        host: c.host,
-        user: c.user,
-        source: 'browser',
-      })
-    ),
-    ...(dbFeatureEnabled && isSignedIn
-      ? dbConnections.map(
-          (c): MergedHostInfo => ({
-            id: c.hostId,
-            name: c.name,
-            host: c.host,
-            user: c.user,
-            source: 'database',
-            connectionId: c.id,
-          })
-        )
-      : []),
-  ]
+  // Memoize the derived array so the reference is stable across renders. This
+  // hook is called by every chart/table data hook, so an unstable array here
+  // would ripple into their memo/query-key deps and defeat those memos.
+  const mergedHosts: MergedHostInfo[] = useMemo(
+    () => [
+      ...(showEnvHosts
+        ? envHosts.map(
+            (h): MergedHostInfo => ({
+              ...h,
+              source: envSource,
+              readOnly: cloudMode,
+            })
+          )
+        : []),
+      ...connections.map(
+        (c): MergedHostInfo => ({
+          id: c.hostId,
+          name: c.name,
+          host: c.host,
+          user: c.user,
+          source: 'browser',
+        })
+      ),
+      ...(dbFeatureEnabled && isSignedIn
+        ? dbConnections.map(
+            (c): MergedHostInfo => ({
+              id: c.hostId,
+              name: c.name,
+              host: c.host,
+              user: c.user,
+              source: 'database',
+              connectionId: c.id,
+            })
+          )
+        : []),
+    ],
+    [
+      showEnvHosts,
+      envHosts,
+      envSource,
+      cloudMode,
+      connections,
+      dbFeatureEnabled,
+      isSignedIn,
+      dbConnections,
+    ]
+  )
 
   return {
     hosts: mergedHosts,

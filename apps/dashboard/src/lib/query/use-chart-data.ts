@@ -8,7 +8,7 @@ import {
   isCustomHost,
 } from '@/lib/host-fetch/resolve-host-fetch'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
-import { chartQueryKey } from '@/lib/query/query-keys'
+import { chartQueryKey, serializeChartParams } from '@/lib/query/query-keys'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { REFRESH_INTERVAL, type RefreshInterval } from '@/lib/swr/config'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
@@ -75,29 +75,32 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
       ? getConnectionByHostId(numericHostId)
       : null
 
-  // Serialize params so the memo key is value-stable: a parent passing an
-  // inline `params` object literal changes its reference every render, which
-  // would otherwise defeat this memo (re-running on every render).
-  const paramsKey = params ? JSON.stringify(params) : ''
+  // Serialize params once so it's value-stable for both the memo key and the
+  // query key: a parent passing an inline `params` object literal changes its
+  // reference every render, which would otherwise defeat this memo. Reusing the
+  // single serialized string also avoids stringifying `params` twice per render
+  // (URL + cache key).
+  const paramsKey = serializeChartParams(params)
+  const hasParams = params != null
   const url = useMemo(() => {
     const searchParams = new URLSearchParams()
     if (hostId !== undefined) searchParams.append('hostId', String(hostId))
     if (interval) searchParams.append('interval', interval)
     if (lastHours !== undefined)
       searchParams.append('lastHours', String(lastHours))
-    if (paramsKey) searchParams.append('params', paramsKey)
+    if (hasParams) searchParams.append('params', paramsKey)
     if (timezone) searchParams.append('timezone', timezone)
 
     const queryString = searchParams.toString()
     return `/api/v1/charts/${chartName}${queryString ? `?${queryString}` : ''}`
-  }, [chartName, hostId, interval, lastHours, paramsKey, timezone])
+  }, [chartName, hostId, interval, lastHours, hasParams, paramsKey, timezone])
 
   const queryKey = chartQueryKey({
     chartName,
     hostId,
     interval,
     lastHours,
-    params,
+    paramsKey,
     timezone,
     connectionKey: hostConnectionKey(numericHostId, browserConnection),
   })
