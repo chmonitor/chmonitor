@@ -5,6 +5,94 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `Unreleased` section below is a human-curated
 preview of the next release.
 
+## [0.2.14](https://github.com/chmonitor/chmonitor/compare/v0.2.13...v0.2.14) (2026-07-10)
+
+
+### ✨ Features
+
+* **agent:** add anti-sycophancy instruction and eval case ([#2459](https://github.com/chmonitor/chmonitor/issues/2459)) ([3e5afbe](https://github.com/chmonitor/chmonitor/commit/3e5afbe3df0ff4af05a225cfe30900af810240b3))
+* **agent:** implement AI agent discovery standards and fix E2E test ([#2413](https://github.com/chmonitor/chmonitor/issues/2413)) ([082ce26](https://github.com/chmonitor/chmonitor/commit/082ce26c80f3113abad6bee28ee9365e9f8f5ae3))
+* **agent:** pass current dashboard page as context to the chat agent ([#2561](https://github.com/chmonitor/chmonitor/issues/2561)) ([5405e7d](https://github.com/chmonitor/chmonitor/commit/5405e7da9578f995d63b4d9be9bfc2078f5be75f)), closes [#2457](https://github.com/chmonitor/chmonitor/issues/2457)
+* **analytics:** complete M1 funnel — advisor view, paywall hit, upgrade completed ([#2476](https://github.com/chmonitor/chmonitor/issues/2476)) ([80b6627](https://github.com/chmonitor/chmonitor/commit/80b6627ae9cd2b908da37013e4aaf65c74e7fff3))
+* **api:** fleet-wide rate limiting via CF binding with in-memory fallback ([#2559](https://github.com/chmonitor/chmonitor/issues/2559)) ([992bc38](https://github.com/chmonitor/chmonitor/commit/992bc38fe3e89b2b9e8fd3b5fd5dace87aa9624b)), closes [#2500](https://github.com/chmonitor/chmonitor/issues/2500)
+* **blog:** add first 8 posts in the 5 min of ClickHouse series ([#2461](https://github.com/chmonitor/chmonitor/issues/2461)) ([18556c3](https://github.com/chmonitor/chmonitor/commit/18556c339d9fe1e0fe142ff4829837225b24d9b4))
+* **blog:** category-card homepage + 6 SEO posts ([#2564](https://github.com/chmonitor/chmonitor/issues/2564)) ([fdb6854](https://github.com/chmonitor/chmonitor/commit/fdb685411f66f8ed5efcce241b7e1274268bbed9))
+* **blog:** flagship system.query_log slow-query how-to (S2) ([#2458](https://github.com/chmonitor/chmonitor/issues/2458)) ([ee70dbb](https://github.com/chmonitor/chmonitor/commit/ee70dbb7e3b685c474dd57e35cd1829a8176b733)), closes [#2384](https://github.com/chmonitor/chmonitor/issues/2384)
+* **cli:** add zero-signup local diagnostics (chm diagnose) ([#2474](https://github.com/chmonitor/chmonitor/issues/2474)) ([2f4ebad](https://github.com/chmonitor/chmonitor/commit/2f4ebad9227f6d62ef9edce9247759b47b4c3015)), closes [#2392](https://github.com/chmonitor/chmonitor/issues/2392)
+* **insights:** add percentile selector for average query duration ([#2437](https://github.com/chmonitor/chmonitor/issues/2437)) ([a8fa4f0](https://github.com/chmonitor/chmonitor/commit/a8fa4f0496ea475ee5e06934d25c1b3af8ef5ea0))
+* **landing:** add near-ICP database comparison pages (S4) ([#2460](https://github.com/chmonitor/chmonitor/issues/2460)) ([b62dc3d](https://github.com/chmonitor/chmonitor/commit/b62dc3d9124a098118be23fa495e8b0b535c4650))
+* **landing:** changelog ship log and interactive hero prompt ([#2417](https://github.com/chmonitor/chmonitor/issues/2417)) ([6a78778](https://github.com/chmonitor/chmonitor/commit/6a78778cf339ff5471634005c0d2b9d780149abc))
+* **landing:** redesign homepage with live demo and changelog catalog ([#2415](https://github.com/chmonitor/chmonitor/issues/2415)) ([5a6377c](https://github.com/chmonitor/chmonitor/commit/5a6377cdd09d867fa783f7bd556e508dc9c99004))
+* **landing:** x.ai-style dark redesign ([#2550](https://github.com/chmonitor/chmonitor/issues/2550)) ([252e414](https://github.com/chmonitor/chmonitor/commit/252e414a2406520349e2276bc9cd2314360c48a0))
+* **mcp:** add registry manifest + one-command install docs ([#2463](https://github.com/chmonitor/chmonitor/issues/2463)) ([9655c8d](https://github.com/chmonitor/chmonitor/commit/9655c8d5f36313cb9180c6464528f6e10f925a72)), closes [#2390](https://github.com/chmonitor/chmonitor/issues/2390)
+* **telemetry:** add public /v1/summary endpoint for install counts ([#2426](https://github.com/chmonitor/chmonitor/issues/2426)) ([169a363](https://github.com/chmonitor/chmonitor/commit/169a363096d648dbafd1387ecc771cb1aff49a47))
+* **telemetry:** migrate from Analytics Engine to D1-primary ([#2434](https://github.com/chmonitor/chmonitor/issues/2434)) ([093b76f](https://github.com/chmonitor/chmonitor/commit/093b76f89437652c027fd75b6159a8a5277a82a2))
+* **telemetry:** redesign UI, track version/place, and fix zoom dialog ([#2431](https://github.com/chmonitor/chmonitor/issues/2431)) ([b5b9617](https://github.com/chmonitor/chmonitor/commit/b5b96175d9a4b2ad361842fb992396868825feef))
+* **telemetry:** track clickhouse version of the connected host ([#2427](https://github.com/chmonitor/chmonitor/issues/2427)) ([941befb](https://github.com/chmonitor/chmonitor/commit/941befb8fcfc3999f11361b7b4a42bcd99c98215))
+
+
+### 🐛 Bug Fixes
+
+* **agent:** cap unbounded results from freeform SQL tools ([#2473](https://github.com/chmonitor/chmonitor/issues/2473)) ([b2f455a](https://github.com/chmonitor/chmonitor/commit/b2f455a7fa7319d07ee0c4235c9c269ab82769e5))
+* **agent:** release daily-usage reservation on the onError stream path ([#2557](https://github.com/chmonitor/chmonitor/issues/2557)) ([0dda77a](https://github.com/chmonitor/chmonitor/commit/0dda77a4b4efda8b2baaad50237ac03052bedea9)), closes [#2517](https://github.com/chmonitor/chmonitor/issues/2517)
+* **analytics:** stitch upgrade_completed to the browser funnel distinct-id ([#2551](https://github.com/chmonitor/chmonitor/issues/2551)) ([08d57c7](https://github.com/chmonitor/chmonitor/commit/08d57c7b03662e114dc94d276340065d4e240a5c))
+* **api:** return sanitized messages instead of raw errors on 500s ([#2555](https://github.com/chmonitor/chmonitor/issues/2555)) ([d70c0d9](https://github.com/chmonitor/chmonitor/commit/d70c0d95a535809fefdc50d05b1d8f59ca325fd2)), closes [#2501](https://github.com/chmonitor/chmonitor/issues/2501)
+* **billing:** explicit included-host counts per tier (Pro=1, Max=3) ([#2470](https://github.com/chmonitor/chmonitor/issues/2470)) ([389f612](https://github.com/chmonitor/chmonitor/commit/389f61297d3becc78340ef6277d03a18589f3444)), closes [#2378](https://github.com/chmonitor/chmonitor/issues/2378)
+* **billing:** key monthly usage meters to the subscription billing cycle ([#2558](https://github.com/chmonitor/chmonitor/issues/2558)) ([3fd331c](https://github.com/chmonitor/chmonitor/commit/3fd331c53c75419017a672b460ece6b49995ba76))
+* **blog:** add missing OG image, cross-link duplicate slow-query posts ([#2532](https://github.com/chmonitor/chmonitor/issues/2532)) ([a33b706](https://github.com/chmonitor/chmonitor/commit/a33b706ca5592de0c74add1711d15287d9477225))
+* **bug-handler:** fail closed when BUG_ALLOWED_SENDERS is unset ([#2525](https://github.com/chmonitor/chmonitor/issues/2525)) ([ea30384](https://github.com/chmonitor/chmonitor/commit/ea30384c9bed790013ec9cf8f7d971799382ab0d))
+* **charts:** match tooltip breakdown dot colors to series, guard value rendering ([#2538](https://github.com/chmonitor/chmonitor/issues/2538)) ([4173911](https://github.com/chmonitor/chmonitor/commit/4173911f239dc381a7e68188177c9262fb0711b1))
+* **clickhouse-client:** distinguish transient probe errors from missing tables ([#2537](https://github.com/chmonitor/chmonitor/issues/2537)) ([2fdbc12](https://github.com/chmonitor/chmonitor/commit/2fdbc12d135e82c34232e26fbd12c74c171ecc7b))
+* **cloud:** detect build-time-vs-runtime cloud-mode split-brain ([#2515](https://github.com/chmonitor/chmonitor/issues/2515)) ([#2563](https://github.com/chmonitor/chmonitor/issues/2563)) ([f478d0b](https://github.com/chmonitor/chmonitor/commit/f478d0ba8188e16b352d6583ee4a656da85f89f5))
+* **connections:** correct addConnection hostId return and single-flight device key ([#2545](https://github.com/chmonitor/chmonitor/issues/2545)) ([41db760](https://github.com/chmonitor/chmonitor/commit/41db760364dae8c4d36898f0488b6081bd15913d))
+* **data-table:** centralize utility column ids, order nullish values in numeric sort ([#2526](https://github.com/chmonitor/chmonitor/issues/2526)) ([0b6fedd](https://github.com/chmonitor/chmonitor/commit/0b6fedda0aeaa6223592edbcd58e61ac2955fbdb)), closes [#2499](https://github.com/chmonitor/chmonitor/issues/2499)
+* **docs:** add missing guide pages to sidebar meta ([#2544](https://github.com/chmonitor/chmonitor/issues/2544)) ([9ea8ff3](https://github.com/chmonitor/chmonitor/commit/9ea8ff35e202d0e56bfc68a7ea1f2f95bc69a27e)), closes [#2483](https://github.com/chmonitor/chmonitor/issues/2483)
+* **docs:** stop remote image fetch from failing docs build ([#2481](https://github.com/chmonitor/chmonitor/issues/2481)) ([9b3e64c](https://github.com/chmonitor/chmonitor/commit/9b3e64c1cacc0b335cb273f6808efdb81d6563b0)), closes [#2462](https://github.com/chmonitor/chmonitor/issues/2462)
+* **insights:** add NaN guards to FastestScanStat and AvgDurationStat ([#2542](https://github.com/chmonitor/chmonitor/issues/2542)) ([7580ef5](https://github.com/chmonitor/chmonitor/commit/7580ef5707b7ea778acb4958a2470bd46b5d52d6)), closes [#2469](https://github.com/chmonitor/chmonitor/issues/2469)
+* **insights:** apply percentile to Query Insights total cards and fix avg-duration p95 mapping ([a2a6479](https://github.com/chmonitor/chmonitor/commit/a2a64797c4ee25432a76b1553c22992e485e7c08))
+* **insights:** repair percentile SQL, compact empty states, query menu ([#2439](https://github.com/chmonitor/chmonitor/issues/2439)) ([a13e4f4](https://github.com/chmonitor/chmonitor/commit/a13e4f40ca4a0524d31c3776d87af57f7c84c9c7))
+* **insights:** wire percentile selector to record-breaker stat cards ([54f9cc8](https://github.com/chmonitor/chmonitor/commit/54f9cc845c459502099656b28451af5c56f05575))
+* **landing:** align FAQ, spelling, CTA and alert-channel copy ([#2535](https://github.com/chmonitor/chmonitor/issues/2535)) ([3326db2](https://github.com/chmonitor/chmonitor/commit/3326db238d88cd777fb944ff76ab1a4dd7728404))
+* **landing:** curated feature sections and Cursor-style hero ([#2416](https://github.com/chmonitor/chmonitor/issues/2416)) ([4234fc5](https://github.com/chmonitor/chmonitor/commit/4234fc52f73350b60750f5ec567c48cf92ae5e60))
+* **landing:** declutter pricing section and round screenshot corners ([#2436](https://github.com/chmonitor/chmonitor/issues/2436)) ([7c7d5e8](https://github.com/chmonitor/chmonitor/commit/7c7d5e8cb01f69990a0e36b125b31c1257259e42))
+* **landing:** make pricing page mobile-friendly ([#2444](https://github.com/chmonitor/chmonitor/issues/2444)) ([33bb5e2](https://github.com/chmonitor/chmonitor/commit/33bb5e230412ad3d7d9db659bb6c084b4a5da5c2))
+* **landing:** monitoring hero, changelog chips, and dark-mode polish ([#2420](https://github.com/chmonitor/chmonitor/issues/2420)) ([a78506e](https://github.com/chmonitor/chmonitor/commit/a78506ebe47531d0c07727edad8a487fc68e7a04))
+* **landing:** point nav feature index to changelog ship-log ([#2423](https://github.com/chmonitor/chmonitor/issues/2423)) ([a5a0f16](https://github.com/chmonitor/chmonitor/commit/a5a0f1623b119e63ca121add7e081a2db2ed367b))
+* **landing:** replace interactive hero with static feature list ([#2418](https://github.com/chmonitor/chmonitor/issues/2418)) ([d379319](https://github.com/chmonitor/chmonitor/commit/d37931960843f1029bdf3ceb87d9c81c01d53a58))
+* **landing:** restore missing screenshots in dark mode ([#2424](https://github.com/chmonitor/chmonitor/issues/2424)) ([97fe5e7](https://github.com/chmonitor/chmonitor/commit/97fe5e78127e7fe64cc140b9796cb6d3840b3627))
+* **landing:** restore mobile nav and tighten responsive layout ([#2442](https://github.com/chmonitor/chmonitor/issues/2442)) ([8d7c40d](https://github.com/chmonitor/chmonitor/commit/8d7c40df9bb9609c2c1eb5db045c965f7134fb95))
+* **landing:** static screenshots, health assets, no hover zoom ([#2422](https://github.com/chmonitor/chmonitor/issues/2422)) ([526f03a](https://github.com/chmonitor/chmonitor/commit/526f03ac38d4b9a3f3cd40040e5519668bfb9b81))
+* **landing:** stronger hero, drop feature promo, fix screenshot crop ([#2421](https://github.com/chmonitor/chmonitor/issues/2421)) ([9b9629f](https://github.com/chmonitor/chmonitor/commit/9b9629f780c36005ebf1b9bbaea01b64ca6bff7e))
+* **landing:** update homepage structure verify for current hero ([#2443](https://github.com/chmonitor/chmonitor/issues/2443)) ([79142da](https://github.com/chmonitor/chmonitor/commit/79142dac02d69a4740e74a5ffeafe07eec8f2fad))
+* **mcp-server:** cap unbounded results in list_tables and explore_table_schema ([#2485](https://github.com/chmonitor/chmonitor/issues/2485)) ([03fc7e8](https://github.com/chmonitor/chmonitor/commit/03fc7e8f1dbfc65d8d6dedd85b94b5c4a28c4c9f)), closes [#2475](https://github.com/chmonitor/chmonitor/issues/2475)
+* **menu:** preserve href query params in host-prefixed links ([#2533](https://github.com/chmonitor/chmonitor/issues/2533)) ([076cee4](https://github.com/chmonitor/chmonitor/commit/076cee4cf63c867c568559050b8c4e1e70ca957a)), closes [#2496](https://github.com/chmonitor/chmonitor/issues/2496)
+* **org:** include pending invitations in seat pre-check ([#2534](https://github.com/chmonitor/chmonitor/issues/2534)) ([0d9ba3f](https://github.com/chmonitor/chmonitor/commit/0d9ba3fedce69f0571bfb2c88810512c5522e80d))
+* **prefetch:** align prefetch cache keys with live query keys ([#2524](https://github.com/chmonitor/chmonitor/issues/2524)) ([e90a55f](https://github.com/chmonitor/chmonitor/commit/e90a55f822417125ff33babd600794947a9d050e))
+* **query-config:** add missing pct_ companions so BackgroundBar renders ([#2529](https://github.com/chmonitor/chmonitor/issues/2529)) ([3c94ee9](https://github.com/chmonitor/chmonitor/commit/3c94ee937972a7cdf49a3961d4e7ecf77b648265)), closes [#2497](https://github.com/chmonitor/chmonitor/issues/2497)
+* **rate-limiter:** bound in-memory bucket store to a fixed cap ([#2547](https://github.com/chmonitor/chmonitor/issues/2547)) ([aa6ee66](https://github.com/chmonitor/chmonitor/commit/aa6ee66eee6855a08254678c89d3fc392b8d50cc))
+* **routing:** unify hostId validation across routes ([#2528](https://github.com/chmonitor/chmonitor/issues/2528)) ([63910fd](https://github.com/chmonitor/chmonitor/commit/63910fdb9e609a5b0a34fc0905d43c8de3d23bd6))
+* **security:** allowlist percentile chart param to block SQL injection ([#2464](https://github.com/chmonitor/chmonitor/issues/2464)) ([#2482](https://github.com/chmonitor/chmonitor/issues/2482)) ([1ec2ed3](https://github.com/chmonitor/chmonitor/commit/1ec2ed335377ba424056ca2b97dd8828617084ed))
+* **security:** apply demo-host guard to 10 unguarded hostId API routes ([#2552](https://github.com/chmonitor/chmonitor/issues/2552)) ([f11a968](https://github.com/chmonitor/chmonitor/commit/f11a96803c34798d61315e90aef48c7ee022b04b)), closes [#2488](https://github.com/chmonitor/chmonitor/issues/2488)
+* **security:** block comment bypass of SQL dangerous-function guard ([#2484](https://github.com/chmonitor/chmonitor/issues/2484)) ([8c1cab0](https://github.com/chmonitor/chmonitor/commit/8c1cab00c5bae699d684806ee1358edf0d8fe24d)), closes [#2465](https://github.com/chmonitor/chmonitor/issues/2465)
+* **security:** dedupe constantTimeEqual into one tested implementation ([#2522](https://github.com/chmonitor/chmonitor/issues/2522)) ([119d6bf](https://github.com/chmonitor/chmonitor/commit/119d6bf44c89c5b3b7751347e3067ea06de17ede))
+* **seo:** og images + meta audit across landing, docs, blog ([#2480](https://github.com/chmonitor/chmonitor/issues/2480)) ([c635e7b](https://github.com/chmonitor/chmonitor/commit/c635e7b7c3af9f0988e35de775549ed2f6a05014))
+* **telemetry:** bound and dedupe /v1/event inserts ([#2531](https://github.com/chmonitor/chmonitor/issues/2531)) ([530f8f3](https://github.com/chmonitor/chmonitor/commit/530f8f3d1b8fdcee7a63672852f700b6bf52b8a1))
+* **telemetry:** combine double WHERE clause in /v1/summary install-places query ([#2486](https://github.com/chmonitor/chmonitor/issues/2486)) ([168d029](https://github.com/chmonitor/chmonitor/commit/168d029afd7892b88a8b931a19513be12b996dce)), closes [#2466](https://github.com/chmonitor/chmonitor/issues/2466)
+
+
+### ⚡ Performance
+
+* **agent:** parallelize mv-designer candidate-shape processing ([#2556](https://github.com/chmonitor/chmonitor/issues/2556)) ([e8448c6](https://github.com/chmonitor/chmonitor/commit/e8448c6caa936fe026fb9cc06faffb67a073e0c7))
+* **api:** cap table query result rows and surface truncation badge ([#2546](https://github.com/chmonitor/chmonitor/issues/2546)) ([6abfe59](https://github.com/chmonitor/chmonitor/commit/6abfe59cf55b7878c1bd1f9c6d909ab35c621426))
+* **bundle:** lazy-load react-markdown in table-client error branch ([#2543](https://github.com/chmonitor/chmonitor/issues/2543)) ([f4b91c4](https://github.com/chmonitor/chmonitor/commit/f4b91c44e82fcc137fc9f576c10b82a519cb39d9))
+* **dashboard:** stabilize useMergedHosts, dedupe query-key serialization, parallelize topology ([#2548](https://github.com/chmonitor/chmonitor/issues/2548)) ([008e9c1](https://github.com/chmonitor/chmonitor/commit/008e9c124284fd4397f37e9689e757a6f662cced))
+* **landing,blog:** single themed &lt;img&gt; per screenshot slot, no double download ([#2562](https://github.com/chmonitor/chmonitor/issues/2562)) ([e8a8d27](https://github.com/chmonitor/chmonitor/commit/e8a8d27812eecef4fede47498716b87ef7ff73ad))
+
+
+### ♻️ Refactoring
+
+* **landing:** fully static rendering without React islands ([#2425](https://github.com/chmonitor/chmonitor/issues/2425)) ([cfb6948](https://github.com/chmonitor/chmonitor/commit/cfb694821450e2b51b0a050f88a418d2499cda93))
+
 ## [0.2.13](https://github.com/chmonitor/chmonitor/compare/v0.2.12...v0.2.13) (2026-07-06)
 
 
