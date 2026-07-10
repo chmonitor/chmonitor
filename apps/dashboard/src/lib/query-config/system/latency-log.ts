@@ -27,6 +27,7 @@ export const latencyLogConfig: QueryConfig = {
           formatReadableQuantity(count()) AS readable_events,
           round(count() * 100.0 / nullIf(max(count()) OVER (), 0), 2) AS pct_events,
           round(avg(elapsed_microseconds), 2) AS avg_us,
+          round(avg_us * 100.0 / nullIf(max(avg_us) OVER (), 0), 2) AS pct_avg_us,
           quantile(0.50)(elapsed_microseconds) AS p50_us,
           quantile(0.95)(elapsed_microseconds) AS p95_us,
           quantile(0.99)(elapsed_microseconds) AS p99_us,
