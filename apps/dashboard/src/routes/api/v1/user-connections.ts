@@ -9,6 +9,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { LimitCheck } from '@/lib/billing/entitlements'
 import type { CreateUserConnectionInput } from '@/lib/connection-store/types'
 
+import { isSourceEngine } from '@chm/types'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
@@ -57,6 +58,7 @@ async function handleGet(): Promise<Response> {
         host: c.hostUrl,
         user: c.chUser,
         hostId: c.hostId,
+        engine: c.engine,
         source: 'database' as const,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
@@ -72,6 +74,8 @@ interface CreateRequest {
   host: string
   user: string
   password: string
+  /** Source engine; omitted/absent defaults to 'clickhouse' in the store. */
+  engine?: string
 }
 
 /**
@@ -123,7 +127,7 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const { name, host, user, password } = body
+  const { name, host, user, password, engine } = body
   if (
     !name?.trim() ||
     !host?.trim() ||
@@ -134,6 +138,20 @@ async function handlePost(request: Request): Promise<Response> {
       {
         type: ApiErrorType.ValidationError,
         message: 'name, host, user, and password are required',
+      },
+      400,
+      ROUTE_POST
+    )
+  }
+
+  // Engine is optional (defaults to 'clickhouse' in the store); when present it
+  // must be a known SourceEngine so junk can't reach persistence.
+  if (engine !== undefined && !isSourceEngine(engine)) {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.ValidationError,
+        message:
+          'engine must be one of: clickhouse, clickhouse-cloud, postgres',
       },
       400,
       ROUTE_POST
@@ -229,6 +247,7 @@ async function handlePost(request: Request): Promise<Response> {
       hostUrl: credentials.host,
       chUser: credentials.user,
       credentials,
+      engine,
     }
     let created
     try {
@@ -290,6 +309,7 @@ async function handlePost(request: Request): Promise<Response> {
       host: created.hostUrl,
       user: created.chUser,
       hostId: created.hostId,
+      engine: created.engine,
       source: 'database' as const,
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,

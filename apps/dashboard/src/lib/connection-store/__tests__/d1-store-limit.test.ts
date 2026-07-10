@@ -37,6 +37,7 @@ interface FakeRow {
   host_url: string
   ch_user: string
   host_id: number
+  engine: string
   encrypted_payload: string
   created_at: number
   updated_at: number
@@ -45,6 +46,9 @@ interface FakeRow {
 function makeFakeD1() {
   const rows: FakeRow[] = []
 
+  // Column order mirrors the store's INSERT:
+  // id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload,
+  // created_at, updated_at (10 values).
   function bindsToRow(b: unknown[]): FakeRow {
     return {
       id: b[0] as string,
@@ -53,9 +57,10 @@ function makeFakeD1() {
       host_url: b[3] as string,
       ch_user: b[4] as string,
       host_id: b[5] as number,
-      encrypted_payload: b[6] as string,
-      created_at: b[7] as number,
-      updated_at: b[8] as number,
+      engine: b[6] as string,
+      encrypted_payload: b[7] as string,
+      created_at: b[8] as number,
+      updated_at: b[9] as number,
     }
   }
 
@@ -76,14 +81,14 @@ function makeFakeD1() {
 
             if (!isGuardedInsert) {
               // Plain unconditional INSERT (unlimited plan / no limit passed).
-              rows.push(bindsToRow(binds.slice(0, 9)))
+              rows.push(bindsToRow(binds.slice(0, 10)))
               return { success: true, meta: { changes: 1 } }
             }
 
             // Guarded INSERT...SELECT...WHERE (SELECT COUNT(*) ... IN (...)) < ?
-            // binds = [9 insert values, ...memberUserIds, limit]
-            const insertValues = binds.slice(0, 9)
-            const memberUserIds = binds.slice(9, binds.length - 1) as string[]
+            // binds = [10 insert values, ...memberUserIds, limit]
+            const insertValues = binds.slice(0, 10)
+            const memberUserIds = binds.slice(10, binds.length - 1) as string[]
             const limit = binds[binds.length - 1] as number
 
             const count = rows.filter((r) =>

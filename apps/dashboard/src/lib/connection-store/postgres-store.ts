@@ -9,6 +9,7 @@ import type {
 
 import { decryptCredentials, encryptCredentials } from './crypto'
 import { allocateDbHostId, ConnectionStoreError } from './types'
+import { DEFAULT_SOURCE_ENGINE, parseSourceEngine } from '@chm/types'
 import postgres from 'postgres'
 
 interface PostgresUserConnectionRow {
@@ -18,6 +19,7 @@ interface PostgresUserConnectionRow {
   host_url: string
   ch_user: string
   host_id: number
+  engine: string | null
   encrypted_payload: string
   created_at: string
   updated_at: string
@@ -31,10 +33,15 @@ CREATE TABLE IF NOT EXISTS user_connections (
   host_url TEXT NOT NULL,
   ch_user TEXT NOT NULL,
   host_id INTEGER NOT NULL,
+  engine TEXT NOT NULL DEFAULT 'clickhouse',
   encrypted_payload TEXT NOT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
+
+-- Idempotently add the engine column to tables created before phase 1 (#2448).
+ALTER TABLE user_connections
+  ADD COLUMN IF NOT EXISTS engine TEXT NOT NULL DEFAULT 'clickhouse';
 
 CREATE INDEX IF NOT EXISTS idx_user_connections_user_id
   ON user_connections(user_id);
@@ -60,6 +67,7 @@ function rowToMeta(row: PostgresUserConnectionRow): UserConnectionMeta {
     hostUrl: row.host_url,
     chUser: row.ch_user,
     hostId: Number(row.host_id),
+    engine: parseSourceEngine(row.engine),
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
   }
@@ -95,7 +103,7 @@ export class PostgresConnectionStore implements ConnectionStore {
   async list(userId: string): Promise<UserConnectionMeta[]> {
     await this.ensureInitialized()
     const rows = await this.sql<PostgresUserConnectionRow[]>`
-      SELECT id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at
+      SELECT id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at
       FROM user_connections WHERE user_id = ${userId} ORDER BY created_at ASC
     `
     return rows.map(rowToMeta)
@@ -107,7 +115,7 @@ export class PostgresConnectionStore implements ConnectionStore {
   ): Promise<StoredUserConnection | null> {
     await this.ensureInitialized()
     const rows = await this.sql<PostgresUserConnectionRow[]>`
-      SELECT id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at
+      SELECT id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at
       FROM user_connections WHERE user_id = ${userId} AND id = ${connectionId} LIMIT 1
     `
     const row = rows[0]
@@ -125,6 +133,7 @@ export class PostgresConnectionStore implements ConnectionStore {
     const now = Date.now()
     const id = crypto.randomUUID()
     const hostId = allocateDbHostId(existing.map((c) => c.hostId))
+    const engine = input.engine ?? DEFAULT_SOURCE_ENGINE
     const encryptedPayload = await encryptCredentials(input.credentials)
 
     if (limit && limit.limit != null && limit.memberUserIds.length > 0) {
@@ -144,8 +153,8 @@ export class PostgresConnectionStore implements ConnectionStore {
         await tx`SELECT pg_advisory_xact_lock(hashtext(${ownerLockKey}))`
         return tx<{ id: string }[]>`
           INSERT INTO user_connections
-            (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
-          SELECT ${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${encryptedPayload}, ${now}, ${now}
+            (id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at)
+          SELECT ${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${engine}, ${encryptedPayload}, ${now}, ${now}
           WHERE (
             SELECT COUNT(*) FROM user_connections WHERE user_id IN ${tx(limit.memberUserIds)}
           ) < ${limit.limit}
@@ -158,9 +167,9 @@ export class PostgresConnectionStore implements ConnectionStore {
     } else {
       await this.sql`
         INSERT INTO user_connections
-          (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
+          (id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at)
         VALUES
-          (${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${encryptedPayload}, ${now}, ${now})
+          (${id}, ${userId}, ${input.name}, ${input.hostUrl}, ${input.chUser}, ${hostId}, ${engine}, ${encryptedPayload}, ${now}, ${now})
       `
     }
 
@@ -171,6 +180,7 @@ export class PostgresConnectionStore implements ConnectionStore {
       hostUrl: input.hostUrl,
       chUser: input.chUser,
       hostId,
+      engine,
       createdAt: now,
       updatedAt: now,
     }

@@ -107,6 +107,7 @@ async function handlePatch(
       host: updated.hostUrl,
       user: updated.chUser,
       hostId: updated.hostId,
+      engine: updated.engine,
       source: 'database' as const,
       updatedAt: updated.updatedAt,
     })

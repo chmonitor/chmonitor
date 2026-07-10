@@ -10,6 +10,7 @@ import type {
 import { decryptCredentials, encryptCredentials } from './crypto'
 import { allocateDbHostId, ConnectionStoreError } from './types'
 import { getPlatformBindings } from '@chm/platform'
+import { DEFAULT_SOURCE_ENGINE, parseSourceEngine } from '@chm/types'
 
 interface D1UserConnectionRow {
   id: string
@@ -18,6 +19,7 @@ interface D1UserConnectionRow {
   host_url: string
   ch_user: string
   host_id: number
+  engine: string | null
   encrypted_payload: string
   created_at: number
   updated_at: number
@@ -31,6 +33,7 @@ function rowToMeta(row: D1UserConnectionRow): UserConnectionMeta {
     hostUrl: row.host_url,
     chUser: row.ch_user,
     hostId: row.host_id,
+    engine: parseSourceEngine(row.engine),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -52,7 +55,7 @@ export class D1ConnectionStore implements ConnectionStore {
     const db = this.getDb()
     const result = await db
       .prepare(
-        `SELECT id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at
+        `SELECT id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at
          FROM user_connections WHERE user_id = ?1 ORDER BY created_at ASC`
       )
       .bind(userId)
@@ -68,7 +71,7 @@ export class D1ConnectionStore implements ConnectionStore {
     const db = this.getDb()
     const row = await db
       .prepare(
-        `SELECT id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at
+        `SELECT id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at
          FROM user_connections WHERE user_id = ?1 AND id = ?2`
       )
       .bind(userId, connectionId)
@@ -92,6 +95,7 @@ export class D1ConnectionStore implements ConnectionStore {
     const now = Date.now()
     const id = crypto.randomUUID()
     const hostId = allocateDbHostId(existing.map((c) => c.hostId))
+    const engine = input.engine ?? DEFAULT_SOURCE_ENGINE
     const encryptedPayload = await encryptCredentials(input.credentials)
     const insertValues = [
       id,
@@ -100,6 +104,7 @@ export class D1ConnectionStore implements ConnectionStore {
       input.hostUrl,
       input.chUser,
       hostId,
+      engine,
       encryptedPayload,
       now,
       now,
@@ -124,8 +129,8 @@ export class D1ConnectionStore implements ConnectionStore {
       const result = await db
         .prepare(
           `INSERT INTO user_connections
-           (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
-           SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+           (id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at)
+           SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10
            WHERE (SELECT COUNT(*) FROM user_connections WHERE user_id IN (${memberPlaceholders})) < ?${limitParamIndex}`
         )
         .bind(...insertValues, ...limit.memberUserIds, limit.limit)
@@ -138,8 +143,8 @@ export class D1ConnectionStore implements ConnectionStore {
       await db
         .prepare(
           `INSERT INTO user_connections
-           (id, user_id, name, host_url, ch_user, host_id, encrypted_payload, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
+           (id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
         )
         .bind(...insertValues)
         .run()
@@ -152,6 +157,7 @@ export class D1ConnectionStore implements ConnectionStore {
       hostUrl: input.hostUrl,
       chUser: input.chUser,
       hostId,
+      engine,
       createdAt: now,
       updatedAt: now,
     }

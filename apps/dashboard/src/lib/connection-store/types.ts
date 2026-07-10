@@ -1,6 +1,8 @@
 /**
- * User connection storage types for per-user ClickHouse host credentials.
+ * User connection storage types for per-user host credentials.
  */
+
+import type { SourceEngine } from '@chm/types'
 
 export interface ConnectionCredentials {
   host: string
@@ -16,6 +18,11 @@ export interface UserConnectionMeta {
   hostUrl: string
   chUser: string
   hostId: number
+  /**
+   * Source engine. Fail-closed: legacy rows (pre-`engine` column) and any
+   * unset value resolve to `'clickhouse'` — see `parseSourceEngine`.
+   */
+  engine: SourceEngine
   createdAt: number
   updatedAt: number
 }
@@ -30,6 +37,8 @@ export interface CreateUserConnectionInput {
   hostUrl: string
   chUser: string
   credentials: ConnectionCredentials
+  /** Source engine; omit to default to `'clickhouse'` (the store applies it). */
+  engine?: SourceEngine
 }
 
 /**

@@ -1,6 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
+import type { SourceEngine } from '@chm/types'
+
 import { useClerkUserId } from '@/components/assistant-ui/use-clerk-user-id'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { isFeatureEnabled } from '@/lib/feature-flags'
@@ -13,6 +15,8 @@ export interface UserConnectionInfo {
   host: string
   user: string
   hostId: number
+  /** Source engine (orthogonal to `source`); defaults to 'clickhouse'. */
+  engine: SourceEngine
   source: 'database'
   createdAt?: number
   updatedAt?: number
@@ -82,6 +86,8 @@ export function useUserConnectionsMutations() {
     host: string
     user: string
     password: string
+    /** Omit to default to 'clickhouse' (validated + defaulted server-side). */
+    engine?: SourceEngine
   }): Promise<{
     success: boolean
     data: UserConnectionInfo
