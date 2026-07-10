@@ -10,7 +10,6 @@
     "preview": "astro preview",
     "build:og": "bun run scripts/build-og.ts",
     "release-to-post": "bun run scripts/release-to-post.mjs",
-    "sync-latest-posts": "bun run scripts/sync-latest-posts.mjs",
     "cf:deploy": "wrangler deploy"
   },
   "dependencies": {

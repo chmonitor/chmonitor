@@ -16,10 +16,7 @@ lead time.
 4. Add the docs cross-link in both directions (post → docs page it explains
    deeper, docs page → post for the narrative version) per the convention in
    `apps/blog/README.md`.
-5. Run `pnpm run sync-latest-posts` from `apps/blog/` (see
-   `scripts/sync-latest-posts.mjs`) to refresh the landing footer's "Latest
-   from the blog" widget, then commit both together.
-6. Mark the row below `done` and move on.
+5. Mark the row below `done` and move on.
 
 Release posts are the exception to "pick the next row on schedule" — scaffold
 them on demand with `pnpm run release-to-post <tag>` (from `apps/blog/`) right

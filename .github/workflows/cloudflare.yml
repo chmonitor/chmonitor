@@ -718,9 +718,7 @@ jobs:
   # Blog (apps/blog): standalone Astro static-assets worker. Built outside the
   # bun workspace (own bun.lock), like landing/docs. Production deploys
   # chmonitor-blog (blog.chmonitor.dev); PRs deploy preview-chmonitor-blog.
-  # Posts live in apps/blog/src/content/blog; the landing footer's "latest
-  # posts" widget is a committed snapshot (apps/landing/src/data/latest-posts.json),
-  # not a live fetch, so it doesn't depend on this job.
+  # Posts live in apps/blog/src/content/blog.
   # ──────────────────────────────────────────────────────────────────────────
   blog:
     name: blog

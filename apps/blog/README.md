@@ -73,12 +73,6 @@ Launch films live in `chmonitor/launch/<version>/` and are copied into
   `draft: true` post from `templates/release-post.md`. It never publishes —
   a human still runs the claim-verification checklist and flips `draft` to
   `false`.
-- **Landing footer widget**: `apps/landing` is a separate Astro app with its
-  own CI job, so it can't reach into this app's content collection at build
-  time. `pnpm run sync-latest-posts` regenerates a committed snapshot at
-  `apps/landing/src/data/latest-posts.json` (published, non-draft posts,
-  newest first) that `Footer.astro` renders as "Latest from the blog". Run it
-  after publishing and commit the snapshot alongside the post.
 
 ## Deploy
 

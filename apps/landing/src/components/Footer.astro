@@ -1,10 +1,5 @@
 ---
 import { useCases } from '../data/use-cases'
-import latestPosts from '../data/latest-posts.json'
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 ---
   <footer class="border-t border-border">
     <div class="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
@@ -58,20 +53,6 @@ function fmtDate(iso: string) {
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/brand">Brand</a>
             </div>
           </div>
-          {latestPosts.length > 0 && (
-            <div class="col-span-2 min-w-0 sm:col-span-1 sm:min-w-44 sm:max-w-52">
-              <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Latest from the blog</h5>
-              <div class="mt-3 flex flex-col gap-3">
-                {latestPosts.map((post) => (
-                  <a class="text-sm leading-snug text-pretty text-muted-foreground transition-colors hover:text-foreground" href={post.url} target="_blank" rel="noopener">
-                    {post.title}
-                    <span class="mt-0.5 block text-xs text-muted-foreground/70">{fmtDate(post.date)}</span>
-                  </a>
-                ))}
-                <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://blog.chmonitor.dev/rss.xml" target="_blank" rel="noopener">RSS feed</a>
-              </div>
-            </div>
-          )}
         </div>
       </div>
       <div class="mt-10 sm:mt-12 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 border-t border-border pt-6 text-sm text-muted-foreground">
