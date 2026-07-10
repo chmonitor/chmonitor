@@ -40,14 +40,15 @@ module.exports = {
     },
 
     // ── Leaf packages must stay leaf-only ─────────────────────────────────
-    // @chm/types, @chm/sql-builder, @chm/logger, @chm/platform, @chm/pricing
+    // @chm/types, @chm/sql-builder, @chm/logger, @chm/platform, @chm/pricing,
+    // @chm/postgres-client (types-only, may only reach @chm/types)
     {
       name: 'leaf-packages-no-internal-deps',
       severity: 'error',
       comment:
         'Leaf packages must not depend on higher-layer @chm/* packages.',
       from: {
-        path: '^packages/(types|sql-builder|logger|platform|pricing)/',
+        path: '^packages/(types|sql-builder|logger|platform|pricing|postgres-client)/',
       },
       to: {
         path: '^packages/(clickhouse-client|mcp-server)/',

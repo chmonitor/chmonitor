@@ -11,6 +11,7 @@
     "./generic": "./src/generic.ts",
     "./icon": "./src/icon.ts",
     "./host-info": "./src/host-info.ts",
+    "./source-engine": "./src/source-engine.ts",
     "./docs": "./src/docs.ts"
   },
   "dependencies": {
