@@ -160,7 +160,10 @@ export function getRateLimitBinding(
     return undefined
   }
   const candidate = (globalThis as Record<string, unknown>)[name]
-  if (candidate && typeof (candidate as RateLimitBinding).limit === 'function') {
+  if (
+    candidate &&
+    typeof (candidate as RateLimitBinding).limit === 'function'
+  ) {
     return candidate as RateLimitBinding
   }
   return undefined
