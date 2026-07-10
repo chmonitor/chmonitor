@@ -15,6 +15,9 @@ import type { ConnectionPreset } from './connection-presets'
 import {
   applyCloudHostDefaults,
   CLOUD_HOST_PLACEHOLDER,
+  engineForPreset,
+  POSTGRES_DEFAULT_PORT,
+  POSTGRES_HOST_PLACEHOLDER,
   SELF_HOSTED_HOST_PLACEHOLDER,
 } from './connection-presets'
 import { SAMPLE_CLUSTER_PRESET } from './sample-preset'
@@ -22,6 +25,13 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -41,8 +51,18 @@ export type { BrowserConnection }
 
 export type ConnectionFormData = Pick<
   BrowserConnection,
-  'name' | 'host' | 'user' | 'password'
+  | 'name'
+  | 'host'
+  | 'user'
+  | 'password'
+  | 'engine'
+  | 'port'
+  | 'database'
+  | 'sslmode'
 >
+
+/** libpq sslmodes surfaced in the Postgres preset's SSL dropdown. */
+const POSTGRES_SSLMODES = ['require', 'disable', 'verify-full'] as const
 
 interface TestStatus {
   state: 'idle' | 'loading' | 'success' | 'error'
@@ -65,6 +85,13 @@ interface ConnectionFormProps {
    * existing connection.
    */
   showSamplePreset?: boolean
+  /**
+   * Show the flag-gated Postgres option in the connection-type selector. Only
+   * the "add new host" path (`AddHostDialog`) passes this when
+   * `CHM_FEATURE_POSTGRES_SOURCE` is on; everything else keeps the ClickHouse-
+   * only UI, so there is zero visual change when the flag is off.
+   */
+  allowPostgres?: boolean
 }
 
 function isValidUrl(value: string): boolean {
@@ -76,12 +103,17 @@ function isValidUrl(value: string): boolean {
   }
 }
 
-function isFormValid(data: ConnectionFormData): boolean {
-  return (
-    data.name.trim().length > 0 &&
-    isValidUrl(data.host.trim()) &&
-    data.user.trim().length > 0
-  )
+function isFormValid(data: ConnectionFormData, isPostgres: boolean): boolean {
+  const base = data.name.trim().length > 0 && data.user.trim().length > 0
+  if (isPostgres) {
+    // Postgres uses a bare hostname (not a URL) plus a required database.
+    return (
+      base &&
+      (data.host ?? '').trim().length > 0 &&
+      (data.database ?? '').trim().length > 0
+    )
+  }
+  return base && isValidUrl((data.host ?? '').trim())
 }
 
 export function ConnectionForm({
@@ -93,16 +125,22 @@ export function ConnectionForm({
   dbStorageEnabled = false,
   dbStorageRequiresSignIn = false,
   showSamplePreset = false,
+  allowPostgres = false,
 }: ConnectionFormProps) {
   const [form, setForm] = useState<ConnectionFormData>({
     name: initialValues?.name ?? '',
     host: initialValues?.host ?? '',
     user: initialValues?.user ?? '',
     password: initialValues?.password ?? '',
+    port: initialValues?.port,
+    database: initialValues?.database ?? '',
+    sslmode: initialValues?.sslmode ?? 'require',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>({ state: 'idle' })
   const [preset, setPreset] = useState<ConnectionPreset>('self-hosted')
+
+  const isPostgres = preset === 'postgres'
 
   const handleChange =
     (field: keyof ConnectionFormData) =>
@@ -116,12 +154,20 @@ export function ConnectionForm({
 
   const handlePresetChange = (next: ConnectionPreset) => {
     setPreset(next)
+    setTestStatus({ state: 'idle' })
     // Only fill a still-empty username — never clobber an existing value
     // (e.g. while editing an existing connection via ConnectionManagerDialog).
     if (next === 'clickhouse-cloud') {
       setForm((prev) =>
         prev.user.trim() ? prev : { ...prev, user: 'default' }
       )
+    } else if (next === 'postgres') {
+      setForm((prev) => ({
+        ...prev,
+        user: prev.user.trim() ? prev.user : 'postgres',
+        port: prev.port ?? POSTGRES_DEFAULT_PORT,
+        sslmode: prev.sslmode ?? 'require',
+      }))
     }
   }
 
@@ -147,11 +193,23 @@ export function ConnectionForm({
       const response = await apiFetch('/api/v1/browser-connections/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          host: form.host.trim(),
-          user: form.user.trim(),
-          password: form.password,
-        }),
+        body: JSON.stringify(
+          isPostgres
+            ? {
+                engine: 'postgres',
+                host: form.host.trim(),
+                port: form.port ?? POSTGRES_DEFAULT_PORT,
+                user: form.user.trim(),
+                password: form.password,
+                database: (form.database ?? '').trim(),
+                sslmode: form.sslmode,
+              }
+            : {
+                host: form.host.trim(),
+                user: form.user.trim(),
+                password: form.password,
+              }
+        ),
       })
       const json = (await response.json()) as {
         ok?: boolean
@@ -162,14 +220,17 @@ export function ConnectionForm({
         setTestStatus({
           state: 'success',
           message: json.version
-            ? `Connected — ClickHouse ${json.version}`
+            ? `Connected — ${isPostgres ? 'Postgres' : 'ClickHouse'} ${json.version}`
             : 'Connected',
         })
-        track('cluster_connected', {
-          deploy_target: getDeployTarget(),
-          ch_version: parseMajorMinor(json.version),
-          ch_flavor: detectChFlavor(json.version),
-        })
+        // ClickHouse-specific version telemetry; skip for Postgres.
+        if (!isPostgres) {
+          track('cluster_connected', {
+            deploy_target: getDeployTarget(),
+            ch_version: parseMajorMinor(json.version),
+            ch_flavor: detectChFlavor(json.version),
+          })
+        }
       } else {
         setTestStatus({
           state: 'error',
@@ -187,21 +248,35 @@ export function ConnectionForm({
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
-    if (!isFormValid(form) || saving) return
+    if (!isFormValid(form, isPostgres) || saving) return
     setSaving(true)
     try {
-      await onSave({
-        name: form.name.trim(),
-        host: form.host.trim(),
-        user: form.user.trim(),
-        password: form.password,
-      })
+      await onSave(
+        isPostgres
+          ? {
+              name: form.name.trim(),
+              host: form.host.trim(),
+              user: form.user.trim(),
+              password: form.password,
+              engine: 'postgres',
+              port: form.port ?? POSTGRES_DEFAULT_PORT,
+              database: (form.database ?? '').trim(),
+              sslmode: form.sslmode,
+            }
+          : {
+              name: form.name.trim(),
+              host: form.host.trim(),
+              user: form.user.trim(),
+              password: form.password,
+              engine: engineForPreset(preset),
+            }
+      )
     } finally {
       setSaving(false)
     }
   }
 
-  const valid = isFormValid(form)
+  const valid = isFormValid(form, isPostgres)
 
   return (
     <div className="space-y-4">
@@ -216,6 +291,11 @@ export function ConnectionForm({
           <TabsList>
             <TabsTrigger value="self-hosted">Self-hosted</TabsTrigger>
             <TabsTrigger value="clickhouse-cloud">ClickHouse Cloud</TabsTrigger>
+            {allowPostgres && (
+              <TabsTrigger value="postgres" data-testid="engine-postgres">
+                Postgres
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
       </div>
@@ -257,29 +337,62 @@ export function ConnectionForm({
         />
       </div>
 
-      {/* Host URL */}
+      {/* Host — a full URL for ClickHouse, a bare hostname + port for Postgres. */}
       <div className="space-y-1.5">
         <Label htmlFor="conn-host" className="text-sm font-medium">
-          Host URL
+          {isPostgres ? 'Host' : 'Host URL'}
         </Label>
-        <div className="relative">
-          <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            id="conn-host"
-            placeholder={
-              preset === 'clickhouse-cloud'
-                ? CLOUD_HOST_PLACEHOLDER
-                : SELF_HOSTED_HOST_PLACEHOLDER
-            }
-            value={form.host}
-            onChange={handleChange('host')}
-            onBlur={handleHostBlur}
-            className="pl-8"
-            autoComplete="off"
-            type="url"
-          />
-        </div>
-        {form.host.length > 0 && !isValidUrl(form.host) && (
+        {isPostgres ? (
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="conn-host"
+                placeholder={POSTGRES_HOST_PLACEHOLDER}
+                value={form.host}
+                onChange={handleChange('host')}
+                className="pl-8"
+                autoComplete="off"
+              />
+            </div>
+            <Input
+              id="conn-port"
+              type="number"
+              min={1}
+              max={65535}
+              className="w-24"
+              placeholder={String(POSTGRES_DEFAULT_PORT)}
+              value={form.port ?? ''}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  port:
+                    e.target.value === '' ? undefined : Number(e.target.value),
+                }))
+              }
+              aria-label="Postgres port"
+            />
+          </div>
+        ) : (
+          <div className="relative">
+            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              id="conn-host"
+              placeholder={
+                preset === 'clickhouse-cloud'
+                  ? CLOUD_HOST_PLACEHOLDER
+                  : SELF_HOSTED_HOST_PLACEHOLDER
+              }
+              value={form.host}
+              onChange={handleChange('host')}
+              onBlur={handleHostBlur}
+              className="pl-8"
+              autoComplete="off"
+              type="url"
+            />
+          </div>
+        )}
+        {!isPostgres && form.host.length > 0 && !isValidUrl(form.host) && (
           <p className="text-xs text-destructive">
             Enter a valid HTTP or HTTPS URL
           </p>
@@ -290,7 +403,54 @@ export function ConnectionForm({
             <code className="text-foreground">default</code>.
           </p>
         )}
+        {isPostgres && (
+          <p className="text-xs text-muted-foreground">
+            Bare hostname or IP (no{' '}
+            <code className="text-foreground">https://</code>
+            ); the port is separate. Monitoring is read-only.
+          </p>
+        )}
       </div>
+
+      {/* Postgres-only: database + SSL mode. */}
+      {isPostgres && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="conn-database" className="text-sm font-medium">
+              Database
+            </Label>
+            <Input
+              id="conn-database"
+              placeholder="postgres"
+              value={form.database ?? ''}
+              onChange={handleChange('database')}
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="conn-sslmode" className="text-sm font-medium">
+              SSL mode
+            </Label>
+            <Select
+              value={form.sslmode ?? 'require'}
+              onValueChange={(v) =>
+                setForm((prev) => ({ ...prev, sslmode: v ?? 'require' }))
+              }
+            >
+              <SelectTrigger id="conn-sslmode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {POSTGRES_SSLMODES.map((mode) => (
+                  <SelectItem key={mode} value={mode}>
+                    {mode}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
       {/* Username */}
       <div className="space-y-1.5">

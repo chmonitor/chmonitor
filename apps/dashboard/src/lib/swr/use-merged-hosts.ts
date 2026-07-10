@@ -96,28 +96,38 @@ export function useMergedHosts() {
             })
           )
         : []),
-      ...connections.map(
-        (c): MergedHostInfo => ({
-          id: c.hostId,
-          name: c.name,
-          host: c.host,
-          user: c.user,
-          source: 'browser',
-          engine: 'clickhouse',
-        })
-      ),
+      // Postgres sources are stored + testable but NOT selectable as a
+      // ClickHouse hostId in this phase (#2449): every dashboard page routes
+      // `?host=<id>` into ClickHouse system-table queries, so a Postgres host
+      // in this list would be silently mis-queried. Phase 3 (#2450) adds the
+      // Postgres pages and a proper engine-aware switcher; until then we
+      // fail-closed and keep them out of the CH host space.
+      ...connections
+        .filter((c) => (c.engine ?? 'clickhouse') !== 'postgres')
+        .map(
+          (c): MergedHostInfo => ({
+            id: c.hostId,
+            name: c.name,
+            host: c.host,
+            user: c.user,
+            source: 'browser',
+            engine: c.engine ?? 'clickhouse',
+          })
+        ),
       ...(dbFeatureEnabled && isSignedIn
-        ? dbConnections.map(
-            (c): MergedHostInfo => ({
-              id: c.hostId,
-              name: c.name,
-              host: c.host,
-              user: c.user,
-              source: 'database',
-              engine: c.engine,
-              connectionId: c.id,
-            })
-          )
+        ? dbConnections
+            .filter((c) => c.engine !== 'postgres')
+            .map(
+              (c): MergedHostInfo => ({
+                id: c.hostId,
+                name: c.name,
+                host: c.host,
+                user: c.user,
+                source: 'database',
+                engine: c.engine,
+                connectionId: c.id,
+              })
+            )
         : []),
     ],
     [

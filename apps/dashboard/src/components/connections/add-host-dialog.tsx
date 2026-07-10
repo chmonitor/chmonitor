@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { docsSiteUrl } from '@/lib/docs-site'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
 import {
@@ -64,20 +65,28 @@ export function AddHostDialog({
 
   const dbStorageConfigured = config.userConnections?.dbStorageEnabled === true
   const dbStorageEnabled = dbStorageConfigured && isSignedIn
+  const allowPostgres = isFeatureEnabled('postgresSource')
 
   const handleSave = async (data: ConnectionFormData) => {
+    // Postgres sources aren't selectable as a ClickHouse hostId yet (#2449 keeps
+    // them out of the CH switcher; the pages land in #2450), so we store the
+    // connection but do NOT navigate `?host=` into a ClickHouse page.
+    const isPostgres = data.engine === 'postgres'
+
     if (storageMode === 'database' && dbStorageEnabled) {
       const result = await createConnection(data)
       const hostId = result.data.hostId
       await refetchDb()
-      if (hostId !== undefined) {
+      if (!isPostgres && hostId !== undefined) {
         const url = buildUrl(pathname, { host: hostId }, searchParams)
         router.push(url)
       }
     } else {
       const created = addConnection(data)
-      const url = buildUrl(pathname, { host: created.hostId }, searchParams)
-      router.push(url)
+      if (!isPostgres) {
+        const url = buildUrl(pathname, { host: created.hostId }, searchParams)
+        router.push(url)
+      }
     }
 
     // Sample-cluster funnel: distinguish "connected the sample" from
@@ -144,6 +153,7 @@ export function AddHostDialog({
               dbStorageEnabled={dbStorageEnabled}
               dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
               showSamplePreset={showSamplePreset}
+              allowPostgres={allowPostgres}
             />
           </div>
 

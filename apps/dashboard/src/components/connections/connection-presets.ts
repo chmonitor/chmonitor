@@ -10,7 +10,33 @@
  * string, not by toggling separate fields.
  */
 
-export type ConnectionPreset = 'self-hosted' | 'clickhouse-cloud'
+import type { SourceEngine } from '@chm/types'
+
+/**
+ * Connection-type selector value. The two ClickHouse presets differ only in
+ * host-URL normalization + hints; `postgres` (phase 2, #2449) selects a
+ * DIFFERENT engine and field set (host/port/database/sslmode), gated behind
+ * `CHM_FEATURE_POSTGRES_SOURCE`.
+ */
+export type ConnectionPreset = 'self-hosted' | 'clickhouse-cloud' | 'postgres'
+
+/** Map the connection-type preset to the persisted {@link SourceEngine}. */
+export function engineForPreset(preset: ConnectionPreset): SourceEngine {
+  switch (preset) {
+    case 'clickhouse-cloud':
+      return 'clickhouse-cloud'
+    case 'postgres':
+      return 'postgres'
+    default:
+      return 'clickhouse'
+  }
+}
+
+/** Default Postgres TCP port. */
+export const POSTGRES_DEFAULT_PORT = 5432
+
+/** Host-field placeholder for the Postgres preset (bare hostname, no scheme). */
+export const POSTGRES_HOST_PLACEHOLDER = 'db.example.com'
 
 /** HTTPS interface port ClickHouse Cloud services listen on. */
 export const CLOUD_DEFAULT_PORT = 8443

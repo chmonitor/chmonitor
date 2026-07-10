@@ -1,12 +1,27 @@
+import type { SourceEngine } from '@chm/types'
+
 export interface BrowserConnection {
   id: string // UUID
   hostId: number // negative integer (-1, -2, ...)
   name: string // display name
-  host: string // full URL e.g. https://my.clickhouse.cloud:8443
+  host: string // ClickHouse: full URL; Postgres: bare hostname/IP
   user: string
   password: string // stored in localStorage
   createdAt: string // ISO timestamp
   updatedAt: string
+  /**
+   * Source engine (phase 2, #2449). Absent on pre-Postgres rows → treated as
+   * `'clickhouse'` by every reader. The whole object is encrypted as-is
+   * (browser-crypto envelope v2), so adding these optional fields needs no
+   * serialization change.
+   */
+  engine?: SourceEngine
+  /** Postgres-only: TCP port (default 5432). */
+  port?: number
+  /** Postgres-only: database name. */
+  database?: string
+  /** Postgres-only: libpq `sslmode` (`disable` | `require` | `verify-full`). */
+  sslmode?: string
 }
 
 export const BROWSER_CONNECTIONS_STORAGE_KEY =

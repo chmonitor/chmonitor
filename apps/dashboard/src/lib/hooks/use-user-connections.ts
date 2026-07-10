@@ -88,6 +88,10 @@ export function useUserConnectionsMutations() {
     password: string
     /** Omit to default to 'clickhouse' (validated + defaulted server-side). */
     engine?: SourceEngine
+    /** Postgres-only (engine === 'postgres'). */
+    port?: number
+    database?: string
+    sslmode?: string
   }): Promise<{
     success: boolean
     data: UserConnectionInfo
