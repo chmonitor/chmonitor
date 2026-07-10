@@ -18,6 +18,7 @@ export type ConnectionErrorKind =
   | 'invalid_url'
   | 'auth_failed'
   | 'access_denied'
+  | 'database_not_found'
   | 'dns_error'
   | 'connection_refused'
   | 'tls_error'
@@ -88,11 +89,15 @@ const RULES: Rule[] = [
       'invalid credentials',
       'access denied for user',
       '403',
+      // Postgres: SQLSTATE 28P01 (invalid_password) / 28000 (invalid auth spec).
+      'password authentication failed',
+      '28p01',
+      '28000',
     ],
     title: 'Authentication failed',
     explanation:
-      'ClickHouse rejected the username or password. The endpoint was reachable, but the credentials were not accepted.',
-    fix: 'Double-check the username and password. If the user is restricted by IP, allow the dashboard egress address. Note ClickHouse usernames are case-sensitive.',
+      'The server rejected the username or password. The endpoint was reachable, but the credentials were not accepted.',
+    fix: 'Double-check the username and password. If the user is restricted by IP, allow the dashboard egress address. Usernames are case-sensitive.',
     docsSlug: 'getting-started/clickhouse-requirements',
   },
   {
@@ -111,6 +116,18 @@ const RULES: Rule[] = [
     docsSlug: 'getting-started/clickhouse-requirements',
   },
   {
+    kind: 'database_not_found',
+    // Postgres SQLSTATE 3D000 (invalid_catalog_name). The classifier is string-
+    // based, so the route appends the SQLSTATE to the message (see the Postgres
+    // test/create paths) to make this reliable regardless of message wording.
+    match: ['3d000', 'database does not exist'],
+    title: 'Database not found',
+    explanation:
+      'The Postgres server was reached and the credentials were accepted, but the target database does not exist.',
+    fix: 'Check the database name — it is case-sensitive and must already exist on the server. Create it, or point at an existing database.',
+    docsSlug: 'guides/connection-errors',
+  },
+  {
     kind: 'dns_error',
     match: [
       'enotfound',
@@ -127,11 +144,20 @@ const RULES: Rule[] = [
   },
   {
     kind: 'connection_refused',
-    match: ['econnrefused', 'connection refused', 'connect econnrefused'],
+    match: [
+      'econnrefused',
+      'connection refused',
+      'connect econnrefused',
+      // Postgres: SQLSTATE 08006/08001 (connection failure) and the pg driver's
+      // "the database system is starting up / cannot connect now" (57P03).
+      '08006',
+      '08001',
+      '57p03',
+    ],
     title: 'Connection refused',
     explanation:
-      'The host resolved but refused the connection. ClickHouse may not be listening on that port, or a firewall is blocking it.',
-    fix: 'Confirm the port (8443 for HTTPS, 8123 for HTTP) and that ClickHouse accepts external connections (listen_host) and the firewall allows the dashboard.',
+      'The host resolved but refused the connection. The database may not be listening on that port, or a firewall is blocking it.',
+    fix: 'Confirm the port (ClickHouse: 8443 HTTPS / 8123 HTTP; Postgres: usually 5432) and that the server accepts external connections and the firewall allows the dashboard.',
     docsSlug: 'guides/connection-errors',
   },
   {
@@ -145,6 +171,8 @@ const RULES: Rule[] = [
       'unable to verify',
       'err_tls',
       'depth_zero_self_signed_cert',
+      // Postgres: server without TLS while sslmode requires it.
+      'does not support ssl',
     ],
     title: 'TLS / certificate error',
     explanation:
@@ -154,7 +182,14 @@ const RULES: Rule[] = [
   },
   {
     kind: 'timeout',
-    match: ['etimedout', 'timeout', 'timed out', 'esockettimedout'],
+    match: [
+      'etimedout',
+      'timeout',
+      'timed out',
+      'esockettimedout',
+      // Postgres driver connect-timeout wording.
+      'connection timeout',
+    ],
     title: 'Connection timed out',
     explanation:
       'The host did not respond in time. It may be unreachable from the public internet, or a firewall is silently dropping packets.',

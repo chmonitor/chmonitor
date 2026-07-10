@@ -75,6 +75,7 @@ mock.module('@/lib/billing/host-usage-store', () => ({
 
 mock.module('@/lib/browser-connections/host-url', () => ({
   validateHostUrl: async (_host: string) => null,
+  validatePostgresHost: async (_host: string, _port: number) => null,
   createHostValidationFetch: () => fetch,
 }))
 
@@ -83,6 +84,16 @@ mock.module('@/lib/connection-query/connection-client', () => ({
   createConnectionClient: () => ({}),
   queryConnection: (creds: unknown, sql: string) => queryConnection(creds, sql),
   getConnectionVersion: async () => null,
+}))
+
+let queryPostgres = mock(async (_conn: unknown, _sql: string) => ({
+  rows: [],
+  fields: [],
+}))
+mock.module('@chm/postgres-client', () => ({
+  queryPostgres: (conn: unknown, sql: string) => queryPostgres(conn, sql),
+  formatPostgresError: (err: unknown) =>
+    err instanceof Error ? err.message : String(err),
 }))
 
 let storeCreate = mock(
@@ -138,6 +149,7 @@ beforeEach(() => {
   countOwnerHosts = mock(async () => ({ count: 0, memberUserIds: ['user_1'] }))
   recordHostOverage = mock(async () => {})
   queryConnection = mock(async () => [])
+  queryPostgres = mock(async () => ({ rows: [], fields: [] }))
   storeCreate = mock(
     async (_userId: string, input: { name: string }, _limit?: unknown) => ({
       id: 'conn_new',
@@ -230,5 +242,70 @@ describe('POST /api/v1/user-connections — audit wiring', () => {
 
     expect(res.status).toBe(200)
     expect(logEventImpl).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/v1/user-connections — Postgres engine branch', () => {
+  function makePostgresRequest(): Request {
+    return new Request('https://dash.example.com/api/v1/user-connections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'my-pg',
+        engine: 'postgres',
+        host: 'db.example.com',
+        port: 5432,
+        user: 'postgres',
+        password: 'secret',
+        database: 'app',
+        sslmode: 'require',
+      }),
+    })
+  }
+
+  test('tests via pg, then stores a v2 envelope with engine=postgres', async () => {
+    const res = await handlePost(makePostgresRequest())
+    expect(res.status).toBe(200)
+
+    // Connectivity was probed through the read-only pg path (SELECT 1).
+    expect(queryPostgres).toHaveBeenCalledTimes(1)
+    expect(queryPostgres.mock.calls[0]?.[1]).toBe('SELECT 1')
+
+    // The stored input carries the engine + a v2 (kind:'postgres') credential
+    // envelope with the Postgres-only fields; hostUrl is the display form.
+    expect(storeCreate).toHaveBeenCalledTimes(1)
+    const input = storeCreate.mock.calls[0]?.[1] as {
+      engine?: string
+      hostUrl: string
+      credentials: Record<string, unknown>
+    }
+    expect(input.engine).toBe('postgres')
+    expect(input.hostUrl).toBe('postgres://db.example.com:5432/app')
+    expect(input.credentials).toMatchObject({
+      kind: 'postgres',
+      host: 'db.example.com',
+      port: 5432,
+      user: 'postgres',
+      database: 'app',
+      sslmode: 'require',
+    })
+  })
+
+  test('rejects a Postgres create with no database', async () => {
+    const res = await handlePost(
+      new Request('https://dash.example.com/api/v1/user-connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'my-pg',
+          engine: 'postgres',
+          host: 'db.example.com',
+          user: 'postgres',
+          password: 'secret',
+        }),
+      })
+    )
+    expect(res.status).toBe(400)
+    expect(storeCreate).not.toHaveBeenCalled()
   })
 })

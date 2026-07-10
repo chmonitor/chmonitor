@@ -9,6 +9,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { LimitCheck } from '@/lib/billing/entitlements'
 import type { CreateUserConnectionInput } from '@/lib/connection-store/types'
 
+import { formatPostgresError, queryPostgres } from '@chm/postgres-client'
 import { isSourceEngine } from '@chm/types'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
@@ -23,7 +24,10 @@ import {
 import { recordHostOverage } from '@/lib/billing/host-usage-store'
 import { countOwnerHosts } from '@/lib/billing/org-host-count'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
-import { validateHostUrl } from '@/lib/browser-connections/host-url'
+import {
+  validateHostUrl,
+  validatePostgresHost,
+} from '@/lib/browser-connections/host-url'
 import { queryConnection } from '@/lib/connection-query/connection-client'
 import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
@@ -76,6 +80,10 @@ interface CreateRequest {
   password: string
   /** Source engine; omitted/absent defaults to 'clickhouse' in the store. */
   engine?: string
+  /** Postgres-only fields (engine === 'postgres'). */
+  port?: number
+  database?: string
+  sslmode?: string
 }
 
 /**
@@ -158,12 +166,6 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const credentials = {
-    host: host.trim(),
-    user: user.trim(),
-    password,
-  }
-
   try {
     const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
@@ -219,35 +221,99 @@ async function handlePost(request: Request): Promise<Response> {
       hardCapLimit = plan.hostOverage == null ? plan.hosts : null
     }
 
-    const ssrfError = await validateHostUrl(credentials.host)
-    if (ssrfError) {
-      return createApiErrorResponse(
-        { type: ApiErrorType.ValidationError, message: ssrfError },
-        400,
-        ROUTE_POST
-      )
-    }
+    // Engine-specific: SSRF guard + live connectivity test + the credential
+    // envelope to persist. Postgres connects over raw TCP with its own guard
+    // and a read-only `pg` probe; clickhouse / clickhouse-cloud share the HTTP
+    // path. The connection test runs AFTER the host-limit check so we never open
+    // a socket to an attacker-supplied host for a request we'd reject anyway.
+    let input: CreateUserConnectionInput
+    if (engine === 'postgres') {
+      const port = body.port ?? 5432
+      const database = (body.database ?? '').trim()
+      const sslmode = body.sslmode
+      if (!database) {
+        return createApiErrorResponse(
+          {
+            type: ApiErrorType.ValidationError,
+            message: 'database is required for a Postgres connection',
+          },
+          400,
+          ROUTE_POST
+        )
+      }
 
-    try {
-      await queryConnection(credentials, 'SELECT 1')
-    } catch (err) {
-      return createApiErrorResponse(
-        {
-          type: ApiErrorType.QueryError,
-          message:
-            err instanceof Error ? err.message : 'Connection test failed',
-        },
-        400,
-        ROUTE_POST
-      )
-    }
+      const ssrfError = await validatePostgresHost(host.trim(), port)
+      if (ssrfError) {
+        return createApiErrorResponse(
+          { type: ApiErrorType.ValidationError, message: ssrfError },
+          400,
+          ROUTE_POST
+        )
+      }
 
-    const input: CreateUserConnectionInput = {
-      name: name.trim(),
-      hostUrl: credentials.host,
-      chUser: credentials.user,
-      credentials,
-      engine,
+      const pgConn = {
+        host: host.trim(),
+        port,
+        user: user.trim(),
+        password,
+        database,
+        sslmode,
+      }
+      try {
+        await queryPostgres(pgConn, 'SELECT 1')
+      } catch (err) {
+        return createApiErrorResponse(
+          { type: ApiErrorType.QueryError, message: formatPostgresError(err) },
+          400,
+          ROUTE_POST
+        )
+      }
+
+      input = {
+        name: name.trim(),
+        // Display-only metadata; the real creds live in the encrypted payload.
+        hostUrl: `postgres://${host.trim()}:${port}/${database}`,
+        chUser: user.trim(),
+        credentials: { kind: 'postgres', ...pgConn },
+        engine,
+      }
+    } else {
+      const credentials = {
+        host: host.trim(),
+        user: user.trim(),
+        password,
+      }
+
+      const ssrfError = await validateHostUrl(credentials.host)
+      if (ssrfError) {
+        return createApiErrorResponse(
+          { type: ApiErrorType.ValidationError, message: ssrfError },
+          400,
+          ROUTE_POST
+        )
+      }
+
+      try {
+        await queryConnection(credentials, 'SELECT 1')
+      } catch (err) {
+        return createApiErrorResponse(
+          {
+            type: ApiErrorType.QueryError,
+            message:
+              err instanceof Error ? err.message : 'Connection test failed',
+          },
+          400,
+          ROUTE_POST
+        )
+      }
+
+      input = {
+        name: name.trim(),
+        hostUrl: credentials.host,
+        chUser: credentials.user,
+        credentials,
+        engine,
+      }
     }
     let created
     try {
