@@ -9,6 +9,10 @@ Second in the series. Every ClickHouse instance already has the answer to "what'
 slow?" sitting in `system.query_log` — you just have to ask it the right way. No
 APM agent, no extra instrumentation, it's on by default.
 
+**Want the full walkthrough?** This is the 5-minute version — for version
+differences and continuous-monitoring options, see [Finding your slowest
+ClickHouse queries with system.query_log: a complete walkthrough](/find-slow-clickhouse-queries/).
+
 ## Prerequisites
 
 - `system.query_log` enabled (it is by default on all recent ClickHouse
@@ -120,5 +124,6 @@ Or skip setup and try the [live demo](https://dash.chmonitor.dev/?ref=blog).
 ## Related
 
 - Docs: [Queries feature](https://docs.chmonitor.dev/guide/features/queries) — running, historical, failed, and expensive queries
+- Deep dive: [Finding your slowest ClickHouse queries with system.query_log: a complete walkthrough](/find-slow-clickhouse-queries/) — the same diagnostic, with version differences and continuous-monitoring options.
 - Previous in the series: [Diagnosing "Too Many Parts" from system.parts](/clickhouse-too-many-parts/)
 - Next in the series: [Reading system.merges — is your cluster in a merge storm?](/clickhouse-system-merges-merge-storm/)

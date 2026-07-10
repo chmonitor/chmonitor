@@ -1,6 +1,6 @@
 [
   {
-    "title": "Finding your slowest ClickHouse queries with system.query_log",
+    "title": "Finding your slowest ClickHouse queries with system.query_log: a complete walkthrough",
     "date": "2026-07-10",
     "tag": "How-to",
     "url": "https://blog.chmonitor.dev/find-slow-clickhouse-queries/"
