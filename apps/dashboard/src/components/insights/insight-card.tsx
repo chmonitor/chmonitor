@@ -2,6 +2,8 @@ import { ArrowRight, X } from 'lucide-react'
 
 import type { InsightCard as InsightCardData } from '@/lib/insights/types'
 
+import { useState } from 'react'
+import { InsightDetailDialog } from '@/components/insights/insight-detail-dialog'
 import { SEVERITY_META } from '@/components/insights/severity-meta'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +33,7 @@ export function InsightCard({
   className,
   linkSearch,
 }: InsightCardProps) {
+  const [detailOpen, setDetailOpen] = useState(false)
   const style = SEVERITY_META[insight.severity]
   const Icon = style.icon
 
@@ -49,8 +52,18 @@ export function InsightCard({
 
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      aria-label={`View insight: ${insight.title}`}
+      onClick={() => setDetailOpen(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          setDetailOpen(true)
+        }
+      }}
       className={cn(
-        'h-full gap-0 border-l-0 p-4 transition-colors',
+        'h-full cursor-pointer gap-0 border-l-0 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         style.accent,
         className
       )}
@@ -70,7 +83,10 @@ export function InsightCard({
           size="icon"
           className="-mr-1.5 -mt-1.5 size-7 shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
           aria-label={`Dismiss insight: ${insight.title}`}
-          onClick={() => onDismiss(insight)}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDismiss(insight)
+          }}
         >
           <X className="size-3.5" />
         </Button>
@@ -106,13 +122,24 @@ export function InsightCard({
             variant="ghost"
             size="sm"
             className="h-6 gap-1 px-0 text-xs font-normal text-muted-foreground hover:text-foreground"
-            render={<Link href={actionHref} />}
+            render={
+              <Link href={actionHref} onClick={(e) => e.stopPropagation()} />
+            }
           >
             {action.label}
             <ArrowRight className="size-3" />
           </Button>
         ) : null}
       </div>
+
+      <InsightDetailDialog
+        insight={insight}
+        hostId={hostId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onDismiss={onDismiss}
+        linkSearch={linkSearch}
+      />
     </Card>
   )
 }

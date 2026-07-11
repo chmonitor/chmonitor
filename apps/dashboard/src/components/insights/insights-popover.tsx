@@ -22,6 +22,7 @@ import {
 import type { InsightCard, InsightSeverity } from '@/lib/insights/types'
 
 import { useState } from 'react'
+import { InsightDetailDialog } from '@/components/insights/insight-detail-dialog'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,6 +68,7 @@ export function InsightsPopover() {
     refresh,
     generate,
     isGenerating,
+    dismiss,
   } = useInsights(hostId)
 
   const total = counts.critical + counts.warning + counts.info
@@ -185,7 +187,8 @@ export function InsightsPopover() {
                 key={insight.key}
                 insight={insight}
                 hostId={hostId}
-                onNavigate={() => setIsOpen(false)}
+                onDismiss={dismiss}
+                onOpenDetail={() => setIsOpen(false)}
               />
             ))}
           </div>
@@ -227,40 +230,63 @@ export function InsightsPopover() {
 function InsightsPopoverItem({
   insight,
   hostId,
-  onNavigate,
+  onDismiss,
+  onOpenDetail,
 }: {
   insight: InsightCard
   hostId: number
-  onNavigate: () => void
+  onDismiss: (insight: InsightCard) => void
+  /** Called when the detail dialog opens, so the popover can close behind it. */
+  onOpenDetail: () => void
 }) {
+  const [detailOpen, setDetailOpen] = useState(false)
   const Icon = SEVERITY_ICON[insight.severity]
-  // Link to the insight's own action when it has one, else the overview panel.
-  const href = insight.action?.href
-    ? buildUrl(insight.action.href, { host: hostId })
-    : buildUrl('/overview', { host: hostId })
+
+  const open = () => {
+    setDetailOpen(true)
+    onOpenDetail()
+  }
 
   return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      className="group relative block rounded-md transition-colors hover:bg-muted/50"
-    >
-      <div className="flex items-start gap-3 px-3 py-2.5">
-        <div
-          className={cn(
-            'mt-0.5 shrink-0 rounded-md p-1.5',
-            SEVERITY_BG[insight.severity]
-          )}
-        >
-          <Icon className={cn('size-4', SEVERITY_COLOR[insight.severity])} />
-        </div>
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="truncate text-sm font-medium">{insight.title}</p>
-          <p className="line-clamp-2 text-xs text-muted-foreground">
-            {insight.detail}
-          </p>
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`View insight: ${insight.title}`}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            open()
+          }
+        }}
+        className="group relative block cursor-pointer rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <div className="flex items-start gap-3 px-3 py-2.5">
+          <div
+            className={cn(
+              'mt-0.5 shrink-0 rounded-md p-1.5',
+              SEVERITY_BG[insight.severity]
+            )}
+          >
+            <Icon className={cn('size-4', SEVERITY_COLOR[insight.severity])} />
+          </div>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="truncate text-sm font-medium">{insight.title}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground">
+              {insight.detail}
+            </p>
+          </div>
         </div>
       </div>
-    </Link>
+
+      <InsightDetailDialog
+        insight={insight}
+        hostId={hostId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onDismiss={onDismiss}
+      />
+    </>
   )
 }
