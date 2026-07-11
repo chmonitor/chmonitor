@@ -3,7 +3,7 @@ id: billing-checkout-flow
 title: Billing checkout → webhook → D1 → plan resolution (money path + recovery)
 type: workflow
 status: active
-updated: 2026-07-03
+updated: 2026-07-11
 tags:
   - billing
   - polar
@@ -153,6 +153,28 @@ single `checkout-e2e.test.ts`: they require new `mock.module` registrations for
 billing specifiers that sibling billing test files already mock in `bun test`'s
 single process, so they need careful superset-mock engineering to avoid
 cross-file contamination. Tracked in `plans/17-checkout-webhook-e2e-tests.md`.
+
+## Free plan = a real $0 Polar subscription (signup gate)
+
+Since 2026-07-11 the Free tier is a real Polar product (`amountType: 'free'`,
+monthly-only, name "chmonitor Free", env `CHM_POLAR_PRODUCT_FREE_MONTHLY`,
+provisioned by `scripts/polar-setup.ts`). Checkout accepts `planId: 'free'`
+(period forced to `'monthly'`; free/yearly → 501) and an optional `returnPath`
+(strict same-origin relative path, no `//`/`?`/`#` — see `safeReturnPath`)
+so onboarding returns to `/` instead of `/billing`. The webhook/reverse-map
+paths are unchanged — `SUBSCRIBABLE_PLAN_IDS = ['free','pro','max']` in
+`polar-config.ts` generalizes `productIdFor`/`planForProductId`; `PAID_PLAN_IDS`
+still exists for paid-only logic.
+
+**Why:** the signup gate. `POST /api/v1/user-connections` (create) returns
+`402` with `details.reason = 'subscription_required'` when
+`isCloudModeServer() && isBillingConfigured()` and `resolveOwnerSubscription`
+returns null — a cloud user must hold a live subscription (any plan, Free
+included) before their first host. This check deliberately uses the raw
+subscription record, NOT `getPlanForOwner` (which collapses "no sub" and
+"Free sub" into the same Plan). OSS / billing-unconfigured deploys skip the
+gate entirely (fail open), and the client mirrors that: a Free checkout that
+501s falls back to plain continue (`first-run-empty-state.tsx`).
 
 ## Annual billing (yearly = 10× monthly, ≈2 months free)
 

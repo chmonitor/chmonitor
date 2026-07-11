@@ -73,6 +73,17 @@ returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
 cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
 Gate `ClerkSignInButton` behind `isClerkEnabled()`.
 
+**Plan-before-first-host (cloud):** the signed-in variant is a two-step
+`'plan' | 'connect'` flow. Every plan — including the $0 Free tier — is a REAL
+Polar subscription: Free goes through checkout too (`startCheckout('free',
+'monthly', {returnPath:'/'})`, no card). The server enforces it: `POST
+/api/v1/user-connections` returns 402 with `details.reason =
+'subscription_required'` when the owner has no live subscription (cloud mode +
+billing configured only; OSS fails open). `AddHostDialog` catches that 402 →
+toast with "Choose a plan" → `/billing`, which shows "Start Free — $0" for a
+never-subscribed user. Client fail-open mirrors the server: Free checkout 501
+("billing not enabled") falls back to plain continue.
+
 **"Try with sample ClickHouse" preset** — a DIFFERENT thing from the `demo` host
 above (server env-configured, cloud-only): a one-click preset any user (OSS or
 cloud signed-in) can add through the NORMAL add-host path, for the "must own a
