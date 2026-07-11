@@ -7,7 +7,7 @@ title: MCP Server
 Turn your chmonitor instance into a remote Model Context Protocol server so AI assistants — Claude Desktop, Cursor, or any MCP client — can run tools against your ClickHouse cluster without direct database access.
 
 <TypeTable
-  data={{
+  type={{
     Routes: { type: "/mcp", description: "UI info page (protocol endpoint is /api/mcp)" },
     "Feature id": { type: "mcp", description: "Used by permission env vars and config" },
     "Default access": { type: "Closed (401)", description: "Requires CHM_API_KEY_SECRET, CLERK_SECRET_KEY, or CHM_MCP_PUBLIC=true" },
@@ -134,7 +134,7 @@ enabled = true
 ## Configuration
 
 <TypeTable
-  data={{
+  type={{
     CHM_API_KEY_SECRET: { type: "string", description: "Enables API key authentication for all /api/v1/* routes including /api/mcp. Required for production use without Clerk." },
     CLERK_SECRET_KEY: { type: "string", description: "Enables Clerk OAuth token verification. Used for Clerk OAuth token introspection." },
     CHM_MCP_PUBLIC: { type: "boolean", description: "Set to true to allow anonymous access when no auth scheme is configured. Only appropriate for trusted private networks. A warning is logged on every request when active." },

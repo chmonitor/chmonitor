@@ -11,7 +11,7 @@ Postgres support is new. Expect rough edges, and treat the feature flag as "on f
 </Callout>
 
 <TypeTable
-  data={{
+  type={{
     Routes: { type: "/postgres/queries, /postgres/activity", description: "Pages shown when a Postgres source is selected" },
     "Feature id": { type: "postgres", description: "Gated by CHM_FEATURE_POSTGRES_SOURCE" },
     "Default access": { type: "off", description: "Feature flag defaults to false — nothing changes until you enable it" },
@@ -111,7 +111,7 @@ Every Postgres query goes through one path: `queryPostgres()`. It connects per r
 Three tools, gated off with the feature flag (they simply don't appear when it's disabled):
 
 <TypeTable
-  data={{
+  type={{
     run_postgres_select_query: { type: "tool", description: "Execute a read-only SELECT/WITH/SHOW/EXPLAIN/TABLE/VALUES query against a Postgres source." },
     get_postgres_metrics: { type: "tool", description: "Version, uptime, connection counts by state, cache hit ratio, commit/rollback/deadlock counts, database size and replication status." },
     list_postgres_slow_query_patterns: { type: "tool", description: "Slowest normalized query patterns from pg_stat_statements — returns a helpful message instead of an error if the extension isn't installed." },
@@ -127,7 +127,7 @@ Cross-source correlation (e.g. "compare this Postgres table to its ClickHouse mi
 ## Configuration
 
 <TypeTable
-  data={{
+  type={{
     CHM_FEATURE_POSTGRES_SOURCE: { type: "boolean", description: "Master switch for Postgres as a source. Default: false." },
     POSTGRES_HOST: { type: "string", description: "Comma-separated Postgres host(s), optionally host:port." },
     POSTGRES_PORT: { type: "number", description: "Port for hosts that don't specify one inline. Default: 5432." },

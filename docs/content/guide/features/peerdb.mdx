@@ -7,7 +7,7 @@ title: PeerDB
 Monitor PeerDB replication mirrors and peers without leaving chmonitor — an optional, read-only integration that proxies the PeerDB API server-side.
 
 <TypeTable
-  data={{
+  type={{
     Routes: { type: "/peerdb, /peerdb/peers", description: "Pages in this section" },
     "Feature id": { type: "peerdb", description: "Used by permission env vars and config" },
     "Default access": { type: "public", description: "Set CHM_FEATURE_PEERDB_ACCESS=authenticated to gate" },
@@ -98,7 +98,7 @@ access = "authenticated"
 ## Configuration
 
 <TypeTable
-  data={{
+  type={{
     PEERDB_API_URL: { type: "string", description: "PeerDB API base URL. Include the /api suffix for the UI API (e.g. https://peerdb.example.com/api). When unset, the PeerDB section is hidden entirely. Default: unset." },
     PEERDB_PASSWORD: { type: "string", description: "HTTP Basic auth password. The username is left empty. Default: unset." },
     PEERDB_CACHE_TTL_MS: { type: "number", description: "Response cache TTL in milliseconds. Default: 10000." },
