@@ -2,48 +2,28 @@
  * POST /api/v1/webhooks/polar — Polar webhook receiver.
  *
  * Verifies the signature over the RAW body (validateEvent base64-encodes the
- * secret internally), then upserts the subscription row. The billing owner is
- * resolved from `customer.externalId`:
+ * secret internally), then hands the subscription event to the shared,
+ * framework-agnostic core (`@chm/billing-webhook-core`), injecting the
+ * dashboard's runtime collaborators (Clerk lazy-org creation, Polar customer
+ * re-key, the retry-wrapped D1 write, negative-cache invalidation, the PostHog
+ * funnel event, and the audit-log write). The ORCHESTRATION — owner resolution
+ * (`user_*` first paid event → lazy org + re-key; `org_*` direct), the
+ * live/paid distinction, monotonic persistence, and the funnel/audit gating —
+ * lives in the core so this Worker and the cloud-hooks Worker apply IDENTICAL
+ * logic and cannot fork during the migration to hooks.chmonitor.dev.
  *
- * - externalId starts with 'user_' (first-time upgrade, no org yet):
- *   1. Check if the user already has a Clerk org membership (idempotency).
- *   2. If not, create a Clerk org lazily and add the user as admin.
- *   3. Re-key the Polar customer's externalId to the orgId (customers.update
- *      by internal customer id) so `pullOwnerSubscriptionFromPolar(orgId)` —
- *      the "Polar is source of truth" fallback — can find this customer by
- *      org id from now on. Without this, the Polar lookup 404s forever for
- *      org owners and entitlement silently depends on the D1 cache never
- *      drifting.
- *   4. Upsert the subscription keyed by orgId (owner_type='org').
- *   5. Defensive fallback: if org creation fails, persist under userId so
- *      billing is never lost (owner_type='user').
- *
- * - externalId starts with 'org_' (re-subscription or upgrade on paid account):
- *   Upsert subscription keyed by orgId (owner_type='org') directly.
- *
- * The D1 cache write is retried once on failure (transient D1 blips) before
- * giving up — a silently lost row would otherwise gate a paying owner as free
- * until their next Polar reconciliation read, which is user-visible for an
- * otherwise-live subscription.
- *
- * `cancelAtPeriodEnd` and the envelope's `timestamp` (unix seconds) are
- * persisted on every write. The timestamp feeds subscription-store.ts's
- * monotonic write guard: webhook delivery is at-least-once and can arrive out
- * of order, so a late/replayed older event must never overwrite state written
- * by a newer one (e.g. a stale "canceled" landing after a fresher "active"
- * from an uncancel).
- *
- * Always 2xx on a valid, handled event so Polar doesn't retry. 400 on bad
- * signature. An unmapped/unknown Polar product is logged as an ERROR (not
- * silently dropped at info level) and skipped — we can't apply a plan we
- * don't recognize, but the event must stay visible/alertable instead of
- * vanishing into routine logs.
- *
- * Unauthenticated by design — the signature IS the auth.
+ * Always 2xx on a valid, handled event so Polar doesn't retry. 403 on bad
+ * signature. Unauthenticated by design — the signature IS the auth.
  */
+import {
+  applySubscription as coreApplySubscription,
+  type ApplySubscriptionDeps,
+  type PolarSubscriptionData,
+  toUnixSeconds,
+} from '@chm/billing-webhook-core'
+import { error as logError, log as logInfo } from '@chm/logger'
 import { createFileRoute } from '@tanstack/react-router'
 
-import { error as logError, log as logInfo } from '@chm/logger'
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
 import { captureServerEvent } from '@/lib/analytics/analytics.server'
 import { logEvent } from '@/lib/audit/logEvent'
@@ -53,37 +33,7 @@ import {
   planForProductId,
 } from '@/lib/billing/polar-config'
 import { invalidateNegativeCache } from '@/lib/billing/polar-subscription'
-import {
-  type OwnerType,
-  upsertSubscription,
-} from '@/lib/billing/subscription-store'
-
-/** Polar Subscription shape (subset) carried by subscription.* events. */
-interface PolarSubscriptionData {
-  id: string
-  status: string
-  recurringInterval?: string | null
-  currentPeriodEnd?: Date | string | null
-  cancelAtPeriodEnd?: boolean | null
-  productId: string
-  customerId: string
-  customer?: { externalId?: string | null } | null
-  /**
-   * Copied onto the subscription from the checkout's metadata at creation
-   * (Polar propagates checkout metadata to the resulting subscription).
-   * Carries `posthogDistinctId` when the browser attached one at checkout
-   * time (see `/api/v1/billing/checkout`) — stitches `upgrade_completed`
-   * onto the same PostHog distinct-id as the rest of the funnel instead of
-   * the shared server id, so the funnel's last step stops reporting 0%.
-   */
-  metadata?: Record<string, unknown> | null
-}
-
-function toUnixSeconds(value: Date | string | null | undefined): number | null {
-  if (!value) return null
-  const ms = value instanceof Date ? value.getTime() : Date.parse(value)
-  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null
-}
+import { upsertSubscription } from '@/lib/billing/subscription-store'
 
 /**
  * Attempt to lazily create a Clerk org for a user on their first paid event.
@@ -181,6 +131,58 @@ async function upsertSubscriptionWithRetry(
   }
 }
 
+/** Assemble the dashboard runtime collaborators the core flow needs. */
+function makeDeps(): ApplySubscriptionDeps {
+  return {
+    planForProductId,
+    ensureOrgForUser,
+    rekeyCustomerToOrg,
+    upsertSubscription: upsertSubscriptionWithRetry,
+    invalidateNegativeCache,
+    // Funnel event: a brand-new PAID subscription went live. distinctId is the
+    // browser's PostHog id (propagated by Polar from the checkout metadata) so
+    // `upgrade_completed` stitches onto the same distinct id as the rest of the
+    // funnel instead of the shared server id.
+    onUpgradeCompleted: async ({ planId, period, distinctId }) => {
+      await captureServerEvent(
+        process.env as Record<string, string | undefined>,
+        'upgrade_completed',
+        { plan_id: planId, billing_period: period },
+        distinctId
+      )
+    },
+    // Best-effort audit trail — org-scoped only (a user-type owner has no org).
+    logBillingAudit: async ({
+      orgId,
+      planId,
+      status,
+      subscriptionId,
+      canceled,
+    }) => {
+      await logEvent({
+        orgId,
+        userId: null,
+        event: canceled ? 'billing.canceled' : 'billing.plan_changed',
+        resource: planId,
+        action: 'update',
+        result: 'success',
+        metadata: { status, subscriptionId },
+      })
+    },
+    logInfo,
+    logError,
+  }
+}
+
+/** Run the shared core flow with the dashboard's injected collaborators. */
+function applySubscription(
+  data: PolarSubscriptionData,
+  eventTimestamp: number | null,
+  eventType?: string
+): Promise<void> {
+  return coreApplySubscription(data, eventTimestamp, eventType, makeDeps())
+}
+
 /** Test-only export — exercises the full owner-resolution + persistence path. */
 export async function __applySubscriptionForTests(
   data: PolarSubscriptionData,
@@ -188,156 +190,6 @@ export async function __applySubscriptionForTests(
   eventType?: string
 ): Promise<void> {
   return applySubscription(data, eventTimestamp ?? null, eventType)
-}
-
-/**
- * @param eventTimestamp Unix seconds from the webhook envelope's `timestamp`
- *   — feeds the monotonic write guard in subscription-store.ts so an
- *   out-of-order/replayed older delivery can't overwrite newer state.
- * @param eventType The raw Polar event type (e.g. `subscription.created`) —
- *   used only to gate the `upgrade_completed` funnel event so a renewal/
- *   plan-change `subscription.updated` doesn't double-count as a new upgrade.
- */
-async function applySubscription(
-  data: PolarSubscriptionData,
-  eventTimestamp: number | null,
-  eventType?: string
-): Promise<void> {
-  const externalId = data.customer?.externalId
-  if (!externalId) {
-    logInfo('[polar-webhook] subscription without externalId; skipping', {
-      subscriptionId: data.id,
-    })
-    return
-  }
-
-  const mapped = planForProductId(data.productId)
-  if (!mapped) {
-    // Not silently dropped: an unmapped product is a config/deploy mismatch
-    // (a new Polar product without a CHM_POLAR_PRODUCT_* env mapping) and
-    // must be visible/alertable, not buried at info level.
-    logError(
-      '[polar-webhook] unknown Polar product id; no plan mapping — skipping',
-      { productId: data.productId, subscriptionId: data.id, externalId }
-    )
-    return
-  }
-
-  // A subscription is "live" while active/trialing. planForProductId now also
-  // resolves the Free ($0) product, so distinguish a live PAID plan from a live
-  // Free one: only paid plans trigger lazy Clerk-org creation (the Free plan is
-  // user-scoped by design — see lib/billing/billing-owner.ts). Free rows persist
-  // under the user id so the create-connection subscription gate can find them.
-  const isLive = new Set(['active', 'trialing']).has(data.status)
-  const isPaidLive = isLive && mapped.planId !== 'free'
-
-  // Determine billing owner: org or user.
-  let ownerId = externalId
-  let ownerType: OwnerType = 'user'
-
-  if (externalId.startsWith('org_')) {
-    // Already org-scoped (user re-subscribing on an existing paid account).
-    ownerType = 'org'
-  } else if (externalId.startsWith('user_') && isPaidLive) {
-    // First paid event for this user — lazily create a Clerk org.
-    const orgId = await ensureOrgForUser(externalId)
-    if (orgId) {
-      ownerId = orgId
-      ownerType = 'org'
-      // Re-key the Polar customer to the org so the Polar-truth fallback
-      // (pullOwnerSubscriptionFromPolar) can find it by orgId going forward —
-      // otherwise every future entitlement reconciliation for this org 404s
-      // against Polar and depends entirely on the D1 cache never drifting.
-      await rekeyCustomerToOrg(data.customerId, orgId)
-    }
-    // If orgId is null, fallback: keep ownerId=userId, ownerType='user'.
-    // Billing is preserved under userId; org creation can be retried manually.
-  }
-
-  // Cache write, retried once on transient failure. The dashboard also
-  // reconciles entitlement straight from Polar (resolveOwnerSubscription), so
-  // a write that still fails after retry must NOT fail the whole webhook —
-  // otherwise Polar retries the event forever on a 500 even though the truth
-  // is already in Polar (and, once re-keyed above, reachable by ownerId too).
-  // Still logged loudly: a lost row means the next read pays the Polar
-  // round-trip instead of hitting the D1 fast path, so it should be visible.
-  try {
-    await upsertSubscriptionWithRetry({
-      userId: ownerId,
-      ownerType,
-      planId: mapped.planId,
-      billingPeriod: mapped.period,
-      status: data.status,
-      polarSubscriptionId: data.id,
-      polarCustomerId: data.customerId,
-      currentPeriodEnd: toUnixSeconds(data.currentPeriodEnd),
-      cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
-      eventTimestamp,
-    })
-  } catch (err) {
-    logError(
-      '[polar-webhook] D1 cache write failed after retry (non-fatal — Polar remains source of truth)',
-      {
-        ownerId,
-        ownerType,
-        planId: mapped.planId,
-        err,
-      }
-    )
-  }
-
-  // The subscription just became live/paid — clear any negative-cache entry
-  // so the next entitlement read reaches Polar instead of a stale "free"
-  // short-circuit. Invalidate both the raw externalId (what an entitlement
-  // check may have cached before checkout completed) and the resolved
-  // ownerId (an org, once org re-keying applies) since they can differ.
-  if (isLive) {
-    invalidateNegativeCache(externalId)
-    if (ownerId !== externalId) invalidateNegativeCache(ownerId)
-  }
-
-  // Funnel event: a brand-new subscription just went live. Scoped to
-  // `subscription.created` (not every status update) so renewals and
-  // unrelated field changes on `subscription.updated` don't double-count as
-  // a fresh upgrade. Server-side (not the client `upgrade_click`/
-  // `checkout_started` events) because this is the only point that reflects
-  // money actually moving, confirmed by Polar.
-  if (isPaidLive && eventType === 'subscription.created') {
-    const posthogDistinctId = data.metadata?.posthogDistinctId
-    await captureServerEvent(
-      process.env as Record<string, string | undefined>,
-      'upgrade_completed',
-      { plan_id: mapped.planId, billing_period: mapped.period },
-      typeof posthogDistinctId === 'string' && posthogDistinctId
-        ? posthogDistinctId
-        : undefined
-    )
-  }
-
-  // Best-effort audit trail — org-scoped only (a user-type owner has no org
-  // to scope the row to; audit is an org-level enterprise feature). Fires
-  // regardless of the D1 cache-write outcome above: Polar already confirmed
-  // the event, so the audit trail shouldn't depend on our cache succeeding.
-  if (ownerType === 'org') {
-    const isCanceled = data.status === 'canceled' || data.status === 'revoked'
-    await logEvent({
-      orgId: ownerId,
-      userId: null,
-      event: isCanceled ? 'billing.canceled' : 'billing.plan_changed',
-      resource: mapped.planId,
-      action: 'update',
-      result: 'success',
-      metadata: { status: data.status, subscriptionId: data.id },
-    })
-  }
-
-  logInfo('[polar-webhook] applied subscription', {
-    externalId,
-    ownerId,
-    ownerType,
-    planId: mapped.planId,
-    status: data.status,
-  })
 }
 
 async function handlePost(request: Request): Promise<Response> {

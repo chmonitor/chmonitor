@@ -32,6 +32,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@chm/billing-webhook-core':
+        specifier: workspace:*
+        version: link:../../packages/billing-webhook-core
       '@chm/clickhouse-client':
         specifier: workspace:*
         version: link:../../packages/clickhouse-client
@@ -381,6 +384,16 @@ importers:
       wrangler:
         specifier: ^4.97.0
         version: 4.107.0(@cloudflare/workers-types@4.20260702.1)
+
+  ../../packages/billing-webhook-core:
+    dependencies:
+      '@chm/pricing':
+        specifier: workspace:*
+        version: link:../pricing
+    devDependencies:
+      typescript:
+        specifier: ^6.0.0
+        version: 6.0.3
 
   ../../packages/clickhouse-client:
     dependencies:

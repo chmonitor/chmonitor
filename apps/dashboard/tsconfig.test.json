@@ -23,6 +23,10 @@
       ],
       "@chm/types": ["../../packages/types/src/index.ts"],
       "@chm/types/*": ["../../packages/types/src/*"],
+      "@chm/pricing": ["../../packages/pricing/src/index.ts"],
+      "@chm/billing-webhook-core": [
+        "../../packages/billing-webhook-core/src/index.ts"
+      ],
       "@chm/mcp-server/http": ["../../packages/mcp-server/src/http.ts"],
       "@chm/mcp-server/data": [
         "../../packages/mcp-server/src/data/mcp-tools-data.ts"
