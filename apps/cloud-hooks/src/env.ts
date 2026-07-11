@@ -14,6 +14,12 @@ export interface Env {
   POLAR_WEBHOOK_SECRET?: string
   POLAR_ACCESS_TOKEN?: string
   CLERK_SECRET_KEY?: string
+  /**
+   * Clerk webhook signing secret (`whsec_…`) for POST /webhooks/clerk. Verifies
+   * inbound Clerk lifecycle events (Svix HMAC-SHA256). Unset → the Clerk
+   * endpoint replies 501 and no lifecycle notifications are sent (no crash).
+   */
+  CLERK_WEBHOOK_SECRET?: string
   TELEGRAM_BOT_TOKEN?: string
   TELEGRAM_CHAT_ID?: string
   /**

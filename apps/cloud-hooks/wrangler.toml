@@ -8,7 +8,10 @@
 # Secrets (set with `wrangler secret put`, NEVER committed here):
 #   POLAR_WEBHOOK_SECRET        verify inbound Polar events
 #   POLAR_ACCESS_TOKEN          re-key Polar customer → org on first paid event
-#   CLERK_SECRET_KEY            lazy Clerk org creation on first paid event
+#   CLERK_SECRET_KEY            lazy Clerk org creation on first paid event;
+#                               also read for the daily digest's user counts
+#   CLERK_WEBHOOK_SECRET        verify inbound Clerk lifecycle webhooks (Svix)
+#                               at POST /webhooks/clerk (whsec_… signing secret)
 #   TELEGRAM_BOT_TOKEN          operator notifications
 #   TELEGRAM_CHAT_ID            operator notifications target chat
 #   GITHUB_TOKEN                file a GitHub issue per NEW Worker exception —
@@ -88,8 +91,11 @@ database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
 # Ops-state KV. `runProbes` (src/probes.ts) stores the last-known up/down state
 # per surface so the */15min cron notifies ONLY on transitions; `runExceptions`
 # (src/exceptions.ts) stores exception fingerprints (`exc-fp:v1:<fp>`) so a NEW
-# Worker exception is filed to GitHub exactly once. Absent → probes fall back to
-# per-run state and the exception scan leans on its GitHub-search fallback.
+# Worker exception is filed to GitHub exactly once; the Clerk webhook
+# (src/clerk-webhook.ts) stores per-user sign-in throttle keys
+# (`clerk-signin:v1:<user>`, 6h TTL) so an active user doesn't spam the chat.
+# Absent → probes fall back to per-run state, the exception scan leans on its
+# GitHub-search fallback, and sign-in notifications are unthrottled.
 # Follows the CHM_ binding-naming rule (like CHM_CLOUD_D1).
 [[kv_namespaces]]
 binding = "CHM_HOOKS_KV"

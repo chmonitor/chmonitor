@@ -2,7 +2,7 @@
 id: cloud-hooks-worker
 type: spec
 related: [billing-checkout-flow, cloud-saas-mode, bug-handler-email-worker, deployment]
-tags: [cloud-hooks, polar, webhook, telegram, cron, cloudflare, billing, d1]
+tags: [cloud-hooks, polar, clerk, webhook, telegram, cron, cloudflare, billing, d1]
 updated: 2026-07-12
 ---
 
@@ -19,10 +19,19 @@ Polar ──► POST hooks.chmonitor.dev/webhooks/polar
              ▼
        applySubscription()  (shared @chm/billing-webhook-core core)
              ├──► CHM_CLOUD_D1  (SAME chm-cloud database the dashboard reads)
-             └──► Telegram notify(kind, text)
+             └──► Telegram notify(kind, text)  — rich per-transition wording
+                    (🌱 free signup, 💰 paid new, ⬆️ upgrade, ⬇️ downgrade,
+                     ⚠️ cancel, ❌ revoke, 💳 past-due)
+
+Clerk ──► POST hooks.chmonitor.dev/webhooks/clerk
+             │  verifyClerkWebhook(raw body, CLERK_WEBHOOK_SECRET)  → 403 bad sig
+             │  (manual Svix HMAC-SHA256 over WebCrypto)
+             ▼
+       Telegram notify:  🆕 user.created · 🔑 session.created (KV-throttled
+       1/user/6h) · 🏢 organization.created.  Unknown events → 202, ignored.
 
 cron
-  ├─ "0 0 * * *"      → daily billing summary  → Telegram
+  ├─ "0 0 * * *"      → daily digest → Telegram (users + subs + surfaces)
   └─ every 15 minutes → ops sweep:
         ├─ full-surface health probes → Telegram on transitions
         └─ Cloudflare Worker exceptions → new GitHub issue + Telegram
@@ -92,9 +101,29 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   auth mode (see below). Everything is injected (fetch/KV/clock) and unit-tested
   without the network.
 - `summary.ts` — `collectSummary` queries the subscription store (active subs by
-  plan, new signups in 24h) and computes an MRR estimate from `BILLING_PLANS`
-  (`@chm/pricing`) — yearly normalized to price/12. Pure `reduceSummary`/
-  `mrrForGroup` are unit-tested.
+  plan, new signups in 24h **+ new subs by plan and cancellations/revokes in
+  24h**) and computes an MRR estimate from `BILLING_PLANS` (`@chm/pricing`) —
+  yearly normalized to price/12. `formatDigest(data, { clerk, probes })` renders
+  a compact Telegram-HTML digest with **Users** (from Clerk metrics),
+  **Subscriptions**, and **Surfaces** (probe snapshot) sections — each section
+  omitted when its optional source is unavailable. Pure `reduceSummary`/
+  `mrrForGroup`/`formatDigest` are unit-tested.
+- `clerk-webhook.ts` — `handleClerkWebhook` + `verifyClerkWebhook`: the Clerk
+  lifecycle receiver. Verifies the **Svix** signature manually (HMAC-SHA256 over
+  WebCrypto — the same wire scheme Clerk's `verifyWebhook` uses, without the
+  `@clerk/tanstack-react-start` bundle). Notifies on `user.created` /
+  `session.created` / `organization.created`; sign-in is throttled per user via
+  `CHM_HOOKS_KV` (`clerk-signin:v1:<user>`, 6h TTL). 501 unset secret, 403 bad
+  sig, 202 otherwise; unknown events acknowledged and ignored; Telegram errors
+  never fail the ack.
+- `clerk-metrics.ts` — `fetchClerkMetrics`: best-effort total + new-in-24h user
+  counts via the Clerk Backend REST `GET /v1/users/count` (with
+  `created_at_after`) using `CLERK_SECRET_KEY`. Missing key / non-2xx / error →
+  `null` → the digest omits the Users section.
+- `polar-notify.ts` — pure `classifyTransition` (prior plan + new plan + status
+  → new/upgrade/downgrade/cancel/revoke/past-due) + `formatPolarNotify` (plan
+  name, monthly value from `@chm/pricing`, period). The webhook reads the prior
+  D1 row before persistence so upgrade vs downgrade is decidable.
 - `billing-deps.ts` — the cloud-hooks implementations of the core collaborators:
   env-driven `planForProductId` (mirrors the dashboard's `CHM_POLAR_PRODUCT_*`
   map), lazy Clerk org creation over the Backend REST API, Polar customer re-key
@@ -103,7 +132,7 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
 - `webhook.ts` — `handlePolarWebhook`: `validateEvent` (injectable for tests) →
   core → `notify`. 403 + `signature_failure` alert on a bad signature; 202 on a
   handled event; unhandled types are acknowledged silently.
-- `index.ts` — `fetch` router (`/webhooks/polar`, `/healthz`) + `scheduled`
+- `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`, `/healthz`) + `scheduled`
   (routes the daily cron to the summary; the 15-min cron to the ops sweep —
   probes **and** `runExceptions`). `runExceptions` gates on
   `GITHUB_TOKEN` + `CF_OBSERVABILITY_API_TOKEN` + `CF_ACCOUNT_ID`: any missing →
@@ -122,11 +151,14 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   binding-naming rule (like `CHM_CLOUD_D1`).
 - **No secrets, no product-id vars committed.** Secrets set via
   `wrangler secret put` (CI does this, skipping any that are unset):
-  `POLAR_WEBHOOK_SECRET`, `POLAR_ACCESS_TOKEN`, `CLERK_SECRET_KEY`,
-  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, plus GitHub issue-creation auth
-  (**either** `GH_APP_ID` + `GH_APP_PRIVATE_KEY` for GitHub App auth — preferred —
-  **or** `GITHUB_TOKEN`, a PAT with `issues:write`, repo secret
-  `CLOUD_HOOKS_GITHUB_TOKEN`) and `CF_OBSERVABILITY_API_TOKEN`
+  `POLAR_WEBHOOK_SECRET`, `POLAR_ACCESS_TOKEN`, `CLERK_SECRET_KEY`
+  (also read for the daily digest's Clerk user counts), `CLERK_WEBHOOK_SECRET`
+  (the `whsec_…` Svix signing secret verifying `POST /webhooks/clerk`, repo
+  secret `CLOUD_HOOKS_CLERK_WEBHOOK_SECRET`), `TELEGRAM_BOT_TOKEN`,
+  `TELEGRAM_CHAT_ID`, plus GitHub issue-creation auth (**either** `GH_APP_ID` +
+  `GH_APP_PRIVATE_KEY` for GitHub App auth — preferred — **or** `GITHUB_TOKEN`, a
+  PAT with `issues:write`, repo secret `CLOUD_HOOKS_GITHUB_TOKEN`) and
+  `CF_OBSERVABILITY_API_TOKEN`
   (token scope **Account → Workers Observability → Read**). The `CHM_POLAR_PRODUCT_*`
   map + `CHM_POLAR_SERVER` must be set (mirroring `apps/dashboard/.env.production`)
   before the Polar endpoint is cut over, or products won't map.
@@ -178,3 +210,15 @@ steps (operator, out of v1 scope): add `https://hooks.chmonitor.dev/webhooks/pol
 as a second Polar endpoint and verify deliveries + Telegram in sandbox then prod;
 then remove the old endpoint and delete the dashboard webhook route (keep
 `/api/v1/billing/*` — those are user-facing APIs, not webhooks).
+
+## Operator step — Clerk lifecycle endpoint
+
+To turn on the Clerk lifecycle notifications, in the **Clerk Dashboard →
+Webhooks**, add an endpoint `https://hooks.chmonitor.dev/webhooks/clerk`
+subscribed to the `user.created`, `session.created`, and `organization.created`
+events, then copy its **Signing Secret** (`whsec_…`) and set it as the worker
+secret `CLERK_WEBHOOK_SECRET` (`wrangler secret put CLERK_WEBHOOK_SECRET`, or the
+`CLOUD_HOOKS_CLERK_WEBHOOK_SECRET` repo secret so CI sets it). Until the secret
+is set the endpoint replies 501 and no lifecycle notifications are sent (no
+crash). `CLERK_SECRET_KEY` (already set for org creation) additionally powers the
+daily digest's user counts — no extra key needed.

@@ -22,6 +22,9 @@ export default {
     'POLAR_WEBHOOK_SECRET',
     'POLAR_ACCESS_TOKEN',
     'CLERK_SECRET_KEY',
+    // Verifies inbound Clerk lifecycle webhooks (POST /webhooks/clerk) via the
+    // Svix signature. Unset → the Clerk endpoint replies 501 (no crash).
+    'CLERK_WEBHOOK_SECRET',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
     // Files a GitHub issue per new Worker exception / reads exceptions via the

@@ -10,13 +10,16 @@
  * Unauthenticated by design — the signature IS the auth.
  */
 
+import type { PlanId } from '@chm/pricing'
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
 
 import { makeApplyDeps, makePlanForProductId } from './billing-deps'
+import { classifyTransition, formatPolarNotify } from './polar-notify'
 import {
   type ApplySubscriptionDeps,
   applySubscription as coreApplySubscription,
+  getSubscription,
   type PolarSubscriptionData,
   toUnixSeconds,
 } from '@chm/billing-webhook-core'
@@ -46,14 +49,6 @@ const HANDLED_EVENTS = new Set([
   'subscription.revoked',
   'subscription.past_due',
 ])
-
-/** Map a subscription event to its notification kind. */
-function kindForEvent(eventType: string, status: string): NotifyKind {
-  if (eventType === 'subscription.created') return 'subscription'
-  if (status === 'canceled' || status === 'revoked') return 'cancel'
-  if (status === 'past_due') return 'payment_failure'
-  return 'plan_change'
-}
 
 async function defaultValidateEvent(
   body: string,
@@ -104,6 +99,17 @@ export async function handlePolarWebhook(
   if (HANDLED_EVENTS.has(event.type)) {
     const data = event.data as PolarSubscriptionData
     try {
+      // Read the PRIOR plan (before persistence) so the notification can tell a
+      // new signup from an upgrade/downgrade. Degrades to null without D1.
+      const ownerId = data.customer?.externalId ?? null
+      let priorPlanId: PlanId | null = null
+      if (env.CHM_CLOUD_D1 && ownerId) {
+        const prior = await getSubscription(env.CHM_CLOUD_D1, ownerId, (err) =>
+          console.error('[cloud-hooks] prior-subscription read failed', err)
+        )
+        priorPlanId = prior?.planId ?? null
+      }
+
       const applyDeps =
         deps.applyDeps ??
         (env.CHM_CLOUD_D1
@@ -121,7 +127,7 @@ export async function handlePolarWebhook(
           '[cloud-hooks] CHM_CLOUD_D1 unbound; skipping persistence (Polar remains source of truth)'
         )
       }
-      await notifyEvent(event.type, data, env, deps)
+      await notifyEvent(event.type, data, priorPlanId, env, deps)
     } catch (err) {
       console.error('[cloud-hooks] handler error', err)
       return Response.json({ error: 'Handler error' }, { status: 500 })
@@ -134,21 +140,28 @@ export async function handlePolarWebhook(
 async function notifyEvent(
   eventType: string,
   data: PolarSubscriptionData,
+  priorPlanId: PlanId | null,
   env: Env,
   deps: WebhookDeps
 ): Promise<void> {
   const mapped = makePlanForProductId(env)(data.productId)
-  const plan = mapped?.planId ?? 'unknown'
+  const newPlanId: PlanId = mapped?.planId ?? 'free'
+  const period = mapped?.period ?? null
   const owner = data.customer?.externalId ?? '(no external id)'
-  const kind = kindForEvent(eventType, data.status)
-  const icon =
-    kind === 'subscription'
-      ? '\u{1F195}' // 🆕
-      : kind === 'cancel'
-        ? '\u{1F534}' // 🔴
-        : kind === 'payment_failure'
-          ? '\u{1F4B3}' // 💳
-          : '\u{1F504}' // 🔄
-  const text = `${icon} <b>${eventType}</b>\nplan: <b>${plan}</b> · status: ${data.status}\nowner: <code>${owner}</code>`
-  await deps.notify(kind, text)
+
+  const transition = classifyTransition({
+    priorPlanId,
+    newPlanId,
+    status: data.status,
+    eventType,
+  })
+  const text = formatPolarNotify({
+    transition,
+    priorPlanId,
+    newPlanId,
+    period,
+    status: data.status,
+    owner,
+  })
+  await deps.notify(transition.kind, text)
 }

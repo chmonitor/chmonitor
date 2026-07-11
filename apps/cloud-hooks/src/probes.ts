@@ -200,6 +200,25 @@ export interface KVLike {
 
 const KV_KEY = 'probe-state:v1'
 
+/**
+ * Read the last-known per-surface up/down state persisted by `runProbes`. Used
+ * by the daily digest for a per-surface status summary without re-probing. No
+ * KV / no stored state / a parse error → null (the digest omits the section).
+ */
+export async function readProbeSnapshot(
+  kv: KVLike | null | undefined
+): Promise<Record<string, ProbeState> | null> {
+  if (!kv) return null
+  try {
+    const raw = await kv.get(KV_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as Record<string, ProbeState>
+  } catch (err) {
+    console.error('[cloud-hooks] failed to read probe snapshot from KV', err)
+    return null
+  }
+}
+
 export interface RunProbesDeps {
   fetch?: typeof fetch
   kv?: KVLike | null

@@ -21,6 +21,10 @@ export type NotifyKind =
   | 'daily_summary'
   | 'probe'
   | 'error'
+  // Clerk lifecycle events (POST /webhooks/clerk).
+  | 'user_created'
+  | 'session_created'
+  | 'org_created'
 
 /** Minimum milliseconds between two messages of the SAME kind. */
 export const THROTTLE_MS: Record<NotifyKind, number> = {
@@ -37,6 +41,12 @@ export const THROTTLE_MS: Record<NotifyKind, number> = {
   // Health transitions: avoid re-alerting on a flapping target within a window.
   probe: 30_000,
   error: 30_000,
+  // Signups/sign-ins are individually meaningful; light throttle only collapses
+  // an at-least-once duplicate delivery burst (per-user sign-in throttling is
+  // handled separately in KV over a 6h window).
+  user_created: 2_000,
+  session_created: 2_000,
+  org_created: 2_000,
 }
 
 export interface TelegramConfig {

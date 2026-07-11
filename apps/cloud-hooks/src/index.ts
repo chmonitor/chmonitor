@@ -3,6 +3,7 @@
  *
  * Routes:
  *   POST /webhooks/polar  → validate signature → shared billing core → Telegram
+ *   POST /webhooks/clerk  → verify Svix signature → Clerk lifecycle → Telegram
  *   GET  /healthz         → 200 liveness shell (static, no deps)
  *
  * Scheduled (wrangler.toml [triggers] crons):
@@ -14,11 +15,13 @@
 
 import type { Env } from './env'
 
+import { fetchClerkMetrics } from './clerk-metrics'
+import { handleClerkWebhook } from './clerk-webhook'
 import { parseRepo, runExceptionScan } from './exceptions'
 import { resolveGitHubAuth } from './github-app'
 import { fetchWorkerExceptions } from './observability'
-import { runProbes } from './probes'
-import { collectSummary, formatSummary } from './summary'
+import { readProbeSnapshot, runProbes } from './probes'
+import { collectSummary, formatDigest } from './summary'
 import { Notifier } from './telegram'
 import { handlePolarWebhook } from './webhook'
 
@@ -35,8 +38,17 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
     return
   }
   try {
-    const data = await collectSummary(env.CHM_CLOUD_D1)
-    await notifier.notify('daily_summary', formatSummary(data))
+    // Billing (D1) is the required core; Clerk metrics + probe snapshot are
+    // best-effort enrichments that degrade to omitted sections when absent.
+    const [data, clerk, probes] = await Promise.all([
+      collectSummary(env.CHM_CLOUD_D1),
+      fetchClerkMetrics(env.CLERK_SECRET_KEY),
+      readProbeSnapshot(env.CHM_HOOKS_KV ?? null),
+    ])
+    await notifier.notify(
+      'daily_summary',
+      formatDigest(data, { clerk, probes })
+    )
   } catch (err) {
     console.error('[cloud-hooks] daily summary failed', err)
   }
@@ -143,6 +155,17 @@ export default {
       const notifier = notifierFor(env)
       return handlePolarWebhook(request, env, {
         notify: (kind, text) => notifier.notify(kind, text),
+      })
+    }
+
+    if (url.pathname === '/webhooks/clerk') {
+      if (request.method !== 'POST') {
+        return new Response('Method Not Allowed', { status: 405 })
+      }
+      const notifier = notifierFor(env)
+      return handleClerkWebhook(request, env, {
+        notify: (kind, text) => notifier.notify(kind, text),
+        kv: env.CHM_HOOKS_KV ?? null,
       })
     }
 
