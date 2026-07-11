@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-10
+updated: 2026-07-11
 tags:
   - design-system
   - ui
@@ -191,6 +191,21 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   `lib/context/time-range-context.tsx`) drives every chart widget's baseline
   `lastHours`/`interval` via explicit props, which outrank both the chart's
   own default and the global header time-range picker.
+- **Floating agent widget (page-aware + dockable):** the app-wide chat bubble
+  (`components/assistant-ui/assistant-modal.tsx`, on top of assistant-ui's
+  Radix-Popover `AssistantModalPrimitive`) has two remembered layouts —
+  `floating` (bottom-right popover) and `docked` (full-height right sidebar,
+  `fixed inset-y-0 right-0 w-[min(28rem,100vw)] border-l`). Because Radix
+  Popper wraps content in a transformed positioner (which traps a `fixed`
+  child), the docked layout is rendered as its own fixed panel outside the
+  Popper, with the Root's `open` controlled so it mounts/unmounts (Thread stops
+  polling when closed). Mode persists via `useAgentWidgetMode`
+  (`lib/hooks/use-agent-widget-mode.ts`, localStorage +
+  CustomEvent, same shape as `useAgentModel`). A dismissible **page-context
+  chip** above the composer (`-thread/page-context-chip.tsx`) surfaces the page
+  the agent can see; its shared state (`page-context-control.tsx`, floating-only
+  provider) also gates whether `pageContext` rides along with the request — see
+  `docs/content/guide/ai-agent.mdx`.
 
 ## UX conventions
 

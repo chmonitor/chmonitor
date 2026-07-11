@@ -240,6 +240,18 @@ not baked into the (byte-stable, cached) system prompt. Purely additive:
 omitting it (MCP and API-token callers have no "page") behaves exactly as
 before.
 
+In the **floating chat widget** this awareness is made visible: a small chip
+above the composer (e.g. `⌞ Fleet Overview`) shows which page the agent can
+see, so "why is this slow?" is understood as _this_ page. Click the chip's ×
+to drop page context for the current page (it re-arms when you navigate
+elsewhere). The chip is a floating-widget affordance only — the full
+`/agents` page has no "current page" and shows no chip.
+
+**Floating vs docked layout.** The floating widget can be expanded from the
+small bottom-right popover into a full-height right-hand sidebar (and collapsed
+back) via the header toggle. The preference is remembered per browser
+(localStorage `clickhouse-monitor-agent-widget-mode`).
+
 ## MCP Server
 
 The dashboard exposes an MCP (Model Context Protocol) endpoint at `/api/mcp`. The same implementation runs in the standalone Cloudflare MCP Worker (`apps/mcp`). All tools are read-only by design — write and DDL statements are rejected.
