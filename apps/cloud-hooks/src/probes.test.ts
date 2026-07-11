@@ -2,8 +2,6 @@
  * Health-probe transition logic + KV-backed runProbes.
  */
 
-import { describe, expect, mock, test } from 'bun:test'
-
 import {
   diffStates,
   type KVLike,
@@ -11,6 +9,7 @@ import {
   probeOne,
   runProbes,
 } from './probes'
+import { describe, expect, mock, test } from 'bun:test'
 
 describe('diffStates — transitions only', () => {
   const results: ProbeResult[] = [
@@ -19,22 +18,20 @@ describe('diffStates — transitions only', () => {
   ]
 
   test('up→down and down→up are reported; unchanged is silent', () => {
-    const transitions = diffStates(
-      { dashboard: 'up', docs: 'up' },
-      results
-    )
+    const transitions = diffStates({ dashboard: 'up', docs: 'up' }, results)
     expect(transitions).toHaveLength(1)
-    expect(transitions[0]).toMatchObject({ name: 'docs', from: 'up', to: 'down' })
+    expect(transitions[0]).toMatchObject({
+      name: 'docs',
+      from: 'up',
+      to: 'down',
+    })
   })
 
   test('down→up is reported', () => {
-    const transitions = diffStates(
-      { dashboard: 'up', docs: 'down' },
-      [
-        { name: 'dashboard', state: 'up' },
-        { name: 'docs', state: 'up' },
-      ]
-    )
+    const transitions = diffStates({ dashboard: 'up', docs: 'down' }, [
+      { name: 'dashboard', state: 'up' },
+      { name: 'docs', state: 'up' },
+    ])
     expect(transitions).toEqual([
       expect.objectContaining({ name: 'docs', from: 'down', to: 'up' }),
     ])
@@ -51,9 +48,9 @@ describe('diffStates — transitions only', () => {
   })
 
   test('no transitions when nothing changed', () => {
-    expect(
-      diffStates({ dashboard: 'up', docs: 'down' }, results)
-    ).toHaveLength(0)
+    expect(diffStates({ dashboard: 'up', docs: 'down' }, results)).toHaveLength(
+      0
+    )
   })
 })
 

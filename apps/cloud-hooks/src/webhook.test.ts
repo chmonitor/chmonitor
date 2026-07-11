@@ -6,12 +6,11 @@
  * requirement). `applyDeps` is injected so persistence is stubbed here.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
-
 import type { ApplySubscriptionDeps } from '@chm/billing-webhook-core'
-
 import type { Env } from './env'
+
 import { handlePolarWebhook, type ValidateEventFn } from './webhook'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const env: Env = {
   POLAR_WEBHOOK_SECRET: 'whsec_test',
@@ -28,7 +27,10 @@ function req(body = '{}') {
 
 function stubDeps(overrides: Partial<ApplySubscriptionDeps> = {}) {
   return {
-    planForProductId: () => ({ planId: 'pro' as const, period: 'monthly' as const }),
+    planForProductId: () => ({
+      planId: 'pro' as const,
+      period: 'monthly' as const,
+    }),
     ensureOrgForUser: async () => null,
     rekeyCustomerToOrg: async () => {},
     upsertSubscription: mock(async () => {}),
@@ -79,7 +81,10 @@ describe('signature verification', () => {
     const res = await handlePolarWebhook(
       req(),
       { ...env, POLAR_WEBHOOK_SECRET: undefined },
-      { notify: (k, t) => notify(k, t), validateEvent: () => ({ type: 'x', data: {} }) }
+      {
+        notify: (k, t) => notify(k, t),
+        validateEvent: () => ({ type: 'x', data: {} }),
+      }
     )
     expect(res.status).toBe(501)
   })

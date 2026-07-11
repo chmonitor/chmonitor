@@ -10,13 +10,12 @@
  * stored one is null, or the incoming one is >= the stored one.
  */
 
-import { beforeEach, describe, expect, test } from 'bun:test'
-
 import {
   type D1Like,
   getSubscription,
   upsertSubscription,
 } from './subscription-store'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 interface FakeSubscriptionRow {
   user_id: string

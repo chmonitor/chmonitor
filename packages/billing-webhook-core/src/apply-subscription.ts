@@ -15,9 +15,8 @@
  */
 
 import type { PlanId } from '@chm/pricing'
-
-import type { BillingPeriod } from './types'
 import type { OwnerType, UpsertSubscriptionInput } from './subscription-store'
+import type { BillingPeriod } from './types'
 
 /** Polar Subscription shape (subset) carried by subscription.* events. */
 export interface PolarSubscriptionData {

@@ -148,9 +148,7 @@ export async function runProbes(deps: RunProbesDeps): Promise<Transition[]> {
     }
   }
 
-  const results = await Promise.all(
-    targets.map((t) => probeOne(t, fetchImpl))
-  )
+  const results = await Promise.all(targets.map((t) => probeOne(t, fetchImpl)))
   const transitions = diffStates(prev, results)
 
   for (const t of transitions) {

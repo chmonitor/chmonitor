@@ -10,16 +10,16 @@
  * Unauthenticated by design — the signature IS the auth.
  */
 
+import type { Env } from './env'
+import type { NotifyKind } from './telegram'
+
+import { makeApplyDeps, makePlanForProductId } from './billing-deps'
 import {
-  applySubscription as coreApplySubscription,
   type ApplySubscriptionDeps,
+  applySubscription as coreApplySubscription,
   type PolarSubscriptionData,
   toUnixSeconds,
 } from '@chm/billing-webhook-core'
-
-import { makeApplyDeps, makePlanForProductId } from './billing-deps'
-import type { Env } from './env'
-import type { NotifyKind } from './telegram'
 
 /** Injected so tests can drive signature rejection without a real signature. */
 export type ValidateEventFn = (

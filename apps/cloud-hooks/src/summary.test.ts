@@ -2,14 +2,13 @@
  * Daily summary math + D1 collection.
  */
 
-import { describe, expect, test } from 'bun:test'
-
 import {
   collectSummary,
   type D1SummaryDb,
   type PlanBreakdownRow,
   reduceSummary,
 } from './summary'
+import { describe, expect, test } from 'bun:test'
 
 describe('reduceSummary — MRR math', () => {
   test('monthly + yearly + free normalize into a monthly MRR', () => {

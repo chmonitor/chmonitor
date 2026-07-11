@@ -17,8 +17,8 @@
 
 import {
   getSubscription as coreGetSubscription,
-  type OwnerType,
   upsertSubscription as coreUpsertSubscription,
+  type OwnerType,
   type UpsertSubscriptionInput,
   type UserSubscription,
 } from '@chm/billing-webhook-core'

@@ -2,9 +2,8 @@
  * Telegram Notifier — per-kind throttle + fail-safe delivery.
  */
 
-import { describe, expect, mock, test } from 'bun:test'
-
 import { Notifier } from './telegram'
+import { describe, expect, mock, test } from 'bun:test'
 
 function okFetch() {
   return mock(async () => new Response('{"ok":true}', { status: 200 }))
@@ -35,7 +34,7 @@ describe('per-kind throttle', () => {
 
   test('a different kind is not throttled by another kind', async () => {
     const fetchImpl = okFetch()
-    let now = 1_000_000
+    const now = 1_000_000
     const n = new Notifier(cfg, { fetch: fetchImpl, now: () => now })
 
     expect(await n.notify('subscription', 'a')).toBe(true)

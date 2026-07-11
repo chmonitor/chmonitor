@@ -5,13 +5,12 @@
  * funnel + audit side effects) that both Workers rely on.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
-
 import {
-  applySubscription,
   type ApplySubscriptionDeps,
+  applySubscription,
   type PolarSubscriptionData,
 } from './apply-subscription'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 function makeDeps(overrides: Partial<ApplySubscriptionDeps> = {}) {
   const deps = {
@@ -24,7 +23,9 @@ function makeDeps(overrides: Partial<ApplySubscriptionDeps> = {}) {
         return { planId: 'pro' as const, period: 'yearly' as const }
       return null
     }),
-    ensureOrgForUser: mock(async (_userId: string) => 'org_new' as string | null),
+    ensureOrgForUser: mock(
+      async (_userId: string) => 'org_new' as string | null
+    ),
     rekeyCustomerToOrg: mock(async (_c: string, _o: string) => {}),
     upsertSubscription: mock(async (_input: unknown) => {}),
     invalidateNegativeCache: mock((_id: string) => {}),

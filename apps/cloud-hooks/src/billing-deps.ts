@@ -8,13 +8,13 @@
  * that once the Polar endpoint is cut over (plans/103 step 3-4) nothing forks.
  */
 
+import type { PlanId } from '@chm/pricing'
+import type { Env } from './env'
+
 import {
   type ApplySubscriptionDeps,
   upsertSubscription as coreUpsertSubscription,
 } from '@chm/billing-webhook-core'
-import type { PlanId } from '@chm/pricing'
-
-import type { Env } from './env'
 
 type BillingPeriod = 'monthly' | 'yearly'
 
@@ -80,7 +80,10 @@ export function makeEnsureOrgForUser(
       const createRes = await fetchImpl(`${CLERK_API}/organizations`, {
         method: 'POST',
         headers: { ...auth, 'content-type': 'application/json' },
-        body: JSON.stringify({ name: `${userId} workspace`, created_by: userId }),
+        body: JSON.stringify({
+          name: `${userId} workspace`,
+          created_by: userId,
+        }),
       })
       if (!createRes.ok) {
         console.error('[cloud-hooks] Clerk org creation non-2xx', {

@@ -13,8 +13,9 @@
  */
 
 import type { Env } from './env'
-import { collectSummary, formatSummary } from './summary'
+
 import { runProbes } from './probes'
+import { collectSummary, formatSummary } from './summary'
 import { Notifier } from './telegram'
 import { handlePolarWebhook } from './webhook'
 
