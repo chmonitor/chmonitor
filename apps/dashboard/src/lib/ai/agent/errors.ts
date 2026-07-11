@@ -426,6 +426,35 @@ export function parseAgentError(error: Error): AgentError | null {
   return candidate
 }
 
+/**
+ * Extract the classified {@link AgentError} from a streamed `data-error` part,
+ * if the assistant message carries one.
+ *
+ * The agent route catches failures that happen *inside* the UI-message stream
+ * (provider/tool/upstream errors that surface after the HTTP 200 headers are
+ * sent) and writes them as a `data-error` data part — `{ type: 'data-error',
+ * data: [AgentError] }` — rather than aborting the stream. assistant-ui's
+ * built-in `MessagePrimitive.Error` only renders the runtime's own error status,
+ * so without an explicit renderer these parts were silently dropped: the user
+ * saw a dead, empty assistant bubble ("An error occurred" / nothing) even though
+ * the server had classified the failure. This reads the part back out so the UI
+ * can surface the real cause + suggestion. Scans newest→oldest and returns the
+ * first valid AgentError, or null when there is none.
+ */
+export function extractAgentErrorFromParts(
+  parts: readonly unknown[] | undefined | null
+): AgentError | null {
+  if (!Array.isArray(parts)) return null
+  for (let index = parts.length - 1; index >= 0; index--) {
+    const part = parts[index]
+    if (!isObject(part) || part.type !== 'data-error') continue
+    const data = part.data
+    const candidate = Array.isArray(data) ? data[0] : data
+    if (isAgentError(candidate)) return candidate
+  }
+  return null
+}
+
 export function isAgentError(value: unknown): value is AgentError {
   return (
     isObject(value) &&

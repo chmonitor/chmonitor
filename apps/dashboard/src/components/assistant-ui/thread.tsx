@@ -33,6 +33,7 @@
  */
 
 import {
+  AlertTriangleIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -78,6 +79,10 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller'
+import {
+  type AgentError,
+  extractAgentErrorFromParts,
+} from '@/lib/ai/agent/errors'
 import { getFollowUpPrompts } from '@/lib/ai/agent/follow-up-prompts'
 import { resolveConversationBackend } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
@@ -331,6 +336,39 @@ function MessageError() {
   )
 }
 
+/**
+ * Renders a `data-error` part the agent route streamed for a failure that
+ * happened INSIDE the UI-message stream (provider/tool/upstream error surfacing
+ * after the HTTP 200 headers were sent). assistant-ui's `MessagePrimitive.Error`
+ * only covers the runtime's own error status, so without this these classified
+ * errors were dropped and the message looked dead ("An error occurred" / an
+ * empty bubble). This makes the real cause + actionable suggestion visible.
+ */
+function AgentDataError() {
+  const content = useMessage((m) => m.content) as readonly unknown[]
+  const agentError: AgentError | null = extractAgentErrorFromParts(content)
+  if (!agentError) return null
+
+  return (
+    <div
+      role="alert"
+      className="border-destructive/40 bg-destructive/10 text-destructive mt-1 rounded-lg border px-3 py-2 text-sm"
+    >
+      <div className="flex items-start gap-2">
+        <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium break-words">{agentError.message}</p>
+          {agentError.suggestion && (
+            <p className="text-destructive/80 text-xs break-words">
+              {agentError.suggestion}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // AssistantMessage — wires all tasks together
 // ---------------------------------------------------------------------------
@@ -367,6 +405,11 @@ const AssistantMessage: FC = () => {
 
             {/* Task #5: error display */}
             <MessageError />
+
+            {/* Surface errors the route streamed as a `data-error` part (a
+                failure inside the stream, after HTTP 200) — otherwise the
+                message looks dead. */}
+            <AgentDataError />
 
             <div className="flex items-center gap-1">
               <BranchPicker />

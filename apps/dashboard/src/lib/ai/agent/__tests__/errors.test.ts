@@ -1,5 +1,42 @@
-import { classifyError, parseAgentError } from '../errors'
+import {
+  classifyError,
+  extractAgentErrorFromParts,
+  parseAgentError,
+} from '../errors'
 import { describe, expect, test } from 'bun:test'
+
+describe('extractAgentErrorFromParts', () => {
+  const agentError = classifyError(
+    { statusCode: 401, error: { message: 'Invalid API key' } },
+    { model: 'openrouter:x', provider: 'openrouter' }
+  )
+
+  test('reads the AgentError out of a data-error part (array data)', () => {
+    const parts = [
+      { type: 'text', text: 'hi' },
+      { type: 'data-error', data: [agentError] },
+    ]
+    expect(extractAgentErrorFromParts(parts)).toEqual(agentError)
+  })
+
+  test('reads the AgentError out of a data-error part (object data)', () => {
+    const parts = [{ type: 'data-error', data: agentError }]
+    expect(extractAgentErrorFromParts(parts)).toEqual(agentError)
+  })
+
+  test('returns null when there is no data-error part', () => {
+    expect(
+      extractAgentErrorFromParts([{ type: 'text', text: 'ok' }])
+    ).toBeNull()
+    expect(extractAgentErrorFromParts([])).toBeNull()
+    expect(extractAgentErrorFromParts(undefined)).toBeNull()
+  })
+
+  test('ignores a malformed data-error payload', () => {
+    const parts = [{ type: 'data-error', data: [{ nope: true }] }]
+    expect(extractAgentErrorFromParts(parts)).toBeNull()
+  })
+})
 
 describe('agent error classification', () => {
   test('extracts AnyRouter upstream envelope details', () => {
