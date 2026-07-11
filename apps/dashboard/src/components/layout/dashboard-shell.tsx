@@ -52,7 +52,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <Breadcrumb className="min-w-0" />
               </Suspense>
             </div>
-            <div className="w-full min-w-0 overflow-x-auto px-4 pb-3 sm:ml-auto sm:w-auto sm:overflow-visible sm:pb-0">
+            {/* scrollbar-hide: stays swipe-scrollable on narrow viewports
+                without a visible scrollbar under the header controls. */}
+            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-4 pb-3 sm:ml-auto sm:w-auto sm:overflow-visible sm:pb-0">
               <HeaderActions />
             </div>
           </header>
