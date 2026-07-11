@@ -53,8 +53,12 @@ export function AppSidebar() {
             drift apart. Rows use the default SidebarMenuButton size (same as
             the body menu in nav-main/menu-item.tsx) so the footer reads as a
             continuation of the menu list, not a separate compact widget. The
-            user button below stays its own block. */}
-        <SidebarMenu>
+            user button below stays its own block.
+            Laid out as a 2-col grid (2x2 for the full 4-item set) so the
+            footer stops eating vertical space the main menu needs on short
+            screens; collapsed icon mode reverts to a single column since the
+            3rem icon rail only has room for one icon per row. */}
+        <SidebarMenu className="grid grid-cols-2 gap-0.5 group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:gap-0">
           {footerItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
