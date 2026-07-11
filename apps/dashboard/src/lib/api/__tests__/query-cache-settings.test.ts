@@ -98,4 +98,26 @@ describe('buildQueryCacheSettings', () => {
       'save'
     )
   })
+
+  test('omits query_cache_system_table_handling before 24.4', () => {
+    // The setting does not exist before 24.4; sending it would fail the query
+    // with "Unknown setting". Pre-24.4 hosts skip caching system-table queries
+    // without throwing, so leaving it unset is safe.
+    for (const v of [version(23, 5), version(24, 2), version(24, 3, 9)]) {
+      const settings = buildQueryCacheSettings({ version: v, ttlSeconds: 30 })
+      expect(settings.query_cache_system_table_handling).toBeUndefined()
+    }
+  })
+
+  test("sets query_cache_system_table_handling: 'save' from 24.4 onward", () => {
+    // Regression: without this, `use_query_cache=1` on any system.* query
+    // (e.g. the Running Queries page's system.processes scan) throws error 719
+    // QUERY_CACHE_USED_WITH_SYSTEM_TABLE on ClickHouse 24.4+ — the query
+    // returned zero rows on ClickHouse 26.3 for exactly this reason.
+    for (const v of [version(24, 4), version(24, 8), version(26, 3, 9)]) {
+      const settings = buildQueryCacheSettings({ version: v, ttlSeconds: 30 })
+      expect(settings.use_query_cache).toBe(1)
+      expect(settings.query_cache_system_table_handling).toBe('save')
+    }
+  })
 })

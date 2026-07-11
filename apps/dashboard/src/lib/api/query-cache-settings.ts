@@ -35,6 +35,18 @@
  * whose default (`false`) is safe (silently skips caching, never throws), so
  * it is set explicitly for parity on those hosts too.
  *
+ * Similarly, essentially EVERY dashboard query reads a `system.*` table. Since
+ * ClickHouse 24.4 (https://github.com/ClickHouse/ClickHouse/pull/62376), the
+ * query cache refuses to cache any query that touches a system table, and the
+ * default `query_cache_system_table_handling = 'throw'` makes the query FAIL
+ * with error 719 (`QUERY_CACHE_USED_WITH_SYSTEM_TABLE`) the moment
+ * `use_query_cache=1` is set — e.g. the Running Queries page's
+ * `system.processes` scan returned no rows on ClickHouse 26.3 for exactly this
+ * reason. `'save'` is required for correctness here too (cache the result,
+ * bounded by the same short TTL). Pre-24.4 hosts don't have that setting and
+ * simply skip caching system-table queries without throwing, so it is omitted
+ * there — sending an unknown setting name would itself fail the query.
+ *
  * ASSUMPTION (flagged per the #2182 review request): whether the demo
  * ClickHouse host has the *server-side* query cache enabled/sized
  * (`query_cache_max_size_in_bytes` / config-level toggle, as opposed to the
@@ -57,6 +69,13 @@ const MIN_QUERY_CACHE_VERSION = { major: 23, minor: 5 } as const
 
 /** `query_cache_nondeterministic_function_handling` enum landed in 24.2. */
 const MIN_NONDETERMINISTIC_ENUM_VERSION = { major: 24, minor: 2 } as const
+
+/**
+ * `query_cache_system_table_handling` (and the default-`throw` rejection of
+ * caching system-table queries, error 719) landed in ClickHouse 24.4
+ * (PR #62376).
+ */
+const MIN_SYSTEM_TABLE_HANDLING_VERSION = { major: 24, minor: 4 } as const
 
 export interface QueryCacheSettingsOptions {
   /** Detected ClickHouse version for the target host, or null if unknown. */
@@ -106,6 +125,21 @@ export function buildQueryCacheSettings({
     settings.query_cache_nondeterministic_function_handling = 'save'
   } else {
     settings.query_cache_store_results_of_queries_with_nondeterministic_functions = 1
+  }
+
+  // ClickHouse 24.4+ rejects caching queries that read system tables unless
+  // told otherwise (error 719). Almost every dashboard query reads system.*,
+  // so without this the query cache fails those queries outright rather than
+  // just skipping the cache. Pre-24.4 hosts don't have the setting and skip
+  // caching system-table queries silently, so it is left unset there.
+  if (
+    meetsMinVersion(
+      version,
+      MIN_SYSTEM_TABLE_HANDLING_VERSION.major,
+      MIN_SYSTEM_TABLE_HANDLING_VERSION.minor
+    )
+  ) {
+    settings.query_cache_system_table_handling = 'save'
   }
 
   return settings
