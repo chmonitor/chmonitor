@@ -14,7 +14,7 @@
  * logged and skipped rather than crashing the cron.
  */
 
-import type { GitHubAppAuth } from './github-app'
+import type { GitHubAppAuth, KVLike } from './github-app'
 import type { WorkerException } from './observability'
 import type { NotifyKind } from './telegram'
 
@@ -190,11 +190,7 @@ export async function issueExistsForFingerprint(
   }
 }
 
-/** Minimal KV subset (matches probes' `KVLike`). */
-export interface KVLike {
-  get(key: string): Promise<string | null>
-  put(key: string, value: string): Promise<void>
-}
+export type { KVLike } from './github-app'
 
 export interface RunExceptionScanDeps {
   repo: GitHubRepo

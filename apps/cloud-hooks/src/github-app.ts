@@ -17,7 +17,11 @@
  * then a PAT, else disabled.
  */
 
-import type { KVLike } from './exceptions'
+/** Minimal KV subset (matches probes' `KVLike`). */
+export interface KVLike {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string): Promise<void>
+}
 
 /** Cache keys (versioned so a format change is a clean cutover). */
 const KV_INSTALL_ID_PREFIX = 'gh-app:install-id:v1:'
