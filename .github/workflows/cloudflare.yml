@@ -934,3 +934,136 @@ jobs:
           else
             printf '%s' "$BUG_HANDLER_GITHUB_TOKEN" | pnpm exec wrangler secret put GITHUB_TOKEN
           fi
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Cloud-hooks (apps/cloud-hooks): standalone Cloudflare Worker (Cloud/SaaS
+  # only). Receives Polar billing webhooks, persists to the shared chm-cloud D1,
+  # and sends operator notifications (Telegram) + scheduled ops jobs (daily
+  # billing summary, health probes). Own pnpm-lock.yaml (not in the root
+  # workspace), like bug-handler. Production deploys chmonitor-hooks; PRs deploy
+  # preview-chmonitor-hooks. The Polar endpoint is switched to this worker in the
+  # Polar dashboard as a later migration step (plans/103) — until then it deploys
+  # but is dormant. Secrets are set after deploy; each is skipped if unset.
+  # ────────────────────────────────────────────────────────────────────────────
+  cloud-hooks:
+    name: cloud-hooks
+    # Skip on forked PRs — deploy secrets must not leak to PR-controlled code.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cloud-hooks
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Detect changes
+        id: filter
+        if: >-
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref_type == 'branch')
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            cloud_hooks:
+              - 'apps/cloud-hooks/**'
+              - 'packages/billing-webhook-core/**'
+              - 'packages/pricing/**'
+              - '.github/workflows/cloudflare.yml'
+
+      - name: Install dependencies
+        if: >-
+          steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag'
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        if: >-
+          steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag'
+        run: bun test src/ --isolate
+
+      - name: Type-check
+        if: >-
+          steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag'
+        run: pnpm run type-check
+
+      - name: Deploy preview
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
+          (steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy --minify --env preview
+
+      - name: Deploy production
+        if: >-
+          github.event_name != 'pull_request' &&
+          (steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy --minify
+
+      # Runtime secrets: set AFTER deploy (the worker must exist first). Each is
+      # skipped — with a clear log — when its repo secret is empty, so the deploy
+      # still succeeds and the worker just no-ops that capability until it's set.
+      - name: Set worker secrets
+        if: >-
+          github.event_name != 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
+          (steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          POLAR_WEBHOOK_SECRET: ${{ secrets.POLAR_WEBHOOK_SECRET }}
+          POLAR_ACCESS_TOKEN: ${{ secrets.POLAR_ACCESS_TOKEN }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          put() {
+            local name="$1"; local value="$2"
+            if [ -z "$value" ]; then
+              echo "$name secret is empty - skipping."
+            else
+              printf '%s' "$value" | pnpm exec wrangler secret put "$name"
+            fi
+          }
+          put POLAR_WEBHOOK_SECRET "${POLAR_WEBHOOK_SECRET:-}"
+          put POLAR_ACCESS_TOKEN "${POLAR_ACCESS_TOKEN:-}"
+          put CLERK_SECRET_KEY "${CLERK_SECRET_KEY:-}"
+          put TELEGRAM_BOT_TOKEN "${TELEGRAM_BOT_TOKEN:-}"
+          put TELEGRAM_CHAT_ID "${TELEGRAM_CHAT_ID:-}"
