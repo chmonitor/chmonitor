@@ -167,6 +167,43 @@ Production deploys on push to `main` via `.github/workflows/cloudflare.yml`. It 
 the same `pnpm run cf:build` command and the same env var names — secrets come
 from GitHub Secrets instead of local files.
 
+## Unified per-Worker deploy (`scripts/deploy-worker.ts`)
+
+`pnpm run deploy:worker <app> [--env preview] [--dry-run] [--secrets-only|--no-secrets]`
+(`bun scripts/deploy-worker.ts` directly) is the one script that publishes any
+`apps/*` Worker with a `wrangler.toml` — `apps/dashboard`, `apps/cloud-hooks`,
+`apps/bug-handler`, `apps/docs`, `apps/landing`, `apps/blog`, `apps/mcp`,
+`apps/telemetry` — discovered dynamically (`--list` prints them).
+
+- **`apps/dashboard`** is special-cased: the script shells out to the existing
+  `cf:deploy` (patch-wrangler-env.ts) pipeline above rather than duplicating it.
+- **Every other app** declares exactly which env it needs via a
+  `apps/<app>/deploy.config.ts` manifest:
+  ```ts
+  export default {
+    vars: ['CHM_POLAR_SERVER', 'CHM_POLAR_PRODUCT_*'], // trailing '*' = wildcard prefix match
+    secrets: ['POLAR_WEBHOOK_SECRET', 'POLAR_ACCESS_TOKEN'],
+  }
+  ```
+  Apps with no manifest deploy with no `--var`/secret pushing. Non-secret vars
+  resolve from `apps/dashboard/.env.production` (+ `.env.preview` overlay for
+  `--env preview`); secrets resolve from `apps/dashboard/.env.production.local`
+  + `.env.local`, falling back to `process.env` for CI. An app's own
+  `apps/<app>/.env.production(.local)` / `.env.preview` overrides the dashboard
+  file when present. The script then runs `wrangler deploy --minify --var K:V
+  ...` and `wrangler secret put <KEY>` per declared, resolved key — missing keys
+  are skipped with a warning, not a hard failure.
+- `--dry-run` prints the full plan (vars/secrets to push, the wrangler
+  commands) with every value redacted; refuses to run for real without
+  `CLOUDFLARE_API_TOKEN` set. `--secrets-only` skips the deploy step;
+  `--no-secrets` skips pushing secrets.
+- Example manifests: `apps/cloud-hooks/deploy.config.ts`,
+  `apps/bug-handler/deploy.config.ts`. Pure logic (env merge/overlay
+  precedence, manifest wildcard expansion, redaction) is covered by
+  `scripts/deploy-worker.test.ts` (`bun test scripts/deploy-worker.test.ts`);
+  wrangler calls run through an injectable exec function so tests never shell
+  out for real.
+
 ## Docker
 
 ```bash

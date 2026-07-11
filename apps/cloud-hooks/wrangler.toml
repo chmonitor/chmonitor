@@ -33,6 +33,12 @@
 #   CHM_POLAR_SERVER, CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>
 # These are NOT required until the Polar endpoint is cut over to this worker
 # (plans/103 step 3-4); until then the worker is deployed but dormant.
+#
+# Deploy with the unified per-Worker script (reads ./deploy.config.ts for the
+# vars/secrets above, resolves them from the dashboard's
+# .env.production(.local)/.env.preview, and runs wrangler for you):
+#   bun scripts/deploy-worker.ts cloud-hooks [--env preview] [--dry-run]
+# See docs/knowledge/deployment.md.
 
 name = "chmonitor-hooks"
 main = "src/index.ts"

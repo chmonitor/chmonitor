@@ -43,6 +43,7 @@
     "cf:health": "curl -sSf https://dash.chmonitor.dev/api/healthz | jq .",
     "setup:agent-conversations-clickhouse": "bun scripts/create-agent-conversations-clickhouse.ts",
     "cf:redirect-rule": "bun scripts/cloudflare-redirect-rule.ts",
+    "deploy:worker": "bun scripts/deploy-worker.ts",
     "docker:health": "docker compose exec app wget -q -O /dev/null http://localhost:3000/api/healthz || exit 1",
     "depcruise": "depcruise apps packages --config .dependency-cruiser.cjs --exclude 'node_modules|\\.output|\\.vercel|dist|\\.turbo|__tests__|\\.test\\.|\\.spec\\.|\\.cy\\.'",
     "build:skills": "bun run scripts/build-skills-registry.ts",

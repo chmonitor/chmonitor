@@ -271,6 +271,23 @@ Falls back to `wrangler login` OAuth for local development.
 - `pnpm run cf:config` — Set Cloudflare secrets from `.env.production.local` or `.env.local`
 - `cd apps/dashboard && pnpm run cf-typegen` — Regenerate Cloudflare environment typings
 
+#### Any Worker: `pnpm run deploy:worker`
+
+`bun scripts/deploy-worker.ts <app> [--env preview] [--dry-run] [--secrets-only|--no-secrets]`
+publishes any `apps/*` Worker with a `wrangler.toml` (`--list` prints the
+discovered apps). For `apps/dashboard` it delegates to the existing `cf:deploy`
+flow above rather than duplicating it. For every other app it reads a small
+`apps/<app>/deploy.config.ts` manifest (`{ vars: string[], secrets: string[] }`,
+`*` suffix = wildcard prefix match) declaring exactly which non-secret vars and
+secrets that Worker needs, resolves them from `apps/dashboard/.env.production`
+(+`.env.preview` overlay) / `.env.production.local` + `.env.local` — with
+per-app `apps/<app>/.env.production(.local)` overrides when present — and runs
+`wrangler deploy --minify --var K:V ...` + `wrangler secret put` for each
+declared key found (missing ones are skipped with a warning, not a hard
+failure). `--dry-run` prints the plan with all values redacted; refuses to run
+otherwise without `CLOUDFLARE_API_TOKEN`. See `apps/cloud-hooks/deploy.config.ts`
+and `apps/bug-handler/deploy.config.ts` for example manifests.
+
 #### Docker Deployment
 
 - `docker compose up -d` — Quick start
