@@ -47,33 +47,29 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        {/* App-level links (Billing / Organization / About) as compact footer
-            rows, above the Docs link and user button. */}
-        {footerItems.length > 0 && (
-          <SidebarMenu>
-            {footerItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  size="sm"
-                  isActive={isMenuItemActive(item.href, pathname)}
-                  tooltip={item.title}
-                  render={
-                    <HostPrefixedLink
-                      href={item.href}
-                      className="flex w-full items-center"
-                    />
-                  }
-                >
-                  {item.icon && <item.icon className="size-4 shrink-0" />}
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        )}
-        {/* Small Docs link sitting just above the user button. Docs live on
-            the external site (docs.chmonitor.dev), so this leaves the app. */}
+        {/* App-level links (Billing / Organization / About) and the external
+            Docs link share ONE menu so every footer row has the same rhythm —
+            separate SidebarMenu blocks would pick up the footer's gap-2 and
+            drift apart. The user button below stays its own block. */}
         <SidebarMenu>
+          {footerItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton
+                size="sm"
+                isActive={isMenuItemActive(item.href, pathname)}
+                tooltip={item.title}
+                render={
+                  <HostPrefixedLink
+                    href={item.href}
+                    className="flex w-full items-center"
+                  />
+                }
+              >
+                {item.icon && <item.icon className="size-4 shrink-0" />}
+                <span>{item.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
           <SidebarMenuItem>
             <SidebarMenuButton
               size="sm"

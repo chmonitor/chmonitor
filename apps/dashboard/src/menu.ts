@@ -827,6 +827,9 @@ export const menuItemsConfig: MenuItem[] = [
     section: 'footer',
     permission: { feature: 'billing' },
     cloudOnly: true,
+    // Account-level page — engine-independent, so keep it visible while a
+    // Postgres source is selected (absent `engines` means ClickHouse family).
+    engines: ['clickhouse', 'clickhouse-cloud', 'postgres'],
   },
   {
     // Cloud (SaaS) team management — members, roles, invitations. Cloud-only
@@ -837,6 +840,7 @@ export const menuItemsConfig: MenuItem[] = [
     section: 'footer',
     permission: { feature: 'billing' },
     cloudOnly: true,
+    engines: ['clickhouse', 'clickhouse-cloud', 'postgres'],
   },
   {
     // Dashboard + server version info. Rendered as a compact footer row (see
@@ -849,6 +853,7 @@ export const menuItemsConfig: MenuItem[] = [
     icon: InfoCircledIcon,
     section: 'footer',
     permission: { feature: 'about' },
+    engines: ['clickhouse', 'clickhouse-cloud', 'postgres'],
   },
   {
     title: 'System',

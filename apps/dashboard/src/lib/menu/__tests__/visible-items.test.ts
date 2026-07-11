@@ -203,14 +203,15 @@ describe('filterMenuItemsByEngine', () => {
   })
 
   test('ZERO-DIFF: filtering the real config for ClickHouse is a no-op', () => {
-    // Every current menu item lacks `engines`, so the ClickHouse view must equal
-    // the config with the (new) Postgres-only items removed — i.e. the exact
-    // pre-#2450 menu. Guards against accidentally tagging an existing item.
+    // The ClickHouse view must equal the config with the Postgres-ONLY items
+    // removed — i.e. the exact pre-#2450 menu. Items tagged with every engine
+    // (the footer rows) still count as ClickHouse items. Guards against
+    // accidentally hiding an existing item from the ClickHouse menu.
     const chTitles = filterMenuItemsByEngine(menuItemsConfig, 'clickhouse').map(
       (i) => i.title
     )
     const expected = menuItemsConfig
-      .filter((i) => !i.engines?.includes('postgres'))
+      .filter((i) => !i.engines || i.engines.includes('clickhouse'))
       .map((i) => i.title)
     expect(chTitles).toEqual(expected)
     // And none of the Postgres pages leak into the ClickHouse menu.
@@ -224,6 +225,9 @@ describe('filterMenuItemsByEngine', () => {
     )
     expect(pgTitles).toContain('Query Insights')
     expect(pgTitles).toContain('Running Queries')
+    // Account-level footer rows are engine-independent and stay visible.
+    expect(pgTitles).toContain('About')
+    expect(pgTitles).toContain('Billing')
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')

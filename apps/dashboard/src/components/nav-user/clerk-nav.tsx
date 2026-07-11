@@ -101,24 +101,9 @@ export function ClerkNavWrapper() {
   return (
     <>
       <SidebarMenu>
-        {/* Not signed in - surface plans + a Sign In / Sign Up entry point.
-            The plans link sits above the account slot so Sign In stays the
-            bottom anchor (matching the signed-in user button position). */}
-        {!isSignedIn && (
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="sm"
-              tooltip="View plans"
-              data-testid="nav-user-plans"
-              render={
-                <a href="/billing">
-                  <CreditCard />
-                  <span>View plans</span>
-                </a>
-              }
-            />
-          </SidebarMenuItem>
-        )}
+        {/* Signed-out plans discovery is covered by the Billing footer row
+            (same /billing target) rendered by AppSidebar — no separate
+            "View plans" entry here, it duplicated that link. */}
         <SidebarMenuItem>
           {/* Not signed in - show Sign In button */}
           {!isSignedIn && (
