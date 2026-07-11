@@ -34,6 +34,16 @@ export function PeerDBNotConfigured() {
 PEERDB_PASSWORD=your-peerdb-ui-password`}
       </pre>
 
+      <p className="text-xs text-muted-foreground">
+        Or attach PeerDB per connection: open a connection&apos;s{' '}
+        <span className="font-medium text-foreground">Advanced</span> section,
+        add its PeerDB API URL (Password or API token auth), then view it at{' '}
+        <code className="rounded bg-muted px-1">
+          /peerdb?connection=&lt;id&gt;
+        </code>
+        .
+      </p>
+
       <div className="flex flex-wrap items-center justify-center gap-2">
         <a
           href={docsSiteUrl('advanced/peerdb-monitoring')}

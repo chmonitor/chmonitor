@@ -41,12 +41,19 @@ The PeerDB section does not appear in the navigation when `PEERDB_API_URL` is un
 <Step>
 ### Point chmonitor at your PeerDB API
 
-Set `PEERDB_API_URL` (include the `/api` suffix for the UI API). Add `PEERDB_PASSWORD` if the API requires HTTP Basic auth:
+Set `PEERDB_API_URL` (include the `/api` suffix for the UI API). Add `PEERDB_PASSWORD` if the API requires auth:
 
 ```bash
 PEERDB_API_URL=https://peerdb.example.com/api
 PEERDB_PASSWORD=my-peerdb-password
 PEERDB_CACHE_TTL_MS=15000
+```
+
+By default the password is sent as HTTP Basic auth with an empty username (the self-hosted flow-api convention). For PeerDB Enterprise / BYOC deployments that sit behind an auth proxy, set `PEERDB_AUTH_SCHEME=bearer` to send `PEERDB_PASSWORD` as an `Authorization: Bearer <token>` instead:
+
+```bash
+PEERDB_AUTH_SCHEME=bearer
+PEERDB_PASSWORD=my-api-token
 ```
 
 </Step>
@@ -60,6 +67,21 @@ Once `PEERDB_API_URL` is set, the PeerDB section appears in the nav. Open `/peer
 ### Inspect peers and lag
 
 Open `/peerdb/peers` to list source and destination peers, replication slot lag, and the mirror connectivity graph.
+
+</Step>
+<Step>
+### (Optional) Attach PeerDB per connection
+
+Instead of the single deployment-wide `PEERDB_API_URL`, you can attach a PeerDB deployment to an individual saved connection (linking its Postgres source and ClickHouse destination). This needs [user connections](/guide/features/user-connections) enabled.
+
+When adding a connection, open the **Advanced** section and fill in **PeerDB monitoring**:
+
+- **API URL** — the PeerDB flow-api endpoint (same value you'd put in `PEERDB_API_URL`).
+- **Auth** — `None`, `Password` (empty-user HTTP Basic), or `API token` (Bearer, for Enterprise / BYOC behind an auth proxy).
+
+Click **Test PeerDB** to verify the endpoint, then save. The URL is SSRF-validated and the secret is stored only inside the connection's encrypted payload — it is never returned by the connections API.
+
+View that connection's mirrors at `/peerdb?connection=<connectionId>`. When no `?connection=` is present, the pages fall back to the env-wide `PEERDB_API_URL`.
 
 </Step>
 </Steps>
@@ -100,7 +122,8 @@ access = "authenticated"
 <TypeTable
   data={{
     PEERDB_API_URL: { type: "string", description: "PeerDB API base URL. Include the /api suffix for the UI API (e.g. https://peerdb.example.com/api). When unset, the PeerDB section is hidden entirely. Default: unset." },
-    PEERDB_PASSWORD: { type: "string", description: "HTTP Basic auth password. The username is left empty. Default: unset." },
+    PEERDB_PASSWORD: { type: "string", description: "Auth secret. Used as the HTTP Basic password (empty username) by default, or as the Bearer token when PEERDB_AUTH_SCHEME=bearer. Default: unset." },
+    PEERDB_AUTH_SCHEME: { type: "string", description: "Auth scheme for PEERDB_PASSWORD: 'basic' (empty-user HTTP Basic, the default) or 'bearer' (Authorization: Bearer <token>) for deployments behind an auth proxy (PeerDB Enterprise / BYOC). Default: basic." },
     PEERDB_CACHE_TTL_MS: { type: "number", description: "Response cache TTL in milliseconds. Default: 10000." },
     PEERDB_CACHE_MAX_ENTRIES: { type: "number", description: "Maximum number of cached responses. Default: 500." },
     PEERDB_FETCH_TIMEOUT_MS: { type: "number", description: "Timeout for proxied PeerDB API requests. Default: 10000." },

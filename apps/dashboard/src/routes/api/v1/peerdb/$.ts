@@ -18,15 +18,22 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { generateRequestId } from '@chm/logger'
+import {
+  buildPeerDBAuthHeader,
+  type ResolvedPeerDBConfig,
+} from '@/lib/peerdb/peerdb-auth'
+import {
+  PEERDB_CONNECTION_PARAM,
+  resolvePeerDBRequestConfig,
+} from '@/lib/peerdb/resolve-request-config'
 
 // ---------------------------------------------------------------------------
-// Inlined Workers-safe PeerDB config + fetch (mirrors peerdb-status.ts pattern)
+// Workers-safe PeerDB fetch. Config (env or per-connection `?connection=<id>`)
+// is resolved by the shared helper; the Basic/Bearer header comes from
+// buildPeerDBAuthHeader.
 // ---------------------------------------------------------------------------
 
-interface PeerDBConfig {
-  baseUrl: string
-  password?: string
-}
+type PeerDBConfig = ResolvedPeerDBConfig
 
 class PeerDBError extends Error {
   constructor(
@@ -36,25 +43,6 @@ class PeerDBError extends Error {
     super(message)
     this.name = 'PeerDBError'
   }
-}
-
-function getPeerDBConfig(
-  bindings: Record<string, string | undefined>
-): PeerDBConfig | null {
-  const baseUrl = bindings.PEERDB_API_URL?.trim()
-  if (!baseUrl) return null
-  return {
-    baseUrl: baseUrl.replace(/\/+$/, ''),
-    password: bindings.PEERDB_PASSWORD?.trim() || undefined,
-  }
-}
-
-function authHeader(config: PeerDBConfig): Record<string, string> {
-  if (!config.password) return {}
-  // PeerDB uses Basic auth with an empty username: base64(':' + password).
-  // btoa is available in all Workers runtimes (no Buffer needed).
-  const token = btoa(`:${config.password}`)
-  return { Authorization: `Basic ${token}` }
 }
 
 const FETCH_TIMEOUT_MS = 10_000
@@ -76,7 +64,7 @@ async function peerdbFetch(
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        ...authHeader(config),
+        ...buildPeerDBAuthHeader(config),
       },
     })
   } catch (err) {
@@ -162,7 +150,9 @@ async function handle(
 ): Promise<Response> {
   const requestId = generateRequestId()
   const bindings = env as Record<string, string | undefined>
-  const config = getPeerDBConfig(bindings)
+  // Resolve env config, OR a per-connection PeerDB link when `?connection=<id>`
+  // is present and the signed-in user owns that connection.
+  const config = await resolvePeerDBRequestConfig(request, bindings)
 
   if (!config) {
     return Response.json(
@@ -184,8 +174,12 @@ async function handle(
     )
   }
 
+  // Forward the caller's query string EXCEPT our own `connection` selector,
+  // which is a CHM routing param and must never reach the PeerDB upstream.
   const url = new URL(request.url)
-  const upstreamPath = url.search ? `${path}${url.search}` : path
+  url.searchParams.delete(PEERDB_CONNECTION_PARAM)
+  const forwardedSearch = url.searchParams.toString()
+  const upstreamPath = forwardedSearch ? `${path}?${forwardedSearch}` : path
 
   try {
     const body = method === 'POST' ? await request.text() : undefined

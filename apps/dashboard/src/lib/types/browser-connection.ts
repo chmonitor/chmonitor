@@ -22,6 +22,17 @@ export interface BrowserConnection {
   database?: string
   /** Postgres-only: libpq `sslmode` (`disable` | `require` | `verify-full`). */
   sslmode?: string
+  /**
+   * Optional PeerDB monitoring link (any engine) — mirrors the server envelope
+   * (`ConnectionCredentials`). Encrypted as-is with the rest of the object
+   * (browser-crypto envelope v2), so these optional fields need no serialization
+   * change. The secret stays inside the encrypted blob only.
+   */
+  peerdbApiUrl?: string
+  /** PeerDB auth scheme: `basic` (empty-user password) or `bearer` (API token). */
+  peerdbAuthScheme?: 'basic' | 'bearer'
+  /** PeerDB Basic password or Bearer token. Absent ⇒ an open (auth-less) flow-api. */
+  peerdbAuthSecret?: string
 }
 
 export const BROWSER_CONNECTIONS_STORAGE_KEY =

@@ -11,6 +11,11 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { generateRequestId } from '@chm/logger'
+import {
+  buildPeerDBAuthHeader,
+  type ResolvedPeerDBConfig,
+} from '@/lib/peerdb/peerdb-auth'
+import { resolvePeerDBRequestConfig } from '@/lib/peerdb/resolve-request-config'
 
 /** Browser-safe PeerDB connection status payload. */
 interface PeerDBStatusPayload {
@@ -22,10 +27,7 @@ interface PeerDBStatusPayload {
   error?: string
 }
 
-interface PeerDBConfig {
-  baseUrl: string
-  password?: string
-}
+type PeerDBConfig = ResolvedPeerDBConfig
 
 interface VersionResponse {
   version?: string
@@ -55,25 +57,6 @@ function sanitizeHost(baseUrl: string): string {
   }
 }
 
-function getPeerDBConfig(
-  bindings: Record<string, string | undefined>
-): PeerDBConfig | null {
-  const baseUrl = bindings.PEERDB_API_URL?.trim()
-  if (!baseUrl) return null
-  return {
-    baseUrl: baseUrl.replace(/\/+$/, ''),
-    password: bindings.PEERDB_PASSWORD?.trim() || undefined,
-  }
-}
-
-function authHeader(config: PeerDBConfig): Record<string, string> {
-  if (!config.password) return {}
-  // PeerDB uses Basic auth with an empty username: base64(':' + password)
-  // btoa is available in all Workers runtimes (no Buffer needed)
-  const token = btoa(`:${config.password}`)
-  return { Authorization: `Basic ${token}` }
-}
-
 const FETCH_TIMEOUT_MS = 10_000
 
 async function peerdbFetch<T = unknown>(
@@ -90,7 +73,7 @@ async function peerdbFetch<T = unknown>(
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        ...authHeader(config),
+        ...buildPeerDBAuthHeader(config),
       },
     })
   } catch (err) {
@@ -120,11 +103,13 @@ async function peerdbFetch<T = unknown>(
 export const Route = createFileRoute('/api/v1/peerdb-status')({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
         const bindings = env as Record<string, string | undefined>
         const requestId = generateRequestId()
 
-        const config = getPeerDBConfig(bindings)
+        // Env config, OR a per-connection PeerDB link when `?connection=<id>`
+        // is present and the signed-in user owns that connection.
+        const config = await resolvePeerDBRequestConfig(request, bindings)
 
         if (!config) {
           const payload: PeerDBStatusPayload = {

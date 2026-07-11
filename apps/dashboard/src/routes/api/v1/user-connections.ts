@@ -35,6 +35,7 @@ import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
 import { ConnectionStoreError } from '@/lib/connection-store/types'
 import { emitEvent } from '@/lib/events/outbound-bus'
+import { buildPeerdbCredentialFields } from '@/lib/peerdb/peerdb-auth'
 
 const ROUTE_GET = { route: '/api/v1/user-connections', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/user-connections', method: 'POST' }
@@ -84,6 +85,10 @@ interface CreateRequest {
   port?: number
   database?: string
   sslmode?: string
+  /** Optional PeerDB monitoring link (any engine). */
+  peerdbApiUrl?: string
+  peerdbAuthScheme?: string
+  peerdbAuthSecret?: string
 }
 
 /**
@@ -315,6 +320,38 @@ async function handlePost(request: Request): Promise<Response> {
         engine,
       }
     }
+
+    // Optional PeerDB monitoring link (any engine): validate the scheme + shape
+    // the fields, SSRF-guard the URL like a ClickHouse host, then fold into the
+    // encrypted envelope. The secret lives only in the payload — GET never
+    // returns it.
+    const peerdb = buildPeerdbCredentialFields({
+      apiUrl: body.peerdbApiUrl,
+      scheme: body.peerdbAuthScheme,
+      secret: body.peerdbAuthSecret,
+    })
+    if (peerdb.error) {
+      return createApiErrorResponse(
+        { type: ApiErrorType.ValidationError, message: peerdb.error },
+        400,
+        ROUTE_POST
+      )
+    }
+    if (peerdb.fields.peerdbApiUrl) {
+      const peerdbSsrf = await validateHostUrl(peerdb.fields.peerdbApiUrl)
+      if (peerdbSsrf) {
+        return createApiErrorResponse(
+          {
+            type: ApiErrorType.ValidationError,
+            message: `PeerDB API URL: ${peerdbSsrf}`,
+          },
+          400,
+          ROUTE_POST
+        )
+      }
+      input.credentials = { ...input.credentials, ...peerdb.fields }
+    }
+
     let created
     try {
       created = await store.create(userId, input, {

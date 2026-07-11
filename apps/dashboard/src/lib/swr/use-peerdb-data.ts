@@ -6,6 +6,8 @@ import { apiFetch } from './api-fetch'
 import { visibilityAwareInterval } from './config'
 import { type FetchError, throwIfNotOk } from './fetch-error'
 import { useCallback } from 'react'
+import { useSearchParams } from '@/lib/next-compat'
+import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 
 /**
  * SWR hook for the view-only PeerDB proxy at `/api/v1/peerdb/*`.
@@ -17,12 +19,18 @@ import { useCallback } from 'react'
  *
  * The proxy wraps payloads in the standard `ApiResponse` envelope, so the
  * fetcher unwraps `.data` and returns the bare PeerDB payload.
+ *
+ * `options.connection` targets a per-user connection's PeerDB link
+ * (`?connection=<id>`). When omitted it defaults to the active `?connection=`
+ * URL search param, so a page needs no wiring to honour the selector; passing
+ * `null`/`''` forces the env-wide config.
  */
 export function usePeerDB<T = unknown>(
   path: string | null,
   options?: {
     body?: unknown
     refreshInterval?: number
+    connection?: string | null
   }
 ) {
   const { body, refreshInterval } = options ?? {}
@@ -30,21 +38,35 @@ export function usePeerDB<T = unknown>(
   const method = hasBody ? 'POST' : 'GET'
   const bodyKey = hasBody ? JSON.stringify(body) : ''
 
+  const searchParams = useSearchParams()
+  const connection =
+    options && 'connection' in options
+      ? (options.connection ?? undefined)
+      : (searchParams.get(PEERDB_CONNECTION_PARAM) ?? undefined)
+  const connectionQuery = connection
+    ? `?${PEERDB_CONNECTION_PARAM}=${encodeURIComponent(connection)}`
+    : ''
+
   // Tolerate callers passing `mirrors/list` or `/mirrors/list` alike so the
   // proxy URL never collapses to `/api/v1/peerdbmirrors/list`.
   const normalizedPath =
     path === null ? null : path.startsWith('/') ? path : `/${path}`
   const key =
-    normalizedPath === null ? null : ['peerdb', normalizedPath, method, bodyKey]
+    normalizedPath === null
+      ? null
+      : ['peerdb', normalizedPath, method, bodyKey, connection ?? '']
 
   const fetcher = useCallback(async (): Promise<T> => {
     try {
-      const response = await apiFetch(`/api/v1/peerdb${normalizedPath}`, {
-        method,
-        ...(hasBody
-          ? { headers: { 'Content-Type': 'application/json' }, body: bodyKey }
-          : {}),
-      })
+      const response = await apiFetch(
+        `/api/v1/peerdb${normalizedPath}${connectionQuery}`,
+        {
+          method,
+          ...(hasBody
+            ? { headers: { 'Content-Type': 'application/json' }, body: bodyKey }
+            : {}),
+        }
+      )
       await throwIfNotOk(response, `Failed to fetch PeerDB ${normalizedPath}`)
       const json = (await response.json()) as ApiResponse<T>
       return json.data as T
@@ -63,7 +85,7 @@ export function usePeerDB<T = unknown>(
       wrapped.details = src.details
       throw wrapped
     }
-  }, [normalizedPath, method, bodyKey, hasBody])
+  }, [normalizedPath, connectionQuery, method, bodyKey, hasBody])
 
   const queryClient = useQueryClient()
 

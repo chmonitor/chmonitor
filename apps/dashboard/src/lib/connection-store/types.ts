@@ -38,6 +38,19 @@ export interface ConnectionCredentials {
   database?: string
   /** libpq `sslmode` (v2, Postgres only): `disable` | `require` | `verify-full`. */
   sslmode?: string
+  /**
+   * Optional PeerDB monitoring link (any engine). Attaches a PeerDB flow-api
+   * deployment to this connection so the /peerdb pages can read CDC mirrors via
+   * `?connection=<id>` instead of the single env-wide `PEERDB_API_URL`. Flat
+   * optional fields mirror the Postgres precedent (`port`/`database`/`sslmode`)
+   * so old ciphertext round-trips without a re-key. The secret lives ONLY here
+   * in the encrypted payload — list APIs never return it.
+   */
+  peerdbApiUrl?: string
+  /** PeerDB auth scheme: `basic` (empty-user password) or `bearer` (API token). */
+  peerdbAuthScheme?: 'basic' | 'bearer'
+  /** PeerDB Basic password or Bearer token. Absent ⇒ an open (auth-less) flow-api. */
+  peerdbAuthSecret?: string
 }
 
 /** Public-facing connection metadata (no password). */
