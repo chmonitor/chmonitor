@@ -91,7 +91,7 @@ curl -H "Authorization: Bearer $AGENT_API_TOKEN" \
 
 Set `CHM_FEATURE_POSTGRES_SOURCE=true` to expose the agent's read-only Postgres
 tools (`run_postgres_select_query`, `get_postgres_metrics`,
-`list_postgres_slow_query_patterns`). They resolve a per-call `pgHostId` against
+`list_postgres_slow_query_patterns`, `get_postgres_table_stats`). They resolve a per-call `pgHostId` against
 the `POSTGRES_*` env lists below — a flat positional index, exactly like a
 ClickHouse `hostId` indexes the `CLICKHOUSE_*` lists. All lists are
 comma-separated and index-aligned with `POSTGRES_HOST`; a single `POSTGRES_USER`

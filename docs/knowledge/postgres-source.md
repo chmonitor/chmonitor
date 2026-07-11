@@ -6,7 +6,8 @@ related:
   - billing-checkout-flow
   - deployment
   - conventions
-tags: [postgres, multi-engine, connections, agent, feature-flag]
+  - ai-insights
+tags: [postgres, multi-engine, connections, agent, feature-flag, insights]
 updated: 2026-07-11
 ---
 
@@ -84,13 +85,26 @@ patterns + flyout) and `/postgres/activity` (pg_stat_activity). Missing
 
 ## Agent surface
 
-Three tools (gated off with the flag, absent when disabled):
-`run_postgres_select_query`, `get_postgres_metrics`,
-`list_postgres_slow_query_patterns` — mirroring ClickHouse Cloud's own set.
-Cross-source correlation is prompting-only (both tool sets in one
-conversation); no bespoke join primitive. The `migration-patterns` skill
-carries the Postgres→ClickHouse section (type mapping, PK→ORDER BY, PeerDB as
-the recommended CDC path; ClickPipes is the managed analog).
+Four tools (gated off with the flag, absent when disabled):
+`run_postgres_select_query`, `get_postgres_metrics` (now includes
+`max_connections` + connection saturation %), `list_postgres_slow_query_patterns`,
+and `get_postgres_table_stats` (dead-tuple bloat + last autovacuum/analyze +
+unused indexes) — mirroring ClickHouse Cloud's own set. Cross-source correlation
+is prompting-only (both tool sets in one conversation); no bespoke join
+primitive. The `migration-patterns` skill carries the Postgres→ClickHouse section
+(type mapping, PK→ORDER BY, PeerDB as the recommended CDC path; ClickPipes is the
+managed analog).
+
+## AI Insights surface
+
+Postgres is a first-class source for the AI Insights engine (env-gated by the
+same flag). Deterministic collectors (`postgres-collectors.ts` + pure
+`postgres-checks.ts`) run per env `pgHostId`, findings are persisted in the SAME
+`InsightsStore` under a **reserved host offset** so they never collide with a
+ClickHouse `hostId` (dismissal keys are engine-prefixed `pg:<id>:…`), the cron
+sweep generates them after the ClickHouse loop, and a compact
+`PostgresInsightsPanel` surfaces them on `/postgres/queries`. Full design +
+namespacing rationale in [ai-insights.md](ai-insights.md) ("Postgres insights").
 
 ## Open follow-ups
 

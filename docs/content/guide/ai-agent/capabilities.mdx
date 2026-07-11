@@ -4,7 +4,7 @@ description: Full reference for the agent's 26+ tools, 18 expert skills, plan-an
 icon: Sparkles
 ---
 
-The agent exposes a small set of **powerful primitives** (27 tools, plus 3 env-gated control tools and 3 env-gated cross-source Postgres tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
+The agent exposes a small set of **powerful primitives** (27 tools, plus 3 env-gated control tools and 4 env-gated cross-source Postgres tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
 
 ## Tools
 
@@ -22,7 +22,7 @@ The agent exposes a small set of **powerful primitives** (27 tools, plus 3 env-g
 | Advisor | Ranked skip-index/projection/partition/PREWHERE recommendations for a slow query (recommend-only) | `get_optimization_recommendations` |
 | Dashboards | Suggest a dashboard layout from registry charts for a natural-language request (recommend-only) | `suggest_dashboard` |
 | Control actions (env-gated) | Kill query/mutation, optimize table | `kill_query`, `kill_mutation`, `optimize_table` |
-| Cross-source Postgres (env-gated) | Read-only SELECT, health metrics, and slow-query patterns against a Postgres source, for correlating with ClickHouse in one conversation | `run_postgres_select_query`, `get_postgres_metrics`, `list_postgres_slow_query_patterns` |
+| Cross-source Postgres (env-gated) | Read-only SELECT, health metrics, slow-query patterns, and per-table stats against a Postgres source, for correlating with ClickHouse in one conversation | `run_postgres_select_query`, `get_postgres_metrics`, `list_postgres_slow_query_patterns`, `get_postgres_table_stats` |
 
 Everything else (expensive-query rankings, query patterns, anomalies, table-design advice, settings, logs, replication queue, ZooKeeper, users…) is done with `query` plus the relevant skill recipe — so the agent keeps full reach with a much smaller, more reliable tool surface.
 
@@ -31,7 +31,7 @@ Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unl
 </Callout>
 
 <Callout type="info" title="Cross-source Postgres tools are off by default">
-The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_postgres_slow_query_patterns`) appear only when `CHM_FEATURE_POSTGRES_SOURCE=true` and at least one Postgres source is configured via the `POSTGRES_*` env lists (see [Configuration](/guide/ai-agent/configuration)). They read Postgres over the read-only `pg` path and take a `pgHostId` (an index into the `POSTGRES_*` lists), so the agent can correlate ClickHouse and Postgres in one conversation. They read env-configured Postgres hosts; per-user (D1) Postgres connections are not yet visible to the agent — the same limitation as the ClickHouse agent tools.
+The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_postgres_slow_query_patterns`, `get_postgres_table_stats`) appear only when `CHM_FEATURE_POSTGRES_SOURCE=true` and at least one Postgres source is configured via the `POSTGRES_*` env lists (see [Configuration](/guide/ai-agent/configuration)). They read Postgres over the read-only `pg` path and take a `pgHostId` (an index into the `POSTGRES_*` lists), so the agent can correlate ClickHouse and Postgres in one conversation. They read env-configured Postgres hosts; per-user (D1) Postgres connections are not yet visible to the agent — the same limitation as the ClickHouse agent tools.
 </Callout>
 
 ### Tool reference
@@ -69,8 +69,9 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 | `kill_mutation` | Cancel a running mutation on a table. | **DESTRUCTIVE.** Env-gated: requires `AGENT_ENABLE_CONTROL_TOOLS=true`. Agent always confirms first. |
 | `optimize_table` | Trigger an OPTIMIZE on a table to force merges. | **DESTRUCTIVE.** Env-gated: requires `AGENT_ENABLE_CONTROL_TOOLS=true`. Agent always confirms first. |
 | `run_postgres_select_query` | Execute a read-only SQL query against a Postgres source (`pgHostId`). | Env-gated: requires `CHM_FEATURE_POSTGRES_SOURCE=true`. SELECT / WITH / SHOW / EXPLAIN / TABLE / VALUES only — writes and multi-statement strings are rejected and the session is pinned read-only. Results capped (default 1000 rows) with a `truncated` flag + note. |
-| `get_postgres_metrics` | Postgres health for a source (`pgHostId`): version, uptime, connection counts by state, buffer-cache hit ratio, transaction commit/rollback + deadlocks, database size, and replication status. | Env-gated: requires `CHM_FEATURE_POSTGRES_SOURCE=true`. Reads `pg_stat_activity`, `pg_stat_database`, `pg_stat_replication`. The Postgres analog of `get_metrics`. |
+| `get_postgres_metrics` | Postgres health for a source (`pgHostId`): version, uptime, connection counts by state with `max_connections` + saturation %, buffer-cache hit ratio, transaction commit/rollback + deadlocks, database size, and replication status. | Env-gated: requires `CHM_FEATURE_POSTGRES_SOURCE=true`. Reads `pg_stat_activity`, `pg_settings`, `pg_stat_database`, `pg_stat_replication`. The Postgres analog of `get_metrics`. |
 | `list_postgres_slow_query_patterns` | Top normalized slow-query patterns from `pg_stat_statements` (`pgHostId`): calls, total/mean exec time, rows, shared-buffer cache-hit ratio, WAL bytes. | Env-gated: requires `CHM_FEATURE_POSTGRES_SOURCE=true`. Returns an informative message (not an error) when the `pg_stat_statements` extension is not installed. The Postgres analog of `list_slow_query_patterns`. |
+| `get_postgres_table_stats` | Per-table health for a source (`pgHostId`): worst dead-tuple bloat (dead vs live, dead %, last vacuum/autovacuum/analyze) and unused indexes (`idx_scan = 0`, excluding PK/unique, with on-disk size). | Env-gated: requires `CHM_FEATURE_POSTGRES_SOURCE=true`. Reads `pg_stat_user_tables`, `pg_stat_user_indexes`, `pg_index`. The per-table companion to `get_postgres_metrics`. |
 
 ## Skills
 

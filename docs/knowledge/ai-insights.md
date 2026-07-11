@@ -3,19 +3,21 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-07-04
+updated: 2026-07-11
 tags:
   - insights
   - findings
   - overview
   - ai
   - dismissal
+  - postgres
 related:
   - mcp-server
   - query-config-format
   - conventions
   - agentstate-conversation-store
   - agent-conversation-storage
+  - postgres-source
 ---
 
 # AI Insights Engine
@@ -172,6 +174,64 @@ Files: `clickhouse-store.ts`, `d1-store.ts`, `postgres-store.ts`,
 | `DATABASE_URL` | for `postgres` | — | reused from the conversation Postgres store |
 | `AGENTSTATE_API_KEY` | for `agentstate` | — | reused from the AgentState conversation store |
 | `AGENTSTATE_BASE_URL` | no | SDK default | self-host endpoint for `agentstate` |
+
+## Postgres insights (cross-source, env-gated)
+
+The engine also covers **Postgres** monitored sources (epic #2264), gated by
+`CHM_FEATURE_POSTGRES_SOURCE` (fail-closed — flag off ⇒ zero diff). It mirrors
+the ClickHouse pipeline with Postgres-specific modules:
+
+| Stage | Module |
+|-------|--------|
+| Collect (deterministic PG reads) | `src/lib/insights/postgres-collectors.ts` (`collectPostgresInsights(pgHostId)`) |
+| Pure classifiers | `src/lib/insights/postgres-checks.ts` |
+| Orchestrate + persist | `src/lib/insights/generate-postgres-insights.ts` (`generatePostgresInsights`) |
+| Read + de-dupe | `src/lib/insights/read-postgres-insights.ts` (`readPostgresInsights`) |
+
+- **Collectors** run single read-only statements through the shared Phase-2 path
+  (`runPostgresReadOnly` → `queryPostgres`, session pinned read-only) against ONE
+  env-configured source (`pgHostId`, index into the `POSTGRES_*` lists — the same
+  id the agent tools + cron use). They **never throw** (swallow to `[]`).
+- **Checks** (each a pure fn in `postgres-checks.ts`, unit-tested in
+  `postgres-checks.test.ts`): connection saturation vs `max_connections`
+  (`pg_stat_activity` + `pg_settings`), buffer-cache hit ratio (`pg_stat_database`,
+  guarded by a min-blocks floor so a cold server is skipped), idle-in-transaction
+  + longest active query (`pg_stat_activity`), `pg_stat_statements` availability,
+  worst dead-tuple bloat (`pg_stat_user_tables`), unused indexes
+  (`pg_stat_user_indexes`, excluding PK/unique), replication lag, and
+  rollback/deadlock ratio. Findings **reuse existing categories**
+  (`performance`/`reliability`/`storage`/`optimization`) with `pg_`-prefixed
+  metrics and "Postgres:" title prefixes — so the board's `CATEGORY_META` and
+  filters work unchanged.
+- **Namespacing decision (no migration).** The `InsightsStore` is keyed by a bare
+  numeric `hostId`, and a `pgHostId` shares the integer space with a ClickHouse
+  `hostId` (both can be 0). Rather than migrate the store to a composite
+  `(engine,id)` key (touching all 5 backends + the D1/PG table schemas), Postgres
+  findings are recorded under a **reserved host offset**:
+  `pgInsightStoreHostId(pgHostId) = POSTGRES_INSIGHT_STORE_HOST_OFFSET (1_000_000)
+  + pgHostId` (`types.ts`). CH env hosts are small indices and D1 user
+  connections are negative, so the offset is disjoint from both — a Postgres
+  source can never be read back as ClickHouse host 0. All existing ClickHouse
+  keys stay **byte-identical** (zero migration). The **dismissal key** is
+  separately engine-prefixed: `insightKey(pgHostId, …, 'postgres')` →
+  `pg:<pgHostId>:<category>:<metric>:<title>` (readable, collision-proof, stable
+  across regenerations). Covered by `insights.test.ts`.
+- **Cron**: after the ClickHouse loop, `runHealthSweep` iterates
+  `getPostgresConfigs()` and calls `generatePostgresInsights(pgConfig.id)` — ONLY
+  when `CHM_FEATURE_POSTGRES_SOURCE === 'true'`, wrapped so a PG failure can never
+  break the CH sweep. The cron route bridges `POSTGRES_*` + the flag onto
+  `process.env` via `bridgePostgresEnv` (sibling of `bridgeClickHouseEnv`).
+- **Manual + read**: `GET/POST /api/v1/insights/postgres?pg=<id>` (feature-gated,
+  fail-closed to a `disabled`-flagged empty payload). POST self-enforces the same
+  write gate as the ClickHouse generate route.
+- **UI**: `PostgresInsightsPanel` (`components/postgres/postgres-insights-panel.tsx`)
+  renders above the slow-query table on `/postgres/queries` via
+  `usePostgresInsights`. Reuses `InsightCard` (given an optional `linkSearch` prop
+  so deep-links carry the active `?pg=` connection instead of `?host`). Keyed by
+  the env source id (default 0); renders nothing when there are no findings.
+  **Limitation**: the env `pgHostId` space (agent/cron/insights) is not yet
+  unified with the UI's per-user D1 `?pg=` connections (an existing open
+  follow-up in [postgres-source.md](postgres-source.md)).
 
 ## Generation triggers
 
