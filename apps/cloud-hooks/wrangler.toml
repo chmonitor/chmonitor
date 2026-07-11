@@ -11,11 +11,25 @@
 #   CLERK_SECRET_KEY            lazy Clerk org creation on first paid event
 #   TELEGRAM_BOT_TOKEN          operator notifications
 #   TELEGRAM_CHAT_ID            operator notifications target chat
-#   GITHUB_TOKEN                file a GitHub issue per NEW Worker exception
-#                               (PAT/App token with `issues:write` on the repo)
+#   GITHUB_TOKEN                file a GitHub issue per NEW Worker exception —
+#                               PAT with `issues:write` on the repo (fallback
+#                               when the GitHub App creds below are unset)
+#   GH_APP_ID                   GitHub App id (the `duyetbot` app). With
+#                               GH_APP_PRIVATE_KEY, issues are filed as the App
+#                               (installation token) — takes precedence over
+#                               GITHUB_TOKEN. App needs Issues: Read & write and
+#                               must be installed on the repo.
+#   GH_APP_PRIVATE_KEY          App private key as a PKCS#8 PEM (BEGIN PRIVATE
+#                               KEY). Escaped \n newlines OK. Convert GitHub's
+#                               PKCS#1 download once:
+#                               openssl pkcs8 -topk8 -nocrypt -in key.pem -out pkcs8.pem
 #   CF_OBSERVABILITY_API_TOKEN  read Worker exceptions via the Telemetry query
 #                               API. Token scope: Account → Workers
 #                               Observability → Read.
+#
+# GitHub App config (optional):
+#   GH_APP_INSTALLATION_ID      installation id; unset → resolved from the repo
+#                               and cached in CHM_HOOKS_KV.
 #
 # Exception-scan config (non-secret, optional — set via CI `--var`; sensible
 # defaults baked in):
@@ -25,8 +39,9 @@
 #   CHM_EXCEPTION_MAX_ISSUES_PER_RUN  rate cap, default 5
 #   CHM_EXCEPTION_SCRIPTS             default `chmonitor-dash,chmonitor-hooks`
 #
-# Any of GITHUB_TOKEN / CF_OBSERVABILITY_API_TOKEN / CF_ACCOUNT_ID unset →
-# the exception-scan capability logs one line and no-ops (never crashes).
+# No GitHub auth (neither App creds nor GITHUB_TOKEN), or CF_OBSERVABILITY_API_TOKEN
+# / CF_ACCOUNT_ID unset → the exception-scan capability logs one line and no-ops
+# (never crashes).
 #
 # Product→plan mapping (non-secret, set via CI `--var` or the dashboard, mirror
 # apps/dashboard/.env.production so both Workers map products IDENTICALLY):

@@ -14,8 +14,11 @@
  * logged and skipped rather than crashing the cron.
  */
 
+import type { GitHubAppAuth } from './github-app'
 import type { WorkerException } from './observability'
 import type { NotifyKind } from './telegram'
+
+import { withTokenRefresh } from './github-app'
 
 export const EXCEPTION_NOTIFY_KIND: NotifyKind = 'error'
 const KV_PREFIX = 'exc-fp:v1:'
@@ -195,7 +198,13 @@ export interface KVLike {
 
 export interface RunExceptionScanDeps {
   repo: GitHubRepo
+  /** A ready-to-use GitHub token (App installation token or PAT). */
   githubToken: string
+  /**
+   * When issues are authed as a GitHub App, the token provider used to refresh
+   * once on a 401 (installation token revoked/expired early). Omit for PAT auth.
+   */
+  auth?: GitHubAppAuth | null
   /** Fetch aggregated exception fingerprints (from observability.ts). */
   fetchExceptions: () => Promise<WorkerException[]>
   kv?: KVLike | null
@@ -281,14 +290,12 @@ export async function runExceptionScan(
       continue
     }
 
-    // 3. File the issue.
+    // 3. File the issue (refreshing App auth once on a 401).
     const issue = buildExceptionIssue(exc, labels)
-    const result = await createGitHubIssue(
-      deps.repo,
-      deps.githubToken,
-      issue,
-      fetchImpl,
-      apiBase
+    const result = await withTokenRefresh(
+      deps.auth ?? null,
+      (token) => createGitHubIssue(deps.repo, token, issue, fetchImpl, apiBase),
+      deps.githubToken
     )
     if (!result.ok) {
       logError('[cloud-hooks] createGitHubIssue failed', {

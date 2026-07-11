@@ -17,11 +17,31 @@ export interface Env {
   TELEGRAM_BOT_TOKEN?: string
   TELEGRAM_CHAT_ID?: string
   /**
-   * GitHub token (PAT/App token with `issues:write` on the target repo) used to
-   * file a GitHub issue per NEW Cloudflare Worker exception fingerprint. Unset →
-   * the exception-scan capability is disabled (no crash).
+   * GitHub PAT with `issues:write` on the target repo, used to file a GitHub
+   * issue per NEW Cloudflare Worker exception fingerprint. Fallback when the
+   * GitHub App creds below are unset. No auth at all → the exception-scan
+   * capability is disabled (no crash).
    */
   GITHUB_TOKEN?: string
+  /**
+   * GitHub App id (the `duyetbot` app). With `GH_APP_PRIVATE_KEY`, exception
+   * issues are filed as the App (installation token) instead of a PAT — App
+   * creds take precedence over `GITHUB_TOKEN`. The App needs **Issues: Read &
+   * write** and must be installed on the target repo.
+   */
+  GH_APP_ID?: string
+  /**
+   * GitHub App private key as a **PKCS#8** PEM (`-----BEGIN PRIVATE KEY-----`).
+   * Escaped `\n` newlines are handled. A PKCS#1 key (`BEGIN RSA PRIVATE KEY`,
+   * GitHub's default download) fails with a clear "convert with
+   * `openssl pkcs8 -topk8`" message — convert it once before setting.
+   */
+  GH_APP_PRIVATE_KEY?: string
+  /**
+   * Optional GitHub App installation id. Unset → resolved once from the repo
+   * (`GET /repos/{owner}/{repo}/installation`) and cached in `CHM_HOOKS_KV`.
+   */
+  GH_APP_INSTALLATION_ID?: string
   /**
    * Cloudflare API token with **Account → Workers Observability → Read** (the
    * Telemetry query API). Used to pull recent Worker exceptions. Unset → the

@@ -15,6 +15,7 @@
 import type { Env } from './env'
 
 import { parseRepo, runExceptionScan } from './exceptions'
+import { resolveGitHubAuth } from './github-app'
 import { fetchWorkerExceptions } from './observability'
 import { runProbes } from './probes'
 import { collectSummary, formatSummary } from './summary'
@@ -48,7 +49,10 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
  */
 async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
   const missing: string[] = []
-  if (!env.GITHUB_TOKEN) missing.push('GITHUB_TOKEN')
+  const hasGitHubAuth =
+    (env.GH_APP_ID && env.GH_APP_PRIVATE_KEY) || env.GITHUB_TOKEN
+  if (!hasGitHubAuth)
+    missing.push('GH_APP_ID+GH_APP_PRIVATE_KEY or GITHUB_TOKEN')
   if (!env.CF_OBSERVABILITY_API_TOKEN)
     missing.push('CF_OBSERVABILITY_API_TOKEN')
   if (!env.CF_ACCOUNT_ID) missing.push('CF_ACCOUNT_ID')
@@ -62,6 +66,17 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
   const repo = parseRepo(env.GITHUB_REPOSITORY || 'chmonitor/chmonitor')
   if (!repo) {
     console.log('[cloud-hooks] exception scan disabled (bad GITHUB_REPOSITORY)')
+    return
+  }
+
+  const auth = resolveGitHubAuth(
+    env,
+    repo.owner,
+    repo.repo,
+    env.CHM_HOOKS_KV ?? null
+  )
+  if (auth.mode === 'disabled') {
+    console.log('[cloud-hooks] exception scan disabled (no GitHub credentials)')
     return
   }
 
@@ -80,10 +95,20 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
     10
   )
 
+  let githubToken: string
+  try {
+    githubToken =
+      auth.mode === 'app' ? await auth.app!.getToken() : (auth.token as string)
+  } catch (err) {
+    console.error('[cloud-hooks] GitHub App token acquisition failed', err)
+    return
+  }
+
   try {
     await runExceptionScan({
       repo,
-      githubToken: env.GITHUB_TOKEN as string,
+      githubToken,
+      auth: auth.mode === 'app' ? auth.app : null,
       fetchExceptions: () =>
         fetchWorkerExceptions({
           accountId: env.CF_ACCOUNT_ID as string,

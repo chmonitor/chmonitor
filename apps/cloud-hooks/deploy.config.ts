@@ -14,6 +14,9 @@ export default {
     'CHM_EXCEPTION_ISSUE_LABELS',
     'CHM_EXCEPTION_MAX_ISSUES_PER_RUN',
     'CHM_EXCEPTION_SCRIPTS',
+    // Optional GitHub App installation id (non-secret); unset → resolved from
+    // the repo and cached in KV.
+    'GH_APP_INSTALLATION_ID',
   ],
   secrets: [
     'POLAR_WEBHOOK_SECRET',
@@ -26,5 +29,9 @@ export default {
     // values are skipped with a warning, not a hard failure.
     'GITHUB_TOKEN',
     'CF_OBSERVABILITY_API_TOKEN',
+    // GitHub App auth (the `duyetbot` app) — takes precedence over GITHUB_TOKEN
+    // when both are set. GH_APP_PRIVATE_KEY must be a PKCS#8 PEM.
+    'GH_APP_ID',
+    'GH_APP_PRIVATE_KEY',
   ],
 }

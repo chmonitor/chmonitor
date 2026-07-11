@@ -3,7 +3,7 @@ id: cloud-hooks-worker
 type: spec
 related: [billing-checkout-flow, cloud-saas-mode, bug-handler-email-worker, deployment]
 tags: [cloud-hooks, polar, webhook, telegram, cron, cloudflare, billing, d1]
-updated: 2026-07-11
+updated: 2026-07-12
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -71,6 +71,26 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   GitHub search fallback (`in:body "<fp>"`) so a KV miss/eviction never re-files;
   the fallback backfills KV. **Rate cap**: `maxIssuesPerRun` (default 5). Labels
   default `bug,cloudflare-exception`. Every step is injected + never throws.
+  **Auth** is resolved by `github-app.ts`'s `resolveGitHubAuth`, order:
+  GitHub App creds (`GH_APP_ID` + `GH_APP_PRIVATE_KEY`) → PAT (`GITHUB_TOKEN`) →
+  disabled (one log line). App mode passes the installation token as
+  `githubToken` and the provider as `auth` so a `401` refreshes once.
+- `github-app.ts` — **GitHub App auth** (the `duyetbot` app) for the exception
+  scan's issue creation. Mints an RS256 **app JWT** with WebCrypto
+  (`crypto.subtle.importKey('pkcs8', …)` + `sign` — no npm `jsonwebtoken` dep;
+  claims `iat=now-60`, `exp=now+9min`, `iss=appId`), exchanges it for an
+  **installation access token** (`POST /app/installations/{id}/access_tokens`),
+  resolving the installation id once (`GET /repos/{owner}/{repo}/installation`)
+  when `GH_APP_INSTALLATION_ID` is unset and caching it in `CHM_HOOKS_KV`
+  (`gh-app:install-id:v1:<owner>/<repo>`). The installation token is cached in KV
+  (`gh-app:token:v1:<owner>/<repo>`) until ~5 min before its 1h expiry
+  (`TOKEN_EXPIRY_MARGIN_MS`); `withTokenRefresh` refreshes once on a mid-flight
+  `401`. `normalizePrivateKey` handles escaped `\n` newlines and accepts only
+  **PKCS#8** (`BEGIN PRIVATE KEY`) — a PKCS#1 key (`BEGIN RSA PRIVATE KEY`,
+  GitHub's default download) throws a clear "convert with `openssl pkcs8 -topk8`"
+  message rather than a cryptic WebCrypto error. `resolveGitHubAuth` decides the
+  auth mode (see below). Everything is injected (fetch/KV/clock) and unit-tested
+  without the network.
 - `summary.ts` — `collectSummary` queries the subscription store (active subs by
   plan, new signups in 24h) and computes an MRR estimate from `BILLING_PLANS`
   (`@chm/pricing`) — yearly normalized to price/12. Pure `reduceSummary`/
@@ -103,8 +123,10 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
 - **No secrets, no product-id vars committed.** Secrets set via
   `wrangler secret put` (CI does this, skipping any that are unset):
   `POLAR_WEBHOOK_SECRET`, `POLAR_ACCESS_TOKEN`, `CLERK_SECRET_KEY`,
-  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, plus `GITHUB_TOKEN` (repo secret
-  `CLOUD_HOOKS_GITHUB_TOKEN`, `issues:write`) and `CF_OBSERVABILITY_API_TOKEN`
+  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, plus GitHub issue-creation auth
+  (**either** `GH_APP_ID` + `GH_APP_PRIVATE_KEY` for GitHub App auth — preferred —
+  **or** `GITHUB_TOKEN`, a PAT with `issues:write`, repo secret
+  `CLOUD_HOOKS_GITHUB_TOKEN`) and `CF_OBSERVABILITY_API_TOKEN`
   (token scope **Account → Workers Observability → Read**). The `CHM_POLAR_PRODUCT_*`
   map + `CHM_POLAR_SERVER` must be set (mirroring `apps/dashboard/.env.production`)
   before the Polar endpoint is cut over, or products won't map.
@@ -114,6 +136,30 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CHM_EXCEPTION_ISSUE_LABELS` (`bug,cloudflare-exception`),
   `CHM_EXCEPTION_MAX_ISSUES_PER_RUN` (`5`), `CHM_EXCEPTION_SCRIPTS`
   (`chmonitor-dash,chmonitor-hooks`).
+
+## GitHub App auth setup (issue creation)
+
+The exception scan can file issues as the **`duyetbot` GitHub App** (preferred
+over a PAT — no personal token, scoped, shows as the app). Operator steps:
+
+1. **App permissions** — in the GitHub App settings, set **Repository →
+   Issues: Read & write** (the only permission the scan needs).
+2. **Install on the repo** — install the app on `chmonitor/chmonitor` (or the
+   `GITHUB_REPOSITORY` you target).
+3. **Generate a private key** — App settings → "Generate a private key". GitHub
+   hands you a **PKCS#1** PEM (`BEGIN RSA PRIVATE KEY`). WebCrypto only imports
+   **PKCS#8**, so convert it once:
+   ```bash
+   openssl pkcs8 -topk8 -nocrypt -in duyetbot.private-key.pem -out duyetbot.pkcs8.pem
+   ```
+   (Setting the PKCS#1 key directly fails fast with this exact hint.)
+4. **Set the secrets** — `GH_APP_ID` = the app's numeric id, `GH_APP_PRIVATE_KEY`
+   = the PKCS#8 PEM contents (escaped `\n` newlines are fine). Optionally set
+   `GH_APP_INSTALLATION_ID` to skip the one-time installation lookup (otherwise
+   it is resolved from the repo and cached in `CHM_HOOKS_KV`).
+
+With App creds present, `GITHUB_TOKEN` is ignored. Remove both → the scan
+falls back to the PAT; remove all GitHub creds → the scan no-ops.
 
 ## CI
 

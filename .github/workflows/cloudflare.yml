@@ -1062,6 +1062,9 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GITHUB_TOKEN: ${{ secrets.CLOUD_HOOKS_GITHUB_TOKEN }}
           CF_OBSERVABILITY_API_TOKEN: ${{ secrets.CF_OBSERVABILITY_API_TOKEN }}
+          # GitHub App auth for exception issues (preferred over the PAT above).
+          GH_APP_ID: ${{ secrets.CLOUD_HOOKS_GH_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.CLOUD_HOOKS_GH_APP_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           put() {
@@ -1079,3 +1082,5 @@ jobs:
           put TELEGRAM_CHAT_ID "${TELEGRAM_CHAT_ID:-}"
           put GITHUB_TOKEN "${GITHUB_TOKEN:-}"
           put CF_OBSERVABILITY_API_TOKEN "${CF_OBSERVABILITY_API_TOKEN:-}"
+          put GH_APP_ID "${GH_APP_ID:-}"
+          put GH_APP_PRIVATE_KEY "${GH_APP_PRIVATE_KEY:-}"
