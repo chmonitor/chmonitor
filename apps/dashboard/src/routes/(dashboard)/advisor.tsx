@@ -5,6 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { AdvisorRecommendationsOutput } from '@/components/agents/advisor-recommendations-panel'
 
 import { lazy, Suspense, useState } from 'react'
+import { AdvisorQueryPicker } from '@/components/agents/advisor-query-picker'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
 import { ErrorAlert } from '@/components/feedback'
 import { TableSkeleton } from '@/components/skeletons'
@@ -106,6 +107,11 @@ function AdvisorContent() {
     }
   }
 
+  const handlePickQuery = (sql: string) => {
+    setMode('sql')
+    setSqlInput(sql)
+  }
+
   const canAnalyze =
     mode === 'sql' ? Boolean(sqlInput.trim()) : Boolean(queryIdInput.trim())
 
@@ -135,10 +141,13 @@ function AdvisorContent() {
             value={mode}
             onValueChange={(v) => setMode(v as 'sql' | 'queryId')}
           >
-            <TabsList>
-              <TabsTrigger value="sql">SQL</TabsTrigger>
-              <TabsTrigger value="queryId">Query ID</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between gap-2">
+              <TabsList>
+                <TabsTrigger value="sql">SQL</TabsTrigger>
+                <TabsTrigger value="queryId">Query ID</TabsTrigger>
+              </TabsList>
+              <AdvisorQueryPicker onPick={handlePickQuery} />
+            </div>
 
             <TabsContent value="sql" className="space-y-2 pt-2">
               <Suspense fallback={<EditorFallback />}>
