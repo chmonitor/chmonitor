@@ -89,6 +89,16 @@ importers:
         specifier: ^4.97.0
         version: 4.107.0(@cloudflare/workers-types@4.20260702.1)
 
+  packages/billing-webhook-core:
+    dependencies:
+      '@chm/pricing':
+        specifier: workspace:*
+        version: link:../pricing
+    devDependencies:
+      typescript:
+        specifier: ^6.0.0
+        version: 6.0.3
+
   packages/clickhouse-client:
     dependencies:
       '@chm/logger':
