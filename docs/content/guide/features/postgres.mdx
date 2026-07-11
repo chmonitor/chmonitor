@@ -1,0 +1,157 @@
+---
+description: Monitor a Postgres database alongside your ClickHouse clusters — read-only query insights, running queries, and AI agent tools. Beta, free on every plan.
+icon: Database
+title: Postgres
+---
+
+chmonitor can monitor a Postgres database the same way it monitors ClickHouse: read-only, no agent to install, from the same dashboard. This is a **beta** feature — off by default, free on every plan (including self-hosted) while it stabilizes.
+
+<Callout type="warn" title="Beta">
+Postgres support is new. Expect rough edges, and treat the feature flag as "on for evaluation," not "on for every production cluster" just yet.
+</Callout>
+
+<TypeTable
+  data={{
+    Routes: { type: "/postgres/queries, /postgres/activity", description: "Pages shown when a Postgres source is selected" },
+    "Feature id": { type: "postgres", description: "Gated by CHM_FEATURE_POSTGRES_SOURCE" },
+    "Default access": { type: "off", description: "Feature flag defaults to false — nothing changes until you enable it" },
+    "Requires auth": { type: "Depends on your setup", description: "Same auth posture as your other hosts" },
+    "System tables": { type: "pg_stat_activity, pg_stat_statements", description: "pg_stat_statements is optional but recommended" },
+    "Write access": { type: "None", description: "Every query is pinned read-only; only a single SELECT/WITH/SHOW/EXPLAIN/TABLE/VALUES statement is allowed" },
+  }}
+/>
+
+## What it does
+
+Postgres is a **source engine**, alongside ClickHouse and ClickHouse Cloud. Once `CHM_FEATURE_POSTGRES_SOURCE` is on, chmonitor can connect to a Postgres database and adds two pages:
+
+- **Query Insights** (`/postgres/queries`) — the slowest normalized query patterns from `pg_stat_statements`, ranked by total execution time, with a detail flyout per pattern. Refreshes every 30 seconds.
+- **Running Queries** (`/postgres/activity`) — live backends from `pg_stat_activity`: state, wait event, query, duration. Refreshes every 5 seconds.
+
+Switching to a Postgres host swaps the sidebar to these two pages automatically — the same engine-aware menu that shows ClickHouse-only pages for ClickHouse hosts.
+
+### Pages
+
+| Page | Route | Source | Refresh |
+|---|---|---|---|
+| Query Insights | `/postgres/queries` | `pg_stat_statements` | 30s |
+| Running Queries | `/postgres/activity` | `pg_stat_activity` | 5s |
+
+## Using it
+
+<Steps>
+<Step>
+### Turn on the feature flag
+
+```bash
+CHM_FEATURE_POSTGRES_SOURCE=true
+```
+
+Nothing changes anywhere else until this is set — the flag is fail-closed by design.
+
+</Step>
+<Step>
+### Add a Postgres connection
+
+Two ways to connect, same as ClickHouse:
+
+**Environment variables** (comma-separated lists, mirroring `CLICKHOUSE_HOST` etc.):
+
+```bash
+POSTGRES_HOST=db.example.com
+POSTGRES_PORT=5432
+POSTGRES_USER=chmonitor_ro
+POSTGRES_PASSWORD=my-password
+POSTGRES_DATABASE=postgres
+POSTGRES_SSLMODE=require
+POSTGRES_NAME=Production Postgres
+```
+
+**Per-user connection** (dashboard UI, when per-user connections are enabled): open the connection form and pick the **Postgres** tab. Fields are host, port, database, user, password, and SSL mode.
+
+Use a dedicated **read-only Postgres role** for the connection user — chmonitor pins `default_transaction_read_only=on` on every query as the authoritative guard, but a read-only role is good defense in depth and makes the intent explicit at the database level.
+
+</Step>
+<Step>
+### Enable `pg_stat_statements` (recommended)
+
+Query Insights needs the `pg_stat_statements` extension. Without it, the page shows an empty state with the exact steps instead of an error:
+
+```sql
+-- postgresql.conf, then restart Postgres
+shared_preload_libraries = 'pg_stat_statements'
+```
+
+```sql
+CREATE EXTENSION pg_stat_statements;
+```
+
+Running Queries works without the extension — it only needs `pg_stat_activity`, which is always available.
+
+</Step>
+<Step>
+### Open the Postgres pages
+
+Switch to the Postgres host (`?pg=<connectionId>` in the URL, or the host switcher). The sidebar shows Query Insights and Running Queries in place of the ClickHouse pages.
+
+</Step>
+</Steps>
+
+## Security
+
+<Callout type="info" title="Read-only, always">
+Every Postgres query goes through one path: `queryPostgres()`. It connects per request, pins `default_transaction_read_only=on`, and only allows a single `SELECT`/`WITH`/`SHOW`/`EXPLAIN`/`TABLE`/`VALUES` statement. There is no second Postgres access path anywhere in chmonitor.
+</Callout>
+
+- **SSRF guard**: `validatePostgresHost()` rejects private, loopback, link-local and other internal address ranges (both the literal host and its resolved IPs) before connecting. Set `CHM_ALLOW_PRIVATE_HOSTS=true` to allow `localhost` for local development — this override has no effect in Cloud mode.
+- **Credential encryption**: per-user Postgres connection credentials are encrypted at rest, same as ClickHouse connections.
+
+## AI agent tools
+
+Three tools, gated off with the feature flag (they simply don't appear when it's disabled):
+
+<TypeTable
+  data={{
+    run_postgres_select_query: { type: "tool", description: "Execute a read-only SELECT/WITH/SHOW/EXPLAIN/TABLE/VALUES query against a Postgres source." },
+    get_postgres_metrics: { type: "tool", description: "Version, uptime, connection counts by state, cache hit ratio, commit/rollback/deadlock counts, database size and replication status." },
+    list_postgres_slow_query_patterns: { type: "tool", description: "Slowest normalized query patterns from pg_stat_statements — returns a helpful message instead of an error if the extension isn't installed." },
+  }}
+/>
+
+<Callout type="warn" title="Agent tools currently see env-configured hosts only">
+The agent tools resolve Postgres hosts from `POSTGRES_HOST` (and siblings) — the same limitation ClickHouse agent tools have today with per-user connections. Per-user Postgres connections added through the dashboard UI are not yet visible to the agent.
+</Callout>
+
+Cross-source correlation (e.g. "compare this Postgres table to its ClickHouse mirror") works by giving the agent both tool sets in one conversation — there is no dedicated join primitive.
+
+## Configuration
+
+<TypeTable
+  data={{
+    CHM_FEATURE_POSTGRES_SOURCE: { type: "boolean", description: "Master switch for Postgres as a source. Default: false." },
+    POSTGRES_HOST: { type: "string", description: "Comma-separated Postgres host(s), optionally host:port." },
+    POSTGRES_PORT: { type: "number", description: "Port for hosts that don't specify one inline. Default: 5432." },
+    POSTGRES_USER: { type: "string", description: "Comma-separated user(s). A single value applies to every host. Default: postgres." },
+    POSTGRES_PASSWORD: { type: "string", description: "Comma-separated password(s). A single value applies to every host." },
+    POSTGRES_DATABASE: { type: "string", description: "Comma-separated database name(s). Falls back to the first entry. Default: postgres." },
+    POSTGRES_SSLMODE: { type: "string", description: "Comma-separated sslmode(s) (disable, require, verify-ca, verify-full, ...). Optional." },
+    POSTGRES_NAME: { type: "string", description: "Comma-separated display name(s) for the host switcher. Optional." },
+    CHM_ALLOW_PRIVATE_HOSTS: { type: "boolean", description: "Allow localhost/private addresses for local development. Ignored in Cloud mode." },
+  }}
+/>
+
+## Notes & limitations (beta)
+
+- Free on every plan, including self-hosted, while the feature is in beta — no billing gate yet.
+- Postgres connections have their own id space (`?pg=<connectionId>`) separate from ClickHouse `hostId`; the two are never mixed.
+- Agent tools only see env-configured Postgres hosts, not per-user connections (see above).
+- No live TLS certificate verification against a remote Postgres yet.
+- Migrating data from Postgres into ClickHouse via CDC? See the agent's migration-planning skill, which recommends [PeerDB](/guide/features/peerdb) as the CDC path.
+
+## Related
+
+<Cards>
+  <Card title="PeerDB" href="/guide/features/peerdb" description="Monitor CDC replication from Postgres into ClickHouse." />
+  <Card title="User connections" href="/guide/features/user-connections" description="Per-user connections, including Postgres, in the hosted dashboard." />
+  <Card title="AI Agent" href="/guide/ai-agent" description="Full list of agent tools, including the Postgres tool set." />
+</Cards>
