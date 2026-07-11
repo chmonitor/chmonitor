@@ -18,6 +18,8 @@ side. It's in **beta**: off by default, free on every plan while it stabilizes.
   <div class="hl"><b>AI agent tools</b><span>Three new tools — run a read-only query, pull health metrics, or list slow query patterns — from the same agent you already use for ClickHouse.</span></div>
 </div>
 
+<img src="/assets/screenshots/add-postgres-host-with-bg.png" alt="Add Postgres source dialog: read-only connection with pg_stat_* requirements and encrypted credentials" width="1027" height="993" loading="lazy" decoding="async" />
+
 ## Why Postgres, and why now
 
 A lot of chmonitor users run Postgres somewhere next to ClickHouse — as the

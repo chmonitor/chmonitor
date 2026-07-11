@@ -41,6 +41,8 @@ A logical-replication pipeline fails in ways a batch job doesn't:
 
 ## What chmonitor shows now
 
+<img src="/assets/screenshots/peerdb-overview-with-bg.png" alt="chmonitor PeerDB Mirrors: fleet status tiles (running, snapshotting, paused, failed), rows-synced trends per mirror, peer topology, pipeline phase and peer info" width="1598" height="1052" loading="lazy" decoding="async" />
+
 <div class="hl-grid">
   <div class="hl"><b>Snapshot progress</b><span>Per-table initial-load progress from PeerDB's initial_load data — partitions completed, rows synced, average time per partition, and fetch/consolidate phase.</span></div>
   <div class="hl"><b>CDC batch history</b><span>Recent batches with id, LSN range, rows, and duration, plus a rows-per-batch chart on the mirror detail page.</span></div>
@@ -49,6 +51,8 @@ A logical-replication pipeline fails in ways a batch job doesn't:
   <div class="hl"><b>Fleet logs feed</b><span>A collapsible feed aggregating logs and alerts across every mirror, filterable by error / warn / info.</span></div>
   <div class="hl"><b>Slot health</b><span>Replication slots across all Postgres peers, classified ok / warn / critical by lag, active state, and WAL status, worst-first, on the Peers page.</span></div>
 </div>
+
+<img src="/assets/screenshots/peerdb-detail-with-bg.png" alt="chmonitor PeerDB mirror detail: throughput, replication lag, cumulative rows synced, partition sync history chart and per-partition QRep progress" width="1515" height="1030" loading="lazy" decoding="async" />
 
 Peer detail pages also show the peer's redacted config, server version, and
 active queries — so if a mirror looks slow, you can check what else is

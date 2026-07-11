@@ -137,6 +137,25 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
     reverse: true,
   },
   {
+    id: 'feature-peerdb',
+    icon: 'git-branch',
+    eyebrow: 'PeerDB replication',
+    title: 'Watch your Postgres → ClickHouse CDC',
+    description:
+      'Point chmonitor at your PeerDB API and every mirror gets live status, rows-synced trends, lag triage and slot health — read-only, proxied, no agent.',
+    bullets: [
+      'Fleet view: running / snapshotting / paused / failed at a glance',
+      'Per-mirror detail: batch history, partition sync progress, peer info',
+      'Worst-lag triage strip and replication-slot health across peers',
+      'Aggregated logs and alerts, filterable by severity',
+    ],
+    screenshot: {
+      src: '/assets/screenshots/peerdb-overview-with-bg.png',
+      alt: 'chmonitor PeerDB Mirrors: fleet status tiles, rows-synced trends, peer topology and pipeline phase',
+    },
+    learnMoreHref: 'https://docs.chmonitor.dev/guide/features/peerdb',
+  },
+  {
     id: 'feature-postgres',
     icon: 'database',
     eyebrow: 'Postgres · Beta',
@@ -150,8 +169,8 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Three new AI agent tools for Postgres',
     ],
     screenshot: {
-      src: '/assets/screenshots/add-pg-source-dark.png',
-      alt: 'Add Postgres source dialog: read-only connection with pg_stat_* requirements',
+      src: '/assets/screenshots/add-postgres-host-with-bg.png',
+      alt: 'Add Postgres source dialog: read-only connection, pg_stat_* requirements and encrypted credentials',
     },
     learnMoreHref: 'https://docs.chmonitor.dev/guide/features/postgres',
   },
