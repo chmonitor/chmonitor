@@ -1,3 +1,4 @@
+import { discoverDocPages } from './scripts/discover-doc-pages.mjs'
 import { fileURLToPath } from 'node:url'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
@@ -32,9 +33,18 @@ export default defineConfig({
     mdx(),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tanstackStart({
+      // Explicitly enumerate every generated doc page (content/docs/**/*.mdx)
+      // so prerender covers all of them, not just what the crawl can reach.
+      // The docs landing page renders its nav client-side, so `/` has no
+      // server-rendered <a href> links for the crawl to follow — without this,
+      // crawlLinks silently prerenders only `/` and a render crash on any
+      // content page never fails the build. See scripts/discover-doc-pages.mjs.
+      pages: discoverDocPages(),
       prerender: {
         // Prerender all doc pages at build time for fast first paint.
-        // The crawl follows <a> links starting from /.
+        // The crawl still follows <a> links starting from /, on top of the
+        // explicit `pages` list above. failOnError defaults to true, so a
+        // page that throws while rendering fails `pnpm run build`.
         enabled: true,
         crawlLinks: true,
         filter: (page: { path: string }) =>

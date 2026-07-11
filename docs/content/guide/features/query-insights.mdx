@@ -4,7 +4,7 @@ icon: LayoutList
 title: Query Insights API
 ---
 
-Read the same normalized query-pattern data the [Slow Query Patterns](/slow-query-patterns) page shows, from two REST endpoints — a list of patterns and a per-pattern detail with recent executions.
+Read the same normalized query-pattern data the [Slow Query Patterns](https://dash.chmonitor.dev/slow-query-patterns) page shows, from two REST endpoints — a list of patterns and a per-pattern detail with recent executions.
 
 <TypeTable
   type={{
@@ -20,7 +20,7 @@ Read the same normalized query-pattern data the [Slow Query Patterns](/slow-quer
 
 `system.query_log` rows are aggregated by `normalized_query_hash` (mirroring ClickHouse Cloud's Query Insights "Slow Patterns" table) — one row per distinct query shape, with call counts, duration percentiles (p50/p95/p99), resource usage (memory, rows/bytes read, rows/bytes written), and error counts. The list endpoint returns this aggregation; the detail endpoint returns one pattern plus the individual `system.query_log` rows (executions) that contributed to it, most-recent first.
 
-Both endpoints reuse the exact SQL the [Slow Query Patterns](/slow-query-patterns) page runs (`buildQueryPatternsSql` in `lib/query-config/queries/slow-query-patterns.ts`) — the numbers always match what the page shows.
+Both endpoints reuse the exact SQL the [Slow Query Patterns](https://dash.chmonitor.dev/slow-query-patterns) page runs (`buildQueryPatternsSql` in `lib/query-config/queries/slow-query-patterns.ts`) — the numbers always match what the page shows.
 
 ### Pages
 

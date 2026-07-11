@@ -45,3 +45,9 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Install Chromium (for smoke test)
+        run: pnpm exec playwright-core install --with-deps chromium
+
+      - name: Smoke test (crawl every doc page, fail on render errors)
+        run: pnpm run smoke

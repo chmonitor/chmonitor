@@ -12,7 +12,8 @@
     "start": "vite preview",
     "preview": "vite preview",
     "cf:deploy": "wrangler deploy",
-    "types:check": "fumadocs-mdx && tsc --noEmit"
+    "types:check": "fumadocs-mdx && tsc --noEmit",
+    "smoke": "node scripts/smoke-crawl.mjs"
   },
   "dependencies": {
     "@takumi-rs/image-response": "^1.8.7",
@@ -39,6 +40,7 @@
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^6.0.0",
+    "playwright-core": "^1.56.0",
     "tailwindcss": "^4.1.11",
     "twoslash": "^0.3.0",
     "typescript": "^6.0.0",
