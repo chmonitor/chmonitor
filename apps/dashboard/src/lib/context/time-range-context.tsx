@@ -1,6 +1,10 @@
 import type { ClickHouseInterval } from '@chm/types/clickhouse-interval'
 
 import { createContext, use, useCallback, useMemo, useState } from 'react'
+import {
+  DEFAULT_USER_SETTINGS,
+  USER_SETTINGS_STORAGE_KEY,
+} from '@/lib/types/user-settings'
 
 export interface TimeRangeOption {
   /** Display label shown in the picker (e.g., "24h") */
@@ -43,16 +47,40 @@ const STORAGE_KEY = 'chm-global-time-range'
 /** URL search param used to share the active time range */
 const SEARCH_PARAM = 'range'
 
-/** Resolve a stored value string against the presets; unknown -> default. */
-function resolveTimeRange(value: string | null): TimeRangeOption {
-  if (!value) return DEFAULT_TIME_RANGE
-  return TIME_RANGE_PRESETS.find((p) => p.value === value) ?? DEFAULT_TIME_RANGE
+/** Resolve a stored value string against the presets; unknown -> fallback. */
+function resolveTimeRange(
+  value: string | null,
+  fallback: TimeRangeOption = DEFAULT_TIME_RANGE
+): TimeRangeOption {
+  if (!value) return fallback
+  return TIME_RANGE_PRESETS.find((p) => p.value === value) ?? fallback
 }
 
 /**
- * Read the initial time range, preferring the URL `?range=` param, falling
- * back to localStorage, then the default. Wrapped in try/catch for SSR and
- * private-browsing safety.
+ * Read the user's configured default time range from the user-settings
+ * localStorage blob, resolved to a preset. Used only as the initial value when
+ * no explicit range (URL param or previously-persisted click) is present, so it
+ * never overrides an explicit user choice. Falls back to the hard default
+ * (24h) when unset or unparseable.
+ */
+function readSettingsDefault(): TimeRangeOption {
+  try {
+    const raw = localStorage.getItem(USER_SETTINGS_STORAGE_KEY)
+    if (!raw) return DEFAULT_TIME_RANGE
+    const parsed = JSON.parse(raw) as { defaultTimeRange?: string }
+    return resolveTimeRange(
+      parsed.defaultTimeRange ?? DEFAULT_USER_SETTINGS.defaultTimeRange
+    )
+  } catch {
+    return DEFAULT_TIME_RANGE
+  }
+}
+
+/**
+ * Read the initial time range, preferring the URL `?range=` param, then the
+ * previously-persisted range (an explicit user click), then the user's
+ * configured default-time-range setting, then the hard default. Wrapped in
+ * try/catch for SSR and private-browsing safety.
  */
 function readInitialTimeRange(): TimeRangeOption {
   if (typeof window === 'undefined') return DEFAULT_TIME_RANGE
@@ -61,7 +89,11 @@ function readInitialTimeRange(): TimeRangeOption {
       SEARCH_PARAM
     )
     if (fromUrl) return resolveTimeRange(fromUrl)
-    return resolveTimeRange(localStorage.getItem(STORAGE_KEY))
+
+    const persisted = localStorage.getItem(STORAGE_KEY)
+    if (persisted) return resolveTimeRange(persisted)
+
+    return readSettingsDefault()
   } catch {
     return DEFAULT_TIME_RANGE
   }

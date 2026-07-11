@@ -13,6 +13,7 @@ import { WebMcpRegistration } from '@/components/webmcp'
 import { SignupAnalyticsTracker } from '@/lib/analytics/signup-tracker'
 import { isClerkClientEnabled } from '@/lib/clerk/clerk-client'
 import { AppProvider } from '@/lib/context/app-context'
+import { AppearanceSettingsProvider } from '@/lib/context/appearance-settings'
 import { BrowserConnectionsProvider } from '@/lib/context/browser-connections-context'
 import { TimeRangeProvider } from '@/lib/context/time-range-context'
 import { TimezoneProvider } from '@/lib/context/timezone-context'
@@ -163,25 +164,27 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <WebMcpRegistration />
         <ClerkAuthProvider>
           <TimezoneProvider>
-            <ThemeProvider>
-              <TimeRangeProvider>
-                <QueryProvider>
-                  {isClerkClientEnabled() ? (
-                    <>
-                      <UserConnectionsCacheGuard />
-                      <SignupAnalyticsTracker />
-                    </>
-                  ) : null}
-                  <BrowserConnectionsProvider>
-                    <AppProvider>
-                      <FeaturePermissionsProvider>
-                        {children}
-                      </FeaturePermissionsProvider>
-                    </AppProvider>
-                  </BrowserConnectionsProvider>
-                </QueryProvider>
-              </TimeRangeProvider>
-            </ThemeProvider>
+            <AppearanceSettingsProvider>
+              <ThemeProvider>
+                <TimeRangeProvider>
+                  <QueryProvider>
+                    {isClerkClientEnabled() ? (
+                      <>
+                        <UserConnectionsCacheGuard />
+                        <SignupAnalyticsTracker />
+                      </>
+                    ) : null}
+                    <BrowserConnectionsProvider>
+                      <AppProvider>
+                        <FeaturePermissionsProvider>
+                          {children}
+                        </FeaturePermissionsProvider>
+                      </AppProvider>
+                    </BrowserConnectionsProvider>
+                  </QueryProvider>
+                </TimeRangeProvider>
+              </ThemeProvider>
+            </AppearanceSettingsProvider>
           </TimezoneProvider>
         </ClerkAuthProvider>
         <Scripts />

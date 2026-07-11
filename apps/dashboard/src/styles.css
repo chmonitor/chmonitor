@@ -514,6 +514,53 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ---------------------------------------------------------------
+ * Chart palettes (user setting: Settings › Appearance › Chart palette)
+ *
+ * Applied via `data-chart-palette` on <html> by AppearanceSettingsProvider.
+ * The attribute is ABSENT for the default palette, so an untouched install
+ * keeps the exact `--chart-1..13` tokens defined above. These overrides come
+ * after both `:root` and `.dark` so they win by source order in either theme
+ * (chart tokens are theme-independent). Series colors flow through
+ * `seriesColorVar()` → `var(--chart-N)`, so overriding the tokens is enough.
+ *
+ * - colorblind-safe: the Okabe-Ito qualitative palette (8 hues, distinguishable
+ *   under the common forms of color-vision deficiency), cycled for 9..13.
+ * - monochrome: a single-hue (brand orange) lightness ramp for low-chroma,
+ *   print-friendly charts.
+ * --------------------------------------------------------------- */
+:root[data-chart-palette='colorblind-safe'] {
+  --chart-1: #e69f00; /* orange */
+  --chart-2: #56b4e9; /* sky blue */
+  --chart-3: #009e73; /* bluish green */
+  --chart-4: #f0e442; /* yellow */
+  --chart-5: #0072b2; /* blue */
+  --chart-6: #d55e00; /* vermillion */
+  --chart-7: #cc79a7; /* reddish purple */
+  --chart-8: #999999; /* grey */
+  --chart-9: #e69f00;
+  --chart-10: #56b4e9;
+  --chart-11: #009e73;
+  --chart-12: #0072b2;
+  --chart-13: #cc79a7;
+}
+
+:root[data-chart-palette='monochrome'] {
+  --chart-1: oklch(0.84 0.15 70);
+  --chart-2: oklch(0.75 0.16 66);
+  --chart-3: oklch(0.66 0.16 62);
+  --chart-4: oklch(0.57 0.15 56);
+  --chart-5: oklch(0.48 0.13 50);
+  --chart-6: oklch(0.9 0.08 72);
+  --chart-7: oklch(0.4 0.11 48);
+  --chart-8: oklch(0.7 0.05 70);
+  --chart-9: oklch(0.84 0.15 70);
+  --chart-10: oklch(0.66 0.16 62);
+  --chart-11: oklch(0.48 0.13 50);
+  --chart-12: oklch(0.9 0.08 72);
+  --chart-13: oklch(0.57 0.15 56);
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -583,6 +630,25 @@
   .animate-rq-indeterminate {
     animation: rq-indeterminate 1.3s ease-in-out infinite;
   }
+}
+
+/* ---------------------------------------------------------------
+ * Table density (user setting: Settings › Layout › Density)
+ *
+ * Applied via `data-density` on <html> by AppearanceSettingsProvider. The
+ * attribute is ABSENT for the default `comfortable` density, so untouched
+ * installs keep the shadcn table's `p-2` cell / `h-10` header padding. The
+ * `compact` override tightens vertical rhythm by keying off the table's
+ * `data-slot` markers, so it applies to every data table without touching
+ * `components/ui/table.tsx`.
+ * --------------------------------------------------------------- */
+:root[data-density='compact'] [data-slot='table-head'] {
+  height: 2rem; /* h-8 (was h-10) */
+}
+
+:root[data-density='compact'] [data-slot='table-cell'] {
+  padding-top: 0.25rem; /* py-1 (was p-2 → 0.5rem vertical) */
+  padding-bottom: 0.25rem;
 }
 
 /* ---------------------------------------------------------------
