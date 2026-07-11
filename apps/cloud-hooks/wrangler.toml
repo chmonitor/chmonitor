@@ -1,0 +1,78 @@
+# wrangler.toml — chmonitor cloud-hooks worker (Cloud/SaaS only).
+#
+# Receives Polar billing webhooks, persists subscriptions to the SHARED chm-cloud
+# D1 (the same database the dashboard reads — plan resolution is unchanged), and
+# sends operator notifications to Telegram plus scheduled ops jobs. OSS/self-host
+# never deploys this.
+#
+# Secrets (set with `wrangler secret put`, NEVER committed here):
+#   POLAR_WEBHOOK_SECRET   verify inbound Polar events
+#   POLAR_ACCESS_TOKEN     re-key Polar customer → org on first paid event
+#   CLERK_SECRET_KEY       lazy Clerk org creation on first paid event
+#   TELEGRAM_BOT_TOKEN     operator notifications
+#   TELEGRAM_CHAT_ID       operator notifications target chat
+#
+# Product→plan mapping (non-secret, set via CI `--var` or the dashboard, mirror
+# apps/dashboard/.env.production so both Workers map products IDENTICALLY):
+#   CHM_POLAR_SERVER, CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>
+# These are NOT required until the Polar endpoint is cut over to this worker
+# (plans/103 step 3-4); until then the worker is deployed but dormant.
+
+name = "chmonitor-hooks"
+main = "src/index.ts"
+compatibility_date = "2026-05-28"
+compatibility_flags = ["nodejs_compat"]
+
+minify = true
+
+[observability]
+enabled = true
+
+# Cron triggers: daily billing summary + health probes every 15 minutes.
+[triggers]
+crons = ["0 0 * * *", "*/15 * * * *"]
+
+# Custom domain — auto-provisions the hooks.chmonitor.dev DNS record on the
+# managed zone (same pattern as the dashboard's dash.chmonitor.dev). The
+# operator adds the Polar endpoint https://hooks.chmonitor.dev/webhooks/polar in
+# the Polar dashboard as step 3 of the migration.
+[[routes]]
+pattern = "hooks.chmonitor.dev"
+custom_domain = true
+
+# Shared billing D1 (the SAME chm-cloud database the dashboard binds). The
+# subscription-store monotonic guard makes concurrent writers safe.
+[[d1_databases]]
+binding = "CHM_CLOUD_D1"
+database_name = "chm-cloud"
+database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Health-probe state KV — NOT ACTIVE until the operator creates the namespace.
+#
+# `runProbes` (src/probes.ts) stores the last-known up/down state per surface so
+# the */15min cron notifies ONLY on transitions. Left commented out because
+# `wrangler deploy` fails hard if a [[kv_namespaces]] block references an id that
+# does not exist yet. When absent, probes fall back to per-run state (they
+# re-alert every 15 min while a surface is down, and stay silent while healthy),
+# so the worker still deploys and functions. To enable transition-only alerts:
+#
+#   1. wrangler kv namespace create HOOKS_KV
+#   2. Paste the returned id below and uncomment the block.
+#   3. Redeploy.
+#
+# [[kv_namespaces]]
+# binding = "HOOKS_KV"
+# id = "<created-namespace-id>"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Preview environment (PR deploys). Reuses the same shared D1.
+# ─────────────────────────────────────────────────────────────────────────────
+[env.preview]
+name = "preview-chmonitor-hooks"
+
+[[env.preview.d1_databases]]
+binding = "CHM_CLOUD_D1"
+database_name = "chm-cloud"
+database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"

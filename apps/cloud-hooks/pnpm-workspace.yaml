@@ -1,0 +1,7 @@
+# apps/cloud-hooks is an isolated workspace root (not a member of the repo-root
+# workspace): it resolves shared @chm/* packages from ../../packages/* and its
+# own node_modules, with its own pnpm-lock.yaml. pnpm uses the nearest
+# pnpm-workspace.yaml, so `pnpm install` here scopes to this app + the shared
+# packages it depends on.
+packages:
+  - ../../packages/*
