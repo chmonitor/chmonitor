@@ -40,3 +40,18 @@ export function loadChangelogFeatures() {
 
   return cached
 }
+
+let cachedLatestVersion: string | null | undefined
+
+/**
+ * Latest released version from CHANGELOG.md (first `## [x.y.z]` heading),
+ * e.g. `0.2.14`. Returns null when no versioned heading exists.
+ */
+export function loadLatestChangelogVersion(): string | null {
+  if (cachedLatestVersion !== undefined) return cachedLatestVersion
+
+  const markdown = readFileSync(resolveChangelogPath(), 'utf8')
+  const match = markdown.match(/^## \[(\d+\.\d+\.\d+)\]/m)
+  cachedLatestVersion = match ? match[1] : null
+  return cachedLatestVersion
+}

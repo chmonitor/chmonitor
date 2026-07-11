@@ -88,7 +88,7 @@ const breadcrumbJsonLd = {
         {releases.length > 0 ? (
           <div class="cl-list">
             {releases.map((r) => (
-              <div class="cl-entry">
+              <div class="cl-entry" id={r.tag_name}>
                 <div class="cl-meta">
                   <a class="cl-tag" href={r.html_url} target="_blank" rel="noopener">{r.tag_name}</a>
                   <span class="cl-date">{fmtDate(r.published_at)}</span>

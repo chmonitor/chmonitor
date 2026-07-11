@@ -1,5 +1,8 @@
 ---
+import { loadLatestChangelogVersion } from '../data/changelog-features'
 import { useCases } from '../data/use-cases'
+
+const latestVersion = loadLatestChangelogVersion()
 ---
   <footer class="border-t border-border">
     <div class="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
@@ -24,8 +27,10 @@ import { useCases } from '../data/use-cases'
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/pricing">Pricing</a>
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://dash.chmonitor.dev" target="_blank" rel="noopener">Dashboard</a>
               <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/changelog">Changelog</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/changelog#ship-log">Feature index</a>
+              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href={latestVersion ? `/changelog#v${latestVersion}` : '/changelog'}>
+                Changelog{latestVersion && <span class="font-mono text-xs"> · v{latestVersion}</span>}
+              </a>
+              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/changelog#features">Feature index</a>
             </div>
           </div>
           <div class="min-w-0 sm:min-w-36">
