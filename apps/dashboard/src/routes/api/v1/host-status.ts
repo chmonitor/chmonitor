@@ -28,6 +28,11 @@ export const Route = createFileRoute('/api/v1/host-status')({
       GET: async ({ request }) => {
         const searchParams = new URL(request.url).searchParams
         const hostIdRaw = searchParams.get('hostId')
+        // Opt-in: the Fleet table asks for extra cross-host comparison counts
+        // (databases/tables/cluster nodes). Off by default so the widely-polled
+        // status probe (host switcher, logo indicator, cards) stays a single
+        // round-trip for every other consumer.
+        const wantCounts = searchParams.get('counts') === '1'
 
         if (hostIdRaw === null || hostIdRaw === '') {
           return Response.json(
@@ -111,9 +116,48 @@ export const Route = createFileRoute('/api/v1/host-status')({
           const uptime = data?.uptime ?? ''
           const hostname = data?.hostname ?? ''
 
+          // Additive comparison counts for the Fleet table. Run in a separate,
+          // fully guarded query so a counts failure never degrades the core
+          // status response — missing counts simply resolve to undefined and
+          // the table renders an en-dash for that cell.
+          let counts: {
+            databases?: number
+            tables?: number
+            clusterNodes?: number
+          } = {}
+          if (wantCounts) {
+            try {
+              const countsSet = await client.query({
+                query: `${QUERY_COMMENT}SELECT
+  (SELECT count() FROM system.databases) AS databases,
+  (SELECT count() FROM system.tables) AS tables,
+  (SELECT uniqExact(host_name) FROM system.clusters) AS clusterNodes`,
+                format: 'JSONEachRow',
+                clickhouse_settings: cacheSettings,
+              })
+              const countRows = await countsSet.json<{
+                databases: string | number
+                tables: string | number
+                clusterNodes: string | number
+              }>()
+              const row = countRows[0]
+              const toNum = (v: string | number | undefined) => {
+                const n = Number(v)
+                return Number.isFinite(n) ? n : undefined
+              }
+              counts = {
+                databases: toNum(row?.databases),
+                tables: toNum(row?.tables),
+                clusterNodes: toNum(row?.clusterNodes),
+              }
+            } catch (countsErr) {
+              error('[GET /api/v1/host-status] counts query failed:', countsErr)
+            }
+          }
+
           return Response.json({
             success: true,
-            data: { version, uptime, hostname },
+            data: { version, uptime, hostname, ...counts },
           })
         } catch (err) {
           error('[GET /api/v1/host-status] Error:', err)

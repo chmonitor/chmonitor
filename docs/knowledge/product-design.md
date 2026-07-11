@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-10
+updated: 2026-07-11
 tags:
   - design-system
   - ui
@@ -162,6 +162,13 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
 - **Data tables:** `components/data-table/` — resizing, wrap toggle, sorting
   (`sorting-fns.ts`), pagination, faceted filters, row actions, SQL display.
   Synthetic ids `__expand`/`select`/`action` are non-data.
+- **Page-level grid/table view toggle:** a small segmented control
+  (lucide `LayoutGrid`/`Table2`, styled like `components/query-tables/view-toggle.tsx`)
+  in the `PageHeader` `actions` slot. Persist the choice in **localStorage**
+  (not a URL param) via a pure read/write helper + a tiny hydrate-on-mount hook
+  so the static shell stays deterministic. Reference: the Fleet Overview page —
+  `components/fleet/fleet-view-toggle.tsx` + `fleet-helpers.ts` +
+  `use-fleet-view.ts` (key `fleet-view`, default `grid`).
 - **Clickable table row → detail Sheet flyout:** `DataTable`'s `onRowClick`
   prop (threaded through `TableClient` → `QueryPageLayout`, desktop rows
   only — mutually exclusive with `expandable`, which owns row clicks when

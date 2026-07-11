@@ -11,6 +11,9 @@ type HostStatusApiResponse = {
     version: string
     uptime: string
     hostname: string
+    databases?: number
+    tables?: number
+    clusterNodes?: number
   }
   error?: string
 }
@@ -20,6 +23,12 @@ export type HostStatus = {
   version: string
   uptime: string
   hostname: string
+  /** Number of databases (only when `includeCounts` is requested). */
+  databases?: number
+  /** Number of tables (only when `includeCounts` is requested). */
+  tables?: number
+  /** Distinct cluster nodes (only when `includeCounts` is requested). */
+  clusterNodes?: number
 }
 
 interface UseHostStatusOptions {
@@ -33,6 +42,13 @@ interface UseHostStatusOptions {
    * @default false
    */
   revalidateOnFocus?: boolean
+  /**
+   * Also fetch cross-host comparison counts (databases/tables/cluster nodes)
+   * for the Fleet table. Off by default so the widely-polled status probe stays
+   * a single round-trip. Uses a distinct query key from the countless variant.
+   * @default false
+   */
+  includeCounts?: boolean
 }
 
 /**
@@ -53,18 +69,24 @@ export function useHostStatus(
   hostId: number | null,
   options: UseHostStatusOptions = {}
 ) {
-  const { refreshInterval = 60000, revalidateOnFocus = false } = options
+  const {
+    refreshInterval = 60000,
+    revalidateOnFocus = false,
+    includeCounts = false,
+  } = options
 
   // Skip status check for browser connections (negative hostId) — they have
   // no server-side host entry and the proxy endpoint handles connectivity.
   const isBrowserConnection = hostId !== null && hostId < 0
 
-  const queryKey = [`/api/v1/host-status?hostId=${hostId}`]
+  const url = includeCounts
+    ? `/api/v1/host-status?hostId=${hostId}&counts=1`
+    : `/api/v1/host-status?hostId=${hostId}`
+  const queryKey = [url]
 
   const { data, error, isLoading } = useQuery<HostStatus>({
     queryKey,
     queryFn: async () => {
-      const url = `/api/v1/host-status?hostId=${hostId}`
       const res = await apiFetch(url)
       if (!res.ok) {
         throw new Error(`Failed to fetch host status: ${res.statusText}`)
@@ -81,6 +103,9 @@ export function useHostStatus(
         version: json.data.version,
         uptime: json.data.uptime,
         hostname: json.data.hostname,
+        databases: json.data.databases,
+        tables: json.data.tables,
+        clusterNodes: json.data.clusterNodes,
       }
     },
     enabled: hostId !== null && !isBrowserConnection,

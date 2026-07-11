@@ -2,6 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
 import { FleetOverview } from '@/components/fleet/fleet-overview'
+import { FleetTable } from '@/components/fleet/fleet-table'
+import { FleetViewToggle } from '@/components/fleet/fleet-view-toggle'
+import { useFleetView } from '@/components/fleet/use-fleet-view'
 import { PageHeader } from '@/components/layout'
 import { Skeleton } from '@/components/ui/skeleton'
 import { pageOgHead } from '@/lib/og'
@@ -17,14 +20,17 @@ function FleetSkeleton() {
 }
 
 function FleetPage() {
+  const [view, setView] = useFleetView()
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Fleet Overview"
-        description="Health signals across all ClickHouse hosts in one view."
+        description="Health signals across all connected hosts in one view."
+        actions={<FleetViewToggle value={view} onChange={setView} />}
       />
       <Suspense fallback={<FleetSkeleton />}>
-        <FleetOverview />
+        {view === 'table' ? <FleetTable /> : <FleetOverview />}
       </Suspense>
     </div>
   )
