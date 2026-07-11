@@ -18,8 +18,9 @@ interface ColumnVisibilityMenuProps<TKey extends string> {
 
 /**
  * Column-visibility dropdown shared by the query tables — a checkbox per
- * optional column, checked when the column is visible. `onSelect` is
- * prevented so the menu stays open while toggling several columns.
+ * optional column, checked when the column is visible. Base UI's
+ * `MenuCheckboxItem` already defaults `closeOnClick` to `false`, so the menu
+ * stays open while toggling several columns without extra wiring.
  */
 export function ColumnVisibilityMenu<TKey extends string>({
   columns,
@@ -49,7 +50,6 @@ export function ColumnVisibilityMenu<TKey extends string>({
             key={col.key}
             checked={!hiddenColumns.has(col.key)}
             onCheckedChange={() => onToggle(col.key)}
-            onSelect={(e) => e.preventDefault()}
           >
             {col.label}
           </DropdownMenuCheckboxItem>

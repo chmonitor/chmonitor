@@ -105,25 +105,13 @@ export function DisplayOptionsDropdown<TData extends RowData>({
             onValueChange={(v) => onDensityChange(v as TableDensity)}
             className="px-1"
           >
-            <DropdownMenuRadioItem
-              value="comfortable"
-              className="text-xs"
-              onSelect={(e) => e.preventDefault()}
-            >
+            <DropdownMenuRadioItem value="comfortable" className="text-xs">
               Comfortable
             </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem
-              value="compact"
-              className="text-xs"
-              onSelect={(e) => e.preventDefault()}
-            >
+            <DropdownMenuRadioItem value="compact" className="text-xs">
               Compact
             </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem
-              value="dense"
-              className="text-xs"
-              onSelect={(e) => e.preventDefault()}
-            >
+            <DropdownMenuRadioItem value="dense" className="text-xs">
               Dense
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
@@ -143,7 +131,6 @@ export function DisplayOptionsDropdown<TData extends RowData>({
                 key={column.id}
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                onSelect={(e) => e.preventDefault()}
                 className="text-xs"
               >
                 {getColumnLabel(column.id)}

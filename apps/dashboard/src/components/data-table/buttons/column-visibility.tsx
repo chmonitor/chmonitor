@@ -16,12 +16,6 @@ interface ColumnVisibilityButtonProps<TData extends RowData = RowData> {
 export const ColumnVisibilityButton = function ColumnVisibilityButton<
   TData extends RowData = RowData,
 >({ table }: ColumnVisibilityButtonProps<TData>) {
-  const handleSelect = (event: { preventDefault: () => void }) => {
-    event.preventDefault()
-    // Prevent default selection behavior to avoid
-    // unintended interactions with checkbox state
-  }
-
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
@@ -47,7 +41,6 @@ export const ColumnVisibilityButton = function ColumnVisibilityButton<
                 key={column.id}
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                onSelect={handleSelect}
                 role="checkbox"
                 aria-label={column.id}
               >

@@ -177,7 +177,7 @@ export function NavUser({
                   {canUseSettings && (
                     <DropdownMenuItem
                       className="flex items-center gap-2"
-                      onSelect={() => {
+                      onClick={() => {
                         setSettingsOpen(true)
                       }}
                       data-testid="nav-user-settings"

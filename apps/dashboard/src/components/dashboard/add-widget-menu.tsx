@@ -63,13 +63,13 @@ export function AddWidgetMenu({ onAdd }: AddWidgetMenuProps) {
           Add Widget
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setDialog('table')}>
+          <DropdownMenuItem onClick={() => setDialog('table')}>
             Table…
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setDialog('stat')}>
+          <DropdownMenuItem onClick={() => setDialog('stat')}>
             Stat…
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setDialog('text')}>
+          <DropdownMenuItem onClick={() => setDialog('text')}>
             Text…
           </DropdownMenuItem>
         </DropdownMenuContent>

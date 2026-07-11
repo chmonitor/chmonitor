@@ -235,7 +235,7 @@ export function ClerkNavWrapper() {
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     className="flex items-center gap-2"
-                    onSelect={() => openUserProfile()}
+                    onClick={() => openUserProfile()}
                     data-testid="nav-user-account"
                   >
                     <UserIcon className="size-4" />
@@ -298,7 +298,7 @@ export function ClerkNavWrapper() {
                   {canUseSettings && (
                     <DropdownMenuItem
                       className="flex items-center gap-2"
-                      onSelect={() => {
+                      onClick={() => {
                         setSettingsOpen(true)
                       }}
                       data-testid="nav-user-settings"
@@ -314,7 +314,7 @@ export function ClerkNavWrapper() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="flex items-center gap-2 text-destructive focus:text-destructive"
-                  onSelect={async () => {
+                  onClick={async () => {
                     clearUserConnectionsCache(queryClient)
                     try {
                       await signOut({ redirectUrl: '/' })
