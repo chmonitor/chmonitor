@@ -46,6 +46,7 @@ import {
 } from '@/lib/alerting/compound-rules'
 import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
+import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
 import { buildAlertBlocksWithAck, type SlackBlock } from '@/lib/slack/blocks'
 import { isSlackAppConfigured } from '@/lib/slack/config'
 
@@ -941,6 +942,34 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     } catch (err) {
       debug(
         `[health-sweep] insight generation failed on host ${config.id}`,
+        err instanceof Error ? err.message : String(err)
+      )
+    }
+  }
+
+  // Postgres AI insights (cross-source, env-gated). Runs AFTER the ClickHouse
+  // loop and only when CHM_FEATURE_POSTGRES_SOURCE is on — fail-closed, exactly
+  // like the agent's Postgres tools. Iterates the env-configured Postgres
+  // sources (`POSTGRES_*` lists) and generates insights per source. Wrapped so a
+  // Postgres failure can never break the ClickHouse sweep.
+  if (process.env.CHM_FEATURE_POSTGRES_SOURCE === 'true') {
+    try {
+      const { getPostgresConfigs } = await import('@chm/postgres-client')
+      const pgConfigs = getPostgresConfigs()
+      for (const pgConfig of pgConfigs) {
+        try {
+          const pgInsights = await generatePostgresInsights(pgConfig.id)
+          insightsGenerated += pgInsights.length
+        } catch (err) {
+          debug(
+            `[health-sweep] postgres insight generation failed on pg source ${pgConfig.id}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+    } catch (err) {
+      debug(
+        '[health-sweep] postgres insight sweep skipped',
         err instanceof Error ? err.message : String(err)
       )
     }

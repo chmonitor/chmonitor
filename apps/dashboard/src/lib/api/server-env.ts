@@ -45,3 +45,38 @@ export function bridgeClickHouseEnv(bindings: ClickHouseBindings): void {
     }
   }
 }
+
+/**
+ * Env keys the Postgres source path reads from `process.env`: the feature gate
+ * (`CHM_FEATURE_POSTGRES_SOURCE`) plus the `POSTGRES_*` connection lists that
+ * `@chm/postgres-client`'s `getPostgresConfigs()` parses. Same bridging need as
+ * ClickHouse — on Workers the canonical source is the `env` binding, so these
+ * must be copied onto `process.env` before `getPostgresConfigs()` is called.
+ */
+const POSTGRES_ENV_KEYS = [
+  'CHM_FEATURE_POSTGRES_SOURCE',
+  'POSTGRES_HOST',
+  'POSTGRES_PORT',
+  'POSTGRES_USER',
+  'POSTGRES_PASSWORD',
+  'POSTGRES_DATABASE',
+  'POSTGRES_SSLMODE',
+  'POSTGRES_NAME',
+] as const
+
+/**
+ * Copy the Postgres feature flag + `POSTGRES_*` connection lists from the Worker
+ * `env` binding onto `process.env` so the env-based Postgres source resolver
+ * (`getPostgresConfigs`) and the `CHM_FEATURE_POSTGRES_SOURCE` gate see them.
+ * Idempotent and cheap; only sets keys present on the binding and not already
+ * set, so it never clobbers a local `.dev.vars` during `vite dev`.
+ */
+export function bridgePostgresEnv(bindings: ClickHouseBindings): void {
+  if (typeof process === 'undefined' || !process.env) return
+  for (const key of POSTGRES_ENV_KEYS) {
+    const value = bindings[key]
+    if (value != null && value !== '' && process.env[key] == null) {
+      process.env[key] = value
+    }
+  }
+}

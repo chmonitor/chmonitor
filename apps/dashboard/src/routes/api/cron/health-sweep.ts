@@ -33,7 +33,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error, warn } from '@chm/logger'
-import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { bridgeClickHouseEnv, bridgePostgresEnv } from '@/lib/api/server-env'
 import { secretsMatch } from '@/lib/auth/providers/constant-time'
 import { runHealthSweep } from '@/lib/health/server-sweep'
 
@@ -76,8 +76,11 @@ async function handler(request: Request): Promise<Response> {
   if (denied) return denied
 
   // Copy CLICKHOUSE_* from the Worker binding onto process.env so
-  // getClickHouseConfigs() (inside runHealthSweep) can resolve hosts.
+  // getClickHouseConfigs() (inside runHealthSweep) can resolve hosts. Also
+  // bridge the POSTGRES_* lists + feature flag so the sweep's env-gated Postgres
+  // insight loop can resolve its sources.
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
+  bridgePostgresEnv(env as Record<string, string | undefined>)
 
   try {
     const summary = await runHealthSweep()
