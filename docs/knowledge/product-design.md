@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-11
+updated: 2026-07-12
 tags:
   - design-system
   - ui
@@ -71,6 +71,42 @@ Fonts: Geist Variable (sans) + Geist Mono.
 
 **OKLCH gotcha:** prefer `oklch(from var(--x) l c h)` for derived colors over
 `hsl(var(--x))` — see `cluster-topology.md` for the dynamic-color lightness bug.
+
+## User appearance settings (Settings dialog)
+
+`UserSettings` (`lib/types/user-settings.ts`, localStorage
+`clickhouse-monitor-user-settings`, merged over `DEFAULT_USER_SETTINGS` via
+`mergeUserSettings` so legacy blobs pick up new keys) carries the
+timezone/theme plus **units** (`byteUnit`, `numberFormat`), **colors**
+(`chartPalette`), and **layout** (`tableDensity`, `defaultTimeRange`). The
+Settings dialog (`components/settings/settings-form.tsx`) groups these into
+labeled `<section>`s (General / Appearance / Units / Layout / Integrations) with
+`Separator`s; 2–3 choice toggles use the shared
+`components/settings/segmented-control.tsx` (card look mirroring the theme
+picker), 5-option ones use `Select`.
+
+**Invariant: every default reproduces the prior behaviour byte-for-byte** —
+`byteUnit: 'binary'`, `numberFormat: 'abbreviated'`, `chartPalette: 'default'`
+(attribute absent), `tableDensity: 'comfortable'` (attribute absent),
+`defaultTimeRange: '24h'`.
+
+How each applies (all wired by `AppearanceSettingsProvider`,
+`lib/context/appearance-settings.tsx`, mounted at `__root`):
+- **Units** are pushed into a module-level snapshot
+  (`lib/format-settings.ts`, `get/setFormatSettings`); the plain
+  `formatReadableSize` / `formatReadableQuantity` helpers read it as their
+  default when no explicit override arg is passed. Because the snapshot isn't
+  reactive, already-rendered tables update on their next data refresh, not
+  instantly (acceptable v1).
+- **Chart palette** → `data-chart-palette` on `<html>`; `styles.css` overrides
+  `--chart-1..13` under `:root[data-chart-palette='…']` (after `:root`/`.dark`
+  so it wins). `colorblind-safe` = Okabe-Ito, `monochrome` = single-hue ramp.
+- **Table density** → `data-density` on `<html>`; `styles.css` tightens the
+  `data-slot='table-cell'/'table-head'` padding under `[data-density='compact']`
+  (no `components/ui/table.tsx` edit).
+- **Default time range** is read as the *initial* value only in
+  `lib/context/time-range-context.tsx` (`readInitialTimeRange`), after the URL
+  `?range=` param and any persisted click — never overriding an explicit choice.
 
 ## shadcn/ui rule
 

@@ -118,6 +118,19 @@ Use the `components/data-table/` system (resizing, wrap toggle, sorting via
 Synthetic column ids `__expand`, `select`, `action` are non-data — skip them in
 filter/search/sort/card wiring.
 
+## User appearance settings
+
+The Settings dialog (`components/settings/settings-form.tsx`) exposes units
+(`byteUnit`, `numberFormat`), chart palette (`chartPalette`), table density
+(`tableDensity`) and default time range on `UserSettings`. Every DEFAULT
+reproduces the prior look byte-for-byte. Applied by `AppearanceSettingsProvider`
+(`lib/context/appearance-settings.tsx`): units → module snapshot in
+`lib/format-settings.ts` (read by the `format-readable` helpers); palette/density
+→ `data-chart-palette` / `data-density` on `<html>` with `--chart-*` and
+`data-slot` padding overrides in `styles.css` (never edit `ui/table.tsx`). For
+2–3 choices use `components/settings/segmented-control.tsx`. Full detail:
+`docs/knowledge/product-design.md`.
+
 ## Adding a page
 
 1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
