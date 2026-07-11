@@ -269,6 +269,9 @@ function rewriteImages(src, srcFileAbs) {
   const fileDirRel = posix.dirname(relative(REPO_ROOT, srcFileAbs))
   return src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
     if (/^https?:\/\//.test(url)) return match
+    // /assets/** is the shared image library, synced into public/assets/ by
+    // scripts/sync-shared-assets.mjs — the docs Worker serves it directly.
+    if (url.startsWith('/assets/')) return match
     let repoPath
     if (url.startsWith('/')) repoPath = `apps/dashboard/public${url}`
     else repoPath = posix.normalize(posix.join(fileDirRel, url))

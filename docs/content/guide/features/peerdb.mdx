@@ -19,6 +19,8 @@ Monitor PeerDB replication mirrors and peers without leaving chmonitor — an op
 
 ## What it does
 
+![PeerDB Mirrors: replication mirrors with live status, rows-synced trend, pipeline phases and peer info](/assets/screenshots/peerdb-mirrors-dark.png)
+
 When you set `PEERDB_API_URL`, chmonitor adds a PeerDB section to the navigation. It proxies read-only calls to the PeerDB API so you can monitor replication without leaving the chmonitor UI.
 
 - **Mirrors** (`/peerdb`) shows all configured replication mirrors with status, throughput, and per-table sync state, plus a fleet **lag-triage strip** (worst-lag mirrors) and a collapsible **logs & alerts feed** aggregated across every mirror.

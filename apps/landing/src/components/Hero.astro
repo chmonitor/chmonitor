@@ -10,11 +10,11 @@ import { formatCount, getGitHubStats } from '../lib/github-stars'
 const { stars } = await getGitHubStats()
 const starLabel = formatCount(stars)
 
-/* The anchor image. Sourced at 1600px so it stays sharp at the 1080px column —
-   the overview-*.png captures are only 1024px and would upscale. */
+/* The anchor image. Sourced at 3840px (assets/backgrounds/) — the framed art
+   variant of the overview capture, sharp at the 1080px column. */
 const HERO_SHOT = {
   id: 'hero-overview',
-  src: '/landing-assets/overview-insights-dark.webp',
+  src: '/assets/backgrounds/hero-bg-1.jpeg',
   alt: 'chmonitor overview: AI insights, query activity heatmap and storage stats',
 } as const
 

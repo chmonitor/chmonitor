@@ -68,7 +68,7 @@ if (zoomCount < 6) {
   )
 }
 
-if (!html.includes('/landing-assets/ai-agent-new-dark.webp')) {
+if (!html.includes('/assets/screenshots/ai-agent-new-dark.webp')) {
   console.error('MISSING static feature screenshot img in prerendered HTML')
   failed = true
 } else {

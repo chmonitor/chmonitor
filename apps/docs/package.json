@@ -7,8 +7,8 @@
   "sideEffects": false,
   "scripts": {
     "sync": "node scripts/sync-docs.mjs",
-    "dev": "node scripts/sync-docs.mjs && vite dev",
-    "build": "node scripts/sync-docs.mjs && node scripts/generate-og.mjs && vite build",
+    "dev": "node ../../scripts/sync-shared-assets.mjs && node scripts/sync-docs.mjs && vite dev",
+    "build": "node ../../scripts/sync-shared-assets.mjs && node scripts/sync-docs.mjs && node scripts/generate-og.mjs && vite build",
     "start": "vite preview",
     "preview": "vite preview",
     "cf:deploy": "wrangler deploy",

@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "node ../../scripts/sync-shared-assets.mjs && astro dev",
+    "build": "node ../../scripts/sync-shared-assets.mjs && astro build",
     "test": "bun test",
     "preview": "astro preview",
     "verify:structure": "bun scripts/verify-landing-structure.ts",

@@ -321,6 +321,8 @@ of local files.
 - Cloudflare worker size dry-run: `pnpm exec wrangler deploy --minify --dry-run`
 - Code-smell automation workflow now records findings in `docs/knowledge/core-memory.md`, then validates `gh run list --branch main --limit 10 ...` and keeps a dedicated memory note under `/Users/duet/.codex/automations/code-smell-detector/memory.md`.
 
+**Shared image library**: repo-root `assets/` (`screenshots/`, `backgrounds/`) is the committed source of truth for images reused across `apps/landing`, `apps/docs`, and `apps/blog`. `scripts/sync-shared-assets.mjs` copies it into each app's gitignored `public/assets/` on every dev/build, so all three sites serve `/assets/<category>/<file>`. Add images to `assets/` (descriptive names, `-light`/`-dark` variants), never to an app's `public/` directly. Old `/landing-assets/*` URLs 301-redirect. See `assets/README.md`.
+
 **Docs content workflow**: `docs/content/**` is the committed source of truth for the docs. The standalone **Fumadocs** site (TanStack Start, deployed to Cloudflare Workers → docs.chmonitor.dev) at `apps/docs` generates its content collection from it via `scripts/sync-docs.mjs` on every build. There is no per-release versioning.
 
 - `cd apps/docs && pnpm run dev` - Preview the docs site locally (sync-docs → `vite dev`)

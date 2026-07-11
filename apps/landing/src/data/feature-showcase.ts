@@ -39,7 +39,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Read-only MCP endpoint — nothing applied without you',
     ],
     screenshot: {
-      src: '/landing-assets/ai-agent-new-dark.webp',
+      src: '/assets/screenshots/ai-agent-new-dark.webp',
       alt: 'chmonitor AI agent chat with schema-aware recommendations',
     },
   },
@@ -57,7 +57,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Query heatmap and record-breaker insights',
     ],
     screenshot: {
-      src: '/landing-assets/running-queries-new-dark.webp',
+      src: '/assets/screenshots/running-queries-new-dark.webp',
       alt: 'Running queries with live charts and sortable table',
     },
     reverse: true,
@@ -75,7 +75,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Per-node CPU, memory and latency — healthy, warn or unreachable',
     ],
     screenshot: {
-      src: '/landing-assets/cluster-topology-new-dark.webp',
+      src: '/assets/screenshots/cluster-topology-new-dark.webp',
       alt: 'Cluster topology map of shards, replicas and Keeper quorum',
     },
   },
@@ -94,7 +94,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
     screenshot: {
       // Dark-only, like the other five: a themed pair here would make this the
       // one band that flips to a light capture on the light canvas.
-      src: '/landing-assets/chmonitor-health-dark.png',
+      src: '/assets/screenshots/chmonitor-health-dark.png',
       alt: 'Health checks with editable warning and critical thresholds',
     },
     reverse: true,
@@ -112,7 +112,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Projections, skip indexes and table lineage at a glance',
     ],
     screenshot: {
-      src: '/landing-assets/data-explorer-new-dark.webp',
+      src: '/assets/screenshots/data-explorer-new-dark.webp',
       alt: 'Data explorer dependency graph between tables',
     },
   },
@@ -131,7 +131,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
     ],
     screenshot: {
       // Not overview-insights-*: the hero already carries that capture.
-      src: '/landing-assets/record-breakers-dark.webp',
+      src: '/assets/screenshots/record-breakers-dark.webp',
       alt: 'Record-breaking queries ranked by duration, memory and rows read',
     },
     reverse: true,
@@ -150,11 +150,8 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Three new AI agent tools for Postgres',
     ],
     screenshot: {
-      // Placeholder: no dedicated Postgres UI capture exists yet — this reuses
-      // an unused query-focused dashboard shot. Swap for a real /postgres/queries
-      // or /postgres/activity screenshot once available.
-      src: '/landing-assets/queries-memory-dark.webp',
-      alt: 'Query insights dashboard, the same pattern used for Postgres monitoring',
+      src: '/assets/screenshots/add-pg-source-dark.png',
+      alt: 'Add Postgres source dialog: read-only connection with pg_stat_* requirements',
     },
     learnMoreHref: 'https://docs.chmonitor.dev/guide/features/postgres',
   },

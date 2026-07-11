@@ -113,3 +113,6 @@ apps/dashboard/node_modules/dashboard
 
 # Local infra notes with credentials — never commit (public repo)
 docs/machines.md
+
+# Shared image library synced from repo-root assets/ (scripts/sync-shared-assets.mjs)
+apps/*/public/assets/

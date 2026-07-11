@@ -73,7 +73,7 @@ export const useCases: UseCase[] = [
       'Running, slow, failed and expensive queries — with kill and recommend-only EXPLAIN suggestions.',
     subhead:
       "See every running, slow, failed and expensive query as it happens, with duration, memory and rows read, then act: kill a runaway query or review a recommend-only EXPLAIN suggestion for the one that's actually slow.",
-    heroImage: '/landing-assets/running-queries-light.png',
+    heroImage: '/assets/screenshots/running-queries-light.png',
     heroImageAlt:
       'chmonitor running queries view with live charts and a detailed table',
     heroImageWidth: 1024,
@@ -113,7 +113,7 @@ export const useCases: UseCase[] = [
       'A color-coded health board with Slack/Discord alerts and recovery notifications.',
     subhead:
       'One board of color-coded health checks — replication lag, failed queries, disk, memory, stuck mutations — with alerts to Slack or Discord when something turns red, and again when it recovers.',
-    heroImage: '/landing-assets/chmonitor-health-light.png',
+    heroImage: '/assets/screenshots/chmonitor-health-light.png',
     heroImageAlt: 'chmonitor cluster health summary board',
     heroImageWidth: 1932,
     heroImageHeight: 1322,
@@ -151,7 +151,7 @@ export const useCases: UseCase[] = [
       'Replica lag, read-only replicas and replication queues, on a live topology map.',
     subhead:
       'Track replica lag, read-only replicas, the replication queue and distributed DDL across every shard — visualized on a live cluster topology map, with alerts when replication falls behind.',
-    heroImage: '/landing-assets/cluster-topology-light.png',
+    heroImage: '/assets/screenshots/cluster-topology-light.png',
     heroImageAlt:
       'chmonitor cluster topology: ClickHouse nodes, shards, replicas and the Keeper quorum with live replication links',
     heroImageWidth: 1024,
@@ -190,7 +190,7 @@ export const useCases: UseCase[] = [
       'Slowest/most-expensive queries plus a recommend-only tuning and capacity advisor.',
     subhead:
       'Find the queries actually costing you time and memory, then get recommend-only tuning suggestions from EXPLAIN and a capacity/TTL advisor — chmonitor never rewrites schema or executes DDL for you.',
-    heroImage: '/landing-assets/explain-light.png',
+    heroImage: '/assets/screenshots/explain-light.png',
     heroImageAlt:
       'chmonitor EXPLAIN view with recommend-only tuning suggestions',
     heroImageWidth: 1024,

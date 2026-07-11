@@ -3,7 +3,9 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-const assetsDir = join(import.meta.dir, '../../public/landing-assets')
+// Screenshots live in the repo-root shared library (synced into
+// public/assets/ at build time — see scripts/sync-shared-assets.mjs).
+const assetsDir = join(import.meta.dir, '../../../../assets/screenshots')
 
 describe('feature showcase sections', () => {
   test('every section has id, copy and screenshot', () => {
@@ -12,7 +14,9 @@ describe('feature showcase sections', () => {
       expect(section.id.startsWith('feature-')).toBe(true)
       expect(section.title.length).toBeGreaterThan(0)
       expect(section.bullets.length).toBeGreaterThan(0)
-      expect(section.screenshot.src.startsWith('/landing-assets/')).toBe(true)
+      expect(section.screenshot.src.startsWith('/assets/screenshots/')).toBe(
+        true
+      )
       expect(section.screenshot.alt.length).toBeGreaterThan(0)
     }
   })
@@ -26,13 +30,13 @@ describe('feature showcase sections', () => {
     for (const section of FEATURE_SECTIONS) {
       const srcPath = join(
         assetsDir,
-        section.screenshot.src.replace('/landing-assets/', '')
+        section.screenshot.src.replace('/assets/screenshots/', '')
       )
       expect(existsSync(srcPath)).toBe(true)
       if (section.screenshot.srcDark) {
         const darkPath = join(
           assetsDir,
-          section.screenshot.srcDark.replace('/landing-assets/', '')
+          section.screenshot.srcDark.replace('/assets/screenshots/', '')
         )
         expect(existsSync(darkPath)).toBe(true)
       }
