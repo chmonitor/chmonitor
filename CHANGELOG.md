@@ -664,6 +664,7 @@ New optional vars: `CHM_AUTH_PROVIDER` (`none\|clerk\|proxy`), `CHM_API_KEY_SECR
 ### ✨ Features
 
 - **Promote TanStack Start dashboard to primary, remove legacy Next.js app** ([#1392](https://github.com/chmonitor/chmonitor/issues/1392)).
+- **postgres:** Postgres as a monitored source (beta) — query insights, running queries, and AI agent tools ([#2570](https://github.com/chmonitor/chmonitor/pull/2570)).
 
 ### 🤖 Migrate with an AI assistant
 
