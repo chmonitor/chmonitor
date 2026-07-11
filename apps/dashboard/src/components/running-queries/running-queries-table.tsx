@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 
 import { downloadRunningCsv } from './table/csv'
+import { getEmptyMessage } from './table/empty-message'
 import { QueryCard } from './table/query-card'
 import { QueryRow } from './table/query-row'
 import { KindFilter } from './table/toolbar'
@@ -168,6 +169,11 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
   const moreFiltersActive = filterInterface !== 'all' || longRunningOnly
   const totalColumns =
     BASE_COLUMN_COUNT + (OPTIONAL_COLUMNS.length - hiddenColumns.size)
+  // No queries executing at all (vs. a non-empty list filtered down to zero)
+  // gets friendlier copy — the toolbar/table shell still renders either way so
+  // search, filters, column visibility and export stay reachable while waiting
+  // for queries to appear.
+  const emptyMessage = getEmptyMessage(rows.length, doneRows.length)
 
   const handleSort = useCallback((key: string) => {
     const k = key as SortKey
@@ -347,7 +353,9 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
               onToggle={() => onToggle(d.key)}
             />
           ))}
-          {visible.length === 0 && derivedDone.length === 0 && <EmptyCards />}
+          {visible.length === 0 && derivedDone.length === 0 && (
+            <EmptyCards message={emptyMessage} />
+          )}
         </div>
       ) : (
         /* Table — table-fixed so the Query column truncates instead of pushing
@@ -464,7 +472,7 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
                 />
               ))}
               {visible.length === 0 && derivedDone.length === 0 && (
-                <EmptyTableRow colSpan={totalColumns} />
+                <EmptyTableRow colSpan={totalColumns} message={emptyMessage} />
               )}
             </tbody>
           </table>

@@ -356,25 +356,18 @@ export const RunningQueriesView = function RunningQueriesView() {
                 onExpand={() => setChartsOpen(true)}
               />
             )}
-            {rows.length === 0 && doneRowsArr.length === 0 ? (
-              <Card className="rounded-xl border-dashed">
-                <CardContent className="p-6">
-                  <EmptyState
-                    variant="no-data"
-                    title="No queries running"
-                    description="Nothing is executing on this host right now. New queries appear here automatically."
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <RunningQueriesTable
-                rows={rows}
-                doneRows={doneRowsArr}
-                expanded={expanded}
-                onToggle={toggleExpanded}
-                onDismiss={dismissDone}
-              />
-            )}
+            {/* The table renders its own toolbar (search, filters, column
+                visibility, export) regardless of row count — an empty
+                live/done set only swaps the body region for an inline empty
+                message, so those controls stay reachable while waiting for
+                queries to appear. */}
+            <RunningQueriesTable
+              rows={rows}
+              doneRows={doneRowsArr}
+              expanded={expanded}
+              onToggle={toggleExpanded}
+              onDismiss={dismissDone}
+            />
             <CompletedQueriesTable
               rows={mergedCompleted}
               justFinishedIds={justFinishedIds}
