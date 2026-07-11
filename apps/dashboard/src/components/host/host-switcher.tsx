@@ -1,4 +1,11 @@
-import { ChevronsUpDown, GlobeIcon, Info, Pencil, PlusIcon } from 'lucide-react'
+import {
+  ChevronsUpDown,
+  GaugeIcon,
+  GlobeIcon,
+  Info,
+  Pencil,
+  PlusIcon,
+} from 'lucide-react'
 
 import { HostDetailsDialog } from './host-details-dialog'
 import { HostMenuRow } from './host-menu-row'
@@ -90,6 +97,14 @@ export function HostSwitcher() {
     // Route to the Postgres pages carrying the source in the `?pg=` dimension —
     // never overloaded onto the ClickHouse `?host=` id space.
     router.push(`/postgres/queries?pg=${encodeURIComponent(connectionId)}`)
+    setMenuOpen(false)
+  }
+
+  const handleFleetOverview = () => {
+    // Jump to the all-hosts status view, preserving the current host selection.
+    router.push(
+      buildUrl('/fleet', currentHostId != null ? { host: currentHostId } : {})
+    )
     setMenuOpen(false)
   }
 
@@ -372,6 +387,14 @@ export function HostSwitcher() {
                   </>
                 )}
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleFleetOverview}
+                  data-testid="fleet-overview"
+                  className="gap-2 text-muted-foreground"
+                >
+                  <GaugeIcon className="size-4" />
+                  Fleet overview
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setAddDialogOpen(true)}
                   data-testid="add-host"
