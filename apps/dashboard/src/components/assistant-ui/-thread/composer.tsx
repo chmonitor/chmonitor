@@ -16,6 +16,7 @@ import {
   formatContextBlock,
 } from '@/components/agents/welcome/add-context-dialog'
 import { ComposerToolbar } from '@/components/agents/welcome/composer-toolbar'
+import { PageContextChip } from '@/components/assistant-ui/-thread/page-context-chip'
 import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { track } from '@/lib/telemetry'
 
@@ -32,6 +33,7 @@ export function WelcomeComposer() {
 
   return (
     <div className="flex flex-col gap-2">
+      <PageContextChip className="self-start" />
       <PromptInputTextareaWithMentions
         isLoading={isRunning}
         onResolvedSubmit={(text) => {
@@ -66,7 +68,8 @@ export function ThreadComposer() {
   const { ensureAuthed } = useAgentAuthGate()
 
   return (
-    <div className="w-full">
+    <div className="flex w-full flex-col gap-1.5">
+      <PageContextChip className="self-start" />
       <PromptInputTextareaWithMentions
         isLoading={isRunning}
         onResolvedSubmit={(text) => {

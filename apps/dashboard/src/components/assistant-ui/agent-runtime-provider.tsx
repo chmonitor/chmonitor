@@ -23,6 +23,7 @@ import {
 import { useChatRuntime } from '@assistant-ui/react-ai-sdk'
 import { DefaultChatTransport } from 'ai'
 import { type ReactNode, useMemo, useRef } from 'react'
+import { usePageContextControl } from '@/components/assistant-ui/page-context-control'
 import { buildPageContext } from '@/lib/ai/agent/page-context'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
@@ -57,6 +58,11 @@ function useAgentChatRuntime() {
   const sessionId = useMemo(() => crypto.randomUUID(), [])
   const { customServers, disabledServers } = useMcpConfig()
   const pathname = usePathname()
+  // Present only for the floating widget (null on the full /agents page). When
+  // present, the composer chip can switch page context off for the current
+  // page. The ref object is stable across renders, so it's a safe memo dep that
+  // never rebuilds the transport when the flag flips.
+  const pageEnabledRef = usePageContextControl()?.enabledRef
 
   // Only pass enabled custom servers to the agent route. Derive from the stable
   // `customServers` + `disabledServers` arrays (not `isServerEnabled`, which is a
@@ -92,8 +98,15 @@ function useAgentChatRuntime() {
         }) => {
           const isNewThread = messages.length <= 1
           const pageChanged = lastSentPathnameRef.current !== pathname
+          // The floating chip can drop page context for the current page; the
+          // ref is read live so a toggle never rebuilds the transport. Absent a
+          // provider (the /agents page) it defaults to enabled — behaviour is
+          // identical to before.
+          const pageContextEnabled = pageEnabledRef?.current ?? true
           const shouldSendPageContext =
-            Boolean(pathname) && (isNewThread || pageChanged)
+            pageContextEnabled &&
+            Boolean(pathname) &&
+            (isNewThread || pageChanged)
 
           if (shouldSendPageContext) {
             lastSentPathnameRef.current = pathname
@@ -116,7 +129,15 @@ function useAgentChatRuntime() {
     // mcpServers is a derived array — include it directly so the transport
     // re-creates when the user toggles or adds custom servers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hostId, model, disabledTools, sessionId, mcpServers, pathname]
+    [
+      hostId,
+      model,
+      disabledTools,
+      sessionId,
+      mcpServers,
+      pathname,
+      pageEnabledRef,
+    ]
   )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -8,11 +8,14 @@
 
 import { AgentRuntimeProvider } from '@/components/assistant-ui/agent-runtime-provider'
 import { AssistantModal } from '@/components/assistant-ui/assistant-modal'
+import { PageContextControlProvider } from '@/components/assistant-ui/page-context-control'
 
 export function GlobalAssistantModalImpl() {
   return (
-    <AgentRuntimeProvider>
-      <AssistantModal />
-    </AgentRuntimeProvider>
+    <PageContextControlProvider>
+      <AgentRuntimeProvider>
+        <AssistantModal />
+      </AgentRuntimeProvider>
+    </PageContextControlProvider>
   )
 }
