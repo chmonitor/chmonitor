@@ -116,7 +116,8 @@ export function ConnectionHelpPanel({
               >
                 The Postgres port (default{' '}
                 <code className="text-foreground">5432</code>) reachable from
-                chmonitor — allowlist it in your firewall.
+                chmonitor. Behind a firewall? Cloud has no fixed IP —{' '}
+                <FirewallGuideLink />.
               </RequirementItem>
               <RequirementItem
                 icon={
@@ -165,8 +166,8 @@ export function ConnectionHelpPanel({
                   />
                 }
               >
-                The HTTP interface reachable from chmonitor (allowlist the Cloud
-                connection in your firewall).
+                The HTTP interface reachable from chmonitor. Behind a firewall?
+                Cloud has no fixed IP — <FirewallGuideLink />.
               </RequirementItem>
             </>
           )}
@@ -208,6 +209,24 @@ export function ConnectionHelpPanel({
         </a>
       </Section>
     </aside>
+  )
+}
+
+/**
+ * Answers "what IP do I allowlist?" inline: Cloud runs on Cloudflare Workers
+ * with no fixed egress IP, so the guide (Tunnel / dedicated egress / static
+ * proxy) is the real answer — never Cloudflare's shared public ranges.
+ */
+function FirewallGuideLink() {
+  return (
+    <a
+      href={docsSiteUrl('guides/connect-firewalled-clickhouse')}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-foreground underline-offset-2 hover:underline"
+    >
+      see the firewall guide
+    </a>
   )
 }
 

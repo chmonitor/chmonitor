@@ -1,3 +1,6 @@
+import { toast } from 'sonner'
+
+import type { FetchError } from '@/lib/swr/fetch-error'
 import type { HostStorageMode } from '@/lib/types/host-storage'
 import type { ConnectionPreset } from './connection-presets'
 
@@ -93,7 +96,24 @@ export function AddHostDialog({
     const isPostgres = data.engine === 'postgres'
 
     if (storageMode === 'database' && dbStorageEnabled) {
-      const result = await createConnection(data)
+      let result: Awaited<ReturnType<typeof createConnection>>
+      try {
+        result = await createConnection(data)
+      } catch (err) {
+        // Cloud signup gate: an account with no subscription (even the $0
+        // Free plan counts) is 402'd server-side before its first host.
+        const fetchErr = err as FetchError
+        if (fetchErr?.details?.reason === 'subscription_required') {
+          toast.error(fetchErr.message, {
+            action: {
+              label: 'Choose a plan',
+              onClick: () => router.push('/billing'),
+            },
+          })
+          return
+        }
+        throw err
+      }
       await refetchDb()
       if (isPostgres) {
         router.push(

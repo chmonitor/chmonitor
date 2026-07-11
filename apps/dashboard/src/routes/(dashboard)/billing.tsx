@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { createFileRoute } from '@tanstack/react-router'
 
 import type { ReactNode } from 'react'
+import type { PlanId } from '@/lib/billing/plans'
 
 import { useState } from 'react'
 import { useClerkIsSignedIn as useClerkIsSignedInImpl } from '@/components/assistant-ui/use-clerk-is-signed-in'
@@ -68,6 +69,10 @@ function BillingPage() {
   const [downgradeState, setDowngradeState] = useState<DowngradeState | null>(
     null
   )
+  // Plan focused for comparison: click a plan card below to project current
+  // usage onto that plan's limits inside the current-plan card. Click again
+  // (or the ✕) to clear.
+  const [comparePlanId, setComparePlanId] = useState<PlanId | null>(null)
 
   // Cloud visitors who aren't signed in get a sign-in prompt instead of a
   // billing UI they can't act on. (Always signed-in in OSS, so never shown.)
@@ -84,6 +89,17 @@ function BillingPage() {
     trackEvent('upgrade_click', { plan_id: planId, source: 'billing_page' })
     try {
       await startCheckout(planId, period)
+    } catch (err) {
+      setBusy(null)
+      toast.error(err instanceof Error ? err.message : 'Checkout failed')
+    }
+  }
+
+  /** Activate the $0 Free plan (a real Polar subscription, no card). */
+  async function onCheckoutFree() {
+    setBusy('free')
+    try {
+      await startCheckout('free', 'monthly')
     } catch (err) {
       setBusy(null)
       toast.error(err instanceof Error ? err.message : 'Checkout failed')
@@ -193,7 +209,10 @@ function BillingPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <UsageSummary />
+          <UsageSummary
+            comparePlan={comparePlanId ? getPlan(comparePlanId) : null}
+            onClearCompare={() => setComparePlanId(null)}
+          />
         </CardContent>
       </Card>
 
@@ -211,6 +230,17 @@ function BillingPage() {
               plan={plan}
               period={period}
               featured={plan.id === 'pro'}
+              // Click a non-current plan to compare its limits against current
+              // usage in the card above (toggle on repeat click).
+              onSelect={
+                isCurrent
+                  ? undefined
+                  : () =>
+                      setComparePlanId((prev) =>
+                        prev === plan.id ? null : plan.id
+                      )
+              }
+              selected={comparePlanId === plan.id}
               badge={
                 isCurrent ? (
                   <CurrentPlanBadge />
@@ -219,7 +249,19 @@ function BillingPage() {
                 ) : undefined
               }
               cta={
-                isCurrent ? (
+                plan.id === 'free' && !hasSubscription ? (
+                  // 'Current' free without a subscription is only the implicit
+                  // floor — the signup gate wants a real (still $0) Polar
+                  // subscription before the first host, so offer to start it.
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={onCheckoutFree}
+                    disabled={busy !== null}
+                  >
+                    {busy === 'free' ? 'Redirecting…' : 'Start Free — $0'}
+                  </Button>
+                ) : isCurrent ? (
                   <Button variant="outline" className="w-full" disabled>
                     Current plan
                   </Button>

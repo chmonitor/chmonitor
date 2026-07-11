@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import type { ReactNode } from 'react'
 import type { ConnectionPreset } from '@/components/connections/connection-presets'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PlanCard, PopularBadge } from '@/components/billing/plan-card'
 import { ClerkSignInButton as ClerkSignInButtonImpl } from '@/components/clerk/clerk-sign-in-button'
 import { AddHostDialog } from '@/components/connections'
@@ -229,12 +229,20 @@ function ConnectYourHost({
   const allowPostgres = isFeatureEnabled('postgresSource')
   const { data: sub } = useBillingSubscription()
   const currentPlanId = sub?.planId ?? 'free'
-  const isPaid = currentPlanId === 'pro' || currentPlanId === 'max'
-  // Onboarding: pick a plan first, then connect a host. Paid users (or anyone
-  // who already chose) skip straight to connect.
+  // status 'none' = no subscription at all; the server requires an active one
+  // (even the $0 Free plan) before the first host can be added, so onboarding
+  // must route through plan selection first.
+  const hasActiveSub = sub != null && sub.status !== 'none'
+  // Onboarding: pick a plan first, then connect a host. Anyone with an active
+  // subscription (including Free) skips straight to connect.
   const [step, setStep] = useState<'plan' | 'connect'>(
-    isPaid ? 'connect' : 'plan'
+    hasActiveSub ? 'connect' : 'plan'
   )
+  // The subscription loads async (and refreshes after the Polar redirect
+  // returns) — advance to the connect step as soon as it turns up active.
+  useEffect(() => {
+    if (hasActiveSub) setStep('connect')
+  }, [hasActiveSub])
 
   if (step === 'plan') {
     return (
@@ -245,6 +253,7 @@ function ConnectYourHost({
         />
         <OnboardingPlans
           currentPlanId={currentPlanId}
+          hasActiveSub={hasActiveSub}
           onContinueFree={() => setStep('connect')}
         />
       </div>
@@ -366,12 +375,20 @@ function ConnectYourHost({
   )
 }
 
-/** Onboarding plan picker: Free continues with no Polar; Pro/Max → checkout. */
+/**
+ * Onboarding plan picker. Every plan — including Free — goes through Polar
+ * checkout so the account holds a real (possibly $0) subscription before the
+ * first host; the free checkout collects no card and returns straight here.
+ * When billing isn't configured (OSS/preview → checkout 501s) Free falls open
+ * to plain continue, mirroring the server gate's fail-open behaviour.
+ */
 function OnboardingPlans({
   currentPlanId,
+  hasActiveSub,
   onContinueFree,
 }: {
   currentPlanId: string
+  hasActiveSub: boolean
   onContinueFree: () => void
 }) {
   const [busy, setBusy] = useState<string | null>(null)
@@ -384,6 +401,27 @@ function OnboardingPlans({
     } catch (err) {
       setBusy(null)
       toast.error(err instanceof Error ? err.message : 'Checkout failed')
+    }
+  }
+
+  async function chooseFree() {
+    if (hasActiveSub) {
+      onContinueFree()
+      return
+    }
+    setBusy('free')
+    try {
+      await startCheckout('free', 'monthly', { returnPath: '/' })
+    } catch (err) {
+      setBusy(null)
+      const message = err instanceof Error ? err.message : ''
+      // 501 = billing not configured on this deployment — the server gate is
+      // off too, so continuing without a subscription is correct here.
+      if (/billing is not enabled|no polar product/i.test(message)) {
+        onContinueFree()
+        return
+      }
+      toast.error(message || 'Could not start the Free plan')
     }
   }
 
@@ -406,11 +444,15 @@ function OnboardingPlans({
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={onContinueFree}
+                    onClick={chooseFree}
                     disabled={busy !== null}
                     data-testid="onboarding-choose-free"
                   >
-                    Continue with Free
+                    {busy === 'free'
+                      ? 'Redirecting…'
+                      : hasActiveSub
+                        ? 'Continue with Free'
+                        : 'Start Free — $0'}
                   </Button>
                 ) : (
                   <Button

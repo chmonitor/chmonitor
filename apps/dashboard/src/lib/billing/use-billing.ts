@@ -71,10 +71,17 @@ async function postForUrl(route: string, body?: unknown): Promise<string> {
   return url
 }
 
-/** Begin a checkout for a paid plan; redirects to Polar on success. */
+/**
+ * Begin a checkout for a subscribable plan; redirects to Polar on success.
+ * Free is a real $0 Polar product (monthly only, no card at checkout) so the
+ * signup gate can require an active subscription before the first host.
+ * `returnPath` (same-origin relative path) overrides the default `/billing`
+ * post-checkout destination — onboarding passes `/` to land back on setup.
+ */
 export async function startCheckout(
-  planId: 'pro' | 'max',
-  period: 'monthly' | 'yearly'
+  planId: 'free' | 'pro' | 'max',
+  period: 'monthly' | 'yearly',
+  options?: { returnPath?: string }
 ): Promise<void> {
   // Attach the browser's PostHog distinct-id so the Polar webhook can stitch
   // upgrade_completed onto the same funnel session (#2478) instead of the
@@ -86,6 +93,7 @@ export async function startCheckout(
     planId,
     period,
     posthogDistinctId,
+    returnPath: options?.returnPath,
   })
   trackEvent('checkout_started', { plan_id: planId, billing_period: period })
   window.location.href = url
