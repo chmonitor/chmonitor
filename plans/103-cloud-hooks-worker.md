@@ -1,6 +1,8 @@
 # 103 — `apps/cloud-hooks`: dedicated Cloud webhook + ops-notification Worker
 
-**Status:** design approved for implementation (dispatch to a senior agent)
+**Status:** phase 1–2 implemented (PR #PENDING) — `packages/billing-webhook-core`
++ dashboard refactor + `apps/cloud-hooks` worker + CI job landed; the Polar
+dashboard cutover (steps 3–4) remains and is operator-driven.
 **Owner surface:** Cloud (SaaS) only — OSS never deploys or needs this.
 **New subdomain:** `hooks.chmonitor.dev` (Cloudflare Worker `chmonitor-hooks`).
 

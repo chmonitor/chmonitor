@@ -13,6 +13,7 @@ tags:
 related:
   - cloud-saas-mode
   - deployment
+  - cloud-hooks-worker
 ---
 
 # Billing checkout → webhook → D1 → plan resolution
@@ -60,6 +61,20 @@ out of order. Cloud (SaaS) only — self-hosted/OSS has no Polar/Clerk and
                              │  3. no sub anywhere → Free (floor)             │
                              └────────────────────────────────────────────────┘
 ```
+
+## Topology: the webhook is moving to a dedicated worker
+
+The Polar `subscription.*` logic (`applySubscription` + the D1 subscription-store
+upsert with its monotonic guard) now lives in the framework-agnostic
+**`packages/billing-webhook-core`** package. The dashboard route
+`/api/v1/webhooks/polar` is a thin adapter over it — **unchanged in behaviour and
+still the live endpoint**. A new Cloud-only worker,
+[`apps/cloud-hooks`](cloud-hooks-worker.md) (`hooks.chmonitor.dev`), is the same
+adapter plus Telegram ops notifications + scheduled jobs; it deploys but stays
+**dormant** until the Polar endpoint is cut over to it (plans/103 step 3-4).
+Both Workers bind the same `chm-cloud` D1, so plan resolution is identical
+regardless of which one persisted the row. Until cutover, treat the dashboard
+route as authoritative.
 
 ## Component reference
 
