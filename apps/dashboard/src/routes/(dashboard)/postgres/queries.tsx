@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PgPage } from '@/components/postgres/pg-page'
 import { PgPatternDetailSheet } from '@/components/postgres/pg-pattern-detail-sheet'
+import { PostgresInsightsPanel } from '@/components/postgres/postgres-insights-panel'
 import { pgSlowPatternsConfig } from '@/lib/pg-query-config'
 
 /**
@@ -19,6 +20,7 @@ function PostgresQueriesPage() {
 
   return (
     <>
+      <PostgresInsightsPanel className="mb-6" />
       <PgPage
         config={pgSlowPatternsConfig}
         refetchInterval={30_000}

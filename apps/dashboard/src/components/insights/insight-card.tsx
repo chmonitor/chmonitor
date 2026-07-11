@@ -16,6 +16,12 @@ interface InsightCardProps {
   hostId: number
   onDismiss: (insight: InsightCardData) => void
   className?: string
+  /**
+   * Search params to attach to the card's action deep-link, overriding the
+   * default `{ host: hostId }`. Postgres insights pass the active `?pg=` source
+   * so the link stays on the Postgres routing dimension instead of `?host`.
+   */
+  linkSearch?: Record<string, string | number>
 }
 
 export function InsightCard({
@@ -23,6 +29,7 @@ export function InsightCard({
   hostId,
   onDismiss,
   className,
+  linkSearch,
 }: InsightCardProps) {
   const style = SEVERITY_META[insight.severity]
   const Icon = style.icon
@@ -32,11 +39,12 @@ export function InsightCard({
     : Number.NaN
   const hasGeneratedAt = Number.isFinite(generatedMs)
 
+  const linkParams = linkSearch ?? { host: hostId }
   const action = insight.action
   const actionHref = action?.href
-    ? buildUrl(action.href, { host: hostId })
+    ? buildUrl(action.href, linkParams)
     : action?.prompt
-      ? buildUrl('/agents', { host: hostId })
+      ? buildUrl('/agents', linkParams)
       : undefined
 
   return (
