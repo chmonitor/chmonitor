@@ -21,8 +21,10 @@ Monitor PeerDB replication mirrors and peers without leaving chmonitor — an op
 
 When you set `PEERDB_API_URL`, chmonitor adds a PeerDB section to the navigation. It proxies read-only calls to the PeerDB API so you can monitor replication without leaving the chmonitor UI.
 
-- **Mirrors** (`/peerdb`) shows all configured replication mirrors with status, throughput, and per-table sync state.
-- **Peers** (`/peerdb/peers`) lists source and destination peers, replication slot lag, and a mirror connectivity graph.
+- **Mirrors** (`/peerdb`) shows all configured replication mirrors with status, throughput, and per-table sync state, plus a fleet **lag-triage strip** (worst-lag mirrors) and a collapsible **logs & alerts feed** aggregated across every mirror.
+- **Mirror detail** (`/peerdb/mirror?name=…`) adds **snapshot / initial-load progress** (per-table partition completion, fetch/consolidate phase, avg time per partition), **CDC batch history** (rows per batch, LSN range, duration), a per-table **operation mix** (insert/update/delete), and an authoritative rows-synced total.
+- **Peers** (`/peerdb/peers`) lists source and destination peers, a **replication slot health** table (lag, active state, WAL status classified ok / warn / critical), and a mirror connectivity graph.
+- **Peer detail** (`/peerdb/peer?name=…`) shows the peer's redacted config and server version, its replication slots, slot-lag history, and active queries.
 
 Mutation requests (create, delete, pause, resume) are blocked at the proxy layer and return HTTP 403. chmonitor only ever reads from PeerDB.
 
@@ -32,8 +34,10 @@ The PeerDB section does not appear in the navigation when `PEERDB_API_URL` is un
 
 | Page | Route | What it shows | System tables |
 |---|---|---|---|
-| Mirrors | `/peerdb` | Mirror status, throughput, per-table sync | — (PeerDB API) |
-| Peers | `/peerdb/peers` | Peer list, slot lag, mirror graph | — (PeerDB API) |
+| Mirrors | `/peerdb` | Mirror status, throughput, lag triage, fleet logs feed | — (PeerDB API) |
+| Mirror detail | `/peerdb/mirror` | Snapshot progress, CDC batch history, operation mix, rows-synced total | — (PeerDB API) |
+| Peers | `/peerdb/peers` | Peer list, slot health, mirror graph | — (PeerDB API) |
+| Peer detail | `/peerdb/peer` | Peer info + version, slots, slot-lag history, active queries | — (PeerDB API) |
 
 ## Using it
 

@@ -14,6 +14,17 @@ Open it at `/peerdb` once configured. The section is hidden until
 `PEERDB_API_URL` is set.
 </Callout>
 
+## What you can see
+
+| View | Where | Highlights |
+|---|---|---|
+| Mirrors fleet | `/peerdb` | Status KPIs, per-mirror throughput, a **lag-triage strip** (worst-lag mirrors), and a collapsible **logs & alerts feed** aggregated across every mirror with error/warn/info filters. |
+| Snapshot progress | mirror detail | Per-table initial-load progress from `initial_load` — partitions completed, rows synced, avg time per partition, and fetch/consolidate phase badges. Fills the gap for snapshotting mirrors. |
+| CDC batch history | mirror detail | Recent CDC batches (id, LSN range, rows, duration) plus a rows-per-batch chart. |
+| Operation mix | mirror detail | Per-table insert / update / delete split from `table_total_counts`. |
+| Slot health | `/peerdb/peers` | Replication slots across Postgres peers classified **ok / warn / critical** by lag, active state, and WAL status; worst-first. |
+| Peer info | peer detail | Redacted peer config and server version from `peers/info`, alongside slots, slot-lag history, and active queries. |
+
 ## Configure
 
 <Steps>
