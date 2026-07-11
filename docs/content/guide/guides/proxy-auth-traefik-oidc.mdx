@@ -1,0 +1,263 @@
+---
+title: Proxy auth — Traefik ForwardAuth + OIDC
+description: Use Traefik's forwardAuth middleware with oauth2-proxy (or Authelia/Authentik) to gate chmonitor behind an OIDC login, forwarding a full identity profile.
+icon: Waypoints
+---
+
+Traefik doesn't speak OIDC itself — it delegates the auth decision to an external service via the `forwardAuth` middleware, which calls that service on every request before proxying to chmonitor. Pair it with **oauth2-proxy** (or Authelia/Authentik) as the OIDC bridge: oauth2-proxy does the actual login against your IdP and exposes an internal check endpoint; Traefik calls it, copies the response headers it returns onto the real request, and chmonitor's `trusted` provider reads those into a full profile.
+
+<Callout type="info" title="When to pick this path">
+Use this when Traefik is already your ingress (bare Traefik, Traefik in Kubernetes/k3s via `IngressRoute`, or Docker with the Traefik provider) and you want OIDC login without switching to nginx or Cloudflare.
+</Callout>
+
+<Mermaid chart={`sequenceDiagram
+  participant B as Browser
+  participant T as Traefik
+  participant O as oauth2-proxy (OIDC)
+  participant A as chmonitor (trusted provider)
+  B->>T: request
+  T->>O: forwardAuth: GET /oauth2/auth
+  alt no valid session
+    O-->>T: 401
+    T-->>B: redirect to oauth2-proxy /oauth2/start
+  else valid session
+    O-->>T: 200 + X-Auth-Request-* headers
+    T->>A: forward + X-Auth-Request-* + X-Chm-Proxy-Secret
+    A->>A: verify secret, build principal
+    A-->>B: 200 data
+  end`} />
+
+## Prerequisites
+
+- Traefik v2 or v3 as your ingress (standalone, Docker provider, or Kubernetes CRD provider `IngressRoute`/`Middleware`).
+- oauth2-proxy (or Authelia/Authentik) reachable from Traefik, configured against an OIDC provider (Dex, Okta, Keycloak, Google Workspace, GitHub, etc.).
+- The ability to inject a static header (the shared secret) on requests forwarded to chmonitor — via a second Traefik `headers` middleware, or by running chmonitor network-isolated behind Traefik only.
+
+## Setup
+
+<Steps>
+<Step>
+### Run oauth2-proxy as the OIDC bridge
+
+```bash
+docker run -d \
+  --name oauth2-proxy \
+  -p 4180:4180 \
+  quay.io/oauth2-proxy/oauth2-proxy:latest \
+  --provider=oidc \
+  --oidc-issuer-url=https://dex.example.com \
+  --client-id=chmonitor \
+  --client-secret=YOUR_CLIENT_SECRET \
+  --cookie-secret=$(python3 -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())') \
+  --http-address=0.0.0.0:4180 \
+  --set-xauthrequest \
+  --scope="openid email profile groups" \
+  --redirect-url=https://chmonitor.example.com/oauth2/callback
+```
+
+`--scope="openid email profile groups"` requests the `groups` claim from your OIDC provider — needed if you plan to gate chmonitor access with `CHM_TRUSTED_ALLOWED_GROUPS`. Your IdP (Dex, Keycloak, Authentik) must be configured to actually populate `groups` for this to have any effect.
+</Step>
+<Step>
+### Define the forwardAuth middleware
+
+Traefik dynamic configuration (file provider) or a Kubernetes `Middleware` CRD:
+
+```yaml
+# Traefik file/dynamic config (traefik dynamic.yml)
+http:
+  middlewares:
+    oauth2-proxy-auth:
+      forwardAuth:
+        address: "http://oauth2-proxy:4180/oauth2/auth"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Auth-Request-User
+          - X-Auth-Request-Email
+          - X-Auth-Request-Preferred-Username
+          - X-Auth-Request-Groups
+
+    # Injects the shared secret chmonitor checks — chained after forwardAuth
+    chm-proxy-secret:
+      headers:
+        customRequestHeaders:
+          X-Chm-Proxy-Secret: "your-shared-secret-here"
+```
+
+Kubernetes CRD equivalent:
+
+```yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-proxy-auth
+  namespace: monitoring
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.monitoring.svc.cluster.local:4180/oauth2/auth
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-Auth-Request-User
+      - X-Auth-Request-Email
+      - X-Auth-Request-Preferred-Username
+      - X-Auth-Request-Groups
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: chm-proxy-secret
+  namespace: monitoring
+spec:
+  headers:
+    customRequestHeaders:
+      X-Chm-Proxy-Secret: "your-shared-secret-here"
+```
+
+`address` is the exact internal check endpoint oauth2-proxy exposes; `authResponseHeaders` is the allowlist of headers Traefik copies from oauth2-proxy's `200` response onto the request it forwards to chmonitor. `--set-xauthrequest` (step 1) is what makes oauth2-proxy actually populate those headers.
+
+<Callout type="warn" title="Don't hardcode the secret in a committed manifest">
+`customRequestHeaders` with a literal secret value works but shouldn't be committed to source control as-is. Template it from a Kubernetes Secret at apply time (Kustomize secretGenerator, SOPS, sealed-secrets) or a CI templating step, or skip the shared secret entirely and use `CHM_TRUSTED_ALLOW_INSECURE=true` if chmonitor is only reachable as a `ClusterIP` behind Traefik (see Troubleshooting below).
+</Callout>
+</Step>
+<Step>
+### Attach both middlewares to the chmonitor route
+
+Order matters: the auth check must run before the secret header is added.
+
+```yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: chmonitor
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`chmonitor.example.com`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy-auth
+        - name: chm-proxy-secret
+      services:
+        - name: chmonitor
+          port: 8080
+```
+
+Docker-provider label equivalent:
+
+```yaml
+labels:
+  traefik.enable: "true"
+  traefik.http.routers.chmonitor.rule: "Host(`chmonitor.example.com`)"
+  traefik.http.routers.chmonitor.middlewares: "oauth2-proxy-auth,chm-proxy-secret"
+  traefik.http.middlewares.oauth2-proxy-auth.forwardauth.address: "http://oauth2-proxy:4180/oauth2/auth"
+  traefik.http.middlewares.oauth2-proxy-auth.forwardauth.trustForwardHeader: "true"
+  traefik.http.middlewares.oauth2-proxy-auth.forwardauth.authResponseHeaders: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username,X-Auth-Request-Groups"
+  traefik.http.middlewares.chm-proxy-secret.headers.customrequestheaders.X-Chm-Proxy-Secret: "your-shared-secret-here"
+```
+
+You'll also need a route for oauth2-proxy's own `/oauth2/` paths (login page, callback) — route `PathPrefix(\`/oauth2/\`)` on the same host to the oauth2-proxy service directly, without the auth middlewares attached.
+</Step>
+<Step>
+### Configure chmonitor
+
+<TypeTable
+  type={{
+    CHM_AUTH_PROVIDER: {
+      description: 'Set to trusted.',
+      type: 'string',
+      default: 'none',
+    },
+    CHM_TRUSTED_AUTH_SECRET: {
+      description: 'Shared secret — must equal the value injected by the chm-proxy-secret middleware.',
+      type: 'string',
+    },
+    CHM_TRUSTED_USER_HEADER: {
+      description: "oauth2-proxy's response header is X-Auth-Request-User, not chmonitor's default X-Forwarded-User — override it.",
+      type: 'string',
+      default: 'X-Forwarded-User',
+    },
+    CHM_TRUSTED_EMAIL_HEADER: {
+      description: 'Override to match oauth2-proxy.',
+      type: 'string',
+      default: 'X-Forwarded-Email',
+    },
+    CHM_TRUSTED_NAME_HEADER: {
+      description: 'Override to match oauth2-proxy.',
+      type: 'string',
+      default: 'X-Forwarded-Preferred-Username',
+    },
+    CHM_TRUSTED_GROUPS_HEADER: {
+      description: 'Override to match oauth2-proxy.',
+      type: 'string',
+      default: 'X-Forwarded-Groups',
+    },
+  }}
+/>
+
+```bash
+CHM_AUTH_PROVIDER=trusted
+
+# oauth2-proxy's --set-xauthrequest headers are X-Auth-Request-*, not
+# chmonitor's X-Forwarded-* defaults — map them explicitly
+CHM_TRUSTED_USER_HEADER=X-Auth-Request-User
+CHM_TRUSTED_EMAIL_HEADER=X-Auth-Request-Email
+CHM_TRUSTED_NAME_HEADER=X-Auth-Request-Preferred-Username
+CHM_TRUSTED_GROUPS_HEADER=X-Auth-Request-Groups
+
+CHM_TRUSTED_AUTH_SECRET=your-shared-secret-here
+
+# Optional: restrict to specific IdP groups
+# CHM_TRUSTED_ALLOWED_GROUPS=sre,admin
+```
+
+<Callout type="warn" title="Network isolation is an alternative to the shared secret">
+If chmonitor runs as a Kubernetes `ClusterIP` Service with no other route to it besides this Traefik `IngressRoute`, you can skip the `chm-proxy-secret` middleware and set `CHM_TRUSTED_ALLOW_INSECURE=true` instead. Only do this when you're certain nothing else (a NodePort, a debug port-forward left open, a second Ingress) can reach chmonitor directly.
+</Callout>
+</Step>
+<Step>
+### Verify
+
+```bash
+# No session — Traefik's forwardAuth call gets a 401 from oauth2-proxy,
+# which should surface as a redirect to the login flow
+curl -i https://chmonitor.example.com/
+
+# Direct to the chmonitor Service, bypassing Traefik entirely — must 401
+kubectl -n monitoring exec -it deploy/debug -- curl -i http://chmonitor:8080/api/v1/auth/me
+
+# Through Traefik with a valid oauth2-proxy session cookie
+curl -b "_oauth2_proxy=<cookie-value>" https://chmonitor.example.com/api/v1/auth/me | jq .
+```
+</Step>
+</Steps>
+
+## Troubleshooting
+
+<Accordions>
+<Accordion title="forwardAuth returns 401 but chmonitor never even sees a request">
+That's Traefik correctly enforcing the middleware — check oauth2-proxy's own logs, not chmonitor's. A 401 from `/oauth2/auth` means no valid session cookie was presented; Traefik should be configured to redirect to oauth2-proxy's sign-in flow (via an `errors` middleware or oauth2-proxy's own redirect behavior) rather than surfacing a bare 401 to the user.
+</Accordion>
+<Accordion title="chmonitor 401s even though Traefik and oauth2-proxy both say the user is authenticated">
+Two likely causes: (1) `authResponseHeaders` in the `forwardAuth` middleware doesn't list a header oauth2-proxy actually returns — Traefik only copies headers on that allowlist, silently dropping anything not listed; (2) `CHM_TRUSTED_AUTH_SECRET` doesn't match the literal value in the `chm-proxy-secret` middleware's `customRequestHeaders` — this is a constant-time comparison, so even a trailing-whitespace difference fails it.
+</Accordion>
+<Accordion title="Wrong header name — chmonitor builds an empty or partial profile">
+oauth2-proxy's `--set-xauthrequest` headers are `X-Auth-Request-User` / `X-Auth-Request-Email` / `X-Auth-Request-Preferred-Username` / `X-Auth-Request-Groups` — these do **not** match chmonitor's `X-Forwarded-*` defaults. You must explicitly set `CHM_TRUSTED_USER_HEADER`, `CHM_TRUSTED_EMAIL_HEADER`, `CHM_TRUSTED_NAME_HEADER`, and `CHM_TRUSTED_GROUPS_HEADER` as shown above (unlike nginx, where you typically rename headers in the proxy config itself, here it's usually simpler to keep Traefik's `authResponseHeaders` names as-is and point chmonitor's env vars at them).
+</Accordion>
+<Accordion title="Header spoofing risk">
+`trustForwardHeader: true` only affects how Traefik reads *its own* `X-Forwarded-*` routing headers from an upstream load balancer — it has no bearing on whether chmonitor trusts the identity headers. That trust is entirely gated by `CHM_TRUSTED_AUTH_SECRET` (or `CHM_TRUSTED_ALLOW_INSECURE` + genuine network isolation). Without one of those two, the `trusted` provider fails closed and denies all requests, so a forged `X-Auth-Request-User` from a client that bypasses Traefik still won't authenticate.
+</Accordion>
+<Accordion title="Websocket / streaming passthrough for the AI agent chat">
+Traefik proxies streaming HTTP responses (including SSE-style output like the agent chat) without extra configuration by default — there's no buffering step to disable like nginx. `forwardAuth` only intercepts the initial request to decide whether to forward it at all; it does not re-check per chunk once the streamed response has started. If a long chat response gets cut off, check `forwardAuth`'s implicit timeout (Traefik times out the auth call itself, not the upstream response) and any `readTimeout`/`idleTimeout` configured on the Traefik entrypoint.
+</Accordion>
+</Accordions>
+
+## Related
+
+<Cards>
+<Card title="Proxy auth overview" href="/guide/guides/proxy-auth-setup" description="Compare all three proxy patterns." />
+<Card title="Cloudflare Access + Tunnel" href="/guide/guides/proxy-auth-cloudflare-access" description="Zero Trust, signed JWT, no shared secret." />
+<Card title="nginx + oauth2-proxy" href="/guide/guides/proxy-auth-nginx-oauth2-proxy" description="Self-hosted OIDC login in front of nginx." />
+<Card title="Trusted forwarded headers reference" href="/operate/authentication/trusted-proxy" description="Full env var reference for the trusted provider, incl. a k3s + Traefik + oauth2-proxy + Dex example." />
+<Card title="Authentication overview" href="/operate/authentication" description="Compare all chmonitor auth providers." />
+</Cards>

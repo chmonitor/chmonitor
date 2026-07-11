@@ -1,0 +1,239 @@
+---
+title: Proxy auth — nginx + oauth2-proxy
+description: Run oauth2-proxy alongside nginx for a self-hosted OIDC login in front of chmonitor, using nginx's auth_request to gate every request.
+icon: Server
+---
+
+[oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) handles the OIDC login flow (Google, GitHub, Okta, Dex, Keycloak, any OIDC provider) and, once a session cookie is valid, emits identity headers on an internal auth-check endpoint. nginx uses `auth_request` to call that endpoint on every request; if it returns `200`, nginx copies the identity headers onto the real request to chmonitor along with a shared secret. chmonitor's `trusted` auth provider reads those headers into a full user profile (name, email, avatar, groups) and gates access on the shared secret.
+
+<Callout type="info" title="When to pick this path">
+Use this when you're already running nginx (or nginx-ingress) and want a self-hosted OIDC login without Cloudflare, and you want more than a bare identity — group-based access gating, display name, and avatar in the chmonitor UI.
+</Callout>
+
+<Mermaid chart={`sequenceDiagram
+  participant B as Browser
+  participant N as nginx
+  participant O as oauth2-proxy
+  participant A as chmonitor (trusted provider)
+  B->>N: request
+  N->>O: auth_request /oauth2/auth
+  alt no valid session
+    O-->>N: 401
+    N-->>B: redirect to /oauth2/start (login)
+  else valid session
+    O-->>N: 200 + X-Auth-Request-* headers
+    N->>A: forward + X-Forwarded-* + X-Chm-Proxy-Secret
+    A->>A: verify secret, build principal
+    A-->>B: 200 data
+  end`} />
+
+## Prerequisites
+
+- nginx (or nginx-ingress) able to run `auth_request` (built in to nginx's `http_auth_request_module`, enabled by default on most distro packages and the official nginx image).
+- An OIDC provider: Google Workspace, GitHub OAuth app, Okta, Keycloak, Dex, Authentik, or similar — you need a client ID + client secret from it.
+- Docker or a way to run the `oauth2-proxy` binary as a long-running process.
+
+## Setup
+
+<Steps>
+<Step>
+### Generate a cookie secret
+
+```bash
+python3 -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'
+```
+
+Save the output — you'll pass it as `--cookie-secret`.
+</Step>
+<Step>
+### Run oauth2-proxy
+
+Example with Google as the OIDC provider (swap `--provider` and its flags for your IdP):
+
+```bash
+docker run -d \
+  --name oauth2-proxy \
+  -p 4180:4180 \
+  quay.io/oauth2-proxy/oauth2-proxy:latest \
+  --provider=google \
+  --client-id=YOUR_CLIENT_ID \
+  --client-secret=YOUR_CLIENT_SECRET \
+  --cookie-secret=<output-from-step-1> \
+  --email-domain=yourcompany.com \
+  --http-address=0.0.0.0:4180 \
+  --upstream=http://chmonitor:8080 \
+  --set-xauthrequest \
+  --pass-access-token=false \
+  --cookie-secure=true \
+  --redirect-url=https://chmonitor.yourcompany.com/oauth2/callback
+```
+
+Key flags:
+
+- `--set-xauthrequest` — emits `X-Auth-Request-User`, `X-Auth-Request-Email`, `X-Auth-Request-Preferred-Username`, and `X-Auth-Request-Groups` response headers on the internal `/oauth2/auth` check. This is exactly what nginx's `auth_request` reads.
+- `--upstream=http://chmonitor:8080` — oauth2-proxy can itself reverse-proxy to chmonitor, but in this setup nginx is the front door and only calls oauth2-proxy for the auth check (`/oauth2/auth`, `/oauth2/sign_in`, `/oauth2/callback`) — the `--upstream` value mainly matters if you ever hit oauth2-proxy directly.
+- `--email-domain=yourcompany.com` — restrict who can complete login; use `*` to allow any authenticated Google account (not recommended for anything but testing).
+- If your IdP supports groups (Okta, Keycloak, Dex, Authentik), also request the `groups` scope, e.g. `--scope="openid email profile groups"`, so `X-Auth-Request-Groups` is populated for `CHM_TRUSTED_ALLOWED_GROUPS` gating.
+</Step>
+<Step>
+### Configure nginx
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name chmonitor.yourcompany.com;
+
+  # oauth2-proxy's own endpoints (login page, callback)
+  location /oauth2/ {
+    proxy_pass       http://oauth2-proxy:4180;
+    proxy_set_header Host             $host;
+    proxy_set_header X-Real-IP        $remote_addr;
+    proxy_set_header X-Scheme         $scheme;
+  }
+
+  # Internal auth-check endpoint nginx calls on every request
+  location = /oauth2/auth {
+    internal;
+    proxy_pass              http://oauth2-proxy:4180;
+    proxy_pass_request_body off;
+    proxy_set_header         Content-Length "";
+    proxy_set_header         X-Original-URI $request_uri;
+  }
+
+  location / {
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/sign_in?rd=$scheme://$host$request_uri;
+
+    # Pull identity headers off the auth_request response
+    auth_request_set $user   $upstream_http_x_auth_request_user;
+    auth_request_set $email  $upstream_http_x_auth_request_email;
+    auth_request_set $name   $upstream_http_x_auth_request_preferred_username;
+    auth_request_set $groups $upstream_http_x_auth_request_groups;
+
+    proxy_set_header X-Forwarded-User               $user;
+    proxy_set_header X-Forwarded-Email              $email;
+    proxy_set_header X-Forwarded-Preferred-Username $name;
+    proxy_set_header X-Forwarded-Groups             $groups;
+
+    # Shared secret so chmonitor trusts these headers — never hardcode in
+    # source control; inject via envsubst / a secrets manager at deploy time.
+    proxy_set_header X-Chm-Proxy-Secret "your-shared-secret-here";
+
+    # Required for the AI agent chat's streaming (SSE-style) responses:
+    # buffering would hold the whole response until it completes.
+    proxy_http_version 1.1;
+    proxy_set_header   Connection "";
+    proxy_buffering    off;
+    proxy_read_timeout 3600s;
+
+    proxy_pass http://chmonitor:8080;
+  }
+}
+```
+
+<Callout type="warn" title="Don't hardcode the secret in source control">
+Load `X-Chm-Proxy-Secret`'s value at deploy time with `envsubst`, a secrets manager (Vault Agent, SOPS), or a templating step — never commit the literal secret in an nginx config file.
+</Callout>
+</Step>
+<Step>
+### Configure chmonitor
+
+<TypeTable
+  type={{
+    CHM_AUTH_PROVIDER: {
+      description: 'Set to trusted to read the forwarded identity headers into a full profile.',
+      type: 'string',
+      default: 'none',
+    },
+    CHM_TRUSTED_AUTH_SECRET: {
+      description: 'Shared secret — must equal the value nginx sends in X-Chm-Proxy-Secret. Constant-time compared.',
+      type: 'string',
+    },
+    CHM_TRUSTED_USER_HEADER: {
+      description: 'Identity header nginx forwards the username in.',
+      type: 'string',
+      default: 'X-Forwarded-User',
+    },
+    CHM_TRUSTED_EMAIL_HEADER: {
+      description: 'Email header.',
+      type: 'string',
+      default: 'X-Forwarded-Email',
+    },
+    CHM_TRUSTED_NAME_HEADER: {
+      description: 'Display name header.',
+      type: 'string',
+      default: 'X-Forwarded-Preferred-Username',
+    },
+    CHM_TRUSTED_GROUPS_HEADER: {
+      description: 'Comma/space-separated group list header.',
+      type: 'string',
+      default: 'X-Forwarded-Groups',
+    },
+  }}
+/>
+
+```bash
+CHM_AUTH_PROVIDER=trusted
+CHM_TRUSTED_AUTH_SECRET=your-shared-secret-here   # must match nginx's X-Chm-Proxy-Secret value
+
+# Only needed if you renamed the headers in the nginx config above — the
+# defaults already line up with X-Forwarded-User / X-Forwarded-Email / etc.
+# CHM_TRUSTED_USER_HEADER=X-Forwarded-User
+# CHM_TRUSTED_EMAIL_HEADER=X-Forwarded-Email
+# CHM_TRUSTED_NAME_HEADER=X-Forwarded-Preferred-Username
+# CHM_TRUSTED_GROUPS_HEADER=X-Forwarded-Groups
+
+# Optional: restrict access to specific oauth2-proxy/IdP groups
+# CHM_TRUSTED_ALLOWED_GROUPS=sre,ops,admin
+```
+
+Set the secret out-of-band, not in a plaintext `.env` committed to source control:
+
+```bash
+wrangler secret put CHM_TRUSTED_AUTH_SECRET
+# or, for Docker/K8s:
+kubectl create secret generic chm-trusted-secret --from-literal=value=<secret>
+```
+</Step>
+<Step>
+### Verify
+
+```bash
+# Hit chmonitor directly, bypassing nginx — must 401 (no secret header)
+curl -i http://chmonitor:8080/api/v1/auth/me
+
+# Through nginx without a session — redirected to oauth2-proxy's login
+curl -i https://chmonitor.yourcompany.com/
+
+# Through nginx with a valid session cookie — returns the authenticated principal
+curl -b "_oauth2_proxy=<cookie-value>" https://chmonitor.yourcompany.com/api/v1/auth/me | jq .
+```
+</Step>
+</Steps>
+
+## Troubleshooting
+
+<Accordions>
+<Accordion title="chmonitor returns 401 even though oauth2-proxy shows me as logged in">
+Confirm `CHM_TRUSTED_AUTH_SECRET` exactly matches the literal value in nginx's `proxy_set_header X-Chm-Proxy-Secret` line — a trailing newline or quoting difference will fail the constant-time comparison. Also confirm `--set-xauthrequest` is present on the oauth2-proxy command line; without it, `/oauth2/auth` returns `200` but with no `X-Auth-Request-*` headers, so `$user`/`$email` end up empty and nginx forwards empty `X-Forwarded-*` headers.
+</Accordion>
+<Accordion title="Wrong header name — chmonitor sees no identity">
+If your IdP or a different oauth2-proxy version emits headers under different names (some setups use `X-Auth-Request-Preferred-Username`, older ones may omit it), check the actual response with `curl -v` against `/oauth2/auth` directly, then point `CHM_TRUSTED_USER_HEADER` / `CHM_TRUSTED_NAME_HEADER` at whatever nginx variable you mapped it to — the header *name* chmonitor reads must match what nginx sets in `proxy_set_header`, not what oauth2-proxy originally called it.
+</Accordion>
+<Accordion title="Header spoofing risk">
+Without `CHM_TRUSTED_AUTH_SECRET` set, the `trusted` provider fails closed and rejects every request — it will not silently trust forwarded headers. The security guarantee depends entirely on nginx being the only path to chmonitor: if chmonitor's port is also reachable directly, a client can send its own `X-Forwarded-User` header, but it still needs the correct `X-Chm-Proxy-Secret` value to be trusted, which it won't have.
+</Accordion>
+<Accordion title="Websocket / streaming passthrough for the AI agent chat">
+The agent chat is a long-lived streaming HTTP response, not a websocket upgrade — but nginx's defaults (response buffering, a short `proxy_read_timeout`) can still truncate or stall it. Add `proxy_http_version 1.1;`, `proxy_set_header Connection "";`, `proxy_buffering off;`, and a generous `proxy_read_timeout` (as shown in the nginx config above) to the `location /` block so streamed tokens flush immediately instead of being buffered until the response completes.
+</Accordion>
+</Accordions>
+
+## Related
+
+<Cards>
+<Card title="Proxy auth overview" href="/guide/guides/proxy-auth-setup" description="Compare all three proxy patterns." />
+<Card title="Cloudflare Access + Tunnel" href="/guide/guides/proxy-auth-cloudflare-access" description="Zero Trust, signed JWT, no shared secret." />
+<Card title="Traefik ForwardAuth + OIDC" href="/guide/guides/proxy-auth-traefik-oidc" description="Traefik middleware forwarding an OIDC session." />
+<Card title="Trusted forwarded headers reference" href="/operate/authentication/trusted-proxy" description="Full env var reference for the trusted provider." />
+<Card title="Authentication overview" href="/operate/authentication" description="Compare all chmonitor auth providers." />
+</Cards>

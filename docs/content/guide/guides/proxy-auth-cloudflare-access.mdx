@@ -1,0 +1,180 @@
+---
+title: Proxy auth — Cloudflare Access + Tunnel
+description: Put chmonitor behind Cloudflare Access with a Cloudflare Tunnel — Zero Trust login, signed JWT verification, no shared secret needed.
+icon: Cloud
+---
+
+Cloudflare Access sits in front of chmonitor and does the real login (SSO, email OTP, GitHub/Google, etc.). It signs every authenticated request with a `Cf-Access-Jwt-Assertion` JWT. chmonitor's `proxy` auth provider verifies that JWT cryptographically against your team's JWKS — there is no shared secret to manage, the signature itself is the proof.
+
+<Callout type="info" title="When to pick this path">
+Use this when you already run (or want) Cloudflare Zero Trust, don't want to run your own OIDC/ForwardAuth service, and are fine exposing chmonitor to the internet only through a Cloudflare Tunnel (no inbound ports opened).
+</Callout>
+
+<Mermaid chart={`flowchart LR
+  B["Browser"] -->|"1. Request"| CF["Cloudflare Access"]
+  CF -->|"2. Login (SSO / OTP / IdP)"| B
+  B -->|"3. Cf-Access-Jwt-Assertion"| TUN["cloudflared Tunnel"]
+  TUN -->|"4. Forward"| CHM["chmonitor (proxy provider)"]
+  CHM -->|"5. Verify JWT via JWKS"| CF`} />
+
+## Prerequisites
+
+- A Cloudflare account with **Zero Trust** enabled (Access is available on the Free plan for small teams).
+- A domain managed on Cloudflare (for the Tunnel's public hostname).
+- `cloudflared` installed on the host/container that can reach chmonitor (`cloudflared tunnel` runs as a sidecar or on the same box).
+- chmonitor running somewhere `cloudflared` can reach over plain HTTP (Docker, Kubernetes Service, or bare metal) — it does **not** need to be reachable from the public internet directly.
+
+<Callout type="warn" title="Do not also expose chmonitor's port publicly">
+Access only protects requests that arrive through the Tunnel. If chmonitor's port is also reachable directly (a public LoadBalancer, a port-forwarded router, a Service of type NodePort), that path bypasses Access entirely. Keep chmonitor bound to localhost/an internal network and let the Tunnel be the only ingress.
+</Callout>
+
+## Setup
+
+<Steps>
+<Step>
+### Create an Access application
+
+In the Cloudflare Zero Trust dashboard:
+
+1. **Access → Applications → Add an application → Self-hosted**.
+2. Set the **Application domain** to the hostname you'll route through the Tunnel, e.g. `chmonitor.example.com`.
+3. Under **Session duration**, pick a reasonable window (e.g. 24 hours) — this controls how often users have to re-authenticate.
+4. Add an **Access policy**: e.g. "Allow" → Include → Emails ending in `@yourcompany.com`, or a specific Google/GitHub/SAML group.
+5. Save, then open the application's overview page and copy the **Application Audience (AUD) tag** — a 64-character hex string. You'll need it for `CHM_CF_ACCESS_AUD`.
+6. Note your **team domain** too (Zero Trust → Settings → Custom Pages, or the URL pattern `https://<your-team>.cloudflareaccess.com`).
+</Step>
+<Step>
+### Create a Cloudflare Tunnel
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create chmonitor
+cloudflared tunnel route dns chmonitor chmonitor.example.com
+```
+
+This creates a tunnel named `chmonitor`, provisions a DNS record for `chmonitor.example.com` pointing at the tunnel, and writes credentials to `~/.cloudflared/<tunnel-id>.json`.
+</Step>
+<Step>
+### Configure the tunnel ingress
+
+Create `~/.cloudflared/config.yml` (or mount it into the `cloudflared` container):
+
+```yaml
+tunnel: chmonitor
+credentials-file: /etc/cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: chmonitor.example.com
+    service: http://chmonitor:8080   # chmonitor's internal address/port
+  - service: http_status:404          # catch-all, required as the last rule
+```
+
+Running as a container alongside chmonitor (docker-compose extract):
+
+```yaml
+services:
+  chmonitor:
+    image: ghcr.io/chmonitor/chmonitor:latest
+    # do not publish chmonitor's port on the host — the tunnel is the only ingress
+    environment:
+      CHM_AUTH_PROVIDER: proxy
+      CHM_CF_ACCESS_TEAM_DOMAIN: https://your-team.cloudflareaccess.com
+      CHM_CF_ACCESS_AUD: <64-char-aud-tag>
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared
+    depends_on:
+      - chmonitor
+```
+
+Run it directly instead of via compose:
+
+```bash
+cloudflared tunnel --config ~/.cloudflared/config.yml run chmonitor
+```
+</Step>
+<Step>
+### Configure chmonitor
+
+<TypeTable
+  type={{
+    CHM_AUTH_PROVIDER: {
+      description: 'Set to proxy to enable the Cloudflare Access / trusted-header mechanisms.',
+      type: 'string',
+      default: 'none',
+    },
+    CHM_CF_ACCESS_TEAM_DOMAIN: {
+      description: "Your Cloudflare Zero Trust team domain, e.g. https://your-team.cloudflareaccess.com.",
+      type: 'string',
+    },
+    CHM_CF_ACCESS_AUD: {
+      description: 'The Access application Audience (AUD) tag copied in step 1.',
+      type: 'string',
+    },
+  }}
+/>
+
+```bash
+CHM_AUTH_PROVIDER=proxy
+CHM_CF_ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+CHM_CF_ACCESS_AUD=<64-char-aud-tag>
+```
+
+On every request chmonitor verifies the `Cf-Access-Jwt-Assertion` header: checks the `RS256` signature against `https://your-team.cloudflareaccess.com/cdn-cgi/access/certs` (the JWKS endpoint, cached ~1 hour), then checks `aud` matches `CHM_CF_ACCESS_AUD`, `iss` matches the team domain, and `exp` hasn't passed. The authenticated subject is the JWT's `email` claim (falls back to `sub`). No shared secret is involved — an unset or wrong `CHM_CF_ACCESS_AUD`/`CHM_CF_ACCESS_TEAM_DOMAIN` simply disables the mechanism (fails closed).
+
+Set these as Worker secrets in production rather than plaintext config:
+
+```bash
+wrangler secret put CHM_CF_ACCESS_TEAM_DOMAIN
+wrangler secret put CHM_CF_ACCESS_AUD
+```
+</Step>
+<Step>
+### Redeploy and verify
+
+Open `https://chmonitor.example.com` in a browser — Cloudflare Access should show its login page before you ever reach chmonitor. After authenticating, you land on the dashboard with data loading normally.
+
+```bash
+# A request without the header is rejected
+curl -i https://chmonitor.example.com/api/v1/auth/me
+# → 401
+
+# A request carrying a valid Access JWT (e.g. copied from browser dev tools,
+# or via `cloudflared access curl`) returns the authenticated identity
+cloudflared access curl https://chmonitor.example.com/api/v1/auth/me
+```
+</Step>
+</Steps>
+
+## Troubleshooting
+
+<Accordions>
+<Accordion title="Every request returns 401 even after logging in through Access">
+Confirm `CHM_CF_ACCESS_TEAM_DOMAIN` has no trailing slash mismatch with the JWT's `iss` claim, and that `CHM_CF_ACCESS_AUD` exactly matches the AUD tag on the Access application (not the account ID or a different application's tag). A stale worker deploy that predates setting the secrets will also 401 — redeploy after `wrangler secret put`.
+</Accordion>
+<Accordion title="JWKS fetch failures / intermittent 401s right after key rotation">
+Cloudflare rotates signing keys roughly every 6 weeks; previous keys stay valid for 7 days after rotation. chmonitor caches the whole JWKS document for about 1 hour, so a rotation is picked up within that window automatically — no redeploy needed. If a client presents a genuinely unknown `kid` (forged or very stale token), chmonitor does not force a fresh JWKS fetch on that specific miss (a deliberate DoS mitigation); it will pick up new keys on the next natural cache refresh.
+</Accordion>
+<Accordion title="Header spoofing risk if the Tunnel is bypassed">
+The whole security model rests on `Cf-Access-Jwt-Assertion` only ever arriving from Cloudflare's edge. If chmonitor is *also* reachable directly (a public port, a misconfigured Kubernetes Service, a firewall rule opened for debugging), a client can send an arbitrary `Cf-Access-Jwt-Assertion` header — but verification will fail because they cannot produce a valid RS256 signature over their forged payload, so this specific mechanism doesn't have a forgery risk the way trusted-header does. The real risk is exposing an *unauthenticated* path to chmonitor in parallel (e.g. a raw port with no Access in front of it at all). Only the Tunnel should route to chmonitor.
+</Accordion>
+<Accordion title="Websocket / streaming passthrough for the AI agent chat">
+The agent chat streams its response as a long-lived HTTP request (SSE-style, not a websocket upgrade). Cloudflare Tunnel and Access both pass through streaming responses transparently — Access checks the JWT once, at the start of the request, not per chunk. No special `ingress` config is required beyond the standard `service: http://...` entry above. If you see the chat stall or truncate, check chmonitor's own request timeout config rather than the tunnel.
+</Accordion>
+<Accordion title="No sign-in button appears in the chmonitor header">
+That's expected — `VITE_AUTH_PROVIDER` does not need to be set for the `proxy` provider. Access handles the login page entirely outside chmonitor's UI, so chmonitor never renders its own sign-in button for this path.
+</Accordion>
+</Accordions>
+
+## Related
+
+<Cards>
+<Card title="Proxy auth overview" href="/guide/guides/proxy-auth-setup" description="Compare all three proxy patterns." />
+<Card title="nginx + oauth2-proxy" href="/guide/guides/proxy-auth-nginx-oauth2-proxy" description="Self-hosted OIDC login in front of nginx." />
+<Card title="Traefik ForwardAuth + OIDC" href="/guide/guides/proxy-auth-traefik-oidc" description="Traefik middleware forwarding an OIDC session." />
+<Card title="Cloudflare Access reference" href="/operate/authentication/cloudflare-access" description="Full env var reference for the proxy provider." />
+<Card title="Authentication overview" href="/operate/authentication" description="Compare all chmonitor auth providers." />
+</Cards>
