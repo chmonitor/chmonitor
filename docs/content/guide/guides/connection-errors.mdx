@@ -81,7 +81,7 @@ The host resolved but actively refused the connection — ClickHouse is not list
 
 - Confirm the port: `8443` (HTTPS) or `8123` (HTTP).
 - Ensure ClickHouse accepts external connections (`<listen_host>0.0.0.0</listen_host>`).
-- Open the firewall / security group for the dashboard.
+- Open the firewall / security group for the dashboard. On Cloud, see [what IP to allowlist](/guide/guides/connect-firewalled-clickhouse#what-ip) — there isn't a single one.
 
 </Accordion>
 <Accordion title="TLS / certificate error">
@@ -102,7 +102,7 @@ The TLS handshake failed — usually a self-signed or untrusted certificate, or 
 
 The host did not respond in time — commonly unreachable from the public internet, or a firewall silently dropping packets.
 
-**Fix** — confirm the endpoint is publicly reachable and inbound traffic from the dashboard is allowed on the ClickHouse port.
+**Fix** — confirm the endpoint is publicly reachable and inbound traffic from the dashboard is allowed on the ClickHouse port. On Cloud, this is often a firewalled cluster — see [what IP to allowlist](/guide/guides/connect-firewalled-clickhouse#what-ip) (there isn't a single one; use a Tunnel).
 
 </Accordion>
 </Accordions>

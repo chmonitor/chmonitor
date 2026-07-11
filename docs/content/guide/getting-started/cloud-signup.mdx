@@ -1,0 +1,66 @@
+---
+title: Sign up for chmonitor Cloud
+description: Create a chmonitor Cloud account, pick a plan, and add your first host — every plan, including the $0 Free plan, goes through a Polar checkout with no card required for Free.
+icon: CreditCard
+---
+
+chmonitor **Cloud** (`dash.chmonitor.dev`) is the hosted version of chmonitor — sign up, pick a plan, and connect your ClickHouse or Postgres in minutes. No infrastructure to run.
+
+<Callout type="info" title="Self-hosting instead?">
+Self-hosted chmonitor (Docker / Kubernetes / your own Worker) has no plans or billing at all — every feature is unlocked. See [Getting started](/guide/getting-started) or [Self-host](/operate/deploy/self-host).
+</Callout>
+
+## The sign-up flow
+
+<Steps>
+<Step>
+
+### Sign in
+
+Before signing in you can explore a live, public **read-only demo** cluster on the Cloud dashboard with no account. Signing in (via Clerk) hides the demo and moves you to your own setup.
+
+</Step>
+<Step>
+
+### Pick a plan
+
+The first time you sign in with zero hosts of your own, chmonitor shows the **/setup** page with a plan picker before you add a host:
+
+| Plan | Price | Hosts | Seats | AI agent |
+| --- | --- | --- | --- | --- |
+| **Free** | $0 | 1 | 1 | 5 messages/day |
+| **Pro** | paid, monthly or yearly | multiple, overage billed | multiple | higher daily allowance + overage |
+| **Max** | paid, monthly or yearly | multiple, overage billed | multiple | higher daily allowance + overage |
+| **Enterprise** | custom | unlimited | unlimited | unlimited (BYOK) |
+
+**Every plan, including Free, goes through Polar checkout** — Free is a real $0 Polar subscription, not a client-side skip. Choosing any plan (Free, Pro, or Max) briefly redirects your browser to a Polar-hosted checkout page and back:
+
+- **Free** — the checkout collects **no card**, then returns you straight to chmonitor.
+- **Pro / Max** — the checkout collects a payment method before returning you to chmonitor.
+
+</Step>
+<Step>
+
+### Add your first host
+
+Add a ClickHouse or Postgres connection (see [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements) for the minimal grants, or [Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse) if it's behind a firewall). Free is capped at 1 host and 1 seat; upgrade if you need more.
+
+<Callout type="warn" title="An active subscription is required first">
+Adding a host needs an active subscription on the account — Free included. Without one (checkout skipped or abandoned), the API rejects the request with `402 subscription_required`. Complete the Free checkout above, even though it charges nothing, before adding a host.
+</Callout>
+
+</Step>
+</Steps>
+
+## Changing plans later
+
+Upgrade, downgrade, or manage payment from **/billing** at any time — you are not locked into the plan you picked at sign-up.
+
+## Related
+
+<Cards>
+<Card title="Getting started" href="/guide/getting-started" description="Run chmonitor against your ClickHouse instance in minutes." />
+<Card title="ClickHouse user & grants" href="/guide/getting-started/clickhouse-requirements" description="Create a safe read-only monitoring user with the minimal grants needed." />
+<Card title="Connect a firewalled ClickHouse" href="/guide/guides/connect-firewalled-clickhouse" description="Reach a firewalled cluster from Cloud without a brittle IP allowlist." />
+<Card title="Self-host" href="/operate/deploy/self-host" description="Run chmonitor inside your network with every feature unlocked, no plans." />
+</Cards>

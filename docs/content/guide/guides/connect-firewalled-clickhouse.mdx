@@ -1,16 +1,28 @@
 ---
-title: Connect a firewalled ClickHouse (Cloud)
-description: Connect a firewalled ClickHouse to chmonitor Cloud — Cloudflare Tunnel (recommended), dedicated egress IPs for allowlisting, jump host, and why allowlisting Cloudflare's shared ranges does not work.
+title: Connect a firewalled ClickHouse or Postgres (Cloud)
+description: Connect a firewalled ClickHouse or Postgres to chmonitor Cloud — Cloudflare Tunnel (recommended), dedicated egress IPs for allowlisting, jump host, and why allowlisting Cloudflare's shared ranges does not work.
 icon: ShieldCheck
 ---
 
-chmonitor **Cloud** (`dash.chmonitor.dev`) runs entirely on Cloudflare Workers. When your ClickHouse is behind a firewall, the Worker has to reach it — and because Workers do **not** have a single fixed public IP by default, a plain "allowlist our IP" is not straightforward. Pick the option that fits, ranked below by how well it works with chmonitor.
+chmonitor **Cloud** (`dash.chmonitor.dev`) runs entirely on Cloudflare Workers. When your ClickHouse (or Postgres) is behind a firewall, the Worker has to reach it — and because Workers do **not** have a single fixed public IP by default, a plain "allowlist our IP" is not straightforward. Pick the option that fits, ranked below by how well it works with chmonitor.
+
+## What IP should I allowlist? [#what-ip]
+
+**There is no single stable IP to allowlist.** Cloudflare Workers egress from a large, shared, rotating pool, so any IP you capture today can change tomorrow. In order of recommendation:
+
+1. **[Cloudflare Tunnel](#tunnel)** (recommended) — no IP at all; the connector makes outbound-only connections, so there is nothing to allowlist.
+2. **[Dedicated egress IPs](#other-options)** — an enterprise add-on that gives chmonitor's **HTTP** traffic (ClickHouse) a stable IP. It does **not** cover Postgres (raw TCP).
+3. **[A static-IP proxy / jump host](#other-options)** you run and control — works for both ClickHouse and Postgres, at the cost of running the proxy yourself.
+
+<Callout type="warn" title="Do not allowlist Cloudflare's public IP ranges">
+Cloudflare's published IP ranges are shared by every Cloudflare customer. Allowlisting them authorizes the entire Cloudflare fleet, not just chmonitor — it is not a real allowlist.
+</Callout>
 
 <Callout type="info" title="Self-hosting? You don't need any of this">
 Self-hosted chmonitor (Docker / Kubernetes / your own Worker) runs inside your network, so it reaches ClickHouse directly. This page is only for connecting a firewalled ClickHouse to the **hosted Cloud**.
 </Callout>
 
-## Recommended: Cloudflare Tunnel + Access service token
+## Recommended: Cloudflare Tunnel + Access service token [#tunnel]
 
 A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-tunnel/) runs a small `cloudflared` connector next to your ClickHouse. It makes only **outbound** connections to Cloudflare, so you **open no inbound ports and allowlist no IPs**. You then protect the tunnel's public hostname with [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/) and give chmonitor a **service token** so only chmonitor can reach it.
 
@@ -40,14 +52,14 @@ Add the host with URL `https://ch.example.com` and paste the service-token Clien
 
 **Why this is the default:** no inbound firewall hole, no IP allowlist to maintain, the token is per-connection and revocable, and traffic is TLS end-to-end. It works today (not beta) on free/standard Zero Trust tiers.
 
-## Other options
+## Other options [#other-options]
 
 If a tunnel doesn't fit your environment, choose the path that matches your constraint.
 
 <Tabs items={["Dedicated egress IPs", "Jump host / reverse proxy", "Workers VPC (roadmap)"]}>
 <Tab value="Dedicated egress IPs">
 
-Use this when a security team **requires a literal firewall allowlist**. chmonitor talks to ClickHouse over **HTTP** (`@clickhouse/client-web`, i.e. Worker `fetch()`), and Cloudflare's [Dedicated Egress IPs](https://developers.cloudflare.com/cloudflare-one/traffic-policies/egress-policies/dedicated-egress-ips/) **do apply to `fetch()`** (they do not apply to raw-TCP `connect()`). That gives the Worker a stable source IP you can allowlist.
+Use this when a security team **requires a literal firewall allowlist**. chmonitor talks to ClickHouse over **HTTP** (`@clickhouse/client-web`, i.e. Worker `fetch()`), and Cloudflare's [Dedicated Egress IPs](https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/other-products/) **do apply to Workers `fetch()`** — Cloudflare's docs state connections created with `connect()` (raw TCP) do **not** use them. That gives ClickHouse traffic a stable source IP you can allowlist; it does **not** cover Postgres, which chmonitor reaches over raw TCP (see below).
 
 Caveats:
 
@@ -71,10 +83,22 @@ Run a small reverse proxy (nginx / HAProxy) on a VM with a **static public IP** 
 </Tab>
 </Tabs>
 
+## Firewalled Postgres
+
+chmonitor Cloud can also monitor **Postgres** sources (behind the `CHM_FEATURE_POSTGRES_SOURCE` flag). Postgres uses the wire protocol over **raw TCP**, not `fetch()`, so it needs its own plan:
+
+<Callout type="warn" title="Dedicated egress IPs do not cover Postgres">
+Cloudflare's Dedicated Egress IPs apply only to Workers `fetch()`/HTTP traffic. Postgres connections go over raw TCP (`connect()`), which Cloudflare explicitly excludes from dedicated egress IP coverage — so this option gives you **no stable IP for Postgres**, even on the enterprise add-on.
+</Callout>
+
+- **Jump host / TCP proxy (recommended for firewalled Postgres today)** — run `pgbouncer` or a plain TCP proxy (HAProxy, stunnel) on a VM with a static public IP, and allowlist that IP. chmonitor connects to the proxy, the proxy forwards to Postgres. This is the same jump-host pattern as ClickHouse, just proxying the Postgres port (`5432`) instead of HTTP.
+- **The `cloudflared access tcp` Tunnel mode does not apply here.** It forwards raw TCP for a *client machine* (a human's laptop running `cloudflared` locally) — it requires `cloudflared` on both ends, so a server-side Worker like chmonitor's cannot use it directly.
+- **Cloudflare Hyperdrive (roadmap)** — [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) can connect Workers to a private Postgres through a Cloudflare Tunnel (Hyperdrive itself is the component that speaks to the tunnel), which would give chmonitor's Postgres traffic a private, non-public-internet path with no allowlist needed. chmonitor does not use Hyperdrive today; treat this as a roadmap item, not a current option — do not build around it yet.
+
 ## Troubleshooting
 
-<Callout type="warn" title="Hyperdrive cannot front ClickHouse">
-[Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) only supports PostgreSQL and MySQL, so it cannot front a ClickHouse connection.
+<Callout type="warn" title="Hyperdrive does not front ClickHouse today">
+[Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) supports PostgreSQL and MySQL, not ClickHouse, so it cannot front a ClickHouse connection. It's on our roadmap as a private-connectivity option for **Postgres** sources (see above) — not yet adopted.
 </Callout>
 
 ## Related
