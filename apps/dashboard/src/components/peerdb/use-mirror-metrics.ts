@@ -20,11 +20,12 @@ export interface DerivedMetrics {
   loading: boolean
 }
 
-/** Summary surfaced to the page so it can aggregate KPI totals. */
+/** Summary surfaced to the page so it can aggregate KPI totals + lag triage. */
 export interface MirrorMetricsSummary {
   rowsPerSec: number
   rowsSynced: number
   trend: number[]
+  lagSec: number | null
 }
 
 /**

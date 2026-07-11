@@ -47,11 +47,11 @@ export function MirrorRow({
   const panelId = useId()
 
   const trendKey = trend.join(',')
-  // Report metrics up so the page can aggregate KPI totals (deduped fetch).
+  // Report metrics up so the page can aggregate KPI totals + lag triage (deduped fetch).
   // biome-ignore lint/correctness/useExhaustiveDependencies: trend tracked via trendKey
   useEffect(() => {
-    onMetrics?.(mirror.name, { rowsPerSec, rowsSynced, trend })
-  }, [mirror.name, rowsPerSec, rowsSynced, trendKey, onMetrics])
+    onMetrics?.(mirror.name, { rowsPerSec, rowsSynced, trend, lagSec })
+  }, [mirror.name, rowsPerSec, rowsSynced, trendKey, lagSec, onMetrics])
 
   const lagAccent =
     lagSec == null

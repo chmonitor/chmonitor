@@ -14,6 +14,8 @@ import type { MirrorMetricsSummary } from '@/components/peerdb/mirror-row'
 import type { ListMirrorsResponse, ListPeersResponse } from '@/lib/peerdb/types'
 
 import { useEffect, useState } from 'react'
+import { FleetLagTriage } from '@/components/peerdb/fleet-lag-triage'
+import { FleetLogsFeed } from '@/components/peerdb/fleet-logs-feed'
 import { KpiCard } from '@/components/peerdb/kpi-card'
 import { MirrorRow } from '@/components/peerdb/mirror-row'
 import { PeerGraph } from '@/components/peerdb/peer-graph'
@@ -107,6 +109,7 @@ function PeerDBMirrorsPage() {
   const [statusFilter, setStatusFilter] = useState<DesignStatus | 'all'>('all')
   const [search, setSearch] = useState('')
   const [graphOpen, setGraphOpen] = useState(false)
+  const [logsOpen, setLogsOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [metrics, setMetrics] = useState<Record<string, MirrorMetricsSummary>>(
     {}
@@ -123,6 +126,7 @@ function PeerDBMirrorsPage() {
         cur &&
         cur.rowsPerSec === m.rowsPerSec &&
         cur.rowsSynced === m.rowsSynced &&
+        cur.lagSec === m.lagSec &&
         sameTrend
       ) {
         return prev
@@ -377,6 +381,9 @@ function PeerDBMirrorsPage() {
         />
       </div>
 
+      {/* lag triage strip — worst-lag mirrors (quiet when the fleet is healthy) */}
+      <FleetLagTriage mirrors={mirrors} metrics={metrics} />
+
       {/* topology card — expand button centered on bottom border */}
       <div className="relative mb-6">
         <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -561,6 +568,26 @@ function PeerDBMirrorsPage() {
           </div>
         </div>
       </div>
+
+      {/* fleet logs & alerts — collapsed by default; mounted only when open so
+          the per-mirror log fetchers don't poll in the background. */}
+      {mirrors.length > 0 && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setLogsOpen((v) => !v)}
+            className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {logsOpen ? (
+              <ChevronUpIcon className="size-3" />
+            ) : (
+              <ChevronDownIcon className="size-3" />
+            )}
+            {logsOpen ? 'Hide fleet logs' : 'Show fleet logs & alerts'}
+          </button>
+          {logsOpen && <FleetLogsFeed mirrors={mirrors.map((m) => m.name)} />}
+        </div>
+      )}
     </div>
   )
 }
