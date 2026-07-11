@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import {
   DEFAULT_USER_SETTINGS,
+  mergeUserSettings,
   USER_SETTINGS_STORAGE_KEY,
   type UserSettings,
 } from '@/lib/types/user-settings'
@@ -48,7 +49,7 @@ function loadSettings(): UserSettings {
   try {
     const stored = localStorage.getItem(USER_SETTINGS_STORAGE_KEY)
     if (stored) {
-      return { ...DEFAULT_USER_SETTINGS, ...JSON.parse(stored) }
+      return mergeUserSettings(JSON.parse(stored))
     }
   } catch (error) {
     console.error('Failed to load user settings:', error)
