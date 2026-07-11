@@ -164,6 +164,14 @@ mock.module('@/lib/insights/generate-insights', () => ({
   generateInsights: async () => [],
 }))
 
+// Same reason as generate-insights above: the sweep now also generates Postgres
+// insights, and the real module transitively imports the insights store chain
+// (→ @chm/clickhouse-client `getClient`), which the CH mock above does not
+// provide. Stub it at the boundary so the sweep test stays hermetic.
+mock.module('@/lib/insights/generate-postgres-insights', () => ({
+  generatePostgresInsights: async () => [],
+}))
+
 // --- maintenance windows stub ------------------------------------------------
 // Mocked at the module boundary (like generate-insights above) rather than
 // routed through the shared fake D1: the sweep only depends on
