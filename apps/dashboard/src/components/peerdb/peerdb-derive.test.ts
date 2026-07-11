@@ -1,8 +1,10 @@
 import {
   batchDurationSec,
   cloneProgress,
+  EAGER_METRICS_LIMIT,
   SLOT_LAG_CRITICAL_MB,
   SLOT_LAG_WARN_MB,
+  shouldEagerLoadMetrics,
   slotHealth,
 } from './peerdb-derive'
 import { describe, expect, test } from 'bun:test'
@@ -136,5 +138,35 @@ describe('slotHealth', () => {
     expect(
       slotHealth({ lagInMb: 2, active: false, walStatus: 'reserved' })
     ).toBe('ok')
+  })
+})
+
+describe('shouldEagerLoadMetrics', () => {
+  // Regression: page-level KPIs/sparklines/lag-triage aggregate from per-row
+  // metrics. Before the fix, a fleet larger than the budget loaded NO row
+  // metrics until a row was expanded, so every page total rendered as 0.
+  test('the first row always loads on mount, even for huge fleets', () => {
+    // A 500-mirror fleet must still populate at least the top rows on mount so
+    // the header totals are non-zero before any expansion.
+    expect(shouldEagerLoadMetrics(0)).toBe(true)
+    expect(shouldEagerLoadMetrics(EAGER_METRICS_LIMIT - 1)).toBe(true)
+  })
+
+  test('rows past the budget load lazily (on expand), capping API fan-out', () => {
+    expect(shouldEagerLoadMetrics(EAGER_METRICS_LIMIT)).toBe(false)
+    expect(shouldEagerLoadMetrics(499)).toBe(false)
+  })
+
+  test('small fleets load every row eagerly', () => {
+    // A 10-mirror fleet: indices 0..9 are all within the budget.
+    for (let i = 0; i < 10; i++) {
+      expect(shouldEagerLoadMetrics(i)).toBe(true)
+    }
+  })
+
+  test('respects a custom limit and rejects negative indices', () => {
+    expect(shouldEagerLoadMetrics(4, 5)).toBe(true)
+    expect(shouldEagerLoadMetrics(5, 5)).toBe(false)
+    expect(shouldEagerLoadMetrics(-1)).toBe(false)
   })
 })

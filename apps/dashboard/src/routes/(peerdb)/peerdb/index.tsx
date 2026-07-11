@@ -19,6 +19,10 @@ import { FleetLogsFeed } from '@/components/peerdb/fleet-logs-feed'
 import { KpiCard } from '@/components/peerdb/kpi-card'
 import { MirrorRow } from '@/components/peerdb/mirror-row'
 import { PeerGraph } from '@/components/peerdb/peer-graph'
+import {
+  EAGER_METRICS_LIMIT,
+  shouldEagerLoadMetrics,
+} from '@/components/peerdb/peerdb-derive'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
 import {
   DESIGN_STATUS_META,
@@ -205,8 +209,13 @@ function PeerDBMirrorsPage() {
     return <PeerDBNotConfigured />
   }
 
-  // Small fleets eagerly load per-row metrics; large fleets load lazily on expand.
-  const eagerMetrics = mirrors.length > 0 && mirrors.length <= 24
+  // The first EAGER_METRICS_LIMIT rows always load metrics on mount so the
+  // header KPIs, sparklines, and lag triage are populated before any row is
+  // expanded; the rest load lazily on expand to cap the PeerDB API fan-out.
+  // `eagerMetrics` here means "the whole fleet fits the eager budget" and only
+  // drives the KPI sub-label (all vs partial), not the per-row gating.
+  const eagerMetrics =
+    mirrors.length > 0 && mirrors.length <= EAGER_METRICS_LIMIT
 
   const toggleRow = (id: string) =>
     setExpanded((prev) => {
@@ -513,13 +522,13 @@ function PeerDBMirrorsPage() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((m) => (
+              {visible.map((m, i) => (
                 <MirrorRow
                   key={m.name}
                   mirror={m}
                   expanded={expanded.has(m.name)}
                   onToggle={() => toggleRow(m.name)}
-                  loadMetrics={eagerMetrics}
+                  loadMetrics={shouldEagerLoadMetrics(i)}
                   onMetrics={onMetrics}
                 />
               ))}

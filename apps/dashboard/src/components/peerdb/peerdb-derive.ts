@@ -43,6 +43,29 @@ export function cloneProgress(summary: CloneTableSummary): CloneProgress {
   }
 }
 
+/**
+ * Cap on how many mirror rows fetch live metrics eagerly on page mount.
+ * Bounds the PeerDB API fan-out for huge fleets while still populating the
+ * page-level KPI totals, sparklines, and lag-triage strip BEFORE any row is
+ * expanded. Fleets larger than the limit render a "N/total loaded" partial.
+ */
+export const EAGER_METRICS_LIMIT = 24
+
+/**
+ * Whether the mirror at `visibleIndex` should fetch its metrics eagerly, i.e.
+ * without waiting for the user to expand the row. The first EAGER_METRICS_LIMIT
+ * rows always load so the header KPIs / sparklines / lag triage are non-zero on
+ * mount — regardless of fleet size. Previously this was gated on the WHOLE
+ * fleet being <= the limit, which left every row (and thus every page-level
+ * total) at zero until a row was expanded on large fleets.
+ */
+export function shouldEagerLoadMetrics(
+  visibleIndex: number,
+  limit: number = EAGER_METRICS_LIMIT
+): boolean {
+  return visibleIndex >= 0 && visibleIndex < limit
+}
+
 export type SlotHealth = 'ok' | 'warn' | 'critical'
 
 /** Lag thresholds (MiB) for replication-slot health classification. */
