@@ -3,13 +3,14 @@
  * orchestration for the Cloudflare exception scan.
  */
 
+import type { WorkerException } from './observability'
+
 import {
   buildExceptionIssue,
   type KVLike,
   parseRepo,
   runExceptionScan,
 } from './exceptions'
-import type { WorkerException } from './observability'
 import { describe, expect, mock, test } from 'bun:test'
 
 function exc(over: Partial<WorkerException> = {}): WorkerException {
@@ -64,10 +65,9 @@ describe('buildExceptionIssue', () => {
   })
 
   test('over-long title is truncated with ellipsis', () => {
-    const issue = buildExceptionIssue(
-      exc({ message: 'x'.repeat(400) }),
-      ['bug']
-    )
+    const issue = buildExceptionIssue(exc({ message: 'x'.repeat(400) }), [
+      'bug',
+    ])
     expect(issue.title.length).toBeLessThanOrEqual(256)
     expect(issue.title.endsWith('…')).toBe(true)
   })
@@ -149,7 +149,10 @@ describe('runExceptionScan — dedup', () => {
 describe('runExceptionScan — rate cap', () => {
   test('files at most maxIssuesPerRun and reports the cap', async () => {
     const many = Array.from({ length: 10 }, (_, i) =>
-      exc({ fingerprint: `fp${i}`, message: `boom ${String.fromCharCode(97 + i)}` })
+      exc({
+        fingerprint: `fp${i}`,
+        message: `boom ${String.fromCharCode(97 + i)}`,
+      })
     )
     const fetchImpl = mock(async (url: string) => {
       if (url.includes('/search/issues')) {

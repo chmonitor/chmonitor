@@ -227,8 +227,7 @@ export async function runExceptionScan(
   const apiBase = deps.githubApiBase ?? 'https://api.github.com'
   const labels = deps.labels ?? ['bug', 'cloudflare-exception']
   const cap = deps.maxIssuesPerRun ?? DEFAULT_MAX_ISSUES_PER_RUN
-  const logError =
-    deps.logError ?? ((m, meta) => console.error(m, meta))
+  const logError = deps.logError ?? ((m, meta) => console.error(m, meta))
 
   const filed: string[] = []
   const skipped: string[] = []

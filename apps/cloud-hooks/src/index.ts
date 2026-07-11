@@ -49,7 +49,8 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
 async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
   const missing: string[] = []
   if (!env.GITHUB_TOKEN) missing.push('GITHUB_TOKEN')
-  if (!env.CF_OBSERVABILITY_API_TOKEN) missing.push('CF_OBSERVABILITY_API_TOKEN')
+  if (!env.CF_OBSERVABILITY_API_TOKEN)
+    missing.push('CF_OBSERVABILITY_API_TOKEN')
   if (!env.CF_ACCOUNT_ID) missing.push('CF_ACCOUNT_ID')
   if (missing.length > 0) {
     console.log(
@@ -64,7 +65,9 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
     return
   }
 
-  const scripts = (env.CHM_EXCEPTION_SCRIPTS || 'chmonitor-dash,chmonitor-hooks')
+  const scripts = (
+    env.CHM_EXCEPTION_SCRIPTS || 'chmonitor-dash,chmonitor-hooks'
+  )
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)

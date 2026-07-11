@@ -66,7 +66,11 @@ describe('probeD1', () => {
       }),
     }
     const res = await probeD1(db)
-    expect(res).toMatchObject({ name: 'd1', state: 'down', error: 'd1 unavailable' })
+    expect(res).toMatchObject({
+      name: 'd1',
+      state: 'down',
+      error: 'd1 unavailable',
+    })
   })
 })
 
