@@ -1,5 +1,7 @@
-import { AlertTriangleIcon, CalendarClockIcon } from 'lucide-react'
+import { AlertTriangleIcon, CalendarClockIcon, XIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+
+import type { Plan } from '@/lib/billing/plans'
 
 import {
   deferredNote,
@@ -86,7 +88,19 @@ function formatRenewalDate(unixSeconds: number): string {
   })
 }
 
-export function UsageSummary() {
+export function UsageSummary({
+  comparePlan,
+  onClearCompare,
+}: {
+  /**
+   * Plan selected below the fold (click a plan card) — renders a second meter
+   * row projecting the SAME usage onto that plan's limits, so "would I fit on
+   * Pro?" is answered at a glance. Limits come from BILLING_PLANS client-side;
+   * no extra API call.
+   */
+  comparePlan?: Plan | null
+  onClearCompare?: () => void
+}) {
   const { data, isLoading, isError } = useBillingUsage()
 
   // OSS / signed-out / not-configured: the endpoint errors — render nothing so
@@ -139,7 +153,77 @@ export function UsageSummary() {
           note={deferredNote('aiMonthlyUsdBudget')}
         />
       </div>
+      {comparePlan ? (
+        <ComparisonRow
+          plan={comparePlan}
+          usage={data}
+          onClear={onClearCompare}
+        />
+      ) : null}
       <RenewalBanner renewal={renewal} />
+    </div>
+  )
+}
+
+/**
+ * "If you were on <plan>" projection: the same used values re-metered against
+ * the selected plan's limits, directly under the current-plan meters so the
+ * two rows of bars compare 1:1 column-for-column. Over-limit bars go red via
+ * the normal meter levels — no special casing.
+ */
+function ComparisonRow({
+  plan,
+  usage,
+  onClear,
+}: {
+  plan: Plan
+  usage: BillingUsage
+  onClear?: () => void
+}) {
+  const project = (used: number, limit: number | null): Meter => ({
+    used,
+    limit,
+    unlimited: limit == null,
+  })
+
+  return (
+    <div className="border-border/60 space-y-3 rounded-lg border border-dashed bg-muted/30 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium">
+          On <span className="text-primary font-semibold">{plan.name}</span>{' '}
+          <span className="text-muted-foreground font-normal">
+            — your current usage against its limits
+          </span>
+        </span>
+        {onClear ? (
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label="Clear plan comparison"
+            className="text-muted-foreground hover:text-foreground -m-1 rounded p-1"
+          >
+            <XIcon className="size-3.5" strokeWidth={2} />
+          </button>
+        ) : null}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <UsageMeterBar
+          label="Hosts"
+          meter={project(usage.hosts.used, plan.hosts)}
+        />
+        <UsageMeterBar
+          label="Team seats"
+          meter={project(usage.seats.used, plan.seats)}
+        />
+        <UsageMeterBar
+          label="AI messages today"
+          meter={project(usage.aiMessages.used, plan.aiRequestsPerDay)}
+        />
+        <AiSpendMeterBar
+          spent={usage.aiSpentThisMonth}
+          budget={plan.aiMonthlyUsdBudget}
+        />
+      </div>
     </div>
   )
 }

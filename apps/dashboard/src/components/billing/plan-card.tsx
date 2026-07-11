@@ -1,6 +1,6 @@
 import { CheckIcon, SparklesIcon } from 'lucide-react'
 
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import type { Plan } from '@/lib/billing/plans'
 
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +46,13 @@ interface PlanCardProps {
   maxHighlights?: number
   /** CTA button(s), rendered in the bottom-pinned footer. */
   cta: ReactNode
+  /**
+   * Makes the whole card a focus/compare target (billing page: click a plan to
+   * compare its limits against current usage). CTA clicks don't trigger it.
+   */
+  onSelect?: () => void
+  /** Selected (compare) visual state — only meaningful with `onSelect`. */
+  selected?: boolean
   className?: string
 }
 
@@ -60,6 +67,8 @@ export function PlanCard({
   badge,
   maxHighlights,
   cta,
+  onSelect,
+  selected = false,
   className,
 }: PlanCardProps) {
   const price = formatPlanPrice(plan, period)
@@ -69,13 +78,33 @@ export function PlanCard({
       ? plan.highlights.slice(0, maxHighlights)
       : plan.highlights
 
+  // Whole-card select target (never a nested <button> — the CTA footer stops
+  // propagation instead, so its buttons keep working without selecting).
+  const selectProps = onSelect
+    ? {
+        role: 'button' as const,
+        tabIndex: 0,
+        onClick: onSelect,
+        onKeyDown: (e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onSelect()
+          }
+        },
+        'aria-pressed': selected,
+      }
+    : {}
+
   return (
     <div
+      {...selectProps}
       className={cn(
         'group relative flex h-full flex-col rounded-2xl border bg-card p-6 shadow-sm transition-all duration-200',
         'hover:-translate-y-0.5 hover:shadow-md',
         featured &&
           'border-primary/50 ring-primary/15 from-card to-primary/[0.04] dark:to-primary/[0.07] bg-gradient-to-b shadow-md ring-1',
+        onSelect && 'cursor-pointer',
+        selected && 'border-primary ring-primary/30 ring-2',
         className
       )}
     >
@@ -127,7 +156,11 @@ export function PlanCard({
         })}
       </ul>
 
-      <div className="mt-auto pt-6">
+      <div
+        className="mt-auto pt-6"
+        onClick={onSelect ? (e) => e.stopPropagation() : undefined}
+        onKeyDown={onSelect ? (e) => e.stopPropagation() : undefined}
+      >
         <PlanBillingSummary plan={plan} period={period} />
         {cta}
       </div>
