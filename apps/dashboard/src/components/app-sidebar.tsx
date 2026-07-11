@@ -46,16 +46,18 @@ export function AppSidebar() {
         <NavMain items={menuItems} />
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="pt-0">
         {/* App-level links (Billing / Organization / About) and the external
             Docs link share ONE menu so every footer row has the same rhythm —
             separate SidebarMenu blocks would pick up the footer's gap-2 and
-            drift apart. The user button below stays its own block. */}
+            drift apart. Rows use the default SidebarMenuButton size (same as
+            the body menu in nav-main/menu-item.tsx) so the footer reads as a
+            continuation of the menu list, not a separate compact widget. The
+            user button below stays its own block. */}
         <SidebarMenu>
           {footerItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
-                size="sm"
                 isActive={isMenuItemActive(item.href, pathname)}
                 tooltip={item.title}
                 render={
@@ -72,7 +74,6 @@ export function AppSidebar() {
           ))}
           <SidebarMenuItem>
             <SidebarMenuButton
-              size="sm"
               tooltip="Docs"
               render={
                 <a

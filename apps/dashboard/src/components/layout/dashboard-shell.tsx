@@ -47,7 +47,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
             <div className="flex min-w-0 flex-1 items-center gap-2 px-4 pt-3 sm:pt-0">
               <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Separator orientation="vertical" className="h-4" />
               <Suspense fallback={<Skeleton className="h-4 w-32" />}>
                 <Breadcrumb className="min-w-0" />
               </Suspense>
