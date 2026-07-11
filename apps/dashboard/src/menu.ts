@@ -824,7 +824,7 @@ export const menuItemsConfig: MenuItem[] = [
     title: 'Billing',
     href: '/billing',
     icon: CircleDollarSignIcon,
-    section: 'others',
+    section: 'footer',
     permission: { feature: 'billing' },
     cloudOnly: true,
   },
@@ -834,9 +834,21 @@ export const menuItemsConfig: MenuItem[] = [
     title: 'Organization',
     href: '/organization',
     icon: UsersIcon,
-    section: 'others',
+    section: 'footer',
     permission: { feature: 'billing' },
     cloudOnly: true,
+  },
+  {
+    // Dashboard + server version info. Rendered as a compact footer row (see
+    // AppSidebar), not inside a labelled body group. Reachable in both editions
+    // — no `cloudOnly` — and with zero hosts configured (exempt from the
+    // first-run /setup redirect, see first-run-gate.tsx).
+    title: 'About',
+    href: '/about',
+    description: 'Dashboard and server version information',
+    icon: InfoCircledIcon,
+    section: 'footer',
+    permission: { feature: 'about' },
   },
   {
     title: 'System',
@@ -1029,13 +1041,6 @@ export const menuItemsConfig: MenuItem[] = [
         countLabel: 'views',
         icon: BarChartIcon,
         tableCheck: EVENTS_TABLE,
-      },
-      {
-        title: 'About',
-        href: '/about',
-        description: 'Dashboard and server version information',
-        icon: InfoCircledIcon,
-        permission: { feature: 'about' },
       },
     ],
   },

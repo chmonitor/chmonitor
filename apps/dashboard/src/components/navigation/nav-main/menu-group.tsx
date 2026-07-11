@@ -1,5 +1,4 @@
-import type { MenuSection } from '@/components/menu/types'
-import type { MenuGroupProps } from './types'
+import type { MenuGroupProps, NavRenderSection } from './types'
 
 import { MenuItem } from './menu-item'
 import {
@@ -11,7 +10,7 @@ import {
 /**
  * Section label mapping
  */
-const SECTION_LABELS: Record<MenuSection, string> = {
+const SECTION_LABELS: Record<NavRenderSection, string> = {
   main: 'Main',
   others: 'Others',
 }

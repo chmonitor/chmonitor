@@ -108,6 +108,50 @@ describe('menu config cloud-only contract', () => {
   })
 })
 
+// Footer nav rows (Billing / Organization / About) render in the sidebar footer
+// (AppSidebar) instead of a labelled body group, but flow through the SAME
+// visibility pipeline. These guard the section wiring so the footer stays in
+// sync with menu.ts.
+describe('menu config footer section', () => {
+  const footerTitles = (items: MenuItem[]) =>
+    items.filter((i) => i.section === 'footer').map((i) => i.title)
+
+  test('Billing, Organization, About are top-level footer items', () => {
+    const byHref = (href: string) =>
+      menuItemsConfig.find((item) => item.href === href)
+    expect(byHref('/billing')?.section).toBe('footer')
+    expect(byHref('/organization')?.section).toBe('footer')
+    expect(byHref('/about')?.section).toBe('footer')
+  })
+
+  test('About is reachable in OSS (not cloudOnly, keeps its permission)', () => {
+    const about = menuItemsConfig.find((item) => item.href === '/about')
+    expect(about?.cloudOnly).toBeUndefined()
+    expect(about?.permission).toEqual({ feature: 'about' })
+  })
+
+  test('About is no longer nested under the Operations group', () => {
+    const operations = menuItemsConfig.find(
+      (item) => item.title === 'Operations'
+    )
+    expect(operations?.items?.some((i) => i.href === '/about')).toBe(false)
+  })
+
+  test('OSS footer keeps About, drops cloud-only Billing/Organization', () => {
+    expect(footerTitles(filterCloudOnly(menuItemsConfig, false))).toEqual([
+      'About',
+    ])
+  })
+
+  test('cloud footer surfaces Billing, Organization, About in order', () => {
+    expect(footerTitles(filterCloudOnly(menuItemsConfig, true))).toEqual([
+      'Billing',
+      'Organization',
+      'About',
+    ])
+  })
+})
+
 // Engine-aware menu swap (issue #2450, decision 4). The HARD invariant: for the
 // ClickHouse family the menu is byte-for-byte today's menu; for Postgres only
 // the Postgres-tagged items show.

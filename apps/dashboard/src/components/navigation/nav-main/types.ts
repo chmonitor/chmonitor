@@ -4,6 +4,14 @@ import type {
 } from '@/components/menu/types'
 
 /**
+ * Sections NavMain renders as labelled groups in the sidebar body. `footer`
+ * items are rendered separately in the sidebar footer (see AppSidebar), so they
+ * are excluded here — that keeps {@link SectionLabelMap} exhaustive without a
+ * (never-shown) "Footer" label.
+ */
+export type NavRenderSection = Exclude<MenuSection, 'footer'>
+
+/**
  * Props for rendering a single menu item
  */
 export interface MenuItemProps {
@@ -18,7 +26,7 @@ export interface MenuItemProps {
  */
 export interface MenuGroupProps {
   /** Section identifier */
-  section: MenuSection
+  section: NavRenderSection
   /** Items in this section */
   items: MenuItemType[]
   /** Current pathname for active state detection */
@@ -46,4 +54,4 @@ export interface MenuItemActiveState {
 /**
  * Section label mapping
  */
-export type SectionLabelMap = Record<MenuSection, string>
+export type SectionLabelMap = Record<NavRenderSection, string>

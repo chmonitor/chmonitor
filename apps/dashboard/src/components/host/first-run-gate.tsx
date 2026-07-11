@@ -1,4 +1,7 @@
-import { resolveFirstRunAction } from './first-run-decision'
+import {
+  isFirstRunExemptPath,
+  resolveFirstRunAction,
+} from './first-run-decision'
 import { useEffect } from 'react'
 import { PageSkeleton } from '@/components/skeletons'
 import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
@@ -45,14 +48,11 @@ export function FirstRunGate({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
   const hostId = useHostId()
 
-  // Account/billing pages stay reachable with zero hosts — a paying user with no
-  // host connected yet must still be able to view/manage their plan and org
-  // (otherwise they're trapped on /setup). /setup is itself exempt (no redirect
-  // loop, it renders the onboarding surface).
-  const onExemptPath =
-    pathname === '/setup' ||
-    pathname === '/billing' ||
-    pathname === '/organization'
+  // Account/billing/about pages stay reachable with zero hosts (a paying user
+  // with no host yet must manage plan/org; About is a static info page). /setup
+  // is itself exempt — no redirect loop, it renders the onboarding surface. See
+  // FIRST_RUN_EXEMPT_PATHS in first-run-decision.ts.
+  const onExemptPath = isFirstRunExemptPath(pathname)
 
   const action = resolveFirstRunAction({
     isLoading,

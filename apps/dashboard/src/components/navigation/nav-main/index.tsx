@@ -1,5 +1,4 @@
-import type { MenuSection } from '@/components/menu/types'
-import type { NavMainProps } from './types'
+import type { NavMainProps, NavRenderSection } from './types'
 
 import { MenuGroup } from './menu-group'
 import { usePathname } from '@/lib/next-compat'
@@ -22,7 +21,7 @@ import { usePathname } from '@/lib/next-compat'
  */
 export function NavMain({ items }: NavMainProps) {
   const pathname = usePathname()
-  const sections: MenuSection[] = ['main', 'others']
+  const sections: NavRenderSection[] = ['main', 'others']
 
   return (
     <>

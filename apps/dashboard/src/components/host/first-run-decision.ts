@@ -25,6 +25,26 @@
  * visible" rather than the raw id, which stays correct for every source.
  */
 
+/**
+ * Paths that stay reachable with zero hosts configured and are never re-pointed:
+ *  - `/setup` renders the onboarding surface (exempting it avoids a redirect loop);
+ *  - `/billing` + `/organization` let a paying user manage plan/org before they
+ *    connect a host;
+ *  - `/about` is a static version-info page with no host dependency.
+ * These render as footer rows (Billing/Organization/About) — see AppSidebar.
+ */
+export const FIRST_RUN_EXEMPT_PATHS = [
+  '/setup',
+  '/billing',
+  '/organization',
+  '/about',
+] as const
+
+/** Whether `pathname` is exempt from the first-run `/setup` redirect. */
+export function isFirstRunExemptPath(pathname: string): boolean {
+  return (FIRST_RUN_EXEMPT_PATHS as readonly string[]).includes(pathname)
+}
+
 /** What FirstRunGate should do this render. */
 export type FirstRunAction =
   /** Render the routed page. */
@@ -44,7 +64,7 @@ export interface FirstRunInput {
   isLoading: boolean
   /** The env-host fetch returned 401/403 (an auth failure, not a real empty). */
   isUnauthorized: boolean
-  /** Current path is exempt (/setup, /billing, /organization). */
+  /** Current path is exempt (/setup, /billing, /organization, /about). */
   onExemptPath: boolean
   /** Number of VISIBLE merged hosts. */
   hostCount: number
@@ -82,8 +102,8 @@ export function resolveFirstRunAction(input: FirstRunInput): FirstRunAction {
   // render and individual data calls surface their own states. (Unchanged.)
   if (isUnauthorized) return { type: 'render' }
 
-  // Account/billing/setup pages stay reachable with zero hosts and must not be
-  // re-pointed. (Unchanged.)
+  // Account/billing/about/setup pages stay reachable with zero hosts and must
+  // not be re-pointed. (Unchanged.)
   if (onExemptPath) return { type: 'render' }
 
   // Cloud + signed-in: the env host is a hidden read-only demo. If the active

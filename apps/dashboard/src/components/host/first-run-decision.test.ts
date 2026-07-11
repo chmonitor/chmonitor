@@ -1,6 +1,9 @@
 import type { FirstRunInput } from './first-run-decision'
 
-import { resolveFirstRunAction } from './first-run-decision'
+import {
+  isFirstRunExemptPath,
+  resolveFirstRunAction,
+} from './first-run-decision'
 import { describe, expect, it } from 'bun:test'
 
 /**
@@ -120,7 +123,7 @@ describe('resolveFirstRunAction — self-hosted (OSS) unchanged', () => {
 })
 
 describe('resolveFirstRunAction — exemptions & auth', () => {
-  it('exempt paths (/setup, /billing, /organization) always render', () => {
+  it('exempt paths (/setup, /billing, /organization, /about) always render', () => {
     const action = resolveFirstRunAction(
       input({
         onExemptPath: true,
@@ -143,5 +146,23 @@ describe('resolveFirstRunAction — exemptions & auth', () => {
       })
     )
     expect(action).toEqual({ type: 'render' })
+  })
+})
+
+// The pathname → exemption mapping FirstRunGate feeds into `onExemptPath`. These
+// pages must render with zero hosts configured instead of redirecting to /setup.
+describe('isFirstRunExemptPath', () => {
+  it.each([
+    '/setup',
+    '/billing',
+    '/organization',
+    '/about',
+  ])('exempts %s from the first-run /setup redirect', (path) => {
+    expect(isFirstRunExemptPath(path)).toBe(true)
+  })
+
+  it('does not exempt a normal monitoring page', () => {
+    expect(isFirstRunExemptPath('/overview')).toBe(false)
+    expect(isFirstRunExemptPath('/merges')).toBe(false)
   })
 })

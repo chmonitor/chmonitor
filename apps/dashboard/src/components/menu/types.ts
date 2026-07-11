@@ -3,7 +3,7 @@ import type { Icon } from '@chm/types/icon'
 import type { FeaturePermission } from '@/lib/feature-permissions/types'
 import type { BadgeVariant } from '@/types/badge-variant'
 
-export type MenuSection = 'main' | 'others'
+export type MenuSection = 'main' | 'others' | 'footer'
 
 export interface MenuItem {
   title: string
@@ -16,7 +16,11 @@ export interface MenuItem {
   countVariant?: BadgeVariant
   items?: MenuItem[]
   icon?: Icon
-  /** Section grouping for sidebar display */
+  /**
+   * Section grouping for sidebar display. `main` / `others` render as labelled
+   * groups in the sidebar body (NavMain); `footer` items render as compact rows
+   * in the sidebar footer (AppSidebar), above the Docs link and user button.
+   */
   section?: MenuSection
   /** Show "New" badge - hidden after user visits the page */
   isNew?: boolean
