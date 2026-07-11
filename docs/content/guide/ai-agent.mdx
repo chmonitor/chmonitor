@@ -193,6 +193,13 @@ With enrichment off, conversations persist normally but titles and follow-up sug
 
 ## AI Insights persistence
 
+![chmonitor Overview with the AI Insights strip: critical and warning findings — read-only replicas, detached parts, replication lag — beside live cluster vitals](/assets/screenshots/cluster-insights-dark-with-bg.jpeg)
+
+New findings also surface in the header AI Insights panel, so critical and
+warning insights reach you from any page without opening `/overview`:
+
+![The AI Insights header panel listing new findings with severity icons](/assets/screenshots/notify-getting-insights.png)
+
 Separate from chat history, the AI Insights panel on `/overview` persists the
 short observations it generates through its own pluggable store, mirroring the
 conversation backends above. It is **additive opt-in** via one env var and

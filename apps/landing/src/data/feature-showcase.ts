@@ -130,9 +130,8 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'SQL console with history, EXPLAIN and scan analysis',
     ],
     screenshot: {
-      // Not overview-insights-*: the hero already carries that capture.
-      src: '/assets/screenshots/record-breakers-dark.webp',
-      alt: 'Record-breaking queries ranked by duration, memory and rows read',
+      src: '/assets/screenshots/cluster-insights-dark-with-bg.jpeg',
+      alt: 'chmonitor Overview with AI Insights: critical and warning findings — read-only replicas, detached parts, replication lag — beside live cluster vitals',
     },
     reverse: true,
   },
