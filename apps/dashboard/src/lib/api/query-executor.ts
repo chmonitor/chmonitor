@@ -170,15 +170,6 @@ export async function executeTableConfig<
     clickhouseVersion,
   } = await selectSqlForHost(queryConfig.sql, numericHostId)
 
-  // Read-only GET path (routes/api/v1/tables/$name.ts, explorer/*): safe to
-  // opt into the ClickHouse query cache (#2182). `queryConfig.clickhouseSettings`
-  // is spread after so a config can still override any of these explicitly.
-  const cacheSettings = buildQueryCacheSettings({
-    version: clickhouseVersion,
-    ttlSeconds: tableCacheTtlSeconds(queryConfig.refreshInterval),
-    disabled: queryConfig.disableQueryCache,
-  })
-
   // Server-side row cap (#2490): stop ClickHouse from shipping unbounded
   // result sets for `SELECT *`-style table configs. `result_overflow_mode:
   // 'break'` makes the server truncate instead of erroring, and the
@@ -193,6 +184,26 @@ export async function executeTableConfig<
     options.timezone,
     maxResultRows
   )
+
+  // ClickHouse rejects `use_query_cache` combined with a non-'throw'
+  // `result_overflow_mode` (error 731,
+  // QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE) — and the row cap above
+  // sets `result_overflow_mode: 'break'` whenever it's active, which fails
+  // EVERY capped table query outright once the query cache (#2182) is also
+  // enabled (e.g. history-queries). The row cap wins: skip the query cache
+  // for any query where a non-throw overflow mode is in effect.
+  const overflowModeBlocksCache =
+    tableSettings.result_overflow_mode !== undefined &&
+    tableSettings.result_overflow_mode !== 'throw'
+
+  // Read-only GET path (routes/api/v1/tables/$name.ts, explorer/*): safe to
+  // opt into the ClickHouse query cache (#2182). `queryConfig.clickhouseSettings`
+  // is spread after so a config can still override any of these explicitly.
+  const cacheSettings = buildQueryCacheSettings({
+    version: clickhouseVersion,
+    ttlSeconds: tableCacheTtlSeconds(queryConfig.refreshInterval),
+    disabled: queryConfig.disableQueryCache || overflowModeBlocksCache,
+  })
 
   const result = await withClickHouseQuerySpan(() =>
     fetchData<T[]>({

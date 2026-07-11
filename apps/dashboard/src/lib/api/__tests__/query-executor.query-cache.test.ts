@@ -59,16 +59,31 @@ describe('query-executor ClickHouse query-cache wiring (#2182)', () => {
     mockFetchJsonEachRow.mockClear()
   })
 
-  test('executeTableConfig applies use_query_cache with the config refreshInterval as TTL', async () => {
-    await executeTableConfig(
-      { name: 't', sql: 'SELECT 1', columns: [], refreshInterval: 15000 },
-      0,
-      undefined
-    )
+  test('executeTableConfig applies use_query_cache with the config refreshInterval as TTL when the row cap is disabled', async () => {
+    // The default row cap (#2490) sets result_overflow_mode: 'break', which
+    // ClickHouse forbids combining with use_query_cache (error 731) — see
+    // the dedicated regression test below. Disable the cap here
+    // (CHM_TABLE_MAX_RESULT_ROWS=0) to exercise the cache-applies path.
+    const prevCap = process.env.CHM_TABLE_MAX_RESULT_ROWS
+    process.env.CHM_TABLE_MAX_RESULT_ROWS = '0'
+    try {
+      await executeTableConfig(
+        { name: 't', sql: 'SELECT 1', columns: [], refreshInterval: 15000 },
+        0,
+        undefined
+      )
+    } finally {
+      if (prevCap === undefined) {
+        delete process.env.CHM_TABLE_MAX_RESULT_ROWS
+      } else {
+        process.env.CHM_TABLE_MAX_RESULT_ROWS = prevCap
+      }
+    }
 
     const settings = mockFetchData.mock.calls[0]?.[0]?.clickhouse_settings as
       | Record<string, unknown>
       | undefined
+    expect(settings?.result_overflow_mode).toBeUndefined()
     expect(settings?.use_query_cache).toBe(1)
     expect(settings?.query_cache_ttl).toBe(15)
     expect(settings?.query_cache_nondeterministic_function_handling).toBe(
@@ -105,6 +120,26 @@ describe('query-executor ClickHouse query-cache wiring (#2182)', () => {
       | Record<string, unknown>
       | undefined
     expect(settings?.use_query_cache).toBe(0)
+  })
+
+  test('executeTableConfig skips the query cache when the row cap sets a non-throw overflow mode (#history-queries timeout)', async () => {
+    // Regression test: ClickHouse throws error 731
+    // (QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE) when use_query_cache
+    // and a non-'throw' overflow mode are combined. The default row cap
+    // (#2490) sets result_overflow_mode: 'break', so every capped table
+    // query used to fail once the query cache (#2182) was also enabled.
+    await executeTableConfig(
+      { name: 't', sql: 'SELECT 1', columns: [], refreshInterval: 15000 },
+      0,
+      undefined
+    )
+
+    const settings = mockFetchData.mock.calls[0]?.[0]?.clickhouse_settings as
+      | Record<string, unknown>
+      | undefined
+    expect(settings?.result_overflow_mode).toBe('break')
+    expect(settings?.use_query_cache).toBeUndefined()
+    expect(settings?.query_cache_ttl).toBeUndefined()
   })
 
   test('executeChartQuery applies use_query_cache using the passed ttlSeconds', async () => {
