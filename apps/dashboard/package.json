@@ -27,6 +27,7 @@
     "test:query-config": "bun test src/lib/query-config --isolate",
     "test:coverage": "bun test src/ --isolate --coverage --coverage-reporter=lcov --coverage-reporter=text",
     "test:coverage:ci": "bun test src/ --isolate --coverage --coverage-reporter=lcov",
+    "test:pg-integration": "bun test src/lib/connection-query/execute-pg-query.integration.test.ts --isolate",
     "test:component": "cypress open --component",
     "test:component:headless": "cypress run --component",
     "test:e2e": "cypress open --e2e",

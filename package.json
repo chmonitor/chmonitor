@@ -30,6 +30,7 @@
     "test:coverage": "(cd apps/dashboard && pnpm run test:coverage) && pnpm run test:packages",
     "test:packages": "bun test packages --isolate --coverage --coverage-reporter=lcov --coverage-reporter=text",
     "test:packages:ci": "bun test packages --isolate --coverage --coverage-reporter=lcov",
+    "test:pg-integration": "bun test packages/postgres-client/src --isolate && cd apps/dashboard && pnpm run test:pg-integration",
     "test:component": "cd apps/dashboard && pnpm run test:component",
     "test:component:headless": "cd apps/dashboard && pnpm run test:component:headless",
     "test:e2e": "cd apps/dashboard && pnpm run test:e2e",
