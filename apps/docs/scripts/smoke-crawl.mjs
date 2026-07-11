@@ -38,7 +38,11 @@ const PORT = Number(process.env.SMOKE_PORT ?? 4173)
 const BASE_URL = `http://localhost:${PORT}`
 const CONCURRENCY = Number(process.env.SMOKE_CONCURRENCY ?? 8)
 const PAGE_TIMEOUT_MS = 15_000
-const SERVER_START_TIMEOUT_MS = 30_000
+// Generous: CI runners share CPU with sibling jobs, and a cold vite preview
+// boot has been observed to exceed 30s there (flaked PR #2593's build job).
+const SERVER_START_TIMEOUT_MS = Number(
+  process.env.SMOKE_SERVER_TIMEOUT_MS ?? 120_000,
+)
 
 const ERROR_MARKERS = [
   'Something went wrong',
@@ -63,12 +67,22 @@ function startPreviewServer() {
 
   return new Promise((resolve, reject) => {
     const start = Date.now()
-    const check = setInterval(() => {
-      if (output.includes('Local:') || output.includes(`:${PORT}`)) {
+    let checking = false
+    // Poll the server over HTTP instead of scraping stdout — immune to log
+    // format/ANSI changes, and true readiness (a printed URL isn't a bound
+    // socket). Any HTTP response, even a 404, means the server is up.
+    const check = setInterval(async () => {
+      if (checking) return
+      checking = true
+      try {
+        await fetch(BASE_URL, { signal: AbortSignal.timeout(1_000) })
         clearInterval(check)
-        // Give the server a moment past the log line before hitting it.
-        setTimeout(() => resolve(proc), 300)
+        resolve(proc)
         return
+      } catch {
+        // not up yet
+      } finally {
+        checking = false
       }
       if (Date.now() - start > SERVER_START_TIMEOUT_MS) {
         clearInterval(check)
@@ -78,7 +92,7 @@ function startPreviewServer() {
           ),
         )
       }
-    }, 200)
+    }, 500)
 
     proc.on('exit', (code) => {
       clearInterval(check)
