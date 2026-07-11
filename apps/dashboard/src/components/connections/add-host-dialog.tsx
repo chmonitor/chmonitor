@@ -179,6 +179,7 @@ export function AddHostDialog({
               dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
               showSamplePreset={showSamplePreset}
               allowPostgres={allowPostgres}
+              allowPeerdb
               initialPreset={initialEngine}
               onEngineChange={setEngine}
             />

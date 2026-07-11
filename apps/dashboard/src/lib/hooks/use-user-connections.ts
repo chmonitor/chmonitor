@@ -92,6 +92,10 @@ export function useUserConnectionsMutations() {
     port?: number
     database?: string
     sslmode?: string
+    /** Optional PeerDB monitoring link (any engine). */
+    peerdbApiUrl?: string
+    peerdbAuthScheme?: 'basic' | 'bearer'
+    peerdbAuthSecret?: string
   }): Promise<{
     success: boolean
     data: UserConnectionInfo

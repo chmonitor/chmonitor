@@ -1,11 +1,13 @@
 import {
   ArrowUpRight,
   Check,
+  ChevronDown,
   Eye,
   EyeOff,
   FlaskConical,
   Globe,
   Loader2,
+  Waypoints,
 } from 'lucide-react'
 
 import type { BrowserConnection } from '@/lib/types/browser-connection'
@@ -23,6 +25,11 @@ import {
 import { SAMPLE_CLUSTER_PRESET } from './sample-preset'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -59,7 +66,13 @@ export type ConnectionFormData = Pick<
   | 'port'
   | 'database'
   | 'sslmode'
+  | 'peerdbApiUrl'
+  | 'peerdbAuthScheme'
+  | 'peerdbAuthSecret'
 >
+
+/** UI value for the PeerDB auth selector; `none` maps to no stored secret. */
+type PeerdbAuthUi = 'none' | 'basic' | 'bearer'
 
 /** libpq sslmodes surfaced in the Postgres preset's SSL dropdown. */
 const POSTGRES_SSLMODES = ['require', 'disable', 'verify-full'] as const
@@ -92,6 +105,13 @@ interface ConnectionFormProps {
    * only UI, so there is zero visual change when the flag is off.
    */
   allowPostgres?: boolean
+  /**
+   * Show the "Advanced" collapsible with the optional "PeerDB monitoring"
+   * fields (API URL + auth + Test PeerDB). Off by default; the "add new host"
+   * path (`AddHostDialog`) opts in. Editing dialogs leave it off for now — the
+   * PeerDB link is set at create time (see PR notes / follow-up).
+   */
+  allowPeerdb?: boolean
   /**
    * Connection-type tab to start on (e.g. the setup page's "Connect Postgres"
    * CTA opens the dialog straight on the Postgres tab). Users can still switch
@@ -138,6 +158,7 @@ export function ConnectionForm({
   dbStorageRequiresSignIn = false,
   showSamplePreset = false,
   allowPostgres = false,
+  allowPeerdb = false,
   initialPreset = 'self-hosted',
   onEngineChange,
 }: ConnectionFormProps) {
@@ -159,6 +180,20 @@ export function ConnectionForm({
   const [showPassword, setShowPassword] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>({ state: 'idle' })
   const [preset, setPreset] = useState<ConnectionPreset>(initialPreset)
+
+  // Advanced → PeerDB monitoring (optional). `none` means "no auth" (open
+  // flow-api); the secret is only kept for `basic`/`bearer`.
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [peerdbApiUrl, setPeerdbApiUrl] = useState(
+    initialValues?.peerdbApiUrl ?? ''
+  )
+  const [peerdbAuthUi, setPeerdbAuthUi] = useState<PeerdbAuthUi>(
+    initialValues?.peerdbAuthScheme ?? 'none'
+  )
+  const [peerdbSecret, setPeerdbSecret] = useState(
+    initialValues?.peerdbAuthSecret ?? ''
+  )
+  const [peerdbTest, setPeerdbTest] = useState<TestStatus>({ state: 'idle' })
 
   const isPostgres = preset === 'postgres'
 
@@ -273,10 +308,70 @@ export function ConnectionForm({
     }
   }
 
+  // Optional PeerDB monitoring link, folded into the saved envelope. Empty URL
+  // (or the section not shown) ⇒ no PeerDB fields; `none` ⇒ URL only (open).
+  const peerdbFields = (): Pick<
+    ConnectionFormData,
+    'peerdbApiUrl' | 'peerdbAuthScheme' | 'peerdbAuthSecret'
+  > => {
+    const url = peerdbApiUrl.trim()
+    if (!allowPeerdb || !url) return {}
+    if (peerdbAuthUi === 'none') return { peerdbApiUrl: url }
+    return {
+      peerdbApiUrl: url,
+      peerdbAuthScheme: peerdbAuthUi,
+      peerdbAuthSecret: peerdbSecret,
+    }
+  }
+
+  const peerdbValid =
+    !allowPeerdb || peerdbApiUrl.trim().length === 0
+      ? true
+      : isValidUrl(peerdbApiUrl.trim())
+
+  const handleTestPeerdb = async () => {
+    setPeerdbTest({ state: 'loading' })
+    try {
+      const response = await apiFetch('/api/v1/peerdb/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiUrl: peerdbApiUrl.trim(),
+          ...(peerdbAuthUi === 'none'
+            ? {}
+            : { authScheme: peerdbAuthUi, secret: peerdbSecret }),
+        }),
+      })
+      const json = (await response.json()) as {
+        ok?: boolean
+        version?: string
+        error?: string
+      }
+      if (json.ok) {
+        setPeerdbTest({
+          state: 'success',
+          message: json.version
+            ? `Reached PeerDB ${json.version}`
+            : 'Reached PeerDB',
+        })
+      } else {
+        setPeerdbTest({
+          state: 'error',
+          message: json.error ?? 'PeerDB check failed',
+        })
+      }
+    } catch (err) {
+      setPeerdbTest({
+        state: 'error',
+        message: err instanceof Error ? err.message : 'Network error',
+      })
+    }
+  }
+
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
-    if (!isFormValid(form, isPostgres) || saving) return
+    if (!isFormValid(form, isPostgres) || !peerdbValid || saving) return
     setSaving(true)
     try {
       await onSave(
@@ -290,6 +385,7 @@ export function ConnectionForm({
               port: form.port ?? POSTGRES_DEFAULT_PORT,
               database: (form.database ?? '').trim(),
               sslmode: form.sslmode,
+              ...peerdbFields(),
             }
           : {
               name: form.name.trim(),
@@ -297,6 +393,7 @@ export function ConnectionForm({
               user: form.user.trim(),
               password: form.password,
               engine: engineForPreset(preset),
+              ...peerdbFields(),
             }
       )
     } finally {
@@ -304,7 +401,8 @@ export function ConnectionForm({
     }
   }
 
-  const valid = isFormValid(form, isPostgres)
+  const chFormValid = isFormValid(form, isPostgres)
+  const valid = chFormValid && peerdbValid
 
   return (
     <div className="space-y-4">
@@ -578,6 +676,141 @@ export function ConnectionForm({
         </p>
       )}
 
+      {/* Advanced → PeerDB monitoring (optional). Collapsed by default; shown
+          for every connection type when the caller opts in. */}
+      {allowPeerdb && (
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md py-1 text-sm font-medium text-foreground">
+            <span>Advanced</span>
+            <ChevronDown
+              className={`size-4 text-muted-foreground transition-transform ${
+                advancedOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-2">
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="flex items-start gap-2">
+                <Waypoints className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">
+                    PeerDB monitoring (optional)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Link this connection&apos;s CDC replication — the PeerDB
+                    flow-api endpoint. Monitoring is view-only.
+                  </p>
+                </div>
+              </div>
+
+              {/* API URL */}
+              <div className="space-y-1.5">
+                <Label htmlFor="peerdb-url" className="text-sm font-medium">
+                  API URL
+                </Label>
+                <Input
+                  id="peerdb-url"
+                  placeholder="https://peerdb.example.com/api"
+                  value={peerdbApiUrl}
+                  onChange={(e) => {
+                    setPeerdbApiUrl(e.target.value)
+                    if (peerdbTest.state !== 'idle')
+                      setPeerdbTest({ state: 'idle' })
+                  }}
+                  autoComplete="off"
+                  type="url"
+                />
+                {peerdbApiUrl.trim().length > 0 &&
+                  !isValidUrl(peerdbApiUrl.trim()) && (
+                    <p className="text-xs text-destructive">
+                      Enter a valid HTTP or HTTPS URL
+                    </p>
+                  )}
+              </div>
+
+              {/* Auth scheme + secret */}
+              <div className="grid grid-cols-[minmax(0,9rem)_1fr] gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="peerdb-auth" className="text-sm font-medium">
+                    Auth
+                  </Label>
+                  <Select
+                    value={peerdbAuthUi}
+                    onValueChange={(v) => {
+                      setPeerdbAuthUi(v as PeerdbAuthUi)
+                      if (peerdbTest.state !== 'idle')
+                        setPeerdbTest({ state: 'idle' })
+                    }}
+                  >
+                    <SelectTrigger id="peerdb-auth">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="basic">Password</SelectItem>
+                      <SelectItem value="bearer">API token</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {peerdbAuthUi !== 'none' && (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="peerdb-secret"
+                      className="text-sm font-medium"
+                    >
+                      {peerdbAuthUi === 'bearer' ? 'API token' : 'Password'}
+                    </Label>
+                    <Input
+                      id="peerdb-secret"
+                      type="password"
+                      placeholder="••••••••"
+                      value={peerdbSecret}
+                      onChange={(e) => {
+                        setPeerdbSecret(e.target.value)
+                        if (peerdbTest.state !== 'idle')
+                          setPeerdbTest({ state: 'idle' })
+                      }}
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Test PeerDB */}
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestPeerdb}
+                  disabled={
+                    peerdbApiUrl.trim().length === 0 ||
+                    !isValidUrl(peerdbApiUrl.trim()) ||
+                    peerdbTest.state === 'loading'
+                  }
+                >
+                  {peerdbTest.state === 'loading' ? (
+                    <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                  ) : null}
+                  Test PeerDB
+                </Button>
+                {peerdbTest.state === 'success' && (
+                  <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <Check className="size-3.5" />
+                    {peerdbTest.message}
+                  </span>
+                )}
+                {peerdbTest.state === 'error' && (
+                  <span className="text-xs text-destructive">
+                    {peerdbTest.message}
+                  </span>
+                )}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {/* Test Connection */}
       <div className="flex items-center gap-3">
         <Button
@@ -585,7 +818,7 @@ export function ConnectionForm({
           variant="outline"
           size="sm"
           onClick={handleTest}
-          disabled={!valid || testStatus.state === 'loading'}
+          disabled={!chFormValid || testStatus.state === 'loading'}
         >
           {testStatus.state === 'loading' ? (
             <Loader2 className="size-3.5 mr-1.5 animate-spin" />
