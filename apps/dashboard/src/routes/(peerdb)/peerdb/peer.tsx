@@ -9,6 +9,7 @@ import type {
 import { Suspense } from 'react'
 import { MiniAreaChart } from '@/components/charts/mini-charts'
 import { PeerDetailSkeleton } from '@/components/peerdb/peer-detail-skeleton'
+import { PeerInfoCard } from '@/components/peerdb/peer-info-card'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
 import {
   isPeerDBNotConfigured,
@@ -76,6 +77,21 @@ function PeerDetailContent() {
         </AppLink>
         <h1 className="text-2xl font-semibold">{name}</h1>
       </div>
+
+      <section className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Peer info</h2>
+          <span className="font-mono text-[10.5px] text-muted-foreground">
+            GET /v1/peers/info/&lt;name&gt;
+          </span>
+        </div>
+        <div className="max-w-xl">
+          <PeerInfoCard
+            name={name}
+            peerRole={slotData.length > 0 ? 'source' : 'destination'}
+          />
+        </div>
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">Replication slots</h2>

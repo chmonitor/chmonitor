@@ -21,6 +21,7 @@ import {
   statusTone,
   TONE_COLOR,
 } from '@/components/peerdb/peerdb-utils'
+import { SlotHealthTable } from '@/components/peerdb/slot-health-table'
 import { AppLink } from '@/components/ui/app-link'
 import {
   Table,
@@ -138,6 +139,8 @@ function PeerDBPeersPage() {
       </div>
 
       <PeerGraph peers={peers} mirrors={mirrors} className="h-[460px]" />
+
+      <SlotHealthTable peers={peers} />
 
       <div className="overflow-x-auto rounded-lg border">
         <Table>
