@@ -252,6 +252,48 @@ function partitions(m: MirrorFixture) {
   })
 }
 
+/**
+ * Per-table clone summaries for the snapshot / initial-load phase
+ * (GET /v1/mirrors/cdc/initial_load/{flow}). Snapshotting mirrors report tables
+ * mid-clone (partial partitions, fetch done but not consolidated); already
+ * running/streaming mirrors report every table fully cloned.
+ */
+function initialLoad(m: MirrorFixture) {
+  const now = Date.now()
+  const snapshotting =
+    m.status === 'STATUS_SNAPSHOT' || m.status === 'STATUS_SETUP'
+  const tableSummaries = m.tables.map((tableName, i) => {
+    const total = 8 + Math.round(seeded(i + 4) * 40)
+    // Snapshotting: the first table is nearly done, later tables trail behind.
+    const frac = snapshotting
+      ? Math.max(0.05, Math.min(1, 1 - i * 0.28 - seeded(i + 5) * 0.15))
+      : 1
+    const completed = Math.min(total, Math.round(total * frac))
+    const fetchCompleted = !snapshotting || frac > 0.5
+    const consolidateCompleted = !snapshotting || completed >= total
+    const rowsSynced = Math.round(
+      (9_400_000 + seeded(i + 6) * 3_200_000) * frac
+    )
+    return {
+      tableName,
+      sourceTable: tableName,
+      startTime: new Date(now - (m.tables.length - i) * 90_000).toISOString(),
+      numPartitionsCompleted: completed,
+      numPartitionsTotal: total,
+      numRowsSynced: rowsSynced,
+      avgTimePerPartitionMs: Math.round(1800 + seeded(i + 7) * 6400),
+      fetchCompleted,
+      consolidateCompleted,
+    }
+  })
+  return { tableSummaries }
+}
+
+/** Authoritative cumulative rows synced (GET /v1/mirrors/total_rows_synced/{flow}). */
+function totalRowsSynced(m: MirrorFixture) {
+  return { totalCount: m.rowsSynced }
+}
+
 function tableCounts(m: MirrorFixture) {
   const tablesData = m.tables.map((tableName, i) => {
     const inserts = Math.round(5000 + seeded(i + 1) * 200000)
@@ -463,13 +505,16 @@ function mirrorStatus(name: string) {
 
 function slots(peer: string) {
   if (!peer.startsWith('pg')) return { slotData: [] }
+  // pg-staging hosts the FAILED legacy_archive mirror — its slot is not draining
+  // and WAL is approaching max_wal_size, so it reads as the risky/critical case.
+  const risky = peer === 'pg-staging'
   return {
     slotData: [
       {
         slotName: `peerflow_slot_${peer}`,
-        active: true,
-        lagInMb: 18.4,
-        walStatus: 'reserved',
+        active: !risky,
+        lagInMb: risky ? 4180.6 : 18.4,
+        walStatus: risky ? 'unreserved' : 'reserved',
         redoLSN: '0/1A2B3C4D',
         restartLSN: '0/1A2B0000',
         confirmedFlushLSN: '0/1A2B3C00',
@@ -553,7 +598,15 @@ async function handle(req: Request): Promise<Response> {
       const flow = decodeURIComponent(seg[4] ?? '')
       const m = mirror(flow)
       if (seg[3] === 'table_total_counts' && m) return json(tableCounts(m))
-      if (seg[3] === 'initial_load' && m) return json({ tableSummaries: [] })
+      if (seg[3] === 'initial_load' && m) return json(initialLoad(m))
+    }
+    if (
+      seg[1] === 'mirrors' &&
+      seg[2] === 'total_rows_synced' &&
+      seg.length === 4
+    ) {
+      const m = mirror(decodeURIComponent(seg[3] ?? ''))
+      if (m) return json(totalRowsSynced(m))
     }
     if (seg[1] === 'peers') {
       const peer = decodeURIComponent(seg[3] ?? '')

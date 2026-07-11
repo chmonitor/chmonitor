@@ -127,6 +127,24 @@ export interface CloneTableSummary {
   consolidateCompleted?: boolean
 }
 
+/**
+ * `GET /v1/mirrors/cdc/initial_load/{flow}` — per-table clone summaries for the
+ * snapshot / initial-load phase (proto `InitialLoadSummaryResponse`).
+ */
+export interface InitialLoadSummaryResponse {
+  tableSummaries?: CloneTableSummary[]
+}
+
+/**
+ * `GET /v1/mirrors/total_rows_synced/{flow}` — authoritative cumulative rows
+ * synced for a mirror. Field name varies across PeerDB versions, so accept the
+ * known aliases and normalize at the edge (see `mirror` detail page).
+ */
+export interface TotalRowsSyncedResponse {
+  totalCount?: number | string
+  totalRowsSynced?: number | string
+}
+
 export interface CDCMirrorStatus {
   config?: Record<string, unknown>
   snapshotStatus?: { clones?: CloneTableSummary[] }
