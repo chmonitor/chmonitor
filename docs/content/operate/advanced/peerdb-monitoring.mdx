@@ -9,6 +9,10 @@ surfaces replication status, throughput, lag, and per-mirror detail from a
 [PeerDB](https://docs.peerdb.io) deployment. CHM never mutates PeerDB — it
 proxies a read-only allowlist of the PeerDB REST API.
 
+**Further reading**: see the [blog post](https://chmonitor.dev/blog/peerdb-monitoring)
+for why CDC pipelines need this kind of monitoring — lag, replication-slot
+growth, and batch failures — and a walkthrough of the views below.
+
 <Callout type="info">
 Open it at `/peerdb` once configured. The section is hidden until
 `PEERDB_API_URL` is set.
@@ -119,3 +123,5 @@ PEERDB_API_URL=http://localhost:8113 pnpm run dev     # → /peerdb
     description="Full reference for all PeerDB and connection variables."
   />
 </Cards>
+
+Blog: [Monitoring PeerDB: snapshot progress, batch history, fleet lag, and slot health](https://chmonitor.dev/blog/peerdb-monitoring)

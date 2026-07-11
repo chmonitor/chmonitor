@@ -65,7 +65,9 @@ what's slow, what's the cache hit ratio, what's currently running.
 If you're moving data from Postgres into ClickHouse, the agent's
 migration-planning skill now covers that path too, with
 [PeerDB](https://docs.chmonitor.dev/guide/features/peerdb) as the recommended
-CDC route.
+CDC route. Already running a CDC pipeline? See [Monitoring
+PeerDB](/blog/peerdb-monitoring) for snapshot progress, batch history, lag
+triage, and replication-slot health.
 
 ## Try it
 
