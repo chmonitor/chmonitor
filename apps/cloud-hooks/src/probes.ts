@@ -9,9 +9,33 @@ import type { NotifyKind } from './telegram'
 
 export type ProbeState = 'up' | 'down'
 
+/**
+ * A validator decides whether an HTTP response counts as "up". Returning true is
+ * up; false is down. Kept as a named function so the probe table reads
+ * declaratively (name/url/kind/validator) — adding a surface is data, not code.
+ */
+export type ProbeValidator = (res: Response) => boolean
+
+/** 2xx only — the default for a plain reachability check. */
+export const expectOk: ProbeValidator = (res) => res.ok
+
+/**
+ * Not a 5xx. For endpoints that legitimately answer 4xx to a bare GET (e.g. an
+ * MCP JSON-RPC endpoint returning 401/405) — we only care that the server is
+ * answering, not erroring.
+ */
+export const expectNotServerError: ProbeValidator = (res) => res.status < 500
+
+/** Human labels for the kinds of surface we probe (documentation only). */
+export type ProbeKind = 'http' | 'readiness' | 'rpc' | 'd1'
+
 export interface ProbeTarget {
   name: string
   url: string
+  /** What sort of surface this is — documentation for the probe table. */
+  kind?: ProbeKind
+  /** How to judge the response. Defaults to `expectOk` (2xx). */
+  validator?: ProbeValidator
 }
 
 export interface ProbeResult {
@@ -29,32 +53,87 @@ export interface Transition {
   error?: string
 }
 
-/** The public surfaces we monitor. `/healthz` is the dashboard readiness shell. */
+/**
+ * The public surfaces we monitor — a declarative table. Each row is (name, url,
+ * kind, validator); adding a surface is a new row, not new code.
+ *
+ * - `dashboard` (`/healthz`) — static liveness shell (no deps).
+ * - `dashboard-ready` (`/api/healthz`) — ClickHouse-gated readiness (a 200 means
+ *   the app can reach its configured hosts, not just that the Worker is up).
+ * - `docs` / `landing` / `blog` — the marketing + docs sites.
+ * - `mcp` (`/api/mcp`) — the MCP JSON-RPC endpoint. A bare GET legitimately
+ *   answers 4xx (401/405), so we assert only "not a 5xx".
+ */
 export const DEFAULT_TARGETS: ProbeTarget[] = [
-  { name: 'dashboard', url: 'https://dash.chmonitor.dev/healthz' },
-  { name: 'docs', url: 'https://docs.chmonitor.dev' },
-  { name: 'landing', url: 'https://chmonitor.dev' },
+  {
+    name: 'dashboard',
+    url: 'https://dash.chmonitor.dev/healthz',
+    kind: 'http',
+    validator: expectOk,
+  },
+  {
+    name: 'dashboard-ready',
+    url: 'https://dash.chmonitor.dev/api/healthz',
+    kind: 'readiness',
+    validator: expectOk,
+  },
+  { name: 'docs', url: 'https://docs.chmonitor.dev', kind: 'http' },
+  { name: 'landing', url: 'https://chmonitor.dev', kind: 'http' },
+  { name: 'blog', url: 'https://blog.chmonitor.dev', kind: 'http' },
+  {
+    name: 'mcp',
+    url: 'https://dash.chmonitor.dev/api/mcp',
+    kind: 'rpc',
+    validator: expectNotServerError,
+  },
 ]
 
 /**
- * Probe one target. A 2xx response is "up"; any non-2xx or network error is
- * "down". Never throws — a fetch rejection is a "down" result, not a crash.
+ * Probe one target. The target's `validator` (default `expectOk`) judges the
+ * response; a fetch rejection is always "down". Never throws — a rejection is a
+ * "down" result, not a crash.
  */
 export async function probeOne(
   target: ProbeTarget,
   fetchImpl: typeof fetch = fetch
 ): Promise<ProbeResult> {
+  const validator = target.validator ?? expectOk
   try {
     const res = await fetchImpl(target.url, {
       method: 'GET',
       redirect: 'follow',
     })
-    return res.ok
+    return validator(res)
       ? { name: target.name, state: 'up', status: res.status }
       : { name: target.name, state: 'down', status: res.status }
   } catch (err) {
     return {
       name: target.name,
+      state: 'down',
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
+}
+
+/** Minimal D1 subset for the read probe (`SELECT 1`). */
+export interface D1ProbeDb {
+  prepare(sql: string): { first<T = unknown>(): Promise<T | null> }
+}
+
+/**
+ * D1 read probe — `SELECT 1` through the bound CHM_CLOUD_D1. A successful round
+ * trip is "up"; any error is "down". Never throws.
+ */
+export async function probeD1(
+  db: D1ProbeDb,
+  name = 'd1'
+): Promise<ProbeResult> {
+  try {
+    await db.prepare('SELECT 1 AS ok').first()
+    return { name, state: 'up' }
+  } catch (err) {
+    return {
+      name,
       state: 'down',
       error: err instanceof Error ? err.message : String(err),
     }
@@ -125,6 +204,8 @@ export interface RunProbesDeps {
   fetch?: typeof fetch
   kv?: KVLike | null
   targets?: ProbeTarget[]
+  /** Optional D1 binding — when present, a `SELECT 1` read probe is added. */
+  d1?: D1ProbeDb | null
   notify: (kind: NotifyKind, text: string) => Promise<boolean>
   logError?: (message: string, meta?: unknown) => void
 }
@@ -149,6 +230,9 @@ export async function runProbes(deps: RunProbesDeps): Promise<Transition[]> {
   }
 
   const results = await Promise.all(targets.map((t) => probeOne(t, fetchImpl)))
+  if (deps.d1) {
+    results.push(await probeD1(deps.d1))
+  }
   const transitions = diffStates(prev, results)
 
   for (const t of transitions) {

@@ -3,13 +3,72 @@
  */
 
 import {
+  DEFAULT_TARGETS,
   diffStates,
+  expectNotServerError,
+  expectOk,
   type KVLike,
   type ProbeResult,
+  probeD1,
   probeOne,
   runProbes,
 } from './probes'
 import { describe, expect, mock, test } from 'bun:test'
+
+describe('probe target table + validators', () => {
+  test('DEFAULT_TARGETS covers every Cloud surface', () => {
+    const names = DEFAULT_TARGETS.map((t) => t.name)
+    expect(names).toEqual([
+      'dashboard',
+      'dashboard-ready',
+      'docs',
+      'landing',
+      'blog',
+      'mcp',
+    ])
+  })
+
+  test('mcp uses the not-5xx validator (401/405 are up, 500 is down)', () => {
+    const mcp = DEFAULT_TARGETS.find((t) => t.name === 'mcp')
+    expect(mcp?.validator).toBe(expectNotServerError)
+    expect(expectNotServerError(new Response('', { status: 405 }))).toBe(true)
+    expect(expectNotServerError(new Response('', { status: 401 }))).toBe(true)
+    expect(expectNotServerError(new Response('', { status: 500 }))).toBe(false)
+  })
+
+  test('expectOk is 2xx-only', () => {
+    expect(expectOk(new Response('', { status: 200 }))).toBe(true)
+    expect(expectOk(new Response('', { status: 404 }))).toBe(false)
+  })
+
+  test('probeOne honors a per-target validator', async () => {
+    const fetchImpl = mock(async () => new Response('', { status: 405 }))
+    const res = await probeOne(
+      { name: 'mcp', url: 'https://x', validator: expectNotServerError },
+      fetchImpl
+    )
+    expect(res.state).toBe('up')
+  })
+})
+
+describe('probeD1', () => {
+  test('successful SELECT 1 is up', async () => {
+    const db = { prepare: () => ({ first: async () => ({ ok: 1 }) }) }
+    expect(await probeD1(db)).toEqual({ name: 'd1', state: 'up' })
+  })
+
+  test('a D1 error is down, not a throw', async () => {
+    const db = {
+      prepare: () => ({
+        first: async () => {
+          throw new Error('d1 unavailable')
+        },
+      }),
+    }
+    const res = await probeD1(db)
+    expect(res).toMatchObject({ name: 'd1', state: 'down', error: 'd1 unavailable' })
+  })
+})
 
 describe('diffStates — transitions only', () => {
   const results: ProbeResult[] = [
@@ -118,6 +177,28 @@ describe('runProbes — KV-backed, notify on transitions', () => {
     expect(JSON.parse(kv.store.get('probe-state:v1') as string)).toEqual({
       solo: 'down',
     })
+  })
+
+  test('d1 dep adds a read probe and alerts when it is down', async () => {
+    const notify = mock(async () => true)
+    const fetchImpl = mock(async () => new Response('ok', { status: 200 }))
+    const db = {
+      prepare: () => ({
+        first: async () => {
+          throw new Error('d1 down')
+        },
+      }),
+    }
+    const transitions = await runProbes({
+      kv: null,
+      d1: db,
+      notify,
+      fetch: fetchImpl,
+      targets: [{ name: 'solo', url: 'https://solo' }],
+    })
+    expect(transitions).toEqual([
+      expect.objectContaining({ name: 'd1', to: 'down' }),
+    ])
   })
 
   test('no KV: healthy surface stays silent (first-seen up)', async () => {

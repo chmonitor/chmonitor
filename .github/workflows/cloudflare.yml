@@ -1019,7 +1019,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy --minify --env preview
+        # CF_ACCOUNT_ID (non-secret): needed by the exception scan to query the
+        # Workers Observability Telemetry API. GITHUB_REPOSITORY defaults in code.
+        run: >-
+          pnpm exec wrangler deploy --minify --env preview
+          --var CF_ACCOUNT_ID:${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          --var GITHUB_REPOSITORY:${{ github.repository }}
 
       - name: Deploy production
         if: >-
@@ -1031,7 +1036,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy --minify
+        run: >-
+          pnpm exec wrangler deploy --minify
+          --var CF_ACCOUNT_ID:${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          --var GITHUB_REPOSITORY:${{ github.repository }}
 
       # Runtime secrets: set AFTER deploy (the worker must exist first). Each is
       # skipped — with a clear log — when its repo secret is empty, so the deploy
@@ -1052,6 +1060,8 @@ jobs:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.CLOUD_HOOKS_GITHUB_TOKEN }}
+          CF_OBSERVABILITY_API_TOKEN: ${{ secrets.CF_OBSERVABILITY_API_TOKEN }}
         run: |
           set -euo pipefail
           put() {
@@ -1067,3 +1077,5 @@ jobs:
           put CLERK_SECRET_KEY "${CLERK_SECRET_KEY:-}"
           put TELEGRAM_BOT_TOKEN "${TELEGRAM_BOT_TOKEN:-}"
           put TELEGRAM_CHAT_ID "${TELEGRAM_CHAT_ID:-}"
+          put GITHUB_TOKEN "${GITHUB_TOKEN:-}"
+          put CF_OBSERVABILITY_API_TOKEN "${CF_OBSERVABILITY_API_TOKEN:-}"

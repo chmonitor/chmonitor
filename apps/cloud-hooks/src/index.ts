@@ -14,6 +14,8 @@
 
 import type { Env } from './env'
 
+import { parseRepo, runExceptionScan } from './exceptions'
+import { fetchWorkerExceptions } from './observability'
 import { runProbes } from './probes'
 import { collectSummary, formatSummary } from './summary'
 import { Notifier } from './telegram'
@@ -36,6 +38,62 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
     await notifier.notify('daily_summary', formatSummary(data))
   } catch (err) {
     console.error('[cloud-hooks] daily summary failed', err)
+  }
+}
+
+/**
+ * Pull recent Cloudflare Worker exceptions and file a GitHub issue per NEW
+ * fingerprint. Every required credential missing → one log line and a no-op
+ * (never a crash), so an OSS-style deploy without these secrets just skips it.
+ */
+async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
+  const missing: string[] = []
+  if (!env.GITHUB_TOKEN) missing.push('GITHUB_TOKEN')
+  if (!env.CF_OBSERVABILITY_API_TOKEN) missing.push('CF_OBSERVABILITY_API_TOKEN')
+  if (!env.CF_ACCOUNT_ID) missing.push('CF_ACCOUNT_ID')
+  if (missing.length > 0) {
+    console.log(
+      `[cloud-hooks] exception scan disabled (missing ${missing.join(', ')})`
+    )
+    return
+  }
+
+  const repo = parseRepo(env.GITHUB_REPOSITORY || 'chmonitor/chmonitor')
+  if (!repo) {
+    console.log('[cloud-hooks] exception scan disabled (bad GITHUB_REPOSITORY)')
+    return
+  }
+
+  const scripts = (env.CHM_EXCEPTION_SCRIPTS || 'chmonitor-dash,chmonitor-hooks')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const labels = (env.CHM_EXCEPTION_ISSUE_LABELS || 'bug,cloudflare-exception')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const maxIssues = Number.parseInt(
+    env.CHM_EXCEPTION_MAX_ISSUES_PER_RUN || '5',
+    10
+  )
+
+  try {
+    await runExceptionScan({
+      repo,
+      githubToken: env.GITHUB_TOKEN as string,
+      fetchExceptions: () =>
+        fetchWorkerExceptions({
+          accountId: env.CF_ACCOUNT_ID as string,
+          apiToken: env.CF_OBSERVABILITY_API_TOKEN as string,
+          scripts,
+        }),
+      kv: env.CHM_HOOKS_KV ?? null,
+      labels,
+      maxIssuesPerRun: Number.isFinite(maxIssues) ? maxIssues : 5,
+      notify: (kind, text) => notifier.notify(kind, text),
+    })
+  } catch (err) {
+    console.error('[cloud-hooks] exception scan failed', err)
   }
 }
 
@@ -73,12 +131,15 @@ export default {
       ctx.waitUntil(runDailySummary(env, notifier))
       return
     }
-    // Default the shorter cadence (and any other trigger) to health probes.
+    // Default the shorter cadence (and any other trigger) to the ops sweep:
+    // full-surface health probes + Cloudflare exception → GitHub issue scan.
     ctx.waitUntil(
       runProbes({
-        kv: env.HOOKS_KV ?? null,
+        kv: env.CHM_HOOKS_KV ?? null,
+        d1: env.CHM_CLOUD_D1 ?? null,
         notify: (kind, text) => notifier.notify(kind, text),
       })
     )
+    ctx.waitUntil(runExceptions(env, notifier))
   },
 }

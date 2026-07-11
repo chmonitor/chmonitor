@@ -23,7 +23,9 @@ Polar ──► POST hooks.chmonitor.dev/webhooks/polar
 
 cron
   ├─ "0 0 * * *"      → daily billing summary  → Telegram
-  └─ every 15 minutes → health probes (dash/docs/landing) → Telegram on changes
+  └─ every 15 minutes → ops sweep:
+        ├─ full-surface health probes → Telegram on transitions
+        └─ Cloudflare Worker exceptions → new GitHub issue + Telegram
 ```
 
 ## Shared core, not a copy
@@ -45,10 +47,30 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `fetch`, one helper, **per-kind throttle** (in-memory per isolate). Never
   throws — a delivery failure returns false and is logged, so it can't fail a
   webhook response or a cron job.
-- `probes.ts` — `runProbes`: HTTP-probe the public surfaces, store per-probe
-  up/down state in `HOOKS_KV`, and `diffStates` so we notify **only on
-  transitions** (up→down / down→up). First-seen `down` alerts; first-seen `up`
-  is silent. No KV → per-run state (re-alerts every 15 min while down).
+- `probes.ts` — `runProbes`: probe a **declarative target table** (name/url/kind/
+  `validator`) — adding a surface is a row, not code. Covers `dashboard`
+  (`/healthz` liveness), `dashboard-ready` (`/api/healthz` CH-gated readiness),
+  `docs`, `landing`, `blog`, and `mcp` (`/api/mcp`, validated with
+  `expectNotServerError` since a bare GET answers 401/405). When `CHM_CLOUD_D1`
+  is bound, a `SELECT 1` **D1 read probe** (`probeD1`) is appended. State is
+  stored per-probe in `CHM_HOOKS_KV`; `diffStates` notifies **only on transitions**
+  (up→down / down→up). First-seen `down` alerts; first-seen `up` is silent. No
+  KV → per-run state (re-alerts every 15 min while down).
+- `observability.ts` — `fetchWorkerExceptions`: pulls recent uncaught exceptions
+  from the **Workers Observability Telemetry query API**
+  (`POST /accounts/{id}/workers/observability/telemetry/query`, filter
+  `$metadata.error EXISTS`), and normalizes each event into a `WorkerException`
+  keyed by a **fingerprint** = `fnv1a(script + normalized message)` (ids/hex
+  stripped so per-invocation noise collapses). `extractEvent`/`extractEvents`
+  are tolerant of the loosely-documented wire shape; `aggregateExceptions`
+  (count + first/last seen) is pure and unit-tested. Never throws → `[]`.
+- `exceptions.ts` — `runExceptionScan`: for each NEW fingerprint, file an
+  **agent-friendly GitHub issue** (`buildExceptionIssue`, mirrors bug-handler's
+  Summary / Source table / For-the-coding-agent checklist) via the REST API and
+  send a Telegram notify. **Dedup**: KV memory (`exc-fp:v1:<fp>`) first, then a
+  GitHub search fallback (`in:body "<fp>"`) so a KV miss/eviction never re-files;
+  the fallback backfills KV. **Rate cap**: `maxIssuesPerRun` (default 5). Labels
+  default `bug,cloudflare-exception`. Every step is injected + never throws.
 - `summary.ts` — `collectSummary` queries the subscription store (active subs by
   plan, new signups in 24h) and computes an MRR estimate from `BILLING_PLANS`
   (`@chm/pricing`) — yearly normalized to price/12. Pure `reduceSummary`/
@@ -62,7 +84,10 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   core → `notify`. 403 + `signature_failure` alert on a bad signature; 202 on a
   handled event; unhandled types are acknowledged silently.
 - `index.ts` — `fetch` router (`/webhooks/polar`, `/healthz`) + `scheduled`
-  (routes the daily cron to the summary, the 15-min cron to probes).
+  (routes the daily cron to the summary; the 15-min cron to the ops sweep —
+  probes **and** `runExceptions`). `runExceptions` gates on
+  `GITHUB_TOKEN` + `CF_OBSERVABILITY_API_TOKEN` + `CF_ACCOUNT_ID`: any missing →
+  one log line, no-op (never a crash).
 
 ## Config (`wrangler.toml`)
 
@@ -70,15 +95,25 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   DNS on the managed zone), crons `["0 0 * * *", "*/15 * * * *"]`.
 - D1 binding `CHM_CLOUD_D1` → `chm-cloud` (`database_id`
   `cca247b6-9b25-41bd-b9ca-727b35bc6039`, same as the dashboard).
-- `HOOKS_KV` is **commented out** — the operator must
-  `wrangler kv namespace create HOOKS_KV`, paste the id, and uncomment (like the
-  dashboard's queue block). Absent → probes fall back to per-run state.
+- `CHM_HOOKS_KV` KV binding is **active** (id `a1d9bd2c4377493eac5b5d4ad04dcc34`) —
+  it stores both per-probe up/down state and exception fingerprints
+  (`exc-fp:v1:<fp>`). Absent → probes fall back to per-run state and the
+  exception scan leans on the GitHub search fallback alone. Follows the `CHM_`
+  binding-naming rule (like `CHM_CLOUD_D1`).
 - **No secrets, no product-id vars committed.** Secrets set via
   `wrangler secret put` (CI does this, skipping any that are unset):
   `POLAR_WEBHOOK_SECRET`, `POLAR_ACCESS_TOKEN`, `CLERK_SECRET_KEY`,
-  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. The `CHM_POLAR_PRODUCT_*` map + 
-  `CHM_POLAR_SERVER` must be set (mirroring `apps/dashboard/.env.production`)
+  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, plus `GITHUB_TOKEN` (repo secret
+  `CLOUD_HOOKS_GITHUB_TOKEN`, `issues:write`) and `CF_OBSERVABILITY_API_TOKEN`
+  (token scope **Account → Workers Observability → Read**). The `CHM_POLAR_PRODUCT_*`
+  map + `CHM_POLAR_SERVER` must be set (mirroring `apps/dashboard/.env.production`)
   before the Polar endpoint is cut over, or products won't map.
+- **Exception-scan config** (non-secret, injected at deploy via `--var`, all
+  optional with defaults): `CF_ACCOUNT_ID` (required to query — from
+  `CLOUDFLARE_ACCOUNT_ID`), `GITHUB_REPOSITORY` (default `chmonitor/chmonitor`),
+  `CHM_EXCEPTION_ISSUE_LABELS` (`bug,cloudflare-exception`),
+  `CHM_EXCEPTION_MAX_ISSUES_PER_RUN` (`5`), `CHM_EXCEPTION_SCRIPTS`
+  (`chmonitor-dash,chmonitor-hooks`).
 
 ## CI
 
