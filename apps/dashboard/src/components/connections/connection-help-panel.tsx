@@ -5,23 +5,78 @@ import {
   Lock,
   MonitorSmartphone,
   Network,
+  Server,
   ShieldCheck,
 } from 'lucide-react'
+
+import type { SourceEngine } from '@chm/types'
+import type { ComponentType } from 'react'
 
 import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
 import { docsSiteUrl } from '@/lib/docs-site'
 import { cn } from '@/lib/utils'
 
+/** Whether the panel should render its Postgres variant. */
+function isPostgresEngine(engine: SourceEngine): boolean {
+  return engine === 'postgres'
+}
+
 /**
- * Guidance sidebar for the "Add ClickHouse host" dialog. Explains what chmonitor
- * needs to connect (a read-only `SELECT` user, a firewall allowlist), how
- * credentials are protected, and links to the same docs the form references —
- * so the operator has the requirements in view while filling in the form.
+ * Per-engine styling + copy for the help panel. Kept as full class strings (no
+ * dynamic interpolation) so Tailwind's scanner keeps them, and driven by design
+ * tokens / Tailwind palette utilities — never hardcoded hex. `transition-colors`
+ * on the tinted elements animates the swap when the user switches the tab.
+ */
+const ENGINE_UI: Record<
+  'clickhouse' | 'postgres',
+  {
+    label: string
+    Icon: ComponentType<{ className?: string; strokeWidth?: number }>
+    /** flow-dot fill + emphasized-node ring accent */
+    dotFill: string
+    ring: string
+    flowNote: string
+  }
+> = {
+  clickhouse: {
+    label: 'ClickHouse',
+    Icon: Database,
+    dotFill: 'fill-orange-500',
+    ring: 'border-orange-500/40 ring-orange-500/10',
+    flowNote:
+      'chmonitor reads your cluster over the ClickHouse HTTP interface.',
+  },
+  postgres: {
+    label: 'Postgres',
+    Icon: Server,
+    dotFill: 'fill-sky-500',
+    ring: 'border-sky-500/40 ring-sky-500/10',
+    flowNote:
+      'chmonitor reads your database over a read-only Postgres connection.',
+  },
+}
+
+/**
+ * Guidance sidebar for the Add-host dialog. Explains what chmonitor needs to
+ * connect, how credentials are protected, and links to the same docs the form
+ * references — so the operator has the requirements in view while filling in
+ * the form. Engine-aware: the flow diagram, requirements list and accent tint
+ * switch between ClickHouse and Postgres.
  *
  * Purely presentational (no state / no behaviour); the flow diagram and lists
  * are built from design-token divs + `lucide-react` icons.
  */
-export function ConnectionHelpPanel({ className }: { className?: string }) {
+export function ConnectionHelpPanel({
+  className,
+  engine = 'clickhouse',
+}: {
+  className?: string
+  /** Active source engine — defaults to ClickHouse (fail-closed). */
+  engine?: SourceEngine
+}) {
+  const postgres = isPostgresEngine(engine)
+  const ui = postgres ? ENGINE_UI.postgres : ENGINE_UI.clickhouse
+
   return (
     <aside
       className={cn(
@@ -30,45 +85,105 @@ export function ConnectionHelpPanel({ className }: { className?: string }) {
         className
       )}
     >
-      <ConnectionFlowDiagram />
+      <ConnectionFlowDiagram ui={ui} />
 
       <Section
         icon={<KeyRound className="size-4 text-orange-500" strokeWidth={1.5} />}
         title="What chmonitor needs"
       >
         <ul className="space-y-2 text-xs text-muted-foreground">
-          <RequirementItem
-            icon={
-              <ShieldCheck
-                className="size-3.5 text-muted-foreground"
-                strokeWidth={1.5}
-              />
-            }
-          >
-            A ClickHouse user with{' '}
-            <code className="text-foreground">SELECT</code> on{' '}
-            <code className="text-foreground">system.*</code> — read-only is
-            enough.
-          </RequirementItem>
-          <RequirementItem
-            icon={
-              <Network
-                className="size-3.5 text-muted-foreground"
-                strokeWidth={1.5}
-              />
-            }
-          >
-            The HTTP interface reachable from chmonitor (allowlist the Cloud
-            connection in your firewall).
-          </RequirementItem>
+          {postgres ? (
+            <>
+              <RequirementItem
+                icon={
+                  <ShieldCheck
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                }
+              >
+                A read-only Postgres user — monitoring only runs{' '}
+                <code className="text-foreground">SELECT</code> against{' '}
+                <code className="text-foreground">pg_stat_*</code> views.
+              </RequirementItem>
+              <RequirementItem
+                icon={
+                  <Network
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                }
+              >
+                The Postgres port (default{' '}
+                <code className="text-foreground">5432</code>) reachable from
+                chmonitor — allowlist it in your firewall.
+              </RequirementItem>
+              <RequirementItem
+                icon={
+                  <Lock
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                }
+              >
+                An <code className="text-foreground">sslmode</code> that matches
+                your server (<code className="text-foreground">require</code> is
+                the safe default).
+              </RequirementItem>
+              <RequirementItem
+                icon={
+                  <Database
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                }
+              >
+                <code className="text-foreground">pg_stat_statements</code>{' '}
+                enabled (optional) unlocks the query-insight views.
+              </RequirementItem>
+            </>
+          ) : (
+            <>
+              <RequirementItem
+                icon={
+                  <ShieldCheck
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                }
+              >
+                A ClickHouse user with{' '}
+                <code className="text-foreground">SELECT</code> on{' '}
+                <code className="text-foreground">system.*</code> — read-only is
+                enough.
+              </RequirementItem>
+              <RequirementItem
+                icon={
+                  <Network
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                }
+              >
+                The HTTP interface reachable from chmonitor (allowlist the Cloud
+                connection in your firewall).
+              </RequirementItem>
+            </>
+          )}
         </ul>
         <a
-          href={docsSiteUrl('getting-started/clickhouse-requirements')}
+          href={docsSiteUrl(
+            postgres
+              ? 'getting-started'
+              : 'getting-started/clickhouse-requirements'
+          )}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-2 hover:underline"
         >
-          Required permissions &amp; firewall setup
+          {postgres
+            ? 'Postgres monitoring setup'
+            : 'Required permissions & firewall setup'}
           <ArrowUpRight className="size-3" />
         </a>
       </Section>
@@ -133,11 +248,16 @@ function RequirementItem({
 }
 
 /**
- * A compact "your browser → chmonitor → ClickHouse" flow, so operators can see
- * at a glance where the connection sits. Built from token-driven divs; the
- * connectors are an inline SVG that flips gracefully in dark mode.
+ * A compact "your browser → chmonitor → source" flow, so operators can see at a
+ * glance where the connection sits. Built from token-driven divs; the
+ * connectors are an inline SVG that flips gracefully in dark mode. The third
+ * node + flow-dot accent follow the active engine.
  */
-function ConnectionFlowDiagram() {
+function ConnectionFlowDiagram({
+  ui,
+}: {
+  ui: (typeof ENGINE_UI)[keyof typeof ENGINE_UI]
+}) {
   return (
     <div className="rounded-lg border bg-card/60 p-3">
       <div className="flex items-center justify-between gap-1">
@@ -150,17 +270,18 @@ function ConnectionFlowDiagram() {
             />
           }
         />
-        <FlowConnector />
+        <FlowConnector dotFill={ui.dotFill} />
         <FlowNode
           label="chmonitor"
           icon={<ChmonitorLogo width={20} height={20} />}
           emphasized
+          ring={ui.ring}
         />
-        <FlowConnector />
+        <FlowConnector dotFill={ui.dotFill} />
         <FlowNode
-          label="ClickHouse"
+          label={ui.label}
           icon={
-            <Database
+            <ui.Icon
               className="size-5 text-muted-foreground"
               strokeWidth={1.5}
             />
@@ -168,7 +289,7 @@ function ConnectionFlowDiagram() {
         />
       </div>
       <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
-        chmonitor reads your cluster over the ClickHouse HTTP interface.
+        {ui.flowNote}
       </p>
     </div>
   )
@@ -178,18 +299,20 @@ function FlowNode({
   label,
   icon,
   emphasized = false,
+  ring,
 }: {
   label: string
   icon: React.ReactNode
   emphasized?: boolean
+  /** Accent classes for the emphasized (chmonitor) node — engine-tinted. */
+  ring?: string
 }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
       <div
         className={cn(
-          'flex size-10 items-center justify-center rounded-lg border bg-background',
-          emphasized &&
-            'border-orange-500/40 shadow-sm ring-1 ring-orange-500/10'
+          'flex size-10 items-center justify-center rounded-lg border bg-background transition-colors',
+          emphasized && cn('shadow-sm ring-1', ring)
         )}
       >
         {icon}
@@ -204,9 +327,10 @@ function FlowNode({
 /**
  * A dashed connector with a subtle flow dot. The dot uses the CSS
  * `flow-dot` keyframe via `motion-safe:` so it is disabled under
- * `prefers-reduced-motion` (SMIL would ignore that preference).
+ * `prefers-reduced-motion` (SMIL would ignore that preference). Its fill is
+ * engine-tinted and animates on engine switch via `transition-colors`.
  */
-function FlowConnector() {
+function FlowConnector({ dotFill }: { dotFill: string }) {
   return (
     <svg
       viewBox="0 0 40 8"
@@ -228,7 +352,10 @@ function FlowConnector() {
         cx="6"
         cy="4"
         r="1.75"
-        className="fill-orange-500 motion-safe:animate-flow-dot"
+        className={cn(
+          dotFill,
+          'transition-colors motion-safe:animate-flow-dot'
+        )}
       />
     </svg>
   )

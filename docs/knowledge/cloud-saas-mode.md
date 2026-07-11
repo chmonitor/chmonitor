@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-07-10
+updated: 2026-07-11
 tags:
   - saas
   - cloud
@@ -126,10 +126,26 @@ automatic demo, so they don't see this CTA.
   validation and host-limit path as any manual entry, no bypass. Also fires
   `sample_cluster_connected` / `sample_to_real_converted` (see
   `lib/analytics/events.ts`) by comparing the saved host against
-  `isSampleClusterHost`.
-- `components/host/first-run-empty-state.tsx` — secondary "Try with sample
-  ClickHouse" CTA in `ConnectYourHost` (cloud signed-in) and `SelfHostedSetup`;
-  not in `SignInToConnect` (redundant with the automatic demo).
+  `isSampleClusterHost`. Additionally takes `initialEngine?: ConnectionPreset`
+  (which tab to open on) and is **engine-aware**: it tracks the form's current
+  preset via `ConnectionForm`'s `onEngineChange`, swaps the dialog
+  title/description through `addHostDialogChrome(preset)` (connection-presets.ts,
+  "Add Postgres source" vs "Add ClickHouse host"), passes
+  `engineForPreset(preset)` to `ConnectionHelpPanel engine=…`, and on a
+  successful Postgres save routes to `/postgres/queries?pg=<connectionId>`
+  (the `?pg=` id space) instead of `?host=`.
+- `components/connections/connection-help-panel.tsx` — right-side guidance aside;
+  `engine?: SourceEngine` prop renders a ClickHouse or Postgres variant (flow
+  diagram third node + accent tint, requirements list). Fail-closed to
+  ClickHouse.
+- `components/host/first-run-empty-state.tsx` — `EngineChooser` renders a
+  two-engine chooser: "Connect ClickHouse" (`welcome-add-host`) plus, when
+  `isFeatureEnabled('postgresSource')`, "Connect Postgres" (Beta,
+  `welcome-add-postgres`) in `ConnectYourHost` (cloud signed-in) and
+  `SelfHostedSetup`; each opens `AddHostDialog` on the matching tab. Falls back
+  to a single full-width ClickHouse button when the flag is off (zero visual
+  change for OSS ClickHouse-only). Secondary "Try with sample ClickHouse" CTA
+  stays below; not in `SignInToConnect` (redundant with the automatic demo).
 - `components/host/sample-cluster-banner.tsx` (+ `sample-cluster-banner-
   dismissed.ts`) — persistent, dismissible "Connect your own cluster" convert
   nudge rendered in `app-sidebar.tsx`'s `SidebarHeader` below `HostSwitcher`.

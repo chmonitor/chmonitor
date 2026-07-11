@@ -1,21 +1,23 @@
 import {
-  ArrowRight,
   DatabaseZap,
   FlaskConical,
   KeyRound,
   PlugZap,
+  Server,
   ShieldCheck,
   Terminal,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { ReactNode } from 'react'
+import type { ConnectionPreset } from '@/components/connections/connection-presets'
 
 import { useState } from 'react'
 import { PlanCard, PopularBadge } from '@/components/billing/plan-card'
 import { ClerkSignInButton as ClerkSignInButtonImpl } from '@/components/clerk/clerk-sign-in-button'
 import { AddHostDialog } from '@/components/connections'
 import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { BILLING_PLAN_LIST } from '@/lib/billing/plans'
@@ -25,7 +27,17 @@ import {
 } from '@/lib/billing/use-billing'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { docsSiteUrl } from '@/lib/docs-site'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
+import { cn } from '@/lib/utils'
+
+/** Options for opening the Add-host dialog from a first-run CTA. */
+type OpenAddHostOptions = {
+  /** Prefill the read-only sample ClickHouse preset. */
+  preset?: 'sample'
+  /** Connection-type tab to open on (e.g. `'postgres'`). */
+  engine?: ConnectionPreset
+}
 
 // Clerk's SignInButton needs a mounted <ClerkProvider>. Gate it behind the
 // build-time constant so non-Clerk (self-hosted) builds render null instead.
@@ -52,13 +64,15 @@ export function FirstRunEmptyState() {
   const { cloudMode, isSignedIn } = useMergedHosts()
   const [addOpen, setAddOpen] = useState(false)
   const [addPreset, setAddPreset] = useState<'sample' | undefined>(undefined)
+  const [addEngine, setAddEngine] = useState<ConnectionPreset>('self-hosted')
 
-  // Every open sets the preset explicitly (including `undefined`) — this
+  // Every open sets preset + engine explicitly (including the defaults) — this
   // dialog instance is reused/toggled, not remounted per CTA, so leaving the
-  // previous preset in place would leak "sample" into a later plain
-  // "Add host" click.
-  const openAddHost = (preset?: 'sample') => {
-    setAddPreset(preset)
+  // previous values in place would leak (e.g. "sample" or "postgres") into a
+  // later plain "Connect ClickHouse" click.
+  const openAddHost = (opts?: OpenAddHostOptions) => {
+    setAddPreset(opts?.preset)
+    setAddEngine(opts?.engine ?? 'self-hosted')
     setAddOpen(true)
   }
 
@@ -80,6 +94,7 @@ export function FirstRunEmptyState() {
         open={addOpen}
         onOpenChange={setAddOpen}
         initialPreset={addPreset}
+        initialEngine={addEngine}
       />
     </>
   )
@@ -151,6 +166,57 @@ function DocsFooter({ links }: { links: { slug: string; label: string }[] }) {
   )
 }
 
+/**
+ * Two-engine chooser: "Connect ClickHouse" (primary) plus, when the Postgres
+ * source flag is on, "Connect Postgres" (Beta). Each button opens the Add-host
+ * dialog straight on the matching connection-type tab. Falls back to a single
+ * full-width ClickHouse button when Postgres is disabled — zero visual change
+ * for the ClickHouse-only build.
+ */
+function EngineChooser({
+  onAddHost,
+  allowPostgres,
+  clickhouseLabel,
+  className,
+}: {
+  onAddHost: (opts?: OpenAddHostOptions) => void
+  allowPostgres: boolean
+  clickhouseLabel: string
+  className?: string
+}) {
+  return (
+    <div
+      className={cn('grid gap-2', allowPostgres && 'sm:grid-cols-2', className)}
+    >
+      <Button
+        size="lg"
+        onClick={() => onAddHost({ engine: 'self-hosted' })}
+        data-testid="welcome-add-host"
+      >
+        <PlugZap className="size-4" />
+        {clickhouseLabel}
+      </Button>
+      {allowPostgres && (
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => onAddHost({ engine: 'postgres' })}
+          data-testid="welcome-add-postgres"
+        >
+          <Server className="size-4" />
+          Connect Postgres
+          <Badge
+            variant="secondary"
+            className="ml-1 px-1.5 py-0 text-[10px] font-medium"
+          >
+            Beta
+          </Badge>
+        </Button>
+      )}
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /* Cloud — signed in                                                   */
 /* ------------------------------------------------------------------ */
@@ -158,8 +224,9 @@ function DocsFooter({ links }: { links: { slug: string; label: string }[] }) {
 function ConnectYourHost({
   onAddHost,
 }: {
-  onAddHost: (preset?: 'sample') => void
+  onAddHost: (opts?: OpenAddHostOptions) => void
 }) {
+  const allowPostgres = isFeatureEnabled('postgresSource')
   const { data: sub } = useBillingSubscription()
   const currentPlanId = sub?.planId ?? 'free'
   const isPaid = currentPlanId === 'pro' || currentPlanId === 'max'
@@ -187,8 +254,14 @@ function ConnectYourHost({
   return (
     <div className="space-y-7">
       <WelcomeHeader
-        title="Connect your ClickHouse"
-        subtitle="Your workspace is ready. Add a ClickHouse host to start monitoring queries, merges, replication and cluster health."
+        title={
+          allowPostgres ? 'Connect your database' : 'Connect your ClickHouse'
+        }
+        subtitle={
+          allowPostgres
+            ? 'Your workspace is ready. Connect a ClickHouse or Postgres source to start monitoring queries, performance and health.'
+            : 'Your workspace is ready. Add a ClickHouse host to start monitoring queries, merges, replication and cluster health.'
+        }
       />
 
       <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -197,11 +270,27 @@ function ConnectYourHost({
             icon={<DatabaseZap className="size-4" />}
             title="1. Have your connection details"
           >
-            The HTTP(S) endpoint (e.g.{' '}
-            <code className="rounded bg-muted px-1 text-[11px]">
-              https://host:8443
-            </code>
-            ), username and password.
+            {allowPostgres ? (
+              <>
+                The endpoint or host (e.g.{' '}
+                <code className="rounded bg-muted px-1 text-[11px]">
+                  https://host:8443
+                </code>{' '}
+                for ClickHouse,{' '}
+                <code className="rounded bg-muted px-1 text-[11px]">
+                  host:5432
+                </code>{' '}
+                for Postgres), username and password.
+              </>
+            ) : (
+              <>
+                The HTTP(S) endpoint (e.g.{' '}
+                <code className="rounded bg-muted px-1 text-[11px]">
+                  https://host:8443
+                </code>
+                ), username and password.
+              </>
+            )}
           </SetupStep>
           <SetupStep
             icon={<ShieldCheck className="size-4" />}
@@ -221,22 +310,18 @@ function ConnectYourHost({
           </SetupStep>
         </ul>
 
-        <Button
-          className="mt-5 w-full"
-          size="lg"
-          onClick={() => onAddHost()}
-          data-testid="welcome-add-host"
-        >
-          <PlugZap className="size-4" />
-          Add ClickHouse host
-          <ArrowRight className="ml-auto size-4" />
-        </Button>
+        <EngineChooser
+          className="mt-5"
+          onAddHost={onAddHost}
+          allowPostgres={allowPostgres}
+          clickhouseLabel="Connect ClickHouse"
+        />
 
         <Button
           className="mt-2 w-full"
           size="lg"
           variant="outline"
-          onClick={() => onAddHost('sample')}
+          onClick={() => onAddHost({ preset: 'sample' })}
           data-testid="welcome-try-sample"
         >
           <FlaskConical className="size-4" />
@@ -405,13 +490,22 @@ function SignInToConnect() {
 function SelfHostedSetup({
   onAddHost,
 }: {
-  onAddHost: (preset?: 'sample') => void
+  onAddHost: (opts?: OpenAddHostOptions) => void
 }) {
+  const allowPostgres = isFeatureEnabled('postgresSource')
   return (
     <div className="space-y-7">
       <WelcomeHeader
-        title="Connect a ClickHouse host to get started"
-        subtitle="No ClickHouse hosts are configured yet. Set them once via environment variables, or add one from your browser."
+        title={
+          allowPostgres
+            ? 'Connect a database to get started'
+            : 'Connect a ClickHouse host to get started'
+        }
+        subtitle={
+          allowPostgres
+            ? 'No sources are configured yet. Set ClickHouse hosts once via environment variables, or connect a ClickHouse or Postgres source from your browser.'
+            : 'No ClickHouse hosts are configured yet. Set them once via environment variables, or add one from your browser.'
+        }
       />
 
       <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -434,20 +528,16 @@ CLICKHOUSE_PASSWORD=••••••••`}</code>
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <Button
-          className="w-full"
-          variant="outline"
-          onClick={() => onAddHost()}
-          data-testid="welcome-add-host"
-        >
-          <PlugZap className="size-4" />
-          Add a host from this browser
-        </Button>
+        <EngineChooser
+          onAddHost={onAddHost}
+          allowPostgres={allowPostgres}
+          clickhouseLabel="Connect ClickHouse"
+        />
 
         <Button
           className="mt-2 w-full"
           variant="outline"
-          onClick={() => onAddHost('sample')}
+          onClick={() => onAddHost({ preset: 'sample' })}
           data-testid="welcome-try-sample"
         >
           <FlaskConical className="size-4" />

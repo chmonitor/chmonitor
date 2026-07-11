@@ -21,7 +21,7 @@ import {
   SELF_HOSTED_HOST_PLACEHOLDER,
 } from './connection-presets'
 import { SAMPLE_CLUSTER_PRESET } from './sample-preset'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -92,6 +92,18 @@ interface ConnectionFormProps {
    * only UI, so there is zero visual change when the flag is off.
    */
   allowPostgres?: boolean
+  /**
+   * Connection-type tab to start on (e.g. the setup page's "Connect Postgres"
+   * CTA opens the dialog straight on the Postgres tab). Users can still switch
+   * tabs afterwards. Defaults to `'self-hosted'`.
+   */
+  initialPreset?: ConnectionPreset
+  /**
+   * Notified whenever the active connection-type preset changes (and once on
+   * mount) so the parent dialog can react — engine-aware title, description and
+   * help panel.
+   */
+  onEngineChange?: (preset: ConnectionPreset) => void
 }
 
 function isValidUrl(value: string): boolean {
@@ -126,21 +138,36 @@ export function ConnectionForm({
   dbStorageRequiresSignIn = false,
   showSamplePreset = false,
   allowPostgres = false,
+  initialPreset = 'self-hosted',
+  onEngineChange,
 }: ConnectionFormProps) {
   const [form, setForm] = useState<ConnectionFormData>({
     name: initialValues?.name ?? '',
     host: initialValues?.host ?? '',
-    user: initialValues?.user ?? '',
+    // Seed the Postgres field defaults up front when the dialog opens straight
+    // on the Postgres tab (setup page "Connect Postgres" CTA), mirroring what
+    // `handlePresetChange('postgres')` would apply on a manual tab switch.
+    user:
+      initialValues?.user ?? (initialPreset === 'postgres' ? 'postgres' : ''),
     password: initialValues?.password ?? '',
-    port: initialValues?.port,
+    port:
+      initialValues?.port ??
+      (initialPreset === 'postgres' ? POSTGRES_DEFAULT_PORT : undefined),
     database: initialValues?.database ?? '',
     sslmode: initialValues?.sslmode ?? 'require',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>({ state: 'idle' })
-  const [preset, setPreset] = useState<ConnectionPreset>('self-hosted')
+  const [preset, setPreset] = useState<ConnectionPreset>(initialPreset)
 
   const isPostgres = preset === 'postgres'
+
+  // Keep the parent (AddHostDialog) in sync with the initial engine on mount so
+  // its title / description / help panel match the tab the dialog opened on.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only sync
+  useEffect(() => {
+    onEngineChange?.(initialPreset)
+  }, [])
 
   const handleChange =
     (field: keyof ConnectionFormData) =>
@@ -155,6 +182,7 @@ export function ConnectionForm({
   const handlePresetChange = (next: ConnectionPreset) => {
     setPreset(next)
     setTestStatus({ state: 'idle' })
+    onEngineChange?.(next)
     // Only fill a still-empty username — never clobber an existing value
     // (e.g. while editing an existing connection via ConnectionManagerDialog).
     if (next === 'clickhouse-cloud') {

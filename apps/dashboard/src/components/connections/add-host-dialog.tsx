@@ -1,9 +1,11 @@
 import type { HostStorageMode } from '@/lib/types/host-storage'
+import type { ConnectionPreset } from './connection-presets'
 
 import { ConnectionForm, type ConnectionFormData } from './connection-form'
 import { ConnectionHelpPanel } from './connection-help-panel'
+import { addHostDialogChrome, engineForPreset } from './connection-presets'
 import { isSampleClusterHost, SAMPLE_CLUSTER_PRESET } from './sample-preset'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,12 @@ interface AddHostDialogProps {
    */
   initialPreset?: 'sample'
   /**
+   * Connection-type tab to open on (e.g. the setup page's "Connect Postgres"
+   * CTA). Threaded into the form's preset selector; users can still switch
+   * tabs. Defaults to `'self-hosted'`.
+   */
+  initialEngine?: ConnectionPreset
+  /**
    * Show the in-form "Use sample" quick-fill chip. Defaults on for the
    * regular "Add host" entry points; the sample-cluster convert banner opens
    * this dialog specifically to connect a REAL cluster, so it turns this off
@@ -47,6 +55,7 @@ export function AddHostDialog({
   open,
   onOpenChange,
   initialPreset,
+  initialEngine = 'self-hosted',
   showSamplePreset = true,
 }: AddHostDialogProps) {
   const router = useRouter()
@@ -62,28 +71,47 @@ export function AddHostDialog({
     connections: dbConnections,
   } = useUserConnections()
   const [storageMode, setStorageMode] = useState<HostStorageMode>('browser')
+  // Active connection-type preset — drives the engine-aware title, description
+  // and help panel. Seeded from `initialEngine` and updated as the user
+  // switches tabs inside the form (via `onEngineChange`).
+  const [engine, setEngine] = useState<ConnectionPreset>(initialEngine)
+
+  // The dialog instance is reused (only `open` toggles), so re-sync the engine
+  // to whatever the opener requested each time it opens.
+  useEffect(() => {
+    if (open) setEngine(initialEngine)
+  }, [open, initialEngine])
 
   const dbStorageConfigured = config.userConnections?.dbStorageEnabled === true
   const dbStorageEnabled = dbStorageConfigured && isSignedIn
   const allowPostgres = isFeatureEnabled('postgresSource')
 
   const handleSave = async (data: ConnectionFormData) => {
-    // Postgres sources aren't selectable as a ClickHouse hostId yet (#2449 keeps
-    // them out of the CH switcher; the pages land in #2450), so we store the
-    // connection but do NOT navigate `?host=` into a ClickHouse page.
+    // Postgres sources live in their own `?pg=<connectionId>` id space (never
+    // the ClickHouse `?host=` ids), so on save we route to the Postgres pages
+    // by connection id instead of pushing a `?host=`.
     const isPostgres = data.engine === 'postgres'
 
     if (storageMode === 'database' && dbStorageEnabled) {
       const result = await createConnection(data)
-      const hostId = result.data.hostId
       await refetchDb()
-      if (!isPostgres && hostId !== undefined) {
-        const url = buildUrl(pathname, { host: hostId }, searchParams)
+      if (isPostgres) {
+        router.push(
+          `/postgres/queries?pg=${encodeURIComponent(result.data.id)}`
+        )
+      } else if (result.data.hostId !== undefined) {
+        const url = buildUrl(
+          pathname,
+          { host: result.data.hostId },
+          searchParams
+        )
         router.push(url)
       }
     } else {
       const created = addConnection(data)
-      if (!isPostgres) {
+      if (isPostgres) {
+        router.push(`/postgres/queries?pg=${encodeURIComponent(created.id)}`)
+      } else {
         const url = buildUrl(pathname, { host: created.hostId }, searchParams)
         router.push(url)
       }
@@ -108,17 +136,14 @@ export function AddHostDialog({
   const initialValues =
     initialPreset === 'sample' ? SAMPLE_CLUSTER_PRESET : undefined
 
+  const chrome = addHostDialogChrome(engine)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Add ClickHouse host</DialogTitle>
-          <DialogDescription>
-            Point chmonitor at a ClickHouse cluster to start monitoring. It
-            needs a user with <code>SELECT</code> on <code>system.*</code> — see
-            the guidance on the right for grants, firewall setup, and how your
-            credentials are stored.
-          </DialogDescription>
+          <DialogTitle>{chrome.title}</DialogTitle>
+          <DialogDescription>{chrome.description}</DialogDescription>
         </DialogHeader>
 
         {/* Two columns on md+ (form left, guidance right); stacks with the form
@@ -154,10 +179,12 @@ export function AddHostDialog({
               dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
               showSamplePreset={showSamplePreset}
               allowPostgres={allowPostgres}
+              initialPreset={initialEngine}
+              onEngineChange={setEngine}
             />
           </div>
 
-          <ConnectionHelpPanel />
+          <ConnectionHelpPanel engine={engineForPreset(engine)} />
         </div>
       </DialogContent>
     </Dialog>

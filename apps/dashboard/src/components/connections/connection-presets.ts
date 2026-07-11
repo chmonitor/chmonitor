@@ -32,6 +32,30 @@ export function engineForPreset(preset: ConnectionPreset): SourceEngine {
   }
 }
 
+/**
+ * Title + description for the Add-host dialog header, keyed on the active
+ * connection preset. Postgres is a distinct source engine (host/port/database),
+ * so its chrome reads "Add Postgres source" rather than "Add ClickHouse host".
+ * Pure so it can be unit-tested without a React harness.
+ */
+export function addHostDialogChrome(preset: ConnectionPreset): {
+  title: string
+  description: string
+} {
+  if (preset === 'postgres') {
+    return {
+      title: 'Add Postgres source',
+      description:
+        'Connect a Postgres database for read-only monitoring. It needs a reachable host on the Postgres port and a user that can read pg_stat_* — see the guidance on the right for requirements and how your credentials are stored.',
+    }
+  }
+  return {
+    title: 'Add ClickHouse host',
+    description:
+      'Point chmonitor at a ClickHouse cluster to start monitoring. It needs a user with SELECT on system.* — see the guidance on the right for grants, firewall setup, and how your credentials are stored.',
+  }
+}
+
 /** Default Postgres TCP port. */
 export const POSTGRES_DEFAULT_PORT = 5432
 

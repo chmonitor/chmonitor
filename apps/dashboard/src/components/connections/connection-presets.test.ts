@@ -1,6 +1,8 @@
 import {
+  addHostDialogChrome,
   applyCloudHostDefaults,
   CLOUD_DEFAULT_PORT,
+  engineForPreset,
 } from './connection-presets'
 import { describe, expect, test } from 'bun:test'
 
@@ -46,5 +48,36 @@ describe('applyCloudHostDefaults — ClickHouse Cloud preset host normalization'
 
   test('leaves an unparseable value untouched rather than throwing', () => {
     expect(applyCloudHostDefaults('https://')).toBe('https://')
+  })
+})
+
+describe('engineForPreset — preset → persisted SourceEngine', () => {
+  test('self-hosted maps to clickhouse', () => {
+    expect(engineForPreset('self-hosted')).toBe('clickhouse')
+  })
+
+  test('clickhouse-cloud maps to clickhouse-cloud', () => {
+    expect(engineForPreset('clickhouse-cloud')).toBe('clickhouse-cloud')
+  })
+
+  test('postgres maps to postgres', () => {
+    expect(engineForPreset('postgres')).toBe('postgres')
+  })
+})
+
+describe('addHostDialogChrome — engine-aware dialog title/description', () => {
+  test('Postgres preset gets Postgres-specific chrome', () => {
+    const chrome = addHostDialogChrome('postgres')
+    expect(chrome.title).toBe('Add Postgres source')
+    expect(chrome.description).toContain('Postgres')
+    expect(chrome.description).not.toContain('ClickHouse')
+  })
+
+  test('ClickHouse presets get the ClickHouse chrome', () => {
+    for (const preset of ['self-hosted', 'clickhouse-cloud'] as const) {
+      const chrome = addHostDialogChrome(preset)
+      expect(chrome.title).toBe('Add ClickHouse host')
+      expect(chrome.description).toContain('ClickHouse')
+    }
   })
 })
