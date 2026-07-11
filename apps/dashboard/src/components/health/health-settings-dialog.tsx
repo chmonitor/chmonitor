@@ -217,7 +217,7 @@ export function HealthSettingsDialog() {
         <Settings className="mr-2 size-4" />
         Settings
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-2xl">
         <DialogHeader>
           <DialogTitle>Health Settings</DialogTitle>
           <DialogDescription>
