@@ -9,21 +9,47 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import type { ApiErrorType } from '@/lib/api/types'
+import type { QueryConfig } from '@/lib/query-config'
 
 import { env } from 'cloudflare:workers'
-import { fetchData } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
+import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 const DEFAULT_LIMIT = 500
 const MAX_LIMIT = 1000
 
-interface TableRow {
-  database: string
-  name: string
-  engine: string
-  total_rows: string
+/**
+ * Autocomplete table-list query. Routed through {@link executeTableConfig} (the
+ * same read-only GET path the `/api/v1/tables/$name` and chart routes use) so it
+ * resolves the host's ClickHouse version and opts into the query cache via the
+ * shared `buildQueryCacheSettings` helper. That matters for correctness, not
+ * just caching: on ClickHouse 24.4+ (#2610) a query that touches a `system.*`
+ * table fails outright with error 719 the moment `use_query_cache=1` is set
+ * unless `query_cache_system_table_handling='save'` is sent — which the shared
+ * helper version-gates. This route previously issued a raw `fetchData` call that
+ * bypassed that handling, so a host whose default profile enables the query
+ * cache 500'd every autocomplete fetch. `refreshInterval` doubles as the cache
+ * TTL (see `tableCacheTtlSeconds`).
+ */
+const TABLES_AUTOCOMPLETE_CONFIG: QueryConfig = {
+  name: 'tables-autocomplete',
+  refreshInterval: 60_000,
+  disableSqlValidation: true,
+  sql: `
+    SELECT
+      database,
+      name,
+      engine,
+      toString(total_rows) AS total_rows
+    FROM system.tables
+    WHERE database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
+      AND NOT is_temporary
+    ORDER BY total_bytes DESC NULLS LAST
+    LIMIT {limit: UInt32}
+  `,
+  columns: ['database', 'name', 'engine', 'total_rows'],
 }
 
 export const Route = createFileRoute('/api/v1/tables/')({
@@ -73,23 +99,12 @@ export const Route = createFileRoute('/api/v1/tables/')({
           })
         }
 
-        const result = await fetchData<TableRow[]>({
-          query: `
-            SELECT
-              database,
-              name,
-              engine,
-              toString(total_rows) AS total_rows
-            FROM system.tables
-            WHERE database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
-              AND NOT is_temporary
-            ORDER BY total_bytes DESC NULLS LAST
-            LIMIT {limit: UInt32}
-          `,
-          query_params: { limit },
-          hostId,
-          format: 'JSONEachRow',
-        })
+        const { result } = await executeTableConfig(
+          TABLES_AUTOCOMPLETE_CONFIG,
+          Number.isFinite(hostId) ? hostId : 0,
+          { limit },
+          { bindings: env as Record<string, string | undefined> }
+        )
 
         if (result.error) {
           error('[GET /api/v1/tables] Query error:', result.error)
