@@ -75,8 +75,8 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Per-node CPU, memory and latency — healthy, warn or unreachable',
     ],
     screenshot: {
-      src: '/assets/screenshots/cluster-topology-new-dark.webp',
-      alt: 'Cluster topology map of shards, replicas and Keeper quorum',
+      src: '/assets/screenshots/cluster-topo-viz-with-bg.png',
+      alt: 'chmonitor cluster topology map: Keeper quorum with leader and followers, ClickHouse shard nodes, virtual cluster overlays, and an inspector panel with quorum health and znode count',
     },
   },
   {

@@ -23,6 +23,8 @@ The Cluster section answers two questions: what nodes make up your cluster, and 
 
 The **Clusters** page renders an interactive topology map of every shard and replica pulled from `system.clusters`. Use it to confirm shard layouts, spot misconfigured hosts, or audit cluster membership after a scaling event.
 
+![chmonitor cluster topology map: Keeper quorum with leader and followers, ClickHouse shard nodes, virtual cluster overlays, and an inspector panel with quorum health and znode count](/assets/screenshots/cluster-topo-viz-with-bg.png)
+
 <Mermaid chart={`flowchart LR
   Q[Query] --> S1[Shard 1]
   Q --> S2[Shard 2]
