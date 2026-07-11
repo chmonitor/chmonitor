@@ -90,10 +90,51 @@ export interface InsightCard extends InsightCandidate {
 /** Insight sources we treat as "AI insights" when reading the findings table. */
 export const INSIGHT_SOURCES = ['ai-insight'] as const
 
-/** Build the stable dismissal key for an insight. */
+/**
+ * Engine an insight belongs to, threaded into {@link insightKey} so a Postgres
+ * finding never collides with a ClickHouse one that happens to share a
+ * category/metric/title. Absent = ClickHouse (the historical default) so every
+ * existing key stays byte-identical.
+ */
+export type InsightEngine = 'clickhouse' | 'postgres'
+
+/**
+ * Reserved store-host offset that partitions Postgres insight findings away from
+ * ClickHouse host ids inside the shared, numeric-`hostId`-keyed
+ * {@link InsightsStore}.
+ *
+ * The store is keyed by a bare numeric `hostId`. ClickHouse env hosts are small
+ * indices (`0,1,2,…`) and per-user D1 connections use NEGATIVE ids, so the huge
+ * positive offset below is disjoint from both. Recording Postgres findings under
+ * `hostId = OFFSET + pgHostId` lets the existing five backends (ClickHouse / D1 /
+ * Postgres / AgentState / memory) persist Postgres insights UNCHANGED — no new
+ * engine column, no table migration — while guaranteeing a Postgres source can
+ * never be read back as ClickHouse host 0 (and vice-versa). All existing
+ * ClickHouse keys stay byte-identical (zero migration).
+ */
+export const POSTGRES_INSIGHT_STORE_HOST_OFFSET = 1_000_000
+
+/**
+ * Map a `pgHostId` (index into the `POSTGRES_*` env lists) to the reserved
+ * numeric host key the {@link InsightsStore} persists it under. See
+ * {@link POSTGRES_INSIGHT_STORE_HOST_OFFSET}.
+ */
+export function pgInsightStoreHostId(pgHostId: number): number {
+  return POSTGRES_INSIGHT_STORE_HOST_OFFSET + pgHostId
+}
+
+/**
+ * Build the stable dismissal key for an insight.
+ *
+ * ClickHouse (default): `host:category:metric:title` — unchanged, so existing
+ * dismissals keep working. Postgres: `pg:pgHostId:category:metric:title`, a
+ * readable, engine-prefixed key that can never alias a ClickHouse key.
+ */
 export function insightKey(
   hostId: number,
-  candidate: Pick<InsightCandidate, 'category' | 'metric' | 'title'>
+  candidate: Pick<InsightCandidate, 'category' | 'metric' | 'title'>,
+  engine: InsightEngine = 'clickhouse'
 ): string {
-  return `${hostId}:${candidate.category}:${candidate.metric ?? ''}:${candidate.title}`
+  const host = engine === 'postgres' ? `pg:${hostId}` : `${hostId}`
+  return `${host}:${candidate.category}:${candidate.metric ?? ''}:${candidate.title}`
 }

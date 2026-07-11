@@ -7,7 +7,11 @@ import {
   getDismissedInsights,
   isInsightDismissed,
 } from './dismissed-insights'
-import { insightKey } from './types'
+import {
+  insightKey,
+  POSTGRES_INSIGHT_STORE_HOST_OFFSET,
+  pgInsightStoreHostId,
+} from './types'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 // ── In-memory localStorage + window shim (bun has no DOM by default) ──
@@ -75,6 +79,43 @@ describe('insightKey', () => {
 
   test('tolerates a missing metric', () => {
     expect(insightKey(0, { category: 'c', title: 't' })).toBe('0:c::t')
+  })
+
+  test('ClickHouse keys stay byte-identical when engine is defaulted/explicit', () => {
+    const cand = { category: 'storage', metric: 'm', title: 't' }
+    // Historical (2-arg) call and the explicit clickhouse engine must match, so
+    // existing dismissals never break.
+    expect(insightKey(3, cand)).toBe('3:storage:m:t')
+    expect(insightKey(3, cand, 'clickhouse')).toBe('3:storage:m:t')
+  })
+})
+
+describe('Postgres insight namespacing', () => {
+  test('postgres keys are engine-prefixed and readable', () => {
+    const cand = {
+      category: 'performance',
+      metric: 'pg_cache_hit_ratio',
+      title: 'X',
+    }
+    expect(insightKey(0, cand, 'postgres')).toBe(
+      'pg:0:performance:pg_cache_hit_ratio:X'
+    )
+  })
+
+  test('a postgres key never collides with a clickhouse key at the same id', () => {
+    const cand = { category: 'performance', metric: 'm', title: 't' }
+    expect(insightKey(0, cand, 'postgres')).not.toBe(
+      insightKey(0, cand, 'clickhouse')
+    )
+  })
+
+  test('store host offset partitions postgres away from CH + D1 id spaces', () => {
+    // CH env hosts are small non-negative indices; D1 user connections are
+    // negative. The offset keeps every pgHostId disjoint from both.
+    expect(pgInsightStoreHostId(0)).toBe(POSTGRES_INSIGHT_STORE_HOST_OFFSET)
+    expect(pgInsightStoreHostId(5)).toBe(POSTGRES_INSIGHT_STORE_HOST_OFFSET + 5)
+    expect(pgInsightStoreHostId(0)).toBeGreaterThan(1000) // > any realistic CH host
+    expect(pgInsightStoreHostId(0)).toBeGreaterThan(0) // never negative (D1 space)
   })
 })
 
