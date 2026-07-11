@@ -59,6 +59,18 @@ const icons: Record<string, string> = {
                     {bullet}
                   </li>
                 ))}
+                {section.learnMoreHref && (
+                  <li class="mt-1">
+                    <a
+                      class="text-[var(--brand-ink)] text-sm font-medium hover:underline"
+                      href={section.learnMoreHref}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Learn more →
+                    </a>
+                  </li>
+                )}
               </ul>
             </div>
 

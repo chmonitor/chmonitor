@@ -20,6 +20,8 @@ export type FeatureSection = {
   }
   /** Flip screenshot to the left on wide screens */
   reverse?: boolean
+  /** Optional "Learn more" link, e.g. to a docs page */
+  learnMoreHref?: string
 }
 
 export const FEATURE_SECTIONS: FeatureSection[] = [
@@ -133,5 +135,27 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       alt: 'Record-breaking queries ranked by duration, memory and rows read',
     },
     reverse: true,
+  },
+  {
+    id: 'feature-postgres',
+    icon: 'database',
+    eyebrow: 'Postgres · Beta',
+    title: 'Monitor Postgres alongside ClickHouse',
+    description:
+      'Same dashboard, same read-only guarantees. Query insights from pg_stat_statements, live activity from pg_stat_activity, and agent tools — free on every plan while in beta.',
+    bullets: [
+      'Slowest query patterns from pg_stat_statements',
+      'Live pg_stat_activity, refreshed every 5 seconds',
+      'Every query pinned read-only, SSRF-guarded connections',
+      'Three new AI agent tools for Postgres',
+    ],
+    screenshot: {
+      // Placeholder: no dedicated Postgres UI capture exists yet — this reuses
+      // an unused query-focused dashboard shot. Swap for a real /postgres/queries
+      // or /postgres/activity screenshot once available.
+      src: '/landing-assets/queries-memory-dark.webp',
+      alt: 'Query insights dashboard, the same pattern used for Postgres monitoring',
+    },
+    learnMoreHref: 'https://docs.chmonitor.dev/guide/features/postgres',
   },
 ]
