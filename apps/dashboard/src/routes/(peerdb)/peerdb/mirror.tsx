@@ -2,13 +2,17 @@ import { createFileRoute, useSearch } from '@tanstack/react-router'
 
 import type {
   CDCTableTotalCountsResponse,
+  GetCDCBatchesResponse,
   GraphResponse,
   ListMirrorLogsResponse,
   MirrorStatusResponse,
+  TotalRowsSyncedResponse,
 } from '@/lib/peerdb/types'
 
 import { Suspense } from 'react'
+import { CdcBatchHistory } from '@/components/peerdb/cdc-batch-history'
 import { MirrorStatusBadge } from '@/components/peerdb/mirror-status-badge'
+import { OperationMixChart } from '@/components/peerdb/operation-mix-chart'
 import { PartitionTable } from '@/components/peerdb/partition-table'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
 import {
@@ -17,6 +21,7 @@ import {
   toNumber,
 } from '@/components/peerdb/peerdb-utils'
 import { RowsSyncedChart } from '@/components/peerdb/rows-synced-chart'
+import { SnapshotProgress } from '@/components/peerdb/snapshot-progress'
 import { AppLink } from '@/components/ui/app-link'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -73,6 +78,19 @@ function MirrorDetailContent() {
     enabled ? '/mirrors/logs' : null,
     { body: { flowJobName: name, level: 'error', page: 0, numPerPage: 20 } }
   )
+  // Authoritative cumulative rows synced (GET /v1/mirrors/total_rows_synced).
+  const totalSynced = usePeerDB<TotalRowsSyncedResponse>(
+    enabled ? `/mirrors/total_rows_synced/${encodeURIComponent(name)}` : null,
+    { refreshInterval: 60_000 }
+  )
+  // Recent CDC batches — fetched once here and shared with the batch history.
+  const batchesReq = usePeerDB<GetCDCBatchesResponse>(
+    enabled ? '/mirrors/cdc/batches' : null,
+    {
+      body: { flowJobName: name, page: 0, numPerPage: 20 },
+      refreshInterval: 30_000,
+    }
+  )
 
   if (isPeerDBNotConfigured(status.error)) {
     return <PeerDBNotConfigured />
@@ -85,10 +103,20 @@ function MirrorDetailContent() {
   const data = status.data
   const cdc = data?.cdcStatus
   const qrep = data?.qrepStatus
+  const isCdc = !qrep
   const partitions = qrep?.partitions ?? []
   const tables = tableCounts.data?.tablesData ?? []
   const errors = logs.data?.errors ?? []
-  const rowsSynced = toNumber(cdc?.rowsSynced)
+  const batches = batchesReq.data?.cdcBatches ?? cdc?.cdcBatches ?? []
+  // Prefer the authoritative total_rows_synced endpoint; fall back to the CDC
+  // status counter (older PeerDB / not-yet-loaded).
+  const authoritativeTotal =
+    totalSynced.data?.totalCount ?? totalSynced.data?.totalRowsSynced
+  const rowsSynced =
+    authoritativeTotal != null
+      ? toNumber(authoritativeTotal)
+      : toNumber(cdc?.rowsSynced)
+  const hasRowsSynced = authoritativeTotal != null || cdc?.rowsSynced != null
 
   return (
     <div className="flex flex-col gap-4">
@@ -114,12 +142,8 @@ function MirrorDetailContent() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
-          label="Rows synced (CDC)"
-          value={
-            cdc?.rowsSynced !== undefined
-              ? formatReadableQuantity(rowsSynced)
-              : '—'
-          }
+          label="Rows synced (total)"
+          value={hasRowsSynced ? formatReadableQuantity(rowsSynced) : '—'}
         />
         <StatCard
           label="Tables"
@@ -135,15 +159,36 @@ function MirrorDetailContent() {
         />
       </div>
 
+      <SnapshotProgress flowJobName={name} status={data?.currentFlowState} />
+
       <section className="flex flex-col gap-2 rounded-lg border p-4">
         <h2 className="text-sm font-semibold">Rows synced over time</h2>
         <RowsSyncedChart data={graph.data?.data ?? []} />
       </section>
 
+      {isCdc && batches.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">CDC batch history</h2>
+            <span className="font-mono text-[10.5px] text-muted-foreground">
+              POST /v1/mirrors/cdc/batches
+            </span>
+          </div>
+          <CdcBatchHistory batches={batches} />
+        </section>
+      ) : null}
+
       {partitions.length > 0 ? (
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold">Partitions</h2>
           <PartitionTable partitions={partitions} />
+        </section>
+      ) : null}
+
+      {tables.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Per-table operation mix</h2>
+          <OperationMixChart tables={tables} />
         </section>
       ) : null}
 
