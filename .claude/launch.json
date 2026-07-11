@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/dashboard", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "landing",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/landing", "run", "dev"],
+      "port": 4321
+    },
+    {
+      "name": "blog",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/blog", "run", "dev", "--", "--port", "4322"],
+      "port": 4322
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/docs", "run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "mcp",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/mcp", "run", "dev"],
+      "port": 8787
+    },
+    {
+      "name": "bug-handler",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/bug-handler", "run", "dev", "--", "--port", "8788"],
+      "port": 8788
+    }
+  ]
+}
