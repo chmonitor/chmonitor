@@ -19,8 +19,16 @@ let resolveBillingOwner = mock(async () => ({
   type: 'user' as const,
   id: 'user_1',
 }))
+// Superset mock: exports the FULL real surface of billing-owner.ts (both
+// resolveBillingOwner and resolveBillingOwnerId). checkout.test.ts also mocks
+// this specifier (with resolveBillingOwnerId); under a single-process
+// `bun test` run the last registration wins, so an incomplete mock here would
+// leave checkout.ts unable to resolve resolveBillingOwnerId. A superset keeps
+// the combined run order-independent (see docs/knowledge/billing-checkout-flow.md
+// on mock.module contamination).
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwner: () => resolveBillingOwner(),
+  resolveBillingOwnerId: async () => (await resolveBillingOwner()).id,
 }))
 
 let resolveConnectionUserId = mock(async () => 'user_1')
