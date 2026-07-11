@@ -18,6 +18,7 @@ import { createMvDesignerTools } from './mv-designer-tools'
 import { createPlanTools } from './plan-tools'
 import { createPostgresHealthTools } from './postgres-health-tools'
 import { createPostgresQueryTools } from './postgres-query-tools'
+import { createPostgresTableTools } from './postgres-table-tools'
 import { createQueryTools } from './query-tools'
 import { createReferenceQueryTools } from './reference-query-tools'
 import { createReplicationTools } from './replication-tools'
@@ -49,7 +50,8 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Dashboards: suggest_dashboard
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  *  - Postgres (cross-source, env-gated): run_postgres_select_query,
- *    get_postgres_metrics, list_postgres_slow_query_patterns
+ *    get_postgres_metrics, list_postgres_slow_query_patterns,
+ *    get_postgres_table_stats
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
   const enableControlTools = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
@@ -114,6 +116,7 @@ export function createAllTools(hostId: number, includeControlTools = false) {
       ? {
           ...createPostgresQueryTools(),
           ...createPostgresHealthTools(),
+          ...createPostgresTableTools(),
         }
       : {}),
   }

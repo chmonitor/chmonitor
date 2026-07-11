@@ -32,7 +32,8 @@ const SUMMARY_SQL = `SELECT
     WHEN pg_is_in_recovery()
     THEN extract(epoch FROM (now() - pg_last_xact_replay_timestamp()))::float
     ELSE NULL
-  END AS replica_lag_seconds`
+  END AS replica_lag_seconds,
+  (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') AS max_connections`
 
 /** Connection counts grouped by backend state. */
 const CONNECTIONS_SQL = `SELECT coalesce(state, 'unknown') AS state, count(*)::int AS count
@@ -63,6 +64,7 @@ type SummaryRow = {
   db_size: string | null
   is_replica: boolean
   replica_lag_seconds: number | null
+  max_connections: number | string | null
 }
 
 /** Coerce a possibly-bigint-as-string numeric column to a JS number. */
@@ -75,7 +77,7 @@ export function createPostgresHealthTools() {
   return {
     get_postgres_metrics: dynamicTool({
       description:
-        'Get health metrics for a Postgres source: version and uptime, connection counts by state (pg_stat_activity), buffer-cache hit ratio (pg_stat_database), transaction commit/rollback and deadlock counts, current database size, and replication status (lag on a replica, connected standbys on a primary). The Postgres analog of ClickHouse `get_metrics`. Requires `pgHostId`.',
+        'Get health metrics for a Postgres source: version and uptime, connection counts by state with max_connections and saturation percentage (pg_stat_activity + pg_settings), buffer-cache hit ratio (pg_stat_database), transaction commit/rollback and deadlock counts, current database size, and replication status (lag on a replica, connected standbys on a primary). The Postgres analog of ClickHouse `get_metrics`. Requires `pgHostId`.',
       inputSchema: z.object({
         pgHostId: pgHostIdSchema,
       }),
@@ -107,11 +109,19 @@ export function createPostgresHealthTools() {
           totalConnections += row.count
         }
 
+        const maxConnections = toNum(s?.max_connections)
+        const saturationPct =
+          maxConnections > 0
+            ? Math.round((totalConnections * 10000) / maxConnections) / 100
+            : null
+
         return {
           version: s?.version,
           uptime_seconds: toNum(s?.uptime_seconds),
           connections: {
             total: totalConnections,
+            max: maxConnections,
+            saturation_pct: saturationPct,
             by_state: connectionsByState,
           },
           cache: {
