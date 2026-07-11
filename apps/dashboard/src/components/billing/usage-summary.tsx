@@ -13,6 +13,7 @@ import {
 } from './usage-meter-utils'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { retryBillingUnlessAuthError } from '@/lib/billing/retry'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { cn } from '@/lib/utils'
 
@@ -55,13 +56,26 @@ interface Envelope<T> {
   error?: { message?: string }
 }
 
+/** Error carrying the HTTP status so the retry predicate can skip 401/403. */
+class UsageRequestError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'UsageRequestError'
+    this.status = status
+  }
+}
+
 async function fetchUsage(): Promise<BillingUsage> {
   const res = await apiFetch('/api/v1/billing/usage')
   const json = (await res
     .json()
     .catch(() => null)) as Envelope<BillingUsage> | null
   if (!res.ok || !json?.success || json.data === undefined) {
-    throw new Error(json?.error?.message || `Request failed (${res.status})`)
+    throw new UsageRequestError(
+      json?.error?.message || `Request failed (${res.status})`,
+      res.status
+    )
   }
   return json.data
 }
@@ -74,7 +88,9 @@ function useBillingUsage() {
     // Match useBillingSubscription: the Clerk __session cookie is refreshed a few
     // seconds after a cold load, so retry until the fresh cookie lands.
     refetchOnMount: 'always',
-    retry: 5,
+    // A deterministic 401/403 (OSS / no billing owner) is not retried — it can
+    // never succeed and would only flood the console/Sentry.
+    retry: retryBillingUnlessAuthError,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   })
 }

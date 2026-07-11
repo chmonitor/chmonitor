@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query'
 import type { PlanId } from '@/lib/billing/plans'
 
 import { getDistinctId, trackEvent } from '@/lib/analytics/analytics'
+import { retryBillingUnlessAuthError } from '@/lib/billing/retry'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
 export interface BillingSubscription {
@@ -35,14 +37,34 @@ interface Envelope<T> {
 async function readEnvelope<T>(res: Response): Promise<T> {
   const json = (await res.json().catch(() => null)) as Envelope<T> | null
   if (!res.ok || !json?.success || json.data === undefined) {
-    throw new Error(json?.error?.message || `Request failed (${res.status})`)
+    throw new BillingRequestError(
+      json?.error?.message || `Request failed (${res.status})`,
+      res.status
+    )
   }
   return json.data
 }
 
+/** Error carrying the HTTP status so the retry predicate can skip 401/403. */
+export class BillingRequestError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'BillingRequestError'
+    this.status = status
+  }
+}
+
 export function useBillingSubscription() {
+  // Billing is a Cloud-only surface. On self-hosted / OSS (no Clerk) the route
+  // resolves no billing owner and returns 401 on every call — with `retry: 5`
+  // + `refetchOnMount: 'always'` that floods the console/Sentry on every focus.
+  // Gate the query off entirely when not in cloud mode (mirrors how the nav
+  // already hides the plan label off cloud), so OSS never hits the endpoint.
+  const cloud = isCloudModeClient()
   return useQuery({
     queryKey: ['billing', 'subscription'],
+    enabled: cloud,
     queryFn: async (): Promise<BillingSubscription> => {
       const res = await apiFetch('/api/v1/billing/subscription')
       return readEnvelope<BillingSubscription>(res)
@@ -53,9 +75,10 @@ export function useBillingSubscription() {
     // would otherwise cache "free" for the whole session. Always refetch on
     // mount and keep retrying (capped ~4s delay, ~15s total) so the request
     // lands once the fresh cookie is in place and the real plan replaces the
-    // stale value.
+    // stale value. A deterministic 401/403 (auth genuinely unavailable) is NOT
+    // retried — retrying can never make it succeed, it only spams.
     refetchOnMount: 'always',
-    retry: 5,
+    retry: retryBillingUnlessAuthError,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   })
 }
