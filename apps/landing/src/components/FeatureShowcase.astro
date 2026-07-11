@@ -33,14 +33,20 @@ const icons: Record<string, string> = {
 
     <div class="mt-16 sm:mt-20 flex flex-col gap-20 sm:gap-[80px]">
       {
-        FEATURE_SECTIONS.map((section) => (
+        FEATURE_SECTIONS.map((section, i) => (
           <article id={section.id} class="scroll-mt-6">
             {/* Copy sits above the shot so the screenshot gets the full
                 column instead of half of it. `reverse` alternates which side
                 the bullet list lands on. */}
             <div class="grid gap-6 md:grid-cols-2 md:items-end md:gap-16">
               <div class={section.reverse ? 'md:order-2' : 'md:order-1'}>
-                <span class="inline-flex size-11 items-center justify-center rounded-xl bg-[var(--surface-strong)] [&_svg]:text-foreground" set:html={icons[section.icon]} />
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex size-11 items-center justify-center rounded-xl bg-[var(--surface-strong)] [&_svg]:text-foreground" set:html={icons[section.icon]} />
+                  <span class="font-mono text-sm tabular-nums text-muted-foreground">
+                    {String(i + 1).padStart(2, '0')}
+                    <span class="text-[var(--muted-soft)]"> / {String(FEATURE_SECTIONS.length).padStart(2, '0')}</span>
+                  </span>
+                </div>
                 <p class="mt-4 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--brand-ink)]">
                   {section.eyebrow}
                 </p>

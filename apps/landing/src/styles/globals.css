@@ -59,38 +59,47 @@
   --brand-soft: rgba(245, 78, 0, 0.09);
   /* Semantic — confirmation only, never a second brand action color. */
   --semantic-success: #1f8a65;
+  /* One soft-blue accent link ("See what's new →"). */
+  --accent-link: #2f6feb;
 }
 
+/* Dark = the showcase theme for the landing. Near-black neutral canvas
+   (#0A0A0A floor, #0D0D0D bands), pure-white ink, and depth carried by
+   ultra-subtle white hairlines (6–14% opacity) — no heavy shadows. The only
+   color comes from product screenshots, the painterly backdrop panels, and a
+   scarce brand/accent mark. Light mode (above) is preserved and still toggles. */
 [data-theme='dark'] {
-  --background: #1c1b17;
-  --foreground: #edece6;
-  --card: #262520;
-  --card-foreground: #edece6;
-  --popover: #262520;
-  --popover-foreground: #edece6;
-  --primary: #edece6;
-  --primary-foreground: #1c1b17;
-  --secondary: #211f1a;
-  --secondary-foreground: #edece6;
-  --muted: #2e2c26;
-  --muted-foreground: #b5b2a8;
-  --accent: #2e2c26;
-  --accent-foreground: #edece6;
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #141414;
+  --card-foreground: #f4f4f5;
+  --popover: #141414;
+  --popover-foreground: #f4f4f5;
+  --primary: #ffffff;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f4f4f5;
+  --muted: #1a1a1a;
+  --muted-foreground: #9ca3af;
+  --accent: #1f1f1f;
+  --accent-foreground: #ffffff;
   --destructive: #ff6b8b;
-  --border: #38362f;
-  --input: #4a473e;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.14);
   --ring: #f97316;
-  --canvas-soft: #211f1a;
-  --surface-strong: #33312a;
-  --hairline-soft: #2e2c26;
-  --hairline-strong: #4a473e;
-  --muted-soft: #6f6c63;
-  --brand: #f54e00;
-  --brand-strong: #d04200;
-  --brand-ink: #f97316;
-  --on-brand: #ffffff;
-  --brand-soft: rgba(245, 78, 0, 0.16);
+  --canvas-soft: #0d0d0d;
+  --surface-strong: #1c1c1c;
+  --hairline-soft: rgba(255, 255, 255, 0.06);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --muted-soft: #6f6f6f;
+  --brand: #f97316;
+  --brand-strong: #f97316;
+  --brand-ink: #fb923c;
+  --on-brand: #0a0a0a;
+  --brand-soft: rgba(249, 115, 22, 0.10);
   --semantic-success: #35b184;
+  /* One soft-blue accent link ("See what's new →"). */
+  --accent-link: #7aa2f7;
 }
 
 img {

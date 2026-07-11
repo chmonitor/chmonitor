@@ -35,7 +35,7 @@ const ogImage = new URL(image, Astro.site).toString()
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#1c1b17" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
   <meta name="twitter:site" content="@chmonitor" />
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
@@ -82,14 +82,14 @@ const ogImage = new URL(image, Astro.site).toString()
     :root{--serif:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
   </style>
   <script is:inline>
-    // Resolve theme before paint (no flash): the landing defaults to the light
-    // canvas. A saved choice still wins so the toggle works.
+    // Resolve theme before paint (no flash): the landing showcases the dark
+    // near-black canvas by default. A saved choice still wins so the toggle works.
     (function () {
       try {
         var saved = localStorage.getItem('chm-theme')
-        document.documentElement.setAttribute('data-theme', saved || 'light')
+        document.documentElement.setAttribute('data-theme', saved || 'dark')
       } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'light')
+        document.documentElement.setAttribute('data-theme', 'dark')
       }
     })()
     // Theme-aware screenshots: a single <img data-src-light data-src-dark>
@@ -153,32 +153,33 @@ const ogImage = new URL(image, Astro.site).toString()
       --shadow-glow:none;
     }
     :root[data-theme="dark"]{
-      --bg:#1c1b17;
-      --bg-soft:#211f1a;
-      --fg:#edece6;
-      --fg-soft:#b5b2a8;
-      --muted-fg:#97948a;
-      --border:#38362f;
-      --border-soft:#2e2c26;
-      --border-hover:#4a473e;
-      --muted:#2e2c26;
-      --card:#262520;
-      --nav-bg:rgba(28,27,23,.72);
-      --browser-bar:#211f1a;
-      --primary:#edece6;
-      --primary-fg:#1c1b17;
+      --bg:#0a0a0a;
+      --bg-soft:#0d0d0d;
+      --fg:#ffffff;
+      --fg-soft:#c9cbd1;
+      --muted-fg:#9ca3af;
+      --border:rgba(255,255,255,.10);
+      --border-soft:rgba(255,255,255,.06);
+      --border-hover:rgba(255,255,255,.20);
+      --muted:#1a1a1a;
+      --card:#141414;
+      --nav-bg:rgba(10,10,10,.72);
+      --browser-bar:#141414;
+      --primary:#ffffff;
+      --primary-fg:#0a0a0a;
       --shadow-glow:none;
-      --btn-primary-bg:#d04200;
-      --btn-primary-bg-hover:#b03800;
-      --btn-primary-fg:#ffffff;
-      --brand:#f54e00;
-      --orange:#f97316;
-      --amber:#97948a;
+      /* Pill CTAs go monochrome in dark: white fill / black label. */
+      --btn-primary-bg:#ffffff;
+      --btn-primary-bg-hover:#e5e5e5;
+      --btn-primary-fg:#0a0a0a;
+      --brand:#f97316;
+      --orange:#fb923c;
+      --amber:#9ca3af;
       --emerald:#35b184;
-      --violet:#97948a;
-      --blue:#edece6;
+      --violet:#9ca3af;
+      --blue:#ffffff;
       --shadow-card:none;
-      --shadow-float:0 1px 1px rgba(0,0,0,.2), 0 4px 12px -6px rgba(0,0,0,.5);
+      --shadow-float:0 1px 1px rgba(0,0,0,.4), 0 8px 24px -10px rgba(0,0,0,.7);
     }
     *{margin:0;padding:0;box-sizing:border-box}
     /* Tailwind's preflight is intentionally not imported (see globals.css), and
@@ -204,15 +205,15 @@ const ogImage = new URL(image, Astro.site).toString()
     .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
     .eyebrow{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-fg)}
 
-    /* ── buttons (Geist: 40px height, 6px radius, no lift) ── */
-    .btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--radius);
+    /* ── buttons (pill: fully rounded, editorial) ── */
+    .btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 22px;border-radius:999px;
       font-size:14px;font-weight:500;white-space:nowrap;transition:background .15s ease,border-color .15s ease,color .15s ease;border:1px solid transparent;cursor:pointer}
     .btn svg{width:16px;height:16px}
     .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg)}
     .btn-primary:hover{background:var(--btn-primary-bg-hover)}
     .btn-ghost{background:var(--card);color:var(--fg);border-color:var(--border)}
     .btn-ghost:hover{background:var(--muted);border-color:var(--border-hover)}
-    .btn-sm{height:32px;padding:0 10px;font-size:13px;border-radius:var(--radius)}
+    .btn-sm{height:36px;padding:0 16px;font-size:13px;border-radius:999px}
 
     /* ── logo mark ── */
     .mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}

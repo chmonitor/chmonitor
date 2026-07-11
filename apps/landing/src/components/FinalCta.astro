@@ -3,17 +3,10 @@ import { btnOnDarkOutline, btnOnDarkBrand } from '../lib/button-classes'
 ---
 <section class="pt-4 sm:pt-6 pb-20 sm:pb-[80px]">
   <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
-    {/* Fixed warm-ink band: light-on-dark in both themes. One brand wash, no
-        second hue — the ink surface carries the contrast. */}
-    <div class="reveal relative isolate overflow-hidden rounded-xl border border-white/10 bg-[#26251e]">
-      <div
-        class="pointer-events-none absolute inset-0 -z-10"
-        aria-hidden="true"
-      >
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_50%_0%,rgba(245,78,0,0.20),transparent_70%)]"></div>
-      </div>
-
-      <div class="relative mx-auto max-w-2xl px-4 sm:px-6 py-16 text-center sm:py-24">
+    {/* Quiet ink band: near-black surface, a single hairline, and a lot of air.
+        No brand wash — the monochrome surface carries the contrast. */}
+    <div class="reveal relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0d0d0d]">
+      <div class="relative mx-auto max-w-2xl px-4 sm:px-6 py-24 text-center sm:py-32">
         <span class="mb-5 sm:mb-6 flex justify-center" aria-hidden="true">
           <img src="/brand/logo-mark.svg" alt="" class="size-8 sm:size-9 opacity-90" />
         </span>
