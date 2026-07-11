@@ -15,7 +15,12 @@
 
 import type { BillingPeriod, PaidPlanId } from './polar-config'
 
-import { PAID_PLAN_IDS, planForProductId, productIdFor } from './polar-config'
+import {
+  isSubscribablePlanId,
+  PAID_PLAN_IDS,
+  planForProductId,
+  productIdFor,
+} from './polar-config'
 import { afterEach, describe, expect, test } from 'bun:test'
 
 const PERIODS: readonly BillingPeriod[] = ['monthly', 'yearly']
@@ -68,6 +73,39 @@ describe('productIdFor — unconfigured env', () => {
   test('an empty-string env var resolves to null (readEnv treats "" as unset)', () => {
     process.env[envKey('pro', 'monthly')] = ''
     expect(productIdFor('pro', 'monthly')).toBeNull()
+  })
+})
+
+describe('Free plan — monthly-only $0 product', () => {
+  afterEach(() => {
+    delete process.env.CHM_POLAR_PRODUCT_FREE_MONTHLY
+    delete process.env.CHM_POLAR_PRODUCT_FREE_YEARLY
+  })
+
+  test('free/monthly resolves its configured product and round-trips back', () => {
+    process.env.CHM_POLAR_PRODUCT_FREE_MONTHLY = 'prod_free_monthly'
+    expect(productIdFor('free', 'monthly')).toBe('prod_free_monthly')
+    expect(planForProductId('prod_free_monthly')).toEqual({
+      planId: 'free',
+      period: 'monthly',
+    })
+  })
+
+  test('free/yearly is never a real product — short-circuits to null before env', () => {
+    // Even if a stray CHM_POLAR_PRODUCT_FREE_YEARLY is set, Free has no yearly SKU.
+    process.env.CHM_POLAR_PRODUCT_FREE_YEARLY = 'prod_should_be_ignored'
+    expect(productIdFor('free', 'yearly')).toBeNull()
+    expect(planForProductId('prod_should_be_ignored')).toBeNull()
+  })
+})
+
+describe('isSubscribablePlanId', () => {
+  test('accepts free/pro/max, rejects enterprise and junk', () => {
+    expect(isSubscribablePlanId('free')).toBe(true)
+    expect(isSubscribablePlanId('pro')).toBe(true)
+    expect(isSubscribablePlanId('max')).toBe(true)
+    expect(isSubscribablePlanId('enterprise')).toBe(false)
+    expect(isSubscribablePlanId('nope')).toBe(false)
   })
 })
 

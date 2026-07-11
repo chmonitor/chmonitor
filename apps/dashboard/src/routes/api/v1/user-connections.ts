@@ -23,11 +23,16 @@ import {
 } from '@/lib/billing/entitlements'
 import { recordHostOverage } from '@/lib/billing/host-usage-store'
 import { countOwnerHosts } from '@/lib/billing/org-host-count'
-import { getPlanForOwner } from '@/lib/billing/user-subscription'
+import { isBillingConfigured } from '@/lib/billing/polar-config'
+import {
+  getPlanForOwner,
+  resolveOwnerSubscription,
+} from '@/lib/billing/user-subscription'
 import {
   validateHostUrl,
   validatePostgresHost,
 } from '@/lib/browser-connections/host-url'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { queryConnection } from '@/lib/connection-query/connection-client'
 import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
@@ -201,6 +206,35 @@ async function handlePost(request: Request): Promise<Response> {
     // for the atomic store insert: null for soft-capped plans (so a paid owner's
     // pooled count can legitimately exceed `plan.hosts`), the real cap for Free.
     const owner = await resolveBillingOwner()
+
+    // Active-subscription gate (cloud only): a signed-in cloud user must hold a
+    // live subscription — ANY plan, including the $0 Free plan — before adding
+    // their first host. This is the "pick a plan (Free is $0) to start" step;
+    // resolveOwnerSubscription returns null when the owner has no live Polar
+    // subscription. Runs BEFORE the host-limit check so a brand-new user is
+    // routed to plan selection rather than a confusing limit error. OSS /
+    // billing-not-configured skip this entirely (fail open — never gate a core
+    // feature behind cloud mode).
+    if (isCloudModeServer() && isBillingConfigured()) {
+      const sub = await resolveOwnerSubscription(owner.id)
+      if (!sub) {
+        // Same envelope shape as hostLimitResponse so the client detects it via
+        // FetchError.details.reason (see lib/api/fetch-error.ts). Keep
+        // details.reason exactly 'subscription_required' — the onboarding flow
+        // keys off it to route the user to plan selection.
+        return createApiErrorResponse(
+          {
+            type: ApiErrorType.PermissionError,
+            message:
+              'An active plan is required before adding a host. Pick a plan on the billing page — Free is $0.',
+            details: { reason: 'subscription_required' },
+          },
+          402,
+          ROUTE_POST
+        )
+      }
+    }
+
     const plan = await getPlanForOwner(owner.id)
     const usage =
       plan.hosts != null

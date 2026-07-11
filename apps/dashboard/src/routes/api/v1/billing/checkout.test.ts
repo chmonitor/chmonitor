@@ -27,8 +27,16 @@ mock.module('@/lib/connection-store/auth', () => ({
 }))
 
 let resolveBillingOwnerId = mock(async () => 'org_1')
+// Superset mock: exports the FULL real surface of billing-owner.ts (both
+// resolveBillingOwner and resolveBillingOwnerId), not just what this file uses.
+// can-downgrade.test.ts also mocks this specifier (with resolveBillingOwner);
+// under a single-process `bun test` run the last registration wins, so an
+// incomplete mock here would leave the other file's route unable to resolve its
+// export. A superset keeps the combined run order-independent (see
+// docs/knowledge/billing-checkout-flow.md on mock.module contamination).
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwnerId: () => resolveBillingOwnerId(),
+  resolveBillingOwner: async () => ({ type: 'org' as const, id: 'org_1' }),
 }))
 
 let checkoutsCreate = mock(async (_args: unknown) => ({
@@ -44,6 +52,9 @@ mock.module('@/lib/billing/polar-config', () => ({
   }),
   getWebhookSecret: () => 'whsec_test',
   productIdFor: (planId: string, period: string) => {
+    // Free is a real $0 monthly-only product (no yearly SKU).
+    if (planId === 'free')
+      return period === 'monthly' ? 'prod_free_monthly' : null
     if (planId !== 'pro') return null
     // Distinguishes monthly/yearly so tests can assert the right SKU is sent
     // to Polar; `max` has no yearly product configured yet (matches a
@@ -53,6 +64,8 @@ mock.module('@/lib/billing/polar-config', () => ({
     return null
   },
   planForProductId: (productId: string) => {
+    if (productId === 'prod_free_monthly')
+      return { planId: 'free', period: 'monthly' as const }
     if (productId === 'prod_pro_monthly')
       return { planId: 'pro', period: 'monthly' as const }
     if (productId === 'prod_pro_yearly')
@@ -60,6 +73,8 @@ mock.module('@/lib/billing/polar-config', () => ({
     return null
   },
   isPaidPlanId: (value: string) => value === 'pro' || value === 'max',
+  isSubscribablePlanId: (value: string) =>
+    value === 'free' || value === 'pro' || value === 'max',
 }))
 
 const { __handlePostForTests: handlePost } = await import('./checkout')
@@ -146,6 +161,80 @@ describe('POST /api/v1/billing/checkout — annual billing', () => {
     expect(res.status).toBe(501)
     expect(checkoutsCreate).not.toHaveBeenCalled()
     expect(logEventImpl).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/v1/billing/checkout — Free ($0) plan', () => {
+  test('planId: free resolves the free monthly product and sends monthly metadata', async () => {
+    const res = await handlePost(makeRequest({ planId: 'free' }))
+
+    expect(res.status).toBe(200)
+    expect(checkoutsCreate.mock.calls[0]?.[0]).toMatchObject({
+      products: ['prod_free_monthly'],
+      metadata: { planId: 'free', period: 'monthly' },
+    })
+  })
+
+  test('free ignores a yearly period — forced to monthly (no yearly Free product)', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'free', period: 'yearly' })
+    )
+
+    expect(res.status).toBe(200)
+    expect(checkoutsCreate.mock.calls[0]?.[0]).toMatchObject({
+      products: ['prod_free_monthly'],
+      metadata: { planId: 'free', period: 'monthly' },
+    })
+  })
+})
+
+describe('POST /api/v1/billing/checkout — returnPath (onboarding)', () => {
+  function successUrl(): string {
+    return (checkoutsCreate.mock.calls[0]?.[0] as { successUrl: string })
+      .successUrl
+  }
+
+  test('a valid same-origin returnPath is used verbatim with ?status=success', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'free', returnPath: '/' })
+    )
+
+    expect(res.status).toBe(200)
+    expect(successUrl()).toBe('https://dash.example.com/?status=success')
+  })
+
+  test('no returnPath falls back to the default /billing', async () => {
+    const res = await handlePost(makeRequest({ planId: 'free' }))
+
+    expect(res.status).toBe(200)
+    expect(successUrl()).toBe('https://dash.example.com/billing?status=success')
+  })
+
+  test('a protocol-relative //evil.com is rejected and falls back to /billing', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'free', returnPath: '//evil.com' })
+    )
+
+    expect(res.status).toBe(200)
+    expect(successUrl()).toBe('https://dash.example.com/billing?status=success')
+  })
+
+  test('an absolute https:// URL is rejected and falls back to /billing', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'free', returnPath: 'https://evil.com/x' })
+    )
+
+    expect(res.status).toBe(200)
+    expect(successUrl()).toBe('https://dash.example.com/billing?status=success')
+  })
+
+  test('a returnPath carrying its own query string is rejected (we append ?status)', async () => {
+    const res = await handlePost(
+      makeRequest({ planId: 'free', returnPath: '/onboarding?step=2' })
+    )
+
+    expect(res.status).toBe(200)
+    expect(successUrl()).toBe('https://dash.example.com/billing?status=success')
   })
 })
 

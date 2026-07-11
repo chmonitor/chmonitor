@@ -17,7 +17,7 @@
 
 import type { BillingOwner } from '@/lib/billing/billing-owner'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { BILLING_PLANS } from '@/lib/billing/plans'
 
 let logEventImpl = mock((_e: unknown) => Promise.resolve())
@@ -45,14 +45,26 @@ let resolveBillingOwner = mock(
     id: 'org_1',
   })
 )
+// Superset mock: exports the FULL real surface of billing-owner.ts (both
+// resolveBillingOwner and resolveBillingOwnerId). checkout.test.ts also mocks
+// this specifier and imports resolveBillingOwnerId; under a single-process
+// `bun test` run the last registration wins, so an incomplete mock here would
+// leave that route unable to resolve its export (see
+// docs/knowledge/billing-checkout-flow.md on mock.module contamination).
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwner: () => resolveBillingOwner(),
+  resolveBillingOwnerId: async () => (await resolveBillingOwner()).id,
 }))
 
 let getPlanForOwner = mock(async (_ownerId: string) => BILLING_PLANS.pro)
+// Mutable so the active-subscription gate tests can flip a live sub on/off.
+// Defaults to null (no sub) — harmless for the non-gate tests because they run
+// with cloud mode off, which short-circuits the gate before this is read.
+let resolveOwnerSubscription = mock(async (_ownerId: string) => null as unknown)
 mock.module('@/lib/billing/user-subscription', () => ({
   isSubscriptionLive: () => true,
-  resolveOwnerSubscription: async () => null,
+  resolveOwnerSubscription: (ownerId: string) =>
+    resolveOwnerSubscription(ownerId),
   getPlanIdForOwner: async () => 'free' as const,
   getPlanForOwner: (ownerId: string) => getPlanForOwner(ownerId),
   getUserPlanId: async () => 'free' as const,
@@ -146,6 +158,7 @@ beforeEach(() => {
     })
   )
   getPlanForOwner = mock(async () => BILLING_PLANS.pro)
+  resolveOwnerSubscription = mock(async () => null as unknown)
   countOwnerHosts = mock(async () => ({ count: 0, memberUserIds: ['user_1'] }))
   recordHostOverage = mock(async () => {})
   queryConnection = mock(async () => [])
@@ -307,5 +320,75 @@ describe('POST /api/v1/user-connections — Postgres engine branch', () => {
     )
     expect(res.status).toBe(400)
     expect(storeCreate).not.toHaveBeenCalled()
+  })
+})
+
+// A signed-in cloud user must hold a live subscription (any plan, including the
+// $0 Free plan) before their first host can be created. Driven through real
+// isCloudModeServer() / isBillingConfigured() by env, not module mocks, so the
+// gate wiring itself is exercised end to end.
+describe('POST /api/v1/user-connections — active-subscription gate (cloud)', () => {
+  const OLD_CLOUD = process.env.CHM_CLOUD_MODE
+  const OLD_DEPLOY = process.env.CHM_DEPLOYMENT_MODE
+  const OLD_TOKEN = process.env.POLAR_ACCESS_TOKEN
+
+  afterEach(() => {
+    restoreEnv('CHM_CLOUD_MODE', OLD_CLOUD)
+    restoreEnv('CHM_DEPLOYMENT_MODE', OLD_DEPLOY)
+    restoreEnv('POLAR_ACCESS_TOKEN', OLD_TOKEN)
+  })
+
+  function restoreEnv(key: string, prev: string | undefined) {
+    if (prev === undefined) delete process.env[key]
+    else process.env[key] = prev
+  }
+
+  test('cloud + billing configured, no live subscription → 402 subscription_required, no create', async () => {
+    process.env.CHM_CLOUD_MODE = 'true'
+    process.env.POLAR_ACCESS_TOKEN = 'polar_oat_test'
+    resolveOwnerSubscription = mock(async () => null as unknown)
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(402)
+    // Envelope shape (createApiErrorResponse) — the client keys off
+    // details.reason === 'subscription_required'.
+    const body = (await res.json()) as {
+      error: { message: string; details?: { reason?: string } }
+    }
+    expect(body.error.details?.reason).toBe('subscription_required')
+    expect(body.error.message).toBe(
+      'An active plan is required before adding a host. Pick a plan on the billing page — Free is $0.'
+    )
+    expect(storeCreate).not.toHaveBeenCalled()
+  })
+
+  test('cloud + a live Free subscription → passes the gate into the normal create flow', async () => {
+    process.env.CHM_CLOUD_MODE = 'true'
+    process.env.POLAR_ACCESS_TOKEN = 'polar_oat_test'
+    resolveOwnerSubscription = mock(async () => ({
+      planId: 'free' as const,
+      billingPeriod: 'monthly' as const,
+      status: 'active',
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+    }))
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(200)
+    expect(storeCreate).toHaveBeenCalledTimes(1)
+  })
+
+  test('OSS / non-cloud mode → gate is skipped even with no subscription (fail open)', async () => {
+    delete process.env.CHM_CLOUD_MODE
+    delete process.env.CHM_DEPLOYMENT_MODE
+    process.env.POLAR_ACCESS_TOKEN = 'polar_oat_test'
+    resolveOwnerSubscription = mock(async () => null as unknown)
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(200)
+    expect(storeCreate).toHaveBeenCalledTimes(1)
   })
 })

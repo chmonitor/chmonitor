@@ -223,8 +223,13 @@ async function applySubscription(
     return
   }
 
-  // planForProductId only returns PaidPlanId ('pro'|'max'); check live status.
-  const isPaidPlan = new Set(['active', 'trialing']).has(data.status)
+  // A subscription is "live" while active/trialing. planForProductId now also
+  // resolves the Free ($0) product, so distinguish a live PAID plan from a live
+  // Free one: only paid plans trigger lazy Clerk-org creation (the Free plan is
+  // user-scoped by design — see lib/billing/billing-owner.ts). Free rows persist
+  // under the user id so the create-connection subscription gate can find them.
+  const isLive = new Set(['active', 'trialing']).has(data.status)
+  const isPaidLive = isLive && mapped.planId !== 'free'
 
   // Determine billing owner: org or user.
   let ownerId = externalId
@@ -233,7 +238,7 @@ async function applySubscription(
   if (externalId.startsWith('org_')) {
     // Already org-scoped (user re-subscribing on an existing paid account).
     ownerType = 'org'
-  } else if (externalId.startsWith('user_') && isPaidPlan) {
+  } else if (externalId.startsWith('user_') && isPaidLive) {
     // First paid event for this user — lazily create a Clerk org.
     const orgId = await ensureOrgForUser(externalId)
     if (orgId) {
@@ -286,7 +291,7 @@ async function applySubscription(
   // short-circuit. Invalidate both the raw externalId (what an entitlement
   // check may have cached before checkout completed) and the resolved
   // ownerId (an org, once org re-keying applies) since they can differ.
-  if (isPaidPlan) {
+  if (isLive) {
     invalidateNegativeCache(externalId)
     if (ownerId !== externalId) invalidateNegativeCache(ownerId)
   }
@@ -297,7 +302,7 @@ async function applySubscription(
   // a fresh upgrade. Server-side (not the client `upgrade_click`/
   // `checkout_started` events) because this is the only point that reflects
   // money actually moving, confirmed by Polar.
-  if (isPaidPlan && eventType === 'subscription.created') {
+  if (isPaidLive && eventType === 'subscription.created') {
     const posthogDistinctId = data.metadata?.posthogDistinctId
     await captureServerEvent(
       process.env as Record<string, string | undefined>,

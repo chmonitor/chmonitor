@@ -1,8 +1,17 @@
 /**
- * POST /api/v1/billing/checkout — start a Polar checkout for a paid plan.
+ * POST /api/v1/billing/checkout — start a Polar checkout for a subscribable plan.
  *
- * Body: { planId: 'pro' | 'max', period: 'monthly' | 'yearly', posthogDistinctId?: string }
+ * Body: { planId: 'free' | 'pro' | 'max', period: 'monthly' | 'yearly', posthogDistinctId?: string, returnPath?: string }
  * Returns: { url } — the Polar-hosted checkout URL to redirect the customer to.
+ *
+ * `returnPath` (optional) is a same-origin relative path checkout returns to on
+ * success (onboarding sends `/` so a $0 Free checkout lands back on the app, not
+ * `/billing`). Strictly validated (see safeReturnPath) and ignored if unsafe;
+ * the default is `/billing`. `?status=success` is always appended.
+ *
+ * Free is a real $0 Polar subscription (monthly-only): the hosted checkout works
+ * with no card, and `period` is forced to 'monthly' regardless of what the
+ * client sends. Paid plans (pro/max) keep the explicit monthly/yearly choice.
  *
  * `externalCustomerId` is set to the billing-owner id (Clerk org id when the
  * user already has an active org; Clerk user id for a first-time upgrade). Polar
@@ -28,13 +37,39 @@ import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import {
   getPolarClient,
   isBillingConfigured,
-  isPaidPlanId,
+  isSubscribablePlanId,
   productIdFor,
 } from '@/lib/billing/polar-config'
 import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 
 const ROUTE = { route: '/api/v1/billing/checkout', method: 'POST' }
+
+/** Where checkout returns on success when the client sends no valid override. */
+const DEFAULT_RETURN_PATH = '/billing'
+
+/**
+ * Validate a client-supplied post-checkout return path. Onboarding sends this so
+ * a $0 Free checkout returns to `/` instead of `/billing`. Accept only a
+ * same-origin relative path: must start with a single '/' (not '//', which the
+ * browser reads as a protocol-relative URL to another host) and carry no query
+ * or fragment (we append `?status=success` ourselves). Anything else is ignored
+ * — falls back to the default rather than erroring, so a bad hint never blocks
+ * checkout. This is an open-redirect guard: `returnPath` becomes part of the
+ * Polar successUrl.
+ */
+function safeReturnPath(returnPath: unknown): string {
+  if (
+    typeof returnPath === 'string' &&
+    returnPath.startsWith('/') &&
+    !returnPath.startsWith('//') &&
+    !returnPath.includes('?') &&
+    !returnPath.includes('#')
+  ) {
+    return returnPath
+  }
+  return DEFAULT_RETURN_PATH
+}
 
 async function handlePost(request: Request): Promise<Response> {
   if (!isBillingConfigured()) {
@@ -48,12 +83,18 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  let body: { planId?: string; period?: string; posthogDistinctId?: string }
+  let body: {
+    planId?: string
+    period?: string
+    posthogDistinctId?: string
+    returnPath?: string
+  }
   try {
     body = (await request.json()) as {
       planId?: string
       period?: string
       posthogDistinctId?: string
+      returnPath?: string
     }
   } catch {
     return createApiErrorResponse(
@@ -66,18 +107,26 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const { planId, period, posthogDistinctId } = body
-  if (!planId || !isPaidPlanId(planId)) {
+  const { planId, period, posthogDistinctId, returnPath } = body
+  if (!planId || !isSubscribablePlanId(planId)) {
     return createApiErrorResponse(
       {
         type: ApiErrorType.ValidationError,
-        message: 'planId must be one of: pro, max',
+        message: 'planId must be one of: free, pro, max',
       },
       400,
       ROUTE
     )
   }
-  if (period !== 'monthly' && period !== 'yearly') {
+  // Free is a $0 monthly-only product: force the period to monthly regardless of
+  // what the client sent (there is no yearly Free product). Paid plans still
+  // require an explicit valid period.
+  let effectivePeriod: 'monthly' | 'yearly'
+  if (planId === 'free') {
+    effectivePeriod = 'monthly'
+  } else if (period === 'monthly' || period === 'yearly') {
+    effectivePeriod = period
+  } else {
     return createApiErrorResponse(
       {
         type: ApiErrorType.ValidationError,
@@ -88,12 +137,12 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const productId = productIdFor(planId, period)
+  const productId = productIdFor(planId, effectivePeriod)
   if (!productId) {
     return createApiErrorResponse(
       {
         type: ApiErrorType.PermissionError,
-        message: `No Polar product configured for ${planId}/${period}.`,
+        message: `No Polar product configured for ${planId}/${effectivePeriod}.`,
       },
       501,
       ROUTE
@@ -109,10 +158,11 @@ async function handlePost(request: Request): Promise<Response> {
       resolveBillingOwnerId(),
     ])
     const origin = new URL(request.url).origin
+    const successUrl = `${origin}${safeReturnPath(returnPath)}?status=success`
     const checkout = await getPolarClient().checkouts.create({
       products: [productId],
       externalCustomerId: ownerId,
-      successUrl: `${origin}/billing?status=success`,
+      successUrl,
       // userId in metadata lets the webhook lazily create a Clerk org for the
       // buyer when externalCustomerId was still a user id (first payment).
       // posthogDistinctId (when present) stitches upgrade_completed back onto
@@ -122,7 +172,7 @@ async function handlePost(request: Request): Promise<Response> {
       metadata: {
         userId,
         planId,
-        period,
+        period: effectivePeriod,
         ...(posthogDistinctId ? { posthogDistinctId } : {}),
       },
     })
@@ -137,7 +187,7 @@ async function handlePost(request: Request): Promise<Response> {
         orgId: ownerId,
         userId,
         event: 'billing.checkout',
-        resource: `${planId}:${period}`,
+        resource: `${planId}:${effectivePeriod}`,
         action: 'create',
         result: 'success',
       })

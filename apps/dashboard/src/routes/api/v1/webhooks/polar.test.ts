@@ -86,6 +86,8 @@ mock.module('@/lib/billing/polar-config', () => ({
   getWebhookSecret: () => 'whsec_test',
   productIdFor: () => null,
   planForProductId: (productId: string) => {
+    if (productId === 'prod_free')
+      return { planId: 'free', period: 'monthly' as const }
     if (productId === 'prod_pro')
       return { planId: 'pro', period: 'monthly' as const }
     if (productId === 'prod_pro_yearly')
@@ -93,6 +95,8 @@ mock.module('@/lib/billing/polar-config', () => ({
     return null
   },
   isPaidPlanId: (value: string) => value === 'pro' || value === 'max',
+  isSubscribablePlanId: (value: string) =>
+    value === 'free' || value === 'pro' || value === 'max',
 }))
 
 let upsertSubscription = mock(async (_input: unknown) => {})
@@ -213,6 +217,45 @@ describe('applySubscription — unknown product', () => {
 
     expect(upsertSubscription).not.toHaveBeenCalled()
     expect(updateCustomer).not.toHaveBeenCalled()
+  })
+})
+
+// Free is a real $0 Polar subscription. It must persist under the USER id (Free
+// is user-scoped — no lazy Clerk org), still clear the negative cache so the
+// create-connection gate sees it, and NOT count as an upgrade_completed.
+describe('applySubscription — Free ($0) plan', () => {
+  test('a live free subscription for a user persists under the userId with no org creation or re-key', async () => {
+    await applySubscription(
+      subData({ productId: 'prod_free', customer: { externalId: 'user_bob' } })
+    )
+
+    expect(createOrganization).not.toHaveBeenCalled()
+    expect(updateCustomer).not.toHaveBeenCalled()
+    expect(upsertSubscription).toHaveBeenCalledTimes(1)
+    expect(upsertSubscription.mock.calls[0]?.[0]).toMatchObject({
+      userId: 'user_bob',
+      ownerType: 'user',
+      planId: 'free',
+      billingPeriod: 'monthly',
+    })
+  })
+
+  test('a live free subscription clears the negative cache for the user', async () => {
+    await applySubscription(
+      subData({ productId: 'prod_free', customer: { externalId: 'user_bob' } })
+    )
+
+    expect(invalidateNegativeCache).toHaveBeenCalledWith('user_bob')
+  })
+
+  test('a free subscription.created never fires upgrade_completed (only paid upgrades count)', async () => {
+    await applySubscription(
+      subData({ productId: 'prod_free', customer: { externalId: 'user_bob' } }),
+      null,
+      'subscription.created'
+    )
+
+    expect(captureServerEventImpl).not.toHaveBeenCalled()
   })
 })
 
