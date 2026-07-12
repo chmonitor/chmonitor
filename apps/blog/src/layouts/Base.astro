@@ -249,7 +249,15 @@ const ogImage = new URL(image, Astro.site).toString()
     .prose blockquote{border-left:3px solid var(--amber);padding:6px 0 6px 20px;color:var(--muted-fg);
       font-style:normal}
     .prose hr{border:none;border-top:1px solid var(--border-soft);margin:44px 0}
-    .prose img{max-width:100%;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card)}
+    /* Screenshots break out past the 720px text measure (up to the site width),
+       centred on the prose column. `height:auto` is load-bearing: posts ship
+       intrinsic width/height attributes, so without it the attribute height is
+       kept while CSS shrinks the width — squashing the image. `width:auto`
+       keeps a small image at its natural size instead of upscaling it. */
+    .prose img{display:block;width:auto;height:auto;
+      max-width:min(var(--maxw), calc(100vw - 48px));
+      margin:32px 0;margin-left:50%;transform:translateX(-50%);
+      border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card)}
     .prose table{width:100%;border-collapse:collapse;font-size:14.5px;display:block;overflow-x:auto}
     .prose th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-fg);
       font-weight:600;padding:10px 14px;background:var(--bg-soft);border-bottom:1px solid var(--border)}
