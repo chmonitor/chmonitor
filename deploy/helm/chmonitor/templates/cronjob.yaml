@@ -1,0 +1,92 @@
+{{- if .Values.cron.enabled }}
+{{- $svcName := include "chmonitor.fullname" . }}
+{{- $svcPort := .Values.service.port | int }}
+{{- $ns := .Release.Namespace }}
+{{- $cronSecretName := include "chmonitor.cronSecretName" . }}
+{{- $cronImage := printf "%s:%s" .Values.cron.image.repository (.Values.cron.image.tag | default "latest") }}
+
+{{- $jobs := list
+  (dict "name" "health-sweep"    "schedule" .Values.cron.schedules.healthSweep    "path" "/api/cron/health-sweep")
+  (dict "name" "retention-prune" "schedule" .Values.cron.schedules.retentionPrune "path" "/api/cron/retention-prune")
+  (dict "name" "weekly-report"   "schedule" .Values.cron.schedules.weeklyReport   "path" "/api/cron/weekly-report")
+}}
+
+{{- range $jobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $svcName }}-cron-{{ .name }}
+  labels:
+    {{- include "chmonitor.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: cron-{{ .name }}
+spec:
+  schedule: {{ .schedule | quote }}
+  # Prevent overlapping runs; the job is idempotent but can be long-running.
+  concurrencyPolicy: Forbid
+  # Keep a short history to avoid accumulating completed pods.
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Allow up to 5 minutes for the curl to complete.
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            {{- include "chmonitor.selectorLabels" $ | nindent 12 }}
+            app.kubernetes.io/component: cron-{{ .name }}
+        spec:
+          restartPolicy: OnFailure
+          {{- with $.Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            # curlimages/curl uses uid 100 (curl user)
+            runAsUser: 100
+            runAsGroup: 101
+          containers:
+            - name: curl
+              image: {{ $cronImage | quote }}
+              imagePullPolicy: {{ $.Values.cron.image.pullPolicy }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 100
+                runAsGroup: 101
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $cronSecretName }}
+                      key: CRON_SECRET
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  curl --fail --silent --show-error --max-time 240 \
+                    -H "Authorization: Bearer ${CRON_SECRET}" \
+                    "http://{{ $svcName }}.{{ $ns }}.svc.cluster.local:{{ $svcPort }}{{ .path }}"
+              resources:
+                {{- toYaml $.Values.cron.resources | nindent 16 }}
+          {{- with $.Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
+{{- end }}

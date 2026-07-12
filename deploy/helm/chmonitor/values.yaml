@@ -284,6 +284,51 @@ secrets:
   # (both env vars are mounted from it).
   existingSecret: ""
 
+# Kubernetes CronJob resources that call the dashboard's scheduled endpoints
+# (/api/cron/health-sweep, /api/cron/retention-prune, /api/cron/weekly-report).
+# These jobs are ONLY needed on Node/Kubernetes deployments; Cloudflare Workers
+# drives them natively via wrangler.toml triggers.crons.
+#
+# Set cron.enabled=true and provide a cron.secret (or cron.existingSecret) to
+# activate the three CronJobs. The secret must match the CRON_SECRET env var
+# set on the dashboard container.
+cron:
+  # enabled: create CronJob resources. Default false — opt-in for K8s deploys.
+  enabled: false
+
+  # image: curl image used in the CronJob. Defaults to curlimages/curl:latest.
+  image:
+    repository: curlimages/curl
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # secret: CRON_SECRET value stored in the chart-managed Secret.
+  # Ignored when existingSecret is set.
+  secret: ""
+
+  # existingSecret: name of a pre-existing Secret that contains a key named
+  # CRON_SECRET. When set, `secret` above is ignored and no chart Secret entry
+  # is created for it.
+  existingSecret: ""
+
+  # schedules: override the default cron schedules if needed.
+  schedules:
+    # healthSweep: runs every 5 minutes (matches the Cloudflare trigger).
+    healthSweep: "*/5 * * * *"
+    # retentionPrune: daily at 03:00 UTC.
+    retentionPrune: "0 3 * * *"
+    # weeklyReport: Mondays at 08:00 UTC.
+    weeklyReport: "0 8 * * 1"
+
+  # resources for the cron Job containers (lightweight — just a curl call).
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
 # Extra environment variables injected into the container, e.g.
 # extraEnv:
 #   - name: CLICKHOUSE_NAME

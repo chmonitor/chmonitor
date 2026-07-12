@@ -48,28 +48,32 @@ mock.module('@/lib/app-tables', () => ({
   DASHBOARD_CHARTS_TABLE: 'clickhouse_monitoring_custom_dashboard',
 }))
 
-// ── Import AFTER mocks are registered ──────────────────────────────────────
-
-import { clearHostCache } from './cache-manager'
-import { validateDashboardQuery } from './dashboard-query-validator'
-
-// Fake KV namespace installed on globalThis to simulate the Cloudflare
-// binding. `getKV()` (dashboard-query-kv-cache.ts) auto-detects it there.
+// ── Controllable target/KV mock (replaces the old globalThis pattern) ─────────
 interface FakeKV {
   get: (key: string, opts?: unknown) => Promise<unknown>
   put: (key: string, value: string, opts?: unknown) => Promise<void>
 }
 
+let fakeKV: FakeKV | null = null
+
+mock.module('@/lib/target', () => ({
+  target: () => ({
+    kv: (_binding: string) => fakeKV,
+  }),
+}))
+
 function installKV(kv: FakeKV) {
-  ;(
-    globalThis as unknown as { CHM_DASHBOARD_QUERY_KV: FakeKV }
-  ).CHM_DASHBOARD_QUERY_KV = kv
+  fakeKV = kv
 }
 
 function removeKV() {
-  delete (globalThis as unknown as { CHM_DASHBOARD_QUERY_KV?: FakeKV })
-    .CHM_DASHBOARD_QUERY_KV
+  fakeKV = null
 }
+
+// ── Import AFTER mocks are registered ──────────────────────────────────────
+
+import { clearHostCache } from './cache-manager'
+import { validateDashboardQuery } from './dashboard-query-validator'
 
 let hostCounter = 1000
 function nextHost(): number {

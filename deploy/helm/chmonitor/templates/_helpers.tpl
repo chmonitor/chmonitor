@@ -120,3 +120,15 @@ provided, otherwise the chart-managed one.
 {{- include "chmonitor.fullname" . }}
 {{- end }}
 {{- end }}
+
+{{/*
+The name of the Secret holding CRON_SECRET. Uses an existing Secret when
+cron.existingSecret is provided, otherwise the chart-managed one.
+*/}}
+{{- define "chmonitor.cronSecretName" -}}
+{{- if .Values.cron.existingSecret }}
+{{- .Values.cron.existingSecret }}
+{{- else }}
+{{- include "chmonitor.fullname" . }}
+{{- end }}
+{{- end }}

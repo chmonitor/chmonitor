@@ -158,6 +158,13 @@ spec:
                   key: CHM_API_KEY_SECRET
                   optional: true
             {{- end }}
+            {{- if or .Values.cron.secret .Values.cron.existingSecret }}
+            - name: CRON_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chmonitor.cronSecretName" . }}
+                  key: CRON_SECRET
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

@@ -16,33 +16,32 @@ mock.module('@chm/logger', () => ({
   debug: () => {},
 }))
 
-import {
-  getKVCachedDashboardQueries,
-  setKVCachedDashboardQueries,
-} from './dashboard-query-kv-cache'
-
+// ── Controllable target mock ──────────────────────────────────────────────────
 interface FakeKV {
   get: (key: string, opts?: unknown) => Promise<unknown>
   put: (key: string, value: string, opts?: unknown) => Promise<void>
 }
 
-function installKV(kv: FakeKV) {
-  ;(
-    globalThis as unknown as { CHM_DASHBOARD_QUERY_KV: FakeKV }
-  ).CHM_DASHBOARD_QUERY_KV = kv
-}
+let fakeKV: FakeKV | null = null
 
-function removeKV() {
-  delete (globalThis as unknown as { CHM_DASHBOARD_QUERY_KV?: FakeKV })
-    .CHM_DASHBOARD_QUERY_KV
-}
+mock.module('@/lib/target', () => ({
+  target: () => ({
+    kv: (_binding: string) => fakeKV,
+  }),
+}))
+
+// Import AFTER mocks are registered.
+import {
+  getKVCachedDashboardQueries,
+  setKVCachedDashboardQueries,
+} from './dashboard-query-kv-cache'
 
 beforeEach(() => {
-  removeKV()
+  fakeKV = null
 })
 
 afterEach(() => {
-  removeKV()
+  fakeKV = null
 })
 
 describe('getKVCachedDashboardQueries', () => {
@@ -52,46 +51,46 @@ describe('getKVCachedDashboardQueries', () => {
   })
 
   test('returns null on a KV miss (get resolves null)', async () => {
-    installKV({ get: async () => null, put: async () => {} })
+    fakeKV = { get: async () => null, put: async () => {} }
     const result = await getKVCachedDashboardQueries(0)
     expect(result).toBeNull()
   })
 
   test('returns null when the KV get() call throws (fail-closed)', async () => {
-    installKV({
+    fakeKV = {
       get: async () => {
         throw new Error('boom')
       },
       put: async () => {},
-    })
+    }
     const result = await getKVCachedDashboardQueries(0)
     expect(result).toBeNull()
   })
 
   test('returns null for a malformed (non-array) cached value', async () => {
-    installKV({ get: async () => ({ not: 'an array' }), put: async () => {} })
+    fakeKV = { get: async () => ({ not: 'an array' }), put: async () => {} }
     const result = await getKVCachedDashboardQueries(0)
     expect(result).toBeNull()
   })
 
   test('returns a Set of queries on a well-formed hit', async () => {
-    installKV({
+    fakeKV = {
       get: async () => ['SELECT 1', 'SELECT 2'],
       put: async () => {},
-    })
+    }
     const result = await getKVCachedDashboardQueries(0)
     expect(result).toEqual(new Set(['SELECT 1', 'SELECT 2']))
   })
 
   test('uses a per-host cache key', async () => {
     const seenKeys: string[] = []
-    installKV({
+    fakeKV = {
       get: async (key: string) => {
         seenKeys.push(key)
         return null
       },
       put: async () => {},
-    })
+    }
     await getKVCachedDashboardQueries(5)
     expect(seenKeys).toEqual(['dashboard-queries:5'])
   })
@@ -107,12 +106,12 @@ describe('setKVCachedDashboardQueries', () => {
 
   test('writes the serialized query set with an expirationTtl', async () => {
     let putArgs: [string, string, unknown] | undefined
-    installKV({
+    fakeKV = {
       get: async () => null,
       put: async (key: string, value: string, opts?: unknown) => {
         putArgs = [key, value, opts]
       },
-    })
+    }
 
     await setKVCachedDashboardQueries(3, new Set(['SELECT 1']))
 
@@ -125,12 +124,12 @@ describe('setKVCachedDashboardQueries', () => {
   })
 
   test('swallows a KV put() error without throwing', async () => {
-    installKV({
+    fakeKV = {
       get: async () => null,
       put: async () => {
         throw new Error('write failed')
       },
-    })
+    }
 
     await expect(
       setKVCachedDashboardQueries(0, new Set(['q']))
