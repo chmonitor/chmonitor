@@ -18,7 +18,9 @@ import {
 import { CpuMeter, DoneBadge, ProgressCell } from './cells'
 import { ExpandedRow } from './expanded-row'
 import {
+  BASE_COLUMN_COUNT,
   type DerivedQuery,
+  OPTIONAL_COLUMNS,
   type OptionalColumn,
   SEVERITY_DURATION,
 } from './types'
