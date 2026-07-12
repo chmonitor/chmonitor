@@ -5,6 +5,75 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `Unreleased` section below is a human-curated
 preview of the next release.
 
+## [0.2.15](https://github.com/chmonitor/chmonitor/compare/v0.2.14...v0.2.15) (2026-07-12)
+
+
+### ✨ Features
+
+* **advisor:** pick a query from quick examples or filtered history ([#2608](https://github.com/chmonitor/chmonitor/issues/2608)) ([1714484](https://github.com/chmonitor/chmonitor/commit/171448450533c969bdd80afd48b0cfc40cc90447))
+* **agent:** page-context chip + dockable panel for the floating widget ([#2587](https://github.com/chmonitor/chmonitor/issues/2587)) ([4284452](https://github.com/chmonitor/chmonitor/commit/4284452fb27f2162252e87dbcf7eeca38b7a922f))
+* **agent:** postgres cross-source tools (phase 4) ([#2573](https://github.com/chmonitor/chmonitor/issues/2573)) ([50c0630](https://github.com/chmonitor/chmonitor/commit/50c06300ed2cfe01f2d061744c3a89f99373a651))
+* **assets:** AI Insights screenshots across landing, docs and blog ([#2603](https://github.com/chmonitor/chmonitor/issues/2603)) ([8ca1946](https://github.com/chmonitor/chmonitor/commit/8ca1946814fe76da12f0060ce179561bd29f9e24))
+* **assets:** cluster topology screenshot on landing and docs ([#2609](https://github.com/chmonitor/chmonitor/issues/2609)) ([bb10893](https://github.com/chmonitor/chmonitor/commit/bb10893f135b56002c8dcf3251a9bf28fbd569ac))
+* **assets:** PeerDB + Postgres screenshots across landing, docs and blog ([#2605](https://github.com/chmonitor/chmonitor/issues/2605)) ([d8f6396](https://github.com/chmonitor/chmonitor/commit/d8f639669e9e92e4dd5515fc6da727e065c17100))
+* **assets:** shared image library, v0.3 release notes, landing capability grid ([#2598](https://github.com/chmonitor/chmonitor/issues/2598)) ([fd3c80e](https://github.com/chmonitor/chmonitor/commit/fd3c80ec81784d5ee5909b6a4335277adc434be4))
+* **billing:** $0 Free plan via Polar + subscription gate before first host ([#2600](https://github.com/chmonitor/chmonitor/issues/2600)) ([109ebf3](https://github.com/chmonitor/chmonitor/commit/109ebf33ec5fa3232d18e856b6f37b7129eee4dc))
+* **blog:** category-card homepage + landing brand accents ([#2565](https://github.com/chmonitor/chmonitor/issues/2565)) ([834bb90](https://github.com/chmonitor/chmonitor/commit/834bb907121f388f04959f6cb33e4d5aea0a80b4))
+* **blog:** marketing posts, category pages, llms.txt, equal-height cards ([#2568](https://github.com/chmonitor/chmonitor/issues/2568)) ([9c65bc0](https://github.com/chmonitor/chmonitor/commit/9c65bc022325847b75078361361949663f7df054))
+* **brand:** rename mark assets to logo-chmonitor* and add circle avatars ([#2629](https://github.com/chmonitor/chmonitor/issues/2629)) ([3305da0](https://github.com/chmonitor/chmonitor/commit/3305da0e593bc26f37cb9abbf9bd7f646addef8b))
+* **cloud-hooks:** Clerk lifecycle events + richer Polar notifications + daily digest ([#2619](https://github.com/chmonitor/chmonitor/issues/2619)) ([de5dfe5](https://github.com/chmonitor/chmonitor/commit/de5dfe541530e9b457a016e9df8c5cfa11b0cbbe))
+* **cloud-hooks:** full-surface probes + Cloudflare exception → GitHub issues ([#2613](https://github.com/chmonitor/chmonitor/issues/2613)) ([4b3ff0a](https://github.com/chmonitor/chmonitor/commit/4b3ff0aa3383ca42fdd5b4084b210be60a8f138f))
+* **cloud-hooks:** GitHub App auth for exception issues ([#2618](https://github.com/chmonitor/chmonitor/issues/2618)) ([4d2f5bc](https://github.com/chmonitor/chmonitor/commit/4d2f5bc6bbcd5353b379b36dd5fc77cde5ba530a))
+* **cloud:** dedicated hooks worker for Polar webhooks + ops notifications ([#2606](https://github.com/chmonitor/chmonitor/issues/2606)) ([2c00e94](https://github.com/chmonitor/chmonitor/commit/2c00e946fb77519c4e0b413f6dab3c26ce89b177))
+* **cloud:** enable Postgres source (beta) by default on cloud ([#2590](https://github.com/chmonitor/chmonitor/issues/2590)) ([0c4335e](https://github.com/chmonitor/chmonitor/commit/0c4335e3e75d7a4956673d42b68268b06d7c31ff))
+* **fleet:** grid/table view toggle + cross-host comparison table ([#2585](https://github.com/chmonitor/chmonitor/issues/2585)) ([b7ef375](https://github.com/chmonitor/chmonitor/commit/b7ef375b8e0ca86ea7f9ff0c8b2f56b1ec7596aa))
+* **helm:** add CRON_SECRET + K8s CronJob resources for Node/K8s cron parity ([#2305](https://github.com/chmonitor/chmonitor/issues/2305) PR4) ([#2633](https://github.com/chmonitor/chmonitor/issues/2633)) ([7668881](https://github.com/chmonitor/chmonitor/commit/7668881064c871675c71ccf746b2f9f3df4819b0))
+* **insights:** clickable findings open a detail dialog with explanatory charts ([#2607](https://github.com/chmonitor/chmonitor/issues/2607)) ([ba987aa](https://github.com/chmonitor/chmonitor/commit/ba987aad92ac81c4adc1812af18efe8e370a0742))
+* **insights:** postgres-aware insights + agent tooling ([#2580](https://github.com/chmonitor/chmonitor/issues/2580)) ([4ba6988](https://github.com/chmonitor/chmonitor/commit/4ba6988ea04b6c3b45ce2e2535b6813bbab69ab2))
+* **landing:** compact hero + with-bg screenshots for feature sections ([56740e9](https://github.com/chmonitor/chmonitor/commit/56740e94b6d6c93165bf00d3320091a3d179882b))
+* **landing:** editorial restyle, bigger screenshots, fix theme-toggle ring ([#2567](https://github.com/chmonitor/chmonitor/issues/2567)) ([809b2af](https://github.com/chmonitor/chmonitor/commit/809b2af1a716c5e8b1923004d0d16390a4c79c64))
+* **landing:** rotate overview hero between two with-background screenshots ([#2627](https://github.com/chmonitor/chmonitor/issues/2627)) ([cbec3f9](https://github.com/chmonitor/chmonitor/commit/cbec3f95147de78b54c9657e36c7dff3ed959cb3))
+* **peerdb:** per-connection config + bearer auth ([#2593](https://github.com/chmonitor/chmonitor/issues/2593)) ([74fc57a](https://github.com/chmonitor/chmonitor/commit/74fc57abdc2595f80185ddef68fb68a5f677cf8c))
+* **peerdb:** richer monitoring views (snapshot, batch history, fleet lag/logs, slot health) ([#2594](https://github.com/chmonitor/chmonitor/issues/2594)) ([7b90bc7](https://github.com/chmonitor/chmonitor/commit/7b90bc7c904257a9fed2c99d8950b1157644e4d3))
+* **postgres:** connection type + workers-validated pg connectivity (phase 2) ([#2571](https://github.com/chmonitor/chmonitor/issues/2571)) ([5740a07](https://github.com/chmonitor/chmonitor/commit/5740a071d7f3137ea7ba2e11e6f077fbefc6f9b3))
+* **postgres:** phase 1 source-type foundation (engine dimension, flag, postgres-client package) ([#2570](https://github.com/chmonitor/chmonitor/issues/2570)) ([158f2f9](https://github.com/chmonitor/chmonitor/commit/158f2f9727a03ddf3eb1c8c398ccea5f5361359f))
+* **postgres:** query insights pages + engine-aware menu (phase 3) ([#2574](https://github.com/chmonitor/chmonitor/issues/2574)) ([df611b7](https://github.com/chmonitor/chmonitor/commit/df611b7d1a3ab113ce3c6412ac929684a150b159))
+* **settings:** units, colors, and layout preferences ([#2589](https://github.com/chmonitor/chmonitor/issues/2589)) ([19decbf](https://github.com/chmonitor/chmonitor/commit/19decbf41f5fdd020e657e6cbf81b78393ab37da))
+* **setup:** two-engine chooser + engine-aware add-host dialog ([#2578](https://github.com/chmonitor/chmonitor/issues/2578)) ([c3afb3c](https://github.com/chmonitor/chmonitor/commit/c3afb3cf484e5761812fc1074eb2b641dcb098f5))
+* **sidebar:** move Billing/Organization/About to footer, exempt /about from first-run gate ([#2577](https://github.com/chmonitor/chmonitor/issues/2577)) ([dadc5e7](https://github.com/chmonitor/chmonitor/commit/dadc5e79480b1be6497c716dc40ad882b3d8d37a))
+* **skills:** postgres→clickhouse migration-planning section (PeerDB CDC) ([#2569](https://github.com/chmonitor/chmonitor/issues/2569)) ([1da53d0](https://github.com/chmonitor/chmonitor/commit/1da53d038cd741f118f7c578b6e1ff325c7a1da5)), closes [#2452](https://github.com/chmonitor/chmonitor/issues/2452)
+* **tooling:** unified worker deploy script (vars + secrets from .env) ([#2614](https://github.com/chmonitor/chmonitor/issues/2614)) ([27760af](https://github.com/chmonitor/chmonitor/commit/27760af78b6185b64405edc2275bf6dc6306fbbf))
+
+
+### 🐛 Bug Fixes
+
+* **agents:** agent chat, health settings, and running-queries fixes ([914d279](https://github.com/chmonitor/chmonitor/commit/914d279ff9b31514ca575e7a25414bd11b6d3949))
+* **agents:** model picker overflow + search, opaque conversations button, billing card ([#2623](https://github.com/chmonitor/chmonitor/issues/2623)) ([a218214](https://github.com/chmonitor/chmonitor/commit/a218214ad0ff86be77e43e111400f9458ea2cb51))
+* **api:** disable query cache when the table row-cap sets a non-throw overflow mode ([#2597](https://github.com/chmonitor/chmonitor/issues/2597)) ([2d962f2](https://github.com/chmonitor/chmonitor/commit/2d962f2b0679692bf5fab7086ba53eca7529902b))
+* **blog:** un-squash post images, widen them past the text column ([#2625](https://github.com/chmonitor/chmonitor/issues/2625)) ([e52924d](https://github.com/chmonitor/chmonitor/commit/e52924d2f226d9e1421d7606d6951661b78e9c6b))
+* **brand:** generate logo SVGs for blog and docs apps ([#2631](https://github.com/chmonitor/chmonitor/issues/2631)) ([3ca2575](https://github.com/chmonitor/chmonitor/commit/3ca2575844046cffb96cd9a4573972fd99cc7b89))
+* **brand:** resolve docs smoke crawl 404 error and fix avatar scaling ([#2630](https://github.com/chmonitor/chmonitor/issues/2630)) ([fe6c7c8](https://github.com/chmonitor/chmonitor/commit/fe6c7c8c9d351f0f77854c30de80893fd0c16167))
+* **cloud-hooks:** break exceptions↔github-app import cycle ([#2621](https://github.com/chmonitor/chmonitor/issues/2621)) ([c023f83](https://github.com/chmonitor/chmonitor/commit/c023f839b281cca2ac2a4874fe46b29e06099457))
+* **connections:** make add-host dialog scrollable on small screens ([#2583](https://github.com/chmonitor/chmonitor/issues/2583)) ([3c31814](https://github.com/chmonitor/chmonitor/commit/3c318141af0dd6864a3da696aa7f970eba7ac3cb))
+* **dashboard:** fix query tables Actions width, colspan, and add query highlighting ([#2632](https://github.com/chmonitor/chmonitor/issues/2632)) ([9a06a86](https://github.com/chmonitor/chmonitor/commit/9a06a86536bf9c47665bb63739afba3f0663d28a))
+* **dashboard:** resolve running queries alignment and responsiveness ([#2628](https://github.com/chmonitor/chmonitor/issues/2628)) ([75812e6](https://github.com/chmonitor/chmonitor/commit/75812e60e89430de6623350257f2d10eb7961ebb))
+* **docs:** HTTP readiness poll + 120s cap for smoke-crawl server start ([#2595](https://github.com/chmonitor/chmonitor/issues/2595)) ([32122ce](https://github.com/chmonitor/chmonitor/commit/32122ce1b22cc41e79bee0f3958052b0d307882f))
+* **docs:** TypeTable prop crash + build-time render-crash detection ([#2592](https://github.com/chmonitor/chmonitor/issues/2592)) ([7bf2c16](https://github.com/chmonitor/chmonitor/commit/7bf2c1679f30dbfdec0d3b43a6670a914555f2d7))
+* **insights:** restore severity accent left border on insight cards ([#2624](https://github.com/chmonitor/chmonitor/issues/2624)) ([ea3aabd](https://github.com/chmonitor/chmonitor/commit/ea3aabdc97abbe8a43e1b42f78310368689ebc68))
+* **insights:** restore severity accent left border on insight cards ([#2626](https://github.com/chmonitor/chmonitor/issues/2626)) ([b2eb8e1](https://github.com/chmonitor/chmonitor/commit/b2eb8e1a072b6b7db50912333bd71beaecdac611))
+* **landing:** footer changelog link to real release anchor ([#2622](https://github.com/chmonitor/chmonitor/issues/2622)) ([1afabc5](https://github.com/chmonitor/chmonitor/commit/1afabc55689c13926bd0e84fd39e94afb34c9843))
+* **layout:** hide header controls scrollbar on narrow viewports ([#2586](https://github.com/chmonitor/chmonitor/issues/2586)) ([4417164](https://github.com/chmonitor/chmonitor/commit/44171646911d84fb07fbf454bdbf80524ece7cd7))
+* **oss:** agent stream errors, tables 500, billing 401 spam on self-hosted ([#2617](https://github.com/chmonitor/chmonitor/issues/2617)) ([64ddab2](https://github.com/chmonitor/chmonitor/commit/64ddab21ad7878f12a466d99aa9be9fdbee5c203))
+* **peerdb:** load page-level metrics without row expansion ([#2602](https://github.com/chmonitor/chmonitor/issues/2602)) ([18bebca](https://github.com/chmonitor/chmonitor/commit/18bebcaa9dca4e214c7dc9e845823bace27ef532))
+* **postgres:** resolve pg from app root in the node/Docker build ([#2572](https://github.com/chmonitor/chmonitor/issues/2572)) ([020c0b9](https://github.com/chmonitor/chmonitor/commit/020c0b9e7ca798b5801ce0cb1eadada5a5638af7))
+* **queries:** running-queries empty on ClickHouse 26.3 ([#2610](https://github.com/chmonitor/chmonitor/issues/2610)) ([af5aaf2](https://github.com/chmonitor/chmonitor/commit/af5aaf26dcc14da93f1200610f000d797986de49))
+* **running-queries:** keep toolbar visible when no queries are running ([#2604](https://github.com/chmonitor/chmonitor/issues/2604)) ([2ef24b9](https://github.com/chmonitor/chmonitor/commit/2ef24b925e323be434a3bc87c46e86979cd2d7bf))
+* **sidebar:** footer links as 2-col grid to save vertical space ([#2591](https://github.com/chmonitor/chmonitor/issues/2591)) ([e7f64be](https://github.com/chmonitor/chmonitor/commit/e7f64be1fa2d404015ecc6f1eb34daefff4bd152))
+* **sidebar:** uniform footer row spacing, drop duplicate View plans link ([#2581](https://github.com/chmonitor/chmonitor/issues/2581)) ([0e676af](https://github.com/chmonitor/chmonitor/commit/0e676afd0f71624840b351246d3051a17967c8a2))
+* **tooling:** remove redundant paths mapping breaking billing-webhook-core rootDir ([#2612](https://github.com/chmonitor/chmonitor/issues/2612)) ([ead7879](https://github.com/chmonitor/chmonitor/commit/ead787980b2df977417602f6a33254f989108192))
+* **ui:** restore dropdown item handlers broken by Base UI migration ([#2588](https://github.com/chmonitor/chmonitor/issues/2588)) ([12c127b](https://github.com/chmonitor/chmonitor/commit/12c127b595c31379890c8c7659e01d91bc454859))
+* **ui:** symmetric breadcrumb separator + unified sidebar footer rows ([#2584](https://github.com/chmonitor/chmonitor/issues/2584)) ([c54db44](https://github.com/chmonitor/chmonitor/commit/c54db44532c5b4eb070a9ecca7f2a3c5e83d704c))
+
 ## [0.2.14](https://github.com/chmonitor/chmonitor/compare/v0.2.13...v0.2.14) (2026-07-10)
 
 

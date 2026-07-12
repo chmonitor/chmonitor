@@ -2,8 +2,8 @@ apiVersion: v2
 name: chmonitor
 description: A Helm chart for the chmonitor dashboard
 type: application
-version: 0.2.14
-appVersion: 0.2.14
+version: 0.2.15
+appVersion: 0.2.15
 home: https://github.com/chmonitor/chmonitor
 sources:
   - https://github.com/chmonitor/chmonitor
