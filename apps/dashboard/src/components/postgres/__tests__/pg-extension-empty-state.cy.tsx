@@ -10,7 +10,6 @@
  */
 
 import { PgExtensionEmptyState } from '../pg-extension-empty-state'
-import React from 'react'
 
 describe('PgExtensionEmptyState', () => {
   it('names the extension and shows the enable steps', () => {

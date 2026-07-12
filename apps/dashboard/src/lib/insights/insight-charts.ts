@@ -74,7 +74,7 @@ export function insightChartNames(
   const metric = insight.metric?.trim()
 
   // Postgres findings have no ClickHouse chart to explain them.
-  if (metric && metric.startsWith('pg_')) return []
+  if (metric?.startsWith('pg_')) return []
 
   const byMetric = metric ? METRIC_CHARTS[metric] : undefined
   const charts = byMetric ?? CATEGORY_CHARTS[insight.category] ?? []
