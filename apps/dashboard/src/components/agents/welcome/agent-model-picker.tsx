@@ -12,17 +12,17 @@
  * sidebar; both consume `useAgentModel`.
  */
 
-import { CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react'
 
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { getAllModelOptions } from '@/lib/ai/agent-model-registry'
 import {
   type ModelDisplayInfo,
@@ -166,6 +166,7 @@ export function AgentModelPicker({
 }: AgentModelPickerProps) {
   const { model, models, setModel } = useAgentModel()
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   const selected = useMemo(
     () => models.find((m) => m.id === model) ?? models[0],
@@ -173,21 +174,29 @@ export function AgentModelPicker({
   )
 
   const grouped = useMemo(() => {
+    const q = search.trim().toLowerCase()
     const map = new Map<string, ModelDisplayInfo[]>()
     for (const m of models) {
+      if (q && !`${m.provider}:${m.name}`.toLowerCase().includes(q)) continue
       const list = map.get(m.provider) ?? []
       list.push(m)
       map.set(m.provider, list)
     }
     return Array.from(map.entries())
-  }, [models])
+  }, [models, search])
 
   if (!selected) {
     return null
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) setSearch('')
+      }}
+    >
       <PopoverTrigger
         render={
           variant === 'toolbar' ? (
@@ -265,35 +274,52 @@ export function AgentModelPicker({
           )
         }
       />
-      <PopoverContent align="start" sideOffset={4} className="w-[340px] p-1">
-        <ScrollArea className="max-h-[360px]">
-          <div className="space-y-1">
-            {grouped.map(([provider, list]) => (
-              <div key={provider} className="space-y-0.5">
-                <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider uppercase">
-                  <span
-                    className={cn(
-                      'inline-block size-1.5 rounded-full',
-                      providerDotClass(provider)
-                    )}
-                  />
-                  {provider}
-                </div>
-                {list.map((m) => (
-                  <ModelOptionRow
-                    key={m.id}
-                    model={m}
-                    active={m.id === model}
-                    onSelect={() => {
-                      setModel(m.id)
-                      setOpen(false)
-                    }}
-                  />
-                ))}
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="w-[340px] gap-0 p-1"
+      >
+        <div className="relative p-1">
+          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
+          <Input
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search models…"
+            className="h-8 pl-7 text-[12px]"
+          />
+        </div>
+        <div className="max-h-[360px] space-y-1 overflow-y-auto overscroll-contain">
+          {grouped.length === 0 ? (
+            <div className="text-muted-foreground px-2 py-6 text-center text-[12px]">
+              No models match “{search}”
+            </div>
+          ) : null}
+          {grouped.map(([provider, list]) => (
+            <div key={provider} className="space-y-0.5">
+              <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider uppercase">
+                <span
+                  className={cn(
+                    'inline-block size-1.5 rounded-full',
+                    providerDotClass(provider)
+                  )}
+                />
+                {provider}
               </div>
-            ))}
-          </div>
-        </ScrollArea>
+              {list.map((m) => (
+                <ModelOptionRow
+                  key={m.id}
+                  model={m}
+                  active={m.id === model}
+                  onSelect={() => {
+                    setModel(m.id)
+                    setOpen(false)
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   )

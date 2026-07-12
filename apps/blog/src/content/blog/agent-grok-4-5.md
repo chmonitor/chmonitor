@@ -6,32 +6,22 @@ tag: Update
 ---
 
 The chmonitor AI agent now supports **Grok 4.5** (`x-ai/grok-4.5`). It shows up
-in the model picker alongside the rest of the roster and works through the same
-providers as every other model.
+in the model picker alongside the rest of the roster, over **OpenRouter** and
+**AnyRouter**.
+
+<img src="/assets/screenshots/ai-agent-grok-4.5-with-bg.png" alt="chmonitor AI agent model picker with x-ai/grok-4.5 selected" width="1708" height="742" loading="lazy" decoding="async" />
 
 ## How to use it
 
-1. Open the agent and click the **model picker** in the composer.
+1. Open the agent and click the **model picker**.
 2. Select **Grok 4.5** (`x-ai/grok-4.5`).
-3. Ask away — "why is query latency spiking right now?", "show me the slowest
-   queries in the last hour", "which tables are close to too-many-parts?"
+3. Ask away — "why is query latency spiking right now?", "which tables are close
+   to too-many-parts?"
 
-Grok 4.5 is available through **OpenRouter** and **AnyRouter** (both providers
-are listed for it), so as long as one of those keys is configured on your
-deployment the model is selectable. If your deployment only has one provider
-configured, the picker already filters to what's actually usable — no more
-first-message failures from a model whose provider isn't set up.
-
-## Why it matters
-
-Grok 4.5 is a strong general-purpose model for turning a vague question into a
-precise `system.*` query plan, which is exactly what the agent does on every
-turn. Different models reason about ClickHouse diagnostics differently, so
-having more options means you can pick the one that fits how you work.
-
-The model list is data-driven from the central registry, so Grok 4.5 inherits
-the same cost tracking, tool-use handling, and provider fallback as every other
-entry. No extra setup required.
+As long as an OpenRouter or AnyRouter key is configured on your deployment, the
+model is selectable; the picker only lists models whose provider is actually set
+up. Grok 4.5 comes from the same central registry as every other entry, so it
+inherits cost tracking, tool use, and provider fallback. No extra setup.
 
 <Related />
 

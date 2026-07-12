@@ -117,7 +117,7 @@ export function AgentThreadPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setConversationsOpen(true)}
-                className="absolute top-3 left-3 z-10 inline-flex h-8 gap-1.5 px-2.5 text-[11.5px] whitespace-nowrap bg-background shadow-sm"
+                className="absolute top-3 left-3 z-10 inline-flex h-8 gap-1.5 bg-background px-2.5 text-[11.5px] whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted"
               >
                 <MessagesSquareIcon className="size-3.5" />
                 Conversations
@@ -128,7 +128,7 @@ export function AgentThreadPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setRightSidebarOpen(true)}
-                  className="absolute top-3 right-3 z-10 h-8 gap-1.5 px-2.5 text-[11.5px] whitespace-nowrap"
+                  className="absolute top-3 right-3 z-10 h-8 gap-1.5 bg-background px-2.5 text-[11.5px] whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted"
                 >
                   <PanelRightOpenIcon className="size-3.5" />
                   Agent settings

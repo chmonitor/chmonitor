@@ -99,14 +99,14 @@ export function AgentSettingsSidebar({
         </div>
       </SidebarSection>
 
-      {/* CONVERSATION HISTORY */}
-      <SidebarSection label="Conversation History">
-        <ConversationHistoryPanel />
-      </SidebarSection>
-
       {/* MODEL */}
       <SidebarSection label="Model">
         <AgentModelPicker variant="panel" />
+      </SidebarSection>
+
+      {/* CONVERSATION HISTORY */}
+      <SidebarSection label="Conversation History">
+        <ConversationHistoryPanel />
       </SidebarSection>
 
       {/* DAILY AI USAGE (cloud-only; renders nothing on OSS / unlimited) */}

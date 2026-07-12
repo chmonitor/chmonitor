@@ -75,7 +75,7 @@ export function AgentWelcomeScreen({
       <div className="mb-8">{composer}</div>
 
       {/* Suggested questions */}
-      <RecommendationsList onPickPrompt={onPickPrompt} />
+      <RecommendationsList onPickPrompt={onPickPrompt} limit={6} />
 
       {/* Recent threads */}
       <RecentThreadsRail />

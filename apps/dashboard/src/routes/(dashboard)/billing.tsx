@@ -290,11 +290,22 @@ function BillingPage() {
                       : `Upgrade to ${plan.name}`}
                   </Button>
                 ) : plan.id === 'enterprise' ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    render={<a href="mailto:hello@chmonitor.dev">Contact us</a>}
-                  />
+                  // Not self-serve yet — dedicated instances are sales-led.
+                  <div className="w-full space-y-1.5">
+                    <Button variant="outline" className="w-full" disabled>
+                      Coming soon
+                    </Button>
+                    <p className="text-muted-foreground text-center text-[11px] leading-snug">
+                      Contact{' '}
+                      <a
+                        href="mailto:hi@anyrouter.dev?subject=chmonitor%20Enterprise%20—%20dedicated%20instance"
+                        className="text-foreground underline underline-offset-2"
+                      >
+                        hi@anyrouter.dev
+                      </a>{' '}
+                      for details on a dedicated instance.
+                    </p>
+                  </div>
                 ) : (
                   <Button variant="outline" className="w-full" disabled>
                     Free forever
@@ -336,7 +347,7 @@ function BillingSignedOut() {
         </p>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden py-0">
         <div className="from-primary/[0.06] bg-gradient-to-b to-transparent">
           <CardContent className="flex flex-col items-center gap-4 px-6 py-12 text-center">
             <div className="bg-primary/10 flex size-12 items-center justify-center rounded-full">

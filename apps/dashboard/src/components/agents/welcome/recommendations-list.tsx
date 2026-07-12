@@ -8,7 +8,12 @@
 
 import { ArrowRightIcon } from 'lucide-react'
 
-import { SUGGESTED_PROMPTS } from '@/components/agents/welcome/suggested-prompts'
+import { useEffect, useState } from 'react'
+import {
+  SUGGESTED_PROMPTS,
+  type SuggestedPrompt,
+  shufflePrompts,
+} from '@/components/agents/welcome/suggested-prompts'
 import { cn } from '@/lib/utils'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -34,10 +39,17 @@ export function RecommendationsList({
   onPickPrompt,
   limit,
 }: RecommendationsListProps) {
+  // Shuffle after mount, not during render: the welcome screen is part of the
+  // prerendered static shell, so a random order at render time would not match
+  // the server HTML and would trip a hydration mismatch.
+  const [pool, setPool] =
+    useState<readonly SuggestedPrompt[]>(SUGGESTED_PROMPTS)
+  useEffect(() => {
+    setPool(shufflePrompts(SUGGESTED_PROMPTS))
+  }, [])
+
   const prompts =
-    typeof limit === 'number' && limit > 0
-      ? SUGGESTED_PROMPTS.slice(0, limit)
-      : SUGGESTED_PROMPTS
+    typeof limit === 'number' && limit > 0 ? pool.slice(0, limit) : pool
 
   return (
     <section className="mb-8">
