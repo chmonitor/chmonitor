@@ -363,10 +363,10 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
           phones: below it the wrapper scrolls horizontally rather than letting
           table-fixed crush the Query column to a few pixels. */
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] table-fixed border-collapse">
+          <table className="w-full min-w-[768px] table-fixed border-collapse">
             <thead className="border-b border-border bg-muted/40">
               <tr>
-                <SortableHeader width="108px">Type</SortableHeader>
+                <SortableHeader width="140px">Type</SortableHeader>
                 <SortableHeader>Query</SortableHeader>
                 <SortableHeader
                   width="140px"

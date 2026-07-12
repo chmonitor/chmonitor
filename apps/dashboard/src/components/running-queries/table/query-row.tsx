@@ -83,7 +83,7 @@ export const QueryRow = memo(function QueryRow({
     <>
       <tr
         className={cn(
-          'group animate-in cursor-pointer border-b border-border align-middle fade-in-0 slide-in-from-top-1 duration-300 hover:bg-muted/60',
+          'group animate-in cursor-pointer border-b border-border align-top fade-in-0 slide-in-from-top-1 duration-300 hover:bg-muted/60',
           done &&
             'bg-emerald-50/60 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30'
         )}
@@ -91,7 +91,7 @@ export const QueryRow = memo(function QueryRow({
       >
         {/* Type + expand chevron */}
         <td className="px-2 py-2.5 sm:px-3">
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
             <ChevronRight
               className={cn(
                 'size-3 shrink-0 text-muted-foreground transition-transform',
