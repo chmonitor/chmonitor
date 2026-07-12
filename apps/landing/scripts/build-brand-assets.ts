@@ -119,8 +119,9 @@ async function rasterMono(fill: string, size: number) {
 }
 
 // ── circular avatar helpers ─────────────────────────────────────────────────
-// The mark is inset ~9% inside a full-bleed circle, clipped so it reads as an
-// avatar (profile / social icon) rather than a bare glyph.
+// The mark is scaled up to fill the inscribed circle (clipped so the corners
+// can't spill past the edge), reading as a solid avatar rather than a bare glyph.
+const AVATAR_SCALE = 1.1
 const avatarInnerColor = `${barRects(ORANGE)}<rect x="${CAP.x}" y="${CAP.y}" width="${W}" height="${CAP.h}" fill="${EMERALD}"/>`
 const avatarInnerWhite = `${barRects(PAPER)}<rect x="${CAP.x}" y="${CAP.y}" width="${W}" height="${CAP.h}" fill="${PAPER}"/>`
 const monoInner = (fill: string) => `<g fill="${fill}">
@@ -133,9 +134,13 @@ const monoInner = (fill: string) => `<g fill="${fill}">
   </g>`
 
 function avatarSvg(inner: string, bgFill: string) {
+  // Center the mark (origin ~16,16.25) then scale to fill the circle.
+  const tx = 16 - 16 * AVATAR_SCALE
+  const ty = 16 - 16.25 * AVATAR_SCALE
   return `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chmonitor">
+  <defs><clipPath id="a"><circle cx="16" cy="16" r="16"/></clipPath></defs>
   <circle cx="16" cy="16" r="16" fill="${bgFill}"/>
-  <g transform="translate(2.88 2.88) scale(0.82)">${inner}</g>
+  <g clip-path="url(#a)" transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${AVATAR_SCALE})">${inner}</g>
 </svg>`
 }
 
