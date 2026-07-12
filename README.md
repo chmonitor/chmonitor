@@ -17,8 +17,8 @@
 </p>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark.png">
-  <img alt="chmonitor overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark-with-bg.jpeg">
+  <img alt="chmonitor overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-dark-with-bg.jpeg">
 </picture>
 
 > **Upgrading from v0.2?** v0.3 rebuilds the app on TanStack Start. ClickHouse
@@ -304,6 +304,16 @@ walkthroughs (Claude Desktop, Claude Code, Cursor, any MCP client) and auth setu
 **Knowledge Graph** — developer-facing notes in `docs/knowledge/` with decisions, conventions, and architecture docs. See [docs/knowledge/README.md](docs/knowledge/README.md) for the index.
 
 ## Screenshots
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark-with-bg.jpeg">
+  <img alt="chmonitor Overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-dark-with-bg.jpeg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-with-charts-dark-with-bg.jpeg">
+  <img alt="chmonitor Overview detailed charts: query count, duration and data written over time" src=".github/screenshots/overview-with-charts-dark-with-bg.jpeg">
+</picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/cluster-topology-dark.png">
