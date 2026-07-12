@@ -221,21 +221,26 @@ async function buildOg() {
 async function run() {
   await mkdir(join(landing, 'brand'), { recursive: true })
   await mkdir(dashboard, { recursive: true })
-  await mkdir(docs, { recursive: true })
+  await mkdir(join(docs, 'brand'), { recursive: true })
   await mkdir(join(blog, 'brand'), { recursive: true })
 
   // Mark SVGs (filenames the site already references).
   await writeFile(join(landing, 'favicon.svg'), markColor)
-  await writeFile(
-    join(landing, 'brand', 'logo-chmonitor.svg'),
-    markColor.replace('<svg ', '<svg width="32" height="32" ')
+
+  const logoColorSvg = markColor.replace(
+    '<svg ',
+    '<svg width="32" height="32" '
   )
-  await writeFile(
-    join(landing, 'brand', 'logo-chmonitor-mono.svg'),
-    markMono.replace('<svg ', '<svg width="32" height="32" ')
-  )
-  await writeFile(join(landing, 'brand', 'logo.svg'), lockup(INK))
-  await writeFile(join(landing, 'brand', 'logo-dark.svg'), lockup(PAPER))
+  const logoMonoSvg = markMono.replace('<svg ', '<svg width="32" height="32" ')
+  const logoLockupLight = lockup(INK)
+  const logoLockupDark = lockup(PAPER)
+
+  for (const dir of [landing, blog, docs]) {
+    await writeFile(join(dir, 'brand', 'logo-chmonitor.svg'), logoColorSvg)
+    await writeFile(join(dir, 'brand', 'logo-chmonitor-mono.svg'), logoMonoSvg)
+    await writeFile(join(dir, 'brand', 'logo.svg'), logoLockupLight)
+    await writeFile(join(dir, 'brand', 'logo-dark.svg'), logoLockupDark)
+  }
 
   // Landing rasters.
   await sharp(await rasterTransparent(16)).toFile(
@@ -330,8 +335,8 @@ async function run() {
     `✓ avatars (${avatars.map((a) => a.name).join(', ')}) → landing + blog`
   )
 
-  // Dashboard + docs favicons (own public dirs, separate deploys).
-  for (const dir of [dashboard, docs]) {
+  // Dashboard, docs + blog favicons (own public dirs, separate deploys).
+  for (const dir of [dashboard, docs, blog]) {
     await writeFile(join(dir, 'favicon.svg'), markColor)
     await sharp(await rasterTransparent(16)).toFile(join(dir, 'favicon-16.png'))
     await sharp(await rasterTransparent(32)).toFile(join(dir, 'favicon-32.png'))
