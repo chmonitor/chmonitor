@@ -10,7 +10,7 @@ export function baseOptions(): BaseLayoutProps {
       title: (
         <span className="inline-flex items-center gap-2 font-medium">
           <img
-            src="/brand/logo-mark.svg"
+            src="/brand/logo-chmonitor.svg"
             alt=""
             width={22}
             height={22}

@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chmonitor">
+  <circle cx="16" cy="16" r="16" fill="none"/>
+  <g transform="translate(2.88 2.88) scale(0.82)"><g fill="#09090b">
+    <rect x="3.3" y="9.75" width="3.8" height="3.3"/>
+    <rect x="3.3" y="13.95" width="3.8" height="14.55"/>
+    <rect x="8.7" y="3.5" width="3.8" height="25"/>
+    <rect x="14.1" y="13.25" width="3.8" height="15.25"/>
+    <rect x="19.5" y="6.25" width="3.8" height="22.25"/>
+    <rect x="24.9" y="16.8" width="3.8" height="11.7"/>
+  </g></g>
+</svg>

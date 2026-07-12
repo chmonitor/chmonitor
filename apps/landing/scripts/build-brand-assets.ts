@@ -19,6 +19,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const landing = join(here, '..', 'public')
 const dashboard = join(here, '..', '..', 'dashboard', 'public')
 const docs = join(here, '..', '..', 'docs', 'public')
+const blog = join(here, '..', '..', 'blog', 'public')
 
 const ORANGE = '#f97316'
 const EMERALD = '#10b981'
@@ -102,6 +103,67 @@ async function rasterOnField(
     .toBuffer()
 }
 
+// Monochrome mark rasterized to a fixed ink/paper PNG at a given size.
+// `markMono` is driven by currentColor, so we swap it for an explicit fill.
+async function rasterMono(fill: string, size: number) {
+  const svg = markMono
+    .replace('<svg ', '<svg width="32" height="32" ')
+    .replace(/currentColor/g, fill)
+  return sharp(Buffer.from(svg), { density: 512 })
+    .resize(size, size, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer()
+}
+
+// ── circular avatar helpers ─────────────────────────────────────────────────
+// The mark is inset ~9% inside a full-bleed circle, clipped so it reads as an
+// avatar (profile / social icon) rather than a bare glyph.
+const avatarInnerColor = `${barRects(ORANGE)}<rect x="${CAP.x}" y="${CAP.y}" width="${W}" height="${CAP.h}" fill="${EMERALD}"/>`
+const avatarInnerWhite = `${barRects(PAPER)}<rect x="${CAP.x}" y="${CAP.y}" width="${W}" height="${CAP.h}" fill="${PAPER}"/>`
+const monoInner = (fill: string) => `<g fill="${fill}">
+    <rect x="3.3" y="9.75" width="3.8" height="3.3"/>
+    <rect x="3.3" y="13.95" width="3.8" height="14.55"/>
+    <rect x="8.7" y="3.5" width="3.8" height="25"/>
+    <rect x="14.1" y="13.25" width="3.8" height="15.25"/>
+    <rect x="19.5" y="6.25" width="3.8" height="22.25"/>
+    <rect x="24.9" y="16.8" width="3.8" height="11.7"/>
+  </g>`
+
+function avatarSvg(inner: string, bgFill: string) {
+  return `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chmonitor">
+  <circle cx="16" cy="16" r="16" fill="${bgFill}"/>
+  <g transform="translate(2.88 2.88) scale(0.82)">${inner}</g>
+</svg>`
+}
+
+// Four avatar finishes:
+//  - color:  white circle + color mark        (light surfaces)
+//  - solid:  orange circle + white mark        (bold/brand surfaces)
+//  - mono:   transparent + ink mark            (dark text / overlay)
+//  - white:  transparent + white mark          (dark surfaces)
+const avatarColor = avatarSvg(avatarInnerColor, '#ffffff')
+const avatarSolid = avatarSvg(avatarInnerWhite, ORANGE)
+const avatarMono = avatarSvg(monoInner(INK), 'none')
+const avatarWhite = avatarSvg(monoInner('#ffffff'), 'none')
+
+async function rasterAvatar(svg: string, size: number) {
+  return sharp(
+    Buffer.from(svg.replace('<svg ', '<svg width="32" height="32" ')),
+    {
+      density: 512,
+    }
+  )
+    .resize(size, size, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer()
+}
+
 // Minimal ICO container wrapping PNG-encoded entries (supported by all current
 // browsers). Avoids pulling an extra dependency just for favicon.ico.
 function buildIco(entries: { size: number; png: Buffer }[]) {
@@ -155,15 +217,16 @@ async function run() {
   await mkdir(join(landing, 'brand'), { recursive: true })
   await mkdir(dashboard, { recursive: true })
   await mkdir(docs, { recursive: true })
+  await mkdir(join(blog, 'brand'), { recursive: true })
 
-  // Landing SVGs (filenames the site already references).
+  // Mark SVGs (filenames the site already references).
   await writeFile(join(landing, 'favicon.svg'), markColor)
   await writeFile(
-    join(landing, 'brand', 'logo-mark.svg'),
+    join(landing, 'brand', 'logo-chmonitor.svg'),
     markColor.replace('<svg ', '<svg width="32" height="32" ')
   )
   await writeFile(
-    join(landing, 'brand', 'logo-mark-mono.svg'),
+    join(landing, 'brand', 'logo-chmonitor-mono.svg'),
     markMono.replace('<svg ', '<svg width="32" height="32" ')
   )
   await writeFile(join(landing, 'brand', 'logo.svg'), lockup(INK))
@@ -185,14 +248,16 @@ async function run() {
   await sharp(await rasterOnField(512, 0.22)).toFile(
     join(landing, 'icon-512.png')
   )
-  await sharp(await rasterTransparent(256)).toFile(
-    join(landing, 'brand', 'logo-mark-256.png')
-  )
-  await sharp(await rasterTransparent(512)).toFile(
-    join(landing, 'brand', 'logo-mark-512.png')
-  )
-  await sharp(await rasterTransparent(1024)).toFile(
-    join(landing, 'brand', 'logo-mark-1024.png')
+  // Color mark PNGs at multiple sizes (landing + blog).
+  const markSizes = [16, 32, 64, 128, 256, 512, 1024]
+  await Promise.all(
+    markSizes.map(async (s) => {
+      const png = await rasterTransparent(s)
+      return [
+        writeFile(join(landing, 'brand', `logo-chmonitor-${s}.png`), png),
+        writeFile(join(blog, 'brand', `logo-chmonitor-${s}.png`), png),
+      ]
+    })
   )
   await sharp(await buildOg()).toFile(join(landing, 'brand', 'og-brand.png'))
   await writeFile(
@@ -202,7 +267,63 @@ async function run() {
       { size: 32, png: await rasterTransparent(32) },
     ])
   )
-  console.log('✓ landing brand kit')
+  // Monochrome PNG marks: solid black + solid white, multiple sizes, for
+  // upload/use anywhere. Black = INK, white = #ffffff.
+  const monoSizes = [16, 32, 64, 128, 256, 512, 1024]
+  await Promise.all(
+    monoSizes.flatMap(async (s) => {
+      const black = await rasterMono(INK, s)
+      const white = await rasterMono('#ffffff', s)
+      return [
+        writeFile(
+          join(landing, 'brand', `logo-chmonitor-mono-${s}.png`),
+          black
+        ),
+        writeFile(
+          join(landing, 'brand', `logo-chmonitor-mono-white-${s}.png`),
+          white
+        ),
+        writeFile(join(blog, 'brand', `logo-chmonitor-mono-${s}.png`), black),
+        writeFile(
+          join(blog, 'brand', `logo-chmonitor-mono-white-${s}.png`),
+          white
+        ),
+      ]
+    })
+  )
+  console.log(
+    `✓ mark PNGs (${markSizes.join('/')}) + mono PNGs (${monoSizes.join('/')}) → landing + blog`
+  )
+
+  // Circular avatars: color (white bg), solid (orange bg), mono (ink), white.
+  // SVG + multi-size PNG for upload/use everywhere.
+  const avatars: { name: string; svg: string }[] = [
+    { name: 'logo-chmonitor-avatar', svg: avatarColor },
+    { name: 'logo-chmonitor-avatar-solid', svg: avatarSolid },
+    { name: 'logo-chmonitor-avatar-mono', svg: avatarMono },
+    { name: 'logo-chmonitor-avatar-white', svg: avatarWhite },
+  ]
+  await Promise.all(
+    avatars.flatMap(async ({ name, svg }) => {
+      const svgBuf = Buffer.from(
+        svg.replace('<svg ', '<svg width="32" height="32" ')
+      )
+      const pngs = await Promise.all(monoSizes.map((s) => rasterAvatar(svg, s)))
+      return [
+        writeFile(join(landing, 'brand', `${name}.svg`), svgBuf),
+        writeFile(join(blog, 'brand', `${name}.svg`), svgBuf),
+        ...monoSizes.map((s, i) =>
+          writeFile(join(landing, 'brand', `${name}-${s}.png`), pngs[i])
+        ),
+        ...monoSizes.map((s, i) =>
+          writeFile(join(blog, 'brand', `${name}-${s}.png`), pngs[i])
+        ),
+      ]
+    })
+  )
+  console.log(
+    `✓ avatars (${avatars.map((a) => a.name).join(', ')}) → landing + blog`
+  )
 
   // Dashboard + docs favicons (own public dirs, separate deploys).
   for (const dir of [dashboard, docs]) {
