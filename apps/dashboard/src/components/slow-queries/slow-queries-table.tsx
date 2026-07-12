@@ -408,7 +408,20 @@ const QueryRow = memo(function QueryRow({
       </tr>
       {expanded && (
         <tr className="border-b border-border">
-          <td colSpan={8} className="p-0">
+          {/* xs (below md) */}
+          <td colSpan={3} className="p-0 md:hidden">
+            <ExpandedDetail d={d} />
+          </td>
+          {/* md (md to lg) */}
+          <td colSpan={6} className="hidden p-0 md:table-cell lg:hidden">
+            <ExpandedDetail d={d} />
+          </td>
+          {/* lg (lg to xl) */}
+          <td colSpan={7} className="hidden p-0 lg:table-cell xl:hidden">
+            <ExpandedDetail d={d} />
+          </td>
+          {/* xl (xl+) */}
+          <td colSpan={8} className="hidden p-0 xl:table-cell">
             <ExpandedDetail d={d} />
           </td>
         </tr>

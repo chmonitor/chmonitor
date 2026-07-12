@@ -8,14 +8,10 @@ import {
   Repeat,
 } from 'lucide-react'
 
+import type { DerivedQuery, OptionalColumn } from './types'
+
 import { CpuCell, MemoryCell, RankBadge, TotalTimeCell } from './cells'
 import { ExpandedRow } from './expanded-row'
-import {
-  BASE_COLUMN_COUNT,
-  type DerivedQuery,
-  OPTIONAL_COLUMNS,
-  type OptionalColumn,
-} from './types'
 import { memo } from 'react'
 import { DialogSQL } from '@/components/dialogs/dialog-sql'
 import { formatDuration } from '@/components/query-tables/format-duration'
@@ -56,8 +52,6 @@ export const QueryRow = memo(function QueryRow({
   const showCpu = !hiddenColumns.has('cpu')
   const showMemory = !hiddenColumns.has('memory')
   const showReadRows = !hiddenColumns.has('readRows')
-  const colSpan =
-    BASE_COLUMN_COUNT + (OPTIONAL_COLUMNS.length - hiddenColumns.size)
   const cpu = formatDuration(d.userTime)
 
   return (
@@ -206,7 +200,44 @@ export const QueryRow = memo(function QueryRow({
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={colSpan} className="p-0">
+          {/* xs (below sm) */}
+          <td colSpan={4} className="p-0 sm:hidden">
+            <ExpandedRow d={d} />
+          </td>
+          {/* sm (sm to md) */}
+          <td
+            colSpan={4 + (showCnt ? 1 : 0)}
+            className="hidden p-0 sm:table-cell md:hidden"
+          >
+            <ExpandedRow d={d} />
+          </td>
+          {/* md (md to lg) */}
+          <td
+            colSpan={4 + (showCnt ? 1 : 0) + (showMemory ? 1 : 0)}
+            className="hidden p-0 md:table-cell lg:hidden"
+          >
+            <ExpandedRow d={d} />
+          </td>
+          {/* lg (lg to xl) */}
+          <td
+            colSpan={
+              4 + (showCnt ? 1 : 0) + (showMemory ? 1 : 0) + (showCpu ? 1 : 0)
+            }
+            className="hidden p-0 lg:table-cell xl:hidden"
+          >
+            <ExpandedRow d={d} />
+          </td>
+          {/* xl (xl+) */}
+          <td
+            colSpan={
+              4 +
+              (showCnt ? 1 : 0) +
+              (showMemory ? 1 : 0) +
+              (showCpu ? 1 : 0) +
+              (showReadRows ? 1 : 0)
+            }
+            className="hidden p-0 xl:table-cell"
+          >
             <ExpandedRow d={d} />
           </td>
         </tr>
