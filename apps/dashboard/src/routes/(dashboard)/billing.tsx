@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { trackEvent } from '@/lib/analytics/analytics'
+import { SALES_CONTACT_EMAIL, salesContactMailto } from '@/lib/billing/contact'
 import { BILLING_PLAN_LIST, getPlan } from '@/lib/billing/plans'
 import {
   checkCanDowngrade,
@@ -298,10 +299,10 @@ function BillingPage() {
                     <p className="text-muted-foreground text-center text-[11px] leading-snug">
                       Contact{' '}
                       <a
-                        href="mailto:hi@anyrouter.dev?subject=chmonitor%20Enterprise%20—%20dedicated%20instance"
+                        href={salesContactMailto()}
                         className="text-foreground underline underline-offset-2"
                       >
-                        hi@anyrouter.dev
+                        {SALES_CONTACT_EMAIL}
                       </a>{' '}
                       for details on a dedicated instance.
                     </p>

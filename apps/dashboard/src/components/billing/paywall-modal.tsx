@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { trackEvent } from '@/lib/analytics/analytics'
+import { salesContactMailto } from '@/lib/billing/contact'
 import { openBillingPortal, startCheckout } from '@/lib/billing/use-billing'
 
 export interface PaywallModalProps {
@@ -132,9 +133,7 @@ export function PaywallModal({
           </Button>
           {showHardCta &&
             (action.kind === 'contact' ? (
-              <Button
-                render={<a href="mailto:hello@chmonitor.dev">Contact us</a>}
-              />
+              <Button render={<a href={salesContactMailto()}>Contact us</a>} />
             ) : (
               <Button
                 onClick={onUpgrade}
