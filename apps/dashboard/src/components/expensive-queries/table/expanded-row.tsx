@@ -1,6 +1,10 @@
 import { Code2, ExternalLink } from 'lucide-react'
 
 import { type DerivedQuery, num } from './types'
+import {
+  CodeBlock,
+  CodeBlockCopyButton,
+} from '@/components/ai-elements/code-block'
 import { DialogSQL } from '@/components/dialogs/dialog-sql'
 import { DetailField } from '@/components/query-tables/detail-field'
 import { AppLink as Link } from '@/components/ui/app-link'
@@ -101,9 +105,14 @@ export function ExpandedRow({ d }: { d: DerivedQuery }) {
             {lineCount} {lineCount === 1 ? 'line' : 'lines'}
           </span>
         </div>
-        <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-card px-3 py-2 font-mono text-[11.5px] leading-relaxed text-foreground">
-          {d.query}
-        </pre>
+        <CodeBlock
+          code={d.query}
+          language="sql"
+          showLineNumbers={lineCount > 1}
+          className="max-h-[180px]"
+        >
+          <CodeBlockCopyButton className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-background border border-border" />
+        </CodeBlock>
       </div>
 
       {/* Actions */}

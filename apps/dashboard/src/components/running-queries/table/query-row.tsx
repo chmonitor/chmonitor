@@ -74,6 +74,8 @@ export const QueryRow = memo(function QueryRow({
   const showCpu = !hiddenColumns.has('cpu')
   const showThreads = !hiddenColumns.has('threads')
   const showDuration = !hiddenColumns.has('duration')
+  const colSpan =
+    BASE_COLUMN_COUNT + (OPTIONAL_COLUMNS.length - hiddenColumns.size)
 
   return (
     <>
@@ -342,91 +344,7 @@ export const QueryRow = memo(function QueryRow({
       </tr>
       {expanded && (
         <tr>
-          {/* xs (below sm) */}
-          <td colSpan={4} className="p-0 sm:hidden">
-            <ExpandedRow
-              d={d}
-              onKill={handleKill}
-              isKilling={isKilling}
-              done={done}
-              onDismiss={onDismiss}
-            />
-          </td>
-          {/* sm (sm to md) */}
-          <td
-            colSpan={4 + (showDuration ? 1 : 0)}
-            className="hidden p-0 sm:table-cell md:hidden"
-          >
-            <ExpandedRow
-              d={d}
-              onKill={handleKill}
-              isKilling={isKilling}
-              done={done}
-              onDismiss={onDismiss}
-            />
-          </td>
-          {/* md (md to lg) */}
-          <td
-            colSpan={4 + (showDuration ? 1 : 0) + (showMemory ? 1 : 0)}
-            className="hidden p-0 md:table-cell lg:hidden"
-          >
-            <ExpandedRow
-              d={d}
-              onKill={handleKill}
-              isKilling={isKilling}
-              done={done}
-              onDismiss={onDismiss}
-            />
-          </td>
-          {/* lg (lg to xl) */}
-          <td
-            colSpan={
-              4 +
-              (showDuration ? 1 : 0) +
-              (showMemory ? 1 : 0) +
-              (showCpu ? 1 : 0)
-            }
-            className="hidden p-0 lg:table-cell xl:hidden"
-          >
-            <ExpandedRow
-              d={d}
-              onKill={handleKill}
-              isKilling={isKilling}
-              done={done}
-              onDismiss={onDismiss}
-            />
-          </td>
-          {/* xl (xl to 2xl) */}
-          <td
-            colSpan={
-              4 +
-              (showDuration ? 1 : 0) +
-              (showMemory ? 1 : 0) +
-              (showCpu ? 1 : 0) +
-              (showData ? 1 : 0)
-            }
-            className="hidden p-0 xl:table-cell 2xl:hidden"
-          >
-            <ExpandedRow
-              d={d}
-              onKill={handleKill}
-              isKilling={isKilling}
-              done={done}
-              onDismiss={onDismiss}
-            />
-          </td>
-          {/* 2xl (2xl+) */}
-          <td
-            colSpan={
-              4 +
-              (showDuration ? 1 : 0) +
-              (showMemory ? 1 : 0) +
-              (showCpu ? 1 : 0) +
-              (showData ? 1 : 0) +
-              (showThreads ? 1 : 0)
-            }
-            className="hidden p-0 2xl:table-cell"
-          >
+          <td colSpan={colSpan} className="p-0">
             <ExpandedRow
               d={d}
               onKill={handleKill}

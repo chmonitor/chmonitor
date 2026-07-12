@@ -442,7 +442,7 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
                     Duration
                   </SortableHeader>
                 )}
-                <SortableHeader width="84px" align="right">
+                <SortableHeader width="124px" align="right">
                   <span className="sr-only">Actions</span>
                 </SortableHeader>
               </tr>
