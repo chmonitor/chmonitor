@@ -63,7 +63,7 @@ export function InsightCard({
         }
       }}
       className={cn(
-        'h-full cursor-pointer gap-0 border-l-0 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'h-full cursor-pointer gap-0 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         style.accent,
         className
       )}
