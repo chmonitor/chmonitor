@@ -20,19 +20,7 @@
  */
 
 import { debug, warn } from '@chm/logger'
-
-/** Minimal Cloudflare KV Namespace surface used here. */
-interface KVNamespace {
-  get(
-    key: string,
-    options?: { type?: 'text' | 'json' | 'arrayBuffer' | 'stream' }
-  ): Promise<unknown>
-  put(
-    key: string,
-    value: string,
-    options?: { expirationTtl?: number }
-  ): Promise<void>
-}
+import { target } from '@/lib/target'
 
 /** KV entry TTL: 15 minutes (longer than the 5-min in-memory L1, since KV
  * already survives isolate churn — this just bounds allowlist staleness). */
@@ -44,14 +32,8 @@ function getKeyName(hostId: number): string {
 
 /** Resolve the `CHM_DASHBOARD_QUERY_KV` binding if the runtime provides one. */
 function getKV(): KVNamespace | undefined {
-  if (
-    typeof globalThis !== 'undefined' &&
-    'CHM_DASHBOARD_QUERY_KV' in globalThis
-  ) {
-    return (globalThis as unknown as { CHM_DASHBOARD_QUERY_KV: KVNamespace })
-      .CHM_DASHBOARD_QUERY_KV
-  }
-  return undefined
+  const kv = target().kv('CHM_DASHBOARD_QUERY_KV')
+  return kv ?? undefined
 }
 
 /**

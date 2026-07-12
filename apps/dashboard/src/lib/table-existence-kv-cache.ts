@@ -16,7 +16,9 @@
  * standalone everywhere this adapter can't reach KV.
  */
 
+import { CHM_VERSION_CACHE_KV_BINDING } from './version-cache'
 import { debug, warn } from '@chm/logger'
+import { target } from '@/lib/target'
 
 export interface TableExistenceCacheAdapter {
   get(key: string): Promise<boolean | null>
@@ -70,7 +72,9 @@ export function getTableExistenceCache(
   kv?: KVNamespace | null
 ): TableExistenceCacheAdapter {
   if (!cacheInstance) {
-    cacheInstance = new KVTableExistenceCache(kv ?? null)
+    const actualKv =
+      kv !== undefined ? kv : target().kv(CHM_VERSION_CACHE_KV_BINDING)
+    cacheInstance = new KVTableExistenceCache(actualKv)
   }
   return cacheInstance
 }

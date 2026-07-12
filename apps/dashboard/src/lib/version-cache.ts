@@ -25,6 +25,7 @@
 import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 
 import { debug, warn } from '@chm/logger'
+import { target } from '@/lib/target'
 
 /** The wrangler.toml binding name this module reads (see issue #2183). */
 export const CHM_VERSION_CACHE_KV_BINDING = 'CHM_VERSION_CACHE_KV'
@@ -134,16 +135,13 @@ let cacheInstance: VersionCacheAdapter | null = null
 export function getVersionCache(kv?: KVNamespace | null): VersionCacheAdapter {
   if (cacheInstance) return cacheInstance
 
-  // 1. Use the Cloudflare KV binding when the caller resolved one (null on
-  // Node/self-hosted, or on Cloudflare before `[[kv_namespaces]]` is
-  // provisioned). Resolving the binding is the caller's job (`start.ts`,
-  // inside a `.server()` middleware body) — this module must not import
-  // `cloudflare:workers` itself. TanStack Start splits code outside
-  // `.server()` callbacks into an isomorphic chunk without that virtual
-  // module, so importing it here breaks the build (#2183).
-  if (kv) {
+  // 1. Use the Cloudflare KV binding when the caller resolved one, or resolve
+  // it from the deploy-target adapter.
+  const actualKv =
+    kv !== undefined ? kv : target().kv(CHM_VERSION_CACHE_KV_BINDING)
+  if (actualKv) {
     try {
-      cacheInstance = new CloudflareKVCache(kv)
+      cacheInstance = new CloudflareKVCache(actualKv)
       return cacheInstance
     } catch (err) {
       warn('[version-cache] Failed to initialize KV cache:', err)
