@@ -233,51 +233,6 @@ jobs:
             docker buildx imagetools create -t "$TAG" "$AMD64" "$ARM64"
           done
 
-  helm-publish:
-    name: helm-publish
-    needs: docker-manifest
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
-
-      - name: Extract version
-        id: ver
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
-        run: |
-          TAG="$RELEASE_TAG"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid release tag: $TAG" >&2
-            exit 1
-          fi
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Install Helm
-        uses: azure/setup-helm@v5
-
-      - name: Sync Chart.yaml to release version
-        run: |
-          VERSION="${{ steps.ver.outputs.version }}"
-          sed -i "s/^version:.*/version: $VERSION/" deploy/helm/chmonitor/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" deploy/helm/chmonitor/Chart.yaml
-
-      - name: Package chart
-        run: helm package deploy/helm/chmonitor --destination /tmp/helm-pkg
-
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      # Push to OCI registry: oci://ghcr.io/chmonitor/chmonitor
-      # Pull with: helm install my-chm oci://ghcr.io/chmonitor/chmonitor --version X.Y.Z
-      - name: Push chart to OCI (GHCR)
-        run: |
-          VERSION="${{ steps.ver.outputs.version }}"
-          helm push /tmp/helm-pkg/chmonitor-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}
-
   assets:
     name: assets
     needs: docker-manifest

@@ -14,16 +14,6 @@
       "prerelease": false,
       "extra-files": [
         {
-          "type": "yaml",
-          "path": "deploy/helm/chmonitor/Chart.yaml",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "yaml",
-          "path": "deploy/helm/chmonitor/Chart.yaml",
-          "jsonpath": "$.appVersion"
-        },
-        {
           "type": "json",
           "path": "apps/dashboard/src/package.json",
           "jsonpath": "$.version"

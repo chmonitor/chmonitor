@@ -4,10 +4,9 @@ name: Helm Chart Release
 # packages to the gh-pages branch; a follow-up job mirrors that branch to the
 # chmonitor-charts Cloudflare Pages project, served at charts.chmonitor.dev.
 # chart-releaser detects Chart.yaml version bumps and only re-packages charts
-# that changed since the last published release. Chart.yaml version + appVersion
-# are auto-bumped by release-please on each app release (see
-# .github/release-please-config.json extra-files), so the shipped image tag
-# (defaults to appVersion) tracks the release.
+# that changed since the last published release. The chart version is bumped
+# manually when chart code changes (templates, values). The image tag always
+# defaults to "latest" (set in Chart.yaml appVersion) — no per-release sync.
 #
 # The gh-pages branch is auto-created on first run (see "Bootstrap gh-pages
 # branch" step). charts.chmonitor.dev is bound to the chmonitor-charts Pages
