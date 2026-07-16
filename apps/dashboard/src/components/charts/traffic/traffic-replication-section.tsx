@@ -17,6 +17,12 @@ interface ClusterShapeRow {
 interface TrafficReplicationSectionProps {
   chartClassName?: string
   chartCardContentClassName?: string
+  /**
+   * View-settings override: 'hide' removes the section, 'show' forces it
+   * (rendering both charts, skipping detection), 'auto' (default) keeps the
+   * smart cluster-shape detection.
+   */
+  visibility?: 'auto' | 'show' | 'hide'
 }
 
 /**
@@ -35,24 +41,28 @@ export const TrafficReplicationSection = memo(
   function TrafficReplicationSection({
     chartClassName,
     chartCardContentClassName,
+    visibility = 'auto',
   }: TrafficReplicationSectionProps) {
     const hostId = useHostId()
 
+    const forced = visibility === 'show'
     const shape = useChartData<ClusterShapeRow>({
       chartName: 'traffic-cluster-shape',
       hostId,
       refreshInterval: REFRESH_INTERVAL.SLOW_2M,
     })
 
-    if (shape.isLoading || shape.error) return null
+    if (visibility === 'hide') return null
 
     const row = shape.data?.[0]
-    if (!row) return null
-
-    const hasReplication = Number(row.replicated_tables ?? 0) > 0
-    const hasShards = Number(row.max_shards ?? 0) > 1
-
-    if (!hasReplication && !hasShards) return null
+    let hasReplication = true
+    let hasShards = true
+    if (!forced) {
+      if (shape.isLoading || shape.error || !row) return null
+      hasReplication = Number(row.replicated_tables ?? 0) > 0
+      hasShards = Number(row.max_shards ?? 0) > 1
+      if (!hasReplication && !hasShards) return null
+    }
 
     return (
       <div className="flex flex-col gap-3 sm:gap-4">

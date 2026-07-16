@@ -19,34 +19,57 @@ import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'
 
 export const trafficCharts: Record<string, ChartQueryBuilder> = {
   /**
-   * KPI summary: last 24h vs previous 24h ingestion totals from query_log.
-   * Single-row result consumed by the /traffic KPI strip.
+   * KPI summary: current window vs previous window ingestion totals from
+   * query_log. Single-row result consumed by the /traffic KPI strip. The
+   * window follows the global time-range picker via lastHours (default 24h).
    */
-  'traffic-summary': () => ({
-    query: `
+  'traffic-summary': ({ lastHours = 24 }) => {
+    const hours = Math.max(1, Math.floor(Number(lastHours) || 24))
+    return {
+      query: `
     SELECT
-      sumIf(written_rows, recent) AS rows_24h,
-      sumIf(written_rows, NOT recent) AS rows_prev_24h,
-      sumIf(written_bytes, recent) AS bytes_24h,
-      sumIf(written_bytes, NOT recent) AS bytes_prev_24h,
-      countIf(recent) AS inserts_24h,
-      countIf(NOT recent) AS inserts_prev_24h,
-      formatReadableQuantity(rows_24h) AS readable_rows_24h,
-      formatReadableSize(bytes_24h) AS readable_bytes_24h,
-      formatReadableQuantity(inserts_24h) AS readable_inserts_24h
+      sumIf(written_rows, recent) AS rows_cur,
+      sumIf(written_rows, NOT recent) AS rows_prev,
+      sumIf(written_bytes, recent) AS bytes_cur,
+      sumIf(written_bytes, NOT recent) AS bytes_prev,
+      countIf(recent) AS inserts_cur,
+      countIf(NOT recent) AS inserts_prev,
+      formatReadableQuantity(rows_cur) AS readable_rows,
+      formatReadableSize(bytes_cur) AS readable_bytes,
+      formatReadableQuantity(inserts_cur) AS readable_inserts
     FROM (
       SELECT
         written_rows,
         written_bytes,
-        event_time >= now() - INTERVAL 24 HOUR AS recent
+        event_time >= now() - INTERVAL ${hours} HOUR AS recent
       FROM system.query_log
       WHERE type = 'QueryFinish'
         AND query_kind = 'Insert'
-        AND event_time >= now() - INTERVAL 48 HOUR
+        AND event_time >= now() - INTERVAL ${hours * 2} HOUR
     )
   `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
+
+  /**
+   * part_log availability probe for /traffic smart-detection. part_log is
+   * opt-in server config, so several sections (Bytes on Disk, Merges & Data
+   * Movement, Top Tables) are meaningless without it. This cheap one-row query
+   * exists to surface the data layer's `table_not_found` signal: when part_log
+   * is absent the API responds with `metadata.unavailable`, and the page
+   * replaces those sections with a single "enable part_log" callout instead of
+   * a wall of empty cards.
+   */
+  'traffic-part-log-detect': () => ({
+    query: `
+    SELECT count() AS recent_part_events
+    FROM system.part_log
+    WHERE event_time >= now() - INTERVAL 24 HOUR
+  `,
     optional: true,
-    tableCheck: 'system.query_log',
+    tableCheck: 'system.part_log',
   }),
 
   /**

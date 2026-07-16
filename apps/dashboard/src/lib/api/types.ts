@@ -55,6 +55,17 @@ export interface ApiResponseMetadata {
   readonly params?: Record<string, unknown> | null
   readonly timezone?: string
   readonly resultRowLimit?: number
+  /**
+   * Present when an `optional` chart's backing table is absent (graceful
+   * degradation): the API returns success with empty data plus this note so
+   * clients can render a "not available" state — or hide the section — instead
+   * of an error. Emitted by routes/api/v1/charts/$name.ts.
+   */
+  readonly unavailable?: {
+    readonly reason: string
+    readonly message?: string
+    readonly missingTables?: readonly string[]
+  }
   readonly resultOverflowMode?: string
   readonly resultRowsBeforeCap?: number
   readonly resultRowsTruncated?: boolean

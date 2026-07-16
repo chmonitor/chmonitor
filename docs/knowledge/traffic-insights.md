@@ -129,6 +129,32 @@ only `query_log` + `parts` (both on by default). Enabling `part_log` (a
 `<part_log>` server-config block) lights up Bytes-on-disk, Merges & Data
 Movement, Top Tables, and Replica fetches.
 
+Since 2026-07, the page also **auto-hides** the `part_log`-backed sections
+rather than rendering their empty cards: `traffic-part-log-detect` (a cheap
+probe builder) surfaces the API's `metadata.unavailable` `table_not_found`
+signal, `use-part-log-availability.ts` reads it **fail-open** (only the
+explicit signal hides — loading/transient errors keep sections visible), and
+`traffic.tsx` swaps the hidden sections for a single
+`TrafficPartLogCallout` (`EmptyState variant="table-missing"`) explaining how
+to enable `part_log`. The `unavailable` field is typed on
+`ApiResponseMetadata` (`lib/api/types.ts`).
+
+## View settings & presets (`/traffic`)
+
+The page header hosts `TrafficSettingsPopover` — per-section visibility with a
+three-state override (**Auto** = smart detection, **Show** / **Hide** =
+explicit), persisted in localStorage (`traffic-view-settings`) via
+`lib/traffic/traffic-settings.ts` (`useSyncExternalStore` + CustomEvent +
+cross-tab `storage` sync). Named presets (Auto / Ingest focus / Storage &
+merges / Everything) are just predefined section maps; the active preset is
+*derived* by comparing maps, not stored. The smart-detected sections
+(`TrafficReplicationSection`, `TrafficPeerdbSection`) accept a
+`visibility: 'auto' | 'show' | 'hide'` prop — `show` bypasses their detection
+(forcing all charts), `hide` returns `null` unconditionally. The KPI strip
+follows the **global time-range picker** (`traffic-summary` takes `lastHours`;
+window-agnostic column aliases `rows_cur` / `rows_prev` / …); the per-table
+ingestion table remains fixed at 24h (QueryConfig SQL is static — follow-up).
+
 ## Extending the page
 
 To add a new Traffic section/chart:

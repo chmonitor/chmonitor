@@ -19,9 +19,15 @@ interface PeerdbDetectRow {
 export const TrafficPeerdbSection = memo(function TrafficPeerdbSection({
   chartClassName,
   chartCardContentClassName,
+  visibility = 'auto',
 }: {
   chartClassName?: string
   chartCardContentClassName?: string
+  /**
+   * View-settings override: 'hide' removes the section, 'show' forces it
+   * (skipping detection), 'auto' (default) keeps the PeerDB smart detection.
+   */
+  visibility?: 'auto' | 'show' | 'hide'
 }) {
   const hostId = useHostId()
 
@@ -31,14 +37,18 @@ export const TrafficPeerdbSection = memo(function TrafficPeerdbSection({
     refreshInterval: REFRESH_INTERVAL.SLOW_2M,
   })
 
+  if (visibility === 'hide') return null
+
   const row = detect.data?.[0]
 
-  if (detect.isLoading || detect.error || !row) return null
-  if (
-    Number(row.peerdb_tables ?? 0) === 0 &&
-    Number(row.peerdb_inserts_24h ?? 0) === 0
-  ) {
-    return null
+  if (visibility !== 'show') {
+    if (detect.isLoading || detect.error || !row) return null
+    if (
+      Number(row.peerdb_tables ?? 0) === 0 &&
+      Number(row.peerdb_inserts_24h ?? 0) === 0
+    ) {
+      return null
+    }
   }
 
   return (
