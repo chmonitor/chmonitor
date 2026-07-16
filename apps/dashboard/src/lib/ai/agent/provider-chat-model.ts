@@ -84,12 +84,19 @@ export function resolveAgentChatModel({
   model = DEFAULT_MODEL,
   hasTools = false,
   referer,
+  apiKey,
 }: {
   readonly model?: string
   readonly hasTools?: boolean
   readonly referer?: string
+  /**
+   * BYOK — a user-supplied provider API key. When present it overrides the
+   * deployment's env key for this request (see `agent/byok.ts`). The caller
+   * is responsible for skipping included-credit metering when BYOK is active.
+   */
+  readonly apiKey?: string
 }): ResolvedAgentChatModel {
-  const resolved = resolveProvider(model)
+  const resolved = resolveProvider(model, apiKey)
   const { model: modelId } = parseModelId(model)
 
   if (resolved.isOpenRouter) {

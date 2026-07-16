@@ -133,7 +133,43 @@ const {
   releaseAiUsage,
   getAiSpendThisMonth,
   meterAiOverage,
+  recordByokActivation,
+  getByokActivationsThisMonth,
 } = await import('./ai-usage-store')
+
+/**
+ * In-memory D1 fake for the BYOK activation table (`ai_byok_monthly`). Keyed by
+ * "owner_id::month" → count. Like {@link makeFakeSpendD1} it exposes a top-level
+ * `run()` so `ensureByokTable`'s unbound `CREATE TABLE IF NOT EXISTS` succeeds,
+ * but each bound write increments the count by a fixed 1 (matching the store's
+ * `count = count + 1` INSERT … ON CONFLICT).
+ */
+function makeFakeByokD1(store: Map<string, number>) {
+  function prepare(sql: string) {
+    const isSelect = sql.trimStart().toUpperCase().startsWith('SELECT')
+    return {
+      async run() {
+        return { success: true, results: [], meta: {} }
+      },
+      bind(...values: unknown[]) {
+        const key = `${values[0] as string}::${values[1] as string}`
+        return {
+          async first<T>() {
+            if (!isSelect) return null
+            const count = store.get(key)
+            if (count == null) return null
+            return { count } as unknown as T
+          },
+          async run() {
+            if (!isSelect) store.set(key, (store.get(key) ?? 0) + 1)
+            return { success: true, results: [], meta: {} }
+          },
+        }
+      },
+    }
+  }
+  return { prepare }
+}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -284,5 +320,33 @@ describe('meterAiOverage', () => {
     await expect(
       meterAiOverage(BILLING_PLANS.pro, 'user_pro', 0.1, FIXED_DATE)
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('recordByokActivation + getByokActivationsThisMonth round-trip', () => {
+  beforeEach(() => {
+    currentDb = makeFakeByokD1(new Map())
+  })
+
+  test('count goes 0 → 1 after a single activation', async () => {
+    expect(await getByokActivationsThisMonth('user_abc', FIXED_DATE)).toBe(0)
+    await recordByokActivation('user_abc', FIXED_DATE)
+    expect(await getByokActivationsThisMonth('user_abc', FIXED_DATE)).toBe(1)
+  })
+
+  test('count accumulates across activations and isolates owners', async () => {
+    await recordByokActivation('user_a', FIXED_DATE)
+    await recordByokActivation('user_a', FIXED_DATE)
+    await recordByokActivation('user_b', FIXED_DATE)
+    expect(await getByokActivationsThisMonth('user_a', FIXED_DATE)).toBe(2)
+    expect(await getByokActivationsThisMonth('user_b', FIXED_DATE)).toBe(1)
+  })
+
+  test('fail-open: no-op / 0 when D1 is unavailable', async () => {
+    currentDb = null
+    await expect(
+      recordByokActivation('user_abc', FIXED_DATE)
+    ).resolves.toBeUndefined()
+    expect(await getByokActivationsThisMonth('user_abc', FIXED_DATE)).toBe(0)
   })
 })

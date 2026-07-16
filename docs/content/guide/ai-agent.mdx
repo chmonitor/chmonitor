@@ -82,6 +82,29 @@ settings" link in the chat page's settings panel). It groups four tabs:
   below). This replaces the old standalone `/mcp-servers` page, which now
   redirects to `/agents/settings?tab=mcp`.
 
+## Bring your own key (BYOK)
+
+On the hosted (Cloud) product the AI advisor normally runs on chmonitor's
+included AI credits, which are metered per plan (a daily message allowance plus a
+monthly spend budget). You can instead **bring your own model-provider API key**:
+send it as the `apiKey` field on the agent request (`POST /api/v1/agent`) and the
+request runs against **your** provider account instead.
+
+When a valid BYOK key is supplied:
+
+- The key overrides the deployment's provider key for that request only. It is
+  **never persisted and never logged** — it is forwarded to the provider for the
+  single request and then discarded.
+- chmonitor **skips its own included-credit metering entirely** — no daily
+  reservation, no monthly budget check, no overage. Your usage is billed by your
+  provider, not by chmonitor.
+- BYOK works on any plan (Free / Pro / …), so you can keep using the advisor past
+  the included daily allowance by paying your provider directly.
+
+Self-hosted (OSS) deployments are unaffected — they already run on their own
+`LLM_API_KEY` with no metering. BYOK simply lets a Cloud user do the same
+per-request.
+
 ## Child pages
 
 <Cards>

@@ -230,6 +230,91 @@ export async function addAiSpend(
   }
 }
 
+// ---------------------------------------------------------------------------
+// BYOK activation counter (per-owner, per UTC month, cloud SaaS only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Lazily ensure the BYOK activation table exists. Cached per worker instance so
+ * the DDL runs at most once. Mirrors the monthly-spend table but stores a plain
+ * count of BYOK-backed agent requests per owner per month — the queryable
+ * signal for measuring BYOK-vs-included-credit conversion (task B3). Kept in the
+ * store (not a migration) so it degrades gracefully wherever the other meters do.
+ */
+let byokTableReady = false
+async function ensureByokTable(
+  db: NonNullable<ReturnType<typeof getDb>>
+): Promise<void> {
+  if (byokTableReady) return
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS ai_byok_monthly (
+         owner_id   TEXT NOT NULL,
+         month      TEXT NOT NULL,
+         count      INTEGER NOT NULL DEFAULT 0,
+         updated_at INTEGER NOT NULL,
+         PRIMARY KEY (owner_id, month)
+       )`
+    )
+    .run()
+  byokTableReady = true
+}
+
+/**
+ * Record one BYOK-backed agent request for `ownerId` in the current UTC month.
+ * This is the activation signal for BYOK-vs-included-credit conversion analysis
+ * (task B3) — it does NOT gate or meter anything (BYOK requests bill the user's
+ * own provider account). Best-effort + fail-open: a no-op when D1 is
+ * unavailable, and a missing table / transient error never breaks the request.
+ */
+export async function recordByokActivation(
+  ownerId: string,
+  now: Date = new Date()
+): Promise<void> {
+  const db = getDb()
+  if (!db) return
+  try {
+    await ensureByokTable(db)
+    const updatedAt = Math.floor(now.getTime() / 1000)
+    await db
+      .prepare(
+        `INSERT INTO ai_byok_monthly (owner_id, month, count, updated_at)
+         VALUES (?1, ?2, 1, ?3)
+         ON CONFLICT(owner_id, month) DO UPDATE SET
+           count      = count + 1,
+           updated_at = excluded.updated_at`
+      )
+      .bind(ownerId, utcMonthKey(now), updatedAt)
+      .run()
+  } catch {
+    // Swallow: a missing table or transient D1 error must not break the request.
+  }
+}
+
+/**
+ * Return how many BYOK-backed agent requests `ownerId` has made this UTC month.
+ * Returns 0 when D1 is unavailable or no row exists yet.
+ */
+export async function getByokActivationsThisMonth(
+  ownerId: string,
+  now: Date = new Date()
+): Promise<number> {
+  const db = getDb()
+  if (!db) return 0
+  try {
+    await ensureByokTable(db)
+    const row = await db
+      .prepare(
+        `SELECT count FROM ai_byok_monthly WHERE owner_id = ?1 AND month = ?2`
+      )
+      .bind(ownerId, utcMonthKey(now))
+      .first<{ count: number }>()
+    return row?.count ?? 0
+  } catch {
+    return 0
+  }
+}
+
 /**
  * Meter one request's actual USD cost as overage — but only for plans that
  * publish an overage policy (`plan.aiOverage`).

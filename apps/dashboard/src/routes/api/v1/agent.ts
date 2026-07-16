@@ -42,6 +42,7 @@ import {
 } from 'ai'
 import { createClickHouseAgent } from '@/lib/ai/agent'
 import { aggregateUsageWithCost } from '@/lib/ai/agent/analytics'
+import { parseByokApiKey } from '@/lib/ai/agent/byok'
 import { classifyError } from '@/lib/ai/agent/errors'
 import { AGENT_JSON_RENDER_INLINE_PROMPT } from '@/lib/ai/agent/json-render-inline-prompt'
 import { createJsonRenderPatchGuardStream } from '@/lib/ai/agent/json-render-patch-guard'
@@ -70,6 +71,7 @@ import { isClerkAuthProvider } from '@/lib/auth/provider'
 import {
   getAiSpendThisMonth,
   meterAiOverage,
+  recordByokActivation,
   releaseAiUsage,
   reserveAiUsage,
 } from '@/lib/billing/ai-usage-store'
@@ -117,6 +119,13 @@ type AgentRequestBody = {
   >
   hostId?: number
   model?: string
+  /**
+   * BYOK — the user's own model-provider API key. When present and valid, the
+   * request runs against their provider credit and chmonitor skips its own
+   * included-credit metering (see `lib/ai/agent/byok.ts`). Never persisted or
+   * logged.
+   */
+  apiKey?: string
   disabledTools?: string[]
   sessionId?: string
   mcpServers?: Array<{ id?: unknown; name?: unknown; endpoint?: unknown }>
@@ -515,11 +524,20 @@ async function handlePost(request: Request): Promise<Response> {
       ? body.model.trim()
       : configuredModel || resolveDefaultAgentModel()
 
+  // BYOK: the user may supply their own provider API key. When present and
+  // valid, it (a) overrides the deployment's env key for this request and (b)
+  // makes the request bypass included-credit metering below — the request bills
+  // their provider account. Parsed once here; never logged.
+  const byokApiKey = parseByokApiKey(body.apiKey)
+  const byok = byokApiKey !== null
+
   // Preflight: refuse early if the selected provider has no API key on this
   // deployment. Without this, the upstream provider returns a confusing
   // "Missing Authorization header" error that looks like *our* auth failed.
+  // Skipped for BYOK — the user brings the credential, so a deployment without
+  // its own key for that provider is still fine.
   const { provider: requestedProvider } = parseModelId(model)
-  if (!isProviderConfigured(requestedProvider)) {
+  if (!byok && !isProviderConfigured(requestedProvider)) {
     const classified = classifyError(
       {
         statusCode: 503,
@@ -616,63 +634,77 @@ async function handlePost(request: Request): Promise<Response> {
   let billingOwnerId: string | null = null
   let resolvedPlan: Plan | null = null
   let reservedDailyUsage = false
-  try {
-    const owner = await resolveBillingOwner()
-    const plan = await getPlanForOwner(owner.id)
-    billingOwnerId = owner.id
-    resolvedPlan = plan
-
-    // Monthly LLM spend budget — hard cap (null = Enterprise BYOK / unlimited).
-    if (plan.aiMonthlyUsdBudget != null) {
-      const spentUsd = await getAiSpendThisMonth(owner.id)
-      const budget = checkAiBudget(plan, spentUsd)
-      if (!budget.allowed) {
-        return new Response(
-          JSON.stringify({
-            error: limitMessage(budget),
-            details: {
-              planId: budget.planId,
-              limit: budget.limit ?? plan.aiMonthlyUsdBudget,
-              reason: budget.reason,
-            },
-          }),
-          { status: 402, headers: { 'content-type': 'application/json' } }
-        )
-      }
+  if (byok) {
+    // BYOK bypasses included-credit metering entirely: no daily reservation, no
+    // monthly budget check, no overage. billingOwnerId stays null so the stream
+    // path below never meters this request. Best-effort record the activation
+    // (cloud only) so BYOK-vs-included-credit conversion is measurable — a no-op
+    // on OSS / when no Clerk owner resolves.
+    try {
+      const owner = await resolveBillingOwner()
+      await recordByokActivation(owner.id)
+    } catch {
+      // Not cloud / no Clerk owner → nothing to record; self-hosted stays whole.
     }
+  } else {
+    try {
+      const owner = await resolveBillingOwner()
+      const plan = await getPlanForOwner(owner.id)
+      billingOwnerId = owner.id
+      resolvedPlan = plan
 
-    // Daily message meter — reserve one slot atomically, then decide. The
-    // reservation (post-increment count) is rolled back below if it exceeds the
-    // hard cap, and again in the stream if generation fails before starting.
-    if (plan.aiRequestsPerDay != null) {
-      const reservedCount = await reserveAiUsage(owner.id)
-      if (reservedCount != null) {
-        reservedDailyUsage = true
-        // reservedCount is the count *after* this reservation; usage before this
-        // request is reservedCount - 1.
-        const check = checkAiDailyLimit(plan, reservedCount - 1)
-        if (!check.allowed) {
-          await releaseAiUsage(owner.id)
-          reservedDailyUsage = false
+      // Monthly LLM spend budget — hard cap (null = Enterprise BYOK / unlimited).
+      if (plan.aiMonthlyUsdBudget != null) {
+        const spentUsd = await getAiSpendThisMonth(owner.id)
+        const budget = checkAiBudget(plan, spentUsd)
+        if (!budget.allowed) {
           return new Response(
             JSON.stringify({
-              error: limitMessage(check),
+              error: limitMessage(budget),
               details: {
-                planId: check.planId,
-                limit: check.limit ?? plan.aiRequestsPerDay,
-                reason: check.reason,
+                planId: budget.planId,
+                limit: budget.limit ?? plan.aiMonthlyUsdBudget,
+                reason: budget.reason,
               },
             }),
             { status: 402, headers: { 'content-type': 'application/json' } }
           )
         }
       }
+
+      // Daily message meter — reserve one slot atomically, then decide. The
+      // reservation (post-increment count) is rolled back below if it exceeds the
+      // hard cap, and again in the stream if generation fails before starting.
+      if (plan.aiRequestsPerDay != null) {
+        const reservedCount = await reserveAiUsage(owner.id)
+        if (reservedCount != null) {
+          reservedDailyUsage = true
+          // reservedCount is the count *after* this reservation; usage before this
+          // request is reservedCount - 1.
+          const check = checkAiDailyLimit(plan, reservedCount - 1)
+          if (!check.allowed) {
+            await releaseAiUsage(owner.id)
+            reservedDailyUsage = false
+            return new Response(
+              JSON.stringify({
+                error: limitMessage(check),
+                details: {
+                  planId: check.planId,
+                  limit: check.limit ?? plan.aiRequestsPerDay,
+                  reason: check.reason,
+                },
+              }),
+              { status: 402, headers: { 'content-type': 'application/json' } }
+            )
+          }
+        }
+      }
+    } catch {
+      // Not cloud / no Clerk owner → skip enforcement; self-hosted stays whole.
+      billingOwnerId = null
+      resolvedPlan = null
+      reservedDailyUsage = false
     }
-  } catch {
-    // Not cloud / no Clerk owner → skip enforcement; self-hosted stays whole.
-    billingOwnerId = null
-    resolvedPlan = null
-    reservedDailyUsage = false
   }
 
   // Now that all early (402 / validation) returns are behind us, connect the
@@ -714,6 +746,7 @@ async function handlePost(request: Request): Promise<Response> {
       includeControlTools,
       sessionId,
       extraTools,
+      ...(byokApiKey ? { apiKey: byokApiKey } : {}),
     })
   } catch (error) {
     // Pre-stream failure: close any MCP clients we just opened (onEnd won't run

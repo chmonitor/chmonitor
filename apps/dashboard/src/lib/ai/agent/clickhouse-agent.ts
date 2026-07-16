@@ -50,6 +50,12 @@ export function createClickHouseAgent(options: {
   sessionId?: string
   /** Additional tools from connected custom MCP servers (prefixed mcp_*). */
   extraTools?: Record<string, unknown>
+  /**
+   * BYOK — a user-supplied provider API key. Overrides the deployment's env
+   * key for this request (see `byok.ts`). Only applied when `model` is a
+   * string (the production path); ignored for a pre-resolved model instance.
+   */
+  apiKey?: string
 }) {
   const {
     model = DEFAULT_MODEL,
@@ -62,6 +68,7 @@ export function createClickHouseAgent(options: {
     includeControlTools = false,
     sessionId = crypto.randomUUID(),
     extraTools,
+    apiKey,
   } = options
 
   const allTools = createAllTools(hostId, includeControlTools)
@@ -76,7 +83,7 @@ export function createClickHouseAgent(options: {
   const hasTools = Object.keys(tools).length > 0
   const modelInstance =
     typeof model === 'string'
-      ? resolveAgentChatModel({ model, hasTools, referer }).model
+      ? resolveAgentChatModel({ model, hasTools, referer, apiKey }).model
       : model
 
   return new ToolLoopAgent({

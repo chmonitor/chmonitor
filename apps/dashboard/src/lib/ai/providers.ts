@@ -96,12 +96,22 @@ export interface ResolvedProvider {
  * 3. Fallback → generic OpenAI-compatible with LLM_API_KEY / LLM_API_BASE
  *
  * Credential cascade:
+ * - `apiKeyOverride` (BYOK — the user's own key) wins over everything below.
  * - OpenRouter/legacy API key: provider-specific env var → LLM_API_KEY
  * - Other explicit provider API keys: provider-specific env var
  * - Base URL: provider-specific env var → provider default
+ *
+ * `apiKeyOverride` powers BYOK (see `agent/byok.ts`): when a user brings their
+ * own provider key it is used verbatim instead of the deployment's env key, so
+ * the request bills their provider account. Absent/empty → env cascade (the
+ * normal metered path).
  */
-export function resolveProvider(id: string): ResolvedProvider {
+export function resolveProvider(
+  id: string,
+  apiKeyOverride?: string
+): ResolvedProvider {
   const { provider: providerId, model } = parseModelId(id)
+  const override = apiKeyOverride?.trim() || undefined
 
   // Legacy model IDs without a recognized provider prefix
   if (!PROVIDERS[providerId]) {
@@ -111,7 +121,7 @@ export function resolveProvider(id: string): ResolvedProvider {
       model.startsWith('openrouter/')
     return {
       providerId: 'openrouter',
-      apiKey: process.env.LLM_API_KEY || '',
+      apiKey: override || process.env.LLM_API_KEY || '',
       baseURL: process.env.LLM_API_BASE || 'https://openrouter.ai/api/v1',
       sdk: isOpenRouter ? 'openrouter' : 'openai',
       isOpenRouter,
@@ -120,6 +130,7 @@ export function resolveProvider(id: string): ResolvedProvider {
 
   const config = PROVIDERS[providerId]
   const apiKey =
+    override ||
     process.env[config.apiKeyEnvVar] ||
     (providerId === 'openrouter' ? process.env.LLM_API_KEY || '' : '')
   const baseURL =

@@ -118,6 +118,38 @@ describe('resolveProvider', () => {
     expect(resolved.sdk).toBe('openai')
   })
 
+  // BYOK: an explicit apiKey override wins over the env key for that provider.
+  test('apiKey override (BYOK) wins over the provider env key', () => {
+    setEnv({ NVIDIA_API_KEY: 'nvapi-env-key' })
+    const resolved = resolveProvider(
+      'nvidia:nvidia/llama-3.1-nemotron-70b-instruct',
+      'nvapi-byok-key'
+    )
+    expect(resolved.apiKey).toBe('nvapi-byok-key')
+  })
+
+  test('apiKey override (BYOK) supplies a key when the env has none', () => {
+    setEnv({ NVIDIA_API_KEY: undefined })
+    const resolved = resolveProvider(
+      'nvidia:nvidia/llama-3.1-nemotron-70b-instruct',
+      'nvapi-byok-key'
+    )
+    expect(resolved.apiKey).toBe('nvapi-byok-key')
+  })
+
+  test('apiKey override applies to the legacy/openrouter fallback path', () => {
+    setEnv({ LLM_API_KEY: undefined })
+    const resolved = resolveProvider('openrouter/free', 'or-byok-key')
+    expect(resolved.providerId).toBe('openrouter')
+    expect(resolved.apiKey).toBe('or-byok-key')
+  })
+
+  test('blank apiKey override falls back to the env key', () => {
+    setEnv({ OPENROUTER_API_KEY: 'or-test-key' })
+    const resolved = resolveProvider('openrouter:qwen/qwen3.5-397b-a17b', '   ')
+    expect(resolved.apiKey).toBe('or-test-key')
+  })
+
   // Regression for the reported 500 model id (slash inside the model name).
   test('resolves anyrouter provider for a slash-containing model id', () => {
     setEnv({ ANYROUTER_API_KEY: 'ar-test-key' })
