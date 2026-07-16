@@ -132,6 +132,7 @@ import { replicationQueueConfig } from './tables/replication-queue'
 import { tablesOverviewConfig } from './tables/tables-overview'
 import { userProcessesConfig } from './tables/user-processes'
 import { viewRefreshesConfig } from './tables/view-refreshes'
+import { trafficPerTableConfig } from './traffic/per-table-ingestion'
 export const queries: Array<QueryConfig> = [
   // Explorer
   explorerDatabasesConfig,
@@ -189,6 +190,9 @@ export const queries: Array<QueryConfig> = [
   mergePerformanceConfig,
   mutationsConfig,
   partLogConfig,
+
+  // Traffic
+  trafficPerTableConfig,
 
   // Settings
   settingsConfig,

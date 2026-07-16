@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Database, FileInput } from 'lucide-react'
+import { ArrowDownToLine, Database, FileInput, Shrink } from 'lucide-react'
 
 import { memo } from 'react'
 import { KpiCard } from '@/components/overview-charts/kpi-card'
@@ -16,6 +16,15 @@ interface TrafficSummaryRow {
   readable_rows_24h: string
   readable_bytes_24h: string
   readable_inserts_24h: string
+  [key: string]: unknown
+}
+
+interface TrafficCompressionRow {
+  compressed_bytes: number
+  uncompressed_bytes: number
+  compression_ratio: number
+  readable_compressed_bytes: string
+  readable_uncompressed_bytes: string
   [key: string]: unknown
 }
 
@@ -53,13 +62,21 @@ export const TrafficSummaryKpis = memo(function TrafficSummaryKpis({
     refreshInterval: REFRESH_INTERVAL.SLOW_2M,
   })
 
+  const compression = useChartData<TrafficCompressionRow>({
+    chartName: 'traffic-compression',
+    hostId,
+    refreshInterval: REFRESH_INTERVAL.SLOW_2M,
+  })
+
   const s = summary.data?.[0]
   const hasData = !summary.error && !!s
+  const c = compression.data?.[0]
+  const hasCompression = !compression.error && !!c && !!c.compression_ratio
 
   return (
     <div
       className={cn(
-        'grid auto-rows-fr grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-3',
+        'grid auto-rows-fr grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 md:grid-cols-4',
         className
       )}
     >
@@ -88,6 +105,18 @@ export const TrafficSummaryKpis = memo(function TrafficSummaryKpis({
           hasData ? deltaSub(s!.inserts_24h, s!.inserts_prev_24h) : undefined
         }
         isLoading={summary.isLoading}
+      />
+      <KpiCard
+        icon={Shrink}
+        tone="amber"
+        label="Compression"
+        value={hasCompression ? `${c!.compression_ratio}×` : DASH}
+        sub={
+          hasCompression
+            ? `${c!.readable_compressed_bytes} on disk of ${c!.readable_uncompressed_bytes}`
+            : undefined
+        }
+        isLoading={compression.isLoading}
       />
     </div>
   )

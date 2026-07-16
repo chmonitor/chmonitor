@@ -17,8 +17,10 @@ import { ChartInsertedBytesOverTime } from '@/components/charts/traffic/inserted
 import { ChartInsertedRowsOverTime } from '@/components/charts/traffic/inserted-rows-over-time'
 import { TrafficSummaryKpis } from '@/components/charts/traffic/traffic-summary-kpis'
 import { PageHeader } from '@/components/layout/page-header'
+import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
 import { pageOgHead } from '@/lib/og'
+import { trafficPerTableConfig } from '@/lib/query-config/traffic/per-table-ingestion'
 
 const CHART_CLASS = 'h-64 min-h-0 w-full'
 const CHART_CARD_CONTENT_CLASS = 'flex min-h-0 flex-1 flex-col px-3 pb-3 pt-0'
@@ -51,6 +53,11 @@ function TrafficPageContent() {
           chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
         />
       </div>
+
+      <PageLayout
+        queryConfig={trafficPerTableConfig}
+        title="Top Tables by Ingestion (24h)"
+      />
     </div>
   )
 }

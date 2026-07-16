@@ -48,6 +48,23 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   }),
 
   /**
+   * Overall compression across active parts — how much smaller data is on
+   * disk vs its raw (uncompressed) form. system.parts is always available.
+   */
+  'traffic-compression': () => ({
+    query: `
+    SELECT
+      sum(data_compressed_bytes) AS compressed_bytes,
+      sum(data_uncompressed_bytes) AS uncompressed_bytes,
+      round(uncompressed_bytes / nullIf(compressed_bytes, 0), 2) AS compression_ratio,
+      formatReadableSize(compressed_bytes) AS readable_compressed_bytes,
+      formatReadableSize(uncompressed_bytes) AS readable_uncompressed_bytes
+    FROM system.parts
+    WHERE active
+  `,
+  }),
+
+  /**
    * Rows ingested over time (uncompressed source of truth: query_log).
    */
   'traffic-inserted-rows': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
