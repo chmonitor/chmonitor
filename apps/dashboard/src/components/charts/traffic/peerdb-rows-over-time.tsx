@@ -58,10 +58,10 @@ export const ChartPeerdbRowsOverTime = function ChartPeerdbRowsOverTime({
         // Pivot long rows (event_time, table, peerdb_rows) into wide rows keyed
         // on event_time with one column per table, tracking tables in one pass.
         const tableSet = new Set<string>()
-        const pivoted = (dataArray as PeerdbRowsRow[]).reduce<
+        const pivoted = dataArray.reduce<
           Record<string, Record<string, number>>
         >((acc, cur) => {
-          const { event_time, table, peerdb_rows } = cur
+          const { event_time, table, peerdb_rows } = cur as PeerdbRowsRow
           tableSet.add(table)
           const inner = acc[event_time] ?? {}
           inner[table] = peerdb_rows
