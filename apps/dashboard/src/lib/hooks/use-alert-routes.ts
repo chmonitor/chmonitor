@@ -13,10 +13,10 @@ import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
 /**
- * Destination provider: `'webhook'` (plan 30), `'pagerduty'` (plan 34), or
- * `'telegram'` (#2655).
+ * Destination provider: `'webhook'` (plan 30), `'pagerduty'` (plan 34),
+ * `'telegram'` (#2655), or `'ntfy'` (#2657).
  */
-export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram'
+export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram' | 'ntfy'
 
 export interface AlertRouteInfo {
   id: string
@@ -33,6 +33,10 @@ export interface AlertRouteInfo {
   telegramChatId: string | null
   /** Masked Telegram bot token (last 4 chars only) — never the raw secret. */
   telegramBotTokenMasked: string | null
+  /** ntfy topic URL (not a secret). */
+  ntfyUrl: string | null
+  /** Masked ntfy access token (last 4 chars only) — never the raw secret. */
+  ntfyTokenMasked: string | null
 }
 
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
@@ -76,6 +80,8 @@ export function useAlertRoutesMutations() {
     routingKey?: string
     telegramBotToken?: string
     telegramChatId?: string
+    ntfyUrl?: string
+    ntfyToken?: string
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {
       method: 'POST',

@@ -101,6 +101,8 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity that triggers a notification. Values: `warning` or `critical`. |
 | `HEALTH_ALERT_TELEGRAM_BOT_TOKEN` | (unset = Telegram disabled) | Telegram Bot API token. Server-only secret — never exposed to the browser. Set together with `HEALTH_ALERT_TELEGRAM_CHAT_ID` to enable the global Telegram channel; each finding is sent to the chat via the Bot API `sendMessage` endpoint. Per-rule/per-host Telegram routes (Routing tab) override this fallback. |
 | `HEALTH_ALERT_TELEGRAM_CHAT_ID` | (unset = Telegram disabled) | Target Telegram chat id (e.g. `-1001234567890`, or `@channelname`). Both this and `HEALTH_ALERT_TELEGRAM_BOT_TOKEN` must be set for the global Telegram channel to fire. |
+| `HEALTH_ALERT_NTFY_URL` | (unset = ntfy disabled) | Full [ntfy](https://ntfy.sh) topic URL (e.g. `https://ntfy.sh/my-topic`, or a self-hosted server). Each finding is published with `Title`/`Priority`/`Tags` headers + a plain-text body (severity → priority: critical `5`/urgent, warning `4`/high, recovery `3`/default). Per-rule/per-host ntfy routes (Routing tab) override this fallback. |
+| `HEALTH_ALERT_NTFY_TOKEN` | (unset = no auth) | Optional ntfy access token for a protected topic, sent as `Authorization: Bearer <token>`. Server-only secret — never exposed to the browser. |
 
 <Callout type="warn" title="CRON_SECRET is required">
 `CRON_SECRET` is **required** for the cron endpoints. When it is unset, `/api/cron/health-sweep` and `/api/cron/retention-prune` **fail closed and return HTTP 503** (they do not run) — `retention-prune` is destructive, so it must never be reachable unauthenticated. Set `CRON_SECRET` and pass it as `Authorization: Bearer <secret>` from your cron caller.
@@ -117,6 +119,8 @@ wrangler secret put CRON_SECRET
 wrangler secret put HEALTH_ALERT_WEBHOOK_URL
 # Optional: Telegram channel (bot token is a secret; chat id is a plain var)
 wrangler secret put HEALTH_ALERT_TELEGRAM_BOT_TOKEN
+# Optional: ntfy channel (topic URL is a plain var; access token is a secret)
+wrangler secret put HEALTH_ALERT_NTFY_TOKEN
 ```
 </Step>
 <Step>

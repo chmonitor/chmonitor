@@ -13,6 +13,7 @@ export type { DiscordWebhookBody } from './discord'
 export type { EmailBody, EmailConfig, EmailProvider } from './email'
 export type { GenericJsonBody } from './generic-json'
 export type { MSTeamsWebhookBody } from './msteams'
+export type { NtfyConfig, NtfyMessage } from './ntfy'
 export type {
   OpsgenieConfig,
   OpsgenieCreateBody,
@@ -35,6 +36,12 @@ export { buildDiscordBody, discordAdapter } from './discord'
 export { buildEmailBody, detectEmailProvider, emailAdapter } from './email'
 export { buildGenericJsonBody, genericJsonAdapter } from './generic-json'
 export { buildMSTeamsBody, msTeamsAdapter } from './msteams'
+export {
+  buildNtfyHeaders,
+  buildNtfyMessage,
+  ntfyAdapter,
+  sanitizeHeaderValue,
+} from './ntfy'
 export { buildOpsgenieBody, opsgenieAdapter, opsgenieAlias } from './opsgenie'
 export {
   buildPagerDutyBody,

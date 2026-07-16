@@ -66,6 +66,12 @@ function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
     telegramBotTokenMasked: route.telegramBotToken
       ? maskRoutingKey(route.telegramBotToken)
       : null,
+    // ntfy (#2657): the topic URL is not a secret (its secret, if any, is the
+    // access token) and is returned as-is so the UI can show which topic a
+    // route targets; the optional token IS a bare secret, masked like the
+    // Telegram bot token.
+    ntfyUrl: route.ntfyUrl,
+    ntfyTokenMasked: route.ntfyToken ? maskRoutingKey(route.ntfyToken) : null,
   }
 }
 
@@ -83,7 +89,10 @@ interface CreateRouteBody {
   matchHost?: unknown
   channelUrl?: unknown
   enabled?: unknown
-  /** `'webhook'` (default), `'pagerduty'` (plan 34), or `'telegram'` (#2655). */
+  /**
+   * `'webhook'` (default), `'pagerduty'` (plan 34), `'telegram'` (#2655), or
+   * `'ntfy'` (#2657).
+   */
   provider?: unknown
   /** PagerDuty-only: display label for the service. */
   serviceName?: unknown
@@ -93,6 +102,10 @@ interface CreateRouteBody {
   telegramBotToken?: unknown
   /** Telegram-only: the target chat id. */
   telegramChatId?: unknown
+  /** ntfy-only: the topic URL (SSRF-validated, HTTPS-only). */
+  ntfyUrl?: unknown
+  /** ntfy-only: the optional access token (a secret). */
+  ntfyToken?: unknown
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -113,7 +126,9 @@ async function handlePost(request: Request): Promise<Response> {
       ? 'pagerduty'
       : body.provider === 'telegram'
         ? 'telegram'
-        : 'webhook'
+        : body.provider === 'ntfy'
+          ? 'ntfy'
+          : 'webhook'
 
   const matchRule =
     typeof body.matchRule === 'string' && body.matchRule.trim()
@@ -191,6 +206,49 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'telegram',
       telegramBotToken,
       telegramChatId,
+    })
+
+    if (!created) {
+      return jsonError(
+        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        501
+      )
+    }
+
+    return Response.json(
+      { success: true, route: toPublicRoute(created) },
+      { status: 201 }
+    )
+  }
+
+  if (provider === 'ntfy') {
+    const ntfyUrl = typeof body.ntfyUrl === 'string' ? body.ntfyUrl.trim() : ''
+    const ntfyToken =
+      typeof body.ntfyToken === 'string' ? body.ntfyToken.trim() : ''
+    if (!ntfyUrl || !ntfyUrl.startsWith('https://')) {
+      return jsonError(
+        'Missing or invalid "ntfyUrl": expected an HTTPS ntfy topic URL',
+        400
+      )
+    }
+
+    // Unlike Telegram (fixed api.telegram.org host), an ntfy topic URL is
+    // caller-supplied — a real SSRF sink — so it goes through the same guard
+    // the generic webhook path uses (`validateHostUrl`) before being stored.
+    const ssrfError = await validateHostUrl(ntfyUrl)
+    if (ssrfError) {
+      return jsonError(ssrfError, 400)
+    }
+
+    const created = await createRoute({
+      ownerId,
+      matchRule,
+      matchHost,
+      channelUrl: '',
+      enabled,
+      provider: 'ntfy',
+      ntfyUrl,
+      ntfyToken: ntfyToken || null,
     })
 
     if (!created) {

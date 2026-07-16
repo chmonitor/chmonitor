@@ -213,6 +213,38 @@ export function getServerTelegramConfig(): ServerTelegramConfig | null {
   return { botToken, chatId }
 }
 
+/** Resolved server-side ntfy config: the topic URL plus an optional token. */
+export interface ServerNtfyConfig {
+  /** Full topic URL, e.g. `https://ntfy.sh/my-topic` (may be self-hosted). */
+  url: string
+  /** Optional access token for a protected topic (`Authorization: Bearer …`). */
+  token?: string
+}
+
+/**
+ * Server-side ntfy config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_NTFY_URL   → url    (full topic URL, default '')
+ *   - HEALTH_ALERT_NTFY_TOKEN → token  (optional Bearer token, default unset)
+ *
+ * Returns null unless the URL is configured — ntfy delivery is opt-in and
+ * fails open (no URL ⇒ the sweep skips the ntfy dispatch entirely). This is the
+ * global fallback used when no per-rule/per-host ntfy route matches, mirroring
+ * the Telegram fallback (#2655).
+ *
+ * NOTE: exposed as a companion function (matching {@link getServerTelegramConfig})
+ * rather than folded into {@link getServerAlertConfig}'s return value — that
+ * shape is shared with the client's localStorage settings and asserted deeply
+ * by its tests, and the ntfy token is a server-only secret that must never
+ * round-trip through it.
+ */
+export function getServerNtfyConfig(): ServerNtfyConfig | null {
+  const url = process.env.HEALTH_ALERT_NTFY_URL?.trim() || ''
+  if (!url) return null
+  const token = process.env.HEALTH_ALERT_NTFY_TOKEN?.trim() || ''
+  return token ? { url, token } : { url }
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

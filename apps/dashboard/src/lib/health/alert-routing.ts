@@ -38,9 +38,10 @@ const TABLE = 'alert_routes'
  * `'pagerduty'` (plan 34) routes to a PagerDuty service's Events API v2
  * integration key (`routingKey`) instead, letting PagerDuty apply that
  * service's own escalation policy + on-call schedule. `'telegram'` (#2655)
- * routes to a Telegram chat via a bot token + chat id.
+ * routes to a Telegram chat via a bot token + chat id. `'ntfy'` (#2657)
+ * routes to an ntfy topic URL (self-hostable) with an optional access token.
  */
-export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram'
+export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram' | 'ntfy'
 
 /** A configured alert route: match criteria → destination channel. */
 export interface AlertRoute {
@@ -63,6 +64,10 @@ export interface AlertRoute {
   telegramBotToken: string | null
   /** Telegram target chat id (provider `'telegram'` only). */
   telegramChatId: string | null
+  /** ntfy topic URL (provider `'ntfy'` only). */
+  ntfyUrl: string | null
+  /** ntfy access token — a secret (provider `'ntfy'` only). */
+  ntfyToken: string | null
 }
 
 interface D1AlertRouteRow {
@@ -78,6 +83,8 @@ interface D1AlertRouteRow {
   routing_key: string | null
   telegram_bot_token: string | null
   telegram_chat_id: string | null
+  ntfy_url: string | null
+  ntfy_token: string | null
 }
 
 function getDb(): D1Database | null {
@@ -101,11 +108,15 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
         ? 'pagerduty'
         : row.provider === 'telegram'
           ? 'telegram'
-          : 'webhook',
+          : row.provider === 'ntfy'
+            ? 'ntfy'
+            : 'webhook',
     serviceName: row.service_name ?? null,
     routingKey: row.routing_key ?? null,
     telegramBotToken: row.telegram_bot_token ?? null,
     telegramChatId: row.telegram_chat_id ?? null,
+    ntfyUrl: row.ntfy_url ?? null,
+    ntfyToken: row.ntfy_token ?? null,
   }
 }
 
@@ -123,7 +134,8 @@ export async function listRoutes(ownerId: string): Promise<AlertRoute[]> {
     const result = await db
       .prepare(
         `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
-                provider, service_name, routing_key, telegram_bot_token, telegram_chat_id
+                provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
+                ntfy_url, ntfy_token
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -154,6 +166,10 @@ export interface CreateRouteInput {
   telegramBotToken?: string | null
   /** Telegram target chat id (provider `'telegram'` only). */
   telegramChatId?: string | null
+  /** ntfy topic URL (provider `'ntfy'` only). */
+  ntfyUrl?: string | null
+  /** ntfy access token — a secret (provider `'ntfy'` only). */
+  ntfyToken?: string | null
 }
 
 /**
@@ -181,14 +197,17 @@ export async function createRoute(
       routingKey: input.routingKey?.trim() || null,
       telegramBotToken: input.telegramBotToken?.trim() || null,
       telegramChatId: input.telegramChatId?.trim() || null,
+      ntfyUrl: input.ntfyUrl?.trim() || null,
+      ntfyToken: input.ntfyToken?.trim() || null,
     }
 
     await db
       .prepare(
         `INSERT INTO ${TABLE}
            (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
-            provider, service_name, routing_key, telegram_bot_token, telegram_chat_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`
+            provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
+            ntfy_url, ntfy_token)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`
       )
       .bind(
         route.id,
@@ -202,7 +221,9 @@ export async function createRoute(
         route.serviceName,
         route.routingKey,
         route.telegramBotToken,
-        route.telegramChatId
+        route.telegramChatId,
+        route.ntfyUrl,
+        route.ntfyToken
       )
       .run()
 
@@ -419,6 +440,57 @@ export function resolveTelegramTargets(
       if (seen.has(key)) continue
       seen.add(key)
       out.push({ botToken: r.telegramBotToken, chatId: r.telegramChatId })
+    }
+    return out
+  }
+
+  if (matched.length > 0) return []
+
+  return envFallback ? [envFallback] : []
+}
+
+/** One ntfy dispatch target: a topic URL + an optional access token. */
+export interface NtfyTarget {
+  url: string
+  token?: string
+}
+
+/**
+ * Resolve the ntfy topics a finding should publish to (#2657 — extends the
+ * plan-30/34 routing model, mirroring {@link resolveTelegramTargets}): every
+ * ENABLED, matched route with `provider === 'ntfy'` that carries a topic URL,
+ * deduplicated by `url`. When NO route matched at all (any provider), falls
+ * back to `[envFallback]` when the env-configured global ntfy config is present
+ * — preserving the single-destination behavior for deployments that never
+ * configure a route. Returns `[]` when there is no env fallback, OR when a
+ * route of a different provider matched instead — the same cross-provider
+ * suppression {@link resolveTargets} / {@link resolvePagerDutyTargets} /
+ * {@link resolveTelegramTargets} apply, so an operator who explicitly routed a
+ * rule elsewhere is not ALSO published to the env-configured ntfy topic. Pure
+ * — no I/O.
+ */
+export function resolveNtfyTargets(
+  routes: readonly AlertRoute[],
+  target: RouteMatchTarget,
+  envFallback: NtfyTarget | null
+): NtfyTarget[] {
+  const matched = matchRoutes(routes, target)
+  const ntfyMatched = matched.filter(
+    (r): r is AlertRoute & { ntfyUrl: string } =>
+      r.provider === 'ntfy' && Boolean(r.ntfyUrl)
+  )
+
+  if (ntfyMatched.length > 0) {
+    const seen = new Set<string>()
+    const out: NtfyTarget[] = []
+    for (const r of ntfyMatched) {
+      if (seen.has(r.ntfyUrl)) continue
+      seen.add(r.ntfyUrl)
+      out.push(
+        r.ntfyToken
+          ? { url: r.ntfyUrl, token: r.ntfyToken }
+          : { url: r.ntfyUrl }
+      )
     }
     return out
   }

@@ -56,6 +56,9 @@ export function HealthSettingsDialog() {
   const [telegramStatus, setTelegramStatus] = useState<{
     configured: boolean
   } | null>(null)
+  const [ntfyStatus, setNtfyStatus] = useState<{
+    configured: boolean
+  } | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -73,6 +76,10 @@ export function HealthSettingsDialog() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setTelegramStatus(data as { configured: boolean } | null))
       .catch(() => setTelegramStatus(null))
+    fetch('/api/v1/health/ntfy-test')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setNtfyStatus(data as { configured: boolean } | null))
+      .catch(() => setNtfyStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -211,6 +218,23 @@ export function HealthSettingsDialog() {
       }
     } catch {
       toast.error('Telegram test message failed')
+    }
+  }
+
+  const handleTestNtfy = async () => {
+    try {
+      const res = await fetch('/api/v1/health/ntfy-test', { method: 'POST' })
+      if (res.ok) {
+        toast.success('ntfy test notification sent')
+      } else {
+        const body = await res.json().catch(() => null)
+        toast.error(
+          (body as { error?: { message?: string } } | null)?.error?.message ??
+            'ntfy test notification failed'
+        )
+      }
+    } catch {
+      toast.error('ntfy test notification failed')
     }
   }
 
@@ -549,6 +573,38 @@ export function HealthSettingsDialog() {
                     size="sm"
                     onClick={handleTestTelegram}
                     disabled={!telegramStatus?.configured}
+                  >
+                    Send test
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">ntfy alerts</Label>
+                      <Badge
+                        variant={
+                          ntfyStatus?.configured ? 'default' : 'secondary'
+                        }
+                      >
+                        {ntfyStatus?.configured
+                          ? 'Configured'
+                          : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Set HEALTH_ALERT_NTFY_URL (and optional
+                      HEALTH_ALERT_NTFY_TOKEN) on the server to enable — the
+                      token is never exposed to the browser
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestNtfy}
+                    disabled={!ntfyStatus?.configured}
                   >
                     Send test
                   </Button>

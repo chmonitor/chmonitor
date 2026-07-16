@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  fireNtfyTest,
   firePagerDutyTest,
   fireTelegramTest,
   fireWebhook,
@@ -56,6 +57,7 @@ function RouteRow({
   const { deleteRoute } = useAlertRoutesMutations()
   const isPagerDuty = route.provider === 'pagerduty'
   const isTelegram = route.provider === 'telegram'
+  const isNtfy = route.provider === 'ntfy'
 
   const handleDelete = async () => {
     setBusy(true)
@@ -102,6 +104,21 @@ function RouteRow({
         )
         return
       }
+      // ntfy: the topic URL is not a secret, so an unprotected topic can be
+      // re-tested directly. A token-protected topic can't — its token is never
+      // re-shown once saved — so fall back to the re-create hint like Telegram.
+      if (isNtfy) {
+        if (route.ntfyTokenMasked) {
+          toast.info(
+            'Re-create the route to send another ntfy test to this protected topic (the token is never re-shown once saved).'
+          )
+          return
+        }
+        const okNtfy = await fireNtfyTest(route.ntfyUrl ?? '')
+        if (okNtfy) toast.success('Test notification sent to ntfy')
+        else toast.error('ntfy request failed')
+        return
+      }
       const ok = await fireWebhook(testAlert, route.channelUrl)
       if (ok) toast.success('Test alert sent')
       else toast.error('Webhook request failed')
@@ -116,6 +133,7 @@ function RouteRow({
         <div className="flex flex-wrap items-center gap-1.5">
           {isPagerDuty && <Badge variant="default">PagerDuty</Badge>}
           {isTelegram && <Badge variant="default">Telegram</Badge>}
+          {isNtfy && <Badge variant="default">ntfy</Badge>}
           <Badge variant="outline">rule: {route.matchRule}</Badge>
           <Badge variant="outline">host: {route.matchHost}</Badge>
           {!route.enabled && <Badge variant="secondary">disabled</Badge>}
@@ -125,7 +143,9 @@ function RouteRow({
             ? `${route.serviceName || 'PagerDuty service'} — ${route.routingKeyMasked}`
             : isTelegram
               ? `chat ${route.telegramChatId} — bot ${route.telegramBotTokenMasked}`
-              : route.channelUrl}
+              : isNtfy
+                ? `${route.ntfyUrl}${route.ntfyTokenMasked ? ` — token ${route.ntfyTokenMasked}` : ''}`
+                : route.channelUrl}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -155,6 +175,8 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
   const [pdRoutingKey, setPdRoutingKey] = useState('')
   const [tgBotToken, setTgBotToken] = useState('')
   const [tgChatId, setTgChatId] = useState('')
+  const [ntfyUrl, setNtfyUrl] = useState('')
+  const [ntfyToken, setNtfyToken] = useState('')
   const [busy, setBusy] = useState(false)
   const { createRoute } = useAlertRoutesMutations()
   const { services: pdServices, isLoading: pdServicesLoading } =
@@ -169,6 +191,8 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     setPdRoutingKey('')
     setTgBotToken('')
     setTgChatId('')
+    setNtfyUrl('')
+    setNtfyToken('')
   }
 
   const handleSubmit = async () => {
@@ -180,6 +204,11 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     } else if (provider === 'telegram') {
       if (!tgBotToken.trim() || !tgChatId.trim()) {
         toast.error('Enter the Telegram bot token and chat id')
+        return
+      }
+    } else if (provider === 'ntfy') {
+      if (!ntfyUrl.trim()) {
+        toast.error('Enter the ntfy topic URL')
         return
       }
     } else if (!channelUrl.trim()) {
@@ -204,7 +233,13 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
                 telegramBotToken: tgBotToken.trim(),
                 telegramChatId: tgChatId.trim(),
               }
-            : { channelUrl: channelUrl.trim() }),
+            : provider === 'ntfy'
+              ? {
+                  provider: 'ntfy',
+                  ntfyUrl: ntfyUrl.trim(),
+                  ntfyToken: ntfyToken.trim() || undefined,
+                }
+              : { channelUrl: channelUrl.trim() }),
       })
       toast.success('Route created')
       reset()
@@ -267,6 +302,24 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const handleSendNtfyTest = async () => {
+    if (!ntfyUrl.trim()) {
+      toast.error('Enter the ntfy topic URL')
+      return
+    }
+    setBusy(true)
+    try {
+      const ok = await fireNtfyTest(
+        ntfyUrl.trim(),
+        ntfyToken.trim() || undefined
+      )
+      if (ok) toast.success('Test notification sent to ntfy')
+      else toast.error('ntfy request failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3">
       <Label className="text-sm font-medium">Add route</Label>
@@ -285,6 +338,7 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             </SelectItem>
             <SelectItem value="pagerduty">PagerDuty service</SelectItem>
             <SelectItem value="telegram">Telegram chat</SelectItem>
+            <SelectItem value="ntfy">ntfy topic</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -400,6 +454,42 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             onClick={handleSendTelegramTest}
           >
             Send test message
+          </Button>
+        </>
+      ) : provider === 'ntfy' ? (
+        <>
+          <Label
+            htmlFor="route-ntfy-url"
+            className="text-xs text-muted-foreground"
+          >
+            Topic URL
+          </Label>
+          <Input
+            id="route-ntfy-url"
+            placeholder="https://ntfy.sh/my-topic"
+            value={ntfyUrl}
+            onChange={(e) => setNtfyUrl(e.target.value)}
+          />
+          <Label
+            htmlFor="route-ntfy-token"
+            className="text-xs text-muted-foreground"
+          >
+            Access token (optional)
+          </Label>
+          <Input
+            id="route-ntfy-token"
+            placeholder="tk_… (only for protected topics)"
+            value={ntfyToken}
+            onChange={(e) => setNtfyToken(e.target.value)}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            disabled={busy}
+            onClick={handleSendNtfyTest}
+          >
+            Send test notification
           </Button>
         </>
       ) : (

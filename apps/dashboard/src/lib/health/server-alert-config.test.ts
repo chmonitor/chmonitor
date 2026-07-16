@@ -1,6 +1,7 @@
 import {
   getServerAlertConfig,
   getServerEmailConfig,
+  getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerTelegramConfig,
 } from './server-alert-config'
@@ -409,6 +410,52 @@ describe('getServerTelegramConfig', () => {
     expect(getServerTelegramConfig()).toEqual({
       botToken: '123:ABC',
       chatId: '-100',
+    })
+  })
+})
+
+const NTFY_ENV_KEYS = [
+  'HEALTH_ALERT_NTFY_URL',
+  'HEALTH_ALERT_NTFY_TOKEN',
+] as const
+
+describe('getServerNtfyConfig', () => {
+  const original: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of NTFY_ENV_KEYS) {
+      original[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of NTFY_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key]
+      else process.env[key] = original[key]
+    }
+  })
+
+  it('returns null when the URL is not set', () => {
+    expect(getServerNtfyConfig()).toBeNull()
+  })
+
+  it('returns null when the URL is whitespace-only', () => {
+    process.env.HEALTH_ALERT_NTFY_URL = '   '
+    expect(getServerNtfyConfig()).toBeNull()
+  })
+
+  it('returns the URL alone when no token is set', () => {
+    process.env.HEALTH_ALERT_NTFY_URL = '  https://ntfy.sh/my-topic  '
+    expect(getServerNtfyConfig()).toEqual({ url: 'https://ntfy.sh/my-topic' })
+  })
+
+  it('trims and returns URL + token when both set', () => {
+    process.env.HEALTH_ALERT_NTFY_URL = '  https://ntfy.sh/my-topic  '
+    process.env.HEALTH_ALERT_NTFY_TOKEN = '  tk_secret  '
+    expect(getServerNtfyConfig()).toEqual({
+      url: 'https://ntfy.sh/my-topic',
+      token: 'tk_secret',
     })
   })
 })

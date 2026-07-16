@@ -28,6 +28,8 @@ interface FakeRow {
   routing_key: string | null
   telegram_bot_token?: string | null
   telegram_chat_id?: string | null
+  ntfy_url?: string | null
+  ntfy_token?: string | null
 }
 
 function makeFakeD1() {
@@ -56,6 +58,8 @@ function makeFakeD1() {
                 routing_key,
                 telegram_bot_token,
                 telegram_chat_id,
+                ntfy_url,
+                ntfy_token,
               ] = params as [
                 string,
                 string,
@@ -65,6 +69,8 @@ function makeFakeD1() {
                 number,
                 number,
                 string,
+                string | null,
+                string | null,
                 string | null,
                 string | null,
                 string | null,
@@ -83,6 +89,8 @@ function makeFakeD1() {
                 routing_key,
                 telegram_bot_token,
                 telegram_chat_id,
+                ntfy_url,
+                ntfy_token,
               })
               return { meta: { changes: 1 } }
             }
@@ -141,6 +149,7 @@ const {
   deleteRoute,
   listRoutes,
   matchRoutes,
+  resolveNtfyTargets,
   resolvePagerDutyTargets,
   resolveTargets,
   resolveTelegramTargets,
@@ -162,6 +171,8 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     routingKey: null,
     telegramBotToken: null,
     telegramChatId: null,
+    ntfyUrl: null,
+    ntfyToken: null,
     ...overrides,
   }
 }
@@ -461,6 +472,89 @@ describe('resolveTelegramTargets (pure) — #2655', () => {
   })
 })
 
+describe('resolveNtfyTargets (pure) — #2657', () => {
+  const ENV_FALLBACK = { url: 'https://ntfy.sh/env-topic', token: 'env-tok' }
+
+  test('matches an ntfy route and returns its url + token', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'ntfy',
+      ntfyUrl: 'https://ntfy.sh/my-topic',
+      ntfyToken: 'tk_secret',
+    })
+    expect(resolveNtfyTargets([r], TARGET, null)).toEqual([
+      { url: 'https://ntfy.sh/my-topic', token: 'tk_secret' },
+    ])
+  })
+
+  test('returns url-only when the route has no token', () => {
+    const r = route({
+      matchRule: 'disk-*',
+      matchHost: '*',
+      provider: 'ntfy',
+      ntfyUrl: 'https://ntfy.sh/my-topic',
+    })
+    expect(resolveNtfyTargets([r], TARGET, null)).toEqual([
+      { url: 'https://ntfy.sh/my-topic' },
+    ])
+  })
+
+  test('ignores webhook-provider routes even if matched', () => {
+    const r = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolveNtfyTargets([r], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('a matched webhook route suppresses the env ntfy fallback (no double-fire)', () => {
+    const webhook = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolveNtfyTargets([webhook], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('deduplicates matched routes sharing the same url', () => {
+    const r1 = route({
+      id: 'a',
+      matchRule: 'disk-usage',
+      provider: 'ntfy',
+      ntfyUrl: 'https://ntfy.sh/my-topic',
+      ntfyToken: 'tk_secret',
+    })
+    const r2 = route({
+      id: 'b',
+      matchRule: '*',
+      provider: 'ntfy',
+      ntfyUrl: 'https://ntfy.sh/my-topic',
+      ntfyToken: 'tk_secret',
+    })
+    expect(resolveNtfyTargets([r1, r2], TARGET, null)).toEqual([
+      { url: 'https://ntfy.sh/my-topic', token: 'tk_secret' },
+    ])
+  })
+
+  test('an ntfy route missing the url never dispatches, and still suppresses the env fallback', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'ntfy',
+      ntfyUrl: null,
+      ntfyToken: 'tk_secret',
+    })
+    expect(resolveNtfyTargets([r], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('falls back to the env config when nothing matches', () => {
+    const r = route({ matchRule: 'replication-*', provider: 'ntfy' })
+    expect(resolveNtfyTargets([r], TARGET, ENV_FALLBACK)).toEqual([
+      ENV_FALLBACK,
+    ])
+  })
+
+  test('empty route list falls back to the env config', () => {
+    expect(resolveNtfyTargets([], TARGET, ENV_FALLBACK)).toEqual([ENV_FALLBACK])
+  })
+
+  test('no match and no env config -> empty (no ntfy dispatch)', () => {
+    expect(resolveNtfyTargets([], TARGET, null)).toEqual([])
+  })
+})
+
 describe('D1-backed alert-routing CRUD', () => {
   test('listRoutes returns [] when D1 binding is missing (self-hosted/OSS)', async () => {
     currentDb = null
@@ -556,6 +650,29 @@ describe('D1-backed alert-routing CRUD', () => {
     expect(listed.provider).toBe('telegram')
     expect(listed.telegramBotToken).toBe('123:ABC')
     expect(listed.telegramChatId).toBe('-100')
+  })
+
+  test('create -> list round-trip persists ntfy provider fields', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+
+    const created = await createRoute({
+      ownerId: 'owner-1',
+      matchRule: 'disk-*',
+      matchHost: '*',
+      channelUrl: '',
+      provider: 'ntfy',
+      ntfyUrl: 'https://ntfy.sh/my-topic',
+      ntfyToken: 'tk_secret',
+    })
+    expect(created?.provider).toBe('ntfy')
+    expect(created?.ntfyUrl).toBe('https://ntfy.sh/my-topic')
+    expect(created?.ntfyToken).toBe('tk_secret')
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.provider).toBe('ntfy')
+    expect(listed.ntfyUrl).toBe('https://ntfy.sh/my-topic')
+    expect(listed.ntfyToken).toBe('tk_secret')
   })
 
   test('legacy row with no provider column value defaults to webhook', async () => {

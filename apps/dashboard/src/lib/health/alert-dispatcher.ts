@@ -312,6 +312,36 @@ export async function fireTelegramTest(
   }
 }
 
+/**
+ * Send a test ntfy notification to a specific topic URL + optional token, via
+ * the dedicated `/api/v1/health/ntfy-test` route (#2657). Unlike Telegram —
+ * whose fixed Bot API host lets its test ride the generic `/health/webhook`
+ * proxy — ntfy needs Title/Priority/Tags HTTP headers the proxy can't emit, so
+ * the server route builds the request (and SSRF-validates the caller-supplied
+ * URL) instead. The token is only ever sent to our own server at creation time
+ * (the user just typed it), never echoed back to the client after storage.
+ */
+export async function fireNtfyTest(
+  url: string,
+  token?: string
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const res = await fetch('/api/v1/health/ntfy-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(token ? { url, token } : { url }),
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export async function dispatchAlert(alert: HealthAlertEvent): Promise<void> {
   try {
     const settings = loadAlertSettings()

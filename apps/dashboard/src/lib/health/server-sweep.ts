@@ -23,6 +23,7 @@ import { clearAck, isAcked, listActiveAcks } from './alert-ack-store'
 import { recordAlertEvent } from './alert-history-store'
 import {
   listRoutes,
+  resolveNtfyTargets,
   resolvePagerDutyTargets,
   resolveTargets,
   resolveTelegramTargets,
@@ -31,6 +32,7 @@ import { alertStateStore, evaluateAlert } from './alert-state-store'
 import { loadCustomRulesIntoRegistry } from './custom-rules-store'
 import { sendAlertEmail } from './email-transport'
 import { isSuppressed, listWindows } from './maintenance-windows'
+import { dispatchNtfy } from './ntfy-dispatch'
 import { dispatchOpsgenie } from './opsgenie-dispatch'
 import {
   getPagerDutyFallbackRoutingKey,
@@ -48,6 +50,7 @@ import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
   getServerEmailConfig,
+  getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerTelegramConfig,
   getServerThresholdOverrides,
@@ -367,6 +370,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const opsgenieConfig = getServerOpsgenieConfig()
   const emailConfig = getServerEmailConfig()
   const telegramFallback = getServerTelegramConfig()
+  const ntfyFallback = getServerNtfyConfig()
   const canDispatch =
     settings.webhookEnabled &&
     (webhookConfigured ||
@@ -374,7 +378,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       Boolean(pagerDutyFallbackKey) ||
       Boolean(opsgenieConfig) ||
       Boolean(emailConfig) ||
-      Boolean(telegramFallback))
+      Boolean(telegramFallback) ||
+      Boolean(ntfyFallback))
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
@@ -636,6 +641,17 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         routes,
         { ruleId, ruleType, hostId, hostName: name },
         telegramFallback
+      )
+
+      // ntfy topics (#2657): resolved separately from the generic webhook
+      // fan-out — an ntfy target needs the topic URL + Title/Priority/Tags
+      // headers, not the `{ text, content }` wrapper. Falls back to the
+      // env-configured global topic when no route matches, same fail-open
+      // contract as the webhook/PagerDuty/Telegram paths.
+      const ntfyTargets = resolveNtfyTargets(
+        routes,
+        { ruleId, ruleType, hostId, hostName: name },
+        ntfyFallback
       )
 
       // Normalized payload shared by every per-URL body builder below (Discord
@@ -926,6 +942,53 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
+      // ntfy (#2657): every resolved topic (matched routes, or the
+      // env-configured global topic when nothing matched). `dispatchNtfy`
+      // renders the header + plain-text body and never throws (fails open),
+      // matching every other channel here.
+      for (const target of ntfyTargets) {
+        const alertSeverity: AlertSeverity =
+          decision.kind === 'recovery'
+            ? 'recovery'
+            : (effective as 'warning' | 'critical')
+        const ok = await dispatchNtfy(
+          {
+            severity: alertSeverity,
+            hostLabel: name,
+            hostId,
+            metric: ruleId,
+            value,
+            warnThreshold,
+            critThreshold,
+            title: ruleTitle,
+            label,
+            timestamp: new Date().toISOString(),
+          },
+          { url: target.url, token: target.token }
+        )
+        if (ok) anyDelivered = true
+
+        try {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId,
+              hostLabel: name,
+              ruleId,
+              decision,
+              value,
+              delivered: ok,
+              error: ok ? undefined : 'ntfy dispatch failed',
+              channel: 'ntfy',
+            })
+          )
+        } catch (err) {
+          debug(
+            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+
       // Persist "notified" only when there was nothing to deliver (no
       // targets at all across every channel — not a failure) or at least one
       // channel succeeded. A failed delivery with no successes leaves no
@@ -934,6 +997,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         targets.length +
           pagerDutyTargets.length +
           telegramTargets.length +
+          ntfyTargets.length +
           (opsgenieConfig ? 1 : 0) +
           (emailConfig ? 1 : 0) ===
           0 ||
