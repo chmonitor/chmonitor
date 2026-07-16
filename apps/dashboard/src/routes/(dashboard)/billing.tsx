@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/card'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { getPlan, getVisiblePlans } from '@/lib/billing/plans'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import {
   checkCanDowngrade,
   openBillingPortal,
@@ -42,6 +41,7 @@ import {
 } from '@/lib/billing/use-billing'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 /**
  * Sign-in primitives gated behind the build-time `isClerkEnabled()` constant —

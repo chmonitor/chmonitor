@@ -1,10 +1,9 @@
-import { describe, expect, test } from 'bun:test'
-
 import {
   BYOK_MAX_KEY_LENGTH,
   BYOK_MIN_KEY_LENGTH,
   parseByokApiKey,
 } from '../byok'
+import { describe, expect, test } from 'bun:test'
 
 describe('parseByokApiKey', () => {
   test('accepts a typical provider key and trims surrounding whitespace', () => {
