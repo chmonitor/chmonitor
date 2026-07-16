@@ -2,23 +2,39 @@
 import { loadChangelogFeatures } from '../data/changelog-features'
 
 // Newest features sit first in CHANGELOG.md, so the raw (file-order) list gives
-// us the latest four without re-sorting. Each card is a quiet, flat, bordered
-// link into the full changelog.
+// us the latest four without re-sorting. Each card links to the real changelog
+// page (release notes), not an in-page anchor.
 const { features } = loadChangelogFeatures()
 const latest = features.slice(0, 4)
 ---
-<section class="py-14 sm:py-18">
+<section class="py-14 sm:py-18 border-t border-border bg-muted/30">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Changelog</p>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Changelog</p>
+        <h2 class="mt-2.5 text-balance font-semibold text-2xl tracking-tight sm:text-3xl">Always shipping</h2>
+        <p class="mt-2 text-pretty text-sm sm:text-base text-muted-foreground">The latest from the release notes.</p>
+      </div>
+      <a
+        href="/changelog"
+        class="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-link)] transition-opacity hover:opacity-80"
+      >
+        See what&apos;s new
+        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {
         latest.map((f) => (
           <a
-            href="/changelog#features"
-            class="group flex flex-col gap-2 rounded-xl border border-border bg-transparent p-5 transition-colors hover:border-[var(--hairline-strong)]"
+            href="/changelog"
+            class="group flex flex-col gap-2.5 rounded-xl border border-border bg-card p-5 transition-colors hover:border-[var(--hairline-strong)]"
           >
-            <span class="font-mono text-xs tabular-nums text-muted-foreground">
-              {f.version ? `v${f.version}` : f.scope}
+            <span class="flex items-center justify-between">
+              <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                {f.version ? `v${f.version}` : f.scope}
+              </span>
+              <svg class="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
             </span>
             <span class="text-pretty text-sm font-medium leading-snug text-foreground">
               {f.title}
@@ -27,12 +43,5 @@ const latest = features.slice(0, 4)
         ))
       }
     </div>
-    <a
-      href="/changelog"
-      class="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-link)] transition-opacity hover:opacity-80"
-    >
-      See what's new
-      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-    </a>
   </div>
 </section>
