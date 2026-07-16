@@ -1,14 +1,16 @@
 /**
  * Traffic / Ingestion Charts
  * Charts answering "how much data is flowing into this cluster?" —
- * rows/bytes written over time, insert query counts, and a 24h KPI summary.
+ * rows/bytes written over time, insert query counts, a 24h KPI summary, plus
+ * merges & data movement (merge volume, part moves, write amplification).
  *
  * Data sources:
  * - system.query_log (Insert queries): written_rows / written_bytes are the
  *   UNCOMPRESSED payload as ingested.
- * - system.part_log (NewPart events): size_in_bytes is the ON-DISK
- *   (compressed) size of each new part. part_log is opt-in, so every chart
- *   using it is marked optional with a tableCheck.
+ * - system.part_log: NewPart size_in_bytes is the ON-DISK (compressed) size of
+ *   each new part; MergeParts / MovePart events drive the merge and
+ *   data-movement charts. part_log is opt-in, so every chart using it is marked
+ *   optional with a tableCheck.
  */
 
 import type { ChartQueryBuilder } from './types'
@@ -161,6 +163,85 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   `,
       optional: true,
       tableCheck: 'system.query_log',
+    }
+  },
+
+  /**
+   * Data merged over time — total on-disk size of parts produced by merges
+   * (part_log MergeParts). High merge volume is background write work that
+   * competes with ingestion for disk and CPU.
+   */
+  'traffic-merged-bytes': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           sum(size_in_bytes) AS merged_bytes,
+           sum(rows) AS merged_rows,
+           count() AS merges,
+           formatReadableSize(merged_bytes) AS readable_merged_bytes
+    FROM system.part_log
+    WHERE event_type = 'MergeParts'
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.part_log',
+    }
+  },
+
+  /**
+   * Part moves over time — count and size of parts relocated across volumes
+   * (part_log MovePart), e.g. TTL-driven moves to cold storage. Spikes signal
+   * tiered-storage churn.
+   */
+  'traffic-part-moves': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           count() AS moves,
+           sum(size_in_bytes) AS moved_bytes,
+           formatReadableSize(moved_bytes) AS readable_moved_bytes
+    FROM system.part_log
+    WHERE event_type = 'MovePart'
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.part_log',
+    }
+  },
+
+  /**
+   * Write amplification over time — bytes merged ÷ bytes newly written per
+   * bucket (part_log MergeParts vs NewPart). A ratio well above 1 means the
+   * cluster rewrites much more than it ingests; useful for spotting overly
+   * aggressive merges or small-insert patterns.
+   */
+  'traffic-write-amplification': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           round(sumIf(size_in_bytes, event_type = 'MergeParts')
+             / nullIf(sumIf(size_in_bytes, event_type = 'NewPart'), 0), 2) AS write_amplification
+    FROM system.part_log
+    WHERE event_type IN ('NewPart', 'MergeParts')
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.part_log',
     }
   },
 }
