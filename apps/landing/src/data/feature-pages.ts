@@ -842,6 +842,199 @@ export const FEATURE_PAGES: FeaturePage[] = [
     docsHref: 'https://docs.chmonitor.dev/guide/features/postgres',
     related: ['peerdb', 'queries', 'ai-agent'],
   },
+  {
+    slug: 'overview',
+    title: 'ClickHouse Cluster Overview — chmonitor',
+    description:
+      'One screen for a ClickHouse cluster: live query rate, memory, connections, merges and disk, charted from system tables with no dashboards to build.',
+    eyebrow: 'Overview',
+    h1: 'Your whole cluster on one screen',
+    subhead:
+      'Query rate, memory, connections, merges and disk — charted the moment you connect. No dashboards to build, no exporters to run.',
+    hero: {
+      src: `${S}/overview-with-charts-dark-with-bg.jpeg`,
+      alt: 'chmonitor cluster overview with live charts',
+    },
+    stats: [
+      { value: '0', label: 'dashboards to build before you see data' },
+      { value: 'Live', label: 'charts refreshed while the page is open' },
+      {
+        value: 'system.*',
+        label: 'read straight from ClickHouse system tables',
+      },
+      { value: 'Multi-host', label: 'switch clusters from the same screen' },
+    ],
+    sections: [
+      {
+        eyebrow: 'Zero setup',
+        title: 'Point it at a cluster, get charts',
+        body: 'chmonitor reads the system tables ClickHouse already writes. Give it a host and the overview is populated on first load — no exporter, no scrape config, no dashboard JSON to import.',
+        bullets: [
+          'Query rate, errors and duration percentiles',
+          'Memory, connections and thread pools',
+          'Merges, mutations and parts pressure',
+        ],
+        screenshot: {
+          src: `${S}/overview-light.png`,
+          srcDark: `${S}/overview-dark.png`,
+          alt: 'Cluster overview page with metric cards and charts',
+        },
+      },
+      {
+        eyebrow: 'Go deeper',
+        title: 'Every chart drills into the rows behind it',
+        body: 'A spike is only useful if you can chase it. Expand the chart strip for detail, change the time range, then click through to the queries, tables or merges that made the shape.',
+        bullets: [
+          'Adjustable time range per chart',
+          'Click-through from a spike to the underlying queries',
+          'Charts keep showing data during a failed refresh',
+        ],
+        screenshot: {
+          src: `${S}/overview-charts-detailed-light.png`,
+          srcDark: `${S}/overview-charts-detailed-dark.png`,
+          alt: 'Detailed overview charts expanded with time range controls',
+        },
+        reverse: true,
+      },
+    ],
+    gallery: [
+      {
+        src: `${S}/g-metrics.png`,
+        alt: 'Cluster metric charts',
+        caption: 'Metrics charted from system tables',
+      },
+      {
+        src: `${S}/query-heatmap-dark.webp`,
+        alt: 'Query activity heatmap over a year',
+        caption: 'A year of query activity at a glance',
+      },
+    ],
+    capabilities: [
+      {
+        title: 'Live metrics',
+        body: 'Query rate, memory, connections, threads.',
+      },
+      {
+        title: 'Merge pressure',
+        body: 'Merges, mutations and parts per table.',
+      },
+      { title: 'Disk usage', body: 'Storage per disk with headroom left.' },
+      {
+        title: 'Time ranges',
+        body: 'Rescope any chart without leaving the page.',
+      },
+      { title: 'Multi-host', body: 'Switch clusters from the host switcher.' },
+      {
+        title: 'Graceful errors',
+        body: 'A failed refresh keeps the last good data.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Do I need Prometheus or Grafana?',
+        a: 'No. chmonitor queries ClickHouse system tables directly, so there is nothing to scrape and nothing to store outside your cluster.',
+      },
+      {
+        q: 'How much load does the overview add?',
+        a: 'The charts run small system-table queries on a refresh interval, all tagged with a query comment so you can see exactly what chmonitor ran.',
+      },
+      {
+        q: 'Can I watch more than one cluster?',
+        a: 'Yes. Configure several hosts and switch between them from the host switcher — each keeps its own overview.',
+      },
+    ],
+    docsHref: 'https://docs.chmonitor.dev',
+    related: ['queries', 'insights', 'topology'],
+  },
+  {
+    slug: 'storage',
+    title: 'ClickHouse Storage & Table Sizes — chmonitor',
+    description:
+      'See where ClickHouse disk goes: table and part sizes, compression ratios, partitions and disk headroom, ranked biggest first.',
+    eyebrow: 'Storage',
+    h1: 'See where your disk actually goes',
+    subhead:
+      'Tables ranked by size, compression ratios per column, parts and partitions — so you know what to drop, TTL or re-encode before the disk fills.',
+    hero: {
+      src: `${S}/storage-new-dark.webp`,
+      alt: 'chmonitor storage page ranking tables by size on disk',
+    },
+    stats: [
+      { value: 'Ranked', label: 'biggest tables and parts first' },
+      { value: 'Ratio', label: 'compressed vs uncompressed per column' },
+      { value: 'Per-disk', label: 'usage and headroom remaining' },
+      { value: 'Parts', label: 'and partitions broken out per table' },
+    ],
+    sections: [
+      {
+        eyebrow: 'Biggest first',
+        title: 'The tables eating your cluster, ranked',
+        body: 'Every table with its size on disk, row count and compression ratio, sorted so the expensive ones are at the top. The answer to "why is the disk full" is the first row, not a query you have to write.',
+        bullets: [
+          'Compressed and uncompressed size side by side',
+          'Compression ratio per table and per column',
+          'Rows, parts and partitions per table',
+        ],
+        screenshot: {
+          src: `${S}/storage-light.png`,
+          srcDark: `${S}/storage-dark.png`,
+          alt: 'Storage page listing tables by size with compression ratios',
+        },
+      },
+      {
+        eyebrow: 'Before it hurts',
+        title: 'Watch headroom, not just usage',
+        body: 'Per-disk usage with what is left, next to the merge and parts pressure that decides how fast it moves. Catch the trend while there is still room to act on it.',
+        bullets: [
+          'Free space per disk and per volume',
+          'Merge and mutation pressure alongside usage',
+          'Health checks that alert before a disk fills',
+        ],
+        screenshot: {
+          src: `${S}/health-summary-no-bg.png`,
+          alt: 'Health summary showing disk usage and cluster pressure',
+        },
+        reverse: true,
+      },
+    ],
+    gallery: [
+      {
+        src: `${S}/record-breakers-dark.webp`,
+        alt: 'Record-breaking tables and queries',
+        caption: 'Record breakers: the biggest of everything',
+      },
+    ],
+    capabilities: [
+      {
+        title: 'Table sizes',
+        body: 'Compressed, uncompressed and row counts.',
+      },
+      { title: 'Compression', body: 'Ratio per table and per column.' },
+      { title: 'Parts', body: 'Parts and partitions broken out per table.' },
+      { title: 'Disks', body: 'Usage and free space per disk and volume.' },
+      { title: 'Alerting', body: 'Health checks fire before a disk fills.' },
+      {
+        title: 'AI advice',
+        body: 'Ask the agent what to TTL, drop or re-encode.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Where do the sizes come from?',
+        a: 'system.parts and system.columns — the same numbers ClickHouse reports, aggregated per table, column and partition.',
+      },
+      {
+        q: 'Can it tell me what to delete?',
+        a: 'The AI agent reads the same storage tools and will recommend TTLs, codecs or drops — recommend-only, nothing is applied without you.',
+      },
+      {
+        q: 'Does it work on a cluster?',
+        a: 'Yes. Sizes are reported per host, and the host switcher moves between clusters.',
+      },
+    ],
+    docsHref: 'https://docs.chmonitor.dev',
+    related: ['insights', 'alerting', 'ai-agent'],
+  },
 ]
 
 export function getFeaturePage(slug: string): FeaturePage | undefined {

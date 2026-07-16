@@ -304,14 +304,17 @@ const ogImage = new URL(image, Astro.site).toString()
       display:flex;flex-direction:column;gap:1px;
       opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease;z-index:60}
     /* Two-column grid variant for wide menus (Features). */
-    .nav-menu.nav-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));min-width:480px;gap:1px}
+    .nav-menu.nav-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(290px,1fr));min-width:620px;gap:1px}
     /* hover bridge so the cursor can cross the gap to the menu */
     .nav-group::after{content:"";position:absolute;top:100%;left:0;right:0;height:12px}
     .nav-group:hover .nav-menu,.nav-group:focus-within .nav-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0)}
     .nav-menu a{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:calc(var(--radius) - 2px);
       font-size:14px;font-weight:500;color:var(--fg-soft);transition:background .14s,color .14s}
     .nav-menu a:hover{background:var(--muted);color:var(--fg)}
-    .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg)}
+    /* Descriptions stay one line so every item is exactly title + desc, no
+       matter how long the copy is — the panel height must not jump per item. */
+    .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg);
+      display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden}
     @media (prefers-reduced-motion:reduce){.nav-trigger svg,.nav-menu{transition:none}}
 
     /* ── theme toggle ── */
