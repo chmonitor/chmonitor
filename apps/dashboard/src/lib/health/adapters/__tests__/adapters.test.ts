@@ -29,6 +29,7 @@ import {
   emailAdapter,
   escapeMarkdownV2,
   genericJsonAdapter,
+  msTeamsAdapter,
   opsgenieAdapter,
   opsgenieAlias,
   pagerDutyAdapter,
@@ -506,6 +507,16 @@ describe('detectAdapter', () => {
     expect(detectAdapter('https://discordapp.com/api/webhooks/1/abc').id).toBe(
       'discord'
     )
+    expect(
+      detectAdapter(
+        'https://acme.webhook.office.com/webhookb2/abc@def/IncomingWebhook/x/y'
+      ).id
+    ).toBe('msteams')
+    expect(
+      detectAdapter(
+        'https://prod-42.westus.logic.azure.com:443/workflows/g/triggers/manual/paths/invoke?sig=x'
+      ).id
+    ).toBe('msteams')
     expect(detectAdapter('https://events.pagerduty.com/v2/enqueue').id).toBe(
       'pagerduty'
     )
@@ -525,6 +536,7 @@ describe('detectAdapter', () => {
     expect(telegramAdapter.id).toBe('telegram')
     expect(slackAdapter.id).toBe('slack')
     expect(discordAdapter.id).toBe('discord')
+    expect(msTeamsAdapter.id).toBe('msteams')
     expect(pagerDutyAdapter.id).toBe('pagerduty')
     expect(opsgenieAdapter.id).toBe('opsgenie')
     expect(genericJsonAdapter.id).toBe('generic-json')
@@ -536,6 +548,7 @@ describe('detectAdapter', () => {
       telegramAdapter,
       slackAdapter,
       discordAdapter,
+      msTeamsAdapter,
       pagerDutyAdapter,
       opsgenieAdapter,
       genericJsonAdapter,
@@ -552,6 +565,7 @@ describe('detectAdapter', () => {
         'telegram',
         'slack',
         'discord',
+        'msteams',
         'pagerduty',
         'opsgenie',
         'generic-json',

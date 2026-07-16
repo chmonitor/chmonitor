@@ -20,10 +20,13 @@ import type { AlertPayload } from '@/lib/health/adapters'
 import { describe, expect, test } from 'bun:test'
 import {
   buildDiscordBody,
+  buildMSTeamsBody,
   buildWebhookDispatchBody,
 } from '@/lib/health/adapters'
 
 const DISCORD_URL = 'https://discord.com/api/webhooks/123/abc'
+const MSTEAMS_URL =
+  'https://acme.webhook.office.com/webhookb2/abc@def/IncomingWebhook/x/y'
 const SLACK_URL = 'https://hooks.slack.com/services/T000/B000/xxxx'
 const GENERIC_URL = 'https://example.com/hooks/alerts'
 
@@ -84,6 +87,25 @@ describe('buildWebhookDispatchBody', () => {
     // Recovery severity → green embed (0x16a34a) and RECOVERY heading.
     expect(body.embeds[0].color).toBe(0x16a34a)
     expect(body.embeds[0].title).toContain('RECOVERY')
+  })
+
+  test('Teams URL → verbatim provider + Adaptive Card', () => {
+    const result = buildWebhookDispatchBody({
+      url: MSTEAMS_URL,
+      text: TEXT,
+      payload: CRITICAL,
+    })
+
+    expect(result.adapterId).toBe('msteams')
+    expect(result.provider).toBe('msteams')
+    // Body is the exact Adaptive Card body — not the generic `{ text, content }`.
+    expect(result.body).toEqual(buildMSTeamsBody(CRITICAL))
+
+    const body = result.body as ReturnType<typeof buildMSTeamsBody>
+    expect(body.type).toBe('message')
+    expect(body.attachments[0].contentType).toBe(
+      'application/vnd.microsoft.card.adaptive'
+    )
   })
 
   test('Slack URL without blocks → plain { text, content } wrapper', () => {

@@ -1,0 +1,70 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`msteams adapter snapshot 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "body": [
+          {
+            "color": "attention",
+            "size": "large",
+            "text": "🔴 CRITICAL: Failed mutations",
+            "type": "TextBlock",
+            "weight": "bolder",
+            "wrap": true,
+          },
+          {
+            "text": "7 failed mutations",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Host",
+                "value": "prod-1 (id 2)",
+              },
+              {
+                "title": "Metric",
+                "value": "failed-mutations",
+              },
+              {
+                "title": "Value",
+                "value": "7",
+              },
+              {
+                "title": "Thresholds",
+                "value": "warn 1 | crit 5",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "text": 
+"**Runbooks:**
+
+- https://docs.example.com/runbook/mutations"
+,
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "small",
+            "text": "2026-07-16T10:00:00.000Z",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
