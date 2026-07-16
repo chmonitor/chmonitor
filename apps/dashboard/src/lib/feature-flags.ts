@@ -104,6 +104,23 @@ export const featureFlags = {
   postgresSource: (): boolean => {
     return import.meta.env.VITE_FEATURE_POSTGRES_SOURCE === 'true'
   },
+
+  /**
+   * Enable the $199/mo "Fleet" mid-anchor tier experiment (B4, #2381) — a
+   * 5-host-included plan between Pro and Max, A/B tested vs Max + overage.
+   *
+   * Fail-closed: PURE env gate, like `postgresSource`. It only controls
+   * whether the Fleet tier is rendered on the landing pricing page and the
+   * in-app billing card (`getVisiblePlans` in `@chm/pricing`) — it is not
+   * (yet) wired to checkout/entitlements, so it never degrades a real
+   * subscription and needs no Clerk check.
+   *
+   * @default false (unset)
+   * @env VITE_FEATURE_FLEET_TIER (canonical CHM_FEATURE_FLEET_TIER)
+   */
+  fleetTierExperiment: (): boolean => {
+    return import.meta.env.VITE_FEATURE_FLEET_TIER === 'true'
+  },
 } as const
 
 /**

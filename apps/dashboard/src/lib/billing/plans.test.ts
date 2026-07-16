@@ -1,6 +1,7 @@
 import {
   BILLING_PLAN_LIST,
   BILLING_PLANS,
+  getVisiblePlans,
   monthlyEquivalentUsd,
   planHasCapability,
   yearlyMonthsFree,
@@ -90,5 +91,42 @@ describe('billing plans', () => {
     expect(planHasCapability('pro', 'custom_dashboards')).toBe(false)
     expect(planHasCapability('max', 'custom_dashboards')).toBe(true)
     expect(planHasCapability('max', 'webhook_integrations')).toBe(true)
+  })
+})
+
+describe('Fleet tier experiment (#2381, B4)', () => {
+  test('Fleet is NOT part of the canonical plan list/ids (not a real checkout target yet)', () => {
+    expect(BILLING_PLAN_LIST.map((p) => p.id)).toEqual([
+      'free',
+      'pro',
+      'max',
+      'enterprise',
+    ])
+    expect('fleet' in BILLING_PLANS).toBe(true)
+  })
+
+  test('Fleet is priced/scoped as the mid-anchor between Pro and Max', () => {
+    const fleet = BILLING_PLANS.fleet
+    expect(fleet.priceMonthlyUsd).toBe(199)
+    expect(fleet.priceYearlyUsd).toBe(1990)
+    expect(fleet.hosts).toBe(5)
+    expect(fleet.hostOverage).toEqual({ usdPer: 19 })
+    expect(planHasCapability('fleet', 'fleet_view')).toBe(true)
+  })
+
+  test('getVisiblePlans(false) is identical to BILLING_PLAN_LIST — flag off changes nothing', () => {
+    expect(getVisiblePlans(false)).toEqual(BILLING_PLAN_LIST)
+    expect(getVisiblePlans(false).some((p) => p.id === 'fleet')).toBe(false)
+  })
+
+  test('getVisiblePlans(true) inserts Fleet between Pro and Max', () => {
+    const withFleet = getVisiblePlans(true)
+    expect(withFleet.map((p) => p.id)).toEqual([
+      'free',
+      'pro',
+      'fleet',
+      'max',
+      'enterprise',
+    ])
   })
 })

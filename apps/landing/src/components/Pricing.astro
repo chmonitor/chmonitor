@@ -27,14 +27,14 @@ const outlineBtn = btnOutlineBlock
 const outlineBtnAuto = btnOutline
 
 // Tiers are separated by surface, not by hue — the featured tier is marked with
-// a brand hairline rather than a second brand color.
-const cardColors = [
-  'bg-[var(--canvas-soft)] border-border',                       // Free
-  'bg-card border-[var(--brand)]/40 ring-1 ring-[var(--brand)]/20', // Pro (featured)
-  'bg-[var(--canvas-soft)] border-border',                       // Max
-  'bg-[var(--canvas-soft)] border-border',                       // Enterprise
-]
-const featuredCta = [false, true, false, false] // Pro is the featured tier
+// a brand hairline rather than a second brand color. Keyed by plan id (not
+// position) so the optional #2381 Fleet tier slots in without reordering
+// these lookups.
+const FEATURED_COLOR =
+  'bg-card border-[var(--brand)]/40 ring-1 ring-[var(--brand)]/20'
+const DEFAULT_COLOR = 'bg-[var(--canvas-soft)] border-border'
+const cardColor = (id: string) => (id === 'pro' ? FEATURED_COLOR : DEFAULT_COLOR)
+const isFeaturedCta = (id: string) => id === 'pro' // Pro is the featured tier
 ---
 <section id="pricing" class="py-14 sm:py-20 md:py-24">
   <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
@@ -70,9 +70,9 @@ const featuredCta = [false, true, false, false] // Pro is the featured tier
       </div>
     </div>
 
-    <div class="cloud-grid reveal mt-5 grid items-stretch gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4" data-period="yearly">
-      {tiers.map((t, idx) => (
-        <div class={`flex flex-col rounded-xl border p-5 sm:p-6 shadow-xs transition-colors ${cardColors[idx]}`}>
+    <div class={`cloud-grid reveal mt-5 grid items-stretch gap-3 sm:gap-4 sm:grid-cols-2 ${tiers.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`} data-period="yearly">
+      {tiers.map((t) => (
+        <div class={`flex flex-col rounded-xl border p-5 sm:p-6 shadow-xs transition-colors ${cardColor(t.id)}`}>
           <div>
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-bold text-lg tracking-tight">{t.name}</span>
@@ -112,7 +112,7 @@ const featuredCta = [false, true, false, false] // Pro is the featured tier
           </ul>
           <div class="mt-auto pt-6">
             <a
-              class={featuredCta[idx] ? btnPrimaryBlock : (t.cta.primary ? primaryBtn : outlineBtn)}
+              class={isFeaturedCta(t.id) ? btnPrimaryBlock : (t.cta.primary ? primaryBtn : outlineBtn)}
               href={t.cta.href}
               target="_blank"
               rel="noopener"

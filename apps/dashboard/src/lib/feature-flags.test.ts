@@ -48,6 +48,7 @@ const FEATURE_KEYS = [
   'VITE_FEATURE_USER_CONNECTIONS_DB',
   'VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS',
   'VITE_FEATURE_POSTGRES_SOURCE',
+  'VITE_FEATURE_FLEET_TIER',
 ] as const
 
 type FeatureEnvKey = (typeof FEATURE_KEYS)[number]
@@ -239,6 +240,32 @@ describe('featureFlags.postgresSource — pure env gate (NOT Clerk-gated)', () =
   })
 })
 
+describe('featureFlags.fleetTierExperiment — pure env gate (NOT Clerk-gated)', () => {
+  // Fleet ($199 mid-anchor tier, #2381) is a presentation-only pricing A/B —
+  // it must render the same regardless of auth mode, so no Clerk requirement.
+
+  test('returns false when env var is unset (safe default)', () => {
+    mockIsClerkEnabled.mockReturnValue(true)
+    expect(featureFlags.fleetTierExperiment()).toBe(false)
+  })
+
+  test('returns false when env var is "false"', () => {
+    setEnv('VITE_FEATURE_FLEET_TIER', 'false')
+    expect(featureFlags.fleetTierExperiment()).toBe(false)
+  })
+
+  test('returns false when env var is "1" (not strictly "true")', () => {
+    setEnv('VITE_FEATURE_FLEET_TIER', '1')
+    expect(featureFlags.fleetTierExperiment()).toBe(false)
+  })
+
+  test('returns true when env var is "true" EVEN IF Clerk is disabled', () => {
+    mockIsClerkEnabled.mockReturnValue(false)
+    setEnv('VITE_FEATURE_FLEET_TIER', 'true')
+    expect(featureFlags.fleetTierExperiment()).toBe(true)
+  })
+})
+
 describe('featureFlags — both flags disabled simultaneously', () => {
   test('neither flag leaks into the other: conversationDb false does not affect userConnectionsDb', () => {
     // Only userConnectionsDb enabled.
@@ -301,6 +328,7 @@ describe('featureFlags — shape invariants', () => {
   test('has exactly the expected keys', () => {
     expect(Object.keys(featureFlags).sort()).toEqual([
       'conversationDb',
+      'fleetTierExperiment',
       'postgresSource',
       'userConnectionsDb',
       'webhookSubscriptions',

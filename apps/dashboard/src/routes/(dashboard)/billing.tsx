@@ -32,7 +32,8 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { trackEvent } from '@/lib/analytics/analytics'
-import { BILLING_PLAN_LIST, getPlan } from '@/lib/billing/plans'
+import { getPlan, getVisiblePlans } from '@/lib/billing/plans'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import {
   checkCanDowngrade,
   openBillingPortal,
@@ -73,6 +74,9 @@ function BillingPage() {
   // usage onto that plan's limits inside the current-plan card. Click again
   // (or the ✕) to clear.
   const [comparePlanId, setComparePlanId] = useState<PlanId | null>(null)
+  // B4 experiment (#2381): Fleet tier only renders when the flag is on, kept
+  // in sync with the landing pricing cards via the same @chm/pricing helper.
+  const visiblePlans = getVisiblePlans(isFeatureEnabled('fleetTierExperiment'))
 
   // Cloud visitors who aren't signed in get a sign-in prompt instead of a
   // billing UI they can't act on. (Always signed-in in OSS, so never shown.)
@@ -220,8 +224,12 @@ function BillingPage() {
       <BillingPeriodToggle value={period} onChange={setPeriod} />
 
       {/* Plan grid */}
-      <div className="grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {BILLING_PLAN_LIST.map((plan) => {
+      <div
+        className={`grid items-stretch gap-4 md:grid-cols-2 ${
+          visiblePlans.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        }`}
+      >
+        {visiblePlans.map((plan) => {
           const isCurrent = plan.id === currentPlanId
           const paid = plan.id === 'pro' || plan.id === 'max'
           return (
@@ -304,6 +312,24 @@ function BillingPage() {
                         hi@anyrouter.dev
                       </a>{' '}
                       for details on a dedicated instance.
+                    </p>
+                  </div>
+                ) : plan.id === 'fleet' ? (
+                  // Experiment tier (#2381) — not wired to self-serve checkout
+                  // yet, so keep the paywall honest: sales-assisted only.
+                  <div className="w-full space-y-1.5">
+                    <Button variant="outline" className="w-full" disabled>
+                      Coming soon
+                    </Button>
+                    <p className="text-muted-foreground text-center text-[11px] leading-snug">
+                      Contact{' '}
+                      <a
+                        href="mailto:hi@anyrouter.dev?subject=chmonitor%20Fleet%20tier"
+                        className="text-foreground underline underline-offset-2"
+                      >
+                        hi@anyrouter.dev
+                      </a>{' '}
+                      to get set up on Fleet.
                     </p>
                   </div>
                 ) : (

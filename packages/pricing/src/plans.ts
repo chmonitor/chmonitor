@@ -22,7 +22,17 @@
  */
 
 export const PLAN_IDS = ['free', 'pro', 'max', 'enterprise'] as const
-export type PlanId = (typeof PLAN_IDS)[number]
+/**
+ * `'fleet'` is the B4 experiment tier (#2381) — a $199/mo mid-anchor plan for
+ * 5-10 host clusters, gated behind `CHM_FEATURE_FLEET_TIER` (see
+ * `getVisiblePlans`). Deliberately NOT in `PLAN_IDS`/`BILLING_PLAN_LIST`: it is
+ * not (yet) a real checkout/entitlement target, only a presentation-layer A/B
+ * variant, so it must never silently appear in the canonical plan list that
+ * checkout, entitlements, and existing tests key off. Included in the `PlanId`
+ * union (and `BILLING_PLANS`) purely so `getPlan('fleet')` / `Plan` typing work
+ * for the surfaces that opt in via `getVisiblePlans(true)`.
+ */
+export type PlanId = (typeof PLAN_IDS)[number] | 'fleet'
 
 /**
  * Capabilities a plan unlocks (the benefit ladder). Self-contained on purpose —
@@ -187,6 +197,46 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
       'Priority support',
     ],
   },
+  /**
+   * B4 experiment (#2381): mid-anchor tier between Pro and Max for teams that
+   * outgrow Pro's 1 host but don't need Max's full feature set — 5 hosts
+   * included at a flat $199 avoids the "surprise overage bill" objection from
+   * stacking Pro/Max host overage. Not in `PLAN_IDS`; only rendered when
+   * `getVisiblePlans(true)` is called behind `CHM_FEATURE_FLEET_TIER`.
+   */
+  fleet: {
+    id: 'fleet',
+    name: 'Fleet',
+    tagline: 'For 5–10 host clusters — no overage surprise.',
+    priceMonthlyUsd: 199,
+    priceYearlyUsd: 1990,
+    seats: 10,
+    hosts: 5,
+    hostOverage: { usdPer: 19 }, // soft-cap: 6th+ host bills $19/mo each (same rate as Max)
+    aiMonthlyUsdBudget: 10,
+    aiRequestsPerDay: 500,
+    aiOverage: { usdPer: 5, messages: 2000 },
+    alertRules: 25,
+    retentionDays: 60,
+    capabilities: [
+      ...CORE,
+      'ai_agent',
+      'ai_insights_scheduled',
+      'alerting_basic',
+      'data_export',
+      'anomaly_detection',
+      'fleet_view',
+    ],
+    highlights: [
+      'Everything in Pro',
+      '5 hosts included, 10 seats — extra hosts $19/mo each',
+      'AI agent — 500 messages / day, then $5 / 2,000',
+      'Fleet view + basic alerting',
+      'Anomaly detection + data export',
+      '60-day conversation & insights history',
+      'Email support',
+    ],
+  },
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
@@ -229,6 +279,25 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
 
 /** Ordered list for rendering (free → enterprise). */
 export const BILLING_PLAN_LIST: Plan[] = PLAN_IDS.map((id) => BILLING_PLANS[id])
+
+/**
+ * Rendering list for surfaces that want to A/B the B4 "Fleet" experiment tier
+ * (#2381). `includeFleet` should come from the `CHM_FEATURE_FLEET_TIER` flag
+ * (env-gated, off by default, fail-closed like other `CHM_FEATURE_*` flags —
+ * see `apps/dashboard/src/lib/feature-flags.ts`). When off this returns the
+ * exact same array as `BILLING_PLAN_LIST`; when on, Fleet is inserted between
+ * Pro and Max (its mid-anchor position) on BOTH the landing pricing page and
+ * the in-app billing card, so the two surfaces never drift.
+ */
+export function getVisiblePlans(includeFleet: boolean): Plan[] {
+  if (!includeFleet) return BILLING_PLAN_LIST
+  const proIndex = BILLING_PLAN_LIST.findIndex((p) => p.id === 'pro')
+  return [
+    ...BILLING_PLAN_LIST.slice(0, proIndex + 1),
+    BILLING_PLANS.fleet,
+    ...BILLING_PLAN_LIST.slice(proIndex + 1),
+  ]
+}
 
 export function getPlan(id: PlanId): Plan {
   return BILLING_PLANS[id]

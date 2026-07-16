@@ -135,6 +135,10 @@ const CLIENT_ENV = {
   // off in BOTH modes until Postgres connectivity lands — not `isCloud`-gated.
   VITE_FEATURE_POSTGRES_SOURCE:
     e.VITE_FEATURE_POSTGRES_SOURCE ?? e.CHM_FEATURE_POSTGRES_SOURCE ?? 'false',
+  // $199 "Fleet" mid-anchor tier experiment (#2381). Fail-closed: default off
+  // in both modes — a presentation-only pricing A/B, not `isCloud`-gated.
+  VITE_FEATURE_FLEET_TIER:
+    e.VITE_FEATURE_FLEET_TIER ?? e.CHM_FEATURE_FLEET_TIER ?? 'false',
   VITE_AUTOCOMPLETE_LIMIT:
     e.VITE_AUTOCOMPLETE_LIMIT ?? e.NEXT_PUBLIC_AUTOCOMPLETE_LIMIT ?? '',
   VITE_RUNNING_QUERIES_REFRESH_MS:

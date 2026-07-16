@@ -9,10 +9,10 @@
  */
 
 import {
-  BILLING_PLAN_LIST,
   type Plan,
   type PlanCapability,
   type PlanId,
+  getVisiblePlans,
   planAiUsage,
   planAlertRules,
   planHasCapability,
@@ -22,7 +22,16 @@ import {
   yearlyMonthsFree,
 } from '@chm/pricing'
 
+/**
+ * B4 "Fleet" tier experiment (#2381), read at build time so a static Astro
+ * build either fully includes or fully excludes it — fail-closed like the
+ * dashboard's `CHM_FEATURE_FLEET_TIER` (`lib/feature-flags.ts`), same flag
+ * name so the two surfaces can never drift on whether it's live.
+ */
+const FLEET_TIER_ENABLED = import.meta.env.PUBLIC_FEATURE_FLEET_TIER === 'true'
+
 export interface PricingTier {
+  id: PlanId
   name: string
   badge?: { label: string; cls: string }
   highlight?: boolean
@@ -50,6 +59,13 @@ const PRESENTATION: Record<
   pro: {
     cta: { label: 'Get started', href: DASH, primary: true },
   },
+  // Experiment tier (#2381) — not wired to self-serve checkout yet, so the
+  // CTA is sales-assisted like Enterprise (honest paywall: don't offer a
+  // checkout button that doesn't work).
+  fleet: {
+    badge: { label: 'New', cls: 'ptag-beta' },
+    cta: { label: 'Contact us', href: 'mailto:hello@chmonitor.dev' },
+  },
   max: { cta: { label: 'Get started', href: DASH } },
   enterprise: {
     cta: { label: 'Contact us', href: 'mailto:hello@chmonitor.dev' },
@@ -62,7 +78,10 @@ function yearlyPerMo(plan: Plan): number | null {
   return Math.round(plan.priceYearlyUsd / 12)
 }
 
-export const pricingTiers: PricingTier[] = BILLING_PLAN_LIST.map((plan) => ({
+export const pricingTiers: PricingTier[] = getVisiblePlans(
+  FLEET_TIER_ENABLED
+).map((plan) => ({
+  id: plan.id,
   name: plan.name,
   badge: PRESENTATION[plan.id].badge,
   highlight: PRESENTATION[plan.id].highlight,
@@ -96,8 +115,8 @@ export type CompareCell = boolean | string
 
 export interface CompareRow {
   label: string
-  /** [Free, Pro, Max, Enterprise] */
-  values: [CompareCell, CompareCell, CompareCell, CompareCell]
+  /** [Free, Pro, (Fleet,) Max, Enterprise] — Fleet only when the #2381 experiment is on. */
+  values: CompareCell[]
 }
 
 export interface CompareGroup {
@@ -105,17 +124,14 @@ export interface CompareGroup {
   rows: CompareRow[]
 }
 
-/** Plan column order for the matrix header (derived from the canonical order). */
-export const compareColumns = BILLING_PLAN_LIST.map((p) => p.name) as [
-  string,
-  string,
-  string,
-  string,
-]
+const VISIBLE_PLANS = getVisiblePlans(FLEET_TIER_ENABLED)
 
-/** Map a per-plan function across the 4 tiers into a comparison tuple. */
+/** Plan column order for the matrix header (derived from the canonical order). */
+export const compareColumns: string[] = VISIBLE_PLANS.map((p) => p.name)
+
+/** Map a per-plan function across the visible tiers into a comparison row. */
 function across(fn: (plan: Plan) => CompareCell): CompareRow['values'] {
-  return BILLING_PLAN_LIST.map(fn) as CompareRow['values']
+  return VISIBLE_PLANS.map(fn)
 }
 
 /** ✓/— tuple for a capability flag. */
@@ -127,6 +143,7 @@ function capRow(cap: PlanCapability): CompareRow['values'] {
 const SUPPORT: Record<PlanId, string> = {
   free: 'Community',
   pro: 'Email',
+  fleet: 'Email',
   max: 'Priority',
   enterprise: 'SLA + dedicated',
 }

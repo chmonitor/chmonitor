@@ -12,6 +12,9 @@ interface ImportMetaEnv {
   readonly VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS?: string
   // Postgres source engine (RFC #2264, phase 1 #2448). Fail-closed, default off.
   readonly VITE_FEATURE_POSTGRES_SOURCE?: string
+  // $199 "Fleet" mid-anchor tier experiment (#2381). Fail-closed, default off —
+  // presentation-only A/B variant, see lib/feature-flags.ts + @chm/pricing.
+  readonly VITE_FEATURE_FLEET_TIER?: string
   readonly VITE_AUTOCOMPLETE_LIMIT?: string
   readonly VITE_RUNNING_QUERIES_REFRESH_MS?: string
   // Opt-in product telemetry (off by default). See lib/telemetry/.
