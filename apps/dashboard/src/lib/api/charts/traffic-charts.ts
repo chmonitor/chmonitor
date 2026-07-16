@@ -244,4 +244,77 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
       tableCheck: 'system.part_log',
     }
   },
+
+  /**
+   * Cluster shape detection — a single cheap one-row probe of the core
+   * system.replicas / system.clusters tables. Powers the /traffic page's
+   * smart-detection: the "Replication & Distribution" section is rendered only
+   * when the cluster actually replicates (replicated_tables > 0), and the
+   * shard-related charts only when it actually shards (max_shards > 1). Both
+   * source tables are always present, so this needs no tableCheck.
+   */
+  'traffic-cluster-shape': () => ({
+    query: `
+    SELECT
+      (SELECT count() FROM system.replicas) AS replicated_tables,
+      (SELECT max(total_replicas) FROM system.replicas) AS max_replicas,
+      (SELECT count(DISTINCT cluster) FROM system.clusters) AS clusters,
+      (SELECT max(shard_num) FROM system.clusters) AS max_shards
+  `,
+  }),
+
+  /**
+   * Replica fetch traffic — inbound replication volume: parts this replica
+   * downloaded from other replicas (part_log DownloadPart). Non-zero only on a
+   * replicated cluster; part_log is opt-in, hence optional + tableCheck.
+   */
+  'traffic-replica-fetches': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           count() AS fetched_parts,
+           sum(size_in_bytes) AS fetched_bytes,
+           formatReadableSize(fetched_bytes) AS readable_fetched_bytes
+    FROM system.part_log
+    WHERE event_type = 'DownloadPart'
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.part_log',
+    }
+  },
+
+  /**
+   * Distributed query fan-out — initial (client-facing) vs secondary
+   * (shard-local, fanned-out by a Distributed table) queries over time. The
+   * secondary count is only meaningful on a sharded cluster.
+   */
+  'traffic-distributed-queries': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           countIf(is_initial_query) AS initial_queries,
+           countIf(NOT is_initial_query) AS secondary_queries
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
 }

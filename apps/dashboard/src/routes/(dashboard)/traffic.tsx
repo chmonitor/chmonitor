@@ -8,6 +8,10 @@
  * Movement" section covering merge volume, part moves, and write
  * amplification. Sources: system.query_log (uncompressed ingest) and
  * system.part_log (on-disk size, merges, and part moves).
+ *
+ * When the cluster actually replicates or shards, a smart-detected
+ * "Replication & Distribution" section is appended (replica fetch traffic and
+ * distributed initial-vs-secondary queries); it is absent on a single node.
  */
 
 import { CombineIcon } from 'lucide-react'
@@ -20,6 +24,7 @@ import { ChartInsertedBytesOverTime } from '@/components/charts/traffic/inserted
 import { ChartInsertedRowsOverTime } from '@/components/charts/traffic/inserted-rows-over-time'
 import { ChartMergedBytesOverTime } from '@/components/charts/traffic/merged-bytes-over-time'
 import { ChartPartMovesOverTime } from '@/components/charts/traffic/part-moves-over-time'
+import { TrafficReplicationSection } from '@/components/charts/traffic/traffic-replication-section'
 import { TrafficSummaryKpis } from '@/components/charts/traffic/traffic-summary-kpis'
 import { ChartWriteAmplificationOverTime } from '@/components/charts/traffic/write-amplification-over-time'
 import { PageHeader } from '@/components/layout/page-header'
@@ -88,6 +93,11 @@ function TrafficPageContent() {
       <PageLayout
         queryConfig={trafficPerTableConfig}
         title="Top Tables by Ingestion (24h)"
+      />
+
+      <TrafficReplicationSection
+        chartClassName={CHART_CLASS}
+        chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
       />
     </div>
   )
