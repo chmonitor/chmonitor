@@ -151,7 +151,7 @@ export function UsageSummary({
         <UsageMeterBar
           label="Hosts"
           meter={hosts}
-          note={deferredNote('hosts')}
+          note={deferredNote('hosts') ?? 'detected replicas count as 0.5 host'}
         />
         <UsageMeterBar
           label="Team seats"

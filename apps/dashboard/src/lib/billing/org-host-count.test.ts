@@ -14,13 +14,41 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
   }),
 }))
 
+// Mock the live ClickHouse query used by replica-detection's probe. Tests that
+// don't care about replica weighting never populate credentials, so this is
+// only exercised by the weighting-specific tests below.
+let queryConnectionImpl: (...args: unknown[]) => Promise<unknown> =
+  async () => ({
+    data: [],
+  })
+mock.module('@/lib/connection-query/connection-client', () => ({
+  queryConnection: (...args: unknown[]) => queryConnectionImpl(...args),
+}))
+
 const { countOwnerHosts } = await import('./org-host-count')
 
 // A fake store whose list() returns N placeholder rows per user, from a map.
+// No `id`/credentials — weighting falls back to a full host per connection.
 function fakeStore(counts: Record<string, number>): ConnectionStore {
   return {
     list: async (userId: string) =>
       Array.from({ length: counts[userId] ?? 0 }, () => ({}) as never),
+  } as unknown as ConnectionStore
+}
+
+// A fake store that additionally serves credentials, so replica weighting via
+// probeHostTopology (mocked above) actually runs.
+function fakeStoreWithCredentials(
+  connectionsByUser: Record<string, string[]>
+): ConnectionStore {
+  return {
+    list: async (userId: string) =>
+      (connectionsByUser[userId] ?? []).map((id) => ({ id }) as never),
+    getCredentials: async (_userId: string, id: string) => ({
+      host: `https://${id}.example.com`,
+      user: 'x',
+      password: 'y',
+    }),
   } as unknown as ConnectionStore
 }
 
@@ -80,5 +108,45 @@ describe('countOwnerHosts', () => {
     )
     expect(usage.count).toBe(3)
     expect(usage.memberUserIds).toEqual(['user_a'])
+  })
+
+  test('a detected replica in the same cluster shard bills at 0.5 host', async () => {
+    const topologyByHost: Record<
+      string,
+      { cluster: string; shard_num: number }
+    > = {
+      conn_primary: { cluster: 'prod', shard_num: 1 },
+      conn_replica: { cluster: 'prod', shard_num: 1 },
+    }
+    // queryConnection(credentials, sql) — id is embedded in the host, extract it.
+    queryConnectionImpl = async (...args: unknown[]) => {
+      const credentials = args[0] as { host: string }
+      const id = credentials.host.replace('https://', '').split('.')[0]
+      const row = topologyByHost[id]
+      return { data: row ? [row] : [] }
+    }
+
+    const store = fakeStoreWithCredentials({
+      user_a: ['conn_primary', 'conn_replica'],
+    })
+    const usage = await countOwnerHosts(
+      { type: 'user', id: 'user_a' },
+      store,
+      'user_a'
+    )
+    expect(usage.count).toBe(1.5)
+  })
+
+  test('standalone hosts (no cluster) each bill as a full host', async () => {
+    queryConnectionImpl = async () => ({ data: [] })
+    const store = fakeStoreWithCredentials({
+      user_a: ['conn_1', 'conn_2'],
+    })
+    const usage = await countOwnerHosts(
+      { type: 'user', id: 'user_a' },
+      store,
+      'user_a'
+    )
+    expect(usage.count).toBe(2)
   })
 })

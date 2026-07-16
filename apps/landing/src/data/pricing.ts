@@ -191,7 +191,7 @@ export const pricingFaqs: PricingFaq[] = [
   },
   {
     q: "What's a “host”?",
-    a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. Your plan caps how many hosts you can connect to the hosted dashboard at once. Self-hosting has no host limit.',
+    a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. Your plan caps how many hosts you can connect to the hosted dashboard at once. Self-hosting has no host limit. A detected replica (a redundant copy in the same cluster shard) counts as 0.5 host.',
   },
   {
     q: 'How does AI usage metering work?',

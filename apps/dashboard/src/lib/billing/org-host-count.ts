@@ -1,9 +1,16 @@
 import type { ConnectionStore } from '@/lib/connection-store/types'
 import type { BillingOwner } from './billing-owner'
 
+import { computeHostWeights, probeHostTopology } from './replica-detection'
+
 /** Pooled host usage for a billing owner: the count plus the member id set it was computed from. */
 export interface OwnerHostUsage {
-  /** Hosts counted so far — the value fed to `checkHostLimit`. */
+  /**
+   * Weighted host count — the value fed to `checkHostLimit`. A detected
+   * replica (same cluster shard as an already-counted host, see
+   * `replica-detection.ts`) counts as 0.5; every other host counts as 1, so
+   * this can be fractional.
+   */
   count: number
   /**
    * The user_ids whose connections were counted. `[actingUserId]` for a user
@@ -37,7 +44,7 @@ export async function countOwnerHosts(
   actingUserId: string
 ): Promise<OwnerHostUsage> {
   if (owner.type !== 'org') {
-    const count = (await store.list(actingUserId)).length
+    const count = await weightedHostCount([actingUserId], store)
     return { count, memberUserIds: [actingUserId] }
   }
 
@@ -55,18 +62,50 @@ export async function countOwnerHosts(
     // Count the acting user even if their membership row hasn't propagated yet.
     if (!memberIds.includes(actingUserId)) memberIds.push(actingUserId)
 
-    const counts = await Promise.all(
-      memberIds.map((id) =>
-        store.list(id).then((connections) => connections.length)
-      )
-    )
-    return {
-      count: counts.reduce((sum, n) => sum + n, 0),
-      memberUserIds: memberIds,
-    }
+    const count = await weightedHostCount(memberIds, store)
+    return { count, memberUserIds: memberIds }
   } catch {
     // Permissive fallback — never block a paying org on an enumeration failure.
-    const count = (await store.list(actingUserId)).length
+    const count = await weightedHostCount([actingUserId], store)
     return { count, memberUserIds: [actingUserId] }
+  }
+}
+
+/**
+ * Sum the billable host weight across every connection owned by
+ * `memberUserIds` (see `replica-detection.ts`: a detected replica of an
+ * already-counted host bills at 0.5). Fails safe to the plain connection
+ * count — untouched by weighting — if anything in the weighting step throws,
+ * so a probe/credentials hiccup can only forfeit the discount, never break
+ * host counting itself.
+ */
+async function weightedHostCount(
+  memberUserIds: string[],
+  store: ConnectionStore
+): Promise<number> {
+  const perUserConnections = await Promise.all(
+    memberUserIds.map((id) => store.list(id))
+  )
+  const flatConnections = memberUserIds.flatMap((userId, i) =>
+    perUserConnections[i].map((meta) => ({ userId, id: meta.id }))
+  )
+  if (flatConnections.length === 0) return 0
+
+  try {
+    const topologies = await Promise.all(
+      flatConnections.map(async ({ userId, id }) => {
+        try {
+          const credentials = await store.getCredentials(userId, id)
+          if (!credentials) return { cluster: null, shardNum: null }
+          return await probeHostTopology(credentials)
+        } catch {
+          // One host's probe failing must not affect the others' discount.
+          return { cluster: null, shardNum: null }
+        }
+      })
+    )
+    return computeHostWeights(topologies).reduce((sum, w) => sum + w, 0)
+  } catch {
+    return flatConnections.length
   }
 }
