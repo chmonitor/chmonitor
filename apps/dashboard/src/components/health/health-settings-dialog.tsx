@@ -228,7 +228,7 @@ export function HealthSettingsDialog() {
         <Settings className="mr-2 size-4" />
         Settings
       </DialogTrigger>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto">
+      <DialogContent className="flex h-[min(52rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] max-w-5xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Health Settings</DialogTitle>
           <DialogDescription>
@@ -237,20 +237,22 @@ export function HealthSettingsDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="thresholds">
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
-            <TabsTrigger value="alerts">Alerts</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="routing">Routing</TabsTrigger>
-            <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-            <TabsTrigger value="custom-rules">Custom Rules</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="thresholds" className="min-h-0 flex-1">
+          <div className="scrollbar-hide -mx-1 shrink-0 overflow-x-auto px-1 py-0.5">
+            <TabsList className="w-max flex-nowrap">
+              <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
+              <TabsTrigger value="alerts">Alerts</TabsTrigger>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="routing">Routing</TabsTrigger>
+              <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+              <TabsTrigger value="custom-rules">Custom Rules</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="thresholds">
-            <ScrollArea className="h-[420px] pr-3">
+          <TabsContent value="thresholds" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
               <div className="flex flex-col gap-3">
                 {HEALTH_CHECKS.map((check) => {
                   const current = thresholds[check.id] ?? check.defaults
@@ -325,225 +327,251 @@ export function HealthSettingsDialog() {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="alerts" className="flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div className="flex flex-col">
-                <Label className="text-sm font-medium">
-                  Browser notifications
-                </Label>
-                <span className="text-xs text-muted-foreground">
-                  Show desktop notifications for new health alerts
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleTestBrowser}
-                  disabled={!alerts.browserNotificationsEnabled}
-                >
-                  Test
-                </Button>
-                <Switch
-                  checked={alerts.browserNotificationsEnabled}
-                  onCheckedChange={handleEnableBrowser}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium">
-                    healthchecks.io pings
-                  </Label>
-                  <span className="text-xs text-muted-foreground">
-                    Send a GET ping to a healthchecks.io check URL on each alert
-                    (append <code className="text-xs">/fail</code> automatically
-                    on recovery)
-                  </span>
+          <TabsContent value="alerts" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <Label className="text-sm font-medium">
+                      Browser notifications
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      Show desktop notifications for new health alerts
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleTestBrowser}
+                      disabled={!alerts.browserNotificationsEnabled}
+                    >
+                      Test
+                    </Button>
+                    <Switch
+                      checked={alerts.browserNotificationsEnabled}
+                      onCheckedChange={handleEnableBrowser}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="https://hc-ping.com/your-uuid"
-                  value={alerts.healthchecksUrl}
-                  onChange={(e) =>
-                    setAlerts((prev) => ({
-                      ...prev,
-                      healthchecksUrl: e.target.value.trim(),
-                    }))
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void handleTestHealthchecks()}
-                  disabled={!alerts.healthchecksUrl}
-                >
-                  Send test
-                </Button>
-              </div>
-            </div>
 
-            <Separator />
+                <Separator />
 
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium">Webhook alerts</Label>
-                  <span className="text-xs text-muted-foreground">
-                    POST a JSON payload to a Slack- or Discord-compatible URL
-                  </span>
+                <div className="flex flex-col gap-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium">
+                        healthchecks.io pings
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        Send a GET ping to a healthchecks.io check URL on each
+                        alert (append <code className="text-xs">/fail</code>{' '}
+                        automatically on recovery)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="https://hc-ping.com/your-uuid"
+                      value={alerts.healthchecksUrl}
+                      onChange={(e) =>
+                        setAlerts((prev) => ({
+                          ...prev,
+                          healthchecksUrl: e.target.value.trim(),
+                        }))
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleTestHealthchecks()}
+                      disabled={!alerts.healthchecksUrl}
+                    >
+                      Send test
+                    </Button>
+                  </div>
                 </div>
-                <Switch
-                  checked={alerts.webhookEnabled}
-                  onCheckedChange={(checked) =>
-                    setAlerts((prev) => ({ ...prev, webhookEnabled: checked }))
-                  }
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="https://hooks.slack.com/services/..."
-                  value={alerts.webhookUrl}
-                  onChange={(e) =>
-                    setAlerts((prev) => ({
-                      ...prev,
-                      webhookUrl: e.target.value,
-                    }))
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleTestWebhook}
-                  disabled={!alerts.webhookUrl}
-                >
-                  Send test
-                </Button>
-              </div>
-            </div>
 
-            <Separator />
+                <Separator />
 
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium">Email alerts</Label>
-                  <span className="text-xs text-muted-foreground">
-                    Configured by the server operator via{' '}
-                    <code className="text-xs">HEALTH_ALERT_EMAIL_*</code>{' '}
-                    environment variables (Mailgun, SendGrid, or SMTP)
-                  </span>
+                <div className="flex flex-col gap-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium">
+                        Webhook alerts
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        POST a JSON payload to a Slack- or Discord-compatible
+                        URL
+                      </span>
+                    </div>
+                    <Switch
+                      checked={alerts.webhookEnabled}
+                      onCheckedChange={(checked) =>
+                        setAlerts((prev) => ({
+                          ...prev,
+                          webhookEnabled: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="https://hooks.slack.com/services/..."
+                      value={alerts.webhookUrl}
+                      onChange={(e) =>
+                        setAlerts((prev) => ({
+                          ...prev,
+                          webhookUrl: e.target.value,
+                        }))
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleTestWebhook}
+                      disabled={!alerts.webhookUrl}
+                    >
+                      Send test
+                    </Button>
+                  </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={handleTestEmail}>
-                  Send test email
-                </Button>
-              </div>
-            </div>
 
-            <Separator />
+                <Separator />
 
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Opsgenie alerts</Label>
-                  <Badge
-                    variant={
-                      opsgenieStatus?.configured ? 'default' : 'secondary'
-                    }
+                <div className="flex flex-col gap-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium">
+                        Email alerts
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        Configured by the server operator via{' '}
+                        <code className="text-xs">HEALTH_ALERT_EMAIL_*</code>{' '}
+                        environment variables (Mailgun, SendGrid, or SMTP)
+                      </span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={handleTestEmail}>
+                      Send test email
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">
+                        Opsgenie alerts
+                      </Label>
+                      <Badge
+                        variant={
+                          opsgenieStatus?.configured ? 'default' : 'secondary'
+                        }
+                      >
+                        {opsgenieStatus?.configured
+                          ? `Configured (${opsgenieStatus.region})`
+                          : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Set HEALTH_ALERT_OPSGENIE_API_KEY on the server to enable
+                      — the key is never exposed to the browser
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestOpsgenie}
+                    disabled={!opsgenieStatus?.configured}
                   >
-                    {opsgenieStatus?.configured
-                      ? `Configured (${opsgenieStatus.region})`
-                      : 'Not configured'}
-                  </Badge>
+                    Send test
+                  </Button>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  Set HEALTH_ALERT_OPSGENIE_API_KEY on the server to enable —
-                  the key is never exposed to the browser
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleTestOpsgenie}
-                disabled={!opsgenieStatus?.configured}
-              >
-                Send test
-              </Button>
-            </div>
 
-            <Separator />
+                <Separator />
 
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div className="flex flex-col">
-                <Label className="text-sm font-medium">Minimum severity</Label>
-                <span className="text-xs text-muted-foreground">
-                  Send alerts only at or above this severity
-                </span>
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <Label className="text-sm font-medium">
+                      Minimum severity
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      Send alerts only at or above this severity
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <button
+                      type="button"
+                      className={
+                        alerts.minSeverity === 'warning'
+                          ? 'rounded-md bg-secondary px-2 py-1'
+                          : 'rounded-md px-2 py-1 text-muted-foreground'
+                      }
+                      onClick={() =>
+                        setAlerts((prev) => ({
+                          ...prev,
+                          minSeverity: 'warning',
+                        }))
+                      }
+                    >
+                      Warning+
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        alerts.minSeverity === 'critical'
+                          ? 'rounded-md bg-secondary px-2 py-1'
+                          : 'rounded-md px-2 py-1 text-muted-foreground'
+                      }
+                      onClick={() =>
+                        setAlerts((prev) => ({
+                          ...prev,
+                          minSeverity: 'critical',
+                        }))
+                      }
+                    >
+                      Critical only
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <button
-                  type="button"
-                  className={
-                    alerts.minSeverity === 'warning'
-                      ? 'rounded-md bg-secondary px-2 py-1'
-                      : 'rounded-md px-2 py-1 text-muted-foreground'
-                  }
-                  onClick={() =>
-                    setAlerts((prev) => ({ ...prev, minSeverity: 'warning' }))
-                  }
-                >
-                  Warning+
-                </button>
-                <button
-                  type="button"
-                  className={
-                    alerts.minSeverity === 'critical'
-                      ? 'rounded-md bg-secondary px-2 py-1'
-                      : 'rounded-md px-2 py-1 text-muted-foreground'
-                  }
-                  onClick={() =>
-                    setAlerts((prev) => ({ ...prev, minSeverity: 'critical' }))
-                  }
-                >
-                  Critical only
-                </button>
-              </div>
-            </div>
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="active">
-            <ActiveAlertsPanel />
+          <TabsContent value="active" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
+              <ActiveAlertsPanel />
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="history">
-            <RecentAlertsCard />
+          <TabsContent value="history" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
+              <RecentAlertsCard />
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="routing">
-            <ScrollArea className="h-[420px] pr-3">
+          <TabsContent value="routing" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
               <AlertRoutingPanel />
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="webhooks">
-            <ScrollArea className="h-[420px] pr-3">
+          <TabsContent value="webhooks" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
               <WebhookSubscriptionsPanel />
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="maintenance">
-            <ScrollArea className="h-[420px] pr-3">
+          <TabsContent value="maintenance" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
               <MaintenanceWindowsPanel />
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="custom-rules">
-            <ScrollArea className="h-[420px] pr-3">
+          <TabsContent value="custom-rules" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
               <RuleBuilderPanel />
             </ScrollArea>
           </TabsContent>
