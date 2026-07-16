@@ -108,6 +108,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Expensive Queries',
     description: 'Queries ranked by memory and resource consumption.',
   },
+  traffic: {
+    eyebrow: 'TRAFFIC',
+    title: 'Cluster Traffic',
+    description:
+      'Rows, bytes and insert queries flowing into the cluster over time.',
+  },
   merges: {
     eyebrow: 'MERGES',
     title: 'Merge Operations',

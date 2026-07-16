@@ -18,6 +18,7 @@ import {
 import {
   ActivityIcon,
   AlertTriangleIcon,
+  ArrowDownToLineIcon,
   BookOpenIcon,
   CircleDollarSignIcon,
   CloudIcon,
@@ -168,6 +169,17 @@ export const menuItemsConfig: MenuItem[] = [
     icon: HeartPulseIcon,
     section: 'main',
     permission: { feature: 'health' },
+  },
+  {
+    title: 'Traffic',
+    href: '/traffic',
+    description:
+      'Data flowing into the cluster: rows, bytes and insert queries over time',
+    icon: ArrowDownToLineIcon,
+    section: 'main',
+    isNew: true,
+    tableCheck: 'system.query_log',
+    permission: { feature: 'metrics' },
   },
   {
     title: 'Inbound Events',

@@ -33,6 +33,7 @@ import { replicationCharts } from './charts/replication-charts'
 import { securityCharts } from './charts/security-charts'
 import { systemCharts } from './charts/system-charts'
 import { threadCharts } from './charts/thread-charts'
+import { trafficCharts } from './charts/traffic-charts'
 import { zookeeperCharts } from './charts/zookeeper-charts'
 
 /** Cache policy → Cache-Control TTL bucket (handler maps to headers). */
@@ -183,4 +184,5 @@ registerChartQueries({
   ...queryPerfCharts,
   ...insightCharts,
   ...queryInsightsCharts,
+  ...trafficCharts,
 })
