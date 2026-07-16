@@ -58,6 +58,14 @@ function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
     routingKeyMasked: route.routingKey
       ? maskRoutingKey(route.routingKey)
       : null,
+    // Telegram (#2655): the bot token is a bare secret (like a PagerDuty
+    // routing key), never returned in full once stored — only the last 4
+    // chars. The chat id is not a secret and is returned as-is so the UI can
+    // show which chat a route targets.
+    telegramChatId: route.telegramChatId,
+    telegramBotTokenMasked: route.telegramBotToken
+      ? maskRoutingKey(route.telegramBotToken)
+      : null,
   }
 }
 
@@ -75,12 +83,16 @@ interface CreateRouteBody {
   matchHost?: unknown
   channelUrl?: unknown
   enabled?: unknown
-  /** `'webhook'` (default) or `'pagerduty'` (plan 34). */
+  /** `'webhook'` (default), `'pagerduty'` (plan 34), or `'telegram'` (#2655). */
   provider?: unknown
   /** PagerDuty-only: display label for the service. */
   serviceName?: unknown
   /** PagerDuty-only: the service's Events API v2 integration/routing key. */
   routingKey?: unknown
+  /** Telegram-only: the Bot API token (a secret). */
+  telegramBotToken?: unknown
+  /** Telegram-only: the target chat id. */
+  telegramChatId?: unknown
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -97,7 +109,11 @@ async function handlePost(request: Request): Promise<Response> {
   }
 
   const provider: AlertRouteProvider =
-    body.provider === 'pagerduty' ? 'pagerduty' : 'webhook'
+    body.provider === 'pagerduty'
+      ? 'pagerduty'
+      : body.provider === 'telegram'
+        ? 'telegram'
+        : 'webhook'
 
   const matchRule =
     typeof body.matchRule === 'string' && body.matchRule.trim()
@@ -133,6 +149,48 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'pagerduty',
       serviceName: serviceName || null,
       routingKey,
+    })
+
+    if (!created) {
+      return jsonError(
+        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        501
+      )
+    }
+
+    return Response.json(
+      { success: true, route: toPublicRoute(created) },
+      { status: 201 }
+    )
+  }
+
+  if (provider === 'telegram') {
+    const telegramBotToken =
+      typeof body.telegramBotToken === 'string'
+        ? body.telegramBotToken.trim()
+        : ''
+    const telegramChatId =
+      typeof body.telegramChatId === 'string' ? body.telegramChatId.trim() : ''
+    if (!telegramBotToken || !telegramChatId) {
+      return jsonError(
+        'Missing required "telegramBotToken" and/or "telegramChatId" for a Telegram route',
+        400
+      )
+    }
+
+    // The Telegram Bot API endpoint host is fixed (`api.telegram.org`) — only
+    // the token in the path varies — so there is no caller-supplied SSRF sink
+    // here (unlike the webhook path below). `channelUrl` stays empty; the
+    // sweep builds the outbound URL from the token at send time.
+    const created = await createRoute({
+      ownerId,
+      matchRule,
+      matchHost,
+      channelUrl: '',
+      enabled,
+      provider: 'telegram',
+      telegramBotToken,
+      telegramChatId,
     })
 
     if (!created) {

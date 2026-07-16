@@ -51,6 +51,9 @@ export function HealthSettingsDialog() {
     configured: boolean
     region: string | null
   } | null>(null)
+  const [telegramStatus, setTelegramStatus] = useState<{
+    configured: boolean
+  } | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -64,6 +67,10 @@ export function HealthSettingsDialog() {
         )
       )
       .catch(() => setOpsgenieStatus(null))
+    fetch('/api/v1/health/telegram-test')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setTelegramStatus(data as { configured: boolean } | null))
+      .catch(() => setTelegramStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -183,6 +190,25 @@ export function HealthSettingsDialog() {
       }
     } catch {
       toast.error('Opsgenie test alert failed')
+    }
+  }
+
+  const handleTestTelegram = async () => {
+    try {
+      const res = await fetch('/api/v1/health/telegram-test', {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast.success('Telegram test message sent')
+      } else {
+        const body = await res.json().catch(() => null)
+        toast.error(
+          (body as { error?: { message?: string } } | null)?.error?.message ??
+            'Telegram test message failed'
+        )
+      }
+    } catch {
+      toast.error('Telegram test message failed')
     }
   }
 
@@ -485,6 +511,40 @@ export function HealthSettingsDialog() {
                     size="sm"
                     onClick={handleTestOpsgenie}
                     disabled={!opsgenieStatus?.configured}
+                  >
+                    Send test
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">
+                        Telegram alerts
+                      </Label>
+                      <Badge
+                        variant={
+                          telegramStatus?.configured ? 'default' : 'secondary'
+                        }
+                      >
+                        {telegramStatus?.configured
+                          ? 'Configured'
+                          : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Set HEALTH_ALERT_TELEGRAM_BOT_TOKEN and
+                      HEALTH_ALERT_TELEGRAM_CHAT_ID on the server to enable —
+                      the bot token is never exposed to the browser
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestTelegram}
+                    disabled={!telegramStatus?.configured}
                   >
                     Send test
                   </Button>

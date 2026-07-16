@@ -26,6 +26,8 @@ interface FakeRow {
   provider: string
   service_name: string | null
   routing_key: string | null
+  telegram_bot_token?: string | null
+  telegram_chat_id?: string | null
 }
 
 function makeFakeD1() {
@@ -52,6 +54,8 @@ function makeFakeD1() {
                 provider,
                 service_name,
                 routing_key,
+                telegram_bot_token,
+                telegram_chat_id,
               ] = params as [
                 string,
                 string,
@@ -61,6 +65,8 @@ function makeFakeD1() {
                 number,
                 number,
                 string,
+                string | null,
+                string | null,
                 string | null,
                 string | null,
               ]
@@ -75,6 +81,8 @@ function makeFakeD1() {
                 provider,
                 service_name,
                 routing_key,
+                telegram_bot_token,
+                telegram_chat_id,
               })
               return { meta: { changes: 1 } }
             }
@@ -135,6 +143,7 @@ const {
   matchRoutes,
   resolvePagerDutyTargets,
   resolveTargets,
+  resolveTelegramTargets,
 } = await import('./alert-routing')
 
 import type { AlertRoute, RouteMatchTarget } from './alert-routing'
@@ -151,6 +160,8 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     provider: 'webhook',
     serviceName: null,
     routingKey: null,
+    telegramBotToken: null,
+    telegramChatId: null,
     ...overrides,
   }
 }
@@ -364,6 +375,92 @@ describe('resolvePagerDutyTargets (pure) — plan 34', () => {
   })
 })
 
+describe('resolveTelegramTargets (pure) — #2655', () => {
+  const ENV_FALLBACK = { botToken: 'env-tok', chatId: 'env-chat' }
+
+  test('matches a telegram route and returns its bot token + chat id', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'telegram',
+      telegramBotToken: '123:ABC',
+      telegramChatId: '-100',
+    })
+    expect(resolveTelegramTargets([r], TARGET, null)).toEqual([
+      { botToken: '123:ABC', chatId: '-100' },
+    ])
+  })
+
+  test('matches a telegram route via glob and the * host wildcard', () => {
+    const r = route({
+      matchRule: 'disk-*',
+      matchHost: '*',
+      provider: 'telegram',
+      telegramBotToken: '123:ABC',
+      telegramChatId: '-100',
+    })
+    expect(resolveTelegramTargets([r], TARGET, null)).toEqual([
+      { botToken: '123:ABC', chatId: '-100' },
+    ])
+  })
+
+  test('ignores webhook-provider routes even if matched', () => {
+    const r = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolveTelegramTargets([r], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('a matched webhook route suppresses the env Telegram fallback (no double-fire)', () => {
+    const webhook = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolveTelegramTargets([webhook], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('deduplicates matched routes sharing the same token + chat id', () => {
+    const r1 = route({
+      id: 'a',
+      matchRule: 'disk-usage',
+      provider: 'telegram',
+      telegramBotToken: '123:ABC',
+      telegramChatId: '-100',
+    })
+    const r2 = route({
+      id: 'b',
+      matchRule: '*',
+      provider: 'telegram',
+      telegramBotToken: '123:ABC',
+      telegramChatId: '-100',
+    })
+    expect(resolveTelegramTargets([r1, r2], TARGET, null)).toEqual([
+      { botToken: '123:ABC', chatId: '-100' },
+    ])
+  })
+
+  test('a telegram route missing token or chat id never dispatches, and still suppresses the env fallback', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'telegram',
+      telegramBotToken: '123:ABC',
+      telegramChatId: null,
+    })
+    expect(resolveTelegramTargets([r], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('falls back to the env config when nothing matches', () => {
+    const r = route({ matchRule: 'replication-*', provider: 'telegram' })
+    expect(resolveTelegramTargets([r], TARGET, ENV_FALLBACK)).toEqual([
+      ENV_FALLBACK,
+    ])
+  })
+
+  test('empty route list falls back to the env config', () => {
+    expect(resolveTelegramTargets([], TARGET, ENV_FALLBACK)).toEqual([
+      ENV_FALLBACK,
+    ])
+  })
+
+  test('no match and no env config -> empty (no Telegram dispatch)', () => {
+    expect(resolveTelegramTargets([], TARGET, null)).toEqual([])
+  })
+})
+
 describe('D1-backed alert-routing CRUD', () => {
   test('listRoutes returns [] when D1 binding is missing (self-hosted/OSS)', async () => {
     currentDb = null
@@ -436,6 +533,29 @@ describe('D1-backed alert-routing CRUD', () => {
     expect(listed.provider).toBe('pagerduty')
     expect(listed.serviceName).toBe('DB On-call')
     expect(listed.routingKey).toBe('R-abc')
+  })
+
+  test('create -> list round-trip persists telegram provider fields', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+
+    const created = await createRoute({
+      ownerId: 'owner-1',
+      matchRule: 'disk-*',
+      matchHost: '*',
+      channelUrl: '',
+      provider: 'telegram',
+      telegramBotToken: '123:ABC',
+      telegramChatId: '-100',
+    })
+    expect(created?.provider).toBe('telegram')
+    expect(created?.telegramBotToken).toBe('123:ABC')
+    expect(created?.telegramChatId).toBe('-100')
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.provider).toBe('telegram')
+    expect(listed.telegramBotToken).toBe('123:ABC')
+    expect(listed.telegramChatId).toBe('-100')
   })
 
   test('legacy row with no provider column value defaults to webhook', async () => {

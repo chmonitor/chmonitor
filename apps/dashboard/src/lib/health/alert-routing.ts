@@ -37,9 +37,10 @@ const TABLE = 'alert_routes'
  * `channelUrl` exactly as plan 30 shipped — Slack/Discord/generic JSON.
  * `'pagerduty'` (plan 34) routes to a PagerDuty service's Events API v2
  * integration key (`routingKey`) instead, letting PagerDuty apply that
- * service's own escalation policy + on-call schedule.
+ * service's own escalation policy + on-call schedule. `'telegram'` (#2655)
+ * routes to a Telegram chat via a bot token + chat id.
  */
-export type AlertRouteProvider = 'webhook' | 'pagerduty'
+export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram'
 
 /** A configured alert route: match criteria → destination channel. */
 export interface AlertRoute {
@@ -58,6 +59,10 @@ export interface AlertRoute {
   serviceName: string | null
   /** PagerDuty Events API v2 integration/routing key (provider `'pagerduty'` only). */
   routingKey: string | null
+  /** Telegram Bot API token — a secret (provider `'telegram'` only). */
+  telegramBotToken: string | null
+  /** Telegram target chat id (provider `'telegram'` only). */
+  telegramChatId: string | null
 }
 
 interface D1AlertRouteRow {
@@ -71,6 +76,8 @@ interface D1AlertRouteRow {
   provider: string | null
   service_name: string | null
   routing_key: string | null
+  telegram_bot_token: string | null
+  telegram_chat_id: string | null
 }
 
 function getDb(): D1Database | null {
@@ -89,9 +96,16 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
     // Legacy plan-30 rows have no `provider` column value yet (pre-migration
     // fake D1s in tests, or a row inserted before 0016 ran) — default to the
     // webhook behavior they already have.
-    provider: row.provider === 'pagerduty' ? 'pagerduty' : 'webhook',
+    provider:
+      row.provider === 'pagerduty'
+        ? 'pagerduty'
+        : row.provider === 'telegram'
+          ? 'telegram'
+          : 'webhook',
     serviceName: row.service_name ?? null,
     routingKey: row.routing_key ?? null,
+    telegramBotToken: row.telegram_bot_token ?? null,
+    telegramChatId: row.telegram_chat_id ?? null,
   }
 }
 
@@ -109,7 +123,7 @@ export async function listRoutes(ownerId: string): Promise<AlertRoute[]> {
     const result = await db
       .prepare(
         `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
-                provider, service_name, routing_key
+                provider, service_name, routing_key, telegram_bot_token, telegram_chat_id
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -136,6 +150,10 @@ export interface CreateRouteInput {
   serviceName?: string | null
   /** PagerDuty Events API v2 integration/routing key (provider `'pagerduty'` only). */
   routingKey?: string | null
+  /** Telegram Bot API token — a secret (provider `'telegram'` only). */
+  telegramBotToken?: string | null
+  /** Telegram target chat id (provider `'telegram'` only). */
+  telegramChatId?: string | null
 }
 
 /**
@@ -161,14 +179,16 @@ export async function createRoute(
       provider: input.provider ?? 'webhook',
       serviceName: input.serviceName?.trim() || null,
       routingKey: input.routingKey?.trim() || null,
+      telegramBotToken: input.telegramBotToken?.trim() || null,
+      telegramChatId: input.telegramChatId?.trim() || null,
     }
 
     await db
       .prepare(
         `INSERT INTO ${TABLE}
            (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
-            provider, service_name, routing_key)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
+            provider, service_name, routing_key, telegram_bot_token, telegram_chat_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`
       )
       .bind(
         route.id,
@@ -180,7 +200,9 @@ export async function createRoute(
         route.createdAt,
         route.provider,
         route.serviceName,
-        route.routingKey
+        route.routingKey,
+        route.telegramBotToken,
+        route.telegramChatId
       )
       .run()
 
@@ -352,4 +374,56 @@ export function resolvePagerDutyTargets(
   return envFallbackKey
     ? [{ serviceName: 'default', routingKey: envFallbackKey }]
     : []
+}
+
+/** One Telegram dispatch target: a bot token + the chat id to send to. */
+export interface TelegramTarget {
+  botToken: string
+  chatId: string
+}
+
+/**
+ * Resolve the Telegram chats a finding should message (#2655 — extends the
+ * plan-30/34 routing model, mirroring {@link resolvePagerDutyTargets}): every
+ * ENABLED, matched route with `provider === 'telegram'` that carries both a
+ * bot token and a chat id, deduplicated by `botToken:chatId`. When NO route
+ * matched at all (any provider), falls back to `[envFallback]` when the
+ * env-configured global Telegram config is present — preserving the
+ * single-destination behavior for deployments that never configure a route.
+ * Returns `[]` when there is no env fallback, OR when a route of a different
+ * provider matched instead — the same cross-provider suppression
+ * {@link resolveTargets} / {@link resolvePagerDutyTargets} apply, so an
+ * operator who explicitly routed a rule to Slack/PagerDuty is not ALSO
+ * messaged on the env-configured Telegram chat. Pure — no I/O.
+ */
+export function resolveTelegramTargets(
+  routes: readonly AlertRoute[],
+  target: RouteMatchTarget,
+  envFallback: TelegramTarget | null
+): TelegramTarget[] {
+  const matched = matchRoutes(routes, target)
+  const telegramMatched = matched.filter(
+    (
+      r
+    ): r is AlertRoute & { telegramBotToken: string; telegramChatId: string } =>
+      r.provider === 'telegram' &&
+      Boolean(r.telegramBotToken) &&
+      Boolean(r.telegramChatId)
+  )
+
+  if (telegramMatched.length > 0) {
+    const seen = new Set<string>()
+    const out: TelegramTarget[] = []
+    for (const r of telegramMatched) {
+      const key = `${r.telegramBotToken}:${r.telegramChatId}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push({ botToken: r.telegramBotToken, chatId: r.telegramChatId })
+    }
+    return out
+  }
+
+  if (matched.length > 0) return []
+
+  return envFallback ? [envFallback] : []
 }

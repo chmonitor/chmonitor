@@ -2,6 +2,7 @@ import {
   getServerAlertConfig,
   getServerEmailConfig,
   getServerOpsgenieConfig,
+  getServerTelegramConfig,
 } from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
@@ -356,6 +357,58 @@ describe('getServerEmailConfig', () => {
       healthchecksUrl: '',
       minSeverity: 'warning',
       browserNotificationsEnabled: false,
+    })
+  })
+})
+
+const TELEGRAM_ENV_KEYS = [
+  'HEALTH_ALERT_TELEGRAM_BOT_TOKEN',
+  'HEALTH_ALERT_TELEGRAM_CHAT_ID',
+] as const
+
+describe('getServerTelegramConfig', () => {
+  const original: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of TELEGRAM_ENV_KEYS) {
+      original[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of TELEGRAM_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key]
+      else process.env[key] = original[key]
+    }
+  })
+
+  it('returns null when neither var is set', () => {
+    expect(getServerTelegramConfig()).toBeNull()
+  })
+
+  it('returns null when only the bot token is set', () => {
+    process.env.HEALTH_ALERT_TELEGRAM_BOT_TOKEN = '123:ABC'
+    expect(getServerTelegramConfig()).toBeNull()
+  })
+
+  it('returns null when only the chat id is set', () => {
+    process.env.HEALTH_ALERT_TELEGRAM_CHAT_ID = '-100'
+    expect(getServerTelegramConfig()).toBeNull()
+  })
+
+  it('returns null when a var is whitespace-only', () => {
+    process.env.HEALTH_ALERT_TELEGRAM_BOT_TOKEN = '   '
+    process.env.HEALTH_ALERT_TELEGRAM_CHAT_ID = '-100'
+    expect(getServerTelegramConfig()).toBeNull()
+  })
+
+  it('trims and returns both values when set', () => {
+    process.env.HEALTH_ALERT_TELEGRAM_BOT_TOKEN = '  123:ABC  '
+    process.env.HEALTH_ALERT_TELEGRAM_CHAT_ID = '  -100  '
+    expect(getServerTelegramConfig()).toEqual({
+      botToken: '123:ABC',
+      chatId: '-100',
     })
   })
 })

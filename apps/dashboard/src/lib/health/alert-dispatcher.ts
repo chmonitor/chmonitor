@@ -1,4 +1,4 @@
-import { buildPagerDutyBody } from './adapters'
+import { buildPagerDutyBody, buildTelegramBody } from './adapters'
 import { loadAlertSettings } from './alert-settings-storage'
 
 // Duplicated (not imported) from `pagerduty-config.ts` on purpose: that
@@ -226,6 +226,53 @@ export async function firePagerDutyTest(
       body: JSON.stringify({
         url: PAGERDUTY_EVENTS_API_URL,
         provider: 'pagerduty',
+        payload: body,
+      }),
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/**
+ * Send a test Telegram message to a specific bot token + chat id, via the
+ * `/api/v1/health/webhook` proxy's `provider`-hint path (verbatim body
+ * forward — see `webhook.ts`) so the routing dialog (#2655) never needs a
+ * direct browser→Telegram fetch. The token is only ever sent to our own proxy
+ * at creation time (the user just typed it), same posture as the PagerDuty
+ * routing-key test above; it is never echoed back to the client after storage.
+ */
+export async function fireTelegramTest(
+  alert: HealthAlertEvent,
+  botToken: string,
+  chatId: string
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const body = buildTelegramBody(
+      {
+        severity: alert.severity,
+        hostLabel: `host ${alert.hostId}`,
+        hostId: alert.hostId,
+        metric: alert.checkId,
+        value: alert.value,
+        title: alert.title,
+        label: alert.label,
+        timestamp: new Date().toISOString(),
+      },
+      { token: botToken, chatId }
+    )
+    const res = await fetch('/api/v1/health/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: `https://api.telegram.org/bot${botToken}/sendMessage`,
+        provider: 'telegram',
         payload: body,
       }),
       signal: controller.signal,

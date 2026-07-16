@@ -183,6 +183,36 @@ export function getServerOpsgenieConfig(): ServerOpsgenieConfig | null {
   return { apiKey, region }
 }
 
+/** Resolved server-side Telegram config: the bot token plus the target chat id. */
+export interface ServerTelegramConfig {
+  botToken: string
+  chatId: string
+}
+
+/**
+ * Server-side Telegram config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_TELEGRAM_BOT_TOKEN → botToken (default '')
+ *   - HEALTH_ALERT_TELEGRAM_CHAT_ID   → chatId   (default '')
+ *
+ * Returns null unless BOTH are configured — Telegram delivery is opt-in and
+ * fails open (either value missing ⇒ the sweep skips the Telegram dispatch
+ * entirely). This is the global fallback used when no per-rule/per-host
+ * Telegram route matches, mirroring the PagerDuty routing-key fallback (#2655).
+ *
+ * NOTE: exposed as a companion function (matching
+ * {@link getServerOpsgenieConfig}) rather than folded into
+ * {@link getServerAlertConfig}'s return value — that shape is shared with the
+ * client's localStorage settings and asserted deeply by its tests, and the bot
+ * token is a server-only secret that must never round-trip through it.
+ */
+export function getServerTelegramConfig(): ServerTelegramConfig | null {
+  const botToken = process.env.HEALTH_ALERT_TELEGRAM_BOT_TOKEN?.trim() || ''
+  const chatId = process.env.HEALTH_ALERT_TELEGRAM_CHAT_ID?.trim() || ''
+  if (!botToken || !chatId) return null
+  return { botToken, chatId }
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

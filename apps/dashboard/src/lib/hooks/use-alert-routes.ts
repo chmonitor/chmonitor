@@ -12,8 +12,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
-/** Destination provider: `'webhook'` (plan 30) or `'pagerduty'` (plan 34). */
-export type AlertRouteProvider = 'webhook' | 'pagerduty'
+/**
+ * Destination provider: `'webhook'` (plan 30), `'pagerduty'` (plan 34), or
+ * `'telegram'` (#2655).
+ */
+export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram'
 
 export interface AlertRouteInfo {
   id: string
@@ -26,6 +29,10 @@ export interface AlertRouteInfo {
   serviceName: string | null
   /** Masked routing key (last 4 chars only) — never the raw secret. */
   routingKeyMasked: string | null
+  /** Telegram target chat id (not a secret). */
+  telegramChatId: string | null
+  /** Masked Telegram bot token (last 4 chars only) — never the raw secret. */
+  telegramBotTokenMasked: string | null
 }
 
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
@@ -67,6 +74,8 @@ export function useAlertRoutesMutations() {
     provider?: AlertRouteProvider
     serviceName?: string
     routingKey?: string
+    telegramBotToken?: string
+    telegramChatId?: string
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {
       method: 'POST',

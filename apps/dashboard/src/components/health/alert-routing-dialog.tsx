@@ -33,7 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { firePagerDutyTest, fireWebhook } from '@/lib/health/alert-dispatcher'
+import {
+  firePagerDutyTest,
+  fireTelegramTest,
+  fireWebhook,
+} from '@/lib/health/alert-dispatcher'
 import {
   useAlertRoutes,
   useAlertRoutesMutations,
@@ -51,6 +55,7 @@ function RouteRow({
   const [busy, setBusy] = useState(false)
   const { deleteRoute } = useAlertRoutesMutations()
   const isPagerDuty = route.provider === 'pagerduty'
+  const isTelegram = route.provider === 'telegram'
 
   const handleDelete = async () => {
     setBusy(true)
@@ -88,6 +93,15 @@ function RouteRow({
         )
         return
       }
+      // Same tradeoff as PagerDuty above: a Telegram route's bot token is a
+      // masked secret never returned to the client after storage, so an
+      // existing route can only be re-tested by re-creating it.
+      if (isTelegram) {
+        toast.info(
+          'Re-create the route to send another Telegram test message (the bot token is never re-shown once saved).'
+        )
+        return
+      }
       const ok = await fireWebhook(testAlert, route.channelUrl)
       if (ok) toast.success('Test alert sent')
       else toast.error('Webhook request failed')
@@ -101,6 +115,7 @@ function RouteRow({
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-1.5">
           {isPagerDuty && <Badge variant="default">PagerDuty</Badge>}
+          {isTelegram && <Badge variant="default">Telegram</Badge>}
           <Badge variant="outline">rule: {route.matchRule}</Badge>
           <Badge variant="outline">host: {route.matchHost}</Badge>
           {!route.enabled && <Badge variant="secondary">disabled</Badge>}
@@ -108,7 +123,9 @@ function RouteRow({
         <span className="truncate text-sm text-muted-foreground">
           {isPagerDuty
             ? `${route.serviceName || 'PagerDuty service'} — ${route.routingKeyMasked}`
-            : route.channelUrl}
+            : isTelegram
+              ? `chat ${route.telegramChatId} — bot ${route.telegramBotTokenMasked}`
+              : route.channelUrl}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -136,6 +153,8 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
   const [pdServiceId, setPdServiceId] = useState('')
   const [pdServiceName, setPdServiceName] = useState('')
   const [pdRoutingKey, setPdRoutingKey] = useState('')
+  const [tgBotToken, setTgBotToken] = useState('')
+  const [tgChatId, setTgChatId] = useState('')
   const [busy, setBusy] = useState(false)
   const { createRoute } = useAlertRoutesMutations()
   const { services: pdServices, isLoading: pdServicesLoading } =
@@ -148,12 +167,19 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     setPdServiceId('')
     setPdServiceName('')
     setPdRoutingKey('')
+    setTgBotToken('')
+    setTgChatId('')
   }
 
   const handleSubmit = async () => {
     if (provider === 'pagerduty') {
       if (!pdRoutingKey.trim()) {
         toast.error("Enter the service's PagerDuty routing/integration key")
+        return
+      }
+    } else if (provider === 'telegram') {
+      if (!tgBotToken.trim() || !tgChatId.trim()) {
+        toast.error('Enter the Telegram bot token and chat id')
         return
       }
     } else if (!channelUrl.trim()) {
@@ -172,7 +198,13 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
               serviceName: pdServiceName.trim() || undefined,
               routingKey: pdRoutingKey.trim(),
             }
-          : { channelUrl: channelUrl.trim() }),
+          : provider === 'telegram'
+            ? {
+                provider: 'telegram',
+                telegramBotToken: tgBotToken.trim(),
+                telegramChatId: tgChatId.trim(),
+              }
+            : { channelUrl: channelUrl.trim() }),
       })
       toast.success('Route created')
       reset()
@@ -209,6 +241,32 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const handleSendTelegramTest = async () => {
+    if (!tgBotToken.trim() || !tgChatId.trim()) {
+      toast.error('Enter the Telegram bot token and chat id')
+      return
+    }
+    setBusy(true)
+    try {
+      const ok = await fireTelegramTest(
+        {
+          checkId: 'test',
+          title: 'Test Alert',
+          severity: 'warning',
+          value: 0,
+          label: 'This is a test alert from chmonitor',
+          hostId: 0,
+        },
+        tgBotToken.trim(),
+        tgChatId.trim()
+      )
+      if (ok) toast.success('Test message sent to Telegram')
+      else toast.error('Telegram Bot API request failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3">
       <Label className="text-sm font-medium">Add route</Label>
@@ -226,6 +284,7 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
               Channel webhook (Slack/Discord/…)
             </SelectItem>
             <SelectItem value="pagerduty">PagerDuty service</SelectItem>
+            <SelectItem value="telegram">Telegram chat</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -305,6 +364,42 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             onClick={handleSendTest}
           >
             Send test event
+          </Button>
+        </>
+      ) : provider === 'telegram' ? (
+        <>
+          <Label
+            htmlFor="route-telegram-token"
+            className="text-xs text-muted-foreground"
+          >
+            Bot token
+          </Label>
+          <Input
+            id="route-telegram-token"
+            placeholder="123456:ABC-DEF..."
+            value={tgBotToken}
+            onChange={(e) => setTgBotToken(e.target.value)}
+          />
+          <Label
+            htmlFor="route-telegram-chat"
+            className="text-xs text-muted-foreground"
+          >
+            Chat id
+          </Label>
+          <Input
+            id="route-telegram-chat"
+            placeholder="-1001234567890 or @channelname"
+            value={tgChatId}
+            onChange={(e) => setTgChatId(e.target.value)}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            disabled={busy}
+            onClick={handleSendTelegramTest}
+          >
+            Send test message
           </Button>
         </>
       ) : (
