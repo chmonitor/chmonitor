@@ -317,4 +317,52 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
       tableCheck: 'system.query_log',
     }
   },
+
+  /**
+   * PeerDB smart-detection: a single row reporting whether this cluster is used
+   * as a PeerDB (Postgres CDC → ClickHouse) destination. PeerDB creates helper
+   * tables/databases whose names contain 'peerdb' and runs its insert queries
+   * under a user/client containing 'peerdb'. Powers the conditional "PeerDB
+   * Ingestion" section on /traffic — that section renders only when either
+   * count is > 0, so it stays hidden entirely when PeerDB is not in use.
+   */
+  'traffic-peerdb-detect': () => ({
+    query: `
+    SELECT
+      (SELECT count() FROM system.tables WHERE database ILIKE '%peerdb%' OR name ILIKE '%peerdb%') AS peerdb_tables,
+      (SELECT count() FROM system.query_log
+        WHERE type = 'QueryFinish' AND query_kind = 'Insert'
+          AND event_time >= now() - INTERVAL 24 HOUR
+          AND (user ILIKE '%peerdb%' OR http_user_agent ILIKE '%peerdb%' OR client_name ILIKE '%peerdb%')) AS peerdb_inserts_24h
+  `,
+    optional: true,
+    tableCheck: 'system.query_log',
+  }),
+
+  /**
+   * Rows ingested by PeerDB over time, split by destination table. Only counts
+   * insert queries attributable to PeerDB (user/agent/client contains 'peerdb').
+   * `tables` is an Array column on query_log; we key on the first element,
+   * which is the fully-qualified `db.table` name — simpler and more robust than
+   * reconstructing it from `databases` + `tables`.
+   */
+  'traffic-peerdb-rows': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           arrayElement(tables, 1) AS table,
+           sum(written_rows) AS peerdb_rows
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+      AND query_kind = 'Insert'
+      AND (user ILIKE '%peerdb%' OR http_user_agent ILIKE '%peerdb%' OR client_name ILIKE '%peerdb%')
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1, 2
+    ORDER BY 1, 2
+  `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
 }

@@ -12,6 +12,10 @@
  * When the cluster actually replicates or shards, a smart-detected
  * "Replication & Distribution" section is appended (replica fetch traffic and
  * distributed initial-vs-secondary queries); it is absent on a single node.
+ *
+ * A conditional "PeerDB Ingestion" section is appended at the end, auto-detected
+ * from system.tables / system.query_log and hidden entirely when this cluster
+ * is not used as a PeerDB (Postgres CDC → ClickHouse) destination.
  */
 
 import { CombineIcon } from 'lucide-react'
@@ -24,6 +28,7 @@ import { ChartInsertedBytesOverTime } from '@/components/charts/traffic/inserted
 import { ChartInsertedRowsOverTime } from '@/components/charts/traffic/inserted-rows-over-time'
 import { ChartMergedBytesOverTime } from '@/components/charts/traffic/merged-bytes-over-time'
 import { ChartPartMovesOverTime } from '@/components/charts/traffic/part-moves-over-time'
+import { TrafficPeerdbSection } from '@/components/charts/traffic/traffic-peerdb-section'
 import { TrafficReplicationSection } from '@/components/charts/traffic/traffic-replication-section'
 import { TrafficSummaryKpis } from '@/components/charts/traffic/traffic-summary-kpis'
 import { ChartWriteAmplificationOverTime } from '@/components/charts/traffic/write-amplification-over-time'
@@ -96,6 +101,11 @@ function TrafficPageContent() {
       />
 
       <TrafficReplicationSection
+        chartClassName={CHART_CLASS}
+        chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
+      />
+
+      <TrafficPeerdbSection
         chartClassName={CHART_CLASS}
         chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
       />
