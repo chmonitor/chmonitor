@@ -270,6 +270,25 @@ wrangler secret put CLICKHOUSE_PASSWORD
 pnpm run cf:health
 ```
 
+### Cron triggers (headless jobs)
+
+`wrangler.toml` `[triggers] crons` schedules the secret-gated GET routes under
+`src/routes/api/cron/`. The Cloudflare scheduled trigger is routed to the route's
+`GET` handler; each route requires `CRON_SECRET` (`Authorization: Bearer` or
+`?secret=`) and **fails closed (503) when it is unset**.
+
+| Cron | Route | Notes |
+|------|-------|-------|
+| `0 3 * * *` | `retention-prune` | Daily 03:00 UTC. **Destructive** (deletes conversation rows past each plan's retention window). |
+| `0 8 * * 1` | `weekly-report` | Mondays 08:00 UTC. Per-host opt-in via `CHM_WEEKLY_REPORT_HOSTS`; no-op when unset. |
+| `*/10 * * * *` | `health-sweep` | Every 10 min (#2666). Runs health/anomaly checks + webhook alert fan-out headlessly. Gated by `CHM_HEALTH_SWEEP_ENABLED` (falsy → route no-ops 200; unset → enabled iff `CRON_SECRET` set). Also generates AI insights per host, so its cost scales with `CLICKHOUSE_HOST` count — 10 min (not 5) leaves CPU headroom; lengthen the cadence or set `CHM_HEALTH_SWEEP_ENABLED=false` for very large fleets. |
+
+`CHM_HEALTH_SWEEP_ENABLED` is a non-secret Worker var: committed in
+`apps/dashboard/.env.production` (`=true` for the hosted product) and documented
+in `.env.example` for self-hosters. The `[env.preview]` worker declares no
+`[triggers]`, so preview never runs these crons. See
+`docs/content/guide/features/health.mdx` for the full alerting setup.
+
 ## Edge Routing & Host Redirects (4-worker topology)
 
 Production runs four workers on the `chmonitor.dev` zone:

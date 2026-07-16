@@ -194,14 +194,18 @@ simple = { limit = 10, period = 60 }
 # <secret>` (an external scheduler, or a Cloudflare Cron that forwards the
 # secret to the route's URL — see docs/content/guide/features/health.mdx). The
 # schedules below document each cadence:
-#   - "0 3 * * *"  → retention-prune, daily at 03:00 UTC.
-#   - "0 8 * * 1"  → weekly-report, Mondays at 08:00 UTC (per-host opt-in via
+#   - "0 3 * * *"    → retention-prune, daily at 03:00 UTC.
+#   - "0 8 * * 1"    → weekly-report, Mondays at 08:00 UTC (per-host opt-in via
 #     CHM_WEEKLY_REPORT_HOSTS; no-op when unset).
-# health-sweep (every 5 min) should be added here when that route is confirmed
-# working end-to-end.
+#   - "*/10 * * * *" → health-sweep, every 10 minutes (issue #2666). Runs the
+#     health/anomaly sweep + webhook alert fan-out with no dashboard tab open.
+#     Gated at runtime by CHM_HEALTH_SWEEP_ENABLED (see .env.production /
+#     .env.example): when falsy the route no-ops (200); when unset it defaults to
+#     enabled iff CRON_SECRET is configured. 10 min (not 5) leaves CPU headroom
+#     since the sweep also generates AI insights per host.
 # ─────────────────────────────────────────────────────────────────────────────
 [triggers]
-crons = ["0 3 * * *", "0 8 * * 1"]
+crons = ["0 3 * * *", "0 8 * * 1", "*/10 * * * *"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Preview environment for PR deployments

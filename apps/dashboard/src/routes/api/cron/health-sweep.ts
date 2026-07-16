@@ -2,10 +2,14 @@
  * Autonomous Health Sweep Cron Endpoint — GET /api/cron/health-sweep
  *
  * Invoked by the Cloudflare Cron Trigger (see wrangler.toml `[triggers] crons`)
- * every 5 minutes. The @cloudflare/vite-plugin worker routes scheduled events to
- * the fetch handler, so the cron hits this GET route. Runs the health/anomaly
+ * every 10 minutes. The @cloudflare/vite-plugin worker routes scheduled events
+ * to the fetch handler, so the cron hits this GET route. Runs the health/anomaly
  * sweep over all hosts and dispatches webhook alerts for findings at/above the
  * configured severity.
+ *
+ * Two gates apply, in order: (1) CRON_SECRET auth (below), then (2) the
+ * CHM_HEALTH_SWEEP_ENABLED enablement switch (see lib/health/sweep-schedule.ts)
+ * — a falsy value makes the scheduled run a 200 no-op without removing the cron.
  *
  * Guarded by a shared secret (CRON_SECRET) supplied via the `Authorization:
  * Bearer <secret>` header or the `?secret=` query param. Returns 401 on
@@ -36,6 +40,7 @@ import { error, warn } from '@chm/logger'
 import { bridgeClickHouseEnv, bridgePostgresEnv } from '@/lib/api/server-env'
 import { secretsMatch } from '@/lib/auth/providers/constant-time'
 import { runHealthSweep } from '@/lib/health/server-sweep'
+import { isHealthSweepEnabled } from '@/lib/health/sweep-schedule'
 
 /**
  * Authorize a cron request. Returns a short-circuit `Response` when the request
@@ -75,6 +80,26 @@ async function handler(request: Request): Promise<Response> {
   const denied = authorizeCron(request)
   if (denied) return denied
 
+  // Scheduled-run enablement gate (issue #2666). The `*/10 * * * *` Cloudflare
+  // Cron trigger fires this route unattended, so operators get a single switch
+  // (CHM_HEALTH_SWEEP_ENABLED) to disable the *scheduled* sweep without removing
+  // the cron or the secret. Reads the Worker binding first (authoritative on
+  // workerd), then process.env (node/dev). Default when unset: enabled because
+  // we are already past the CRON_SECRET auth gate above. Returns 200 (a no-op
+  // success, not an error) so the scheduler treats a disabled sweep as "ran
+  // fine, nothing to do".
+  const bindings = env as Record<string, string | undefined>
+  if (
+    !isHealthSweepEnabled(
+      (key) => bindings[key] ?? process.env[key] ?? undefined
+    )
+  ) {
+    return Response.json(
+      { skipped: true, reason: 'CHM_HEALTH_SWEEP_ENABLED is falsy' },
+      { status: 200 }
+    )
+  }
+
   // Copy CLICKHOUSE_* from the Worker binding onto process.env so
   // getClickHouseConfigs() (inside runHealthSweep) can resolve hosts. Also
   // bridge the POSTGRES_* lists + feature flag so the sweep's env-gated Postgres
@@ -103,3 +128,5 @@ export const Route = createFileRoute('/api/cron/health-sweep')({
     },
   },
 })
+
+export { handler as __handlerForTests }

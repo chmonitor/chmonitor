@@ -95,6 +95,7 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 | Variable | Default | Description |
 |---|---|---|
 | `CRON_SECRET` | (unset = **endpoint disabled**) | **Required.** Guards `GET /api/cron/health-sweep` and `GET /api/cron/retention-prune`. Pass as `Authorization: Bearer <secret>` (or `?secret=<secret>`). When it is **unset/empty the endpoints fail closed and return HTTP 503** — they do not run. Note that `retention-prune` is **destructive** (it deletes conversation rows past each plan's retention window), which is why these routes refuse to run unauthenticated. |
+| `CHM_HEALTH_SWEEP_ENABLED` | (unset = enabled iff `CRON_SECRET` is set) | Gates the **scheduled** (headless) sweep fired by the Cloudflare Cron trigger. Set `true` to force-enable, `false` to pause scheduled sweeps without removing the cron. When unset it fails closed to the `CRON_SECRET` posture. Does not affect manual `curl` hits (those only need a valid `CRON_SECRET`). Truthy values: `1`/`true`/`yes`/`on`. |
 | `HEALTH_ALERT_ENABLED` | `false` | Set to `true` to enable webhook dispatch. |
 | `HEALTH_ALERT_WEBHOOK_URL` | (required if enabled) | Slack or Discord incoming webhook URL. Payload is `{"text": "...", "content": "..."}` so both render it. See [Alerting to Slack and Discord](/guide/guides/alerting-slack-discord) for setup examples. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity that triggers a notification. Values: `warning` or `critical`. |
@@ -144,14 +145,19 @@ The endpoint returns a JSON array of check results. It always returns HTTP 200; 
 
 ### Scheduling (Cloudflare Cron)
 
-In `wrangler.toml`:
+The hosted deploy schedules the sweep every 10 minutes. In `wrangler.toml`:
 
 ```toml
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["0 3 * * *", "0 8 * * 1", "*/10 * * * *"]  # retention, weekly-report, health-sweep
 ```
 
-The Cloudflare scheduled trigger is routed to the route's `GET` handler. Because that handler now **requires** `CRON_SECRET` (it returns HTTP 503 when unset), make sure the secret is configured before relying on the schedule, and invoke the endpoint with the `Authorization: Bearer <secret>` header (or `?secret=<secret>`) so the request is authorized — e.g. from an external scheduler, or a Worker Cron that forwards the secret. An unauthenticated scheduled hit will be rejected by design.
+The Cloudflare scheduled trigger is routed to the route's `GET` handler. Two gates apply, in order:
+
+1. **Auth** — the handler **requires** `CRON_SECRET` (returns HTTP 503 when unset). Configure the secret and invoke with `Authorization: Bearer <secret>` (or `?secret=<secret>`) — e.g. from an external scheduler, or a Worker Cron that forwards the secret. An unauthenticated scheduled hit is rejected by design.
+2. **Enablement** — after auth, the handler consults `CHM_HEALTH_SWEEP_ENABLED`. When it is falsy the route returns `200 {"skipped": true}` **without running the sweep**, so you can pause scheduled alerting without touching the cron or the secret. When unset it defaults to enabled (since `CRON_SECRET` is already present at that point).
+
+The `*/10` cadence (rather than `*/5`) leaves CPU-time headroom: the sweep also generates AI insights per host, so its cost scales with the number of configured `CLICKHOUSE_HOST` entries. For very large host fleets, either lengthen the cadence or pause the scheduled sweep (`CHM_HEALTH_SWEEP_ENABLED=false`) and drive it from an external scheduler.
 
 ## Notes & limitations
 
