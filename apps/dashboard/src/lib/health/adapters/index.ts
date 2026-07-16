@@ -47,9 +47,9 @@ export {
   telegramAdapter,
 } from './telegram'
 
-import type { NotificationAdapter } from './types'
+import type { AlertPayload, NotificationAdapter } from './types'
 
-import { discordAdapter } from './discord'
+import { buildDiscordBody, discordAdapter } from './discord'
 import { emailAdapter } from './email'
 import { genericJsonAdapter } from './generic-json'
 import { opsgenieAdapter } from './opsgenie'
@@ -93,4 +93,68 @@ export function detectAdapter(url: string): NotificationAdapter {
     if (adapter.detect?.(url)) return adapter
   }
   return genericJsonAdapter
+}
+
+/**
+ * The concrete body to POST to a single webhook target, chosen by the target
+ * URL's adapter. Shared by the server sweep ({@link file://../server-sweep.ts})
+ * and the client "Send test" proxy path ({@link file://../alert-dispatcher.ts})
+ * so both preview/deliver the same per-channel shape.
+ */
+export interface WebhookDispatchBody {
+  /** Adapter id chosen for this URL (used for the per-channel audit label). */
+  adapterId: string
+  /**
+   * Proxy provider hint. Set to the adapter id when `body` is a
+   * provider-specific shape that must be forwarded verbatim (Discord embeds).
+   * Undefined for the generic `{ text, content }` wrapper — the client then
+   * posts the backward-compatible `{ url, text }` and the proxy builds the
+   * wrapper itself.
+   */
+  provider?: string
+  /** The JSON body to POST (the server sweep posts this object directly). */
+  body: unknown
+}
+
+/**
+ * Pick the per-URL webhook body for an alert. Discord targets get rich embeds
+ * ({@link buildDiscordBody}); Slack incoming webhooks get the caller's rich
+ * blocks when provided (the native Slack app, server sweep only) and otherwise
+ * the plain `{ text, content }` wrapper; every generic/unknown URL keeps the
+ * exact original `{ text, content }` wrapper — zero behavior change. Pure: no
+ * transport, so the URL → body-shape mapping is unit-testable per adapter.
+ */
+export function buildWebhookDispatchBody(params: {
+  url: string
+  /** Pre-rendered one-line summary (severity/recovery aware). */
+  text: string
+  payload: AlertPayload
+  /** Slack rich blocks — server sweep only, when the Slack app is configured. */
+  slackBlocks?: unknown[]
+}): WebhookDispatchBody {
+  const adapter = detectAdapter(params.url)
+
+  if (adapter.id === 'discord') {
+    return {
+      adapterId: adapter.id,
+      provider: 'discord',
+      body: buildDiscordBody(params.payload),
+    }
+  }
+
+  if (adapter.id === 'slack' && params.slackBlocks) {
+    return {
+      adapterId: adapter.id,
+      body: {
+        text: params.text,
+        content: params.text,
+        blocks: params.slackBlocks,
+      },
+    }
+  }
+
+  return {
+    adapterId: adapter.id,
+    body: { text: params.text, content: params.text },
+  }
 }

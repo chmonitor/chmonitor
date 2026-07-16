@@ -1,4 +1,8 @@
-import { buildPagerDutyBody, buildTelegramBody } from './adapters'
+import {
+  buildPagerDutyBody,
+  buildTelegramBody,
+  buildWebhookDispatchBody,
+} from './adapters'
 import { loadAlertSettings } from './alert-settings-storage'
 
 // Duplicated (not imported) from `pagerduty-config.ts` on purpose: that
@@ -146,10 +150,33 @@ export async function fireWebhook(
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
     const text = `[${alertPrefix(alert)}] ${alert.title} — ${alert.label} (host ${alert.hostId})`
+    // Per-URL body selection (#2656): a Discord target previews the real rich
+    // embed via the proxy's verbatim `provider` path; every other URL keeps the
+    // backward-compatible `{ url, text }` (the proxy wraps it as
+    // `{ text, content }`). The client can't know if the server-side Slack app
+    // is configured, so Slack stays plain text here — matching the pre-#2656
+    // behavior.
+    const dispatch = buildWebhookDispatchBody({
+      url,
+      text,
+      payload: {
+        severity: alert.kind === 'recovery' ? 'recovery' : alert.severity,
+        hostLabel: `host ${alert.hostId}`,
+        hostId: alert.hostId,
+        metric: alert.checkId,
+        value: alert.value,
+        title: alert.title,
+        label: alert.label,
+        timestamp: new Date().toISOString(),
+      },
+    })
+    const requestBody = dispatch.provider
+      ? { url, provider: dispatch.provider, payload: dispatch.body }
+      : { url, text }
     const res = await fetch('/api/v1/health/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, text }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     })
     return res.ok

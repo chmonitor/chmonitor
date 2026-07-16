@@ -13,7 +13,12 @@ import type { AlertEventRecord } from './alert-history-store'
 import type { AlertRoute } from './alert-routing'
 import type { AlertDecision } from './alert-state-store'
 
-import { buildEmailBody, buildPagerDutyBody, detectAdapter } from './adapters'
+import {
+  buildEmailBody,
+  buildPagerDutyBody,
+  buildWebhookDispatchBody,
+  detectAdapter,
+} from './adapters'
 import { clearAck, isAcked, listActiveAcks } from './alert-ack-store'
 import { recordAlertEvent } from './alert-history-store'
 import {
@@ -193,32 +198,20 @@ interface WebhookResult {
 }
 
 /**
- * POST an alert to the configured webhook using the EXACT payload shape the
- * `/api/v1/health/webhook` proxy forwards upstream (`{ text, content: text }`),
- * so Slack (`text`) and Discord (`content`) both render it. Server-side, no CORS
- * proxy needed — we post directly to the operator-configured webhook URL.
- *
- * When `blocks` is provided (only for a Slack incoming webhook with the native
- * Slack app configured — see the call site) it is added to the body so Slack
- * renders the rich message with an "Acknowledge" button; `text` stays as the
- * notification fallback and Discord/others ignore the extra field. Absent
- * `blocks`, the body is byte-for-byte the original `{ text, content }` — the
- * OSS/self-hosted path is unchanged.
+ * POST a pre-built webhook body to the operator-configured URL. The body is
+ * chosen per target by {@link buildWebhookDispatchBody} (Discord embeds, Slack
+ * blocks, or the generic `{ text, content }` wrapper) — this function only owns
+ * transport (timeout + non-OK handling), so the URL → shape decision stays pure
+ * and unit-testable. Server-side, no CORS proxy needed.
  */
-async function postWebhook(
-  url: string,
-  text: string,
-  blocks?: unknown[]
-): Promise<WebhookResult> {
+async function postWebhook(url: string, body: unknown): Promise<WebhookResult> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        blocks ? { text, content: text, blocks } : { text, content: text }
-      ),
+      body: JSON.stringify(body),
       signal: controller.signal,
     })
     if (!res.ok) {
@@ -570,6 +563,27 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         telegramFallback
       )
 
+      // Normalized payload shared by every per-URL body builder below (Discord
+      // embeds carry host/value/thresholds; the Slack/generic wrapper carries
+      // `text`). One timestamp per finding so the embed and any Slack ack block
+      // agree.
+      const webhookTimestamp = new Date().toISOString()
+      const webhookPayload: AlertPayload = {
+        severity:
+          decision.kind === 'recovery'
+            ? 'recovery'
+            : (effective as 'warning' | 'critical'),
+        hostLabel: name,
+        hostId,
+        metric: ruleId,
+        value,
+        warnThreshold,
+        critThreshold,
+        title: ruleTitle,
+        label,
+        timestamp: webhookTimestamp,
+      }
+
       let anyDelivered = false
       for (const url of targets) {
         const adapter = detectAdapter(url)
@@ -596,13 +610,23 @@ export async function runHealthSweep(): Promise<SweepSummary> {
               value,
               title: ruleTitle,
               label,
-              timestamp: new Date().toISOString(),
+              timestamp: webhookTimestamp,
             },
             { hostId, ruleId, severity: effective }
           )
         }
 
-        const result = await postWebhook(url, text, ackBlocks)
+        // Per-URL body selection (#2656): Discord targets get rich embeds,
+        // Slack targets get `ackBlocks` when the app is configured (else the
+        // plain wrapper), and generic/unknown URLs keep the exact original
+        // `{ text, content }` — zero behavior change.
+        const dispatch = buildWebhookDispatchBody({
+          url,
+          text,
+          payload: webhookPayload,
+          slackBlocks: ackBlocks,
+        })
+        const result = await postWebhook(url, dispatch.body)
         if (result.ok) anyDelivered = true
 
         // Best-effort audit trail per channel — recorded on both success and
