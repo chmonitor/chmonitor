@@ -45,7 +45,10 @@ values and file paths: `docs/knowledge/product-design.md`.
 
 `background foreground card card-foreground popover muted muted-foreground
 primary secondary accent destructive border input ring`. Charts:
-`--chart-1..5` (OKLCH) for series. Radius: `rounded-md` (9px) default,
+`--chart-1..13` for series, plus named accents `--chart-red` (error series),
+`--chart-blue` (info), `--chart-green` (success), `--chart-yellow` (warning) —
+only pass tokens that exist in `styles.css` to a chart's `colors` prop; an
+undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 `rounded-lg` (10px), `rounded-xl` (14px) for cards. Brand accents: **orange**
 (metrics) + **emerald** (health/live) — see `components/icons/chmonitor-logo.tsx`.
 

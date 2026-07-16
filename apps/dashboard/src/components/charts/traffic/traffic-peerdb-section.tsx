@@ -44,7 +44,7 @@ export const TrafficPeerdbSection = memo(function TrafficPeerdbSection({
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex items-center gap-2">
-        <PeerDBLogo className="size-4 text-foreground" />
+        <PeerDBLogo className="size-4 text-muted-foreground" />
         <h2 className="text-sm font-medium text-foreground">
           PeerDB Ingestion
         </h2>

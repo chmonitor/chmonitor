@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-12
+updated: 2026-07-16
 tags:
   - design-system
   - ui
@@ -39,8 +39,12 @@ oklch(0.556 0 0)`). Dark inverts (`--background: oklch(0.145 0 0)`, `--border:
 oklch(1 0 0 / 10%)`).
 
 Chart series: `--chart-1..5` in OKLCH (orange/blue/dark-blue/yellow-green/green),
-plus HSL extras `--chart-6..13`. Semantic badge pairs exist as
-`--badge-{purple,blue,green,amber,pink,slate}` + `*-bg`.
+plus HSL extras `--chart-6..13`, plus named accents for semantic series:
+`--chart-red` (errors), `--chart-blue` (info), `--chart-green` (success),
+`--chart-yellow` (warnings). Only pass tokens defined in `styles.css` to a
+chart's `colors` prop — `seriesColorVar` emits `var(<name>)` verbatim, so an
+undefined token computes to black (invisible on dark). Semantic badge pairs
+exist as `--badge-{purple,blue,green,amber,pink,slate}` + `*-bg`.
 
 **Series-color arithmetic (one helper).** `area.tsx`, `bar/utils.ts`
 (`colorForCategoryIndex`), and `donut.tsx` all resolve a series/category color

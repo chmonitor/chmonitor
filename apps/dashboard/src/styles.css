@@ -459,6 +459,12 @@
   --chart-orange-600: hsl(20.5 90.2% 48.2%);
   --chart-indigo-300: hsl(230 94% 82%);
   --chart-yellow: hsl(45 100% 60%);
+  /* Named accent tokens referenced by chart `colors` props (error/info/success
+     series). These were previously undefined, so `var(--chart-red)` computed
+     to black — invisible against dark surfaces. */
+  --chart-red: hsl(0 84% 60%);
+  --chart-blue: hsl(217 91% 60%);
+  --chart-green: hsl(142 71% 45%);
 
   /* Semantic badge colors for user badges */
   --badge-purple: oklch(0.65 0.2 290);
@@ -612,6 +618,9 @@
   --color-chart-orange-600: var(--chart-orange-600);
   --color-chart-indigo-300: var(--chart-indigo-300);
   --color-chart-yellow: var(--chart-yellow);
+  --color-chart-red: var(--chart-red);
+  --color-chart-blue: var(--chart-blue);
+  --color-chart-green: var(--chart-green);
   --color-sidebar: var(--sidebar);
 }
 

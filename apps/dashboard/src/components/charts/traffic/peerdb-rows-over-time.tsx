@@ -6,7 +6,7 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
 import { BarChart } from '@/components/charts/primitives/bar/bar'
 import { resolveDateRangeConfig } from '@/components/date-range'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
 interface PeerdbRowsRow {
@@ -38,9 +38,14 @@ export const ChartPeerdbRowsOverTime = function ChartPeerdbRowsOverTime({
   const effectiveLastHours = rangeOverride?.lastHours ?? lastHours
   const effectiveInterval = rangeOverride?.interval ?? interval
 
+  // Fall back to the route's ?host like the factory charts do — the section
+  // wrapper does not pass hostId, and omitting it silently queries host 0.
+  const routeHostId = useHostId()
+  const resolvedHostId = hostId ?? routeHostId
+
   const swr = useChartData<PeerdbRowsRow>({
     chartName: 'traffic-peerdb-rows',
-    hostId,
+    hostId: resolvedHostId,
     interval: effectiveInterval,
     lastHours: effectiveLastHours,
     refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
