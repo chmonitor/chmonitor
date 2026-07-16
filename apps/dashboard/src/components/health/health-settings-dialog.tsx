@@ -6,6 +6,7 @@ import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
 import { HEALTH_CHECKS } from './health-checks'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
+import { QuietHoursPanel } from './quiet-hours-panel'
 import { RecentAlertsCard } from './recent-alerts-card'
 import { RuleBuilderPanel } from './rule-builder'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
@@ -274,6 +275,7 @@ export function HealthSettingsDialog() {
               <TabsTrigger value="routing">Routing</TabsTrigger>
               <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
               <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+              <TabsTrigger value="quiet-hours">Quiet Hours</TabsTrigger>
               <TabsTrigger value="suggested">Suggested</TabsTrigger>
               <TabsTrigger value="custom-rules">Custom Rules</TabsTrigger>
             </TabsList>
@@ -629,6 +631,12 @@ export function HealthSettingsDialog() {
           <TabsContent value="maintenance" className="min-h-0 overflow-hidden">
             <ScrollArea className="h-full pr-3">
               <MaintenanceWindowsPanel />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="quiet-hours" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
+              <QuietHoursPanel />
             </ScrollArea>
           </TabsContent>
 

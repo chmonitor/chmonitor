@@ -37,6 +37,14 @@ import {
   PAGERDUTY_EVENTS_API_URL,
 } from './pagerduty-config'
 import {
+  activeQuietWindow,
+  isQuietSuppressed,
+  listQuietHours,
+  markQuietSuppression,
+  quietWindowEndMs,
+  takeDueCatchUp,
+} from './quiet-hours'
+import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
   getServerEmailConfig,
@@ -106,6 +114,8 @@ export interface SweepSummary {
   alertsSuppressed: number
   /** Of `alertsSuppressed`, how many were gated by an active maintenance window. */
   maintenanceSuppressed: number
+  /** Of `alertsSuppressed`, how many were gated by an active quiet-hours window. */
+  quietHoursSuppressed: number
   /** Notify-worthy alerts suppressed by an active operator ACK (plan 29). */
   ackedSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
@@ -401,12 +411,18 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   // ('') is correct today; multi-tenant sweep scoping is a follow-up.
   const windows = await listWindows('')
 
+  // Quiet hours: recurring time-of-day silence windows (#2662), loaded once
+  // per sweep alongside maintenance windows. Same best-effort/OSS-single-tenant
+  // contract — `listQuietHours` degrades to [] on any D1/binding failure.
+  const quietHours = await listQuietHours('')
+
   const hosts: SweepHostSummary[] = []
   const findings: SweepFinding[] = []
   let insightsGenerated = 0
   let alertsDispatched = 0
   let alertsSuppressed = 0
   let maintenanceSuppressed = 0
+  let quietHoursSuppressed = 0
   let ackedSuppressed = 0
   let recoveries = 0
   let emailsDispatched = 0
@@ -504,6 +520,59 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       return
     }
 
+    if (
+      decision.notify &&
+      decision.kind !== 'recovery' &&
+      (effective === 'warning' || effective === 'critical') &&
+      isQuietSuppressed(quietHours, effective, Date.now())
+    ) {
+      // A quiet-hours window (#2662) silences delivery right now — same
+      // dispatch-time gate as the maintenance-window block above, but recurring
+      // (weekday + time-of-day in an IANA timezone) and severity-aware
+      // (`severityCap` lets criticals through). Deliberately do NOT call
+      // `commit()`: leaving the dedup state untouched means the first sweep
+      // after the window closes re-evaluates fresh and delivers normally — the
+      // catch-up. A still-suppressed critical is remembered so that delivery is
+      // labeled a catch-up (warnings just resume, no catch-up).
+      const now = Date.now()
+      alertsSuppressed++
+      quietHoursSuppressed++
+      if (effective === 'critical') {
+        const w = activeQuietWindow(quietHours, now)
+        if (w) {
+          markQuietSuppression(
+            hostId,
+            ruleId,
+            effective,
+            quietWindowEndMs(w, now)
+          )
+        }
+      }
+      try {
+        await recordAlertEvent({
+          eventTime: new Date().toISOString(),
+          hostId,
+          hostLabel: name,
+          rule: ruleId,
+          severity: effective,
+          prevSeverity:
+            decision.previousSeverity === 'ok'
+              ? null
+              : decision.previousSeverity,
+          decisionKind: 'quiet-hours',
+          delivered: false,
+          value,
+          channel: 'quiet-hours',
+        })
+      } catch (err) {
+        debug(
+          `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+          err instanceof Error ? err.message : String(err)
+        )
+      }
+      return
+    }
+
     if (decision.notify && decision.kind === 'recovery') {
       // A resolved condition should always reach the operator — never
       // suppress a recovery — and any active ACK for it is now moot.
@@ -523,10 +592,16 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     }
 
     if (decision.notify) {
+      // Catch-up (#2662): a critical suppressed during a quiet-hours window
+      // whose window has now closed — label the (naturally re-delivered)
+      // notification so the operator knows it was held back. Consumed once.
+      const isQuietCatchUp =
+        decision.kind !== 'recovery' &&
+        takeDueCatchUp(hostId, ruleId, Date.now())
       const text =
         decision.kind === 'recovery'
           ? `[RECOVERY] ${ruleTitle} — resolved (host ${name})`
-          : `[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
+          : `${isQuietCatchUp ? '[CATCH-UP] ' : ''}[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
 
       // Fan out to every matched route's channel (plan 30), falling back to
       // the legacy global webhook when nothing matches (see `alert-routing.ts`).
@@ -1075,6 +1150,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     alertsDispatched,
     alertsSuppressed,
     maintenanceSuppressed,
+    quietHoursSuppressed,
     ackedSuppressed,
     recoveries,
     emailsDispatched,
