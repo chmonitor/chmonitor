@@ -15,14 +15,17 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
             Features
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
-          <div class="nav-menu">
-            <a href="/#top">Overview<small>Product positioning and capabilities</small></a>
-            <a href="/#features">Features<small>Agent, queries, topology and more</small></a>
+          <div class="nav-menu nav-menu-grid">
+            <a href="/features/ai-agent">AI Agent<small>Schema-aware recommendations &amp; MCP</small></a>
+            <a href="/features/queries">Query monitoring<small>Running, slow, failed &amp; expensive</small></a>
+            <a href="/features/topology">Cluster topology<small>Nodes, shards, replicas &amp; Keeper</small></a>
+            <a href="/features/alerting">Alerting<small>Health checks with webhooks</small></a>
+            <a href="/features/data-explorer">Data Explorer<small>Tables, lineage and SQL console</small></a>
+            <a href="/features/insights">Insights<small>AI findings and cluster vitals</small></a>
+            <a href="/features/peerdb">PeerDB replication<small>Postgres → ClickHouse CDC</small></a>
+            <a href="/features/postgres">Postgres · Beta<small>Monitor Postgres alongside</small></a>
+            <a href="/#features">All features<small>Overview on the homepage</small></a>
             <a href="/changelog#features">Feature index<small>Shipped features by scope</small></a>
-            <a href="/#feature-ai-agent">AI Agent<small>Schema-aware recommendations</small></a>
-            <a href="/#feature-queries">Queries<small>Running, slow and expensive</small></a>
-            <a href="/monitor-queries">Query monitoring<small>Running, slow, failed &amp; expensive</small></a>
-            <a href="/cluster-health">Cluster health<small>Threshold alerts and topology</small></a>
           </div>
         </div>
         <a href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">Open source</a>
@@ -76,13 +79,15 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
       </div>
       <div class="nav-drawer-body">
         <span class="nav-drawer-label">Features</span>
-        <a href="/#top">Overview</a>
-        <a href="/#features">Features</a>
+        <a href="/features/ai-agent">AI Agent</a>
+        <a href="/features/queries">Query monitoring</a>
+        <a href="/features/topology">Cluster topology</a>
+        <a href="/features/alerting">Alerting</a>
+        <a href="/features/data-explorer">Data Explorer</a>
+        <a href="/features/insights">Insights</a>
+        <a href="/features/peerdb">PeerDB replication</a>
+        <a href="/features/postgres">Postgres · Beta</a>
         <a href="/changelog#features">Feature index</a>
-        <a href="/#feature-ai-agent">AI Agent</a>
-        <a href="/#feature-queries">Queries</a>
-        <a href="/monitor-queries">Query monitoring</a>
-        <a href="/cluster-health">Cluster health</a>
         <span class="nav-drawer-label">Explore</span>
         <a href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">Open source</a>
         <a href="/pricing">Pricing</a>

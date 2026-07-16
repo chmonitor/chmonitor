@@ -205,15 +205,17 @@ const ogImage = new URL(image, Astro.site).toString()
     .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
     .eyebrow{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-fg)}
 
-    /* ── buttons (pill: fully rounded, editorial) ── */
-    .btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 22px;border-radius:999px;
-      font-size:14px;font-weight:500;white-space:nowrap;transition:background .15s ease,border-color .15s ease,color .15s ease;border:1px solid transparent;cursor:pointer}
+    /* ── buttons (shadcn/ui geometry: rounded-md, compact, shadow-xs) ── */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 24px;
+      border-radius:var(--radius);font-size:14px;font-weight:500;white-space:nowrap;
+      transition:background .15s ease,border-color .15s ease,color .15s ease;
+      border:1px solid transparent;cursor:pointer}
     .btn svg{width:16px;height:16px}
-    .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg)}
+    .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg);box-shadow:0 1px 2px rgba(0,0,0,.05)}
     .btn-primary:hover{background:var(--btn-primary-bg-hover)}
-    .btn-ghost{background:var(--card);color:var(--fg);border-color:var(--border)}
+    .btn-ghost{background:var(--card);color:var(--fg);border-color:var(--border);box-shadow:0 1px 2px rgba(0,0,0,.05)}
     .btn-ghost:hover{background:var(--muted);border-color:var(--border-hover)}
-    .btn-sm{height:36px;padding:0 16px;font-size:13px;border-radius:999px}
+    .btn-sm{height:36px;padding:0 16px;font-size:13px;border-radius:calc(var(--radius) - 2px)}
 
     /* ── logo mark ── */
     .mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -232,9 +234,12 @@ const ogImage = new URL(image, Astro.site).toString()
       border-bottom:1px solid var(--border-soft)}
     .nav-row{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px}
     .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:600;font-size:15px;letter-spacing:-.02em}
-    .nav-links{display:flex;align-items:center;gap:22px}
-    .nav-links a{font-size:14px;color:var(--muted-fg);font-weight:500;white-space:nowrap;transition:color .15s}
-    .nav-links a:hover{color:var(--fg)}
+    .nav-links{display:flex;align-items:center;gap:4px}
+    /* shadcn NavigationMenu link/trigger: h-9, px, rounded-md, hover:bg-accent */
+    .nav-links > a{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:var(--radius);
+      font-size:14px;color:var(--muted-fg);font-weight:500;white-space:nowrap;
+      transition:background .14s,color .14s}
+    .nav-links > a:hover{background:var(--muted);color:var(--fg)}
     .nav-cta{display:flex;align-items:center;gap:10px;flex:0 0 auto}
     /* hamburger — hidden on desktop, revealed at ≤1024px (see responsive block) */
     .nav-toggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;
@@ -283,21 +288,27 @@ const ogImage = new URL(image, Astro.site).toString()
 
     /* ── nav dropdowns (group child items: Product / Resources) ── */
     .nav-group{position:relative}
+    /* shadcn NavigationMenuTrigger: rounded-md, hover:bg-accent, chevron flips */
     .nav-trigger{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:14px;
-      font-weight:500;color:var(--muted-fg);background:none;border:none;cursor:pointer;padding:0;
-      white-space:nowrap;transition:color .15s}
+      font-weight:500;color:var(--muted-fg);background:none;border:none;cursor:pointer;
+      height:36px;padding:0 12px;border-radius:var(--radius);
+      white-space:nowrap;transition:background .14s,color .14s}
     .nav-trigger svg{width:13px;height:13px;transition:transform .2s ease;opacity:.7}
-    .nav-group:hover .nav-trigger,.nav-group:focus-within .nav-trigger{color:var(--fg)}
+    .nav-group:hover .nav-trigger,.nav-group:focus-within .nav-trigger{color:var(--fg);background:var(--muted)}
     .nav-group:hover .nav-trigger svg,.nav-group:focus-within .nav-trigger svg{transform:rotate(180deg)}
-    /* Card radius (12px), hairline depth — no drop shadow. */
-    .nav-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(6px);
-      min-width:208px;padding:7px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card,12px);
+    /* shadcn popover panel: popover bg, rounded-lg, md shadow. */
+    .nav-menu{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(6px);
+      min-width:230px;padding:6px;background:var(--popover,var(--card));border:1px solid var(--border);
+      border-radius:calc(var(--radius) + 4px);
+      box-shadow:0 4px 6px -1px rgba(0,0,0,.08),0 2px 4px -2px rgba(0,0,0,.08);
       display:flex;flex-direction:column;gap:1px;
       opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease;z-index:60}
+    /* Two-column grid variant for wide menus (Features). */
+    .nav-menu.nav-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));min-width:480px;gap:1px}
     /* hover bridge so the cursor can cross the gap to the menu */
-    .nav-group::after{content:"";position:absolute;top:100%;left:0;right:0;height:14px}
+    .nav-group::after{content:"";position:absolute;top:100%;left:0;right:0;height:12px}
     .nav-group:hover .nav-menu,.nav-group:focus-within .nav-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0)}
-    .nav-menu a{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:8px;
+    .nav-menu a{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:calc(var(--radius) - 2px);
       font-size:14px;font-weight:500;color:var(--fg-soft);transition:background .14s,color .14s}
     .nav-menu a:hover{background:var(--muted);color:var(--fg)}
     .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg)}

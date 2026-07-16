@@ -39,9 +39,10 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Read-only MCP endpoint — nothing applied without you',
     ],
     screenshot: {
-      src: '/assets/screenshots/running-queries-new-dark-with-bg.png',
+      src: '/assets/screenshots/ai-agent-conversation-dark-with-bg.png',
       alt: 'chmonitor AI agent conversation with schema-aware recommendations',
     },
+    learnMoreHref: '/features/ai-agent',
   },
   {
     id: 'feature-queries',
@@ -60,6 +61,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/running-queries-new-dark.webp',
       alt: 'Running queries with live charts and sortable table',
     },
+    learnMoreHref: '/features/queries',
     reverse: true,
   },
   {
@@ -78,6 +80,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/cluster-topo-viz-with-bg.png',
       alt: 'chmonitor cluster topology map: Keeper quorum with leader and followers, ClickHouse shard nodes, virtual cluster overlays, and an inspector panel with quorum health and znode count',
     },
+    learnMoreHref: '/features/topology',
   },
   {
     id: 'feature-alerting',
@@ -97,6 +100,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/health-summary-with-bg.jpeg',
       alt: 'Health checks with editable warning and critical thresholds',
     },
+    learnMoreHref: '/features/alerting',
     reverse: true,
   },
   {
@@ -115,6 +119,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/data-explorer-new-dark-with-bg.png',
       alt: 'Data explorer dependency graph between tables',
     },
+    learnMoreHref: '/features/data-explorer',
   },
   {
     id: 'feature-insights',
@@ -133,6 +138,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/cluster-insights-dark-with-bg.jpeg',
       alt: 'chmonitor Overview with AI Insights: critical and warning findings — read-only replicas, detached parts, replication lag — beside live cluster vitals',
     },
+    learnMoreHref: '/features/insights',
     reverse: true,
   },
   {
@@ -152,7 +158,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/peerdb-overview-with-bg.png',
       alt: 'chmonitor PeerDB Mirrors: fleet status tiles, rows-synced trends, peer topology and pipeline phase',
     },
-    learnMoreHref: 'https://docs.chmonitor.dev/guide/features/peerdb',
+    learnMoreHref: '/features/peerdb',
   },
   {
     id: 'feature-postgres',
@@ -171,6 +177,6 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       src: '/assets/screenshots/add-postgres-host-with-bg.png',
       alt: 'Add Postgres source dialog: read-only connection, pg_stat_* requirements and encrypted credentials',
     },
-    learnMoreHref: 'https://docs.chmonitor.dev/guide/features/postgres',
+    learnMoreHref: '/features/postgres',
   },
 ]
