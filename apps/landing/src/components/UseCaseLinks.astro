@@ -13,7 +13,7 @@ interface Props {
 
 const { items, eyebrow, heading, soft = false } = Astro.props
 ---
-<section class:list={['py-14 sm:py-20 md:py-24', soft && 'border-y border-border bg-muted/30']}>
+<section class:list={['py-14 sm:py-18', soft && 'border-y border-border bg-muted/30']}>
   <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{eyebrow}</p>

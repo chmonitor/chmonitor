@@ -28,7 +28,7 @@ const HIGHLIGHTS = [
 
 export default function ProductHighlights() {
   return (
-    <section id="highlights" className="py-16 sm:py-20">
+    <section id="highlights" className="py-14 sm:py-18">
       <div className="mx-auto max-w-6xl px-6">
         <div className="max-w-xl">
           <p className="font-medium text-primary text-sm">

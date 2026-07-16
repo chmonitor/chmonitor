@@ -2,8 +2,6 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
-import FeaturesCatalog from '../components/FeaturesCatalog.astro'
-import { loadChangelogFeatures } from '../data/changelog-features'
 
 interface Release {
   tag_name: string
@@ -13,8 +11,6 @@ interface Release {
   body: string
   prerelease: boolean
 }
-
-const { groups, totalCount } = loadChangelogFeatures()
 
 let releases: Release[] = []
 try {
@@ -117,8 +113,6 @@ const breadcrumbJsonLd = {
         )}
       </div>
     </section>
-
-    <FeaturesCatalog groups={groups} totalCount={totalCount} />
   </main>
   <Footer />
 
