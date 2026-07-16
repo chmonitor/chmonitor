@@ -34,7 +34,10 @@ import {
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
 import { error } from '@chm/logger'
-import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
+import {
+  buildQueryCacheSettings,
+  withUnknownSettingRetry,
+} from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
   getTableClickHouseSettings,
@@ -206,25 +209,30 @@ export async function executeTableConfig<
   })
 
   const result = await withClickHouseQuerySpan(() =>
-    fetchData<T[]>({
-      query: executedSql,
-      query_params: queryParams,
-      hostId,
-      format: 'JSONEachRow',
-      clickhouse_settings: {
-        ...cacheSettings,
-        ...tableSettings,
-      },
-      // Pass the config so fetchData can existence-check optional tables.
-      queryConfig: queryConfig.optional
-        ? {
-            name: queryConfig.name,
-            sql: executedSql,
-            tableCheck: queryConfig.tableCheck,
-            optional: true,
-          }
-        : undefined,
-    })
+    withUnknownSettingRetry(
+      cacheSettings,
+      (cache) =>
+        fetchData<T[]>({
+          query: executedSql,
+          query_params: queryParams,
+          hostId,
+          format: 'JSONEachRow',
+          clickhouse_settings: {
+            ...cache,
+            ...tableSettings,
+          },
+          // Pass the config so fetchData can existence-check optional tables.
+          queryConfig: queryConfig.optional
+            ? {
+                name: queryConfig.name,
+                sql: executedSql,
+                tableCheck: queryConfig.tableCheck,
+                optional: true,
+              }
+            : undefined,
+        }),
+      (r) => r.error
+    )
   )
 
   if (result.error) {
@@ -281,23 +289,28 @@ export async function executeChartQuery(
   })
 
   const result = await withClickHouseQuerySpan(() =>
-    fetchJsonEachRowAsNormalizedJson({
-      query: executedSql,
-      query_params: queryParams,
-      hostId,
-      clickhouse_settings: {
-        ...cacheSettings,
-        ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
-      },
-      queryConfig: opts.optional
-        ? {
-            name: chartName,
-            sql: executedSql,
-            tableCheck: opts.tableCheck,
-            optional: true,
-          }
-        : undefined,
-    })
+    withUnknownSettingRetry(
+      cacheSettings,
+      (cache) =>
+        fetchJsonEachRowAsNormalizedJson({
+          query: executedSql,
+          query_params: queryParams,
+          hostId,
+          clickhouse_settings: {
+            ...cache,
+            ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
+          },
+          queryConfig: opts.optional
+            ? {
+                name: chartName,
+                sql: executedSql,
+                tableCheck: opts.tableCheck,
+                optional: true,
+              }
+            : undefined,
+        }),
+      (r) => r.error
+    )
   )
 
   if (result.error) {
@@ -349,14 +362,19 @@ export async function executeMultiChartQuery(
     queries.map(async (q) => {
       try {
         const r = await withClickHouseQuerySpan(() =>
-          fetchJsonEachRowAsNormalizedJson({
-            query: q.query,
-            hostId,
-            clickhouse_settings: {
-              ...cacheSettings,
-              ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
-            },
-          })
+          withUnknownSettingRetry(
+            cacheSettings,
+            (cache) =>
+              fetchJsonEachRowAsNormalizedJson({
+                query: q.query,
+                hostId,
+                clickhouse_settings: {
+                  ...cache,
+                  ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
+                },
+              }),
+            (res) => res.error
+          )
         )
         return { key: q.key, dataJson: r.dataJson ?? 'null', error: r.error }
       } catch (err) {

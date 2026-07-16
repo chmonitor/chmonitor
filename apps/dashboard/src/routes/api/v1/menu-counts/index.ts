@@ -26,7 +26,10 @@ import {
   getAvailableMenuCountKeys,
   getMenuCountQuery,
 } from '@/lib/api/menu-count-registry'
-import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
+import {
+  buildQueryCacheSettings,
+  withUnknownSettingRetry,
+} from '@/lib/api/query-cache-settings'
 import { HostIdSchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -67,14 +70,17 @@ async function resolveCount(
   const menuCount = getMenuCountQuery(countKey)
   if (!menuCount) return undefined
 
-  const result = await fetchData({
-    query: menuCount.query,
-    format: 'JSONEachRow',
-    hostId,
-    clickhouse_settings: menuCount.disableQueryCache
-      ? undefined
-      : cacheSettings,
-  })
+  const result = await withUnknownSettingRetry(
+    menuCount.disableQueryCache ? {} : cacheSettings,
+    (cache) =>
+      fetchData({
+        query: menuCount.query,
+        format: 'JSONEachRow',
+        hostId,
+        clickhouse_settings: cache,
+      }),
+    (r) => r.error
+  )
 
   if (result.error) {
     if (

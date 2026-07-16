@@ -63,6 +63,7 @@ import type { ClickHouseSettings } from '@clickhouse/client'
 import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 
 import { meetsMinVersion } from '@chm/clickhouse-client/clickhouse-version'
+import { warn } from '@chm/logger'
 
 /** ClickHouse added the query cache (`use_query_cache`) in 23.5. */
 const MIN_QUERY_CACHE_VERSION = { major: 23, minor: 5 } as const
@@ -150,4 +151,63 @@ export function buildQueryCacheSettings({
   }
 
   return settings
+}
+
+/**
+ * Detect ClickHouse's UNKNOWN_SETTING rejection (error code 115). The message
+ * wording varies across versions:
+ * - "Unknown setting 'use_query_cache'" (older servers)
+ * - "Setting x is neither a builtin setting nor started with the prefix
+ *   'SQL_' registered for user-defined settings" (newer servers)
+ * Accepts a thrown Error, a `FetchDataResult['error']` object, or a string.
+ */
+export function isUnknownSettingError(err: unknown): boolean {
+  const message =
+    typeof err === 'string'
+      ? err
+      : err && typeof err === 'object' && 'message' in err
+        ? String((err as { message?: unknown }).message ?? '')
+        : ''
+  if (!message) return false
+  return (
+    /unknown setting/i.test(message) ||
+    /neither a builtin setting/i.test(message) ||
+    /\bCode:\s*115\b/.test(message)
+  )
+}
+
+/**
+ * Any-ClickHouse-version safety net: the query cache is an optimization, so
+ * its settings must NEVER fail a query. Version gating above handles the
+ * versions we know about, but a host outside the tested matrix (very old,
+ * very new, or a fork) may still reject a setting name as unknown — in that
+ * case, retry ONCE without the cache settings instead of surfacing the error.
+ *
+ * `fetchData` returns errors on the result (`result.error`) while raw client
+ * calls throw, so both paths are handled: pass `extractError` for
+ * result-shaped errors.
+ */
+export async function withUnknownSettingRetry<T>(
+  cacheSettings: ClickHouseSettings,
+  run: (settings: ClickHouseSettings) => Promise<T>,
+  extractError: (result: T) => unknown = () => undefined
+): Promise<T> {
+  if (Object.keys(cacheSettings).length === 0) return run(cacheSettings)
+  let result: T
+  try {
+    result = await run(cacheSettings)
+  } catch (err) {
+    if (!isUnknownSettingError(err)) throw err
+    warn(
+      '[query-cache] host rejected a query-cache setting as unknown; retrying without cache settings',
+      err
+    )
+    return run({})
+  }
+  if (!isUnknownSettingError(extractError(result))) return result
+  warn(
+    '[query-cache] host rejected a query-cache setting as unknown; retrying without cache settings',
+    extractError(result)
+  )
+  return run({})
 }

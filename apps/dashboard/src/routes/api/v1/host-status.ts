@@ -9,7 +9,10 @@ import {
   classifyError,
   getStatusCodeForErrorType,
 } from '@/lib/api/error-handler'
-import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
+import {
+  buildQueryCacheSettings,
+  withUnknownSettingRetry,
+} from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
@@ -95,14 +98,20 @@ export const Route = createFileRoute('/api/v1/host-status')({
             ttlSeconds: HOST_STATUS_CACHE_TTL_SECONDS,
           })
 
-          const resultSet = await client.query({
-            query: `${QUERY_COMMENT}SELECT
+          // Raw client calls THROW on error (unlike fetchData), so the
+          // unknown-setting fallback catches instead of extracting.
+          const resultSet = await withUnknownSettingRetry(
+            cacheSettings,
+            (cache) =>
+              client.query({
+                query: `${QUERY_COMMENT}SELECT
   version() AS version,
   formatReadableTimeDelta(uptime()) AS uptime,
   hostName() AS hostname`,
-            format: 'JSONEachRow',
-            clickhouse_settings: cacheSettings,
-          })
+                format: 'JSONEachRow',
+                clickhouse_settings: cache,
+              })
+          )
 
           // JSONEachRow returns rows directly: json<Row>() => Row[]
           const rows = await resultSet.json<{

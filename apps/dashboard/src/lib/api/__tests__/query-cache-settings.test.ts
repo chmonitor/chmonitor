@@ -11,7 +11,11 @@
 import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 
 import { describe, expect, test } from 'bun:test'
-import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
+import {
+  buildQueryCacheSettings,
+  isUnknownSettingError,
+  withUnknownSettingRetry,
+} from '@/lib/api/query-cache-settings'
 
 function version(major: number, minor: number, patch = 0): ClickHouseVersion {
   return { major, minor, patch, raw: `${major}.${minor}.${patch}` }
@@ -119,5 +123,150 @@ describe('buildQueryCacheSettings', () => {
       expect(settings.use_query_cache).toBe(1)
       expect(settings.query_cache_system_table_handling).toBe('save')
     }
+  })
+
+  test('emits only real ClickHouse setting names, on every version', () => {
+    // Regression for the hallucinated bare `overflow_mode: 'throw'` (there is
+    // no such setting in ANY ClickHouse version — only result_overflow_mode,
+    // timeout_overflow_mode, etc.). An unrecognized name fails the entire
+    // query with "Setting X is neither a builtin setting…", so every emitted
+    // key must come from this verified allowlist. The live counterpart
+    // (query-cache-settings-live.test.ts) checks the names against a real
+    // server's system.settings in CI.
+    const KNOWN_SETTINGS = new Set([
+      'use_query_cache',
+      'query_cache_ttl',
+      'query_cache_nondeterministic_function_handling',
+      'query_cache_store_results_of_queries_with_nondeterministic_functions',
+      'query_cache_system_table_handling',
+    ])
+    for (const v of [
+      version(23, 5),
+      version(24, 1),
+      version(24, 2),
+      version(24, 4),
+      version(25, 1),
+      version(26, 3),
+      version(99, 9),
+    ]) {
+      const settings = buildQueryCacheSettings({ version: v, ttlSeconds: 30 })
+      for (const key of Object.keys(settings)) {
+        expect(KNOWN_SETTINGS.has(key)).toBe(true)
+      }
+    }
+  })
+})
+
+describe('isUnknownSettingError', () => {
+  test('matches both UNKNOWN_SETTING message wordings and code 115', () => {
+    expect(
+      isUnknownSettingError(
+        new Error(
+          "Setting overflow_mode is neither a builtin setting nor started with the prefix 'SQL_' registered for user-defined settings"
+        )
+      )
+    ).toBe(true)
+    expect(
+      isUnknownSettingError({ message: "Unknown setting 'use_query_cache'" })
+    ).toBe(true)
+    expect(isUnknownSettingError('Code: 115. DB::Exception: something')).toBe(
+      true
+    )
+  })
+
+  test('does not match unrelated errors', () => {
+    expect(isUnknownSettingError(new Error('Connection refused'))).toBe(false)
+    expect(isUnknownSettingError({ message: 'Code: 719. system table' })).toBe(
+      false
+    )
+    expect(isUnknownSettingError(undefined)).toBe(false)
+    expect(isUnknownSettingError(null)).toBe(false)
+  })
+})
+
+describe('withUnknownSettingRetry', () => {
+  const cacheSettings = { use_query_cache: 1, query_cache_ttl: 30 }
+  const unknownSettingError = {
+    type: 'query_error',
+    message:
+      "Setting use_query_cache is neither a builtin setting nor started with the prefix 'SQL_' registered for user-defined settings",
+  }
+
+  test('passes settings through on success (no retry)', async () => {
+    const calls: object[] = []
+    const result = await withUnknownSettingRetry(
+      cacheSettings,
+      async (settings) => {
+        calls.push(settings)
+        return { data: [1] }
+      },
+      () => undefined
+    )
+    expect(result).toEqual({ data: [1] })
+    expect(calls).toEqual([cacheSettings])
+  })
+
+  test('retries without settings when the result carries an unknown-setting error', async () => {
+    const calls: object[] = []
+    const result = await withUnknownSettingRetry(
+      cacheSettings,
+      async (settings) => {
+        calls.push(settings)
+        return Object.keys(settings).length > 0
+          ? { data: null, error: unknownSettingError }
+          : { data: [1], error: undefined }
+      },
+      (r) => r.error
+    )
+    expect(result.error).toBeUndefined()
+    expect(result.data).toEqual([1])
+    expect(calls).toEqual([cacheSettings, {}])
+  })
+
+  test('retries without settings when the query throws an unknown-setting error', async () => {
+    const calls: object[] = []
+    const result = await withUnknownSettingRetry(
+      cacheSettings,
+      async (settings) => {
+        calls.push(settings)
+        if (Object.keys(settings).length > 0) {
+          throw new Error(unknownSettingError.message)
+        }
+        return 'ok'
+      }
+    )
+    expect(result).toBe('ok')
+    expect(calls).toEqual([cacheSettings, {}])
+  })
+
+  test('does not retry on unrelated errors (returned or thrown)', async () => {
+    let runs = 0
+    const result = await withUnknownSettingRetry(
+      cacheSettings,
+      async () => {
+        runs++
+        return { error: { type: 'network_error', message: 'timeout' } }
+      },
+      (r) => r.error
+    )
+    expect(runs).toBe(1)
+    expect(result.error?.type).toBe('network_error')
+
+    await expect(
+      withUnknownSettingRetry(cacheSettings, async () => {
+        throw new Error('Connection refused')
+      })
+    ).rejects.toThrow('Connection refused')
+  })
+
+  test('skips the fallback machinery entirely when settings are empty', async () => {
+    let runs = 0
+    await withUnknownSettingRetry({}, async () => {
+      runs++
+      return { error: unknownSettingError }
+    })
+    // An unknown-setting error WITHOUT cache settings can't be caused by us —
+    // never retried, surfaced as-is.
+    expect(runs).toBe(1)
   })
 })

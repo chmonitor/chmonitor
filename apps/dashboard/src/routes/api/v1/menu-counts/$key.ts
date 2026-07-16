@@ -21,7 +21,10 @@ import {
   getMenuCountQuery,
   hasMenuCountKey,
 } from '@/lib/api/menu-count-registry'
-import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
+import {
+  buildQueryCacheSettings,
+  withUnknownSettingRetry,
+} from '@/lib/api/query-cache-settings'
 import { HostIdSchema, MenuCountKeySchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -169,12 +172,17 @@ async function handler(
     })
 
     // Execute the query
-    const result = await fetchData({
-      query: menuCount.query,
-      format: 'JSONEachRow',
-      hostId,
-      clickhouse_settings: cacheSettings,
-    })
+    const result = await withUnknownSettingRetry(
+      cacheSettings,
+      (cache) =>
+        fetchData({
+          query: menuCount.query,
+          format: 'JSONEachRow',
+          hostId,
+          clickhouse_settings: cache,
+        }),
+      (r) => r.error
+    )
 
     // Handle errors - for optional tables, return null count only when the
     // table genuinely does not exist. Other failures (permissions, timeouts,
