@@ -4,54 +4,41 @@
  * service container, `CLICKHOUSE_HOST` set workflow-wide) and self-skips
  * everywhere else.
  *
- * Regression context: a bare `overflow_mode: 'throw'` was once added to
- * `buildQueryCacheSettings` — a setting name that does not exist in ANY
- * ClickHouse version — which failed every cache-enabled query with
- * "Setting overflow_mode is neither a builtin setting nor started with the
- * prefix 'SQL_'". Unit tests with mocked versions can't catch a hallucinated
- * setting name; only a real server can. This test:
+ * Regression guard for the removed bare `overflow_mode` — see the NOTE in
+ * query-cache-settings.ts. Unit tests with mocked versions can't catch a
+ * hallucinated setting NAME; only a real server can:
  *
- * 1. Asserts every setting name emitted for the live server's version exists
- *    in that server's `system.settings` (catches unknown-setting names).
- * 2. Executes a real `system.*` query with the settings applied (catches
- *    interaction failures like error 719 QUERY_CACHE_USED_WITH_SYSTEM_TABLE
- *    or 731 QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE).
+ * 1. Every setting name emitted for the live server's version must exist in
+ *    that server's `system.settings` (catches unknown-setting names).
+ * 2. A real `system.*` query must execute with the settings applied (catches
+ *    interaction failures like errors 719/731).
  */
+
+import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 
 import { beforeAll, describe, expect, it } from 'bun:test'
 import { fetchData } from '@chm/clickhouse-client'
-import { parseVersion } from '@chm/clickhouse-client/clickhouse-version'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { buildQueryCacheSettings } from '@/lib/api/query-cache-settings'
 
-async function getLiveVersion(): Promise<string | null> {
+async function getLiveVersion(): Promise<ClickHouseVersion | null> {
   if (!process.env.CLICKHOUSE_HOST) return null
   try {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Connection timeout')), 3000)
     )
-    const result = await Promise.race([
-      fetchData<{ v: string }[]>({
-        query: 'SELECT version() AS v',
-        hostId: 0,
-        format: 'JSONEachRow',
-      }),
-      timeout,
-    ])
-    if (result.error || !Array.isArray(result.data) || !result.data[0]?.v) {
-      return null
-    }
-    return result.data[0].v
+    return await Promise.race([getClickHouseVersion(0), timeout])
   } catch {
     return null
   }
 }
 
 describe('query-cache settings against a live ClickHouse (optional)', () => {
-  let rawVersion: string | null = null
+  let liveVersion: ClickHouseVersion | null = null
 
   beforeAll(async () => {
-    rawVersion = await getLiveVersion()
-    if (!rawVersion) {
+    liveVersion = await getLiveVersion()
+    if (!liveVersion) {
       console.log(
         '⏭️  Skipping live query-cache tests - ClickHouse not available (set CLICKHOUSE_HOST)'
       )
@@ -59,10 +46,10 @@ describe('query-cache settings against a live ClickHouse (optional)', () => {
   }, 10000)
 
   it('emits only setting names the live server recognizes', async () => {
-    if (!rawVersion) return // Skip - no live ClickHouse
+    if (!liveVersion) return // Skip - no live ClickHouse
 
     const settings = buildQueryCacheSettings({
-      version: parseVersion(rawVersion),
+      version: liveVersion,
       ttlSeconds: 30,
     })
     const names = Object.keys(settings)
@@ -87,10 +74,10 @@ describe('query-cache settings against a live ClickHouse (optional)', () => {
   })
 
   it('executes a system.* query successfully with the cache settings applied', async () => {
-    if (!rawVersion) return // Skip - no live ClickHouse
+    if (!liveVersion) return // Skip - no live ClickHouse
 
     const settings = buildQueryCacheSettings({
-      version: parseVersion(rawVersion),
+      version: liveVersion,
       ttlSeconds: 30,
     })
 

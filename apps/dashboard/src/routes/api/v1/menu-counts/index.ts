@@ -27,8 +27,8 @@ import {
   getMenuCountQuery,
 } from '@/lib/api/menu-count-registry'
 import {
-  buildQueryCacheSettings,
-  withUnknownSettingRetry,
+  type QueryCacheSettingsOptions,
+  runWithQueryCache,
 } from '@/lib/api/query-cache-settings'
 import { HostIdSchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
@@ -65,21 +65,20 @@ async function resolveCount(
   countKey: string,
   hostId: number,
   requestId: string,
-  cacheSettings: ReturnType<typeof buildQueryCacheSettings>
+  cacheOpts: Omit<QueryCacheSettingsOptions, 'disabled'>
 ): Promise<number | null | undefined> {
   const menuCount = getMenuCountQuery(countKey)
   if (!menuCount) return undefined
 
-  const result = await withUnknownSettingRetry(
-    menuCount.disableQueryCache ? {} : cacheSettings,
+  const result = await runWithQueryCache(
+    { ...cacheOpts, disabled: menuCount.disableQueryCache, hostId },
     (cache) =>
       fetchData({
         query: menuCount.query,
         format: 'JSONEachRow',
         hostId,
         clickhouse_settings: cache,
-      }),
-    (r) => r.error
+      })
   )
 
   if (result.error) {
@@ -178,11 +177,11 @@ export async function handler(request: Request): Promise<Response> {
 
     // Read-only GET path: safe to opt into the ClickHouse query cache
     // (#2182). getClickHouseVersion caches per host for 24h, so this is
-    // cheap; buildQueryCacheSettings fails closed on an unknown version.
-    const cacheSettings = buildQueryCacheSettings({
+    // cheap; runWithQueryCache fails closed on an unknown version.
+    const cacheOpts = {
       version: await getClickHouseVersion(hostId),
       ttlSeconds: MENU_COUNT_CACHE_TTL_SECONDS,
-    })
+    }
 
     const keys = getAvailableMenuCountKeys()
 
@@ -234,14 +233,16 @@ export async function handler(request: Request): Promise<Response> {
 
     if (selectSubqueries.length > 0) {
       const combinedQuery = `SELECT ${selectSubqueries.join(', ')}`
-      const result = await fetchData({
-        query: combinedQuery,
-        format: 'JSONEachRow',
-        hostId,
-        clickhouse_settings: combinedQueryCacheDisabled
-          ? undefined
-          : cacheSettings,
-      })
+      const result = await runWithQueryCache(
+        { ...cacheOpts, disabled: combinedQueryCacheDisabled, hostId },
+        (cache) =>
+          fetchData({
+            query: combinedQuery,
+            format: 'JSONEachRow',
+            hostId,
+            clickhouse_settings: cache,
+          })
+      )
 
       if (result.error) {
         // Fall back to original resolveCount loop if the combined query fails
@@ -255,7 +256,7 @@ export async function handler(request: Request): Promise<Response> {
         )
         const resolved = await Promise.all(
           keys.map(async (k) => {
-            const val = await resolveCount(k, hostId, requestId, cacheSettings)
+            const val = await resolveCount(k, hostId, requestId, cacheOpts)
             return [k, val] as const
           })
         )

@@ -8,12 +8,16 @@
  * for the version history this encodes.
  */
 
+import type { ClickHouseSettings } from '@clickhouse/client'
+
 import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 
-import { describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   buildQueryCacheSettings,
+  clearUnknownSettingRejections,
   isUnknownSettingError,
+  runWithQueryCache,
   withUnknownSettingRetry,
 } from '@/lib/api/query-cache-settings'
 
@@ -126,13 +130,9 @@ describe('buildQueryCacheSettings', () => {
   })
 
   test('emits only real ClickHouse setting names, on every version', () => {
-    // Regression for the hallucinated bare `overflow_mode: 'throw'` (there is
-    // no such setting in ANY ClickHouse version — only result_overflow_mode,
-    // timeout_overflow_mode, etc.). An unrecognized name fails the entire
-    // query with "Setting X is neither a builtin setting…", so every emitted
-    // key must come from this verified allowlist. The live counterpart
-    // (query-cache-settings-live.test.ts) checks the names against a real
-    // server's system.settings in CI.
+    // Regression guard for the removed bare `overflow_mode` — see the NOTE in
+    // query-cache-settings.ts. The live counterpart (query-cache-settings-live
+    // .test.ts) checks these names against a real server's system.settings.
     const KNOWN_SETTINGS = new Set([
       'use_query_cache',
       'query_cache_ttl',
@@ -150,9 +150,9 @@ describe('buildQueryCacheSettings', () => {
       version(99, 9),
     ]) {
       const settings = buildQueryCacheSettings({ version: v, ttlSeconds: 30 })
-      for (const key of Object.keys(settings)) {
-        expect(KNOWN_SETTINGS.has(key)).toBe(true)
-      }
+      expect(Object.keys(settings).every((k) => KNOWN_SETTINGS.has(k))).toBe(
+        true
+      )
     }
   })
 })
@@ -169,9 +169,9 @@ describe('isUnknownSettingError', () => {
     expect(
       isUnknownSettingError({ message: "Unknown setting 'use_query_cache'" })
     ).toBe(true)
-    expect(isUnknownSettingError('Code: 115. DB::Exception: something')).toBe(
-      true
-    )
+    expect(
+      isUnknownSettingError({ message: 'Code: 115. DB::Exception: something' })
+    ).toBe(true)
   })
 
   test('does not match unrelated errors', () => {
@@ -185,38 +185,43 @@ describe('isUnknownSettingError', () => {
 })
 
 describe('withUnknownSettingRetry', () => {
-  const cacheSettings = { use_query_cache: 1, query_cache_ttl: 30 }
+  const cacheSettings: ClickHouseSettings = {
+    use_query_cache: 1,
+    query_cache_ttl: 30,
+  }
   const unknownSettingError = {
     type: 'query_error',
     message:
       "Setting use_query_cache is neither a builtin setting nor started with the prefix 'SQL_' registered for user-defined settings",
   }
 
+  beforeEach(() => {
+    clearUnknownSettingRejections()
+  })
+
   test('passes settings through on success (no retry)', async () => {
-    const calls: object[] = []
+    const calls: ClickHouseSettings[] = []
     const result = await withUnknownSettingRetry(
       cacheSettings,
       async (settings) => {
         calls.push(settings)
         return { data: [1] }
-      },
-      () => undefined
+      }
     )
     expect(result).toEqual({ data: [1] })
     expect(calls).toEqual([cacheSettings])
   })
 
   test('retries without settings when the result carries an unknown-setting error', async () => {
-    const calls: object[] = []
+    const calls: ClickHouseSettings[] = []
     const result = await withUnknownSettingRetry(
       cacheSettings,
       async (settings) => {
         calls.push(settings)
         return Object.keys(settings).length > 0
-          ? { data: null, error: unknownSettingError }
-          : { data: [1], error: undefined }
-      },
-      (r) => r.error
+          ? { data: null as number[] | null, error: unknownSettingError }
+          : { data: [1] as number[] | null, error: undefined }
+      }
     )
     expect(result.error).toBeUndefined()
     expect(result.data).toEqual([1])
@@ -224,7 +229,7 @@ describe('withUnknownSettingRetry', () => {
   })
 
   test('retries without settings when the query throws an unknown-setting error', async () => {
-    const calls: object[] = []
+    const calls: ClickHouseSettings[] = []
     const result = await withUnknownSettingRetry(
       cacheSettings,
       async (settings) => {
@@ -241,14 +246,10 @@ describe('withUnknownSettingRetry', () => {
 
   test('does not retry on unrelated errors (returned or thrown)', async () => {
     let runs = 0
-    const result = await withUnknownSettingRetry(
-      cacheSettings,
-      async () => {
-        runs++
-        return { error: { type: 'network_error', message: 'timeout' } }
-      },
-      (r) => r.error
-    )
+    const result = await withUnknownSettingRetry(cacheSettings, async () => {
+      runs++
+      return { error: { type: 'network_error', message: 'timeout' } }
+    })
     expect(runs).toBe(1)
     expect(result.error?.type).toBe('network_error')
 
@@ -268,5 +269,58 @@ describe('withUnknownSettingRetry', () => {
     // An unknown-setting error WITHOUT cache settings can't be caused by us —
     // never retried, surfaced as-is.
     expect(runs).toBe(1)
+  })
+
+  test('remembers the rejection per host and skips settings on later calls', async () => {
+    const calls: ClickHouseSettings[] = []
+    const run = async (settings: ClickHouseSettings) => {
+      calls.push(settings)
+      return Object.keys(settings).length > 0
+        ? { error: unknownSettingError }
+        : { error: undefined }
+    }
+    // First call: attempt + retry (2 executions).
+    await withUnknownSettingRetry(cacheSettings, run, 7)
+    // Second call on the SAME host: goes straight to no-settings (1 execution)
+    // instead of paying the failed round-trip on every poll.
+    await withUnknownSettingRetry(cacheSettings, run, 7)
+    expect(calls).toEqual([cacheSettings, {}, {}])
+
+    // A DIFFERENT host is unaffected by host 7's rejection memo.
+    await withUnknownSettingRetry(cacheSettings, run, 8)
+    expect(calls.at(-2)).toEqual(cacheSettings)
+    expect(calls.at(-1)).toEqual({})
+  })
+})
+
+describe('runWithQueryCache', () => {
+  beforeEach(() => {
+    clearUnknownSettingRejections()
+  })
+
+  test('builds version-gated settings and runs under the safety net in one step', async () => {
+    const calls: ClickHouseSettings[] = []
+    await runWithQueryCache(
+      { version: version(24, 8), ttlSeconds: 30, hostId: 0 },
+      async (settings) => {
+        calls.push(settings)
+        return { data: [] }
+      }
+    )
+    expect(calls).toHaveLength(1)
+    expect(calls[0].use_query_cache).toBe(1)
+    expect(calls[0].query_cache_ttl).toBe(30)
+  })
+
+  test('passes {} straight through for unsupported versions', async () => {
+    const calls: ClickHouseSettings[] = []
+    await runWithQueryCache(
+      { version: null, ttlSeconds: 30, hostId: 0 },
+      async (settings) => {
+        calls.push(settings)
+        return { data: [] }
+      }
+    )
+    expect(calls).toEqual([{}])
   })
 })

@@ -24,7 +24,7 @@
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "bun test src/ --isolate",
-    "test:query-config": "bun test src/lib/query-config --isolate",
+    "test:query-config": "bun test src/lib/query-config src/lib/api/__tests__/query-cache-settings-live.test.ts --isolate",
     "test:coverage": "bun test src/ --isolate --coverage --coverage-reporter=lcov --coverage-reporter=text",
     "test:coverage:ci": "bun test src/ --isolate --coverage --coverage-reporter=lcov",
     "test:pg-integration": "bun test src/lib/connection-query/execute-pg-query.integration.test.ts --isolate",

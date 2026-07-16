@@ -9,10 +9,7 @@ import {
   classifyError,
   getStatusCodeForErrorType,
 } from '@/lib/api/error-handler'
-import {
-  buildQueryCacheSettings,
-  withUnknownSettingRetry,
-} from '@/lib/api/query-cache-settings'
+import { runWithQueryCache } from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
@@ -93,24 +90,22 @@ export const Route = createFileRoute('/api/v1/host-status')({
           // the `bindings`-derived clientConfig above, so getClickHouseVersion
           // (cached 24h per host) resolves the same host.
           bridgeClickHouseEnv(bindings)
-          const cacheSettings = buildQueryCacheSettings({
+          const cacheOpts = {
             version: await getClickHouseVersion(hostId),
             ttlSeconds: HOST_STATUS_CACHE_TTL_SECONDS,
-          })
-
-          // Raw client calls THROW on error (unlike fetchData), so the
-          // unknown-setting fallback catches instead of extracting.
-          const resultSet = await withUnknownSettingRetry(
-            cacheSettings,
-            (cache) =>
-              client.query({
-                query: `${QUERY_COMMENT}SELECT
+            hostId,
+          }
+          // Raw client calls THROW on error (unlike fetchData); the
+          // unknown-setting fallback inside runWithQueryCache handles both.
+          const resultSet = await runWithQueryCache(cacheOpts, (cache) =>
+            client.query({
+              query: `${QUERY_COMMENT}SELECT
   version() AS version,
   formatReadableTimeDelta(uptime()) AS uptime,
   hostName() AS hostname`,
-                format: 'JSONEachRow',
-                clickhouse_settings: cache,
-              })
+              format: 'JSONEachRow',
+              clickhouse_settings: cache,
+            })
           )
 
           // JSONEachRow returns rows directly: json<Row>() => Row[]
@@ -136,14 +131,16 @@ export const Route = createFileRoute('/api/v1/host-status')({
           } = {}
           if (wantCounts) {
             try {
-              const countsSet = await client.query({
-                query: `${QUERY_COMMENT}SELECT
+              const countsSet = await runWithQueryCache(cacheOpts, (cache) =>
+                client.query({
+                  query: `${QUERY_COMMENT}SELECT
   (SELECT count() FROM system.databases) AS databases,
   (SELECT count() FROM system.tables) AS tables,
   (SELECT uniqExact(host_name) FROM system.clusters) AS clusterNodes`,
-                format: 'JSONEachRow',
-                clickhouse_settings: cacheSettings,
-              })
+                  format: 'JSONEachRow',
+                  clickhouse_settings: cache,
+                })
+              )
               const countRows = await countsSet.json<{
                 databases: string | number
                 tables: string | number
