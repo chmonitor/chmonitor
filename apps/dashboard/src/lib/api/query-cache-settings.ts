@@ -77,6 +77,15 @@ const MIN_NONDETERMINISTIC_ENUM_VERSION = { major: 24, minor: 2 } as const
  */
 const MIN_SYSTEM_TABLE_HANDLING_VERSION = { major: 24, minor: 4 } as const
 
+/**
+ * ClickHouse renamed the `overflow_mode` setting to `set_overflow_mode` in
+ * 26.4. On 26.3 `overflow_mode = 'throw'` is required alongside
+ * `use_query_cache = 1` (error 731 otherwise), but on 26.4+ `overflow_mode`
+ * is no longer a recognized setting and is rejected as "Unknown setting",
+ * which fails the entire query. Gate the key by version so both hosts work.
+ */
+const MIN_SET_OVERFLOW_MODE_VERSION = { major: 26, minor: 4 } as const
+
 export interface QueryCacheSettingsOptions {
   /** Detected ClickHouse version for the target host, or null if unknown. */
   version: ClickHouseVersion | null
@@ -113,11 +122,18 @@ export function buildQueryCacheSettings({
   const settings: ClickHouseSettings = {
     use_query_cache: 1,
     query_cache_ttl: ttlSeconds,
-    // ClickHouse 26.3 requires `overflow_mode = 'throw'` whenever
-    // `use_query_cache = 1` is set, else the query fails with error 731
-    // (`QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE`). Setting it here keeps
-    // the query cache opt-in compatible with that host version.
-    overflow_mode: 'throw',
+    // The query cache requires a non-throw overflow mode to be set explicitly,
+    // else the query fails with error 731 (QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE).
+    // The setting was renamed from `overflow_mode` to `set_overflow_mode` in ClickHouse 26.4:
+    // on 26.3 `overflow_mode` is required, but on 26.4+ `overflow_mode` is an unknown setting
+    // and is rejected ("Unknown setting"), failing the whole query. Pick the key by version.
+    ...(meetsMinVersion(
+      version,
+      MIN_SET_OVERFLOW_MODE_VERSION.major,
+      MIN_SET_OVERFLOW_MODE_VERSION.minor
+    )
+      ? { set_overflow_mode: 'throw' }
+      : { overflow_mode: 'throw' }),
   }
 
   if (
