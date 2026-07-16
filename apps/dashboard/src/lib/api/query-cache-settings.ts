@@ -110,14 +110,16 @@ export function buildQueryCacheSettings({
     return {}
   }
 
+  // NOTE: do NOT add a bare `overflow_mode` setting here — no such setting
+  // exists in ANY ClickHouse version (only `result_overflow_mode`,
+  // `timeout_overflow_mode`, etc.), and an unknown setting name fails the
+  // entire query with "Setting overflow_mode is neither a builtin setting…".
+  // Error 731 (QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE) is instead
+  // handled by the callers, which skip the query cache whenever a non-'throw'
+  // `result_overflow_mode` is in effect (see query-executor.ts).
   const settings: ClickHouseSettings = {
     use_query_cache: 1,
     query_cache_ttl: ttlSeconds,
-    // ClickHouse 26.3 requires `overflow_mode = 'throw'` whenever
-    // `use_query_cache = 1` is set, else the query fails with error 731
-    // (`QUERY_CACHE_USED_WITH_NON_THROW_OVERFLOW_MODE`). Setting it here keeps
-    // the query cache opt-in compatible with that host version.
-    overflow_mode: 'throw',
   }
 
   if (
