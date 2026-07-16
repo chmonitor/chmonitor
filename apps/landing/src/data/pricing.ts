@@ -9,10 +9,10 @@
  */
 
 import {
+  getVisiblePlans,
   type Plan,
   type PlanCapability,
   type PlanId,
-  getVisiblePlans,
   planAiUsage,
   planAlertRules,
   planHasCapability,
