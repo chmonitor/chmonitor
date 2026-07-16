@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { ActiveAlertsPanel } from './active-alerts-panel'
 import { AlertRoutingPanel } from './alert-routing-dialog'
+import { AlertSuggestionsPanel } from './alert-suggestions-panel'
 import { HEALTH_CHECKS } from './health-checks'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
 import { RecentAlertsCard } from './recent-alerts-card'
@@ -273,6 +274,7 @@ export function HealthSettingsDialog() {
               <TabsTrigger value="routing">Routing</TabsTrigger>
               <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
               <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+              <TabsTrigger value="suggested">Suggested</TabsTrigger>
               <TabsTrigger value="custom-rules">Custom Rules</TabsTrigger>
             </TabsList>
           </div>
@@ -627,6 +629,12 @@ export function HealthSettingsDialog() {
           <TabsContent value="maintenance" className="min-h-0 overflow-hidden">
             <ScrollArea className="h-full pr-3">
               <MaintenanceWindowsPanel />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="suggested" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
+              <AlertSuggestionsPanel />
             </ScrollArea>
           </TabsContent>
 
