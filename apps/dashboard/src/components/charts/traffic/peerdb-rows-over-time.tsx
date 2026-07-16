@@ -13,6 +13,7 @@ interface PeerdbRowsRow {
   event_time: string
   table: string
   peerdb_rows: number
+  [key: string]: unknown
 }
 
 /**
