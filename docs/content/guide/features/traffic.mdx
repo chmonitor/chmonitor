@@ -1,0 +1,114 @@
+---
+description: See how much data is flowing into your ClickHouse cluster — rows, bytes, and insert queries over time, per-table ingestion, compression, and (when relevant) replication, distribution, and PeerDB ingestion.
+icon: ArrowDownToLine
+title: Traffic
+---
+
+The Traffic page answers a single question: **how much data is flowing into this cluster?** It combines last-24h ingestion KPIs, rows/bytes/insert-query volume over time, per-table ingestion, and — only when the cluster actually replicates, shards, or runs a PeerDB pipeline — the matching write-amplification and data-movement views.
+
+| | |
+|---|---|
+| **Route** | `/traffic` |
+| **Feature id** | `metrics` |
+| **Default access** | `public` |
+| **Requires auth** | No (set `CHM_FEATURE_METRICS_ACCESS=authenticated` to gate) |
+| **System tables** | `system.query_log`, `system.parts` (always), `system.part_log`, `system.replicas`, `system.clusters` (conditional) |
+| **ClickHouse grants** | `SELECT` on the system tables above |
+
+## What it does
+
+Traffic reads two complementary data sources and is careful to keep them distinct, because they measure different things:
+
+- **`system.query_log`** (Insert queries, `type = 'QueryFinish'`, `query_kind = 'Insert'`) — `written_rows` / `written_bytes` are the **uncompressed** payload as ingested. This is the "how much data did clients send us" number.
+- **`system.part_log`** (`NewPart` events) — `size_in_bytes` is the **on-disk (compressed)** size of each new part. This is the "how much did we actually store" number. `part_log` is opt-in (see below), so every chart that reads it degrades gracefully when it is absent.
+
+Comparing the two — uncompressed ingest vs on-disk bytes — is how you read the *effective compression* of incoming data over time.
+
+## Sections
+
+### KPI strip
+
+A row of last-24h totals from `system.query_log`, each with a delta versus the previous 24 hours: **rows ingested**, **bytes ingested** (uncompressed), and **insert queries**, plus the cluster's overall **compression ratio** (uncompressed ÷ compressed across active parts, from `system.parts`).
+
+### Ingestion charts
+
+A grid of time-series charts. Every chart has its own **date-range selector** for hour / day / month granularity.
+
+| Chart | Measures | Source |
+|---|---|---|
+| Inserted Rows over time | Rows ingested (uncompressed source of truth) | `system.query_log` |
+| Insert Queries over time | Insert-query count, split into successful and **failed** so ingestion incidents are visible | `system.query_log` |
+| Inserted Bytes over time | Uncompressed bytes ingested | `system.query_log` |
+| Bytes on Disk over time | Compressed on-disk size of new parts — compare against Inserted Bytes to read effective compression | `system.part_log` |
+
+### Merges & Data Movement
+
+Background write-amplification and data-movement throughput from `system.part_log`: **merged bytes** (`MergeParts`), **part moves** (`MovePart`), and a **write-amplification** view (how many bytes the server rewrites for every byte ingested). This section reads `part_log` and shows an empty state when it is not configured.
+
+### Top Tables by Ingestion (24h)
+
+A table ranking tables by data ingested in the last 24 hours: **rows added**, **on-disk bytes added**, **parts created** (all rendered as background bars), and each table's overall **compression ratio**. Ingestion volume comes from `system.part_log` (`NewPart`), joined with the table's current compression from `system.parts`. Because it depends on `part_log`, the table is optional and shows an informative empty state when `part_log` is off.
+
+### Replication & Distribution (conditional)
+
+This section **only appears when the cluster actually replicates or shards.** Traffic runs a smart cluster-shape probe against `system.replicas` / `system.clusters` first; on a single-node, non-replicated server the section is not rendered at all — no empty cards. When present, it shows:
+
+- **Replica fetches** — bytes downloaded between replicas (`part_log` `DownloadPart`).
+- **Distributed queries** — initial vs secondary query volume, so you can see fan-out from `Distributed` tables.
+
+### PeerDB Ingestion (conditional)
+
+Also **auto-detected**: Traffic probes for a PeerDB replication pipeline (tables/rows written by PeerDB mirrors). The **PeerDB Ingestion** section renders only when PeerDB activity is detected, showing rows ingested through the PeerDB pipeline. If you run PeerDB, see the dedicated [PeerDB feature](/guide/features/peerdb) for mirror, peer, and slot-level detail.
+
+## Enable `system.part_log`
+
+The KPI strip, the two query-log charts, and the overall compression ratio work out of the box, because `system.query_log` and `system.parts` are on by default. The **Bytes on Disk** chart, **Merges & Data Movement**, **Top Tables by Ingestion**, and **Replica fetches** all read `system.part_log`, which is **opt-in** on some ClickHouse distributions. When it is absent, those views show an informative empty state instead of failing.
+
+To enable it, add `<part_log>` to the ClickHouse server config and restart:
+
+```xml
+<clickhouse>
+  <part_log>
+    <database>system</database>
+    <table>part_log</table>
+    <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+  </part_log>
+</clickhouse>
+```
+
+See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables) for the full list and configuration.
+
+## Permissions & access
+
+Traffic shares the `metrics` feature id.
+
+```bash
+# Gate to authenticated users
+CHM_FEATURE_METRICS_ACCESS=authenticated
+
+# Disable entirely
+CHM_FEATURE_METRICS_ENABLED=false
+# or
+CHM_DISABLED_FEATURES=metrics
+```
+
+```toml
+# CHM_CONFIG_FILE (TOML)
+[features.metrics]
+access = "authenticated"
+```
+
+The global query timeout applies to all Traffic queries:
+
+```bash
+CLICKHOUSE_MAX_EXECUTION_TIME=60
+```
+
+## Related
+
+<Cards>
+  <Card title="Merges & operations" href="/guide/features/operations" description="Merges and mutations behind the write-amplification numbers." />
+  <Card title="Tables & storage" href="/guide/features/tables" description="Table sizes, parts, and replication health." />
+  <Card title="PeerDB" href="/guide/features/peerdb" description="PeerDB mirror, peer, and replication-slot detail." />
+  <Card title="Enable system tables" href="/guide/getting-started/clickhouse-enable-system-tables" description="Turn on system.part_log and other optional tables." />
+</Cards>

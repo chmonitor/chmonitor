@@ -49,6 +49,11 @@ You only configure what you want to restrict or turn off. The exceptions are the
     description="Server CPU, memory, IO metrics and ClickHouse profiling data."
   />
   <Card
+    title="Traffic"
+    href="/guide/features/traffic"
+    description="How much data is flowing in — rows, bytes, insert queries, per-table ingestion, and compression over time."
+  />
+  <Card
     title="Insights"
     href="/guide/features/insights"
     description="AI-surfaced anomalies, performance patterns, and observations."
@@ -93,6 +98,7 @@ Every feature answers a specific operational question. Use the feature id to gat
 | Merges & Operations | Are merges/mutations keeping up? | `operations` | [Merges & Operations](/guide/features/operations) |
 | Clusters & Replication | Is replication lagging? Are replicas healthy? | `cluster` | [Clusters & Replication](/guide/features/cluster) |
 | Metrics & Profiler | What are the server's CPU/memory/IO metrics? | `metrics` | [Metrics & Profiler](/guide/features/metrics) |
+| Traffic | How much data is flowing into the cluster? | `metrics` | [Traffic](/guide/features/traffic) |
 | Insights | What patterns or anomalies does the AI surface? | `insights` | [Insights](/guide/features/insights) |
 | Health & Alerting | Are there active alerts? | `health` | [Health & Alerting](/guide/features/health) |
 | Security & Audit | Who is accessing ClickHouse and how? | `security` | [Security & Audit](/guide/features/security) |
