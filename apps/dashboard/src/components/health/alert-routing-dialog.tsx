@@ -36,6 +36,7 @@ import {
 import {
   fireNtfyTest,
   firePagerDutyTest,
+  firePushoverTest,
   fireTelegramTest,
   fireWebhook,
 } from '@/lib/health/alert-dispatcher'
@@ -44,6 +45,7 @@ import {
   useAlertRoutesMutations,
   usePagerDutyServices,
 } from '@/lib/hooks/use-alert-routes'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 function RouteRow({
@@ -54,10 +56,12 @@ function RouteRow({
   onDeleted: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteRoute } = useAlertRoutesMutations()
   const isPagerDuty = route.provider === 'pagerduty'
   const isTelegram = route.provider === 'telegram'
   const isNtfy = route.provider === 'ntfy'
+  const isPushover = route.provider === 'pushover'
 
   const handleDelete = async () => {
     setBusy(true)
@@ -65,9 +69,10 @@ function RouteRow({
       await deleteRoute(route.id)
       onDeleted()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete route')
+      toast.error('Failed to delete route', { description: describeError(err) })
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -119,6 +124,16 @@ function RouteRow({
         else toast.error('ntfy request failed')
         return
       }
+      // Same tradeoff as PagerDuty/Telegram above: a Pushover route's
+      // application token is a masked secret never returned to the client
+      // after storage, so an existing route can only be re-tested by
+      // re-creating it.
+      if (isPushover) {
+        toast.info(
+          'Re-create the route to send another Pushover test notification (the token is never re-shown once saved).'
+        )
+        return
+      }
       const ok = await fireWebhook(testAlert, route.channelUrl)
       if (ok) toast.success('Test alert sent')
       else toast.error('Webhook request failed')
@@ -134,6 +149,7 @@ function RouteRow({
           {isPagerDuty && <Badge variant="default">PagerDuty</Badge>}
           {isTelegram && <Badge variant="default">Telegram</Badge>}
           {isNtfy && <Badge variant="default">ntfy</Badge>}
+          {isPushover && <Badge variant="default">Pushover</Badge>}
           <Badge variant="outline">rule: {route.matchRule}</Badge>
           <Badge variant="outline">host: {route.matchHost}</Badge>
           {!route.enabled && <Badge variant="secondary">disabled</Badge>}
@@ -145,21 +161,47 @@ function RouteRow({
               ? `chat ${route.telegramChatId} — bot ${route.telegramBotTokenMasked}`
               : isNtfy
                 ? `${route.ntfyUrl}${route.ntfyTokenMasked ? ` — token ${route.ntfyTokenMasked}` : ''}`
-                : route.channelUrl}
+                : isPushover
+                  ? `user ${route.pushoverUser} — token ${route.pushoverTokenMasked}`
+                  : route.channelUrl}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <Button variant="ghost" size="sm" disabled={busy} onClick={handleTest}>
           Send test
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={busy}
-          onClick={handleDelete}
-        >
-          Delete
-        </Button>
+        {confirming ? (
+          <div className="flex items-center gap-1">
+            <span className="mr-1 text-xs text-destructive">Delete?</span>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={busy}
+              onClick={handleDelete}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+            >
+              No
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+          >
+            Delete
+          </Button>
+        )}
       </div>
     </div>
   )
@@ -177,6 +219,8 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
   const [tgChatId, setTgChatId] = useState('')
   const [ntfyUrl, setNtfyUrl] = useState('')
   const [ntfyToken, setNtfyToken] = useState('')
+  const [poToken, setPoToken] = useState('')
+  const [poUser, setPoUser] = useState('')
   const [busy, setBusy] = useState(false)
   const { createRoute } = useAlertRoutesMutations()
   const { services: pdServices, isLoading: pdServicesLoading } =
@@ -193,6 +237,8 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     setTgChatId('')
     setNtfyUrl('')
     setNtfyToken('')
+    setPoToken('')
+    setPoUser('')
   }
 
   const handleSubmit = async () => {
@@ -209,6 +255,11 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     } else if (provider === 'ntfy') {
       if (!ntfyUrl.trim()) {
         toast.error('Enter the ntfy topic URL')
+        return
+      }
+    } else if (provider === 'pushover') {
+      if (!poToken.trim() || !poUser.trim()) {
+        toast.error('Enter the Pushover application token and user key')
         return
       }
     } else if (!channelUrl.trim()) {
@@ -239,13 +290,19 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
                   ntfyUrl: ntfyUrl.trim(),
                   ntfyToken: ntfyToken.trim() || undefined,
                 }
-              : { channelUrl: channelUrl.trim() }),
+              : provider === 'pushover'
+                ? {
+                    provider: 'pushover',
+                    pushoverToken: poToken.trim(),
+                    pushoverUser: poUser.trim(),
+                  }
+                : { channelUrl: channelUrl.trim() }),
       })
       toast.success('Route created')
       reset()
       onCreated()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create route')
+      toast.error('Failed to create route', { description: describeError(err) })
     } finally {
       setBusy(false)
     }
@@ -320,6 +377,21 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const handleSendPushoverTest = async () => {
+    if (!poToken.trim() || !poUser.trim()) {
+      toast.error('Enter the Pushover application token and user key')
+      return
+    }
+    setBusy(true)
+    try {
+      const ok = await firePushoverTest(poToken.trim(), poUser.trim())
+      if (ok) toast.success('Test notification sent to Pushover')
+      else toast.error('Pushover request failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3">
       <Label className="text-sm font-medium">Add route</Label>
@@ -339,6 +411,7 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             <SelectItem value="pagerduty">PagerDuty service</SelectItem>
             <SelectItem value="telegram">Telegram chat</SelectItem>
             <SelectItem value="ntfy">ntfy topic</SelectItem>
+            <SelectItem value="pushover">Pushover user</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -488,6 +561,42 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             className="self-start"
             disabled={busy}
             onClick={handleSendNtfyTest}
+          >
+            Send test notification
+          </Button>
+        </>
+      ) : provider === 'pushover' ? (
+        <>
+          <Label
+            htmlFor="route-pushover-token"
+            className="text-xs text-muted-foreground"
+          >
+            Application API token
+          </Label>
+          <Input
+            id="route-pushover-token"
+            placeholder="a1b2c3..."
+            value={poToken}
+            onChange={(e) => setPoToken(e.target.value)}
+          />
+          <Label
+            htmlFor="route-pushover-user"
+            className="text-xs text-muted-foreground"
+          >
+            User (or group) key
+          </Label>
+          <Input
+            id="route-pushover-user"
+            placeholder="u1v2w3..."
+            value={poUser}
+            onChange={(e) => setPoUser(e.target.value)}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            disabled={busy}
+            onClick={handleSendPushoverTest}
           >
             Send test notification
           </Button>

@@ -245,6 +245,96 @@ export function getServerNtfyConfig(): ServerNtfyConfig | null {
   return token ? { url, token } : { url }
 }
 
+/**
+ * Resolved server-side Twilio SMS config: credentials, sender, recipients,
+ * and this channel's own severity floor.
+ */
+export interface ServerTwilioConfig {
+  accountSid: string
+  authToken: string
+  from: string
+  /** SMS recipients (E.164 numbers) — one POST per number. */
+  to: string[]
+  /** Minimum severity that triggers an SMS. Default `'critical'` — see below. */
+  minSeverity: 'warning' | 'critical'
+}
+
+/**
+ * Server-side Twilio config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_TWILIO_ACCOUNT_SID  → accountSid  (default '')
+ *   - HEALTH_ALERT_TWILIO_AUTH_TOKEN   → authToken   (default '') — secret, server-only
+ *   - HEALTH_ALERT_TWILIO_FROM         → from        (default '')
+ *   - HEALTH_ALERT_TWILIO_TO           → to          (comma-separated, default '')
+ *   - HEALTH_ALERT_TWILIO_MIN_SEVERITY → minSeverity ('warning' | 'critical', default 'critical')
+ *
+ * Returns null unless the account SID, auth token, `from` number, and at
+ * least one recipient are ALL configured — Twilio delivery is opt-in and
+ * fails open (any missing piece ⇒ the sweep skips the Twilio dispatch
+ * entirely).
+ *
+ * SMS is a last-resort paging channel that costs real money per message, so
+ * — unlike every other channel here — it defaults its OWN severity floor to
+ * `'critical'` rather than only following the global `HEALTH_ALERT_MIN_SEVERITY`
+ * gate: a warning that clears the global gate still will not page a phone
+ * unless the operator explicitly opts in with
+ * `HEALTH_ALERT_TWILIO_MIN_SEVERITY=warning` (per issue #2668; a generic
+ * per-channel severity setting for every channel is tracked separately in
+ * #2661).
+ *
+ * NOTE: exposed as a companion function (matching {@link getServerTelegramConfig})
+ * rather than folded into {@link getServerAlertConfig}'s return value — that
+ * shape is shared with the client's localStorage settings and asserted deeply
+ * by its tests, and the Twilio auth token is a server-only secret that must
+ * never round-trip through it.
+ */
+export function getServerTwilioConfig(): ServerTwilioConfig | null {
+  const accountSid = process.env.HEALTH_ALERT_TWILIO_ACCOUNT_SID?.trim() || ''
+  const authToken = process.env.HEALTH_ALERT_TWILIO_AUTH_TOKEN?.trim() || ''
+  const from = process.env.HEALTH_ALERT_TWILIO_FROM?.trim() || ''
+  const to = (process.env.HEALTH_ALERT_TWILIO_TO ?? '')
+    .split(',')
+    .map((n) => n.trim())
+    .filter((n) => n.length > 0)
+  if (!accountSid || !authToken || !from || to.length === 0) return null
+
+  const minSeverityEnv = process.env.HEALTH_ALERT_TWILIO_MIN_SEVERITY?.trim()
+  const minSeverity: 'warning' | 'critical' =
+    minSeverityEnv === 'warning' ? 'warning' : 'critical'
+
+  return { accountSid, authToken, from, to, minSeverity }
+}
+
+/** Resolved server-side Pushover config: the app token plus the target user/group key. */
+export interface ServerPushoverConfig {
+  token: string
+  user: string
+}
+
+/**
+ * Server-side Pushover config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_PUSHOVER_TOKEN → token (application API token, default '')
+ *   - HEALTH_ALERT_PUSHOVER_USER  → user  (target user/group key, default '')
+ *
+ * Returns null unless BOTH are configured — Pushover delivery is opt-in and
+ * fails open (either value missing ⇒ the sweep skips the Pushover dispatch
+ * entirely). This is the global fallback used when no per-rule/per-host
+ * Pushover route matches, mirroring the Telegram fallback (#2655, #2659).
+ *
+ * NOTE: exposed as a companion function (matching
+ * {@link getServerTelegramConfig}) rather than folded into
+ * {@link getServerAlertConfig}'s return value — that shape is shared with the
+ * client's localStorage settings and asserted deeply by its tests, and the
+ * app token is a server-only secret that must never round-trip through it.
+ */
+export function getServerPushoverConfig(): ServerPushoverConfig | null {
+  const token = process.env.HEALTH_ALERT_PUSHOVER_TOKEN?.trim() || ''
+  const user = process.env.HEALTH_ALERT_PUSHOVER_USER?.trim() || ''
+  if (!token || !user) return null
+  return { token, user }
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

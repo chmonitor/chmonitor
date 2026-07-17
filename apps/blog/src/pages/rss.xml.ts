@@ -1,13 +1,14 @@
 import type { APIContext } from 'astro'
 
+import { isPublished } from '../lib/published'
 import { postSlug } from '../lib/slug'
 import { getCollection } from 'astro:content'
 import rss from '@astrojs/rss'
 
 export async function GET(context: APIContext) {
-  const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
-    (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-  )
+  const posts = (
+    await getCollection('blog', ({ data }) => isPublished(data))
+  ).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
 
   return rss({
     title: "What's new in chmonitor",

@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import {
   hostIdSchema,
+  READONLY_ANNOTATIONS,
   runReadonlyFetch,
   toErrorResult,
   toJsonResult,
@@ -14,6 +15,7 @@ export function registerMetricsTool(server: McpServer) {
     {
       hostId: hostIdSchema,
     },
+    { ...READONLY_ANNOTATIONS, title: 'Get Server Metrics' },
     async ({ hostId }) => {
       const [versionResult, uptimeResult, metricsResult] = await Promise.all([
         runReadonlyFetch({ query: 'SELECT version() AS version', hostId }),

@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-07-10
+updated: 2026-07-17
 tags:
   - rust
   - cli
@@ -112,4 +112,40 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 
 - **CI**: `cli-rust-ci.yml` — fmt, clippy, build, test
 - **Release**: Tag format `chm-v*` (e.g. `chm-v0.1.0`)
-- **Release workflow**: `cli-rust-release.yml` builds Linux/macOS binaries
+- **Release workflow**: `cli-rust-release.yml` builds 4 targets
+  (`x86_64`/`aarch64` × `unknown-linux-gnu`/`apple-darwin`, no Windows) and
+  uploads each binary plus a `.sha256` checksum file to the GitHub Release as
+  `chm-<target>` / `chm-<target>.sha256`. Only runs the upload step on an
+  actual tag push (`github.ref_type == 'tag'`); `workflow_dispatch` builds but
+  doesn't publish.
+- **No `chm-v*` tag has been pushed yet** (as of 2026-07-17) — the workflow is
+  wired correctly but has never produced a real release. A maintainer needs to
+  push a `chm-v0.1.0` tag to cut the first one before `scripts/install.sh`
+  (below) has anything to download.
+
+## One-line install (`scripts/install.sh`)
+
+```bash
+curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+```
+
+- Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
+  release workflow's target triples, and refuses to run on anything else
+  (no silent wrong-arch installs).
+- Resolves the latest `chm-v*` release via the GitHub releases API (not the
+  repo's overall "latest" release — that's dashboard/Helm releases); pin a
+  specific one with `CHM_VERSION=chm-vX.Y.Z`.
+- Downloads the binary + its `.sha256` asset and verifies the checksum before
+  installing; fails loud (`set -euo pipefail`) on any download/verify/write
+  failure rather than degrading silently.
+- Installs to `$HOME/.local/bin` by default (override with
+  `CHM_INSTALL_DIR`); never invokes `sudo` — if the target dir isn't
+  writable it errors with the manual `sudo cp` command instead of escalating
+  itself.
+- `rust/ch-monitor-cli/Cargo.toml` now carries `authors`/`repository`/
+  `readme`/`keywords`/`categories` (matching the sibling `ch-json`/`ch-pivot`
+  crates) so it's ready for a future `cargo publish` — **not yet published**;
+  `cargo-publish.yml`'s path filter still only watches `ch-json`/`ch-pivot`.
+  Publishing `ch-monitor-cli` to crates.io and/or a Homebrew tap needs a
+  maintainer with crates.io/Homebrew-org credentials (tracked as a follow-up
+  on issue #2699, not done here).

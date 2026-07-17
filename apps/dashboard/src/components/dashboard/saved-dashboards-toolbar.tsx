@@ -9,11 +9,20 @@
  */
 
 import { BookmarkIcon, TrashIcon } from '@radix-ui/react-icons'
+import { toast } from 'sonner'
 
 import type { DashboardLayout } from '@/types/dashboard-layout'
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -41,6 +50,8 @@ export function SavedDashboardsToolbar({
 }: SavedDashboardsToolbarProps) {
   const [savedNames, setSavedNames] = useState<string[]>([])
   const [activeName, setActiveName] = useState<string>('')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Refresh the list (D1 or localStorage, depending on backend).
   const refreshList = async () => {
@@ -68,7 +79,7 @@ export function SavedDashboardsToolbar({
 
   async function handleSave() {
     if (layout.widgets.length === 0) {
-      alert('Add at least one widget before saving.')
+      toast.error('Add at least one widget before saving.')
       return
     }
     const name = window.prompt('Dashboard name:')?.trim()
@@ -78,19 +89,26 @@ export function SavedDashboardsToolbar({
       setActiveName(name)
       await refreshList()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save dashboard.')
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to save dashboard.'
+      )
     }
   }
 
   async function handleDelete() {
     if (!activeName) return
-    if (!window.confirm(`Delete "${activeName}"?`)) return
+    setDeleting(true)
     try {
       await deleteDashboard(activeName)
       setActiveName('')
       await refreshList()
+      setConfirmDeleteOpen(false)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete dashboard.')
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to delete dashboard.'
+      )
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -138,16 +156,45 @@ export function SavedDashboardsToolbar({
       </Button>
 
       {activeName && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDelete}
-          title={`Delete "${activeName}"`}
-          className="text-destructive hover:text-destructive"
-        >
-          <TrashIcon className="mr-1 size-3" />
-          Delete
-        </Button>
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmDeleteOpen(true)}
+            title={`Delete "${activeName}"`}
+            className="text-destructive hover:text-destructive"
+          >
+            <TrashIcon className="mr-1 size-3" />
+            Delete
+          </Button>
+
+          <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete dashboard?</DialogTitle>
+                <DialogDescription>
+                  {`Delete the saved dashboard "${activeName}"? This cannot be undone.`}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDeleteOpen(false)}
+                  disabled={deleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
     </div>
   )

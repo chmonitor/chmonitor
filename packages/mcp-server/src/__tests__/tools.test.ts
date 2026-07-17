@@ -5,6 +5,8 @@ mock.module('@chm/clickhouse-client', () => ({
   fetchData: async () => ({ data: [], error: null }),
 }))
 
+import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
+
 import { registerAllTools } from '../tools'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod/v3'
@@ -13,6 +15,60 @@ describe('registerAllTools', () => {
   test('registers all 10 tools without errors', () => {
     const server = new McpServer({ name: 'test', version: '0.0.1' })
     expect(() => registerAllTools(server)).not.toThrow()
+  })
+})
+
+describe('tool annotations (#2703)', () => {
+  // The MCP SDK keeps registrations in `_registeredTools` (name → { title,
+  // annotations, ... }). Internal, but the only introspection surface that
+  // doesn't require a connected transport — same approach as the
+  // MCP_TOOLS-vs-registered-tools drift test.
+  function registeredTools(): Record<
+    string,
+    { title?: string; annotations?: ToolAnnotations }
+  > {
+    const server = new McpServer({ name: 'test', version: '0.0.1' })
+    registerAllTools(server)
+    return (
+      server as unknown as {
+        _registeredTools: Record<
+          string,
+          { title?: string; annotations?: ToolAnnotations }
+        >
+      }
+    )._registeredTools
+  }
+
+  test('every registered tool declares the shared read-only annotations', () => {
+    const tools = registeredTools()
+    expect(Object.keys(tools).length).toBeGreaterThan(0)
+
+    for (const [name, tool] of Object.entries(tools)) {
+      expect(tool.annotations, `${name} is missing annotations`).toBeDefined()
+      expect(tool.annotations?.readOnlyHint, `${name}.readOnlyHint`).toBe(true)
+      expect(tool.annotations?.destructiveHint, `${name}.destructiveHint`).toBe(
+        false
+      )
+      expect(tool.annotations?.idempotentHint, `${name}.idempotentHint`).toBe(
+        true
+      )
+      expect(tool.annotations?.openWorldHint, `${name}.openWorldHint`).toBe(
+        false
+      )
+    }
+  })
+
+  test('every registered tool has a non-empty human-readable title', () => {
+    const tools = registeredTools()
+
+    for (const [name, tool] of Object.entries(tools)) {
+      const title = tool.annotations?.title
+      expect(typeof title, `${name}.annotations.title`).toBe('string')
+      expect(
+        title?.trim().length ?? 0,
+        `${name}.annotations.title`
+      ).toBeGreaterThan(0)
+    }
   })
 })
 

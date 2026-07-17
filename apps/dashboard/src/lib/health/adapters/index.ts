@@ -12,6 +12,7 @@
 export type { DiscordWebhookBody } from './discord'
 export type { EmailBody, EmailConfig, EmailProvider } from './email'
 export type { GenericJsonBody } from './generic-json'
+export type { GoogleChatWebhookBody } from './google-chat'
 export type { MSTeamsWebhookBody } from './msteams'
 export type { NtfyConfig, NtfyMessage } from './ntfy'
 export type {
@@ -24,6 +25,11 @@ export type {
   PagerDutyEventBody,
   PagerDutySeverity,
 } from './pagerduty'
+export type {
+  PushoverConfig,
+  PushoverMessage,
+  PushoverMessageBody,
+} from './pushover'
 export type { SlackWebhookBody } from './slack'
 export type { TelegramConfig, TelegramSendMessageBody } from './telegram'
 export type {
@@ -35,6 +41,7 @@ export type {
 export { buildDiscordBody, discordAdapter } from './discord'
 export { buildEmailBody, detectEmailProvider, emailAdapter } from './email'
 export { buildGenericJsonBody, genericJsonAdapter } from './generic-json'
+export { buildGoogleChatBody, googleChatAdapter } from './google-chat'
 export { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 export {
   buildNtfyHeaders,
@@ -48,6 +55,11 @@ export {
   pagerDutyAdapter,
   pagerDutyDedupKey,
 } from './pagerduty'
+export {
+  buildPushoverBody,
+  buildPushoverMessage,
+  pushoverAdapter,
+} from './pushover'
 export { buildSlackBody, slackAdapter } from './slack'
 export {
   buildTelegramBody,
@@ -55,12 +67,19 @@ export {
   escapeMarkdownV2,
   telegramAdapter,
 } from './telegram'
+export {
+  buildTwilioMessage,
+  TWILIO_SMS_MAX_LENGTH,
+  truncateSmsBody,
+  twilioAdapter,
+} from './twilio'
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
 import { buildDiscordBody, discordAdapter } from './discord'
 import { emailAdapter } from './email'
 import { genericJsonAdapter } from './generic-json'
+import { buildGoogleChatBody, googleChatAdapter } from './google-chat'
 import { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
@@ -84,6 +103,7 @@ export const ADAPTERS: readonly NotificationAdapter[] = [
   slackAdapter,
   discordAdapter,
   msTeamsAdapter,
+  googleChatAdapter,
   pagerDutyAdapter,
   opsgenieAdapter,
 ]
@@ -130,7 +150,8 @@ export interface WebhookDispatchBody {
 /**
  * Pick the per-URL webhook body for an alert. Discord targets get rich embeds
  * ({@link buildDiscordBody}); Microsoft Teams targets get an Adaptive Card
- * ({@link buildMSTeamsBody}); Slack incoming webhooks get the caller's rich
+ * ({@link buildMSTeamsBody}); Google Chat targets get a cardsV2 card
+ * ({@link buildGoogleChatBody}); Slack incoming webhooks get the caller's rich
  * blocks when provided (the native Slack app, server sweep only) and otherwise
  * the plain `{ text, content }` wrapper; every generic/unknown URL keeps the
  * exact original `{ text, content }` wrapper — zero behavior change. Pure: no
@@ -159,6 +180,14 @@ export function buildWebhookDispatchBody(params: {
       adapterId: adapter.id,
       provider: 'msteams',
       body: buildMSTeamsBody(params.payload),
+    }
+  }
+
+  if (adapter.id === 'google-chat') {
+    return {
+      adapterId: adapter.id,
+      provider: 'google-chat',
+      body: buildGoogleChatBody(params.payload),
     }
   }
 

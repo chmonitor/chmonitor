@@ -1,7 +1,7 @@
 ---
 title: "Self-hosting chmonitor on Docker in five minutes"
 description: "Run the chmonitor ClickHouse dashboard as a self-hosted Docker container against your own cluster, no signup or cloud account required."
-date: 2026-08-14
+date: 2026-07-10
 tag: How-to
 ---
 
