@@ -277,6 +277,22 @@ const ogImage = new URL(image, Astro.site).toString()
     .nav-drawer-body a{display:flex;align-items:center;min-height:44px;padding:8px 10px;border-radius:var(--radius);
       font-size:15.5px;font-weight:500;color:var(--fg-soft);transition:background .14s,color .14s}
     .nav-drawer-body a:hover{background:var(--muted);color:var(--fg)}
+    /* Collapsible drawer groups: native <details> so collapse works pre-JS.
+       Summary rows mirror the plain link rows; children indent behind a
+       hairline like a tree level, not a second flat list. */
+    .nav-drawer-group summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;
+      padding:8px 10px;border-radius:var(--radius);font-size:15.5px;font-weight:500;color:var(--fg-soft);
+      cursor:pointer;list-style:none;transition:background .14s,color .14s}
+    .nav-drawer-group summary::-webkit-details-marker{display:none}
+    .nav-drawer-group summary:hover{background:var(--muted);color:var(--fg)}
+    .nav-drawer-group summary svg{width:15px;height:15px;color:var(--muted-fg);
+      transition:transform .2s ease;flex:0 0 auto}
+    .nav-drawer-group[open] summary{color:var(--fg)}
+    .nav-drawer-group[open] summary svg{transform:rotate(180deg)}
+    .nav-drawer-group-body{display:flex;flex-direction:column;margin:2px 0 6px 10px;
+      padding-left:8px;border-left:1px solid var(--border-soft)}
+    .nav-drawer-group-body a{min-height:40px;font-size:14.5px;font-weight:450}
+    @media (prefers-reduced-motion:reduce){.nav-drawer-group summary svg{transition:none}}
     .nav-drawer-foot{display:flex;flex-direction:column;gap:10px;padding:16px 16px 22px;
       border-top:1px solid var(--border-soft);flex:0 0 auto}
     .nav-drawer-theme{display:flex;align-items:center;justify-content:space-between;
@@ -316,6 +332,15 @@ const ogImage = new URL(image, Astro.site).toString()
     .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg);
       display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden}
     @media (prefers-reduced-motion:reduce){.nav-trigger svg,.nav-menu{transition:none}}
+    /* Status pill for nav items — e.g. "Beta". `--orange` is the small-text-safe
+       accent token; the tint uses color-mix so it stays legible in both themes
+       without a separate dark-mode override. */
+    .nav-item-label{display:inline-flex;align-items:center;gap:6px}
+    .nav-badge{display:inline-flex;align-items:center;height:16px;padding:0 6px;
+      border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+      color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent);
+      line-height:1}
+    .nav-drawer-group-body a .nav-badge{margin-left:auto}
 
     /* ── theme toggle ── */
     /* Matches .nav-toggle / .btn: 40px box, 8px radius, hairline border. */

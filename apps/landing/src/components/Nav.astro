@@ -25,8 +25,7 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
             <a href="/features/data-explorer">Data Explorer<small>Tables, lineage and SQL console</small></a>
             <a href="/features/insights">Insights<small>AI findings and cluster vitals</small></a>
             <a href="/features/peerdb">PeerDB replication<small>Postgres → ClickHouse CDC</small></a>
-            <a href="/features/postgres">Postgres · Beta<small>Monitor Postgres alongside</small></a>
-            <a href="/#features">All features<small>Overview on the homepage</small></a>
+            <a href="/features/postgres"><span class="nav-item-label">Postgres<span class="nav-badge">Beta</span></span><small>Monitor Postgres alongside</small></a>
           </div>
         </div>
         <a href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">Open source</a>
@@ -78,25 +77,40 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
         </button>
       </div>
       <div class="nav-drawer-body">
-        <span class="nav-drawer-label">Features</span>
-        <a href="/features/ai-agent">AI Agent</a>
-        <a href="/features/overview">Cluster overview</a>
-        <a href="/features/queries">Query monitoring</a>
-        <a href="/features/topology">Cluster topology</a>
-        <a href="/features/storage">Storage &amp; tables</a>
-        <a href="/features/alerting">Alerting</a>
-        <a href="/features/data-explorer">Data Explorer</a>
-        <a href="/features/insights">Insights</a>
-        <a href="/features/peerdb">PeerDB replication</a>
-        <a href="/features/postgres">Postgres · Beta</a>
-        <span class="nav-drawer-label">Explore</span>
+        {/* Groups with children collapse (closed by default) so the drawer
+            stays short; top-level destinations remain one-tap links. */}
+        <details class="nav-drawer-group">
+          <summary>
+            Features
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="nav-drawer-group-body">
+            <a href="/features/ai-agent">AI Agent</a>
+            <a href="/features/overview">Cluster overview</a>
+            <a href="/features/queries">Query monitoring</a>
+            <a href="/features/topology">Cluster topology</a>
+            <a href="/features/storage">Storage &amp; tables</a>
+            <a href="/features/alerting">Alerting</a>
+            <a href="/features/data-explorer">Data Explorer</a>
+            <a href="/features/insights">Insights</a>
+            <a href="/features/peerdb">PeerDB replication</a>
+            <a href="/features/postgres">Postgres<span class="nav-badge">Beta</span></a>
+          </div>
+        </details>
         <a href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">Open source</a>
         <a href="/pricing">Pricing</a>
         <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a>
-        <span class="nav-drawer-label">Resources</span>
-        <a href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog</a>
-        <a href="/changelog">Changelog</a>
-        <a href="/brand">Brand</a>
+        <details class="nav-drawer-group">
+          <summary>
+            Resources
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="nav-drawer-group-body">
+            <a href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog</a>
+            <a href="/changelog">Changelog</a>
+            <a href="/brand">Brand</a>
+          </div>
+        </details>
       </div>
       <div class="nav-drawer-foot">
         <div class="nav-drawer-theme">
