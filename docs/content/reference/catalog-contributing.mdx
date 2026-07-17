@@ -234,12 +234,49 @@ permission: { feature: 'queries' },
 permission: { feature: 'metrics', defaultAccess: 'authenticated', operation: 'read' },
 ```
 
-`feature` must be one of the known feature ids (`overview`, `agent`, `insights`, `health`, `queries`, `tables`, `metrics`, `dashboard`, `security`, `logs`, `settings`, `cluster`, `operations`, `actions`, `mcp`, `peerdb`, `docs`, `about`). `defaultAccess` is `public` | `authenticated`; `operation` is `read` | `write`. Both are optional.
+`feature` must be one of the known feature ids (`overview`, `agent`, `insights`, `health`, `queries`, `tables`, `metrics`, `dashboard`, `billing`, `security`, `logs`, `settings`, `cluster`, `operations`, `actions`, `mcp`, `peerdb`, `docs`, `about`). `defaultAccess` is `public` | `authenticated`; `operation` is `read` | `write`. Both are optional.
+
+## Local overrides (self-hosted only)
+
+Everything above describes contributing a check to the repo's own catalog via
+a PR. There's a second, lower-friction path for a self-hosted operator who
+wants a custom check on their own instance without forking the repo: mount a
+directory of `*.yaml` files and point `CHM_CONFIG_DIRECTORY` at it (default
+`/etc/chmonitor/queries.d`).
+
+At startup, every `*.yaml` file directly inside that directory is validated
+against the same schema described above. A file that fails validation (bad
+YAML syntax, a schema violation, or a `name` that collides with another file
+in the directory) is skipped with a warning in the logs — it never blocks
+boot. This is checked **before** `CHM_CONFIG_SOURCE` is even consulted, so a
+local file with the same `name` as a built-in `ts` or `declarative` check
+overrides it regardless of that setting; a `name` that doesn't match any
+built-in check adds a new one.
+
+```yaml
+# /etc/chmonitor/queries.d/my-check.yaml
+name: my-custom-check
+description: Something specific to my cluster
+sql: "SELECT hostName(), uptime()"
+columns: [hostname, uptime_seconds]
+```
+
+Requires a real filesystem, so it works on Docker and Kubernetes but not the
+Cloudflare Worker deploy. `docker-compose.yml` ships a ready-made, commented-out
+example:
+
+```yaml
+volumes:
+  - ./queries.d:/etc/chmonitor/queries.d:ro
+```
+
+The directory is scanned once per process — restart the container/pod to pick
+up added, changed, or removed files.
 
 ## Related
 
 <Cards>
   <Card title="Configuration" href="/reference/configuration" description="How the dashboard resolves query configs and other settings." />
   <Card title="Support matrix" href="/reference/support-matrix" description="Which ClickHouse versions the version-aware SQL targets." />
-  <Card title="Environment variables" href="/reference/environment-variables" description="CHM_CONFIG_SOURCE and the other settings referenced here." />
+  <Card title="Environment variables" href="/reference/environment-variables" description="CHM_CONFIG_SOURCE, CHM_CONFIG_DIRECTORY, and the other settings referenced here." />
 </Cards>
