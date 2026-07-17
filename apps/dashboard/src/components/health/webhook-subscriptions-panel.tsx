@@ -29,6 +29,7 @@ import {
   useWebhookSubscriptions,
   useWebhookSubscriptionsMutations,
 } from '@/lib/hooks/use-webhook-subscriptions'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 function deliveryStatusVariant(
@@ -86,6 +87,7 @@ function SubscriptionRow({
 }) {
   const [expanded, setExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteSubscription, updateSubscription, sendTestPing } =
     useWebhookSubscriptionsMutations()
 
@@ -94,8 +96,10 @@ function SubscriptionRow({
     try {
       await updateSubscription(subscription.id, { enabled: checked })
       onToggled()
-    } catch {
-      toast.error('Failed to update subscription')
+    } catch (err) {
+      toast.error('Failed to update subscription', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
@@ -106,10 +110,13 @@ function SubscriptionRow({
     try {
       await deleteSubscription(subscription.id)
       onDeleted()
-    } catch {
-      toast.error('Failed to delete subscription')
+    } catch (err) {
+      toast.error('Failed to delete subscription', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -120,12 +127,14 @@ function SubscriptionRow({
       if (outcome.status === 'delivered') {
         toast.success('Test webhook delivered')
       } else {
-        toast.error(
-          `Test webhook failed: ${outcome.lastError ?? `status ${outcome.status}`}`
-        )
+        toast.error('Test webhook failed', {
+          description: outcome.lastError ?? `status ${outcome.status}`,
+        })
       }
-    } catch {
-      toast.error('Failed to send test webhook')
+    } catch (err) {
+      toast.error('Failed to send test webhook', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
@@ -168,14 +177,38 @@ function SubscriptionRow({
             disabled={busy}
             onCheckedChange={handleToggle}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={handleDelete}
-          >
-            Delete
-          </Button>
+          {confirming ? (
+            <div className="flex items-center gap-1">
+              <span className="mr-1 text-xs text-destructive">Delete?</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={busy}
+                onClick={handleDelete}
+              >
+                Yes
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={busy}
+                onClick={() => setConfirming(false)}
+              >
+                No
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => setConfirming(true)}
+            >
+              Delete
+            </Button>
+          )}
         </div>
       </div>
       {expanded && (
@@ -222,9 +255,9 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
       setSelected(new Set())
       onCreated()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create subscription'
-      )
+      toast.error('Failed to create subscription', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }

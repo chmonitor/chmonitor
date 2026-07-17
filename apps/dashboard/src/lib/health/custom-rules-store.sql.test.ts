@@ -7,8 +7,9 @@
  * engine) so the guard is actually executed, not re-derived.
  */
 
+import { installHealthPlatformMock } from './__tests__/platform-mock'
 import { Database } from 'bun:sqlite'
-import { describe, expect, mock, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 
 // custom-rules-store.ts imports `getPlatformBindings` from '@chm/platform',
 // which resolves to `platform-native.ts`'s
@@ -16,11 +17,7 @@ import { describe, expect, mock, test } from 'bun:test'
 // doesn't provide. Mock it before importing, mirroring the established
 // pattern in `subscription-store.sql.test.ts`. The D1 binding value is
 // irrelevant here — this file only needs the exported SQL string constant.
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => undefined,
-  }),
-}))
+installHealthPlatformMock(() => undefined)
 
 const { D1_DELETE_CUSTOM_RULE_SQL } = await import('./custom-rules-store')
 

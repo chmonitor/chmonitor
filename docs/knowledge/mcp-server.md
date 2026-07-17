@@ -3,7 +3,7 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-07-10
+updated: 2026-07-17
 tags:
   - mcp
   - api
@@ -26,9 +26,12 @@ The chmonitor exposes a [Model Context Protocol (MCP)](https://modelcontextproto
 | `list_tables` | List tables with row counts and sizes | `database` (string, required) |
 | `get_table_schema` | Show columns, types, defaults, comments | `database`, `table` (required) |
 | `get_metrics` | Server version, uptime, active connections | `hostId` (number, optional) |
-| `get_running_queries` | Currently executing queries by elapsed time | `hostId` (number, optional) |
+| `get_running_queries` | Currently executing queries by elapsed time | `limit` (number, optional, default 50, max 1000), `hostId` (number, optional) |
 | `get_slow_queries` | Slowest completed queries from query log | `limit` (number, optional) |
 | `get_merge_status` | Running merge operations with progress | `hostId` (number, optional) |
+| `explore_table_schema` | Schema exploration with relationship discovery (3 modes: databases, tables, full schema) | `database`, `table` (optional), `hostId` (optional) |
+| `analyze_performance` | Structured health snapshot: slow queries, parts, merges, memory, disk | `hostId` (optional), `lastHours` (optional) |
+| `get_optimization_recommendations` | Ranked optimization advice for a slow query — skip-index, projection, partition key, or PREWHERE rewrite | `sql` or `queryId` (one required), `database` (optional), `hostId` (optional) |
 
 ## Setup
 
@@ -60,6 +63,7 @@ curl -X POST https://your-deployment.example.com/api/mcp \
 
 - **Read-only**: All MCP tools execute read-only operations (`readonly: 1`)
 - **Secure by default**: The `/api/mcp` endpoint returns 401 when no auth scheme is configured. Anonymous access requires an explicit operator opt-in via `CHM_MCP_PUBLIC=true`.
+- **Rate limited** (#2704): Every verb (POST/GET/DELETE) is throttled per client IP via the same `checkRateLimitDurable` token-bucket pattern used by `POST /api/v1/agent` — 30 req/min by default, configurable with `RATE_LIMIT_MCP_PER_MIN` (see `docs/content/reference/environment-variables.mdx` → Rate limiting). Blocked requests get `429` + `Retry-After`. Checked in `apps/dashboard/src/routes/api/mcp.ts` (`checkMcpRateLimit`), *before* auth resolves — the dashboard app owns the check because the shared, SDK-free `@chm/mcp-server` package cannot depend on `apps/dashboard`'s rate limiter (dependency-cruiser `no-packages-to-apps`), so the standalone `apps/mcp` Worker is not yet covered (follow-up).
 - **Query limits**: Same `CLICKHOUSE_MAX_EXECUTION_TIME` timeout as dashboard
 - **No credential exposure**: Uses dashboard's configured ClickHouse credentials
 
@@ -84,7 +88,9 @@ exposure is visible in logs and cannot be silently forgotten.
 
 - `packages/mcp-server/src/http.ts` — auth gate (`defaultAuthenticator`)
 - `packages/mcp-server/src/auth/` — api-key + Clerk OAuth verifiers
-- Tests: `packages/mcp-server/src/__tests__/http.test.ts`
+- `apps/dashboard/src/routes/api/mcp.ts` — rate-limit guard (`checkMcpRateLimit`) + plan gate wired around `handleMcp`
+- `apps/dashboard/src/lib/api/rate-limiter.ts` — shared `checkRateLimitDurable` implementation (`getMcpRateLimitPerMin`, `RATE_LIMIT_BINDING_MCP`)
+- Tests: `packages/mcp-server/src/__tests__/http.test.ts`, `apps/dashboard/src/routes/api/__tests__/mcp-rate-limit.test.ts`
 
 ## Distribution: registry listing + one-command install
 

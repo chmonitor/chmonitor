@@ -14,9 +14,14 @@ import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
 /**
  * Destination provider: `'webhook'` (plan 30), `'pagerduty'` (plan 34),
- * `'telegram'` (#2655), or `'ntfy'` (#2657).
+ * `'telegram'` (#2655), `'ntfy'` (#2657), or `'pushover'` (#2659).
  */
-export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram' | 'ntfy'
+export type AlertRouteProvider =
+  | 'webhook'
+  | 'pagerduty'
+  | 'telegram'
+  | 'ntfy'
+  | 'pushover'
 
 export interface AlertRouteInfo {
   id: string
@@ -37,6 +42,10 @@ export interface AlertRouteInfo {
   ntfyUrl: string | null
   /** Masked ntfy access token (last 4 chars only) — never the raw secret. */
   ntfyTokenMasked: string | null
+  /** Pushover target user/group key (not a secret). */
+  pushoverUser: string | null
+  /** Masked Pushover application token (last 4 chars only) — never the raw secret. */
+  pushoverTokenMasked: string | null
 }
 
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
@@ -82,6 +91,8 @@ export function useAlertRoutesMutations() {
     telegramChatId?: string
     ntfyUrl?: string
     ntfyToken?: string
+    pushoverToken?: string
+    pushoverUser?: string
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {
       method: 'POST',

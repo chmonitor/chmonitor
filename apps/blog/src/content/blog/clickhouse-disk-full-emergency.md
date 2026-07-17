@@ -1,7 +1,7 @@
 ---
 title: "ClickHouse disk is full — what to do right now"
 description: "The emergency steps when a ClickHouse disk hits capacity: what system.disks tells you, what's safe to delete or move, and what to fix afterward."
-date: 2026-09-11
+date: 2026-07-10
 tag: Troubleshooting
 ---
 

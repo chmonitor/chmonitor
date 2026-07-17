@@ -8,6 +8,7 @@
  * - Limits are env-configurable:
  *     RATE_LIMIT_AGENT_PER_MIN  (default 10)  — POST /api/v1/agent per identity
  *     RATE_LIMIT_API_PER_MIN    (default 100) — GET  data routes per IP
+ *     RATE_LIMIT_MCP_PER_MIN    (default 30)  — /api/mcp per IP
  * - Returns { allowed, retryAfterSec } so callers can build the 429 response.
  * - Safe for Workers: no Node-only APIs (no `process.hrtime`, no node timers).
  */
@@ -172,6 +173,7 @@ export function getRateLimitBinding(
 /** Binding names declared in wrangler.toml (`[[unsafe.bindings]]`). */
 export const RATE_LIMIT_BINDING_API = 'CHM_RATE_LIMIT_API'
 export const RATE_LIMIT_BINDING_AGENT = 'CHM_RATE_LIMIT_AGENT'
+export const RATE_LIMIT_BINDING_MCP = 'CHM_RATE_LIMIT_MCP'
 
 /**
  * Fleet-wide rate limit check with graceful fallback.
@@ -256,6 +258,19 @@ export function getAgentRateLimitPerMin(): number {
 
 export function getApiRateLimitPerMin(): number {
   return readIntEnv('RATE_LIMIT_API_PER_MIN', 100)
+}
+
+/**
+ * /api/mcp exposes the same class of capability as the agent's SQL-executing
+ * route (arbitrary read-only SQL via the `query` tool, plus 10 other
+ * ClickHouse-querying tools) over a differently-authenticated transport —
+ * see issue #2704. Default sits between the agent's per-turn budget (10,
+ * expensive multi-tool LLM turns) and the plain data-route budget (100,
+ * cheap single reads): a single MCP `tools/call` is one ClickHouse query,
+ * comparable in cost to one agent tool call.
+ */
+export function getMcpRateLimitPerMin(): number {
+  return readIntEnv('RATE_LIMIT_MCP_PER_MIN', 30)
 }
 
 /**

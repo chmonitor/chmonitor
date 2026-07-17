@@ -44,6 +44,7 @@ import {
   saveThresholds,
   type ThresholdsMap,
 } from '@/lib/health/thresholds-storage'
+import { describeError } from '@/lib/swr/fetch-error'
 
 export function HealthSettingsDialog() {
   const [open, setOpen] = useState(false)
@@ -57,6 +58,9 @@ export function HealthSettingsDialog() {
     configured: boolean
   } | null>(null)
   const [ntfyStatus, setNtfyStatus] = useState<{
+    configured: boolean
+  } | null>(null)
+  const [pushoverStatus, setPushoverStatus] = useState<{
     configured: boolean
   } | null>(null)
 
@@ -80,6 +84,12 @@ export function HealthSettingsDialog() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setNtfyStatus(data as { configured: boolean } | null))
       .catch(() => setNtfyStatus(null))
+    fetch('/api/v1/health/pushover-test')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) =>
+        setPushoverStatus(data as { configured: boolean } | null)
+      )
+      .catch(() => setPushoverStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -139,8 +149,10 @@ export function HealthSettingsDialog() {
             toast.error('Browser notifications were not granted')
             return
           }
-        } catch {
-          toast.error('Failed to request browser notification permission')
+        } catch (err) {
+          toast.error('Failed to request browser notification permission', {
+            description: describeError(err),
+          })
           return
         }
       } else if (Notification.permission === 'denied') {
@@ -192,13 +204,16 @@ export function HealthSettingsDialog() {
         toast.success('Opsgenie test alert sent')
       } else {
         const body = await res.json().catch(() => null)
-        toast.error(
-          (body as { error?: { message?: string } } | null)?.error?.message ??
-            'Opsgenie test alert failed'
-        )
+        toast.error('Opsgenie test alert failed', {
+          description:
+            (body as { error?: { message?: string } } | null)?.error?.message ??
+            `HTTP ${res.status}`,
+        })
       }
-    } catch {
-      toast.error('Opsgenie test alert failed')
+    } catch (err) {
+      toast.error('Opsgenie test alert failed', {
+        description: describeError(err),
+      })
     }
   }
 
@@ -211,13 +226,16 @@ export function HealthSettingsDialog() {
         toast.success('Telegram test message sent')
       } else {
         const body = await res.json().catch(() => null)
-        toast.error(
-          (body as { error?: { message?: string } } | null)?.error?.message ??
-            'Telegram test message failed'
-        )
+        toast.error('Telegram test message failed', {
+          description:
+            (body as { error?: { message?: string } } | null)?.error?.message ??
+            `HTTP ${res.status}`,
+        })
       }
-    } catch {
-      toast.error('Telegram test message failed')
+    } catch (err) {
+      toast.error('Telegram test message failed', {
+        description: describeError(err),
+      })
     }
   }
 
@@ -228,13 +246,35 @@ export function HealthSettingsDialog() {
         toast.success('ntfy test notification sent')
       } else {
         const body = await res.json().catch(() => null)
+        toast.error('ntfy test notification failed', {
+          description:
+            (body as { error?: { message?: string } } | null)?.error?.message ??
+            `HTTP ${res.status}`,
+        })
+      }
+    } catch (err) {
+      toast.error('ntfy test notification failed', {
+        description: describeError(err),
+      })
+    }
+  }
+
+  const handleTestPushover = async () => {
+    try {
+      const res = await fetch('/api/v1/health/pushover-test', {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast.success('Pushover test notification sent')
+      } else {
+        const body = await res.json().catch(() => null)
         toast.error(
           (body as { error?: { message?: string } } | null)?.error?.message ??
-            'ntfy test notification failed'
+            'Pushover test notification failed'
         )
       }
     } catch {
-      toast.error('ntfy test notification failed')
+      toast.error('Pushover test notification failed')
     }
   }
 
@@ -248,10 +288,14 @@ export function HealthSettingsDialog() {
       if (res.ok && data?.success) {
         toast.success('Test email sent')
       } else {
-        toast.error(data?.error?.message || 'Failed to send test email')
+        toast.error('Failed to send test email', {
+          description: data?.error?.message || `HTTP ${res.status}`,
+        })
       }
-    } catch {
-      toast.error('Failed to send test email')
+    } catch (err) {
+      toast.error('Failed to send test email', {
+        description: describeError(err),
+      })
     }
   }
 
@@ -605,6 +649,40 @@ export function HealthSettingsDialog() {
                     size="sm"
                     onClick={handleTestNtfy}
                     disabled={!ntfyStatus?.configured}
+                  >
+                    Send test
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">
+                        Pushover alerts
+                      </Label>
+                      <Badge
+                        variant={
+                          pushoverStatus?.configured ? 'default' : 'secondary'
+                        }
+                      >
+                        {pushoverStatus?.configured
+                          ? 'Configured'
+                          : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Set HEALTH_ALERT_PUSHOVER_TOKEN and
+                      HEALTH_ALERT_PUSHOVER_USER on the server to enable — the
+                      token is never exposed to the browser
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestPushover}
+                    disabled={!pushoverStatus?.configured}
                   >
                     Send test
                   </Button>

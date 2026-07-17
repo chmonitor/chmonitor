@@ -342,6 +342,38 @@ export async function fireNtfyTest(
   }
 }
 
+/**
+ * Send a test Pushover notification to a specific application token + user
+ * key, via the dedicated `/api/v1/health/pushover-test` route (#2659). The
+ * Pushover Messages API host is fixed (`api.pushover.net`), same as
+ * Telegram's Bot API — but unlike Telegram, this rides a dedicated route
+ * (like ntfy) rather than the generic `/health/webhook` proxy, since the
+ * `retry`/`expire` fields for an emergency-priority alert are easiest to
+ * build server-side alongside the env-global test path. The token is only
+ * ever sent to our own server at creation time (the user just typed it),
+ * never echoed back to the client after storage.
+ */
+export async function firePushoverTest(
+  token: string,
+  user: string
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const res = await fetch('/api/v1/health/pushover-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, user }),
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export async function dispatchAlert(alert: HealthAlertEvent): Promise<void> {
   try {
     const settings = loadAlertSettings()

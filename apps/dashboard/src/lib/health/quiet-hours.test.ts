@@ -15,7 +15,8 @@
 
 import type { QuietHours } from './quiet-hours'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installHealthPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 // --- behavioral D1 fake ------------------------------------------------------
 interface FakeRow {
@@ -111,11 +112,7 @@ function makeFakeD1() {
 
 let fakeDb: ReturnType<typeof makeFakeD1> | null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => fakeDb,
-  }),
-}))
+installHealthPlatformMock(() => fakeDb)
 
 const {
   isWithinQuietWindow,

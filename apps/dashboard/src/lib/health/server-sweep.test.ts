@@ -20,7 +20,16 @@
 
 import type { AlertDecision } from './alert-state-store'
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installHealthPlatformMock } from './__tests__/platform-mock'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 
 // --- fake D1 (captures INSERTs from recordAlertEvent) -----------------------
 interface FakeRow {
@@ -65,6 +74,14 @@ function makeFakeD1(routes: FakeRouteRow[] = []) {
   const rows: FakeRow[] = []
   return {
     rows,
+    // Real D1-backed stores the sweep touches (e.g. quiet-hours) run their
+    // lazy DDL migration via `db.batch(...)` before reading. Without this,
+    // `db.batch` throws SYNCHRONOUSLY inside their single-flight
+    // `ensureMigrated`, which permanently caches the rejected migration
+    // promise (the `migration = null` reset runs before the outer assignment)
+    // and poisons those stores for every later suite in the same bun process.
+    batch: async (stmts: unknown[]) =>
+      stmts.map(() => ({ meta: { changes: 0 } })),
     prepare(sql: string) {
       const isRoutesSelect = /FROM alert_routes/i.test(sql)
       return {
@@ -126,11 +143,7 @@ function makeFakeD1(routes: FakeRouteRow[] = []) {
 
 let fakeDb: ReturnType<typeof makeFakeD1>
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => fakeDb,
-  }),
-}))
+installHealthPlatformMock(() => fakeDb)
 
 // --- synthetic rule + ClickHouse stubs --------------------------------------
 const TEST_RULE_MARKER = '__TEST_SWEEP_MARKER__'
@@ -184,6 +197,16 @@ interface MockWindow {
 }
 let mockWindows: MockWindow[] = []
 
+// Capture the REAL modules before mocking them so afterAll can restore them.
+// bun's `mock.module` patches the module registry for the whole test process,
+// so without a restore these mocks leak into maintenance-windows.test.ts and
+// alert-ack-store.test.ts when the directory runs in a single `bun test`
+// invocation (issue #2672). The eager `{ ...spread }` matters: mock.module
+// live-patches the captured namespace OBJECT too, so spreading lazily at
+// restore time would "restore" the mocks — snapshot the real exports now.
+const realMaintenanceWindows = { ...(await import('./maintenance-windows')) }
+const realAlertAckStore = { ...(await import('./alert-ack-store')) }
+
 mock.module('@/lib/health/maintenance-windows', () => ({
   listWindows: async (_ownerId: string) => mockWindows,
   isSuppressed: (windows: MockWindow[], hostId: number, now: number) =>
@@ -216,6 +239,15 @@ mock.module('./alert-ack-store', () => ({
     clearAckCalls.push({ hostId, ruleId })
   },
 }))
+
+// Restore the real modules once this suite finishes so the mocks above never
+// leak into other test files running in the same bun process (issue #2672).
+afterAll(() => {
+  mock.module('@/lib/health/maintenance-windows', () => ({
+    ...realMaintenanceWindows,
+  }))
+  mock.module('./alert-ack-store', () => ({ ...realAlertAckStore }))
+})
 
 const { alertStateStore } = await import('./alert-state-store')
 const { ruleRegistry } = await import('@/lib/alerting/rule-registry')

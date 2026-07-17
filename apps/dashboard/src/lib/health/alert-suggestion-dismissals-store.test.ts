@@ -9,7 +9,8 @@
  * dismissal can't silently resurrect a card. Mirrors `baseline-store.test.ts`.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installHealthPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 interface FakeDismissalRow {
   owner_id: string
@@ -59,11 +60,7 @@ function makeFakeD1() {
 
 let currentDb: ReturnType<typeof makeFakeD1> | null = null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => currentDb,
-  }),
-}))
+installHealthPlatformMock(() => currentDb)
 
 const {
   listDismissedSuggestionKeys,

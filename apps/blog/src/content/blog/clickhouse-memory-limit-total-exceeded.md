@@ -1,7 +1,7 @@
 ---
 title: "5 min of ClickHouse: fix 'Memory limit (total) exceeded' (it's not one query)"
 description: "The server-wide 'Memory limit (total) exceeded' error is tripped by every concurrent query, merge, and cache combined — not one query's budget. Here are the queries that show what's eating RAM."
-date: 2026-10-16
+date: 2026-07-10
 tag: 5 min of ClickHouse
 ---
 

@@ -156,6 +156,7 @@ function FavoriteItem({
                   size="icon"
                   className="size-6"
                   title="Copy deep-link"
+                  aria-label="Copy deep-link"
                   onClick={copyLink}
                 >
                   {copied ? (
@@ -170,6 +171,7 @@ function FavoriteItem({
                 size="icon"
                 className="size-6"
                 title="Run"
+                aria-label="Run"
                 onClick={() => onSelect(fav.sql, true)}
               >
                 <Play className="size-3" />
@@ -179,6 +181,7 @@ function FavoriteItem({
                 size="icon"
                 className="size-6"
                 title="Edit name / tags"
+                aria-label="Edit name / tags"
                 onClick={startEdit}
               >
                 <Pencil className="size-3" />
@@ -188,6 +191,7 @@ function FavoriteItem({
                 size="icon"
                 className="size-6"
                 title="Remove"
+                aria-label="Remove"
                 onClick={() => onRemove(fav.id)}
               >
                 <Trash2 className="size-3" />

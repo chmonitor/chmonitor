@@ -707,35 +707,53 @@ async function handlePost(request: Request): Promise<Response> {
     }
   }
 
-  // Now that all early (402 / validation) returns are behind us, connect the
-  // user's custom MCP servers: request-body servers PLUS their D1-persisted
-  // registrations (loaded per-user, best-effort — [] for guest / no D1). Merge
-  // and dedupe by endpoint so the same server is never connected twice (which
-  // would collide tool keys and bypass the per-call cap), then connect once.
-  // closeAll() runs in onEnd on the streaming path (and on a pre-stream throw
-  // just below).
-  const registeredServers = await loadUserRegisteredServers(userId)
-  const mergedMcpServers = mergeMcpServers(validMcpServers, registeredServers)
-  if (mergedMcpServers.length > 0) {
-    const mcpResult = await connectCustomMcpServers(mergedMcpServers)
-    mcpCloseAll = mcpResult.closeAll
-    extraTools =
-      Object.keys(mcpResult.tools).length > 0 ? mcpResult.tools : undefined
-
-    const connected = mcpResult.statuses.filter(
-      (s) => s.status === 'connected'
-    ).length
-    const errored = mcpResult.statuses.filter(
-      (s) => s.status === 'error'
-    ).length
-    console.log(
-      `[Agent API] Custom MCP servers: ${connected} connected, ${errored} failed`
-    )
+  // Roll back the daily reservation exactly once. Hoisted here — right after
+  // the reservation itself — so BOTH failure surfaces can release it: (a) a
+  // pre-stream throw below (MCP connect / createClickHouseAgent), where no
+  // stream ever exists so onError/onEnd never run (issue #2675), and (b) the
+  // streaming path, where the inner `execute` catch and the SDK's separate
+  // `onError` callback can each observe a failure that produced no output
+  // (e.g. an error thrown inside the merged/piped stream surfaces via
+  // onError, outside the inner try/catch). releaseAiUsage floors at 0, so
+  // without the idempotency guard a double-observed failure would over-refund
+  // a slot. Idempotent: releases at most one reserved slot.
+  let usageReleased = false
+  const releaseReservationOnce = async (): Promise<void> => {
+    if (usageReleased) return
+    if (!billingOwnerId || !reservedDailyUsage) return
+    usageReleased = true
+    await releaseAiUsage(billingOwnerId)
   }
 
   const requestOrigin = request.headers.get('origin') ?? undefined
   let agent: ReturnType<typeof createClickHouseAgent>
   try {
+    // Now that all early (402 / validation) returns are behind us, connect the
+    // user's custom MCP servers: request-body servers PLUS their D1-persisted
+    // registrations (loaded per-user, best-effort — [] for guest / no D1).
+    // Merge and dedupe by endpoint so the same server is never connected twice
+    // (which would collide tool keys and bypass the per-call cap), then
+    // connect once. closeAll() runs in onEnd on the streaming path (and on a
+    // pre-stream throw just below).
+    const registeredServers = await loadUserRegisteredServers(userId)
+    const mergedMcpServers = mergeMcpServers(validMcpServers, registeredServers)
+    if (mergedMcpServers.length > 0) {
+      const mcpResult = await connectCustomMcpServers(mergedMcpServers)
+      mcpCloseAll = mcpResult.closeAll
+      extraTools =
+        Object.keys(mcpResult.tools).length > 0 ? mcpResult.tools : undefined
+
+      const connected = mcpResult.statuses.filter(
+        (s) => s.status === 'connected'
+      ).length
+      const errored = mcpResult.statuses.filter(
+        (s) => s.status === 'error'
+      ).length
+      console.log(
+        `[Agent API] Custom MCP servers: ${connected} connected, ${errored} failed`
+      )
+    }
+
     agent = createClickHouseAgent({
       hostId,
       model,
@@ -749,9 +767,13 @@ async function handlePost(request: Request): Promise<Response> {
       ...(byokApiKey ? { apiKey: byokApiKey } : {}),
     })
   } catch (error) {
-    // Pre-stream failure: close any MCP clients we just opened (onEnd won't run
-    // because no stream is created) before rethrowing to the outer boundary.
+    // Pre-stream failure: no stream is ever created, so onEnd/onError won't
+    // run. Close any MCP clients we just opened AND release the daily quota
+    // reservation (issue #2675 — a failed request must not permanently burn
+    // one of the user's daily message slots) before rethrowing to the outer
+    // boundary.
     if (mcpCloseAll) await mcpCloseAll().catch(() => {})
+    await releaseReservationOnce().catch(() => {})
     throw error
   }
 
@@ -842,20 +864,6 @@ async function handlePost(request: Request): Promise<Response> {
   // Tracks the provider-reported model ID from the last completed step.
   // Populated synchronously in onStepEnd so it is available after consumeStream().
   let lastStepModelId: string | undefined
-
-  // Roll back the daily reservation exactly once. Both the inner `execute`
-  // catch and the SDK's separate `onError` callback can observe a failure that
-  // produced no output (e.g. an error thrown inside the merged/piped stream
-  // surfaces via onError, outside the inner try/catch), and releaseAiUsage
-  // floors at 0 — so without this guard a double-observed failure would
-  // over-refund a slot. Idempotent: releases at most one reserved slot.
-  let usageReleased = false
-  const releaseReservationOnce = async (): Promise<void> => {
-    if (usageReleased) return
-    if (!billingOwnerId || !reservedDailyUsage) return
-    usageReleased = true
-    await releaseAiUsage(billingOwnerId)
-  }
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {

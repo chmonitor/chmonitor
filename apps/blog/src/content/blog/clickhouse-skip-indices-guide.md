@@ -1,7 +1,7 @@
 ---
 title: "5 min of ClickHouse: skip indices that actually prune your scans"
 description: "ClickHouse secondary indices skip whole granule blocks instead of indexing rows. Here are the four index types, when each fires, and the EXPLAIN query that proves it's working."
-date: 2026-10-02
+date: 2026-07-10
 tag: 5 min of ClickHouse
 ---
 

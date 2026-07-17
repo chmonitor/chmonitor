@@ -4,7 +4,16 @@ import { useQuery } from '@tanstack/react-query'
 import type { ApiResponse } from '@/lib/api/types'
 import type { QueryHistoryEntry } from './hooks/use-query-history'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -85,6 +94,7 @@ export function QueryHistoryPanel({
   serverEnabled: boolean
 }) {
   const server = useServerHistory(hostId, serverEnabled)
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
 
   return (
     <Tabs defaultValue="mine" className="flex h-full flex-col">
@@ -103,12 +113,41 @@ export function QueryHistoryPanel({
               variant="ghost"
               size="sm"
               className="h-7 text-xs"
-              onClick={onClear}
+              onClick={() => setConfirmClearOpen(true)}
             >
               <Trash2 className="mr-1 size-3" /> Clear
             </Button>
           )}
         </div>
+
+        <Dialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Clear query history?</DialogTitle>
+              <DialogDescription>
+                This removes all unpinned queries from your local history.
+                Pinned queries are kept. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmClearOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  onClear()
+                  setConfirmClearOpen(false)
+                }}
+              >
+                Clear history
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <ScrollArea className="h-[calc(100%-2.5rem)]">
           <ul className="space-y-1 px-2 pb-4">
             {entries.length === 0 && (
@@ -145,6 +184,7 @@ export function QueryHistoryPanel({
                       size="icon"
                       className="size-6"
                       title="Run"
+                      aria-label="Run"
                       onClick={() => onSelect(e.sql, true)}
                     >
                       <Play className="size-3" />
@@ -154,6 +194,7 @@ export function QueryHistoryPanel({
                       size="icon"
                       className="size-6"
                       title={e.pinned ? 'Unpin' : 'Pin'}
+                      aria-label={e.pinned ? 'Unpin' : 'Pin'}
                       onClick={() => onTogglePin(e.id)}
                     >
                       {e.pinned ? (
@@ -167,6 +208,7 @@ export function QueryHistoryPanel({
                       size="icon"
                       className="size-6"
                       title="Remove"
+                      aria-label="Remove"
                       onClick={() => onRemove(e.id)}
                     >
                       <Trash2 className="size-3" />
@@ -220,6 +262,7 @@ export function QueryHistoryPanel({
                     size="icon"
                     className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
                     title="Run"
+                    aria-label="Run"
                     onClick={() => onSelect(r.query, true)}
                   >
                     <Play className="size-3" />

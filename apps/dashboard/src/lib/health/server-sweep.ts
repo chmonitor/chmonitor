@@ -25,6 +25,7 @@ import {
   listRoutes,
   resolveNtfyTargets,
   resolvePagerDutyTargets,
+  resolvePushoverTargets,
   resolveTargets,
   resolveTelegramTargets,
 } from './alert-routing'
@@ -38,6 +39,7 @@ import {
   getPagerDutyFallbackRoutingKey,
   PAGERDUTY_EVENTS_API_URL,
 } from './pagerduty-config'
+import { dispatchPushover } from './pushover-dispatch'
 import {
   activeQuietWindow,
   isQuietSuppressed,
@@ -52,6 +54,7 @@ import {
   getServerEmailConfig,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
+  getServerPushoverConfig,
   getServerTelegramConfig,
   getServerThresholdOverrides,
 } from './server-alert-config'
@@ -371,6 +374,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const emailConfig = getServerEmailConfig()
   const telegramFallback = getServerTelegramConfig()
   const ntfyFallback = getServerNtfyConfig()
+  const pushoverFallback = getServerPushoverConfig()
   const canDispatch =
     settings.webhookEnabled &&
     (webhookConfigured ||
@@ -379,7 +383,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       Boolean(opsgenieConfig) ||
       Boolean(emailConfig) ||
       Boolean(telegramFallback) ||
-      Boolean(ntfyFallback))
+      Boolean(ntfyFallback) ||
+      Boolean(pushoverFallback))
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
@@ -652,6 +657,17 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         routes,
         { ruleId, ruleType, hostId, hostName: name },
         ntfyFallback
+      )
+
+      // Pushover recipients (#2659): resolved separately from the generic
+      // webhook fan-out — a Pushover target needs the Messages API's
+      // token/user/priority body, not the `{ text, content }` wrapper. Falls
+      // back to the env-configured global recipient when no route matches,
+      // same fail-open contract as the webhook/PagerDuty/Telegram/ntfy paths.
+      const pushoverTargets = resolvePushoverTargets(
+        routes,
+        { ruleId, ruleType, hostId, hostName: name },
+        pushoverFallback
       )
 
       // Normalized payload shared by every per-URL body builder below (Discord
@@ -989,6 +1005,53 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
+      // Pushover (#2659): every resolved recipient (matched routes, or the
+      // env-configured global recipient when nothing matched).
+      // `dispatchPushover` renders the JSON body and never throws (fails
+      // open), matching every other channel here.
+      for (const target of pushoverTargets) {
+        const alertSeverity: AlertSeverity =
+          decision.kind === 'recovery'
+            ? 'recovery'
+            : (effective as 'warning' | 'critical')
+        const ok = await dispatchPushover(
+          {
+            severity: alertSeverity,
+            hostLabel: name,
+            hostId,
+            metric: ruleId,
+            value,
+            warnThreshold,
+            critThreshold,
+            title: ruleTitle,
+            label,
+            timestamp: new Date().toISOString(),
+          },
+          { token: target.token, user: target.user }
+        )
+        if (ok) anyDelivered = true
+
+        try {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId,
+              hostLabel: name,
+              ruleId,
+              decision,
+              value,
+              delivered: ok,
+              error: ok ? undefined : 'Pushover dispatch failed',
+              channel: 'pushover',
+            })
+          )
+        } catch (err) {
+          debug(
+            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+
       // Persist "notified" only when there was nothing to deliver (no
       // targets at all across every channel — not a failure) or at least one
       // channel succeeded. A failed delivery with no successes leaves no
@@ -998,6 +1061,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           pagerDutyTargets.length +
           telegramTargets.length +
           ntfyTargets.length +
+          pushoverTargets.length +
           (opsgenieConfig ? 1 : 0) +
           (emailConfig ? 1 : 0) ===
           0 ||

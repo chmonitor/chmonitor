@@ -15,12 +15,13 @@ import { BILLING_PLANS, monthlyEquivalentUsd, type PlanId } from '@chm/pricing'
 
 type Period = 'monthly' | 'yearly' | null
 
-/** Tier ranking for upgrade/downgrade detection. */
+/** Tier ranking for upgrade/downgrade detection, ordered by monthly value. */
 const PLAN_RANK: Record<PlanId, number> = {
   free: 0,
   pro: 1,
   max: 2,
-  enterprise: 3,
+  fleet: 3,
+  enterprise: 4,
 }
 
 export type TransitionCase =

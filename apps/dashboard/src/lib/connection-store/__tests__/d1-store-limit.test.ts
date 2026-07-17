@@ -46,9 +46,22 @@ interface FakeRow {
 function makeFakeD1() {
   const rows: FakeRow[] = []
 
-  // Column order mirrors the store's INSERT:
-  // id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload,
-  // created_at, updated_at (10 values).
+  // Mirrors the host_id-allocation subquery the store embeds in its INSERT
+  // (issue #2676): min(existing DB-range id for this user) - 1, or the range
+  // start when the user has none. Evaluated at run() time — i.e. against the
+  // row set as it stands when the single statement executes — which is
+  // exactly D1's per-statement atomicity guarantee.
+  function allocateHostId(userId: string, start: number): number {
+    const ids = rows
+      .filter((r) => r.user_id === userId && r.host_id <= start)
+      .map((r) => r.host_id)
+    return ids.length === 0 ? start : Math.min(...ids) - 1
+  }
+
+  // Column order mirrors the store's INSERT binds (host_id is allocated by
+  // the statement itself, not bound): id, user_id, name, host_url, ch_user,
+  // engine, encrypted_payload, created_at, updated_at, host-id range start
+  // (10 values).
   function bindsToRow(b: unknown[]): FakeRow {
     return {
       id: b[0] as string,
@@ -56,11 +69,11 @@ function makeFakeD1() {
       name: b[2] as string,
       host_url: b[3] as string,
       ch_user: b[4] as string,
-      host_id: b[5] as number,
-      engine: b[6] as string,
-      encrypted_payload: b[7] as string,
-      created_at: b[8] as number,
-      updated_at: b[9] as number,
+      host_id: allocateHostId(b[1] as string, b[9] as number),
+      engine: b[5] as string,
+      encrypted_payload: b[6] as string,
+      created_at: b[7] as number,
+      updated_at: b[8] as number,
     }
   }
 
@@ -73,6 +86,12 @@ function makeFakeD1() {
             const userId = binds[0] as string
             return { results: rows.filter((r) => r.user_id === userId) }
           },
+          async first() {
+            // The store's post-insert read-back of the allocated host_id.
+            const id = binds[0] as string
+            const row = rows.find((r) => r.id === id)
+            return row ? { host_id: row.host_id } : null
+          },
           async run() {
             const isGuardedInsert =
               /INSERT INTO user_connections[\s\S]*SELECT[\s\S]*WHERE[\s\S]*COUNT\(\*\)/.test(
@@ -80,7 +99,7 @@ function makeFakeD1() {
               )
 
             if (!isGuardedInsert) {
-              // Plain unconditional INSERT (unlimited plan / no limit passed).
+              // Uncapped INSERT...SELECT (unlimited plan / no limit passed).
               rows.push(bindsToRow(binds.slice(0, 10)))
               return { success: true, meta: { changes: 1 } }
             }
@@ -251,6 +270,48 @@ describe('D1ConnectionStore.create() atomic host limit', () => {
         'LIMIT_EXCEEDED'
       )
     }
+  })
+})
+
+describe('D1ConnectionStore.create() atomic host_id allocation (#2676)', () => {
+  test('sequential creates allocate descending, distinct host ids', async () => {
+    const store = new D1ConnectionStore()
+    const a = await store.create('user_a', input('A1'))
+    const b = await store.create('user_a', input('A2'))
+    const c = await store.create('user_a', input('A3'))
+    expect(a.hostId).toBe(-1000)
+    expect(b.hostId).toBe(-1001)
+    expect(c.hostId).toBe(-1002)
+  })
+
+  test('host ids are scoped per user', async () => {
+    const store = new D1ConnectionStore()
+    const a = await store.create('user_a', input('A1'))
+    const b = await store.create('user_b', input('B1'))
+    expect(a.hostId).toBe(-1000)
+    expect(b.hostId).toBe(-1000)
+  })
+
+  test('CONCURRENT creates for the same user never share a host_id', async () => {
+    const store = new D1ConnectionStore()
+
+    // Fire both creates without awaiting between them: with the old JS-side
+    // `list() → allocateDbHostId() → INSERT` sequence, both requests read the
+    // same empty snapshot and inserted the SAME host_id (-1000, -1000). With
+    // allocation folded into the INSERT statement, each statement observes
+    // the other's committed row and the ids must differ.
+    const [a, b] = await Promise.all([
+      store.create('user_a', input('Race1')),
+      store.create('user_a', input('Race2')),
+    ])
+
+    expect(a.hostId).not.toBe(b.hostId)
+    expect([a.hostId, b.hostId].sort((x, y) => x - y)).toEqual([-1001, -1000])
+    // The stored rows must agree with what the store returned.
+    const storedIds = (currentDb?._rows ?? [])
+      .map((r) => r.host_id)
+      .sort((x, y) => x - y)
+    expect(storedIds).toEqual([-1001, -1000])
   })
 })
 

@@ -1,7 +1,7 @@
 ---
 title: "Ask your ClickHouse cluster anything: the AI agent over MCP"
 description: "How chmonitor's read-only AI agent turns natural-language questions into system-table queries, and how to reach it from Claude Desktop or Cursor over MCP."
-date: 2026-07-17
+date: 2026-07-10
 tag: How-to
 ---
 

@@ -8,7 +8,7 @@ import type {
 } from './types'
 
 import { decryptCredentials, encryptCredentials } from './crypto'
-import { allocateDbHostId, ConnectionStoreError } from './types'
+import { ConnectionStoreError, DB_CONNECTION_HOST_ID_START } from './types'
 import { getPlatformBindings } from '@chm/platform'
 import { DEFAULT_SOURCE_ENGINE, parseSourceEngine } from '@chm/types'
 
@@ -91,10 +91,8 @@ export class D1ConnectionStore implements ConnectionStore {
     limit?: CreateLimitEnforcement
   ): Promise<UserConnectionMeta> {
     const db = this.getDb()
-    const existing = await this.list(userId)
     const now = Date.now()
     const id = crypto.randomUUID()
-    const hostId = allocateDbHostId(existing.map((c) => c.hostId))
     const engine = input.engine ?? DEFAULT_SOURCE_ENGINE
     const encryptedPayload = await encryptCredentials(input.credentials)
     const insertValues = [
@@ -103,12 +101,25 @@ export class D1ConnectionStore implements ConnectionStore {
       input.name,
       input.hostUrl,
       input.chUser,
-      hostId,
       engine,
       encryptedPayload,
       now,
       now,
+      DB_CONNECTION_HOST_ID_START,
     ]
+
+    // host_id is allocated INSIDE the insert statement (issue #2676): a JS-side
+    // `list() → allocateDbHostId() → INSERT` sequence is a TOCTOU race — two
+    // concurrent creates can both read the same snapshot and insert the SAME
+    // host_id, silently aliasing two different connections under one `?host=N`
+    // slot. Computed in the statement itself, the subquery evaluates against
+    // the row set as it stands at that single statement's execution (D1
+    // statements are individually ACID), so racing creates always observe each
+    // other's rows and allocate distinct ids. The unique index on
+    // (user_id, host_id) — migration 0023 — is the backstop.
+    // Semantics mirror allocateDbHostId (types.ts): first DB connection gets
+    // DB_CONNECTION_HOST_ID_START (?10), later ones min(existing) - 1.
+    const hostIdAllocSql = `COALESCE((SELECT MIN(host_id) FROM user_connections WHERE user_id = ?2 AND host_id <= ?10), ?10 + 1) - 1`
 
     // D1 statements are individually ACID, but the count-then-insert pattern
     // is still a TOCTOU race across two round trips: two concurrent requests
@@ -130,7 +141,7 @@ export class D1ConnectionStore implements ConnectionStore {
         .prepare(
           `INSERT INTO user_connections
            (id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at)
-           SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10
+           SELECT ?1, ?2, ?3, ?4, ?5, ${hostIdAllocSql}, ?6, ?7, ?8, ?9
            WHERE (SELECT COUNT(*) FROM user_connections WHERE user_id IN (${memberPlaceholders})) < ?${limitParamIndex}`
         )
         .bind(...insertValues, ...limit.memberUserIds, limit.limit)
@@ -144,10 +155,23 @@ export class D1ConnectionStore implements ConnectionStore {
         .prepare(
           `INSERT INTO user_connections
            (id, user_id, name, host_url, ch_user, host_id, engine, encrypted_payload, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
+           SELECT ?1, ?2, ?3, ?4, ?5, ${hostIdAllocSql}, ?6, ?7, ?8, ?9`
         )
         .bind(...insertValues)
         .run()
+    }
+
+    // The allocated host_id only exists in the database — read it back off the
+    // row we just inserted (keyed by our own UUID, so this is race-free).
+    const created = await db
+      .prepare(`SELECT host_id FROM user_connections WHERE id = ?1`)
+      .bind(id)
+      .first<{ host_id: number }>()
+    if (!created || typeof created.host_id !== 'number') {
+      throw new ConnectionStoreError(
+        'Failed to read back created connection',
+        'STORAGE_ERROR'
+      )
     }
 
     return {
@@ -156,7 +180,7 @@ export class D1ConnectionStore implements ConnectionStore {
       name: input.name,
       hostUrl: input.hostUrl,
       chUser: input.chUser,
-      hostId,
+      hostId: created.host_id,
       engine,
       createdAt: now,
       updatedAt: now,

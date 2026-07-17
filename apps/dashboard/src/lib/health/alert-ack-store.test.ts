@@ -14,7 +14,8 @@
 
 import type { AlertAck } from './alert-ack-store'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installHealthPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 // Mock @chm/platform BEFORE importing the store — the store's D1 getter
 // resolves the binding lazily, but the module import itself pulls in
@@ -25,11 +26,7 @@ let currentDb:
   | ReturnType<typeof makeThrowingD1>
   | null = null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => currentDb,
-  }),
-}))
+installHealthPlatformMock(() => currentDb)
 
 const { isAcked, ackAlert, listActiveAcks, clearAck } = await import(
   './alert-ack-store'

@@ -33,6 +33,7 @@ import {
   useCustomAlertRulesMutations,
   useMetricCatalog,
 } from '@/lib/hooks/use-custom-alert-rules'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 function RuleRow({
@@ -50,6 +51,7 @@ function RuleRow({
   onDeleted: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteRule } = useCustomAlertRulesMutations()
 
   const handleDelete = async () => {
@@ -57,10 +59,13 @@ function RuleRow({
     try {
       await deleteRule(rule.id)
       onDeleted()
-    } catch {
-      toast.error('Failed to delete custom rule')
+    } catch (err) {
+      toast.error('Failed to delete custom rule', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -76,9 +81,38 @@ function RuleRow({
           </span>
         </div>
       </div>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={handleDelete}>
-        Delete
-      </Button>
+      {confirming ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="mr-1 text-xs text-destructive">Delete?</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={handleDelete}
+          >
+            Yes
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            No
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setConfirming(true)}
+        >
+          Delete
+        </Button>
+      )}
     </div>
   )
 }
@@ -145,9 +179,9 @@ function AddRuleForm({ onCreated }: { onCreated: () => void }) {
       setCritical('')
       onCreated()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to save custom rule'
-      )
+      toast.error('Failed to save custom rule', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }

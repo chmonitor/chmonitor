@@ -372,11 +372,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set MCP worker secrets
+        # Skip for dependabot — its isolated secret store resolves the deploy
+        # secrets empty and set-secrets.ts --strict exits 1 (see Set secrets).
         if: >-
-          steps.filter.outputs.mcp == 'true' ||
+          github.actor != 'dependabot[bot]' &&
+          (steps.filter.outputs.mcp == 'true' ||
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
-          github.ref_type == 'tag'
+          github.ref_type == 'tag')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -404,6 +407,7 @@ jobs:
       - name: Deploy MCP worker preview
         if: >-
           github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
           (steps.filter.outputs.mcp == 'true' ||
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
@@ -451,6 +455,7 @@ jobs:
       - name: Deploy telemetry collector preview
         if: >-
           github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
           (steps.filter.outputs.telemetry == 'true' ||
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
@@ -477,7 +482,9 @@ jobs:
           npx --yes --package=wrangler@4 wrangler deploy --minify
 
       - name: Comment preview URL on PR
-        if: github.event_name == 'pull_request'
+        # Skip for dependabot — its runs get a read-only pull-requests token
+        # (createComment would 403), and no preview was deployed anyway.
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         uses: actions/github-script@v9
         with:
           script: |
@@ -609,6 +616,7 @@ jobs:
       - name: Deploy preview
         if: >-
           github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
           (steps.filter.outputs.landing == 'true' ||
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
@@ -693,6 +701,7 @@ jobs:
       - name: Deploy preview
         if: >-
           github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
           (steps.filter.outputs.docs == 'true' ||
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
@@ -773,6 +782,7 @@ jobs:
       - name: Deploy preview
         if: >-
           github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
           (steps.filter.outputs.blog == 'true' ||
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
