@@ -1,7 +1,7 @@
 ---
 title: "Why is my ClickHouse replication lagging?"
 description: "Reading absolute_delay and queue_size from system.replicas to find and fix ClickHouse replication lag before readers see stale data."
-date: 2026-07-24
+date: 2026-07-10
 tag: Troubleshooting
 ---
 

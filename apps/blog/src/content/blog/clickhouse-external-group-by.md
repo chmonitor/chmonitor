@@ -1,7 +1,7 @@
 ---
 title: "5 min of ClickHouse: spill GROUP BY to disk instead of OOMing"
 description: "A high-cardinality GROUP BY can blow past max_memory_usage and die with MEMORY_LIMIT_EXCEEDED. Here's the setting that spills it to disk, the cheaper fixes to try first, and the query that proves a spill happened."
-date: 2026-10-09
+date: 2026-07-10
 tag: 5 min of ClickHouse
 ---
 

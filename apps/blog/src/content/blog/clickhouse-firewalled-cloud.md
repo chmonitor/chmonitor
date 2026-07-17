@@ -1,7 +1,7 @@
 ---
 title: "5 min of ClickHouse: connect a firewalled ClickHouse to chmonitor Cloud"
 description: "chmonitor Cloud runs on Cloudflare Workers with no fixed egress IP, so allowlisting Cloudflare's ranges is not a real allowlist. Here's the tunnel that works with zero inbound ports opened."
-date: 2026-10-23
+date: 2026-07-10
 tag: 5 min of ClickHouse
 ---
 

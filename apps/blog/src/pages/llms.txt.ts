@@ -1,12 +1,13 @@
 import type { APIContext } from 'astro'
 
 import { postSlug } from '../lib/slug'
+import { isPublished } from '../lib/published'
 import { getCollection } from 'astro:content'
 
 // /llms.txt — structured index of all blog posts for AI crawlers.
 // Follows the llms.txt convention: https://llmstxt.org
 export async function GET(context: APIContext) {
-  const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  const posts = (await getCollection('blog', ({ data }) => isPublished(data))).sort(
     (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
   )
 

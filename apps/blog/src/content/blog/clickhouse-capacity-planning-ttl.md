@@ -1,7 +1,7 @@
 ---
 title: "Capacity planning with the disk-forecast and TTL advisor"
 description: "A worked example of forecasting ClickHouse disk exhaustion and getting a recommend-only TTL adjustment before an out-of-space incident happens."
-date: 2026-09-04
+date: 2026-07-10
 tag: Case study
 ---
 

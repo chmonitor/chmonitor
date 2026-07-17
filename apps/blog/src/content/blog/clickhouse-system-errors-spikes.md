@@ -1,7 +1,7 @@
 ---
 title: "Debugging a spike in system.errors"
 description: "How to read system.errors error counters to find what's actually failing in ClickHouse, and why they're cumulative since server start rather than per-incident."
-date: 2026-08-28
+date: 2026-07-10
 tag: Troubleshooting
 ---
 

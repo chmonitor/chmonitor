@@ -4,12 +4,13 @@ import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
 import { postSlug, tagSlug } from '../lib/slug'
+import { isPublished } from '../lib/published'
 
 // Cap posts shown per card on the homepage; longer categories get a
 // "View all" link to their dedicated category page.
 const MAX_PER_CARD = 6
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+const posts = (await getCollection('blog', ({ data }) => isPublished(data))).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 )
 
