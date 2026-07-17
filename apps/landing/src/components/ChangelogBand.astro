@@ -1,11 +1,19 @@
 ---
+import type { ChangelogFeature } from '../lib/parse-changelog-features'
 import { loadChangelogFeatures } from '../data/changelog-features'
 
-// Newest features sit first in CHANGELOG.md, so the raw (file-order) list gives
-// us the latest four without re-sorting. Each card links to the real changelog
-// page (release notes), not an in-page anchor.
+// Newest features sit first in CHANGELOG.md. Take one feature per version so the
+// band never shows the same version badge on every card. Each card links to the
+// real changelog page (release notes), not an in-page anchor.
 const { features } = loadChangelogFeatures()
-const latest = features.slice(0, 4)
+const seenVersions = new Set<string>()
+const latest: ChangelogFeature[] = []
+for (const f of features) {
+  if (f.version && seenVersions.has(f.version)) continue
+  if (f.version) seenVersions.add(f.version)
+  latest.push(f)
+  if (latest.length >= 4) break
+}
 ---
 <section class="py-14 sm:py-18 border-t border-border bg-muted/30">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
