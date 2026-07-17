@@ -67,9 +67,11 @@ describe('TABLE_GUIDANCE', () => {
 
   it('system.monitoring_events is registered (EVENTS_TABLE default)', () => {
     expect(TABLE_GUIDANCE['system.monitoring_events']).toBeDefined()
-    expect(
-      TABLE_GUIDANCE['system.monitoring_events'].enableInstructions
-    ).toContain('custom table')
+    // Guidance must name the app-owned table and how it's created, so operators
+    // understand Page Views is self-analytics they can enable (not a cluster table).
+    const { enableInstructions } = TABLE_GUIDANCE['system.monitoring_events']
+    expect(enableInstructions).toContain('monitoring_events')
+    expect(enableInstructions).toContain('/api/init')
   })
 
   it('system.zookeeper has a docsUrl', () => {
@@ -120,7 +122,7 @@ describe('getTableGuidance', () => {
   it('returns guidance for system.monitoring_events (EVENTS_TABLE)', () => {
     const result = getTableGuidance('system.monitoring_events')
     expect(result).toBeDefined()
-    expect(result?.description).toBe('Custom monitoring events table')
+    expect(result?.description).toBe("chmonitor's own usage-analytics table")
   })
 
   it('returns guidance for system.backup_log', () => {
