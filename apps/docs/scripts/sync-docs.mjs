@@ -84,6 +84,7 @@ const FOLDER_META = {
       'dashboard',
       '---Integrations---',
       'mcp',
+      'inbound-events',
       'peerdb',
       'browser-connections',
       'user-connections',

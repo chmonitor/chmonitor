@@ -1,0 +1,115 @@
+---
+description: Ingest Alertmanager, Datadog, and generic webhook events into chmonitor — normalized, de-duplicated, retained ~30 days, and optionally re-emitted to your outbound alert routes.
+icon: Inbox
+title: Inbound Events
+---
+
+Point Alertmanager, Datadog, or any generic webhook at chmonitor and see the events on one page — normalized into a common shape, de-duplicated, and optionally re-emitted to your existing outbound alert channels. This lets chmonitor sit inside your existing alerting mesh instead of replacing it.
+
+<TypeTable
+  type={{
+    Routes: { type: "/inbound-events", description: "The event feed with source/severity filters" },
+    "Ingest endpoint": { type: "POST /api/events/ingest", description: "Machine-to-machine webhook receiver" },
+    "Feature id": { type: "health", description: "The feed reuses the health feature's read access" },
+    "Auth (ingest)": { type: "Bearer token", description: "Shared secret CHM_EVENTS_INGEST_TOKEN — not Clerk" },
+    "Storage": { type: "Cloudflare D1", description: "Hosted app only; ~30-day retention. Not ClickHouse." },
+  }}
+/>
+
+## What it does
+
+`POST /api/events/ingest` accepts a webhook payload, detects its source, and reduces it to one common event shape: `{ source, severity, resource, title, body, labels }`. Repeated occurrences of the same alert collapse onto a single row (a bumped `count`/`last seen`) via a content hash of `(source, resource, title, severity)`, so a flapping alert doesn't flood the feed.
+
+The `/inbound-events` page lists the stored events with source and severity filters. Use the **Setup** button in the top-right for the host-aware endpoint URL and copy-paste examples.
+
+## Where events are stored
+
+This is the most common point of confusion, so to be explicit:
+
+- **Hosted app** — events are written to **Cloudflare D1** and retained ~30 days.
+- **Self-hosted without D1** — each event is still normalized and (if configured) re-emitted to your outbound alert routes, but it is **not persisted**, so the feed stays empty. The ingest endpoint still returns `200` and never errors.
+- Inbound events are **never written to ClickHouse**. They are chmonitor's own alert feed, entirely separate from the ClickHouse cluster you monitor. (The similarly named *Page Views* feature is the one that uses a ClickHouse table.)
+
+## Authentication
+
+The ingest endpoint is a machine-to-machine receiver, so it uses a shared bearer token, not a browser session:
+
+```bash
+Authorization: Bearer <CHM_EVENTS_INGEST_TOKEN>
+```
+
+Set `CHM_EVENTS_INGEST_TOKEN` as a server secret. Until it is set the endpoint is disabled and returns `503` — it never accepts unauthenticated writes.
+
+## Supported payloads
+
+The parser is deliberately forgiving:
+
+| Shape | How it's recognized |
+|---|---|
+| **Alertmanager** | `alerts[]` + `commonLabels` in the body |
+| **Datadog** | `alert_type` + `aggreg_key` in the body |
+| **Generic** | Any other JSON object |
+| **Batch** | A top-level JSON array, or `{ "events": [ ... ] }` |
+| **Query params** | No body — pass fields as `?title=…&severity=…&resource=…` |
+
+For generic payloads, common field aliases are accepted so you rarely have to reshape anything:
+
+- **title** — `title`, `summary`, `name`, `subject`, `alert`, `message`
+- **resource** — `resource`, `host`, `hostname`, `instance`, `service`, `server`
+- **severity** — `severity`, `level`, `priority`, `status` (mapped to `critical` / `warning` / `info`; unknown values default to `warning`)
+- **body** — `body`, `message`, `description`, `text`, `detail`
+
+## Examples
+
+Single generic event:
+
+```bash
+curl -X POST https://your-chmonitor.example.com/api/events/ingest \
+  -H "Authorization: Bearer $CHM_EVENTS_INGEST_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "title": "Disk usage high", "severity": "critical", "resource": "ch-node-1" }'
+```
+
+A batch in one request:
+
+```bash
+curl -X POST https://your-chmonitor.example.com/api/events/ingest \
+  -H "Authorization: Bearer $CHM_EVENTS_INGEST_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[
+    { "title": "Replica lagging", "severity": "warning", "resource": "ch-2" },
+    { "title": "Merge backlog",   "severity": "info",    "resource": "ch-2" }
+  ]'
+```
+
+No JSON body — query params only:
+
+```bash
+curl -X POST "https://your-chmonitor.example.com/api/events/ingest?title=Backup+failed&severity=critical&resource=ch-node-1" \
+  -H "Authorization: Bearer $CHM_EVENTS_INGEST_TOKEN"
+```
+
+Point Alertmanager at the same URL with a bearer token and its webhook body is detected and normalized automatically:
+
+```yaml
+# alertmanager.yml
+receivers:
+  - name: chmonitor
+    webhook_configs:
+      - url: https://your-chmonitor.example.com/api/events/ingest
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: <CHM_EVENTS_INGEST_TOKEN>
+```
+
+## Response
+
+| Status | Meaning |
+|---|---|
+| `200` | Processed inline (self-host, or hosted before a queue is provisioned). Body includes `count` and honest `persisted`. |
+| `202` | Accepted onto a Cloudflare Queue for async processing (hosted, when a queue is bound). |
+| `400` | Empty request with no query params, or invalid JSON. |
+| `401` | Missing or wrong bearer token. |
+| `413` | Body larger than 256 KB. |
+| `503` | `CHM_EVENTS_INGEST_TOKEN` is not configured. |
