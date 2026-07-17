@@ -45,13 +45,10 @@ describe('tool annotations (#2703)', () => {
 
     for (const [name, tool] of Object.entries(tools)) {
       expect(tool.annotations, `${name} is missing annotations`).toBeDefined()
-      expect(tool.annotations?.readOnlyHint, `${name}.readOnlyHint`).toBe(
-        true
+      expect(tool.annotations?.readOnlyHint, `${name}.readOnlyHint`).toBe(true)
+      expect(tool.annotations?.destructiveHint, `${name}.destructiveHint`).toBe(
+        false
       )
-      expect(
-        tool.annotations?.destructiveHint,
-        `${name}.destructiveHint`
-      ).toBe(false)
       expect(tool.annotations?.idempotentHint, `${name}.idempotentHint`).toBe(
         true
       )
