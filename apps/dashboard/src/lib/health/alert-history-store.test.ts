@@ -14,7 +14,8 @@
  * alert (fail-open path).
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installHealthPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 // --- behavioral D1 fake ------------------------------------------------------
 interface FakeRow {
@@ -130,11 +131,7 @@ let currentDb:
   | ReturnType<typeof makeThrowingD1>
   | null = null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => currentDb,
-  }),
-}))
+installHealthPlatformMock(() => currentDb)
 
 const { recordAlertEvent, queryAlertEvents } = await import(
   './alert-history-store'

@@ -13,7 +13,8 @@
  * Workers runtime, so it must never be hit for real.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installHealthPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 interface FakeRow {
   id: string
@@ -138,11 +139,7 @@ let currentDb:
   | ReturnType<typeof makeThrowingD1>
   | null = null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => currentDb,
-  }),
-}))
+installHealthPlatformMock(() => currentDb)
 
 const {
   createRoute,
