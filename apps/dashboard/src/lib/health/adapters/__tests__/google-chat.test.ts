@@ -54,7 +54,10 @@ function widgetText(
 ): string | undefined {
   const widgets = card(payload).sections[0].widgets
   for (const widget of widgets) {
-    if ('decoratedText' in widget && widget.decoratedText.topLabel === topLabel) {
+    if (
+      'decoratedText' in widget &&
+      widget.decoratedText.topLabel === topLabel
+    ) {
       return widget.decoratedText.text
     }
   }
@@ -74,18 +77,14 @@ describe('google-chat adapter', () => {
 
   test('critical heading uses 🔴, warning uses 🟠', () => {
     expect(card(CRITICAL).header.title).toContain('🔴')
-    expect(card(CRITICAL).header.title).toBe(
-      '🔴 CRITICAL: Failed mutations'
-    )
+    expect(card(CRITICAL).header.title).toBe('🔴 CRITICAL: Failed mutations')
     expect(card(WARNING).header.title).toContain('🟠')
     expect(card(WARNING).header.title).toBe('🟠 WARNING: Failed mutations')
   })
 
   test('recovery renders a green-circle RESOLVED heading', () => {
     expect(card(RECOVERY).header.title).toContain('🟢')
-    expect(card(RECOVERY).header.title).toBe(
-      '🟢 RESOLVED: Failed mutations'
-    )
+    expect(card(RECOVERY).header.title).toBe('🟢 RESOLVED: Failed mutations')
   })
 
   test('header subtitle carries the alert label', () => {
@@ -121,9 +120,17 @@ describe('google-chat adapter', () => {
   })
 
   test('includes runbook urls as links when present, omits the block otherwise', () => {
-    const withRunbooks = JSON.stringify(card(CRITICAL))
-    expect(withRunbooks).toContain('Runbooks')
-    expect(withRunbooks).toContain(
+    const runbookWidget = card(CRITICAL).sections[0].widgets.find(
+      (w) => 'textParagraph' in w && w.textParagraph.text.includes('Runbooks')
+    )
+    expect(runbookWidget).toBeDefined()
+    // Assert on the widget text itself, not JSON.stringify output — the
+    // serialized form escapes the href quotes.
+    expect(
+      runbookWidget && 'textParagraph' in runbookWidget
+        ? runbookWidget.textParagraph.text
+        : ''
+    ).toContain(
       '<a href="https://docs.example.com/runbook/mutations">https://docs.example.com/runbook/mutations</a>'
     )
 
