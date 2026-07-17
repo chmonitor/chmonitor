@@ -2,8 +2,8 @@ import type { AlertPayload } from '../types'
 
 import {
   buildTwilioMessage,
-  truncateSmsBody,
   TWILIO_SMS_MAX_LENGTH,
+  truncateSmsBody,
   twilioAdapter,
 } from '../twilio'
 import { describe, expect, test } from 'bun:test'

@@ -43,7 +43,10 @@ export function twilioMessagesUrl(accountSid: string): string {
  * Workers, Node, browser) — same approach as `email-transport.ts` /
  * `peerdb-auth.ts`.
  */
-export function twilioAuthHeader(accountSid: string, authToken: string): string {
+export function twilioAuthHeader(
+  accountSid: string,
+  authToken: string
+): string {
   return `Basic ${btoa(`${accountSid}:${authToken}`)}`
 }
 
@@ -71,7 +74,11 @@ export async function dispatchTwilio(
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 10_000)
     try {
-      const form = new URLSearchParams({ To: to, From: config.from, Body: body })
+      const form = new URLSearchParams({
+        To: to,
+        From: config.from,
+        Body: body,
+      })
       const res = await doFetch(url, {
         method: 'POST',
         headers,

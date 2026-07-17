@@ -57,8 +57,8 @@ export {
 } from './telegram'
 export {
   buildTwilioMessage,
-  truncateSmsBody,
   TWILIO_SMS_MAX_LENGTH,
+  truncateSmsBody,
   twilioAdapter,
 } from './twilio'
 

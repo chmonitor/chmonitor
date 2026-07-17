@@ -661,11 +661,10 @@ export function HealthSettingsDialog() {
                     </div>
                     <span className="text-xs text-muted-foreground">
                       Set HEALTH_ALERT_TWILIO_ACCOUNT_SID,
-                      HEALTH_ALERT_TWILIO_AUTH_TOKEN,
-                      HEALTH_ALERT_TWILIO_FROM, and HEALTH_ALERT_TWILIO_TO on
-                      the server to enable — critical alerts only by default,
-                      each SMS costs real money, and the auth token is never
-                      exposed to the browser
+                      HEALTH_ALERT_TWILIO_AUTH_TOKEN, HEALTH_ALERT_TWILIO_FROM,
+                      and HEALTH_ALERT_TWILIO_TO on the server to enable —
+                      critical alerts only by default, each SMS costs real
+                      money, and the auth token is never exposed to the browser
                     </span>
                   </div>
                   <Button

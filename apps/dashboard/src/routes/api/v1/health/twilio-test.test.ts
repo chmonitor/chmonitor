@@ -65,7 +65,10 @@ describe('GET /api/v1/health/twilio-test', () => {
     process.env.HEALTH_ALERT_TWILIO_ACCOUNT_SID = 'ACtest1234'
     process.env.HEALTH_ALERT_TWILIO_AUTH_TOKEN = 'secret-token'
     const res = await handleGet()
-    const body = (await res.json()) as { configured: boolean }
+    const body = (await res.json()) as {
+      configured: boolean
+      recipients: number
+    }
     expect(body).toEqual({ configured: false, recipients: 0 })
   })
 
@@ -127,9 +130,9 @@ describe('POST /api/v1/health/twilio-test — dispatch', () => {
     expect((init?.headers as Record<string, string>).Authorization).toBe(
       `Basic ${btoa('ACtest1234:secret-token')}`
     )
-    expect(
-      (init?.headers as Record<string, string>)['Content-Type']
-    ).toBe('application/x-www-form-urlencoded')
+    expect((init?.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded'
+    )
     const body = new URLSearchParams(String(init?.body))
     expect(body.get('From')).toBe('+15557654321')
   })

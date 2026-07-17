@@ -98,8 +98,8 @@ describe('dispatchTwilio — send', () => {
 
     expect(ok).toBe(true)
     expect(calls).toHaveLength(2)
-    const recipients = calls.map(
-      (c) => new URLSearchParams(String(c.init.body)).get('To')
+    const recipients = calls.map((c) =>
+      new URLSearchParams(String(c.init.body)).get('To')
     )
     expect(recipients).toEqual(['+15551234567', '+15559876543'])
   })
@@ -133,9 +133,9 @@ describe('dispatchTwilio — send', () => {
 describe('dispatchTwilio — fail-open', () => {
   test('returns false, never throws, when the fetch itself rejects', async () => {
     const fetchImpl = throwingFetch(new Error('network down'))
-    await expect(
-      dispatchTwilio(CRITICAL, CONFIG, { fetchImpl })
-    ).resolves.toBe(false)
+    await expect(dispatchTwilio(CRITICAL, CONFIG, { fetchImpl })).resolves.toBe(
+      false
+    )
   })
 
   test('attempts every recipient even when an earlier one throws', async () => {
