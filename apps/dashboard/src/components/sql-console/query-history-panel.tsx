@@ -145,6 +145,7 @@ export function QueryHistoryPanel({
                       size="icon"
                       className="size-6"
                       title="Run"
+                      aria-label="Run"
                       onClick={() => onSelect(e.sql, true)}
                     >
                       <Play className="size-3" />
@@ -154,6 +155,7 @@ export function QueryHistoryPanel({
                       size="icon"
                       className="size-6"
                       title={e.pinned ? 'Unpin' : 'Pin'}
+                      aria-label={e.pinned ? 'Unpin' : 'Pin'}
                       onClick={() => onTogglePin(e.id)}
                     >
                       {e.pinned ? (
@@ -167,6 +169,7 @@ export function QueryHistoryPanel({
                       size="icon"
                       className="size-6"
                       title="Remove"
+                      aria-label="Remove"
                       onClick={() => onRemove(e.id)}
                     >
                       <Trash2 className="size-3" />
@@ -220,6 +223,7 @@ export function QueryHistoryPanel({
                     size="icon"
                     className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
                     title="Run"
+                    aria-label="Run"
                     onClick={() => onSelect(r.query, true)}
                   >
                     <Play className="size-3" />

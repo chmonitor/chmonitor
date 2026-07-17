@@ -364,6 +364,7 @@ export function AgentVisualization({
             className="size-7"
             onClick={handleDownload}
             title="Download CSV"
+            aria-label="Download CSV"
             disabled={!hasData}
           >
             <DownloadIcon className="size-3.5" />
