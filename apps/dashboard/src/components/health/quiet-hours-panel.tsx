@@ -34,6 +34,7 @@ import {
   useQuietHours,
   useQuietHoursMutations,
 } from '@/lib/hooks/use-quiet-hours'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 /** Sun-first labels; index is the 0–6 weekday number stored server-side. */
@@ -84,8 +85,10 @@ function QuietHoursRow({
     try {
       await deleteWindow(window.id)
       onDeleted()
-    } catch {
-      toast.error('Failed to delete quiet-hours window')
+    } catch (err) {
+      toast.error('Failed to delete quiet-hours window', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
@@ -150,9 +153,9 @@ function AddQuietHoursForm({ onCreated }: { onCreated: () => void }) {
       toast.success('Quiet hours added')
       onCreated()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create quiet hours'
-      )
+      toast.error('Failed to create quiet hours', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }

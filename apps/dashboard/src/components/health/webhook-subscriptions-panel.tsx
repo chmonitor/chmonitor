@@ -29,6 +29,7 @@ import {
   useWebhookSubscriptions,
   useWebhookSubscriptionsMutations,
 } from '@/lib/hooks/use-webhook-subscriptions'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 function deliveryStatusVariant(
@@ -94,8 +95,10 @@ function SubscriptionRow({
     try {
       await updateSubscription(subscription.id, { enabled: checked })
       onToggled()
-    } catch {
-      toast.error('Failed to update subscription')
+    } catch (err) {
+      toast.error('Failed to update subscription', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
@@ -106,8 +109,10 @@ function SubscriptionRow({
     try {
       await deleteSubscription(subscription.id)
       onDeleted()
-    } catch {
-      toast.error('Failed to delete subscription')
+    } catch (err) {
+      toast.error('Failed to delete subscription', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
@@ -120,12 +125,14 @@ function SubscriptionRow({
       if (outcome.status === 'delivered') {
         toast.success('Test webhook delivered')
       } else {
-        toast.error(
-          `Test webhook failed: ${outcome.lastError ?? `status ${outcome.status}`}`
-        )
+        toast.error('Test webhook failed', {
+          description: outcome.lastError ?? `status ${outcome.status}`,
+        })
       }
-    } catch {
-      toast.error('Failed to send test webhook')
+    } catch (err) {
+      toast.error('Failed to send test webhook', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
@@ -222,9 +229,9 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
       setSelected(new Set())
       onCreated()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create subscription'
-      )
+      toast.error('Failed to create subscription', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }
