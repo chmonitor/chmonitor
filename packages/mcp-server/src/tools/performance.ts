@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import {
   hostIdSchema,
+  READONLY_ANNOTATIONS,
   runReadonlyFetch,
   toErrorResult,
   toJsonResult,
@@ -92,6 +93,7 @@ export function registerPerformanceTool(server: McpServer) {
         .optional()
         .describe('Time window for analysis in hours (default: 1)'),
     },
+    { ...READONLY_ANNOTATIONS, title: 'Analyze Performance' },
     async ({ hostId, lastHours }) => {
       const h = hostId ?? 0
       const hours = Math.max(1, Math.floor(lastHours ?? 1))

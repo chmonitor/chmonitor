@@ -61,7 +61,7 @@ curl -X POST https://your-deployment.example.com/api/mcp \
 
 ## Security
 
-- **Read-only**: All MCP tools execute read-only operations (`readonly: 1`)
+- **Read-only**: All MCP tools execute read-only operations (`readonly: 1`), and every tool declares that via MCP tool annotations (`readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false`, plus a human-readable `title`) so clients can auto-approve calls instead of guessing from the description text. See `READONLY_ANNOTATIONS` in `packages/mcp-server/src/tools/helpers.ts`.
 - **Secure by default**: The `/api/mcp` endpoint returns 401 when no auth scheme is configured. Anonymous access requires an explicit operator opt-in via `CHM_MCP_PUBLIC=true`.
 - **Query limits**: Same `CLICKHOUSE_MAX_EXECUTION_TIME` timeout as dashboard
 - **No credential exposure**: Uses dashboard's configured ClickHouse credentials

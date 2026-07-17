@@ -1,7 +1,10 @@
 import type { DataFormat } from '@clickhouse/client'
 
 import type { FetchDataResult } from '@chm/clickhouse-client'
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
+import type {
+  CallToolResult,
+  ToolAnnotations,
+} from '@modelcontextprotocol/sdk/types.js'
 
 import { fetchData } from '@chm/clickhouse-client'
 import { z } from 'zod/v3'
@@ -14,6 +17,37 @@ export const hostIdSchema = z
   .number()
   .optional()
   .describe('Host index (default: 0)')
+
+/**
+ * Shared MCP tool annotations for every tool registered by this package.
+ *
+ * Every tool executes exactly one thing: a ClickHouse query run through
+ * {@link runReadonlyFetch} / {@link runReadonlyQuery}, which force
+ * `clickhouse_settings.readonly = '1'` (see `buildFetchArgs` below). That
+ * makes the four hints uniform across the whole server, not just a default:
+ * - `readOnlyHint: true` — never writes, matching the enforced `readonly`
+ *   ClickHouse setting.
+ * - `destructiveHint: false` — meaningless once `readOnlyHint` is true, but
+ *   set explicitly so clients that don't special-case read-only tools still
+ *   see the correct (non-destructive) signal.
+ * - `idempotentHint: true` — a read has no side effects, so repeating the
+ *   same call never has "additional effect" beyond the first (the MCP
+ *   definition of idempotent) — true even for the freeform `query` tool,
+ *   since `validateSqlQuery` restricts it to SELECT/WITH.
+ * - `openWorldHint: false` — every tool talks only to the operator's own
+ *   configured ClickHouse host(s) (`hostId` selects among them), a closed,
+ *   known set of systems — never the open web or arbitrary external
+ *   services.
+ *
+ * Spread this into each `server.tool(...)` call and add a tool-specific
+ * `title` so every registration stays in sync (see #2703).
+ */
+export const READONLY_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+}
 
 /** Build an error result envelope with the given (already-formatted) message. */
 export function toErrorResult(text: string): CallToolResult {

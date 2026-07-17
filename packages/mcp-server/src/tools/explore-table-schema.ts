@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import {
   capResultRows,
   hostIdSchema,
+  READONLY_ANNOTATIONS,
   runReadonlyFetch,
   toErrorResult,
   toJsonResult,
@@ -27,6 +28,7 @@ export function registerExploreTableSchemaTool(server: McpServer) {
         ),
       hostId: hostIdSchema,
     },
+    { ...READONLY_ANNOTATIONS, title: 'Explore Table Schema' },
     async ({ database, table, hostId }) => {
       // Mode 1: No params — list databases
       if (!database) {
