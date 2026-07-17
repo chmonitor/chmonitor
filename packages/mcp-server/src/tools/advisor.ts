@@ -23,6 +23,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import {
   hostIdSchema,
+  READONLY_ANNOTATIONS,
   runReadonlyFetch,
   toErrorResult,
   toJsonResult,
@@ -1003,6 +1004,10 @@ export function registerAdvisorTool(server: McpServer) {
           'Default database for unqualified table references (default: "default").'
         ),
       hostId: hostIdSchema,
+    },
+    {
+      ...READONLY_ANNOTATIONS,
+      title: 'Get Optimization Recommendations',
     },
     async ({ sql, queryId, database, hostId }) => {
       const result = await analyzeQuery({

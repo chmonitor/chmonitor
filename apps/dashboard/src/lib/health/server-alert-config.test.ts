@@ -3,6 +3,7 @@ import {
   getServerEmailConfig,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
+  getServerPushoverConfig,
   getServerTelegramConfig,
   getServerTwilioConfig,
 } from './server-alert-config'
@@ -561,5 +562,57 @@ describe('getServerTwilioConfig', () => {
     setAllExcept('HEALTH_ALERT_TWILIO_MIN_SEVERITY')
     process.env.HEALTH_ALERT_TWILIO_MIN_SEVERITY = 'bogus'
     expect(getServerTwilioConfig()?.minSeverity).toBe('critical')
+  })
+})
+
+const PUSHOVER_ENV_KEYS = [
+  'HEALTH_ALERT_PUSHOVER_TOKEN',
+  'HEALTH_ALERT_PUSHOVER_USER',
+] as const
+
+describe('getServerPushoverConfig', () => {
+  const original: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of PUSHOVER_ENV_KEYS) {
+      original[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of PUSHOVER_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key]
+      else process.env[key] = original[key]
+    }
+  })
+
+  it('returns null when neither var is set', () => {
+    expect(getServerPushoverConfig()).toBeNull()
+  })
+
+  it('returns null when only the token is set', () => {
+    process.env.HEALTH_ALERT_PUSHOVER_TOKEN = 'app_tok'
+    expect(getServerPushoverConfig()).toBeNull()
+  })
+
+  it('returns null when only the user key is set', () => {
+    process.env.HEALTH_ALERT_PUSHOVER_USER = 'usr_key'
+    expect(getServerPushoverConfig()).toBeNull()
+  })
+
+  it('returns null when a var is whitespace-only', () => {
+    process.env.HEALTH_ALERT_PUSHOVER_TOKEN = '   '
+    process.env.HEALTH_ALERT_PUSHOVER_USER = 'usr_key'
+    expect(getServerPushoverConfig()).toBeNull()
+  })
+
+  it('trims and returns both values when set', () => {
+    process.env.HEALTH_ALERT_PUSHOVER_TOKEN = '  app_tok  '
+    process.env.HEALTH_ALERT_PUSHOVER_USER = '  usr_key  '
+    expect(getServerPushoverConfig()).toEqual({
+      token: 'app_tok',
+      user: 'usr_key',
+    })
   })
 })

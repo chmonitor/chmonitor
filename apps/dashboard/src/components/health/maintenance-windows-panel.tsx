@@ -30,6 +30,7 @@ import {
   useMaintenanceWindows,
   useMaintenanceWindowsMutations,
 } from '@/lib/hooks/use-maintenance-windows'
+import { describeError } from '@/lib/swr/fetch-error'
 import { useHosts } from '@/lib/swr/use-hosts'
 import { cn } from '@/lib/utils'
 
@@ -68,6 +69,7 @@ function WindowRow({
   onDeleted: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteWindow } = useMaintenanceWindowsMutations()
   const status = windowStatus(window)
 
@@ -76,10 +78,13 @@ function WindowRow({
     try {
       await deleteWindow(window.id)
       onDeleted()
-    } catch {
-      toast.error('Failed to delete maintenance window')
+    } catch (err) {
+      toast.error('Failed to delete maintenance window', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -96,9 +101,38 @@ function WindowRow({
           {new Date(window.endsAt).toLocaleString()}
         </span>
       </div>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={handleDelete}>
-        Delete
-      </Button>
+      {confirming ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="mr-1 text-xs text-destructive">Delete?</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={handleDelete}
+          >
+            Yes
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            No
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setConfirming(true)}
+        >
+          Delete
+        </Button>
+      )}
     </div>
   )
 }
@@ -139,9 +173,9 @@ function AddWindowForm({ onCreated }: { onCreated: () => void }) {
       setReason('')
       onCreated()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create window'
-      )
+      toast.error('Failed to create maintenance window', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(false)
     }

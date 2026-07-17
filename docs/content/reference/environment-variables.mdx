@@ -137,6 +137,29 @@ HEALTH_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/XXXX
 HEALTH_ALERT_MIN_SEVERITY=warning
 ```
 
+## Weekly health report
+
+A second cron job (`GET /api/cron/weekly-report`) builds a proactive weekly
+HTML report per opted-in host — a 7-day narrative from the AI insights engine,
+adaptive statistical baselines, and the disk-capacity forecaster. Opt-in, never
+opt-out: reports are generated only for hosts listed in
+`CHM_WEEKLY_REPORT_HOSTS`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_WEEKLY_REPORT_HOSTS` | unset (no reports) | Comma-separated host indices to opt in, e.g. `0,2`. Uses the same `CRON_SECRET` guard as health-sweep. |
+
+```bash
+# Opt host 0 and host 2 into the Monday 08:00 UTC weekly report
+CRON_SECRET=a-long-random-string
+CHM_WEEKLY_REPORT_HOSTS=0,2
+```
+
+Persisted regardless of delivery outcome; best-effort delivered to
+`HEALTH_ALERT_WEBHOOK_URL` (above) when configured. See
+[Health — Weekly health report](/guide/features/health#weekly-health-report)
+for the report contents and how to view a persisted report.
+
 ## Prometheus metrics exporter
 
 `GET /api/v1/metrics` serves `system.metrics` + `system.asynchronous_metrics`
@@ -203,7 +226,8 @@ different behavior.
 
 Replace `{ID}` with an uppercase feature id: `OVERVIEW`, `AGENT`, `INSIGHTS`,
 `HEALTH`, `QUERIES`, `TABLES`, `METRICS`, `DASHBOARD`, `SECURITY`, `LOGS`,
-`SETTINGS`, `CLUSTER`, `OPERATIONS`, `ACTIONS`, `MCP`, `DOCS`, `ABOUT`, `PEERDB`.
+`SETTINGS`, `BILLING`, `CLUSTER`, `OPERATIONS`, `ACTIONS`, `MCP`, `DOCS`,
+`ABOUT`, `PEERDB`.
 
 ```bash
 CHM_FEATURE_AGENT_ACCESS=authenticated
@@ -213,6 +237,23 @@ CHM_DISABLED_FEATURES=settings,insights
 
 See [Feature permissions](/operate/advanced/feature-permissions) for config-file
 examples and precedence details.
+
+## Rate limiting
+
+Per-IP (and, for the agent, per-signed-in-identity) request throttling on the
+SQL-executing API surfaces. All three share one implementation
+(`lib/api/rate-limiter.ts`, `checkRateLimitDurable`): an in-memory token
+bucket everywhere, upgraded to a fleet-wide Cloudflare Rate Limiting binding
+on Workers deploys (`CHM_RATE_LIMIT_API` / `CHM_RATE_LIMIT_AGENT` /
+`CHM_RATE_LIMIT_MCP` in `wrangler.toml`) so the limit holds across isolates,
+not just per-isolate. Requests over the limit get `429` with a `Retry-After`
+header. None of these need to be set for the defaults to apply.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `RATE_LIMIT_API_PER_MIN` | `100` | GET data routes (e.g. `/api/v1/charts/$name`), per IP. |
+| `RATE_LIMIT_AGENT_PER_MIN` | `10` | `POST /api/v1/agent`, per IP then tightened per signed-in identity. |
+| `RATE_LIMIT_MCP_PER_MIN` | `30` | `/api/mcp` (POST/GET/DELETE), per IP. Same class of capability as the agent route — arbitrary read-only SQL via the `query` tool — over the MCP transport. |
 
 ## Authentication
 

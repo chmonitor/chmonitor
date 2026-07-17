@@ -26,6 +26,7 @@ import {
   useAlertSuggestionMutations,
   useAlertSuggestions,
 } from '@/lib/hooks/use-alert-suggestions'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 const SOURCE_LABELS: Record<SuggestionSource, string> = {
@@ -66,9 +67,9 @@ function SuggestionCard({
       toast.success('Rule created from suggestion')
       onChanged()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to accept suggestion'
-      )
+      toast.error('Failed to accept suggestion', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(null)
     }
@@ -80,9 +81,9 @@ function SuggestionCard({
       await dismissSuggestion(suggestion.key)
       onChanged()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to dismiss suggestion'
-      )
+      toast.error('Failed to dismiss suggestion', {
+        description: describeError(err),
+      })
     } finally {
       setBusy(null)
     }

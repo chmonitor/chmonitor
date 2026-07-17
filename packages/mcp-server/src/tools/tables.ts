@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import {
   capResultRows,
   hostIdSchema,
+  READONLY_ANNOTATIONS,
   runReadonlyFetch,
   runReadonlyQuery,
   toErrorResult,
@@ -19,6 +20,7 @@ export function registerTableTools(server: McpServer) {
       database: z.string().describe('Database name'),
       hostId: hostIdSchema,
     },
+    { ...READONLY_ANNOTATIONS, title: 'List Tables' },
     async ({ database, hostId }) => {
       const result = await runReadonlyFetch({
         query:
@@ -52,6 +54,7 @@ export function registerTableTools(server: McpServer) {
       table: z.string().describe('Table name'),
       hostId: hostIdSchema,
     },
+    { ...READONLY_ANNOTATIONS, title: 'Get Table Schema' },
     async ({ database, table, hostId }) =>
       runReadonlyQuery(
         'SELECT name, type, default_kind, default_expression, comment FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position',

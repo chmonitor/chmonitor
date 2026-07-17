@@ -174,6 +174,13 @@ export const MCP_TOOLS: McpTool[] = [
     category: 'system',
     params: [
       {
+        name: 'limit',
+        type: 'number',
+        required: false,
+        default: 50,
+        description: 'Max number of queries to return (default: 50)',
+      },
+      {
         name: 'hostId',
         type: 'number',
         required: false,

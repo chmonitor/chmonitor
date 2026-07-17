@@ -183,6 +183,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Operations | [deployment.md](docs/knowledge/deployment.md) | Docker + Cloudflare Workers dual deployment |
 | Operations | [core-memory.md](docs/knowledge/core-memory.md) | Automation memory: code-smell scans, dead-code rules |
 | Operations | [secret-rotation.md](docs/knowledge/secret-rotation.md) | Redeploy after `wrangler secret put` |
+| Operations | [github-repo-metadata.md](docs/knowledge/github-repo-metadata.md) | Canonical repo description + topics (live outside version control, so they rot); banned `nextjs`/`vercel`; re-check when CLAUDE.md Project Overview or the README hero changes |
 | Operations | [observability-sentry.md](docs/knowledge/observability-sentry.md) | Sentry error tracking (OSS+Cloud): @sentry/react (browser) + @sentry/cloudflare (Worker, per-request middleware); DSN-gated off-by-default; source-map upload via SENTRY_AUTH_TOKEN |
 | Operations | [bug-handler-email-worker.md](docs/knowledge/bug-handler-email-worker.md) | apps/bug-handler: Cloudflare Email Worker turning inbound Sentry alert emails (bug@chmonitor.dev) into agent-friendly GitHub issues; fully env-configurable (address/repo/labels/assignees/token), own CI job |
 | Operations | [k8s-health-probes.md](docs/knowledge/k8s-health-probes.md) | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image CrashLoop incident; non-helm manifest + migration prompt |

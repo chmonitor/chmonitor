@@ -24,6 +24,35 @@ export interface FetchError extends Error {
   metadata?: ApiErrorBody['metadata']
 }
 
+/**
+ * Human-readable detail for a failed request, for a toast `description`.
+ *
+ * The panels pair this with their own action-specific title ("Failed to delete
+ * subscription"), so the toast keeps saying *what* failed while this adds *why*
+ * — the server's message and/or the HTTP status, which is what distinguishes a
+ * 403 from a 500 from a dropped connection.
+ *
+ * Returns `undefined` when the error carries nothing beyond what the caller's
+ * title already says, so the toast renders clean rather than with an empty or
+ * meaningless second line.
+ */
+export function describeError(err: unknown): string | undefined {
+  const message =
+    err instanceof Error
+      ? err.message.trim()
+      : typeof err === 'string'
+        ? err.trim()
+        : ''
+  const status = err instanceof Error ? (err as FetchError).status : undefined
+
+  if (!message) return status ? `HTTP ${status}` : undefined
+  // `throwIfNotOk` already appends statusText to its fallback message, so only
+  // add the status when the message doesn't already carry it.
+  return status !== undefined && !message.includes(String(status))
+    ? `${message} (HTTP ${status})`
+    : message
+}
+
 export async function throwIfNotOk(
   response: Response,
   fallbackMessage = 'Request failed'

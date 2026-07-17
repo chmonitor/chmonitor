@@ -29,6 +29,10 @@ interface TableNodeProps {
   isExpanded: boolean
   isSelected: boolean
   level: number
+  /** 1-indexed position among sibling tables, for `aria-posinset`. */
+  posInSet?: number
+  /** Total count of sibling tables, for `aria-setsize`. */
+  setSize?: number
   onToggle: () => void
   onSelect: () => void
 }
@@ -81,7 +85,6 @@ function RowCountBadge({ totalRows }: { totalRows: number }) {
 
   return (
     <span
-      role="presentation"
       className="ml-auto text-[10px] text-muted-foreground tabular-nums cursor-default overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -109,6 +112,8 @@ export const TableNode = function TableNode({
   isExpanded,
   isSelected,
   level,
+  posInSet,
+  setSize,
   onToggle,
   onSelect,
 }: TableNodeProps) {
@@ -154,6 +159,8 @@ export const TableNode = function TableNode({
       hasChildren
       expandOnSelect={false}
       level={level}
+      posInSet={posInSet}
+      setSize={setSize}
       badge={
         totalRows !== undefined && totalRows !== null ? (
           <RowCountBadge totalRows={totalRows} />
@@ -172,7 +179,7 @@ export const TableNode = function TableNode({
           ))}
         </div>
       ) : (
-        columns?.map((column) => (
+        columns?.map((column, index) => (
           <ColumnNode
             key={column.name}
             name={column.name}
@@ -180,6 +187,8 @@ export const TableNode = function TableNode({
             isInPrimaryKey={column.is_in_primary_key}
             isInSortingKey={column.is_in_sorting_key}
             level={level + 1}
+            posInSet={index + 1}
+            setSize={columns.length}
           />
         ))
       )}

@@ -100,9 +100,10 @@ preview_id = "1f8ab0acc6114802bf5c14d883dae341"
 # ─────────────────────────────────────────────────────────────────────────────
 # Fleet-wide rate limiting (Cloudflare Rate Limiting API, "unsafe" binding).
 # Backs the public/anonymous abuse guards (share links, anon pageview inserts,
-# public chart GETs, agent burst guard). The in-memory token bucket in
-# lib/api/rate-limiter.ts is per-isolate, so Workers' isolate spread means
-# configured limits are not enforced fleet-wide — these edge counters are.
+# public chart GETs, agent burst guard, MCP tool-call burst guard). The
+# in-memory token bucket in lib/api/rate-limiter.ts is per-isolate, so Workers'
+# isolate spread means configured limits are not enforced fleet-wide — these
+# edge counters are.
 # checkRateLimitDurable() delegates to these bindings when present and falls
 # back to the in-memory limiter when absent, so self-hosted Docker/K8s/Node
 # (no binding) keeps working unchanged. namespace_id is a stable per-binding
@@ -119,6 +120,12 @@ name = "CHM_RATE_LIMIT_AGENT"
 type = "ratelimit"
 namespace_id = "2002"
 simple = { limit = 10, period = 60 }
+
+[[unsafe.bindings]]
+name = "CHM_RATE_LIMIT_MCP"
+type = "ratelimit"
+namespace_id = "2003"
+simple = { limit = 30, period = 60 }
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -259,6 +266,12 @@ name = "CHM_RATE_LIMIT_AGENT"
 type = "ratelimit"
 namespace_id = "2002"
 simple = { limit = 10, period = 60 }
+
+[[env.preview.unsafe.bindings]]
+name = "CHM_RATE_LIMIT_MCP"
+type = "ratelimit"
+namespace_id = "2003"
+simple = { limit = 30, period = 60 }
 
 # DO migrations are not inherited by named environments — repeat the chain that
 # drops the legacy preview worker's Durable Objects (see top-level note).

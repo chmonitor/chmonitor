@@ -1,7 +1,7 @@
 ---
 title: "The query advisor: DDL recommendations you review, not that run themselves"
 description: "How chmonitor's optimization advisor turns a slow ClickHouse query into ranked skip-index, projection, and PREWHERE recommendations — and why it never applies any of them for you."
-date: 2026-07-31
+date: 2026-07-10
 tag: How-to
 ---
 

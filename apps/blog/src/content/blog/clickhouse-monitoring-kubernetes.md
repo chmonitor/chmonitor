@@ -1,7 +1,7 @@
 ---
 title: "Self-hosting chmonitor on Kubernetes"
 description: "Deploy the chmonitor ClickHouse dashboard on Kubernetes with the vendored Helm chart, including secrets, health probes, and an ingress."
-date: 2026-08-21
+date: 2026-07-10
 tag: How-to
 ---
 

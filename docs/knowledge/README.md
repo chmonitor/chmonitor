@@ -33,6 +33,7 @@ Agents discover knowledge in this order:
 | **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | operations | Bun-workspaces + Turborepo migration: status, workflow, gotchas, Phase 5 TODO |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |
 | **Operations** | [secret-rotation.md](secret-rotation.md) | workflow | Cloudflare Workers secret rotation: redeploy after wrangler secret put |
+| **Operations** | [github-repo-metadata.md](github-repo-metadata.md) | workflow | Canonical GitHub repo description + topics; banned nextjs/vercel; re-check on stack/positioning change |
 | **Operations** | [k8s-health-probes.md](k8s-health-probes.md) | reference | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image incident; non-helm manifest + migration prompt |
 | **Operations** | [workers-cache.md](workers-cache.md) | reference | Cloudflare Workers Cache: `[cache] enabled` per-worker; docs pages set `public, max-age=300, swr=86400` via start.ts middleware; landing/blog assets-only; dashboard/telemetry/mcp enabled-but-uncached (per-user/authed) |
 | **Operations** | [release-automation.md](release-automation.md) | workflow | release-please + release.yml pipeline: versioning rules, PR-title guard, labeler, CHANGELOG ownership, migration prompt |

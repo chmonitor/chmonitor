@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
-import { fetchData } from '@chm/clickhouse-client'
+import { runReadonlyFetch } from '../tools/helpers'
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 
 const SYSTEM_TABLES_TEXT = `Key ClickHouse System Tables for Monitoring:
@@ -101,7 +101,8 @@ export function registerResources(server: McpServer) {
     'databases',
     'clickhouse://databases',
     {
-      description: 'List all ClickHouse databases',
+      description:
+        'List all ClickHouse databases on host 0. For a multi-host deployment, use clickhouse://hosts/{hostId}/databases to target a different host.',
       mimeType: 'application/json',
     },
     async () => {
@@ -118,7 +119,8 @@ export function registerResources(server: McpServer) {
       list: undefined,
     }),
     {
-      description: 'List tables in a ClickHouse database',
+      description:
+        'List tables in a ClickHouse database on host 0. For a multi-host deployment, use clickhouse://hosts/{hostId}/databases/{database}/tables to target a different host.',
       mimeType: 'application/json',
     },
     async (uri, variables) => {
@@ -138,7 +140,8 @@ export function registerResources(server: McpServer) {
       { list: undefined }
     ),
     {
-      description: 'Get column schema for a ClickHouse table',
+      description:
+        'Get column schema for a ClickHouse table on host 0. For a multi-host deployment, use clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/schema to target a different host.',
       mimeType: 'application/json',
     },
     async (uri, variables) => {
@@ -159,7 +162,8 @@ export function registerResources(server: McpServer) {
       { list: undefined }
     ),
     {
-      description: 'Get active parts info for a ClickHouse table',
+      description:
+        'Get active parts info for a ClickHouse table on host 0. For a multi-host deployment, use clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/parts to target a different host.',
       mimeType: 'application/json',
     },
     async (uri, variables) => {
@@ -168,6 +172,107 @@ export function registerResources(server: McpServer) {
       const data = await queryClickHouse(
         'SELECT partition, name, rows, formatReadableSize(bytes_on_disk) AS size, modification_time FROM system.parts WHERE database = {db:String} AND table = {tbl:String} AND active ORDER BY modification_time DESC LIMIT 50',
         { db: database, tbl: table }
+      )
+      return jsonResource(uri.href, data)
+    }
+  )
+
+  // Host-scoped variants: same data, but with an explicit {hostId} path segment
+  // so multi-host deployments can address a specific ClickHouse host, mirroring
+  // the `hostId` parameter every MCP tool already supports (see tools/helpers.ts).
+  //
+  // These are registered as a parallel `clickhouse://hosts/{hostId}/...`
+  // namespace rather than folding `{hostId}` into the existing templates above:
+  // the SDK's RFC 6570 `UriTemplate.match()` treats a `{?hostId}` query
+  // expression as a required literal, not an optional one, so a template like
+  // `clickhouse://databases{?hostId}` would fail to match the legacy
+  // (no-hostId) URI and break backward compatibility.
+
+  server.resource(
+    'databases-by-host',
+    new ResourceTemplate('clickhouse://hosts/{hostId}/databases', {
+      list: undefined,
+    }),
+    {
+      description: 'List all ClickHouse databases on a specific host',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const hostId = parseHostId(variables.hostId)
+      const data = await queryClickHouse(
+        'SELECT name, engine, comment FROM system.databases ORDER BY name',
+        undefined,
+        hostId
+      )
+      return jsonResource(uri.href, data)
+    }
+  )
+
+  server.resource(
+    'database-tables-by-host',
+    new ResourceTemplate(
+      'clickhouse://hosts/{hostId}/databases/{database}/tables',
+      { list: undefined }
+    ),
+    {
+      description: 'List tables in a ClickHouse database on a specific host',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const hostId = parseHostId(variables.hostId)
+      const database = String(variables.database)
+      const data = await queryClickHouse(
+        'SELECT name, engine, total_rows, formatReadableSize(total_bytes) AS size FROM system.tables WHERE database = {db:String} ORDER BY total_bytes DESC',
+        { db: database },
+        hostId
+      )
+      return jsonResource(uri.href, data)
+    }
+  )
+
+  server.resource(
+    'table-schema-by-host',
+    new ResourceTemplate(
+      'clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/schema',
+      { list: undefined }
+    ),
+    {
+      description:
+        'Get column schema for a ClickHouse table on a specific host',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const hostId = parseHostId(variables.hostId)
+      const database = String(variables.database)
+      const table = String(variables.table)
+      const data = await queryClickHouse(
+        'SELECT name, type, default_kind, default_expression, comment FROM system.columns WHERE database = {db:String} AND table = {tbl:String} ORDER BY position',
+        { db: database, tbl: table },
+        hostId
+      )
+      return jsonResource(uri.href, data)
+    }
+  )
+
+  server.resource(
+    'table-parts-by-host',
+    new ResourceTemplate(
+      'clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/parts',
+      { list: undefined }
+    ),
+    {
+      description:
+        'Get active parts info for a ClickHouse table on a specific host',
+      mimeType: 'application/json',
+    },
+    async (uri, variables) => {
+      const hostId = parseHostId(variables.hostId)
+      const database = String(variables.database)
+      const table = String(variables.table)
+      const data = await queryClickHouse(
+        'SELECT partition, name, rows, formatReadableSize(bytes_on_disk) AS size, modification_time FROM system.parts WHERE database = {db:String} AND table = {tbl:String} AND active ORDER BY modification_time DESC LIMIT 50',
+        { db: database, tbl: table },
+        hostId
       )
       return jsonResource(uri.href, data)
     }
@@ -186,16 +291,33 @@ function jsonResource(uri: string, data: unknown[]) {
   }
 }
 
+/**
+ * Runs a read-only query via the same `runReadonlyFetch` helper every MCP
+ * tool uses (see tools/helpers.ts), so resources honour `hostId` the exact
+ * same way tools do — including the `?? 0` default when `hostId` is omitted.
+ */
 async function queryClickHouse(
   query: string,
-  query_params?: Record<string, string>
+  query_params?: Record<string, string>,
+  hostId?: number
 ): Promise<unknown[]> {
-  const { data } = await fetchData<unknown[]>({
+  const { data } = await runReadonlyFetch<unknown[]>({
     query,
     query_params,
-    format: 'JSONEachRow',
-    clickhouse_settings: { readonly: '1' },
-    hostId: 0,
+    hostId,
   })
   return data ?? []
+}
+
+/**
+ * Parses the `{hostId}` URI template variable into a number, falling back to
+ * `undefined` (which `runReadonlyFetch`/`queryClickHouse` then default to
+ * host 0) for a missing or non-numeric value — fail-safe like every other
+ * `hostId` entry point in this package.
+ */
+function parseHostId(value: string | string[] | undefined): number | undefined {
+  const raw = Array.isArray(value) ? value[0] : value
+  if (raw === undefined) return undefined
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : undefined
 }

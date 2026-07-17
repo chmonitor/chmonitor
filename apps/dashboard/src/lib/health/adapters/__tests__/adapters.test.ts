@@ -29,6 +29,7 @@ import {
   emailAdapter,
   escapeMarkdownV2,
   genericJsonAdapter,
+  googleChatAdapter,
   msTeamsAdapter,
   opsgenieAdapter,
   opsgenieAlias,
@@ -517,6 +518,11 @@ describe('detectAdapter', () => {
         'https://prod-42.westus.logic.azure.com:443/workflows/g/triggers/manual/paths/invoke?sig=x'
       ).id
     ).toBe('msteams')
+    expect(
+      detectAdapter(
+        'https://chat.googleapis.com/v1/spaces/AAAA/messages?key=x&token=y'
+      ).id
+    ).toBe('google-chat')
     expect(detectAdapter('https://events.pagerduty.com/v2/enqueue').id).toBe(
       'pagerduty'
     )
@@ -537,6 +543,7 @@ describe('detectAdapter', () => {
     expect(slackAdapter.id).toBe('slack')
     expect(discordAdapter.id).toBe('discord')
     expect(msTeamsAdapter.id).toBe('msteams')
+    expect(googleChatAdapter.id).toBe('google-chat')
     expect(pagerDutyAdapter.id).toBe('pagerduty')
     expect(opsgenieAdapter.id).toBe('opsgenie')
     expect(genericJsonAdapter.id).toBe('generic-json')
@@ -549,6 +556,7 @@ describe('detectAdapter', () => {
       slackAdapter,
       discordAdapter,
       msTeamsAdapter,
+      googleChatAdapter,
       pagerDutyAdapter,
       opsgenieAdapter,
       genericJsonAdapter,
@@ -566,6 +574,7 @@ describe('detectAdapter', () => {
         'slack',
         'discord',
         'msteams',
+        'google-chat',
         'pagerduty',
         'opsgenie',
         'generic-json',

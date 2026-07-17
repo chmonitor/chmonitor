@@ -1,7 +1,7 @@
 ---
 title: "The 6 root causes of slow ClickHouse (and the query that rules out each)"
 description: "Most ClickHouse slowness traces to one of six things: partition key, granularity, PREWHERE, skip index, projection vs MV, or GROUP BY memory. A diagnostic map with the system-table query to start at."
-date: 2026-11-06
+date: 2026-07-10
 tag: How-to
 ---
 

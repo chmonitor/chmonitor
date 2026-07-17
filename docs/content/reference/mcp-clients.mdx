@@ -24,15 +24,18 @@ If `CHM_API_KEY_SECRET` is set on the server, every request must carry a bearer 
 <Step>
 ### Issue a token
 
-Run this once, on the server:
+Run this once, on the server. The `Authorization` header here is the server's
+own `CHM_API_KEY_SECRET` (the operator's shared secret) — not the token being
+minted; the two are easy to conflate:
 
 ```bash
 curl -X POST https://dash.example.com/api/v1/auth/api-key \
   -H "Content-Type: application/json" \
-  -d '{"sub": "my-mcp-client"}'
+  -H "Authorization: Bearer $CHM_API_KEY_SECRET" \
+  -d '{"label": "my-mcp-client", "days": 30}'
 ```
 
-The response returns a `chm_` prefixed token.
+The response is `{"data":{"apiKey":"chm_..."}}` — a `chm_` prefixed token.
 </Step>
 <Step>
 ### Pass it in the Authorization header

@@ -9,6 +9,10 @@ interface ColumnNodeProps {
   isInPrimaryKey?: boolean
   isInSortingKey?: boolean
   level: number
+  /** 1-indexed position among sibling columns, for `aria-posinset`. */
+  posInSet?: number
+  /** Total count of sibling columns, for `aria-setsize`. */
+  setSize?: number
 }
 
 export const ColumnNode = function ColumnNode({
@@ -17,6 +21,8 @@ export const ColumnNode = function ColumnNode({
   isInPrimaryKey,
   isInSortingKey,
   level,
+  posInSet,
+  setSize,
 }: ColumnNodeProps) {
   const icon = isInPrimaryKey || isInSortingKey ? KeyIcon : ColumnsIcon
 
@@ -25,6 +31,8 @@ export const ColumnNode = function ColumnNode({
       label={name}
       icon={icon}
       level={level}
+      posInSet={posInSet}
+      setSize={setSize}
       badge={
         <Badge variant="outline" className="text-xs">
           {type}

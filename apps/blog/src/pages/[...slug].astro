@@ -4,9 +4,10 @@ import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
 import { postSlug } from '../lib/slug'
+import { isPublished } from '../lib/published'
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => !data.draft)
+  const posts = await getCollection('blog', ({ data }) => isPublished(data))
   return posts.map((post) => ({ params: { slug: postSlug(post) }, props: { post } }))
 }
 

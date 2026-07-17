@@ -5,6 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import {
   capResultRows,
   hostIdSchema,
+  READONLY_ANNOTATIONS,
   runReadonlyFetch,
   toErrorResult,
   toJsonResult,
@@ -25,6 +26,7 @@ export function registerQueryTool(server: McpServer) {
         .optional()
         .describe('ClickHouse output format (default: JSONEachRow)'),
     },
+    { ...READONLY_ANNOTATIONS, title: 'Run SQL Query' },
     async ({ sql, hostId, format }) => {
       try {
         validateSqlQuery(sql)
