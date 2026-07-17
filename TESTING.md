@@ -1,6 +1,8 @@
 # Testing Guide
 
-This document explains the comprehensive testing strategy for the ClickHouse monitoring dashboard, including unit tests, integration tests, component tests, and best practices.
+This document explains the testing strategy for the ClickHouse monitoring dashboard, including unit tests, integration tests, component tests, and best practices.
+
+The repo uses **`bun:test`** exclusively as the test runner (there is no Jest anywhere in this codebase) — invoked through `pnpm` scripts. Cypress covers component and e2e tests.
 
 ## Test Categories
 
@@ -10,23 +12,26 @@ Fast, isolated tests that don't require external dependencies.
 
 **Examples:**
 
-- `lib/clickhouse.test.ts` - Tests configuration parsing and client setup
-- `lib/utils.test.ts` - Tests utility functions
-- `lib/format-readable.test.ts` - Tests data formatting
+- `apps/dashboard/src/lib/clickhouse-query.test.ts` - Tests query-building helpers
+- `apps/dashboard/src/lib/utils.test.ts` - Tests utility functions
+- `apps/dashboard/src/lib/format-readable.test.ts` - Tests data formatting
 
 **Pattern:**
 
 ```typescript
-// Mock external dependencies
-jest.mock('@clickhouse/client', () => ({
-  createClient: jest.fn(),
+import { describe, expect, mock, test } from 'bun:test'
+
+// Mock external dependencies BEFORE importing the module under test —
+// mock.module is bun:test's equivalent of jest.mock
+mock.module('@chm/clickhouse-client', () => ({
+  fetchData: async () => ({ data: [], metadata: {}, error: null }),
 }))
 
-// Test the logic, not the external service
-it('should parse host configuration correctly', () => {
-  process.env.CLICKHOUSE_HOST = 'host1,host2'
-  const result = getClickHouseHosts()
-  expect(result).toEqual(['host1', 'host2'])
+import { validateHostId } from './clickhouse-helpers'
+
+test('should parse host id correctly', () => {
+  expect(validateHostId(undefined)).toBe(0)
+  expect(validateHostId('2')).toBe(2)
 })
 ```
 
@@ -36,45 +41,56 @@ Tests that simulate integration between components without real external service
 
 **Examples:**
 
-- `lib/query-config/__tests__/query-config.test.ts` - Tests query configurations with mocked database
-- `lib/__tests__/host-switching-integration.test.ts` - Tests host switching logic
+- `apps/dashboard/src/lib/clickhouse-helpers.test.ts` - Tests `fetchDataWithHost` routing and error-handling, with `fetchData` and `ErrorLogger` stubbed via `mock.module`
+- `apps/dashboard/src/lib/query-config/getQueryConfigByName.test.ts` - Tests query configuration lookups
 
 **Pattern:**
 
 ```typescript
+import { describe, expect, mock, test } from 'bun:test'
+
+let fetchDataImpl: (...args: unknown[]) => unknown = async () => ({
+  data: [],
+  metadata: {},
+  error: null,
+})
+
 // Mock the external service
-jest.mock('@/lib/clickhouse', () => ({
-  fetchData: jest.fn(),
+mock.module('@chm/clickhouse-client', () => ({
+  fetchData: (...args: unknown[]) => fetchDataImpl(...args),
 }))
 
-// Test the integration logic
-it('should handle host switching correctly', async () => {
-  const mockFetchData = fetchData as jest.MockedFunction<typeof fetchData>
-  mockFetchData.mockResolvedValue({ data: [...], metadata: {...} })
+// Import AFTER mocks are registered
+import { fetchDataWithHost } from './clickhouse-helpers'
 
-  // Test your component logic here
+test('should handle host switching correctly', async () => {
+  fetchDataImpl = async () => ({ data: [{ x: 1 }], metadata: {}, error: null })
+
+  const result = await fetchDataWithHost({ hostId: 1, query: 'SELECT 1' })
+  expect(result.data).toEqual([{ x: 1 }])
 })
 ```
 
 ### 3. Static Analysis Tests
 
-Tests that analyze code without executing it.
+Tests that analyze source code without executing it.
 
 **Examples:**
 
-- `lib/__tests__/fetchdata-hostid.test.ts` - Ensures all fetchData calls include hostId
+- `apps/dashboard/src/routes/api/__tests__/hostid-validation-contract.test.ts` - Walks every API route file and asserts none uses the loose `!Number.isFinite(hostId)` boundary check (which lets negative/fractional host ids slip through)
 
 ### 4. Optional Integration Tests
 
-Tests that run only when real ClickHouse is available.
+Tests that run only when a real external service is reachable; they self-skip via `describe.skipIf(...)` (or an early return) gated on the relevant host env var, so they never block CI or local runs without a live service.
 
 **Examples:**
 
-- `lib/__tests__/integration-environment.test.ts` - Real database tests when available
+- `apps/dashboard/src/lib/connection-query/execute-pg-query.integration.test.ts` - Real Postgres tests; self-skips whenever `POSTGRES_HOST` is unset. Run via `pnpm run test:pg-integration`.
+- `apps/dashboard/src/lib/api/__tests__/query-cache-settings-live.test.ts` - Real ClickHouse test; self-skips whenever `CLICKHOUSE_HOST` is unset. Part of `pnpm run test:query-config`.
 
 ### 5. Component Tests
 
-Visual and behavioral tests for UI components using Cypress.
+Visual and behavioral tests for UI components using Cypress, co-located next to the component in a `__tests__` folder (`*.cy.tsx`), e.g. `apps/dashboard/src/components/data-table/__tests__/data-table.cy.tsx`.
 
 Component tests are essential for ensuring the reliability and stability of the UI components, helping to catch regressions and errors early in the development process.
 
@@ -175,15 +191,15 @@ Here are some common assertions and patterns used in our component tests:
 - **Event Handling**: Ensure that the component correctly handles events and calls the appropriate callback functions.
 - **Conditional Rendering**: Test the component's behavior when conditional rendering logic is involved.
 
-For more detailed examples, refer to the existing component tests in the `components` directory.
+For more detailed examples, refer to the existing `*.cy.tsx` component tests co-located under `apps/dashboard/src/components/**/__tests__/`.
 
 ## Tools and Libraries
 
-We use Cypress for our component testing. Refer to the Cypress documentation for more details on writing tests using Cypress.
+We use **Cypress** for component and e2e testing, and **`bun:test`** for unit, integration-with-mocks, static-analysis, and query-config tests. Refer to the Cypress documentation and the [Bun test runner docs](https://bun.sh/docs/cli/test) for more details.
 
 ## Continuous Integration
 
-All component tests are automatically run as part of the Continuous Integration (CI) pipeline on every pull request. Ensure your tests pass locally before submitting your pull request.
+Tests run automatically as part of the Continuous Integration (CI) pipeline on every pull request. The `unit-tests` job is a **required** check — it must pass before a PR can merge. `e2e-test`, `e2e-test-tsr`, and `component-test` are informational and do not block merge. See `CONTRIBUTING.md`'s "Pull requests" section for the full required-check list. Ensure your tests pass locally before submitting your pull request.
 
 ## Running Tests
 
@@ -193,15 +209,24 @@ All component tests are automatically run as part of the Continuous Integration 
 pnpm run test
 ```
 
-This runs unit tests with mocked dependencies - fast and reliable.
+Runs the full test suite (bun test runner, orchestrated via turbo across all workspaces).
+
+### Unit Tests Only
+
+```bash
+pnpm run test:unit
+```
+
+Runs the dashboard's unit tests with mocked dependencies (`cd apps/dashboard && bun test src/ --isolate`) — fast and reliable.
 
 ### Query Configuration Tests
 
 ```bash
-pnpm run test-queries-config
+pnpm run test:query-config
 ```
 
-Tests query configurations with mocked database responses.
+Tests query configurations, including the live ClickHouse check described in
+[Optional Integration Tests](#4-optional-integration-tests) above.
 
 ### Component Tests
 
@@ -213,19 +238,27 @@ pnpm run test:e2e:headless        # Run end-to-end tests
 ### With Coverage
 
 ```bash
-pnpm run jest              # Excludes query-config tests
-pnpm run test-queries-config  # Only query-config tests
+pnpm run test:coverage
 ```
+
+Runs the dashboard unit tests plus package tests with `lcov` + `text` coverage reporters.
+
+### Optional Postgres Integration Tests
+
+```bash
+pnpm run test:pg-integration
+```
+
+Requires a live Postgres reachable via `POSTGRES_HOST`; self-skips otherwise (see [Optional Integration Tests](#4-optional-integration-tests)).
 
 ## Test Environment Setup
 
 ### Automated Setup
 
-Tests use `jest.setup.js` for:
+There is no global `jest.setup.js`-style file. Instead:
 
-- Mock implementations of `fetchData` and `getHostIdCookie`
-- Test utilities for host switching scenarios
-- Consistent mock data across tests
+- Each test file registers its own mocks with `mock.module(...)` **before** importing the module under test (see the patterns above) — this is the standard way to stub `fetchData`, `getHostIdCookie`-style helpers, and other external dependencies.
+- The dashboard app wires a `bun:test` preload via `apps/dashboard/bunfig.toml`'s `[test].preload`, pointing at `apps/dashboard/src/__tests__/preload.ts`. It stubs the `cloudflare:workers` virtual module (via `mock.module`) so any test that transitively imports a route doesn't crash at module load outside the actual Workers runtime.
 
 ### Manual ClickHouse Setup (Optional)
 
@@ -248,31 +281,31 @@ pnpm run test
 
 ### For New Components
 
-1. **Mock external dependencies** (ClickHouse, APIs)
-2. **Test business logic**, not external services
-3. **Use the existing mock utilities** from `jest.setup.js`
+1. **Mock external dependencies** (ClickHouse, APIs) with `mock.module(...)`, registered before importing the module under test.
+2. **Test business logic**, not external services.
+3. Follow the co-located naming convention: `foo.ts` → `foo.test.ts` in the same directory.
 
 ### For New Query Configurations
 
-1. Add to `queries` array in your config file
-2. Mark as `optional: true` if the query depends on optional ClickHouse features
-3. The test will automatically validate SQL syntax and parameter handling
+1. Add the config under the matching domain folder in `lib/query-config/` and register it in `lib/query-config/index.ts`.
+2. Mark as `optional: true` if the query depends on optional ClickHouse features.
+3. Add or extend a test alongside the existing `lib/query-config/*.test.ts` files to validate SQL syntax and parameter handling.
 
 ### For Host Switching Features
 
-1. Use `mockGetHostIdCookie` and `mockFetchData` from test utilities
-2. Test both host switching scenarios and error cases
-3. Verify `hostId` parameter is included in all `fetchData` calls
+1. Stub `fetchData` via `mock.module('@chm/clickhouse-client', ...)`.
+2. Test both host switching scenarios and error cases.
+3. Verify the `hostId` parameter is included in every `fetchData`/`fetchDataWithHost` call — see `hostid-validation-contract.test.ts` for the structural (static-analysis) guard pattern used to enforce this repo-wide.
 
 ## Best Practices
 
 ### ✅ Do
 
-- Mock external dependencies (databases, APIs, file system)
+- Mock external dependencies (databases, APIs, file system) with `mock.module`
 - Test business logic and component behavior
 - Use descriptive test names that explain the scenario
 - Test both success and error cases
-- Include timeout configuration for async tests
+- Register `mock.module(...)` calls before importing the module under test
 
 ### ❌ Don't
 
@@ -280,7 +313,6 @@ pnpm run test
 - Rely on external services being available
 - Test implementation details instead of behavior
 - Skip error handling scenarios
-- Leave tests without timeout configuration
 
 ## Troubleshooting
 
@@ -288,40 +320,17 @@ pnpm run test
 
 If tests are timing out:
 
-1. Check if you're making real HTTP/database calls instead of using mocks
-2. Verify `jest.config.js` has appropriate timeout settings
-3. Ensure async tests are properly awaited
+1. Check if you're making real HTTP/database calls instead of using mocks.
+2. Ensure async tests are properly awaited.
+3. Run with `--isolate` (as the `test:*` scripts do) to avoid cross-file mock leakage between test files.
 
 ### Mock Issues
 
 If mocks aren't working:
 
-1. Verify mock setup in `jest.setup.js`
-2. Check that mocks are imported before the modules they mock
-3. Use `jest.clearAllMocks()` in `beforeEach` hooks
+1. Verify `mock.module(...)` runs **before** the module under test is imported — `bun:test` resolves mocks by module specifier, and import order matters.
+2. Check you're mocking the same specifier the code under test imports (e.g. `@chm/clickhouse-client`), not an unrelated relative path.
 
 ### Integration Test Skipping
 
-Integration tests automatically skip when:
-
-- `CI=true` environment variable is set
-- `CLICKHOUSE_HOST` is not configured
-- ClickHouse connection fails within 5 seconds
-
-This is expected behavior - unit tests with mocks provide sufficient coverage.
-
-## Recent Timeout Fixes
-
-The project recently fixed Jest timeout issues caused by:
-
-1. **Real Database Connections**: `query-config.test.ts` was trying to connect to real ClickHouse
-2. **Missing Timeout Configuration**: Jest had no timeout limits configured
-3. **Missing Mock Setup**: Integration tests lacked proper mock infrastructure
-
-### Fixed By:
-
-1. **Added Jest timeout configuration** (30 seconds)
-2. **Created comprehensive mock setup** in `jest.setup.js`
-3. **Converted integration tests** to use mocks instead of real connections
-4. **Added optional integration tests** that only run when ClickHouse is available
-5. **Enhanced error handling** with proper mock responses
+Optional integration tests (see [category 4](#4-optional-integration-tests)) automatically skip when their required host env var (`CLICKHOUSE_HOST`, `POSTGRES_HOST`) is not configured. This is expected behavior — unit tests with mocks provide sufficient coverage for everyday development; the live checks exist for CI jobs and local runs that explicitly opt in with a real service.
