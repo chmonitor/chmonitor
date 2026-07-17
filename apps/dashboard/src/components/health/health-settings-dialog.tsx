@@ -59,6 +59,10 @@ export function HealthSettingsDialog() {
   const [ntfyStatus, setNtfyStatus] = useState<{
     configured: boolean
   } | null>(null)
+  const [twilioStatus, setTwilioStatus] = useState<{
+    configured: boolean
+    recipients: number
+  } | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -80,6 +84,14 @@ export function HealthSettingsDialog() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setNtfyStatus(data as { configured: boolean } | null))
       .catch(() => setNtfyStatus(null))
+    fetch('/api/v1/health/twilio-test')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) =>
+        setTwilioStatus(
+          data as { configured: boolean; recipients: number } | null
+        )
+      )
+      .catch(() => setTwilioStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -235,6 +247,25 @@ export function HealthSettingsDialog() {
       }
     } catch {
       toast.error('ntfy test notification failed')
+    }
+  }
+
+  const handleTestTwilio = async () => {
+    try {
+      const res = await fetch('/api/v1/health/twilio-test', {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast.success('Twilio test SMS sent')
+      } else {
+        const body = await res.json().catch(() => null)
+        toast.error(
+          (body as { error?: { message?: string } } | null)?.error?.message ??
+            'Twilio test SMS failed'
+        )
+      }
+    } catch {
+      toast.error('Twilio test SMS failed')
     }
   }
 
@@ -605,6 +636,43 @@ export function HealthSettingsDialog() {
                     size="sm"
                     onClick={handleTestNtfy}
                     disabled={!ntfyStatus?.configured}
+                  >
+                    Send test
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">
+                        Twilio SMS alerts
+                      </Label>
+                      <Badge
+                        variant={
+                          twilioStatus?.configured ? 'default' : 'secondary'
+                        }
+                      >
+                        {twilioStatus?.configured
+                          ? `Configured (${twilioStatus.recipients} recipient${twilioStatus.recipients === 1 ? '' : 's'})`
+                          : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Set HEALTH_ALERT_TWILIO_ACCOUNT_SID,
+                      HEALTH_ALERT_TWILIO_AUTH_TOKEN,
+                      HEALTH_ALERT_TWILIO_FROM, and HEALTH_ALERT_TWILIO_TO on
+                      the server to enable — critical alerts only by default,
+                      each SMS costs real money, and the auth token is never
+                      exposed to the browser
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestTwilio}
+                    disabled={!twilioStatus?.configured}
                   >
                     Send test
                   </Button>

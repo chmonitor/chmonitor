@@ -4,6 +4,7 @@ import {
   getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerTelegramConfig,
+  getServerTwilioConfig,
 } from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
@@ -457,5 +458,108 @@ describe('getServerNtfyConfig', () => {
       url: 'https://ntfy.sh/my-topic',
       token: 'tk_secret',
     })
+  })
+})
+
+const TWILIO_ENV_KEYS = [
+  'HEALTH_ALERT_TWILIO_ACCOUNT_SID',
+  'HEALTH_ALERT_TWILIO_AUTH_TOKEN',
+  'HEALTH_ALERT_TWILIO_FROM',
+  'HEALTH_ALERT_TWILIO_TO',
+  'HEALTH_ALERT_TWILIO_MIN_SEVERITY',
+] as const
+
+describe('getServerTwilioConfig', () => {
+  const original: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of TWILIO_ENV_KEYS) {
+      original[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of TWILIO_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key]
+      else process.env[key] = original[key]
+    }
+  })
+
+  it('returns null when nothing is set', () => {
+    expect(getServerTwilioConfig()).toBeNull()
+  })
+
+  function setAllExcept(missing: (typeof TWILIO_ENV_KEYS)[number]) {
+    if (missing !== 'HEALTH_ALERT_TWILIO_ACCOUNT_SID') {
+      process.env.HEALTH_ALERT_TWILIO_ACCOUNT_SID = 'ACtest1234'
+    }
+    if (missing !== 'HEALTH_ALERT_TWILIO_AUTH_TOKEN') {
+      process.env.HEALTH_ALERT_TWILIO_AUTH_TOKEN = 'secret-token'
+    }
+    if (missing !== 'HEALTH_ALERT_TWILIO_FROM') {
+      process.env.HEALTH_ALERT_TWILIO_FROM = '+15557654321'
+    }
+    if (missing !== 'HEALTH_ALERT_TWILIO_TO') {
+      process.env.HEALTH_ALERT_TWILIO_TO = '+15551234567'
+    }
+  }
+
+  it('returns null when the account SID is missing', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_ACCOUNT_SID')
+    expect(getServerTwilioConfig()).toBeNull()
+  })
+
+  it('returns null when the auth token is missing', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_AUTH_TOKEN')
+    expect(getServerTwilioConfig()).toBeNull()
+  })
+
+  it('returns null when the from number is missing', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_FROM')
+    expect(getServerTwilioConfig()).toBeNull()
+  })
+
+  it('returns null when no recipient is configured', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_TO')
+    expect(getServerTwilioConfig()).toBeNull()
+  })
+
+  it('returns null when HEALTH_ALERT_TWILIO_TO is blank/comma-only', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_TO')
+    process.env.HEALTH_ALERT_TWILIO_TO = ' , , '
+    expect(getServerTwilioConfig()).toBeNull()
+  })
+
+  it('defaults minSeverity to critical when configured and unset', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_MIN_SEVERITY')
+    expect(getServerTwilioConfig()).toEqual({
+      accountSid: 'ACtest1234',
+      authToken: 'secret-token',
+      from: '+15557654321',
+      to: ['+15551234567'],
+      minSeverity: 'critical',
+    })
+  })
+
+  it('splits and trims a comma-separated recipient list', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_MIN_SEVERITY')
+    process.env.HEALTH_ALERT_TWILIO_TO = ' +15551234567 , +15559876543 ,'
+    expect(getServerTwilioConfig()?.to).toEqual([
+      '+15551234567',
+      '+15559876543',
+    ])
+  })
+
+  it('honours HEALTH_ALERT_TWILIO_MIN_SEVERITY=warning', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_MIN_SEVERITY')
+    process.env.HEALTH_ALERT_TWILIO_MIN_SEVERITY = 'warning'
+    expect(getServerTwilioConfig()?.minSeverity).toBe('warning')
+  })
+
+  it('falls back to critical for an unrecognized min-severity value', () => {
+    setAllExcept('HEALTH_ALERT_TWILIO_MIN_SEVERITY')
+    process.env.HEALTH_ALERT_TWILIO_MIN_SEVERITY = 'bogus'
+    expect(getServerTwilioConfig()?.minSeverity).toBe('critical')
   })
 })
