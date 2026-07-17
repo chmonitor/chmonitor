@@ -168,6 +168,73 @@
       line-height: 1.6;
     }
 
+    .opt-out-box {
+      border: none;
+      background: #f0f7ff;
+      padding: 28px;
+      margin-bottom: 40px;
+      border-radius: 14px;
+    }
+
+    .opt-out-box h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .opt-out-box p {
+      font-size: 0.9rem;
+      color: #1e40af;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .opt-out-methods {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .opt-out-method {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      background: #ffffff;
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+
+    .opt-out-method code {
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+      background: #eef2ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: #1e40af;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .opt-out-method .desc {
+      color: var(--fg-muted);
+      font-size: 0.85rem;
+    }
+
+    .opt-out-footnote {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--fg-muted);
+    }
+
+    .opt-out-footnote a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -423,9 +490,31 @@
       <div class="info-box">
         <h3>Privacy-First Analytics</h3>
         <p>
-          All data is 100% anonymous. No IPs, hostnames, or identifying information are recorded.
-          Only COUNT(DISTINCT) of SHA-256 hashed instance IDs are processed. Each install generates a unique
-          hash that cannot be reversed to identify the original instance.
+          chmonitor includes an anonymous, privacy-first telemetry system. It is <strong>on by default</strong>
+          and you can turn it off at any time. All data is 100% anonymous — no IPs, hostnames, or identifying
+          information are recorded. Only COUNT(DISTINCT) of SHA-256 hashed instance IDs are processed.
+        </p>
+      </div>
+
+      <div class="opt-out-box">
+        <h3>How to Disable Tracking</h3>
+        <p>Telemetry runs unless you explicitly turn it off. Any of the following methods disables it:</p>
+        <div class="opt-out-methods">
+          <div class="opt-out-method">
+            <code>CHM_TELEMETRY=off</code>
+            <span class="desc">Server runtime environment variable (also <code>0</code>, <code>false</code>, <code>no</code>)</span>
+          </div>
+          <div class="opt-out-method">
+            <code>DO_NOT_TRACK=1</code>
+            <span class="desc">Cross-tool <a href="https://consoledonottrack.com">opt-out standard</a> — hard override</span>
+          </div>
+          <div class="opt-out-method">
+            <code>CHM_TELEMETRY_ENDPOINT=""</code>
+            <span class="desc">Hard kill-switch — empty endpoint stops all network calls</span>
+          </div>
+        </div>
+        <p class="opt-out-footnote">
+          See <a href="https://docs.chmonitor.dev/operate/advanced/telemetry">the docs</a> for full details on telemetry, events, and retention.
         </p>
       </div>
 
