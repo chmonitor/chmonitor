@@ -7,12 +7,15 @@
  * GET /api/events. See lib/events/ and plans/36-inbound-event-bus-queues.md.
  */
 
+import { Settings2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { useMemo, useState } from 'react'
+import { InboundEventsSetupDialog } from '@/components/events/inbound-events-setup-dialog'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
@@ -78,6 +81,7 @@ const SEVERITY_BADGE_CLASS: Record<EventSeverity, string> = {
 function InboundEventsPage() {
   const [source, setSource] = useState('all')
   const [severity, setSeverity] = useState('all')
+  const [setupOpen, setSetupOpen] = useState(false)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['inbound-events'],
@@ -102,7 +106,19 @@ function InboundEventsPage() {
       <PageHeader
         title="Inbound Events"
         description="Alertmanager, Datadog, and generic webhook events ingested via POST /api/events/ingest"
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSetupOpen(true)}
+          >
+            <Settings2 data-icon="inline-start" />
+            Setup
+          </Button>
+        }
       />
+
+      <InboundEventsSetupDialog open={setupOpen} onOpenChange={setSetupOpen} />
 
       {/* Filter bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -167,6 +183,14 @@ function InboundEventsPage() {
                 events.length === 0
                   ? 'Configure an Alertmanager, Datadog, or generic webhook to POST to /api/events/ingest to see events here.'
                   : 'Try a different source or severity filter.'
+              }
+              action={
+                events.length === 0
+                  ? {
+                      label: 'Setup integration',
+                      onClick: () => setSetupOpen(true),
+                    }
+                  : undefined
               }
               onRefresh={() => refetch()}
             />
