@@ -121,9 +121,11 @@ Built on the **Vercel AI SDK** (not LangGraph). `clickhouse-agent.ts` is the
 runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
-Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 15
-tool modules exposing 29 tools total (26 by default; the 3 destructive
-`control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`):
+Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 19
+tool modules exposing 34 tools total (27 by default; the 3 destructive
+`control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, and the
+4 cross-source `postgres-*-tools` are gated off unless
+`CHM_FEATURE_POSTGRES_SOURCE=true`):
 
 | Module | Tools |
 |--------|-------|
@@ -135,6 +137,7 @@ tool modules exposing 29 tools total (26 by default; the 3 destructive
 | `merge-tools` | `get_merge_status` |
 | `plan-tools` | `update_plan` |
 | `skill-tools` | `load_skill` |
+| `reference-query-tools` | `find_reference_query` |
 | `ask-user-tools` | `ask_user` |
 | `visualization-tools` | `query_and_visualize` |
 | `insight-tools` | `explain_anomaly_score` |
@@ -142,6 +145,9 @@ tool modules exposing 29 tools total (26 by default; the 3 destructive
 | `mv-designer-tools` | `recommend_materialized_view` |
 | `dashboard-tools` | `suggest_dashboard` |
 | `control-tools` (gated) | `kill_query`, `optimize_table`, `kill_mutation` |
+| `postgres-query-tools` (gated) | `run_postgres_select_query`, `list_postgres_slow_query_patterns` |
+| `postgres-health-tools` (gated) | `get_postgres_metrics` |
+| `postgres-table-tools` (gated) | `get_postgres_table_stats` |
 
 `helpers.ts` and `sql-analysis.ts` are shared helpers, not tool modules. The
 design is a deliberately lean set of primitives — anything not covered is done
