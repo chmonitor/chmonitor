@@ -137,6 +137,29 @@ HEALTH_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/XXXX
 HEALTH_ALERT_MIN_SEVERITY=warning
 ```
 
+## Weekly health report
+
+A second cron job (`GET /api/cron/weekly-report`) builds a proactive weekly
+HTML report per opted-in host — a 7-day narrative from the AI insights engine,
+adaptive statistical baselines, and the disk-capacity forecaster. Opt-in, never
+opt-out: reports are generated only for hosts listed in
+`CHM_WEEKLY_REPORT_HOSTS`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_WEEKLY_REPORT_HOSTS` | unset (no reports) | Comma-separated host indices to opt in, e.g. `0,2`. Uses the same `CRON_SECRET` guard as health-sweep. |
+
+```bash
+# Opt host 0 and host 2 into the Monday 08:00 UTC weekly report
+CRON_SECRET=a-long-random-string
+CHM_WEEKLY_REPORT_HOSTS=0,2
+```
+
+Persisted regardless of delivery outcome; best-effort delivered to
+`HEALTH_ALERT_WEBHOOK_URL` (above) when configured. See
+[Health — Weekly health report](/guide/features/health#weekly-health-report)
+for the report contents and how to view a persisted report.
+
 ## Prometheus metrics exporter
 
 `GET /api/v1/metrics` serves `system.metrics` + `system.asynchronous_metrics`
