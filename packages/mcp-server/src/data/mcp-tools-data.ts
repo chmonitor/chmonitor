@@ -296,180 +296,83 @@ export const MCP_TOOLS: McpTool[] = [
 }`,
   },
   {
-    name: 'spot_issues',
+    name: 'analyze_performance',
     description:
-      'Scan recent ClickHouse metadata and query history for likely issues',
+      'Get a structured performance analysis snapshot with severity ratings. Returns slow queries, high part counts, merge backlog, memory pressure, and disk utilization in one call',
     category: 'system',
     params: [
       {
         name: 'lastHours',
         type: 'number',
         required: false,
-        default: 24,
-        description: 'Lookback window for query-log checks',
+        default: 1,
+        description: 'Time window for analysis in hours (default: 1)',
       },
       {
         name: 'hostId',
         type: 'number',
         required: false,
         default: 0,
-        description: 'Index of the ClickHouse host',
+        description: 'Index of the ClickHouse host (default: 0)',
       },
     ],
     exampleResponse: `{
-  "type": "agent_issues",
-  "issueCount": 2,
-  "issues": [
+  "slow_queries": {
+    "data": [{ "query_id": "abc123", "query_duration_ms": 45000, "query_preview": "SELECT ..." }],
+    "severity": "WARNING"
+  },
+  "high_part_counts": { "data": [{ "database": "default", "table": "events", "part_count": 312 }], "severity": "OK" },
+  "merge_backlog": { "data": [], "severity": "OK" },
+  "memory_pressure": { "data": [{ "metric": "MemoryTracking", "value": 8589934592 }], "severity": "OK" },
+  "disk_utilization": { "data": [{ "name": "default", "free_percent": 62.5 }], "severity": "OK" }
+}`,
+  },
+  {
+    name: 'get_optimization_recommendations',
+    description:
+      'Analyze a slow query (by queryId from system.query_log, or raw sql) and return ranked optimization recommendations — skip-index, projection, partition key, or a PREWHERE rewrite — each with DDL/rewrite text, rationale, risk, effort, and estimated savings. Read-only and recommend-only',
+    category: 'query',
+    params: [
+      {
+        name: 'sql',
+        type: 'string',
+        required: false,
+        description: 'Raw SQL to analyze. Provide this or queryId',
+      },
+      {
+        name: 'queryId',
+        type: 'string',
+        required: false,
+        description:
+          'A query_id from system.query_log to resolve and analyze. Provide this or sql',
+      },
+      {
+        name: 'database',
+        type: 'string',
+        required: false,
+        description:
+          'Default database for unqualified table references (default: "default")',
+      },
+      {
+        name: 'hostId',
+        type: 'number',
+        required: false,
+        default: 0,
+        description: 'Index of the ClickHouse host (default: 0)',
+      },
+    ],
+    exampleResponse: `{
+  "ok": true,
+  "recommendations": [
     {
-      "severity": "warning",
-      "category": "query",
-      "title": "Expensive repeated query pattern",
-      "confidence": "confirmed"
+      "kind": "skip_index",
+      "ddl": "ALTER TABLE analytics.events ADD INDEX idx_user_id user_id TYPE bloom_filter GRANULARITY 4",
+      "rationale": "WHERE filters on user_id but it is not in the sorting key",
+      "risk": "low",
+      "effort": "low",
+      "summary": "Estimated upper bound: up to ~12,000 granules currently read could be avoided"
     }
   ]
-}`,
-  },
-  {
-    name: 'repair_query',
-    description:
-      'Validate and self-fix a read-only ClickHouse query with EXPLAIN evidence',
-    category: 'query',
-    params: [
-      {
-        name: 'sql',
-        type: 'string',
-        required: true,
-        description: 'Read-only SQL query to repair',
-      },
-      {
-        name: 'error',
-        type: 'string',
-        required: false,
-        description: 'Optional ClickHouse error text',
-      },
-      {
-        name: 'database',
-        type: 'string',
-        required: false,
-        description: 'Default database for table metadata lookup',
-      },
-      {
-        name: 'hostId',
-        type: 'number',
-        required: false,
-        default: 0,
-        description: 'Index of the ClickHouse host',
-      },
-    ],
-    exampleResponse: `{
-  "type": "query_repair",
-  "status": "repaired",
-  "fixedSql": "SELECT count() FROM events",
-  "changes": ["Replaced count(*) with ClickHouse-preferred count()."]
-}`,
-  },
-  {
-    name: 'analyze_query_optimization',
-    description:
-      'Run EXPLAIN and inspect table metadata for query optimization advice',
-    category: 'query',
-    params: [
-      {
-        name: 'sql',
-        type: 'string',
-        required: true,
-        description: 'Read-only SQL query to analyze',
-      },
-      {
-        name: 'database',
-        type: 'string',
-        required: false,
-        description: 'Default database for unqualified tables',
-      },
-      {
-        name: 'hostId',
-        type: 'number',
-        required: false,
-        default: 0,
-        description: 'Index of the ClickHouse host',
-      },
-    ],
-    exampleResponse: `{
-  "type": "query_optimization",
-  "tables": [{ "table": "analytics.events", "skipIndexes": [] }],
-  "suggestions": ["Check if WHERE clause columns align with the sorting key"]
-}`,
-  },
-  {
-    name: 'recommend_table_design',
-    description:
-      'Suggest ORDER BY, type, skip-index, and materialized-view improvements',
-    category: 'schema',
-    params: [
-      {
-        name: 'database',
-        type: 'string',
-        required: true,
-        description: 'Database name',
-      },
-      {
-        name: 'table',
-        type: 'string',
-        required: true,
-        description: 'Table name',
-      },
-      {
-        name: 'lastDays',
-        type: 'number',
-        required: false,
-        default: 7,
-        description: 'Lookback window for query pattern analysis',
-      },
-      {
-        name: 'hostId',
-        type: 'number',
-        required: false,
-        default: 0,
-        description: 'Index of the ClickHouse host',
-      },
-    ],
-    exampleResponse: `{
-  "type": "table_design_recommendation",
-  "table": "analytics.events",
-  "suggestedOrderBy": ["tenant_id", "event_date", "user_id"],
-  "recommendations": [{ "rule": "schema-pk-prioritize-filters" }]
-}`,
-  },
-  {
-    name: 'discover_data_sources',
-    description:
-      'Find tables and columns relevant to a topic, classified as measures and dimensions',
-    category: 'schema',
-    params: [
-      {
-        name: 'searchTerm',
-        type: 'string',
-        required: true,
-        description: 'Topic to search for',
-      },
-      {
-        name: 'database',
-        type: 'string',
-        required: false,
-        description: 'Optional database filter',
-      },
-      {
-        name: 'hostId',
-        type: 'number',
-        required: false,
-        default: 0,
-        description: 'Index of the ClickHouse host',
-      },
-    ],
-    exampleResponse: `{
-  "type": "data_sources",
-  "searchTerm": "events",
-  "sources": [{ "database": "analytics", "table": "events" }]
 }`,
   },
 ]
