@@ -8,7 +8,12 @@
  * since payloads are external and untrusted.
  */
 
-import { computeDedupHash, detectSource, normalizeEvent } from './normalize'
+import {
+  computeDedupHash,
+  detectSource,
+  expandEventBatch,
+  normalizeEvent,
+} from './normalize'
 import { describe, expect, test } from 'bun:test'
 
 const alertmanagerPayload = {
@@ -144,6 +149,34 @@ describe('normalizeEvent — generic', () => {
     expect(event.severity).toBe('warning')
   })
 
+  test('accepts common field aliases (name/service/level/text/tags)', async () => {
+    // WHY: integrations send wildly different field names — the parser must be
+    // forgiving so callers rarely have to reshape a payload before ingest.
+    const event = await normalizeEvent({
+      name: 'Backup failed',
+      service: 'ch-node-9',
+      level: 'error',
+      text: 'nightly backup did not complete',
+      tags: { team: 'sre' },
+    })
+    expect(event.title).toBe('Backup failed')
+    expect(event.resource).toBe('ch-node-9')
+    expect(event.severity).toBe('critical') // level: 'error' → critical
+    expect(event.body).toBe('nightly backup did not complete')
+    expect(event.labels.team).toBe('sre')
+  })
+
+  test('canonical fields still win over aliases', async () => {
+    const event = await normalizeEvent({
+      title: 'Canonical',
+      name: 'Alias',
+      resource: 'r-canonical',
+      host: 'h-alias',
+    })
+    expect(event.title).toBe('Canonical')
+    expect(event.resource).toBe('r-canonical')
+  })
+
   test('never throws on malformed/unexpected input', async () => {
     await expect(normalizeEvent(null)).resolves.toBeDefined()
     await expect(normalizeEvent(undefined)).resolves.toBeDefined()
@@ -151,6 +184,30 @@ describe('normalizeEvent — generic', () => {
     await expect(normalizeEvent(42)).resolves.toBeDefined()
     await expect(normalizeEvent([1, 2, 3])).resolves.toBeDefined()
     await expect(normalizeEvent({})).resolves.toBeDefined()
+  })
+})
+
+describe('expandEventBatch', () => {
+  test('splits a top-level array into individual events', () => {
+    expect(expandEventBatch([{ title: 'a' }, { title: 'b' }])).toHaveLength(2)
+  })
+
+  test('splits an { events: [...] } envelope', () => {
+    expect(
+      expandEventBatch({ events: [{ title: 'a' }, { title: 'b' }] })
+    ).toHaveLength(2)
+  })
+
+  test('wraps a single object as a one-element batch', () => {
+    expect(expandEventBatch({ title: 'a' })).toEqual([{ title: 'a' }])
+  })
+
+  test('does NOT split an Alertmanager grouped notification', () => {
+    // {alerts:[...]} is one grouped notification the alertmanager normalizer
+    // handles as a unit — it must not be expanded into per-alert events here.
+    const items = expandEventBatch(alertmanagerPayload)
+    expect(items).toHaveLength(1)
+    expect(items[0]).toBe(alertmanagerPayload)
   })
 })
 

@@ -203,6 +203,53 @@ describe('no queue binding (self-host / not-yet-provisioned cloud)', () => {
   })
 })
 
+describe('smart parse', () => {
+  test('accepts a batch array and reports the processed count', async () => {
+    const res = await handlePost(
+      makeRequest(
+        [
+          { title: 'Alert A', severity: 'critical', resource: 'a' },
+          { title: 'Alert B', severity: 'warning', resource: 'b' },
+        ],
+        { token: TOKEN }
+      ),
+      { getQueue: () => null }
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { count: number; mode: string }
+    expect(body.mode).toBe('inline')
+    expect(body.count).toBe(2)
+  })
+
+  test('accepts an { events: [...] } envelope', async () => {
+    const res = await handlePost(
+      makeRequest(
+        { events: [{ title: 'A' }, { title: 'B' }, { title: 'C' }] },
+        { token: TOKEN }
+      ),
+      { getQueue: () => null }
+    )
+    const body = (await res.json()) as { count: number }
+    expect(body.count).toBe(3)
+  })
+
+  test('accepts an event built from query params when the body is empty', async () => {
+    const req = new Request(
+      'https://dash.example.com/api/events/ingest?title=Backup+failed&severity=critical&resource=ch-1',
+      {
+        method: 'POST',
+        headers: { authorization: `Bearer ${TOKEN}` },
+        body: '',
+      }
+    )
+    const res = await handlePost(req, { getQueue: () => null })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { count: number; accepted: boolean }
+    expect(body.accepted).toBe(true)
+    expect(body.count).toBe(1)
+  })
+})
+
 describe('rate limiting', () => {
   test('429s once the per-IP limit is exhausted', async () => {
     const limit = Number(process.env.RATE_LIMIT_API_PER_MIN ?? '100')

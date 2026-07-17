@@ -11,7 +11,7 @@
 import type { NormalizedEvent } from './types'
 
 import { upsertEvent } from './event-store'
-import { normalizeEvent } from './normalize'
+import { expandEventBatch, normalizeEvent } from './normalize'
 import { reemitEvent } from './reemit'
 import { error } from '@chm/logger'
 
@@ -80,14 +80,23 @@ export async function processEventBatch(
   let failed = 0
 
   for (const message of batch.messages) {
-    const result = await processPayload(message.body)
-    if (result) {
-      processed += 1
-      message.ack()
-    } else {
-      failed += 1
-      message.retry()
+    // A single queued message may carry a batch (top-level array or
+    // `{ events: [...] }`) — expand it so each event is stored independently,
+    // mirroring the ingest route's inline path.
+    const items = expandEventBatch(message.body)
+    let anyFailed = false
+    for (const item of items) {
+      const result = await processPayload(item)
+      if (result) processed += 1
+      else {
+        failed += 1
+        anyFailed = true
+      }
     }
+    // Ack the message only when every event in it succeeded; otherwise retry
+    // the whole message (at-least-once — a repeat re-hits the same dedup rows).
+    if (anyFailed) message.retry()
+    else message.ack()
   }
 
   return { processed, failed }

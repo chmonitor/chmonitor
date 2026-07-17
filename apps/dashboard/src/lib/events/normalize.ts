@@ -201,23 +201,38 @@ function normalizeGeneric(
   record: Record<string, unknown>,
   receivedAt: number
 ): UnhashedEvent {
+  // Common field aliases across ad-hoc/monitoring webhooks, tried after the
+  // canonical names so the documented shape always wins. Keeps ingest forgiving
+  // for callers who send `name`/`service`/`level`/`msg` instead of the
+  // canonical title/resource/severity/body.
   const title =
     asString(record.title) ??
     asString(record.summary) ??
+    asString(record.name) ??
+    asString(record.subject) ??
+    asString(record.alert) ??
+    asString(record.alertname) ??
     truncate(asString(record.message), 120) ??
     'Event'
   const resource =
     asString(record.resource) ??
     asString(record.host) ??
+    asString(record.hostname) ??
     asString(record.instance) ??
+    asString(record.service) ??
+    asString(record.server) ??
     'unknown'
-  const severity = normalizeSeverity(record.severity)
+  const severity = normalizeSeverity(
+    record.severity ?? record.level ?? record.priority ?? record.status
+  )
   const body =
     asString(record.body) ??
     asString(record.message) ??
     asString(record.description) ??
+    asString(record.text) ??
+    asString(record.detail) ??
     null
-  const rawLabels = asRecord(record.labels) ?? {}
+  const rawLabels = asRecord(record.labels) ?? asRecord(record.tags) ?? {}
 
   return {
     id: crypto.randomUUID(),
@@ -257,6 +272,25 @@ export async function computeDedupHash(
   return Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('')
+}
+
+/**
+ * Split a raw ingest payload into the list of individual events it carries, so
+ * a single POST can deliver a batch. Recognized batch shapes:
+ *
+ * - a top-level JSON array: `[ {...}, {...} ]`
+ * - a generic envelope `{ "events": [ ... ] }`
+ *
+ * Everything else (including Alertmanager's `{ alerts: [...] }`, which is ONE
+ * grouped notification the alertmanager normalizer handles as a unit) is a
+ * single event, returned as a one-element array. Never throws — a malformed
+ * batch degrades to `[payload]` and is normalized to the generic shape.
+ */
+export function expandEventBatch(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload
+  const record = asRecord(payload)
+  if (record && Array.isArray(record.events)) return record.events
+  return [payload]
 }
 
 /**
