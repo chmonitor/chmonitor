@@ -42,24 +42,30 @@ pnpm install --frozen-lockfile
 
 ```
 apps/
-  dashboard/   TanStack Start app → dash.chmonitor.dev (primary app)
-  docs/        Astro Starlight docs site → docs.chmonitor.dev
-  landing/     Astro marketing site → chmonitor.dev
-  mcp/         Cloudflare Worker MCP server
+  dashboard/    TanStack Start app → dash.chmonitor.dev (primary app)
+  docs/         Fumadocs (TanStack Start) docs site → docs.chmonitor.dev
+  landing/      Astro marketing site → chmonitor.dev
+  mcp/          Cloudflare Worker MCP server
+  cloud-hooks/  Cloudflare Worker for chmonitor Cloud (SaaS) — Polar billing
+                webhooks + ops notifications
+  telemetry/    Public write-only Cloudflare Worker — anonymous instance ping
+                + aggregate events
 packages/
-  clickhouse-client/  ClickHouse HTTP client (shared)
-  logger/             Structured logger (shared)
-  mcp-server/         MCP server core (shared)
-  platform/           Platform utilities (shared)
-  sql-builder/        SQL builder (shared)
-  types/              Shared TypeScript types
+  billing-webhook-core/  Shared Polar webhook core (dashboard + cloud-hooks)
+  clickhouse-client/     ClickHouse HTTP client (shared)
+  logger/                Structured logger (shared)
+  mcp-server/            MCP server core (shared)
+  postgres-client/       Postgres client for cross-source monitoring (shared)
+  pricing/               Pricing/plan resolution (shared)
+  sql-builder/           SQL builder (shared)
+  types/                 Shared TypeScript types
 ```
 
 All apps use `pnpm` as the package manager. `apps/mcp` and `packages/*` are
 members of the repo-root workspace (single root `pnpm-lock.yaml`). `apps/dashboard`,
-`apps/landing`, `apps/docs`, `apps/blog`, and `apps/bug-handler` install in
-isolation — each has its own `pnpm-lock.yaml` + `pnpm-workspace.yaml` and is built
-independently.
+`apps/landing`, `apps/docs`, `apps/blog`, `apps/bug-handler`, and `apps/cloud-hooks`
+install in isolation — each has its own `pnpm-lock.yaml` + `pnpm-workspace.yaml`
+and is built independently.
 
 ---
 
