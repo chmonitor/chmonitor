@@ -54,6 +54,7 @@ function RouteRow({
   onDeleted: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteRoute } = useAlertRoutesMutations()
   const isPagerDuty = route.provider === 'pagerduty'
   const isTelegram = route.provider === 'telegram'
@@ -68,6 +69,7 @@ function RouteRow({
       toast.error(err instanceof Error ? err.message : 'Failed to delete route')
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -152,14 +154,38 @@ function RouteRow({
         <Button variant="ghost" size="sm" disabled={busy} onClick={handleTest}>
           Send test
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={busy}
-          onClick={handleDelete}
-        >
-          Delete
-        </Button>
+        {confirming ? (
+          <div className="flex items-center gap-1">
+            <span className="mr-1 text-xs text-destructive">Delete?</span>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={busy}
+              onClick={handleDelete}
+            >
+              Yes
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+            >
+              No
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+          >
+            Delete
+          </Button>
+        )}
       </div>
     </div>
   )

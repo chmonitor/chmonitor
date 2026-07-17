@@ -86,6 +86,7 @@ function SubscriptionRow({
 }) {
   const [expanded, setExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteSubscription, updateSubscription, sendTestPing } =
     useWebhookSubscriptionsMutations()
 
@@ -110,6 +111,7 @@ function SubscriptionRow({
       toast.error('Failed to delete subscription')
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -168,14 +170,38 @@ function SubscriptionRow({
             disabled={busy}
             onCheckedChange={handleToggle}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={handleDelete}
-          >
-            Delete
-          </Button>
+          {confirming ? (
+            <div className="flex items-center gap-1">
+              <span className="mr-1 text-xs text-destructive">Delete?</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={busy}
+                onClick={handleDelete}
+              >
+                Yes
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={busy}
+                onClick={() => setConfirming(false)}
+              >
+                No
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => setConfirming(true)}
+            >
+              Delete
+            </Button>
+          )}
         </div>
       </div>
       {expanded && (

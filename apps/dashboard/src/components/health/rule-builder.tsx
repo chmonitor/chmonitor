@@ -50,6 +50,7 @@ function RuleRow({
   onDeleted: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteRule } = useCustomAlertRulesMutations()
 
   const handleDelete = async () => {
@@ -61,6 +62,7 @@ function RuleRow({
       toast.error('Failed to delete custom rule')
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -76,9 +78,38 @@ function RuleRow({
           </span>
         </div>
       </div>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={handleDelete}>
-        Delete
-      </Button>
+      {confirming ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="mr-1 text-xs text-destructive">Delete?</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={handleDelete}
+          >
+            Yes
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            No
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setConfirming(true)}
+        >
+          Delete
+        </Button>
+      )}
     </div>
   )
 }

@@ -68,6 +68,7 @@ function WindowRow({
   onDeleted: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const { deleteWindow } = useMaintenanceWindowsMutations()
   const status = windowStatus(window)
 
@@ -80,6 +81,7 @@ function WindowRow({
       toast.error('Failed to delete maintenance window')
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -96,9 +98,38 @@ function WindowRow({
           {new Date(window.endsAt).toLocaleString()}
         </span>
       </div>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={handleDelete}>
-        Delete
-      </Button>
+      {confirming ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="mr-1 text-xs text-destructive">Delete?</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={handleDelete}
+          >
+            Yes
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            No
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setConfirming(true)}
+        >
+          Delete
+        </Button>
+      )}
     </div>
   )
 }
