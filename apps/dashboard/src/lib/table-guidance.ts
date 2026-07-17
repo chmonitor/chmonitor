@@ -17,9 +17,11 @@ export interface TableGuidance {
 }
 
 const EVENTS_TABLE_GUIDANCE: TableGuidance = {
-  description: 'Custom monitoring events table',
+  description: "chmonitor's own usage-analytics table",
   enableInstructions:
-    'This is a custom table created by the monitoring application. It will be available after the first page view is tracked.',
+    'Page Views is self-analytics — it records views of the chmonitor dashboard itself into a `monitoring_events` table on this ClickHouse host, separate from your cluster data. ' +
+    'The table is created on demand by an authenticated request to `POST /api/init?hostId=<n>`, which needs a ClickHouse user with CREATE TABLE (and INSERT) rights. ' +
+    'On a read-only host (such as the public demo) it stays unavailable by design. Once created, dashboard views are recorded automatically.',
 }
 
 /**
