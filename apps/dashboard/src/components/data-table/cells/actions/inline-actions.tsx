@@ -89,6 +89,7 @@ export function InlineActions<TData extends RowData>({
                       className="size-7 text-muted-foreground hover:text-destructive"
                       onClick={handleKill}
                       disabled={isKilling}
+                      aria-label={config.label}
                     />
                   }
                 >
@@ -122,6 +123,7 @@ export function InlineActions<TData extends RowData>({
                     size="icon"
                     className="size-7 text-muted-foreground hover:text-foreground"
                     render={<Link href={href} />}
+                    aria-label={config.label}
                   />
                 }
               >
