@@ -115,9 +115,7 @@ See [Authentication](/operate/authentication) for provider setup.
 
 ## Available tools
 
-The MCP server exposes the same read-only capabilities as the dashboard agent. For a full list of tools, see [AI Agent — Capabilities](/guide/ai-agent/capabilities).
-
-Quick summary of core tools:
+The MCP server exposes 11 read-only tools — a focused subset of the dashboard agent's capabilities. See [AI Agent — Capabilities](/guide/ai-agent/capabilities) for how these map to the broader agent toolset.
 
 | Tool | Description |
 |---|---|
@@ -131,6 +129,7 @@ Quick summary of core tools:
 | `get_merge_status` | Running merge operations with progress. |
 | `explore_table_schema` | Schema exploration with relationship discovery. |
 | `analyze_performance` | Combined health report: slow queries, parts, merges, memory, disk. |
+| `get_optimization_recommendations` | Ranked query-optimization advice — skip-index, projection, partition key, or PREWHERE rewrite — with rationale and estimated savings. |
 
 All tools are read-only and respect the same `CLICKHOUSE_MAX_EXECUTION_TIME` timeout as the dashboard.
 

@@ -3,7 +3,7 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-07-10
+updated: 2026-07-17
 tags:
   - mcp
   - api
@@ -29,6 +29,9 @@ The chmonitor exposes a [Model Context Protocol (MCP)](https://modelcontextproto
 | `get_running_queries` | Currently executing queries by elapsed time | `hostId` (number, optional) |
 | `get_slow_queries` | Slowest completed queries from query log | `limit` (number, optional) |
 | `get_merge_status` | Running merge operations with progress | `hostId` (number, optional) |
+| `explore_table_schema` | Schema exploration with relationship discovery (3 modes: databases, tables, full schema) | `database`, `table` (optional), `hostId` (optional) |
+| `analyze_performance` | Structured health snapshot: slow queries, parts, merges, memory, disk | `hostId` (optional), `lastHours` (optional) |
+| `get_optimization_recommendations` | Ranked optimization advice for a slow query — skip-index, projection, partition key, or PREWHERE rewrite | `sql` or `queryId` (one required), `database` (optional), `hostId` (optional) |
 
 ## Setup
 

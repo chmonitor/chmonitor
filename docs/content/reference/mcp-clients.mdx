@@ -154,6 +154,8 @@ Once connected, your AI assistant can use these tools:
 | `get_slow_queries` | Slowest completed queries from the query log. |
 | `get_merge_status` | Running merge operations with progress. |
 | `explore_table_schema` | Schema exploration: list databases, summarize tables, or full schema with relationship discovery. |
+| `analyze_performance` | Structured health snapshot: slow queries, part counts, merge backlog, memory, and disk in one call. |
+| `get_optimization_recommendations` | Ranked query-optimization advice — skip-index, projection, partition key, or PREWHERE rewrite — for a query or `queryId`, with rationale and estimated savings. |
 
 All tools are read-only and respect the `CLICKHOUSE_MAX_EXECUTION_TIME` limit configured on the server.
 
