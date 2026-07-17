@@ -59,6 +59,9 @@ export function HealthSettingsDialog() {
   const [ntfyStatus, setNtfyStatus] = useState<{
     configured: boolean
   } | null>(null)
+  const [pushoverStatus, setPushoverStatus] = useState<{
+    configured: boolean
+  } | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -80,6 +83,12 @@ export function HealthSettingsDialog() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setNtfyStatus(data as { configured: boolean } | null))
       .catch(() => setNtfyStatus(null))
+    fetch('/api/v1/health/pushover-test')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) =>
+        setPushoverStatus(data as { configured: boolean } | null)
+      )
+      .catch(() => setPushoverStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -235,6 +244,25 @@ export function HealthSettingsDialog() {
       }
     } catch {
       toast.error('ntfy test notification failed')
+    }
+  }
+
+  const handleTestPushover = async () => {
+    try {
+      const res = await fetch('/api/v1/health/pushover-test', {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast.success('Pushover test notification sent')
+      } else {
+        const body = await res.json().catch(() => null)
+        toast.error(
+          (body as { error?: { message?: string } } | null)?.error?.message ??
+            'Pushover test notification failed'
+        )
+      }
+    } catch {
+      toast.error('Pushover test notification failed')
     }
   }
 
@@ -605,6 +633,40 @@ export function HealthSettingsDialog() {
                     size="sm"
                     onClick={handleTestNtfy}
                     disabled={!ntfyStatus?.configured}
+                  >
+                    Send test
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">
+                        Pushover alerts
+                      </Label>
+                      <Badge
+                        variant={
+                          pushoverStatus?.configured ? 'default' : 'secondary'
+                        }
+                      >
+                        {pushoverStatus?.configured
+                          ? 'Configured'
+                          : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Set HEALTH_ALERT_PUSHOVER_TOKEN and
+                      HEALTH_ALERT_PUSHOVER_USER on the server to enable — the
+                      token is never exposed to the browser
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestPushover}
+                    disabled={!pushoverStatus?.configured}
                   >
                     Send test
                   </Button>

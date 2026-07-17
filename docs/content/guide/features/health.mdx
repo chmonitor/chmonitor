@@ -103,6 +103,8 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 | `HEALTH_ALERT_TELEGRAM_CHAT_ID` | (unset = Telegram disabled) | Target Telegram chat id (e.g. `-1001234567890`, or `@channelname`). Both this and `HEALTH_ALERT_TELEGRAM_BOT_TOKEN` must be set for the global Telegram channel to fire. |
 | `HEALTH_ALERT_NTFY_URL` | (unset = ntfy disabled) | Full [ntfy](https://ntfy.sh) topic URL (e.g. `https://ntfy.sh/my-topic`, or a self-hosted server). Each finding is published with `Title`/`Priority`/`Tags` headers + a plain-text body (severity → priority: critical `5`/urgent, warning `4`/high, recovery `3`/default). Per-rule/per-host ntfy routes (Routing tab) override this fallback. |
 | `HEALTH_ALERT_NTFY_TOKEN` | (unset = no auth) | Optional ntfy access token for a protected topic, sent as `Authorization: Bearer <token>`. Server-only secret — never exposed to the browser. |
+| `HEALTH_ALERT_PUSHOVER_TOKEN` | (unset = Pushover disabled) | [Pushover](https://pushover.net) application API token. Server-only secret — never exposed to the browser. Set together with `HEALTH_ALERT_PUSHOVER_USER` to enable the global Pushover channel; each finding is POSTed to the Messages API (severity → priority: critical `2`/emergency with retry+expire, warning `0`/normal, recovery `-1`/low-quiet). Per-rule/per-host Pushover routes (Routing tab) override this fallback. |
+| `HEALTH_ALERT_PUSHOVER_USER` | (unset = Pushover disabled) | Target Pushover user or group key. Both this and `HEALTH_ALERT_PUSHOVER_TOKEN` must be set for the global Pushover channel to fire. |
 
 <Callout type="warn" title="CRON_SECRET is required">
 `CRON_SECRET` is **required** for the cron endpoints. When it is unset, `/api/cron/health-sweep` and `/api/cron/retention-prune` **fail closed and return HTTP 503** (they do not run) — `retention-prune` is destructive, so it must never be reachable unauthenticated. Set `CRON_SECRET` and pass it as `Authorization: Bearer <secret>` from your cron caller.
@@ -121,6 +123,8 @@ wrangler secret put HEALTH_ALERT_WEBHOOK_URL
 wrangler secret put HEALTH_ALERT_TELEGRAM_BOT_TOKEN
 # Optional: ntfy channel (topic URL is a plain var; access token is a secret)
 wrangler secret put HEALTH_ALERT_NTFY_TOKEN
+# Optional: Pushover channel (app token is a secret; user key is a plain var)
+wrangler secret put HEALTH_ALERT_PUSHOVER_TOKEN
 ```
 </Step>
 <Step>

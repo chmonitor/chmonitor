@@ -31,6 +31,8 @@ interface FakeRow {
   telegram_chat_id?: string | null
   ntfy_url?: string | null
   ntfy_token?: string | null
+  pushover_token?: string | null
+  pushover_user?: string | null
 }
 
 function makeFakeD1() {
@@ -61,6 +63,8 @@ function makeFakeD1() {
                 telegram_chat_id,
                 ntfy_url,
                 ntfy_token,
+                pushover_token,
+                pushover_user,
               ] = params as [
                 string,
                 string,
@@ -70,6 +74,8 @@ function makeFakeD1() {
                 number,
                 number,
                 string,
+                string | null,
+                string | null,
                 string | null,
                 string | null,
                 string | null,
@@ -92,6 +98,8 @@ function makeFakeD1() {
                 telegram_chat_id,
                 ntfy_url,
                 ntfy_token,
+                pushover_token,
+                pushover_user,
               })
               return { meta: { changes: 1 } }
             }
@@ -148,6 +156,7 @@ const {
   matchRoutes,
   resolveNtfyTargets,
   resolvePagerDutyTargets,
+  resolvePushoverTargets,
   resolveTargets,
   resolveTelegramTargets,
 } = await import('./alert-routing')
@@ -170,6 +179,8 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     telegramChatId: null,
     ntfyUrl: null,
     ntfyToken: null,
+    pushoverToken: null,
+    pushoverUser: null,
     ...overrides,
   }
 }
@@ -552,6 +563,92 @@ describe('resolveNtfyTargets (pure) — #2657', () => {
   })
 })
 
+describe('resolvePushoverTargets (pure) — #2659', () => {
+  const ENV_FALLBACK = { token: 'env-tok', user: 'env-user' }
+
+  test('matches a pushover route and returns its token + user', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'pushover',
+      pushoverToken: 'app_tok',
+      pushoverUser: 'usr_key',
+    })
+    expect(resolvePushoverTargets([r], TARGET, null)).toEqual([
+      { token: 'app_tok', user: 'usr_key' },
+    ])
+  })
+
+  test('matches a pushover route via glob and the * host wildcard', () => {
+    const r = route({
+      matchRule: 'disk-*',
+      matchHost: '*',
+      provider: 'pushover',
+      pushoverToken: 'app_tok',
+      pushoverUser: 'usr_key',
+    })
+    expect(resolvePushoverTargets([r], TARGET, null)).toEqual([
+      { token: 'app_tok', user: 'usr_key' },
+    ])
+  })
+
+  test('ignores webhook-provider routes even if matched', () => {
+    const r = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolvePushoverTargets([r], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('a matched webhook route suppresses the env Pushover fallback (no double-fire)', () => {
+    const webhook = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolvePushoverTargets([webhook], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('deduplicates matched routes sharing the same token + user', () => {
+    const r1 = route({
+      id: 'a',
+      matchRule: 'disk-usage',
+      provider: 'pushover',
+      pushoverToken: 'app_tok',
+      pushoverUser: 'usr_key',
+    })
+    const r2 = route({
+      id: 'b',
+      matchRule: '*',
+      provider: 'pushover',
+      pushoverToken: 'app_tok',
+      pushoverUser: 'usr_key',
+    })
+    expect(resolvePushoverTargets([r1, r2], TARGET, null)).toEqual([
+      { token: 'app_tok', user: 'usr_key' },
+    ])
+  })
+
+  test('a pushover route missing token or user never dispatches, and still suppresses the env fallback', () => {
+    const r = route({
+      matchRule: 'disk-usage',
+      provider: 'pushover',
+      pushoverToken: 'app_tok',
+      pushoverUser: null,
+    })
+    expect(resolvePushoverTargets([r], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('falls back to the env config when nothing matches', () => {
+    const r = route({ matchRule: 'replication-*', provider: 'pushover' })
+    expect(resolvePushoverTargets([r], TARGET, ENV_FALLBACK)).toEqual([
+      ENV_FALLBACK,
+    ])
+  })
+
+  test('empty route list falls back to the env config', () => {
+    expect(resolvePushoverTargets([], TARGET, ENV_FALLBACK)).toEqual([
+      ENV_FALLBACK,
+    ])
+  })
+
+  test('no match and no env config -> empty (no Pushover dispatch)', () => {
+    expect(resolvePushoverTargets([], TARGET, null)).toEqual([])
+  })
+})
+
 describe('D1-backed alert-routing CRUD', () => {
   test('listRoutes returns [] when D1 binding is missing (self-hosted/OSS)', async () => {
     currentDb = null
@@ -670,6 +767,29 @@ describe('D1-backed alert-routing CRUD', () => {
     expect(listed.provider).toBe('ntfy')
     expect(listed.ntfyUrl).toBe('https://ntfy.sh/my-topic')
     expect(listed.ntfyToken).toBe('tk_secret')
+  })
+
+  test('create -> list round-trip persists pushover provider fields', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+
+    const created = await createRoute({
+      ownerId: 'owner-1',
+      matchRule: 'disk-*',
+      matchHost: '*',
+      channelUrl: '',
+      provider: 'pushover',
+      pushoverToken: 'app_tok',
+      pushoverUser: 'usr_key',
+    })
+    expect(created?.provider).toBe('pushover')
+    expect(created?.pushoverToken).toBe('app_tok')
+    expect(created?.pushoverUser).toBe('usr_key')
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.provider).toBe('pushover')
+    expect(listed.pushoverToken).toBe('app_tok')
+    expect(listed.pushoverUser).toBe('usr_key')
   })
 
   test('legacy row with no provider column value defaults to webhook', async () => {

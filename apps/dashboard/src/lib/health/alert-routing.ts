@@ -40,8 +40,15 @@ const TABLE = 'alert_routes'
  * service's own escalation policy + on-call schedule. `'telegram'` (#2655)
  * routes to a Telegram chat via a bot token + chat id. `'ntfy'` (#2657)
  * routes to an ntfy topic URL (self-hostable) with an optional access token.
+ * `'pushover'` (#2659) routes to a Pushover user/group via an application
+ * token + user key.
  */
-export type AlertRouteProvider = 'webhook' | 'pagerduty' | 'telegram' | 'ntfy'
+export type AlertRouteProvider =
+  | 'webhook'
+  | 'pagerduty'
+  | 'telegram'
+  | 'ntfy'
+  | 'pushover'
 
 /** A configured alert route: match criteria → destination channel. */
 export interface AlertRoute {
@@ -68,6 +75,10 @@ export interface AlertRoute {
   ntfyUrl: string | null
   /** ntfy access token — a secret (provider `'ntfy'` only). */
   ntfyToken: string | null
+  /** Pushover application API token — a secret (provider `'pushover'` only). */
+  pushoverToken: string | null
+  /** Pushover target user/group key (provider `'pushover'` only). */
+  pushoverUser: string | null
 }
 
 interface D1AlertRouteRow {
@@ -85,6 +96,8 @@ interface D1AlertRouteRow {
   telegram_chat_id: string | null
   ntfy_url: string | null
   ntfy_token: string | null
+  pushover_token: string | null
+  pushover_user: string | null
 }
 
 function getDb(): D1Database | null {
@@ -110,13 +123,17 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
           ? 'telegram'
           : row.provider === 'ntfy'
             ? 'ntfy'
-            : 'webhook',
+            : row.provider === 'pushover'
+              ? 'pushover'
+              : 'webhook',
     serviceName: row.service_name ?? null,
     routingKey: row.routing_key ?? null,
     telegramBotToken: row.telegram_bot_token ?? null,
     telegramChatId: row.telegram_chat_id ?? null,
     ntfyUrl: row.ntfy_url ?? null,
     ntfyToken: row.ntfy_token ?? null,
+    pushoverToken: row.pushover_token ?? null,
+    pushoverUser: row.pushover_user ?? null,
   }
 }
 
@@ -135,7 +152,7 @@ export async function listRoutes(ownerId: string): Promise<AlertRoute[]> {
       .prepare(
         `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
                 provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
-                ntfy_url, ntfy_token
+                ntfy_url, ntfy_token, pushover_token, pushover_user
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -170,6 +187,10 @@ export interface CreateRouteInput {
   ntfyUrl?: string | null
   /** ntfy access token — a secret (provider `'ntfy'` only). */
   ntfyToken?: string | null
+  /** Pushover application API token — a secret (provider `'pushover'` only). */
+  pushoverToken?: string | null
+  /** Pushover target user/group key (provider `'pushover'` only). */
+  pushoverUser?: string | null
 }
 
 /**
@@ -199,6 +220,8 @@ export async function createRoute(
       telegramChatId: input.telegramChatId?.trim() || null,
       ntfyUrl: input.ntfyUrl?.trim() || null,
       ntfyToken: input.ntfyToken?.trim() || null,
+      pushoverToken: input.pushoverToken?.trim() || null,
+      pushoverUser: input.pushoverUser?.trim() || null,
     }
 
     await db
@@ -206,8 +229,8 @@ export async function createRoute(
         `INSERT INTO ${TABLE}
            (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
             provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
-            ntfy_url, ntfy_token)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`
+            ntfy_url, ntfy_token, pushover_token, pushover_user)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`
       )
       .bind(
         route.id,
@@ -223,7 +246,9 @@ export async function createRoute(
         route.telegramBotToken,
         route.telegramChatId,
         route.ntfyUrl,
-        route.ntfyToken
+        route.ntfyToken,
+        route.pushoverToken,
+        route.pushoverUser
       )
       .run()
 
@@ -491,6 +516,57 @@ export function resolveNtfyTargets(
           ? { url: r.ntfyUrl, token: r.ntfyToken }
           : { url: r.ntfyUrl }
       )
+    }
+    return out
+  }
+
+  if (matched.length > 0) return []
+
+  return envFallback ? [envFallback] : []
+}
+
+/** One Pushover dispatch target: an application token + the user/group key. */
+export interface PushoverTarget {
+  token: string
+  user: string
+}
+
+/**
+ * Resolve the Pushover recipients a finding should notify (#2659 — extends
+ * the plan-30/34 routing model, mirroring {@link resolveTelegramTargets}):
+ * every ENABLED, matched route with `provider === 'pushover'` that carries
+ * both an application token and a user/group key, deduplicated by
+ * `token:user`. When NO route matched at all (any provider), falls back to
+ * `[envFallback]` when the env-configured global Pushover config is present —
+ * preserving the single-destination behavior for deployments that never
+ * configure a route. Returns `[]` when there is no env fallback, OR when a
+ * route of a different provider matched instead — the same cross-provider
+ * suppression {@link resolveTargets} / {@link resolvePagerDutyTargets} /
+ * {@link resolveTelegramTargets} / {@link resolveNtfyTargets} apply, so an
+ * operator who explicitly routed a rule elsewhere is not ALSO notified on the
+ * env-configured Pushover recipient. Pure — no I/O.
+ */
+export function resolvePushoverTargets(
+  routes: readonly AlertRoute[],
+  target: RouteMatchTarget,
+  envFallback: PushoverTarget | null
+): PushoverTarget[] {
+  const matched = matchRoutes(routes, target)
+  const pushoverMatched = matched.filter(
+    (r): r is AlertRoute & { pushoverToken: string; pushoverUser: string } =>
+      r.provider === 'pushover' &&
+      Boolean(r.pushoverToken) &&
+      Boolean(r.pushoverUser)
+  )
+
+  if (pushoverMatched.length > 0) {
+    const seen = new Set<string>()
+    const out: PushoverTarget[] = []
+    for (const r of pushoverMatched) {
+      const key = `${r.pushoverToken}:${r.pushoverUser}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push({ token: r.pushoverToken, user: r.pushoverUser })
     }
     return out
   }
