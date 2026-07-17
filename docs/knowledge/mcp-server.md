@@ -26,7 +26,7 @@ The chmonitor exposes a [Model Context Protocol (MCP)](https://modelcontextproto
 | `list_tables` | List tables with row counts and sizes | `database` (string, required) |
 | `get_table_schema` | Show columns, types, defaults, comments | `database`, `table` (required) |
 | `get_metrics` | Server version, uptime, active connections | `hostId` (number, optional) |
-| `get_running_queries` | Currently executing queries by elapsed time | `hostId` (number, optional) |
+| `get_running_queries` | Currently executing queries by elapsed time | `limit` (number, optional, default 50, max 1000), `hostId` (number, optional) |
 | `get_slow_queries` | Slowest completed queries from query log | `limit` (number, optional) |
 | `get_merge_status` | Running merge operations with progress | `hostId` (number, optional) |
 | `explore_table_schema` | Schema exploration with relationship discovery (3 modes: databases, tables, full schema) | `database`, `table` (optional), `hostId` (optional) |

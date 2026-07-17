@@ -17,12 +17,20 @@ export function registerQueryTools(server: McpServer) {
     'get_running_queries',
     'List currently running queries on the ClickHouse server, ordered by elapsed time.',
     {
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(1000)
+        .default(50)
+        .describe('Max number of queries to return (default: 50)'),
       hostId: hostIdSchema,
     },
-    async ({ hostId }) =>
+    async ({ limit, hostId }) =>
       runReadonlyQuery(
-        'SELECT query_id, user, elapsed, read_rows, memory_usage, substring(query, 1, 200) AS query FROM system.processes ORDER BY elapsed DESC',
-        hostId
+        'SELECT query_id, user, elapsed, read_rows, memory_usage, substring(query, 1, 200) AS query FROM system.processes ORDER BY elapsed DESC LIMIT {limit:UInt32}',
+        hostId,
+        { query_params: { limit } }
       )
   )
 
