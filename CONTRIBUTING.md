@@ -154,8 +154,8 @@ Keep the summary line under 72 characters. No period at the end.
 - Open PRs against `main`.
 - PR titles follow the same Conventional Commits format.
 - CI must pass: `build`, `lint`, `dashboard` (Cloudflare deploy), and
-  `unit-tests`. The `e2e-test`, `e2e-test-tsr`, `component-test`, and
-  `unit-tests` (non-required) jobs are informational and do not block merge.
+  `unit-tests`. The `e2e-test`, `e2e-test-tsr`, and `component-test`
+  (non-required) jobs are informational and do not block merge.
 - The `bundle-size` and `axe-core` (accessibility) checks are non-required:
   they annotate the PR but do not block merge.
 - Auto-merge is enabled for most PRs — check CI and fix failures before
