@@ -72,6 +72,14 @@ function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
     // Telegram bot token.
     ntfyUrl: route.ntfyUrl,
     ntfyTokenMasked: route.ntfyToken ? maskRoutingKey(route.ntfyToken) : null,
+    // Pushover (#2659): the application token is a bare secret (like the
+    // Telegram bot token), never returned in full once stored. The user/group
+    // key is not a secret on its own — like the Telegram chat id — and is
+    // returned as-is so the UI can show which recipient a route targets.
+    pushoverUser: route.pushoverUser,
+    pushoverTokenMasked: route.pushoverToken
+      ? maskRoutingKey(route.pushoverToken)
+      : null,
   }
 }
 
@@ -90,8 +98,8 @@ interface CreateRouteBody {
   channelUrl?: unknown
   enabled?: unknown
   /**
-   * `'webhook'` (default), `'pagerduty'` (plan 34), `'telegram'` (#2655), or
-   * `'ntfy'` (#2657).
+   * `'webhook'` (default), `'pagerduty'` (plan 34), `'telegram'` (#2655),
+   * `'ntfy'` (#2657), or `'pushover'` (#2659).
    */
   provider?: unknown
   /** PagerDuty-only: display label for the service. */
@@ -106,6 +114,10 @@ interface CreateRouteBody {
   ntfyUrl?: unknown
   /** ntfy-only: the optional access token (a secret). */
   ntfyToken?: unknown
+  /** Pushover-only: the application API token (a secret). */
+  pushoverToken?: unknown
+  /** Pushover-only: the target user/group key. */
+  pushoverUser?: unknown
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -128,7 +140,9 @@ async function handlePost(request: Request): Promise<Response> {
         ? 'telegram'
         : body.provider === 'ntfy'
           ? 'ntfy'
-          : 'webhook'
+          : body.provider === 'pushover'
+            ? 'pushover'
+            : 'webhook'
 
   const matchRule =
     typeof body.matchRule === 'string' && body.matchRule.trim()
@@ -249,6 +263,46 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'ntfy',
       ntfyUrl,
       ntfyToken: ntfyToken || null,
+    })
+
+    if (!created) {
+      return jsonError(
+        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        501
+      )
+    }
+
+    return Response.json(
+      { success: true, route: toPublicRoute(created) },
+      { status: 201 }
+    )
+  }
+
+  if (provider === 'pushover') {
+    const pushoverToken =
+      typeof body.pushoverToken === 'string' ? body.pushoverToken.trim() : ''
+    const pushoverUser =
+      typeof body.pushoverUser === 'string' ? body.pushoverUser.trim() : ''
+    if (!pushoverToken || !pushoverUser) {
+      return jsonError(
+        'Missing required "pushoverToken" and/or "pushoverUser" for a Pushover route',
+        400
+      )
+    }
+
+    // The Pushover Messages API endpoint is fixed (`api.pushover.net`) —
+    // token/user travel in the body, not the URL — so there is no
+    // caller-supplied SSRF sink here (unlike the webhook path below).
+    // `channelUrl` stays empty; the sweep posts to the fixed endpoint.
+    const created = await createRoute({
+      ownerId,
+      matchRule,
+      matchHost,
+      channelUrl: '',
+      enabled,
+      provider: 'pushover',
+      pushoverToken,
+      pushoverUser,
     })
 
     if (!created) {

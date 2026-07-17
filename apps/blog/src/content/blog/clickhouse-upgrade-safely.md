@@ -1,7 +1,7 @@
 ---
 title: "5 min of ClickHouse: upgrade safely while chmonitor stays connected"
 description: "Pre-upgrade checks, the system-table changes that light up new dashboard pages at each version, and the post-upgrade grants sanity queries — so you upgrade ClickHouse without losing monitoring."
-date: 2026-10-30
+date: 2026-07-10
 tag: 5 min of ClickHouse
 ---
 

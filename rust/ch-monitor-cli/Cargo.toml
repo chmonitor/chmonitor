@@ -2,8 +2,14 @@
 name = "ch-monitor-cli"
 version = "0.1.0"
 edition = "2021"
-description = "Standalone chmonitor CLI for chmonitor API"
+authors = ["duyet <bot@duyet.net>"]
+description = "Standalone terminal/TUI CLI for chmonitor, plus a zero-signup `chm diagnose` health scan that connects straight to ClickHouse."
 license = "MIT"
+repository = "https://github.com/chmonitor/chmonitor"
+readme = "README.md"
+keywords = ["clickhouse", "cli", "monitoring", "diagnostics"]
+categories = ["command-line-utilities"]
+exclude = ["/.github"]
 
 [dependencies]
 anyhow = "1"

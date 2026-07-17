@@ -72,7 +72,7 @@ Issue a token:
 ```bash
 curl -X POST https://your-chmonitor.example.com/api/v1/auth/api-key \
   -H "Authorization: Bearer $CHM_API_KEY_SECRET"
-# returns {"token":"chm_..."}
+# returns {"data":{"apiKey":"chm_..."}}
 ```
 
 Pass the token in MCP client requests:

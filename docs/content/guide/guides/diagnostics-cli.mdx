@@ -12,20 +12,34 @@ The other `chm` subcommands (`hosts`, `chart`, `table`, `tui`) talk to a running
 
 ## Install / run
 
-No install step is required if you have the Rust toolchain — build and run straight from the monorepo:
+Install with one line — no Rust toolchain, no repo clone, no account. The
+script detects your OS/arch, downloads the matching binary from
+[GitHub Releases](https://github.com/chmonitor/chmonitor/releases) (tag format
+`chm-v*`), and verifies its checksum:
+
+```bash
+curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+```
+
+```bash
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
+```
+
+<Callout type="info" title="No release yet? Build from source">
+If the installer reports no `chm-v*` release is available yet, build and run
+straight from the monorepo instead — either run-in-place or build a reusable
+release binary:
 
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
   cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose
-```
 
-Or build a release binary once and reuse it (see [Releases](/reference/releases) for prebuilt binaries — tag format `chm-v*`):
-
-```bash
+# or build once and reuse:
 cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
   ./rust/target/release/ch-monitor-cli diagnose
 ```
+</Callout>
 
 ## Configuration
 

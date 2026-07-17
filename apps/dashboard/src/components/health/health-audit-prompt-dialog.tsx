@@ -22,6 +22,7 @@ import {
   DEFAULT_AUDIT_PROMPT_OPTIONS,
   estimateTokens,
 } from '@/lib/health/audit-prompt'
+import { describeError } from '@/lib/swr/fetch-error'
 
 interface HealthAuditPromptDialogProps {
   open: boolean
@@ -97,8 +98,10 @@ export function HealthAuditPromptDialog({
       setCopied(true)
       toast.success('Audit prompt copied to clipboard')
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error('Failed to copy prompt')
+    } catch (err) {
+      // Clipboard writes fail for reasons the user can act on (no permission,
+      // or a non-secure context), so surface the browser's own reason.
+      toast.error('Failed to copy prompt', { description: describeError(err) })
     }
   }
 

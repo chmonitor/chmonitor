@@ -137,14 +137,16 @@ All tools are read-only and respect the same `CLICKHOUSE_MAX_EXECUTION_TIME` tim
 
 The server exposes static and templated resources for context loading:
 
-| Resource | URI |
-|---|---|
-| System tables reference | `clickhouse://system-tables` |
-| Query examples | `clickhouse://query-examples` |
-| Database list | `clickhouse://databases` |
-| Tables in a database | `clickhouse://databases/{database}/tables` |
-| Table schema | `clickhouse://databases/{database}/tables/{table}/schema` |
-| Table parts | `clickhouse://databases/{database}/tables/{table}/parts` |
+| Resource | URI | Host-scoped equivalent |
+|---|---|---|
+| System tables reference | `clickhouse://system-tables` | — |
+| Query examples | `clickhouse://query-examples` | — |
+| Database list | `clickhouse://databases` | `clickhouse://hosts/{hostId}/databases` |
+| Tables in a database | `clickhouse://databases/{database}/tables` | `clickhouse://hosts/{hostId}/databases/{database}/tables` |
+| Table schema | `clickhouse://databases/{database}/tables/{table}/schema` | `clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/schema` |
+| Table parts | `clickhouse://databases/{database}/tables/{table}/parts` | `clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/parts` |
+
+On a multi-host deployment (comma-separated `CLICKHOUSE_HOST`), the plain `clickhouse://databases/...` resources always query host `0`, same as omitting `hostId` on a tool call. Use the `clickhouse://hosts/{hostId}/...` variant to target another host.
 
 Pre-built prompts for common workflows: `health-check`, `slow-query-analysis`, `storage-audit`, `replication-check`, `capacity-report`.
 

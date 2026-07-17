@@ -245,6 +245,36 @@ export function getServerNtfyConfig(): ServerNtfyConfig | null {
   return token ? { url, token } : { url }
 }
 
+/** Resolved server-side Pushover config: the app token plus the target user/group key. */
+export interface ServerPushoverConfig {
+  token: string
+  user: string
+}
+
+/**
+ * Server-side Pushover config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_PUSHOVER_TOKEN → token (application API token, default '')
+ *   - HEALTH_ALERT_PUSHOVER_USER  → user  (target user/group key, default '')
+ *
+ * Returns null unless BOTH are configured — Pushover delivery is opt-in and
+ * fails open (either value missing ⇒ the sweep skips the Pushover dispatch
+ * entirely). This is the global fallback used when no per-rule/per-host
+ * Pushover route matches, mirroring the Telegram fallback (#2655, #2659).
+ *
+ * NOTE: exposed as a companion function (matching
+ * {@link getServerTelegramConfig}) rather than folded into
+ * {@link getServerAlertConfig}'s return value — that shape is shared with the
+ * client's localStorage settings and asserted deeply by its tests, and the
+ * app token is a server-only secret that must never round-trip through it.
+ */
+export function getServerPushoverConfig(): ServerPushoverConfig | null {
+  const token = process.env.HEALTH_ALERT_PUSHOVER_TOKEN?.trim() || ''
+  const user = process.env.HEALTH_ALERT_PUSHOVER_USER?.trim() || ''
+  if (!token || !user) return null
+  return { token, user }
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 
