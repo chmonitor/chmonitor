@@ -12,7 +12,7 @@ for (const f of features) {
   if (f.version && seenVersions.has(f.version)) continue
   if (f.version) seenVersions.add(f.version)
   latest.push(f)
-  if (latest.length >= 4) break
+  if (latest.length >= 6) break
 }
 ---
 <section class="py-14 sm:py-18 border-t border-border bg-muted/30">
@@ -31,7 +31,7 @@ for (const f of features) {
         <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
     </div>
-    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
         latest.map((f) => (
           <a
