@@ -26,6 +26,12 @@ interface DatabaseNodeProps {
   selectedTable: string | null
   selectedDatabase: string | null
   level: number
+  /** 1-indexed position among sibling databases, for `aria-posinset`. */
+  posInSet?: number
+  /** Total count of sibling databases, for `aria-setsize`. */
+  setSize?: number
+  /** Roving-tabindex fallback anchor — see `TreeNode`. */
+  isDefaultTabbable?: boolean
   searchFilter: string
   onToggleDatabase: (database: string) => void
   onToggleTable: (key: string) => void
@@ -48,6 +54,9 @@ export const DatabaseNode = function DatabaseNode({
   selectedTable,
   selectedDatabase,
   level,
+  posInSet,
+  setSize,
+  isDefaultTabbable = false,
   searchFilter,
   onToggleDatabase,
   onToggleTable,
@@ -105,6 +114,14 @@ export const DatabaseNode = function DatabaseNode({
 
   // Only highlight if this database is selected and no table is selected
   const isHighlighted = selectedDatabase === database && !selectedTable
+  // Fall back to this database as the roving-tabindex anchor while a table
+  // under it is selected but its table list hasn't loaded yet (so no deeper
+  // treeitem exists in the DOM yet to claim tabIndex=0). Once `tables` loads,
+  // the matching TableNode becomes tabbable and this fallback steps aside —
+  // otherwise both nodes would end up with tabIndex=0 at once.
+  const isTabbableFallback =
+    isDefaultTabbable ||
+    (selectedDatabase === database && Boolean(selectedTable) && !tables)
 
   return (
     <TreeNode
@@ -116,6 +133,9 @@ export const DatabaseNode = function DatabaseNode({
       isLoading={isLoading && isExpanded}
       hasChildren
       level={level}
+      posInSet={posInSet}
+      setSize={setSize}
+      isDefaultTabbable={isTabbableFallback}
       onToggle={handleToggle}
       onSelect={handleSelect}
     >
@@ -129,7 +149,7 @@ export const DatabaseNode = function DatabaseNode({
           ))}
         </div>
       ) : (
-        filteredTables.map((table) => {
+        filteredTables.map((table, index) => {
           const tableKey = `${database}.${table.name}`
           return (
             <TableNode
@@ -143,6 +163,8 @@ export const DatabaseNode = function DatabaseNode({
                 selectedDatabase === database && selectedTable === table.name
               }
               level={level + 1}
+              posInSet={index + 1}
+              setSize={filteredTables.length}
               onToggle={() => onToggleTable(tableKey)}
               onSelect={() => handleSelectTable(table.name, table.engine)}
             />

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { useExplorerState } from '../hooks/use-explorer-state'
+import { useTreeKeyboardNav } from '../hooks/use-tree-keyboard-nav'
 import { useTreeState } from '../hooks/use-tree-state'
 import { DatabaseNode } from './database-node'
 import { TreeSearch } from './tree-search'
@@ -35,6 +36,7 @@ export function DatabaseTree() {
     useExplorerState()
   const { isDatabaseExpanded, isTableExpanded, toggleDatabase, toggleTable } =
     useTreeState(database, table)
+  const { handleKeyDown, handleFocus } = useTreeKeyboardNav()
 
   const queryKey = `/api/v1/explorer/databases?hostId=${hostId}`
   const {
@@ -82,12 +84,21 @@ export function DatabaseTree() {
     )
   }
 
+  // Fallback roving-tabindex anchor: when nothing is selected yet, the first
+  // database is the tree's single tabbable entry point.
+  const hasSelection = Boolean(database)
+
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-2">
         <TreeSearch value={searchFilter} onChange={setSearchFilter} />
-        <SidebarMenu>
-          {databases.map((db) => (
+        <SidebarMenu
+          role="tree"
+          aria-label="Database explorer"
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+        >
+          {databases.map((db, index) => (
             <DatabaseNode
               key={db.name}
               database={db.name}
@@ -96,6 +107,9 @@ export function DatabaseTree() {
               selectedTable={table}
               selectedDatabase={database}
               level={0}
+              posInSet={index + 1}
+              setSize={databases.length}
+              isDefaultTabbable={!hasSelection && index === 0}
               searchFilter={searchFilter}
               onToggleDatabase={toggleDatabase}
               onToggleTable={toggleTable}

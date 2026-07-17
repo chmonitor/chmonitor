@@ -32,6 +32,16 @@ interface TreeNodeProps {
   hasChildren?: boolean
   expandOnSelect?: boolean // If true, clicking label expands node (default: true for backwards compat)
   level: number
+  /** 1-indexed position among visible siblings, for `aria-posinset`. */
+  posInSet?: number
+  /** Total count of visible siblings, for `aria-setsize`. */
+  setSize?: number
+  /**
+   * Marks this node as the roving-tabindex fallback entry point (used when
+   * nothing in the tree is selected, so the tree still has exactly one
+   * tabbable node). Actual selection (`isSelected`) always wins over this.
+   */
+  isDefaultTabbable?: boolean
   badge?: React.ReactNode
   onToggle?: () => void
   onSelect?: () => void
@@ -50,20 +60,37 @@ export const TreeNode = function TreeNode({
   hasChildren = false,
   expandOnSelect = true,
   level,
+  posInSet,
+  setSize,
+  isDefaultTabbable = false,
   badge,
   onToggle,
   onSelect,
   children,
 }: TreeNodeProps) {
   const paddingLeft = level * 12
+  const isSelectable = Boolean(onSelect)
+  // Roving tabindex: exactly one treeitem in the tree is a Tab stop at rest
+  // (the selected node, or a designated fallback). Arrow-key navigation then
+  // moves DOM focus + updates tabIndex directly (see use-tree-keyboard-nav).
+  const isTabbable = isSelected || isDefaultTabbable
 
   return (
     // SidebarMenuItem (<li>) must be the direct child of its SidebarMenu (<ul>),
     // so the Collapsible wrapper lives *inside* the <li> — which also gives the
     // tree its correct semantics (a node's nested <ul> sits within its <li>).
+    // WAI-ARIA Tree View pattern: https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
     <SidebarMenuItem
+      role="treeitem"
+      aria-label={label}
+      aria-level={level + 1}
+      aria-posinset={posInSet}
+      aria-setsize={setSize}
+      aria-expanded={hasChildren ? isExpanded : undefined}
+      aria-selected={isSelectable ? isSelected : undefined}
+      tabIndex={isTabbable ? 0 : -1}
       className={cn(
-        'transition-colors',
+        'rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
         isHighlighted && !isSelected && 'bg-sidebar-accent/50'
       )}
     >
@@ -77,6 +104,8 @@ export const TreeNode = function TreeNode({
               render={
                 <button
                   type="button"
+                  tabIndex={-1}
+                  data-tree-toggle="true"
                   aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${label}`}
                   className="flex size-4 items-center justify-center rounded-sm hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={(e) => {
@@ -100,6 +129,8 @@ export const TreeNode = function TreeNode({
           {!hasChildren && <div className="size-4" />}
 
           <SidebarMenuButton
+            tabIndex={-1}
+            data-tree-label="true"
             onClick={() => {
               // If expandOnSelect is true and has children and not expanded, expand first
               if (expandOnSelect && hasChildren && !isExpanded) {
@@ -152,7 +183,7 @@ export const TreeNode = function TreeNode({
 
         {hasChildren && children && (
           <CollapsibleContent>
-            <SidebarMenuSub>{children}</SidebarMenuSub>
+            <SidebarMenuSub role="group">{children}</SidebarMenuSub>
           </CollapsibleContent>
         )}
       </Collapsible>
