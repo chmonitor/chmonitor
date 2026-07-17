@@ -6,6 +6,9 @@ interface Props {
   alt: string
   /** Hero shot only: it is the LCP element, so skip lazy-loading. */
   eager?: boolean
+  /** Rotation slots: render display:none so only the active shot is visible
+      before any script runs (a JS-only hide left both stacked on slow loads). */
+  hidden?: boolean
 }
 
 /*
@@ -17,7 +20,7 @@ interface Props {
  * the page, and that script counts raw string occurrences of the zoom
  * attribute. A comment naming it would pad the count and mask a regression.
  */
-const { id, src, srcDark, alt, eager = false } = Astro.props
+const { id, src, srcDark, alt, eager = false, hidden = false } = Astro.props
 ---
 
 <button
@@ -26,6 +29,7 @@ const { id, src, srcDark, alt, eager = false } = Astro.props
   data-zoom-src={src}
   data-zoom-src-dark={srcDark}
   data-zoom-alt={alt}
+  style={hidden ? 'display:none' : undefined}
   class="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg bg-transparent p-0 leading-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
   aria-label={`View full size: ${alt}`}
 >

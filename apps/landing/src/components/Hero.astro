@@ -117,9 +117,10 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
 
     {/* Anchor screenshot(s). The hairline lives on THIS wrapper — see
         ScreenshotShot. The two overview shots rotate; the first is the eager
-        LCP element. */}
+        LCP element. Every shot after the first ships hidden so a slow network
+        never shows them stacked while waiting for the first rotation tick. */}
     <div
-      class="mt-12 sm:mt-16 overflow-hidden rounded-xl border border-border bg-card p-1.5 sm:p-2"
+      class="mt-12 sm:mt-16 overflow-hidden rounded-xl border border-border bg-card p-1.5 sm:p-2 hero-shot-frame"
       data-hero-rotate
     >
       {
@@ -129,6 +130,7 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
             src={shot.src}
             alt={shot.alt}
             eager={i === 0}
+            hidden={i > 0}
           />
         ))
       }
@@ -158,6 +160,15 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
       var idx = 0
       var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (reduce) return
+      // Hidden slots carry loading=lazy and display:none, so the browser never
+      // fetched them — warm them after load so the first swap isn't blank.
+      window.addEventListener('load', function () {
+        shots.forEach(function (shot, i) {
+          if (i === 0) return
+          var img = shot.querySelector('img')
+          if (img) new Image().src = img.currentSrc || img.src
+        })
+      })
       setInterval(function () {
         shots[idx].style.display = 'none'
         idx = (idx + 1) % shots.length
@@ -165,4 +176,43 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
       }, 6000)
     })()
   </script>
+
+  {/* Scroll-linked settle: the shot frame starts a touch larger than rest size
+      and eases down to 1 over the first ~360px of scroll. Pure transform (no
+      layout/CLS); the section's overflow-hidden clips the enlarged edges. */}
+  <script is:inline>
+    (function () {
+      var frame = document.querySelector('[data-hero-rotate]')
+      if (!frame) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      var MAX = 0.045
+      var RANGE = 360
+      var ticking = false
+      var apply = function () {
+        ticking = false
+        var p = Math.min(Math.max(window.scrollY, 0) / RANGE, 1)
+        frame.style.setProperty('--hero-shot-scale', (1 + MAX * (1 - p)).toFixed(4))
+      }
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          ticking = true
+          requestAnimationFrame(apply)
+        }
+      }, { passive: true })
+      apply()
+    })()
+  </script>
+
+  <style>
+    .hero-shot-frame {
+      transform: scale(var(--hero-shot-scale, 1.045));
+      transform-origin: 50% 0;
+      will-change: transform;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-shot-frame {
+        transform: none;
+      }
+    }
+  </style>
 </section>
