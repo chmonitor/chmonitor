@@ -20,6 +20,7 @@ import type { AlertPayload } from '@/lib/health/adapters'
 import { describe, expect, test } from 'bun:test'
 import {
   buildDiscordBody,
+  buildGoogleChatBody,
   buildMSTeamsBody,
   buildWebhookDispatchBody,
 } from '@/lib/health/adapters'
@@ -27,6 +28,8 @@ import {
 const DISCORD_URL = 'https://discord.com/api/webhooks/123/abc'
 const MSTEAMS_URL =
   'https://acme.webhook.office.com/webhookb2/abc@def/IncomingWebhook/x/y'
+const GOOGLE_CHAT_URL =
+  'https://chat.googleapis.com/v1/spaces/AAAA/messages?key=x&token=y'
 const SLACK_URL = 'https://hooks.slack.com/services/T000/B000/xxxx'
 const GENERIC_URL = 'https://example.com/hooks/alerts'
 
@@ -106,6 +109,23 @@ describe('buildWebhookDispatchBody', () => {
     expect(body.attachments[0].contentType).toBe(
       'application/vnd.microsoft.card.adaptive'
     )
+  })
+
+  test('Google Chat URL → verbatim provider + cardsV2 card', () => {
+    const result = buildWebhookDispatchBody({
+      url: GOOGLE_CHAT_URL,
+      text: TEXT,
+      payload: CRITICAL,
+    })
+
+    expect(result.adapterId).toBe('google-chat')
+    expect(result.provider).toBe('google-chat')
+    // Body is the exact cardsV2 body — not the generic `{ text, content }`.
+    expect(result.body).toEqual(buildGoogleChatBody(CRITICAL))
+
+    const body = result.body as ReturnType<typeof buildGoogleChatBody>
+    expect(body.cardsV2).toHaveLength(1)
+    expect(body.cardsV2[0].card.header.title).toContain('CRITICAL')
   })
 
   test('Slack URL without blocks → plain { text, content } wrapper', () => {
