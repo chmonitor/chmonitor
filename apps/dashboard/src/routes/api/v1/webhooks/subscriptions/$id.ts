@@ -12,10 +12,11 @@ import { ApiErrorType } from '@/lib/api/types'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { mapSubscriptionApiError } from '@/lib/events/api-errors'
 import { resolveSubscriptionUserId } from '@/lib/events/auth'
-import { parseEventTypes } from '@/lib/events/event-types'
+import { isInstanceScopedEventType, parseEventTypes } from '@/lib/events/event-types'
 import { getWebhookSubscriptionsServerConfig } from '@/lib/events/server-feature'
 import {
   deleteSubscription,
+  getSubscription,
   updateSubscription,
 } from '@/lib/events/subscription-store'
 
@@ -102,6 +103,26 @@ async function handlePatch(
 
   try {
     const userId = await resolveSubscriptionUserId()
+
+    // `scope` isn't patchable (set once at create) — so a `scope: 'user'`
+    // subscription can never gain alert.fired/alert.resolved via PATCH
+    // either. Same dead-end guard as the POST route, checked against the
+    // EXISTING row's scope.
+    if (eventTypes?.some(isInstanceScopedEventType)) {
+      const existing = await getSubscription(userId, subscriptionId)
+      if (existing && existing.scope !== 'instance') {
+        return createApiErrorResponse(
+          {
+            type: ApiErrorType.ValidationError,
+            message:
+              'alert.fired/alert.resolved require an "instance"-scoped subscription (scope is set at creation and cannot be changed)',
+          },
+          400,
+          ROUTE_PATCH
+        )
+      }
+    }
+
     const updated = await updateSubscription(userId, subscriptionId, {
       url,
       eventTypes: eventTypes ?? undefined,
@@ -112,6 +133,7 @@ async function handlePatch(
       url: updated.url,
       eventTypes: updated.eventTypes,
       enabled: updated.enabled,
+      scope: updated.scope,
       updatedAt: updated.updatedAt,
     })
   } catch (error) {

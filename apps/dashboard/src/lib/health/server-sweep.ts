@@ -29,6 +29,7 @@ import {
   resolveTelegramTargets,
 } from './alert-routing'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
+import { dispatchDedupedAlertEvent } from './alert-webhook-events'
 import { loadCustomRulesIntoRegistry } from './custom-rules-store'
 import { sendAlertEmail } from './email-transport'
 import { isSuppressed, listWindows } from './maintenance-windows'
@@ -358,8 +359,17 @@ const SWEEP_ROUTING_OWNER_ID = ''
  * (like Opsgenie/PagerDuty above) — none of them requires the webhook to also
  * be configured; every channel is attempted and audited on its own.
  *
- * Disabled (or no webhook URL and no routes and no Opsgenie/PagerDuty/email) →
- * rules still run, alerts are skipped.
+ * The outbound webhook-subscriptions bus (`alert.fired`/`alert.resolved`,
+ * #2664) is dispatched from the SAME dedup decision as every other channel,
+ * but independently of whether any of THEM are configured — see
+ * `dispatchDedupedAlertEvent` in `alert-webhook-events.ts`. It only depends on
+ * `settings.webhookEnabled` (`HEALTH_ALERT_ENABLED`), the master switch for
+ * this whole sweep's alerting; a deployment with the master switch on but zero
+ * legacy destinations configured still commits dedup state and fires the bus,
+ * it just has nothing for the legacy per-channel loops below to iterate over.
+ *
+ * Disabled (`HEALTH_ALERT_ENABLED` not `true`) → rules still run, alerts
+ * (including the webhook-subscriptions bus) are skipped entirely.
  */
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
@@ -371,15 +381,14 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const emailConfig = getServerEmailConfig()
   const telegramFallback = getServerTelegramConfig()
   const ntfyFallback = getServerNtfyConfig()
-  const canDispatch =
-    settings.webhookEnabled &&
-    (webhookConfigured ||
-      routes.length > 0 ||
-      Boolean(pagerDutyFallbackKey) ||
-      Boolean(opsgenieConfig) ||
-      Boolean(emailConfig) ||
-      Boolean(telegramFallback) ||
-      Boolean(ntfyFallback))
+  // Master switch for `dispatchFinding` (dedup + every channel, INCLUDING the
+  // webhook-subscriptions bus below). Deliberately NOT ANDed with "is any
+  // legacy channel configured" anymore (#2664) — the bus is its own channel
+  // and must fire regardless of whether webhook/routes/PagerDuty/Opsgenie/
+  // email/Telegram/ntfy happen to be set up; those per-channel loops inside
+  // `dispatchFinding` already no-op cleanly (empty target lists) when
+  // unconfigured, same as today.
+  const alertingEnabled = settings.webhookEnabled
   const minRank = SEVERITY_ORDER[settings.minSeverity]
   const cooldownMs = getServerAlertCooldownMs()
 
@@ -597,6 +606,25 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     }
 
     if (decision.notify) {
+      // Outbound webhook-subscriptions bus (#2664): fires from this SAME
+      // dedup decision, independently of every legacy channel below —
+      // "regardless of channel config" per the issue, this is its own
+      // channel. Fire-and-forget (never awaited, never throws — see
+      // `alert-webhook-events.ts` / `outbound-bus.ts`'s module docblock), so
+      // a slow/unreachable subscriber endpoint can never delay or fail this
+      // sweep tick. Placed before the legacy fan-out (not after / not
+      // conditioned on `anyDelivered`) so it fires exactly once per notify
+      // decision no matter how many — if any — legacy destinations exist.
+      dispatchDedupedAlertEvent({
+        hostId,
+        hostLabel: name,
+        ruleId,
+        ruleTitle,
+        decision,
+        value,
+        label,
+      })
+
       // Catch-up (#2662): a critical suppressed during a quiet-hours window
       // whose window has now closed — label the (naturally re-delivered)
       // notification so the operator knows it was held back. Consumed once.
@@ -1065,7 +1093,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           })
         }
 
-        if (canDispatch) {
+        if (alertingEnabled) {
           await dispatchFinding({
             hostId: config.id,
             hostName: name,
@@ -1130,7 +1158,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
               : severity,
           })
         }
-        if (canDispatch) {
+        if (alertingEnabled) {
           await dispatchFinding({
             hostId: config.id,
             hostName: name,

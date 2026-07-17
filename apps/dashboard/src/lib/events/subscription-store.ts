@@ -15,6 +15,17 @@ import { getPlatformBindings } from '@chm/platform'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 
+/**
+ * `'user'` (default): delivered only to the creating user's own events
+ * (`connection.created/deleted`) — the original plan 44 behavior.
+ * `'instance'` (#2664): opts in to instance-scoped events (`alert.fired`/
+ * `alert.resolved`) that have no per-user owner (env-configured hosts belong
+ * to the operator) — delivery fans out to every enabled instance-scoped
+ * subscription across ALL users, not just the creator. See `event-types.ts`'s
+ * docblock for the full rationale.
+ */
+export type SubscriptionScope = 'user' | 'instance'
+
 export interface WebhookSubscription {
   id: string
   userId: string
@@ -22,6 +33,7 @@ export interface WebhookSubscription {
   secret: string
   eventTypes: EmittableEventType[]
   enabled: boolean
+  scope: SubscriptionScope
   createdAt: number
   updatedAt: number
 }
@@ -29,6 +41,8 @@ export interface WebhookSubscription {
 export interface CreateWebhookSubscriptionInput {
   url: string
   eventTypes: EmittableEventType[]
+  /** Defaults to `'user'` when omitted. */
+  scope?: SubscriptionScope
 }
 
 export interface UpdateWebhookSubscriptionInput {
@@ -71,8 +85,13 @@ interface D1SubscriptionRow {
   secret: string
   event_types: string
   enabled: number
+  scope: string
   created_at: number
   updated_at: number
+}
+
+function normalizeScope(value: string | null | undefined): SubscriptionScope {
+  return value === 'instance' ? 'instance' : 'user'
 }
 
 interface D1DeliveryRow {
@@ -127,6 +146,7 @@ function rowToSubscription(row: D1SubscriptionRow): WebhookSubscription {
     secret: row.secret,
     eventTypes,
     enabled: row.enabled === 1,
+    scope: normalizeScope(row.scope),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -154,7 +174,7 @@ export async function listSubscriptions(
     const db = getDb()
     const result = await db
       .prepare(
-        `SELECT id, user_id, url, secret, event_types, enabled, created_at, updated_at
+        `SELECT id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at
          FROM webhook_subscriptions WHERE user_id = ?1 ORDER BY created_at DESC`
       )
       .bind(userId)
@@ -179,7 +199,7 @@ export async function getSubscription(
     const db = getDb()
     const row = await db
       .prepare(
-        `SELECT id, user_id, url, secret, event_types, enabled, created_at, updated_at
+        `SELECT id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at
          FROM webhook_subscriptions WHERE user_id = ?1 AND id = ?2`
       )
       .bind(userId, id)
@@ -210,6 +230,39 @@ export async function listEnabledSubscriptionsForEvent(
   )
 }
 
+/**
+ * Enabled `scope: 'instance'` subscriptions across ALL users whose
+ * `event_types` include `eventType` — the read path for instance-scoped
+ * producers (`alert.fired`/`alert.resolved`, #2664) that have no per-user
+ * owner to filter by. Deliberately NOT scoped by `user_id`: env/operator
+ * hosts belong to the operator, not any one Clerk user, so every user who
+ * opted a subscription into `scope: 'instance'` receives these events.
+ */
+export const D1_LIST_INSTANCE_SCOPED_SQL = `SELECT id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at
+   FROM webhook_subscriptions WHERE scope = 'instance' AND enabled = 1`
+
+export async function listInstanceScopedSubscriptionsForEvent(
+  eventType: string
+): Promise<WebhookSubscription[]> {
+  try {
+    const db = getDb()
+    const result = await db
+      .prepare(D1_LIST_INSTANCE_SCOPED_SQL)
+      .all<D1SubscriptionRow>()
+    const all = (result.results || []).map(rowToSubscription)
+    return all.filter((s) =>
+      (s.eventTypes as readonly string[]).includes(eventType)
+    )
+  } catch (error) {
+    if (error instanceof WebhookSubscriptionStoreError) throw error
+    throw new WebhookSubscriptionStoreError(
+      `Failed to list instance-scoped webhook subscriptions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'STORAGE_ERROR',
+      error
+    )
+  }
+}
+
 export async function createSubscription(
   userId: string,
   input: CreateWebhookSubscriptionInput
@@ -218,13 +271,14 @@ export async function createSubscription(
   const now = Date.now()
   const id = crypto.randomUUID()
   const secret = generateSubscriptionSecret()
+  const scope: SubscriptionScope = input.scope === 'instance' ? 'instance' : 'user'
 
   try {
     await db
       .prepare(
         `INSERT INTO webhook_subscriptions
-           (id, user_id, url, secret, event_types, enabled, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?6)`
+           (id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?7, ?7)`
       )
       .bind(
         id,
@@ -232,6 +286,7 @@ export async function createSubscription(
         input.url,
         secret,
         JSON.stringify(input.eventTypes),
+        scope,
         now
       )
       .run()
@@ -250,6 +305,7 @@ export async function createSubscription(
     secret,
     eventTypes: input.eventTypes,
     enabled: true,
+    scope,
     createdAt: now,
     updatedAt: now,
   }

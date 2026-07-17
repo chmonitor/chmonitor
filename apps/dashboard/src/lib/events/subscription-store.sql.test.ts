@@ -22,19 +22,22 @@ mock.module('@chm/platform', () => ({
   }),
 }))
 
-const { D1_UPDATE_SUBSCRIPTION_SQL, D1_DELETE_SUBSCRIPTION_SQL } = await import(
-  './subscription-store'
-)
+const {
+  D1_UPDATE_SUBSCRIPTION_SQL,
+  D1_DELETE_SUBSCRIPTION_SQL,
+  D1_LIST_INSTANCE_SCOPED_SQL,
+} = await import('./subscription-store')
 
 function seed() {
   const db = new Database(':memory:')
   db.run(`CREATE TABLE webhook_subscriptions (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, url TEXT NOT NULL,
     secret TEXT NOT NULL, event_types TEXT NOT NULL,
-    enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER, updated_at INTEGER)`)
+    enabled INTEGER NOT NULL DEFAULT 1, scope TEXT NOT NULL DEFAULT 'user',
+    created_at INTEGER, updated_at INTEGER)`)
   db.run(
     `INSERT INTO webhook_subscriptions VALUES
-     ('sub-1','user-1','https://orig.example.com/hook','orig-secret','["connection.created"]',1,1,1)`
+     ('sub-1','user-1','https://orig.example.com/hook','orig-secret','["connection.created"]',1,'user',1,1)`
   )
   return db
 }
@@ -110,5 +113,46 @@ describe('webhook_subscriptions DELETE guard (real SQL)', () => {
     const db = seed()
     const res = db.query(D1_DELETE_SUBSCRIPTION_SQL).run('sub-1', 'user-1')
     expect(res.changes).toBe(1)
+  })
+})
+
+describe('D1_LIST_INSTANCE_SCOPED_SQL (real SQL, #2664)', () => {
+  test('returns enabled instance-scoped subscriptions across MULTIPLE users — this read is deliberately NOT user-scoped', () => {
+    const db = seed() // sub-1: scope='user', user-1 — must NOT be returned
+    db.run(
+      `INSERT INTO webhook_subscriptions VALUES
+       ('sub-2','user-2','https://b.example.com/hook','secret-b','["alert.fired"]',1,'instance',2,2)`
+    )
+    db.run(
+      `INSERT INTO webhook_subscriptions VALUES
+       ('sub-3','user-3','https://c.example.com/hook','secret-c','["alert.fired","alert.resolved"]',1,'instance',3,3)`
+    )
+    // Disabled instance-scoped row — must NOT be returned.
+    db.run(
+      `INSERT INTO webhook_subscriptions VALUES
+       ('sub-4','user-4','https://d.example.com/hook','secret-d','["alert.fired"]',0,'instance',4,4)`
+    )
+
+    const rows = db.query(D1_LIST_INSTANCE_SCOPED_SQL).all() as {
+      id: string
+      user_id: string
+      scope: string
+    }[]
+
+    expect(rows.map((r) => r.id).sort()).toEqual(['sub-2', 'sub-3'])
+    // Different owning users, both returned by the SAME query — proves the
+    // read crosses ownership, unlike every other subscription-store query.
+    expect(new Set(rows.map((r) => r.user_id))).toEqual(
+      new Set(['user-2', 'user-3'])
+    )
+  })
+
+  test('a plain (default) scope="user" subscription is excluded even if it lists alert.fired', () => {
+    const db = seed()
+    db.run(
+      `UPDATE webhook_subscriptions SET event_types = '["alert.fired"]' WHERE id = 'sub-1'`
+    )
+    const rows = db.query(D1_LIST_INSTANCE_SCOPED_SQL).all()
+    expect(rows).toHaveLength(0)
   })
 })

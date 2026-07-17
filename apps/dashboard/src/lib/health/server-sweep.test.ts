@@ -30,6 +30,7 @@ import {
   mock,
   test,
 } from 'bun:test'
+import { createHmac } from 'node:crypto'
 
 // --- fake D1 (captures INSERTs from recordAlertEvent) -----------------------
 interface FakeRow {
@@ -63,17 +64,59 @@ interface FakeRouteRow {
 }
 
 /**
+ * A pre-configured `webhook_subscriptions` row, as `subscription-store.ts`'s
+ * `listInstanceScopedSubscriptionsForEvent` (#2664) reads it.
+ */
+interface FakeInstanceSubscriptionRow {
+  id: string
+  user_id: string
+  url: string
+  secret: string
+  event_types: string
+  enabled: number
+  scope: string
+  created_at: number
+  updated_at: number
+}
+
+/** One captured `webhook_deliveries` INSERT — the outbound bus's audit log. */
+interface FakeDeliveryRow {
+  id: string
+  subscription_id: string
+  event_type: string
+  status: string
+  attempts: number
+  last_status_code: number | null
+  last_error: string | null
+  event_time: number
+  delivered_at: number | null
+}
+
+/**
  * `routes` seeds what the SELECT in `alert-routing.ts` (`listRoutes`) returns,
  * so tests can exercise the sweep's fan-out over ≥1 configured routes — every
  * other test in this file passes no routes, which only exercises the legacy
  * global-webhook fallback (`resolveTargets` sees `[]` and falls back).
+ * `instanceSubs` seeds the webhook-subscriptions bus's instance-scoped read
+ * (`subscription-store.ts`'s `D1_LIST_INSTANCE_SCOPED_SQL`, #2664) — every
+ * other test passes none, so `emitInstanceEvent` sees zero subscribers and
+ * no-ops (proving the bus's presence never affects legacy-channel behavior).
  * `prepare()` branches on the SQL's target table, mirroring
- * `alert-routing.test.ts`'s fake-D1 pattern.
+ * `alert-routing.test.ts`'s fake-D1 pattern. Deliveries recorded against
+ * `webhook_deliveries` (the outbound bus's own audit log) are captured
+ * SEPARATELY from `rows` (`alert_events`, the legacy alert-history log) so
+ * the two INSERT shapes — very different column layouts — can never be
+ * cross-contaminated.
  */
-function makeFakeD1(routes: FakeRouteRow[] = []) {
+function makeFakeD1(
+  routes: FakeRouteRow[] = [],
+  instanceSubs: FakeInstanceSubscriptionRow[] = []
+) {
   const rows: FakeRow[] = []
+  const deliveries: FakeDeliveryRow[] = []
   return {
     rows,
+    deliveries,
     // Real D1-backed stores the sweep touches (e.g. quiet-hours) run their
     // lazy DDL migration via `db.batch(...)` before reading. Without this,
     // `db.batch` throws SYNCHRONOUSLY inside their single-flight
@@ -84,56 +127,111 @@ function makeFakeD1(routes: FakeRouteRow[] = []) {
       stmts.map(() => ({ meta: { changes: 0 } })),
     prepare(sql: string) {
       const isRoutesSelect = /FROM alert_routes/i.test(sql)
+      const isSubscriptionsSelect = /FROM webhook_subscriptions/i.test(sql)
+      const isDeliveryInsert = /INTO webhook_deliveries/i.test(sql)
+
+      // Shared run()/all() so both the unbound statement (real D1 supports
+      // calling `.run()`/`.all()` directly when the SQL has no `?`
+      // placeholders — see e.g. `alert-suggestion-dismissals-store.ts`'s
+      // `db.prepare(MIGRATION_SQL).run()`, and `subscription-store.ts`'s
+      // `D1_LIST_INSTANCE_SCOPED_SQL` read, #2664) and the `.bind(...args)`
+      // form behave identically.
+      async function run(
+        args: unknown[]
+      ): Promise<{ meta: { changes: number } }> {
+        if (isDeliveryInsert) {
+          const [
+            id,
+            subscriptionId,
+            eventType,
+            status,
+            attempts,
+            lastStatusCode,
+            lastError,
+            eventTime,
+            deliveredAt,
+          ] = args as [
+            string,
+            string,
+            string,
+            string,
+            number,
+            number | null,
+            string | null,
+            number,
+            number | null,
+          ]
+          deliveries.push({
+            id,
+            subscription_id: subscriptionId,
+            event_type: eventType,
+            status,
+            attempts,
+            last_status_code: lastStatusCode,
+            last_error: lastError,
+            event_time: eventTime,
+            delivered_at: deliveredAt,
+          })
+          return { meta: { changes: 1 } }
+        }
+        const [
+          id,
+          eventTime,
+          hostId,
+          hostLabel,
+          rule,
+          severity,
+          prevSeverity,
+          decisionKind,
+          delivered,
+          error,
+          value,
+          channel,
+        ] = args as [
+          string,
+          string,
+          number,
+          string | null,
+          string,
+          string,
+          string | null,
+          string,
+          number,
+          string | null,
+          number | null,
+          string | null,
+        ]
+        rows.push({
+          id,
+          event_time: eventTime,
+          host_id: hostId,
+          host_label: hostLabel,
+          rule,
+          severity,
+          prev_severity: prevSeverity,
+          decision_kind: decisionKind,
+          delivered,
+          error,
+          value,
+          channel,
+        })
+        return { meta: { changes: 1 } }
+      }
+
+      async function all<T>(): Promise<{ results: T[] }> {
+        if (isSubscriptionsSelect) {
+          return { results: instanceSubs as T[] }
+        }
+        return { results: (isRoutesSelect ? routes : []) as T[] }
+      }
+
       return {
+        run: () => run([]),
+        all,
         bind(...args: unknown[]) {
           return {
-            async run(): Promise<{ meta: { changes: number } }> {
-              const [
-                id,
-                eventTime,
-                hostId,
-                hostLabel,
-                rule,
-                severity,
-                prevSeverity,
-                decisionKind,
-                delivered,
-                error,
-                value,
-                channel,
-              ] = args as [
-                string,
-                string,
-                number,
-                string | null,
-                string,
-                string,
-                string | null,
-                string,
-                number,
-                string | null,
-                number | null,
-                string | null,
-              ]
-              rows.push({
-                id,
-                event_time: eventTime,
-                host_id: hostId,
-                host_label: hostLabel,
-                rule,
-                severity,
-                prev_severity: prevSeverity,
-                decision_kind: decisionKind,
-                delivered,
-                error,
-                value,
-                channel,
-              })
-              return { meta: { changes: 1 } }
-            },
-            async all<T>(): Promise<{ results: T[] }> {
-              return { results: (isRoutesSelect ? routes : []) as T[] }
-            },
+            run: () => run(args),
+            all,
           }
         },
       }
@@ -969,5 +1067,191 @@ describe('runHealthSweep — ACK suppression', () => {
     expect(summary.ackedSuppressed).toBe(0)
     // … and the now-moot ACK is cleared.
     expect(clearAckCalls).toContainEqual({ hostId: 0, ruleId: TEST_RULE_ID })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runHealthSweep — outbound webhook-subscriptions bus (#2664)
+// ---------------------------------------------------------------------------
+//
+// `203.0.113.10` (TEST-NET-3, RFC 5737) is used as the bus subscriber's URL:
+// an IP literal skips DNS resolution entirely in `validateHostUrl` (see
+// `host-url.ts`), so these tests exercise the REAL `emitInstanceEvent` →
+// `deliver()` path (real HMAC signing, real SSRF guard) without any DNS call
+// or injected test doubles — `dispatchDedupedAlertEvent` (called from
+// `server-sweep.ts`) does not accept injectable deps, matching every other
+// fire-and-forget producer in this codebase (see `outbound-bus.ts`'s module
+// docblock / `user-connections.ts`'s `void emitEvent(...)`).
+describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => {
+  const BUS_URL = 'https://203.0.113.10/hook'
+  const BUS_SECRET = 'bus-subscriber-secret'
+
+  function seedInstanceSubscription(eventTypes: string[]) {
+    fakeDb = makeFakeD1([], [
+      {
+        id: 'bus-sub-1',
+        user_id: 'some-other-user', // NOT the sweep's own owner id — proves this is instance-scoped, not user-scoped
+        url: BUS_URL,
+        secret: BUS_SECRET,
+        event_types: JSON.stringify(eventTypes),
+        enabled: 1,
+        scope: 'instance',
+        created_at: 1,
+        updated_at: 1,
+      },
+    ])
+  }
+
+  test('alert.fired reaches an instance-scoped subscription, HMAC-signed, alongside the legacy webhook', async () => {
+    seedInstanceSubscription(['alert.fired', 'alert.resolved'])
+
+    const posted: { url: string; headers: Record<string, string>; body: string }[] =
+      []
+    globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+      posted.push({
+        url: String(url),
+        headers: (init?.headers ?? {}) as Record<string, string>,
+        body: String(init?.body ?? ''),
+      })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // Legacy channel unaffected — the bus is additive, not a replacement.
+    const legacyPost = posted.find((p) =>
+      p.url.startsWith('https://hooks.slack.com')
+    )
+    expect(legacyPost).toBeTruthy()
+    expect(summary.alertsDispatched).toBe(1)
+
+    // Give the fire-and-forget bus delivery a tick to land (it's never
+    // awaited by runHealthSweep — see the describe block docblock).
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    const busPost = posted.find((p) => p.url === BUS_URL)
+    expect(busPost).toBeTruthy()
+    expect(busPost?.headers['X-Chmonitor-Event']).toBe('alert.fired')
+
+    const expectedSig = createHmac('sha256', BUS_SECRET)
+      .update(busPost?.body ?? '')
+      .digest('hex')
+    expect(busPost?.headers['X-Chmonitor-Signature']).toBe(
+      `sha256=${expectedSig}`
+    )
+
+    const payload = JSON.parse(busPost?.body ?? '{}')
+    expect(payload).toMatchObject({
+      type: 'alert.fired',
+      host_id: 0,
+      data: {
+        ruleId: TEST_RULE_ID,
+        title: 'Test Sweep Rule',
+        severity: 'critical',
+        hostId: 0,
+        resolved: false,
+      },
+    })
+
+    expect(fakeDb.deliveries).toHaveLength(1)
+    expect(fakeDb.deliveries[0]).toMatchObject({
+      status: 'delivered',
+      event_type: 'alert.fired',
+    })
+  })
+
+  test('alert.resolved fires with resolved:true and the pre-recovery severity', async () => {
+    seedInstanceSubscription(['alert.fired', 'alert.resolved'])
+    globalThis.fetch = mock(async () => new Response(null, { status: 200 })) as unknown as typeof fetch
+
+    // First sweep: fires (critical) and commits dedup state.
+    await runHealthSweep()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    // Second sweep: condition resolves.
+    testValue = 0
+    const posted: { url: string; body: string }[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+      posted.push({ url: String(url), body: String(init?.body ?? '') })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    await runHealthSweep()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    const busPost = posted.find((p) => p.url === BUS_URL)
+    expect(busPost).toBeTruthy()
+    const payload = JSON.parse(busPost?.body ?? '{}')
+    expect(payload.type).toBe('alert.resolved')
+    expect(payload.data).toMatchObject({ resolved: true, severity: 'critical' })
+  })
+
+  test('fires regardless of legacy channel config — no webhook URL, no routes, still delivers to the bus and commits dedup', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    seedInstanceSubscription(['alert.fired'])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    // No legacy channel configured at all -> alertsDispatched (legacy-only
+    // counter) stays 0, same as the "no route matches" test above …
+    expect(summary.alertsDispatched).toBe(0)
+    // … but the bus is its own channel and fired anyway.
+    expect(posted).toContain(BUS_URL)
+    expect(fakeDb.deliveries).toHaveLength(1)
+
+    // Dedup committed too (not just the legacy path): a second sweep with
+    // the SAME still-firing condition is a suppressed repeat, not a fresh
+    // "new" — proving `evaluateAlert` ran and `commit()` was called even
+    // with zero legacy destinations.
+    const summary2 = await runHealthSweep()
+    expect(summary2.alertsSuppressed).toBe(1)
+  })
+
+  test('a dead (non-retryable) bus subscriber never breaks the legacy webhook delivery', async () => {
+    seedInstanceSubscription(['alert.fired'])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      // The bus subscriber is broken (404 = non-retryable, dead-lettered
+      // immediately); the legacy Slack webhook is healthy.
+      if (String(url) === BUS_URL) {
+        return new Response(null, { status: 404 })
+      }
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    // Legacy delivery succeeded and was counted, completely unaffected by
+    // the broken bus subscriber.
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toContain('https://hooks.slack.com/services/T000/B000/XXXX')
+    expect(fakeDb.deliveries).toHaveLength(1)
+    expect(fakeDb.deliveries[0]?.status).toBe('dead')
+  })
+
+  test('no instance-scoped subscription exists -> the bus is a silent no-op, zero behavior change', async () => {
+    // Default fakeDb from beforeEach has no instance-scoped subscriptions.
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toEqual(['https://hooks.slack.com/services/T000/B000/XXXX'])
+    expect(fakeDb.deliveries).toHaveLength(0)
   })
 })

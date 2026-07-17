@@ -4,6 +4,10 @@
  * `emitEvent` fans a single event out to every enabled subscription a user
  * owns for that event type: HMAC-signed, retried with bounded backoff, and
  * recorded (delivered/failed/dead) in the `webhook_deliveries` audit log.
+ * `emitInstanceEvent` (#2664) is the sibling for producers with no per-user
+ * owner (the health-alert cron sweep's `alert.fired`/`alert.resolved`) — same
+ * delivery/signing/retry machinery, but fans out to every enabled
+ * `scope: 'instance'` subscription across ALL users instead of one user's own.
  *
  * SECURITY (SSRF): every subscription URL is re-validated at SEND time via
  * `validateHostUrl` — the SAME guard `routes/api/v1/health/webhook.ts` uses
@@ -35,6 +39,7 @@ import type {
 
 import {
   listEnabledSubscriptionsForEvent,
+  listInstanceScopedSubscriptionsForEvent,
   recordDelivery as recordDeliveryToStore,
 } from './subscription-store'
 import { error } from '@chm/logger'
@@ -61,6 +66,12 @@ export interface DeliverDeps {
 export interface EmitEventDeps extends DeliverDeps {
   listSubscriptionsForEvent?: (
     userId: string,
+    eventType: string
+  ) => Promise<WebhookSubscription[]>
+}
+
+export interface EmitInstanceEventDeps extends DeliverDeps {
+  listInstanceSubscriptionsForEvent?: (
     eventType: string
   ) => Promise<WebhookSubscription[]>
 }
@@ -296,6 +307,43 @@ export async function emitEvent(
   } catch (err) {
     error(
       '[events] emitEvent failed',
+      err instanceof Error ? err : new Error(String(err))
+    )
+  }
+}
+
+/**
+ * Emit `evt` to every enabled `scope: 'instance'` subscription (across ALL
+ * users) whose `event_types` includes `evt.type` — the delivery path for
+ * instance-scoped producers (`alert.fired`/`alert.resolved`, #2664) that have
+ * no per-user owner to pass to {@link emitEvent}. Same fire-and-forget /
+ * never-throws contract as `emitEvent` — see the module docblock.
+ */
+export async function emitInstanceEvent(
+  evt: EventPayload,
+  deps: EmitInstanceEventDeps = {}
+): Promise<void> {
+  try {
+    const listInstanceSubscriptionsForEvent =
+      deps.listInstanceSubscriptionsForEvent ??
+      listInstanceScopedSubscriptionsForEvent
+    const subs = await listInstanceSubscriptionsForEvent(evt.type)
+    if (subs.length === 0) return
+
+    const results = await Promise.allSettled(
+      subs.map((sub) => deliver(sub, evt, deps))
+    )
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        error(
+          '[events] emitInstanceEvent: a delivery rejected unexpectedly',
+          result.reason
+        )
+      }
+    }
+  } catch (err) {
+    error(
+      '[events] emitInstanceEvent failed',
       err instanceof Error ? err : new Error(String(err))
     )
   }

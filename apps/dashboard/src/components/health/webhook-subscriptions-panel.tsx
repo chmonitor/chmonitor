@@ -23,7 +23,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { EMITTABLE_EVENT_TYPES } from '@/lib/events/event-types'
+import {
+  EMITTABLE_EVENT_TYPES,
+  isInstanceScopedEventType,
+} from '@/lib/events/event-types'
 import {
   useWebhookDeliveries,
   useWebhookSubscriptions,
@@ -139,6 +142,9 @@ function SubscriptionRow({
             {subscription.url}
           </span>
           <div className="flex flex-wrap gap-1">
+            {subscription.scope === 'instance' && (
+              <Badge variant="secondary">instance-scoped</Badge>
+            )}
             {subscription.eventTypes.map((t) => (
               <Badge key={t} variant="outline">
                 {t}
@@ -191,6 +197,7 @@ function SubscriptionRow({
 function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
   const [url, setUrl] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [instanceScoped, setInstanceScoped] = useState(false)
   const [busy, setBusy] = useState(false)
   const { createSubscription } = useWebhookSubscriptionsMutations()
 
@@ -213,6 +220,7 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
       const created = await createSubscription({
         url: url.trim(),
         eventTypes: Array.from(selected),
+        scope: instanceScoped ? 'instance' : 'user',
       })
       toast.success('Subscription created', {
         description: `Secret (shown once): ${created.secret}`,
@@ -220,6 +228,7 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
       })
       setUrl('')
       setSelected(new Set())
+      setInstanceScoped(false)
       onCreated()
     } catch (err) {
       toast.error(
@@ -239,21 +248,44 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
         onChange={(e) => setUrl(e.target.value)}
       />
       <div className="flex flex-wrap gap-3">
-        {EMITTABLE_EVENT_TYPES.map((type) => (
-          <label
-            key={type}
-            className="flex items-center gap-1.5 text-sm"
-            htmlFor={`event-type-${type}`}
-          >
-            <Checkbox
-              id={`event-type-${type}`}
-              checked={selected.has(type)}
-              onCheckedChange={(checked) => toggleType(type, checked === true)}
-            />
-            {type}
-          </label>
-        ))}
+        {EMITTABLE_EVENT_TYPES.map((type) => {
+          const requiresInstanceScope = isInstanceScopedEventType(type)
+          return (
+            <label
+              key={type}
+              className={cn(
+                'flex items-center gap-1.5 text-sm',
+                requiresInstanceScope &&
+                  !instanceScoped &&
+                  'text-muted-foreground'
+              )}
+              htmlFor={`event-type-${type}`}
+            >
+              <Checkbox
+                id={`event-type-${type}`}
+                checked={selected.has(type)}
+                onCheckedChange={(checked) =>
+                  toggleType(type, checked === true)
+                }
+              />
+              {type}
+            </label>
+          )
+        })}
       </div>
+      <label
+        className="flex items-center gap-1.5 text-sm"
+        htmlFor="subscription-instance-scope"
+      >
+        <Checkbox
+          id="subscription-instance-scope"
+          checked={instanceScoped}
+          onCheckedChange={(checked) => setInstanceScoped(checked === true)}
+        />
+        Instance-scoped (required for alert.fired / alert.resolved — these
+        come from the operator&apos;s env-configured hosts, not your own
+        connections)
+      </label>
       <Button
         size="sm"
         className="self-start"

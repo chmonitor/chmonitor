@@ -21,7 +21,9 @@ mock.module('@chm/platform', () => ({
   }),
 }))
 
-const { deliver, emitEvent, signPayload } = await import('./outbound-bus')
+const { deliver, emitEvent, emitInstanceEvent, signPayload } = await import(
+  './outbound-bus'
+)
 const { EMITTABLE_EVENT_TYPES } = await import('./event-types')
 
 function makeSubscription(
@@ -34,6 +36,7 @@ function makeSubscription(
     secret: 'test-secret',
     eventTypes: ['connection.created'],
     enabled: true,
+    scope: 'user',
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
     ...overrides,
@@ -354,13 +357,170 @@ describe('emitEvent', () => {
   })
 })
 
+describe('emitInstanceEvent', () => {
+  test('fans an alert.fired event out to every enabled instance-scoped subscription, HMAC-signed, regardless of owning user', async () => {
+    const subs = [
+      makeSubscription({
+        id: 'sub-a',
+        userId: 'user-1',
+        secret: 'secret-a',
+        scope: 'instance',
+        eventTypes: ['alert.fired'],
+      }),
+      makeSubscription({
+        id: 'sub-b',
+        userId: 'user-2', // a DIFFERENT user than sub-a — proves this isn't user-scoped
+        secret: 'secret-b',
+        scope: 'instance',
+        eventTypes: ['alert.fired'],
+        url: 'https://b.example.com/hook',
+      }),
+    ]
+    const captured: { url: string; headers: Record<string, string> }[] = []
+    const fetchImpl = mock(async (url: string, init: RequestInit) => {
+      captured.push({
+        url: url.toString(),
+        headers: init.headers as Record<string, string>,
+      })
+      return new Response(null, { status: 200 })
+    })
+    const recorded: Array<Record<string, unknown>> = []
+
+    const alertEvent = makeEvent({
+      type: 'alert.fired',
+      host_id: 3,
+      data: {
+        ruleId: 'disk-usage',
+        title: 'Disk usage',
+        severity: 'critical',
+        hostId: 3,
+        hostLabel: 'prod',
+        value: 92,
+        label: '92%',
+        resolved: false,
+        occurredAt: new Date(1_700_000_001_000).toISOString(),
+      },
+    })
+
+    await emitInstanceEvent(alertEvent, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      delay: noDelay,
+      recordDelivery: async (r) => {
+        recorded.push(r)
+      },
+      resolveHostAddresses: publicResolver,
+      listInstanceSubscriptionsForEvent: async (eventType) => {
+        expect(eventType).toBe('alert.fired')
+        return subs
+      },
+    })
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(recorded).toHaveLength(2)
+    expect(recorded.map((r) => r.subscriptionId).sort()).toEqual([
+      'sub-a',
+      'sub-b',
+    ])
+
+    // Each subscriber's OWN secret signs the payload — verify independently.
+    const bodyStr = JSON.stringify(alertEvent)
+    for (const [idx, sub] of subs.entries()) {
+      const expectedSig = independentHmacHex(sub.secret, bodyStr)
+      expect(captured[idx].headers['X-Chmonitor-Signature']).toBe(
+        `sha256=${expectedSig}`
+      )
+      expect(captured[idx].headers['X-Chmonitor-Event']).toBe('alert.fired')
+    }
+  })
+
+  test('an alert.resolved event carries resolved:true and the pre-recovery severity', async () => {
+    const sub = makeSubscription({
+      scope: 'instance',
+      eventTypes: ['alert.resolved'],
+    })
+    let capturedBody: string | undefined
+    const fetchImpl = mock(async (_url: string, init: RequestInit) => {
+      capturedBody = init.body as string
+      return new Response(null, { status: 200 })
+    })
+
+    const resolvedEvent = makeEvent({
+      type: 'alert.resolved',
+      host_id: 3,
+      data: {
+        ruleId: 'disk-usage',
+        title: 'Disk usage',
+        severity: 'critical',
+        hostId: 3,
+        hostLabel: 'prod',
+        value: 10,
+        label: '10%',
+        resolved: true,
+        occurredAt: new Date(1_700_000_001_000).toISOString(),
+      },
+    })
+
+    await emitInstanceEvent(resolvedEvent, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      delay: noDelay,
+      recordDelivery: async () => {},
+      resolveHostAddresses: publicResolver,
+      listInstanceSubscriptionsForEvent: async () => [sub],
+    })
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    const parsed = JSON.parse(capturedBody ?? '{}')
+    expect(parsed.type).toBe('alert.resolved')
+    expect(parsed.data).toMatchObject({ resolved: true, severity: 'critical' })
+  })
+
+  test('never throws when the instance-scoped subscription lookup itself fails — a failing/absent D1 must never break the alert path', async () => {
+    await expect(
+      emitInstanceEvent(makeEvent({ type: 'alert.fired' }), {
+        listInstanceSubscriptionsForEvent: async () => {
+          throw new Error('D1 unavailable')
+        },
+      })
+    ).resolves.toBeUndefined()
+  })
+
+  test('never throws when every delivery fails (subscriber endpoint down)', async () => {
+    const fetchImpl = mock(async () => {
+      throw new Error('ECONNREFUSED')
+    })
+
+    await expect(
+      emitInstanceEvent(makeEvent({ type: 'alert.fired' }), {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        delay: noDelay,
+        recordDelivery: async () => {},
+        resolveHostAddresses: publicResolver,
+        listInstanceSubscriptionsForEvent: async () => [
+          makeSubscription({ scope: 'instance', eventTypes: ['alert.fired'] }),
+        ],
+      })
+    ).resolves.toBeUndefined()
+  })
+
+  test('is a no-op when there are no matching instance-scoped subscriptions', async () => {
+    const recordDelivery = mock(async () => {})
+    await emitInstanceEvent(makeEvent({ type: 'alert.fired' }), {
+      recordDelivery,
+      listInstanceSubscriptionsForEvent: async () => [],
+    })
+    expect(recordDelivery).not.toHaveBeenCalled()
+  })
+})
+
 describe('event taxonomy', () => {
-  test('only lists event types with a genuine wired producer', () => {
-    // See event-types.ts docblock: alert.*/insight.* have no per-user owner
-    // anywhere in this codebase today, so they are intentionally absent.
+  test('lists every event type with a genuine wired producer', () => {
+    // connection.* are user-scoped (emitEvent); alert.* are instance-scoped
+    // (emitInstanceEvent, #2664) — see event-types.ts's docblock for why.
     expect(EMITTABLE_EVENT_TYPES).toEqual([
       'connection.created',
       'connection.deleted',
+      'alert.fired',
+      'alert.resolved',
     ])
   })
 })

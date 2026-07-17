@@ -18,6 +18,10 @@ export interface WebhookSubscriptionInfo {
   url: string
   eventTypes: string[]
   enabled: boolean
+  /** 'user' (default): only the creator's own events. 'instance' (#2664):
+   * also eligible for alert.fired/alert.resolved (env/operator hosts, no
+   * per-user owner) — see event-types.ts's docblock. */
+  scope: 'user' | 'instance'
   createdAt: number
   updatedAt: number
 }
@@ -106,6 +110,7 @@ export function useWebhookSubscriptionsMutations() {
   const createSubscription = async (input: {
     url: string
     eventTypes: string[]
+    scope?: 'user' | 'instance'
   }): Promise<WebhookSubscriptionCreated> => {
     const response = await apiFetch('/api/v1/webhooks/subscriptions', {
       method: 'POST',
