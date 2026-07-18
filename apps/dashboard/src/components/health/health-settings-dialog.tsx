@@ -7,6 +7,7 @@ import { ActiveAlertsPanel } from './active-alerts-panel'
 import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
 import { ChannelSeverityToggle } from './channel-severity-toggle'
+import { DigestSettingsPanel } from './digest-settings-panel'
 import { HEALTH_CHECKS } from './health-checks'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
 import { QuietHoursPanel } from './quiet-hours-panel'
@@ -455,6 +456,10 @@ export function HealthSettingsDialog() {
                 <Separator />
 
                 <ServerChannelConfigPanel />
+
+                <Separator />
+
+                <DigestSettingsPanel />
 
                 <Separator />
 

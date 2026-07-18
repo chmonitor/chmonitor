@@ -46,6 +46,8 @@ interface FakeRow {
   error: string | null
   value: number | null
   channel: string | null
+  /** #2663: JSON `"hostId:ruleId"` refs for a grouped digest row, else null. */
+  finding_refs: string | null
 }
 
 /** A pre-configured `alert_routes` row, as `alert-routing.ts`'s `listRoutes` reads it. */
@@ -116,9 +118,18 @@ function makeFakeD1(
 ) {
   const rows: FakeRow[] = []
   const deliveries: FakeDeliveryRow[] = []
+  // #2663 time-window digest buffer rows (INTO/FROM alert_digest_buffer).
+  const bufferRows: {
+    id: string
+    owner_id: string
+    flush_after: number
+    entry_json: string
+    created_at: number
+  }[] = []
   return {
     rows,
     deliveries,
+    bufferRows,
     // Real D1-backed stores the sweep touches (e.g. quiet-hours) run their
     // lazy DDL migration via `db.batch(...)` before reading. Without this,
     // `db.batch` throws SYNCHRONOUSLY inside their single-flight
@@ -131,6 +142,9 @@ function makeFakeD1(
       const isRoutesSelect = /FROM alert_routes/i.test(sql)
       const isSubscriptionsSelect = /FROM webhook_subscriptions/i.test(sql)
       const isDeliveryInsert = /INTO webhook_deliveries/i.test(sql)
+      const isBufferInsert = /INTO alert_digest_buffer/i.test(sql)
+      const isBufferSelect = /FROM alert_digest_buffer/i.test(sql)
+      const isBufferDelete = /DELETE FROM alert_digest_buffer/i.test(sql)
 
       // Shared run()/all() so both the unbound statement (real D1 supports
       // calling `.run()`/`.all()` directly when the SQL has no `?`
@@ -141,6 +155,31 @@ function makeFakeD1(
       async function run(
         args: unknown[]
       ): Promise<{ meta: { changes: number } }> {
+        if (isBufferDelete) {
+          const ids = new Set(args as string[])
+          const before = bufferRows.length
+          for (let i = bufferRows.length - 1; i >= 0; i--) {
+            if (ids.has(bufferRows[i].id)) bufferRows.splice(i, 1)
+          }
+          return { meta: { changes: before - bufferRows.length } }
+        }
+        if (isBufferInsert) {
+          const [id, ownerId, flushAfter, entryJson, createdAt] = args as [
+            string,
+            string,
+            number,
+            string,
+            number,
+          ]
+          bufferRows.push({
+            id,
+            owner_id: ownerId,
+            flush_after: flushAfter,
+            entry_json: entryJson,
+            created_at: createdAt,
+          })
+          return { meta: { changes: 1 } }
+        }
         if (isDeliveryInsert) {
           const [
             id,
@@ -189,6 +228,7 @@ function makeFakeD1(
           error,
           value,
           channel,
+          findingRefs,
         ] = args as [
           string,
           string,
@@ -201,6 +241,7 @@ function makeFakeD1(
           number,
           string | null,
           number | null,
+          string | null,
           string | null,
         ]
         rows.push({
@@ -216,24 +257,35 @@ function makeFakeD1(
           error,
           value,
           channel,
+          finding_refs: findingRefs ?? null,
         })
         return { meta: { changes: 1 } }
       }
 
-      async function all<T>(): Promise<{ results: T[] }> {
+      async function all<T>(
+        boundArgs: unknown[] = []
+      ): Promise<{ results: T[] }> {
         if (isSubscriptionsSelect) {
           return { results: instanceSubs as T[] }
+        }
+        if (isBufferSelect) {
+          const [ownerId, now] = boundArgs as [string, number]
+          return {
+            results: bufferRows
+              .filter((r) => r.owner_id === ownerId && r.flush_after <= now)
+              .sort((a, b) => a.flush_after - b.flush_after) as unknown as T[],
+          }
         }
         return { results: (isRoutesSelect ? routes : []) as T[] }
       }
 
       return {
         run: () => run([]),
-        all,
+        all: () => all([]),
         bind(...args: unknown[]) {
           return {
             run: () => run(args),
-            all,
+            all: () => all(args),
           }
         },
       }
@@ -380,6 +432,7 @@ const ENV_KEYS = [
   'HEALTH_ALERT_MIN_SEVERITY',
   'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
   'HEALTH_ALERT_HEALTHCHECKS_URL',
+  'HEALTH_ALERT_DIGEST_MINUTES',
 ] as const
 const savedEnv: Record<string, string | undefined> = {}
 
@@ -393,6 +446,7 @@ beforeEach(() => {
   process.env.HEALTH_ALERT_MIN_SEVERITY = 'warning'
   delete process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY
   delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
+  delete process.env.HEALTH_ALERT_DIGEST_MINUTES
 
   alertStateStore.clear()
   fakeDb = makeFakeD1()
@@ -981,10 +1035,18 @@ describe('runHealthSweep — compound rules', () => {
 
     const summary = await runHealthSweep()
 
-    // Base rule + compound rule both dispatched, each under its own dedup key.
+    // Base rule + compound rule both dispatched, each under its own dedup key —
+    // the sweep counts two findings. Both route to the SAME legacy Slack
+    // webhook, so grouping (#2663) folds them into ONE digest message + ONE
+    // 'digest' history row that references both findings.
     expect(summary.alertsDispatched).toBe(2)
-    const rules = fakeDb.rows.map((r) => r.rule).sort()
-    expect(rules).toEqual(['test-compound-rule', TEST_RULE_ID].sort())
+    expect(fakeDb.rows).toHaveLength(1)
+    expect(fakeDb.rows[0].rule).toBe('digest')
+    expect(fakeDb.rows[0].decision_kind).toBe('digest')
+    expect(fakeDb.rows[0].channel).toBe('slack')
+    expect(JSON.parse(fakeDb.rows[0].finding_refs ?? '[]').sort()).toEqual(
+      [`0:test-compound-rule`, `0:${TEST_RULE_ID}`].sort()
+    )
 
     expect(alertStateStore.get(`0:test-compound-rule`)?.severity).toBe(
       'critical'
@@ -1348,5 +1410,178 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
     expect(summary.alertsDispatched).toBe(1)
     expect(posted).toEqual(['https://hooks.slack.com/services/T000/B000/XXXX'])
     expect(fakeDb.deliveries).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runHealthSweep — digest grouping / batching (#2663)
+// ---------------------------------------------------------------------------
+describe('runHealthSweep — digest grouping (#2663)', () => {
+  const EXTRA_RULE_IDS = [
+    'group-rule-1',
+    'group-rule-2',
+    'group-rule-3',
+    'group-rule-4',
+  ]
+
+  function registerExtraFiringRules() {
+    for (const id of EXTRA_RULE_IDS) {
+      ruleRegistry.register({
+        id,
+        type: 'custom',
+        title: `Group ${id}`,
+        description: 'Extra synthetic firing rule for digest grouping tests.',
+        sql: `SELECT 1 /* ${TEST_RULE_MARKER} */`,
+        valueKey: 'test_value',
+        defaults: { warning: 10, critical: 20 },
+      })
+    }
+  }
+  function unregisterExtraFiringRules() {
+    for (const id of EXTRA_RULE_IDS) ruleRegistry.unregister(id)
+  }
+
+  test('5 findings for one Slack target produce ONE grouped message + one digest row', async () => {
+    // TEST_RULE_ID + 4 extra rules all fire critical (value 50) on host 0, all
+    // routed to the legacy Slack webhook → a single combined digest.
+    registerExtraFiringRules()
+    try {
+      const posted: { url: string; body: Record<string, unknown> | null }[] = []
+      globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+        posted.push({
+          url: String(url),
+          body: init?.body
+            ? (JSON.parse(String(init.body)) as Record<string, unknown>)
+            : null,
+        })
+        return new Response(null, { status: 200 })
+      }) as unknown as typeof fetch
+
+      const summary = await runHealthSweep()
+
+      // Five findings, but ONE webhook POST (the digest) to the Slack target.
+      expect(summary.totalFindings).toBe(5)
+      expect(summary.alertsDispatched).toBe(5)
+      expect(posted).toHaveLength(1)
+      expect(posted[0].url).toBe(
+        'https://hooks.slack.com/services/T000/B000/XXXX'
+      )
+
+      // Slack digest body: header summary line + one section listing findings.
+      const attachments = posted[0].body?.attachments as
+        | { blocks: { type: string; text?: { text: string } }[] }[]
+        | undefined
+      const header = attachments?.[0].blocks[0]
+      expect(header?.text?.text).toContain('5 critical on 1 host')
+
+      // ONE 'digest' history row referencing all five findings.
+      expect(fakeDb.rows).toHaveLength(1)
+      expect(fakeDb.rows[0].rule).toBe('digest')
+      expect(fakeDb.rows[0].channel).toBe('slack')
+      expect(fakeDb.rows[0].delivered).toBe(1)
+      const refs = JSON.parse(fakeDb.rows[0].finding_refs ?? '[]') as string[]
+      expect(refs).toHaveLength(5)
+      expect(refs).toContain(`0:${TEST_RULE_ID}`)
+    } finally {
+      unregisterExtraFiringRules()
+    }
+  })
+
+  test('a lone finding is unchanged — no digest wrapper, real rule id row', async () => {
+    const posted: { url: string; body: Record<string, unknown> | null }[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+      posted.push({
+        url: String(url),
+        body: init?.body
+          ? (JSON.parse(String(init.body)) as Record<string, unknown>)
+          : null,
+      })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toHaveLength(1)
+    // Single-send body is the plain `{ text, content }` wrapper — NOT a digest.
+    expect(posted[0].body).not.toHaveProperty('attachments')
+    expect(posted[0].body).toHaveProperty('text')
+    expect(fakeDb.rows).toHaveLength(1)
+    expect(fakeDb.rows[0].rule).toBe(TEST_RULE_ID)
+    expect(fakeDb.rows[0].decision_kind).toBe('new')
+    expect(fakeDb.rows[0].finding_refs).toBeNull()
+  })
+
+  test('time-window mode: a critical BYPASSES the buffer (dispatched this pass)', async () => {
+    process.env.HEALTH_ALERT_DIGEST_MINUTES = '30'
+    testValue = 50 // critical
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.digestBuffered).toBe(0)
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toHaveLength(1)
+    expect(fakeDb.bufferRows).toHaveLength(0)
+  })
+
+  test('time-window mode: a non-critical is buffered, then flushed after the window', async () => {
+    process.env.HEALTH_ALERT_DIGEST_MINUTES = '30'
+    testValue = 15 // warning (10 <= 15 < 20), global gate at 'warning'
+
+    const realNow = Date.now
+    let clock = realNow()
+    globalThis.Date.now = () => clock
+
+    try {
+      const posted: string[] = []
+      globalThis.fetch = mock(async (url: string | URL | Request) => {
+        posted.push(String(url))
+        return new Response(null, { status: 200 })
+      }) as unknown as typeof fetch
+
+      // Sweep 1: the warning is buffered, not delivered.
+      const first = await runHealthSweep()
+      expect(first.digestBuffered).toBe(1)
+      expect(first.alertsDispatched).toBe(0)
+      expect(posted).toHaveLength(0)
+      expect(fakeDb.bufferRows).toHaveLength(1)
+
+      // Advance past the 30-minute window; sweep 2 flushes the due entry. The
+      // still-firing live warning is deduped (already committed at buffer time)
+      // so it is NOT re-buffered — only the due entry is delivered.
+      clock += 31 * 60_000
+      const second = await runHealthSweep()
+      expect(second.digestFlushed).toBe(1)
+      expect(posted).toHaveLength(1)
+      expect(posted[0]).toBe('https://hooks.slack.com/services/T000/B000/XXXX')
+      expect(fakeDb.bufferRows).toHaveLength(0)
+    } finally {
+      globalThis.Date.now = realNow
+    }
+  })
+
+  test('fail-open: digest window on but no D1 → the finding dispatches this pass', async () => {
+    fakeDb = null as unknown as ReturnType<typeof makeFakeD1>
+    process.env.HEALTH_ALERT_DIGEST_MINUTES = '30'
+    testValue = 15 // warning
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // No D1 ⇒ buffer write fails ⇒ falls back to immediate in-pass grouping.
+    expect(summary.digestBuffered).toBe(0)
+    expect(posted).toHaveLength(1)
+    expect(posted[0]).toBe('https://hooks.slack.com/services/T000/B000/XXXX')
   })
 })

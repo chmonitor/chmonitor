@@ -50,6 +50,12 @@ export interface AlertEventRecord {
   error?: string | null
   value?: number | null
   channel?: string | null
+  /**
+   * For a grouped digest dispatch (#2663): the `"hostId:ruleId"` references of
+   * every finding folded into this ONE row. `null`/absent for a normal
+   * single-finding event.
+   */
+  findingRefs?: string[] | null
 }
 
 /** D1 row shape (snake_case columns, 0/1 delivered flag). */
@@ -66,6 +72,8 @@ interface D1AlertEventRow {
   error: string | null
   value: number | null
   channel: string | null
+  /** JSON array of `"hostId:ruleId"` refs for a digest row (#2663), else null. */
+  finding_refs: string | null
 }
 
 function getDb(): D1Database | null {
@@ -86,6 +94,20 @@ function rowToRecord(row: D1AlertEventRow): AlertEventRecord {
     error: row.error,
     value: row.value,
     channel: row.channel,
+    findingRefs: parseFindingRefs(row.finding_refs),
+  }
+}
+
+/** Parse the stored `finding_refs` JSON into a string[], tolerating junk/null. */
+function parseFindingRefs(raw: string | null): string[] | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return null
+    const refs = parsed.filter((r): r is string => typeof r === 'string')
+    return refs.length > 0 ? refs : null
+  } catch {
+    return null
   }
 }
 
@@ -105,8 +127,8 @@ export async function recordAlertEvent(e: AlertEventRecord): Promise<void> {
     await db
       .prepare(
         `INSERT INTO ${TABLE}
-           (id, event_time, host_id, host_label, rule, severity, prev_severity, decision_kind, delivered, error, value, channel)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`
+           (id, event_time, host_id, host_label, rule, severity, prev_severity, decision_kind, delivered, error, value, channel, finding_refs)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`
       )
       .bind(
         id,
@@ -120,7 +142,10 @@ export async function recordAlertEvent(e: AlertEventRecord): Promise<void> {
         e.delivered ? 1 : 0,
         e.error ?? null,
         e.value ?? null,
-        e.channel ?? null
+        e.channel ?? null,
+        e.findingRefs && e.findingRefs.length > 0
+          ? JSON.stringify(e.findingRefs)
+          : null
       )
       .run()
   } catch (err) {
@@ -167,7 +192,7 @@ export async function queryAlertEvents(
 
     const result = await db
       .prepare(
-        `SELECT id, event_time, host_id, host_label, rule, severity, prev_severity, decision_kind, delivered, error, value, channel
+        `SELECT id, event_time, host_id, host_label, rule, severity, prev_severity, decision_kind, delivered, error, value, channel, finding_refs
          FROM ${TABLE} ${where}
          ORDER BY event_time DESC
          LIMIT ?${params.length}`

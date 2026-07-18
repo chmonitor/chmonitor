@@ -8,6 +8,8 @@
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
+import { summarizeDigest } from './digest'
+
 /** Normalized JSON body for generic webhook receivers. */
 export interface GenericJsonBody {
   severity: AlertPayload['severity']
@@ -54,6 +56,51 @@ export function buildGenericJsonBody(payload: AlertPayload): GenericJsonBody {
   }
 
   return body
+}
+
+/**
+ * Normalized JSON body for a GROUP of findings bound for the same generic
+ * webhook (feat #2663). Carries the summary counts, a `text` one-liner block,
+ * and the full per-finding array so a structured receiver can fan back out.
+ */
+export interface GenericJsonDigestBody {
+  /** Discriminator so receivers can branch single vs digest on one field. */
+  digest: true
+  summary: string
+  counts: { critical: number; warning: number; recovery: number }
+  hostCount: number
+  count: number
+  /** Every finding, each as the same normalized single-alert body. */
+  alerts: GenericJsonBody[]
+  /** A ready-to-render multi-line summary (summary line + one line per finding). */
+  text: string
+}
+
+/**
+ * Build the normalized generic JSON digest body for a group of findings. Unlike
+ * the channel-specific text bodies this carries the FULL finding array (no line
+ * cap) since a JSON receiver is structured, not size-limited like chat.
+ */
+export function buildGenericJsonDigestBody(
+  payloads: readonly AlertPayload[]
+): GenericJsonDigestBody {
+  const digest = summarizeDigest(payloads)
+  const textLines = [
+    `${digest.summaryLine} (${digest.total} alerts)`,
+    ...payloads.map(
+      (p) =>
+        `[${p.severity === 'recovery' ? 'RECOVERY' : p.severity.toUpperCase()}] ${p.title} — ${p.label} (host ${p.hostLabel})`
+    ),
+  ]
+  return {
+    digest: true,
+    summary: digest.summaryLine,
+    counts: digest.counts,
+    hostCount: digest.hostCount,
+    count: digest.total,
+    alerts: payloads.map(buildGenericJsonBody),
+    text: textLines.join('\n'),
+  }
 }
 
 /**

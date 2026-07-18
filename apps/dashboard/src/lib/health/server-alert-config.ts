@@ -412,6 +412,23 @@ export function getServerHealthchecksUrl(): string {
   return process.env.HEALTH_ALERT_HEALTHCHECKS_URL?.trim() || ''
 }
 
+/**
+ * Time-window digest mode (#2663), sourced from `HEALTH_ALERT_DIGEST_MINUTES`.
+ *
+ * `0`/unset/invalid ⇒ off: findings dispatch this sweep tick (with in-pass
+ * grouping still applied). A positive value buffers NON-critical findings and
+ * flushes them once the window elapses, so a burst collapses into one message —
+ * criticals always bypass the buffer. The UI (D1) setting overrides this env
+ * value via `resolveDigestWindowMinutes` (`alert-digest-settings-store.ts`).
+ */
+export function getServerDigestWindowMinutes(): number {
+  const raw = process.env.HEALTH_ALERT_DIGEST_MINUTES?.trim()
+  if (raw === undefined || raw === '') return 0
+  const minutes = Number(raw)
+  if (!Number.isFinite(minutes) || minutes < 0) return 0
+  return Math.floor(minutes)
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

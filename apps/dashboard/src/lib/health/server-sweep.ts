@@ -20,11 +20,22 @@ import type { AlertDecision } from './alert-state-store'
 import {
   buildEmailBody,
   buildPagerDutyBody,
+  buildTelegramBody,
+  buildTelegramDigestBody,
+  buildWebhookDigestDispatchBody,
   buildWebhookDispatchBody,
   detectAdapter,
+  isDigestCapableWebhook,
+  summarizeDigest,
 } from './adapters'
 import { clearAck, isAcked, listActiveAcks } from './alert-ack-store'
 import { resolveChannelDelivery } from './alert-channel-settings'
+import {
+  type BufferedDigestEntry,
+  bufferDigestEntries,
+  takeDueDigestEntries,
+} from './alert-digest-buffer-store'
+import { resolveDigestWindowMinutes } from './alert-digest-settings-store'
 import { recordAlertEvent } from './alert-history-store'
 import {
   listRoutes,
@@ -61,7 +72,7 @@ import {
   getServerThresholdOverrides,
 } from './server-alert-config'
 import { resolveServerChannels } from './server-channel-resolve'
-import { dispatchTelegram } from './telegram-dispatch'
+import { telegramSendMessageUrl } from './telegram-dispatch'
 import { dispatchTwilio } from './twilio-dispatch'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
@@ -73,7 +84,7 @@ import {
 import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
 import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
-import { buildAlertBlocksWithAck, type SlackBlock } from '@/lib/slack/blocks'
+import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
 import { isSlackAppConfigured } from '@/lib/slack/config'
 
 // Register pluggable alert rules into the global ruleRegistry once at module
@@ -139,6 +150,16 @@ export interface SweepSummary {
   ackedSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
+  /**
+   * Findings parked in the time-window digest buffer this tick (#2663) instead
+   * of dispatched — non-critical findings when digest window mode is on.
+   */
+  digestBuffered: number
+  /**
+   * Groupable deliveries flushed this tick — buffered entries whose window
+   * closed, delivered (and grouped) now (#2663).
+   */
+  digestFlushed: number
   /** Emails successfully sent (only counted when email is configured). */
   emailsDispatched: number
   /** Total AI insights generated and persisted across all hosts. */
@@ -461,6 +482,14 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   // contract — `listQuietHours` degrades to [] on any D1/binding failure.
   const quietHours = await listQuietHours('')
 
+  // Time-window digest mode (#2663): the effective buffer window (D1 setting ›
+  // env `HEALTH_ALERT_DIGEST_MINUTES`). `0` = off; in-pass grouping below still
+  // runs regardless. Best-effort — resolves to 0 (off) with no D1 binding.
+  const digestWindowMinutes = await resolveDigestWindowMinutes(
+    SWEEP_ROUTING_OWNER_ID
+  )
+  const digestWindowMs = digestWindowMinutes * 60_000
+
   const hosts: SweepHostSummary[] = []
   const findings: SweepFinding[] = []
   let insightsGenerated = 0
@@ -471,6 +500,78 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   let ackedSuppressed = 0
   let recoveries = 0
   let emailsDispatched = 0
+  let digestBuffered = 0
+  let digestFlushed = 0
+
+  // -------------------------------------------------------------------------
+  // Digest grouping (#2663). Slack + generic-webhook + Telegram sends buffer
+  // here so a delivery target that receives >1 finding in this pass gets ONE
+  // combined message; every other channel dispatches inline (unchanged). A
+  // finding that routes to any groupable target has its dedup `commit()` +
+  // dispatch accounting DEFERRED to `flushDigests()` (so the commit reflects
+  // the actual grouped delivery); a finding with NO groupable target keeps the
+  // exact inline-commit path it had before this feature.
+  // -------------------------------------------------------------------------
+
+  /** Deferred dedup-commit + dispatch accounting for one grouped finding. */
+  interface PendingDigestCommit {
+    decision: AlertDecision
+    commit: () => void
+    /** Non-groupable channels already dispatched inline for this finding. */
+    immediateTargetCount: number
+    immediateDelivered: boolean
+    /** Groupable targets this finding contributes (webhook urls + telegram). */
+    groupableTargetCount: number
+    groupableDelivered: boolean
+    committed: boolean
+  }
+  interface WebhookDigestEntry {
+    url: string
+    text: string
+    payload: AlertPayload
+    /** Ack-button key for a LONE Slack send (bucket size 1); Slack app only. */
+    slackAck?: {
+      hostId: number
+      ruleId: string
+      severity: 'warning' | 'critical'
+    }
+    /** In-pass finding awaiting commit; `null` for time-window-flushed entries. */
+    pending: PendingDigestCommit | null
+  }
+  interface TelegramDigestEntry {
+    botToken: string
+    chatId: string
+    payload: AlertPayload
+    pending: PendingDigestCommit | null
+  }
+  const webhookDigestEntries: WebhookDigestEntry[] = []
+  const telegramDigestEntries: TelegramDigestEntry[] = []
+
+  // Time-window buffered entries whose window has closed — loaded once, merged
+  // into the in-pass buckets before the flush so they group with fresh
+  // findings for the same target. Best-effort ([] with no D1).
+  const dueBufferedEntries = digestWindowMs
+    ? await takeDueDigestEntries(SWEEP_ROUTING_OWNER_ID, Date.now())
+    : []
+  for (const entry of dueBufferedEntries) {
+    if (entry.kind === 'webhook') {
+      webhookDigestEntries.push({
+        url: entry.url,
+        text: entry.text,
+        payload: entry.payload,
+        slackAck: entry.slackAck,
+        pending: null,
+      })
+    } else {
+      telegramDigestEntries.push({
+        botToken: entry.botToken,
+        chatId: entry.chatId,
+        payload: entry.payload,
+        pending: null,
+      })
+    }
+    digestFlushed++
+  }
 
   // Active operator ACKs (plan 29), loaded once for the whole sweep.
   // `listActiveAcks` never throws — a missing/misconfigured D1 binding
@@ -806,47 +907,28 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         timestamp: webhookTimestamp,
       }
 
-      let anyDelivered = false
+      // Digest partition (#2663): Slack / generic-webhook URLs are grouped and
+      // flushed later (one combined message per target); Discord / MS Teams /
+      // Google Chat keep today's inline per-finding sends. `isDigestCapableWebhook`
+      // never matches those rich-embed adapters, so they land in `immediate`.
+      const immediateWebhookTargets: string[] = []
+      const groupableWebhookTargets: string[] = []
       for (const url of targets) {
+        if (isDigestCapableWebhook(url)) groupableWebhookTargets.push(url)
+        else immediateWebhookTargets.push(url)
+      }
+
+      let anyDelivered = false
+      for (const url of immediateWebhookTargets) {
         const adapter = detectAdapter(url)
 
-        // Native Slack app bridge (plan 37): when the app is configured AND
-        // this target is a Slack incoming webhook, post rich blocks with an
-        // "Acknowledge" button (keyed by this alert's dedup key) instead of
-        // plain text. Gated so the OSS default (no Slack app) and non-Slack
-        // channels keep the exact plain-text payload. Recovery messages have
-        // nothing to acknowledge, so they stay plain text too.
-        let ackBlocks: SlackBlock[] | undefined
-        if (
-          decision.kind !== 'recovery' &&
-          (effective === 'warning' || effective === 'critical') &&
-          isSlackAppConfigured() &&
-          adapter.id === 'slack'
-        ) {
-          ackBlocks = buildAlertBlocksWithAck(
-            {
-              severity: effective,
-              hostLabel: name,
-              hostId,
-              metric: ruleId,
-              value,
-              title: ruleTitle,
-              label,
-              timestamp: webhookTimestamp,
-            },
-            { hostId, ruleId, severity: effective }
-          )
-        }
-
-        // Per-URL body selection (#2656): Discord targets get rich embeds,
-        // Slack targets get `ackBlocks` when the app is configured (else the
-        // plain wrapper), and generic/unknown URLs keep the exact original
-        // `{ text, content }` — zero behavior change.
+        // Per-URL body selection (#2656): Discord/MS Teams/Google Chat targets
+        // get their rich provider bodies. Slack ack-blocks are handled on the
+        // grouped path below (Slack is digest-capable, never `immediate`).
         const dispatch = buildWebhookDispatchBody({
           url,
           text,
           payload: webhookPayload,
-          slackBlocks: ackBlocks,
         })
         const result = await postWebhook(url, dispatch.body)
         if (result.ok) anyDelivered = true
@@ -856,8 +938,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         // alert that was just dispatched. recordAlertEvent already never
         // throws; the try/catch here is defense-in-depth, mirroring the
         // generateInsights call below. detectAdapter picks the per-URL channel
-        // label (plan 26), so a fan-out to mixed Slack/Discord/Opsgenie
-        // destinations is audited per its own adapter.
+        // label (plan 26), so a fan-out to mixed Discord/Teams destinations is
+        // audited per its own adapter.
         try {
           await recordAlertEvent(
             buildAlertEventRecord({
@@ -1026,52 +1108,31 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
-      // Telegram (#2655): every resolved chat (matched routes, or the
-      // env-configured global chat when nothing matched). `dispatchTelegram`
-      // renders the MarkdownV2 body and never throws (fails open), matching
-      // every other channel here.
-      for (const target of telegramTargets) {
-        const alertSeverity: AlertSeverity =
-          decision.kind === 'recovery'
-            ? 'recovery'
-            : (effective as 'warning' | 'critical')
-        const ok = await dispatchTelegram(
-          {
-            severity: alertSeverity,
-            hostLabel: name,
-            hostId,
-            metric: ruleId,
-            value,
-            warnThreshold,
-            critThreshold,
-            title: ruleTitle,
-            label,
-            timestamp: new Date().toISOString(),
-          },
-          { botToken: target.botToken, chatId: target.chatId }
-        )
-        if (ok) anyDelivered = true
-
-        try {
-          await recordAlertEvent(
-            buildAlertEventRecord({
-              hostId,
-              hostLabel: name,
-              ruleId,
-              decision,
-              value,
-              delivered: ok,
-              error: ok ? undefined : 'Telegram dispatch failed',
-              channel: 'telegram',
-            })
-          )
-        } catch (err) {
-          debug(
-            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
-            err instanceof Error ? err.message : String(err)
-          )
-        }
+      // Telegram (#2655) is digest-capable (#2663): instead of sending inline,
+      // collect one entry per resolved chat and let the grouped flush send a
+      // single (combined when >1 finding) MarkdownV2 message per chat. Severity
+      // is mapped once for this finding's payload.
+      const telegramAlertSeverity: AlertSeverity =
+        decision.kind === 'recovery'
+          ? 'recovery'
+          : (effective as 'warning' | 'critical')
+      const telegramPayload: AlertPayload = {
+        severity: telegramAlertSeverity,
+        hostLabel: name,
+        hostId,
+        metric: ruleId,
+        value,
+        warnThreshold,
+        critThreshold,
+        title: ruleTitle,
+        label,
+        timestamp: new Date().toISOString(),
       }
+      const findingTelegramTargets = telegramTargets.map((t) => ({
+        botToken: t.botToken,
+        chatId: t.chatId,
+        payload: telegramPayload,
+      }))
 
       // ntfy (#2657): every resolved topic (matched routes, or the
       // env-configured global topic when nothing matched). `dispatchNtfy`
@@ -1263,29 +1324,127 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
-      // Persist "notified" only when there was nothing to deliver (no
-      // targets at all across every channel — not a failure) or at least one
-      // channel succeeded. A failed delivery with no successes leaves no
-      // record, so the next sweep retries instead of suppressing.
-      if (
-        targets.length +
-          pagerDutyTargets.length +
-          telegramTargets.length +
-          ntfyTargets.length +
-          pushoverTargets.length +
-          (opsgenieEligible ? 1 : 0) +
-          (emailEligible ? 1 : 0) +
-          (twilioEligible ? 1 : 0) +
-          (healthchecksEligible ? 1 : 0) ===
-          0 ||
-        anyDelivered
-      ) {
-        commit()
-        if (anyDelivered) {
-          alertsDispatched++
-          if (decision.kind === 'recovery') recoveries++
+      // Digest accounting (#2663). Groupable (digest-capable) targets are the
+      // Slack/generic webhook URLs + Telegram chats; every non-groupable
+      // channel above already dispatched inline (its count feeds
+      // `immediateTargetCount`). When this finding has NO groupable target the
+      // original inline commit gate runs unchanged; otherwise its commit +
+      // dispatch accounting is deferred to `flushDigests()` so it reflects the
+      // grouped delivery.
+      const groupableTargetCount =
+        groupableWebhookTargets.length + findingTelegramTargets.length
+      const immediateTargetCount =
+        immediateWebhookTargets.length +
+        pagerDutyTargets.length +
+        ntfyTargets.length +
+        pushoverTargets.length +
+        (opsgenieEligible ? 1 : 0) +
+        (emailEligible ? 1 : 0) +
+        (twilioEligible ? 1 : 0) +
+        (healthchecksEligible ? 1 : 0)
+
+      if (groupableTargetCount === 0) {
+        // Unchanged inline gate: commit when there was nothing to deliver (not
+        // a failure) or at least one channel succeeded; a failed delivery with
+        // no successes leaves no record so the next sweep retries.
+        if (immediateTargetCount === 0 || anyDelivered) {
+          commit()
+          if (anyDelivered) {
+            alertsDispatched++
+            if (decision.kind === 'recovery') recoveries++
+          }
+        }
+        return
+      }
+
+      // Native Slack ack key (plan 37) carried for a LONE Slack send — the
+      // grouped flush rebuilds the ack blocks only when a Slack target's bucket
+      // has exactly one finding (a digest of many can't carry per-finding acks).
+      const slackAckKey: WebhookDigestEntry['slackAck'] =
+        decision.kind !== 'recovery' &&
+        (effective === 'warning' || effective === 'critical') &&
+        isSlackAppConfigured()
+          ? { hostId, ruleId, severity: effective }
+          : undefined
+
+      const webhookEntries: BufferedDigestEntry[] = groupableWebhookTargets.map(
+        (url) => ({
+          kind: 'webhook',
+          url,
+          text,
+          payload: webhookPayload,
+          ...(detectAdapter(url).id === 'slack' && slackAckKey
+            ? { slackAck: slackAckKey }
+            : {}),
+        })
+      )
+      const telegramEntries: BufferedDigestEntry[] = findingTelegramTargets.map(
+        (t) => ({
+          kind: 'telegram',
+          botToken: t.botToken,
+          chatId: t.chatId,
+          payload: t.payload,
+        })
+      )
+
+      // Time-window digest mode (#2663): buffer NON-critical, non-recovery
+      // findings for a later flush; criticals + recoveries always dispatch this
+      // pass (grouped in-pass). Only when the buffer WRITE succeeds do we defer
+      // — a missing/failed D1 store falls back to immediate in-pass grouping
+      // (fail-open). Buffering commits the finding's dedup now (the message is
+      // queued) so the next sweep does not re-buffer the same condition.
+      const shouldBuffer =
+        digestWindowMs > 0 &&
+        effective !== 'critical' &&
+        decision.kind !== 'recovery'
+      if (shouldBuffer) {
+        const buffered = await bufferDigestEntries(
+          SWEEP_ROUTING_OWNER_ID,
+          [...webhookEntries, ...telegramEntries],
+          Date.now() + digestWindowMs
+        )
+        if (buffered) {
+          digestBuffered += webhookEntries.length + telegramEntries.length
+          commit()
+          if (anyDelivered) {
+            alertsDispatched++
+            if (decision.kind === 'recovery') recoveries++
+          }
+          return
         }
       }
+
+      // In-pass grouping: enqueue the entries, deferring commit + accounting to
+      // `flushDigests()` (all entries of this finding share one pending record,
+      // so its dedup commits exactly once).
+      const pending: PendingDigestCommit = {
+        decision,
+        commit,
+        immediateTargetCount,
+        immediateDelivered: anyDelivered,
+        groupableTargetCount,
+        groupableDelivered: false,
+        committed: false,
+      }
+      for (const entry of webhookEntries) {
+        if (entry.kind !== 'webhook') continue
+        webhookDigestEntries.push({
+          url: entry.url,
+          text: entry.text,
+          payload: entry.payload,
+          slackAck: entry.slackAck,
+          pending,
+        })
+      }
+      for (const t of findingTelegramTargets) {
+        telegramDigestEntries.push({
+          botToken: t.botToken,
+          chatId: t.chatId,
+          payload: t.payload,
+          pending,
+        })
+      }
+      return
     } else {
       // Non-notify decisions (dedup/de-escalation/recovery-cleared
       // bookkeeping) still commit — only the notify path gates on
@@ -1294,6 +1453,193 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       if (SEVERITY_ORDER[severity] >= minRank) {
         // A current finding that we chose not to re-send (deduped).
         alertsSuppressed++
+      }
+    }
+  }
+
+  /**
+   * Record ONE history row for a flushed group (#2663): a lone finding
+   * (bucket size 1) records the normal per-finding event via
+   * {@link buildAlertEventRecord} (with its real decision, so an in-pass single
+   * send is byte-identical to before this feature); a digest of ≥2 records ONE
+   * `decisionKind: 'digest'` row that references every folded-in finding. A
+   * time-window-flushed lone entry has no live decision (`pending === null`), so
+   * it falls back to a synthesized `'digest'` row. Best-effort — never throws.
+   */
+  async function recordDigestHistory(
+    entries: {
+      payload: AlertPayload
+      pending: PendingDigestCommit | null
+    }[],
+    channel: string,
+    result: WebhookResult
+  ): Promise<void> {
+    try {
+      if (entries.length === 1) {
+        const only = entries[0]
+        if (only.pending) {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId: only.payload.hostId,
+              hostLabel: only.payload.hostLabel,
+              ruleId: only.payload.metric,
+              decision: only.pending.decision,
+              value: only.payload.value,
+              delivered: result.ok,
+              error: result.error,
+              channel,
+            })
+          )
+          return
+        }
+        await recordAlertEvent({
+          eventTime: new Date().toISOString(),
+          hostId: only.payload.hostId,
+          hostLabel: only.payload.hostLabel,
+          rule: only.payload.metric,
+          severity: only.payload.severity,
+          prevSeverity: null,
+          decisionKind: 'digest',
+          delivered: result.ok,
+          error: result.ok ? null : (result.error ?? 'digest dispatch failed'),
+          value: only.payload.value,
+          channel,
+        })
+        return
+      }
+
+      const summary = summarizeDigest(entries.map((e) => e.payload))
+      await recordAlertEvent({
+        eventTime: new Date().toISOString(),
+        hostId: entries[0].payload.hostId,
+        hostLabel: entries[0].payload.hostLabel,
+        rule: 'digest',
+        severity: summary.topSeverity,
+        prevSeverity: null,
+        decisionKind: 'digest',
+        delivered: result.ok,
+        error: result.ok ? null : (result.error ?? 'digest dispatch failed'),
+        value: null,
+        channel,
+        findingRefs: entries.map(
+          (e) => `${e.payload.hostId}:${e.payload.metric}`
+        ),
+      })
+    } catch (err) {
+      debug(
+        '[health-sweep] digest alert-history record failed',
+        err instanceof Error ? err.message : String(err)
+      )
+    }
+  }
+
+  /**
+   * Flush every buffered groupable delivery (#2663), grouping by target so a
+   * target that received >1 finding this pass gets ONE combined message. Then
+   * commit + count each in-pass finding exactly once (shared `pending` record),
+   * gated on whether ANY of its channels — immediate or grouped — delivered.
+   */
+  async function flushDigests(): Promise<void> {
+    // Webhook targets grouped by URL.
+    const byUrl = new Map<string, WebhookDigestEntry[]>()
+    for (const entry of webhookDigestEntries) {
+      const list = byUrl.get(entry.url)
+      if (list) list.push(entry)
+      else byUrl.set(entry.url, [entry])
+    }
+    for (const [url, entries] of byUrl) {
+      const adapterId = detectAdapter(url).id
+      let body: unknown
+      if (entries.length === 1) {
+        const only = entries[0]
+        // A lone Slack send keeps its native-app ack blocks (plan 37); a digest
+        // of many cannot carry per-finding acks, so it stays plain.
+        const slackBlocks =
+          adapterId === 'slack' && only.slackAck
+            ? buildAlertBlocksWithAck(
+                {
+                  severity: only.slackAck.severity,
+                  hostLabel: only.payload.hostLabel,
+                  hostId: only.payload.hostId,
+                  metric: only.payload.metric,
+                  value: only.payload.value,
+                  title: only.payload.title,
+                  label: only.payload.label,
+                  timestamp: only.payload.timestamp,
+                },
+                only.slackAck
+              )
+            : undefined
+        body = buildWebhookDispatchBody({
+          url,
+          text: only.text,
+          payload: only.payload,
+          slackBlocks,
+        }).body
+      } else {
+        body = buildWebhookDigestDispatchBody({
+          url,
+          payloads: entries.map((e) => e.payload),
+        }).body
+      }
+      const result = await postWebhook(url, body)
+      if (result.ok) {
+        for (const e of entries) {
+          if (e.pending) e.pending.groupableDelivered = true
+        }
+      }
+      await recordDigestHistory(entries, adapterId, result)
+    }
+
+    // Telegram targets grouped by (botToken, chatId). Sent through `postWebhook`
+    // to the fixed Bot API endpoint (same fail-open transport as every webhook).
+    const byChat = new Map<string, TelegramDigestEntry[]>()
+    for (const entry of telegramDigestEntries) {
+      const key = `${entry.botToken}${entry.chatId}`
+      const list = byChat.get(key)
+      if (list) list.push(entry)
+      else byChat.set(key, [entry])
+    }
+    for (const entries of byChat.values()) {
+      const first = entries[0]
+      const config = { token: first.botToken, chatId: first.chatId }
+      const body =
+        entries.length === 1
+          ? buildTelegramBody(first.payload, config)
+          : buildTelegramDigestBody(
+              entries.map((e) => e.payload),
+              config
+            )
+      const result = await postWebhook(
+        telegramSendMessageUrl(first.botToken),
+        body
+      )
+      if (result.ok) {
+        for (const e of entries) {
+          if (e.pending) e.pending.groupableDelivered = true
+        }
+      }
+      await recordDigestHistory(entries, 'telegram', result)
+    }
+
+    // Commit + count each distinct in-pass finding once. Buffered entries have
+    // no `pending` (already committed when they were parked), so they only
+    // deliver here — no double commit/count.
+    const pendings = new Set<PendingDigestCommit>()
+    for (const e of webhookDigestEntries) if (e.pending) pendings.add(e.pending)
+    for (const e of telegramDigestEntries)
+      if (e.pending) pendings.add(e.pending)
+    for (const pending of pendings) {
+      if (pending.committed) continue
+      pending.committed = true
+      const total = pending.immediateTargetCount + pending.groupableTargetCount
+      const delivered = pending.immediateDelivered || pending.groupableDelivered
+      if (total === 0 || delivered) {
+        pending.commit()
+        if (delivered) {
+          alertsDispatched++
+          if (pending.decision.kind === 'recovery') recoveries++
+        }
       }
     }
   }
@@ -1479,6 +1825,11 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     }
   }
 
+  // Flush all buffered groupable deliveries (#2663): send one combined message
+  // per target that received >1 finding, then commit + count each deferred
+  // finding. Runs after every host so grouping spans the whole pass.
+  await flushDigests()
+
   return {
     ranAt,
     enabled: settings.webhookEnabled,
@@ -1494,6 +1845,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     quietHoursSuppressed,
     ackedSuppressed,
     recoveries,
+    digestBuffered,
+    digestFlushed,
     emailsDispatched,
     insightsGenerated,
     hosts,

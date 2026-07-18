@@ -12,6 +12,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { summarizeDigest } from './digest'
+
 /** Characters MarkdownV2 reserves and requires escaping with a backslash. */
 const MARKDOWN_V2_SPECIALS = '_*[]()~`>#+-=|{}.!'
 
@@ -113,6 +115,42 @@ export function buildTelegramBody(
   return {
     chat_id: config.chatId,
     text: buildTelegramText(payload),
+    parse_mode: 'MarkdownV2',
+  }
+}
+
+/**
+ * Build the MarkdownV2 text for a GROUP of findings bound for the same chat
+ * (feat #2663): a bold summary heading + one bullet per finding (capped, with a
+ * "…and N more" overflow line). Every interpolated value is escaped.
+ */
+export function buildTelegramDigestText(
+  payloads: readonly AlertPayload[]
+): string {
+  const digest = summarizeDigest(payloads)
+  const emoji = SEVERITY_EMOJI[digest.topSeverity]
+
+  const lines: string[] = [
+    `${emoji} *${esc('Health digest')}: ${esc(digest.summaryLine)}*`,
+    '',
+  ]
+  for (const line of digest.findingLines) {
+    lines.push(`• ${esc(line)}`)
+  }
+  if (digest.overflow > 0) {
+    lines.push(esc(`…and ${digest.overflow} more`))
+  }
+  return lines.join('\n')
+}
+
+/** Build the Telegram `sendMessage` body for a group of findings and chat id. */
+export function buildTelegramDigestBody(
+  payloads: readonly AlertPayload[],
+  config: TelegramConfig
+): TelegramSendMessageBody {
+  return {
+    chat_id: config.chatId,
+    text: buildTelegramDigestText(payloads),
     parse_mode: 'MarkdownV2',
   }
 }

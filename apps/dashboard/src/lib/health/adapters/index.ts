@@ -9,9 +9,10 @@
  * send notifications.
  */
 
+export type { DigestSummary } from './digest'
 export type { DiscordWebhookBody } from './discord'
 export type { EmailBody, EmailConfig, EmailProvider } from './email'
-export type { GenericJsonBody } from './generic-json'
+export type { GenericJsonBody, GenericJsonDigestBody } from './generic-json'
 export type { GoogleChatWebhookBody } from './google-chat'
 export type { MSTeamsWebhookBody } from './msteams'
 export type { NtfyConfig, NtfyMessage } from './ntfy'
@@ -38,9 +39,18 @@ export type {
   NotificationAdapter,
 } from './types'
 
+export {
+  digestFindingLine,
+  MAX_DIGEST_LINES,
+  summarizeDigest,
+} from './digest'
 export { buildDiscordBody, discordAdapter } from './discord'
 export { buildEmailBody, detectEmailProvider, emailAdapter } from './email'
-export { buildGenericJsonBody, genericJsonAdapter } from './generic-json'
+export {
+  buildGenericJsonBody,
+  buildGenericJsonDigestBody,
+  genericJsonAdapter,
+} from './generic-json'
 export { buildGoogleChatBody, googleChatAdapter } from './google-chat'
 export { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 export {
@@ -60,9 +70,11 @@ export {
   buildPushoverMessage,
   pushoverAdapter,
 } from './pushover'
-export { buildSlackBody, slackAdapter } from './slack'
+export { buildSlackBody, buildSlackDigestBody, slackAdapter } from './slack'
 export {
   buildTelegramBody,
+  buildTelegramDigestBody,
+  buildTelegramDigestText,
   buildTelegramText,
   escapeMarkdownV2,
   telegramAdapter,
@@ -78,12 +90,12 @@ import type { AlertPayload, NotificationAdapter } from './types'
 
 import { buildDiscordBody, discordAdapter } from './discord'
 import { emailAdapter } from './email'
-import { genericJsonAdapter } from './generic-json'
+import { buildGenericJsonDigestBody, genericJsonAdapter } from './generic-json'
 import { buildGoogleChatBody, googleChatAdapter } from './google-chat'
 import { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
-import { slackAdapter } from './slack'
+import { buildSlackDigestBody, slackAdapter } from './slack'
 import { telegramAdapter } from './telegram'
 
 /**
@@ -205,5 +217,49 @@ export function buildWebhookDispatchBody(params: {
   return {
     adapterId: adapter.id,
     body: { text: params.text, content: params.text },
+  }
+}
+
+/**
+ * Webhook adapters that support a rich MULTI-finding (digest) body (#2663).
+ * Slack gets Block-Kit blocks; every other/unknown URL falls through to the
+ * generic JSON digest. Discord / MS Teams / Google Chat are intentionally
+ * absent — they keep today's sequential per-finding sends (the sweep never
+ * routes them through {@link buildWebhookDigestDispatchBody}).
+ */
+const DIGEST_WEBHOOK_ADAPTER_IDS: ReadonlySet<string> = new Set([
+  'slack',
+  'generic-json',
+])
+
+/**
+ * True when a webhook URL's adapter can render a combined digest body. The
+ * sweep uses this to decide which fanned-out targets participate in grouping
+ * vs. dispatch inline unchanged.
+ */
+export function isDigestCapableWebhook(url: string): boolean {
+  return DIGEST_WEBHOOK_ADAPTER_IDS.has(detectAdapter(url).id)
+}
+
+/**
+ * Pick the per-URL webhook body for a GROUP of findings (#2663): Slack targets
+ * get combined Block-Kit blocks, every other digest-capable URL gets the
+ * generic JSON digest. Only ever called for URLs {@link isDigestCapableWebhook}
+ * accepts. Pure — no transport.
+ */
+export function buildWebhookDigestDispatchBody(params: {
+  url: string
+  payloads: readonly AlertPayload[]
+}): WebhookDispatchBody {
+  const adapter = detectAdapter(params.url)
+  if (adapter.id === 'slack') {
+    return {
+      adapterId: adapter.id,
+      body: buildSlackDigestBody(params.payloads),
+    }
+  }
+  return {
+    adapterId: adapter.id,
+    body: buildGenericJsonDigestBody(params.payloads),
   }
 }

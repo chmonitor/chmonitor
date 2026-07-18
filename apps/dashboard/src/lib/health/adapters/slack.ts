@@ -9,6 +9,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { summarizeDigest } from './digest'
+
 /** Severity → attachment colour (hex) and header emoji. */
 const SEVERITY_STYLE: Record<AlertSeverity, { color: string; emoji: string }> =
   {
@@ -150,6 +152,46 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
     type: 'context',
     elements: [{ type: 'mrkdwn', text: payload.timestamp }],
   })
+
+  return {
+    text: summary,
+    attachments: [{ color: style.color, blocks }],
+  }
+}
+
+/**
+ * Build ONE Slack Incoming-Webhook body for a group of findings bound for the
+ * same channel (feat #2663). The header carries the summary line, a single
+ * section lists every finding (capped, with a "…and N more" overflow line), and
+ * the attachment colour tracks the group's highest severity. Pure — no
+ * transport.
+ */
+export function buildSlackDigestBody(
+  payloads: readonly AlertPayload[]
+): SlackWebhookBody {
+  const digest = summarizeDigest(payloads)
+  const style = SEVERITY_STYLE[digest.topSeverity]
+  const summary = `Health digest: ${digest.summaryLine} (${digest.total} alerts)`
+
+  const listLines = digest.findingLines.map((line) => `• ${line}`)
+  if (digest.overflow > 0) {
+    listLines.push(`…and ${digest.overflow} more`)
+  }
+
+  const blocks: SlackBlock[] = [
+    {
+      type: 'header',
+      text: {
+        type: 'plain_text',
+        text: `${style.emoji} Health digest: ${digest.summaryLine}`,
+        emoji: true,
+      },
+    },
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: listLines.join('\n') },
+    },
+  ]
 
   return {
     text: summary,
