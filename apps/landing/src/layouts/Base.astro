@@ -338,6 +338,14 @@ const ogImage = new URL(image, Astro.site).toString()
        matter how long the copy is — the panel height must not jump per item. */
     .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg);
       display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden}
+    /* Features mega-menu: an icon rail to the left of each title+desc block.
+       Scoped to .nav-menu-grid so the (icon-less) Resources menu keeps its
+       simpler flex-column layout. */
+    .nav-menu-grid a{flex-direction:row;align-items:flex-start;gap:10px}
+    .nav-menu-grid .nav-ico{flex:0 0 auto;display:inline-flex;width:16px;height:16px;margin-top:1px;color:var(--muted-fg);transition:color .14s}
+    .nav-menu-grid .nav-ico svg{width:16px;height:16px}
+    .nav-menu-grid a:hover .nav-ico{color:var(--brand)}
+    .nav-menu-grid .nav-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
     @media (prefers-reduced-motion:reduce){.nav-trigger svg,.nav-menu{transition:none}}
     /* Status pill for nav items — e.g. "Beta". `--orange` is the small-text-safe
        accent token; the tint uses color-mix so it stays legible in both themes
