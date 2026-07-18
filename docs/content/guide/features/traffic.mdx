@@ -40,6 +40,7 @@ A grid of time-series charts. Every chart has its own **date-range selector** fo
 |---|---|---|
 | Inserted Rows over time | Rows ingested (uncompressed source of truth) | `system.query_log` |
 | Insert Queries over time | Insert-query count, split into successful and **failed** so ingestion incidents are visible | `system.query_log` |
+| Insert Performance over time | Average and p95 duration of successful insert queries — write/ingest latency regressions at a glance | `system.query_log` |
 | Inserted Bytes over time | Uncompressed bytes ingested | `system.query_log` |
 | Bytes on Disk over time | Compressed on-disk size of new parts — compare against Inserted Bytes to read effective compression | `system.part_log` |
 

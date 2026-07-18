@@ -23,6 +23,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
 import { ChartBytesOnDiskOverTime } from '@/components/charts/traffic/bytes-on-disk-over-time'
+import { ChartInsertPerformanceOverTime } from '@/components/charts/traffic/insert-performance-over-time'
 import { ChartInsertQueriesOverTime } from '@/components/charts/traffic/insert-queries-over-time'
 import { ChartInsertedBytesOverTime } from '@/components/charts/traffic/inserted-bytes-over-time'
 import { ChartInsertedRowsOverTime } from '@/components/charts/traffic/inserted-rows-over-time'
@@ -91,6 +92,10 @@ function TrafficPageContent() {
           chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
         />
         <ChartInsertQueriesOverTime
+          chartClassName={CHART_CLASS}
+          chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
+        />
+        <ChartInsertPerformanceOverTime
           chartClassName={CHART_CLASS}
           chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
         />

@@ -190,6 +190,34 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   },
 
   /**
+   * Insert (write) performance over time — average and p95 duration of
+   * successful insert queries, so slow-ingest regressions are visible next to
+   * the insert volume charts.
+   */
+  'traffic-insert-performance': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           round(avg(query_duration_ms), 1) AS avg_duration_ms,
+           round(quantile(0.95)(query_duration_ms), 1) AS p95_duration_ms
+    FROM system.query_log
+    WHERE query_kind = 'Insert'
+      AND type = 'QueryFinish'
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
+
+  /**
    * Data merged over time — total on-disk size of parts produced by merges
    * (part_log MergeParts). High merge volume is background write work that
    * competes with ingestion for disk and CPU.
