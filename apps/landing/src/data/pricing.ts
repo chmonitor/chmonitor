@@ -203,6 +203,10 @@ export interface PricingFaq {
 
 export const pricingFaqs: PricingFaq[] = [
   {
+    q: 'Are Pro/Max features really exclusive right now?',
+    a: 'Not yet — during early access every plan feature (Fleet view, custom dashboards, webhook integrations, data export, anomaly detection, advanced alerting) is unlocked for all tiers, including Free. Only plan limits (hosts, seats, alert rules, history, AI usage) are enforced today. Per-tier feature gating begins at paid GA, and existing subscribers will be notified before anything changes. Paying now supports development and locks in your limits.',
+  },
+  {
     q: 'Is self-hosting really free?',
     a: 'Yes. chmonitor is open source under GPL-3.0. Run it on your own infrastructure (Docker, Cloudflare Workers, Kubernetes) with every feature, unlimited clusters, and your data never leaving your network — at no cost, forever.',
   },
