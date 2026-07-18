@@ -1,3 +1,69 @@
+---
+// Compact capability grid: icon + title on one row, short copy, 4-up on wide
+// screens so the section shows the breadth of coverage without scrolling far.
+const items = [
+  {
+    title: 'Overview & health',
+    desc: 'CPU, memory, connections and replication status at a glance, with cluster-wide health checks.',
+    icon: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
+  },
+  {
+    title: 'Query monitoring',
+    desc: 'Running, slow, failed and most-expensive queries with full query detail and kill actions.',
+    icon: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  },
+  {
+    title: 'Cluster insights',
+    desc: 'Record-breaking scans, busiest days and totals, surfaced automatically from query history.',
+    icon: '<path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  },
+  {
+    title: 'Traffic & ingestion',
+    desc: 'Insert throughput, compression ratios, write amplification and disk write speed over time.',
+    icon: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/>',
+  },
+  {
+    title: 'Storage & tables',
+    desc: 'Table sizes, compression and disk headroom, down to part-size distribution.',
+    icon: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  },
+  {
+    title: 'Merges & parts',
+    desc: 'A live part-lifecycle timeline with merges, mutations and moves by table.',
+    icon: '<path d="M6 3v6a6 6 0 0 0 6 6h6"/><path d="m15 12 3 3-3 3"/><path d="M18 3v3"/>',
+  },
+  {
+    title: 'Cluster topology',
+    desc: 'Nodes, shards, replicas and Keeper drawn as a live topology map.',
+    icon: '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M6 8v3a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V8"/><path d="M12 14v2"/>',
+  },
+  {
+    title: 'PeerDB replication',
+    desc: 'Mirrors and peers with live status, rows-synced trend, CDC batches and slot health.',
+    icon: '<path d="M17 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M7 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>',
+  },
+  {
+    title: 'Advisor',
+    desc: 'Recommend-only tuning: skip indexes, projections, PREWHERE and TTL advice, ranked by impact.',
+    icon: '<path d="M12 2 13.5 9.5 21 11l-7.5 1.5L12 20l-1.5-7.5L3 11l7.5-1.5z"/>',
+  },
+  {
+    title: 'Alerting',
+    desc: 'Health checks with editable thresholds, webhooks to Slack or Discord, full alert history.',
+    icon: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  },
+  {
+    title: 'Security & access',
+    desc: 'Users, roles, grants and quotas, review who can touch what from one place.',
+    icon: '<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/>',
+  },
+  {
+    title: 'Logs & system',
+    desc: 'Query, error, trace and ZooKeeper logs plus settings and metrics, searchable and time-ranged.',
+    icon: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h6"/>',
+  },
+]
+---
   <section id="capabilities" class="py-14 sm:py-18">
     <div class="mx-auto max-w-6xl px-6">
       <div class="reveal mx-auto max-w-2xl text-center">
@@ -5,63 +71,18 @@
         <h2 class="mt-3 text-balance font-normal text-[clamp(1.75rem,4vw,2.25rem)] leading-[1.2] tracking-[-0.02em]">One dashboard for the whole cluster</h2>
         <p class="mt-4 text-pretty text-muted-foreground">From a high-level overview down to ZooKeeper logs and replication mirrors, every system table you reach for, already laid out.</p>
       </div>
-      <div class="mt-13 grid gap-[18px] min-[561px]:grid-cols-2 min-[881px]:grid-cols-3">
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Overview &amp; health</h4>
-          <p class="mt-2 text-sm text-muted-foreground">CPU, memory, connections and replication status at a glance, with health checks across the cluster.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Cluster insights</h4>
-          <p class="mt-2 text-sm text-muted-foreground">Record-breaking scans, busiest days, total rows read and storage, surfaced automatically from your query history.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M6 8v3a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V8"/><path d="M12 14v2"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">PeerDB replication</h4>
-          <p class="mt-2 text-sm text-muted-foreground">Watch mirrors and peers with live status, rows-synced trend and routing, plus snapshot progress, CDC batch history and replication-slot health, failures surface immediately.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a6 6 0 0 0 6 6h6"/><path d="m15 12 3 3-3 3"/><path d="M18 3v3"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Merges &amp; parts</h4>
-          <p class="mt-2 text-sm text-muted-foreground">A live part-lifecycle timeline with merges, mutations, moves and part-size distribution by table.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Security &amp; access</h4>
-          <p class="mt-2 text-sm text-muted-foreground">Users, roles, grants and quotas, review who can touch what, all from the same place.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h6"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Logs &amp; system</h4>
-          <p class="mt-2 text-sm text-muted-foreground">Query, error, trace and ZooKeeper logs alongside settings and metrics, searchable and time-ranged.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 13.5 9.5 21 11l-7.5 1.5L12 20l-1.5-7.5L3 11l7.5-1.5z"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Advisor</h4>
-          <p class="mt-2 text-sm text-muted-foreground">Recommend-only tuning: skip indexes, projections, PREWHERE rewrites, materialized-view designs and TTL advice, ranked by impact. Nothing is applied automatically.</p>
-        </div>
-        <div class="reveal rounded-xl border border-border bg-card p-6 shadow-sm transition-colors hover:border-ring/40">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-muted">
-            <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-          </span>
-          <h4 class="mt-4 font-semibold tracking-tight">Alerting</h4>
-          <p class="mt-2 text-sm text-muted-foreground">Built-in health checks with editable warning/critical thresholds, one webhook out to Slack or Discord, and a full alert history of every fire and recovery.</p>
-        </div>
+      <div class="mt-13 grid gap-3.5 min-[561px]:grid-cols-2 min-[881px]:grid-cols-3 min-[1101px]:grid-cols-4">
+        {items.map((item) => (
+          <div class="reveal rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-ring/40">
+            <div class="flex items-center gap-2.5">
+              <span class="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted">
+                <svg class="size-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={item.icon} />
+              </span>
+              <h4 class="text-sm font-semibold tracking-tight">{item.title}</h4>
+            </div>
+            <p class="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">{item.desc}</p>
+          </div>
+        ))}
       </div>
     </div>
   </section>

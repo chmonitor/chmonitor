@@ -133,6 +133,18 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
     </nav>
   </div>
   <script is:inline>
+    // Sticky-nav scroll state: frameless (transparent, no border) while at the
+    // very top; [data-scrolled] adds the blurred background + bottom border.
+    var navEl = document.querySelector('header.nav')
+    if (navEl) {
+      var syncNavScrolled = function () {
+        if (window.scrollY > 8) navEl.setAttribute('data-scrolled', '')
+        else navEl.removeAttribute('data-scrolled')
+      }
+      window.addEventListener('scroll', syncNavScrolled, { passive: true })
+      syncNavScrolled()
+    }
+
     // Reflect dropdown open/close state in aria-expanded (CSS handles the
     // hover/focus-within reveal; this keeps screen readers in sync).
     document.querySelectorAll('.nav-group').forEach(function (group) {
@@ -205,9 +217,9 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
     // Use window.scrollTo with behavior:'instant', not el.scrollIntoView or CSS
     // smooth: an overflow-x:hidden wrapper makes scrollIntoView hit the wrong
     // scroll container, and behavior:'auto' defers to scroll-behavior:smooth
-    // which that wrapper silently cancels. The nav is static, so this is just
-    // breathing room and must match :target scroll-margin-top.
-    var NAV_OFFSET = 24
+    // which that wrapper silently cancels. The nav is sticky (64px tall), so
+    // the offset clears it plus breathing room; must match :target scroll-margin-top.
+    var NAV_OFFSET = 88
     var scrollToHash = function (hash) {
       if (!hash || hash === '#') return false
       var el = document.getElementById(decodeURIComponent(hash.slice(1)))

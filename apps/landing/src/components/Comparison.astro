@@ -57,6 +57,20 @@ const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle t
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>
             </tr>
             <tr class="border-t border-border">
+              <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Traffic &amp; ingestion insights</td>
+              <td class="bg-[var(--brand-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> insert performance, compression, write amplification, disk write speed</span></td>
+              <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={partialSvg} /> possible, you build every panel</span></td>
+              <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={partialSvg} /> generic throughput metrics only</span></td>
+              <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>
+            </tr>
+            <tr class="border-t border-border">
+              <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">CDC &amp; Postgres monitoring</td>
+              <td class="bg-[var(--brand-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> PeerDB mirrors, snapshot &amp; slot health; Postgres source (beta)</span></td>
+              <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={partialSvg} /> separate datasources, manual dashboards</span></td>
+              <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={partialSvg} /> Postgres integration, no PeerDB</span></td>
+              <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>
+            </tr>
+            <tr class="border-t border-border">
               <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">Alert rules &amp; channels</td>
               <td class="bg-[var(--brand-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Built-in health checks, editable thresholds; one webhook &rarr; Slack or Discord + full alert history</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Grafana Alerting: many channels and routing rules, once you've built the CH panels</span></td>

@@ -190,7 +190,8 @@ const ogImage = new URL(image, Astro.site).toString()
     button{border:0 solid transparent}
     html{scroll-behavior:smooth}
     /* breathing room above jump targets (the nav no longer overlaps) */
-    :target{scroll-margin-top:24px}
+    /* 64px sticky nav + breathing room; must match NAV_OFFSET in Nav.astro */
+    :target{scroll-margin-top:88px}
     body{
       background:var(--bg);
       color:var(--fg);
@@ -228,10 +229,16 @@ const ogImage = new URL(image, Astro.site).toString()
     .mark-lg svg{width:22px;height:22px}
 
     /* ── nav ──
-       Static, not sticky: the header scrolls away and gives the viewport back
-       to the content. No backdrop blur is needed once it never overlaps. */
-    header.nav{position:relative;z-index:50;background:var(--bg);
-      border-bottom:1px solid var(--border-soft)}
+       Sticky, frameless at rest: at the top of the page the header is fully
+       transparent (no background, no border) so it sits on the hero. Once the
+       page scrolls, [data-scrolled] (set in Nav.astro) fades in a translucent
+       blurred background + bottom border so links stay legible over content. */
+    header.nav{position:sticky;top:0;z-index:50;background:transparent;
+      border-bottom:1px solid transparent;
+      transition:background-color .18s ease,border-color .18s ease}
+    header.nav[data-scrolled]{background:color-mix(in oklab,var(--bg) 86%,transparent);
+      -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+      border-bottom-color:var(--border-soft)}
     .nav-row{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px}
     .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:600;font-size:15px;letter-spacing:-.02em}
     .nav-links{display:flex;align-items:center;gap:4px}
