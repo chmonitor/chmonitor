@@ -398,6 +398,20 @@ export function getServerPushoverConfig(): ServerPushoverConfig | null {
   return { token, user }
 }
 
+/**
+ * Server-side healthchecks.io ping URL, sourced from
+ * `HEALTH_ALERT_HEALTHCHECKS_URL` (default '').
+ *
+ * healthchecks.io was client-only until #2665 (the browser fired the ping); the
+ * cron sweep now dispatches it too, so it needs an env fallback like every other
+ * channel. Returns '' when unset — the sweep then skips the healthchecks ping
+ * entirely (fail-open). The D1 unified config (`resolveServerChannels`) overrides
+ * this when an operator saves a healthchecks URL from the UI.
+ */
+export function getServerHealthchecksUrl(): string {
+  return process.env.HEALTH_ALERT_HEALTHCHECKS_URL?.trim() || ''
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

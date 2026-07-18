@@ -379,6 +379,7 @@ const ENV_KEYS = [
   'HEALTH_ALERT_WEBHOOK_URL',
   'HEALTH_ALERT_MIN_SEVERITY',
   'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
+  'HEALTH_ALERT_HEALTHCHECKS_URL',
 ] as const
 const savedEnv: Record<string, string | undefined> = {}
 
@@ -391,6 +392,7 @@ beforeEach(() => {
     'https://hooks.slack.com/services/T000/B000/XXXX'
   process.env.HEALTH_ALERT_MIN_SEVERITY = 'warning'
   delete process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY
+  delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
 
   alertStateStore.clear()
   fakeDb = makeFakeD1()
@@ -534,6 +536,27 @@ describe('runHealthSweep — alert-history hook', () => {
     expect(row.value).toBe(50)
     // detectAdapter() correctly identifies the slack webhook URL.
     expect(row.channel).toBe('slack')
+  })
+
+  test('a healthchecks.io URL (#2665) pings on an alert alongside the legacy webhook', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = '' // isolate the healthchecks ping
+    process.env.HEALTH_ALERT_HEALTHCHECKS_URL = 'https://hc-ping.com/uuid-1234'
+
+    const posted: { url: string; method: string }[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request, init) => {
+      posted.push({ url: String(url), method: init?.method ?? 'GET' })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // A critical (>= 20) finding fires an alert → a bare GET to the base ping
+    // URL (no `/fail`, which is recovery-only), and the sweep counts it.
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toEqual([
+      { url: 'https://hc-ping.com/uuid-1234', method: 'GET' },
+    ])
+    expect(fakeDb.rows.map((r) => r.channel)).toEqual(['healthchecks'])
   })
 
   test('a failed delivery still produces one row, with delivered=0 and the error message', async () => {

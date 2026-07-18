@@ -6,14 +6,15 @@ import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
 import { ActiveAlertsPanel } from './active-alerts-panel'
 import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
+import { ChannelSeverityToggle } from './channel-severity-toggle'
 import { HEALTH_CHECKS } from './health-checks'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
 import { QuietHoursPanel } from './quiet-hours-panel'
 import { RecentAlertsCard } from './recent-alerts-card'
 import { RuleBuilderPanel } from './rule-builder'
+import { ServerChannelConfigPanel } from './server-channel-config-panel'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { useEffect, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -47,102 +48,16 @@ import {
   type ThresholdsMap,
 } from '@/lib/health/thresholds-storage'
 import { describeError } from '@/lib/swr/fetch-error'
-import { cn } from '@/lib/utils'
-
-/**
- * Per-channel severity override control (#2661): a compact 3-way toggle —
- * Inherit (use the global gate) / Warning+ / Critical — mirroring the global
- * "Warning+ / Critical only" toggle's style. `Inherit` clears the channel's
- * `minSeverity` so it follows the global {@link AlertSettings.minSeverity}.
- */
-function ChannelSeverityToggle({
-  value,
-  onChange,
-}: {
-  value: 'warning' | 'critical' | undefined
-  onChange: (next: 'warning' | 'critical' | undefined) => void
-}) {
-  const options: {
-    label: string
-    val: 'warning' | 'critical' | undefined
-  }[] = [
-    { label: 'Inherit', val: undefined },
-    { label: 'Warning+', val: 'warning' },
-    { label: 'Critical', val: 'critical' },
-  ]
-  return (
-    <div className="flex items-center gap-1 text-xs">
-      {options.map((o) => (
-        <button
-          key={o.label}
-          type="button"
-          className={cn(
-            'rounded-md px-2 py-1',
-            value === o.val ? 'bg-secondary' : 'text-muted-foreground'
-          )}
-          onClick={() => onChange(o.val)}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 export function HealthSettingsDialog() {
   const [open, setOpen] = useState(false)
   const [thresholds, setThresholdsState] = useState<ThresholdsMap>({})
   const [alerts, setAlerts] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS)
-  const [opsgenieStatus, setOpsgenieStatus] = useState<{
-    configured: boolean
-    region: string | null
-  } | null>(null)
-  const [telegramStatus, setTelegramStatus] = useState<{
-    configured: boolean
-  } | null>(null)
-  const [ntfyStatus, setNtfyStatus] = useState<{
-    configured: boolean
-  } | null>(null)
-  const [twilioStatus, setTwilioStatus] = useState<{
-    configured: boolean
-    recipients: number
-  } | null>(null)
-  const [pushoverStatus, setPushoverStatus] = useState<{
-    configured: boolean
-  } | null>(null)
 
   useEffect(() => {
     if (!open) return
     setThresholdsState(loadThresholds())
     setAlerts(loadAlertSettings())
-    fetch('/api/v1/health/opsgenie-test')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) =>
-        setOpsgenieStatus(
-          data as { configured: boolean; region: string | null } | null
-        )
-      )
-      .catch(() => setOpsgenieStatus(null))
-    fetch('/api/v1/health/telegram-test')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setTelegramStatus(data as { configured: boolean } | null))
-      .catch(() => setTelegramStatus(null))
-    fetch('/api/v1/health/ntfy-test')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setNtfyStatus(data as { configured: boolean } | null))
-      .catch(() => setNtfyStatus(null))
-    fetch('/api/v1/health/twilio-test')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) =>
-        setTwilioStatus(
-          data as { configured: boolean; recipients: number } | null
-        )
-      )
-      .catch(() => setTwilioStatus(null))
-    fetch('/api/v1/health/pushover-test')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setPushoverStatus(data as { configured: boolean } | null))
-      .catch(() => setPushoverStatus(null))
   }, [open])
 
   const handleThresholdChange = (
@@ -270,129 +185,6 @@ export function HealthSettingsDialog() {
     )
     if (ok) toast.success('Test alert sent')
     else toast.error('Webhook request failed')
-  }
-
-  const handleTestOpsgenie = async () => {
-    try {
-      const res = await fetch('/api/v1/health/opsgenie-test', {
-        method: 'POST',
-      })
-      if (res.ok) {
-        toast.success('Opsgenie test alert sent')
-      } else {
-        const body = await res.json().catch(() => null)
-        toast.error('Opsgenie test alert failed', {
-          description:
-            (body as { error?: { message?: string } } | null)?.error?.message ??
-            `HTTP ${res.status}`,
-        })
-      }
-    } catch (err) {
-      toast.error('Opsgenie test alert failed', {
-        description: describeError(err),
-      })
-    }
-  }
-
-  const handleTestTelegram = async () => {
-    try {
-      const res = await fetch('/api/v1/health/telegram-test', {
-        method: 'POST',
-      })
-      if (res.ok) {
-        toast.success('Telegram test message sent')
-      } else {
-        const body = await res.json().catch(() => null)
-        toast.error('Telegram test message failed', {
-          description:
-            (body as { error?: { message?: string } } | null)?.error?.message ??
-            `HTTP ${res.status}`,
-        })
-      }
-    } catch (err) {
-      toast.error('Telegram test message failed', {
-        description: describeError(err),
-      })
-    }
-  }
-
-  const handleTestNtfy = async () => {
-    try {
-      const res = await fetch('/api/v1/health/ntfy-test', { method: 'POST' })
-      if (res.ok) {
-        toast.success('ntfy test notification sent')
-      } else {
-        const body = await res.json().catch(() => null)
-        toast.error('ntfy test notification failed', {
-          description:
-            (body as { error?: { message?: string } } | null)?.error?.message ??
-            `HTTP ${res.status}`,
-        })
-      }
-    } catch (err) {
-      toast.error('ntfy test notification failed', {
-        description: describeError(err),
-      })
-    }
-  }
-
-  const handleTestPushover = async () => {
-    try {
-      const res = await fetch('/api/v1/health/pushover-test', {
-        method: 'POST',
-      })
-      if (res.ok) {
-        toast.success('Pushover test notification sent')
-      } else {
-        const body = await res.json().catch(() => null)
-        toast.error(
-          (body as { error?: { message?: string } } | null)?.error?.message ??
-            'Pushover test notification failed'
-        )
-      }
-    } catch {
-      toast.error('Pushover test notification failed')
-    }
-  }
-
-  const handleTestTwilio = async () => {
-    try {
-      const res = await fetch('/api/v1/health/twilio-test', {
-        method: 'POST',
-      })
-      if (res.ok) {
-        toast.success('Twilio test SMS sent')
-      } else {
-        const body = await res.json().catch(() => null)
-        toast.error(
-          (body as { error?: { message?: string } } | null)?.error?.message ??
-            'Twilio test SMS failed'
-        )
-      }
-    } catch {
-      toast.error('Twilio test SMS failed')
-    }
-  }
-
-  const handleTestEmail = async () => {
-    try {
-      const res = await fetch('/api/v1/health/email-test', { method: 'POST' })
-      const data = (await res.json().catch(() => null)) as {
-        success?: boolean
-        error?: { message?: string }
-      } | null
-      if (res.ok && data?.success) {
-        toast.success('Test email sent')
-      } else {
-        toast.error('Failed to send test email', {
-          description: data?.error?.message || `HTTP ${res.status}`,
-        })
-      }
-    } catch (err) {
-      toast.error('Failed to send test email', {
-        description: describeError(err),
-      })
-    }
   }
 
   const handleTestBrowser = () => {
@@ -662,192 +454,7 @@ export function HealthSettingsDialog() {
 
                 <Separator />
 
-                <div className="flex flex-col gap-2 rounded-md border p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium">
-                        Email alerts
-                      </Label>
-                      <span className="text-xs text-muted-foreground">
-                        Configured by the server operator via{' '}
-                        <code className="text-xs">HEALTH_ALERT_EMAIL_*</code>{' '}
-                        environment variables (Mailgun, SendGrid, or SMTP)
-                      </span>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={handleTestEmail}>
-                      Send test email
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">
-                        Opsgenie alerts
-                      </Label>
-                      <Badge
-                        variant={
-                          opsgenieStatus?.configured ? 'default' : 'secondary'
-                        }
-                      >
-                        {opsgenieStatus?.configured
-                          ? `Configured (${opsgenieStatus.region})`
-                          : 'Not configured'}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Set HEALTH_ALERT_OPSGENIE_API_KEY on the server to enable
-                      — the key is never exposed to the browser
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestOpsgenie}
-                    disabled={!opsgenieStatus?.configured}
-                  >
-                    Send test
-                  </Button>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">
-                        Telegram alerts
-                      </Label>
-                      <Badge
-                        variant={
-                          telegramStatus?.configured ? 'default' : 'secondary'
-                        }
-                      >
-                        {telegramStatus?.configured
-                          ? 'Configured'
-                          : 'Not configured'}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Set HEALTH_ALERT_TELEGRAM_BOT_TOKEN and
-                      HEALTH_ALERT_TELEGRAM_CHAT_ID on the server to enable —
-                      the bot token is never exposed to the browser
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestTelegram}
-                    disabled={!telegramStatus?.configured}
-                  >
-                    Send test
-                  </Button>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">ntfy alerts</Label>
-                      <Badge
-                        variant={
-                          ntfyStatus?.configured ? 'default' : 'secondary'
-                        }
-                      >
-                        {ntfyStatus?.configured
-                          ? 'Configured'
-                          : 'Not configured'}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Set HEALTH_ALERT_NTFY_URL (and optional
-                      HEALTH_ALERT_NTFY_TOKEN) on the server to enable — the
-                      token is never exposed to the browser
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestNtfy}
-                    disabled={!ntfyStatus?.configured}
-                  >
-                    Send test
-                  </Button>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">
-                        Twilio SMS alerts
-                      </Label>
-                      <Badge
-                        variant={
-                          twilioStatus?.configured ? 'default' : 'secondary'
-                        }
-                      >
-                        {twilioStatus?.configured
-                          ? `Configured (${twilioStatus.recipients} recipient${twilioStatus.recipients === 1 ? '' : 's'})`
-                          : 'Not configured'}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Set HEALTH_ALERT_TWILIO_ACCOUNT_SID,
-                      HEALTH_ALERT_TWILIO_AUTH_TOKEN, HEALTH_ALERT_TWILIO_FROM,
-                      and HEALTH_ALERT_TWILIO_TO on the server to enable —
-                      critical alerts only by default, each SMS costs real
-                      money, and the auth token is never exposed to the browser
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestTwilio}
-                    disabled={!twilioStatus?.configured}
-                  >
-                    Send test
-                  </Button>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">
-                        Pushover alerts
-                      </Label>
-                      <Badge
-                        variant={
-                          pushoverStatus?.configured ? 'default' : 'secondary'
-                        }
-                      >
-                        {pushoverStatus?.configured
-                          ? 'Configured'
-                          : 'Not configured'}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Set HEALTH_ALERT_PUSHOVER_TOKEN and
-                      HEALTH_ALERT_PUSHOVER_USER on the server to enable — the
-                      token is never exposed to the browser
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestPushover}
-                    disabled={!pushoverStatus?.configured}
-                  >
-                    Send test
-                  </Button>
-                </div>
+                <ServerChannelConfigPanel />
 
                 <Separator />
 

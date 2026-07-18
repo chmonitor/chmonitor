@@ -38,6 +38,7 @@ import { alertStateStore, evaluateAlert } from './alert-state-store'
 import { dispatchDedupedAlertEvent } from './alert-webhook-events'
 import { loadCustomRulesIntoRegistry } from './custom-rules-store'
 import { sendAlertEmail } from './email-transport'
+import { dispatchHealthchecks } from './healthchecks-dispatch'
 import { isSuppressed, listWindows } from './maintenance-windows'
 import { dispatchNtfy } from './ntfy-dispatch'
 import { dispatchOpsgenie } from './opsgenie-dispatch'
@@ -57,15 +58,9 @@ import {
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
-  getServerChannelSettings,
-  getServerEmailConfig,
-  getServerNtfyConfig,
-  getServerOpsgenieConfig,
-  getServerPushoverConfig,
-  getServerTelegramConfig,
   getServerThresholdOverrides,
-  getServerTwilioConfig,
 } from './server-alert-config'
+import { resolveServerChannels } from './server-channel-resolve'
 import { dispatchTelegram } from './telegram-dispatch'
 import { dispatchTwilio } from './twilio-dispatch'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -397,20 +392,26 @@ const SWEEP_ROUTING_OWNER_ID = ''
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
   const settings = getServerAlertConfig()
-  const webhookConfigured = Boolean(settings.webhookUrl)
   const routes: AlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
   const pagerDutyFallbackKey = getPagerDutyFallbackRoutingKey()
-  const opsgenieConfig = getServerOpsgenieConfig()
-  const emailConfig = getServerEmailConfig()
-  const telegramFallback = getServerTelegramConfig()
-  const ntfyFallback = getServerNtfyConfig()
-  const twilioConfig = getServerTwilioConfig()
-  const pushoverFallback = getServerPushoverConfig()
-  // Per-channel overrides (#2661): the sweep's analogue of the client's
-  // localStorage `AlertSettings.channels`, sourced from env. Empty ({}) for a
-  // deployment that sets none, so every gate below reduces to the historical
-  // global `settings.minSeverity` — behavior unchanged.
-  const channelSettings = getServerChannelSettings()
+  // Unified per-channel config (#2665): the D1-persisted UI config, layered
+  // over the env readers (D1 row › env fallback per channel). With no D1
+  // binding every channel falls through to env, so this is byte-identical to
+  // the old direct `getServer*Config()` calls for an env-only deployment.
+  const channels = await resolveServerChannels(SWEEP_ROUTING_OWNER_ID)
+  const webhookUrl = channels.webhookUrl
+  const webhookConfigured = Boolean(webhookUrl)
+  const opsgenieConfig = channels.opsgenie
+  const emailConfig = channels.email
+  const telegramFallback = channels.telegram
+  const ntfyFallback = channels.ntfy
+  const twilioConfig = channels.twilio
+  const pushoverFallback = channels.pushover
+  const healthchecksUrl = channels.healthchecksUrl
+  // Per-channel overrides (#2661): env `getServerChannelSettings()` overridden
+  // by any saved D1 row (#2665). Empty ({}) for a deployment that sets none, so
+  // every gate below reduces to the historical global `settings.minSeverity`.
+  const channelSettings = channels.channelSettings
   // Master switch for `dispatchFinding` (dedup + every channel, INCLUDING the
   // webhook-subscriptions bus below). Deliberately NOT ANDed with "is any
   // legacy channel configured" anymore (#2664) — the bus is its own channel
@@ -716,7 +717,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const targets = resolveTargets(
         routes,
         { ruleId, ruleType, hostId, hostName: name },
-        channelPasses('webhook') ? settings.webhookUrl : '',
+        channelPasses('webhook') ? webhookUrl : '',
         matchOptions
       )
 
@@ -777,6 +778,12 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const opsgenieEligible =
         opsgenieConfig !== null && channelPasses('opsgenie')
       const emailEligible = emailConfig !== null && channelPasses('email')
+      // healthchecks.io ping (#2665): sweep-side dispatch of the resolved
+      // healthchecks URL, gated by the same per-channel floor. Previously
+      // client-only; a URL configured from the UI (D1) or env now pings on
+      // every alert/recovery.
+      const healthchecksEligible =
+        healthchecksUrl !== '' && channelPasses('healthchecks')
 
       // Normalized payload shared by every per-URL body builder below (Discord
       // embeds carry host/value/thresholds; the Slack/generic wrapper carries
@@ -1223,6 +1230,39 @@ export async function runHealthSweep(): Promise<SweepSummary> {
         }
       }
 
+      // healthchecks.io (#2665): a single ping URL (D1 override or env),
+      // gated like every other channel. A recovery pings `<url>/fail`, an
+      // alert pings the base URL — mirroring the client dispatcher exactly
+      // (see `healthchecks-dispatch.ts`). `dispatchHealthchecks` never throws
+      // (fails open), matching every other channel here.
+      if (healthchecksEligible) {
+        const ok = await dispatchHealthchecks(
+          healthchecksUrl,
+          decision.kind === 'recovery' ? 'recovery' : 'alert'
+        )
+        if (ok) anyDelivered = true
+
+        try {
+          await recordAlertEvent(
+            buildAlertEventRecord({
+              hostId,
+              hostLabel: name,
+              ruleId,
+              decision,
+              value,
+              delivered: ok,
+              error: ok ? undefined : 'healthchecks ping failed',
+              channel: 'healthchecks',
+            })
+          )
+        } catch (err) {
+          debug(
+            `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+            err instanceof Error ? err.message : String(err)
+          )
+        }
+      }
+
       // Persist "notified" only when there was nothing to deliver (no
       // targets at all across every channel — not a failure) or at least one
       // channel succeeded. A failed delivery with no successes leaves no
@@ -1235,7 +1275,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           pushoverTargets.length +
           (opsgenieEligible ? 1 : 0) +
           (emailEligible ? 1 : 0) +
-          (twilioEligible ? 1 : 0) ===
+          (twilioEligible ? 1 : 0) +
+          (healthchecksEligible ? 1 : 0) ===
           0 ||
         anyDelivered
       ) {
