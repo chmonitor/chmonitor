@@ -84,8 +84,10 @@ const faqJsonLd = {
             <a class={btnOutline} href={docsHref} target="_blank" rel="noopener">Read the docs</a>
           )}
         </div>
-        <div class="fp-hero-shot reveal">
-          <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
+        <div class={`fp-hero-shot reveal${/-with-bg\./.test(hero.src) ? ' frameless' : ''}`}>
+          {!/-with-bg\./.test(hero.src) && (
+            <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
+          )}
           <ScreenshotShot id={`fp-${slug}-hero`} src={hero.src} srcDark={hero.srcDark} alt={hero.alt} eager />
         </div>
       </div>
@@ -230,6 +232,8 @@ const faqJsonLd = {
     .fp-hero{padding-bottom:0}
     .fp-hero .sec-head p{margin-top:14px;max-width:640px;margin-inline:auto}
     .fp-hero-shot{margin-top:44px;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);overflow:hidden;background:var(--card)}
+    /* -with-bg captures carry their own framing — no window chrome, border or card fill */
+    .fp-hero-shot.frameless{border:0;background:transparent}
 
     /* stat strip — shadcn-card look with hairline dividers */
     .fp-stats-band{padding-top:34px;padding-bottom:34px}
@@ -251,12 +255,12 @@ const faqJsonLd = {
     .fp-shot{border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);overflow:hidden;background:var(--card)}
 
     /* gallery */
-    .fp-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
-    .fp-gallery-item{margin:0;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);overflow:hidden;background:var(--card)}
-    .fp-gallery-item figcaption{padding:12px 16px;font-size:13.5px;color:var(--muted-fg);border-top:1px solid var(--border-soft, var(--border))}
+    .fp-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 22px;margin-top:40px}
+    .fp-gallery-item{margin:0;border-radius:calc(var(--radius) + 4px);overflow:hidden}
+    .fp-gallery-item figcaption{padding:12px 4px 0;font-size:13.5px;color:var(--muted-fg)}
 
     /* capability grid — quiet shadcn cards */
-    .fp-caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .fp-caps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:40px}
     .fp-cap{border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);background:var(--card);padding:20px 22px}
     .fp-cap h4{font-size:15px;font-weight:600;letter-spacing:-.01em}
     .fp-cap p{margin-top:6px;font-size:13.5px;line-height:1.55;color:var(--muted-fg)}
@@ -273,7 +277,7 @@ const faqJsonLd = {
     .fp-faq-item > p{padding:0 0 16px;font-size:14.5px;line-height:1.65;color:var(--muted-fg)}
 
     /* related cards */
-    .fp-related{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .fp-related{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:40px}
     .fp-related-card{display:flex;flex-direction:column;gap:8px;border:1px solid var(--border);
       border-radius:calc(var(--radius) + 4px);background:var(--card);padding:22px;transition:border-color .15s,background .15s}
     .fp-related-card:hover{border-color:var(--border-hover, var(--hairline-strong));background:var(--muted)}
