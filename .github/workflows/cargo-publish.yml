@@ -7,6 +7,7 @@ on:
     paths:
       - 'rust/ch-json/**'
       - 'rust/ch-pivot/**'
+      - 'rust/ch-monitor-cli/**'
       - '.github/workflows/cargo-publish.yml'
   workflow_dispatch:
 
@@ -44,6 +45,8 @@ jobs:
               - 'rust/ch-json/**'
             ch_pivot:
               - 'rust/ch-pivot/**'
+            ch_monitor_cli:
+              - 'rust/ch-monitor-cli/**'
 
       - name: Publish ch-json
         if: steps.filter.outputs.ch_json == 'true' || github.event_name == 'workflow_dispatch'
@@ -87,4 +90,29 @@ jobs:
             cargo publish
           else
             echo "ch-pivot v$VERSION already published or check inconclusive (HTTP $STATUS_CODE). Skipping publish."
+          fi
+
+      # The user-facing CLI (#2699): publishing it makes `cargo install
+      # ch-monitor-cli` work for Rust-toolchain users, complementing the
+      # binary install script (scripts/install.sh → chm-v* GitHub Releases).
+      - name: Publish ch-monitor-cli
+        if: steps.filter.outputs.ch_monitor_cli == 'true' || github.event_name == 'workflow_dispatch'
+        working-directory: rust/ch-monitor-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          VERSION=$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)
+          echo "Checking ch-monitor-cli v$VERSION on crates.io..."
+
+          # crates.io API requires a User-Agent header (returns 403 otherwise).
+          # Publish ONLY on a definitive 404; treat 200/403/5xx as "skip" so a
+          # transient API quirk never triggers a doomed `cargo publish`.
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "User-Agent: clickhouse-monitoring-ci (https://github.com/chmonitor/chmonitor)" \
+            "https://crates.io/api/v1/crates/ch-monitor-cli/$VERSION" || true)
+          if [ "$STATUS_CODE" = "404" ]; then
+            echo "ch-monitor-cli v$VERSION not found on crates.io. Publishing..."
+            cargo publish
+          else
+            echo "ch-monitor-cli v$VERSION already published or check inconclusive (HTTP $STATUS_CODE). Skipping publish."
           fi

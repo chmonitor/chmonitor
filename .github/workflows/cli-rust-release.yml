@@ -50,7 +50,8 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
-          cp rust/target/${{ matrix.target }}/release/ch-monitor-cli dist/${{ matrix.bin }}-${{ matrix.target }}
+          # The crate's [[bin]] is named `chm` (so `cargo install` matches the docs).
+          cp rust/target/${{ matrix.target }}/release/chm dist/${{ matrix.bin }}-${{ matrix.target }}
           cd dist
           shasum -a 256 ${{ matrix.bin }}-${{ matrix.target }} > ${{ matrix.bin }}-${{ matrix.target }}.sha256
       - uses: softprops/action-gh-release@v3

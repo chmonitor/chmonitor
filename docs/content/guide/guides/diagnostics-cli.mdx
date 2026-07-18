@@ -21,6 +21,13 @@ script detects your OS/arch, downloads the matching binary from
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 ```
 
+Already have a Rust toolchain? `cargo install` works too and builds the same
+binary from [crates.io](https://crates.io/crates/ch-monitor-cli):
+
+```bash
+cargo install ch-monitor-cli
+```
+
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
 ```
@@ -37,7 +44,7 @@ CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
 # or build once and reuse:
 cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
-  ./rust/target/release/ch-monitor-cli diagnose
+  ./rust/target/release/chm diagnose
 ```
 </Callout>
 

@@ -11,6 +11,13 @@ keywords = ["clickhouse", "cli", "monitoring", "diagnostics"]
 categories = ["command-line-utilities"]
 exclude = ["/.github"]
 
+# The marketed command is `chm` (docs, install.sh, release assets) — without
+# this, `cargo install ch-monitor-cli` would drop a binary named
+# `ch-monitor-cli` that none of the documentation mentions.
+[[bin]]
+name = "chm"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
