@@ -19,6 +19,7 @@ export const ANALYTICS_EVENTS = [
   'first_chart_render',
   'agent_message',
   'advisor_recommendation_viewed',
+  'advisor_tuning_viewed',
   'paywall_hit',
   'upgrade_click',
   'checkout_started',

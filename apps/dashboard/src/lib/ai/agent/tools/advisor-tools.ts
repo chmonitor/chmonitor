@@ -67,5 +67,43 @@ export function createAdvisorTools(hostId: number) {
         })
       },
     }),
+
+    get_tuning_suggestions: dynamicTool({
+      description:
+        'Scan a database (or one `table`) for RANKED, recommend-only schema + settings tuning findings: needless Nullable columns, oversized integers, compression-codec opportunities, and LowCardinality candidates (schema lint ranked by on-disk bytes), plus server/merge-tree settings that differ from defaults in risky ways. Each finding carries evidence (bytes/rows/ratios), an estimated benefit, a ready-to-review DDL/settings statement, and (for heuristic rules) a verification query. Read-only and recommend-only: it never executes or applies any DDL or settings change. Always present the DDL/verification text for the user to review and run themselves.',
+      inputSchema: z.object({
+        database: z
+          .string()
+          .describe('The database to lint (required). Not `system`.'),
+        table: z
+          .string()
+          .optional()
+          .describe(
+            'Optional single table to scope the scan to; omit to scan the whole database.'
+          ),
+        hostId: hostIdSchema,
+      }),
+      execute: async (input: unknown) => {
+        const { analyzeTuning } = await import(
+          '@/lib/ai/advisor/tuning/tuning-engine'
+        )
+        const {
+          database,
+          table,
+          hostId: toolHostId,
+        } = input as {
+          database: string
+          table?: string
+          hostId?: number
+        }
+        const resolvedHostId = resolveHostId(toolHostId, hostId)
+
+        return analyzeTuning({
+          hostId: resolvedHostId,
+          database,
+          table,
+        })
+      },
+    }),
   }
 }

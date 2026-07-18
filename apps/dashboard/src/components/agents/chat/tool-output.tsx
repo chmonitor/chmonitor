@@ -32,6 +32,7 @@ import {
   AskUserWidget,
   isAskUserOutput,
 } from '@/components/agents/ask-user-widget'
+import { TuningFindingsPanel } from '@/components/agents/tuning-findings-panel'
 import { DataTable } from '@/components/data-table/data-table'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -386,6 +387,17 @@ function renderStructuredOutput(output: unknown): ReactNode {
         output={
           output as ComponentProps<typeof AdvisorRecommendationsPanel>['output']
         }
+      />
+    )
+  }
+
+  if (
+    outputObj.type === 'schema_tuning_findings' &&
+    Array.isArray(outputObj.findings)
+  ) {
+    return (
+      <TuningFindingsPanel
+        output={output as ComponentProps<typeof TuningFindingsPanel>['output']}
       />
     )
   }

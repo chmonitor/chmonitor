@@ -342,6 +342,7 @@ env-gated control tools), see [Capabilities](/guide/ai-agent/capabilities).
 | `explore_table_schema` | Three-mode schema exploration: databases → tables → full schema with relationships. Each list (databases, tables, columns, dependencies) is capped at 1000 rows (`truncated: true` + a note when hit). |
 | `analyze_performance` | Structured performance snapshot — slow queries, high part counts, merge backlog, memory/disk pressure — with severity ratings |
 | `get_optimization_recommendations` | Analyze a slow query (by `queryId` or raw `sql`) and return ranked skip-index/projection/partition-key/PREWHERE recommendations with DDL, risk, effort, and an estimated impact — recommend-only, never executed |
+| `get_tuning_suggestions` | Scan a `database` (or one `table`) for ranked schema lint findings (needless Nullable, oversized integers, compression-codec opportunities, LowCardinality candidates — ranked by on-disk bytes) plus risky-vs-default server/merge-tree settings. Each finding carries evidence (bytes/rows/ratios), an estimated benefit, ready-to-review DDL, and a verification query — recommend-only, never executed |
 
 ### Read-only enforcement
 

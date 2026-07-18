@@ -7,6 +7,7 @@ import type { AdvisorRecommendationsOutput } from '@/components/agents/advisor-r
 import { lazy, Suspense, useState } from 'react'
 import { AdvisorQueryPicker } from '@/components/agents/advisor-query-picker'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
+import { AdvisorTuningTab } from '@/components/agents/advisor-tuning-tab'
 import { ErrorAlert } from '@/components/feedback'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
@@ -218,7 +219,18 @@ function AdvisorContent() {
 function AdvisorPage() {
   return (
     <Suspense fallback={<TableSkeleton rows={3} />}>
-      <AdvisorContent />
+      <Tabs defaultValue="query" className="flex flex-col gap-4">
+        <TabsList>
+          <TabsTrigger value="query">Query Advisor</TabsTrigger>
+          <TabsTrigger value="tuning">Schema &amp; Settings</TabsTrigger>
+        </TabsList>
+        <TabsContent value="query" className="mt-0">
+          <AdvisorContent />
+        </TabsContent>
+        <TabsContent value="tuning" className="mt-0">
+          <AdvisorTuningTab />
+        </TabsContent>
+      </Tabs>
     </Suspense>
   )
 }

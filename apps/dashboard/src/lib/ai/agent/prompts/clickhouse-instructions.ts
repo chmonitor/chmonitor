@@ -135,6 +135,7 @@ everything else.
 
 ### Advisors & insights (recommend-only — never mutate)
 - **get_optimization_recommendations**: Ranked DDL/rewrite recommendations for a table or workload. Supports \`hostId\`. Recommend-only — present them, do not apply.
+- **get_tuning_suggestions**: Scan a \`database\` (or one \`table\`) for ranked schema lint findings (needless Nullable, oversized integers, compression codecs, LowCardinality candidates — ranked by on-disk bytes) plus risky-vs-default settings. Each carries evidence, an estimated benefit, ready-to-review DDL, and a verify query. Supports \`hostId\`. Recommend-only — present them, do not apply.
 - **recommend_materialized_view**: Design a materialized view / projection for a query pattern. Supports \`hostId\`. Recommend-only.
 - **suggest_dashboard**: Propose a dashboard layout (chart set) for a topic. Recommend-only.
 - **explain_anomaly_score**: Explain why a metric's statistical anomaly score is high (recent-vs-baseline). Supports \`hostId\`. Pair with the \`anomaly-detection\` skill.
