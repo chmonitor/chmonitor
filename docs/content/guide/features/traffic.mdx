@@ -6,6 +6,8 @@ title: Traffic
 
 The Traffic page answers a single question: **how much data is flowing into this cluster?** It combines last-24h ingestion KPIs, rows/bytes/insert-query volume over time, per-table ingestion, and — only when the cluster actually replicates, shards, or runs a PeerDB pipeline — the matching write-amplification and data-movement views.
 
+![chmonitor Traffic page: rows ingested, data ingested, insert queries and compression KPIs with time-series charts for rows, insert queries, uncompressed ingest and compressed bytes written to disk](/assets/screenshots/traffic-overview-dark-with-bg.jpeg)
+
 | | |
 |---|---|
 | **Route** | `/traffic` |
@@ -59,6 +61,21 @@ This section **only appears when the cluster actually replicates or shards.** Tr
 ### PeerDB Ingestion (conditional)
 
 Also **auto-detected**: Traffic probes for a PeerDB replication pipeline (tables/rows written by PeerDB mirrors). The **PeerDB Ingestion** section renders only when PeerDB activity is detected, showing rows ingested through the PeerDB pipeline. If you run PeerDB, see the dedicated [PeerDB feature](/guide/features/peerdb) for mirror, peer, and slot-level detail.
+
+## Customize with presets
+
+The **View** button (top right) opens a popover where you choose what the page shows. Each optional section has a three-state visibility — **Auto** follows the page's smart detection, while **Show** / **Hide** are explicit overrides — and presets apply a whole section map in one click:
+
+| Preset | What it shows |
+|---|---|
+| **Auto** | Smart detection decides which sections are relevant |
+| **Ingest focus** | Only incoming data: rows, bytes, and insert queries |
+| **Storage & merges** | On-disk volume, merge activity, and per-table breakdown |
+| **Everything** | Force-show every section, even when undetected |
+
+![Traffic View popover: preset chips (Auto, Ingest focus, Storage & merges, Everything) and per-section Auto / Show / Hide toggles for Bytes on Disk, Merges, Top Tables, Replication and PeerDB](/assets/screenshots/traffic-customize-dark.png)
+
+Auto hides a section when its data source is unavailable — `part_log` disabled, no replication, PeerDB not detected — so a single-node server never shows empty cards. Applying a preset overwrites the current map; you can then fine-tune individual sections. Settings persist per browser (localStorage), no server configuration involved.
 
 ## Enable `system.part_log`
 

@@ -29,6 +29,29 @@ function fmtDate(iso: string) {
 }
 
 const MAX_ITEMS = 5
+const MAX_IMAGES = 4
+
+/** Screenshots embedded in a release body — markdown images or raw <img> tags. */
+function extractImages(md: string): { src: string; alt: string }[] {
+  if (!md) return []
+  const images: { src: string; alt: string }[] = []
+  const seen = new Set<string>()
+  for (const m of md.matchAll(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g)) {
+    if (!seen.has(m[2])) {
+      seen.add(m[2])
+      images.push({ src: m[2], alt: m[1] || 'Release screenshot' })
+    }
+  }
+  for (const m of md.matchAll(/<img[^>]*\bsrc=["'](https?:[^"']+)["'][^>]*>/gi)) {
+    if (!seen.has(m[1])) {
+      seen.add(m[1])
+      const alt = m[0].match(/\balt=["']([^"']*)["']/i)
+      images.push({ src: m[1], alt: alt?.[1] || 'Release screenshot' })
+    }
+  }
+  return images.slice(0, MAX_IMAGES)
+}
+
 function mdToHtml(md: string): string {
   if (!md) return ''
   const items: string[] = []
@@ -94,6 +117,15 @@ const breadcrumbJsonLd = {
                   {r.body && (
                     <div class="cl-notes" set:html={mdToHtml(r.body)} />
                   )}
+                  {extractImages(r.body).length > 0 && (
+                    <div class="cl-shots">
+                      {extractImages(r.body).map((img) => (
+                        <a href={img.src} target="_blank" rel="noopener" title={img.alt}>
+                          <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   <a href={r.html_url} target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:13px;color:var(--orange);text-decoration:underline;text-underline-offset:3px">
                     Full release notes
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -117,6 +149,10 @@ const breadcrumbJsonLd = {
   <Footer />
 
   <style>
+    .cl-shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px}
+    .cl-shots a{display:block;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--muted);transition:border-color .15s ease,transform .15s ease}
+    .cl-shots a:hover{border-color:var(--orange);transform:translateY(-1px)}
+    .cl-shots img{display:block;width:100%;height:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}
     .sec-head h1{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
   </style>
 </Base>

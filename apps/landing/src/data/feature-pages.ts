@@ -679,7 +679,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
     ],
     docsHref: 'https://docs.chmonitor.dev',
-    related: ['ai-agent', 'queries', 'alerting'],
+    related: ['traffic', 'queries', 'alerting'],
   },
   {
     slug: 'peerdb',
@@ -944,7 +944,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
     ],
     docsHref: 'https://docs.chmonitor.dev',
-    related: ['queries', 'insights', 'topology'],
+    related: ['queries', 'insights', 'traffic'],
   },
   {
     slug: 'storage',
@@ -1034,6 +1034,143 @@ export const FEATURE_PAGES: FeaturePage[] = [
     ],
     docsHref: 'https://docs.chmonitor.dev',
     related: ['insights', 'alerting', 'ai-agent'],
+  },
+  {
+    slug: 'traffic',
+    title: 'ClickHouse Ingestion & Traffic Monitoring — chmonitor',
+    description:
+      'See data flowing into ClickHouse: rows, bytes and insert queries over time, compression, write amplification, top tables by ingestion, replication and PeerDB — with customizable presets.',
+    eyebrow: 'Traffic',
+    h1: 'Know exactly what flows into your cluster',
+    subhead:
+      'Rows, bytes and insert queries over time, uncompressed ingest vs bytes written to disk, write amplification from merges, and per-table ingestion — with smart sections that appear only when your cluster needs them.',
+    hero: {
+      src: `${S}/traffic-overview-dark-with-bg.jpeg`,
+      alt: 'chmonitor Traffic page: rows ingested, data ingested, insert queries and compression KPIs with time-series charts',
+    },
+    stats: [
+      {
+        value: 'Rows · Bytes · Inserts',
+        label: 'ingestion volume over time, with failed inserts split out',
+      },
+      {
+        value: 'Compression',
+        label: 'uncompressed ingest vs compressed bytes on disk',
+      },
+      {
+        value: 'Write amp',
+        label: 'bytes rewritten by merges per byte ingested',
+      },
+      {
+        value: 'Auto-detect',
+        label:
+          'replication, sharding and PeerDB sections appear only when relevant',
+      },
+    ],
+    sections: [
+      {
+        eyebrow: 'Ingestion at a glance',
+        title: 'Rows, bytes and inserts — plus what actually hit disk',
+        body: 'Last-24h KPIs with deltas, then time series for rows ingested, insert queries (successful vs failed, so ingestion incidents jump out), uncompressed data ingested and compressed bytes written to disk. Comparing the last two reads your effective compression over time.',
+        bullets: [
+          'query_log measures what clients sent; part_log measures what was stored',
+          'Cluster-wide compression ratio from active parts',
+          'Per-chart date ranges: hour, day and month granularity',
+        ],
+        screenshot: {
+          src: `${S}/traffic-top-tables-dark.png`,
+          alt: 'Traffic charts with write amplification and top tables ranked by ingestion in the last 24 hours',
+        },
+      },
+      {
+        eyebrow: 'Presets & customization',
+        title: 'Your traffic page, your layout',
+        body: 'One-click presets — Auto, Ingest focus, Storage & merges, Everything — or per-section Auto / Show / Hide toggles. Auto uses smart probes (part_log availability, cluster shape, PeerDB activity) so you never stare at empty cards on a single-node server.',
+        bullets: [
+          'Presets are just section maps — apply one, then fine-tune',
+          'Auto hides a section when its data source is unavailable',
+          'Saved per browser, no server config needed',
+        ],
+        screenshot: {
+          src: `${S}/traffic-customize-dark.png`,
+          alt: 'Traffic View popover with presets and per-section Auto / Show / Hide visibility toggles',
+        },
+        reverse: true,
+      },
+      {
+        eyebrow: 'Data movement',
+        title: 'Replication, distribution and PeerDB — when you have them',
+        body: 'On replicated or sharded clusters, Traffic adds replica fetch traffic and distributed query fan-out. Running a PeerDB pipeline? A PeerDB Ingestion section tracks CDC rows flowing in from Postgres. Neither renders on clusters where they do not apply.',
+        bullets: [
+          'Replica fetches: bytes downloaded between replicas',
+          'Distributed queries: initial vs secondary volume',
+          'PeerDB rows over time, linked to the full PeerDB feature',
+        ],
+        screenshot: {
+          src: `${S}/traffic-replicate-peerdb-dark.png`,
+          alt: 'Traffic replication and PeerDB sections: replica fetches, distributed queries and PeerDB rows over time',
+        },
+      },
+    ],
+    gallery: [
+      {
+        src: `${S}/traffic-customize-dark-with-bg.png`,
+        alt: 'Traffic View popover with presets and section visibility toggles',
+        caption: 'Presets and per-section visibility in the View popover',
+      },
+      {
+        src: `${S}/traffic-top-tables-dark-with-bg.png`,
+        alt: 'Write amplification chart and top tables by ingestion table',
+        caption: 'Write amplification and top tables by ingestion (24h)',
+      },
+      {
+        src: `${S}/traffic-replicate-peerdb-dark-with-bg.png`,
+        alt: 'Replica fetches, distributed queries and PeerDB ingestion charts',
+        caption: 'Replication, distribution and PeerDB ingestion',
+      },
+    ],
+    capabilities: [
+      {
+        title: 'Ingestion KPIs',
+        body: 'Rows, bytes, insert queries and compression ratio for the last 24h, each with a delta vs the previous day.',
+      },
+      {
+        title: 'Failed-insert visibility',
+        body: 'Insert query volume split into successful and failed, so broken pipelines are visible at a glance.',
+      },
+      {
+        title: 'Compression story',
+        body: 'Uncompressed ingest vs compressed on-disk bytes, side by side, plus per-table compression ratios.',
+      },
+      {
+        title: 'Write amplification',
+        body: 'How many bytes merges rewrite per byte ingested — the true background cost of your insert pattern.',
+      },
+      {
+        title: 'Top tables by ingestion',
+        body: 'Tables ranked by rows, on-disk bytes and parts created in the last 24h, rendered as background bars.',
+      },
+      {
+        title: 'Graceful degradation',
+        body: 'part_log-based views show an informative empty state when part_log is off — nothing breaks.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Why do "data ingested" and "written to disk" differ?',
+        a: 'Data ingested is the uncompressed payload from system.query_log; written to disk is the compressed part size from system.part_log. The ratio between them is your effective compression.',
+      },
+      {
+        q: 'Some sections are missing — is that a bug?',
+        a: 'No. Auto mode hides sections whose data source is unavailable: part_log disabled, no replication, no PeerDB. Use the View popover to force-show any section.',
+      },
+      {
+        q: 'Does it need extra ClickHouse configuration?',
+        a: 'The KPI strip and query_log charts work out of the box. Bytes on Disk, merges and top-tables views need system.part_log, which is opt-in on some distributions.',
+      },
+    ],
+    docsHref: 'https://docs.chmonitor.dev/guide/features/traffic',
+    related: ['storage', 'peerdb', 'insights'],
   },
 ]
 
