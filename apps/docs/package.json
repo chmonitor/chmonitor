@@ -53,6 +53,10 @@
       "esbuild",
       "sharp",
       "workerd"
-    ]
+    ],
+    "overrides": {
+      "undici": "^7.28.0",
+      "ws": "^8.21.0"
+    }
   }
 }
