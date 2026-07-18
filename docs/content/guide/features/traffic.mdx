@@ -42,11 +42,12 @@ A grid of time-series charts. Every chart has its own **date-range selector** fo
 | Insert Queries over time | Insert-query count, split into successful and **failed** so ingestion incidents are visible | `system.query_log` |
 | Insert Performance over time | Average and p95 duration of successful insert queries — write/ingest latency regressions at a glance | `system.query_log` |
 | Inserted Bytes over time | Uncompressed bytes ingested | `system.query_log` |
+| Ingest Speed over time | Effective write bandwidth: uncompressed bytes written per second of insert execution time | `system.query_log` |
 | Bytes on Disk over time | Compressed on-disk size of new parts — compare against Inserted Bytes to read effective compression | `system.part_log` |
 
 ### Merges & Data Movement
 
-Background write-amplification and data-movement throughput from `system.part_log`: **merged bytes** (`MergeParts`), **part moves** (`MovePart`), and a **write-amplification** view (how many bytes the server rewrites for every byte ingested). This section reads `part_log` and shows an empty state when it is not configured.
+Background write-amplification and data-movement throughput from `system.part_log`: **merged bytes** (`MergeParts`), **part moves** (`MovePart`), and a **write-amplification** view (how many bytes the server rewrites for every byte ingested), plus **disk write speed** — on-disk bytes per second of part-write time, split into foreground new parts and background merges, so disk saturation shows up as a falling trend under constant ingest. This section reads `part_log` and shows an empty state when it is not configured.
 
 ### Top Tables by Ingestion (24h)
 
@@ -61,7 +62,7 @@ This section **only appears when the cluster actually replicates or shards.** Tr
 
 ### PeerDB Ingestion (conditional)
 
-Also **auto-detected**: Traffic probes for a PeerDB replication pipeline (tables/rows written by PeerDB mirrors). The **PeerDB Ingestion** section renders only when PeerDB activity is detected, showing rows ingested through the PeerDB pipeline. If you run PeerDB, see the dedicated [PeerDB feature](/guide/features/peerdb) for mirror, peer, and slot-level detail.
+Also **auto-detected**: Traffic probes for a PeerDB replication pipeline (tables/rows written by PeerDB mirrors). The **PeerDB Ingestion** section renders only when PeerDB activity is detected, showing rows and bytes ingested through the PeerDB pipeline (stacked per destination table) and PeerDB insert performance (avg / p95 duration). If you run PeerDB, see the dedicated [PeerDB feature](/guide/features/peerdb) for mirror, peer, and slot-level detail.
 
 ## Customize with presets
 

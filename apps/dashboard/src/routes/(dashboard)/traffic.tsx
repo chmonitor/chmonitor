@@ -23,6 +23,8 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
 import { ChartBytesOnDiskOverTime } from '@/components/charts/traffic/bytes-on-disk-over-time'
+import { ChartDiskWriteSpeedOverTime } from '@/components/charts/traffic/disk-write-speed-over-time'
+import { ChartIngestSpeedOverTime } from '@/components/charts/traffic/ingest-speed-over-time'
 import { ChartInsertPerformanceOverTime } from '@/components/charts/traffic/insert-performance-over-time'
 import { ChartInsertQueriesOverTime } from '@/components/charts/traffic/insert-queries-over-time'
 import { ChartInsertedBytesOverTime } from '@/components/charts/traffic/inserted-bytes-over-time'
@@ -103,6 +105,10 @@ function TrafficPageContent() {
           chartClassName={CHART_CLASS}
           chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
         />
+        <ChartIngestSpeedOverTime
+          chartClassName={CHART_CLASS}
+          chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
+        />
         {showBytesOnDisk ? (
           <ChartBytesOnDiskOverTime
             chartClassName={CHART_CLASS}
@@ -135,6 +141,10 @@ function TrafficPageContent() {
               chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
             />
             <ChartWriteAmplificationOverTime
+              chartClassName={CHART_CLASS}
+              chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
+            />
+            <ChartDiskWriteSpeedOverTime
               chartClassName={CHART_CLASS}
               chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
             />

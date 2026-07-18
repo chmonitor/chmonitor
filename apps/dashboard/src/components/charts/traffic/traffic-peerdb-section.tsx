@@ -1,4 +1,6 @@
 import { memo } from 'react'
+import { ChartPeerdbBytesOverTime } from '@/components/charts/traffic/peerdb-bytes-over-time'
+import { ChartPeerdbPerformanceOverTime } from '@/components/charts/traffic/peerdb-performance-over-time'
 import { ChartPeerdbRowsOverTime } from '@/components/charts/traffic/peerdb-rows-over-time'
 import { PeerDBLogo } from '@/components/icons/peerdb-brand-logo'
 import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
@@ -59,10 +61,20 @@ export const TrafficPeerdbSection = memo(function TrafficPeerdbSection({
           PeerDB Ingestion
         </h2>
       </div>
-      <ChartPeerdbRowsOverTime
-        chartClassName={chartClassName}
-        chartCardContentClassName={chartCardContentClassName}
-      />
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+        <ChartPeerdbRowsOverTime
+          chartClassName={chartClassName}
+          chartCardContentClassName={chartCardContentClassName}
+        />
+        <ChartPeerdbBytesOverTime
+          chartClassName={chartClassName}
+          chartCardContentClassName={chartCardContentClassName}
+        />
+        <ChartPeerdbPerformanceOverTime
+          chartClassName={chartClassName}
+          chartCardContentClassName={chartCardContentClassName}
+        />
+      </div>
     </div>
   )
 })

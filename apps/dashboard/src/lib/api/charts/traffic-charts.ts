@@ -218,6 +218,62 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   },
 
   /**
+   * Ingest speed over time — effective write bandwidth of insert queries:
+   * uncompressed bytes (and rows) written per second of insert execution time.
+   * Volume charts answer "how much"; this answers "how fast".
+   */
+  'traffic-ingest-speed': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           round(sum(written_bytes) / nullIf(sum(query_duration_ms) / 1000, 0)) AS bytes_per_sec,
+           round(sum(written_rows) / nullIf(sum(query_duration_ms) / 1000, 0)) AS rows_per_sec,
+           formatReadableSize(bytes_per_sec) AS readable_bytes_per_sec
+    FROM system.query_log
+    WHERE query_kind = 'Insert'
+      AND type = 'QueryFinish'
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
+
+  /**
+   * Disk write speed over time — how fast the storage layer absorbs writes:
+   * on-disk bytes per second of part-write time, split into foreground new
+   * parts (inserts flushing) and background merges. A falling trend under
+   * constant ingest volume points at disk saturation.
+   */
+  'traffic-disk-write-speed': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           round(sumIf(size_in_bytes, event_type = 'NewPart')
+             / nullIf(sumIf(duration_ms, event_type = 'NewPart') / 1000, 0)) AS new_part_bytes_per_sec,
+           round(sumIf(size_in_bytes, event_type = 'MergeParts')
+             / nullIf(sumIf(duration_ms, event_type = 'MergeParts') / 1000, 0)) AS merge_bytes_per_sec
+    FROM system.part_log
+    WHERE event_type IN ('NewPart', 'MergeParts')
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
+  `,
+      optional: true,
+      tableCheck: 'system.part_log',
+    }
+  },
+
+  /**
    * Data merged over time — total on-disk size of parts produced by merges
    * (part_log MergeParts). High merge volume is background write work that
    * competes with ingestion for disk and CPU.
@@ -411,6 +467,60 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
       ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY 1, 2
     ORDER BY 1, 2
+  `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
+
+  /**
+   * Bytes ingested by PeerDB over time, split by destination table — same
+   * attribution as traffic-peerdb-rows (user/agent/client contains 'peerdb'),
+   * but measuring uncompressed payload size instead of row count.
+   */
+  'traffic-peerdb-bytes': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           arrayElement(tables, 1) AS table,
+           sum(written_bytes) AS peerdb_bytes
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+      AND query_kind = 'Insert'
+      AND (user ILIKE '%peerdb%' OR http_user_agent ILIKE '%peerdb%' OR client_name ILIKE '%peerdb%')
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1, 2
+    ORDER BY 1, 2
+  `,
+      optional: true,
+      tableCheck: 'system.query_log',
+    }
+  },
+
+  /**
+   * PeerDB insert performance over time — average and p95 duration of
+   * PeerDB-attributed insert queries, so CDC sync slowdowns are visible
+   * separately from overall insert latency.
+   */
+  'traffic-peerdb-performance': ({
+    interval = 'toStartOfHour',
+    lastHours = 24,
+  }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    return {
+      query: `
+    SELECT ${applyInterval(interval, 'event_time')},
+           round(avg(query_duration_ms), 1) AS avg_duration_ms,
+           round(quantile(0.95)(query_duration_ms), 1) AS p95_duration_ms
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+      AND query_kind = 'Insert'
+      AND (user ILIKE '%peerdb%' OR http_user_agent ILIKE '%peerdb%' OR client_name ILIKE '%peerdb%')
+      ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY 1
+    ORDER BY 1
+    WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
   `,
       optional: true,
       tableCheck: 'system.query_log',
