@@ -77,6 +77,8 @@ import { slowQueriesConfig } from './queries/slow-queries'
 import { slowQueryPatternsConfig } from './queries/slow-query-patterns'
 // Thread Analysis
 import { threadAnalysisConfig } from './queries/thread-analysis'
+import { topCpuQueriesConfig } from './queries/top-cpu-queries'
+import { topMemoryQueriesLiveConfig } from './queries/top-memory-queries-live'
 import { loginAttemptsConfig } from './security/login-attempts'
 // Security
 import { sessionsConfig } from './security/sessions'
@@ -180,6 +182,8 @@ export const queries: Array<QueryConfig> = [
   commonErrorsConfig,
   expensiveQueriesConfig,
   expensiveQueriesByMemoryConfig,
+  topMemoryQueriesLiveConfig,
+  topCpuQueriesConfig,
   slowQueriesConfig,
   slowQueryPatternsConfig,
   userProcessesConfig,

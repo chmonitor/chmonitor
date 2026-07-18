@@ -64,6 +64,10 @@ export const CHARTS_BY_CATEGORY: Record<ChartCategory, string[]> = {
     'memory-usage',
     'cpu-usage',
     'disk-usage-by-database',
+    'memory-breakdown',
+    'cpu-load-average',
+    'cpu-mode-split',
+    'thread-pool-utilization',
   ],
   [CHART_CATEGORIES.REPLICATION]: [
     'replication-queue-count',

@@ -39,6 +39,26 @@ export const systemChartImports: ChartRegistryMap = {
       default: m.ChartCPUUsage,
     }))
   ),
+  'memory-breakdown': lazy(() =>
+    import('@/components/charts/system/memory-breakdown').then((m) => ({
+      default: m.ChartMemoryBreakdown,
+    }))
+  ),
+  'cpu-load-average': lazy(() =>
+    import('@/components/charts/system/cpu-load-average').then((m) => ({
+      default: m.ChartCpuLoadAverage,
+    }))
+  ),
+  'cpu-mode-split': lazy(() =>
+    import('@/components/charts/system/cpu-mode-split').then((m) => ({
+      default: m.ChartCpuModeSplit,
+    }))
+  ),
+  'thread-pool-utilization': lazy(() =>
+    import('@/components/charts/system/thread-pool-utilization').then((m) => ({
+      default: m.ChartThreadPoolUtilization,
+    }))
+  ),
   'disk-usage-by-database': lazy(() =>
     import('@/components/charts/system/disk-usage-by-database').then((m) => ({
       default: m.ChartDiskUsageByDatabase,

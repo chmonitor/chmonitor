@@ -58,6 +58,10 @@ export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'memory-usage': 'area',
   'cpu-usage': 'area',
   'disk-usage-by-database': 'bar',
+  'memory-breakdown': 'area',
+  'cpu-load-average': 'area',
+  'cpu-mode-split': 'area',
+  'thread-pool-utilization': 'area',
 
   // Replication Charts
   'replication-queue-count': 'area',

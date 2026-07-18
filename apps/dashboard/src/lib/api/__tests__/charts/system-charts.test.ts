@@ -58,6 +58,65 @@ describe('systemCharts', () => {
       })
     }
 
+    if (name === 'memory-breakdown') {
+      test('breaks memory down into queries/caches/merges/primary-key categories', () => {
+        const result = builder({
+          interval: 'toStartOfTenMinutes',
+          lastHours: 24,
+        })
+        if ('query' in result) {
+          expect(result.query).toContain('queries_memory')
+          expect(result.query).toContain('caches_memory')
+          expect(result.query).toContain('merges_memory')
+          expect(result.query).toContain('primary_key_memory')
+          // Row-based metric source: version-tolerant, no per-column errors.
+          expect(result.query).toContain(
+            "metric = 'CurrentMetric_MemoryTracking'"
+          )
+          expect(result.query).toContain('system.parts')
+        }
+      })
+    }
+
+    if (name === 'cpu-load-average') {
+      test('derives core count from per-core OSUserTimeCPU% gauges', () => {
+        const result = builder({})
+        if ('query' in result) {
+          expect(result.query).toContain('load_average_1m')
+          expect(result.query).toContain('load_average_5m')
+          expect(result.query).toContain('load_average_15m')
+          expect(result.query).toContain('cpu_cores')
+          expect(result.query).toContain("metric LIKE 'OSUserTimeCPU%'")
+        }
+      })
+    }
+
+    if (name === 'cpu-mode-split') {
+      test('splits CPU time into user/system/iowait/idle', () => {
+        const result = builder({})
+        if ('query' in result) {
+          expect(result.query).toContain('user_time')
+          expect(result.query).toContain('system_time')
+          expect(result.query).toContain('iowait_time')
+          expect(result.query).toContain('idle_time')
+        }
+      })
+    }
+
+    if (name === 'thread-pool-utilization') {
+      test('reads global thread pool active/total gauges from metric_log', () => {
+        const result = builder({})
+        if ('query' in result) {
+          expect(result.query).toContain(
+            'CurrentMetric_GlobalThreadPoolActiveThreads'
+          )
+          expect(result.query).toContain(
+            'CurrentMetric_GlobalThreadPoolThreads'
+          )
+        }
+      })
+    }
+
     if (name === 'disks-usage') {
       // Regression: the chart used to sumMap() over every async metric for
       // 30 days, materializing a hundreds-of-keys map per group and OOMing

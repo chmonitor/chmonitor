@@ -310,6 +310,26 @@ const ChartMemoryUsage = lazy(() =>
     default: mod.ChartMemoryUsage,
   }))
 )
+const ChartMemoryBreakdown = lazy(() =>
+  import('@/components/charts/system/memory-breakdown').then((mod) => ({
+    default: mod.ChartMemoryBreakdown,
+  }))
+)
+const ChartCpuLoadAverage = lazy(() =>
+  import('@/components/charts/system/cpu-load-average').then((mod) => ({
+    default: mod.ChartCpuLoadAverage,
+  }))
+)
+const ChartCpuModeSplit = lazy(() =>
+  import('@/components/charts/system/cpu-mode-split').then((mod) => ({
+    default: mod.ChartCpuModeSplit,
+  }))
+)
+const ChartThreadPoolUtilization = lazy(() =>
+  import('@/components/charts/system/thread-pool-utilization').then((mod) => ({
+    default: mod.ChartThreadPoolUtilization,
+  }))
+)
 const ChartMutationProgress = lazy(() =>
   import('@/components/charts/system/mutation-progress').then((mod) => ({
     default: mod.ChartMutationProgress,
@@ -539,6 +559,54 @@ export const OVERVIEW_TAB_CHARTS: OverviewChartConfig[] = [
     lastHours: 24,
     interval: 'toStartOfHour',
     className: 'w-full h-full',
+    type: 'area',
+    href: '/metrics',
+  },
+]
+
+/**
+ * Memory & CPU tab charts - deep-dive RSS decomposition, load average vs
+ * cores, CPU mode split, thread pool utilization, plus links through to the
+ * individual-query BackgroundBar tables ranked by peak memory / CPU time.
+ */
+export const MEMORY_CPU_TAB_CHARTS: OverviewChartConfig[] = [
+  {
+    id: 'memory-breakdown',
+    component: ChartMemoryBreakdown,
+    title: 'Memory Breakdown',
+    className: 'w-full h-full',
+    interval: 'toStartOfTenMinutes',
+    lastHours: 24,
+    type: 'area',
+    href: '/top-memory-queries',
+  },
+  {
+    id: 'cpu-load-average',
+    component: ChartCpuLoadAverage,
+    title: 'Load Average vs CPU Cores',
+    className: 'w-full h-full',
+    interval: 'toStartOfTenMinutes',
+    lastHours: 24,
+    type: 'area',
+    href: '/metrics',
+  },
+  {
+    id: 'cpu-mode-split',
+    component: ChartCpuModeSplit,
+    title: 'CPU Mode Split',
+    className: 'w-full h-full',
+    interval: 'toStartOfTenMinutes',
+    lastHours: 24,
+    type: 'area',
+    href: '/top-cpu-queries',
+  },
+  {
+    id: 'thread-pool-utilization',
+    component: ChartThreadPoolUtilization,
+    title: 'Thread Pool Utilization',
+    className: 'w-full h-full',
+    interval: 'toStartOfTenMinutes',
+    lastHours: 24,
     type: 'area',
     href: '/metrics',
   },
@@ -1010,6 +1078,12 @@ export const OVERVIEW_TABS: OverviewTabConfig[] = [
     label: 'Queries',
     gridClassName: GRID_LAYOUT_3_COL,
     charts: QUERIES_TAB_CHARTS,
+  },
+  {
+    value: 'memory-cpu',
+    label: 'Memory & CPU',
+    gridClassName: GRID_LAYOUT_2_COL,
+    charts: MEMORY_CPU_TAB_CHARTS,
   },
   {
     value: 'storage',
