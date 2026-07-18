@@ -21,6 +21,12 @@ describe('queryInsightsCharts', () => {
     expect(names).toContain('query-insights-memory')
     expect(names).toContain('query-insights-read-throughput')
     expect(names).toContain('query-insights-top-users')
+    expect(names).toContain('query-insights-duration-distribution')
+    expect(names).toContain('query-insights-memory-distribution')
+    expect(names).toContain('query-insights-read-rows-distribution')
+    expect(names).toContain('query-insights-read-bytes-distribution')
+    expect(names).toContain('query-insights-errors-by-code')
+    expect(names).toContain('query-insights-hot-tables')
   })
 
   test.each(
@@ -98,5 +104,45 @@ describe('queryInsightsCharts', () => {
       defaultParams
     ) as any
     expect(result.query).toMatch(/GROUP BY user/)
+  })
+
+  test.each([
+    [
+      'query-insights-duration-distribution',
+      /quantile\(0\.50\)\(query_duration_ms\)/,
+    ],
+    ['query-insights-memory-distribution', /quantile\(0\.50\)\(memory_usage\)/],
+    ['query-insights-read-rows-distribution', /quantile\(0\.50\)\(read_rows\)/],
+    [
+      'query-insights-read-bytes-distribution',
+      /quantile\(0\.50\)\(read_bytes\)/,
+    ],
+  ])('"%s" tile computes p10..p99 percentiles for its metric', (name, expectedMetric) => {
+    const result = queryInsightsCharts[name](defaultParams) as any
+    expect(result.query).toMatch(expectedMetric)
+    expect(result.query).toMatch(/quantile\(0\.10\)/)
+    expect(result.query).toMatch(/quantile\(0\.25\)/)
+    expect(result.query).toMatch(/quantile\(0\.75\)/)
+    expect(result.query).toMatch(/quantile\(0\.90\)/)
+    expect(result.query).toMatch(/quantile\(0\.95\)/)
+    expect(result.query).toMatch(/quantile\(0\.99\)/)
+  })
+
+  test('errors-by-code tile groups by exception_code with a sample message', () => {
+    const result = queryInsightsCharts['query-insights-errors-by-code'](
+      defaultParams
+    ) as any
+    expect(result.query).toMatch(/exception_code\s*!=\s*0/)
+    expect(result.query).toMatch(/GROUP BY exception_code/)
+    expect(result.query).toMatch(/any\(exception\)/)
+  })
+
+  test('hot tables tile uses arrayJoin(tables) and orders by query volume', () => {
+    const result = queryInsightsCharts['query-insights-hot-tables'](
+      defaultParams
+    ) as any
+    expect(result.query).toMatch(/arrayJoin\(tables\)/)
+    expect(result.query).toMatch(/GROUP BY table/)
+    expect(result.query).toMatch(/ORDER BY query_count DESC/)
   })
 })

@@ -11,6 +11,32 @@ import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'
 
+/** Builds a p10/p25/p50/p75/p90/p95/p99 single-row distribution query for one metric column. */
+function percentileDistributionQuery(
+  column: string,
+  decimals: number,
+  timeFilter: string,
+  extraFilter = ''
+): string {
+  const round = (expr: string) =>
+    decimals > 0 ? `round(${expr}, ${decimals})` : `round(${expr})`
+  return `
+    SELECT
+      ${round(`quantile(0.10)(${column})`)} AS p10,
+      ${round(`quantile(0.25)(${column})`)} AS p25,
+      ${round(`quantile(0.50)(${column})`)} AS p50,
+      ${round(`quantile(0.75)(${column})`)} AS p75,
+      ${round(`quantile(0.90)(${column})`)} AS p90,
+      ${round(`quantile(0.95)(${column})`)} AS p95,
+      ${round(`quantile(0.99)(${column})`)} AS p99
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+          ${extraFilter}
+          ${timeFilter ? `AND ${timeFilter}` : ''}
+    SETTINGS max_execution_time = 25
+  `
+}
+
 /** Bucket width in seconds per interval, used to derive a queries/sec rate. */
 const INTERVAL_SECONDS: Record<string, number> = {
   toStartOfMinute: 60,
@@ -189,6 +215,78 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY user
     ORDER BY query_count DESC
     LIMIT 8
+    SETTINGS max_execution_time = 25
+  `
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 10: Duration distribution — p10..p99 curve of query_duration_ms.
+  'query-insights-duration-distribution': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = percentileDistributionQuery(
+      'query_duration_ms',
+      2,
+      timeFilter
+    )
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 11: Memory distribution — p10..p99 curve of peak memory_usage.
+  'query-insights-memory-distribution': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = percentileDistributionQuery('memory_usage', 0, timeFilter)
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 12: Read rows distribution — p10..p99 curve of read_rows per query.
+  'query-insights-read-rows-distribution': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = percentileDistributionQuery('read_rows', 0, timeFilter)
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 13: Read bytes distribution — p10..p99 curve of read_bytes per query.
+  'query-insights-read-bytes-distribution': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = percentileDistributionQuery('read_bytes', 0, timeFilter)
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 14: Errors by exception code — count + a sample message per code.
+  'query-insights-errors-by-code': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = `
+    SELECT
+      exception_code,
+      COUNT() AS count,
+      any(exception) AS sample,
+      max(event_time) AS last_seen
+    FROM system.query_log
+    WHERE exception_code != 0
+          ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY exception_code
+    ORDER BY count DESC
+    LIMIT 10
+    SETTINGS max_execution_time = 25
+  `
+    return { query, sql: [{ since: '19.1', sql: query }] }
+  },
+
+  // Tile 15: Hot tables — query volume + avg latency per referenced table.
+  'query-insights-hot-tables': ({ lastHours = 24 }) => {
+    const timeFilter = buildTimeFilter(lastHours)
+    const query = `
+    SELECT
+      arrayJoin(tables) AS table,
+      COUNT() AS query_count,
+      round(avg(query_duration_ms), 2) AS avg_duration_ms
+    FROM system.query_log
+    WHERE type = 'QueryFinish'
+          AND notEmpty(tables)
+          ${timeFilter ? `AND ${timeFilter}` : ''}
+    GROUP BY table
+    ORDER BY query_count DESC
+    LIMIT 10
     SETTINGS max_execution_time = 25
   `
     return { query, sql: [{ since: '19.1', sql: query }] }
