@@ -23,6 +23,15 @@ import {
   normalizePath,
   withCors,
 } from '@chm/mcp-server/http'
+import { createIpRateLimitCheck } from '@chm/mcp-server/rate-limit'
+
+// Per-IP guard (#2728) — parity with the dashboard route's #2704 limiter, which
+// this Worker bypassed entirely (Workers Routes deliver /api/mcp* here first).
+// The CHM_RATE_LIMIT_MCP unsafe binding (wrangler.toml) is authoritative when
+// present; otherwise a per-isolate bucket enforces RATE_LIMIT_MCP_PER_MIN.
+const checkMcpRateLimit = createIpRateLimitCheck({
+  bindingName: 'CHM_RATE_LIMIT_MCP',
+})
 
 export default {
   async fetch(request: Request): Promise<Response> {
@@ -32,12 +41,19 @@ export default {
       // CORS preflight: respond before auth so browsers can complete the dance.
       if (request.method === 'OPTIONS') return corsPreflight()
 
-      if (pathname === '/api/mcp') return await handleMcp(request)
+      // Rate limit (#2728): injected per-IP guard, checked inside the handlers
+      // before auth — parity with the dashboard route's #2704 guard, which this
+      // Worker bypassed entirely (Workers Routes deliver /api/mcp* here first).
+      if (pathname === '/api/mcp') {
+        return await handleMcp(request, { rateLimitCheck: checkMcpRateLimit })
+      }
       if (pathname === '/api/v1/mcp/info') {
         if (request.method !== 'GET') {
           return withCors(new Response('Method Not Allowed', { status: 405 }))
         }
-        return await handleMcpInfo(request)
+        return await handleMcpInfo(request, {
+          rateLimitCheck: checkMcpRateLimit,
+        })
       }
       // OAuth discovery (RFC 9728). In production dash.chmonitor.dev/.well-known/*
       // is served by the dashboard worker; this keeps the MCP worker

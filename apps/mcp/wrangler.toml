@@ -50,6 +50,18 @@ compatibility_flags = [
 [observability]
 enabled = true
 
+# Fleet-wide rate limiting (#2728) — same Cloudflare Rate Limiting binding
+# pattern as the dashboard worker's CHM_RATE_LIMIT_MCP. The edge counter is
+# authoritative across isolates; src/rate-limit.ts falls back to a per-isolate
+# token bucket when the binding is absent (wrangler dev / forks without it).
+# namespace_id is scoped to this worker script; 3001 avoids implying any link
+# to the dashboard worker's 2xxx ids.
+[[unsafe.bindings]]
+name = "CHM_RATE_LIMIT_MCP"
+type = "ratelimit"
+namespace_id = "3001"
+simple = { limit = 30, period = 60 }
+
 # Workers Cache (launched 2026-07-06): safe to enable — MCP requests are authed
 # and carry an `Authorization` bearer (auto-bypassed by Workers Cache), and no
 # response here sets a public `Cache-Control`, so nothing is cached. Enabled for
@@ -102,6 +114,14 @@ zone_name = "chmonitor.dev"
 [[env.preview.routes]]
 pattern = "preview.dash.chmonitor.dev/api/v1/mcp/info*"
 zone_name = "chmonitor.dev"
+
+# Preview shares the top-level rate-limit posture (wrangler does not inherit
+# top-level unsafe bindings into named envs, so it is redeclared here).
+[[env.preview.unsafe.bindings]]
+name = "CHM_RATE_LIMIT_MCP"
+type = "ratelimit"
+namespace_id = "3001"
+simple = { limit = 30, period = 60 }
 
 # Generic placeholders (see [vars] above) — real preview topology + pk_test are
 # injected at deploy from CI (CHM_CLERK_PUBLISHABLE_KEY_TEST + host secrets).

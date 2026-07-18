@@ -150,6 +150,52 @@ describe('mcp http', () => {
     })
   })
 
+  describe('handleMcp rate-limit gate (#2728)', () => {
+    it('short-circuits with the rate-limit response before auth runs', async () => {
+      let authRan = false
+      const res = await handleMcp(req(), {
+        rateLimitCheck: async () => new Response('slow down', { status: 429 }),
+        authenticate: async () => {
+          authRan = true
+          return null
+        },
+      })
+      expect(res.status).toBe(429)
+      // rate-limit responses are CORS-wrapped so browser clients can read them
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')
+      // cheap counter runs first; network-touching auth never fires
+      expect(authRan).toBe(false)
+    })
+
+    it('proceeds to auth when the rate-limit check allows', async () => {
+      const sentinel = new Response('nope', { status: 403 })
+      const res = await handleMcp(req(), {
+        rateLimitCheck: async () => null,
+        authenticate: async () => sentinel,
+      })
+      expect(res.status).toBe(403)
+    })
+
+    it('gates handleMcpInfo through the same option', async () => {
+      const res = await handleMcpInfo(
+        new Request('https://example.com/api/v1/mcp/info'),
+        { rateLimitCheck: async () => new Response('', { status: 429 }) }
+      )
+      expect(res.status).toBe(429)
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    })
+
+    it('returns a CORS-wrapped 500 when the rate-limit check throws', async () => {
+      const res = await handleMcp(req(), {
+        rateLimitCheck: async () => {
+          throw new Error('boom')
+        },
+      })
+      expect(res.status).toBe(500)
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    })
+  })
+
   describe('buildServerInfo / handleMcpInfo', () => {
     it('builds the expected server info payload', () => {
       const info = buildServerInfo()

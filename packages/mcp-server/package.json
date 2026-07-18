@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
     "./http": "./src/http.ts",
+    "./rate-limit": "./src/rate-limit.ts",
     "./cors": "./src/cors.ts",
     "./auth": "./src/auth/index.ts",
     "./data": "./src/data/mcp-tools-data.ts"

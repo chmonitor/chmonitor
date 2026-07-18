@@ -172,9 +172,26 @@ export const defaultAuthenticator: Authenticator = async (req) => {
   return unauthorized(req)
 }
 
+/**
+ * Resolves a request to a Response (rate limited, typically 429) or null
+ * (allowed). Injectable for the same reason as `Authenticator`: this package is
+ * forbidden (dependency-cruiser `no-packages-to-apps`) from importing any
+ * app's rate limiter, so each caller supplies its own — the dashboard route
+ * keeps its `checkMcpRateLimit` at the route layer (it must run before the
+ * plan-capability gate), and the standalone Worker (apps/mcp) passes one here.
+ */
+export type RateLimitCheck = (req: Request) => Promise<Response | null>
+
 interface HandleMcpOptions {
   /** Override the auth check. Defaults to defaultAuthenticator. */
   authenticate?: Authenticator
+  /**
+   * Optional pre-auth rate-limit gate (#2728). Runs before `authenticate` —
+   * cheap counter first, network-touching auth (Clerk REST) second — and its
+   * Response is returned with CORS headers applied. No default: callers that
+   * already guard at their route layer simply omit it.
+   */
+  rateLimitCheck?: RateLimitCheck
 }
 
 /**
@@ -186,9 +203,13 @@ interface HandleMcpOptions {
  */
 export async function handleMcp(
   req: Request,
-  { authenticate = defaultAuthenticator }: HandleMcpOptions = {}
+  { authenticate = defaultAuthenticator, rateLimitCheck }: HandleMcpOptions = {}
 ): Promise<Response> {
   try {
+    if (rateLimitCheck) {
+      const limited = await rateLimitCheck(req)
+      if (limited) return withCors(limited)
+    }
     // withCors even on the auth failure: a custom authenticator may return a
     // bare Response, and browser MCP clients need the CORS headers to read it.
     const fail = await authenticate(req)
@@ -269,9 +290,13 @@ export function buildServerInfo(): McpServerInfoResponse {
  */
 export async function handleMcpInfo(
   req: Request,
-  { authenticate = defaultAuthenticator }: HandleMcpOptions = {}
+  { authenticate = defaultAuthenticator, rateLimitCheck }: HandleMcpOptions = {}
 ): Promise<Response> {
   try {
+    if (rateLimitCheck) {
+      const limited = await rateLimitCheck(req)
+      if (limited) return withCors(limited)
+    }
     const fail = await authenticate(req)
     if (fail) return withCors(fail)
     return withCors(Response.json(buildServerInfo()))
