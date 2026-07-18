@@ -164,11 +164,30 @@ export const menuItemsConfig: MenuItem[] = [
     ],
   },
   {
+    // Parent groups the health summary and the alert settings deep link —
+    // both land on /health; ?settings=alerts opens the settings dialog.
     title: 'Health',
-    href: '/health',
+    href: '',
     icon: HeartPulseIcon,
     section: 'main',
     permission: { feature: 'health' },
+    items: [
+      {
+        title: 'Health',
+        href: '/health',
+        description:
+          'Real-time health indicators for your ClickHouse cluster with active alerts',
+        icon: HeartPulseIcon,
+      },
+      {
+        title: 'Alert Settings',
+        href: '/health?settings=alerts',
+        description:
+          'Thresholds, alert channels, webhooks, quiet hours, digests and alert history',
+        icon: SlidersHorizontalIcon,
+        isNew: true,
+      },
+    ],
   },
   {
     title: 'Traffic',

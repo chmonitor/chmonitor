@@ -50,8 +50,13 @@ import {
 } from '@/lib/health/thresholds-storage'
 import { describeError } from '@/lib/swr/fetch-error'
 
-export function HealthSettingsDialog() {
-  const [open, setOpen] = useState(false)
+export function HealthSettingsDialog({
+  defaultOpen = false,
+}: {
+  /** Open the dialog on mount — used by the /health?settings=alerts deep link. */
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
   const [thresholds, setThresholdsState] = useState<ThresholdsMap>({})
   const [alerts, setAlerts] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS)
 

@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useSearch } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
 import { HealthGrid } from '@/components/health/health-grid'
@@ -7,12 +7,17 @@ import { PageHeader } from '@/components/layout'
 import { ChartsOnlyPageSkeleton } from '@/components/skeletons'
 
 function HealthPageContent() {
+  // Deep link from the sidebar's "Alert Settings" item: /health?settings=alerts
+  // mounts the page with the settings dialog already open.
+  const search = useSearch({ strict: false }) as { settings?: string }
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       <PageHeader
         title="Health Summary"
         description="Real-time health indicators for your ClickHouse cluster"
-        actions={<HealthSettingsDialog />}
+        actions={
+          <HealthSettingsDialog defaultOpen={search.settings === 'alerts'} />
+        }
       />
       <HealthGrid />
     </div>
