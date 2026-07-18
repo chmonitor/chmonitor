@@ -139,9 +139,12 @@ export const KpiCard = function KpiCard({
       </div>
 
       {/* Row 2 — value + unit */}
-      <div className="flex items-baseline gap-1.5">
+      <div className="flex min-w-0 items-baseline gap-1.5">
         {isCountable(value) ? (
-          <AnimatedNumber value={value} className={VALUE_CLASS} />
+          <AnimatedNumber
+            value={value}
+            className={cn(VALUE_CLASS, 'truncate')}
+          />
         ) : (
           <span className={cn(VALUE_CLASS, 'truncate font-mono')}>{value}</span>
         )}
