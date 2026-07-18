@@ -350,10 +350,17 @@ stay in sync) and the same card + severity styling:
   into the collect pipeline as the `optimization` category (see the
   schema-optimization collector above), reusing `analyzeQuery` rather than
   reimplementing schema analysis.
+- **Predictive parts pressure — done.** `checkPartsPressure`
+  (`operational-checks.ts`, metric `parts_pressure`, category `storage`) projects
+  when the worst partition will hit `parts_to_throw_insert` from the net
+  part-growth rate in `system.part_log` (warns inside 6h, critical inside 1h or
+  already delaying), degrading to a fill-percent-only finding when part_log is
+  off. The projection math + SQL builders live in `lib/health/parts-pressure.ts`
+  and are shared with the `/health` card (`parts-pressure`) and the
+  `parts-pressure` alert rule.
 - **More detectors.** The operational collectors are a starter set. Natural next
   detectors (each still a cheap single system-table read + a pure classifier in
-  `operational-checks.ts`): long-running merges (`system.merges`), high
-  `parts_to_throw_insert` pressure, growing `system.replication_queue`, dropped
-  connections / rejected inserts, and `cost`-category signals (e.g. cold-storage
-  candidates). Each new metric needs a matching `deriveAction` case and a
-  category in the board's `CATEGORY_META`.
+  `operational-checks.ts`): long-running merges (`system.merges`), growing
+  `system.replication_queue`, dropped connections / rejected inserts, and
+  `cost`-category signals (e.g. cold-storage candidates). Each new metric needs a
+  matching `deriveAction` case and a category in the board's `CATEGORY_META`.

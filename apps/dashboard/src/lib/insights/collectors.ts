@@ -13,9 +13,16 @@ import type { InsightCandidate, InsightSeverity } from './types'
 
 import { readOnlyQuery } from '../ai/agent/tools/helpers'
 import {
+  buildPartsPressureCurrentSql,
+  buildPartsPressureProjectionSql,
+  type PartsPressureRow,
+  projectHoursToThreshold,
+} from '../health/parts-pressure'
+import {
   checkDetachedParts,
   checkFailedDictionaries,
   checkLongRunningQuery,
+  checkPartsPressure,
   checkStuckMutations,
 } from './operational-checks'
 import {
@@ -425,7 +432,63 @@ async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
     if (candidate) out.push(candidate)
   }
 
+  // Predictive parts pressure — project the worst partition's time-to-throw from
+  // system.part_log; fall back to fill-percent-only when part_log is disabled.
+  const pressure = await collectPartsPressure(hostId)
+  if (pressure) out.push(pressure)
+
   return out
+}
+
+/** Parse a projection/fallback query row into a typed PartsPressureRow. */
+function toPartsPressureRow(
+  raw: Record<string, unknown>,
+  hasProjection: boolean
+): PartsPressureRow {
+  const parts = Number(raw.parts) || 0
+  const throwLimit = Number(raw.throw_limit) || 0
+  const netRaw = raw.net_parts_per_hour
+  const netPartsPerHour = hasProjection
+    ? Number.isFinite(Number(netRaw))
+      ? Number(netRaw)
+      : null
+    : null
+  const hoursRaw = raw.hours_to_throw
+  const hoursToThrow = hasProjection
+    ? hoursRaw === null || hoursRaw === undefined || hoursRaw === ''
+      ? null
+      : Number.isFinite(Number(hoursRaw))
+        ? Number(hoursRaw)
+        : projectHoursToThreshold(parts, throwLimit, netPartsPerHour)
+    : null
+  return {
+    database: String(raw.database ?? ''),
+    table: String(raw.table ?? ''),
+    partition: String(raw.partition ?? ''),
+    parts,
+    throwLimit,
+    delayLimit: Number(raw.delay_limit) || 0,
+    netPartsPerHour,
+    hoursToThrow,
+    isDelaying: Number(raw.is_delaying) === 1 || raw.is_delaying === true,
+  }
+}
+
+/**
+ * Worst-partition parts-pressure candidate. Tries the part_log projection first;
+ * if that query fails (part_log disabled/missing) it retries the fill-percent
+ * fallback so the finding still fires — degraded to a current-count warning.
+ */
+async function collectPartsPressure(
+  hostId: number
+): Promise<InsightCandidate | null> {
+  const projected = await firstRow(buildPartsPressureProjectionSql(), hostId)
+  if (projected) return checkPartsPressure(toPartsPressureRow(projected, true))
+
+  const current = await firstRow(buildPartsPressureCurrentSql(), hostId)
+  if (current) return checkPartsPressure(toPartsPressureRow(current, false))
+
+  return null
 }
 
 // ---------------------------------------------------------------------------

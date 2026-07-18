@@ -13,6 +13,11 @@
 import type { CompoundRuleDef } from './compound-rules'
 import type { AlertRuleDef } from './rule-registry'
 
+import {
+  buildPartsPressurePercentSql,
+  PARTS_PRESSURE_PERCENT_CRITICAL,
+  PARTS_PRESSURE_PERCENT_WARNING,
+} from '../health/parts-pressure'
 import { atLeast, compoundRuleRegistry } from './compound-rules'
 import { ruleRegistry } from './rule-registry'
 
@@ -243,6 +248,43 @@ FROM system.view_refreshes`,
     formatLabel: fmtCount('failed MV refresh'),
     optional: true,
     tableCheck: 'system.view_refreshes',
+  },
+
+  {
+    id: 'parts-pressure',
+    type: 'parts-pressure',
+    title: 'Parts Pressure',
+    description:
+      'Worst partition’s active parts as a percentage of parts_to_throw_insert. A predictive "too many parts" signal — sustained pressure leads to throttled then rejected inserts.',
+    sql: buildPartsPressurePercentSql(),
+    valueKey: 'pressure_percent',
+    defaults: {
+      warning: PARTS_PRESSURE_PERCENT_WARNING,
+      critical: PARTS_PRESSURE_PERCENT_CRITICAL,
+    },
+    formatLabel: (v) => `${v ?? 0}% of parts_to_throw_insert`,
+    optional: true,
+    tableCheck: 'system.parts',
+    remediationActions: [
+      {
+        id: 'parts-pressure-runbook',
+        label: 'Too many parts runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/max-parts-runbook',
+      },
+      {
+        id: 'parts-pressure-detail',
+        label: 'Get partitions near the throw limit',
+        kind: 'diagnostic',
+        description: 'Partitions with the most active parts, worst first.',
+        sql: `SELECT database, table, partition, count() AS parts
+FROM system.parts
+WHERE active
+GROUP BY database, table, partition
+ORDER BY parts DESC
+LIMIT 20`,
+      },
+    ],
   },
 
   {

@@ -39,6 +39,8 @@ function deriveAction(
       return { label: 'View replicas', href: '/replicas' }
     case 'stuck_mutations':
       return { label: 'View mutations', href: '/mutations' }
+    case 'parts_pressure':
+      return { label: 'View merges', href: '/merges' }
     case 'longest_running_query':
       return { label: 'Open running queries', href: '/running-queries' }
     case 'failed_dictionaries':

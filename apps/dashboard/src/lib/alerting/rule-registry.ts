@@ -28,6 +28,7 @@ export type AlertRuleType =
   | 'keeper-unavailable'
   | 'mv-refresh-failures'
   | 'slow-query-regression'
+  | 'parts-pressure'
   | 'custom'
 
 /**

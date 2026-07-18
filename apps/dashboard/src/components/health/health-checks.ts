@@ -8,10 +8,17 @@ import {
   ServerCrash,
   ShieldAlert,
   Timer,
+  TrendingUp,
   XCircle,
 } from 'lucide-react'
 
 import type { Thresholds } from '@/lib/health/thresholds-storage'
+
+import {
+  buildPartsPressurePercentSql,
+  PARTS_PRESSURE_PERCENT_CRITICAL,
+  PARTS_PRESSURE_PERCENT_WARNING,
+} from '@/lib/health/parts-pressure'
 
 export interface RelatedLink {
   label: string
@@ -199,6 +206,55 @@ WHERE active AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_s
 GROUP BY database, table, partition
 ORDER BY part_count DESC
 LIMIT 1`,
+  },
+  {
+    id: 'parts-pressure',
+    title: 'Parts Pressure (predictive)',
+    icon: TrendingUp,
+    chartName: 'health-parts-pressure',
+    detailChartName: 'health-parts-pressure-detail',
+    detailTitle: 'Partitions by projected time-to-throw',
+    detailDescription:
+      'Per-partition active parts vs `parts_to_throw_insert` (respecting table overrides), with the net part-growth rate from `system.part_log` and the projected hours until inserts are rejected. Requires `system.part_log` for the projection.',
+    detailEmptyMessage:
+      'No partition is under parts pressure — or `system.part_log` is disabled, so the time projection is unavailable (see Max Parts / Partition for current counts).',
+    valueKey: 'pressure_percent',
+    defaults: {
+      warning: PARTS_PRESSURE_PERCENT_WARNING,
+      critical: PARTS_PRESSURE_PERCENT_CRITICAL,
+    },
+    formatLabel: (v) =>
+      `${(v ?? 0).toLocaleString()}% of parts_to_throw_insert`,
+    formatValue: (v) => `${(v ?? 0).toLocaleString()}%`,
+    description:
+      'Predictive "too many parts" early warning. Tracks the worst partition’s active parts as a percentage of `parts_to_throw_insert` and projects when inserts will be rejected from the recent part-creation vs merge rate. Warns before the MergeTree starts throttling then failing inserts.',
+    systemTables: [
+      'system.parts',
+      'system.part_log',
+      'system.merge_tree_settings',
+    ],
+    commonCauses: [
+      'Frequent small inserts producing parts faster than merges consume them',
+      'Background merges starved (low background_pool_size, slow disk)',
+      'Partition key too granular, spreading inserts across many partitions',
+      '`parts_to_throw_insert` / `parts_to_delay_insert` lowered per table',
+    ],
+    relatedLinks: [
+      { label: 'Merges', href: '/merges' },
+      { label: 'Tables Overview', href: '/tables-overview' },
+      { label: 'Merge Performance', href: '/merge-performance' },
+    ],
+    docsLinks: [
+      {
+        label: 'MergeTree settings (parts_to_throw_insert)',
+        url: 'https://clickhouse.com/docs/en/operations/settings/merge-tree-settings#parts-to-throw-insert',
+      },
+      {
+        label: 'system.part_log',
+        url: 'https://clickhouse.com/docs/en/operations/system-tables/part_log',
+      },
+    ],
+    sql: buildPartsPressurePercentSql(),
   },
   {
     id: 'long-running-queries',

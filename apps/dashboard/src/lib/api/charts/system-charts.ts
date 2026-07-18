@@ -11,6 +11,10 @@ import {
   buildTimeFilter,
   buildTimeFilterInterval,
 } from './types'
+import {
+  buildPartsPressurePercentSql,
+  buildPartsPressureProjectionSql,
+} from '@/lib/health/parts-pressure'
 import { STUCK_THRESHOLD_SECONDS } from '@/lib/query-config/merges/mutations'
 
 const METRICS_PERMISSION = {
@@ -472,6 +476,15 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
   `,
   }),
 
+  // Predictive parts pressure: worst partition's fill vs parts_to_throw_insert
+  // (%). Higher-is-worse scalar for the health card + alert rule. No part_log
+  // dependency — always available.
+  'health-parts-pressure': () => ({
+    query: buildPartsPressurePercentSql(),
+    optional: true,
+    tableCheck: 'system.parts',
+  }),
+
   'health-long-running-queries': () => ({
     query: `
     SELECT count() AS long_running
@@ -645,6 +658,26 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
   `,
     optional: true,
     tableCheck: 'system.parts',
+  }),
+
+  // Parts-pressure evidence: per-partition current parts, effective throw/delay
+  // limits, net part-growth rate, and projected hours-to-throw. Requires
+  // system.part_log for the projection; when it is disabled the dialog shows the
+  // empty message (the max-parts breakdown still gives the current counts).
+  'health-parts-pressure-detail': () => ({
+    query: `
+    SELECT
+      concat(database, '.', table) AS table_path,
+      partition,
+      parts,
+      throw_limit,
+      delay_limit,
+      net_parts_per_hour,
+      if(is_delaying, 'delaying now', if(isNull(hours_to_throw), 'stable', concat('~', toString(hours_to_throw), 'h to throw'))) AS projection
+    FROM (${buildPartsPressureProjectionSql({ limit: 20 })})
+  `,
+    optional: true,
+    tableCheck: 'system.part_log',
   }),
 
   'health-long-running-queries-detail': () => ({

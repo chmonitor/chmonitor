@@ -12,6 +12,11 @@
 
 import type { InsightCandidate } from './types'
 
+import {
+  classifyPartsPressure,
+  type PartsPressureRow,
+} from '../health/parts-pressure'
+
 /** Detached parts: below this many, don't surface at all. */
 export const DETACHED_PARTS_MIN = 10
 /** At/above this many detached parts, escalate from notice to warning. */
@@ -91,6 +96,60 @@ export function checkLongRunningQuery(
     detail: `The longest live query has been running for ${formatDuration(maxElapsedSeconds)}${others ? ` (${others} queries over a minute)` : ''}. Long-running queries hold locks and memory — check for a runaway scan or a missing filter, and cancel it if it is stuck.`,
     value: Math.round(maxElapsedSeconds),
     action: { label: 'Open running queries', href: '/running-queries' },
+  }
+}
+
+/**
+ * Predictive "too many parts" early warning. Given the worst partition's active
+ * parts, its effective throw/delay limits, and (when `system.part_log` is
+ * available) the projected hours until it hits `parts_to_throw_insert`, decide
+ * whether to surface a finding and at what severity. Severity policy lives in
+ * `classifyPartsPressure`; this wraps the winning partition into a candidate.
+ *
+ * The stable key is `host:storage:parts_pressure:<title>`, so the title carries
+ * only the partition identity (never the run-to-run projected hours) — a
+ * dismissal survives regeneration while the projected time keeps updating in the
+ * detail text.
+ */
+export function checkPartsPressure(
+  row: PartsPressureRow
+): InsightCandidate | null {
+  const severity = classifyPartsPressure({
+    parts: row.parts,
+    throwLimit: row.throwLimit,
+    delayLimit: row.delayLimit,
+    hoursToThrow: row.hoursToThrow,
+  })
+  if (!severity) return null
+
+  const target = `${row.database}.${row.table}`
+  const fillPercent =
+    row.throwLimit > 0 ? Math.round((row.parts * 100) / row.throwLimit) : 0
+
+  let projection: string
+  if (row.isDelaying) {
+    projection = `It has ${row.parts} active parts, at or past parts_to_delay_insert (${row.delayLimit}) — inserts are already being throttled and will be rejected at ${row.throwLimit}.`
+  } else if (row.hoursToThrow !== null) {
+    const when =
+      row.hoursToThrow <= 0
+        ? 'now'
+        : row.hoursToThrow < 1
+          ? `~${Math.round(row.hoursToThrow * 60)}m`
+          : `~${Math.round(row.hoursToThrow * 10) / 10}h`
+    projection = `At the current net rate of ${row.netPartsPerHour ?? 0} parts/hour it will reach parts_to_throw_insert (${row.throwLimit}) in ${when} — it now has ${row.parts} parts (${fillPercent}%).`
+  } else {
+    // part_log disabled — fill-percent-only fallback, no time projection.
+    projection = `It has ${row.parts} active parts (${fillPercent}% of parts_to_throw_insert ${row.throwLimit}). Enable system.part_log to project when inserts will be rejected.`
+  }
+
+  return {
+    severity,
+    category: 'storage',
+    metric: 'parts_pressure',
+    title: `${target} is approaching too many parts`,
+    detail: `Partition \`${row.partition}\` of ${target} is under parts pressure. ${projection} Increase insert batch sizes, speed up merges (background_pool_size / faster disk), or coarsen the partition key.`,
+    value: fillPercent,
+    action: { label: 'View merges', href: '/merges' },
   }
 }
 

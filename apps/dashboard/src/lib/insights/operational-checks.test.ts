@@ -13,10 +13,13 @@
  * two drift, insights silently lose their link after a reload.
  */
 
+import type { PartsPressureRow } from '../health/parts-pressure'
+
 import {
   checkDetachedParts,
   checkFailedDictionaries,
   checkLongRunningQuery,
+  checkPartsPressure,
   checkStuckMutations,
   DETACHED_PARTS_MIN,
   DETACHED_PARTS_WARN,
@@ -126,5 +129,61 @@ describe('checkFailedDictionaries', () => {
 
   test('several failures use plural copy', () => {
     expect(checkFailedDictionaries(3)?.title).toContain('3 dictionaries failed')
+  })
+})
+
+describe('checkPartsPressure', () => {
+  const row = (over: Partial<PartsPressureRow> = {}): PartsPressureRow => ({
+    database: 'app',
+    table: 'events',
+    partition: '202607',
+    parts: 100,
+    throwLimit: 3000,
+    delayLimit: 1000,
+    netPartsPerHour: null,
+    hoursToThrow: null,
+    isDelaying: false,
+    ...over,
+  })
+
+  test('a calm partition is not surfaced', () => {
+    expect(checkPartsPressure(row())).toBeNull()
+  })
+
+  test('an imminent projected breach surfaces as a storage finding', () => {
+    const c = checkPartsPressure(
+      row({ parts: 800, netPartsPerHour: 200, hoursToThrow: 5 })
+    )
+    expect(c?.severity).toBe('warning')
+    expect(c?.category).toBe('storage')
+    expect(c?.metric).toBe('parts_pressure')
+    expect(c?.title).toBe('app.events is approaching too many parts')
+    // Must match the deriveAction('parts_pressure') case in read-insights.ts.
+    expect(c?.action).toEqual({ label: 'View merges', href: '/merges' })
+  })
+
+  test('an already-delaying partition is critical', () => {
+    const c = checkPartsPressure(row({ parts: 1200, isDelaying: true }))
+    expect(c?.severity).toBe('critical')
+    expect(c?.detail).toContain('throttled')
+  })
+
+  test('title is stable across runs (no projected hours in the key surface)', () => {
+    const a = checkPartsPressure(
+      row({ parts: 800, netPartsPerHour: 200, hoursToThrow: 5 })
+    )
+    const b = checkPartsPressure(
+      row({ parts: 850, netPartsPerHour: 400, hoursToThrow: 2.25 })
+    )
+    expect(a?.title).toBe(b?.title ?? '')
+  })
+
+  test('degrades to a fill-percent finding when part_log is disabled', () => {
+    // delayLimit raised so the fill-percent fallback (not the delay rule) fires.
+    const c = checkPartsPressure(
+      row({ parts: 2900, delayLimit: 3000, hoursToThrow: null })
+    )
+    expect(c?.severity).toBe('warning')
+    expect(c?.detail).toContain('system.part_log')
   })
 })
