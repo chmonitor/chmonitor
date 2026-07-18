@@ -420,13 +420,22 @@ describe('emitInstanceEvent', () => {
     ])
 
     // Each subscriber's OWN secret signs the payload — verify independently.
+    // `emitInstanceEvent` fans out via `Promise.allSettled`, delivering to
+    // every subscription CONCURRENTLY, so `captured` is not guaranteed to
+    // land in `subs` order — matching by index flickers depending on which
+    // concurrent `crypto.subtle.sign` call resolves first (a real WebCrypto
+    // op, not a deterministic microtask), which only surfaces under
+    // different timing such as coverage instrumentation (#2777). Match each
+    // subscriber's captured request by its (distinct) URL instead.
     const bodyStr = JSON.stringify(alertEvent)
-    for (const [idx, sub] of subs.entries()) {
+    for (const sub of subs) {
+      const capturedForSub = captured.find((c) => c.url === sub.url)
+      expect(capturedForSub).toBeDefined()
       const expectedSig = independentHmacHex(sub.secret, bodyStr)
-      expect(captured[idx].headers['X-Chmonitor-Signature']).toBe(
+      expect(capturedForSub?.headers['X-Chmonitor-Signature']).toBe(
         `sha256=${expectedSig}`
       )
-      expect(captured[idx].headers['X-Chmonitor-Event']).toBe('alert.fired')
+      expect(capturedForSub?.headers['X-Chmonitor-Event']).toBe('alert.fired')
     }
   })
 
