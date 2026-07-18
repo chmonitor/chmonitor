@@ -6,6 +6,7 @@ import {
   GlobeIcon,
   History,
   Moon,
+  Pin,
   Search,
   SearchX,
   Settings,
@@ -32,12 +33,14 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 import { IconButton } from '@/components/ui/icon-button'
+import { useFavoriteHrefs } from '@/hooks/use-favorites'
 import {
   addRecentItem,
   getRecentItems,
 } from '@/lib/command-palette/recent-items'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
+import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
 import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -121,6 +124,8 @@ export const CommandPalette = function CommandPalette({
   const { config } = useFeaturePermissions()
   const engine = useActiveHostEngine()
   const menuItems = getVisibleMenuItems(config, engine)
+  const favoriteHrefs = useFavoriteHrefs()
+  const favoriteMenuItems = getFavoriteMenuItems(menuItems, favoriteHrefs)
   const { setTheme, resolvedTheme } = useTheme()
   const { hosts } = useMergedHosts()
 
@@ -337,6 +342,37 @@ export const CommandPalette = function CommandPalette({
               </p>
             </div>
           </CommandEmpty>
+
+          {/* Pinned favorites (issue #2769) surface first, above Recent —
+              cmdk's own value-based filter still narrows this group when the
+              user types, so it isn't gated to the empty-query state. */}
+          {favoriteMenuItems.length > 0 && (
+            <>
+              <CommandGroup heading="Favorites">
+                {favoriteMenuItems.map((item) => (
+                  <CommandItem
+                    key={`favorite-${item.href}`}
+                    onSelect={() =>
+                      navigate(item.href, {
+                        id: `page-${item.href}`,
+                        title: item.title,
+                        description: item.description,
+                      })
+                    }
+                    value={`favorite ${[item.title, item.description]
+                      .filter(Boolean)
+                      .join(' ')}`}
+                    className="group"
+                  >
+                    <Pin className="size-4 shrink-0 fill-current text-muted-foreground" />
+                    <span className="font-medium">{item.title}</span>
+                    <EnterHint />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
           {/* Recent items only make sense as a starting point — once the user
               is actively searching, cmdk's own filter takes over. */}

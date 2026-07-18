@@ -1,6 +1,7 @@
 import type { NavMainProps, NavRenderSection } from './types'
 
 import { MenuGroup } from './menu-group'
+import { NavFavorites } from './nav-favorites'
 import { usePathname } from '@/lib/next-compat'
 
 /**
@@ -25,6 +26,7 @@ export function NavMain({ items }: NavMainProps) {
 
   return (
     <>
+      <NavFavorites items={items} pathname={pathname} />
       {sections.map((section) => (
         <MenuGroup
           key={section}

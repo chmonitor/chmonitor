@@ -4,6 +4,7 @@ import type { MenuItem as MenuItemType } from '@/components/menu/types'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
 import { CollapsedSubmenu } from './collapsed-submenu'
+import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
@@ -83,6 +84,7 @@ const SingleMenuItem = function SingleMenuItem({
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
   const { available } = useIsTableAvailable(item.tableCheck, hostId)
+  const hasBadge = Boolean(item.isNew || item.countKey)
 
   return (
     <SidebarMenuItem>
@@ -107,6 +109,7 @@ const SingleMenuItem = function SingleMenuItem({
           {item.title}
         </span>
       </SidebarMenuButton>
+      <PinButton href={item.href} title={item.title} hasBadge={hasBadge} />
       {item.isNew && (
         <SidebarMenuBadge>
           <Suspense fallback={null}>
@@ -146,6 +149,7 @@ const SubMenuItem = function SubMenuItem({
   closeMobileSidebar: () => void
 }) {
   const { available } = useIsTableAvailable(subItem.tableCheck, hostId)
+  const hasBadge = Boolean(subItem.isNew || subItem.countKey)
 
   return (
     <SidebarMenuSubItem>
@@ -187,6 +191,11 @@ const SubMenuItem = function SubMenuItem({
           </span>
         )}
       </SidebarMenuSubButton>
+      <SubPinButton
+        href={subItem.href}
+        title={subItem.title}
+        hasBadge={hasBadge}
+      />
     </SidebarMenuSubItem>
   )
 }
