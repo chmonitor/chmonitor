@@ -19,6 +19,7 @@ import {
   ActivityIcon,
   AlertTriangleIcon,
   ArrowDownToLineIcon,
+  BellRingIcon,
   BookOpenIcon,
   CircleDollarSignIcon,
   CloudIcon,
@@ -164,8 +165,8 @@ export const menuItemsConfig: MenuItem[] = [
     ],
   },
   {
-    // Parent groups the health summary and the dedicated alert settings page.
-    // /health?settings=alerts still opens the same settings as a dialog.
+    // Parent groups the health summary and the dedicated settings pages.
+    // /health?settings=alerts redirects to /alert-settings for old links.
     title: 'Health',
     href: '',
     icon: HeartPulseIcon,
@@ -180,11 +181,19 @@ export const menuItemsConfig: MenuItem[] = [
         icon: HeartPulseIcon,
       },
       {
+        title: 'Health Settings',
+        href: '/health-settings',
+        description:
+          'Per-check warning and critical thresholds for health monitoring',
+        icon: SlidersHorizontalIcon,
+        isNew: true,
+      },
+      {
         title: 'Alert Settings',
         href: '/alert-settings',
         description:
-          'Thresholds, alert channels, webhooks, quiet hours, digests and alert history',
-        icon: SlidersHorizontalIcon,
+          'Alert channels, webhooks, routing, quiet hours, digests and alert history',
+        icon: BellRingIcon,
         isNew: true,
       },
     ],

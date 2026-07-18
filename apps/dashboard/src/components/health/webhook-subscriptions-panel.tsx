@@ -2,7 +2,7 @@
  * Webhook subscriptions panel (plan 44).
  *
  * Lets a signed-in user subscribe a URL to one or more event types and see
- * delivery history / dead-letters. Lives as a tab in `HealthSettingsDialog`
+ * delivery history / dead-letters. Lives as a tab on the health settings page
  * alongside Thresholds/Alerts, but — unlike those two (batched, saved via the
  * dialog's footer "Save" button, localStorage-backed) — every action here is
  * an immediate server call (create/toggle/delete), same as the existing

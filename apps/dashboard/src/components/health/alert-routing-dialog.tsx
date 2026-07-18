@@ -8,7 +8,7 @@
  * own escalation policy + on-call schedule take over. The sweep fans out to
  * every matching route, falling back to the legacy global webhook / env
  * PagerDuty routing key (Alerts tab) when nothing matches. Lives as a tab in
- * `HealthSettingsDialog` alongside Thresholds/Alerts/History/Webhooks
+ * the health settings page alongside Thresholds/Alerts/History/Webhooks
  * (mirrors `WebhookSubscriptionsPanel`'s structure), but — unlike the
  * Clerk-gated webhook-subscriptions panel — this works with zero auth on
  * self-hosted deployments too (see `lib/health/alert-routing-auth.ts`).

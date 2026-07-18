@@ -1,5 +1,5 @@
 /**
- * Data hook for the "Recent alerts" card (health-settings-dialog.tsx).
+ * Data hook for the "Recent alerts" card (health-settings-panel.tsx).
  *
  * Thin TanStack Query wrapper around GET /api/v1/health/history — mirrors the
  * fetch/error conventions of `use-health-checks.ts` (apiFetch + throwIfNotOk)

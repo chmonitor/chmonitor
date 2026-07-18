@@ -1,22 +1,33 @@
-import { createFileRoute, useSearch } from '@tanstack/react-router'
+import { Settings } from 'lucide-react'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
 import { HealthGrid } from '@/components/health/health-grid'
-import { HealthSettingsDialog } from '@/components/health/health-settings-dialog'
 import { PageHeader } from '@/components/layout'
 import { ChartsOnlyPageSkeleton } from '@/components/skeletons'
+import { AppLink } from '@/components/ui/app-link'
+import { Button } from '@/components/ui/button'
+import { useHostId } from '@/lib/swr'
+import { buildUrl } from '@/lib/url/url-builder'
 
 function HealthPageContent() {
-  // Deep link from the sidebar's "Alert Settings" item: /health?settings=alerts
-  // mounts the page with the settings dialog already open.
-  const search = useSearch({ strict: false }) as { settings?: string }
+  const hostId = useHostId()
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       <PageHeader
         title="Health Summary"
         description="Real-time health indicators for your ClickHouse cluster"
         actions={
-          <HealthSettingsDialog defaultOpen={search.settings === 'alerts'} />
+          <Button
+            variant="outline"
+            size="sm"
+            render={
+              <AppLink href={buildUrl('/health-settings', { host: hostId })} />
+            }
+          >
+            <Settings className="mr-2 size-4" />
+            Settings
+          </Button>
         }
       />
       <HealthGrid />
@@ -34,4 +45,12 @@ function HealthPage() {
 
 export const Route = createFileRoute('/(dashboard)/health')({
   component: HealthPage,
+  validateSearch: (search: Record<string, unknown>) => search,
+  beforeLoad: ({ search }) => {
+    // Legacy deep link: /health?settings=alerts used to open the settings
+    // dialog — the settings now live on their own page.
+    if ((search as { settings?: string }).settings === 'alerts') {
+      throw redirect({ to: '/alert-settings' })
+    }
+  },
 })

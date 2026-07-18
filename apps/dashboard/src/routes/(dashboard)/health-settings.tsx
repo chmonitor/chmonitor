@@ -1,8 +1,7 @@
-import { BellRing } from 'lucide-react'
+import { HeartPulse } from 'lucide-react'
 import { createFileRoute, useSearch } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
-import { AlertSettingsHero } from '@/components/health/alert-settings-hero'
 import {
   HealthSettingsPanel,
   isHealthSettingsTab,
@@ -11,25 +10,24 @@ import { PageHeader } from '@/components/layout'
 import { PageSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 
-function AlertSettingsContent() {
-  // Optional deep link into a specific tab: /alert-settings?tab=webhooks
+function HealthSettingsContent() {
+  // Optional deep link into a specific tab: /health-settings?tab=alerts
   const search = useSearch({ strict: false }) as { tab?: string }
-  const defaultTab = isHealthSettingsTab(search.tab) ? search.tab : 'alerts'
+  const defaultTab = isHealthSettingsTab(search.tab) ? search.tab : undefined
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 sm:gap-4">
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            <BellRing
+            <HeartPulse
               className="size-5 text-muted-foreground"
               strokeWidth={1.5}
             />
-            Alert Settings
+            Health Settings
           </span>
         }
-        description="Alert channels, webhooks, routing, quiet hours, digests and alert history — stored locally in your browser"
+        description="Per-check warning and critical thresholds plus alert delivery — stored locally in your browser"
       />
-      <AlertSettingsHero />
       <HealthSettingsPanel
         defaultTab={defaultTab}
         footer={(save) => (
@@ -42,14 +40,14 @@ function AlertSettingsContent() {
   )
 }
 
-function AlertSettingsPage() {
+function HealthSettingsPage() {
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <AlertSettingsContent />
+      <HealthSettingsContent />
     </Suspense>
   )
 }
 
-export const Route = createFileRoute('/(dashboard)/alert-settings')({
-  component: AlertSettingsPage,
+export const Route = createFileRoute('/(dashboard)/health-settings')({
+  component: HealthSettingsPage,
 })

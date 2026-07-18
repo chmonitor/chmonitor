@@ -1,3 +1,15 @@
+import {
+  Bell,
+  Braces,
+  CircleAlert,
+  History,
+  MoonStar,
+  Route,
+  SlidersHorizontal,
+  Sparkles,
+  Webhook,
+  Wrench,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
@@ -18,7 +30,6 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -66,16 +77,12 @@ export function isHealthSettingsTab(
 
 /**
  * Shared body of the health/alert settings surface — tabs, form state and
- * save logic. Rendered inside `HealthSettingsDialog` (`layout="dialog"`,
- * height-constrained with per-tab scroll areas) and as the full
- * `/alert-settings` page (`layout="page"`, natural document scroll).
+ * save logic. Rendered by the `/health-settings` and `/alert-settings` pages.
  */
 export function HealthSettingsPanel({
-  layout,
   defaultTab = 'thresholds',
   footer,
 }: {
-  layout: 'dialog' | 'page'
   defaultTab?: HealthSettingsTab
   /** Renders the action row; receives the validated save handler. */
   footer: (save: () => boolean) => ReactNode
@@ -235,39 +242,60 @@ export function HealthSettingsPanel({
     })
   }
 
-  // In the dialog the tab body must scroll inside the fixed dialog height;
-  // on the page the document scrolls naturally. Plain render helper (not a
-  // component) so the element type stays stable across renders — a nested
-  // component would remount the subtree and drop input focus on each keystroke.
-  const pane = (value: HealthSettingsTab, children: ReactNode) =>
-    layout === 'dialog' ? (
-      <TabsContent value={value} className="min-h-0 overflow-hidden">
-        <ScrollArea className="h-full pr-3">{children}</ScrollArea>
-      </TabsContent>
-    ) : (
-      <TabsContent value={value} className="mt-2">
-        {children}
-      </TabsContent>
-    )
+  // Plain render helper (not a component) so the element type stays stable
+  // across renders — a nested component would remount the subtree and drop
+  // input focus on each keystroke.
+  const pane = (value: HealthSettingsTab, children: ReactNode) => (
+    <TabsContent value={value} className="mt-2">
+      {children}
+    </TabsContent>
+  )
 
   return (
     <>
-      <Tabs
-        defaultValue={defaultTab}
-        className={layout === 'dialog' ? 'min-h-0 flex-1' : undefined}
-      >
+      <Tabs defaultValue={defaultTab}>
         <div className="scrollbar-hide -mx-1 shrink-0 overflow-x-auto px-1 py-0.5">
           <TabsList className="w-max flex-nowrap">
-            <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
-            <TabsTrigger value="alerts">Alerts</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="routing">Routing</TabsTrigger>
-            <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-            <TabsTrigger value="quiet-hours">Quiet Hours</TabsTrigger>
-            <TabsTrigger value="suggested">Suggested</TabsTrigger>
-            <TabsTrigger value="custom-rules">Custom Rules</TabsTrigger>
+            <TabsTrigger value="thresholds">
+              <SlidersHorizontal className="mr-1.5 size-3.5" />
+              Thresholds
+            </TabsTrigger>
+            <TabsTrigger value="alerts">
+              <Bell className="mr-1.5 size-3.5" />
+              Alerts
+            </TabsTrigger>
+            <TabsTrigger value="active">
+              <CircleAlert className="mr-1.5 size-3.5" />
+              Active
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <History className="mr-1.5 size-3.5" />
+              History
+            </TabsTrigger>
+            <TabsTrigger value="routing">
+              <Route className="mr-1.5 size-3.5" />
+              Routing
+            </TabsTrigger>
+            <TabsTrigger value="webhooks">
+              <Webhook className="mr-1.5 size-3.5" />
+              Webhooks
+            </TabsTrigger>
+            <TabsTrigger value="maintenance">
+              <Wrench className="mr-1.5 size-3.5" />
+              Maintenance
+            </TabsTrigger>
+            <TabsTrigger value="quiet-hours">
+              <MoonStar className="mr-1.5 size-3.5" />
+              Quiet Hours
+            </TabsTrigger>
+            <TabsTrigger value="suggested">
+              <Sparkles className="mr-1.5 size-3.5" />
+              Suggested
+            </TabsTrigger>
+            <TabsTrigger value="custom-rules">
+              <Braces className="mr-1.5 size-3.5" />
+              Custom Rules
+            </TabsTrigger>
           </TabsList>
         </div>
 

@@ -6,7 +6,7 @@
  * health sweep silences outbound alert delivery. Checks still run and findings
  * are still recorded — only delivery is gated. `severityCap = critical` lets
  * criticals keep paging; catch-up notifications fire for still-active criticals
- * once the window closes. Lives as a tab in `HealthSettingsDialog`; every
+ * once the window closes. Lives as a tab on the health settings page; every
  * action is an immediate server call (create/delete), same as the maintenance
  * panel. Free/OSS: no Clerk sign-in required.
  */

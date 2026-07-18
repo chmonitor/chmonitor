@@ -4,7 +4,7 @@
  * Lets an operator declare a maintenance window (one host or all hosts) so
  * the health sweep suppresses outbound alerts while `now` falls inside it —
  * the finding is still recorded, this only gates the notification. Lives as
- * a tab in `HealthSettingsDialog` alongside Webhooks/History; every action
+ * a tab in the health settings page alongside Webhooks/History; every action
  * here is an immediate server call (create/delete), same pattern as
  * `WebhookSubscriptionsPanel`. Free/OSS feature: no Clerk sign-in required,
  * the server falls back to a single-tenant owner when Clerk isn't configured.
