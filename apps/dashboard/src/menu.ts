@@ -164,8 +164,8 @@ export const menuItemsConfig: MenuItem[] = [
     ],
   },
   {
-    // Parent groups the health summary and the alert settings deep link —
-    // both land on /health; ?settings=alerts opens the settings dialog.
+    // Parent groups the health summary and the dedicated alert settings page.
+    // /health?settings=alerts still opens the same settings as a dialog.
     title: 'Health',
     href: '',
     icon: HeartPulseIcon,
@@ -181,7 +181,7 @@ export const menuItemsConfig: MenuItem[] = [
       },
       {
         title: 'Alert Settings',
-        href: '/health?settings=alerts',
+        href: '/alert-settings',
         description:
           'Thresholds, alert channels, webhooks, quiet hours, digests and alert history',
         icon: SlidersHorizontalIcon,
