@@ -5,7 +5,8 @@
  * ones, retries the invalid ones, and never throws.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installEventsPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 let currentDb: {
   prepare: (sql: string) => {
@@ -13,13 +14,7 @@ let currentDb: {
   }
 } | null = null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => currentDb,
-    getQueue: () => null,
-    getDurableObjectNamespace: () => null,
-  }),
-}))
+installEventsPlatformMock(() => currentDb)
 
 const { processEventBatch, processEventPayload } = await import(
   './queue-consumer'

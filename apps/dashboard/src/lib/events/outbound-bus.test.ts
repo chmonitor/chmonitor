@@ -4,22 +4,19 @@
  * which imports `getPlatformBindings` from `@chm/platform` — resolving (via
  * the tsconfig alias) to `platform-native.ts`'s
  * `import { env } from 'cloudflare:workers'`, a virtual module `bun test`
- * doesn't provide. Mock it before importing, mirroring
- * `conversation-store/d1-store.sql.test.ts`'s established pattern. Every test
- * here injects its own `recordDelivery`/`listSubscriptionsForEvent` deps, so
- * the mocked D1 binding itself is never actually touched.
+ * doesn't provide. Mock it via the shared `./__tests__/platform-mock`
+ * fixture (issue #2777) before importing — every test here injects its own
+ * `recordDelivery`/`listSubscriptionsForEvent` deps, so the mocked D1
+ * binding itself is never actually touched.
  */
 
 import type { WebhookSubscription } from './subscription-store'
 
+import { installEventsPlatformMock } from './__tests__/platform-mock'
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { createHmac } from 'node:crypto'
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => undefined,
-  }),
-}))
+installEventsPlatformMock()
 
 const { deliver, emitEvent, emitInstanceEvent, signPayload } = await import(
   './outbound-bus'

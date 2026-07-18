@@ -6,21 +6,18 @@
  * guard is actually executed, not re-derived.
  */
 
+import { installEventsPlatformMock } from './__tests__/platform-mock'
 import { Database } from 'bun:sqlite'
-import { describe, expect, mock, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 
 // subscription-store.ts imports `getPlatformBindings` from '@chm/platform',
 // which resolves to `platform-native.ts`'s
 // `import { env } from 'cloudflare:workers'` — a virtual module `bun test`
-// doesn't provide. Mock it before importing, mirroring
-// `conversation-store/d1-store.sql.test.ts`'s established pattern. The D1
-// binding value is irrelevant here — this file only needs the exported SQL
-// string constants.
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => undefined,
-  }),
-}))
+// doesn't provide. Mock it via the shared `./__tests__/platform-mock`
+// fixture (issue #2777) so the mock doesn't leak across sibling event-bus
+// test files depending on execution order. The D1 binding value is
+// irrelevant here — this file only needs the exported SQL string constants.
+installEventsPlatformMock()
 
 const {
   D1_UPDATE_SUBSCRIPTION_SQL,

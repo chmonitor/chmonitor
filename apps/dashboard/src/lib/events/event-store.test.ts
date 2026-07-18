@@ -7,13 +7,15 @@
  * throw) when CHM_CLOUD_D1 is unbound, which is the normal state on
  * self-host/local dev.
  *
- * Uses a minimal in-memory D1 fake injected via mock.module('@chm/platform')
- * — the same pattern as src/lib/billing/ai-usage-store.test.ts.
+ * Uses a minimal in-memory D1 fake injected via the shared
+ * `./__tests__/platform-mock` fixture (issue #2777) so the `@chm/platform`
+ * mock doesn't leak across sibling event-bus test files.
  */
 
 import type { NormalizedEvent } from './types'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { installEventsPlatformMock } from './__tests__/platform-mock'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 // ---------------------------------------------------------------------------
 // In-memory D1 fake
@@ -135,13 +137,7 @@ function makeFakeD1(store: Map<string, Row>) {
 
 let currentDb: ReturnType<typeof makeFakeD1> | null = null
 
-mock.module('@chm/platform', () => ({
-  getPlatformBindings: () => ({
-    getD1Database: () => currentDb,
-    getQueue: () => null,
-    getDurableObjectNamespace: () => null,
-  }),
-}))
+installEventsPlatformMock(() => currentDb)
 
 const { upsertEvent, listEvents, pruneEventsOlderThan, EVENT_RETENTION_MS } =
   await import('./event-store')
