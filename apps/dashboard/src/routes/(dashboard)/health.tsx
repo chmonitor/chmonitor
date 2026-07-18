@@ -48,9 +48,12 @@ export const Route = createFileRoute('/(dashboard)/health')({
   validateSearch: (search: Record<string, unknown>) => search,
   beforeLoad: ({ search }) => {
     // Legacy deep link: /health?settings=alerts used to open the settings
-    // dialog — the settings now live on their own page.
-    if ((search as { settings?: string }).settings === 'alerts') {
-      throw redirect({ to: '/alert-settings' })
+    // dialog — the settings now live on their own page. Use `href` (not `to`)
+    // so we don't have to satisfy the route's typed search params, and carry
+    // the host param across.
+    const s = search as { settings?: string; host?: string | number }
+    if (s.settings === 'alerts') {
+      throw redirect({ href: buildUrl('/alert-settings', { host: s.host }) })
     }
   },
 })
