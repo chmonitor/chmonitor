@@ -12,7 +12,10 @@ import { ApiErrorType } from '@/lib/api/types'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { mapSubscriptionApiError } from '@/lib/events/api-errors'
 import { resolveSubscriptionUserId } from '@/lib/events/auth'
-import { isInstanceScopedEventType, parseEventTypes } from '@/lib/events/event-types'
+import {
+  isInstanceScopedEventType,
+  parseEventTypes,
+} from '@/lib/events/event-types'
 import { getWebhookSubscriptionsServerConfig } from '@/lib/events/server-feature'
 import {
   deleteSubscription,

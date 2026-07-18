@@ -19,8 +19,8 @@
  * decision, regardless of how many (if any) legacy channels are configured.
  */
 
-import type { AlertDecision } from './alert-state-store'
 import type { AlertEventData, EventPayload } from '@/lib/events/event-types'
+import type { AlertDecision } from './alert-state-store'
 
 import { debug } from '@chm/logger'
 import { emitInstanceEvent } from '@/lib/events/outbound-bus'

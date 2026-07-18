@@ -46,9 +46,7 @@ export const INSTANCE_SCOPED_EVENT_TYPES = [
   'alert.resolved',
 ] as const satisfies readonly EmittableEventType[]
 
-export function isInstanceScopedEventType(
-  value: EmittableEventType
-): boolean {
+export function isInstanceScopedEventType(value: EmittableEventType): boolean {
   return (INSTANCE_SCOPED_EVENT_TYPES as readonly string[]).includes(value)
 }
 

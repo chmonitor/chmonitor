@@ -271,7 +271,8 @@ export async function createSubscription(
   const now = Date.now()
   const id = crypto.randomUUID()
   const secret = generateSubscriptionSecret()
-  const scope: SubscriptionScope = input.scope === 'instance' ? 'instance' : 'user'
+  const scope: SubscriptionScope =
+    input.scope === 'instance' ? 'instance' : 'user'
 
   try {
     await db

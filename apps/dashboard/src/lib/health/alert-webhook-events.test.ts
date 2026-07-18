@@ -73,7 +73,11 @@ describe('buildAlertWebhookEvent', () => {
   test('a NEW alert builds alert.fired with the current severity and resolved:false', () => {
     const evt = buildAlertWebhookEvent({
       ...baseParams,
-      decision: decision({ kind: 'new', severity: 'critical', previousSeverity: 'ok' }),
+      decision: decision({
+        kind: 'new',
+        severity: 'critical',
+        previousSeverity: 'ok',
+      }),
     })
     expect(evt).not.toBeNull()
     expect(evt).toMatchObject({

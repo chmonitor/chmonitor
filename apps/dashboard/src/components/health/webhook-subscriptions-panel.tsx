@@ -315,9 +315,8 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
           checked={instanceScoped}
           onCheckedChange={(checked) => setInstanceScoped(checked === true)}
         />
-        Instance-scoped (required for alert.fired / alert.resolved — these
-        come from the operator&apos;s env-configured hosts, not your own
-        connections)
+        Instance-scoped (required for alert.fired / alert.resolved — these come
+        from the operator&apos;s env-configured hosts, not your own connections)
       </label>
       <Button
         size="sm"
