@@ -16,6 +16,7 @@ import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
 
 import { ActiveAlertsPanel } from './active-alerts-panel'
 import { AlertRoutingPanel } from './alert-routing-dialog'
+import { AlertStateCard } from './alert-state-card'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
 import { ChannelSeverityToggle } from './channel-severity-toggle'
 import { DigestSettingsPanel } from './digest-settings-panel'
@@ -564,7 +565,13 @@ export function HealthSettingsPanel({
           </div>
         )}
 
-        {pane('active', <ActiveAlertsPanel />)}
+        {pane(
+          'active',
+          <div className="space-y-6">
+            <AlertStateCard />
+            <ActiveAlertsPanel />
+          </div>
+        )}
 
         {pane('history', <RecentAlertsCard />)}
 

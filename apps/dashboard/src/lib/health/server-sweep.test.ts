@@ -453,6 +453,8 @@ const ENV_KEYS = [
   'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
   'HEALTH_ALERT_HEALTHCHECKS_URL',
   'HEALTH_ALERT_DIGEST_MINUTES',
+  'HEALTH_HYSTERESIS_BREACHES',
+  'HEALTH_HYSTERESIS_CLEARS',
 ] as const
 const savedEnv: Record<string, string | undefined> = {}
 
@@ -464,6 +466,12 @@ beforeEach(() => {
   process.env.HEALTH_ALERT_WEBHOOK_URL =
     'https://hooks.slack.com/services/T000/B000/XXXX'
   process.env.HEALTH_ALERT_MIN_SEVERITY = 'warning'
+  // Pin hysteresis OFF (1 breach / 1 clear) for these plumbing tests so a fire
+  // and a recovery each land on a single sweep — the anti-flap state machine
+  // and the product default (fire=1, clear=2) are covered directly in
+  // alert-state-store.test.ts / server-alert-config.test.ts (#2767).
+  process.env.HEALTH_HYSTERESIS_BREACHES = '1'
+  process.env.HEALTH_HYSTERESIS_CLEARS = '1'
   delete process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY
   delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
   delete process.env.HEALTH_ALERT_DIGEST_MINUTES

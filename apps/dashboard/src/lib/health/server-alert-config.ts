@@ -429,6 +429,84 @@ export function getServerDigestWindowMinutes(): number {
   return Math.floor(minutes)
 }
 
+/**
+ * Per-check hysteresis config (anti-flap, #2767): how many consecutive sweeps a
+ * worsening must persist before it fires, and how many consecutive `ok` sweeps a
+ * firing condition needs before it recovers.
+ */
+export interface HysteresisConfig {
+  minConsecutiveBreaches: number
+  minConsecutiveClears: number
+}
+
+/**
+ * Product default hysteresis: fire promptly (1 breach — no delay on a genuine
+ * critical) but damp recovery (2 consecutive clears), so a metric flapping
+ * around a threshold fires once and recovers once instead of on every dip. This
+ * is the sweep's default; the pure {@link import('./alert-state-store')} engine
+ * itself defaults to 1/1 (no hysteresis) so its transitions stay unchanged
+ * unless a caller opts in.
+ */
+export const DEFAULT_HYSTERESIS: HysteresisConfig = {
+  minConsecutiveBreaches: 1,
+  minConsecutiveClears: 2,
+}
+
+function parsePositiveIntEnv(value: string | undefined): number | null {
+  if (value === undefined) return null
+  const trimmed = value.trim()
+  if (trimmed === '') return null
+  const num = Number(trimmed)
+  if (!Number.isFinite(num) || num < 1) return null
+  return Math.floor(num)
+}
+
+/**
+ * Resolve hysteresis config for the given rule ids from environment variables.
+ *
+ * Global defaults (override {@link DEFAULT_HYSTERESIS}):
+ *
+ *   HEALTH_HYSTERESIS_BREACHES  → minConsecutiveBreaches
+ *   HEALTH_HYSTERESIS_CLEARS    → minConsecutiveClears
+ *
+ * Per-rule overrides (highest precedence), where `<RULE_ID>` is the rule id
+ * uppercased with dashes replaced by underscores:
+ *
+ *   HEALTH_HYSTERESIS_<RULE_ID>_BREACHES
+ *   HEALTH_HYSTERESIS_<RULE_ID>_CLEARS
+ *
+ * Only finite integers ≥ 1 are accepted; anything else falls back to the next
+ * level down. Returns the resolved default plus a fully-resolved config for
+ * every requested rule id, so the sweep can look up `byRule[id] ?? defaults`.
+ */
+export function getServerHysteresisConfig(ruleIds: readonly string[]): {
+  defaults: HysteresisConfig
+  byRule: Record<string, HysteresisConfig>
+} {
+  const defaults: HysteresisConfig = {
+    minConsecutiveBreaches:
+      parsePositiveIntEnv(process.env.HEALTH_HYSTERESIS_BREACHES) ??
+      DEFAULT_HYSTERESIS.minConsecutiveBreaches,
+    minConsecutiveClears:
+      parsePositiveIntEnv(process.env.HEALTH_HYSTERESIS_CLEARS) ??
+      DEFAULT_HYSTERESIS.minConsecutiveClears,
+  }
+
+  const byRule: Record<string, HysteresisConfig> = {}
+  for (const id of ruleIds) {
+    const prefix = `HEALTH_HYSTERESIS_${id.toUpperCase().replace(/-/g, '_')}`
+    byRule[id] = {
+      minConsecutiveBreaches:
+        parsePositiveIntEnv(process.env[`${prefix}_BREACHES`]) ??
+        defaults.minConsecutiveBreaches,
+      minConsecutiveClears:
+        parsePositiveIntEnv(process.env[`${prefix}_CLEARS`]) ??
+        defaults.minConsecutiveClears,
+    }
+  }
+  return { defaults, byRule }
+}
+
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 

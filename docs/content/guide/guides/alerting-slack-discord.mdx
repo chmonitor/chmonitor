@@ -79,6 +79,34 @@ dispatch attempt and whether delivery succeeded. That history isn't available
 on a self-hosted deployment without D1.
 </Callout>
 
+## Noise control: transitions, recovery & hysteresis
+
+Alerts are **transition-based**: the sweep notifies only when a condition
+actually changes state — `ok → warning`, `warning → critical`, or recovers back
+to `ok`. A condition that stays unhealthy is not re-sent on every run; it sends a
+single **reminder** at most once per `HEALTH_ALERT_COOLDOWN_MINUTES` (default 60;
+`0` disables reminders). A **recovery** message always goes out when a condition
+clears, and reports how long the incident was firing.
+
+To stop a metric that hovers on a threshold from flapping (fire/recover on every
+sweep), each check applies **hysteresis**:
+
+```bash
+# Consecutive breaches required before an alert fires (default 1 — fire promptly).
+HEALTH_HYSTERESIS_BREACHES=1
+# Consecutive "ok" sweeps required before a firing condition recovers (default 2).
+HEALTH_HYSTERESIS_CLEARS=2
+
+# Per-check overrides use the rule id, uppercased with dashes → underscores:
+HEALTH_HYSTERESIS_DISK_USAGE_CLEARS=3
+```
+
+The default (fire on the first breach, recover only after two consecutive clears)
+keeps genuine criticals prompt while collapsing a flapping metric into exactly
+one fire and one recover. The current state and last transition per check are
+shown on the **Active** tab of Alert Settings. State is persisted to D1 (when
+configured) so hysteresis streaks and incident timers survive worker restarts.
+
 ## Related
 
 - [Health](/guide/features/health) — every check, threshold, and environment

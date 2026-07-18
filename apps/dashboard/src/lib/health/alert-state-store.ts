@@ -1,5 +1,5 @@
 /**
- * Alert de-duplication state store.
+ * Alert de-duplication state store + hysteresis state machine.
  *
  * The autonomous health sweep (`server-sweep.ts`) runs every few minutes over
  * every host. Without memory, a persistent unhealthy condition would webhook on
@@ -14,12 +14,34 @@
  * Anything else (same severity within the cooldown window, or ok → ok) is
  * suppressed.
  *
+ * ## Hysteresis (anti-flap, #2767)
+ *
+ * A metric hovering right at a threshold flaps ok↔warning every sweep, which
+ * without damping would emit a fire + recover pair on every oscillation. Two
+ * knobs, configurable per check, absorb that:
+ *
+ *   - `minConsecutiveBreaches` — a worsening must be observed this many sweeps
+ *     in a row before it actually fires (debounces a single blip up).
+ *   - `minConsecutiveClears` — a firing condition must read `ok` this many
+ *     sweeps in a row before it RECOVERS (bridges single dips below the
+ *     threshold, so a flapping metric fires once and recovers once).
+ *
+ * Both default to `1` in the pure {@link decideNotification} — i.e. no
+ * hysteresis, byte-identical to the pre-#2767 transition semantics. The product
+ * default (breach=1, clear=2) is applied one layer up, by the sweep's
+ * server-side config, so criticals still fire promptly but recovery is damped.
+ *
+ * The in-flight streak awaiting confirmation lives in the record's
+ * `pendingSeverity` / `pendingCount` fields; `firstFiredAt` records when the
+ * current incident began firing so a RECOVERY can report its duration.
+ *
  * Storage: an in-memory module singleton, mirroring the "memory fallback"
  * pattern the insights subsystem uses (`insights/store/memory-store.ts`) and the
- * table-existence cache. Alert dedup state is intentionally ephemeral — after a
- * cold start the worst case is a single duplicate alert per active condition,
- * which is acceptable. The pure {@link decideNotification} transition function
- * is decoupled from the backend so it is fully unit-testable.
+ * table-existence cache. To survive worker restarts (so hysteresis streaks and
+ * incident timers are not lost), the sweep hydrates this store from D1 at the
+ * start of a tick and flushes it back at the end — see `alert-state-persist.ts`.
+ * The pure {@link decideNotification} transition function is decoupled from the
+ * backend so it is fully unit-testable.
  *
  * The logical condition key is `host:ruleId`; the last-fired severity lives in
  * the stored record (so the identity a record represents is
@@ -41,12 +63,25 @@ const SEVERITY_ORDER: Record<AlertRuleSeverity, number> = {
 
 /** Persisted per-condition state. */
 export interface AlertStateRecord {
-  /** Last severity we recorded/notified for this condition. */
+  /** Last *confirmed* severity we recorded/notified for this condition. */
   severity: AlertRuleSeverity
   /** Epoch ms when the severity last changed. */
   updatedAt: number
   /** Epoch ms of the last notification actually dispatched. */
   notifiedAt: number
+  /**
+   * Epoch ms when the current incident began firing (ok → firing). Carried
+   * through escalation/de-escalation so a RECOVERY can report the incident
+   * duration. Absent while the condition is ok.
+   */
+  firstFiredAt?: number
+  /**
+   * Severity awaiting hysteresis confirmation — differs from {@link severity}.
+   * `undefined` when there is no in-flight streak (steady state).
+   */
+  pendingSeverity?: AlertRuleSeverity
+  /** Consecutive sweeps observed at {@link pendingSeverity}. */
+  pendingCount?: number
 }
 
 /** What kind of transition the current evaluation represents. */
@@ -65,6 +100,12 @@ export interface AlertDecision {
   severity: AlertRuleSeverity
   /** Severity previously on record (defaults to 'ok' when unseen). */
   previousSeverity: AlertRuleSeverity
+  /**
+   * For a RECOVERY, how long the incident was firing, in ms — `now` minus the
+   * incident's `firstFiredAt`. Absent when the fire time is unknown (e.g. a
+   * condition already firing before this store had a record for it).
+   */
+  incidentDurationMs?: number
 }
 
 /** Minimal persistence contract; swap in a DB-backed store later if needed. */
@@ -117,6 +158,18 @@ export interface DecideOptions {
   cooldownMs?: number
   /** Injectable clock for tests. Defaults to `Date.now()`. */
   now?: number
+  /**
+   * Consecutive worsening observations required before a NEW/ESCALATED alert
+   * fires (anti-flap, #2767). `1` (default) = fire on first breach — no
+   * hysteresis. Values below 1 are clamped to 1.
+   */
+  minConsecutiveBreaches?: number
+  /**
+   * Consecutive `ok` observations required before a firing condition RECOVERS
+   * (anti-flap, #2767). `1` (default) = recover on first clear — no hysteresis.
+   * Values below 1 are clamped to 1.
+   */
+  minConsecutiveClears?: number
 }
 
 /**
@@ -125,6 +178,13 @@ export interface DecideOptions {
  *
  * `next` is the record to store, or `null` when the condition is ok and no
  * record should be kept (recovery clears it, ok→ok keeps nothing).
+ *
+ * Hysteresis: a worsening is held (suppressed, streak tracked in the returned
+ * record's `pendingSeverity`/`pendingCount`) until observed
+ * `minConsecutiveBreaches` sweeps in a row; a clear is held until observed
+ * `minConsecutiveClears` sweeps in a row. A single opposing observation resets
+ * the streak, so a metric that flaps around a threshold fires once and recovers
+ * once instead of on every oscillation.
  */
 export function decideNotification(
   prev: AlertStateRecord | undefined,
@@ -133,54 +193,57 @@ export function decideNotification(
 ): { decision: AlertDecision; next: AlertStateRecord | null } {
   const now = opts.now ?? Date.now()
   const cooldownMs = opts.cooldownMs ?? DEFAULT_ALERT_COOLDOWN_MS
-  const previousSeverity: AlertRuleSeverity = prev?.severity ?? 'ok'
+  const minBreaches = Math.max(1, Math.floor(opts.minConsecutiveBreaches ?? 1))
+  const minClears = Math.max(1, Math.floor(opts.minConsecutiveClears ?? 1))
+  const confirmed: AlertRuleSeverity = prev?.severity ?? 'ok'
+  const firstFiredAt = prev?.firstFiredAt
+  const rankCurrent = SEVERITY_ORDER[current]
+  const rankConfirmed = SEVERITY_ORDER[confirmed]
 
-  // Condition is healthy now.
-  if (current === 'ok') {
-    if (previousSeverity !== 'ok') {
-      // A previously-firing condition recovered → emit RECOVERY, clear state.
+  // Consecutive streak for `target`, extending prev's pending streak when it
+  // was already tracking the same target, otherwise starting fresh at 1.
+  const streakFor = (target: AlertRuleSeverity): number =>
+    prev?.pendingSeverity === target ? (prev.pendingCount ?? 0) + 1 : 1
+
+  const withFired = (rec: AlertStateRecord): AlertStateRecord =>
+    firstFiredAt !== undefined ? { ...rec, firstFiredAt } : rec
+
+  // A "hold" keeps the confirmed state exactly as-is (so the cooldown clock and
+  // incident timer are untouched) while recording the in-flight pending streak.
+  const hold = (
+    pendingSeverity: AlertRuleSeverity,
+    pendingCount: number
+  ): { decision: AlertDecision; next: AlertStateRecord } => ({
+    decision: {
+      notify: false,
+      kind: 'suppressed',
+      severity: current,
+      previousSeverity: confirmed,
+    },
+    next: withFired({
+      severity: confirmed,
+      updatedAt: prev?.updatedAt ?? now,
+      notifiedAt: prev?.notifiedAt ?? (confirmed === 'ok' ? 0 : now),
+      pendingSeverity,
+      pendingCount,
+    }),
+  })
+
+  // (A) Steady at the confirmed severity — any pending streak is cleared.
+  if (current === confirmed) {
+    if (current === 'ok') {
+      // ok → ok: nothing to remember, nothing to send.
       return {
         decision: {
-          notify: true,
-          kind: 'recovery',
+          notify: false,
+          kind: 'suppressed',
           severity: 'ok',
-          previousSeverity,
+          previousSeverity: 'ok',
         },
         next: null,
       }
     }
-    // ok → ok: nothing to remember, nothing to send.
-    return {
-      decision: {
-        notify: false,
-        kind: 'suppressed',
-        severity: 'ok',
-        previousSeverity,
-      },
-      next: null,
-    }
-  }
-
-  // Condition is firing (warning | critical).
-  const rankCurrent = SEVERITY_ORDER[current]
-  const rankPrev = SEVERITY_ORDER[previousSeverity]
-
-  // NEW (ok → firing) or ESCALATED (warning → critical): always notify,
-  // regardless of cooldown — a worsening condition is important.
-  if (rankCurrent > rankPrev) {
-    return {
-      decision: {
-        notify: true,
-        kind: previousSeverity === 'ok' ? 'new' : 'escalated',
-        severity: current,
-        previousSeverity,
-      },
-      next: { severity: current, updatedAt: now, notifiedAt: now },
-    }
-  }
-
-  // Same severity persisting: re-notify only once the cooldown has elapsed.
-  if (rankCurrent === rankPrev) {
+    // Firing steady: re-notify only once the cooldown has elapsed.
     const elapsed = now - (prev?.notifiedAt ?? 0)
     if (cooldownMs > 0 && elapsed >= cooldownMs) {
       return {
@@ -188,46 +251,84 @@ export function decideNotification(
           notify: true,
           kind: 'reminder',
           severity: current,
-          previousSeverity,
+          previousSeverity: confirmed,
         },
-        next: {
+        next: withFired({
           severity: current,
           updatedAt: prev?.updatedAt ?? now,
           notifiedAt: now,
-        },
+        }),
       }
     }
-    // Still within cooldown → suppress, but keep the existing timestamps.
     return {
       decision: {
         notify: false,
         kind: 'suppressed',
         severity: current,
-        previousSeverity,
+        previousSeverity: confirmed,
       },
-      next: {
+      next: withFired({
         severity: current,
         updatedAt: prev?.updatedAt ?? now,
         notifiedAt: prev?.notifiedAt ?? now,
+      }),
+    }
+  }
+
+  // (B) Worsening (ok → firing, or warning → critical) — gated by hysteresis.
+  if (rankCurrent > rankConfirmed) {
+    const count = streakFor(current)
+    if (count < minBreaches) return hold(current, count)
+    // Confirmed: NEW or ESCALATED — always notify regardless of cooldown.
+    const started = confirmed === 'ok' ? now : (firstFiredAt ?? now)
+    return {
+      decision: {
+        notify: true,
+        kind: confirmed === 'ok' ? 'new' : 'escalated',
+        severity: current,
+        previousSeverity: confirmed,
+      },
+      next: {
+        severity: current,
+        updatedAt: now,
+        notifiedAt: now,
+        firstFiredAt: started,
       },
     }
   }
 
-  // De-escalation but still firing (critical → warning): not a new alert.
-  // Lower the recorded severity so a later re-escalation is detected, but keep
-  // the last notify timestamp so we don't reset the cooldown.
+  // (C) Improving toward ok — RECOVERY, gated by clear hysteresis.
+  if (current === 'ok') {
+    const count = streakFor('ok')
+    if (count < minClears) return hold('ok', count)
+    const decision: AlertDecision = {
+      notify: true,
+      kind: 'recovery',
+      severity: 'ok',
+      previousSeverity: confirmed,
+    }
+    if (firstFiredAt !== undefined) {
+      decision.incidentDurationMs = Math.max(0, now - firstFiredAt)
+    }
+    return { decision, next: null }
+  }
+
+  // (C2) De-escalation but still firing (critical → warning): not a new alert.
+  // Lower the recorded severity immediately (a later re-escalation is still
+  // detected) but keep the notify timestamp so the cooldown isn't reset, and
+  // carry the incident timer since it's the same incident.
   return {
     decision: {
       notify: false,
       kind: 'suppressed',
       severity: current,
-      previousSeverity,
+      previousSeverity: confirmed,
     },
-    next: {
+    next: withFired({
       severity: current,
       updatedAt: now,
       notifiedAt: prev?.notifiedAt ?? now,
-    },
+    }),
   }
 }
 
@@ -246,6 +347,8 @@ export function evaluateAlert(
     severity: AlertRuleSeverity
     cooldownMs?: number
     now?: number
+    minConsecutiveBreaches?: number
+    minConsecutiveClears?: number
   }
 ): { decision: AlertDecision; commit: () => void } {
   const key = alertStateKey(params.hostId, params.ruleId)
@@ -253,6 +356,8 @@ export function evaluateAlert(
   const { decision, next } = decideNotification(prev, params.severity, {
     cooldownMs: params.cooldownMs,
     now: params.now,
+    minConsecutiveBreaches: params.minConsecutiveBreaches,
+    minConsecutiveClears: params.minConsecutiveClears,
   })
   const commit = () => {
     if (next === null) {

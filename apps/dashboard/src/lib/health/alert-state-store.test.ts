@@ -5,6 +5,7 @@
  * cooldown), and recovery.
  */
 
+import type { AlertRuleSeverity } from '@/lib/alerting/rule-registry'
 import type { AlertStateRecord } from './alert-state-store'
 
 import {
@@ -35,6 +36,8 @@ describe('decideNotification', () => {
       severity: 'warning',
       updatedAt: 5_000,
       notifiedAt: 5_000,
+      // A newly-firing condition stamps the incident start for duration reporting.
+      firstFiredAt: 5_000,
     })
   })
 
@@ -109,6 +112,149 @@ describe('decideNotification', () => {
     expect(next?.severity).toBe('warning')
     // Cooldown timer is not reset on a downgrade.
     expect(next?.notifiedAt).toBe(4_000)
+  })
+})
+
+describe('hysteresis (#2767)', () => {
+  test('breach hysteresis: a lone blip is held, not fired', () => {
+    // minConsecutiveBreaches=2 → first warning is a pending hold, no notify.
+    const first = decideNotification(undefined, 'warning', {
+      now: 1_000,
+      minConsecutiveBreaches: 2,
+    })
+    expect(first.decision.notify).toBe(false)
+    expect(first.decision.kind).toBe('suppressed')
+    expect(first.next).toMatchObject({
+      severity: 'ok',
+      pendingSeverity: 'warning',
+      pendingCount: 1,
+    })
+
+    // A single ok read clears the pending streak — the blip is forgotten.
+    const cleared = decideNotification(first.next ?? undefined, 'ok', {
+      now: 2_000,
+      minConsecutiveBreaches: 2,
+    })
+    expect(cleared.decision.notify).toBe(false)
+    expect(cleared.next).toBeNull()
+  })
+
+  test('breach hysteresis: fires only after N consecutive breaches', () => {
+    const a = decideNotification(undefined, 'critical', {
+      now: 1_000,
+      minConsecutiveBreaches: 3,
+    })
+    expect(a.decision.notify).toBe(false)
+    expect(a.next?.pendingCount).toBe(1)
+
+    const b = decideNotification(a.next ?? undefined, 'critical', {
+      now: 2_000,
+      minConsecutiveBreaches: 3,
+    })
+    expect(b.decision.notify).toBe(false)
+    expect(b.next?.pendingCount).toBe(2)
+
+    const c = decideNotification(b.next ?? undefined, 'critical', {
+      now: 3_000,
+      minConsecutiveBreaches: 3,
+    })
+    expect(c.decision.notify).toBe(true)
+    expect(c.decision.kind).toBe('new')
+    expect(c.next?.severity).toBe('critical')
+    expect(c.next?.pendingSeverity).toBeUndefined()
+    expect(c.next?.firstFiredAt).toBe(3_000)
+  })
+
+  test('clear hysteresis: a single dip below threshold does not recover', () => {
+    const firing: AlertStateRecord = {
+      severity: 'critical',
+      updatedAt: 1_000,
+      notifiedAt: 1_000,
+      firstFiredAt: 1_000,
+    }
+    // First ok read is held (needs 2 consecutive clears).
+    const dip = decideNotification(firing, 'ok', {
+      now: 2_000,
+      minConsecutiveClears: 2,
+    })
+    expect(dip.decision.notify).toBe(false)
+    expect(dip.next).toMatchObject({
+      severity: 'critical',
+      firstFiredAt: 1_000,
+      pendingSeverity: 'ok',
+      pendingCount: 1,
+    })
+
+    // Second consecutive ok read recovers, reporting the incident duration.
+    const recover = decideNotification(dip.next ?? undefined, 'ok', {
+      now: 3_000,
+      minConsecutiveClears: 2,
+    })
+    expect(recover.decision.notify).toBe(true)
+    expect(recover.decision.kind).toBe('recovery')
+    expect(recover.decision.incidentDurationMs).toBe(2_000)
+    expect(recover.next).toBeNull()
+  })
+
+  test('recovery carries incident duration from firstFiredAt', () => {
+    const firing: AlertStateRecord = {
+      severity: 'warning',
+      updatedAt: 10_000,
+      notifiedAt: 10_000,
+      firstFiredAt: 10_000,
+    }
+    const { decision } = decideNotification(firing, 'ok', { now: 70_000 })
+    expect(decision.kind).toBe('recovery')
+    expect(decision.incidentDurationMs).toBe(60_000)
+  })
+
+  test('flap sequence: with damping, exactly one fire + one recover', () => {
+    const store = new MemoryAlertStateStore()
+    const base = {
+      hostId: 0,
+      ruleId: 'disk-usage',
+      cooldownMs: 10_000_000, // large so no reminders interfere
+      minConsecutiveBreaches: 1,
+      minConsecutiveClears: 2,
+    }
+    // Alternating warning/ok every sweep — a classic flap around the threshold.
+    const severities: AlertRuleSeverity[] = [
+      'warning',
+      'ok',
+      'warning',
+      'ok',
+      'warning',
+      'ok',
+      'ok', // sustained recovery: two consecutive clears at the end
+    ]
+    const kinds: string[] = []
+    let now = 1_000
+    for (const severity of severities) {
+      const { decision, commit } = evaluateAlert(store, {
+        ...base,
+        severity,
+        now,
+      })
+      commit()
+      if (decision.notify) kinds.push(decision.kind)
+      now += 1_000
+    }
+    // Damping (clear hysteresis) bridges the single-sweep dips, so the whole
+    // flap collapses to one fire and one recover — the #2767 success criterion.
+    expect(kinds.filter((k) => k === 'new').length).toBe(1)
+    expect(kinds.filter((k) => k === 'recovery').length).toBe(1)
+    expect(kinds).toEqual(['new', 'recovery'])
+  })
+
+  test('default (1/1) hysteresis preserves the pre-#2767 transitions', () => {
+    // No hysteresis options → fire on first breach, recover on first clear.
+    const fire = decideNotification(undefined, 'warning', { now: 1_000 })
+    expect(fire.decision.kind).toBe('new')
+    const recover = decideNotification(fire.next ?? undefined, 'ok', {
+      now: 2_000,
+    })
+    expect(recover.decision.kind).toBe('recovery')
+    expect(recover.next).toBeNull()
   })
 })
 

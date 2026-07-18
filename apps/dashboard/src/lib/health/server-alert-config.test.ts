@@ -2,6 +2,7 @@ import {
   getServerAlertConfig,
   getServerChannelSettings,
   getServerEmailConfig,
+  getServerHysteresisConfig,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerPushoverConfig,
@@ -665,6 +666,69 @@ describe('getServerPushoverConfig', () => {
     expect(getServerPushoverConfig()).toEqual({
       token: 'app_tok',
       user: 'usr_key',
+    })
+  })
+})
+
+describe('getServerHysteresisConfig', () => {
+  const HYST_KEYS = [
+    'HEALTH_HYSTERESIS_BREACHES',
+    'HEALTH_HYSTERESIS_CLEARS',
+    'HEALTH_HYSTERESIS_DISK_USAGE_BREACHES',
+    'HEALTH_HYSTERESIS_DISK_USAGE_CLEARS',
+  ] as const
+  let saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of HYST_KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+  afterEach(() => {
+    for (const key of HYST_KEYS) {
+      if (saved[key] === undefined) delete process.env[key]
+      else process.env[key] = saved[key]
+    }
+    saved = {}
+  })
+
+  it('falls back to the product default (fire=1, clear=2) when unset', () => {
+    const { defaults, byRule } = getServerHysteresisConfig(['disk-usage'])
+    expect(defaults).toEqual({
+      minConsecutiveBreaches: 1,
+      minConsecutiveClears: 2,
+    })
+    expect(byRule['disk-usage']).toEqual(defaults)
+  })
+
+  it('honors global overrides', () => {
+    process.env.HEALTH_HYSTERESIS_BREACHES = '3'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '4'
+    const { defaults } = getServerHysteresisConfig([])
+    expect(defaults).toEqual({
+      minConsecutiveBreaches: 3,
+      minConsecutiveClears: 4,
+    })
+  })
+
+  it('per-rule override wins over global and default', () => {
+    process.env.HEALTH_HYSTERESIS_CLEARS = '5'
+    process.env.HEALTH_HYSTERESIS_DISK_USAGE_BREACHES = '2'
+    const { byRule } = getServerHysteresisConfig(['disk-usage'])
+    expect(byRule['disk-usage']).toEqual({
+      minConsecutiveBreaches: 2, // per-rule
+      minConsecutiveClears: 5, // inherits global
+    })
+  })
+
+  it('ignores non-numeric and < 1 values', () => {
+    process.env.HEALTH_HYSTERESIS_BREACHES = 'nope'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '0'
+    const { defaults } = getServerHysteresisConfig([])
+    expect(defaults).toEqual({
+      minConsecutiveBreaches: 1,
+      minConsecutiveClears: 2,
     })
   })
 })

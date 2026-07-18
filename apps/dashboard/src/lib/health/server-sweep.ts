@@ -45,6 +45,7 @@ import {
   resolveTargets,
   resolveTelegramTargets,
 } from './alert-routing'
+import { flushAlertState, hydrateAlertState } from './alert-state-persist'
 import { alertStateStore, evaluateAlert } from './alert-state-store'
 import { dispatchDedupedAlertEvent } from './alert-webhook-events'
 import { loadCustomRulesIntoRegistry } from './custom-rules-store'
@@ -69,6 +70,7 @@ import {
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
+  getServerHysteresisConfig,
   getServerThresholdOverrides,
 } from './server-alert-config'
 import { resolveServerChannels } from './server-channel-resolve'
@@ -86,6 +88,7 @@ import { generateInsights } from '@/lib/insights/generate-insights'
 import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
 import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
 import { isSlackAppConfigured } from '@/lib/slack/config'
+import { formatDuration } from '@/lib/utils'
 
 // Register pluggable alert rules into the global ruleRegistry once at module
 // load. The sweep drives itself from `ruleRegistry.getAll()`; the /health page
@@ -453,6 +456,19 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const rules = ruleRegistry.getAll()
   const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
 
+  // Hysteresis config (#2767): per-check anti-flap knobs. Resolved for every
+  // base + compound rule id; `dispatchFinding` looks up `byRule[id] ?? defaults`
+  // (compound ids fall through to defaults). Env-configured, like thresholds.
+  const hysteresis = getServerHysteresisConfig([
+    ...rules.map((r) => r.id),
+    ...compoundRuleRegistry.getAll().map((r) => r.id),
+  ])
+
+  // Durable state (#2767): hydrate the in-memory transition/hysteresis store
+  // from D1 so streaks + incident timers survive worker restarts. Best-effort —
+  // a no-op with no D1 binding (the OSS default), leaving ephemeral memory.
+  if (alertingEnabled) await hydrateAlertState(alertStateStore)
+
   // Compound rules (plans 31): base rules already ran above their sweep. Order
   // them once up front so dependency ordering is computed a single time, not
   // per host. A misconfigured compound rule (cycle / unknown dependency) must
@@ -619,11 +635,14 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     } = params
     const effective: Severity =
       SEVERITY_ORDER[severity] >= minRank ? severity : 'ok'
+    const ruleHysteresis = hysteresis.byRule[ruleId] ?? hysteresis.defaults
     const { decision, commit } = evaluateAlert(alertStateStore, {
       hostId,
       ruleId,
       severity: effective,
       cooldownMs,
+      minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
+      minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
     })
 
     if (decision.notify && isSuppressed(windows, hostId, Date.now())) {
@@ -763,9 +782,14 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const isQuietCatchUp =
         decision.kind !== 'recovery' &&
         takeDueCatchUp(hostId, ruleId, Date.now())
+      // Recovery message reports the incident duration when known (#2767).
+      const recoveryDuration =
+        decision.incidentDurationMs !== undefined
+          ? ` after ${formatDuration(decision.incidentDurationMs)}`
+          : ''
       const text =
         decision.kind === 'recovery'
-          ? `[RECOVERY] ${ruleTitle} — resolved (host ${name})`
+          ? `[RECOVERY] ${ruleTitle} — resolved${recoveryDuration} (host ${name})`
           : `${isQuietCatchUp ? '[CATCH-UP] ' : ''}[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
 
       // Per-channel + per-route gate (#2661). The severity a channel is judged
@@ -1829,6 +1853,11 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   // per target that received >1 finding, then commit + count each deferred
   // finding. Runs after every host so grouping spans the whole pass.
   await flushDigests()
+
+  // Persist the post-sweep transition/hysteresis state to D1 (#2767) so the
+  // next tick (even after a restart) resumes streaks + incident timers. Runs
+  // after flushDigests so deferred commits are already applied. Best-effort.
+  if (alertingEnabled) await flushAlertState(alertStateStore)
 
   return {
     ranAt,
