@@ -11,6 +11,7 @@ import {
   SparklesIcon,
   Zap,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import type { CardToolbarMetadata } from '@/components/cards/card-toolbar'
 import type { DateRangeConfig, DateRangeValue } from '@/components/date-range'
@@ -41,6 +42,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { formatSql } from '@/lib/sql-format'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn, dedent } from '@/lib/utils'
 
 const BEAUTIFY_STORAGE_KEY = 'chart-zoom-sql-beautify'
@@ -162,10 +164,16 @@ export const ChartZoomDialog = function ChartZoomDialog({
 
   const handleQueryCopy = async () => {
     if (!sql) return
-    const text = isBeautified ? await formatSql(sql) : dedent(sql)
-    await navigator.clipboard.writeText(text)
-    setQueryCopied(true)
-    setTimeout(() => setQueryCopied(false), 2000)
+    try {
+      const text = isBeautified ? await formatSql(sql) : dedent(sql)
+      await navigator.clipboard.writeText(text)
+      setQueryCopied(true)
+      setTimeout(() => setQueryCopied(false), 2000)
+    } catch (err) {
+      // Previously an unhandled rejection — the user clicked Copy and nothing
+      // happened, with no feedback at all (#2729).
+      toast.error('Failed to copy SQL', { description: describeError(err) })
+    }
   }
 
   // Handle dialog resize via mouse drag

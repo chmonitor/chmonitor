@@ -1,4 +1,5 @@
 import { Check, Copy, Pencil, Play, Trash2, X } from 'lucide-react'
+import { toast } from 'sonner'
 
 import type { QueryFavorite } from '@/lib/stores/use-query-favorites'
 
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useQueryFavorites } from '@/lib/stores/use-query-favorites'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 function relTime(ts: number): string {
@@ -72,8 +74,9 @@ function FavoriteItem({
       await navigator.clipboard.writeText(fav.shareUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // Clipboard unavailable — ignore silently.
+    } catch (err) {
+      // Silent failure here left the user clicking Copy with no feedback (#2729).
+      toast.error('Failed to copy link', { description: describeError(err) })
     }
   }
 

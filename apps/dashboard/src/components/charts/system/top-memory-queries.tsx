@@ -1,6 +1,7 @@
 'use client'
 
 import { ExternalLink, Lightbulb, MemoryStick } from 'lucide-react'
+import { toast } from 'sonner'
 
 import type { ChartProps } from '@/components/charts/chart-props'
 
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 type DataRow = {
@@ -63,8 +65,9 @@ function QueryDetailDialog({
       await navigator.clipboard.writeText(query)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      /* noop */
+    } catch (err) {
+      // Silent failure here left the user clicking Copy with no feedback (#2729).
+      toast.error('Failed to copy query', { description: describeError(err) })
     }
   }
 

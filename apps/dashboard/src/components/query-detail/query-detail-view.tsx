@@ -16,6 +16,7 @@ import {
   User as UserIcon,
   Wand2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { highlightCode } from '@/components/ai-elements/code-block'
@@ -32,6 +33,7 @@ import { formatReadableSize } from '@/lib/format-readable'
 import { deriveQueryInsights } from '@/lib/query/query-insights'
 import { useTableData } from '@/lib/query/use-table-data'
 import { formatSql } from '@/lib/sql-format'
+import { describeError } from '@/lib/swr/fetch-error'
 import { useHostId } from '@/lib/swr/use-host'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
@@ -330,8 +332,9 @@ function SqlBlock({ query }: { query: string }) {
       setCopied(true)
       if (copyTimer.current) clearTimeout(copyTimer.current)
       copyTimer.current = setTimeout(() => setCopied(false), 2000)
-    } catch {
-      /* noop */
+    } catch (err) {
+      // Silent failure here left the user clicking Copy with no feedback (#2729).
+      toast.error('Failed to copy query', { description: describeError(err) })
     }
   }
 

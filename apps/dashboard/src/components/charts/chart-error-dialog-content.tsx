@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { type CardError, getTableMissingInfo } from '@/lib/card-error-utils'
+import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
 interface ChartErrorDialogContentProps {
@@ -38,8 +39,8 @@ export default function ChartErrorDialogContent({
     try {
       await navigator.clipboard.writeText(errorMarkdown)
       toast.success('Error details copied to clipboard')
-    } catch {
-      toast.error('Failed to copy error')
+    } catch (err) {
+      toast.error('Failed to copy error', { description: describeError(err) })
     }
   }
 
@@ -48,8 +49,8 @@ export default function ChartErrorDialogContent({
     try {
       await navigator.clipboard.writeText(prompt)
       toast.info('Prompt copied! Paste into your AI agent (Claude, etc.)')
-    } catch {
-      toast.error('Failed to copy prompt')
+    } catch (err) {
+      toast.error('Failed to copy prompt', { description: describeError(err) })
     }
   }
 
@@ -82,8 +83,10 @@ export default function ChartErrorDialogContent({
                     try {
                       await navigator.clipboard.writeText(sql)
                       toast.success('SQL query copied to clipboard')
-                    } catch {
-                      toast.error('Failed to copy SQL')
+                    } catch (err) {
+                      toast.error('Failed to copy SQL', {
+                        description: describeError(err),
+                      })
                     }
                   }}
                 >
