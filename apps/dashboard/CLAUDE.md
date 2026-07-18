@@ -122,7 +122,7 @@ runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
 Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 19
-tool modules exposing 35 tools total (28 by default; the 3 destructive
+tool modules exposing 36 tools total (29 by default; the 3 destructive
 `control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, and the
 4 cross-source `postgres-*-tools` are gated off unless
 `CHM_FEATURE_POSTGRES_SOURCE=true`):
@@ -132,7 +132,7 @@ tool modules exposing 35 tools total (28 by default; the 3 destructive
 | `schema-tools` | `query`, `list_databases`, `list_tables`, `get_table_schema`, `explore_table_schema` |
 | `query-tools` | `get_running_queries`, `get_slow_queries`, `list_slow_query_patterns`, `get_failed_queries`, `explain_query`, `estimate_query_cost` |
 | `health-tools` | `get_metrics`, `get_disk_usage` |
-| `storage-tools` | `get_table_parts`, `forecast_disk_capacity`, `suggest_ttl_adjustment` |
+| `storage-tools` | `get_table_parts`, `forecast_disk_capacity`, `suggest_ttl_adjustment`, `estimate_mutation_impact` |
 | `replication-tools` | `get_replication_status` |
 | `merge-tools` | `get_merge_status` |
 | `plan-tools` | `update_plan` |

@@ -38,6 +38,7 @@ describe('createStorageTools', () => {
     expect(tools.get_table_parts).toBeDefined()
     expect(tools.forecast_disk_capacity).toBeDefined()
     expect(tools.suggest_ttl_adjustment).toBeDefined()
+    expect(tools.estimate_mutation_impact).toBeDefined()
   })
 
   test('get_table_parts returns parts for a table', async () => {
@@ -242,6 +243,52 @@ describe('createStorageTools', () => {
       expect(typeof result.sql).toBe('string')
       expect(result.sql).toContain('ALTER TABLE')
       expect(result.sql).toContain('90 DAY')
+    })
+  })
+
+  describe('estimate_mutation_impact', () => {
+    test('estimates impact for an ALTER TABLE ... DELETE statement', async () => {
+      Object.keys(queryStore).forEach((k) => delete queryStore[k])
+      mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+        if (query.includes('SELECT count() AS matched'))
+          return { data: [{ matched: 10 }], error: null }
+        if (query.includes('FROM system.parts'))
+          return { data: [{ parts: 2, bytes: 1000, rows: 100 }], error: null }
+        if (query.includes('FROM system.part_log'))
+          return { data: [], error: null }
+        if (query.includes('FROM system.disks'))
+          return {
+            data: [{ name: 'default', free_space: 1_000_000 }],
+            error: null,
+          }
+        return { data: [], error: null }
+      })
+      mockCheckTableExists.mockResolvedValue(true)
+
+      const tools = createStorageTools(0) as any
+      const result = await tools.estimate_mutation_impact.execute({
+        sql: 'ALTER TABLE analytics.events DELETE WHERE id = 1',
+      })
+
+      expect(result.mutationKind).toBe('DELETE')
+      expect(result.database).toBe('analytics')
+      expect(result.table).toBe('events')
+      expect(result.estRowsMatched).toBe(10)
+    })
+
+    test('never sends the ALTER statement itself to ClickHouse', async () => {
+      Object.keys(queryStore).forEach((k) => delete queryStore[k])
+      mockFetchData.mockImplementation(async () => ({ data: [], error: null }))
+      mockCheckTableExists.mockResolvedValue(true)
+
+      const tools = createStorageTools(0) as any
+      await tools.estimate_mutation_impact.execute({
+        sql: 'ALTER TABLE events DELETE WHERE id = 1',
+      })
+
+      for (const call of mockFetchData.mock.calls) {
+        expect(call[0].query).not.toMatch(/^\s*ALTER\s+TABLE/i)
+      }
     })
   })
 })

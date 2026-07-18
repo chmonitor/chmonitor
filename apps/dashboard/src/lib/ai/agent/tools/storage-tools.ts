@@ -129,5 +129,30 @@ export function createStorageTools(hostId: number) {
         })
       },
     }),
+
+    estimate_mutation_impact: dynamicTool({
+      description:
+        'Pre-flight impact estimate for an ALTER TABLE ... UPDATE/DELETE mutation: rows matched by the WHERE clause, parts/bytes ClickHouse will rewrite, a projected duration from recent mutation throughput history, and whether free disk can hold the rewrite. Read-only and recommend-only — parses the statement as text and only ever runs derived read-only queries (SELECT count(), system.parts/part_log/disks); never executes the mutation itself.',
+      inputSchema: z.object({
+        sql: z
+          .string()
+          .describe(
+            'The ALTER TABLE ... UPDATE ... WHERE ... or ALTER TABLE ... DELETE WHERE ... statement to estimate (it is never executed)'
+          ),
+        hostId: hostIdSchema,
+      }),
+      execute: async (input: unknown) => {
+        const { estimateMutationImpact } = await import(
+          '@/lib/ai/advisor/mutation-impact-estimator'
+        )
+        const { sql, hostId: toolHostId } = input as {
+          sql: string
+          hostId?: number
+        }
+        const resolvedHostId = resolveHostId(toolHostId, hostId)
+
+        return estimateMutationImpact({ sql, hostId: resolvedHostId })
+      },
+    }),
   }
 }

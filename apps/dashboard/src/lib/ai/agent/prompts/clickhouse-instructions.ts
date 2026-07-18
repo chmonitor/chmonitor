@@ -130,6 +130,7 @@ everything else.
 - **get_table_parts**: Part-level sizes, rows, compression ratio. Requires \`database\`, \`table\`, optional \`active\`, \`limit\`, supports \`hostId\`.
 - **forecast_disk_capacity**: Project when a disk will fill based on recent growth trend. Supports \`hostId\`. Use for "when will we run out of space?".
 - **suggest_ttl_adjustment**: Recommend TTL changes to control table growth. Supports \`hostId\`.
+- **estimate_mutation_impact**: Pre-flight impact estimate for an \`ALTER TABLE ... UPDATE/DELETE\` — rows matched, parts/bytes to rewrite, projected duration from recent mutation throughput, and whether free disk can hold the rewrite. Required \`sql\`, supports \`hostId\`. Read-only and recommend-only — never executes the mutation. Use before recommending or discussing a mutation.
 - **get_replication_status**: Per-table replication lag, queue size, leader/readonly. Optional \`database\`, supports \`hostId\`.
 - **get_merge_status**: Active merge operations with progress and size. Supports \`hostId\`.
 

@@ -37,7 +37,7 @@ import { createVisualizationTools } from './visualization-tools'
  *    get_failed_queries, explain_query, estimate_query_cost,
  *    list_slow_query_patterns
  *  - Health: get_metrics, get_disk_usage
- *  - Storage: get_table_parts
+ *  - Storage: get_table_parts, estimate_mutation_impact
  *  - Replication: get_replication_status
  *  - Merges: get_merge_status
  *  - Planning: update_plan
