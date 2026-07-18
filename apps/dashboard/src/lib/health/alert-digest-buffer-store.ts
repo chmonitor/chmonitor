@@ -92,17 +92,21 @@ export async function bufferDigestEntries(
       `INSERT INTO ${TABLE} (id, owner_id, flush_after, entry_json, created_at)
        VALUES (?1, ?2, ?3, ?4, ?5)`
     )
-    for (const entry of entries) {
-      await stmt
-        .bind(
+    // One atomic batch, not a loop of awaits: a mid-loop failure would leave
+    // earlier rows durably written while the caller (told `false`) re-sends
+    // the same entries via immediate grouping — a later sweep would then flush
+    // the orphaned rows too, delivering duplicates.
+    await db.batch(
+      entries.map((entry) =>
+        stmt.bind(
           crypto.randomUUID(),
           ownerId,
           flushAfter,
           JSON.stringify(entry),
           now
         )
-        .run()
-    }
+      )
+    )
     return true
   } catch (err) {
     warn(`failed to buffer ${entries.length} digest entries: ${err}`)

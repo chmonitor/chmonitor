@@ -192,6 +192,31 @@ describe('alert-channel-config-store — round-trip', () => {
     expect(await listChannelConfigs('owner-1')).toEqual([])
   })
 
+  test('reserved sentinel rows (e.g. __digest__) never leak into listChannelConfigs', async () => {
+    const db = makeFakeD1()
+    currentDb = db
+    await upsertChannelConfig({
+      ownerId: 'o',
+      channel: 'webhook',
+      enabled: true,
+      target: { url: 'https://example.com/hook' },
+    })
+    // The digest settings store parks its config in the same table under a
+    // reserved channel key — it must never surface as a channel config (it
+    // would leak into GET /alert-config and the sweep's channel-settings map).
+    db._rows.push({
+      owner_id: 'o',
+      channel: '__digest__',
+      enabled: 1,
+      min_severity: null,
+      target_json: JSON.stringify({ windowMinutes: '15' }),
+      secret: null,
+      updated_at: 1,
+    })
+    const listed = await listChannelConfigs('o')
+    expect(listed.map((c) => c.channel)).toEqual(['webhook'])
+  })
+
   test('upsert drops empty/whitespace target fields', async () => {
     currentDb = makeFakeD1()
     const saved = await upsertChannelConfig({

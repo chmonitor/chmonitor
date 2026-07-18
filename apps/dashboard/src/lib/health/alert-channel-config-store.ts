@@ -180,7 +180,13 @@ export async function listChannelConfigs(
       .prepare(D1_LIST_CHANNEL_CONFIG_SQL)
       .bind(ownerId)
       .all<D1ChannelConfigRow>()
-    return (result.results ?? []).map(rowToConfig)
+    // The table also holds reserved sentinel rows (e.g. the digest settings'
+    // '__digest__' key) that are NOT channel configs — without this filter they
+    // would leak into the public GET /alert-config response and pollute the
+    // sweep's mergeChannelSettings map with a bogus channel id.
+    return (result.results ?? [])
+      .filter((row) => isAlertConfigChannel(row.channel))
+      .map(rowToConfig)
   } catch (err) {
     warn(`failed to list channel configs for owner ${ownerId}: ${err}`)
     return []

@@ -74,7 +74,10 @@ function makeFakeD1() {
       },
     }
   }
-  return { prepare, _rows: rows }
+  async function batch(stmts: { run(): Promise<unknown> }[]) {
+    return Promise.all(stmts.map((s) => s.run()))
+  }
+  return { prepare, batch, _rows: rows }
 }
 
 function makeThrowingD1() {

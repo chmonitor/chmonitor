@@ -136,8 +136,23 @@ function makeFakeD1(
     // `ensureMigrated`, which permanently caches the rejected migration
     // promise (the `migration = null` reset runs before the outer assignment)
     // and poisons those stores for every later suite in the same bun process.
+    // The digest buffer store inserts via `db.batch(boundStmts)` (atomic,
+    // all-or-nothing), so bound statements must actually execute; DDL/other
+    // statements the fake doesn't model still resolve to a no-op result.
     batch: async (stmts: unknown[]) =>
-      stmts.map(() => ({ meta: { changes: 0 } })),
+      Promise.all(
+        stmts.map(async (s) => {
+          const runnable = s as { run?: () => Promise<unknown> }
+          if (typeof runnable.run !== 'function') {
+            return { meta: { changes: 0 } }
+          }
+          try {
+            return await runnable.run()
+          } catch {
+            return { meta: { changes: 0 } }
+          }
+        })
+      ),
     prepare(sql: string) {
       const isRoutesSelect = /FROM alert_routes/i.test(sql)
       const isSubscriptionsSelect = /FROM webhook_subscriptions/i.test(sql)
@@ -145,6 +160,7 @@ function makeFakeD1(
       const isBufferInsert = /INTO alert_digest_buffer/i.test(sql)
       const isBufferSelect = /FROM alert_digest_buffer/i.test(sql)
       const isBufferDelete = /DELETE FROM alert_digest_buffer/i.test(sql)
+      const isEventsInsert = /INTO alert_events/i.test(sql)
 
       // Shared run()/all() so both the unbound statement (real D1 supports
       // calling `.run()`/`.all()` directly when the SQL has no `?`
@@ -215,6 +231,10 @@ function makeFakeD1(
           })
           return { meta: { changes: 1 } }
         }
+        // Anything else the fake doesn't model (e.g. lazy DDL migrations that
+        // now actually execute through `batch`) is a harmless no-op — only a
+        // real alert_events insert may write into `rows`.
+        if (!isEventsInsert) return { meta: { changes: 0 } }
         const [
           id,
           eventTime,
