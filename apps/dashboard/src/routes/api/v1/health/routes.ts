@@ -80,6 +80,9 @@ function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
     pushoverTokenMasked: route.pushoverToken
       ? maskRoutingKey(route.pushoverToken)
       : null,
+    // Per-route severity floor (#2661): `null` = inherit the channel/global
+    // gate. Not a secret — returned as-is so the UI can show/edit it.
+    minSeverity: route.minSeverity,
   }
 }
 
@@ -118,6 +121,8 @@ interface CreateRouteBody {
   pushoverToken?: unknown
   /** Pushover-only: the target user/group key. */
   pushoverUser?: unknown
+  /** Optional per-route severity floor: `'warning'` | `'critical'` (#2661). */
+  minSeverity?: unknown
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -153,6 +158,12 @@ async function handlePost(request: Request): Promise<Response> {
       ? body.matchHost.trim()
       : '*'
   const enabled = body.enabled !== false
+  // Optional per-route severity floor (#2661); anything but the two valid
+  // literals means "inherit the channel/global gate" (null).
+  const minSeverity: 'warning' | 'critical' | null =
+    body.minSeverity === 'warning' || body.minSeverity === 'critical'
+      ? body.minSeverity
+      : null
 
   if (provider === 'pagerduty') {
     const routingKey =
@@ -178,6 +189,7 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'pagerduty',
       serviceName: serviceName || null,
       routingKey,
+      minSeverity,
     })
 
     if (!created) {
@@ -220,6 +232,7 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'telegram',
       telegramBotToken,
       telegramChatId,
+      minSeverity,
     })
 
     if (!created) {
@@ -263,6 +276,7 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'ntfy',
       ntfyUrl,
       ntfyToken: ntfyToken || null,
+      minSeverity,
     })
 
     if (!created) {
@@ -303,6 +317,7 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'pushover',
       pushoverToken,
       pushoverUser,
+      minSeverity,
     })
 
     if (!created) {
@@ -343,6 +358,7 @@ async function handlePost(request: Request): Promise<Response> {
     channelUrl,
     enabled,
     provider: 'webhook',
+    minSeverity,
   })
 
   if (!created) {

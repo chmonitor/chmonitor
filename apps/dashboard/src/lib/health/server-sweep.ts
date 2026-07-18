@@ -9,8 +9,12 @@ import type {
 } from '@/lib/alerting/rule-registry'
 import type { AlertPayload, PagerDutyEventBody } from './adapters'
 import type { AlertSeverity } from './adapters/types'
+import type {
+  AlertChannelId,
+  AlertSeverityFloor,
+} from './alert-channel-settings'
 import type { AlertEventRecord } from './alert-history-store'
-import type { AlertRoute } from './alert-routing'
+import type { AlertRoute, AlertRouteProvider } from './alert-routing'
 import type { AlertDecision } from './alert-state-store'
 
 import {
@@ -20,6 +24,7 @@ import {
   detectAdapter,
 } from './adapters'
 import { clearAck, isAcked, listActiveAcks } from './alert-ack-store'
+import { resolveChannelDelivery } from './alert-channel-settings'
 import { recordAlertEvent } from './alert-history-store'
 import {
   listRoutes,
@@ -52,6 +57,7 @@ import {
 import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
+  getServerChannelSettings,
   getServerEmailConfig,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
@@ -86,6 +92,15 @@ const SEVERITY_ORDER: Record<Severity, number> = {
   ok: 0,
   warning: 1,
   critical: 2,
+}
+
+/** Which per-channel override (#2661) governs a route of each provider. */
+const PROVIDER_CHANNEL: Record<AlertRouteProvider, AlertChannelId> = {
+  webhook: 'webhook',
+  pagerduty: 'pagerduty',
+  telegram: 'telegram',
+  ntfy: 'ntfy',
+  pushover: 'pushover',
 }
 
 export interface SweepFinding {
@@ -391,6 +406,11 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const ntfyFallback = getServerNtfyConfig()
   const twilioConfig = getServerTwilioConfig()
   const pushoverFallback = getServerPushoverConfig()
+  // Per-channel overrides (#2661): the sweep's analogue of the client's
+  // localStorage `AlertSettings.channels`, sourced from env. Empty ({}) for a
+  // deployment that sets none, so every gate below reduces to the historical
+  // global `settings.minSeverity` — behavior unchanged.
+  const channelSettings = getServerChannelSettings()
   // Master switch for `dispatchFinding` (dedup + every channel, INCLUDING the
   // webhook-subscriptions bus below). Deliberately NOT ANDed with "is any
   // legacy channel configured" anymore (#2664) — the bus is its own channel
@@ -646,15 +666,58 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           ? `[RECOVERY] ${ruleTitle} — resolved (host ${name})`
           : `${isQuietCatchUp ? '[CATCH-UP] ' : ''}[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
 
+      // Per-channel + per-route gate (#2661). The severity a channel is judged
+      // against is the finding's own severity for an alert, or the severity it
+      // recovered FROM for a recovery (so a condition that never paged a
+      // critical-only channel as a warning does not page it when it clears).
+      const deliverSeverity: AlertSeverityFloor | null =
+        decision.kind === 'recovery'
+          ? decision.previousSeverity === 'warning' ||
+            decision.previousSeverity === 'critical'
+            ? decision.previousSeverity
+            : null
+          : effective === 'warning' || effective === 'critical'
+            ? effective
+            : null
+
+      /**
+       * Whether a channel fires for THIS finding, via the shared resolver:
+       * disabled channel never fires; else floor = route › channel › global.
+       * `routeMinSeverity` is the per-route floor for route-based channels
+       * (null for the env-configured single destinations).
+       */
+      const channelPasses = (
+        channelId: AlertChannelId,
+        routeMinSeverity: AlertSeverityFloor | null = null
+      ): boolean =>
+        deliverSeverity !== null &&
+        resolveChannelDelivery({
+          severity: deliverSeverity,
+          globalMinSeverity: settings.minSeverity,
+          channel: channelSettings[channelId],
+          routeMinSeverity,
+        })
+
+      // Route-level accept predicate: a route silenced for this finding's
+      // severity is simply not "matched" — it yields no target and stops
+      // suppressing the legacy fallback, so a less-severe finding still reaches
+      // the catch-all. Passed to every `resolve*` below.
+      const routeAccept = (route: AlertRoute) =>
+        channelPasses(PROVIDER_CHANNEL[route.provider], route.minSeverity)
+      const matchOptions = { accept: routeAccept }
+
       // Fan out to every matched route's channel (plan 30), falling back to
       // the legacy global webhook when nothing matches (see `alert-routing.ts`).
       // Dedup (`evaluateAlert`) already ran ONCE above for this finding —
       // fan-out never multiplies cooldown state, it only multiplies where the
-      // single decision is sent.
+      // single decision is sent. The legacy/env fallbacks are gated by the
+      // per-channel floor (routeMinSeverity=null) before being passed in, so a
+      // disabled or raised-floor channel drops its fallback too.
       const targets = resolveTargets(
         routes,
         { ruleId, ruleType, hostId, hostName: name },
-        settings.webhookUrl
+        channelPasses('webhook') ? settings.webhookUrl : '',
+        matchOptions
       )
 
       // PagerDuty services (plan 34): resolved separately from the generic
@@ -667,7 +730,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const pagerDutyTargets = resolvePagerDutyTargets(
         routes,
         { ruleId, ruleType, hostId, hostName: name },
-        pagerDutyFallbackKey
+        channelPasses('pagerduty') ? pagerDutyFallbackKey : '',
+        matchOptions
       )
 
       // Telegram chats (#2655): resolved separately from the generic webhook
@@ -678,7 +742,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const telegramTargets = resolveTelegramTargets(
         routes,
         { ruleId, ruleType, hostId, hostName: name },
-        telegramFallback
+        channelPasses('telegram') ? telegramFallback : null,
+        matchOptions
       )
 
       // ntfy topics (#2657): resolved separately from the generic webhook
@@ -689,7 +754,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const ntfyTargets = resolveNtfyTargets(
         routes,
         { ruleId, ruleType, hostId, hostName: name },
-        ntfyFallback
+        channelPasses('ntfy') ? ntfyFallback : null,
+        matchOptions
       )
 
       // Pushover recipients (#2659): resolved separately from the generic
@@ -700,8 +766,17 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       const pushoverTargets = resolvePushoverTargets(
         routes,
         { ruleId, ruleType, hostId, hostName: name },
-        pushoverFallback
+        channelPasses('pushover') ? pushoverFallback : null,
+        matchOptions
       )
+
+      // Opsgenie / email are single env-configured destinations (no routes) —
+      // gate each on its own per-channel floor (#2661), routeMinSeverity=null.
+      // Computed once so the delivery `if` and the "nothing to deliver" commit
+      // accounting below agree.
+      const opsgenieEligible =
+        opsgenieConfig !== null && channelPasses('opsgenie')
+      const emailEligible = emailConfig !== null && channelPasses('email')
 
       // Normalized payload shared by every per-URL body builder below (Discord
       // embeds carry host/value/thresholds; the Slack/generic wrapper carries
@@ -850,7 +925,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       // per-route resolution yet, unlike webhook/PagerDuty targets above) —
       // fires whenever `opsgenieConfig` is set. `dispatchOpsgenie` never
       // throws (fails open), matching every other channel here.
-      if (opsgenieConfig) {
+      if (opsgenieConfig && opsgenieEligible) {
         const alertSeverity: AlertSeverity =
           decision.kind === 'recovery'
             ? 'recovery'
@@ -900,7 +975,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
       // real over authenticated HTTPS; the `smtp` provider is not implemented
       // yet (Cloudflare Workers has no raw TCP) and always resolves `false`
       // with its own log line — never a silent fake "sent".
-      if (emailConfig) {
+      if (emailConfig && emailEligible) {
         const alertSeverity: AlertSeverity =
           decision.kind === 'recovery'
             ? 'recovery'
@@ -1158,8 +1233,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
           telegramTargets.length +
           ntfyTargets.length +
           pushoverTargets.length +
-          (opsgenieConfig ? 1 : 0) +
-          (emailConfig ? 1 : 0) +
+          (opsgenieEligible ? 1 : 0) +
+          (emailEligible ? 1 : 0) +
           (twilioEligible ? 1 : 0) ===
           0 ||
         anyDelivered

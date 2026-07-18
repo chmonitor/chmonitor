@@ -152,6 +152,11 @@ function RouteRow({
           {isPushover && <Badge variant="default">Pushover</Badge>}
           <Badge variant="outline">rule: {route.matchRule}</Badge>
           <Badge variant="outline">host: {route.matchHost}</Badge>
+          {route.minSeverity && (
+            <Badge variant="outline">
+              {route.minSeverity === 'critical' ? 'critical only' : 'warning+'}
+            </Badge>
+          )}
           {!route.enabled && <Badge variant="secondary">disabled</Badge>}
         </div>
         <span className="truncate text-sm text-muted-foreground">
@@ -221,6 +226,10 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
   const [ntfyToken, setNtfyToken] = useState('')
   const [poToken, setPoToken] = useState('')
   const [poUser, setPoUser] = useState('')
+  // Per-route severity floor (#2661); '' = inherit the channel/global gate.
+  const [minSeverity, setMinSeverity] = useState<'' | 'warning' | 'critical'>(
+    ''
+  )
   const [busy, setBusy] = useState(false)
   const { createRoute } = useAlertRoutesMutations()
   const { services: pdServices, isLoading: pdServicesLoading } =
@@ -239,6 +248,7 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     setNtfyToken('')
     setPoToken('')
     setPoUser('')
+    setMinSeverity('')
   }
 
   const handleSubmit = async () => {
@@ -272,6 +282,7 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
       await createRoute({
         matchRule: matchRule.trim() || '*',
         matchHost: matchHost.trim() || '*',
+        minSeverity: minSeverity || undefined,
         ...(provider === 'pagerduty'
           ? {
               provider: 'pagerduty',
@@ -444,6 +455,27 @@ function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             onChange={(e) => setMatchHost(e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs text-muted-foreground">
+          Minimum severity (this route)
+        </Label>
+        <Select
+          value={minSeverity || 'inherit'}
+          onValueChange={(v) =>
+            setMinSeverity(v === 'inherit' ? '' : (v as 'warning' | 'critical'))
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="inherit">Inherit global gate</SelectItem>
+            <SelectItem value="warning">Warning+</SelectItem>
+            <SelectItem value="critical">Critical only</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {provider === 'pagerduty' ? (

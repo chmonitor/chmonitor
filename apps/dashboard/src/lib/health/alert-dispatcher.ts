@@ -3,6 +3,10 @@ import {
   buildTelegramBody,
   buildWebhookDispatchBody,
 } from './adapters'
+import {
+  resolveChannelDelivery,
+  severityMeetsThreshold,
+} from './alert-channel-settings'
 import { loadAlertSettings } from './alert-settings-storage'
 
 // Duplicated (not imported) from `pagerduty-config.ts` on purpose: that
@@ -374,25 +378,55 @@ export async function firePushoverTest(
   }
 }
 
+/**
+ * Per-channel gate for the client dispatch path (#2661). Resolves the global
+ * gate + this channel's optional override into a single decision via the shared
+ * {@link resolveChannelDelivery} — the same function the server sweep uses. The
+ * client has no per-rule/per-host routes, so `routeMinSeverity` is never passed.
+ */
+function clientChannelPasses(
+  settings: ReturnType<typeof loadAlertSettings>,
+  channel: 'browser' | 'webhook' | 'healthchecks',
+  severity: 'warning' | 'critical'
+): boolean {
+  return resolveChannelDelivery({
+    severity,
+    globalMinSeverity: settings.minSeverity,
+    channel: settings.channels?.[channel],
+  })
+}
+
 export async function dispatchAlert(alert: HealthAlertEvent): Promise<void> {
   try {
     const settings = loadAlertSettings()
-    if (settings.minSeverity === 'critical' && alert.severity !== 'critical') {
-      return
-    }
     const event: HealthAlertEvent = {
       ...alert,
       kind: alert.kind ?? 'alert',
       incidentId: alert.incidentId ?? String(Date.now()),
     }
-    emitInAppAlert(event)
-    if (settings.browserNotificationsEnabled) {
+    // The in-app toast has no per-channel UI — it stays gated by the global
+    // floor exactly as before (per-channel overrides only govern the outbound
+    // browser/webhook/healthchecks channels below).
+    if (severityMeetsThreshold(alert.severity, settings.minSeverity)) {
+      emitInAppAlert(event)
+    }
+    if (
+      settings.browserNotificationsEnabled &&
+      clientChannelPasses(settings, 'browser', alert.severity)
+    ) {
       fireBrowserNotification(event)
     }
-    if (settings.webhookEnabled && settings.webhookUrl) {
+    if (
+      settings.webhookEnabled &&
+      settings.webhookUrl &&
+      clientChannelPasses(settings, 'webhook', alert.severity)
+    ) {
       await fireWebhook(event)
     }
-    if (settings.healthchecksUrl) {
+    if (
+      settings.healthchecksUrl &&
+      clientChannelPasses(settings, 'healthchecks', alert.severity)
+    ) {
       await fireHealthchecks(settings.healthchecksUrl, event.kind ?? 'alert')
     }
   } catch (err) {
@@ -410,22 +444,34 @@ export async function dispatchAlert(alert: HealthAlertEvent): Promise<void> {
 export async function dispatchRecovery(alert: HealthAlertEvent): Promise<void> {
   try {
     const settings = loadAlertSettings()
-    if (settings.minSeverity === 'critical' && alert.severity !== 'critical') {
-      return
-    }
     const event: HealthAlertEvent = {
       ...alert,
       kind: 'recovery',
       incidentId: alert.incidentId ?? String(Date.now()),
     }
-    emitInAppAlert(event)
-    if (settings.browserNotificationsEnabled) {
+    // A recovery is gated on the severity that just cleared (`alert.severity`)
+    // so a condition that never notified as a warning stays silent when it
+    // clears too — same per-channel gate as the alert path.
+    if (severityMeetsThreshold(alert.severity, settings.minSeverity)) {
+      emitInAppAlert(event)
+    }
+    if (
+      settings.browserNotificationsEnabled &&
+      clientChannelPasses(settings, 'browser', alert.severity)
+    ) {
       fireBrowserNotification(event)
     }
-    if (settings.webhookEnabled && settings.webhookUrl) {
+    if (
+      settings.webhookEnabled &&
+      settings.webhookUrl &&
+      clientChannelPasses(settings, 'webhook', alert.severity)
+    ) {
       await fireWebhook(event)
     }
-    if (settings.healthchecksUrl) {
+    if (
+      settings.healthchecksUrl &&
+      clientChannelPasses(settings, 'healthchecks', alert.severity)
+    ) {
       await fireHealthchecks(settings.healthchecksUrl, 'recovery')
     }
   } catch (err) {

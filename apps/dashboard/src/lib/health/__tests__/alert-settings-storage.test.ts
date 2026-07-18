@@ -156,6 +156,42 @@ describe('loadAlertSettings — browser environment', () => {
     expect(result).toEqual(DEFAULT_ALERT_SETTINGS)
   })
 
+  test('round-trips a per-channel overrides map (#2661)', () => {
+    saveAlertSettings({
+      ...DEFAULT_ALERT_SETTINGS,
+      channels: {
+        webhook: { enabled: false },
+        healthchecks: { minSeverity: 'critical' },
+      },
+    })
+    const result = loadAlertSettings()
+    expect(result.channels).toEqual({
+      webhook: { enabled: false },
+      healthchecks: { minSeverity: 'critical' },
+    })
+  })
+
+  test('omits channels entirely when none are stored (default shape)', () => {
+    const result = loadAlertSettings()
+    expect('channels' in result).toBe(false)
+  })
+
+  test('sanitizes a malformed channels map, dropping bad entries', () => {
+    ls.setItem(
+      'health-alert-settings',
+      JSON.stringify({
+        ...DEFAULT_ALERT_SETTINGS,
+        channels: {
+          webhook: { minSeverity: 'critical' },
+          bogus: { enabled: false },
+          email: { minSeverity: 'extreme' },
+        },
+      })
+    )
+    const result = loadAlertSettings()
+    expect(result.channels).toEqual({ webhook: { minSeverity: 'critical' } })
+  })
+
   test('accepts explicit browserNotificationsEnabled: false (user opt-out)', () => {
     ls.setItem(
       'health-alert-settings',

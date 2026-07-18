@@ -33,6 +33,7 @@ interface FakeRow {
   ntfy_token?: string | null
   pushover_token?: string | null
   pushover_user?: string | null
+  min_severity?: string | null
 }
 
 function makeFakeD1() {
@@ -65,6 +66,7 @@ function makeFakeD1() {
                 ntfy_token,
                 pushover_token,
                 pushover_user,
+                min_severity,
               ] = params as [
                 string,
                 string,
@@ -74,6 +76,7 @@ function makeFakeD1() {
                 number,
                 number,
                 string,
+                string | null,
                 string | null,
                 string | null,
                 string | null,
@@ -100,6 +103,7 @@ function makeFakeD1() {
                 ntfy_token,
                 pushover_token,
                 pushover_user,
+                min_severity,
               })
               return { meta: { changes: 1 } }
             }
@@ -181,6 +185,7 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     ntfyToken: null,
     pushoverToken: null,
     pushoverUser: null,
+    minSeverity: null,
     ...overrides,
   }
 }
@@ -253,6 +258,29 @@ describe('matchRoutes (pure)', () => {
 
   test('empty route list matches nothing', () => {
     expect(matchRoutes([], TARGET)).toEqual([])
+  })
+})
+
+describe('matchRoutes — accept predicate (#2661)', () => {
+  test('a route rejected by accept is not matched', () => {
+    const r = route({ matchRule: 'disk-usage', minSeverity: 'critical' })
+    expect(matchRoutes([r], TARGET)).toHaveLength(1)
+    expect(
+      matchRoutes([r], TARGET, {
+        accept: (route) => route.minSeverity !== 'critical',
+      })
+    ).toHaveLength(0)
+  })
+
+  test('resolveTargets: an accept-rejected route stops suppressing the fallback', () => {
+    // A single matching webhook route, but accept rejects it for this finding
+    // → no route target AND the legacy global URL is used (matched === 0).
+    const r = route({ matchRule: 'disk-usage', minSeverity: 'critical' })
+    expect(
+      resolveTargets([r], TARGET, 'https://legacy.example/hook', {
+        accept: () => false,
+      })
+    ).toEqual(['https://legacy.example/hook'])
   })
 })
 
@@ -790,6 +818,44 @@ describe('D1-backed alert-routing CRUD', () => {
     expect(listed.provider).toBe('pushover')
     expect(listed.pushoverToken).toBe('app_tok')
     expect(listed.pushoverUser).toBe('usr_key')
+  })
+
+  test('create -> list round-trip persists a per-route min_severity (#2661)', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+
+    const created = await createRoute({
+      ownerId: 'owner-1',
+      matchRule: 'disk-*',
+      matchHost: '*',
+      channelUrl: 'https://hooks.slack.com/services/x',
+      provider: 'webhook',
+      minSeverity: 'critical',
+    })
+    expect(created?.minSeverity).toBe('critical')
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.minSeverity).toBe('critical')
+  })
+
+  test('legacy row with no min_severity column inherits (null)', async () => {
+    const fakeDb = makeFakeD1()
+    currentDb = fakeDb
+    fakeDb._rows.push({
+      id: 'legacy-ms',
+      owner_id: 'owner-1',
+      match_rule: '*',
+      match_host: '*',
+      channel_url: 'https://hooks.slack.com/services/x',
+      enabled: 1,
+      created_at: 0,
+      provider: 'webhook',
+      service_name: null,
+      routing_key: null,
+    })
+
+    const [listed] = await listRoutes('owner-1')
+    expect(listed.minSeverity).toBeNull()
   })
 
   test('legacy row with no provider column value defaults to webhook', async () => {

@@ -1,6 +1,8 @@
 import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
+import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
+
 import { ActiveAlertsPanel } from './active-alerts-panel'
 import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
@@ -45,6 +47,47 @@ import {
   type ThresholdsMap,
 } from '@/lib/health/thresholds-storage'
 import { describeError } from '@/lib/swr/fetch-error'
+import { cn } from '@/lib/utils'
+
+/**
+ * Per-channel severity override control (#2661): a compact 3-way toggle —
+ * Inherit (use the global gate) / Warning+ / Critical — mirroring the global
+ * "Warning+ / Critical only" toggle's style. `Inherit` clears the channel's
+ * `minSeverity` so it follows the global {@link AlertSettings.minSeverity}.
+ */
+function ChannelSeverityToggle({
+  value,
+  onChange,
+}: {
+  value: 'warning' | 'critical' | undefined
+  onChange: (next: 'warning' | 'critical' | undefined) => void
+}) {
+  const options: {
+    label: string
+    val: 'warning' | 'critical' | undefined
+  }[] = [
+    { label: 'Inherit', val: undefined },
+    { label: 'Warning+', val: 'warning' },
+    { label: 'Critical', val: 'critical' },
+  ]
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      {options.map((o) => (
+        <button
+          key={o.label}
+          type="button"
+          className={cn(
+            'rounded-md px-2 py-1',
+            value === o.val ? 'bg-secondary' : 'text-muted-foreground'
+          )}
+          onClick={() => onChange(o.val)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function HealthSettingsDialog() {
   const [open, setOpen] = useState(false)
@@ -144,6 +187,30 @@ export function HealthSettingsDialog() {
     toast.error(
       'Failed to save health settings. Check browser storage permissions.'
     )
+  }
+
+  // Per-channel min-severity override (#2661). Setting `undefined` (Inherit)
+  // clears the field, and an override with nothing left drops the channel key
+  // entirely, so a fresh install keeps the exact default shape.
+  const setChannelMinSeverity = (
+    id: AlertChannelId,
+    minSeverity: 'warning' | 'critical' | undefined
+  ) => {
+    setAlerts((prev) => {
+      const channels = { ...(prev.channels ?? {}) }
+      const entry = { ...(channels[id] ?? {}) }
+      if (minSeverity) entry.minSeverity = minSeverity
+      else delete entry.minSeverity
+      if (entry.enabled === undefined && entry.minSeverity === undefined) {
+        delete channels[id]
+      } else {
+        channels[id] = entry
+      }
+      return {
+        ...prev,
+        channels: Object.keys(channels).length > 0 ? channels : undefined,
+      }
+    })
   }
 
   const handleEnableBrowser = async (checked: boolean) => {
@@ -457,27 +524,38 @@ export function HealthSettingsDialog() {
           <TabsContent value="alerts" className="min-h-0 overflow-hidden">
             <ScrollArea className="h-full pr-3">
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <Label className="text-sm font-medium">
-                      Browser notifications
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      Show desktop notifications for new health alerts
-                    </span>
+                <div className="flex flex-col gap-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium">
+                        Browser notifications
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        Show desktop notifications for new health alerts
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleTestBrowser}
+                        disabled={!alerts.browserNotificationsEnabled}
+                      >
+                        Test
+                      </Button>
+                      <Switch
+                        checked={alerts.browserNotificationsEnabled}
+                        onCheckedChange={handleEnableBrowser}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleTestBrowser}
-                      disabled={!alerts.browserNotificationsEnabled}
-                    >
-                      Test
-                    </Button>
-                    <Switch
-                      checked={alerts.browserNotificationsEnabled}
-                      onCheckedChange={handleEnableBrowser}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Minimum severity
+                    </span>
+                    <ChannelSeverityToggle
+                      value={alerts.channels?.browser?.minSeverity}
+                      onChange={(v) => setChannelMinSeverity('browser', v)}
                     />
                   </div>
                 </div>
@@ -516,6 +594,15 @@ export function HealthSettingsDialog() {
                     >
                       Send test
                     </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Minimum severity
+                    </span>
+                    <ChannelSeverityToggle
+                      value={alerts.channels?.healthchecks?.minSeverity}
+                      onChange={(v) => setChannelMinSeverity('healthchecks', v)}
+                    />
                   </div>
                 </div>
 
@@ -561,6 +648,15 @@ export function HealthSettingsDialog() {
                     >
                       Send test
                     </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Minimum severity
+                    </span>
+                    <ChannelSeverityToggle
+                      value={alerts.channels?.webhook?.minSeverity}
+                      onChange={(v) => setChannelMinSeverity('webhook', v)}
+                    />
                   </div>
                 </div>
 
@@ -761,7 +857,8 @@ export function HealthSettingsDialog() {
                       Minimum severity
                     </Label>
                     <span className="text-xs text-muted-foreground">
-                      Send alerts only at or above this severity
+                      Default floor — channels above inherit it unless they set
+                      their own
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">

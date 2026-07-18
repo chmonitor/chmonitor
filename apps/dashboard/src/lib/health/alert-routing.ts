@@ -23,6 +23,8 @@
  * TODAY'S BEHAVIOR EXACTLY for deployments that never configure a route.
  */
 
+import type { AlertSeverityFloor } from './alert-channel-settings'
+
 import { ErrorLogger } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
 
@@ -79,6 +81,13 @@ export interface AlertRoute {
   pushoverToken: string | null
   /** Pushover target user/group key (provider `'pushover'` only). */
   pushoverUser: string | null
+  /**
+   * Optional per-route severity floor (#2661). When set it beats the channel-
+   * and global-level `minSeverity` for THIS route's finding (see
+   * {@link resolveChannelDelivery}); `null` means the route inherits the
+   * channel/global gate — the exact behaviour of every pre-#2661 row.
+   */
+  minSeverity: AlertSeverityFloor | null
 }
 
 interface D1AlertRouteRow {
@@ -98,6 +107,7 @@ interface D1AlertRouteRow {
   ntfy_token: string | null
   pushover_token: string | null
   pushover_user: string | null
+  min_severity: string | null
 }
 
 function getDb(): D1Database | null {
@@ -134,6 +144,12 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
     ntfyToken: row.ntfy_token ?? null,
     pushoverToken: row.pushover_token ?? null,
     pushoverUser: row.pushover_user ?? null,
+    // Legacy rows (pre-0025, or fake D1s in tests) have no `min_severity` — a
+    // null/unknown value inherits the channel/global gate, unchanged behavior.
+    minSeverity:
+      row.min_severity === 'warning' || row.min_severity === 'critical'
+        ? row.min_severity
+        : null,
   }
 }
 
@@ -152,7 +168,7 @@ export async function listRoutes(ownerId: string): Promise<AlertRoute[]> {
       .prepare(
         `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
                 provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
-                ntfy_url, ntfy_token, pushover_token, pushover_user
+                ntfy_url, ntfy_token, pushover_token, pushover_user, min_severity
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -191,6 +207,8 @@ export interface CreateRouteInput {
   pushoverToken?: string | null
   /** Pushover target user/group key (provider `'pushover'` only). */
   pushoverUser?: string | null
+  /** Optional per-route severity floor (#2661); omit / `null` to inherit. */
+  minSeverity?: AlertSeverityFloor | null
 }
 
 /**
@@ -222,6 +240,10 @@ export async function createRoute(
       ntfyToken: input.ntfyToken?.trim() || null,
       pushoverToken: input.pushoverToken?.trim() || null,
       pushoverUser: input.pushoverUser?.trim() || null,
+      minSeverity:
+        input.minSeverity === 'warning' || input.minSeverity === 'critical'
+          ? input.minSeverity
+          : null,
     }
 
     await db
@@ -229,8 +251,8 @@ export async function createRoute(
         `INSERT INTO ${TABLE}
            (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
             provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
-            ntfy_url, ntfy_token, pushover_token, pushover_user)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`
+            ntfy_url, ntfy_token, pushover_token, pushover_user, min_severity)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)`
       )
       .bind(
         route.id,
@@ -248,7 +270,8 @@ export async function createRoute(
         route.ntfyUrl,
         route.ntfyToken,
         route.pushoverToken,
-        route.pushoverUser
+        route.pushoverUser,
+        route.minSeverity
       )
       .run()
 
@@ -318,16 +341,31 @@ export interface RouteMatchTarget {
 }
 
 /**
+ * Optional matching controls (#2661). `accept` is an extra per-route predicate
+ * applied ON TOP of the enabled + rule/host match — the sweep passes the shared
+ * per-channel severity gate here so a route silenced for this finding's
+ * severity simply is not "matched" (it produces no target AND stops suppressing
+ * the legacy fallback, so a less-severe finding still reaches the catch-all).
+ * Omitting it preserves the exact pre-#2661 matching behaviour.
+ */
+export interface RouteMatchOptions {
+  accept?: (route: AlertRoute) => boolean
+}
+
+/**
  * Pure core: given the full route set and a finding's identity, return every
  * ENABLED route whose `matchRule` (against rule id OR type) and `matchHost`
- * (against host id OR name) both match. No I/O — fully unit-testable.
+ * (against host id OR name) both match — and that passes an optional
+ * {@link RouteMatchOptions.accept} predicate. No I/O — fully unit-testable.
  */
 export function matchRoutes(
   routes: readonly AlertRoute[],
-  target: RouteMatchTarget
+  target: RouteMatchTarget,
+  options?: RouteMatchOptions
 ): AlertRoute[] {
   return routes.filter((route) => {
     if (!route.enabled) return false
+    if (options?.accept && !options.accept(route)) return false
     if (!matchesPattern(route.matchRule, [target.ruleId, target.ruleType])) {
       return false
     }
@@ -354,9 +392,10 @@ export function matchRoutes(
 export function resolveTargets(
   routes: readonly AlertRoute[],
   target: RouteMatchTarget,
-  legacyGlobalUrl: string
+  legacyGlobalUrl: string,
+  options?: RouteMatchOptions
 ): string[] {
-  const matched = matchRoutes(routes, target)
+  const matched = matchRoutes(routes, target, options)
   // 'pagerduty' routes (plan 34) are dispatched separately by
   // {@link resolvePagerDutyTargets} with a PagerDuty-shaped body, never the
   // generic `{ text, content }` wrapper this path sends — but a pagerduty
@@ -393,9 +432,10 @@ export interface PagerDutyTarget {
 export function resolvePagerDutyTargets(
   routes: readonly AlertRoute[],
   target: RouteMatchTarget,
-  envFallbackKey: string
+  envFallbackKey: string,
+  options?: RouteMatchOptions
 ): PagerDutyTarget[] {
-  const matched = matchRoutes(routes, target)
+  const matched = matchRoutes(routes, target, options)
   const pagerDutyMatched = matched.filter(
     (r): r is AlertRoute & { routingKey: string } =>
       r.provider === 'pagerduty' && Boolean(r.routingKey)
@@ -445,9 +485,10 @@ export interface TelegramTarget {
 export function resolveTelegramTargets(
   routes: readonly AlertRoute[],
   target: RouteMatchTarget,
-  envFallback: TelegramTarget | null
+  envFallback: TelegramTarget | null,
+  options?: RouteMatchOptions
 ): TelegramTarget[] {
-  const matched = matchRoutes(routes, target)
+  const matched = matchRoutes(routes, target, options)
   const telegramMatched = matched.filter(
     (
       r
@@ -497,9 +538,10 @@ export interface NtfyTarget {
 export function resolveNtfyTargets(
   routes: readonly AlertRoute[],
   target: RouteMatchTarget,
-  envFallback: NtfyTarget | null
+  envFallback: NtfyTarget | null,
+  options?: RouteMatchOptions
 ): NtfyTarget[] {
-  const matched = matchRoutes(routes, target)
+  const matched = matchRoutes(routes, target, options)
   const ntfyMatched = matched.filter(
     (r): r is AlertRoute & { ntfyUrl: string } =>
       r.provider === 'ntfy' && Boolean(r.ntfyUrl)
@@ -549,9 +591,10 @@ export interface PushoverTarget {
 export function resolvePushoverTargets(
   routes: readonly AlertRoute[],
   target: RouteMatchTarget,
-  envFallback: PushoverTarget | null
+  envFallback: PushoverTarget | null,
+  options?: RouteMatchOptions
 ): PushoverTarget[] {
-  const matched = matchRoutes(routes, target)
+  const matched = matchRoutes(routes, target, options)
   const pushoverMatched = matched.filter(
     (r): r is AlertRoute & { pushoverToken: string; pushoverUser: string } =>
       r.provider === 'pushover' &&

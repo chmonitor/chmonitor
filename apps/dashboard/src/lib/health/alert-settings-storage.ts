@@ -1,3 +1,8 @@
+import {
+  type ChannelSettingsMap,
+  parseChannelSettings,
+} from './alert-channel-settings'
+
 const STORAGE_KEY = 'health-alert-settings'
 
 export interface AlertSettings {
@@ -13,6 +18,13 @@ export interface AlertSettings {
   browserNotificationsEnabled: boolean
   /** Severity threshold at which alerts fire: 'warning' = both warning+critical, 'critical' = only critical */
   minSeverity: 'warning' | 'critical'
+  /**
+   * Optional per-channel overrides (#2661). An absent map — or an absent
+   * channel key — means every channel inherits the global {@link minSeverity}
+   * and is enabled, i.e. exactly the pre-#2661 behaviour. See
+   * {@link resolveChannelDelivery}.
+   */
+  channels?: ChannelSettingsMap
 }
 
 export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
@@ -55,6 +67,12 @@ export function loadAlertSettings(): AlertSettings {
         parsed.minSeverity === 'warning' || parsed.minSeverity === 'critical'
           ? parsed.minSeverity
           : DEFAULT_ALERT_SETTINGS.minSeverity,
+      // Only include the key when there is something usable, so a fresh
+      // install keeps the exact default shape (no empty `channels` object).
+      ...(() => {
+        const channels = parseChannelSettings(parsed.channels)
+        return channels ? { channels } : {}
+      })(),
     }
   } catch {
     return DEFAULT_ALERT_SETTINGS

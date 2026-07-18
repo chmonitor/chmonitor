@@ -61,6 +61,8 @@ interface FakeRouteRow {
   provider?: string
   service_name?: string | null
   routing_key?: string | null
+  /** #2661: per-route severity floor; absent = inherit (null). */
+  min_severity?: string | null
 }
 
 /**
@@ -604,6 +606,68 @@ describe('runHealthSweep — alert-history hook', () => {
     expect(fakeDb.rows[0].channel).toBe('slack')
   })
 
+  test('a per-route critical floor silences a warning finding (#2661), still commits', async () => {
+    // No legacy webhook so the route is the ONLY possible destination.
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    // Warning-level finding (10 <= 15 < 20), global gate at 'warning'.
+    testValue = 15
+    fakeDb = makeFakeD1([
+      {
+        id: 'route-crit',
+        owner_id: '',
+        match_rule: TEST_RULE_ID,
+        match_host: '*',
+        channel_url: 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+        enabled: 1,
+        created_at: 0,
+        min_severity: 'critical',
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    // The only matching route is critical-only, so it is silenced for this
+    // warning — nothing is delivered, but the condition still commits (no
+    // eligible destinations counts as "nothing to deliver", not a failure).
+    expect(posted).toEqual([])
+    expect(summary.alertsDispatched).toBe(0)
+  })
+
+  test('a per-route critical floor still delivers a critical finding (#2661)', async () => {
+    testValue = 50 // critical (>= 20)
+    fakeDb = makeFakeD1([
+      {
+        id: 'route-crit',
+        owner_id: '',
+        match_rule: TEST_RULE_ID,
+        match_host: '*',
+        channel_url: 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+        enabled: 1,
+        created_at: 0,
+        min_severity: 'critical',
+      },
+    ])
+
+    const posted: string[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      posted.push(String(url))
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const summary = await runHealthSweep()
+
+    expect(summary.alertsDispatched).toBe(1)
+    expect(posted).toEqual([
+      'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA',
+    ])
+  })
+
   test('two matched routes fan out to both channels, but dedup evaluates the condition only ONCE', async () => {
     fakeDb = makeFakeD1([
       {
@@ -1087,26 +1151,32 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
   const BUS_SECRET = 'bus-subscriber-secret'
 
   function seedInstanceSubscription(eventTypes: string[]) {
-    fakeDb = makeFakeD1([], [
-      {
-        id: 'bus-sub-1',
-        user_id: 'some-other-user', // NOT the sweep's own owner id — proves this is instance-scoped, not user-scoped
-        url: BUS_URL,
-        secret: BUS_SECRET,
-        event_types: JSON.stringify(eventTypes),
-        enabled: 1,
-        scope: 'instance',
-        created_at: 1,
-        updated_at: 1,
-      },
-    ])
+    fakeDb = makeFakeD1(
+      [],
+      [
+        {
+          id: 'bus-sub-1',
+          user_id: 'some-other-user', // NOT the sweep's own owner id — proves this is instance-scoped, not user-scoped
+          url: BUS_URL,
+          secret: BUS_SECRET,
+          event_types: JSON.stringify(eventTypes),
+          enabled: 1,
+          scope: 'instance',
+          created_at: 1,
+          updated_at: 1,
+        },
+      ]
+    )
   }
 
   test('alert.fired reaches an instance-scoped subscription, HMAC-signed, alongside the legacy webhook', async () => {
     seedInstanceSubscription(['alert.fired', 'alert.resolved'])
 
-    const posted: { url: string; headers: Record<string, string>; body: string }[] =
-      []
+    const posted: {
+      url: string
+      headers: Record<string, string>
+      body: string
+    }[] = []
     globalThis.fetch = mock(async (url: string | URL | Request, init) => {
       posted.push({
         url: String(url),
@@ -1162,7 +1232,9 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
 
   test('alert.resolved fires with resolved:true and the pre-recovery severity', async () => {
     seedInstanceSubscription(['alert.fired', 'alert.resolved'])
-    globalThis.fetch = mock(async () => new Response(null, { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
 
     // First sweep: fires (critical) and commits dedup state.
     await runHealthSweep()

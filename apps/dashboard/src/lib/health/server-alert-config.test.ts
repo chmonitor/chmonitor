@@ -1,5 +1,6 @@
 import {
   getServerAlertConfig,
+  getServerChannelSettings,
   getServerEmailConfig,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
@@ -156,6 +157,57 @@ describe('getServerAlertConfig', () => {
       healthchecksUrl: '',
       minSeverity: 'critical',
       browserNotificationsEnabled: false,
+    })
+  })
+})
+
+const CHANNEL_ENV_KEYS = [
+  'HEALTH_ALERT_WEBHOOK_ENABLED',
+  'HEALTH_ALERT_WEBHOOK_MIN_SEVERITY',
+  'HEALTH_ALERT_PAGERDUTY_ENABLED',
+  'HEALTH_ALERT_PAGERDUTY_MIN_SEVERITY',
+  'HEALTH_ALERT_TELEGRAM_MIN_SEVERITY',
+] as const
+
+describe('getServerChannelSettings (#2661)', () => {
+  let saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of CHANNEL_ENV_KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of CHANNEL_ENV_KEYS) {
+      if (saved[key] === undefined) delete process.env[key]
+      else process.env[key] = saved[key]
+    }
+    saved = {}
+  })
+
+  it('returns an empty map when no per-channel env vars are set', () => {
+    expect(getServerChannelSettings()).toEqual({})
+  })
+
+  it('parses per-channel enabled + minSeverity, ignoring junk', () => {
+    process.env.HEALTH_ALERT_WEBHOOK_ENABLED = 'false'
+    process.env.HEALTH_ALERT_PAGERDUTY_MIN_SEVERITY = 'warning'
+    process.env.HEALTH_ALERT_TELEGRAM_MIN_SEVERITY = 'nonsense'
+
+    expect(getServerChannelSettings()).toEqual({
+      webhook: { enabled: false },
+      pagerduty: { minSeverity: 'warning' },
+    })
+  })
+
+  it('combines both fields for one channel', () => {
+    process.env.HEALTH_ALERT_WEBHOOK_ENABLED = 'true'
+    process.env.HEALTH_ALERT_WEBHOOK_MIN_SEVERITY = 'critical'
+
+    expect(getServerChannelSettings()).toEqual({
+      webhook: { enabled: true, minSeverity: 'critical' },
     })
   })
 })

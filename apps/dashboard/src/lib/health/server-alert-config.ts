@@ -1,5 +1,9 @@
 import type { AlertRuleThresholds } from '@/lib/alerting/rule-registry'
 import type { EmailConfig } from './adapters/email'
+import type {
+  AlertChannelId,
+  ChannelSettingsMap,
+} from './alert-channel-settings'
 import type { AlertSettings } from './alert-settings-storage'
 
 import { detectEmailProvider } from './adapters/email'
@@ -89,6 +93,65 @@ export function getServerEmailConfig(): EmailConfig | null {
   if (to.length === 0) return null
 
   return { provider, from, to }
+}
+
+/**
+ * The env-var prefix for each channel's per-channel override (#2661). `browser`
+ * / `healthchecks` are client-only, and `twilio` keeps its own dedicated
+ * `HEALTH_ALERT_TWILIO_MIN_SEVERITY` gate (#2668), so neither appears here.
+ */
+const CHANNEL_ENV_PREFIX: Partial<Record<AlertChannelId, string>> = {
+  webhook: 'HEALTH_ALERT_WEBHOOK',
+  email: 'HEALTH_ALERT_EMAIL',
+  opsgenie: 'HEALTH_ALERT_OPSGENIE',
+  pagerduty: 'HEALTH_ALERT_PAGERDUTY',
+  telegram: 'HEALTH_ALERT_TELEGRAM',
+  ntfy: 'HEALTH_ALERT_NTFY',
+  pushover: 'HEALTH_ALERT_PUSHOVER',
+}
+
+/**
+ * Server-side per-channel alert overrides, sourced from environment variables
+ * (#2661) — the sweep's analogue of the client's localStorage
+ * `AlertSettings.channels`. For a channel `<CH>`:
+ *
+ *   HEALTH_ALERT_<CH>_ENABLED       → `false` disables the channel entirely
+ *   HEALTH_ALERT_<CH>_MIN_SEVERITY  → 'warning' | 'critical' — this channel's floor
+ *
+ * Both are optional and default to "inherit" (enabled + the global
+ * `HEALTH_ALERT_MIN_SEVERITY`). Only channels with at least one valid override
+ * appear in the returned map; an all-inherit deployment gets `{}`, so the sweep
+ * behaves exactly as it did before #2661.
+ *
+ * `HEALTH_ALERT_WEBHOOK_ENABLED` gates ONLY the webhook channel (routes + the
+ * legacy global webhook), distinct from the master `HEALTH_ALERT_ENABLED` that
+ * turns the whole sweep on/off. For channels that already have a presence gate
+ * (e.g. `HEALTH_ALERT_EMAIL_ENABLED` — the master email enable), a `false` here
+ * simply agrees with that gate.
+ *
+ * NOTE: a companion function (like {@link getServerThresholdOverrides}) rather
+ * than folded into {@link getServerAlertConfig}'s return value, whose exact
+ * {@link AlertSettings} shape is asserted deeply by its tests.
+ */
+export function getServerChannelSettings(): ChannelSettingsMap {
+  const out: ChannelSettingsMap = {}
+  for (const [channelId, prefix] of Object.entries(CHANNEL_ENV_PREFIX)) {
+    const enabledRaw = process.env[`${prefix}_ENABLED`]?.trim().toLowerCase()
+    const minSeverityRaw = process.env[`${prefix}_MIN_SEVERITY`]?.trim()
+    const override: {
+      enabled?: boolean
+      minSeverity?: 'warning' | 'critical'
+    } = {}
+    if (enabledRaw === 'false') override.enabled = false
+    else if (enabledRaw === 'true') override.enabled = true
+    if (minSeverityRaw === 'warning' || minSeverityRaw === 'critical') {
+      override.minSeverity = minSeverityRaw
+    }
+    if (override.enabled !== undefined || override.minSeverity !== undefined) {
+      out[channelId as AlertChannelId] = override
+    }
+  }
+  return out
 }
 
 /** Per-rule threshold override (either bound may be omitted). */

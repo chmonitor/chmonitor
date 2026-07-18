@@ -46,6 +46,8 @@ export interface AlertRouteInfo {
   pushoverUser: string | null
   /** Masked Pushover application token (last 4 chars only) — never the raw secret. */
   pushoverTokenMasked: string | null
+  /** Per-route severity floor (#2661); `null` = inherit the channel/global gate. */
+  minSeverity: 'warning' | 'critical' | null
 }
 
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
@@ -93,6 +95,7 @@ export function useAlertRoutesMutations() {
     ntfyToken?: string
     pushoverToken?: string
     pushoverUser?: string
+    minSeverity?: 'warning' | 'critical'
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {
       method: 'POST',
