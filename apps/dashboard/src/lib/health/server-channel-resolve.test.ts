@@ -191,7 +191,11 @@ describe('resolveServerChannels — D1 row wins over env', () => {
       to: ['+1666', '+1777'],
       minSeverity: 'warning',
     })
-    // twilio is intentionally NOT part of the generic channelSettings map.
-    expect(resolved.channelSettings.twilio).toBeUndefined()
+    // twilio is intentionally NOT part of the generic channelSettings map —
+    // it is not an AlertChannelId, so the assertion must go through a wider
+    // record type to even express "the key is absent".
+    expect(
+      (resolved.channelSettings as Record<string, unknown>).twilio
+    ).toBeUndefined()
   })
 })
