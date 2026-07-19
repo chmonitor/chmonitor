@@ -270,7 +270,7 @@ export function HostSwitcher() {
                 </div>
                 {showExpanded && (
                   <>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
+                    <div className="grid flex-1 gap-2 py-1.5 text-left text-sm leading-tight">
                       <span className="flex items-center gap-1.5 truncate font-semibold">
                         <span className="truncate">
                           {activeHost.name || getHost(activeHost.host)}

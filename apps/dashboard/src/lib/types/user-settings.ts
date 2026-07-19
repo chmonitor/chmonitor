@@ -17,6 +17,12 @@ export interface UserSettings {
   tableDensity: TableDensity
   /** Initial global time range for time-series pages. */
   defaultTimeRange: DefaultTimeRange
+  /**
+   * Dim (gray out) menu pages whose backing table is unavailable on the host.
+   * When false, those pages are hidden from the menu entirely. Defaults to
+   * true to preserve the long-standing "gray, don't hide" behaviour.
+   */
+  dimUnavailablePages: boolean
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -27,6 +33,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   chartPalette: 'default',
   tableDensity: 'comfortable',
   defaultTimeRange: '24h',
+  dimUnavailablePages: true,
 }
 
 export const USER_SETTINGS_STORAGE_KEY = 'clickhouse-monitor-user-settings'

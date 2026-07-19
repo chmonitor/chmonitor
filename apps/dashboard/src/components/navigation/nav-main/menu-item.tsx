@@ -8,6 +8,7 @@ import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
+import { useUserSettings } from '@/lib/hooks/use-user-settings'
 import { useHostId } from '@/lib/swr'
 
 const NewBadge = lazy(() =>
@@ -84,7 +85,14 @@ const SingleMenuItem = function SingleMenuItem({
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
   const { available } = useIsTableAvailable(item.tableCheck, hostId)
+  const { settings } = useUserSettings()
   const hasBadge = Boolean(item.isNew || item.countKey)
+
+  // When the page's backing table is missing, either dim it (default) or hide
+  // it entirely per the user's Navigation setting.
+  if (!available && !settings.dimUnavailablePages) {
+    return null
+  }
 
   return (
     <SidebarMenuItem>
@@ -149,7 +157,12 @@ const SubMenuItem = function SubMenuItem({
   closeMobileSidebar: () => void
 }) {
   const { available } = useIsTableAvailable(subItem.tableCheck, hostId)
+  const { settings } = useUserSettings()
   const hasBadge = Boolean(subItem.isNew || subItem.countKey)
+
+  if (!available && !settings.dimUnavailablePages) {
+    return null
+  }
 
   return (
     <SidebarMenuSubItem>

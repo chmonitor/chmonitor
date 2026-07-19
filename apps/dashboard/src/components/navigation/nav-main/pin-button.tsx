@@ -28,7 +28,13 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
   return (
     <SidebarMenuAction
       showOnHover={!isPinned}
-      className={cn(hasBadge && 'right-6', isPinned && 'opacity-100')}
+      className={cn(
+        // `SidebarMenuAction` forces `[&>svg]:size-4`; override so the pin
+        // stays small and inset from the very right edge with breathing room.
+        'right-2 [&>svg]:size-3',
+        hasBadge && 'right-7',
+        isPinned && 'opacity-100'
+      )}
       onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
         event.stopPropagation()
@@ -37,7 +43,7 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
       aria-label={isPinned ? `Unpin ${title}` : `Pin ${title}`}
       aria-pressed={isPinned}
     >
-      <Pin className={cn('size-3.5', isPinned && 'fill-current')} />
+      <Pin className={cn(isPinned && 'fill-current')} />
     </SidebarMenuAction>
   )
 }
@@ -70,12 +76,12 @@ export function SubPinButton({ href, title, hasBadge }: SubPinButtonProps) {
       aria-label={isPinned ? `Unpin ${title}` : `Pin ${title}`}
       aria-pressed={isPinned}
       className={cn(
-        'absolute top-1/2 right-1 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden',
-        hasBadge && 'right-6',
+        'absolute top-1/2 right-2 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden',
+        hasBadge && 'right-7',
         isPinned && 'opacity-100'
       )}
     >
-      <Pin className={cn('size-3.5', isPinned && 'fill-current')} />
+      <Pin className={cn('size-3', isPinned && 'fill-current')} />
     </button>
   )
 }

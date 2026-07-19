@@ -46,7 +46,10 @@ export function SettingsDialog({
           }
         />
       )}
-      <DialogContent className="sm:max-w-md" data-testid="settings-dialog">
+      <DialogContent
+        className="max-h-[85vh] sm:max-w-3xl"
+        data-testid="settings-dialog"
+      >
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
