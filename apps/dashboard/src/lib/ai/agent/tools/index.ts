@@ -22,6 +22,7 @@ import { createPostgresTableTools } from './postgres-table-tools'
 import { createQueryTools } from './query-tools'
 import { createReferenceQueryTools } from './reference-query-tools'
 import { createReplicationTools } from './replication-tools'
+import { createReportTools } from './report-tools'
 import { createSchemaTools } from './schema-tools'
 import { createSkillTools } from './skill-tools'
 import { createStorageTools } from './storage-tools'
@@ -45,6 +46,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Interaction: ask_user
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
+ *  - Reports: generate_cluster_report
  *  - Advisor: get_optimization_recommendations
  *  - Advisor: recommend_materialized_view
  *  - Dashboards: suggest_dashboard
@@ -96,6 +98,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Insights (statistical anomaly baselines)
     ...createInsightTools(hostId),
+
+    // Reports (deterministic health report for agent narration, read-only)
+    ...createReportTools(hostId),
 
     // Advisor (ranked DDL/rewrite recommendations — recommend-only)
     ...createAdvisorTools(hostId),

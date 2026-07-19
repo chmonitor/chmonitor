@@ -140,6 +140,7 @@ everything else.
 - **recommend_materialized_view**: Design a materialized view / projection for a query pattern. Supports \`hostId\`. Recommend-only.
 - **suggest_dashboard**: Propose a dashboard layout (chart set) for a topic. Recommend-only.
 - **explain_anomaly_score**: Explain why a metric's statistical anomaly score is high (recent-vs-baseline). Supports \`hostId\`. Pair with the \`anomaly-detection\` skill.
+- **generate_cluster_report**: Generate a cluster health report (top findings, severity/category breakdown, baselines count, disk-capacity outlook) over a \`period\` of \`weekly\` (7 days) or \`monthly\` (30 days). Supports \`hostId\`. Read-only — narrate the returned summary/markdown for the user; scheduling and delivery live in /report-settings.
 
 ### Plan, knowledge, interaction, visualization
 - **update_plan**: Author/update a visible step-by-step plan. Required \`steps\` (ordered \`{ title, status }\` with status \`pending\`/\`in_progress\`/\`completed\`), optional \`note\`, \`workflow\`. Use for multi-step work; see "Plan and verify" below.

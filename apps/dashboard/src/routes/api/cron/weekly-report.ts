@@ -30,6 +30,7 @@ import { error, warn } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { secretsMatch } from '@/lib/auth/providers/constant-time'
+import { runReportFanout } from '@/lib/insights/report-fanout'
 import {
   parseOptedInHosts,
   runWeeklyReportForHost,
@@ -96,11 +97,17 @@ async function handler(request: Request): Promise<Response> {
       results.push(await runWeeklyReportForHost(hostId, label))
     }
 
+    // Per-owner subscription fan-out (#2786) — additive to the host-keyed
+    // env opt-in above; fail-open, never blocks the legacy flow.
+    const fanout = await runReportFanout('weekly', bindings)
+
     return Response.json(
       {
         optedInHosts: optedIn,
         reported: results.length,
         results,
+        subscriptions: fanout.length,
+        fanout,
       },
       { status: 200 }
     )

@@ -294,7 +294,7 @@ function renderCapacity(cap: WeeklyReportCapacity): string {
  * presentation-quality HTML document. Pure and deterministic.
  */
 export function renderWeeklyReportHtml(s: WeeklyReportSummary): string {
-  const title = `Weekly Health Report — ${esc(s.hostLabel)}`
+  const title = `${s.period === 'monthly' ? 'Monthly' : 'Weekly'} Health Report — ${esc(s.hostLabel)}`
   return `<!doctype html>
 <html lang="en">
 <head>

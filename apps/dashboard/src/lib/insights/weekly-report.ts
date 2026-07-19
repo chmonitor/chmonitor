@@ -16,6 +16,7 @@
 
 import type {
   InsightSeverity,
+  ReportPeriod,
   WeeklyReportCapacity,
   WeeklyReportSummary,
   WeeklyTopFinding,
@@ -30,8 +31,15 @@ import { debug, warn } from '@chm/logger'
 import { forecastDiskFull } from '@/lib/ai/advisor/capacity-forecaster'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 
-const WINDOW_SINCE = '7 DAY'
-const WINDOW_DAYS = 7
+/** Per-cadence rolling window; monthly reuses the same pipeline over 30 days. */
+const PERIOD_WINDOW_DAYS: Record<ReportPeriod, number> = {
+  weekly: 7,
+  monthly: 30,
+}
+export const PERIOD_LABEL: Record<ReportPeriod, string> = {
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+}
 const MAX_TOP_FINDINGS = 5
 const MAX_CATEGORY_BREAKDOWN = 6
 /** Discord's `content` field caps at 2000 chars; stay safely under it. */
@@ -143,11 +151,12 @@ function capacityLine(capacity: WeeklyReportCapacity): string {
 
 function buildMarkdown(summary: WeeklyReportSummary): string {
   const { bySeverity } = summary
+  const period = summary.period ?? 'weekly'
   const lines: string[] = []
 
-  lines.push(`# Weekly Health Report — ${summary.hostLabel}`)
+  lines.push(`# ${PERIOD_LABEL[period]} Health Report — ${summary.hostLabel}`)
   lines.push(
-    `**Window:** ${summary.weekStart} → ${summary.weekEnd} (last ${WINDOW_DAYS} days) · Generated ${summary.generatedAt}`
+    `**Window:** ${summary.weekStart} → ${summary.weekEnd} (last ${PERIOD_WINDOW_DAYS[period]} days) · Generated ${summary.generatedAt}`
   )
   lines.push('')
   lines.push('## Summary')
@@ -163,7 +172,11 @@ function buildMarkdown(summary: WeeklyReportSummary): string {
   lines.push('')
   lines.push('## Top findings')
   if (summary.topFindings.length === 0) {
-    lines.push('No notable findings this week.')
+    lines.push(
+      period === 'monthly'
+        ? 'No notable findings this month.'
+        : 'No notable findings this week.'
+    )
   } else {
     summary.topFindings.forEach((f, i) => {
       lines.push(
@@ -194,9 +207,11 @@ function buildMarkdown(summary: WeeklyReportSummary): string {
  */
 export async function buildWeeklyReport(
   hostId: number,
-  hostLabel = `Host ${hostId}`
+  hostLabel = `Host ${hostId}`,
+  period: ReportPeriod = 'weekly'
 ): Promise<WeeklyReport> {
-  const weekStart = dateNDaysAgo(WINDOW_DAYS)
+  const windowDays = PERIOD_WINDOW_DAYS[period]
+  const weekStart = dateNDaysAgo(windowDays)
   const weekEnd = dateNDaysAgo(0)
   const generatedAt = new Date().toISOString()
 
@@ -211,7 +226,7 @@ export async function buildWeeklyReport(
   try {
     const store = await resolveInsightsStore()
     const listed = await store.list(hostId, {
-      since: WINDOW_SINCE,
+      since: `${windowDays} DAY`,
       limit: 1000,
     })
     rows = listed.filter((r) =>
@@ -259,6 +274,7 @@ export async function buildWeeklyReport(
   const summary: WeeklyReportSummary = {
     hostId,
     hostLabel,
+    period,
     weekStart,
     weekEnd,
     generatedAt,
@@ -346,9 +362,10 @@ export interface WeeklyReportRunResult {
  */
 export async function runWeeklyReportForHost(
   hostId: number,
-  hostLabel?: string
+  hostLabel?: string,
+  period: ReportPeriod = 'weekly'
 ): Promise<WeeklyReportRunResult> {
-  const report = await buildWeeklyReport(hostId, hostLabel)
+  const report = await buildWeeklyReport(hostId, hostLabel, period)
   const weekStart = report.summary.weekStart
   const generatedAt = Date.now()
 

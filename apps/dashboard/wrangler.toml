@@ -203,7 +203,10 @@ simple = { limit = 30, period = 60 }
 # schedules below document each cadence:
 #   - "0 3 * * *"    → retention-prune, daily at 03:00 UTC.
 #   - "0 8 * * 1"    → weekly-report, Mondays at 08:00 UTC (per-host opt-in via
-#     CHM_WEEKLY_REPORT_HOSTS; no-op when unset).
+#     CHM_WEEKLY_REPORT_HOSTS + per-owner report_subscriptions fan-out; no-op
+#     when both are empty).
+#   - "0 8 1 * *"    → monthly-report, 1st of the month at 08:00 UTC (#2785;
+#     per-owner report_subscriptions with cadence 'monthly'; no-op when none).
 #   - "*/10 * * * *" → health-sweep, every 10 minutes (issue #2666). Runs the
 #     health/anomaly sweep + webhook alert fan-out with no dashboard tab open.
 #     Gated at runtime by CHM_HEALTH_SWEEP_ENABLED (see .env.production /
@@ -212,7 +215,7 @@ simple = { limit = 30, period = 60 }
 #     since the sweep also generates AI insights per host.
 # ─────────────────────────────────────────────────────────────────────────────
 [triggers]
-crons = ["0 3 * * *", "0 8 * * 1", "*/10 * * * *"]
+crons = ["0 3 * * *", "0 8 * * 1", "0 8 1 * *", "*/10 * * * *"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Preview environment for PR deployments

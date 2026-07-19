@@ -59,6 +59,14 @@ export const OG_PAGES: Record<string, OgPage> = {
       'An AI agent that answers questions about queries, schema, performance and health.',
   },
 
+  'report-settings': {
+    eyebrow: 'REPORTS',
+    title: 'Scheduled Reports',
+    headTitle: 'Report Settings',
+    description:
+      'Weekly or monthly cluster health reports, delivered to your configured alert channels.',
+  },
+
   // ── New monitoring pages (audit wave): registered so pageOgHead() does not
   //    throw "Cannot read properties of undefined (reading 'headTitle')" at prerender.
   'blob-storage-log': {

@@ -30,10 +30,18 @@ export type WeeklyReportCapacity =
       readonly message: string
     }
 
+/** Report cadence: weekly (7-day window) or monthly (30-day window). */
+export type ReportPeriod = 'weekly' | 'monthly'
+
 /** Compact, JSON-serializable summary of a host's weekly report. */
 export interface WeeklyReportSummary {
   readonly hostId: number
   readonly hostLabel: string
+  /**
+   * Report window cadence. Optional for backward compatibility with rows
+   * persisted before monthly reports existed — absent means 'weekly'.
+   */
+  readonly period?: ReportPeriod
   /** Start of the rolling 7-day window, `YYYY-MM-DD`. */
   readonly weekStart: string
   /** End of the window (today), `YYYY-MM-DD`. */

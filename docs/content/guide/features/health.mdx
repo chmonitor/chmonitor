@@ -222,6 +222,17 @@ curl "https://your-chmonitor.example.com/api/v1/insights/weekly-report?host=0&fo
 curl "https://your-chmonitor.example.com/api/v1/insights/weekly-report?host=0&week=2026-07-06"
 ```
 
+### Scheduled reports (per-user)
+
+Beyond the env-var opt-in above, **Scheduled Reports** (`/report-settings` in the dashboard) lets each user subscribe to a **weekly or monthly** cluster health report delivered through their **already-configured alert channels** — email (full HTML), webhook, Telegram, ntfy, and Pushover. Paging channels (Opsgenie, PagerDuty, Twilio) are deliberately excluded: a digest must never page anyone.
+
+- **Cadence** — monthly (1st of the month, 30-day window, `GET /api/cron/monthly-report`, cron `0 8 1 * *`) or weekly (Mondays, 7-day window, shares the weekly cron above). On chmonitor Cloud, weekly cadence requires a paid plan; monthly is included on Free.
+- **Generate now** — build a fresh report on demand and open/download the self-contained HTML. Works on any deployment with zero delivery configuration (`POST /api/v1/reports/generate`).
+- **Send test report** — deliver one immediately through your configured channels and see the per-channel outcome (`POST /api/v1/reports/test-send`).
+- **Audit** — the subscription stores the last delivery time and a compact per-channel status.
+
+Subscriptions live in the `report_subscriptions` D1 table (owner-scoped, like alert channels); deployments without D1 keep the env-var webhook flow and the on-demand Generate button. The AI agent can also produce the same report conversationally via its `generate_cluster_report` tool.
+
 ## Notes & limitations
 
 - `system.error_log` is checked separately by the Errors page (under Operations). The Health page uses `system.errors` (in-memory error counts), which resets on server restart.

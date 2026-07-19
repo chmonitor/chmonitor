@@ -21,6 +21,7 @@ import {
   ArrowDownToLineIcon,
   BellRingIcon,
   BookOpenIcon,
+  CalendarClockIcon,
   CircleDollarSignIcon,
   CloudIcon,
   CombineIcon,
@@ -160,6 +161,14 @@ export const menuItemsConfig: MenuItem[] = [
         description:
           'Configure how insights are generated — templates, AI enhancement, model, and prompt style',
         icon: SlidersHorizontalIcon,
+        isNew: true,
+      },
+      {
+        title: 'Scheduled Reports',
+        href: '/report-settings',
+        description:
+          'Weekly or monthly cluster health reports, delivered to your alert channels',
+        icon: CalendarClockIcon,
         isNew: true,
       },
     ],
