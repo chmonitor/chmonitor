@@ -88,7 +88,7 @@ export function InsightDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="flex max-h-[85vh] w-[calc(100%-1.5rem)] flex-col gap-4 overflow-hidden sm:max-w-4xl lg:max-w-5xl">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div
@@ -135,34 +135,36 @@ export function InsightDetailDialog({
           </div>
         </DialogHeader>
 
-        <DialogDescription className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-          {insight.detail}
-        </DialogDescription>
+        <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
+          <DialogDescription className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            {insight.detail}
+          </DialogDescription>
 
-        {chartNames.length > 0 ? (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {chartNames.length > 1 ? 'Related charts' : 'Related chart'}
-              </p>
-              <div
-                className={cn(
-                  'grid gap-3',
-                  chartNames.length > 1 ? 'sm:grid-cols-2' : 'grid-cols-1'
-                )}
-              >
-                {chartNames.map((name) => (
-                  <div key={name} className="rounded-lg border bg-card p-3">
-                    <Suspense fallback={<ChartSkeleton />}>
-                      <DynamicChart chartName={name} />
-                    </Suspense>
-                  </div>
-                ))}
+          {chartNames.length > 0 ? (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {chartNames.length > 1 ? 'Related charts' : 'Related chart'}
+                </p>
+                <div
+                  className={cn(
+                    'grid gap-3',
+                    chartNames.length > 1 ? 'sm:grid-cols-2' : 'grid-cols-1'
+                  )}
+                >
+                  {chartNames.map((name) => (
+                    <div key={name} className="rounded-lg border bg-card p-3">
+                      <Suspense fallback={<ChartSkeleton />}>
+                        <DynamicChart chartName={name} />
+                      </Suspense>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </>
-        ) : null}
+            </>
+          ) : null}
+        </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
           {onDismiss ? (
