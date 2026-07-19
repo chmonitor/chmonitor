@@ -1,8 +1,8 @@
 /**
  * Shared landing button classes — shadcn/ui geometry: rounded-md, compact
- * heights, subtle shadow-xs on filled/outline variants. CTAs use the lg size
- * (h-11, px-6); color stays monochrome — the primary CTA is a solid ink/white
- * button. Color comes from screenshots and art panels, not from buttons.
+ * heights, subtle shadow-xs on filled/outline variants. CTAs use a compact
+ * size (h-10, px-4); color stays monochrome — the primary CTA is a solid
+ * ink/white button. Color comes from screenshots and art panels, not buttons.
  *
  * Buttons use `rounded-md` (shadcn default). Cards keep `rounded-xl` (12px).
  */
@@ -10,8 +10,8 @@
 const base =
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors active:scale-[.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--brand)]/40 disabled:pointer-events-none disabled:opacity-50'
 
-/** shadcn lg size — the one size used across the landing CTAs. */
-const size = `${base} h-11 px-6`
+/** Compact size — the one size used across the landing CTAs. */
+const size = `${base} h-10 px-4`
 
 /**
  * The one primary CTA — shadcn "default" variant. Solid white on black in
