@@ -95,7 +95,7 @@ const ogImage = new URL(image, Astro.site).toString()
     // Theme-aware screenshots: a single <img data-src-light data-src-dark>
     // per slot picks the right variant for the current theme, so only ONE
     // image ever downloads (no display:none sibling to fetch on scroll).
-    // Exposed on window so the theme toggle (Nav.astro) can re-run it.
+    // Exposed on window so the toggle click handler (below) can re-run it.
     window.chmSyncThemedImages = function (root) {
       var theme = document.documentElement.getAttribute('data-theme')
       var imgs = (root || document).querySelectorAll('img[data-src-light]')
@@ -106,6 +106,25 @@ const ogImage = new URL(image, Astro.site).toString()
         if (wanted && img.getAttribute('src') !== wanted) img.setAttribute('src', wanted)
       }
     }
+    // Theme toggle: event delegation on document so EVERY .theme-toggle works
+    // regardless of where it's rendered (nav drawer, footer, …) — bound in
+    // <head>, so parse order can never miss a button.
+    document.addEventListener('click', function (e) {
+      var toggle = e.target.closest('.theme-toggle')
+      if (!toggle) return
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', next)
+      try { localStorage.setItem('chm-theme', next) } catch (err) {}
+      if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
+    })
+    // Follow OS theme changes only while the user hasn't picked one.
+    try {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+        if (!localStorage.getItem('chm-theme')) {
+          document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
+        }
+      })
+    } catch (e) {}
   </script>
   <style is:global>
     /* All of the legacy hand-authored global CSS lives in @layer base so that
