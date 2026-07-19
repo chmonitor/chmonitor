@@ -14,12 +14,15 @@ import {
   renderChartTooltip,
 } from './area-chart-tooltip'
 import { useChartScaleValue } from '@/components/charts/chart-scale-context'
+import {
+  InteractiveLegendContent,
+  useHiddenSeries,
+} from '@/components/charts/primitives/interactive-legend'
 import { seriesColorVar } from '@/components/charts/primitives/series-color'
 import {
   type ChartConfig,
   ChartContainer,
   ChartLegend,
-  ChartLegendContent,
 } from '@/components/ui/chart'
 import { getYAxisDomain, resolveYAxisScale } from '@/lib/chart-scale'
 import { augmentWithBand, OVERLAY_KEYS } from '@/lib/insights/anomaly-overlay'
@@ -159,6 +162,11 @@ export const AreaChart = function AreaChart({
   // Get scale preference from context (if available)
   const contextScale = useChartScaleValue()
 
+  // Legend click-to-toggle: hidden series stay mounted (recharts `hide`) so
+  // the legend keeps its entry and colors stay stable.
+  const { hidden, toggle, isHidden } = useHiddenSeries()
+  const visibleCategories = categories.filter((c) => !isHidden(c))
+
   // Statistics-Insights overlay settings (moving-average band + threshold).
   // Read unconditionally (hooks rule) but only applied when a chart opts in via
   // `anomalyOverlay`; every other area chart is unaffected.
@@ -187,17 +195,21 @@ export const AreaChart = function AreaChart({
   // Use prop if provided, otherwise use context, otherwise 'linear'
   const effectiveScale = yAxisScale ?? contextScale ?? 'linear'
 
-  // Resolve scale type (linear, log, or auto-detect)
+  // Resolve scale/domain from the VISIBLE series only, so hiding a spiky
+  // series (e.g. p99) rescales the y-axis to the remaining data. Fall back to
+  // all categories when everything is toggled off.
+  const domainCategories =
+    visibleCategories.length > 0 ? visibleCategories : categories
   const resolvedScale = resolveYAxisScale(
     effectiveScale,
     data as Record<string, unknown>[],
-    categories
+    domainCategories
   )
 
   // Get appropriate domain for the scale type
   const yAxisDomain = getYAxisDomain(
     data as Record<string, unknown>[],
-    categories,
+    domainCategories,
     resolvedScale === 'log'
   )
   const chartConfig = (() => {
@@ -301,6 +313,7 @@ export const AreaChart = function AreaChart({
           <Area
             key={`${category}`}
             dataKey={category}
+            hide={isHidden(category)}
             fill={`var(--color-${category})`}
             stroke={`var(--color-${category})`}
             strokeWidth={2}
@@ -367,7 +380,13 @@ export const AreaChart = function AreaChart({
           />
         )}
 
-        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {showLegend && (
+          <ChartLegend
+            content={
+              <InteractiveLegendContent hidden={hidden} onToggle={toggle} />
+            }
+          />
+        )}
 
         {deploymentMarkers.map(({ bucketKey, deployment }) => (
           <ReferenceLine

@@ -21,8 +21,12 @@ export type TrafficSectionId = (typeof TRAFFIC_SECTION_IDS)[number]
 
 export type TrafficSectionVisibility = 'auto' | 'show' | 'hide'
 
+/** 'full' = regular chart grid; 'compact' = dense mini-chart row. */
+export type TrafficSectionDensity = 'full' | 'compact'
+
 export interface TrafficSettings {
   sections: Record<TrafficSectionId, TrafficSectionVisibility>
+  density: Record<TrafficSectionId, TrafficSectionDensity>
 }
 
 export const TRAFFIC_SECTION_LABELS: Record<TrafficSectionId, string> = {
@@ -40,6 +44,13 @@ export const DEFAULT_TRAFFIC_SETTINGS: TrafficSettings = {
     topTables: 'auto',
     replication: 'auto',
     peerdb: 'auto',
+  },
+  density: {
+    bytesOnDisk: 'full',
+    merges: 'full',
+    topTables: 'full',
+    replication: 'full',
+    peerdb: 'full',
   },
 }
 
@@ -102,18 +113,28 @@ function isVisibility(value: unknown): value is TrafficSectionVisibility {
   return value === 'auto' || value === 'show' || value === 'hide'
 }
 
+function isDensity(value: unknown): value is TrafficSectionDensity {
+  return value === 'full' || value === 'compact'
+}
+
 export function loadTrafficSettings(): TrafficSettings {
   if (typeof window === 'undefined') return DEFAULT_TRAFFIC_SETTINGS
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_TRAFFIC_SETTINGS
-    const parsed = JSON.parse(raw) as { sections?: Record<string, unknown> }
+    const parsed = JSON.parse(raw) as {
+      sections?: Record<string, unknown>
+      density?: Record<string, unknown>
+    }
     const sections = { ...DEFAULT_TRAFFIC_SETTINGS.sections }
+    const density = { ...DEFAULT_TRAFFIC_SETTINGS.density }
     for (const id of TRAFFIC_SECTION_IDS) {
       const value = parsed?.sections?.[id]
       if (isVisibility(value)) sections[id] = value
+      const densityValue = parsed?.density?.[id]
+      if (isDensity(densityValue)) density[id] = densityValue
     }
-    return { sections }
+    return { sections, density }
   } catch {
     return DEFAULT_TRAFFIC_SETTINGS
   }
@@ -178,21 +199,36 @@ export function useTrafficSettings() {
     (id: TrafficSectionId, visibility: TrafficSectionVisibility) => {
       const current = loadTrafficSettings()
       saveTrafficSettings({
+        ...current,
         sections: { ...current.sections, [id]: visibility },
       })
     },
     []
   )
 
+  const toggleSectionDensity = useCallback((id: TrafficSectionId) => {
+    const current = loadTrafficSettings()
+    saveTrafficSettings({
+      ...current,
+      density: {
+        ...current.density,
+        [id]: current.density[id] === 'compact' ? 'full' : 'compact',
+      },
+    })
+  }, [])
+
+  // Presets only cover visibility; the per-section density choice sticks.
   const applyPreset = useCallback((presetId: string) => {
     const preset = TRAFFIC_PRESETS.find((p) => p.id === presetId)
     if (!preset) return
-    saveTrafficSettings({ sections: { ...preset.sections } })
+    const current = loadTrafficSettings()
+    saveTrafficSettings({ ...current, sections: { ...preset.sections } })
   }, [])
 
   return {
     settings,
     setSectionVisibility,
+    toggleSectionDensity,
     applyPreset,
     activePresetId: matchPresetId(settings),
   }

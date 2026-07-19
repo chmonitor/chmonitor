@@ -49,6 +49,12 @@ interface ChartScaleProviderProps {
   children: React.ReactNode
   /** Override scale (when not using global preference) */
   initialScale?: YAxisScale
+  /**
+   * Persist changes to the shared localStorage preference (default true).
+   * Scoped providers (e.g. the chart zoom dialog) pass false so a local
+   * toggle doesn't restyle every other chart.
+   */
+  persist?: boolean
 }
 
 /**
@@ -58,23 +64,27 @@ interface ChartScaleProviderProps {
 export function ChartScaleProvider({
   children,
   initialScale,
+  persist = true,
 }: ChartScaleProviderProps) {
   const [scale, setScaleState] = useState<YAxisScale>(
     initialScale ?? getInitialScale
   )
 
-  const setScale = useCallback((newScale: YAxisScale) => {
-    setScaleState(newScale)
-    saveScale(newScale)
-  }, [])
+  const setScale = useCallback(
+    (newScale: YAxisScale) => {
+      setScaleState(newScale)
+      if (persist) saveScale(newScale)
+    },
+    [persist]
+  )
 
   const toggleScale = useCallback(() => {
     setScaleState((prev) => {
       const newScale = prev === 'linear' ? 'log' : 'linear'
-      saveScale(newScale)
+      if (persist) saveScale(newScale)
       return newScale
     })
-  }, [])
+  }, [persist])
 
   const value = useMemo<ChartScaleContextValue>(
     () => ({

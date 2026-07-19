@@ -190,7 +190,7 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   },
 
   /**
-   * Insert (write) performance over time — average and p95 duration of
+   * Insert (write) performance over time — average, p95, and p99 duration of
    * successful insert queries, so slow-ingest regressions are visible next to
    * the insert volume charts.
    */
@@ -203,7 +203,8 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            round(avg(query_duration_ms), 1) AS avg_duration_ms,
-           round(quantile(0.95)(query_duration_ms), 1) AS p95_duration_ms
+           round(quantile(0.95)(query_duration_ms), 1) AS p95_duration_ms,
+           round(quantile(0.99)(query_duration_ms), 1) AS p99_duration_ms
     FROM system.query_log
     WHERE query_kind = 'Insert'
       AND type = 'QueryFinish'
@@ -499,7 +500,7 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   },
 
   /**
-   * PeerDB insert performance over time — average and p95 duration of
+   * PeerDB insert performance over time — average, p95, and p99 duration of
    * PeerDB-attributed insert queries, so CDC sync slowdowns are visible
    * separately from overall insert latency.
    */
@@ -512,7 +513,8 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            round(avg(query_duration_ms), 1) AS avg_duration_ms,
-           round(quantile(0.95)(query_duration_ms), 1) AS p95_duration_ms
+           round(quantile(0.95)(query_duration_ms), 1) AS p95_duration_ms,
+           round(quantile(0.99)(query_duration_ms), 1) AS p99_duration_ms
     FROM system.query_log
     WHERE type = 'QueryFinish'
       AND query_kind = 'Insert'

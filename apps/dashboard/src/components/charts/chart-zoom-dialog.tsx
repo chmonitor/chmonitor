@@ -24,6 +24,10 @@ import {
   CodeBlock,
   CodeBlockCopyButton,
 } from '@/components/ai-elements/code-block'
+import {
+  ChartScaleProvider,
+  useChartScale,
+} from '@/components/charts/chart-scale-context'
 import { ChartStaleIndicator } from '@/components/charts/chart-stale-indicator'
 import { DataTable } from '@/components/data-table/data-table'
 import { DateRangeSelector } from '@/components/date-range'
@@ -62,9 +66,13 @@ function getInitialBeautifyState(): boolean {
 
 function CopyableValue({
   value,
+  display,
   className = '',
 }: {
+  /** Full value — always what gets copied and shown in the hover tooltip. */
   value: string | number
+  /** Optional shortened text to render in place of `value` (e.g. URL path). */
+  display?: string
   className?: string
 }) {
   const [copied, setCopied] = useState(false)
@@ -83,13 +91,13 @@ function CopyableValue({
             type="button"
             onClick={handleCopy}
             className={cn(
-              'font-mono font-medium text-right truncate min-w-0 hover:text-primary cursor-pointer transition-colors inline-flex items-center gap-1 group/copy max-w-full',
+              'font-mono font-medium text-left truncate min-w-0 hover:text-primary cursor-pointer transition-colors inline-flex items-center gap-1 group/copy max-w-full',
               className
             )}
           />
         }
       >
-        <span className="truncate flex-1 min-w-0">{value}</span>
+        <span className="truncate flex-1 min-w-0">{display ?? value}</span>
         {copied ? (
           <Check className="size-3 text-green-500 shrink-0" strokeWidth={2} />
         ) : (
@@ -107,6 +115,73 @@ function CopyableValue({
         {value}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+/**
+ * Controls bar for the enlarged chart: y-axis scale (linear/log) toggle,
+ * reading from the zoom-local ChartScaleProvider so the page chart keeps its
+ * own preference. Legend items in the chart itself toggle series visibility.
+ */
+function ZoomChartControls() {
+  const scaleContext = useChartScale()
+  if (!scaleContext) return null
+  const { isLogScale, setScale } = scaleContext
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        Y-axis
+      </span>
+      <div className="flex items-center rounded-md border border-border/50 p-0.5">
+        <Button
+          variant={isLogScale ? 'ghost' : 'secondary'}
+          size="sm"
+          className="h-5 px-2 text-[11px]"
+          onClick={() => setScale('linear')}
+        >
+          Linear
+        </Button>
+        <Button
+          variant={isLogScale ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-5 px-2 text-[11px]"
+          onClick={() => setScale('log')}
+        >
+          Log
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** One tile in the metadata grid: icon + label on top, copyable value below. */
+function MetadataTile({
+  icon: Icon,
+  label,
+  value,
+  display,
+  className,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  label: string
+  value: string | number
+  display?: string
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        'flex min-w-0 flex-col gap-0.5 rounded-md border border-border/50 bg-muted/20 px-2.5 py-1.5',
+        className
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+        <Icon className="size-3" strokeWidth={1.5} />
+        {label}
+      </div>
+      <CopyableValue value={value} display={display} className="text-xs" />
+    </div>
   )
 }
 
@@ -215,13 +290,22 @@ export const ChartZoomDialog = function ChartZoomDialog({
     }
   })()
 
-  // Build full API URL
+  // Build full API URL; display only path + query (domain hidden), copy full.
   const fullApiUrl = (() => {
     if (!metadata?.api) return null
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
     return metadata.api.startsWith('http')
       ? metadata.api
       : `${baseUrl}${metadata.api}`
+  })()
+  const apiDisplay = (() => {
+    if (!fullApiUrl) return undefined
+    try {
+      const url = new URL(fullApiUrl)
+      return `${url.pathname}${url.search}`
+    } catch {
+      return fullApiUrl
+    }
   })()
 
   // Check if we have metadata to show
@@ -283,65 +367,52 @@ export const ChartZoomDialog = function ChartZoomDialog({
             </div>
           </div>
           {hasMetadata && (
-            <div className="rounded-lg border border-border/50 p-3 mt-3">
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                {fullApiUrl && (
-                  <div className="col-span-2 flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <ExternalLink className="size-3" strokeWidth={1.5} />
-                      API
-                    </dt>
-                    <dd className="min-w-0 flex-1 text-right">
-                      <CopyableValue value={fullApiUrl} />
-                    </dd>
-                  </div>
-                )}
-                {metadata?.duration !== undefined && (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <Clock className="size-3" strokeWidth={1.5} />
-                      Duration
-                    </dt>
-                    <CopyableValue value={`${metadata.duration}ms`} />
-                  </div>
-                )}
-                {metadata?.rows !== undefined && (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <Database className="size-3" strokeWidth={1.5} />
-                      Rows
-                    </dt>
-                    <CopyableValue value={metadata.rows.toLocaleString()} />
-                  </div>
-                )}
-                {metadata?.clickhouseVersion && (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <Zap className="size-3" strokeWidth={1.5} />
-                      Version
-                    </dt>
-                    <CopyableValue value={metadata.clickhouseVersion} />
-                  </div>
-                )}
-                {metadata?.host && (
-                  <div className="col-span-2 flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <Server className="size-3" strokeWidth={1.5} />
-                      Host
-                    </dt>
-                    <CopyableValue value={metadata.host} />
-                  </div>
-                )}
-                {metadata?.queryId && (
-                  <div className="col-span-2 flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <Hash className="size-3" strokeWidth={1.5} />
-                      Query ID
-                    </dt>
-                    <CopyableValue value={metadata.queryId} />
-                  </div>
-                )}
-              </dl>
+            <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              {fullApiUrl && (
+                <MetadataTile
+                  icon={ExternalLink}
+                  label="API"
+                  value={fullApiUrl}
+                  display={apiDisplay}
+                  className="col-span-2 sm:col-span-4"
+                />
+              )}
+              {metadata?.duration !== undefined && (
+                <MetadataTile
+                  icon={Clock}
+                  label="Duration"
+                  value={`${metadata.duration}ms`}
+                />
+              )}
+              {metadata?.rows !== undefined && (
+                <MetadataTile
+                  icon={Database}
+                  label="Rows"
+                  value={metadata.rows.toLocaleString()}
+                />
+              )}
+              {metadata?.clickhouseVersion && (
+                <MetadataTile
+                  icon={Zap}
+                  label="Version"
+                  value={metadata.clickhouseVersion}
+                />
+              )}
+              {metadata?.host !== undefined && metadata.host !== '' && (
+                <MetadataTile
+                  icon={Server}
+                  label="Host"
+                  value={metadata.host}
+                />
+              )}
+              {metadata?.queryId && (
+                <MetadataTile
+                  icon={Hash}
+                  label="Query ID"
+                  value={metadata.queryId}
+                  className="col-span-2"
+                />
+              )}
             </div>
           )}
         </DialogHeader>
@@ -400,11 +471,17 @@ export const ChartZoomDialog = function ChartZoomDialog({
 
           <TabsContent
             value="chart"
-            className="flex-1 min-h-0 p-6 flex flex-col"
+            className="flex-1 min-h-0 p-6 pt-3 flex flex-col gap-2"
           >
-            <div className="w-full flex-1 min-h-[350px] relative h-full">
-              <div className="absolute inset-0">{children}</div>
-            </div>
+            {/* Zoom-local scale provider: overrides the page-level scale for
+                the enlarged chart only, so tweaking the view here doesn't
+                restyle the chart back on the page. */}
+            <ChartScaleProvider persist={false}>
+              <ZoomChartControls />
+              <div className="w-full flex-1 min-h-[350px] relative h-full">
+                <div className="absolute inset-0">{children}</div>
+              </div>
+            </ChartScaleProvider>
           </TabsContent>
 
           {queryConfig && (

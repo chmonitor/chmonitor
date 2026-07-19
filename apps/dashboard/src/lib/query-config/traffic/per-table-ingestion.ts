@@ -3,14 +3,15 @@ import type { QueryConfig } from '@/types/query-config'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * Per-table ingestion over the last 24h (system.part_log NewPart events),
- * joined with the table's overall compression ratio from system.parts.
- * part_log is opt-in, so the whole view is optional.
+ * Per-table ingestion over a selectable window (system.part_log NewPart
+ * events; 24h default with 7d/14d/30d presets), joined with the table's
+ * overall compression ratio from system.parts. part_log is opt-in, so the
+ * whole view is optional.
  */
 export const trafficPerTableConfig: QueryConfig = {
   name: 'traffic-per-table',
   description:
-    'Tables ranked by data ingested in the last 24 hours: rows, on-disk bytes, parts created, and overall compression ratio',
+    'Tables ranked by data ingested in the selected window: rows, on-disk bytes, parts created, and overall compression ratio',
   optional: true,
   tableCheck: 'system.part_log',
   sql: `
@@ -34,7 +35,7 @@ export const trafficPerTableConfig: QueryConfig = {
           count() AS parts_created
         FROM system.part_log
         WHERE event_type = 'NewPart'
-          AND event_time >= now() - INTERVAL 24 HOUR
+          AND event_time >= now() - INTERVAL {lastHours: UInt32} HOUR
         GROUP BY 1
       ) AS ingest
       LEFT JOIN (
@@ -47,8 +48,15 @@ export const trafficPerTableConfig: QueryConfig = {
         GROUP BY 1
       ) AS parts USING (table)
       ORDER BY bytes_added DESC
-      LIMIT 100
+      LIMIT 1000
     `,
+  defaultParams: { lastHours: 24 },
+  filterParamPresets: [
+    { name: 'Last 24h', key: 'lastHours', value: '24' },
+    { name: 'Last 7d', key: 'lastHours', value: '168' },
+    { name: 'Last 14d', key: 'lastHours', value: '336' },
+    { name: 'Last 30d', key: 'lastHours', value: '720' },
+  ],
   columns: [
     'table',
     'readable_rows_added',

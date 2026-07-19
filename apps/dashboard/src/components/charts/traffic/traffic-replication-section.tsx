@@ -1,8 +1,11 @@
 import { GitCompareArrowsIcon } from 'lucide-react'
 
+import type { TrafficSectionDensity } from '@/lib/traffic/traffic-settings'
+
 import { memo } from 'react'
 import { ChartDistributedQueriesOverTime } from '@/components/charts/traffic/distributed-queries-over-time'
 import { ChartReplicaFetchTraffic } from '@/components/charts/traffic/replica-fetch-traffic'
+import { TrafficSectionHeader } from '@/components/charts/traffic/traffic-section-header'
 import { useChartData } from '@/lib/query/use-chart-data'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 
@@ -23,6 +26,9 @@ interface TrafficReplicationSectionProps {
    * smart cluster-shape detection.
    */
   visibility?: 'auto' | 'show' | 'hide'
+  /** Full chart grid vs compact mini-chart row (default 'full'). */
+  density?: TrafficSectionDensity
+  onToggleDensity?: () => void
 }
 
 /**
@@ -42,6 +48,8 @@ export const TrafficReplicationSection = memo(
     chartClassName,
     chartCardContentClassName,
     visibility = 'auto',
+    density = 'full',
+    onToggleDensity,
   }: TrafficReplicationSectionProps) {
     const hostId = useHostId()
 
@@ -66,16 +74,36 @@ export const TrafficReplicationSection = memo(
 
     return (
       <div className="flex flex-col gap-3 sm:gap-4">
-        <div className="flex items-center gap-2">
-          <GitCompareArrowsIcon
-            className="size-4 text-muted-foreground"
-            strokeWidth={1.5}
+        {onToggleDensity ? (
+          <TrafficSectionHeader
+            icon={
+              <GitCompareArrowsIcon
+                className="size-4 text-muted-foreground"
+                strokeWidth={1.5}
+              />
+            }
+            title="Replication & Distribution"
+            density={density}
+            onToggleDensity={onToggleDensity}
           />
-          <h2 className="text-sm font-medium text-foreground">
-            Replication & Distribution
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+        ) : (
+          <div className="flex items-center gap-2">
+            <GitCompareArrowsIcon
+              className="size-4 text-muted-foreground"
+              strokeWidth={1.5}
+            />
+            <h2 className="text-sm font-medium text-foreground">
+              Replication & Distribution
+            </h2>
+          </div>
+        )}
+        <div
+          className={
+            density === 'compact'
+              ? 'grid grid-cols-2 gap-2'
+              : 'grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2'
+          }
+        >
           {hasReplication ? (
             <ChartReplicaFetchTraffic
               chartClassName={chartClassName}

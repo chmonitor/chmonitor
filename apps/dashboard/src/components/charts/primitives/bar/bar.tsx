@@ -28,10 +28,10 @@ import {
 } from './utils'
 import { useChartScaleValue } from '@/components/charts/chart-scale-context'
 import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-} from '@/components/ui/chart'
+  InteractiveLegendContent,
+  useHiddenSeries,
+} from '@/components/charts/primitives/interactive-legend'
+import { ChartContainer, ChartLegend } from '@/components/ui/chart'
 import { getYAxisDomain, resolveYAxisScale } from '@/lib/chart-scale'
 import { cn } from '@/lib/utils'
 
@@ -69,6 +69,12 @@ export const BarChart = function BarChart({
   // Get scale preference from context (if available)
   const contextScale = useChartScaleValue()
 
+  // Legend click-to-toggle (same pattern as the area primitive).
+  const { hidden, toggle, isHidden } = useHiddenSeries()
+  const visibleCategories = categories.filter((c) => !isHidden(c))
+  const domainCategories =
+    visibleCategories.length > 0 ? visibleCategories : categories
+
   // Use prop if provided, otherwise use context, otherwise 'linear'
   const effectiveScale = yAxisScale ?? contextScale ?? 'linear'
 
@@ -76,13 +82,13 @@ export const BarChart = function BarChart({
   const resolvedScale = resolveYAxisScale(
     effectiveScale,
     data as Record<string, unknown>[],
-    categories
+    domainCategories
   )
 
   // Get appropriate domain for the scale type
   const yAxisDomain = getYAxisDomain(
     data as Record<string, unknown>[],
-    categories,
+    domainCategories,
     resolvedScale === 'log'
   )
 
@@ -136,6 +142,7 @@ export const BarChart = function BarChart({
           <Bar
             key={category}
             dataKey={category}
+            hide={isHidden(category)}
             fill={`var(--color-${sanitizeCssVarName(category)})`}
             stackId={stack ? 'a' : undefined}
             radius={getBarRadius({
@@ -150,7 +157,13 @@ export const BarChart = function BarChart({
 
         {tooltip}
 
-        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {showLegend && (
+          <ChartLegend
+            content={
+              <InteractiveLegendContent hidden={hidden} onToggle={toggle} />
+            }
+          />
+        )}
       </RechartBarChart>
     </ChartContainer>
   )

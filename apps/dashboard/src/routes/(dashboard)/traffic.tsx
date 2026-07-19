@@ -34,6 +34,7 @@ import { ChartPartMovesOverTime } from '@/components/charts/traffic/part-moves-o
 import { TrafficPartLogCallout } from '@/components/charts/traffic/traffic-part-log-callout'
 import { TrafficPeerdbSection } from '@/components/charts/traffic/traffic-peerdb-section'
 import { TrafficReplicationSection } from '@/components/charts/traffic/traffic-replication-section'
+import { TrafficSectionHeader } from '@/components/charts/traffic/traffic-section-header'
 import { TrafficSettingsPopover } from '@/components/charts/traffic/traffic-settings-popover'
 import { TrafficSummaryKpis } from '@/components/charts/traffic/traffic-summary-kpis'
 import { usePartLogAvailability } from '@/components/charts/traffic/use-part-log-availability'
@@ -48,8 +49,13 @@ import { useTrafficSettings } from '@/lib/traffic/traffic-settings'
 const CHART_CLASS = 'h-64 min-h-0 w-full'
 const CHART_CARD_CONTENT_CLASS = 'flex min-h-0 flex-1 flex-col px-3 pb-3 pt-0'
 
+// Compact ("mini chart row") density: short charts, packed 2-up/4-up.
+const COMPACT_CHART_CLASS = 'h-28 min-h-0 w-full'
+const FULL_GRID_CLASS = 'grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2'
+const COMPACT_GRID_CLASS = 'grid grid-cols-2 gap-2 lg:grid-cols-4'
+
 function TrafficPageContent() {
-  const { settings } = useTrafficSettings()
+  const { settings, toggleSectionDensity } = useTrafficSettings()
   const { available: partLogAvailable } = usePartLogAvailability()
 
   // 'show'/'hide' are explicit user overrides; 'auto' follows detection.
@@ -64,6 +70,9 @@ function TrafficPageContent() {
   )
   const showMerges = resolve(settings.sections.merges, partLogAvailable)
   const showTopTables = resolve(settings.sections.topTables, partLogAvailable)
+
+  const mergesChartClass =
+    settings.density.merges === 'compact' ? COMPACT_CHART_CLASS : CHART_CLASS
 
   // One callout replaces the auto-hidden part_log sections; explicit 'hide'
   // overrides suppress it (the user asked for them to be gone, not explained).
@@ -121,31 +130,39 @@ function TrafficPageContent() {
 
       {showMerges ? (
         <>
-          <div className="flex items-center gap-2">
-            <CombineIcon
-              className="size-4 text-muted-foreground"
-              strokeWidth={1.5}
-            />
-            <h2 className="text-sm font-medium text-foreground">
-              Merges &amp; Data Movement
-            </h2>
-          </div>
+          <TrafficSectionHeader
+            icon={
+              <CombineIcon
+                className="size-4 text-muted-foreground"
+                strokeWidth={1.5}
+              />
+            }
+            title="Merges & Data Movement"
+            density={settings.density.merges}
+            onToggleDensity={() => toggleSectionDensity('merges')}
+          />
 
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+          <div
+            className={
+              settings.density.merges === 'compact'
+                ? COMPACT_GRID_CLASS
+                : FULL_GRID_CLASS
+            }
+          >
             <ChartMergedBytesOverTime
-              chartClassName={CHART_CLASS}
+              chartClassName={mergesChartClass}
               chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
             />
             <ChartPartMovesOverTime
-              chartClassName={CHART_CLASS}
+              chartClassName={mergesChartClass}
               chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
             />
             <ChartWriteAmplificationOverTime
-              chartClassName={CHART_CLASS}
+              chartClassName={mergesChartClass}
               chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
             />
             <ChartDiskWriteSpeedOverTime
-              chartClassName={CHART_CLASS}
+              chartClassName={mergesChartClass}
               chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
             />
           </div>
@@ -153,22 +170,41 @@ function TrafficPageContent() {
       ) : null}
 
       {showTopTables ? (
-        <PageLayout
-          queryConfig={trafficPerTableConfig}
-          title="Top Tables by Ingestion (24h)"
-        />
+        <>
+          <TrafficSectionHeader
+            density={settings.density.topTables}
+            onToggleDensity={() => toggleSectionDensity('topTables')}
+          />
+          <PageLayout
+            queryConfig={trafficPerTableConfig}
+            title="Top Tables by Ingestion"
+            defaultPageSize={settings.density.topTables === 'compact' ? 5 : 20}
+          />
+        </>
       ) : null}
 
       <TrafficReplicationSection
-        chartClassName={CHART_CLASS}
+        chartClassName={
+          settings.density.replication === 'compact'
+            ? COMPACT_CHART_CLASS
+            : CHART_CLASS
+        }
         chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
         visibility={settings.sections.replication}
+        density={settings.density.replication}
+        onToggleDensity={() => toggleSectionDensity('replication')}
       />
 
       <TrafficPeerdbSection
-        chartClassName={CHART_CLASS}
+        chartClassName={
+          settings.density.peerdb === 'compact'
+            ? COMPACT_CHART_CLASS
+            : CHART_CLASS
+        }
         chartCardContentClassName={CHART_CARD_CONTENT_CLASS}
         visibility={settings.sections.peerdb}
+        density={settings.density.peerdb}
+        onToggleDensity={() => toggleSectionDensity('peerdb')}
       />
     </div>
   )
