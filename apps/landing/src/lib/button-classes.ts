@@ -22,9 +22,6 @@ export const btnPrimary = `${size} bg-primary text-primary-foreground shadow-xs 
 /** shadcn "outline" variant. */
 export const btnOutline = `${size} border border-[var(--hairline-strong)] bg-background text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground`
 
-/** shadcn "ghost" variant. */
-export const btnGhost = `${size} text-muted-foreground hover:bg-accent hover:text-accent-foreground`
-
 /** Larger ink-on-canvas CTA for "Self-host" style secondary actions. */
 export const btnDownload = `${size} bg-primary text-primary-foreground shadow-xs hover:bg-primary/90`
 
