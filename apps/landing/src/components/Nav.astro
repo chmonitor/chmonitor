@@ -180,15 +180,17 @@ const featureIco = (d: string) =>
     })
 
     // Theme toggle: flip data-theme, persist the choice. The head script set the
-    // initial value (saved choice or OS preference) before paint. Wire every
-    // toggle (desktop nav bar + the mobile drawer) so both stay in sync.
-    document.querySelectorAll('.theme-toggle').forEach(function (toggle) {
-      toggle.addEventListener('click', function () {
-        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
-        document.documentElement.setAttribute('data-theme', next)
-        try { localStorage.setItem('chm-theme', next) } catch (e) {}
-        if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
-      })
+    // initial value (saved choice or OS preference) before paint. Use event
+    // delegation on document so EVERY .theme-toggle works — the footer toggle
+    // renders AFTER this inline script runs, so querySelectorAll-at-parse-time
+    // would miss it. Delegation binds once, covers all (and any future) toggles.
+    document.addEventListener('click', function (e) {
+      var toggle = e.target.closest && e.target.closest('.theme-toggle')
+      if (!toggle) return
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', next)
+      try { localStorage.setItem('chm-theme', next) } catch (err) {}
+      if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
     })
 
     // Mobile drawer: open/close the off-canvas menu shown at ≤1024px.
