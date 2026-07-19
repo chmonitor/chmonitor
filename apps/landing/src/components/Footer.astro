@@ -60,7 +60,16 @@ const latestVersion = loadLatestChangelogVersion()
       </div>
       <div class="mt-10 sm:mt-12 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 border-t border-border pt-6 text-sm text-muted-foreground">
         <span>© 2026 chmonitor · Open source (GPL-3.0)</span>
-        <span class="font-mono text-xs">Not affiliated with ClickHouse, Inc.</span>
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-xs">Not affiliated with ClickHouse, Inc.</span>
+          {/* Theme toggle lives in the footer (moved from the top nav). The
+              global .theme-toggle CSS + the querySelectorAll('.theme-toggle')
+              wiring in Nav.astro bind it automatically. */}
+          <button type="button" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+            <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </footer>

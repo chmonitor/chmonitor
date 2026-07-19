@@ -1,14 +1,5 @@
 ---
 import ScreenshotShot from './ScreenshotShot.astro'
-import {
-  btnGhost,
-  btnOutline,
-  btnPrimary,
-} from '../lib/button-classes'
-import { formatCount, getGitHubStats } from '../lib/github-stars'
-
-const { stars } = await getGitHubStats()
-const starLabel = formatCount(stars)
 
 /* The anchor image(s). Framed "with background" variants of the overview
    capture (sharp at the 1080px column). They rotate on a slow interval;
@@ -36,9 +27,6 @@ const HERO_FEATURES = [
 ] as const
 
 const checkSvg = `<svg class="mt-0.5 size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>`
-const arrowSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
-const bookSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>`
-const starSvg = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>`
 const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`
 ---
 
@@ -79,43 +67,6 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
       <p class="mx-auto mt-6 sm:mt-8 max-w-xl text-pretty text-muted-foreground text-lg sm:text-xl leading-relaxed tracking-[0.005em]">
         Monitor queries, merges, parts, replication, and health. An AI advisor on top — open source, self-host free.
       </p>
-
-      <div class="mt-7 sm:mt-8 flex w-full max-w-md sm:max-w-none mx-auto flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5">
-        <a
-          href="https://dash.chmonitor.dev"
-          target="_blank"
-          rel="noopener"
-          data-cta="hero-primary"
-          class={`${btnPrimary} w-full sm:w-auto`}
-        >
-          Start Free
-          <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
-        </a>
-        <a
-          href="https://docs.chmonitor.dev"
-          target="_blank"
-          rel="noopener"
-          data-cta="hero-self-host"
-          class={`${btnOutline} w-full sm:w-auto`}
-        >
-          <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={bookSvg} />
-          Self-Host
-        </a>
-        {
-          starLabel ? (
-            <a
-              href="https://github.com/chmonitor/chmonitor"
-              target="_blank"
-              rel="noopener"
-              data-cta="github-star-hero"
-              class={`${btnGhost} w-full sm:w-auto`}
-            >
-              <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={starSvg} />
-              <span class="tabular-nums">{starLabel}</span>
-            </a>
-          ) : null
-        }
-      </div>
     </div>
 
     {/* Anchor screenshot(s). The hairline lives on THIS wrapper — see
