@@ -351,7 +351,7 @@ export const ChartZoomDialog = function ChartZoomDialog({
         style={{ height: dialogHeight, maxHeight: '95vh' }}
       >
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 pr-6">
             <DialogTitle className="truncate flex-1">{title}</DialogTitle>
             <div className="flex items-center gap-2 shrink-0">
               {staleError && onRetry && (
