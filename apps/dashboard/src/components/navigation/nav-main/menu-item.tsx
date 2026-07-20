@@ -9,6 +9,7 @@ import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
+import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
 import { useHostId } from '@/lib/swr'
 
 const NewBadge = lazy(() =>
@@ -84,13 +85,19 @@ const SingleMenuItem = function SingleMenuItem({
 }) {
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
-  const { available } = useIsTableAvailable(item.tableCheck, hostId)
+  const { available: tableAvailable } = useIsTableAvailable(
+    item.tableCheck,
+    hostId
+  )
+  const dbSatisfied = useMetadataDbSatisfied(item)
+  const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(item.isNew || item.countKey)
 
   // When the page's backing table is missing, either dim it (default) or hide
-  // it entirely per the user's Navigation setting.
-  if (!available && !settings.dimUnavailablePages) {
+  // it entirely per the user's Navigation setting. A missing metadata database
+  // only ever dims — the surface stays discoverable in OSS.
+  if (!tableAvailable && !settings.dimUnavailablePages) {
     return null
   }
 
@@ -101,7 +108,9 @@ const SingleMenuItem = function SingleMenuItem({
         tooltip={
           available
             ? item.title
-            : `${item.title} (System table not found on this host)`
+            : dbSatisfied
+              ? `${item.title} (System table not found on this host)`
+              : `${item.title} (Requires a metadata database — configure D1 or Postgres)`
         }
         className={available ? '' : 'opacity-50 text-muted-foreground/50'}
         render={
@@ -156,11 +165,16 @@ const SubMenuItem = function SubMenuItem({
   siblingHrefs: string[]
   closeMobileSidebar: () => void
 }) {
-  const { available } = useIsTableAvailable(subItem.tableCheck, hostId)
+  const { available: tableAvailable } = useIsTableAvailable(
+    subItem.tableCheck,
+    hostId
+  )
+  const dbSatisfied = useMetadataDbSatisfied(subItem)
+  const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(subItem.isNew || subItem.countKey)
 
-  if (!available && !settings.dimUnavailablePages) {
+  if (!tableAvailable && !settings.dimUnavailablePages) {
     return null
   }
 

@@ -4,6 +4,7 @@ import { lazy, Suspense, useState } from 'react'
 import { ClientOnly } from '@/components/client-only'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
+import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
 import { useHostId } from '@/lib/swr'
 
 const NewBadge = lazy(() =>
@@ -54,7 +55,12 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   setOpenMobile: (open: boolean) => void
   setOpen: (open: boolean) => void
 }) {
-  const { available } = useIsTableAvailable(subItem.tableCheck, hostId)
+  const { available: tableAvailable } = useIsTableAvailable(
+    subItem.tableCheck,
+    hostId
+  )
+  const dbSatisfied = useMetadataDbSatisfied(subItem)
+  const available = tableAvailable && dbSatisfied
   const isActive = isMenuItemActiveAmongSiblings(
     subItem.href,
     siblingHrefs,
@@ -65,7 +71,13 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
     <HostPrefixedLink
       href={subItem.href}
       className={available ? '' : 'opacity-50'}
-      title={available ? undefined : 'System table not found on this host'}
+      title={
+        available
+          ? undefined
+          : dbSatisfied
+            ? 'System table not found on this host'
+            : 'Requires a metadata database — configure D1 or Postgres'
+      }
       onClick={() => {
         setOpen(false)
         if (isMobile) {

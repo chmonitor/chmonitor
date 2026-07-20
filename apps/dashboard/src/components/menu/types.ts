@@ -31,6 +31,14 @@ export interface MenuItem {
   /** ClickHouse system table name(s) to check for availability/muting */
   tableCheck?: string | string[]
   /**
+   * Page needs the deployment's metadata database (D1 or Postgres) to persist
+   * its state (e.g. report subscriptions). When none is configured the item is
+   * dimmed — same treatment as a missing `tableCheck` table — never hidden, so
+   * the OSS UX surface stays intact. Resolved via `config.metadataDb.available`
+   * from `/api/v1/config` (see lib/menu/metadata-db.ts).
+   */
+  requiresMetadataDb?: boolean
+  /**
    * Cloud (SaaS)-only surface — hidden in self-host / OSS. Set on items that
    * make sense only in the cloud product (e.g. Billing, Organization). Filtered
    * centrally by `getVisibleMenuItems` (lib/menu/visible-items.ts) against

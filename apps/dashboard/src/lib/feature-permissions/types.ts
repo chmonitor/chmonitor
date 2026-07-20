@@ -82,6 +82,16 @@ export interface UserConnectionsPublicConfig {
   requiresAuth: boolean
 }
 
+/**
+ * Whether this deployment has a metadata database (D1 binding or a Postgres
+ * `DATABASE_URL`/`POSTGRES_URL`) for persisting app state — report
+ * subscriptions, per-user connections, shared dashboards. OSS deployments
+ * without one keep the UI surface intact but dim the menu items that need it.
+ */
+export interface MetadataDbPublicConfig {
+  available: boolean
+}
+
 export interface PublicFeaturePermissionConfig {
   authProvider: 'none' | 'clerk' | 'proxy' | 'trusted'
   principal: Principal
@@ -91,4 +101,6 @@ export interface PublicFeaturePermissionConfig {
   capabilities?: AnonymousCapabilities
   /** Per-user ClickHouse connection storage capabilities. */
   userConnections?: UserConnectionsPublicConfig
+  /** Metadata-database availability for state-persisting features. */
+  metadataDb?: MetadataDbPublicConfig
 }

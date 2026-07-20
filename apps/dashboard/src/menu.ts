@@ -170,6 +170,9 @@ export const menuItemsConfig: MenuItem[] = [
           'Weekly or monthly cluster health reports, delivered to your alert channels',
         icon: CalendarClockIcon,
         isNew: true,
+        // Subscriptions persist in the metadata DB (report-subscription-store);
+        // dimmed when the deployment has no D1/Postgres configured.
+        requiresMetadataDb: true,
       },
     ],
   },
