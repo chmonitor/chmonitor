@@ -21,7 +21,12 @@ import {
   listSubscriptionsByCadence,
   recordReportDelivery,
 } from './report-subscription-store'
-import { buildWeeklyReport } from './weekly-report'
+import { renderFleetReportHtml } from './fleet-report-html'
+import {
+  buildFleetMarkdown,
+  buildWeeklyReport,
+  type WeeklyReport,
+} from './weekly-report'
 import { persistWeeklyReport } from './weekly-report-store'
 import { warn } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
@@ -86,8 +91,9 @@ export async function runReportFanout(
         continue
       }
 
-      let delivered = false
-      const statuses: string[] = []
+      // Build + persist every subscribed host's report first (per-host
+      // persistence is unchanged — the fleet combination is delivery-only).
+      const reports: WeeklyReport[] = []
       for (const hostId of hosts) {
         let report = reportCache.get(hostId)
         if (!report) {
@@ -105,12 +111,29 @@ export async function runReportFanout(
             generatedAt: Date.now(),
           })
         }
-        const outcome = await deliverReport(sub.ownerId, report)
-        delivered = delivered || outcome.delivered
-        statuses.push(`host${hostId}[${formatDeliveryStatus(outcome)}]`)
+        reports.push(report)
       }
 
-      const status = statuses.join(' ')
+      let delivered = false
+      let status: string
+      if (reports.length > 1) {
+        // Multi-host subscription → ONE combined fleet delivery instead of N
+        // separate ones. The synthetic summary only labels the delivery
+        // (email subject) — it is never persisted.
+        const summaries = reports.map((r) => r.summary)
+        const fleetReport: WeeklyReport = {
+          summary: { ...summaries[0], hostLabel: `${summaries.length} hosts` },
+          markdown: buildFleetMarkdown(summaries, period),
+          html: renderFleetReportHtml(summaries),
+        }
+        const outcome = await deliverReport(sub.ownerId, fleetReport)
+        delivered = outcome.delivered
+        status = `fleet[${hosts.join(',')}][${formatDeliveryStatus(outcome)}]`
+      } else {
+        const outcome = await deliverReport(sub.ownerId, reports[0])
+        delivered = outcome.delivered
+        status = `host${hosts[0]}[${formatDeliveryStatus(outcome)}]`
+      }
       await recordReportDelivery(sub.ownerId, status)
       results.push({ ownerId: sub.ownerId, hosts, delivered, status })
     } catch (err) {

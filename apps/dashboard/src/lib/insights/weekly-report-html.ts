@@ -21,13 +21,14 @@
 
 import type {
   InsightSeverity,
+  ReportSeriesPoint,
   WeeklyReportCapacity,
   WeeklyReportSummary,
   WeeklyTopFinding,
 } from './types'
 
 /** Escape untrusted finding text before interpolating into markup. */
-function esc(value: string): string {
+export function esc(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -48,7 +49,7 @@ function pct(part: number, total: number): number {
   return Math.round((part / total) * 100)
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
   const i = Math.min(
@@ -185,7 +186,115 @@ const STYLE = `
     font-size: 12px; color: var(--muted-fg); line-height: 1.6;
   }
   .footer strong { color: var(--fg); font-weight: 650; }
+  .panel {
+    padding: 18px 20px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface);
+  }
+  .spark { display: block; width: 100%; height: 80px; margin-top: 12px; }
+  .spark-range {
+    display: flex; justify-content: space-between; margin-top: 4px;
+    font-size: 11px; color: var(--muted-fg); font-variant-numeric: tabular-nums;
+  }
+  .spark-lbl { font-size: 12px; color: var(--muted-fg); margin: 14px 0 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th {
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--muted-fg); padding: 0 10px 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tbl td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl .num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tbl .name { font-weight: 600; word-break: break-all; }
+  .growth { font-size: 11.5px; color: var(--muted-fg); }
+  .minibar { height: 5px; background: var(--subtle); border-radius: 999px; overflow: hidden; margin-top: 5px; min-width: 90px; }
+  .minibar span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+  .fleet-table-wrap { overflow-x: auto; }
+  .fleet-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .fleet-table th {
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--muted-fg); padding: 0 12px 8px 0;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .fleet-table td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fleet-table tr:last-child td { border-bottom: none; }
+  .fleet-table .host-name { font-weight: 650; }
+  .fleet-table .crit-n { color: var(--crit); font-weight: 700; }
+  .host-block { margin-top: 40px; padding-top: 26px; border-top: 2px solid var(--border); }
+  .host-block > h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; }
 `
+
+/** Shared inlined stylesheet, reused by the fleet renderer. */
+export const REPORT_STYLE = STYLE
+
+export function formatQuantity(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0'
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`
+  return `${Math.round(n)}`
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+/**
+ * Hand-rolled SVG paths for a sparkline/area chart from raw values.
+ * Deterministic, no external libraries. Empty input → empty paths; a single
+ * point renders as a flat line across the full width; an all-zero series sits
+ * on the baseline.
+ */
+export function sparklinePath(
+  values: readonly number[],
+  width: number,
+  height: number
+): { line: string; area: string } {
+  if (values.length === 0) return { line: '', area: '' }
+  const pad = 4
+  const max = Math.max(...values, 0)
+  const innerH = height - pad * 2
+  const y = (v: number): number =>
+    max <= 0
+      ? height - pad
+      : height - pad - (Math.max(0, v) / max) * innerH
+  if (values.length === 1) {
+    const yy = round2(y(values[0]))
+    return {
+      line: `M0,${yy} L${width},${yy}`,
+      area: `M0,${yy} L${width},${yy} L${width},${height} L0,${height} Z`,
+    }
+  }
+  const step = width / (values.length - 1)
+  const pts = values.map((v, i) => `${round2(i * step)},${round2(y(v))}`)
+  const line = `M${pts.join(' L')}`
+  return { line, area: `${line} L${width},${height} L0,${height} Z` }
+}
+
+const SPARK_W = 600
+const SPARK_H = 80
+
+/** Inline SVG area sparkline for a per-day series, with first/last date labels. */
+function renderSparkline(
+  series: readonly ReportSeriesPoint[],
+  ariaLabel: string,
+  colorVar = '--primary'
+): string {
+  if (series.length === 0) return ''
+  const { line, area } = sparklinePath(
+    series.map((p) => p.value),
+    SPARK_W,
+    SPARK_H
+  )
+  const first = series[0].date
+  const last = series[series.length - 1].date
+  return `
+    <svg class="spark" viewBox="0 0 ${SPARK_W} ${SPARK_H}" preserveAspectRatio="none" role="img" aria-label="${esc(ariaLabel)}">
+      <path d="${area}" fill="var(${colorVar})" opacity="0.12"></path>
+      <path d="${line}" fill="none" stroke="var(${colorVar})" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+    </svg>
+    <div class="spark-range"><span>${esc(first)}</span><span>${esc(last)}</span></div>`
+}
 
 function renderStatCards(s: WeeklyReportSummary): string {
   return `
@@ -290,6 +399,144 @@ function renderCapacity(cap: WeeklyReportCapacity): string {
 }
 
 /**
+ * "Query activity" section: stat tiles (total, failed %, p50, p95) plus a
+ * daily-query sparkline (and a failed-query sparkline when failures occurred).
+ * Omitted entirely when the collector produced no data.
+ */
+function renderQueryActivity(s: WeeklyReportSummary): string {
+  const qa = s.queryActivity
+  if (!qa) return ''
+  const failedPct =
+    qa.totalQueries > 0
+      ? `${((qa.failedQueries / qa.totalQueries) * 100).toFixed(1)}%`
+      : '0%'
+  const failedSpark =
+    qa.failedQueries > 0 && qa.dailyFailed.length > 0
+      ? `<p class="spark-lbl">Failed queries per day</p>${renderSparkline(qa.dailyFailed, 'Failed queries per day', '--crit')}`
+      : ''
+  return `
+    <section>
+      <p class="sec-title">Query activity</p>
+      <div class="panel">
+        <div class="stat-row" style="margin-top:0">
+          <div class="stat"><div class="num">${formatQuantity(qa.totalQueries)}</div><div class="lbl">Queries</div></div>
+          <div class="stat ${qa.failedQueries > 0 ? 'crit' : ''}"><div class="num">${failedPct}</div><div class="lbl">${formatQuantity(qa.failedQueries)} failed</div></div>
+          <div class="stat"><div class="num">${qa.p50Ms}<span style="font-size:14px">ms</span></div><div class="lbl">p50 duration</div></div>
+          <div class="stat"><div class="num">${qa.p95Ms}<span style="font-size:14px">ms</span></div><div class="lbl">p95 duration</div></div>
+        </div>
+        <p class="spark-lbl">Queries per day</p>
+        ${renderSparkline(qa.dailyQueries, 'Queries per day')}
+        ${failedSpark}
+      </div>
+    </section>`
+}
+
+/**
+ * "Ingestion" section: INSERT-written totals plus a daily-bytes sparkline and
+ * a daily-rows sparkline. Omitted when the collector produced no data.
+ */
+function renderIngestion(s: WeeklyReportSummary): string {
+  const ing = s.ingestion
+  if (!ing) return ''
+  const days = Math.max(1, ing.dailyBytes.length)
+  return `
+    <section>
+      <p class="sec-title">Ingestion</p>
+      <div class="panel">
+        <div class="stat-row" style="margin-top:0">
+          <div class="stat"><div class="num">${formatBytes(ing.totalBytes)}</div><div class="lbl">Written (uncompressed)</div></div>
+          <div class="stat"><div class="num">${formatQuantity(ing.totalRows)}</div><div class="lbl">Rows inserted</div></div>
+          <div class="stat"><div class="num">${formatBytes(ing.totalBytes / days)}</div><div class="lbl">Avg per day</div></div>
+        </div>
+        <p class="spark-lbl">Bytes written per day</p>
+        ${renderSparkline(ing.dailyBytes, 'Bytes written per day')}
+        <p class="spark-lbl">Rows written per day</p>
+        ${renderSparkline(ing.dailyRows, 'Rows written per day')}
+      </div>
+    </section>`
+}
+
+/**
+ * "Storage" section: cluster totals + top tables by size with relative size
+ * bars and window-growth annotations. Omitted when the collector produced no
+ * data.
+ */
+function renderStorage(s: WeeklyReportSummary): string {
+  const st = s.storage
+  if (!st) return ''
+  const maxBytes = Math.max(...st.topTables.map((t) => t.bytes), 0)
+  const rows = st.topTables
+    .map(
+      (t) => `
+      <tr>
+        <td>
+          <div class="name">${esc(t.table)}</div>
+          <div class="minibar"><span style="width:${pct(t.bytes, maxBytes)}%"></span></div>
+        </td>
+        <td class="num-cell">${formatBytes(t.bytes)}</td>
+        <td class="num-cell">${formatQuantity(t.rows)}</td>
+        <td class="num-cell"><span class="growth">${t.newBytes > 0 ? `+${formatBytes(t.newBytes)}` : '—'}</span></td>
+      </tr>`
+    )
+    .join('')
+  const table =
+    st.topTables.length === 0
+      ? ''
+      : `
+        <table class="tbl" style="margin-top:16px">
+          <thead><tr><th>Table</th><th style="text-align:right">Size</th><th style="text-align:right">Rows</th><th style="text-align:right">Written this window</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`
+  return `
+    <section>
+      <p class="sec-title">Storage</p>
+      <div class="panel">
+        <div class="stat-row" style="margin-top:0">
+          <div class="stat"><div class="num">${formatBytes(st.totalBytes)}</div><div class="lbl">On disk (active parts)</div></div>
+          <div class="stat"><div class="num">${formatQuantity(st.totalRows)}</div><div class="lbl">Total rows</div></div>
+        </div>
+        ${table}
+      </div>
+    </section>`
+}
+
+/**
+ * A host's full report body — hero card plus every section — WITHOUT the
+ * document wrapper or the footer. Reused verbatim by the fleet renderer
+ * (`fleet-report-html.ts`) so per-host sections stay identical either way.
+ */
+export function renderHostSections(s: WeeklyReportSummary): string {
+  return `
+    <div class="card">
+      <div class="hero">
+        <p class="eyebrow">chmonitor · ${s.period === 'monthly' ? 'Monthly' : 'Weekly'} digest</p>
+        <h1>${esc(s.hostLabel)}</h1>
+        <p class="window">${esc(s.weekStart)} → ${esc(s.weekEnd)} · generated ${esc(s.generatedAt.slice(0, 10))}</p>
+        ${renderStatCards(s)}
+        ${renderSeverityBar(s)}
+      </div>
+    </div>
+
+    ${renderQueryActivity(s)}
+
+    ${renderIngestion(s)}
+
+    <section>
+      <p class="sec-title">Top findings</p>
+      ${renderTopFindings(s)}
+    </section>
+
+    ${renderCategories(s)}
+
+    ${renderStorage(s)}
+
+    <section>
+      <p class="sec-title">Capacity outlook</p>
+      ${renderCapacity(s.capacity)}
+    </section>`
+}
+
+/**
  * Render a {@link WeeklyReportSummary} into a fully self-contained,
  * presentation-quality HTML document. Pure and deterministic.
  */
@@ -306,27 +553,7 @@ export function renderWeeklyReportHtml(s: WeeklyReportSummary): string {
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <div class="hero">
-        <p class="eyebrow">chmonitor · Weekly digest</p>
-        <h1>${esc(s.hostLabel)}</h1>
-        <p class="window">${esc(s.weekStart)} → ${esc(s.weekEnd)} · generated ${esc(s.generatedAt.slice(0, 10))}</p>
-        ${renderStatCards(s)}
-        ${renderSeverityBar(s)}
-      </div>
-    </div>
-
-    <section>
-      <p class="sec-title">Top findings</p>
-      ${renderTopFindings(s)}
-    </section>
-
-    ${renderCategories(s)}
-
-    <section>
-      <p class="sec-title">Capacity outlook</p>
-      ${renderCapacity(s.capacity)}
-    </section>
+    ${renderHostSections(s)}
 
     <div class="footer">
       <strong>How this report was built.</strong> Composed automatically from

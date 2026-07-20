@@ -74,8 +74,12 @@ mock.module('../weekly-report-store', () => ({
 // mock.module, so the module-under-test's graph (which transitively imports the
 // virtual `cloudflare:workers` module via platform-native) must be loaded lazily
 // for the stubs to take effect. Mirrors retention-owner.test.ts.
-const { buildWeeklyReport, parseOptedInHosts, runWeeklyReportForHost } =
-  await import('../weekly-report')
+const {
+  buildFleetMarkdown,
+  buildWeeklyReport,
+  parseOptedInHosts,
+  runWeeklyReportForHost,
+} = await import('../weekly-report')
 const { renderWeeklyReportHtml } = await import('../weekly-report-html')
 const { resetInsightsStoreCache, resolveInsightsStore } = await import(
   '../store/resolve-store'
@@ -231,6 +235,21 @@ describe('renderWeeklyReportHtml', () => {
     expect(html).not.toContain('<script>alert(1)</script>')
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
     expect(html).toContain('x &amp; y &lt; z')
+  })
+})
+
+describe('buildFleetMarkdown', () => {
+  test('combines per-host summaries into one digest with a fleet overview', async () => {
+    const { summary } = await buildWeeklyReport(0, 'prod-eu')
+    const second = { ...summary, hostId: 1, hostLabel: 'staging-us' }
+    const md = buildFleetMarkdown([summary, second], 'weekly')
+
+    expect(md).toContain('Weekly Health Report — 2 hosts')
+    expect(md).toContain('## Fleet overview')
+    expect(md).toContain('**prod-eu**')
+    expect(md).toContain('**staging-us**')
+    // Per-host top-finding highlight lines.
+    expect(md).toContain('replication queue backing up')
   })
 })
 

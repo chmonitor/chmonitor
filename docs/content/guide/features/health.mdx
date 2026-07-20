@@ -194,6 +194,12 @@ The `*/10` cadence (rather than `*/5`) leaves CPU-time headroom: the sweep also 
 
 Beyond the health-sweep, a second cron job builds a **proactive weekly HTML report** per opted-in host: a 7-day narrative combining the AI insights engine's top findings, the number of adaptive statistical baselines fitted to that cluster, and a disk-capacity outlook from the capacity forecaster.
 
+Each report also includes real cluster data over the window, when the host's system tables allow it (each section is fail-open and simply omitted otherwise):
+
+- **Query activity** — total and failed query counts, p50/p95 duration, and a per-day sparkline (from `system.query_log`).
+- **Ingestion** — rows and bytes written by INSERTs per day, with sparklines (from `system.query_log`; uncompressed measurement, same model as the Traffic page).
+- **Storage** — total on-disk size plus the top 5 tables by size, each annotated with the bytes written during the window (from active `system.parts`).
+
 Reports are **opt-in, never opt-out** — set `CHM_WEEKLY_REPORT_HOSTS` to a comma-separated list of host indices (e.g. `0,2`) to enable it for those hosts. Leave it unset and no reports are generated, so a self-hosted deployment stays quiet by default.
 
 | Variable | Default | Description |
@@ -230,6 +236,7 @@ Beyond the env-var opt-in above, **Scheduled Reports** (`/report-settings` in th
 - **Generate now** — build a fresh report on demand and open/download the self-contained HTML. Works on any deployment with zero delivery configuration (`POST /api/v1/reports/generate`).
 - **Send test report** — deliver one immediately through your configured channels and see the per-channel outcome (`POST /api/v1/reports/test-send`).
 - **Audit** — the subscription stores the last delivery time and a compact per-channel status.
+- **Fleet report** — a subscription covering **more than one host** is delivered as ONE combined fleet report instead of N separate ones: a comparison table (findings, critical, queries, ingested bytes, disk %) followed by each host's full sections. Per-host reports are still persisted individually.
 
 Subscriptions live in the `report_subscriptions` D1 table (owner-scoped, like alert channels); deployments without D1 keep the env-var webhook flow and the on-demand Generate button. The AI agent can also produce the same report conversationally via its `generate_cluster_report` tool.
 
