@@ -433,6 +433,23 @@ Configure a backend at runtime via `CONVERSATION_STORE_BACKEND`.
 See [Conversation history — backends](/guide/ai-agent/conversation-history/backends)
 for setup and fallback behavior.
 
+**ClickHouse state backend (self-hosted):**
+
+Persists dashboards and per-user connections in your own ClickHouse instead of
+Cloudflare D1 or Postgres. Opt-in; tables are created lazily
+(`CREATE TABLE IF NOT EXISTS`, `ReplacingMergeTree`). Resolution order per
+store: D1 binding → ClickHouse state env → Postgres env → local/memory.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_STATE_CLICKHOUSE_URL` | — | ClickHouse HTTP(S) URL for state storage. Setting it enables the backend. |
+| `CHM_STATE_CLICKHOUSE_USER` | `default` | ClickHouse user (needs CREATE/INSERT/SELECT/DELETE on the state database). |
+| `CHM_STATE_CLICKHOUSE_PASSWORD` | (empty) | ClickHouse password (secret). |
+| `CHM_STATE_CLICKHOUSE_DATABASE` | `chmonitor` | Database holding the state tables. |
+| `CHM_STATE_CLICKHOUSE_TABLE_PREFIX` | `chm_state_` | Prefix for the state tables (`chm_state_dashboards`, `chm_state_user_connections`). |
+
+See [Self-hosted state backends](/operate/advanced/state-backends) for setup.
+
 ## User connections (server storage)
 
 Let signed-in users save personal ClickHouse hosts to the server. All **four** of

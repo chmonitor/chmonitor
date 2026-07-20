@@ -1,0 +1,77 @@
+---
+title: Self-Hosted State Backends
+description: Persist dashboards, per-user connections, and conversations in your own ClickHouse or Postgres instead of Cloudflare D1 — env vars and resolution order for Docker and Kubernetes deployments.
+icon: Database
+---
+
+Self-hosted (Docker / Kubernetes) deployments can persist UI-monitoring state —
+saved **dashboards**, per-user **connections**, and agent **conversations** —
+in a database you operate, instead of Cloudflare D1 (which only exists on the
+hosted Workers deployment). Without a backend, dashboards fall back to browser
+`localStorage` and conversations to memory.
+
+Two self-hosted backends are supported:
+
+- **ClickHouse** — reuse (or dedicate) a ClickHouse instance via
+  `CHM_STATE_CLICKHOUSE_*`. Tables are created lazily
+  (`CREATE TABLE IF NOT EXISTS`, `ReplacingMergeTree`) — no migrations to run.
+- **Postgres** — via `DATABASE_URL` / `POSTGRES_URL`. Tables are also created
+  lazily on first use.
+
+## Resolution order
+
+Each store resolves its backend at runtime, fail-open and OSS-first:
+
+1. Explicit backend override, where one exists
+   (`CONVERSATION_STORE_BACKEND` for conversations)
+2. Cloudflare D1 binding (`CHM_CLOUD_D1`, hosted deployment only)
+3. ClickHouse state env (`CHM_STATE_CLICKHOUSE_URL` set) — dashboards and
+   connections
+4. Postgres env (`DATABASE_URL` / `POSTGRES_URL` / `POSTGRES_PRISMA_URL`)
+5. Fallback: `localStorage` (dashboards) / memory (conversations)
+
+Server-side dashboard and connection storage additionally requires the
+per-user feature gates (`CHM_FEATURE_CONVERSATION_DB` /
+`CHM_FEATURE_USER_CONNECTIONS_DB`) and an auth provider, since rows are keyed
+by user id — see [Environment variables](/reference/environment-variables).
+
+## ClickHouse state backend
+
+```bash
+# Required — enables the backend
+CHM_STATE_CLICKHOUSE_URL=http://clickhouse:8123
+
+# Optional
+CHM_STATE_CLICKHOUSE_USER=default          # default: default
+CHM_STATE_CLICKHOUSE_PASSWORD=             # default: empty
+CHM_STATE_CLICKHOUSE_DATABASE=chmonitor    # default: chmonitor
+CHM_STATE_CLICKHOUSE_TABLE_PREFIX=chm_state_  # default: chm_state_
+```
+
+The user needs `CREATE DATABASE` / `CREATE TABLE`, `INSERT`, `SELECT`, and
+lightweight `DELETE` permissions on the state database. Tables
+(`chm_state_dashboards`, `chm_state_user_connections`) use
+`ReplacingMergeTree(updated_at)` with `FINAL` reads, so updates are plain
+inserts and no mutations are required for normal operation.
+
+This can be the same ClickHouse you monitor, but a monitoring user is often
+read-only — point `CHM_STATE_CLICKHOUSE_USER` at a writable account (or a
+separate small instance) if so.
+
+## Postgres state backend
+
+```bash
+DATABASE_URL=postgres://user:pass@host:5432/chmonitor
+# or POSTGRES_URL / POSTGRES_PRISMA_URL
+```
+
+One connection string serves all three stores (`user_connections`,
+`dashboards`, and the conversation tables).
+
+## Related
+
+<Cards>
+  <Card title="Environment variables" href="/reference/environment-variables" description="Full reference for every CHM_* variable, including the state backends." />
+  <Card title="Conversation store backends" href="/guide/ai-agent/conversation-history/backends" description="Per-backend setup for conversation history persistence." />
+  <Card title="Deploy with Docker" href="/operate/deploy/docker" description="Compose-based self-hosted deployment." />
+</Cards>
