@@ -24,11 +24,11 @@ import type {
 
 import { decryptCredentials, encryptCredentials } from './crypto'
 import { allocateDbHostId, ConnectionStoreError } from './types'
+import { DEFAULT_SOURCE_ENGINE, parseSourceEngine } from '@chm/types'
 import {
   StateClickHouseClient,
   type StateClickHouseExecutor,
 } from '@/lib/state-backend/clickhouse-client'
-import { DEFAULT_SOURCE_ENGINE, parseSourceEngine } from '@chm/types'
 
 interface ClickHouseUserConnectionRow {
   id: string

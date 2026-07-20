@@ -3,11 +3,11 @@ import type { ConnectionStore } from './types'
 import { D1ConnectionStore } from './d1-store'
 import { getUserConnectionsServerConfig } from './server-feature'
 import { ConnectionStoreError } from './types'
+import { getPlatformBindings } from '@chm/platform'
 import {
   getStateClickHouseConfig,
   getStatePostgresUrl,
 } from '@/lib/state-backend/config'
-import { getPlatformBindings } from '@chm/platform'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 

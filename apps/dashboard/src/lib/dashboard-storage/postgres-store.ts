@@ -19,8 +19,8 @@ import type {
 } from './types'
 
 import { DashboardStoreError } from './types'
-import { normalizeLayout } from '@/types/dashboard-layout'
 import postgres from 'postgres'
+import { normalizeLayout } from '@/types/dashboard-layout'
 
 interface PostgresDashboardRow {
   id: string

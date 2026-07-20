@@ -6,10 +6,10 @@
  * use FINAL, and the empty-share-slug guard.
  */
 
-import { describe, expect, mock, test } from 'bun:test'
-
 import type { StateClickHouseExecutor } from '@/lib/state-backend/clickhouse-client'
 import type { StateClickHouseConfig } from '@/lib/state-backend/config'
+
+import { describe, expect, mock, test } from 'bun:test'
 
 mock.module('@chm/platform', () => ({
   getPlatformBindings: () => ({ getD1Database: () => undefined }),

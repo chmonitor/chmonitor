@@ -4,14 +4,13 @@
  * precedence shared by the three UI-state stores.
  */
 
-import { describe, expect, test } from 'bun:test'
-
 import {
   DEFAULT_STATE_CLICKHOUSE_DATABASE,
   DEFAULT_STATE_CLICKHOUSE_TABLE_PREFIX,
   getStateClickHouseConfig,
   getStatePostgresUrl,
 } from './config'
+import { describe, expect, test } from 'bun:test'
 
 describe('getStateClickHouseConfig', () => {
   test('returns null when CHM_STATE_CLICKHOUSE_URL is unset or blank', () => {

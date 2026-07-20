@@ -17,11 +17,11 @@
 import type { DashboardStore } from './types'
 
 import { D1DashboardStore } from './d1-store'
+import { getPlatformBindings } from '@chm/platform'
 import {
   getStateClickHouseConfig,
   getStatePostgresUrl,
 } from '@/lib/state-backend/config'
-import { getPlatformBindings } from '@chm/platform'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 
