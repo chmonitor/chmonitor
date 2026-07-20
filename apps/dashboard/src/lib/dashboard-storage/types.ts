@@ -45,11 +45,12 @@ export interface PublicSharedDashboard {
 }
 
 /**
- * Dashboard storage adapter interface. `D1DashboardStore` (server-only) is
- * the sole persistent backend today (Postgres is explicitly out of scope —
- * see plans/56-dashboard-d1-persistence-sharing.md); the client-side
- * fallback when D1 is unavailable is `local-store.ts` (localStorage), which
- * does not implement this interface (it has no owner/sharing concept).
+ * Dashboard storage adapter interface. Server-only persistent backends:
+ * `D1DashboardStore` (Cloudflare), `ClickHouseDashboardStore` and
+ * `PostgresDashboardStore` (self-hosted, resolved via
+ * `resolve-server-store.ts`); the client-side fallback when no server
+ * backend is available is `local-store.ts` (localStorage), which does not
+ * implement this interface (it has no owner/sharing concept).
  */
 export interface DashboardStore {
   list(ownerId: string): Promise<StoredDashboard[]>

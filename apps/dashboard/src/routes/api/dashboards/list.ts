@@ -20,7 +20,7 @@ import {
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { resolveDashboardOwnerId } from '@/lib/dashboard-storage/auth'
-import { D1DashboardStore } from '@/lib/dashboard-storage/d1-store'
+import { resolveDashboardStore } from '@/lib/dashboard-storage/resolve-server-store'
 import { DashboardStoreError } from '@/lib/dashboard-storage/types'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
@@ -49,7 +49,7 @@ async function handleGet(): Promise<Response> {
     const ownerId = await resolveDashboardOwnerId()
     debug('[GET /api/dashboards/list] Owner resolved', { ownerId, requestId })
 
-    const store = new D1DashboardStore()
+    const store = await resolveDashboardStore()
     const dashboards = await store.list(ownerId)
 
     const responseData = dashboards.map((d) => ({

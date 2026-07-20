@@ -24,7 +24,7 @@ import {
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { resolveDashboardOwnerId } from '@/lib/dashboard-storage/auth'
-import { D1DashboardStore } from '@/lib/dashboard-storage/d1-store'
+import { resolveDashboardStore } from '@/lib/dashboard-storage/resolve-server-store'
 import { DashboardStoreError } from '@/lib/dashboard-storage/types'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
@@ -98,7 +98,7 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    const store = new D1DashboardStore()
+    const store = await resolveDashboardStore()
     const saved = await store.saveByName(
       ownerId,
       validated.name,

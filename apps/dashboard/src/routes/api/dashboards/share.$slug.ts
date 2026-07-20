@@ -44,7 +44,7 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
-import { D1DashboardStore } from '@/lib/dashboard-storage/d1-store'
+import { resolveDashboardStore } from '@/lib/dashboard-storage/resolve-server-store'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
 
@@ -96,7 +96,7 @@ async function handleGet(request: Request, slug: string): Promise<Response> {
       )
     }
 
-    const store = new D1DashboardStore()
+    const store = await resolveDashboardStore()
     const dashboard = await store.getByShareSlug(slug)
 
     if (!dashboard) {

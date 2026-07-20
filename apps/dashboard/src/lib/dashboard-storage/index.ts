@@ -6,11 +6,12 @@
  *
  * Backend selection mirrors
  * `conversation-store/adapter/resolve-thread-list-adapter.ts`:
- *   - D1 available (Cloudflare deployment with conversation/dashboard
- *     storage enabled) → persisted server-side per owner, synced across
- *     devices, with optional read-only sharing.
- *   - Otherwise (self-hosted/Docker, or D1 disabled) → localStorage, scoped
- *     to the browser profile.
+ *   - Server-side storage enabled → persisted server-side per owner, synced
+ *     across devices, with optional read-only sharing. The actual server
+ *     backend (D1 on Cloudflare, or ClickHouse/Postgres on self-hosted —
+ *     see `resolve-server-store.ts`) is resolved inside the
+ *     `/api/dashboards/*` routes; the client only knows "remote vs local".
+ *   - Otherwise → localStorage, scoped to the browser profile.
  *
  * Deliberately reuses `featureFlags.conversationDb()` rather than adding a
  * dedicated `dashboardDb` flag: both features persist into the same
