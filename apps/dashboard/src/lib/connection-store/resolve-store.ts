@@ -3,10 +3,13 @@ import type { ConnectionStore } from './types'
 import { D1ConnectionStore } from './d1-store'
 import { getUserConnectionsServerConfig } from './server-feature'
 import { ConnectionStoreError } from './types'
+import {
+  getStateClickHouseConfig,
+  getStatePostgresUrl,
+} from '@/lib/state-backend/config'
 import { getPlatformBindings } from '@chm/platform'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
-const DATABASE_URL = 'DATABASE_URL'
 
 export async function resolveConnectionStore(): Promise<ConnectionStore> {
   const config = getUserConnectionsServerConfig()
@@ -26,7 +29,15 @@ export async function resolveConnectionStore(): Promise<ConnectionStore> {
     // not CF
   }
 
-  if (process.env[DATABASE_URL] || process.env.POSTGRES_URL) {
+  // Self-hosted ClickHouse state backend (CHM_STATE_CLICKHOUSE_*) — checked
+  // after D1 (Cloud unchanged) and before Postgres.
+  const chConfig = getStateClickHouseConfig()
+  if (chConfig) {
+    const { ClickHouseConnectionStore } = await import('./clickhouse-store')
+    return new ClickHouseConnectionStore(chConfig)
+  }
+
+  if (getStatePostgresUrl()) {
     const { PostgresConnectionStore } = await import('./postgres-store')
     return new PostgresConnectionStore()
   }
