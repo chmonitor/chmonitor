@@ -19,12 +19,12 @@ import { ConversationStoreError } from './types'
 // first and never hits this branch.
 import { getPlatformBindings } from '@chm/platform'
 import { featureFlags } from '@/lib/feature-flags'
+import { getStatePostgresUrl } from '@/lib/state-backend/config'
 
 /**
  * Environment variable names for database configuration.
  */
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
-const DATABASE_URL = 'DATABASE_URL'
 const AGENTSTATE_API_KEY = 'AGENTSTATE_API_KEY'
 const AGENTSTATE_BASE_URL = 'AGENTSTATE_BASE_URL'
 const AGENTSTATE_AI_ENRICH = 'AGENTSTATE_AI_ENRICH'
@@ -38,7 +38,7 @@ const CONVERSATION_STORE_BACKEND = 'CONVERSATION_STORE_BACKEND'
  * 2. AgentState (forced via CONVERSATION_STORE_BACKEND=agentstate, or when
  *    AGENTSTATE_API_KEY is set and no other backend is explicitly forced)
  * 3. D1 binding available → D1Store (Cloudflare D1)
- * 4. DATABASE_URL env var → PostgresStore
+ * 4. DATABASE_URL / POSTGRES_URL env var → PostgresStore
  * 5. No database config → MemoryStore with warning
  *
  * @returns Promise resolving to ConversationStore instance
@@ -92,9 +92,10 @@ export async function resolveStore(): Promise<ConversationStore> {
   // 4. Check for Postgres DATABASE_URL (traditional database, Node-only path).
   // Dynamic import keeps the `postgres` package out of the Cloudflare Workers
   // bundle — workerd never reaches this branch (D1 is resolved above).
-  if (process.env[DATABASE_URL]) {
+  const postgresUrl = getStatePostgresUrl()
+  if (postgresUrl) {
     const { PostgresStore } = await import('./postgres-store')
-    return new PostgresStore(process.env[DATABASE_URL])
+    return new PostgresStore(postgresUrl)
   }
 
   // 5. Fallback to MemoryStore with warning
