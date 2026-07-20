@@ -10,15 +10,11 @@
  * fleet renderer emits the comparison table plus every host's sections.
  */
 
-import { describe, expect, test } from 'bun:test'
-
 import type { WeeklyReportSummary } from '../types'
 
 import { renderFleetReportHtml } from '../fleet-report-html'
-import {
-  renderWeeklyReportHtml,
-  sparklinePath,
-} from '../weekly-report-html'
+import { renderWeeklyReportHtml, sparklinePath } from '../weekly-report-html'
+import { describe, expect, test } from 'bun:test'
 
 function baseSummary(
   overrides: Partial<WeeklyReportSummary> = {}

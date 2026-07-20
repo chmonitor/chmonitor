@@ -194,7 +194,9 @@ function clusterDataLines(summary: WeeklyReportSummary): string[] {
   const st = summary.storage
   if (st) {
     const top = st.topTables[0]
-    const topLine = top ? ` · largest table ${top.table} (${fmtBytes(top.bytes)})` : ''
+    const topLine = top
+      ? ` · largest table ${top.table} (${fmtBytes(top.bytes)})`
+      : ''
     lines.push(
       `- **Storage:** ${fmtBytes(st.totalBytes)} across ${fmtQty(st.totalRows)} rows (active parts)${topLine}`
     )

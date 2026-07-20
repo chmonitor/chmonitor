@@ -255,9 +255,7 @@ export function sparklinePath(
   const max = Math.max(...values, 0)
   const innerH = height - pad * 2
   const y = (v: number): number =>
-    max <= 0
-      ? height - pad
-      : height - pad - (Math.max(0, v) / max) * innerH
+    max <= 0 ? height - pad : height - pad - (Math.max(0, v) / max) * innerH
   if (values.length === 1) {
     const yy = round2(y(values[0]))
     return {

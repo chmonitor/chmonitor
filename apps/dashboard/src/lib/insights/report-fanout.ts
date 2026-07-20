@@ -16,12 +16,12 @@
 
 import type { ReportPeriod } from './types'
 
+import { renderFleetReportHtml } from './fleet-report-html'
 import { deliverReport, formatDeliveryStatus } from './report-delivery'
 import {
   listSubscriptionsByCadence,
   recordReportDelivery,
 } from './report-subscription-store'
-import { renderFleetReportHtml } from './fleet-report-html'
 import {
   buildFleetMarkdown,
   buildWeeklyReport,
