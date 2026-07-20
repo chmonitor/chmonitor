@@ -23,6 +23,11 @@ import type {
 } from './types'
 
 import { listBaselines } from './baseline-store'
+import {
+  collectIngestion,
+  collectQueryActivity,
+  collectStorage,
+} from './report-metrics'
 import { resolveInsightsStore } from './store/resolve-store'
 import { INSIGHT_SOURCES, insightKey } from './types'
 import { renderWeeklyReportHtml } from './weekly-report-html'
@@ -149,7 +154,55 @@ function capacityLine(capacity: WeeklyReportCapacity): string {
   return capacity.explanation
 }
 
-function buildMarkdown(summary: WeeklyReportSummary): string {
+function fmtBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+  const i = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(bytes) / Math.log(1024))
+  )
+  return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+function fmtQty(n: number): string {
+  if (!Number.isFinite(n)) return '0'
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`
+  return `${Math.round(n)}`
+}
+
+/** Brief cluster-data bullets (query/ingestion/storage) — only when collected. */
+function clusterDataLines(summary: WeeklyReportSummary): string[] {
+  const lines: string[] = []
+  const qa = summary.queryActivity
+  if (qa) {
+    const failedPct =
+      qa.totalQueries > 0
+        ? ` (${((qa.failedQueries / qa.totalQueries) * 100).toFixed(1)}% failed)`
+        : ''
+    lines.push(
+      `- **Query activity:** ${fmtQty(qa.totalQueries)} queries, ${fmtQty(qa.failedQueries)} failed${failedPct} · p50 ${qa.p50Ms}ms · p95 ${qa.p95Ms}ms`
+    )
+  }
+  const ing = summary.ingestion
+  if (ing) {
+    lines.push(
+      `- **Ingestion:** ${fmtQty(ing.totalRows)} rows / ${fmtBytes(ing.totalBytes)} written by INSERTs`
+    )
+  }
+  const st = summary.storage
+  if (st) {
+    const top = st.topTables[0]
+    const topLine = top ? ` · largest table ${top.table} (${fmtBytes(top.bytes)})` : ''
+    lines.push(
+      `- **Storage:** ${fmtBytes(st.totalBytes)} across ${fmtQty(st.totalRows)} rows (active parts)${topLine}`
+    )
+  }
+  return lines
+}
+
+export function buildMarkdown(summary: WeeklyReportSummary): string {
   const { bySeverity } = summary
   const period = summary.period ?? 'weekly'
   const lines: string[] = []
@@ -169,6 +222,7 @@ function buildMarkdown(summary: WeeklyReportSummary): string {
   lines.push(
     `- **${summary.baselinesFitted} metrics** have adaptive statistical baselines fitted to this cluster (vs. fixed defaults)`
   )
+  lines.push(...clusterDataLines(summary))
   lines.push('')
   lines.push('## Top findings')
   if (summary.topFindings.length === 0) {
@@ -196,6 +250,56 @@ function buildMarkdown(summary: WeeklyReportSummary): string {
       `(\`/agents?host=${summary.hostId}\`) to dig deeper into any finding above.`
   )
 
+  return lines.join('\n')
+}
+
+/**
+ * Markdown digest for a fleet (multi-host) report: one comparison line per
+ * host, then per-host top-finding highlights. Used by the fan-out when a
+ * subscription covers more than one host, so the owner gets ONE combined
+ * digest instead of N separate deliveries.
+ */
+export function buildFleetMarkdown(
+  summaries: readonly WeeklyReportSummary[],
+  period: ReportPeriod = 'weekly'
+): string {
+  const first = summaries[0]
+  const lines: string[] = []
+  lines.push(
+    `# ${PERIOD_LABEL[period]} Health Report — ${summaries.length} hosts`
+  )
+  if (first) {
+    lines.push(
+      `**Window:** ${first.weekStart} → ${first.weekEnd} · Generated ${first.generatedAt}`
+    )
+  }
+  lines.push('')
+  lines.push('## Fleet overview')
+  for (const s of summaries) {
+    const parts = [
+      `${s.totalFindings} findings (${s.bySeverity.critical} critical)`,
+    ]
+    if (s.queryActivity)
+      parts.push(`${fmtQty(s.queryActivity.totalQueries)} queries`)
+    if (s.ingestion) parts.push(`${fmtBytes(s.ingestion.totalBytes)} ingested`)
+    if (s.capacity.available) {
+      const used = Math.max(0, s.capacity.totalBytes - s.capacity.freeBytes)
+      if (s.capacity.totalBytes > 0)
+        parts.push(
+          `disk ${Math.round((used / s.capacity.totalBytes) * 100)}% used`
+        )
+    }
+    lines.push(`- **${s.hostLabel}** — ${parts.join(' · ')}`)
+  }
+  lines.push('')
+  for (const s of summaries) {
+    const top = s.topFindings[0]
+    if (top) {
+      lines.push(
+        `- ${s.hostLabel}: **[${top.severity.toUpperCase()}] ${top.title}** — ${top.detail}`
+      )
+    }
+  }
   return lines.join('\n')
 }
 
@@ -260,6 +364,15 @@ export async function buildWeeklyReport(
     )
   }
 
+  // Data-rich sections (query activity / ingestion / storage). Each collector
+  // is independently fail-open and returns undefined on any error, so a host
+  // without query_log access still gets a findings-only report.
+  const [queryActivity, ingestion, storage] = await Promise.all([
+    collectQueryActivity(hostId, windowDays),
+    collectIngestion(hostId, windowDays),
+    collectStorage(hostId, windowDays),
+  ])
+
   let capacity: WeeklyReportCapacity
   try {
     capacity = await forecastDiskFull(hostId)
@@ -284,6 +397,9 @@ export async function buildWeeklyReport(
     topFindings,
     baselinesFitted,
     capacity,
+    ...(queryActivity ? { queryActivity } : {}),
+    ...(ingestion ? { ingestion } : {}),
+    ...(storage ? { storage } : {}),
   }
 
   return {

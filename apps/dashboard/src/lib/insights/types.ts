@@ -33,6 +33,56 @@ export type WeeklyReportCapacity =
 /** Report cadence: weekly (7-day window) or monthly (30-day window). */
 export type ReportPeriod = 'weekly' | 'monthly'
 
+/** One per-day point in a report time series (`date` = `YYYY-MM-DD`). */
+export interface ReportSeriesPoint {
+  readonly date: string
+  readonly value: number
+}
+
+/**
+ * Query-activity section data over the report window (system.query_log).
+ * Daily series are capped at 31 points (one per day, monthly window max).
+ */
+export interface WeeklyReportQueryActivity {
+  readonly totalQueries: number
+  readonly failedQueries: number
+  /** Median finished-query duration over the window, milliseconds. */
+  readonly p50Ms: number
+  /** 95th-percentile finished-query duration over the window, milliseconds. */
+  readonly p95Ms: number
+  readonly dailyQueries: readonly ReportSeriesPoint[]
+  readonly dailyFailed: readonly ReportSeriesPoint[]
+}
+
+/** Ingestion section data: INSERT-written rows/bytes per day (system.query_log). */
+export interface WeeklyReportIngestion {
+  readonly totalRows: number
+  readonly totalBytes: number
+  readonly dailyRows: readonly ReportSeriesPoint[]
+  readonly dailyBytes: readonly ReportSeriesPoint[]
+}
+
+/** One of the top-N tables by on-disk size (system.parts, active). */
+export interface WeeklyReportTopTable {
+  /** Fully qualified `database.table`. */
+  readonly table: string
+  readonly bytes: number
+  readonly rows: number
+  /**
+   * Bytes in active parts (re)written within the report window
+   * (`modification_time` in window). An approximation of recent growth —
+   * merges rewrite parts, so this can overstate net new data.
+   */
+  readonly newBytes: number
+}
+
+/** Storage section data: cluster totals + top tables (system.parts, active). */
+export interface WeeklyReportStorage {
+  readonly totalBytes: number
+  readonly totalRows: number
+  readonly topTables: readonly WeeklyReportTopTable[]
+}
+
 /** Compact, JSON-serializable summary of a host's weekly report. */
 export interface WeeklyReportSummary {
   readonly hostId: number
@@ -54,6 +104,15 @@ export interface WeeklyReportSummary {
   /** Count of metrics with a fitted statistical baseline (plan 48). */
   readonly baselinesFitted: number
   readonly capacity: WeeklyReportCapacity
+  /**
+   * Optional data-rich sections (query activity, ingestion, storage). All are
+   * OPTIONAL and fail-open: absent when the collector failed or the section
+   * predates them (persisted summaries re-render from stored JSON, so old rows
+   * must keep parsing). Renderers omit a section entirely when absent.
+   */
+  readonly queryActivity?: WeeklyReportQueryActivity
+  readonly ingestion?: WeeklyReportIngestion
+  readonly storage?: WeeklyReportStorage
 }
 
 /** A recommended next step the operator can take for an insight. */
