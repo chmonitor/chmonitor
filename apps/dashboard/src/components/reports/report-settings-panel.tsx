@@ -12,7 +12,7 @@
  *    duplicated here.
  */
 
-import { FileTextIcon, SendIcon } from 'lucide-react'
+import { DownloadIcon, FileTextIcon, SendIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { ReportCadence } from '@/lib/insights/report-subscription-store'
@@ -67,7 +67,7 @@ export function ReportSettingsPanel() {
   const [lastSentAt, setLastSentAt] = useState<number | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [busy, setBusy] = useState<'generate' | 'test' | null>(null)
+  const [busy, setBusy] = useState<'generate' | 'test' | 'pdf' | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -147,6 +147,46 @@ export function ReportSettingsPanel() {
       }
       const blob = new Blob([data.html], { type: 'text/html' })
       window.open(URL.createObjectURL(blob), '_blank', 'noopener')
+    } finally {
+      setBusy(null)
+    }
+  }, [currentHostId])
+
+  const downloadPdf = useCallback(async () => {
+    setBusy('pdf')
+    try {
+      const res = await apiFetch('/api/v1/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: currentHostId, format: 'pdf' }),
+      })
+      const contentType = res.headers.get('Content-Type') ?? ''
+      if (res.ok && contentType.includes('application/pdf')) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `report-host-${currentHostId}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+        return
+      }
+      // Degraded — no Browser Rendering binding or render failed. The server
+      // returns the HTML JSON with `X-Report-PDF: unavailable`; open the HTML.
+      const data = (await res.json().catch(() => null)) as {
+        success?: boolean
+        html?: string
+        error?: { message?: string }
+      } | null
+      if (!res.ok || !data?.success) {
+        toast.error(data?.error?.message ?? 'PDF export unavailable')
+        return
+      }
+      toast.warning('PDF rendering unavailable — opened HTML instead.')
+      if (data.html) {
+        const blob = new Blob([data.html], { type: 'text/html' })
+        window.open(URL.createObjectURL(blob), '_blank', 'noopener')
+      }
     } finally {
       setBusy(null)
     }
@@ -298,6 +338,16 @@ export function ReportSettingsPanel() {
           >
             <FileTextIcon className="size-3.5" />
             {busy === 'generate' ? 'Generating…' : 'Generate now'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadPdf}
+            disabled={busy !== null}
+            className="gap-1.5"
+          >
+            <DownloadIcon className="size-3.5" />
+            {busy === 'pdf' ? 'Rendering…' : 'Download PDF'}
           </Button>
           <Button
             variant="outline"

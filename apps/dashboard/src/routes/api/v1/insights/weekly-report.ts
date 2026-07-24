@@ -12,7 +12,9 @@
  * - week (optional): the report's `week_start` (`YYYY-MM-DD`); defaults to the
  *   most recent persisted report for the host
  * - format (optional): `html` (default) returns the self-contained HTML
- *   document; `json` returns the parsed summary + metadata
+ *   document; `json` returns the parsed summary + metadata; `pdf` renders the
+ *   HTML to PDF via Cloudflare Browser Rendering (#2794) and falls back to HTML
+ *   when no `BROWSER` binding is configured (self-hosted) or the render fails.
  *
  * Auth posture mirrors GET /api/v1/insights — it inherits the deployment's auth
  * posture (self-hosted `none`, cloud Clerk/public-read via middleware) rather
@@ -23,7 +25,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import type { WeeklyReportSummary } from '@/lib/insights/types'
 
+import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
+import { renderReportPdf, reportPdfFilename } from '@/lib/insights/report-pdf'
 import { renderWeeklyReportHtml } from '@/lib/insights/weekly-report-html'
 import {
   getWeeklyReport,
@@ -91,7 +95,40 @@ export const Route = createFileRoute('/api/v1/insights/weekly-report')({
             )
           }
 
-          return new Response(htmlFor(record), {
+          const html = htmlFor(record)
+
+          if (params.get('format') === 'pdf') {
+            const pdf = await renderReportPdf(
+              html,
+              env as unknown as Record<string, unknown>
+            )
+            if (pdf) {
+              const filename = reportPdfFilename(
+                record.hostId,
+                'report',
+                record.weekStart
+              )
+              return new Response(pdf, {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/pdf',
+                  'Content-Disposition': `attachment; filename="${filename}"`,
+                  'X-Request-ID': requestId,
+                },
+              })
+            }
+            // Degrade to HTML with a signal header (no binding / render failed).
+            return new Response(html, {
+              status: 200,
+              headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'X-Report-PDF': 'unavailable',
+                'X-Request-ID': requestId,
+              },
+            })
+          }
+
+          return new Response(html, {
             status: 200,
             headers: {
               'Content-Type': 'text/html; charset=utf-8',
