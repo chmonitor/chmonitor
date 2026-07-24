@@ -390,7 +390,7 @@ function AiUsagePanel() {
               depleted
                 ? 'text-destructive'
                 : low
-                  ? 'text-amber-600 dark:text-amber-500'
+                  ? 'text-[var(--chart-yellow)]'
                   : 'text-foreground'
             )}
           >
@@ -405,7 +405,11 @@ function AiUsagePanel() {
           <div
             className={cn(
               'h-full rounded-full transition-all',
-              depleted ? 'bg-destructive' : low ? 'bg-amber-500' : 'bg-primary'
+              depleted
+                ? 'bg-destructive'
+                : low
+                  ? 'bg-[var(--chart-yellow)]'
+                  : 'bg-primary'
             )}
             style={{ width: `${pct}%` }}
           />

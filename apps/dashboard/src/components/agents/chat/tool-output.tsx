@@ -289,7 +289,7 @@ function renderStructuredOutput(output: unknown): ReactNode {
                 href="https://github.com/chmonitor/chmonitor/blob/main/docs/deployment.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-[var(--chart-blue)] hover:underline"
               >
                 Use Docker deployment for full chart support.
               </a>
@@ -493,7 +493,7 @@ function AnimatedDots() {
  */
 function RunningIndicator() {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--chart-yellow)]">
       Running
       <AnimatedDots />
     </span>
@@ -641,9 +641,9 @@ export function ToolCallPart({
           <div
             className={cn(
               'size-1.5 shrink-0 rounded-full',
-              isActive && 'animate-pulse bg-amber-500',
-              hasOutput && 'bg-emerald-500',
-              hasError && 'bg-red-500'
+              isActive && 'animate-pulse bg-[var(--chart-yellow)]',
+              hasOutput && 'bg-[var(--chart-green)]',
+              hasError && 'bg-destructive'
             )}
           />
 
@@ -667,7 +667,7 @@ export function ToolCallPart({
             {hasOutput && (
               <Badge
                 variant="outline"
-                className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400"
+                className="shrink-0 text-[10px] text-[var(--chart-green)]"
               >
                 ✓ Done
               </Badge>
@@ -675,7 +675,7 @@ export function ToolCallPart({
             {hasError && (
               <Badge
                 variant="outline"
-                className="shrink-0 text-[10px] text-red-600 dark:text-red-400"
+                className="shrink-0 text-[10px] text-destructive"
               >
                 ✗ Failed
               </Badge>

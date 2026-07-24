@@ -81,8 +81,8 @@ export function AskUserWidget({
 
   if (submitted) {
     return (
-      <div className="my-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30">
-        <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+      <div className="my-2 rounded-lg border border-[var(--chart-green)]/30 bg-[var(--chart-green)]/10 px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-[var(--chart-green)]">
           <CheckIcon className="size-4" />
           <span>Response submitted</span>
         </div>
@@ -91,10 +91,10 @@ export function AskUserWidget({
   }
 
   return (
-    <div className="my-2 rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 dark:border-blue-900 dark:bg-blue-950/20">
+    <div className="my-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
       {/* Question header */}
       <div className="flex items-start gap-2 mb-3">
-        <MessageCircleQuestionIcon className="size-4 mt-0.5 text-blue-600 dark:text-blue-400 shrink-0" />
+        <MessageCircleQuestionIcon className="size-4 mt-0.5 text-primary shrink-0" />
         <div>
           {output.context && (
             <p className="text-xs text-muted-foreground mb-1">
@@ -116,7 +116,7 @@ export function AskUserWidget({
               className={cn(
                 'flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors',
                 selectedValue === opt.value
-                  ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30'
+                  ? 'border-primary bg-primary/10'
                   : 'border-border hover:bg-muted/50'
               )}
             >
@@ -124,12 +124,12 @@ export function AskUserWidget({
                 className={cn(
                   'mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center',
                   selectedValue === opt.value
-                    ? 'border-blue-500'
+                    ? 'border-primary'
                     : 'border-muted-foreground/40'
                 )}
               >
                 {selectedValue === opt.value && (
-                  <div className="size-2 rounded-full bg-blue-500" />
+                  <div className="size-2 rounded-full bg-primary" />
                 )}
               </div>
               <div>
@@ -161,7 +161,7 @@ export function AskUserWidget({
               className={cn(
                 'flex w-full items-start gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer transition-colors',
                 selectedValues.has(opt.value)
-                  ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30'
+                  ? 'border-primary bg-primary/10'
                   : 'border-border hover:bg-muted/50'
               )}
             >
@@ -253,8 +253,8 @@ export function AskUserWidget({
                   className={cn(
                     'p-1 transition-colors',
                     ratingValue >= n
-                      ? 'text-yellow-500'
-                      : 'text-muted-foreground/30 hover:text-yellow-300'
+                      ? 'text-[var(--chart-yellow)]'
+                      : 'text-muted-foreground/30 hover:text-[var(--chart-yellow)]/60'
                   )}
                 >
                   <StarIcon

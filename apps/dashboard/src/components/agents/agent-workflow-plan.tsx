@@ -27,11 +27,13 @@ export interface AgentWorkflowPlanProps {
 
 function StepIcon({ status }: { status: WorkflowPlanStepStatus }) {
   if (status === 'completed') {
-    return <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
+    return (
+      <CheckCircle2Icon className="size-4 shrink-0 text-[var(--chart-green)]" />
+    )
   }
   if (status === 'in_progress') {
     return (
-      <Loader2Icon className="size-4 shrink-0 animate-spin text-yellow-500" />
+      <Loader2Icon className="size-4 shrink-0 animate-spin text-[var(--chart-yellow)]" />
     )
   }
   return <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" />

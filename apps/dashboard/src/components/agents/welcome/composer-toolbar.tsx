@@ -144,7 +144,7 @@ export function ComposerToolbar({
                             className={cn(
                               'h-4 px-1.5 text-[10px] font-normal',
                               skill.source === 'system'
-                                ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-500/10 dark:text-blue-300'
+                                ? 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]'
                                 : 'text-muted-foreground'
                             )}
                           >
@@ -214,7 +214,7 @@ export function ComposerToolbar({
                     <span
                       className={cn(
                         'inline-block size-1.5 shrink-0 rounded-full',
-                        on ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+                        on ? 'bg-[var(--chart-green)]' : 'bg-muted-foreground/40'
                       )}
                     />
                     <div className="min-w-0 flex-1">
@@ -314,7 +314,7 @@ function AiQuotaIndicator() {
           depleted
             ? 'text-destructive'
             : low
-              ? 'text-amber-600 dark:text-amber-500'
+              ? 'text-[var(--chart-yellow)]'
               : 'text-foreground'
         )}
       >

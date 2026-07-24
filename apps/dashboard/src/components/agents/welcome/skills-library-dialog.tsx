@@ -131,7 +131,7 @@ export function SkillsLibraryList({
                         className={cn(
                           'h-4 px-1.5 text-[10px] font-normal',
                           skill.source === 'system'
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-500/10 dark:text-blue-300'
+                            ? 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]'
                             : 'text-muted-foreground'
                         )}
                       >

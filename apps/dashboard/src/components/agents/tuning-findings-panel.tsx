@@ -33,10 +33,10 @@ import { cn } from '@/lib/utils'
 
 // Same rose/amber/sky severity triad used by the query advisor panel.
 const SEVERITY_CLASS: Record<TuningFinding['severity'], string> = {
-  high: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  high: 'border-destructive/30 bg-destructive/10 text-destructive',
   medium:
-    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  low: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    'border-[var(--chart-yellow)]/30 bg-[var(--chart-yellow)]/10 text-[var(--chart-yellow)]',
+  low: 'border-[var(--chart-blue)]/30 bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]',
 }
 
 const RULE_ICON: Record<TuningFinding['ruleId'], typeof HashIcon> = {

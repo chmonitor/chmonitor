@@ -66,11 +66,10 @@ interface TableDesignOutput {
 }
 
 const SEVERITY_CLASS: Record<Severity, string> = {
-  critical:
-    'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  critical: 'border-destructive/30 bg-destructive/10 text-destructive',
   warning:
-    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  info: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    'border-[var(--chart-yellow)]/30 bg-[var(--chart-yellow)]/10 text-[var(--chart-yellow)]',
+  info: 'border-[var(--chart-blue)]/30 bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]',
 }
 
 const SEVERITY_ICON: Record<Severity, typeof AlertTriangleIcon> = {
@@ -103,7 +102,7 @@ export function AgentIssuesPanel({ output }: { output: AgentIssuesOutput }) {
     <div className="rounded-md border border-border/60 bg-muted/20">
       <div className="flex items-center justify-between gap-3 border-b border-border/50 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <AlertTriangleIcon className="size-4 text-amber-500" />
+          <AlertTriangleIcon className="size-4 text-[var(--chart-yellow)]" />
           <span className="text-sm font-semibold">Issue scan</span>
         </div>
         <Badge variant="outline" className="text-[10px]">
@@ -113,7 +112,7 @@ export function AgentIssuesPanel({ output }: { output: AgentIssuesOutput }) {
 
       {output.issues.length === 0 ? (
         <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
-          <CheckCircle2Icon className="size-4 text-emerald-500" />
+          <CheckCircle2Icon className="size-4 text-[var(--chart-green)]" />
           No confirmed issues found in the selected window.
         </div>
       ) : (

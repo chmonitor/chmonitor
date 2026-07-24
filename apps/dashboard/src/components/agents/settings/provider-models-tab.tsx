@@ -77,7 +77,7 @@ function ProviderStatusBadge({
   return status.configured ? (
     <Badge
       variant="outline"
-      className="h-4 gap-1 px-1.5 text-[10px] font-normal text-emerald-700 dark:text-emerald-400"
+      className="h-4 gap-1 px-1.5 text-[10px] font-normal text-[var(--chart-green)]"
     >
       <CheckCircle2Icon className="size-2.5" />
       Configured

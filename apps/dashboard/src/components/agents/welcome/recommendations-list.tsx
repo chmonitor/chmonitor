@@ -17,17 +17,13 @@ import {
 import { cn } from '@/lib/utils'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  INSIGHTS:
-    'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400',
-  SCHEMA: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
-  STORAGE:
-    'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
-  QUERIES:
-    'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
-  ERRORS: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400',
-  MERGES: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400',
-  SYSTEM:
-    'bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400',
+  INSIGHTS: 'bg-[var(--chart-1)]/10 text-[var(--chart-1)]',
+  SCHEMA: 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]',
+  STORAGE: 'bg-[var(--chart-yellow)]/10 text-[var(--chart-yellow)]',
+  QUERIES: 'bg-[var(--chart-green)]/10 text-[var(--chart-green)]',
+  ERRORS: 'bg-[var(--chart-red)]/10 text-[var(--chart-red)]',
+  MERGES: 'bg-[var(--chart-2)]/10 text-[var(--chart-2)]',
+  SYSTEM: 'bg-muted text-muted-foreground',
 }
 
 interface RecommendationsListProps {
