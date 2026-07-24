@@ -101,7 +101,17 @@ Deep dive, live charts, and the AI advisor: https://dash.chmonitor.dev (hosted) 
 
 For live charts, alerting, the AI advisor, and multi-host clusters, point the same ClickHouse credentials at the full dashboard — [self-host it](/operate/deploy) or use the hosted [dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=docs).
 
+## Anonymous telemetry
+
+The CLI sends an anonymous, opt-out usage ping (CLI version, command name,
+OS/arch, and a random install id) — a separate stream from the dashboard's
+telemetry, with no ClickHouse host, query text, or arguments. Disable it with
+`CHM_TELEMETRY=off` or `DO_NOT_TRACK=1`. See
+[Product Telemetry](/operate/advanced/telemetry#cli-telemetry-a-separate-stream)
+for the full field list and every opt-out.
+
 <Cards>
+<Card title="Product Telemetry" href="/operate/advanced/telemetry" description="What the CLI and dashboard collect, and how to opt out." />
 <Card title="Troubleshooting" href="/guide/guides/troubleshooting" description="Diagnose connection, auth, performance, and Kubernetes probe failures." />
 <Card title="Self-host chmonitor" href="/operate/deploy" description="Docker, Kubernetes, or Cloudflare Workers." />
 </Cards>

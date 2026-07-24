@@ -33,6 +33,19 @@ CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
 See [docs.chmonitor.dev/guide/guides/diagnostics-cli](https://docs.chmonitor.dev/guide/guides/diagnostics-cli)
 for the full CLI reference.
 
+## Anonymous telemetry
+
+The CLI sends a best-effort, anonymous usage ping (a random install id, CLI
+version, command name, and OS/arch) to `telemetry.chmonitor.dev` — a separate
+stream from the dashboard's telemetry, with **no** ClickHouse host, query text,
+arguments, paths, or IPs. It runs on a background thread with a sub-second
+timeout and never blocks or fails a command.
+
+Opt out with any of `CHM_TELEMETRY=off`, `DO_NOT_TRACK=1`, or
+`CHM_TELEMETRY_ENDPOINT=""`. See
+[the telemetry docs](https://docs.chmonitor.dev/operate/advanced/telemetry#cli-telemetry-a-separate-stream)
+and `src/telemetry.rs`.
+
 ## License
 
 MIT

@@ -50,6 +50,23 @@ const EVENTS = new Set([
   'ai_query_sent',
 ])
 
+// ─── CLI telemetry (source=cli) — a SEPARATE tracking stream ─────────────────
+// Emitted by rust/ch-monitor-cli (`chm`) and scripts/install.sh. Recorded to the
+// cli_daily table, never mixed with the dashboard's ping_daily / events streams.
+// Mirror rust/ch-monitor-cli/src/telemetry.rs — keep these in sync.
+const CLI_EVENTS = new Set(['cli_install', 'cli_run', 'cli_diagnose'])
+const CLI_COMMANDS = new Set([
+  'hosts',
+  'chart',
+  'table',
+  'tui',
+  'diagnose',
+  'install',
+  'update',
+  '',
+])
+const ARCHES = new Set(['x86_64', 'aarch64', 'unknown'])
+
 const HEX64 = /^[0-9a-f]{64}$/
 const MAJOR_MINOR = /^\d{1,3}\.\d{1,3}$/
 // CHM product version (e.g. '0.3.1') — semver-like, 1-3 dot-separated numbers.
@@ -713,6 +730,40 @@ export default {
         <div id="ch-flavors" class="bar-chart"></div>
       </div>
 
+      <div class="section" id="cli-section" style="display: none;">
+        <h2>CLI (chm)</h2>
+        <p style="color: var(--fg-muted); font-size: 0.9rem; margin: -8px 0 24px;">
+          Anonymous usage of the standalone <code>chm</code> command-line tool —
+          tracked as a separate stream from the dashboard above.
+        </p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">CLI Installs</div>
+            <div class="stat-value" id="cli-installs">0</div>
+          </div>
+          <div class="stat-card environments">
+            <div class="stat-label">Active CLI Users</div>
+            <div class="stat-value" id="cli-active">0</div>
+          </div>
+        </div>
+
+        <h3 style="font-size:1.05rem;font-weight:700;margin:8px 0 16px;letter-spacing:-0.02em;">Installs Over Time (30d)</h3>
+        <div id="cli-installs-time" class="bar-chart"></div>
+
+        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">Runs by Command</h3>
+        <div id="cli-commands" class="bar-chart"></div>
+
+        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">CLI Versions</h3>
+        <div id="cli-versions" class="bar-chart"></div>
+
+        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">Operating System</h3>
+        <div id="cli-os" class="bar-chart"></div>
+
+        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">Architecture</h3>
+        <div id="cli-arch" class="bar-chart"></div>
+      </div>
+
       <div class="footer">
         <p>
           Data updates every hour • Powered by <a href="https://chmonitor.dev">chmonitor</a> •
@@ -777,6 +828,21 @@ export default {
           renderBarChart('ch-flavors', data.by_ch_flavor);
         }
 
+        // Render CLI stream (separate from dashboard telemetry)
+        const cli = data.cli;
+        const hasCli = cli && (cli.installs > 0 || cli.active_users > 0 ||
+          (cli.by_command && cli.by_command.length > 0));
+        if (hasCli) {
+          document.getElementById('cli-section').style.display = 'block';
+          document.getElementById('cli-installs').textContent = (cli.installs || 0).toLocaleString();
+          document.getElementById('cli-active').textContent = (cli.active_users || 0).toLocaleString();
+          renderBarChart('cli-installs-time', (cli.installs_over_time || []).map(d => ({ day: d.day, installs: d.installs })), false);
+          renderBarChart('cli-commands', (cli.by_command || []).map(c => ({ command: c.command, installs: c.runs })));
+          renderBarChart('cli-versions', cli.by_cli_version || []);
+          renderBarChart('cli-os', cli.by_os || []);
+          renderBarChart('cli-arch', cli.by_arch || []);
+        }
+
       } catch (err) {
         loading.style.display = 'none';
         error.style.display = 'block';
@@ -785,7 +851,7 @@ export default {
       }
     }
 
-    function renderBarChart(containerId, data) {
+    function renderBarChart(containerId, data, sortByValue = true) {
       const container = document.getElementById(containerId);
       if (!data || data.length === 0) {
         container.innerHTML = '<p style="color: #999;">No data available</p>';
@@ -793,9 +859,11 @@ export default {
       }
 
       const maxValue = Math.max(...data.map(item => item.installs));
+      const rows = sortByValue
+        ? [...data].sort((a, b) => b.installs - a.installs)
+        : data;
 
-      container.innerHTML = data
-        .sort((a, b) => b.installs - a.installs)
+      container.innerHTML = rows
         .map(item => {
           const percentage = (item.installs / maxValue) * 100;
           const key = Object.keys(item).find(k => k !== 'installs');
@@ -934,6 +1002,45 @@ export default {
       return noContent()
     }
 
+    if (pathname === '/v1/cli') {
+      // Separate CLI tracking stream (source=cli). Closed, validated shape;
+      // unknown fields ignored. install_id is an opaque SHA-256 hex of a random
+      // local UUID — for one-shot installs (install.sh) it may be ephemeral.
+      const installId = data.install_id
+      if (typeof installId !== 'string' || !HEX64.test(installId)) {
+        return bad(400, 'invalid install_id')
+      }
+      const event =
+        typeof data.event === 'string' && CLI_EVENTS.has(data.event)
+          ? data.event
+          : ''
+      if (!event) return bad(400, 'invalid event')
+      const command = asEnum(data.command, CLI_COMMANDS, '')
+      const cliVersion = asChmVersion(data.cli_version)
+      const os = asEnum(data.os, PLATFORMS, 'unknown')
+      const arch = asEnum(data.arch, ARCHES, 'unknown')
+
+      const day = new Date().toISOString().slice(0, 10)
+      ctx.waitUntil(
+        env.CHM_TELEMETRY_DB.prepare(
+          'INSERT OR IGNORE INTO cli_daily (day, install_id, event, command, cli_version, os, arch) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        )
+          .bind(
+            day,
+            installId,
+            event,
+            command,
+            cliVersion || null,
+            os || null,
+            arch || null
+          )
+          .run()
+          .then(() => undefined)
+          .catch(() => undefined)
+      )
+      return noContent()
+    }
+
     return bad(404, 'not found')
   },
 }
@@ -1025,8 +1132,11 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
       byDeployTarget[r.deploy_target] = Number(r.n)
     }
 
+    const cli = await cliSummary(env)
+
     return json(
       summaryShape({
+        cli,
         total: Number(totalRow?.n ?? 0),
         totalPlaces: Number(totalPlaces?.n ?? 0),
         byDeployTarget,
@@ -1059,6 +1169,85 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
   }
 }
 
+interface CliSummary {
+  installs: number
+  active_users: number
+  by_command: { command: string; runs: number }[]
+  by_cli_version: { cli_version: string; installs: number }[]
+  by_os: { os: string; installs: number }[]
+  by_arch: { arch: string; installs: number }[]
+  installs_over_time: { day: string; installs: number }[]
+}
+
+const EMPTY_CLI: CliSummary = {
+  installs: 0,
+  active_users: 0,
+  by_command: [],
+  by_cli_version: [],
+  by_os: [],
+  by_arch: [],
+  installs_over_time: [],
+}
+
+// Aggregate-only CLI stats from cli_daily. Every number is a COUNT/COUNT
+// DISTINCT of the opaque install_id — no per-install rows, IPs, or free-text
+// are exposed. Best-effort: any query failure degrades to zeros.
+async function cliSummary(env: Env): Promise<CliSummary> {
+  try {
+    const [installs, active, byCommand, byVersion, byOs, byArch, overTime] =
+      await Promise.all([
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT COUNT(*) AS n FROM cli_daily WHERE event = 'cli_install'"
+        ).first<{ n: number }>(),
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT COUNT(DISTINCT install_id) AS n FROM cli_daily WHERE event != 'cli_install'"
+        ).first<{ n: number }>(),
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT command AS v, COUNT(*) AS n FROM cli_daily WHERE event != 'cli_install' AND command != '' GROUP BY v ORDER BY n DESC"
+        ).all<{ v: string; n: number }>(),
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT COALESCE(cli_version, 'unknown') AS v, COUNT(DISTINCT install_id) AS n FROM cli_daily GROUP BY v ORDER BY n DESC"
+        ).all<{ v: string; n: number }>(),
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT COALESCE(os, 'unknown') AS v, COUNT(DISTINCT install_id) AS n FROM cli_daily GROUP BY v ORDER BY n DESC"
+        ).all<{ v: string; n: number }>(),
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT COALESCE(arch, 'unknown') AS v, COUNT(DISTINCT install_id) AS n FROM cli_daily GROUP BY v ORDER BY n DESC"
+        ).all<{ v: string; n: number }>(),
+        env.CHM_TELEMETRY_DB.prepare(
+          "SELECT day, COUNT(*) AS n FROM cli_daily WHERE event = 'cli_install' AND day >= date('now', '-30 days') GROUP BY day ORDER BY day ASC"
+        ).all<{ day: string; n: number }>(),
+      ])
+
+    return {
+      installs: Number(installs?.n ?? 0),
+      active_users: Number(active?.n ?? 0),
+      by_command: (byCommand.results ?? []).map((r) => ({
+        command: r.v,
+        runs: Number(r.n),
+      })),
+      by_cli_version: (byVersion.results ?? []).map((r) => ({
+        cli_version: r.v,
+        installs: Number(r.n),
+      })),
+      by_os: (byOs.results ?? []).map((r) => ({
+        os: r.v,
+        installs: Number(r.n),
+      })),
+      by_arch: (byArch.results ?? []).map((r) => ({
+        arch: r.v,
+        installs: Number(r.n),
+      })),
+      installs_over_time: (overTime.results ?? []).map((r) => ({
+        day: r.day,
+        installs: Number(r.n),
+      })),
+    }
+  } catch {
+    return EMPTY_CLI
+  }
+}
+
 interface SummaryBody {
   summary: string
   anonymous: boolean
@@ -1072,6 +1261,7 @@ interface SummaryBody {
   by_country: { country: string; installs: number }[]
   by_platform: { platform: string; installs: number }[]
   by_chm_version: { chm_version: string; installs: number }[]
+  cli: CliSummary
   source: string
   generated_at: string
 }
@@ -1085,6 +1275,7 @@ function summaryShape(input: {
   byCountry: { country: string; installs: number }[]
   byPlatform: { platform: string; installs: number }[]
   byChmVersion?: { chm_version: string; installs: number }[]
+  cli?: CliSummary
   scopedToDeployTarget?: string | null
 }): SummaryBody {
   return {
@@ -1100,6 +1291,7 @@ function summaryShape(input: {
     by_country: input.byCountry,
     by_platform: input.byPlatform,
     by_chm_version: input.byChmVersion ?? [],
+    cli: input.cli ?? EMPTY_CLI,
     source: 'D1 ping_daily (COUNT DISTINCT of opaque SHA-256 instance id)',
     generated_at: new Date().toISOString(),
   }

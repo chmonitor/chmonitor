@@ -33,6 +33,21 @@ against a closed shape; unknown fields are ignored.
 - `event` — one of the five names in `TELEMETRY_EVENTS` (else rejected).
 - `props` — only `deploy_target`, `ch_version`, `ch_flavor` are stored.
 
+### `POST /v1/cli`
+```json
+{ "install_id": "<64-char sha256 hex>", "event": "cli_run", "command": "diagnose", "cli_version": "0.1.0", "os": "linux", "arch": "x86_64" }
+```
+A **separate tracking stream** for the `chm` CLI
+([`rust/ch-monitor-cli`](../../rust/ch-monitor-cli)) and its `scripts/install.sh`
+installer — recorded to `cli_daily`, never mixed with the dashboard's
+`ping_daily` / `events`.
+- `install_id` — required, 64-char lowercase hex. Opaque per-install id
+  persisted under `~/.config/chmonitor/cli-id` (ephemeral for one-shot installs).
+- `event` — one of `cli_install | cli_run | cli_diagnose` (else rejected).
+- `command` — subcommand name, coerced to a known enum or `''`.
+- `cli_version` — semver-like or dropped.
+- `os` — `linux|macos|windows|…|unknown`; `arch` — `x86_64|aarch64|unknown`.
+
 ### `GET /` or `/health`
 Returns `200` — liveness only.
 
@@ -69,6 +84,22 @@ IGNORE`) — `/v1/event` carries no `instance_hash`, so repeated identical
 events within the same UTC day collapse to one row instead of growing
 unbounded. Counts stay directionally correct for the analytics-only
 `events` table; this is not exact per-occurrence counting.
+
+### `cli_daily` table (CLI stream)
+| column        | type    | description |
+|---------------|---------|-------------|
+| `day`         | TEXT    | `YYYY-MM-DD` (UTC) |
+| `install_id`  | TEXT    | opaque SHA-256 CLI install id |
+| `event`       | TEXT    | cli_install/cli_run/cli_diagnose |
+| `command`     | TEXT    | subcommand name or `''` |
+| `cli_version` | TEXT    | semver-like or NULL |
+| `os`          | TEXT    | linux/macos/windows/unknown |
+| `arch`        | TEXT    | x86_64/aarch64/unknown |
+
+Primary key `(day, install_id, event, command)` — one deduped row per install
+per day per event/command. `/v1/summary` surfaces an aggregate `cli` block
+(installs, active users, runs-by-command, version/os/arch splits, 30-day install
+trend) that powers the CLI section of the analytics page.
 
 ## Deploy
 

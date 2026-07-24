@@ -154,3 +154,63 @@ esac
 log ""
 log "Run a zero-signup health check against a ClickHouse host:"
 log "  CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default ${INSTALL_DIR}/${BIN_NAME} diagnose"
+
+# --- anonymous, opt-out install ping (best-effort, backgrounded) -----------
+# Records a single anonymous cli_install event (os/arch + version) to the same
+# collector the CLI and dashboard use. It is a hard no-op when telemetry is
+# opted out, running under CI, or the endpoint is emptied. Sends NO hostnames,
+# IPs, paths, or identity — only an ephemeral random id + os/arch + version.
+send_install_ping() {
+  # Opt-out: DO_NOT_TRACK (hard override), CHM_TELEMETRY=off/0/false/no, CI.
+  case "${DO_NOT_TRACK:-}" in
+    '' | 0 | false | False | FALSE) : ;;
+    *) return 0 ;;
+  esac
+  case "$(printf '%s' "${CHM_TELEMETRY:-}" | tr '[:upper:]' '[:lower:]')" in
+    off | 0 | false | no) return 0 ;;
+  esac
+  case "${CI:-}" in
+    '' | 0 | false | False | FALSE) : ;;
+    *) return 0 ;;
+  esac
+
+  # CHM_TELEMETRY_ENDPOINT explicitly set to empty = hard kill-switch.
+  if [ "${CHM_TELEMETRY_ENDPOINT+set}" = set ] && [ -z "${CHM_TELEMETRY_ENDPOINT}" ]; then
+    return 0
+  fi
+  endpoint="https://telemetry.chmonitor.dev/v1/cli"
+
+  # os/arch in the collector's enum vocabulary.
+  case "$(uname -s)" in
+    Linux) tel_os="linux" ;;
+    Darwin) tel_os="macos" ;;
+    *) tel_os="unknown" ;;
+  esac
+  case "$(uname -m)" in
+    x86_64 | amd64) tel_arch="x86_64" ;;
+    aarch64 | arm64) tel_arch="aarch64" ;;
+    *) tel_arch="unknown" ;;
+  esac
+
+  # Ephemeral 64-hex id — one-shot installs do not persist identity.
+  if command -v hexdump >/dev/null 2>&1; then
+    tel_id="$(head -c 32 /dev/urandom 2>/dev/null | hexdump -v -e '/1 "%02x"' 2>/dev/null)"
+  else
+    tel_id="$(head -c 32 /dev/urandom 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n')"
+  fi
+  [ "${#tel_id}" -eq 64 ] || return 0
+
+  # Version → semver-ish (collector drops anything that isn't MAJOR.MINOR[.PATCH]).
+  tel_ver="$(printf '%s' "$VERSION" | sed -E 's/^chm-v//')"
+
+  payload="$(printf '{"install_id":"%s","event":"cli_install","command":"install","cli_version":"%s","os":"%s","arch":"%s"}' \
+    "$tel_id" "$tel_ver" "$tel_os" "$tel_arch")"
+
+  # Fire-and-forget: short timeout, silent, never blocks or fails the install.
+  curl -fsS -m 2 -X POST -H "content-type: application/json" \
+    --data "$payload" "$endpoint" >/dev/null 2>&1 || true
+}
+
+# Backgrounded; the curl inside is self-bounded to 2s (-m 2), so this never
+# holds the installer open for long and never affects its exit status.
+send_install_ping &

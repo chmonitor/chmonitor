@@ -292,3 +292,103 @@ describe('POST /v1/event — bounded, deduped insert (#2503)', () => {
     expect(countEvents()).toBe(2)
   })
 })
+
+describe('POST /v1/cli — separate CLI tracking stream', () => {
+  let db: Database
+
+  afterEach(() => {
+    db?.close()
+  })
+
+  // Mirrors migrations/0005_cli_events.sql.
+  function seed() {
+    db = new Database(':memory:')
+    db.run(`
+      CREATE TABLE cli_daily (
+        day         TEXT NOT NULL,
+        install_id  TEXT NOT NULL,
+        event       TEXT NOT NULL,
+        command     TEXT NOT NULL DEFAULT '',
+        cli_version TEXT,
+        os          TEXT,
+        arch        TEXT,
+        PRIMARY KEY (day, install_id, event, command)
+      )
+    `)
+  }
+
+  function post(body: unknown) {
+    const env: Env = { CHM_TELEMETRY_DB: makeMockD1(db) }
+    return worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/v1/cli', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      env,
+      makeCtx()
+    )
+  }
+
+  const countCli = () =>
+    (db.query('SELECT COUNT(*) AS n FROM cli_daily').get() as { n: number }).n
+
+  it('accepts a valid cli_run ping', async () => {
+    seed()
+    const res = await post({
+      install_id: hex64('a'),
+      event: 'cli_run',
+      command: 'diagnose',
+      cli_version: '0.1.0',
+      os: 'linux',
+      arch: 'x86_64',
+    })
+    expect(res.status).toBe(204)
+    expect(countCli()).toBe(1)
+  })
+
+  it('rejects a malformed install_id and inserts nothing', async () => {
+    seed()
+    const res = await post({ install_id: 'nope', event: 'cli_run' })
+    expect(res.status).toBe(400)
+    expect(countCli()).toBe(0)
+  })
+
+  it('rejects an unknown event name', async () => {
+    seed()
+    const res = await post({ install_id: hex64('b'), event: 'cli_hack' })
+    expect(res.status).toBe(400)
+    expect(countCli()).toBe(0)
+  })
+
+  it('coerces unknown command/os/arch to safe defaults', async () => {
+    seed()
+    await post({
+      install_id: hex64('c'),
+      event: 'cli_run',
+      command: 'rm-rf',
+      os: 'plan9',
+      arch: 'sparc',
+    })
+    const row = db.query('SELECT command, os, arch FROM cli_daily').get() as {
+      command: string
+      os: string
+      arch: string
+    }
+    expect(row.command).toBe('')
+    expect(row.os).toBe('unknown')
+    expect(row.arch).toBe('unknown')
+  })
+
+  it('dedupes an identical ping posted twice on the same day', async () => {
+    seed()
+    const payload = {
+      install_id: hex64('d'),
+      event: 'cli_run',
+      command: 'hosts',
+    }
+    await post(payload)
+    await post(payload)
+    expect(countCli()).toBe(1)
+  })
+})

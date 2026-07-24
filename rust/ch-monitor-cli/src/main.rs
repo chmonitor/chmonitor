@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod diagnose;
+mod telemetry;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 struct FileConfig {
@@ -346,6 +347,17 @@ async fn main() -> Result<()> {
     let cfg = resolve_config(&cli)?;
     let client = Client::builder().timeout(Duration::from_secs(20)).build()?;
 
+    // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
+    // never blocks or fails the command; see src/telemetry.rs.
+    let (tel_event, tel_command): (&'static str, &'static str) = match &cli.command {
+        Commands::Diagnose { .. } => ("cli_diagnose", "diagnose"),
+        Commands::Hosts => ("cli_run", "hosts"),
+        Commands::Chart { .. } => ("cli_run", "chart"),
+        Commands::Table { .. } => ("cli_run", "table"),
+        Commands::Tui { .. } => ("cli_run", "tui"),
+    };
+    let tel_handle = telemetry::spawn(tel_event, tel_command);
+
     match cli.command {
         Commands::Hosts => {
             let url = format!("{}/api/v1/hosts", cfg.base_url);
@@ -428,10 +440,12 @@ async fn main() -> Result<()> {
                 .iter()
                 .any(|f| f.severity == diagnose::Severity::Critical)
             {
+                telemetry::finish(tel_handle).await;
                 std::process::exit(1);
             }
         }
     }
 
+    telemetry::finish(tel_handle).await;
     Ok(())
 }

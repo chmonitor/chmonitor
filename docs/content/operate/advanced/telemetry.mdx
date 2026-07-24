@@ -132,6 +132,48 @@ one deduped row per install per day forever. See the collector README.
 sink to the collector's `/v1/event` endpoint. The sink installs once per app load
 and is a hard no-op when telemetry is disabled or no endpoint resolves.
 
+## CLI telemetry (a separate stream)
+
+The standalone [`chm` CLI](/guide/guides/diagnostics-cli) and its `install.sh` installer emit their
+own anonymous telemetry — tracked as a **separate stream** (`source=cli`) from
+the dashboard telemetry above, in its own `cli_daily` table. Same privacy
+posture: anonymous, opt-out, no PII.
+
+It is best-effort and non-blocking: the CLI fires the ping on a background thread
+with a sub-second timeout and never delays a command's exit by more than ~300ms,
+and never fails a command if the network is down.
+
+### Opt out (any one disables it)
+
+The CLI honours the **same** switches as the dashboard:
+
+```bash
+CHM_TELEMETRY=off              # also 0 / false / no
+DO_NOT_TRACK=1                 # cross-tool standard, hard override
+CHM_TELEMETRY_ENDPOINT=""      # hard kill-switch — no network call
+```
+
+The `install.sh` install ping additionally **skips automatically when `CI=true`**.
+
+### What the CLI collects
+
+| Field | Values | Notes |
+|---|---|---|
+| `install_id` | 64-char opaque hex | Random id persisted at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/chmonitor/cli-id`). Counts distinct installs only; maps to no identity. |
+| `event` | `cli_install`, `cli_run`, `cli_diagnose` | Install ping vs. a command run vs. a `diagnose` run. |
+| `command` | `hosts`, `chart`, `table`, `tui`, `diagnose`, `install` | The subcommand name. |
+| `cli_version` | semver (e.g. `0.1.0`) | The `chm` version. |
+| `os` | `linux`, `macos`, `windows`, `unknown` | |
+| `arch` | `x86_64`, `aarch64`, `unknown` | |
+
+It sends **nothing else** — no ClickHouse host, query text, command arguments,
+file paths, usernames, or IPs. The install-script ping uses an **ephemeral**
+random id (one-shot installs do not persist identity).
+
+The public analytics page shows a dedicated **CLI** section (installs over time,
+active CLI users, runs by command, version distribution, and OS/arch split),
+sourced from the collector's aggregate-only `/v1/summary` `cli` block.
+
 ## Activation metric
 
 The project tracks a single derived metric called "activation":
