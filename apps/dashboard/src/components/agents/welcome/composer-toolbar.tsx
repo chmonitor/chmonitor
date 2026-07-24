@@ -25,6 +25,7 @@ import {
   type ContextItem,
 } from '@/components/agents/welcome/add-context-dialog'
 import { AgentModelPicker } from '@/components/agents/welcome/agent-model-picker'
+import { AiUsageMeter } from '@/components/agents/welcome/ai-usage-meter'
 import { SkillDetailDialog } from '@/components/agents/welcome/skill-detail-dialog'
 import {
   getAllSkillTools,
@@ -40,7 +41,6 @@ import {
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
-import { useAiQuota } from '@/lib/ai/agent/use-ai-quota'
 import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
 import { useToolConfig } from '@/lib/hooks/use-tool-config'
 import { cn } from '@/lib/utils'
@@ -214,7 +214,9 @@ export function ComposerToolbar({
                     <span
                       className={cn(
                         'inline-block size-1.5 shrink-0 rounded-full',
-                        on ? 'bg-[var(--chart-green)]' : 'bg-muted-foreground/40'
+                        on
+                          ? 'bg-[var(--chart-green)]'
+                          : 'bg-muted-foreground/40'
                       )}
                     />
                     <div className="min-w-0 flex-1">
@@ -261,7 +263,7 @@ export function ComposerToolbar({
       </Button>
 
       {/* Daily AI usage — cloud-only, hidden on OSS / unlimited plans. */}
-      <AiQuotaIndicator />
+      <AiUsageMeter variant="chip" />
 
       <SkillDetailDialog
         skill={skillDetail}
@@ -281,46 +283,5 @@ export function ComposerToolbar({
         onRemove={(id) => onRemoveContext?.(id)}
       />
     </div>
-  )
-}
-
-/**
- * Subtle "X / N today" chip pinned to the end of the composer toolbar, giving a
- * Free-tier user forewarning of their daily AI-message allowance instead of only
- * discovering it via a 402 mid-conversation. Cloud-only: {@link useAiQuota}
- * resolves `show: false` on OSS, for unlimited plans, and on any endpoint
- * error/absence, so nothing renders in those cases.
- */
-function AiQuotaIndicator() {
-  const quota = useAiQuota()
-  if (!quota.show || quota.limit === null) return null
-
-  const { used, limit, remaining } = quota
-  const depleted = remaining !== null && remaining <= 0
-  const low = remaining !== null && remaining > 0 && remaining <= 1
-
-  return (
-    <span
-      className="text-muted-foreground ml-auto flex items-center gap-1 px-1 text-[11px] tabular-nums"
-      title={
-        depleted
-          ? "You've used all of today's AI messages. Resets tomorrow."
-          : `${remaining} of ${limit} daily AI messages left`
-      }
-    >
-      <span
-        className={cn(
-          'font-medium',
-          depleted
-            ? 'text-destructive'
-            : low
-              ? 'text-[var(--chart-yellow)]'
-              : 'text-foreground'
-        )}
-      >
-        {used}
-      </span>
-      <span>/{limit} today</span>
-    </span>
   )
 }

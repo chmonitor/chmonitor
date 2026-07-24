@@ -25,10 +25,14 @@ import type { Skill } from '@/components/agents/welcome/skills-data'
 import { useEffect, useState } from 'react'
 import { AgentMcpPanel } from '@/components/agents/welcome/agent-mcp-panel'
 import { AgentModelPicker } from '@/components/agents/welcome/agent-model-picker'
+import {
+  AiUsageMeter,
+  AiUsageMeterBadge,
+} from '@/components/agents/welcome/ai-usage-meter'
 import { McpConnectAgentDialog } from '@/components/agents/welcome/mcp-connect-agent-dialog'
 import { SkillDetailDialog } from '@/components/agents/welcome/skill-detail-dialog'
 import { SkillsLibraryDialog } from '@/components/agents/welcome/skills-library-dialog'
-import { SUGGESTED_PROMPTS } from '@/components/agents/welcome/suggested-prompts'
+import { SuggestedPrompts } from '@/components/agents/welcome/suggested-prompts-view'
 import { AppLink } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -73,7 +77,6 @@ export function AgentSettingsSidebar({
     totalSkillCount,
   } = useAgentSkills()
   const topSkills = skills.slice(0, 3)
-  const [showAllPrompts, setShowAllPrompts] = useState(false)
   const [skillDetail, setSkillDetail] = useState<Skill | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
@@ -201,38 +204,13 @@ export function AgentSettingsSidebar({
       </SidebarSection>
 
       {/* SUGGESTED PROMPTS */}
-      <SidebarSection
-        label="Suggested prompts"
-        right={
-          SUGGESTED_PROMPTS.length > 3 ? (
-            <button
-              type="button"
-              onClick={() => setShowAllPrompts((v) => !v)}
-              className="text-muted-foreground hover:text-foreground text-[10.5px]"
-            >
-              {showAllPrompts ? 'Show less' : 'Show more'}
-            </button>
-          ) : null
-        }
-      >
-        <div className="space-y-1.5 text-[11.5px]">
-          {(showAllPrompts
-            ? SUGGESTED_PROMPTS
-            : SUGGESTED_PROMPTS.slice(0, 3)
-          ).map((entry) => (
-            <button
-              key={entry.title}
-              type="button"
-              onClick={() => onPickPrompt?.(entry.prompt)}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-1.5 rounded px-1 py-0.5 text-left transition-colors"
-            >
-              <span className="text-foreground w-14 shrink-0 pt-0.5 text-[9.5px] font-semibold tracking-wider uppercase">
-                {entry.category}
-              </span>
-              <span className="line-clamp-2 leading-snug">{entry.prompt}</span>
-            </button>
-          ))}
-        </div>
+      <SidebarSection label="Suggested prompts">
+        <SuggestedPrompts
+          variant="list"
+          limit={3}
+          collapsible
+          onPickPrompt={onPickPrompt}
+        />
       </SidebarSection>
 
       <SkillDetailDialog
@@ -379,54 +357,14 @@ function ConversationHistoryPanel() {
  */
 function AiUsagePanel() {
   const quota = useAiQuota()
+  // Gate the whole section on visibility so an empty "Daily AI usage" header
+  // never shows on OSS / unlimited plans; the meter itself is the shared
+  // rendering (issue #2809).
   if (!quota.show || quota.limit === null) return null
 
-  const { used, limit, remaining } = quota
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
-  const depleted = remaining !== null && remaining <= 0
-  const low = remaining !== null && remaining > 0 && remaining <= 1
-
   return (
-    <SidebarSection
-      label="Daily AI usage"
-      right={
-        <span className="text-muted-foreground text-[10px] tabular-nums">
-          <span
-            className={cn(
-              'font-medium',
-              depleted
-                ? 'text-destructive'
-                : low
-                  ? 'text-[var(--chart-yellow)]'
-                  : 'text-foreground'
-            )}
-          >
-            {used}
-          </span>
-          /{limit}
-        </span>
-      }
-    >
-      <div className="space-y-1.5">
-        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-          <div
-            className={cn(
-              'h-full rounded-full transition-all',
-              depleted
-                ? 'bg-destructive'
-                : low
-                  ? 'bg-[var(--chart-yellow)]'
-                  : 'bg-primary'
-            )}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <p className="text-muted-foreground text-[10.5px] leading-snug">
-          {depleted
-            ? "You've used all of today's messages. The limit resets tomorrow."
-            : `${remaining} message${remaining === 1 ? '' : 's'} left today`}
-        </p>
-      </div>
+    <SidebarSection label="Daily AI usage" right={<AiUsageMeterBadge />}>
+      <AiUsageMeter variant="panel" />
     </SidebarSection>
   )
 }
