@@ -5,7 +5,6 @@ Committed source of truth for images reused across the marketing/docs sites
 
 - `screenshots/` — product screenshots (dashboard captures, dialogs), both
   `-light`/`-dark` variants where available.
-- `backgrounds/` — hero art and decorative backgrounds.
 
 `scripts/sync-shared-assets.mjs` copies this directory into each app's
 `public/assets/` (gitignored) as a predev/prebuild step, so every site serves

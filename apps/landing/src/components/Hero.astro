@@ -34,12 +34,50 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
   {/* Pull the section up under the 64px sticky, transparent nav (-mt-16) and add
       an equal pt-16 so the CONTENT stays put — this lets the ambient wash below
       (absolute inset-0) reach the very top edge, behind the nav. */}
-  {/* Ambient field: a single brand wash off the top edge. No grid, no second
-      hue — the canvas carries the page. */}
+  {/* Ambient field: the brand bar-chart motif tessellated as a faint skyline,
+      under a single brand wash off the top edge. The pattern is masked to fade
+      out toward the center so text and the screenshot stay on a clean canvas —
+      it only breathes at the edges. No grid, no second hue. */}
   <div
     class="pointer-events-none absolute inset-0 -z-10"
     aria-hidden="true"
   >
+    <svg
+      class="absolute inset-0 h-full w-full text-[var(--brand)]"
+      preserveAspectRatio="xMidYMid slice"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        {/* One tile of the six-bar chmonitor motif, anchored to the tile
+            baseline so tiling reads as a continuous equalizer skyline. */}
+        <pattern id="hero-bars" width="88" height="140" patternUnits="userSpaceOnUse">
+          <g fill="currentColor">
+            <rect x="6" y="112" width="8" height="28" />
+            <rect x="20" y="44" width="8" height="96" />
+            <rect x="34" y="88" width="8" height="52" />
+            <rect x="48" y="24" width="8" height="116" />
+            <rect x="62" y="72" width="8" height="68" />
+            <rect x="76" y="100" width="8" height="40" />
+          </g>
+        </pattern>
+        {/* Keep the center clear; let the pattern surface toward the edges. */}
+        <radialGradient id="hero-bars-fade" cx="50%" cy="34%" r="72%">
+          <stop offset="0%" stop-color="black" />
+          <stop offset="55%" stop-color="black" />
+          <stop offset="100%" stop-color="white" />
+        </radialGradient>
+        <mask id="hero-bars-mask">
+          <rect width="100%" height="100%" fill="url(#hero-bars-fade)" />
+        </mask>
+      </defs>
+      <rect
+        width="100%"
+        height="100%"
+        fill="url(#hero-bars)"
+        mask="url(#hero-bars-mask)"
+        opacity="0.05"
+      />
+    </svg>
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_-15%,var(--brand-soft),transparent_62%)]"></div>
   </div>
 
