@@ -40,15 +40,15 @@ interface AgentModelPickerProps {
 }
 
 const PROVIDER_TEXT_CLASS: Record<string, string> = {
-  openrouter: 'text-blue-600 dark:text-blue-400',
-  anyrouter: 'text-violet-600 dark:text-violet-400',
-  nvidia: 'text-emerald-600 dark:text-emerald-400',
+  openrouter: 'text-[var(--chart-blue)]',
+  anyrouter: 'text-[var(--chart-1)]',
+  nvidia: 'text-[var(--chart-green)]',
 }
 
 const PROVIDER_DOT_CLASS: Record<string, string> = {
-  openrouter: 'bg-blue-500',
-  anyrouter: 'bg-violet-500',
-  nvidia: 'bg-emerald-500',
+  openrouter: 'bg-[var(--chart-blue)]',
+  anyrouter: 'bg-[var(--chart-1)]',
+  nvidia: 'bg-[var(--chart-green)]',
 }
 
 export function providerColorClass(provider: string): string {
@@ -66,15 +66,13 @@ function badgeTone(model: ModelDisplayInfo): {
   if (model.isFree) {
     return {
       label: 'free',
-      className:
-        'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+      className: 'bg-[var(--chart-green)]/10 text-[var(--chart-green)]',
     }
   }
   if (model.modelId.endsWith('/free') || model.modelId.endsWith('/auto')) {
     return {
       label: 'default',
-      className:
-        'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
+      className: 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]',
     }
   }
   return null
@@ -154,7 +152,7 @@ export function ModelOptionRow({
         </Badge>
       ) : null}
       {active ? (
-        <CheckIcon className="size-3 shrink-0 text-emerald-500" />
+        <CheckIcon className="size-3 shrink-0 text-[var(--chart-green)]" />
       ) : null}
     </button>
   )

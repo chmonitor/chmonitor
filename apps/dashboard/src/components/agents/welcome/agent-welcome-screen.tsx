@@ -14,7 +14,7 @@
 import type { ReactNode } from 'react'
 
 import { RecentThreadsRail } from '@/components/agents/welcome/recent-threads-rail'
-import { RecommendationsList } from '@/components/agents/welcome/recommendations-list'
+import { PromptTilesGrid } from '@/components/agents/welcome/recommendations-list'
 import { AgentGreetingIllustration } from '@/components/illustrations/agent-greeting-illustration'
 import { useAgentGreeting } from '@/lib/hooks/use-agent-greeting'
 
@@ -67,15 +67,15 @@ export function AgentWelcomeScreen({
       {/* Composer (parent-owned) */}
       <div className="mb-8">{composer}</div>
 
-      {/* Suggested questions */}
-      <RecommendationsList onPickPrompt={onPickPrompt} limit={6} />
+      {/* Suggested questions — example-prompt tile grid (issue #2800) */}
+      <PromptTilesGrid onPickPrompt={onPickPrompt} limit={6} />
 
       {/* Recent threads */}
       <RecentThreadsRail />
 
       {/* Footer status */}
       <div className="text-muted-foreground mt-4 flex items-center justify-center gap-2 text-center text-[11px] tracking-[0.02em]">
-        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse motion-reduce:animate-none" />
+        <span className="size-1.5 rounded-full bg-[var(--chart-green)] animate-pulse motion-reduce:animate-none" />
         Connected to{' '}
         <span className="text-foreground font-mono">
           {clusterName ?? 'cluster'}

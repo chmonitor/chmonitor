@@ -28,13 +28,13 @@ function ItemIcon({ type }: { type: AutocompleteItem['type'] }) {
   switch (type) {
     case 'table':
     case 'database':
-      return <Database className="size-3.5 shrink-0 text-blue-500" />
+      return <Database className="size-3.5 shrink-0 text-[var(--chart-blue)]" />
     case 'resource':
-      return <Terminal className="size-3.5 shrink-0 text-green-500" />
+      return <Terminal className="size-3.5 shrink-0 text-[var(--chart-green)]" />
     case 'skill':
-      return <Zap className="size-3.5 shrink-0 text-purple-500" />
+      return <Zap className="size-3.5 shrink-0 text-[var(--chart-1)]" />
     case 'command':
-      return <Slash className="size-3.5 shrink-0 text-orange-500" />
+      return <Slash className="size-3.5 shrink-0 text-[var(--chart-3)]" />
     default:
       return null
   }

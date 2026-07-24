@@ -50,16 +50,16 @@ export type { McpServer }
 function StatusBadge({ status }: { status: McpServer['status'] }) {
   if (status === 'connected') {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
-        <span className="size-1.5 rounded-full bg-emerald-500" />
+      <span className="flex items-center gap-1 text-[10px] text-[var(--chart-green)]">
+        <span className="size-1.5 rounded-full bg-[var(--chart-green)]" />
         Connected
       </span>
     )
   }
   if (status === 'connecting') {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
-        <span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
+      <span className="flex items-center gap-1 text-[10px] text-[var(--chart-yellow)]">
+        <span className="size-1.5 animate-pulse rounded-full bg-[var(--chart-yellow)]" />
         Connecting
       </span>
     )
@@ -275,8 +275,8 @@ export function AgentMcpPanel() {
           {servers.length} active
         </span>
         {panelStatus === 'configured' ? (
-          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <span className="size-1.5 rounded-full bg-emerald-500" />
+          <span className="flex items-center gap-1 text-[var(--chart-green)]">
+            <span className="size-1.5 rounded-full bg-[var(--chart-green)]" />
             Configured
           </span>
         ) : (

@@ -28,6 +28,11 @@ import {
   ReasoningTrigger,
 } from '@/components/assistant-ui/reasoning'
 import { ToolFallback } from '@/components/assistant-ui/tool-fallback'
+import {
+  ToolGroupContent,
+  ToolGroupRoot,
+  ToolGroupTrigger,
+} from '@/components/assistant-ui/tool-group'
 
 // ---------------------------------------------------------------------------
 // GroupedParts groupBy — module-level stable reference
@@ -131,9 +136,19 @@ export function renderGroupedPart({ part, children }: GroupedRenderInfo) {
       )
     }
     case 'group-tool': {
-      // Render each tool call as its own sibling row (one fold per tool),
-      // not a single outer "N tool calls" group that requires two folds.
-      return <>{children}</>
+      // Collapse a run of adjacent tool calls into ONE "N tool calls"
+      // disclosure (issue #2803). While the run streams it auto-expands; once
+      // finished it collapses into tidy history. A single tool call needs no
+      // outer group — render it as a bare sibling row.
+      const count = 'indices' in part ? part.indices.length : 0
+      const isRunning = part.status?.type === 'running'
+      if (count <= 1) return <>{children}</>
+      return (
+        <ToolGroupRoot isRunning={isRunning}>
+          <ToolGroupTrigger count={count} status={part.status} />
+          <ToolGroupContent>{children}</ToolGroupContent>
+        </ToolGroupRoot>
+      )
     }
     default: {
       // Leaf part — cast is safe: non-group parts are EnrichedPartState

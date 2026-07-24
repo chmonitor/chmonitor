@@ -45,11 +45,11 @@ const METRIC_ICONS: Record<string, typeof HardDriveIcon> = {
 }
 
 const METRIC_COLORS: Record<string, string> = {
-  'Largest Data Scan': 'text-blue-500',
-  'Most Rows Scanned': 'text-purple-500',
-  'Fastest Scan Speed': 'text-yellow-500',
-  'Longest Query': 'text-red-500',
-  'Peak Memory': 'text-orange-500',
+  'Largest Data Scan': 'text-[var(--chart-blue)]',
+  'Most Rows Scanned': 'text-[var(--chart-1)]',
+  'Fastest Scan Speed': 'text-[var(--chart-yellow)]',
+  'Longest Query': 'text-[var(--chart-red)]',
+  'Peak Memory': 'text-[var(--chart-3)]',
 }
 
 function InsightCard({ highlight }: { readonly highlight: InsightHighlight }) {

@@ -73,6 +73,7 @@ export function AgentSettingsSidebar({
     totalSkillCount,
   } = useAgentSkills()
   const topSkills = skills.slice(0, 3)
+  const [showAllPrompts, setShowAllPrompts] = useState(false)
   const [skillDetail, setSkillDetail] = useState<Skill | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
@@ -203,16 +204,22 @@ export function AgentSettingsSidebar({
       <SidebarSection
         label="Suggested prompts"
         right={
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground text-[10.5px]"
-          >
-            Show more
-          </button>
+          SUGGESTED_PROMPTS.length > 3 ? (
+            <button
+              type="button"
+              onClick={() => setShowAllPrompts((v) => !v)}
+              className="text-muted-foreground hover:text-foreground text-[10.5px]"
+            >
+              {showAllPrompts ? 'Show less' : 'Show more'}
+            </button>
+          ) : null
         }
       >
         <div className="space-y-1.5 text-[11.5px]">
-          {SUGGESTED_PROMPTS.slice(0, 3).map((entry) => (
+          {(showAllPrompts
+            ? SUGGESTED_PROMPTS
+            : SUGGESTED_PROMPTS.slice(0, 3)
+          ).map((entry) => (
             <button
               key={entry.title}
               type="button"
@@ -390,7 +397,7 @@ function AiUsagePanel() {
               depleted
                 ? 'text-destructive'
                 : low
-                  ? 'text-amber-600 dark:text-amber-500'
+                  ? 'text-[var(--chart-yellow)]'
                   : 'text-foreground'
             )}
           >
@@ -405,7 +412,11 @@ function AiUsagePanel() {
           <div
             className={cn(
               'h-full rounded-full transition-all',
-              depleted ? 'bg-destructive' : low ? 'bg-amber-500' : 'bg-primary'
+              depleted
+                ? 'bg-destructive'
+                : low
+                  ? 'bg-[var(--chart-yellow)]'
+                  : 'bg-primary'
             )}
             style={{ width: `${pct}%` }}
           />

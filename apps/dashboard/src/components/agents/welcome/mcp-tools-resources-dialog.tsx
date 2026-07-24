@@ -30,12 +30,9 @@ import { useMcpServerInfo } from '@/lib/swr/use-mcp-server-info'
 // ---------------------------------------------------------------------------
 
 const CATEGORY_STYLES: Record<string, string> = {
-  query:
-    'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-500/10 dark:text-blue-300',
-  schema:
-    'bg-violet-50 text-violet-700 hover:bg-violet-50 dark:bg-violet-500/10 dark:text-violet-300',
-  system:
-    'bg-amber-50 text-amber-700 hover:bg-amber-50 dark:bg-amber-500/10 dark:text-amber-300',
+  query: 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]',
+  schema: 'bg-[var(--chart-1)]/10 text-[var(--chart-1)]',
+  system: 'bg-[var(--chart-yellow)]/10 text-[var(--chart-yellow)]',
 }
 
 // ---------------------------------------------------------------------------

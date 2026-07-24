@@ -54,7 +54,7 @@ export function SkillDetailDialog({
                   className={cn(
                     'h-4 px-1.5 text-[10px] font-normal',
                     skill.source === 'system'
-                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-500/10 dark:text-blue-300'
+                      ? 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]'
                       : 'text-muted-foreground'
                   )}
                 >
@@ -63,7 +63,7 @@ export function SkillDetailDialog({
                 {isEnabled ? (
                   <Badge
                     variant="secondary"
-                    className="h-4 gap-1 px-1.5 text-[10px] font-normal bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    className="h-4 gap-1 px-1.5 text-[10px] font-normal bg-[var(--chart-green)]/10 text-[var(--chart-green)]"
                   >
                     <CheckIcon className="size-2.5" /> active
                   </Badge>
@@ -93,7 +93,7 @@ export function SkillDetailDialog({
                     key={tool}
                     className="border-border bg-card flex items-center gap-2 rounded-md border px-2.5 py-1.5"
                   >
-                    <span className="inline-block size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                    <span className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--chart-green)]" />
                     <span className="truncate font-mono text-[11.5px]">
                       {tool}
                     </span>

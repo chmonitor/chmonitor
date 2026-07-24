@@ -201,7 +201,7 @@ export function JsonRenderMessage() {
           />
         </ErrorBoundary>
       ) : (
-        <div className="rounded border border-yellow-200/40 bg-yellow-50/40 p-2 text-xs text-yellow-800 dark:border-yellow-900/50 dark:bg-yellow-950/30 dark:text-yellow-200">
+        <div className="rounded border border-[var(--chart-yellow)]/40 bg-[var(--chart-yellow)]/10 p-2 text-xs text-[var(--chart-yellow)]">
           {jsonRender.parseError}
         </div>
       )}

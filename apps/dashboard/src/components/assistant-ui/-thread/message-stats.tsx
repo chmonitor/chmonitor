@@ -285,11 +285,11 @@ export function MessageStatsFooter() {
     usage?.resolvedModel != null && usage.resolvedModel !== usage?.model
 
   return (
-    <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground/55">
+    <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
       {/* Duration */}
       {hasDuration && timing?.totalStreamTime != null && (
         <span className="flex items-center gap-0.5">
-          <ClockIcon className="size-2.5 shrink-0" />
+          <ClockIcon className="size-3 shrink-0" />
           <span className="font-mono tabular-nums">
             {formatDuration(timing.totalStreamTime)}
           </span>
@@ -299,7 +299,7 @@ export function MessageStatsFooter() {
       {/* Throughput */}
       {timing?.tokensPerSecond != null && (
         <span className="flex items-center gap-0.5">
-          <GaugeIcon className="size-2.5 shrink-0" />
+          <GaugeIcon className="size-3 shrink-0" />
           <span className="font-mono tabular-nums">
             {timing.tokensPerSecond.toFixed(1)}
           </span>
@@ -309,7 +309,7 @@ export function MessageStatsFooter() {
       {/* Token total */}
       {hasTokens && (
         <span className="flex items-center gap-0.5">
-          <CpuIcon className="size-2.5 shrink-0" />
+          <CpuIcon className="size-3 shrink-0" />
           <span className="font-mono tabular-nums">
             {totalTokens.toLocaleString()}
           </span>
@@ -319,7 +319,7 @@ export function MessageStatsFooter() {
       {/* Tool call count */}
       {toolCount > 0 && (
         <span className="flex items-center gap-0.5">
-          <WrenchIcon className="size-2.5 shrink-0" />
+          <WrenchIcon className="size-3 shrink-0" />
           <span className="font-mono tabular-nums">{toolCount}</span>
         </span>
       )}
@@ -333,7 +333,7 @@ export function MessageStatsFooter() {
           {isResolved && (
             <Badge
               variant="outline"
-              className="px-1 py-0 text-[9px] h-3.5 leading-none border-border/40"
+              className="px-1 py-0 text-[10px] h-4 leading-none border-border/40"
             >
               resolved
             </Badge>
@@ -367,7 +367,7 @@ export function MessageStatsFooter() {
               />
             }
           >
-            <InfoIcon className="size-2.5 shrink-0" />
+            <InfoIcon className="size-3 shrink-0" />
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>

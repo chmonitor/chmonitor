@@ -112,20 +112,20 @@ export function ReasoningTrigger({
     <CollapsibleTrigger
       className={cn(
         'flex w-full items-center gap-1.5 px-3 py-2 rounded-md',
-        'bg-purple-50/50 dark:bg-purple-950/20',
-        'text-xs font-medium text-purple-700 dark:text-purple-300',
-        'hover:bg-purple-100/50 dark:hover:bg-purple-950/30 transition-colors',
+        'bg-muted/50',
+        'text-xs font-medium text-muted-foreground',
+        'hover:bg-muted transition-colors',
         className
       )}
     >
       <SparklesIcon
         className={cn(
-          'size-3.5 shrink-0 text-purple-600 dark:text-purple-400',
+          'size-3.5 shrink-0 text-muted-foreground',
           active && 'animate-pulse'
         )}
       />
       <span className="flex-1 text-left">{children ?? 'Thought process'}</span>
-      <ChevronRightIcon className="size-3 shrink-0 text-purple-600 dark:text-purple-400 transition-transform duration-200 group-data-[state=open]/reasoning:rotate-90" />
+      <ChevronRightIcon className="size-3 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/reasoning:rotate-90" />
     </CollapsibleTrigger>
   )
 }
