@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  BarChart3Icon,
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
@@ -15,7 +16,6 @@ import { QueryInsightsCard } from './query-insights-card'
 import { getToolMetadata } from '@chm/mcp-server/data'
 import { type ComponentProps, type ReactNode, useEffect, useState } from 'react'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
-import { AgentChartRenderer } from '@/components/agents/agent-chart-renderer'
 import { AgentDashboardSuggestion } from '@/components/agents/agent-dashboard-suggestion'
 import { AgentDataSources } from '@/components/agents/agent-data-sources'
 import {
@@ -33,6 +33,10 @@ import {
   isAskUserOutput,
 } from '@/components/agents/ask-user-widget'
 import { TuningFindingsPanel } from '@/components/agents/tuning-findings-panel'
+import {
+  CodeBlock,
+  CodeBlockCopyButton,
+} from '@/components/ai-elements/code-block'
 import { DataTable } from '@/components/data-table/data-table'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -47,6 +51,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { cn } from '@/lib/utils'
 
@@ -279,22 +284,27 @@ function renderStructuredOutput(output: unknown): ReactNode {
     if (isCloudModeClient()) {
       return (
         <div className="space-y-3">
-          <div className="rounded-md bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            <p className="font-medium">
-              Interactive charts disabled on Workers
-            </p>
-            <p className="mt-1">
-              Charts are disabled in this deployment to avoid resource limits.{' '}
-              <a
-                href="https://github.com/chmonitor/chmonitor/blob/main/docs/deployment.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--chart-blue)] hover:underline"
-              >
-                Use Docker deployment for full chart support.
-              </a>
-            </p>
-          </div>
+          <EmptyState
+            variant="no-data"
+            compact
+            icon={
+              <BarChart3Icon
+                className="size-8 text-muted-foreground/60"
+                strokeWidth={1.5}
+              />
+            }
+            title="Interactive charts disabled on Workers"
+            description="Charts are disabled in this deployment to avoid resource limits. Use a Docker deployment for full chart support."
+            action={{
+              label: 'Deployment docs',
+              onClick: () =>
+                window.open(
+                  'https://github.com/chmonitor/chmonitor/blob/main/docs/deployment.md',
+                  '_blank',
+                  'noopener,noreferrer'
+                ),
+            }}
+          />
           <ResultTable rows={outputObj.rows as unknown[]} maxRows={100} />
         </div>
       )
@@ -414,26 +424,7 @@ function renderStructuredOutput(output: unknown): ReactNode {
     Array.isArray(outputObj.chartData) &&
     outputObj.chartData.length > 0
   ) {
-    return (
-      <AgentChartRenderer
-        type={
-          (outputObj.chartType as 'area' | 'bar' | 'donut' | undefined) || 'bar'
-        }
-        data={outputObj.chartData as readonly Record<string, unknown>[]}
-        title={outputObj.chartTitle as string | undefined}
-        xKey={outputObj.xKey as string | undefined}
-        yKey={outputObj.yKey as string | undefined}
-        categories={outputObj.categories as string[] | undefined}
-        readable={
-          outputObj.readable as
-            | 'bytes'
-            | 'duration'
-            | 'number'
-            | 'quantity'
-            | undefined
-        }
-      />
-    )
+    return renderLegacyChart(outputObj)
   }
 
   if (Array.isArray(outputObj.rows) && outputObj.rows.length > 0) {
@@ -446,15 +437,62 @@ function renderStructuredOutput(output: unknown): ReactNode {
 }
 
 /**
+ * Legacy `{ chartData, chartType, ... }` tool payloads (area/bar/donut) routed
+ * through the unified {@link AgentVisualization} card — the same chrome, tabs,
+ * and chart primitives every other visualization uses. No SQL travels with these
+ * payloads, so the Query tab hides itself. Replaces the retired
+ * `AgentChartRenderer` duplicate path (issue #2805).
+ */
+function renderLegacyChart(outputObj: Record<string, unknown>): ReactNode {
+  const rows = outputObj.chartData as Record<string, unknown>[]
+  const xKey = (outputObj.xKey as string | undefined) ?? 'name'
+  const yKey = (outputObj.yKey as string | undefined) ?? 'value'
+  const categories = outputObj.categories as string[] | undefined
+  const yKeys = categories && categories.length > 0 ? categories : [yKey]
+  const legacyType =
+    (outputObj.chartType as 'area' | 'bar' | 'donut' | undefined) ?? 'bar'
+  const chartType: AgentVisualizationProps['viz']['chartType'] =
+    legacyType === 'area' ? 'area' : legacyType === 'donut' ? 'pie' : 'bar_list'
+  const columns = Array.from(
+    new Set([xKey, ...yKeys, ...Object.keys(rows[0] ?? {})])
+  )
+
+  return (
+    <AgentVisualization
+      title={outputObj.chartTitle as string | undefined}
+      rows={rows}
+      columns={columns}
+      rowCount={rows.length}
+      viz={{
+        chartType,
+        xKey,
+        yKeys,
+        readable: outputObj.readable as
+          | 'bytes'
+          | 'duration'
+          | 'number'
+          | 'quantity'
+          | undefined,
+      }}
+    />
+  )
+}
+
+/**
  * Raw fallback: the tool output as a JSON / text blob. Rendered only when no
  * structured renderer matches, and kept behind a collapsed disclosure so it
  * never clutters the row.
  */
 function renderRawOutput(output: unknown): ReactNode {
+  const isText = typeof output === 'string'
   return (
-    <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
-      {typeof output === 'string' ? output : JSON.stringify(output, null, 2)}
-    </pre>
+    <CodeBlock
+      code={isText ? (output as string) : JSON.stringify(output, null, 2)}
+      language={isText ? 'text' : 'json'}
+      className="max-h-48 overflow-auto text-xs"
+    >
+      <CodeBlockCopyButton />
+    </CodeBlock>
   )
 }
 

@@ -21,6 +21,7 @@ import {
 import { DataTable } from '@/components/data-table/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -123,11 +124,13 @@ export function AgentVisualization({
     () => ({
       name: 'agent-viz-result',
       description: title ?? 'Query results from AI agent',
-      sql,
+      sql: sql ?? '',
       columns: columns as string[],
     }),
     [title, sql, columns]
   )
+
+  const hasSql = Boolean(sql?.trim())
 
   const handleSortChange = useCallback((val: string) => {
     if (val === '__none__') {
@@ -311,9 +314,12 @@ export function AgentVisualization({
     } catch (error) {
       console.error('AgentVisualization: Failed to render chart', error)
       return (
-        <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-          Unable to render chart
-        </div>
+        <EmptyState
+          variant="error"
+          compact
+          title="Unable to render chart"
+          description="The selected chart type could not be drawn from these results. Try a different chart type or the Data tab."
+        />
       )
     }
   }
@@ -321,7 +327,7 @@ export function AgentVisualization({
   return (
     <div
       className={cn(
-        'rounded-lg border bg-card text-card-foreground',
+        'rounded-xl border bg-card text-card-foreground shadow-sm',
         className
       )}
     >
@@ -385,9 +391,11 @@ export function AgentVisualization({
           <TabsTrigger value="data" className="text-xs px-2.5 h-6">
             Data
           </TabsTrigger>
-          <TabsTrigger value="query" className="text-xs px-2.5 h-6">
-            Query
-          </TabsTrigger>
+          {hasSql && (
+            <TabsTrigger value="query" className="text-xs px-2.5 h-6">
+              Query
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Chart tab */}
@@ -440,11 +448,13 @@ export function AgentVisualization({
         </TabsContent>
 
         {/* Query tab */}
-        <TabsContent value="query">
-          <CodeBlock code={sql} language="sql">
-            <CodeBlockCopyButton />
-          </CodeBlock>
-        </TabsContent>
+        {hasSql && (
+          <TabsContent value="query">
+            <CodeBlock code={sql ?? ''} language="sql">
+              <CodeBlockCopyButton />
+            </CodeBlock>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

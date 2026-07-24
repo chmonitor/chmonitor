@@ -19,7 +19,9 @@ export interface VizConfig {
 
 export interface AgentVisualizationProps {
   title?: string
-  sql: string
+  /** Underlying SQL. Optional — legacy chart payloads carry no query, in which
+   *  case the Query tab is hidden. */
+  sql?: string
   rows: Record<string, unknown>[]
   columns: string[]
   rowCount: number
