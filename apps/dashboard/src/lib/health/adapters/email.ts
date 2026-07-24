@@ -20,6 +20,16 @@ export interface EmailConfig {
   to: readonly string[]
 }
 
+/** A binary file attached to an email (e.g. a report PDF). */
+export interface EmailAttachment {
+  /** Suggested filename shown to the recipient, e.g. `report-prod-weekly.pdf`. */
+  filename: string
+  /** MIME type, e.g. `application/pdf`. */
+  contentType: string
+  /** File bytes. */
+  content: Uint8Array
+}
+
 /** PURE: normalized email parts for a payload. No network. */
 export interface EmailBody {
   /** e.g. `[CRITICAL] failed-mutations on prod-01`. */
@@ -28,6 +38,8 @@ export interface EmailBody {
   html: string
   /** Plaintext mirror for the multipart alternative. */
   text: string
+  /** Optional binary attachments (e.g. a PDF report — #2794). */
+  attachments?: readonly EmailAttachment[]
 }
 
 /** Severity → banner colour and subject/heading label. `recovery` reads "RESOLVED". */

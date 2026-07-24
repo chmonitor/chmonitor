@@ -26,6 +26,16 @@ function withTimeout(): { signal: AbortSignal; clear: () => void } {
   return { signal: controller.signal, clear: () => clearTimeout(timer) }
 }
 
+/** Base64-encode raw bytes (for SendGrid attachment payloads). */
+function base64FromBytes(bytes: Uint8Array): string {
+  let binary = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(binary)
+}
+
 /** Extract `{ apiKey, domain }` from `mailgun://KEY@DOMAIN`. */
 function parseMailgunUrl(
   url: string
@@ -59,12 +69,37 @@ async function sendViaMailgun(
     return false
   }
 
-  const form = new URLSearchParams()
-  form.set('from', config.from)
-  for (const to of config.to) form.append('to', to)
-  form.set('subject', body.subject)
-  form.set('html', body.html)
-  form.set('text', body.text)
+  // Attachments require multipart/form-data; without them keep the simpler
+  // urlencoded body. Both hit the same Messages endpoint.
+  const hasAttachments = (body.attachments?.length ?? 0) > 0
+  let requestBody: string | FormData
+  let contentTypeHeader: Record<string, string>
+  if (hasAttachments) {
+    const form = new FormData()
+    form.set('from', config.from)
+    for (const to of config.to) form.append('to', to)
+    form.set('subject', body.subject)
+    form.set('html', body.html)
+    form.set('text', body.text)
+    for (const att of body.attachments ?? []) {
+      form.append(
+        'attachment',
+        new Blob([att.content as BlobPart], { type: att.contentType }),
+        att.filename
+      )
+    }
+    requestBody = form
+    contentTypeHeader = {} // fetch sets the multipart boundary itself
+  } else {
+    const form = new URLSearchParams()
+    form.set('from', config.from)
+    for (const to of config.to) form.append('to', to)
+    form.set('subject', body.subject)
+    form.set('html', body.html)
+    form.set('text', body.text)
+    requestBody = form.toString()
+    contentTypeHeader = { 'Content-Type': 'application/x-www-form-urlencoded' }
+  }
 
   const { signal, clear } = withTimeout()
   try {
@@ -74,9 +109,9 @@ async function sendViaMailgun(
         method: 'POST',
         headers: {
           Authorization: `Basic ${btoa(`api:${parsed.apiKey}`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
+          ...contentTypeHeader,
         },
-        body: form.toString(),
+        body: requestBody,
         signal,
       }
     )
@@ -109,7 +144,7 @@ async function sendViaSendGrid(
     return false
   }
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     personalizations: [{ to: config.to.map((email) => ({ email })) }],
     from: { email: config.from },
     subject: body.subject,
@@ -117,6 +152,14 @@ async function sendViaSendGrid(
       { type: 'text/plain', value: body.text },
       { type: 'text/html', value: body.html },
     ],
+  }
+  if (body.attachments?.length) {
+    payload.attachments = body.attachments.map((att) => ({
+      filename: att.filename,
+      type: att.contentType,
+      disposition: 'attachment',
+      content: base64FromBytes(att.content),
+    }))
   }
 
   const { signal, clear } = withTimeout()

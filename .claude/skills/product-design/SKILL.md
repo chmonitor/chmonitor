@@ -91,6 +91,34 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   NOT `data-[state=…]` / `--radix-*`. Use the `render` prop, not `asChild`. Full
   detail in the knowledge doc's "Base UI backing" section.
 
+## Illustrations (bespoke, brand-warm SVGs)
+
+Prefer inline **React SVG** illustration components in
+`components/illustrations/` over a lone lucide glyph for high-impact "moments"
+and for differentiating states. Rules:
+
+- **Token-driven only** — colours come from `currentColor` (set by a caller
+  `text-*` class), the OKLCH chart palette via Tailwind utilities
+  (`fill-chart-1`, `text-chart-red`, …), and brand `fill-orange-500` /
+  `fill-emerald-500`. NEVER a raw hex/oklch or `hsl(var(--…))` literal (that
+  breaks on the OKLCH tokens — see `docs/knowledge/cluster-topology.md`).
+- **Motion-safe only** — gate any animation on `motion-safe:` (e.g.
+  `motion-safe:animate-flow-stream`, `motion-safe:animate-pulse`), never SMIL;
+  add `motion-reduce:animate-none` on pulses.
+- **Theme-aware for free** because everything is `currentColor` + semantic
+  tokens; verify in both light and dark.
+- Structural template: `FlowConnector` in
+  `components/connections/connection-help-panel.tsx`.
+
+Current components: `WelcomeIllustration` (first-run welcome hero),
+`AgentGreetingIllustration` (agent greeting hero), `EmptyStateIllustration`
+(one bespoke ~40×40 mini per `EmptyStateVariant` — wired into `EmptyState`, so
+`ChartError` gets a cause-appropriate illustration automatically via
+`toEmptyStateVariant`), `BrokenWireIllustration` (connection-error panel: a
+browser→chmonitor→source flow with the failed hop severed). Static art for the
+marketing/docs sites (which can't import React components) goes in repo-root
+`assets/illustrations/` (synced like `screenshots/`/`backgrounds/`).
+
 ## Charts — always wrap state, never hand-roll it
 
 Use `ChartContainer` (renders skeleton / `ChartError` / empty) + `ChartCard`

@@ -189,7 +189,7 @@ export function PromptInputTextareaWithMentions({
 
   return (
     <div className="relative">
-      <InputGroup className={cn('rounded-xl px-3 py-2', className)}>
+      <InputGroup className={cn('rounded-lg px-3 py-2', className)}>
         {hasMentions && (
           <InputGroupAddon align="block-start">
             <div className="flex flex-wrap gap-1">

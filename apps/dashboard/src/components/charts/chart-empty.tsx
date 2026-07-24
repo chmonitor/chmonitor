@@ -1,4 +1,4 @@
-import { ArrowUpRight, Inbox, RefreshCw } from 'lucide-react'
+import { ArrowUpRight, RefreshCw } from 'lucide-react'
 
 import type { CardToolbarMetadata } from '@/components/cards/card-toolbar'
 import type { ApiResponseMetadata } from '@/lib/api/types'
@@ -6,6 +6,7 @@ import type { ChartDataPoint } from '@/types/chart-data'
 
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { chartCard } from '@/components/charts/chart-card-styles'
+import { EmptyStateIllustration } from '@/components/illustrations/empty-state-illustration'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -172,12 +173,12 @@ export const ChartEmpty = function ChartEmpty({
             'after:absolute after:inset-0 after:rounded-full after:bg-primary/20 after:blur-md after:opacity-0 group-hover:after:opacity-50 after:transition-opacity after:duration-300'
           )}
         >
-          <Inbox
+          <EmptyStateIllustration
+            variant="no-data"
             className={cn(
               compact ? 'h-3.5 w-3.5' : 'h-5 w-5 sm:h-6 sm:w-6',
               'text-primary/60 dark:text-primary/50 group-hover:text-primary/80 group-hover:scale-110 transition-all duration-300'
             )}
-            strokeWidth={1.5}
           />
         </div>
 

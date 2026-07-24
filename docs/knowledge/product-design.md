@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-16
+updated: 2026-07-24
 tags:
   - design-system
   - ui
@@ -222,7 +222,27 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   heavy content lives in a child component only mounted while `open` is
   true, so its data fetches don't run while the flyout is closed.
 - **Empty:** `components/ui/empty-state.tsx`, variants `no-data | no-results |
-  error | loading | offline | table-missing | timeout | filtered-empty`.
+  error | loading | offline | table-missing | timeout | filtered-empty`. Each
+  variant renders a **bespoke ~40×40 mini-illustration** (empty tray, magnifier-
+  over-nothing, severed plug, hourglass, …) from `EmptyStateIllustration`
+  (`components/illustrations/empty-state-illustration.tsx`) inside the shared
+  circle frame — differentiate the illustration, not the chrome. `ChartError`
+  routes its detected cause through `toEmptyStateVariant` → `EmptyState`, so a
+  chart failure automatically gets the matching illustration.
+- **Illustrations:** bespoke, theme-aware, token-driven, motion-safe inline SVGs
+  in `components/illustrations/` — prefer over a lone lucide glyph for
+  high-impact moments. `WelcomeIllustration` (first-run hero),
+  `AgentGreetingIllustration` (agent greeting hero), `EmptyStateIllustration`
+  (per-variant minis), `BrokenWireIllustration` (connection-error panel:
+  browser→chmonitor→source flow with the failed hop severed, keyed off
+  `ConnectionErrorKind`). Rules: colour only from `currentColor` + Tailwind
+  palette utilities (`fill-chart-1`, `text-chart-red`, `fill-orange-500`,
+  `fill-emerald-500`) — never a raw hex/oklch or `hsl(var(--…))` literal (breaks
+  on OKLCH tokens); animation only under `motion-safe:` (never SMIL), add
+  `motion-reduce:animate-none` on pulses. Template: `FlowConnector` in
+  `components/connections/connection-help-panel.tsx`. Static art for the
+  marketing/docs sites lives in repo-root `assets/illustrations/` (synced like
+  `screenshots/`/`backgrounds/`).
 - **Skeletons:** `components/skeletons/` — match final layout (no layout shift).
 - **First-run:** `components/host/first-run-gate.tsx` →
   `first-run-empty-state.tsx` (cloud signed-in / cloud anon / self-hosted).

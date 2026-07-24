@@ -5,6 +5,14 @@ Committed source of truth for images reused across the marketing/docs sites
 
 - `screenshots/` — product screenshots (dashboard captures, dialogs), both
   `-light`/`-dark` variants where available.
+- `illustrations/` — bespoke brand illustrations (spot art, hero graphics) as
+  static `.svg`/`.png`, both `-light`/`-dark` variants where a single
+  `currentColor`-driven file can't serve both themes. **In-app** (the dashboard)
+  prefer inline React SVG illustration components
+  (`apps/dashboard/src/components/illustrations/`) — they are theme-aware and
+  token-driven (OKLCH `--chart-*` palette via Tailwind utilities, brand orange /
+  emerald) and motion-safe. Use this `illustrations/` folder for the static
+  marketing/docs sites, which can't import the dashboard's React components.
 
 `scripts/sync-shared-assets.mjs` copies this directory into each app's
 `public/assets/` (gitignored) as a predev/prebuild step, so every site serves

@@ -17,6 +17,7 @@ import { PlanCard, PopularBadge } from '@/components/billing/plan-card'
 import { ClerkSignInButton as ClerkSignInButtonImpl } from '@/components/clerk/clerk-sign-in-button'
 import { AddHostDialog } from '@/components/connections'
 import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
+import { WelcomeIllustration } from '@/components/illustrations/welcome-illustration'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { trackEvent } from '@/lib/analytics/analytics'
@@ -113,6 +114,7 @@ function WelcomeHeader({
 }) {
   return (
     <div className="flex flex-col items-center text-center">
+      <WelcomeIllustration className="mb-4" />
       <div className="mb-5 flex size-14 items-center justify-center rounded-2xl border bg-card shadow-sm">
         <ChmonitorLogo width={28} height={28} className="size-7" />
       </div>

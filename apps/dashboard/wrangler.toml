@@ -47,6 +47,17 @@ binding = "CHM_DASHBOARD_QUERY_KV"
 id = "98b43d2d6fcf438cbd91e18e38b4212d"
 preview_id = "44390b843ada46d8beb47c99bcf24115"
 
+# Browser Rendering binding for PDF report export (#2794). Workers cannot run
+# headless Chrome in-process, so PDF rendering (lib/insights/report-pdf.ts) drives
+# a remote browser session via this binding. Optional / fail-closed additive:
+# the code auto-detects `env.BROWSER` (hasBrowserBinding) and degrades to HTML
+# when it is absent — every self-hosted Docker / K8s deploy (no binding) and any
+# Cloudflare account without Browser Rendering keeps working, HTML-only. PDF is a
+# Pro+ (`data_export`) capability. Remove this block if your account cannot
+# provision Browser Rendering; nothing else changes.
+[browser]
+binding = "BROWSER"
+
 # Durable Object migrations.
 # The legacy Next.js worker (same name, chmonitor-dash) registered two SQLite
 # Durable Objects: DOQueueHandler (OpenNext queue) and AgentConversationDurableObject

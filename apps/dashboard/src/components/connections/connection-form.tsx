@@ -24,6 +24,7 @@ import {
 } from './connection-presets'
 import { SAMPLE_CLUSTER_PRESET } from './sample-preset'
 import { useEffect, useState } from 'react'
+import { BrokenWireIllustration } from '@/components/illustrations/broken-wire-illustration'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -883,6 +884,9 @@ function ConnectionErrorPanel({
       e.kind === 'timeout')
   return (
     <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+      <div className="flex justify-center pb-1">
+        <BrokenWireIllustration kind={e.kind} />
+      </div>
       <p className="text-sm font-medium text-destructive">{e.title}</p>
       <p className="text-xs text-muted-foreground">{e.explanation}</p>
       <p className="text-xs">

@@ -226,6 +226,9 @@ curl "https://your-chmonitor.example.com/api/v1/insights/weekly-report?host=0&fo
 
 # A specific past week (YYYY-MM-DD week-start)
 curl "https://your-chmonitor.example.com/api/v1/insights/weekly-report?host=0&week=2026-07-06"
+
+# PDF (Cloudflare Browser Rendering; falls back to HTML when unavailable)
+curl -L "https://your-chmonitor.example.com/api/v1/insights/weekly-report?host=0&format=pdf" -o report.pdf
 ```
 
 ### Scheduled reports (per-user)
@@ -234,6 +237,7 @@ Beyond the env-var opt-in above, **Scheduled Reports** (`/report-settings` in th
 
 - **Cadence** — monthly (1st of the month, 30-day window, `GET /api/cron/monthly-report`, cron `0 8 1 * *`) or weekly (Mondays, 7-day window, shares the weekly cron above). On chmonitor Cloud, weekly cadence requires a paid plan; monthly is included on Free.
 - **Generate now** — build a fresh report on demand and open/download the self-contained HTML. Works on any deployment with zero delivery configuration (`POST /api/v1/reports/generate`).
+- **Download PDF** — render the same report to PDF via **Cloudflare Browser Rendering** (`POST /api/v1/reports/generate` with `{ "format": "pdf" }`, or `?format=pdf` on the read API). PDF export is a Pro+ (`data_export`) capability on chmonitor Cloud. It is **optional and fail-closed**: when no `BROWSER` binding is configured (self-hosted Docker / K8s, or any Cloudflare account without Browser Rendering) or a render fails, the request degrades gracefully to HTML (signalled by an `X-Report-PDF: unavailable` header). On Cloud, a Pro+ subscriber's scheduled email delivery also gets the PDF attached automatically.
 - **Send test report** — deliver one immediately through your configured channels and see the per-channel outcome (`POST /api/v1/reports/test-send`).
 - **Audit** — the subscription stores the last delivery time and a compact per-channel status.
 - **Fleet report** — a subscription covering **more than one host** is delivered as ONE combined fleet report instead of N separate ones: a comparison table (findings, critical, queries, ingested bytes, disk %) followed by each host's full sections. Per-host reports are still persisted individually.
