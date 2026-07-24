@@ -6,7 +6,8 @@
 # it to a user-writable directory. No account, no Rust toolchain required.
 #
 # Usage:
-#   curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+#   curl -sSf https://chmonitor.dev/install.sh | bash
+# (chmonitor.dev/install.sh redirects to this file on the main branch)
 #
 # Env overrides:
 #   CHM_VERSION       Install a specific release tag (e.g. "chm-v0.1.0").

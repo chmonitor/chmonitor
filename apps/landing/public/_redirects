@@ -1,3 +1,4 @@
+/install.sh  https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh  302
 /landing-assets/*  /assets/screenshots/:splat  301
 /docs/*  https://docs.chmonitor.dev/:splat  301
 /docs    https://docs.chmonitor.dev  301
