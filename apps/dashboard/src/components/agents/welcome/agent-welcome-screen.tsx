@@ -16,7 +16,7 @@ import { SparklesIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { RecentThreadsRail } from '@/components/agents/welcome/recent-threads-rail'
-import { RecommendationsList } from '@/components/agents/welcome/recommendations-list'
+import { PromptTilesGrid } from '@/components/agents/welcome/recommendations-list'
 import { useAgentGreeting } from '@/lib/hooks/use-agent-greeting'
 
 interface AgentWelcomeScreenProps {
@@ -52,9 +52,9 @@ export function AgentWelcomeScreen({
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 pb-6">
       {/* Greeting */}
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-foreground/[0.04]">
+        <div className="mx-auto mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
           <SparklesIcon
-            className="text-foreground/70 size-[18px]"
+            className="size-[18px]"
             strokeWidth={1.8}
             aria-hidden="true"
           />
@@ -74,8 +74,8 @@ export function AgentWelcomeScreen({
       {/* Composer (parent-owned) */}
       <div className="mb-8">{composer}</div>
 
-      {/* Suggested questions */}
-      <RecommendationsList onPickPrompt={onPickPrompt} limit={6} />
+      {/* Suggested questions — example-prompt tile grid (issue #2800) */}
+      <PromptTilesGrid onPickPrompt={onPickPrompt} limit={6} />
 
       {/* Recent threads */}
       <RecentThreadsRail />
