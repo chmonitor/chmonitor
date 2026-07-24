@@ -19,6 +19,8 @@ import type { Env } from './env'
 import type { GitHubRepo } from './exceptions'
 import type { GitHubAppAuth } from './github-app'
 
+import { collectActivation } from './activation'
+import { detectAnomaly, fetchDailySeries, formatAnomaly } from './anomaly'
 import { fetchClerkMetrics, WEEK_SECONDS } from './clerk-metrics'
 import { handleClerkWebhook } from './clerk-webhook'
 import { parseRepo, runExceptionScan } from './exceptions'
@@ -28,7 +30,7 @@ import { fetchWorkerExceptions } from './observability'
 import { readProbeSnapshot, runProbes } from './probes'
 import { collectSummary, formatDigest } from './summary'
 import { Notifier } from './telegram'
-import { collectUsage } from './usage'
+import { collectUsage, utcDay } from './usage'
 import { handlePolarWebhook } from './webhook'
 import { collectWeekly, formatWeekly, weekBounds } from './weekly'
 
@@ -102,27 +104,63 @@ async function resolveGitHub(
   }
 }
 
+/**
+ * Alert when yesterday's active installs diverge sharply from their own recent
+ * baseline. Sent as its OWN message rather than a digest line: a collapse in
+ * usage means something is broken right now, and a line inside a long digest is
+ * easy to miss. Silent when there is no telemetry binding or no anomaly.
+ */
+async function runUsageAnomaly(
+  env: Env,
+  notifier: Notifier,
+  nowSeconds: number
+): Promise<void> {
+  const db = env.CHM_TELEMETRY_DB
+  if (!db) return
+  const referenceDay = utcDay(new Date((nowSeconds - 24 * 60 * 60) * 1000))
+  const series = await fetchDailySeries(db, referenceDay)
+  if (series.length === 0) return
+  const anomaly = detectAnomaly(series, referenceDay)
+  if (!anomaly) return
+  await notifier.notify('usage_anomaly', formatAnomaly(anomaly))
+}
+
 async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
   if (!env.CHM_CLOUD_D1) {
     console.error('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping daily summary')
     return
   }
+  const nowSeconds = Math.floor(Date.now() / 1000)
   try {
     // Billing (D1) is the required core; Clerk metrics, usage (DAU/WAU/MAU from
     // the telemetry D1), and the probe snapshot are best-effort enrichments that
     // degrade to omitted sections when absent.
     const [data, clerk, usage, probes] = await Promise.all([
-      collectSummary(env.CHM_CLOUD_D1),
-      fetchClerkMetrics(env.CLERK_SECRET_KEY),
-      collectUsage(env.CHM_TELEMETRY_DB ?? null),
+      collectSummary(env.CHM_CLOUD_D1, nowSeconds),
+      fetchClerkMetrics(env.CLERK_SECRET_KEY, fetch, nowSeconds),
+      collectUsage(env.CHM_TELEMETRY_DB ?? null, nowSeconds),
       readProbeSnapshot(env.CHM_HOOKS_KV ?? null),
     ])
+    // Activation needs the signup count, so it runs after Clerk answers.
+    const activation = await collectActivation(
+      env.CHM_CLOUD_D1,
+      nowSeconds - 24 * 60 * 60,
+      clerk?.newUsers ?? null
+    )
     await notifier.notify(
       'daily_summary',
-      formatDigest(data, { clerk, usage, probes })
+      formatDigest(data, { clerk, usage, activation, probes })
     )
   } catch (err) {
     console.error('[cloud-hooks] daily summary failed', err)
+  }
+
+  // Separate from the digest's try/catch: a failed digest must not swallow the
+  // anomaly alert, which is the more urgent of the two.
+  try {
+    await runUsageAnomaly(env, notifier, nowSeconds)
+  } catch (err) {
+    console.error('[cloud-hooks] usage anomaly check failed', err)
   }
 }
 

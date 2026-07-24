@@ -8,8 +8,10 @@
  * never drift from the published prices.
  */
 
+import type { ActivationData } from './activation'
 import type { UsageMetrics } from './usage'
 
+import { activationLines } from './activation'
 import { usageLines } from './usage'
 import { BILLING_PLANS, type Plan, type PlanId } from '@chm/pricing'
 
@@ -67,6 +69,8 @@ export interface DigestExtras {
   probes?: ProbeSnapshot | null
   /** DAU/WAU/MAU from the telemetry D1 (see usage.ts). */
   usage?: UsageMetrics | null
+  /** Signup → connected-a-cluster conversion (see activation.ts). */
+  activation?: ActivationData | null
 }
 
 const ACTIVE_STATUSES = "('active','trialing')"
@@ -218,6 +222,9 @@ export function formatDigest(
 
   // ── Usage (telemetry D1) — DAU/WAU/MAU, omitted when unavailable ───────────
   parts.push(...usageLines(extras.usage))
+
+  // ── Activation — did the signups actually connect anything? ────────────────
+  parts.push(...activationLines(extras.activation))
 
   // ── Subscriptions ───────────────────────────────────────────────────────────
   parts.push(

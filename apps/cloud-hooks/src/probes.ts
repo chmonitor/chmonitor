@@ -7,6 +7,13 @@
 
 import type { NotifyKind } from './telegram'
 
+import {
+  formatOutageAlert,
+  readOutageState,
+  reconcileOutages,
+  writeOutageState,
+} from './outage'
+
 export type ProbeState = 'up' | 'down'
 
 /**
@@ -226,6 +233,8 @@ export interface RunProbesDeps {
   /** Optional D1 binding — when present, a `SELECT 1` read probe is added. */
   d1?: D1ProbeDb | null
   notify: (kind: NotifyKind, text: string) => Promise<boolean>
+  /** Epoch ms, injectable so the escalation schedule is testable. */
+  now?: () => number
   logError?: (message: string, meta?: unknown) => void
 }
 
@@ -257,6 +266,20 @@ export async function runProbes(deps: RunProbesDeps): Promise<Transition[]> {
   for (const t of transitions) {
     await deps.notify(PROBE_NOTIFY_KIND, formatTransition(t))
   }
+
+  // Escalation: keep reminding while a surface stays down, and report total
+  // downtime on recovery. `diffStates` above owns the first "is DOWN" message;
+  // this only adds the reminders it cannot produce.
+  const now = (deps.now ?? Date.now)()
+  const { alerts, next } = reconcileOutages(
+    await readOutageState(deps.kv),
+    results,
+    now
+  )
+  for (const alert of alerts) {
+    await deps.notify(PROBE_NOTIFY_KIND, formatOutageAlert(alert))
+  }
+  await writeOutageState(deps.kv, next, (m, meta) => logError(m, meta))
 
   const nextState: Record<string, ProbeState> = {}
   for (const r of results) nextState[r.name] = r.state

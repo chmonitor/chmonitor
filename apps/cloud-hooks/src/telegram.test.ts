@@ -47,10 +47,47 @@ describe('per-kind throttle', () => {
     let now = 1_000_000
     const n = new Notifier(cfg, { fetch: fetchImpl, now: () => now })
 
-    expect(await n.notify('probe', 'down')).toBe(true)
-    now += 31_000 // past the 30s probe window
-    expect(await n.notify('probe', 'up')).toBe(true)
+    expect(await n.notify('signature_failure', 'bad sig')).toBe(true)
+    now += 61_000 // past the 60s signature_failure window
+    expect(await n.notify('signature_failure', 'bad sig again')).toBe(true)
     expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('kinds that must never be throttled', () => {
+  // These are deduped by durable state (probe transitions, KV fingerprints, the
+  // issue cursor), so a timer could not prevent a duplicate — it could only drop
+  // distinct information. Regression guard: a 30s window here used to mean a
+  // four-surface outage reported one surface.
+  test.each([
+    'probe',
+    'error',
+    'new_issue',
+    'usage_anomaly',
+  ] as const)('sends every %s message in a same-instant burst', async (kind) => {
+    const fetchImpl = okFetch()
+    const now = 1_000_000
+    const n = new Notifier(cfg, { fetch: fetchImpl, now: () => now })
+
+    expect(await n.notify(kind, 'first')).toBe(true)
+    expect(await n.notify(kind, 'second')).toBe(true)
+    expect(await n.notify(kind, 'third')).toBe(true)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+  })
+
+  test('a four-surface outage reports all four surfaces', async () => {
+    const fetchImpl = okFetch()
+    const now = 1_000_000
+    const n = new Notifier(cfg, { fetch: fetchImpl, now: () => now })
+
+    for (const surface of ['dashboard', 'docs', 'landing', 'blog']) {
+      expect(await n.notify('probe', `${surface} is DOWN`)).toBe(true)
+    }
+    const sent = fetchImpl.mock.calls.map(
+      ([, init]) => JSON.parse((init as RequestInit).body as string).text
+    )
+    expect(sent).toHaveLength(4)
+    expect(sent.join('\n')).toContain('blog is DOWN')
   })
 })
 
