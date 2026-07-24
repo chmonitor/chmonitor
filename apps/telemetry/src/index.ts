@@ -128,377 +128,25 @@ export default {
     }
 
     if (req.method === 'GET' && pathname === '/') {
-      // Serve the analytics dashboard HTML
+      // Serve the analytics dashboard HTML (simple two-tab page:
+      // Dashboard (OSS) installs vs CLI usage — separate streams).
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>chmonitor Telemetry Analytics</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>chmonitor Telemetry</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
       --bg: #ffffff;
-      --fg: #1a1a1a;
-      --fg-muted: #666666;
-      --border: #f0f0f3;
-      --bg-box: #f5f5f5;
+      --fg: #18181b;
+      --fg-muted: #71717a;
+      --border: #e4e4e7;
+      --card: #fafafa;
       --accent: #f97316;
-    }
-
-    body {
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      padding: 0;
-      margin: 0;
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .nav-bar {
-      border-bottom: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      padding: 16px 24px;
-    }
-
-    .nav-container {
-      max-width: 1000px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .logo {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: var(--fg);
-      text-decoration: none;
-      letter-spacing: -0.03em;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo span {
-      color: var(--fg);
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 32px;
-    }
-
-    .nav-links a {
-      color: var(--fg-muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.15s ease;
-    }
-
-    .nav-links a:hover {
-      color: var(--fg);
-    }
-
-    .btn-primary {
-      background: #09090b;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 650;
-      transition: all 0.15s ease;
-    }
-
-    .btn-primary:hover {
-      background: #27272a;
-      transform: translateY(-1px);
-    }
-
-    .container {
-      max-width: 680px;
-      margin: 60px auto 0;
-      padding: 0 24px;
-    }
-
-    header {
-      margin-bottom: 48px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 3rem;
-      font-weight: 850;
-      color: var(--fg);
-      margin-bottom: 16px;
-      letter-spacing: -0.04em;
-      line-height: 1.1;
-    }
-
-    .subtitle {
-      color: var(--fg-muted);
-      font-size: 1.15rem;
-      font-weight: 450;
-      max-width: 520px;
-      margin: 0 auto;
-      letter-spacing: -0.01em;
-      line-height: 1.5;
-    }
-
-    .loading {
-      padding: 80px 0;
-      color: var(--fg-muted);
-      font-size: 0.95rem;
-      text-align: center;
-    }
-
-    .error {
-      border: none;
-      padding: 24px;
-      margin: 40px 0;
-      color: #df3c3c;
-      background: #fef2f2;
-      border-radius: 12px;
-      font-size: 0.95rem;
-    }
-
-    .info-box {
-      border: none;
-      background: #fffbeb;
-      padding: 28px;
-      margin-bottom: 40px;
-      border-radius: 14px;
-    }
-
-    .info-box h3 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #92400e;
-      margin-bottom: 8px;
-      letter-spacing: -0.02em;
-    }
-
-    .info-box p {
-      font-size: 0.9rem;
-      color: #b45309;
-      line-height: 1.6;
-    }
-
-    .opt-out-box {
-      border: none;
-      background: #f0f7ff;
-      padding: 28px;
-      margin-bottom: 40px;
-      border-radius: 14px;
-    }
-
-    .opt-out-box h3 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #1e3a8a;
-      margin-bottom: 12px;
-      letter-spacing: -0.02em;
-    }
-
-    .opt-out-box p {
-      font-size: 0.9rem;
-      color: #1e40af;
-      line-height: 1.6;
-      margin-bottom: 16px;
-    }
-
-    .opt-out-methods {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .opt-out-method {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 16px;
-      background: #ffffff;
-      border-radius: 10px;
-      font-size: 0.9rem;
-    }
-
-    .opt-out-method code {
-      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
-      font-size: 0.85rem;
-      background: #eef2ff;
-      padding: 4px 10px;
-      border-radius: 6px;
-      color: #1e40af;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .opt-out-method .desc {
-      color: #475569;
-      font-size: 0.85rem;
-    }
-
-    .opt-out-method .desc a {
-      color: #2563eb;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    .opt-out-footnote {
-      margin-top: 12px;
-      font-size: 0.8rem;
-      color: #475569;
-    }
-
-    .opt-out-footnote a {
-      color: #2563eb;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 48px;
-    }
-
-    .stat-card {
-      border: none;
-      background: #f0f7ff;
-      padding: 32px 28px;
-      border-radius: 14px;
-      text-align: left;
-      transition: transform 0.2s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-2px);
-    }
-
-    .stat-card.environments {
-      background: #f5f3ff;
-    }
-
-    .stat-card.environments .stat-label {
-      color: #6b21a8;
-    }
-
-    .stat-card.environments .stat-value {
-      color: #581c87;
-    }
-
-    .stat-label {
-      font-size: 0.8rem;
-      color: #1e3a8a;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-
-    .stat-value {
-      font-size: 3.5rem;
-      font-weight: 900;
-      color: #1e40af;
-      line-height: 1;
-      letter-spacing: -0.05em;
-    }
-
-    .section {
-      margin-bottom: 48px;
-    }
-
-    .section h2 {
-      font-size: 1.35rem;
-      font-weight: 800;
-      color: var(--fg);
-      margin-bottom: 20px;
-      letter-spacing: -0.03em;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 12px;
-    }
-
-    .bar-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .bar-item {
-      display: flex;
-      align-items: center;
-      font-size: 0.9rem;
-    }
-
-    .bar-label {
-      width: 160px;
-      flex-shrink: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--fg);
-      font-weight: 550;
-      letter-spacing: -0.01em;
-    }
-
-    .bar-track {
-      flex-grow: 1;
-      height: 8px;
-      background: #f4f4f7;
-      margin: 0 20px;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      background: #f97316;
-      border-radius: 4px;
-      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .bar-value {
-      width: 80px;
-      text-align: right;
-      font-weight: 700;
-      flex-shrink: 0;
-      color: var(--fg);
-    }
-
-    .footer {
-      margin-top: 64px;
-      padding: 32px 0;
-      border-top: 1px solid var(--border);
-      font-size: 0.85rem;
-      color: var(--fg-muted);
-      text-align: left;
-    }
-
-    .footer a {
-      color: var(--fg);
-      text-decoration: underline;
-      text-underline-offset: 4px;
-    }
-
-    .footer a:hover {
-      color: #f97316;
+      --code-bg: #f4f4f5;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -506,127 +154,251 @@ export default {
         --bg: #0b0b0e;
         --fg: #f4f4f5;
         --fg-muted: #8a8a93;
-        --border: #1e1e24;
-      }
-
-      .nav-bar {
-        background: rgba(11, 11, 14, 0.85);
-      }
-
-      .logo span {
-        color: #f4f4f5;
-      }
-
-      .btn-primary {
-        background: #fafafa;
-        color: #09090b;
-      }
-
-      .btn-primary:hover {
-        background: #e4e4e7;
-      }
-
-      .info-box {
-        background: #1e1910;
-      }
-
-      .info-box h3 {
-        color: #fef08a;
-      }
-
-      .info-box p {
-        color: #fef08a;
-        opacity: 0.85;
-      }
-
-      .opt-out-box {
-        background: #1e293b;
-      }
-
-      .opt-out-box h3 {
-        color: #93c5fd;
-      }
-
-      .opt-out-box p {
-        color: #bfdbfe;
-      }
-
-      .opt-out-method {
-        background: #0f172a;
-      }
-
-      .opt-out-method code {
-        background: #1e3a5f;
-        color: #93c5fd;
-      }
-
-      .opt-out-method .desc {
-        color: #94a3b8;
-      }
-
-      .opt-out-method .desc a,
-      .opt-out-footnote a {
-        color: #60a5fa;
-      }
-
-      .opt-out-footnote {
-        color: #94a3b8;
-      }
-
-      .stat-card {
-        background: #111827;
-      }
-
-      .stat-card.environments {
-        background: #1e1b4b;
-      }
-
-      .stat-card.environments .stat-label {
-        color: #c084fc;
-      }
-
-      .stat-card.environments .stat-value {
-        color: #e9d5ff;
-      }
-
-      .stat-label {
-        color: #60a5fa;
-      }
-
-      .stat-value {
-        color: #93c5fd;
-      }
-
-      .bar-track {
-        background: #181820;
+        --border: #26262c;
+        --card: #131316;
+        --code-bg: #1e1e24;
       }
     }
 
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .nav-bar {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .nav-container {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.05rem;
+      font-weight: 750;
+      color: var(--fg);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .nav-links { display: flex; gap: 22px; }
+
+    .nav-links a {
+      color: var(--fg-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .nav-links a:hover { color: var(--fg); }
+
+    .container {
+      max-width: 720px;
+      margin: 44px auto 0;
+      padding: 0 24px 64px;
+    }
+
+    header { margin-bottom: 28px; }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--fg-muted);
+      font-size: 0.95rem;
+      max-width: 560px;
+    }
+
+    .privacy-note {
+      font-size: 0.85rem;
+      color: var(--fg-muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .privacy-note strong { color: var(--fg); font-weight: 650; }
+
+    .opt-out {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: var(--fg-muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 32px;
+    }
+
+    .opt-out code {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      background: var(--code-bg);
+      padding: 3px 9px;
+      border-radius: 6px;
+      color: var(--fg);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .opt-out a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      appearance: none;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--fg-muted);
+      cursor: pointer;
+    }
+
+    .tab:hover { color: var(--fg); }
+
+    .tab.active {
+      color: var(--fg);
+      border-bottom-color: var(--accent);
+    }
+
+    .loading, .empty {
+      padding: 60px 0;
+      color: var(--fg-muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .error {
+      padding: 20px;
+      margin: 32px 0;
+      color: #dc2626;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+
+    .stat-card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--fg-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      font-weight: 650;
+    }
+
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .section { margin-bottom: 36px; }
+
+    .section h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+
+    .bar-item { display: flex; align-items: center; font-size: 0.875rem; }
+
+    .bar-label {
+      width: 140px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 550;
+    }
+
+    .bar-track {
+      flex-grow: 1;
+      height: 7px;
+      background: var(--code-bg);
+      margin: 0 16px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bar-value {
+      width: 64px;
+      text-align: right;
+      font-weight: 700;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--fg-muted);
+    }
+
+    .footer a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
     @media (max-width: 600px) {
-      .container {
-        margin-top: 32px;
-      }
-      h1 {
-        font-size: 2.25rem;
-      }
-      .subtitle {
-        font-size: 1.05rem;
-      }
-      .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-      .bar-item {
-        flex-wrap: wrap;
-      }
-      .bar-track {
-        width: 100%;
-        margin: 12px 0 4px;
-        order: 3;
-      }
-      .bar-value {
-        margin-left: auto;
-      }
+      .container { margin-top: 28px; }
+      h1 { font-size: 1.55rem; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .bar-item { flex-wrap: wrap; }
+      .bar-track { width: 100%; margin: 8px 0 2px; order: 3; }
+      .bar-value { margin-left: auto; }
+      .nav-links { display: none; }
     }
   </style>
 </head>
@@ -634,7 +406,7 @@ export default {
   <nav class="nav-bar">
     <div class="nav-container">
       <a href="https://chmonitor.dev" class="logo">
-        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chmonitor">
+        <svg width="26" height="26" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chmonitor">
           <rect x="3.3" y="13.05" width="3.8" height="15.45" fill="#f97316"/><rect x="8.7" y="3.5" width="3.8" height="25" fill="#f97316"/><rect x="14.1" y="13.25" width="3.8" height="15.25" fill="#f97316"/><rect x="19.5" y="6.25" width="3.8" height="22.25" fill="#f97316"/><rect x="24.9" y="16.8" width="3.8" height="11.7" fill="#f97316"/><rect x="3.3" y="9.75" width="3.8" height="3.3" fill="#10b981"/>
         </svg>
         <span>chmonitor</span>
@@ -644,58 +416,44 @@ export default {
         <a href="https://docs.chmonitor.dev">Docs</a>
         <a href="https://github.com/chmonitor/chmonitor">GitHub</a>
       </div>
-      <a href="https://github.com/chmonitor/chmonitor" class="btn-primary">Get Started</a>
     </div>
   </nav>
 
   <div class="container">
     <header>
-      <h1>Telemetry Analytics.</h1>
-      <p class="subtitle">Adoption statistics and installation insights for the open-source ClickHouse monitoring dashboard.</p>
+      <h1>Telemetry</h1>
+      <p class="subtitle">Anonymous adoption stats for the open-source ClickHouse monitoring dashboard and the <code>chm</code> CLI.</p>
     </header>
+
+    <div class="privacy-note">
+      <strong>Privacy-first, on by default.</strong>
+      100% anonymous — no IPs, hostnames, queries, or identifying information.
+      Only COUNT(DISTINCT) of opaque SHA-256 instance ids.
+    </div>
+
+    <div class="opt-out">
+      <span><strong style="color:var(--fg);font-weight:650;">Disable tracking:</strong></span>
+      <code>CHM_TELEMETRY=off</code>
+      <span>— one env var, works for the dashboard, CLI, and installer.
+      <a href="https://docs.chmonitor.dev/operate/advanced/telemetry">Details</a></span>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="tab-dashboard" role="tab" aria-selected="true" onclick="showTab('dashboard')">Dashboard (OSS)</button>
+      <button class="tab" id="tab-cli" role="tab" aria-selected="false" onclick="showTab('cli')">CLI (chm)</button>
+    </div>
 
     <div id="loading" class="loading">Loading analytics...</div>
     <div id="error" class="error" style="display: none;"></div>
 
-    <div id="content" style="display: none;">
-      <div class="info-box">
-        <h3>Privacy-First Analytics</h3>
-        <p>
-          chmonitor includes an anonymous, privacy-first telemetry system. It is <strong>on by default</strong>
-          and you can turn it off at any time. All data is 100% anonymous — no IPs, hostnames, or identifying
-          information are recorded. Only COUNT(DISTINCT) of SHA-256 hashed instance IDs are processed.
-        </p>
-      </div>
-
-      <div class="opt-out-box">
-        <h3>How to Disable Tracking</h3>
-        <p>Telemetry runs unless you explicitly turn it off. Any of the following methods disables it:</p>
-        <div class="opt-out-methods">
-          <div class="opt-out-method">
-            <code>CHM_TELEMETRY=off</code>
-            <span class="desc">Server runtime environment variable (also <code>0</code>, <code>false</code>, <code>no</code>)</span>
-          </div>
-          <div class="opt-out-method">
-            <code>DO_NOT_TRACK=1</code>
-            <span class="desc">Cross-tool <a href="https://consoledontrack.com">opt-out standard</a> — hard override</span>
-          </div>
-          <div class="opt-out-method">
-            <code>CHM_TELEMETRY_ENDPOINT=""</code>
-            <span class="desc">Hard kill-switch — empty endpoint stops all network calls</span>
-          </div>
-        </div>
-        <p class="opt-out-footnote">
-          See <a href="https://docs.chmonitor.dev/operate/advanced/telemetry">the docs</a> for full details on telemetry, events, and retention.
-        </p>
-      </div>
-
+    <div id="panel-dashboard" role="tabpanel" style="display: none;">
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Total Installs</div>
           <div class="stat-value" id="total">0</div>
         </div>
-        <div class="stat-card environments">
-          <div class="stat-label">Total Environments</div>
+        <div class="stat-card">
+          <div class="stat-label">Environments</div>
           <div class="stat-value" id="total-places">0</div>
         </div>
       </div>
@@ -716,12 +474,12 @@ export default {
       </div>
 
       <div class="section">
-        <h2>Geographic Distribution</h2>
+        <h2>Countries</h2>
         <div id="countries" class="bar-chart"></div>
       </div>
 
       <div class="section">
-        <h2>Platform Distribution</h2>
+        <h2>Platforms</h2>
         <div id="platforms" class="bar-chart"></div>
       </div>
 
@@ -729,120 +487,110 @@ export default {
         <h2>ClickHouse Flavors</h2>
         <div id="ch-flavors" class="bar-chart"></div>
       </div>
+    </div>
 
-      <div class="section" id="cli-section" style="display: none;">
-        <h2>CLI (chm)</h2>
-        <p style="color: var(--fg-muted); font-size: 0.9rem; margin: -8px 0 24px;">
-          Anonymous usage of the standalone <code>chm</code> command-line tool —
-          tracked as a separate stream from the dashboard above.
-        </p>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">CLI Installs</div>
-            <div class="stat-value" id="cli-installs">0</div>
-          </div>
-          <div class="stat-card environments">
-            <div class="stat-label">Active CLI Users</div>
-            <div class="stat-value" id="cli-active">0</div>
-          </div>
+    <div id="panel-cli" role="tabpanel" style="display: none;">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">CLI Installs</div>
+          <div class="stat-value" id="cli-installs">0</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-label">Active CLI Users</div>
+          <div class="stat-value" id="cli-active">0</div>
+        </div>
+      </div>
 
-        <h3 style="font-size:1.05rem;font-weight:700;margin:8px 0 16px;letter-spacing:-0.02em;">Installs Over Time (30d)</h3>
+      <div class="section">
+        <h2>Installs Over Time (30d)</h2>
         <div id="cli-installs-time" class="bar-chart"></div>
+      </div>
 
-        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">Runs by Command</h3>
+      <div class="section">
+        <h2>Runs by Command</h2>
         <div id="cli-commands" class="bar-chart"></div>
+      </div>
 
-        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">CLI Versions</h3>
+      <div class="section">
+        <h2>CLI Versions</h2>
         <div id="cli-versions" class="bar-chart"></div>
+      </div>
 
-        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">Operating System</h3>
+      <div class="section">
+        <h2>Operating System</h2>
         <div id="cli-os" class="bar-chart"></div>
+      </div>
 
-        <h3 style="font-size:1.05rem;font-weight:700;margin:32px 0 16px;letter-spacing:-0.02em;">Architecture</h3>
+      <div class="section">
+        <h2>Architecture</h2>
         <div id="cli-arch" class="bar-chart"></div>
       </div>
+    </div>
 
-      <div class="footer">
-        <p>
-          Data updates every hour • Powered by <a href="https://chmonitor.dev">chmonitor</a> •
-          <a href="https://github.com/chmonitor/chmonitor">GitHub</a>
-        </p>
-      </div>
+    <div class="footer" id="footer" style="display: none;">
+      <p>
+        Data updates hourly • Powered by <a href="https://chmonitor.dev">chmonitor</a> •
+        <a href="https://github.com/chmonitor/chmonitor">GitHub</a>
+      </p>
     </div>
   </div>
 
   <script>
+    function showTab(name) {
+      for (const t of ['dashboard', 'cli']) {
+        const active = t === name;
+        document.getElementById('tab-' + t).classList.toggle('active', active);
+        document.getElementById('tab-' + t).setAttribute('aria-selected', String(active));
+        document.getElementById('panel-' + t).style.display = active ? 'block' : 'none';
+      }
+      try { history.replaceState(null, '', '#' + name); } catch {}
+    }
+
     async function loadAnalytics() {
       const loading = document.getElementById('loading');
       const error = document.getElementById('error');
-      const content = document.getElementById('content');
 
       try {
         const response = await fetch('https://telemetry.chmonitor.dev/v1/summary');
-
         if (!response.ok) {
           throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
         }
-
         const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
+        if (data.error) throw new Error(data.error);
 
         loading.style.display = 'none';
-        content.style.display = 'block';
+        document.getElementById('footer').style.display = 'block';
 
-        // Update stats cards
+        // ── Dashboard (OSS) tab ──
         document.getElementById('total').textContent = data.total_installs.toLocaleString();
         if (data.total_places !== undefined) {
           document.getElementById('total-places').textContent = data.total_places.toLocaleString();
         }
-
-        // Render deployment targets
-        const deployTargetsArray = Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
+        renderBarChart('deploy-targets', Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
           deploy_target: target,
           installs: installs
-        }));
-        renderBarChart('deploy-targets', deployTargetsArray);
-
-        // Render ClickHouse versions
+        })));
         renderBarChart('ch-versions', data.by_ch_version);
-
-        // Render chmonitor versions
-        if (data.by_chm_version) {
-          renderBarChart('chm-versions', data.by_chm_version);
-        }
-
-        // Render countries
+        renderBarChart('chm-versions', data.by_chm_version || []);
         renderBarChart('countries', data.by_country);
-
-        // Render platforms
         renderBarChart('platforms', data.by_platform);
-
-        // Render ClickHouse flavors (if available)
         if (data.by_ch_flavor && data.by_ch_flavor.length > 0) {
           document.getElementById('ch-flavor-section').style.display = 'block';
           renderBarChart('ch-flavors', data.by_ch_flavor);
         }
 
-        // Render CLI stream (separate from dashboard telemetry)
-        const cli = data.cli;
-        const hasCli = cli && (cli.installs > 0 || cli.active_users > 0 ||
-          (cli.by_command && cli.by_command.length > 0));
-        if (hasCli) {
-          document.getElementById('cli-section').style.display = 'block';
-          document.getElementById('cli-installs').textContent = (cli.installs || 0).toLocaleString();
-          document.getElementById('cli-active').textContent = (cli.active_users || 0).toLocaleString();
-          renderBarChart('cli-installs-time', (cli.installs_over_time || []).map(d => ({ day: d.day, installs: d.installs })), false);
-          renderBarChart('cli-commands', (cli.by_command || []).map(c => ({ command: c.command, installs: c.runs })));
-          renderBarChart('cli-versions', cli.by_cli_version || []);
-          renderBarChart('cli-os', cli.by_os || []);
-          renderBarChart('cli-arch', cli.by_arch || []);
-        }
+        // ── CLI (chm) tab — a separate tracking stream ──
+        const cli = data.cli || {};
+        document.getElementById('cli-installs').textContent = (cli.installs || 0).toLocaleString();
+        document.getElementById('cli-active').textContent = (cli.active_users || 0).toLocaleString();
+        renderBarChart('cli-installs-time', (cli.installs_over_time || []).map(d => ({ day: d.day, installs: d.installs })), false);
+        renderBarChart('cli-commands', (cli.by_command || []).map(c => ({ command: c.command, installs: c.runs })));
+        renderBarChart('cli-versions', cli.by_cli_version || []);
+        renderBarChart('cli-os', cli.by_os || []);
+        renderBarChart('cli-arch', cli.by_arch || []);
 
+        // Restore the tab from the URL hash, default to dashboard.
+        showTab(location.hash === '#cli' ? 'cli' : 'dashboard');
       } catch (err) {
         loading.style.display = 'none';
         error.style.display = 'block';
@@ -854,7 +602,7 @@ export default {
     function renderBarChart(containerId, data, sortByValue = true) {
       const container = document.getElementById(containerId);
       if (!data || data.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No data available</p>';
+        container.innerHTML = '<p style="color: var(--fg-muted); font-size: 0.85rem;">No data yet</p>';
         return;
       }
 
@@ -883,23 +631,14 @@ export default {
     }
 
     function formatLabel(label) {
-      if (label === 'unknown') return 'Unknown';
-      if (label === 'docker') return 'Docker';
-      if (label === 'helm') return 'Helm';
-      if (label === 'cf') return 'Cloudflare';
-      if (label === 'dev') return 'Development';
-      if (label === 'windows') return 'Windows';
-      if (label === 'macos') return 'macOS';
-      if (label === 'linux') return 'Linux';
-      if (label === 'android') return 'Android';
-      if (label === 'ios') return 'iOS';
-      if (label === 'oss') return 'OSS';
-      if (label === 'altinity') return 'Altinity';
-      if (label === 'cloud') return 'Cloud';
-      return label;
+      const names = {
+        unknown: 'Unknown', docker: 'Docker', helm: 'Helm', cf: 'Cloudflare',
+        dev: 'Development', windows: 'Windows', macos: 'macOS', linux: 'Linux',
+        android: 'Android', ios: 'iOS', oss: 'OSS', altinity: 'Altinity', cloud: 'Cloud'
+      };
+      return names[label] || label;
     }
 
-    // Load analytics on page load
     loadAnalytics();
   </script>
 </body>
