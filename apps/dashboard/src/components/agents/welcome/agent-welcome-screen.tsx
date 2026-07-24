@@ -11,12 +11,11 @@
  * duplicate runtime wiring); this component is the surrounding shell.
  */
 
-import { SparklesIcon } from 'lucide-react'
-
 import type { ReactNode } from 'react'
 
 import { RecentThreadsRail } from '@/components/agents/welcome/recent-threads-rail'
 import { RecommendationsList } from '@/components/agents/welcome/recommendations-list'
+import { AgentGreetingIllustration } from '@/components/illustrations/agent-greeting-illustration'
 import { useAgentGreeting } from '@/lib/hooks/use-agent-greeting'
 
 interface AgentWelcomeScreenProps {
@@ -52,13 +51,7 @@ export function AgentWelcomeScreen({
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 pb-6">
       {/* Greeting */}
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-foreground/[0.04]">
-          <SparklesIcon
-            className="text-foreground/70 size-[18px]"
-            strokeWidth={1.8}
-            aria-hidden="true"
-          />
-        </div>
+        <AgentGreetingIllustration className="mx-auto mb-3" />
         <h1 className="text-balance text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           {greeting.heading}
         </h1>
