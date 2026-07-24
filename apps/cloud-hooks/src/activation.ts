@@ -13,7 +13,18 @@
  * stalled case below, which is flagged inline.
  */
 
-import type { D1SummaryDb } from './summary'
+/**
+ * Minimal D1 subset for the connection count. Declared locally rather than
+ * imported from summary.ts, which imports `activationLines` from here — a mutual
+ * import would be a cycle.
+ */
+export interface D1ActivationDb {
+  prepare(sql: string): {
+    bind(...values: unknown[]): {
+      first<T = unknown>(): Promise<T | null>
+    }
+  }
+}
 
 export interface ActivationData {
   /** Connections created in the window. */
@@ -53,7 +64,7 @@ export function isStalled(data: ActivationData): boolean {
  * Returns null on failure so the digest omits the section.
  */
 export async function collectActivation(
-  db: D1SummaryDb | null | undefined,
+  db: D1ActivationDb | null | undefined,
   since: number,
   signups: number | null,
   logError: (message: string, meta?: unknown) => void = (m, meta) =>
