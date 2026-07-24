@@ -89,13 +89,25 @@ async function sendWebhook(url: string, text: string): Promise<boolean> {
   })
 }
 
+/** Optional extras for a delivery (e.g. a rendered PDF to attach — #2794). */
+export interface ReportDeliveryOptions {
+  /** PDF bytes to attach to the email channel. Ignored by digest channels. */
+  readonly pdf?: Uint8Array
+  /** Attachment filename for the PDF (defaults to `report.pdf`). */
+  readonly pdfFilename?: string
+}
+
 /**
  * Deliver a report to every non-paging channel the owner has configured.
  * Never throws; failures degrade to `ok: false` per channel.
+ *
+ * When `options.pdf` is provided it is attached to the email channel only
+ * (#2794); the digest channels (webhook/telegram/ntfy/pushover) stay text.
  */
 export async function deliverReport(
   ownerId: string,
-  report: WeeklyReport
+  report: WeeklyReport,
+  options: ReportDeliveryOptions = {}
 ): Promise<ReportDeliveryResult> {
   const resolved = await resolveServerChannels(ownerId)
   const settings = resolved.channelSettings
@@ -111,6 +123,15 @@ export async function deliverReport(
       subject,
       html: report.html,
       text: report.markdown,
+      attachments: options.pdf
+        ? [
+            {
+              filename: options.pdfFilename ?? 'report.pdf',
+              contentType: 'application/pdf',
+              content: options.pdf,
+            },
+          ]
+        : undefined,
     })
   }
 

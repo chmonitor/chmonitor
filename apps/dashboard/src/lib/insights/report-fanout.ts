@@ -19,6 +19,11 @@ import type { ReportPeriod } from './types'
 import { renderFleetReportHtml } from './fleet-report-html'
 import { deliverReport, formatDeliveryStatus } from './report-delivery'
 import {
+  hasBrowserBinding,
+  renderReportPdf,
+  reportPdfFilename,
+} from './report-pdf'
+import {
   listSubscriptionsByCadence,
   recordReportDelivery,
 } from './report-subscription-store'
@@ -30,6 +35,7 @@ import {
 import { persistWeeklyReport } from './weekly-report-store'
 import { warn } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
+import { hasCapability } from '@/lib/billing/entitlements'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
 import { getHost } from '@/lib/utils'
 
@@ -63,21 +69,32 @@ export async function runReportFanout(
     Awaited<ReturnType<typeof buildWeeklyReport>>
   >()
 
+  // PDF attachment (#2794) needs a Browser Rendering binding; render only when
+  // present (Cloud). OSS/self-hosted has no binding → HTML-only, unchanged.
+  const browserAvailable = hasBrowserBinding(
+    bindings as unknown as Record<string, unknown>
+  )
+
   for (const sub of subscriptions) {
     try {
-      if (period === 'weekly' && sub.ownerId !== '') {
-        const plan = await getPlanForOwner(sub.ownerId)
-        if (!weeklyReportsAllowed(plan.id)) {
-          results.push({
-            ownerId: sub.ownerId,
-            hosts: [],
-            delivered: false,
-            status: 'skipped:plan',
-            skipped: 'plan',
-          })
-          continue
-        }
+      // PDF is a Pro+ (`data_export`) perk; resolve the owner's plan once and
+      // reuse it for both the weekly-cadence gate and the PDF-attachment gate.
+      const plan =
+        sub.ownerId !== '' ? await getPlanForOwner(sub.ownerId) : null
+
+      if (period === 'weekly' && plan && !weeklyReportsAllowed(plan.id)) {
+        results.push({
+          ownerId: sub.ownerId,
+          hosts: [],
+          delivered: false,
+          status: 'skipped:plan',
+          skipped: 'plan',
+        })
+        continue
       }
+
+      const attachPdf =
+        browserAvailable && plan != null && hasCapability(plan, 'data_export')
 
       const hosts = sub.hostIds.filter((id) => byId.has(id))
       if (hosts.length === 0) {
@@ -126,11 +143,49 @@ export async function runReportFanout(
           markdown: buildFleetMarkdown(summaries, period),
           html: renderFleetReportHtml(summaries),
         }
-        const outcome = await deliverReport(sub.ownerId, fleetReport)
+        const pdf = attachPdf
+          ? await renderReportPdf(
+              fleetReport.html,
+              bindings as unknown as Record<string, unknown>
+            )
+          : null
+        const outcome = await deliverReport(
+          sub.ownerId,
+          fleetReport,
+          pdf
+            ? {
+                pdf,
+                pdfFilename: reportPdfFilename(
+                  'fleet',
+                  period,
+                  fleetReport.summary.weekStart
+                ),
+              }
+            : {}
+        )
         delivered = outcome.delivered
         status = `fleet[${hosts.join(',')}][${formatDeliveryStatus(outcome)}]`
       } else {
-        const outcome = await deliverReport(sub.ownerId, reports[0])
+        const pdf = attachPdf
+          ? await renderReportPdf(
+              reports[0].html,
+              bindings as unknown as Record<string, unknown>
+            )
+          : null
+        const outcome = await deliverReport(
+          sub.ownerId,
+          reports[0],
+          pdf
+            ? {
+                pdf,
+                pdfFilename: reportPdfFilename(
+                  reports[0].summary.hostLabel,
+                  period,
+                  reports[0].summary.weekStart
+                ),
+              }
+            : {}
+        )
         delivered = outcome.delivered
         status = `host${hosts[0]}[${formatDeliveryStatus(outcome)}]`
       }
