@@ -74,9 +74,13 @@ resolve_version() {
     "https://api.github.com/repos/${REPO}/releases" 2>/dev/null)" \
     || die "failed to query GitHub releases API for ${REPO}"
 
+  # The API returns compact single-line JSON, so extract just the matching
+  # fragment with `grep -o` — a line-based sed would greedily capture the LAST
+  # tag_name on the line instead of the first chm-v* one.
   tag="$(printf '%s' "$releases_json" \
-    | grep -m 1 '"tag_name": *"chm-v' \
-    | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')"
+    | grep -o '"tag_name": *"chm-v[^"]*"' \
+    | head -n 1 \
+    | sed -E 's/.*"(chm-v[^"]*)".*/\1/')"
 
   if [ -z "$tag" ]; then
     die "no chm-v* release found for ${REPO} yet. The CLI has not been cut a release yet — ask the maintainer to push a 'chm-v*' tag, or build from source: cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml. You can also pin an explicit tag with CHM_VERSION=chm-vX.Y.Z."
