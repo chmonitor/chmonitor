@@ -48,6 +48,30 @@ CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
 ```
 </Callout>
 
+## Update
+
+`chm` can update itself in place from GitHub Releases — no re-running the
+install script, no `sudo`:
+
+```bash
+chm update            # download + verify + replace with the latest chm-v* release
+chm update --check     # only report whether a newer release exists (exit 1 if so)
+chm update --version chm-v0.2.0   # pin a specific release
+```
+
+`update` downloads the binary for your platform plus its `.sha256`, verifies the
+checksum (mandatory — it aborts on a mismatch or missing checksum), then
+atomically replaces the running executable. If the install directory is not
+writable it prints the manual command instead of asking for `sudo`. Installed
+via `cargo install`? Use `cargo install ch-monitor-cli` to upgrade instead.
+
+<Callout type="info" title="Update reminder">
+After a `chm diagnose` run, `chm` does a fast, best-effort check for a newer
+release and prints a one-line hint to stderr if one is available. Silence it
+with `CHM_NO_UPDATE_CHECK=1`. The check has a sub-second timeout and never
+affects the diagnose exit code.
+</Callout>
+
 ## Configuration
 
 Same env var names the dashboard uses, so if you already have `CLICKHOUSE_HOST`/`CLICKHOUSE_USER`/`CLICKHOUSE_PASSWORD` set for a self-hosted deploy, `diagnose` picks them up as-is. Flags override env vars.

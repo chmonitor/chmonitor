@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod diagnose;
+mod update;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 struct FileConfig {
@@ -77,6 +78,15 @@ enum Commands {
         /// Print the report as JSON instead of a table.
         #[arg(long)]
         json: bool,
+    },
+    /// Update chm to the latest release from GitHub (self-update).
+    Update {
+        /// Only check whether an update is available; exit 1 if one exists.
+        #[arg(long)]
+        check: bool,
+        /// Install a specific release tag, e.g. chm-v0.2.0.
+        #[arg(long)]
+        version: Option<String>,
     },
 }
 
@@ -423,12 +433,25 @@ async fn main() -> Result<()> {
             } else {
                 print!("{}", diagnose::render_text(&report));
             }
+            // Gentle, best-effort "update available" hint (opt out with
+            // CHM_NO_UPDATE_CHECK=1). Never fails the command.
+            update::hint(&client).await;
             if report
                 .findings
                 .iter()
                 .any(|f| f.severity == diagnose::Severity::Critical)
             {
                 std::process::exit(1);
+            }
+        }
+        Commands::Update { check, version } => {
+            if check {
+                let available = update::check(&client).await?;
+                if available {
+                    std::process::exit(1);
+                }
+            } else {
+                update::run(&client, version).await?;
             }
         }
     }
