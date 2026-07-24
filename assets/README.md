@@ -5,7 +5,6 @@ Committed source of truth for images reused across the marketing/docs sites
 
 - `screenshots/` — product screenshots (dashboard captures, dialogs), both
   `-light`/`-dark` variants where available.
-- `backgrounds/` — hero art and decorative backgrounds.
 - `illustrations/` — bespoke brand illustrations (spot art, hero graphics) as
   static `.svg`/`.png`, both `-light`/`-dark` variants where a single
   `currentColor`-driven file can't serve both themes. **In-app** (the dashboard)
