@@ -52,9 +52,27 @@ cron
   │                      (same sections week-over-week + issue throughput)
   └─ every 15 minutes → ops sweep:
         ├─ full-surface health probes → Telegram on transitions
+        │    └─ + outage escalation: reminders while still down (30m→2h→6h→daily)
+        │      and total downtime on recovery
         ├─ Cloudflare Worker exceptions → new GitHub issue + Telegram
+        │    └─ + spike alert when a KNOWN fingerprint gets much louder
         └─ new GitHub issues (KV cursor) → Telegram
 ```
+
+## Throttling rule (learned the hard way)
+
+`Notifier` throttles per KIND, in memory, per isolate. That is right for webhook
+bursts and wrong for anything a cron produces: **`probe` and `error` carried a
+30s window while their only producers run every 15 minutes**, so the window
+never spanned two runs and never damped a flapping target — all it could do was
+drop distinct messages inside ONE run. Four surfaces failing together reported
+one; a run that filed five GitHub issues announced one. Both are now `0`.
+
+The rule: **if a producer already dedupes on durable state, it must not also be
+throttled on a timer.** A timer cannot prevent a duplicate that state already
+prevents; it can only delete real information. Kinds deduped by state and
+therefore unthrottled: `probe` (only fires on a transition), `error` (KV
+fingerprint), `new_issue` (KV cursor), `usage_anomaly` (once a day).
 
 The cron strings are matched **character for character** in `index.ts`
 (`DAILY_CRON` / `WEEKLY_CRON`). Editing one in `wrangler.toml` without the other
@@ -104,6 +122,14 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   GitHub search fallback (`in:body "<fp>"`) so a KV miss/eviction never re-files;
   the fallback backfills KV. **Rate cap**: `maxIssuesPerRun` (default 5). Labels
   default `bug,cloudflare-exception`. Every step is injected + never throws.
+  **Spike detection** (`isSpike`) fills the blind spot that permanent dedup
+  creates: a known error firing 100× more often is skipped silently, even though
+  it is usually the more urgent event. On every skip the current window count is
+  compared against the last one recorded (`exc-rate:v1:<fp>`); an alert needs
+  BOTH an absolute floor (`SPIKE_MIN_COUNT`, since 2 → 6 is not news) and a
+  relative jump (`SPIKE_MULTIPLE`), and respects `SPIKE_COOLDOWN_MS` so one
+  incident does not re-alert every 15 minutes. The cooldown clock only moves when
+  an alert actually fired, so a quiet update cannot postpone the next real one.
   **Auth** is resolved by `github-app.ts`'s `resolveGitHubAuth`, order:
   GitHub App creds (`GH_APP_ID` + `GH_APP_PRIVATE_KEY`) → PAT (`GITHUB_TOKEN`) →
   disabled (one log line). App mode passes the installation token as
@@ -134,6 +160,32 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `reduceSummary`/`mrrForGroup`/`formatDigest` are unit-tested.
   `queryPlanBreakdown` is shared with `weekly.ts` so the two reports can never
   disagree about what "active" or "MRR" means.
+- `outage.ts` — `reconcileOutages`: closes the hole left by transition-only
+  probing. A surface that goes down at 02:00 otherwise produces ONE message and
+  then silence for as long as it stays broken. Tracks `downSince` / `reminders`
+  per surface in its own KV key (`probe-outage:v1`, so `probe-state:v1` keeps its
+  shape) and re-alerts on a **widening** schedule (`ESCALATION_STEPS_MS` =
+  30m → 2h → 6h → daily, then daily). The first time down deliberately only
+  starts the clock — `diffStates` already owns that alert, and alerting twice for
+  one event is worse than not escalating. Recovery reports **total downtime** and
+  drops the record. Pure + clock-injected, so the schedule is tested by advancing
+  a number.
+- `anomaly.ts` — `detectAnomaly`: alerts when yesterday's DAU diverges from its
+  own recent baseline, because a digest *number* is passive — it only helps if
+  someone reads it and remembers yesterday's. Three guards keep it from crying
+  wolf: a **median** baseline (one HN-front-page day would drag a mean up for a
+  week and make every following day look like a collapse), a **minimum baseline**
+  (`MIN_BASELINE`, since 3 → 1 is "-67%" and means nothing), and **asymmetric
+  thresholds** (a 30% drop alerts; a spike needs 3×, and is phrased as news
+  rather than an incident). A missing reference day counts as zero — silence from
+  the telemetry endpoint IS the signal. Sent as its own message, not a digest
+  line.
+- `activation.ts` — `collectActivation`: signups vs users who actually connected
+  a cluster (`user_connections`), the most diagnostic number for a self-serve
+  product and invisible when signups and subscriptions are reported separately.
+  A digest line rather than an alert, except `isStalled` (≥`STALL_MIN_SIGNUPS`
+  signups and ZERO connections), which is flagged inline as a probable broken
+  connection flow.
 - `usage.ts` — `collectUsage`: **DAU / WAU / MAU** from the telemetry D1
   (`CHM_TELEMETRY_DB` → `chm_telemetry`, read-only). One query per stream
   computes all three windows via `COUNT(DISTINCT CASE WHEN day = … END)`, so the
@@ -213,8 +265,10 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   **read-only** here, for the Usage section. No `migrations_dir`: `apps/telemetry`
   owns that schema. Unbound → the Usage section is omitted.
 - `CHM_HOOKS_KV` KV binding is **active** (id `a1d9bd2c4377493eac5b5d4ad04dcc34`) —
-  it stores per-probe up/down state, exception fingerprints (`exc-fp:v1:<fp>`),
-  and the new-issue watch cursor (`issue-watch:v1:last-created`). Absent → probes
+  it stores per-probe up/down state (`probe-state:v1`), outage escalation records
+  (`probe-outage:v1`), exception fingerprints (`exc-fp:v1:<fp>`), exception rate
+  baselines (`exc-rate:v1:<fp>`), and the new-issue watch cursor
+  (`issue-watch:v1:last-created`). Absent → probes
   fall back to per-run state, the exception scan leans on the GitHub search
   fallback alone, and the **issue watch skips entirely** (a watch with no memory
   would re-announce the same issues every 15 minutes). Follows the `CHM_`
