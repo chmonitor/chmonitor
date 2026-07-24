@@ -7,6 +7,12 @@
 export interface Env {
   /** Shared billing D1 (same `chm-cloud` database the dashboard reads). */
   CHM_CLOUD_D1?: D1Database
+  /**
+   * Telemetry D1 (the `chm_telemetry` database apps/telemetry writes), read for
+   * the DAU/WAU/MAU section of the digests. READ-ONLY here — this worker never
+   * writes telemetry. Unbound → the Usage section is omitted.
+   */
+  CHM_TELEMETRY_DB?: D1Database
   /** KV namespace storing last-known health-probe state (transitions only). */
   CHM_HOOKS_KV?: KVNamespace
 
@@ -68,6 +74,14 @@ export interface Env {
   CHM_EXCEPTION_MAX_ISSUES_PER_RUN?: string
   /** Comma-separated Worker script names to scan. Default `chmonitor-dash,chmonitor-hooks`. */
   CHM_EXCEPTION_SCRIPTS?: string
+  /**
+   * Labels whose new issues the watch stays quiet about, comma-separated.
+   * Default `cloudflare-exception` — the exception scan already announces the
+   * issues it files, so without this the operator is told twice.
+   */
+  CHM_ISSUE_WATCH_EXCLUDE_LABELS?: string
+  /** Max new issues announced per ops sweep. Default `10`; the rest defer to the next run. */
+  CHM_ISSUE_WATCH_MAX_PER_RUN?: string
 
   // Polar product ids per plan/period (CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>). Same
   // names the dashboard uses so both Workers map products identically.

@@ -8,6 +8,9 @@
  * never drift from the published prices.
  */
 
+import type { UsageMetrics } from './usage'
+
+import { usageLines } from './usage'
 import { BILLING_PLANS, type Plan, type PlanId } from '@chm/pricing'
 
 /** Minimal D1 subset used by the summary queries (adds `.all()`). */
@@ -44,7 +47,16 @@ export interface SummaryData {
 /** Optional Clerk user metrics (omitted from the digest when unavailable). */
 export interface ClerkMetrics {
   totalUsers: number
-  newUsers24h: number
+  /** Accounts created inside `windowSeconds` (24h for the daily digest, 7d for the weekly report). */
+  newUsers: number
+  /** Width of the "new users" window in seconds — the digest labels itself from this. */
+  windowSeconds: number
+}
+
+/** Render a window width as a compact label: 86400 → "24h", 604800 → "7d". */
+export function formatWindowLabel(seconds: number): string {
+  const hours = Math.round(seconds / 3600)
+  return hours < 48 ? `${hours}h` : `${Math.round(hours / 24)}d`
 }
 
 /** Optional per-surface probe snapshot (last-known up/down state). */
@@ -53,6 +65,8 @@ export type ProbeSnapshot = Record<string, 'up' | 'down'>
 export interface DigestExtras {
   clerk?: ClerkMetrics | null
   probes?: ProbeSnapshot | null
+  /** DAU/WAU/MAU from the telemetry D1 (see usage.ts). */
+  usage?: UsageMetrics | null
 }
 
 const ACTIVE_STATUSES = "('active','trialing')"
@@ -108,11 +122,14 @@ export function reduceSummary(
   }
 }
 
-/** Query D1 for the daily summary. `now` is unix seconds (injectable for tests). */
-export async function collectSummary(
-  db: D1SummaryDb,
-  now: number = Math.floor(Date.now() / 1000)
-): Promise<SummaryData> {
+/**
+ * Active subscriptions grouped by (plan, period) — the input to both the active
+ * counts and the MRR estimate. Shared with the weekly report so the two digests
+ * can never disagree about what "active" or "MRR" means.
+ */
+export async function queryPlanBreakdown(
+  db: D1SummaryDb
+): Promise<PlanBreakdownRow[]> {
   const breakdown = await db
     .prepare(
       `SELECT plan_id, billing_period, COUNT(*) AS n
@@ -122,6 +139,15 @@ export async function collectSummary(
     )
     .bind()
     .all<PlanBreakdownRow>()
+  return breakdown.results ?? []
+}
+
+/** Query D1 for the daily summary. `now` is unix seconds (injectable for tests). */
+export async function collectSummary(
+  db: D1SummaryDb,
+  now: number = Math.floor(Date.now() / 1000)
+): Promise<SummaryData> {
+  const breakdownRows = await queryPlanBreakdown(db)
 
   const since = now - 24 * 60 * 60
   const newRow = await db
@@ -155,7 +181,7 @@ export async function collectSummary(
     newByPlan[row.plan_id] = (newByPlan[row.plan_id] ?? 0) + row.n
   }
 
-  return reduceSummary(breakdown.results ?? [], newRow?.n ?? 0, {
+  return reduceSummary(breakdownRows, newRow?.n ?? 0, {
     newByPlan,
     cancellations24h: cancelRow?.n ?? 0,
   })
@@ -186,9 +212,12 @@ export function formatDigest(
       '',
       '\u{1F465} <b>Users</b>',
       `  • Total: ${extras.clerk.totalUsers}`,
-      `  • New in 24h: ${extras.clerk.newUsers24h}`
+      `  • New in ${formatWindowLabel(extras.clerk.windowSeconds)}: ${extras.clerk.newUsers}`
     )
   }
+
+  // ── Usage (telemetry D1) — DAU/WAU/MAU, omitted when unavailable ───────────
+  parts.push(...usageLines(extras.usage))
 
   // ── Subscriptions ───────────────────────────────────────────────────────────
   parts.push(

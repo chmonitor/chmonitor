@@ -42,6 +42,13 @@
 #   CHM_EXCEPTION_MAX_ISSUES_PER_RUN  rate cap, default 5
 #   CHM_EXCEPTION_SCRIPTS             default `chmonitor-dash,chmonitor-hooks`
 #
+# New-issue watch (non-secret, optional — reuses the GitHub auth above and the
+# KV cursor `issue-watch:v1:last-created`; no extra credentials needed):
+#   CHM_ISSUE_WATCH_EXCLUDE_LABELS    default `cloudflare-exception` (those
+#                                     issues are announced by the exception scan)
+#   CHM_ISSUE_WATCH_MAX_PER_RUN       per-sweep cap, default 10 (the remainder is
+#                                     announced on the next run, never dropped)
+#
 # No GitHub auth (neither App creds nor GITHUB_TOKEN), or CF_OBSERVABILITY_API_TOKEN
 # / CF_ACCOUNT_ID unset → the exception-scan capability logs one line and no-ops
 # (never crashes).
@@ -68,10 +75,15 @@ minify = true
 [observability]
 enabled = true
 
-# Cron triggers: daily billing summary + the 15-min ops sweep (full-surface
-# health probes AND the Cloudflare exception → GitHub issue scan).
+# Cron triggers. These strings are matched CHARACTER FOR CHARACTER in
+# src/index.ts (DAILY_CRON / WEEKLY_CRON) — reformatting one here without
+# updating it there silently downgrades that report to the ops sweep.
+#   "0 0 * * *"      daily digest — billing + Clerk users + DAU/WAU/MAU
+#   "0 1 * * 1"      weekly report — week-over-week trends + issue throughput
+#   "*/15 * * * *"   ops sweep — health probes, Worker exceptions → GitHub
+#                    issues, and new GitHub issues → Telegram
 [triggers]
-crons = ["0 0 * * *", "*/15 * * * *"]
+crons = ["0 0 * * *", "0 1 * * 1", "*/15 * * * *"]
 
 # Custom domain — auto-provisions the hooks.chmonitor.dev DNS record on the
 # managed zone (same pattern as the dashboard's dash.chmonitor.dev). The
@@ -87,6 +99,16 @@ custom_domain = true
 binding = "CHM_CLOUD_D1"
 database_name = "chm-cloud"
 database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
+
+# Telemetry D1 (the database apps/telemetry writes) — READ-ONLY here, for the
+# DAU/WAU/MAU section of the daily digest and weekly report. `ping_daily` and
+# `cli_daily` hold one deduped row per (UTC day, opaque install id), so those
+# are ACTIVE INSTALLS, not active users; the digests label them accordingly.
+# No migrations_dir: apps/telemetry owns the schema, this worker only reads it.
+[[d1_databases]]
+binding = "CHM_TELEMETRY_DB"
+database_name = "chm_telemetry"
+database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
 
 # Ops-state KV. `runProbes` (src/probes.ts) stores the last-known up/down state
 # per surface so the */15min cron notifies ONLY on transitions; `runExceptions`
@@ -111,6 +133,11 @@ name = "preview-chmonitor-hooks"
 binding = "CHM_CLOUD_D1"
 database_name = "chm-cloud"
 database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
+
+[[env.preview.d1_databases]]
+binding = "CHM_TELEMETRY_DB"
+database_name = "chm_telemetry"
+database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
 
 [[env.preview.kv_namespaces]]
 binding = "CHM_HOOKS_KV"

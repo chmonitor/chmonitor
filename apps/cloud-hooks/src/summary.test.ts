@@ -126,11 +126,34 @@ describe('formatDigest — sections degrade gracefully', () => {
 
   test('Clerk metrics add a Users section', () => {
     const msg = formatDigest(base, {
-      clerk: { totalUsers: 42, newUsers24h: 3 },
+      clerk: { totalUsers: 42, newUsers: 3, windowSeconds: 24 * 60 * 60 },
     })
     expect(msg).toContain('Users')
     expect(msg).toContain('42')
+    // The label is derived from windowSeconds, so it can never claim "24h"
+    // while reporting a differently-sized window.
     expect(msg).toContain('New in 24h: 3')
+  })
+
+  test('the Users label follows the window it was measured over', () => {
+    const msg = formatDigest(base, {
+      clerk: { totalUsers: 42, newUsers: 9, windowSeconds: 7 * 24 * 60 * 60 },
+    })
+    expect(msg).toContain('New in 7d: 9')
+  })
+
+  test('usage metrics add a Usage section reported as installs', () => {
+    const msg = formatDigest(base, {
+      usage: {
+        referenceDay: '2026-07-23',
+        dashboard: { dau: 10, wau: 40, mau: 120 },
+        cli: { dau: 2, wau: 5, mau: 11 },
+        cliInstalls24h: 3,
+      },
+    })
+    expect(msg).toContain('Usage')
+    expect(msg).toContain('DAU 10 · WAU 40 · MAU 120')
+    expect(msg).toContain('New CLI installs: 3')
   })
 
   test('a probe snapshot adds a Surfaces section flagging down surfaces', () => {
