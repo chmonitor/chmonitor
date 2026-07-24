@@ -389,6 +389,7 @@ const SSR_STUB_NAMED_EXPORTS = [
   'ThreadListPrimitive',
   'ThreadPrimitive',
   'ToolCallMessagePartStatus',
+  'useAssistantRuntime',
   'useAui',
   'useMessage',
   'useMessageTiming',
