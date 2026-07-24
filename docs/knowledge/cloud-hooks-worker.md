@@ -2,8 +2,23 @@
 id: cloud-hooks-worker
 type: spec
 related: [billing-checkout-flow, cloud-saas-mode, bug-handler-email-worker, deployment]
-tags: [cloud-hooks, polar, clerk, webhook, telegram, cron, cloudflare, billing, d1]
-updated: 2026-07-12
+tags:
+  [
+    cloud-hooks,
+    polar,
+    clerk,
+    webhook,
+    telegram,
+    cron,
+    cloudflare,
+    billing,
+    d1,
+    dau,
+    mau,
+    telemetry,
+    issues,
+  ]
+updated: 2026-07-25
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -31,11 +46,20 @@ Clerk ──► POST hooks.chmonitor.dev/webhooks/clerk
        1/user/6h) · 🏢 organization.created.  Unknown events → 202, ignored.
 
 cron
-  ├─ "0 0 * * *"      → daily digest → Telegram (users + subs + surfaces)
+  ├─ "0 0 * * *"      → daily digest → Telegram
+  │                      (users + DAU/WAU/MAU + subs + surfaces)
+  ├─ "0 1 * * 1"      → weekly report → Telegram (Mon 01:00 UTC)
+  │                      (same sections week-over-week + issue throughput)
   └─ every 15 minutes → ops sweep:
         ├─ full-surface health probes → Telegram on transitions
-        └─ Cloudflare Worker exceptions → new GitHub issue + Telegram
+        ├─ Cloudflare Worker exceptions → new GitHub issue + Telegram
+        └─ new GitHub issues (KV cursor) → Telegram
 ```
+
+The cron strings are matched **character for character** in `index.ts`
+(`DAILY_CRON` / `WEEKLY_CRON`). Editing one in `wrangler.toml` without the other
+does not error — the report silently falls through to the ops-sweep branch and
+stops being sent. `src/cron.test.ts` compares the two sources to catch that.
 
 ## Shared core, not a copy
 
@@ -104,10 +128,44 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   plan, new signups in 24h **+ new subs by plan and cancellations/revokes in
   24h**) and computes an MRR estimate from `BILLING_PLANS` (`@chm/pricing`) —
   yearly normalized to price/12. `formatDigest(data, { clerk, probes })` renders
-  a compact Telegram-HTML digest with **Users** (from Clerk metrics),
-  **Subscriptions**, and **Surfaces** (probe snapshot) sections — each section
-  omitted when its optional source is unavailable. Pure `reduceSummary`/
-  `mrrForGroup`/`formatDigest` are unit-tested.
+  a compact Telegram-HTML digest with **Users** (from Clerk metrics), **Usage**
+  (DAU/WAU/MAU), **Subscriptions**, and **Surfaces** (probe snapshot) sections —
+  each section omitted when its optional source is unavailable. Pure
+  `reduceSummary`/`mrrForGroup`/`formatDigest` are unit-tested.
+  `queryPlanBreakdown` is shared with `weekly.ts` so the two reports can never
+  disagree about what "active" or "MRR" means.
+- `usage.ts` — `collectUsage`: **DAU / WAU / MAU** from the telemetry D1
+  (`CHM_TELEMETRY_DB` → `chm_telemetry`, read-only). One query per stream
+  computes all three windows via `COUNT(DISTINCT CASE WHEN day = … END)`, so the
+  30-day range is scanned once instead of three times. **These are active
+  INSTALLS, not users** — `ping_daily`/`cli_daily` hold one deduped row per (UTC
+  day, opaque install id) and carry no user identity, so every line is labelled
+  "installs"; Clerk remains the user-level figure. Windows end on the **last
+  complete UTC day** (yesterday), because the digest cron fires at 00:00 UTC and
+  counting the day that just started would report a near-zero DAU every morning.
+  `cli_install` rows are excluded from the CLI active count (they can carry an
+  ephemeral id, which would inflate it) and reported separately as new installs.
+  Each stream query is isolated, so a missing table degrades that stream to zero
+  instead of dropping the whole section.
+- `weekly.ts` — `collectWeekly` + `formatWeekly`: the Monday counterpart to the
+  daily digest. Every headline number is paired with the **same number from the
+  previous week** (`formatTrend` → `5 (▲ +3 vs 2)`; "flat" instead of "+0", and a
+  bare number when there is no previous data to compare against). `weekBounds`
+  anchors on **start-of-today**, not the run instant, so the two periods are
+  exactly equal in length and adjacent — the property the comparison depends on.
+  Adds an **Issues** section (opened/closed, via `fetchIssueStats`).
+- `issues.ts` — `runIssueWatch`: announces **new GitHub issues** on the ops
+  sweep. Read-only — it files nothing. Three rules carry the design: (1) the
+  first run **seeds** the KV cursor (`issue-watch:v1:last-created`) and announces
+  nothing, so enabling it on a repo with a backlog does not flood the chat;
+  (2) GitHub's `since` filters on `updated_at`, so results are **re-filtered on
+  `created_at`** — otherwise a comment on an old issue reads as a new issue;
+  (3) the per-run cap **defers rather than drops** — the cursor only advances
+  past what was actually announced, so the remainder arrives next sweep. PRs and
+  `cloudflare-exception`-labelled issues (already announced by the exception
+  scan) are filtered out. Titles are HTML-escaped for Telegram's parse mode.
+  `fetchIssueStats` counts issues opened/closed since a day via the search API
+  for the weekly report; failure → null → section omitted.
 - `clerk-webhook.ts` — `handleClerkWebhook` + `verifyClerkWebhook`: the Clerk
   lifecycle receiver. Verifies the **Svix** signature manually (HMAC-SHA256 over
   WebCrypto — the same wire scheme Clerk's `verifyWebhook` uses, without the
@@ -116,10 +174,13 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CHM_HOOKS_KV` (`clerk-signin:v1:<user>`, 6h TTL). 501 unset secret, 403 bad
   sig, 202 otherwise; unknown events acknowledged and ignored; Telegram errors
   never fail the ack.
-- `clerk-metrics.ts` — `fetchClerkMetrics`: best-effort total + new-in-24h user
-  counts via the Clerk Backend REST `GET /v1/users/count` (with
-  `created_at_after`) using `CLERK_SECRET_KEY`. Missing key / non-2xx / error →
-  `null` → the digest omits the Users section.
+- `clerk-metrics.ts` — `fetchClerkMetrics`: best-effort total + new-in-window
+  user counts via the Clerk Backend REST `GET /v1/users/count` (with
+  `created_at_after`) using `CLERK_SECRET_KEY`. `windowSeconds` (24h daily, 7d
+  weekly) is **carried on the result** so `formatWindowLabel` renders the label
+  from the same value that produced the number — the label cannot claim "24h"
+  while reporting a week. Missing key / non-2xx / error → `null` → the digest
+  omits the Users section.
 - `polar-notify.ts` — pure `classifyTransition` (prior plan + new plan + status
   → new/upgrade/downgrade/cancel/revoke/past-due) + `formatPolarNotify` (plan
   name, monthly value from `@chm/pricing`, period). The webhook reads the prior
@@ -132,22 +193,31 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
 - `webhook.ts` — `handlePolarWebhook`: `validateEvent` (injectable for tests) →
   core → `notify`. 403 + `signature_failure` alert on a bad signature; 202 on a
   handled event; unhandled types are acknowledged silently.
-- `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`, `/healthz`) + `scheduled`
-  (routes the daily cron to the summary; the 15-min cron to the ops sweep —
-  probes **and** `runExceptions`). `runExceptions` gates on
-  `GITHUB_TOKEN` + `CF_OBSERVABILITY_API_TOKEN` + `CF_ACCOUNT_ID`: any missing →
-  one log line, no-op (never a crash).
+- `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`, `/healthz`) +
+  `scheduled` (daily cron → digest, weekly cron → weekly report, everything else
+  → the ops sweep: probes, `runExceptions`, `runIssues`). `resolveGitHub(env,
+  label)` centralizes credential checks, repo parsing, and token minting for the
+  three GitHub-backed capabilities (exception scan, issue watch, weekly issue
+  stats); it returns null after one explanatory log line when GitHub is not
+  configured. `runExceptions` additionally gates on `CF_OBSERVABILITY_API_TOKEN`
+  + `CF_ACCOUNT_ID`: any missing → one log line, no-op (never a crash).
 
 ## Config (`wrangler.toml`)
 
 - `name = chmonitor-hooks`, custom domain `hooks.chmonitor.dev` (auto-provisions
-  DNS on the managed zone), crons `["0 0 * * *", "*/15 * * * *"]`.
+  DNS on the managed zone), crons `["0 0 * * *", "0 1 * * 1", "*/15 * * * *"]`.
 - D1 binding `CHM_CLOUD_D1` → `chm-cloud` (`database_id`
   `cca247b6-9b25-41bd-b9ca-727b35bc6039`, same as the dashboard).
+- D1 binding `CHM_TELEMETRY_DB` → `chm_telemetry` (`database_id`
+  `4887176b-0181-45bf-970f-a506f514d5a9`, the database `apps/telemetry` writes) —
+  **read-only** here, for the Usage section. No `migrations_dir`: `apps/telemetry`
+  owns that schema. Unbound → the Usage section is omitted.
 - `CHM_HOOKS_KV` KV binding is **active** (id `a1d9bd2c4377493eac5b5d4ad04dcc34`) —
-  it stores both per-probe up/down state and exception fingerprints
-  (`exc-fp:v1:<fp>`). Absent → probes fall back to per-run state and the
-  exception scan leans on the GitHub search fallback alone. Follows the `CHM_`
+  it stores per-probe up/down state, exception fingerprints (`exc-fp:v1:<fp>`),
+  and the new-issue watch cursor (`issue-watch:v1:last-created`). Absent → probes
+  fall back to per-run state, the exception scan leans on the GitHub search
+  fallback alone, and the **issue watch skips entirely** (a watch with no memory
+  would re-announce the same issues every 15 minutes). Follows the `CHM_`
   binding-naming rule (like `CHM_CLOUD_D1`).
 - **No secrets, no product-id vars committed.** Secrets set via
   `wrangler secret put` (CI does this, skipping any that are unset):
@@ -168,6 +238,9 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CHM_EXCEPTION_ISSUE_LABELS` (`bug,cloudflare-exception`),
   `CHM_EXCEPTION_MAX_ISSUES_PER_RUN` (`5`), `CHM_EXCEPTION_SCRIPTS`
   (`chmonitor-dash,chmonitor-hooks`).
+- **New-issue watch config** (non-secret, optional — reuses the GitHub auth and
+  KV above, no extra credentials): `CHM_ISSUE_WATCH_EXCLUDE_LABELS`
+  (`cloudflare-exception`), `CHM_ISSUE_WATCH_MAX_PER_RUN` (`10`).
 
 ## GitHub App auth setup (issue creation)
 
