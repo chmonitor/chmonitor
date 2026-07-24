@@ -2,6 +2,11 @@ name: CLI Rust Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'chm-v* tag to build and attach binaries to (required when dispatched by release-please, whose GITHUB_TOKEN-created tags cannot fire the push trigger)'
+        required: false
+        type: string
   push:
     tags:
       - 'chm-v*'
@@ -29,6 +34,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # On tag push this is the tag itself; on dispatch, check out the
+          # requested tag so the built binary matches the release version.
+          ref: ${{ inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -55,6 +64,7 @@ jobs:
           cd dist
           shasum -a 256 ${{ matrix.bin }}-${{ matrix.target }} > ${{ matrix.bin }}-${{ matrix.target }}.sha256
       - uses: softprops/action-gh-release@v3
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || inputs.tag != ''
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: dist/*
