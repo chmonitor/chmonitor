@@ -13,7 +13,10 @@
       "changelog-path": "CHANGELOG.md",
       "draft": false,
       "prerelease": false,
-      "exclude-paths": ["rust/ch-monitor-cli", "deploy/helm/chmonitor"],
+      "exclude-paths": [
+        "rust/ch-monitor-cli",
+        "deploy/helm/chmonitor"
+      ],
       "extra-files": [
         {
           "type": "json",
@@ -22,17 +25,53 @@
         }
       ],
       "changelog-sections": [
-        { "type": "feat", "section": "✨ Features" },
-        { "type": "fix", "section": "🐛 Bug Fixes" },
-        { "type": "perf", "section": "⚡ Performance" },
-        { "type": "refactor", "section": "♻️ Refactoring" },
-        { "type": "deps", "section": "📦 Dependencies" },
-        { "type": "docs", "section": "📚 Documentation", "hidden": true },
-        { "type": "chore", "section": "🧹 Chores", "hidden": true },
-        { "type": "test", "section": "🧪 Tests", "hidden": true },
-        { "type": "ci", "section": "👷 CI", "hidden": true },
-        { "type": "style", "section": "💅 Style", "hidden": true }
-      ]
+        {
+          "type": "feat",
+          "section": "✨ Features"
+        },
+        {
+          "type": "fix",
+          "section": "🐛 Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "⚡ Performance"
+        },
+        {
+          "type": "refactor",
+          "section": "♻️ Refactoring"
+        },
+        {
+          "type": "deps",
+          "section": "📦 Dependencies"
+        },
+        {
+          "type": "docs",
+          "section": "📚 Documentation",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "🧹 Chores",
+          "hidden": true
+        },
+        {
+          "type": "test",
+          "section": "🧪 Tests",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "👷 CI",
+          "hidden": true
+        },
+        {
+          "type": "style",
+          "section": "💅 Style",
+          "hidden": true
+        }
+      ],
+      "pull-request-title-pattern": "chore(main): release dashboard v${version}"
     },
     "rust/ch-monitor-cli": {
       "release-type": "rust",
@@ -42,7 +81,8 @@
       "include-v-in-tag": true,
       "changelog-path": "CHANGELOG.md",
       "draft": false,
-      "prerelease": false
+      "prerelease": false,
+      "pull-request-title-pattern": "chore(main): release cli chm-v${version}"
     },
     "deploy/helm/chmonitor": {
       "release-type": "helm",
@@ -51,7 +91,8 @@
       "include-component-in-tag": true,
       "include-v-in-tag": false,
       "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true
+      "skip-github-release": true,
+      "pull-request-title-pattern": "chore(main): release helm-chart ${version}"
     }
   }
 }
