@@ -14,6 +14,10 @@ export default {
     'CHM_EXCEPTION_ISSUE_LABELS',
     'CHM_EXCEPTION_MAX_ISSUES_PER_RUN',
     'CHM_EXCEPTION_SCRIPTS',
+    // New-issue watch (see apps/cloud-hooks/wrangler.toml header). Both are
+    // optional — sensible defaults are baked in.
+    'CHM_ISSUE_WATCH_EXCLUDE_LABELS',
+    'CHM_ISSUE_WATCH_MAX_PER_RUN',
     // Optional GitHub App installation id (non-secret); unset → resolved from
     // the repo and cached in KV.
     'GH_APP_INSTALLATION_ID',

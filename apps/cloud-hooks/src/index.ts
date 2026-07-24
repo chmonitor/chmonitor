@@ -7,23 +7,39 @@
  *   GET  /healthz         → 200 liveness shell (static, no deps)
  *
  * Scheduled (wrangler.toml [triggers] crons):
- *   "0 0 * * *"       → daily billing summary → Telegram
- *   every 15 minutes  → health probes (dash/docs/landing) → Telegram on changes
+ *   "0 0 * * *"       → daily digest (billing + users + DAU/MAU) → Telegram
+ *   "0 1 * * 1"       → weekly report (week-over-week trends) → Telegram
+ *   every 15 minutes  → ops sweep: health probes, Worker exceptions → GitHub
+ *                       issues, and new GitHub issues → Telegram
  *
  * OSS/self-host never deploys this — it is purely additive Cloud plumbing.
  */
 
 import type { Env } from './env'
+import type { GitHubRepo } from './exceptions'
+import type { GitHubAppAuth } from './github-app'
 
-import { fetchClerkMetrics } from './clerk-metrics'
+import { fetchClerkMetrics, WEEK_SECONDS } from './clerk-metrics'
 import { handleClerkWebhook } from './clerk-webhook'
 import { parseRepo, runExceptionScan } from './exceptions'
 import { resolveGitHubAuth } from './github-app'
+import { fetchIssueStats, runIssueWatch } from './issues'
 import { fetchWorkerExceptions } from './observability'
 import { readProbeSnapshot, runProbes } from './probes'
 import { collectSummary, formatDigest } from './summary'
 import { Notifier } from './telegram'
+import { collectUsage } from './usage'
 import { handlePolarWebhook } from './webhook'
+import { collectWeekly, formatWeekly, weekBounds } from './weekly'
+
+/**
+ * Cron expressions, which MUST match `[triggers] crons` in wrangler.toml
+ * character for character — Cloudflare hands `scheduled()` the raw string it
+ * was configured with, so a reformatted expression would silently fall through
+ * to the ops-sweep branch instead of running its report.
+ */
+export const DAILY_CRON = '0 0 * * *'
+export const WEEKLY_CRON = '0 1 * * 1' // Mondays 01:00 UTC
 
 function notifierFor(env: Env): Notifier {
   return new Notifier({
@@ -32,25 +48,147 @@ function notifierFor(env: Env): Notifier {
   })
 }
 
+/**
+ * Resolve a usable GitHub token once per job. Three capabilities now need one
+ * (exception scan, issue watch, weekly issue stats), so the credential checks,
+ * repo parsing, and token minting live here instead of being repeated.
+ *
+ * Returns null — after ONE explanatory log line — whenever GitHub is not
+ * configured, so a deploy without these secrets simply runs without the
+ * GitHub-backed features.
+ */
+async function resolveGitHub(
+  env: Env,
+  label: string
+): Promise<{
+  repo: GitHubRepo
+  token: string
+  auth: GitHubAppAuth | null
+} | null> {
+  const hasAuth = (env.GH_APP_ID && env.GH_APP_PRIVATE_KEY) || env.GITHUB_TOKEN
+  if (!hasAuth) {
+    console.log(`[cloud-hooks] ${label} disabled (no GitHub credentials)`)
+    return null
+  }
+  const repo = parseRepo(env.GITHUB_REPOSITORY || 'chmonitor/chmonitor')
+  if (!repo) {
+    console.log(`[cloud-hooks] ${label} disabled (bad GITHUB_REPOSITORY)`)
+    return null
+  }
+  const auth = resolveGitHubAuth(
+    env,
+    repo.owner,
+    repo.repo,
+    env.CHM_HOOKS_KV ?? null
+  )
+  if (auth.mode === 'disabled') {
+    console.log(`[cloud-hooks] ${label} disabled (no GitHub credentials)`)
+    return null
+  }
+  try {
+    const token =
+      auth.mode === 'app' ? await auth.app!.getToken() : (auth.token as string)
+    return {
+      repo,
+      token,
+      auth: auth.mode === 'app' ? (auth.app ?? null) : null,
+    }
+  } catch (err) {
+    console.error(
+      `[cloud-hooks] ${label}: GitHub token acquisition failed`,
+      err
+    )
+    return null
+  }
+}
+
 async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
   if (!env.CHM_CLOUD_D1) {
     console.error('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping daily summary')
     return
   }
   try {
-    // Billing (D1) is the required core; Clerk metrics + probe snapshot are
-    // best-effort enrichments that degrade to omitted sections when absent.
-    const [data, clerk, probes] = await Promise.all([
+    // Billing (D1) is the required core; Clerk metrics, usage (DAU/WAU/MAU from
+    // the telemetry D1), and the probe snapshot are best-effort enrichments that
+    // degrade to omitted sections when absent.
+    const [data, clerk, usage, probes] = await Promise.all([
       collectSummary(env.CHM_CLOUD_D1),
       fetchClerkMetrics(env.CLERK_SECRET_KEY),
+      collectUsage(env.CHM_TELEMETRY_DB ?? null),
       readProbeSnapshot(env.CHM_HOOKS_KV ?? null),
     ])
     await notifier.notify(
       'daily_summary',
-      formatDigest(data, { clerk, probes })
+      formatDigest(data, { clerk, usage, probes })
     )
   } catch (err) {
     console.error('[cloud-hooks] daily summary failed', err)
+  }
+}
+
+/**
+ * Weekly report — the same surfaces as the daily digest but week-over-week, plus
+ * issue throughput. Billing (D1) is required; every other section degrades to
+ * omitted, so this still sends something useful on a partially-configured
+ * deployment.
+ */
+async function runWeeklyReport(env: Env, notifier: Notifier): Promise<void> {
+  if (!env.CHM_CLOUD_D1) {
+    console.error('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping weekly report')
+    return
+  }
+  try {
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const { start } = weekBounds(nowSeconds)
+    const sinceDay = new Date(start * 1000).toISOString().slice(0, 10)
+
+    const [data, clerk, usage, probes, issues] = await Promise.all([
+      collectWeekly(env.CHM_CLOUD_D1, nowSeconds),
+      // A 7-day window here, so "new users" matches the reported period.
+      fetchClerkMetrics(env.CLERK_SECRET_KEY, fetch, nowSeconds, WEEK_SECONDS),
+      collectUsage(env.CHM_TELEMETRY_DB ?? null, nowSeconds),
+      readProbeSnapshot(env.CHM_HOOKS_KV ?? null),
+      resolveGitHub(env, 'weekly issue stats').then((gh) =>
+        gh ? fetchIssueStats(gh.repo, gh.token, sinceDay) : null
+      ),
+    ])
+    await notifier.notify(
+      'weekly_summary',
+      formatWeekly(data, { clerk, usage, probes, issues })
+    )
+  } catch (err) {
+    console.error('[cloud-hooks] weekly report failed', err)
+  }
+}
+
+/**
+ * Announce GitHub issues opened since the last sweep. Read-only — it files
+ * nothing, it just makes sure a community bug report reaches the operator.
+ */
+async function runIssues(env: Env, notifier: Notifier): Promise<void> {
+  const gh = await resolveGitHub(env, 'issue watch')
+  if (!gh) return
+
+  const maxPerRun = Number.parseInt(env.CHM_ISSUE_WATCH_MAX_PER_RUN || '10', 10)
+  const excludeLabels = (
+    env.CHM_ISSUE_WATCH_EXCLUDE_LABELS ?? 'cloudflare-exception'
+  )
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  try {
+    await runIssueWatch({
+      repo: gh.repo,
+      githubToken: gh.token,
+      auth: gh.auth,
+      kv: env.CHM_HOOKS_KV ?? null,
+      excludeLabels,
+      maxPerRun: Number.isFinite(maxPerRun) ? maxPerRun : 10,
+      notify: (kind, text) => notifier.notify(kind, text),
+    })
+  } catch (err) {
+    console.error('[cloud-hooks] issue watch failed', err)
   }
 }
 
@@ -60,11 +198,9 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
  * (never a crash), so an OSS-style deploy without these secrets just skips it.
  */
 async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
+  // Cloudflare-side credentials are specific to this job; the GitHub side is
+  // resolved by the shared helper.
   const missing: string[] = []
-  const hasGitHubAuth =
-    (env.GH_APP_ID && env.GH_APP_PRIVATE_KEY) || env.GITHUB_TOKEN
-  if (!hasGitHubAuth)
-    missing.push('GH_APP_ID+GH_APP_PRIVATE_KEY or GITHUB_TOKEN')
   if (!env.CF_OBSERVABILITY_API_TOKEN)
     missing.push('CF_OBSERVABILITY_API_TOKEN')
   if (!env.CF_ACCOUNT_ID) missing.push('CF_ACCOUNT_ID')
@@ -75,22 +211,9 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
     return
   }
 
-  const repo = parseRepo(env.GITHUB_REPOSITORY || 'chmonitor/chmonitor')
-  if (!repo) {
-    console.log('[cloud-hooks] exception scan disabled (bad GITHUB_REPOSITORY)')
-    return
-  }
-
-  const auth = resolveGitHubAuth(
-    env,
-    repo.owner,
-    repo.repo,
-    env.CHM_HOOKS_KV ?? null
-  )
-  if (auth.mode === 'disabled') {
-    console.log('[cloud-hooks] exception scan disabled (no GitHub credentials)')
-    return
-  }
+  const gh = await resolveGitHub(env, 'exception scan')
+  if (!gh) return
+  const { repo, token: githubToken, auth } = gh
 
   const scripts = (
     env.CHM_EXCEPTION_SCRIPTS || 'chmonitor-dash,chmonitor-hooks'
@@ -107,20 +230,11 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
     10
   )
 
-  let githubToken: string
-  try {
-    githubToken =
-      auth.mode === 'app' ? await auth.app!.getToken() : (auth.token as string)
-  } catch (err) {
-    console.error('[cloud-hooks] GitHub App token acquisition failed', err)
-    return
-  }
-
   try {
     await runExceptionScan({
       repo,
       githubToken,
-      auth: auth.mode === 'app' ? auth.app : null,
+      auth,
       fetchExceptions: () =>
         fetchWorkerExceptions({
           accountId: env.CF_ACCOUNT_ID as string,
@@ -178,12 +292,20 @@ export default {
     ctx: ExecutionContext
   ): Promise<void> {
     const notifier = notifierFor(env)
-    if (event.cron === '0 0 * * *') {
+
+    // Weekly first: `0 1 * * 1` is also matched by no other branch, but keeping
+    // the most specific schedule at the top makes the routing order obvious.
+    if (event.cron === WEEKLY_CRON) {
+      ctx.waitUntil(runWeeklyReport(env, notifier))
+      return
+    }
+    if (event.cron === DAILY_CRON) {
       ctx.waitUntil(runDailySummary(env, notifier))
       return
     }
     // Default the shorter cadence (and any other trigger) to the ops sweep:
-    // full-surface health probes + Cloudflare exception → GitHub issue scan.
+    // full-surface health probes, the Cloudflare exception → GitHub issue scan,
+    // and the new-issue watch.
     ctx.waitUntil(
       runProbes({
         kv: env.CHM_HOOKS_KV ?? null,
@@ -192,5 +314,6 @@ export default {
       })
     )
     ctx.waitUntil(runExceptions(env, notifier))
+    ctx.waitUntil(runIssues(env, notifier))
   },
 }

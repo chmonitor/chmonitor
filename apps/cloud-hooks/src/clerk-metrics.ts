@@ -32,15 +32,24 @@ async function countUsers(
   return typeof body.total_count === 'number' ? body.total_count : null
 }
 
+/** 24 hours — the daily digest's window, and the default here. */
+export const DAY_SECONDS = 24 * 60 * 60
+/** 7 days — the weekly report's window. */
+export const WEEK_SECONDS = 7 * DAY_SECONDS
+
 /**
- * Fetch `{ totalUsers, newUsers24h }` or null when unavailable. `now` is unix
- * seconds (injectable for tests); the 24h window is derived from it and passed
- * to Clerk as `created_at_after` in unix milliseconds.
+ * Fetch `{ totalUsers, newUsers, windowSeconds }` or null when unavailable.
+ * `now` is unix seconds (injectable for tests); `windowSeconds` sets how far
+ * back "new" reaches (24h for the daily digest, 7d for the weekly report) and
+ * is passed to Clerk as `created_at_after` in unix MILLIseconds. It is carried
+ * on the result so the formatter labels the number from the same value that
+ * produced it and the two can never drift.
  */
 export async function fetchClerkMetrics(
   secretKey: string | undefined,
   fetchImpl: typeof fetch = fetch,
-  now: number = Math.floor(Date.now() / 1000)
+  now: number = Math.floor(Date.now() / 1000),
+  windowSeconds: number = DAY_SECONDS
 ): Promise<ClerkMetrics | null> {
   if (!secretKey) {
     console.log(
@@ -52,13 +61,13 @@ export async function fetchClerkMetrics(
   try {
     const total = await countUsers(auth, fetchImpl)
     if (total === null) return null
-    const sinceMs = (now - 24 * 60 * 60) * 1000
+    const sinceMs = (now - windowSeconds) * 1000
     const recent = await countUsers(
       auth,
       fetchImpl,
       `?created_at_after=${sinceMs}`
     )
-    return { totalUsers: total, newUsers24h: recent ?? 0 }
+    return { totalUsers: total, newUsers: recent ?? 0, windowSeconds }
   } catch (err) {
     console.error('[cloud-hooks] Clerk metrics fetch failed', err)
     return null

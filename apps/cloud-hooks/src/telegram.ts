@@ -19,8 +19,11 @@ export type NotifyKind =
   | 'payment_failure'
   | 'signature_failure'
   | 'daily_summary'
+  | 'weekly_summary'
   | 'probe'
   | 'error'
+  // A new GitHub issue opened on the repo (POST-less watch, ops cron).
+  | 'new_issue'
   // Clerk lifecycle events (POST /webhooks/clerk).
   | 'user_created'
   | 'session_created'
@@ -36,8 +39,15 @@ export const THROTTLE_MS: Record<NotifyKind, number> = {
   payment_failure: 5_000,
   // A misconfigured/spoofing source could hammer bad signatures — damp hard.
   signature_failure: 60_000,
-  // Scheduled once a day; the throttle is just a belt-and-braces dedupe.
+  // Scheduled once a day / once a week; the throttle is just a belt-and-braces
+  // dedupe against a double-fired cron.
   daily_summary: 60_000,
+  weekly_summary: 60_000,
+  // NOT throttled, deliberately. The issue watch already guarantees each issue
+  // is announced exactly once (its KV cursor only advances past what it sent),
+  // so a throttle here could not prevent a duplicate — it could only DROP the
+  // 2nd..Nth genuinely-distinct issue of a burst.
+  new_issue: 0,
   // Health transitions: avoid re-alerting on a flapping target within a window.
   probe: 30_000,
   error: 30_000,
