@@ -17,7 +17,7 @@
  * is a sibling that lives in the same outer card.
  */
 
-import { HashIcon, SparklesIcon, WrenchIcon } from 'lucide-react'
+import { PaperclipIcon, SparklesIcon, WrenchIcon } from 'lucide-react'
 
 import { useState } from 'react'
 import {
@@ -249,7 +249,7 @@ export function ComposerToolbar({
         onClick={() => setAddContextOpen(true)}
         className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
       >
-        <HashIcon className="size-3" />
+        <PaperclipIcon className="size-3" />
         <span>
           Add context
           {contextCount > 0 ? (
