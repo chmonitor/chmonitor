@@ -221,7 +221,7 @@ export function AgentSettingsSidebar({
             : SUGGESTED_PROMPTS.slice(0, 3)
           ).map((entry) => (
             <button
-              key={entry.title}
+              key={`${entry.category}-${entry.title}`}
               type="button"
               onClick={() => onPickPrompt?.(entry.prompt)}
               className="text-muted-foreground hover:text-foreground hover:bg-muted/40 -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-1.5 rounded px-1 py-0.5 text-left transition-colors"

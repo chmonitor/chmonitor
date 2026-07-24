@@ -147,6 +147,8 @@ export function ReportSettingsPanel() {
       }
       const blob = new Blob([data.html], { type: 'text/html' })
       window.open(URL.createObjectURL(blob), '_blank', 'noopener')
+    } catch {
+      toast.error('Report generation failed')
     } finally {
       setBusy(null)
     }
@@ -187,6 +189,8 @@ export function ReportSettingsPanel() {
         const blob = new Blob([data.html], { type: 'text/html' })
         window.open(URL.createObjectURL(blob), '_blank', 'noopener')
       }
+    } catch {
+      toast.error('PDF export failed')
     } finally {
       setBusy(null)
     }

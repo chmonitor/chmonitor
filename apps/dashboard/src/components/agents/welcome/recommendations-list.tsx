@@ -84,7 +84,7 @@ export function RecommendationsList({
             CATEGORY_COLORS[entry.category] ?? 'bg-muted text-muted-foreground'
           return (
             <button
-              key={entry.title}
+              key={`${entry.category}-${entry.title}`}
               type="button"
               onClick={() => onPickPrompt?.(entry.prompt)}
               style={{ animationDelay: `${index * 40}ms` }}
@@ -147,7 +147,7 @@ export function PromptTilesGrid({
           const Icon = CATEGORY_ICONS[entry.category] ?? SparklesIcon
           return (
             <button
-              key={entry.title}
+              key={`${entry.category}-${entry.title}`}
               type="button"
               onClick={() => onPickPrompt?.(entry.prompt)}
               style={{ animationDelay: `${index * 40}ms` }}

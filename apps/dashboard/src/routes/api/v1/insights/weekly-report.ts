@@ -27,6 +27,7 @@ import type { WeeklyReportSummary } from '@/lib/insights/types'
 
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
+import { requirePlanCapability } from '@/lib/billing/plan-capability'
 import { renderReportPdf, reportPdfFilename } from '@/lib/insights/report-pdf'
 import { renderWeeklyReportHtml } from '@/lib/insights/weekly-report-html'
 import {
@@ -98,14 +99,18 @@ export const Route = createFileRoute('/api/v1/insights/weekly-report')({
           const html = htmlFor(record)
 
           if (params.get('format') === 'pdf') {
+            // PDF export is a Pro+ (`data_export`) capability — same gate as
+            // POST /api/v1/reports/generate. HTML/JSON stay ungated.
+            const denied = await requirePlanCapability('data_export', request)
+            if (denied) return denied
             const pdf = await renderReportPdf(
               html,
               env as unknown as Record<string, unknown>
             )
             if (pdf) {
               const filename = reportPdfFilename(
-                record.hostId,
-                'report',
+                `host-${record.hostId}`,
+                'weekly',
                 record.weekStart
               )
               return new Response(pdf, {
