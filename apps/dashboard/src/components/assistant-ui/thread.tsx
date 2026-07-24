@@ -106,8 +106,10 @@ export function Thread({
     <ThreadPrimitive.Root
       className="aui-root flex h-full flex-col overflow-hidden bg-background"
       style={{
-        // Assistant responses (charts, tables, SQL) use the full container width.
-        ['--assistant-max-width' as string]: '100%',
+        // Cap assistant content to a readable measure (~64rem) instead of
+        // stretching edge-to-edge; charts/tables/SQL still fill this column
+        // and it centers within wider containers (issue #2803).
+        ['--assistant-max-width' as string]: 'min(100%, 64rem)',
       }}
     >
       {/* Empty (welcome) state lives OUTSIDE the scroll container. The tall
@@ -284,9 +286,9 @@ const EditComposer: FC = () => {
 // ---------------------------------------------------------------------------
 
 /**
- * Shows a subtle spinner while the thread is running and the current assistant
- * message has no real parts yet. The visible "Thinking…" label is intentionally
- * dropped for a cleaner starting state; the text is kept screen-reader-only.
+ * Shows a spinner + visible "Thinking…" pill while the thread is running and
+ * the current assistant message has no real parts yet, so sighted users get a
+ * clear streaming affordance (not just an aria-live region).
  */
 function LoadingIndicator() {
   const isRunning = useThread((thread) => thread.isRunning)
@@ -314,7 +316,11 @@ function LoadingIndicator() {
       <MarkerIcon>
         <LoaderCircleIcon className="animate-spin" />
       </MarkerIcon>
-      <span className="sr-only">Thinking…</span>
+      {/* Visible "Thinking…" pill so sighted users get the streaming affordance
+          too, not just an aria-live region (issue #2803). */}
+      <span className="animate-pulse text-xs font-medium text-muted-foreground motion-reduce:animate-none">
+        Thinking…
+      </span>
     </Marker>
   )
 }
