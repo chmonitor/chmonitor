@@ -24,6 +24,9 @@ export type NotifyKind =
   | 'error'
   // A new GitHub issue opened on the repo (POST-less watch, ops cron).
   | 'new_issue'
+  // A tracked metric moved far enough from its own baseline to be worth waking
+  // someone for (e.g. DAU collapsing overnight).
+  | 'usage_anomaly'
   // Clerk lifecycle events (POST /webhooks/clerk).
   | 'user_created'
   | 'session_created'
@@ -48,9 +51,19 @@ export const THROTTLE_MS: Record<NotifyKind, number> = {
   // so a throttle here could not prevent a duplicate — it could only DROP the
   // 2nd..Nth genuinely-distinct issue of a burst.
   new_issue: 0,
-  // Health transitions: avoid re-alerting on a flapping target within a window.
-  probe: 30_000,
-  error: 30_000,
+  // NOT throttled, for the same reason as `new_issue` — and this one was an
+  // outright bug. Both producers run ONLY on the 15-minute ops cron, so a
+  // 30s in-memory window never spanned two runs and never damped a flapping
+  // target; all it could do was drop distinct messages inside ONE run. That
+  // made the alerting worst exactly when the incident was biggest: four
+  // surfaces failing together reported one, and a run that filed five GitHub
+  // issues announced one. Dedupe is state's job — probes only notify on a
+  // transition, exceptions only on an unseen KV fingerprint.
+  probe: 0,
+  error: 0,
+  // Usage anomalies are computed once per day from a completed day of data,
+  // so there is no burst to damp.
+  usage_anomaly: 0,
   // Signups/sign-ins are individually meaningful; light throttle only collapses
   // an at-least-once duplicate delivery burst (per-user sign-in throttling is
   // handled separately in KV over a 6h window).
