@@ -13,10 +13,7 @@
       "changelog-path": "CHANGELOG.md",
       "draft": false,
       "prerelease": false,
-      "exclude-paths": [
-        "rust/ch-monitor-cli",
-        "deploy/helm/chmonitor"
-      ],
+      "exclude-paths": ["rust/ch-monitor-cli", "deploy/helm/chmonitor"],
       "extra-files": [
         {
           "type": "json",
