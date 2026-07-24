@@ -30,6 +30,22 @@ cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
 ```
 
+## Update
+
+`chm` self-updates from GitHub Releases (downloads the matching binary, verifies
+its sha256, and atomically replaces itself — no sudo):
+
+```bash
+chm update                       # install the latest chm-v* release
+chm update --check               # only report if a newer release exists (exit 1 if so)
+chm update --version chm-v0.2.0  # pin a specific release
+```
+
+After a `chm diagnose` run, a one-line "update available" hint is printed to
+stderr when a newer release exists (best-effort, sub-second timeout). Silence it
+with `CHM_NO_UPDATE_CHECK=1`. Installed via `cargo install`? Upgrade with
+`cargo install ch-monitor-cli` instead.
+
 See [docs.chmonitor.dev/guide/guides/diagnostics-cli](https://docs.chmonitor.dev/guide/guides/diagnostics-cli)
 for the full CLI reference.
 

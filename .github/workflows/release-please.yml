@@ -50,3 +50,18 @@ jobs:
         # No checkout precedes this step (release-please-action works via the
         # API), so gh has no local repo to infer. Pass -R explicitly.
         run: gh workflow run release.yml -R ${{ github.repository }} -f tag=${{ steps.release.outputs.tag_name }}
+
+      # Same anti-recursion rule for the CLI component: the chm-vX.Y.Z tag
+      # release-please creates won't fire cli-rust-release.yml's `on: push:
+      # tags` by itself, so dispatch it explicitly with the tag to build.
+      - name: Trigger CLI release build
+        if: steps.release.outputs['rust/ch-monitor-cli--release_created'] == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run cli-rust-release.yml -R ${{ github.repository }} -f tag=${{ steps.release.outputs['rust/ch-monitor-cli--tag_name'] }}
+
+      # Helm: no dispatch needed. The helm-chmonitor release PR bumps
+      # deploy/helm/chmonitor/Chart.yaml, and merging it fires helm-release.yml
+      # via its `paths: deploy/helm/**` push trigger; chart-releaser then owns
+      # the helm-chmonitor-X.Y.Z tag + release (skip-github-release in the
+      # release-please config keeps the two from double-tagging).
