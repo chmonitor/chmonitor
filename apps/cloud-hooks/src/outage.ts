@@ -17,7 +17,26 @@
  * its existing shape.
  */
 
-import type { KVLike, ProbeResult } from './probes'
+/**
+ * Minimal KV subset (matches probes' / github-app's `KVLike`). Declared locally
+ * rather than imported so this module has NO dependency on probes.ts — probes
+ * imports this one, and a mutual import would be a cycle.
+ */
+export interface KVLike {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string): Promise<void>
+}
+
+/**
+ * The part of a probe result this module needs. Structural, so probes' richer
+ * `ProbeResult` satisfies it without either module depending on the other.
+ */
+export interface ProbeOutcome {
+  name: string
+  state: 'up' | 'down'
+  status?: number
+  error?: string
+}
 
 export const OUTAGE_KV_KEY = 'probe-outage:v1'
 
@@ -89,7 +108,7 @@ export function nextReminderAt(record: OutageRecord): number {
  */
 export function reconcileOutages(
   prev: OutageState,
-  results: ProbeResult[],
+  results: ProbeOutcome[],
   now: number
 ): { alerts: OutageAlert[]; next: OutageState } {
   const alerts: OutageAlert[] = []
