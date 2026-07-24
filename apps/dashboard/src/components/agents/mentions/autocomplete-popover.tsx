@@ -30,7 +30,9 @@ function ItemIcon({ type }: { type: AutocompleteItem['type'] }) {
     case 'database':
       return <Database className="size-3.5 shrink-0 text-[var(--chart-blue)]" />
     case 'resource':
-      return <Terminal className="size-3.5 shrink-0 text-[var(--chart-green)]" />
+      return (
+        <Terminal className="size-3.5 shrink-0 text-[var(--chart-green)]" />
+      )
     case 'skill':
       return <Zap className="size-3.5 shrink-0 text-[var(--chart-1)]" />
     case 'command':
