@@ -193,6 +193,48 @@ export async function __applySubscriptionForTests(
   return applySubscription(data, eventTimestamp ?? null, eventType)
 }
 
+/**
+ * Minimal shape of the checkout/order payloads we read for funnel analytics.
+ * The checkout `metadata` (userId/planId/period/posthogDistinctId — set by
+ * /api/v1/billing/checkout) is propagated by Polar onto the resulting order, so
+ * payment events can be stitched onto the browser's PostHog distinct id.
+ */
+type PolarFunnelPayload = {
+  status?: string
+  totalAmount?: number
+  currency?: string
+  billingReason?: string
+  metadata?: Record<string, unknown>
+}
+
+/**
+ * Fire a billing funnel event (fire-and-forget, never throws). Props are
+ * privacy-safe by contract: plan/period enums, amounts, currency — no PII.
+ * distinctId falls back to the shared 'server' id when the checkout carried
+ * no posthogDistinctId (analytics disabled / DNT).
+ */
+async function captureFunnelEvent(
+  name: string,
+  payload: PolarFunnelPayload,
+  extraProps: Record<string, string | number | boolean | undefined> = {}
+): Promise<void> {
+  const meta = payload.metadata ?? {}
+  const distinctId =
+    typeof meta.posthogDistinctId === 'string' && meta.posthogDistinctId
+      ? meta.posthogDistinctId
+      : undefined
+  await captureServerEvent(
+    process.env as Record<string, string | undefined>,
+    name,
+    {
+      plan_id: typeof meta.planId === 'string' ? meta.planId : undefined,
+      billing_period: typeof meta.period === 'string' ? meta.period : undefined,
+      ...extraProps,
+    },
+    distinctId
+  )
+}
+
 async function handlePost(request: Request): Promise<Response> {
   const secret = getWebhookSecret()
   if (!secret) {
@@ -233,9 +275,44 @@ async function handlePost(request: Request): Promise<Response> {
           toUnixSeconds(event.timestamp),
           event.type
         )
+        // Funnel: cancellation signal (upgrade_completed fires inside the core
+        // flow; cancel has no core hook, so it's captured here).
+        if (event.type === 'subscription.canceled') {
+          await captureFunnelEvent(
+            'subscription_canceled',
+            event.data as unknown as PolarFunnelPayload
+          )
+        }
         break
+      case 'checkout.updated': {
+        // Hosted checkout reached a terminal success state — the step between
+        // checkout_started (client) and upgrade_completed (subscription live).
+        const checkout = event.data as unknown as PolarFunnelPayload
+        if (checkout.status === 'succeeded') {
+          await captureFunnelEvent('checkout_completed', checkout)
+        }
+        break
+      }
+      case 'order.paid': {
+        // A payment settled (first purchase or renewal cycle).
+        const order = event.data as unknown as PolarFunnelPayload
+        await captureFunnelEvent('payment_succeeded', order, {
+          amount_cents: order.totalAmount,
+          currency: order.currency,
+          billing_reason: order.billingReason,
+        })
+        break
+      }
+      case 'order.refunded': {
+        const order = event.data as unknown as PolarFunnelPayload
+        await captureFunnelEvent('payment_refunded', order, {
+          amount_cents: order.totalAmount,
+          currency: order.currency,
+        })
+        break
+      }
       default:
-        // Acknowledge unhandled events (checkout.*, order.*, etc.) without action.
+        // Acknowledge other events (checkout.created, order.created, etc.).
         break
     }
   } catch (err) {

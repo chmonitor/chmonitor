@@ -74,7 +74,11 @@ entirely. The dashboard additionally honors the cross-tool `DO_NOT_TRACK`/
 | `paywall_hit` | A request comes back with a classified billing-limit 402 and the paywall modal opens (`reason`, `plan_id`) |
 | `upgrade_click` | An "Upgrade" call-to-action is clicked |
 | `checkout_started` | A Polar checkout session is created, right before redirect |
+| `checkout_completed` | *(server-side)* The hosted Polar checkout reaches `succeeded` (`checkout.updated` webhook) — payment confirmed, subscription not yet live |
 | `upgrade_completed` | *(server-side)* A new Polar subscription goes live (`subscription.created`, active/trialing) — confirms money actually moved |
+| `payment_succeeded` | *(server-side)* An order is paid (`order.paid` webhook) — first purchase or renewal (`amount_cents`, `currency`, `billing_reason`) |
+| `payment_refunded` | *(server-side)* An order is refunded (`order.refunded` webhook) (`amount_cents`, `currency`) |
+| `subscription_canceled` | *(server-side)* A subscription is canceled (`subscription.canceled` webhook) |
 
 The core acquisition→conversion funnel these events trace: `landing_view` →
 `signup` → `cluster_connect` → `advisor_recommendation_viewed` →
