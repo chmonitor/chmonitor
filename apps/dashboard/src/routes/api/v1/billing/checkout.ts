@@ -45,6 +45,24 @@ import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 
 const ROUTE = { route: '/api/v1/billing/checkout', method: 'POST' }
 
+/**
+ * Best-effort lookup of the buyer's primary email so the Polar-hosted checkout
+ * opens with the email field prefilled. Never blocks checkout: any Clerk API
+ * failure (or a user with no email) just returns null and Polar asks for the
+ * email as before.
+ */
+async function lookupCustomerEmail(userId: string): Promise<string | null> {
+  try {
+    const { clerkClient } = await import('@clerk/tanstack-react-start/server')
+    const user = await clerkClient().users.getUser(userId)
+    const addrs = user.emailAddresses ?? []
+    const primary = addrs.find((a) => a.id === user.primaryEmailAddressId)
+    return (primary ?? addrs[0])?.emailAddress ?? null
+  } catch {
+    return null
+  }
+}
+
 /** Where checkout returns on success when the client sends no valid override. */
 const DEFAULT_RETURN_PATH = '/billing'
 
@@ -157,11 +175,14 @@ async function handlePost(request: Request): Promise<Response> {
       resolveConnectionUserId(),
       resolveBillingOwnerId(),
     ])
+    const customerEmail = await lookupCustomerEmail(userId)
     const origin = new URL(request.url).origin
     const successUrl = `${origin}${safeReturnPath(returnPath)}?status=success`
     const checkout = await getPolarClient().checkouts.create({
       products: [productId],
       externalCustomerId: ownerId,
+      // Prefill the checkout email from Clerk (null → Polar asks as before).
+      ...(customerEmail ? { customerEmail } : {}),
       successUrl,
       // userId in metadata lets the webhook lazily create a Clerk org for the
       // buyer when externalCustomerId was still a user id (first payment).
