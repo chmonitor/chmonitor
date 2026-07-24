@@ -41,7 +41,7 @@ export function hasBrowserBinding(
 export async function renderReportPdf(
   html: string,
   bindings: Record<string, unknown> | undefined
-): Promise<Uint8Array | null> {
+): Promise<Uint8Array<ArrayBuffer> | null> {
   if (!hasBrowserBinding(bindings)) return null
   const browserBinding = (bindings as Record<string, unknown>).BROWSER
 
@@ -65,7 +65,9 @@ export async function renderReportPdf(
       printBackground: true,
       margin: { top: '16px', bottom: '16px', left: '16px', right: '16px' },
     })
-    return pdf instanceof Uint8Array ? pdf : new Uint8Array(pdf)
+    // Copy into a fresh ArrayBuffer-backed view so the bytes satisfy
+    // `BodyInit` (Response) — a `SharedArrayBuffer`-backed view would not.
+    return new Uint8Array(pdf)
   } catch (err) {
     warn(
       `[report-pdf] Browser Rendering failed, degrading to HTML: ${
