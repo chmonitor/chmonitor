@@ -7,9 +7,13 @@ import type { WorkerException } from './observability'
 
 import {
   buildExceptionIssue,
+  isSpike,
   type KVLike,
   parseRepo,
   runExceptionScan,
+  SPIKE_COOLDOWN_MS,
+  SPIKE_MIN_COUNT,
+  SPIKE_MULTIPLE,
 } from './exceptions'
 import { describe, expect, mock, test } from 'bun:test'
 
@@ -172,5 +176,97 @@ describe('runExceptionScan — rate cap', () => {
     })
     expect(res.filed).toHaveLength(2)
     expect(res.cappedAt).toBe(2)
+  })
+})
+
+describe('spike detection (a KNOWN error getting much louder)', () => {
+  const NOW = 1_800_000_000_000
+
+  test('ignores low counts however large the multiple', () => {
+    // 2 → 6 is a 3x jump and still means nothing.
+    expect(isSpike(6, { count: 2, alertedAt: 0 }, NOW)).toBe(false)
+  })
+
+  test('fires when a loud error multiplies against its last count', () => {
+    const previous = { count: SPIKE_MIN_COUNT, alertedAt: 0 }
+    expect(isSpike(SPIKE_MIN_COUNT * SPIKE_MULTIPLE, previous, NOW)).toBe(true)
+    expect(isSpike(SPIKE_MIN_COUNT * 2, previous, NOW)).toBe(false)
+  })
+
+  test('holds off while the cooldown is running', () => {
+    // One ongoing incident must not re-alert every 15 minutes.
+    const justAlerted = { count: 10, alertedAt: NOW - 60_000 }
+    expect(isSpike(1_000, justAlerted, NOW)).toBe(false)
+    const stale = { count: 10, alertedAt: NOW - SPIKE_COOLDOWN_MS - 1 }
+    expect(isSpike(1_000, stale, NOW)).toBe(true)
+  })
+
+  test('with no history, needs to be loud on its own to fire', () => {
+    expect(isSpike(SPIKE_MIN_COUNT, null, NOW)).toBe(false)
+    expect(isSpike(SPIKE_MIN_COUNT * SPIKE_MULTIPLE, null, NOW)).toBe(true)
+  })
+
+  test('a known fingerprint spikes without filing a duplicate issue', async () => {
+    // The whole point: the issue already exists, so the scan skips it — but the
+    // volume change is exactly the thing worth knowing about.
+    const store = new Map<string, string>([['exc-fp:v1:deadbeef', 'seen']])
+    const kv: KVLike = {
+      async get(k) {
+        return store.get(k) ?? null
+      },
+      async put(k, v) {
+        store.set(k, v)
+      },
+    }
+    const createIssue = mock(async () => new Response('{}', { status: 201 }))
+    const notified: string[] = []
+
+    const res = await runExceptionScan({
+      repo,
+      githubToken: 't',
+      fetchExceptions: async () => [exc({ count: 500 })],
+      kv,
+      notify: async (_kind, text) => {
+        notified.push(text)
+        return true
+      },
+      fetch: createIssue as unknown as typeof fetch,
+      now: () => NOW,
+    })
+
+    expect(res.filed).toEqual([])
+    expect(res.skipped).toEqual(['deadbeef'])
+    expect(createIssue).not.toHaveBeenCalled()
+    expect(notified.join('\n')).toContain('Known error spiking')
+    // The new count becomes the baseline for next time.
+    expect(JSON.parse(store.get('exc-rate:v1:deadbeef') as string).count).toBe(
+      500
+    )
+  })
+
+  test('a known fingerprint at normal volume stays silent', async () => {
+    const store = new Map<string, string>([['exc-fp:v1:deadbeef', 'seen']])
+    const kv: KVLike = {
+      async get(k) {
+        return store.get(k) ?? null
+      },
+      async put(k, v) {
+        store.set(k, v)
+      },
+    }
+    const notify = mock(async () => true)
+
+    await runExceptionScan({
+      repo,
+      githubToken: 't',
+      fetchExceptions: async () => [exc({ count: 3 })],
+      kv,
+      notify,
+      fetch: mock(
+        async () => new Response('{}', { status: 200 })
+      ) as unknown as typeof fetch,
+      now: () => NOW,
+    })
+    expect(notify).not.toHaveBeenCalled()
   })
 })

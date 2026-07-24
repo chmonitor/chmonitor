@@ -218,3 +218,103 @@ describe('runProbes — KV-backed, notify on transitions', () => {
     expect(notify).not.toHaveBeenCalled()
   })
 })
+
+describe('runProbes — outage escalation', () => {
+  function makeKV(initial?: Record<string, string>): KVLike & {
+    store: Map<string, string>
+  } {
+    const store = new Map<string, string>(Object.entries(initial ?? {}))
+    return {
+      store,
+      async get(key) {
+        return store.get(key) ?? null
+      },
+      async put(key, value) {
+        store.set(key, value)
+      },
+    }
+  }
+
+  const T0 = Date.parse('2026-07-25T02:00:00Z')
+  const downFetch = () => mock(async () => new Response('x', { status: 503 }))
+  const target = [{ name: 'solo', url: 'https://solo' }]
+
+  test('a surface still down hours later gets a reminder, not silence', async () => {
+    // Without this, a surface that broke overnight produces exactly one message
+    // at the moment it broke and nothing ever again.
+    const kv = makeKV({
+      'probe-state:v1': JSON.stringify({ solo: 'down' }),
+      'probe-outage:v1': JSON.stringify({
+        solo: { downSince: T0, lastAlertAt: T0, reminders: 0 },
+      }),
+    })
+    const sent: string[] = []
+
+    const transitions = await runProbes({
+      kv,
+      notify: async (_k, text) => {
+        sent.push(text)
+        return true
+      },
+      fetch: downFetch(),
+      targets: target,
+      now: () => T0 + 3 * 60 * 60 * 1000,
+    })
+
+    // No state CHANGE — down before, down now — so diffStates says nothing…
+    expect(transitions).toEqual([])
+    // …but escalation still speaks up, with the elapsed time.
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toContain('STILL DOWN')
+    expect(sent[0]).toContain('3h 0m')
+  })
+
+  test('recovery reports the total downtime and clears the record', async () => {
+    const kv = makeKV({
+      'probe-state:v1': JSON.stringify({ solo: 'down' }),
+      'probe-outage:v1': JSON.stringify({
+        solo: { downSince: T0, lastAlertAt: T0, reminders: 1 },
+      }),
+    })
+    const sent: string[] = []
+
+    await runProbes({
+      kv,
+      notify: async (_k, text) => {
+        sent.push(text)
+        return true
+      },
+      fetch: mock(async () => new Response('ok', { status: 200 })),
+      targets: target,
+      now: () => T0 + 90 * 60 * 1000,
+    })
+
+    // One up-transition message plus one recovery message with the duration.
+    expect(sent.join('\n')).toContain('is UP')
+    expect(sent.join('\n')).toContain('RECOVERED — was down 1h 30m')
+    expect(JSON.parse(kv.store.get('probe-outage:v1') as string)).toEqual({})
+  })
+
+  test('the first time down does not double-message', async () => {
+    const kv = makeKV()
+    const sent: string[] = []
+
+    await runProbes({
+      kv,
+      notify: async (_k, text) => {
+        sent.push(text)
+        return true
+      },
+      fetch: downFetch(),
+      targets: target,
+      now: () => T0,
+    })
+
+    // diffStates owns the initial alert; escalation only starts the clock.
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toContain('is DOWN')
+    expect(
+      JSON.parse(kv.store.get('probe-outage:v1') as string).solo.downSince
+    ).toBe(T0)
+  })
+})
