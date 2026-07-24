@@ -471,6 +471,14 @@ ${namedExports}
     name: 'chm:ssr-client-only-stub',
     enforce: 'pre',
     resolveId(id) {
+      // @cloudflare/puppeteer is a Workers-only module (PDF export, #2794):
+      // bundled into the CF worker, but the node/Docker target must NOT try to
+      // bundle it. renderReportPdf() short-circuits before importing it there
+      // (env.BROWSER is never present on node), but the dead dynamic import
+      // must still resolve for the bundler — stub it to a harmless proxy.
+      if (isNode && /^@cloudflare\/puppeteer(\/|$)/.test(id)) {
+        return SSR_STUB_VIRTUAL_ID
+      }
       // The stub exists ONLY to keep the Cloudflare Worker under the free-plan
       // 3 MiB limit (#1393). The Node/Docker target has no size limit and its
       // prerender needs the REAL libs — e.g. computeDagrePositions (PeerGraph)
