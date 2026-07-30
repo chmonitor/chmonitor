@@ -7,7 +7,7 @@
  * /api/mcp with the bearer token we verify in verifyClerkOAuthToken.
  *
  * SDK-free on purpose (only imports ../cors + ./clerk-oauth) so the dashboard's
- * /.well-known route can serve metadata WITHOUT pulling @modelcontextprotocol/sdk
+ * /.well-known route can serve metadata WITHOUT pulling @modelcontextprotocol/server
  * + createMcpServer into the dashboard worker bundle.
  */
 

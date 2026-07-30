@@ -1,7 +1,7 @@
 /**
  * Standalone Cloudflare Worker for the MCP endpoint.
  *
- * Split out of the main Next.js worker because @modelcontextprotocol/sdk +
+ * Split out of the main Next.js worker because @modelcontextprotocol/server +
  * lib/mcp/tools accounted for ~390 KB of the main bundle. Cloudflare Workers
  * Routes deliver dash.chmonitor.dev/api/mcp* + /api/v1/mcp/info* to this
  * worker directly; the dashboard worker never sees those paths in production.

@@ -8,14 +8,14 @@ mock.module('@chm/clickhouse-client', () => ({
 }))
 
 import { registerResources } from '../resources'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { McpServer } from '@modelcontextprotocol/server'
 
 /**
  * Resolves a resource URI the same way the SDK's internal
  * `ReadResourceRequestSchema` handler does: an exact match against
  * `_registeredResources`, falling back to the first `_registeredResourceTemplates`
  * entry whose `uriTemplate` matches. See
- * `@modelcontextprotocol/sdk`'s `server/mcp.js` `setResourceRequestHandlers`.
+ * `@modelcontextprotocol/server`'s `McpServer` `setResourceRequestHandlers`.
  */
 async function readResource(server: McpServer, uriStr: string) {
   const uri = new URL(uriStr)

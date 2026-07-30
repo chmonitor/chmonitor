@@ -1,4 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
+
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import {
   hostIdSchema,
@@ -7,7 +9,6 @@ import {
   toErrorResult,
   toJsonResult,
 } from './helpers'
-import { z } from 'zod/v3'
 
 type Severity = 'OK' | 'WARNING' | 'CRITICAL'
 
@@ -83,17 +84,21 @@ function classifyDiskSeverity(rows: Array<Record<string, unknown>>): Severity {
 }
 
 export function registerPerformanceTool(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'analyze_performance',
-    'Get a structured performance analysis snapshot with severity ratings. Returns slow queries, high part counts, merge backlog, memory pressure, and disk utilization in one call.',
     {
-      hostId: hostIdSchema,
-      lastHours: z
-        .number()
-        .optional()
-        .describe('Time window for analysis in hours (default: 1)'),
+      title: 'Analyze Performance',
+      description:
+        'Get a structured performance analysis snapshot with severity ratings. Returns slow queries, high part counts, merge backlog, memory pressure, and disk utilization in one call.',
+      inputSchema: {
+        hostId: hostIdSchema,
+        lastHours: z
+          .number()
+          .optional()
+          .describe('Time window for analysis in hours (default: 1)'),
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'Analyze Performance' },
     async ({ hostId, lastHours }) => {
       const h = hostId ?? 0
       const hours = Math.max(1, Math.floor(lastHours ?? 1))

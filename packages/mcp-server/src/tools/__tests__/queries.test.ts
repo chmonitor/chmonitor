@@ -7,9 +7,10 @@ mock.module('@chm/clickhouse-client', () => ({
   fetchData: mockFetchData,
 }))
 
+import { z } from 'zod'
+
 import { registerQueryTools } from '../queries'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { z } from 'zod/v3'
+import { McpServer } from '@modelcontextprotocol/server'
 
 /** Helper to get the registered tool handler */
 function getToolHandler(server: McpServer, name: string) {

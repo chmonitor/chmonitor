@@ -1,7 +1,7 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import { runReadonlyFetch } from '../tools/helpers'
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { ResourceTemplate } from '@modelcontextprotocol/server'
 
 const SYSTEM_TABLES_TEXT = `Key ClickHouse System Tables for Monitoring:
 
@@ -60,7 +60,7 @@ FROM system.replicas ORDER BY absolute_delay DESC
 `
 
 export function registerResources(server: McpServer) {
-  server.resource(
+  server.registerResource(
     'system-tables',
     'clickhouse://system-tables',
     {
@@ -79,7 +79,7 @@ export function registerResources(server: McpServer) {
     })
   )
 
-  server.resource(
+  server.registerResource(
     'query-examples',
     'clickhouse://query-examples',
     {
@@ -97,7 +97,7 @@ export function registerResources(server: McpServer) {
     })
   )
 
-  server.resource(
+  server.registerResource(
     'databases',
     'clickhouse://databases',
     {
@@ -113,7 +113,7 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  server.resource(
+  server.registerResource(
     'database-tables',
     new ResourceTemplate('clickhouse://databases/{database}/tables', {
       list: undefined,
@@ -133,7 +133,7 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  server.resource(
+  server.registerResource(
     'table-schema',
     new ResourceTemplate(
       'clickhouse://databases/{database}/tables/{table}/schema',
@@ -155,7 +155,7 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  server.resource(
+  server.registerResource(
     'table-parts',
     new ResourceTemplate(
       'clickhouse://databases/{database}/tables/{table}/parts',
@@ -188,7 +188,7 @@ export function registerResources(server: McpServer) {
   // `clickhouse://databases{?hostId}` would fail to match the legacy
   // (no-hostId) URI and break backward compatibility.
 
-  server.resource(
+  server.registerResource(
     'databases-by-host',
     new ResourceTemplate('clickhouse://hosts/{hostId}/databases', {
       list: undefined,
@@ -208,7 +208,7 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  server.resource(
+  server.registerResource(
     'database-tables-by-host',
     new ResourceTemplate(
       'clickhouse://hosts/{hostId}/databases/{database}/tables',
@@ -230,7 +230,7 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  server.resource(
+  server.registerResource(
     'table-schema-by-host',
     new ResourceTemplate(
       'clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/schema',
@@ -254,7 +254,7 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  server.resource(
+  server.registerResource(
     'table-parts-by-host',
     new ResourceTemplate(
       'clickhouse://hosts/{hostId}/databases/{database}/tables/{table}/parts',

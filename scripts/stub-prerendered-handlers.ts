@@ -139,7 +139,7 @@ module.exports = { GET: stub, HEAD: stub, POST: stub, PUT: stub, DELETE: stub, P
 // Routes that live in a separate Cloudflare Worker (see apps/mcp/wrangler.toml).
 // Workers Routes intercept these paths before the main worker is invoked, so
 // the route handlers we strip here are pure dead code in production. Without
-// this stub they pulled the @modelcontextprotocol/sdk + lib/mcp/tools transitive
+// this stub they pulled the @modelcontextprotocol/server + lib/mcp/tools transitive
 // graph (~390 KB minified) into the main bundle.
 const EXTERNAL_WORKER_ROUTES: { route: string; appPath: string }[] = [
   { route: '/api/mcp', appPath: '/api/mcp/route' },

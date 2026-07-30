@@ -1,7 +1,7 @@
 /**
  * CORS helpers, deliberately free of any MCP-SDK import so that lightweight
  * routes (e.g. the dashboard's /.well-known/oauth-protected-resource) can reuse
- * them WITHOUT pulling @modelcontextprotocol/sdk + createMcpServer into the
+ * them WITHOUT pulling @modelcontextprotocol/server + createMcpServer into the
  * dashboard worker bundle — which would undo the separate MCP-worker split.
  */
 

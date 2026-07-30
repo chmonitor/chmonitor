@@ -33,13 +33,6 @@
       ],
       "@chm/mcp-server/auth": ["../../packages/mcp-server/src/auth/index.ts"],
       "@chm/platform": ["./src/lib/platform-native.ts"],
-      "@modelcontextprotocol/sdk/server/mcp.js": [
-        "./node_modules/@modelcontextprotocol/sdk/dist/esm/server/mcp.d.ts"
-      ],
-      "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js": [
-        "./node_modules/@modelcontextprotocol/sdk/dist/esm/server/webStandardStreamableHttp.d.ts"
-      ],
-      "zod/v3": ["./node_modules/zod/v3/index.d.ts"],
       "@clickhouse/client": [
         "./node_modules/@clickhouse/client-web/dist/index.d.ts"
       ],

@@ -1,6 +1,7 @@
+import { z } from 'zod'
 import type { DataFormat } from '@clickhouse/client'
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import {
   capResultRows,
@@ -12,21 +13,24 @@ import {
   truncationNote,
 } from './helpers'
 import { validateSqlQuery } from '@chm/sql-builder'
-import { z } from 'zod/v3'
 
 export function registerQueryTool(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'query',
-    'Execute a read-only SQL query against ClickHouse. Only SELECT and WITH (CTE) queries are allowed.',
     {
-      sql: z.string().describe('SQL query to execute (SELECT only)'),
-      hostId: hostIdSchema,
-      format: z
-        .string()
-        .optional()
-        .describe('ClickHouse output format (default: JSONEachRow)'),
+      title: 'Run SQL Query',
+      description:
+        'Execute a read-only SQL query against ClickHouse. Only SELECT and WITH (CTE) queries are allowed.',
+      inputSchema: {
+        sql: z.string().describe('SQL query to execute (SELECT only)'),
+        hostId: hostIdSchema,
+        format: z
+          .string()
+          .optional()
+          .describe('ClickHouse output format (default: JSONEachRow)'),
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'Run SQL Query' },
     async ({ sql, hostId, format }) => {
       try {
         validateSqlQuery(sql)

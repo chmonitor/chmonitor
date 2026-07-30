@@ -75,7 +75,7 @@ const mockFetchData = mock(
 mock.module('@chm/clickhouse-client', () => ({ fetchData: mockFetchData }))
 
 const { registerAdvisorTool } = await import('../tools/advisor')
-const { McpServer } = await import('@modelcontextprotocol/sdk/server/mcp.js')
+const { McpServer } = await import('@modelcontextprotocol/server')
 
 function getToolHandler(server: InstanceType<typeof McpServer>, name: string) {
   const tools = (server as any)._registeredTools

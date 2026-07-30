@@ -1,6 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
 
-import { z } from 'zod/v3'
+import type { McpServer } from '@modelcontextprotocol/server'
 
 const DISK_USAGE_THRESHOLD_PERCENT = 80
 const LONG_RUNNING_QUERY_SECONDS = 30
@@ -30,11 +30,14 @@ const STORAGE_CRITICAL_PERCENT = 80
  * @returns void
  */
 export function registerPrompts(server: McpServer) {
-  server.prompt(
+  server.registerPrompt(
     'health-check',
-    'Run a comprehensive ClickHouse health check',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      title: 'Health Check',
+      description: 'Run a comprehensive ClickHouse health check',
+      argsSchema: {
+        hostId: z.number().optional().describe('Host index (default: 0)'),
+      },
     },
     async ({ hostId }) => ({
       messages: [
@@ -55,17 +58,20 @@ Summarize findings with severity levels (OK/WARNING/CRITICAL).`,
     })
   )
 
-  server.prompt(
+  server.registerPrompt(
     'slow-query-analysis',
-    'Analyze slow queries and suggest optimizations',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
-      lastHours: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe('Number of hours to look back (default: 24)'),
+      title: 'Slow Query Analysis',
+      description: 'Analyze slow queries and suggest optimizations',
+      argsSchema: {
+        hostId: z.number().optional().describe('Host index (default: 0)'),
+        lastHours: z.coerce
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe('Number of hours to look back (default: 24)'),
+      },
     },
     async ({ hostId, lastHours }) => ({
       messages: [
@@ -86,11 +92,14 @@ Provide optimization suggestions for the top ${SLOW_PATTERN_TOP_N} most impactfu
     })
   )
 
-  server.prompt(
+  server.registerPrompt(
     'storage-audit',
-    'Audit storage usage, part health, and compression',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      title: 'Storage Audit',
+      description: 'Audit storage usage, part health, and compression',
+      argsSchema: {
+        hostId: z.number().optional().describe('Host index (default: 0)'),
+      },
     },
     async ({ hostId }) => ({
       messages: [
@@ -112,11 +121,14 @@ Summarize with storage efficiency score and recommended actions.`,
     })
   )
 
-  server.prompt(
+  server.registerPrompt(
     'replication-check',
-    'Check replication health across replicated tables',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
+      title: 'Replication Check',
+      description: 'Check replication health across replicated tables',
+      argsSchema: {
+        hostId: z.number().optional().describe('Host index (default: 0)'),
+      },
     },
     async ({ hostId }) => ({
       messages: [
@@ -138,17 +150,20 @@ Summarize replication health with severity levels (OK/WARNING/CRITICAL).`,
     })
   )
 
-  server.prompt(
+  server.registerPrompt(
     'capacity-report',
-    'Analyze capacity trends and project future needs',
     {
-      hostId: z.number().optional().describe('Host index (default: 0)'),
-      lastDays: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe('Number of days to analyze (default: 30)'),
+      title: 'Capacity Report',
+      description: 'Analyze capacity trends and project future needs',
+      argsSchema: {
+        hostId: z.number().optional().describe('Host index (default: 0)'),
+        lastDays: z.coerce
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe('Number of days to analyze (default: 30)'),
+      },
     },
     async ({ hostId, lastDays }) => ({
       messages: [

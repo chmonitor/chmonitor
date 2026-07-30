@@ -32,7 +32,7 @@ import {
   type McpToolParam,
 } from './data/mcp-tools-data'
 import { createMcpServer } from './server'
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
+import { createMcpHandler } from '@modelcontextprotocol/server'
 
 // SDK-free metadata handler, re-exported here for the Worker's single import.
 export { handleProtectedResourceMetadata } from './auth/oauth-metadata'
@@ -195,11 +195,35 @@ interface HandleMcpOptions {
 }
 
 /**
+ * MCP HTTP handler for the 2026-07-28 protocol revision.
+ *
+ * `createMcpHandler` from @modelcontextprotocol/server/v2 manages per-request
+ * server lifecycle and protocol negotiation. With the default `legacy:
+ * 'stateless'` option it serves BOTH the 2026-07-28 (stateless, header-routed,
+ * MRTR) protocol AND a stateless 2025-era fallback — so existing MCP clients
+ * keep working while 2026-07-28 clients get the new stateless core,
+ * `Mcp-Method`/`Mcp-Name` header routing, cache hints, and `server/discover`.
+ *
+ * The factory creates a fresh `McpServer` per request (stateless), matching the
+ * previous `sessionIdGenerator: undefined` transport behaviour — no shared
+ * session state between requests. The handler itself is a module-level
+ * singleton; only the factory output is per-request.
+ */
+const mcpHandler = createMcpHandler(() => createMcpServer(), {
+  legacy: 'stateless',
+})
+
+/**
  * Handle an MCP transport request (POST/GET/DELETE on /api/mcp).
  *
  * With the default authenticator, "no auth configured" means 401 unless the
  * operator has set CHM_MCP_PUBLIC=true. See defaultAuthenticator for the full
  * opt-in rationale.
+ *
+ * Auth and rate limiting run BEFORE the MCP handler so the protocol layer only
+ * ever sees authenticated, within-budget requests. The handler itself performs
+ * no token verification — it is strictly pass-through for `authInfo`, which we
+ * do not inject (current tools are read-only and need no per-user identity).
  */
 export async function handleMcp(
   req: Request,
@@ -215,12 +239,7 @@ export async function handleMcp(
     const fail = await authenticate(req)
     if (fail) return withCors(fail)
 
-    const server = createMcpServer()
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    })
-    await server.connect(transport)
-    const res = await transport.handleRequest(req)
+    const res = await mcpHandler.fetch(req)
     return withCors(res)
   } catch {
     // Never let an unhandled rejection escape as a CORS-less 500 (the Worker
