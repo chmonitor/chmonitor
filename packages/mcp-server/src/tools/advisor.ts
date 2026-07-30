@@ -19,7 +19,9 @@
  * recommendations are inert DDL/rewrite text, never executed.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
+
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import {
   hostIdSchema,
@@ -28,7 +30,6 @@ import {
   toErrorResult,
   toJsonResult,
 } from './helpers'
-import { z } from 'zod/v3'
 
 // ---------------------------------------------------------------------------
 // Types (copy of recommendation-engine.ts's shared types)
@@ -983,31 +984,32 @@ async function analyzeQuery(params: {
 }
 
 export function registerAdvisorTool(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'get_optimization_recommendations',
-    'Analyze a slow query (by `queryId` from system.query_log, or raw `sql`) and return RANKED optimization recommendations — skip-index, projection, partition key, or a PREWHERE rewrite — each with DDL/rewrite text, rationale, risk, effort, and an estimated granules/bytes saved. Read-only and recommend-only: it never executes or applies any DDL or rewrite.',
     {
-      sql: z
-        .string()
-        .optional()
-        .describe('Raw SQL to analyze. Provide this or queryId.'),
-      queryId: z
-        .string()
-        .optional()
-        .describe(
-          'A query_id from system.query_log to resolve and analyze. Provide this or sql.'
-        ),
-      database: z
-        .string()
-        .optional()
-        .describe(
-          'Default database for unqualified table references (default: "default").'
-        ),
-      hostId: hostIdSchema,
-    },
-    {
-      ...READONLY_ANNOTATIONS,
       title: 'Get Optimization Recommendations',
+      description:
+        'Analyze a slow query (by `queryId` from system.query_log, or raw `sql`) and return RANKED optimization recommendations — skip-index, projection, partition key, or a PREWHERE rewrite — each with DDL/rewrite text, rationale, risk, effort, and an estimated granules/bytes saved. Read-only and recommend-only: it never executes or applies any DDL or rewrite.',
+      inputSchema: {
+        sql: z
+          .string()
+          .optional()
+          .describe('Raw SQL to analyze. Provide this or queryId.'),
+        queryId: z
+          .string()
+          .optional()
+          .describe(
+            'A query_id from system.query_log to resolve and analyze. Provide this or sql.'
+          ),
+        database: z
+          .string()
+          .optional()
+          .describe(
+            'Default database for unqualified table references (default: "default").'
+          ),
+        hostId: hostIdSchema,
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
     async ({ sql, queryId, database, hostId }) => {
       const result = await analyzeQuery({

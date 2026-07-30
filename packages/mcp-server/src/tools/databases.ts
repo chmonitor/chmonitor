@@ -1,15 +1,19 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import { hostIdSchema, READONLY_ANNOTATIONS, runReadonlyQuery } from './helpers'
 
 export function registerDatabasesTool(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'list_databases',
-    'List all databases on the ClickHouse server with their engines and comments.',
     {
-      hostId: hostIdSchema,
+      title: 'List Databases',
+      description:
+        'List all databases on the ClickHouse server with their engines and comments.',
+      inputSchema: {
+        hostId: hostIdSchema,
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'List Databases' },
     async ({ hostId }) =>
       runReadonlyQuery(
         'SELECT name, engine, comment FROM system.databases ORDER BY name',

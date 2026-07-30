@@ -1,4 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
+
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import {
   capResultRows,
@@ -9,26 +11,31 @@ import {
   toJsonResult,
   truncationNote,
 } from './helpers'
-import { z } from 'zod/v3'
 
 export function registerExploreTableSchemaTool(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'explore_table_schema',
-    'Comprehensive schema exploration with relationship discovery. Three modes: no params (list databases), database only (summarize tables), database+table (full schema with relationships)',
     {
-      database: z
-        .string()
-        .optional()
-        .describe('Database name (optional - if omitted, lists all databases)'),
-      table: z
-        .string()
-        .optional()
-        .describe(
-          'Table name (requires database. If provided, returns full schema with relationships)'
-        ),
-      hostId: hostIdSchema,
+      title: 'Explore Table Schema',
+      description:
+        'Comprehensive schema exploration with relationship discovery. Three modes: no params (list databases), database only (summarize tables), database+table (full schema with relationships)',
+      inputSchema: {
+        database: z
+          .string()
+          .optional()
+          .describe(
+            'Database name (optional - if omitted, lists all databases)'
+          ),
+        table: z
+          .string()
+          .optional()
+          .describe(
+            'Table name (requires database. If provided, returns full schema with relationships)'
+          ),
+        hostId: hostIdSchema,
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'Explore Table Schema' },
     async ({ database, table, hostId }) => {
       // Mode 1: No params — list databases
       if (!database) {

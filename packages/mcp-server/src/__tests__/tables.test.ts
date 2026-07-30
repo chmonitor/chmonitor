@@ -8,7 +8,7 @@ mock.module('@chm/clickhouse-client', () => ({
 }))
 
 import { registerTableTools } from '../tools/tables'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { McpServer } from '@modelcontextprotocol/server'
 
 /** Helper to get the registered tool handler */
 function getToolHandler(server: McpServer, name: string) {

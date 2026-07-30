@@ -1,7 +1,7 @@
 import { registerPrompts } from './prompts'
 import { registerResources } from './resources'
 import { registerAllTools } from './tools'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { McpServer } from '@modelcontextprotocol/server'
 
 export function createMcpServer() {
   const server = new McpServer({

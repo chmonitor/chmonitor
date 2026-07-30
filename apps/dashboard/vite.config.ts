@@ -674,15 +674,6 @@ export default defineConfig({
         '../../packages/mcp-server/src/data/mcp-tools-data.ts'
       ),
       '@chm/mcp-server/auth': r('../../packages/mcp-server/src/auth/index.ts'),
-      // The MCP SDK ships an exact `./server` export that shadows `./server/*`
-      // subpaths in rolldown's exports resolution, so point the two used deep
-      // imports straight at their dist ESM files (the `./*` wildcard target).
-      '@modelcontextprotocol/sdk/server/mcp.js': r(
-        './node_modules/@modelcontextprotocol/sdk/dist/esm/server/mcp.js'
-      ),
-      '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js': r(
-        './node_modules/@modelcontextprotocol/sdk/dist/esm/server/webStandardStreamableHttp.js'
-      ),
       // The node @clickhouse/client (node:os/node:stream/TCP) is a dead static
       // import in clickhouse-client.ts (routes force web:true). Alias it to an
       // empty stub so it resolves in the bundle on BOTH targets.
@@ -717,7 +708,7 @@ export default defineConfig({
       // (container running but every route threw
       // "Cannot find module '@clickhouse/client-common'").
       '@clickhouse/client-common',
-      '@modelcontextprotocol/sdk',
+      '@modelcontextprotocol/server',
       'lru-cache',
       'zod',
     ],

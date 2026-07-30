@@ -1,6 +1,6 @@
 # wrangler-mcp.toml — standalone MCP worker
 #
-# Split out of the main Next.js worker because @modelcontextprotocol/sdk +
+# Split out of the main Next.js worker because @modelcontextprotocol/server +
 # MCP tools accounted for ~390 KB of the main bundle (pushing it past the
 # 3 MiB free-tier cap). Each worker gets its own 3 MiB cap, so this gives
 # headroom to both.
@@ -37,7 +37,7 @@ minify = true
 upload_source_maps = false
 
 # Required when minify = true with libraries that introspect Function.name —
-# without this, @modelcontextprotocol/sdk's class-dispatch crashes with
+# without this, @modelcontextprotocol/server's class-dispatch crashes with
 # "e is not defined" at first request. Matches main wrangler.toml.
 keep_names = false
 

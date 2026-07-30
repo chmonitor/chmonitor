@@ -1,13 +1,13 @@
+import { z } from 'zod'
 import type { DataFormat } from '@clickhouse/client'
 
 import type { FetchDataResult } from '@chm/clickhouse-client'
 import type {
   CallToolResult,
   ToolAnnotations,
-} from '@modelcontextprotocol/sdk/types.js'
+} from '@modelcontextprotocol/server'
 
 import { fetchData } from '@chm/clickhouse-client'
-import { z } from 'zod/v3'
 
 /**
  * Shared Zod schema for the optional `hostId` argument used by every tool.

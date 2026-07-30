@@ -1,7 +1,7 @@
 import { registerPrompts } from '../prompts'
 import { createMcpServer } from '../server'
 import { describe, expect, test } from 'bun:test'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { McpServer } from '@modelcontextprotocol/server'
 
 describe('registerPrompts', () => {
   test('registerPrompts completes without throwing', () => {

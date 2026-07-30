@@ -30,7 +30,7 @@ Every heavy chunk traces to a feature in active use — there is no dead-code sm
 
 | Chunk | Contents | Legitimacy |
 |-------|----------|-----------|
-| `router-*` (~1.5 MiB raw) | MCP validation: `ajv` + `zod-to-json-schema` + `@modelcontextprotocol/sdk` | In-process `/api/mcp` route (`@chm/mcp-server/http`) |
+| `router-*` (~1.5 MiB raw) | MCP validation: `ajv` + `zod-to-json-schema` + `@modelcontextprotocol/server` | In-process `/api/mcp` route (`@chm/mcp-server/http`) |
 | `permissions-*` | Clerk auth (`@clerk/shared`, `@clerk/react`) | Authentication |
 | `dist-*` | AI SDK (`ai`) + `@json-render/core` + `@vercel/oidc` + `eventsource-parser` | The agent |
 | `lib-*` | Markdown pipeline (micromark + unified + mdast) | Docs + agent output rendering |

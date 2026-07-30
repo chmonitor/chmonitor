@@ -5,11 +5,12 @@ mock.module('@chm/clickhouse-client', () => ({
   fetchData: async () => ({ data: [], error: null }),
 }))
 
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
+import { z } from 'zod'
+
+import type { ToolAnnotations } from '@modelcontextprotocol/server'
 
 import { registerAllTools } from '../tools'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { z } from 'zod/v3'
+import { McpServer } from '@modelcontextprotocol/server'
 
 describe('registerAllTools', () => {
   test('registers all 10 tools without errors', () => {
@@ -20,7 +21,8 @@ describe('registerAllTools', () => {
 
 describe('tool annotations (#2703)', () => {
   // The MCP SDK keeps registrations in `_registeredTools` (name → { title,
-  // annotations, ... }). Internal, but the only introspection surface that
+  // annotations, ... }). In v2, `title` is a top-level config property (not
+  // inside annotations). Internal, but the only introspection surface that
   // doesn't require a connected transport — same approach as the
   // MCP_TOOLS-vs-registered-tools drift test.
   function registeredTools(): Record<
@@ -62,12 +64,9 @@ describe('tool annotations (#2703)', () => {
     const tools = registeredTools()
 
     for (const [name, tool] of Object.entries(tools)) {
-      const title = tool.annotations?.title
-      expect(typeof title, `${name}.annotations.title`).toBe('string')
-      expect(
-        title?.trim().length ?? 0,
-        `${name}.annotations.title`
-      ).toBeGreaterThan(0)
+      const title = tool.title
+      expect(typeof title, `${name}.title`).toBe('string')
+      expect(title?.trim().length ?? 0, `${name}.title`).toBeGreaterThan(0)
     }
   })
 })

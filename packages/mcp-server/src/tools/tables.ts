@@ -1,4 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
+
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import {
   capResultRows,
@@ -10,17 +12,20 @@ import {
   toJsonResult,
   truncationNote,
 } from './helpers'
-import { z } from 'zod/v3'
 
 export function registerTableTools(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'list_tables',
-    'List tables in a ClickHouse database with row counts and sizes, ordered by size descending.',
     {
-      database: z.string().describe('Database name'),
-      hostId: hostIdSchema,
+      title: 'List Tables',
+      description:
+        'List tables in a ClickHouse database with row counts and sizes, ordered by size descending.',
+      inputSchema: {
+        database: z.string().describe('Database name'),
+        hostId: hostIdSchema,
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'List Tables' },
     async ({ database, hostId }) => {
       const result = await runReadonlyFetch({
         query:
@@ -46,15 +51,19 @@ export function registerTableTools(server: McpServer) {
     }
   )
 
-  server.tool(
+  server.registerTool(
     'get_table_schema',
-    'Get column definitions for a specific ClickHouse table including types, defaults, and comments.',
     {
-      database: z.string().describe('Database name'),
-      table: z.string().describe('Table name'),
-      hostId: hostIdSchema,
+      title: 'Get Table Schema',
+      description:
+        'Get column definitions for a specific ClickHouse table including types, defaults, and comments.',
+      inputSchema: {
+        database: z.string().describe('Database name'),
+        table: z.string().describe('Table name'),
+        hostId: hostIdSchema,
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'Get Table Schema' },
     async ({ database, table, hostId }) =>
       runReadonlyQuery(
         'SELECT name, type, default_kind, default_expression, comment FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position',

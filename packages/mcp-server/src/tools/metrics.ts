@@ -1,4 +1,4 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { McpServer } from '@modelcontextprotocol/server'
 
 import {
   hostIdSchema,
@@ -9,13 +9,17 @@ import {
 } from './helpers'
 
 export function registerMetricsTool(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'get_metrics',
-    'Get key ClickHouse server metrics: version, uptime, active connections, and memory usage.',
     {
-      hostId: hostIdSchema,
+      title: 'Get Server Metrics',
+      description:
+        'Get key ClickHouse server metrics: version, uptime, active connections, and memory usage.',
+      inputSchema: {
+        hostId: hostIdSchema,
+      },
+      annotations: READONLY_ANNOTATIONS,
     },
-    { ...READONLY_ANNOTATIONS, title: 'Get Server Metrics' },
     async ({ hostId }) => {
       const [versionResult, uptimeResult, metricsResult] = await Promise.all([
         runReadonlyFetch({ query: 'SELECT version() AS version', hostId }),
