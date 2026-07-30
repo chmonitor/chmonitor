@@ -23,10 +23,9 @@ export interface KeyboardShortcutOptions {
  *   - NEITHER → forbid both meta and ctrl.
  */
 export function matchesKeyboardShortcut(
-  event: Pick<
-    KeyboardEvent,
-    'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'
-  >,
+  event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'> & {
+    key?: string
+  },
   options: Pick<
     KeyboardShortcutOptions,
     'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'
@@ -40,7 +39,9 @@ export function matchesKeyboardShortcut(
     altKey = false,
   } = options
 
-  const keyMatches = event.key.toLowerCase() === key.toLowerCase()
+  // `event.key` can be undefined in some browsers / synthetic events / IME
+  // input. Guard against it so we never throw on `.toLowerCase()`.
+  const keyMatches = (event.key ?? '').toLowerCase() === key.toLowerCase()
 
   // Meta/Ctrl matching with cross-platform support.
   let metaCtrlMatches: boolean
