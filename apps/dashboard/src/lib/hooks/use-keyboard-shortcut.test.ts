@@ -2,7 +2,7 @@ import { matchesKeyboardShortcut } from './use-keyboard-shortcut'
 import { describe, expect, it } from 'bun:test'
 
 type EventLike = {
-  key: string
+  key: string | undefined
   metaKey: boolean
   ctrlKey: boolean
   shiftKey: boolean
@@ -34,6 +34,15 @@ describe('matchesKeyboardShortcut', () => {
 
   it('is case-insensitive on the key', () => {
     expect(matchesKeyboardShortcut(evt({ key: 'G' }), { key: 'g' })).toBe(true)
+  })
+
+  it('does NOT throw when event.key is undefined', () => {
+    expect(() =>
+      matchesKeyboardShortcut(evt({ key: undefined }), { key: 'g' })
+    ).not.toThrow()
+    expect(matchesKeyboardShortcut(evt({ key: undefined }), { key: 'g' })).toBe(
+      false
+    )
   })
 
   describe('meta-only shortcut', () => {
