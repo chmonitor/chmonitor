@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { useFeatureTracking } from '@/lib/telemetry'
 
 // CodeMirror is heavy and browser-only — lazy-load it, same as /explain.
 const SqlEditor = lazy(() =>
@@ -53,6 +54,8 @@ function EditorFallback() {
 
 function AdvisorContent() {
   const hostId = useHostId()
+  // Fire-and-forget product telemetry — no-op unless enabled.
+  useFeatureTracking('advisor')
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()

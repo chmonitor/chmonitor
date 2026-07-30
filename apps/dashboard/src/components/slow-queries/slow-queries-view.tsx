@@ -26,6 +26,7 @@ import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useTableData } from '@/lib/query/use-table-data'
 import { slowQueriesConfig } from '@/lib/query-config/queries/slow-queries'
 import { useHostId } from '@/lib/swr/use-host'
+import { useFeatureTracking } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
 
 /** Refresh the slow-queries list every 60s — `query_log` is append-only. */
@@ -98,6 +99,8 @@ function FilterGroup({
  */
 export function SlowQueriesView() {
   const hostId = useHostId()
+  // Fire-and-forget product telemetry — no-op unless enabled.
+  useFeatureTracking('slow_queries')
   const { timeRange } = useTimeRange()
   const router = useRouter()
   const pathname = usePathname()
