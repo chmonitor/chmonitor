@@ -44,6 +44,7 @@ import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
 import { pageOgHead } from '@/lib/og'
 import { trafficPerTableConfig } from '@/lib/query-config/traffic/per-table-ingestion'
+import { useFeatureTracking } from '@/lib/telemetry'
 import { useTrafficSettings } from '@/lib/traffic/traffic-settings'
 
 const CHART_CLASS = 'h-64 min-h-0 w-full'
@@ -55,6 +56,8 @@ const FULL_GRID_CLASS = 'grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2'
 const COMPACT_GRID_CLASS = 'grid grid-cols-2 gap-2 lg:grid-cols-4'
 
 function TrafficPageContent() {
+  // Fire-and-forget product telemetry — no-op unless enabled.
+  useFeatureTracking('traffic')
   const { settings, toggleSectionDensity } = useTrafficSettings()
   const { available: partLogAvailable } = usePartLogAvailability()
 

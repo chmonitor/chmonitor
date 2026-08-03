@@ -34,6 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { useFeatureTracking } from '@/lib/telemetry'
 
 // ── Types matching GET /api/events response ──────────────────────────────────
 
@@ -79,6 +80,8 @@ const SEVERITY_BADGE_CLASS: Record<EventSeverity, string> = {
 // ── Page component ────────────────────────────────────────────────────────────
 
 function InboundEventsPage() {
+  // Fire-and-forget product telemetry — no-op unless enabled.
+  useFeatureTracking('inbound_events')
   const [source, setSource] = useState('all')
   const [severity, setSeverity] = useState('all')
   const [setupOpen, setSetupOpen] = useState(false)
