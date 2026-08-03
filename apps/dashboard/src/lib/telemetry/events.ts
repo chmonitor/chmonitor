@@ -14,6 +14,7 @@
 export const TELEMETRY_EVENTS = [
   'app_loaded',
   'cluster_connected',
+  'feature_viewed',
   'health_viewed',
   'queries_viewed',
   'ai_query_sent',
