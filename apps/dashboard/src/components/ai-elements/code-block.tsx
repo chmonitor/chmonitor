@@ -21,6 +21,7 @@ import {
 import { HLJS_TOKEN_CLASSES } from '@/components/ai-elements/hljs-token-classes'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 // Register only needed languages (keeps bundle small)
 hljs.registerLanguage('sql', sql)
@@ -152,19 +153,14 @@ export const CodeBlockCopyButton = ({
   const [isCopied, setIsCopied] = useState(false)
   const { code } = useContext(CodeBlockContext)
 
-  const copyToClipboard = async () => {
-    if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
-      onError?.(new Error('Clipboard API not available'))
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(code)
+  const handleCopyClick = async () => {
+    const success = await copyToClipboard(code)
+    if (success) {
       setIsCopied(true)
       onCopy?.()
       setTimeout(() => setIsCopied(false), timeout)
-    } catch (error) {
-      onError?.(error as Error)
+    } else {
+      onError?.(new Error('Failed to copy code'))
     }
   }
 
@@ -173,7 +169,7 @@ export const CodeBlockCopyButton = ({
   return (
     <Button
       className={cn('shrink-0', className)}
-      onClick={copyToClipboard}
+      onClick={handleCopyClick}
       size="icon"
       variant="ghost"
       aria-label={isCopied ? 'Copied' : 'Copy code'}

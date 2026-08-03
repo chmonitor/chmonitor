@@ -52,3 +52,4 @@ export {
   type TelemetrySink,
   track,
 } from './track'
+export { useFeatureTracking } from './use-feature-tracking'

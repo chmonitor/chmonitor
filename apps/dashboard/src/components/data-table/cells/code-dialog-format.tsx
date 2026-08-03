@@ -40,6 +40,7 @@ import { formatSql } from '@/lib/sql-format'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 export interface CodeDialogOptions {
   dialog_title?: string
@@ -400,19 +401,14 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
   }, [])
 
   const handleCopy = useCallback(async () => {
-    try {
-      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-        return
-      }
-      await navigator.clipboard.writeText(content)
+    const success = await copyToClipboard(content)
+    if (success) {
       setCopied(true)
       clearCopyTimer()
       copyTimerRef.current = setTimeout(() => {
         setCopied(false)
         copyTimerRef.current = null
       }, 2000)
-    } catch {
-      /* noop */
     }
   }, [clearCopyTimer, content])
 
