@@ -8,6 +8,7 @@ import { useFleetView } from '@/components/fleet/use-fleet-view'
 import { PageHeader } from '@/components/layout'
 import { Skeleton } from '@/components/ui/skeleton'
 import { pageOgHead } from '@/lib/og'
+import { useFeatureTracking } from '@/lib/telemetry'
 
 function FleetSkeleton() {
   return (
@@ -21,6 +22,8 @@ function FleetSkeleton() {
 
 function FleetPage() {
   const [view, setView] = useFleetView()
+  // Fire-and-forget product telemetry — no-op unless enabled.
+  useFeatureTracking('fleet')
 
   return (
     <div className="flex flex-col gap-4">

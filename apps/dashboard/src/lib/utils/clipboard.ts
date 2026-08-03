@@ -25,7 +25,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(text)
       return true
-    } catch (error) {
+    } catch (_error) {
       // Fall through to legacy method if Clipboard API fails
     }
   }
@@ -49,7 +49,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     }
 
     throw new Error('execCommand failed')
-  } catch (error) {
+  } catch (_error) {
     return false
   }
 }
