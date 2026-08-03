@@ -11,6 +11,7 @@ import { formatSql } from '@/lib/sql-format'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { dedent } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface DdlRow {
   create_table_query: string
@@ -76,9 +77,11 @@ export function DdlTab() {
 
   const handleCopy = async () => {
     if (displaySql) {
-      await navigator.clipboard.writeText(displaySql)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      const success = await copyToClipboard(displaySql)
+      if (success) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
     }
   }
 

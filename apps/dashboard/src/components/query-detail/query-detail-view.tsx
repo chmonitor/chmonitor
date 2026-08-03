@@ -37,6 +37,7 @@ import { describeError } from '@/lib/swr/fetch-error'
 import { useHostId } from '@/lib/swr/use-host'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 // ──────────────────────────── types ────────────────────────────
 
@@ -325,16 +326,13 @@ function SqlBlock({ query }: { query: string }) {
   const lineCount = content ? content.split('\n').length : 0
 
   const handleCopy = async () => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText)
-      return
-    try {
-      await navigator.clipboard.writeText(content)
+    const success = await copyToClipboard(content)
+    if (success) {
       setCopied(true)
       if (copyTimer.current) clearTimeout(copyTimer.current)
       copyTimer.current = setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      // Silent failure here left the user clicking Copy with no feedback (#2729).
-      toast.error('Failed to copy query', { description: describeError(err) })
+    } else {
+      toast.error('Failed to copy query')
     }
   }
 

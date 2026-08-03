@@ -3,6 +3,7 @@ import { Check, Copy } from 'lucide-react'
 import { type MouseEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface CopyButtonProps {
   text: string
@@ -17,9 +18,11 @@ export function CopyButton({ text, className, label }: CopyButtonProps) {
     // Never let a copy click bubble to a clickable ancestor (breadcrumb link,
     // tree row, table cell): copying should not also navigate or select.
     e.stopPropagation()
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const success = await copyToClipboard(text)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   if (label) {

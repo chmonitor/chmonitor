@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/tooltip'
 import { formatSql } from '@/lib/sql-format'
 import { cn, dedent, formatDuration } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface ShowSQLButtonProps extends Omit<DialogContentProps, 'content'> {
   sql?: string
@@ -82,9 +83,11 @@ function CopyableValue({
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(String(value))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    const success = await copyToClipboard(String(value))
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }
   }
 
   return (
@@ -139,9 +142,11 @@ export function RequestInfoContent({
   }
 
   const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const success = await copyToClipboard(text)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   // Build full API URL for debugging
