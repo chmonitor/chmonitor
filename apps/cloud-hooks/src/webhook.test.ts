@@ -65,6 +65,20 @@ describe('signature verification', () => {
     expect(notify.mock.calls[0]?.[0]).toBe('signature_failure')
   })
 
+  test('Polar SDK shape (name=Error, signature message) → 403', async () => {
+    // Mirrors production: Polar's WebhookVerificationError does not set .name.
+    const validateEvent: ValidateEventFn = () => {
+      throw new Error('No matching signature found')
+    }
+    const res = await handlePolarWebhook(req(), env, {
+      notify: (k, t) => notify(k, t),
+      validateEvent,
+    })
+    expect(res.status).toBe(403)
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify.mock.calls[0]?.[0]).toBe('signature_failure')
+  })
+
   test('a non-signature parse error → 400 and no notification', async () => {
     const validateEvent: ValidateEventFn = () => {
       throw new Error('unexpected token')
