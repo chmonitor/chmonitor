@@ -1,6 +1,6 @@
 [package]
 name = "ch-monitor-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["duyet <bot@duyet.net>"]
 description = "Standalone terminal/TUI CLI for chmonitor, plus a zero-signup `chm diagnose` health scan that connects straight to ClickHouse."
