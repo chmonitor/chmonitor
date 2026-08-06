@@ -2,8 +2,101 @@
 
 All notable changes to this project are documented in this file. Versioned
 entries are generated automatically by [release-please](.github/workflows/release-please.yml)
-from conventional commits; the `Unreleased` section below is a human-curated
-preview of the next release.
+from conventional commits; the `## [Unreleased]` section (when present) is a
+human-curated preview of the next release.
+
+## [0.3.0](https://github.com/chmonitor/chmonitor/compare/v0.2.16...v0.3.0) (2026-08-06)
+
+**The TanStack Start release.** v0.3 rebuilds the dashboard on TanStack Start and
+rolls up the entire v0.2 cycle (~2,200 commits since [v0.2.0](https://github.com/chmonitor/chmonitor/releases/tag/v0.2.0)):
+chmonitor Cloud, Postgres monitoring (beta), PeerDB views, pluggable auth, a full
+alerting engine, AI Insights, MCP, the advisor suite, traffic/ingestion views,
+and dozens of new monitoring pages.
+
+Full narrative: [v0.3 — What's New](docs/content/reference/releases/v0-3.mdx) ·
+Upgrade guide: [Migrate to v0.3](docs/content/reference/migrating/v0-3.mdx).
+Per-patch detail for the 0.2.x line remains in the sections below.
+
+### 💥 Breaking Changes
+
+- **Runtime app switched from Next.js to TanStack Start** — `apps/dashboard` is
+  now the TanStack Start app (the legacy Next.js app was removed). Same features,
+  routes, and ClickHouse setup ([#1392](https://github.com/chmonitor/chmonitor/issues/1392)).
+- **Browser env vars renamed `NEXT_PUBLIC_*` → `VITE_*`** (build-time inlined).
+  Old `NEXT_PUBLIC_*` names still work as a compatibility fallback, so the rename
+  is recommended but not required for most self-hosters.
+- **Docker entrypoint changed** from `node server.js` (OpenNext standalone) to
+  `node server/index.mjs` (Nitro node-server). Port `3000` and `/api/healthz` are
+  unchanged.
+
+### 🔧 Environment Changes
+
+| Old (v0.2) | New (v0.3) | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_AUTH_PROVIDER` | `VITE_AUTH_PROVIDER` | client; server uses `CHM_AUTH_PROVIDER` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `VITE_CLERK_PUBLISHABLE_KEY` | client, build-time |
+| `NEXT_PUBLIC_FEATURE_CONVERSATION_DB` | `VITE_FEATURE_CONVERSATION_DB` | client, build-time |
+| `NEXT_PUBLIC_AUTOCOMPLETE_LIMIT` | `VITE_AUTOCOMPLETE_LIMIT` | client, build-time |
+| `NEXT_PUBLIC_RUNNING_QUERIES_REFRESH_MS` | `VITE_RUNNING_QUERIES_REFRESH_MS` | client, build-time |
+| `CLICKHOUSE_*`, `CHM_*`, `CLERK_SECRET_KEY`, `*_API_KEY` | _unchanged_ | server vars |
+
+New optional vars include: `CHM_AUTH_PROVIDER` (`none|clerk|proxy|trusted`),
+`CHM_DEPLOYMENT_MODE` (`oss|cloud`), `CHM_API_KEY_SECRET`,
+`CHM_CF_ACCESS_TEAM_DOMAIN` + `CHM_CF_ACCESS_AUD`, `CHM_PROXY_AUTH_SECRET`,
+`CHM_FEATURE_POSTGRES_SOURCE`, health-alert and agent-conversation store settings.
+
+### ✨ Highlights since v0.2
+
+#### Framework & platform
+- TanStack Start + Vite + React 19; TanStack Query replaces SWR; Cloudflare Workers and Docker/Node from one source (no OpenNext).
+- Static prerender for 75+ pages; immutable `/assets/*` cache; hidden-tab polling pause; query cache in localStorage.
+- shadcn/ui migration from Radix UI to Base UI.
+
+#### chmonitor Cloud (SaaS)
+- Hosted product at [dash.chmonitor.dev](https://dash.chmonitor.dev): public demo, Clerk auth, per-user connections, Polar billing (Free / Pro / Max / Enterprise).
+- One-switch `CHM_DEPLOYMENT_MODE=oss|cloud`; OSS stays full-featured by default.
+
+#### Monitoring surfaces
+- **Postgres** as a monitored source (beta) — `pg_stat_statements` / `pg_stat_activity`, engine-aware menu, `?pg=` routing.
+- **PeerDB** CDC views: mirrors, topology, snapshot progress, fleet lag, slot health.
+- **Traffic / ingestion** page: compressed vs uncompressed metrics, PeerDB section, insert performance, merge volume.
+- **Cluster topology** SVG on `/clusters`; severity-tiered **Health** page; year heatmap on Overview.
+- New system-table views: Kafka/RabbitMQ consumers, async inserts, part log, query metric log, errors, blob storage, moves, dropped tables, warnings, replicated fetches, and more.
+- Table **and** card layouts for all data pages; command palette; pinable menu favorites.
+
+#### AI, advisor & MCP
+- AI agent on Vercel AI SDK (30+ tools), conversation storage, findings, workflows, page-context chips, model picker.
+- AI Insights engine with dismissible findings; statistical anomaly baselines.
+- Query Insights (slow-query patterns) with percentiles and drill-down.
+- Advisors (recommend-only): query tuning, MV/projection designer, capacity/TTL, cost estimator, auto fine-tune.
+- MCP at `/api/mcp` with OAuth or `chm_` API keys; rate limits; registry install.
+
+#### Alerting & ops
+- Rule engine (built-in + custom/compound), ACK/resolution, maintenance windows, quiet hours, hysteresis.
+- Channels: webhook, Telegram, Slack, email, Opsgenie, PagerDuty, Teams, Google Chat, ntfy, Pushover, Twilio SMS.
+- Scheduled health reports + PDF export; cloud-hooks worker for ops notifications.
+
+#### Auth, security & deploy
+- Pluggable auth: `none` | `clerk` | `proxy` | `trusted`; always-on API key layer.
+- Fleet-wide rate limiting; hardened SQL guards; sanitized errors; Sentry (opt-in); Prometheus/OTEL hooks.
+- Helm chart, one-click Railway/Render/Fly, `chm diagnose` CLI + install script.
+
+### ✨ Features (since v0.2.16)
+
+* **blog:** add 8 SEO posts from GSC keyword expansion ([#2849](https://github.com/chmonitor/chmonitor/issues/2849)) ([9c3edfb](https://github.com/chmonitor/chmonitor/commit/9c3edfb92233549ed5b855baa6436407d2695de4))
+* **landing:** add explicit auto/system theme mode with 3-state toggle ([#2843](https://github.com/chmonitor/chmonitor/issues/2843)) ([1999ecb](https://github.com/chmonitor/chmonitor/commit/1999ecb298fb83a36be3b19e4131212008d60f59))
+* **mcp:** upgrade to @modelcontextprotocol/server v2 (2026-07-28 protocol) ([#2842](https://github.com/chmonitor/chmonitor/issues/2842)) ([f231318](https://github.com/chmonitor/chmonitor/commit/f2313183be21945f15520362f1f8ebc1364dcf26))
+
+### 🐛 Bug Fixes (since v0.2.16)
+
+* add clipboard fallback for unsupported environments ([e49630d](https://github.com/chmonitor/chmonitor/commit/e49630d9bc7d8ffd1d211359a47030939f5e488f))
+
+### 🤖 Migrate with an AI assistant
+
+Paste your config into any AI assistant with the prompt in
+[`.github/release-migration-prompt.md`](.github/release-migration-prompt.md)
+(also in the [README](README.md#upgrading-to-v03) and every breaking-change
+GitHub Release).
 
 ## [0.2.16](https://github.com/chmonitor/chmonitor/compare/v0.2.15...v0.2.16) (2026-07-30)
 
@@ -810,51 +903,6 @@ preview of the next release.
 * **dashboard-tsr:** optimize menu counts endpoint to use single batched query ([#1591](https://github.com/chmonitor/chmonitor/issues/1591)) ([dff6ed4](https://github.com/chmonitor/chmonitor/commit/dff6ed4b531424f969bff5181ad7aa68f2a7715a))
 * **dashboard-tsr:** unmount collapsed chart rows to stop background polling ([#1580](https://github.com/chmonitor/chmonitor/issues/1580)) ([1400632](https://github.com/chmonitor/chmonitor/commit/14006320758aef09b3485b5d99d4d9dabbda2e3b))
 
-## [Unreleased] — v0.3 preview
-
-> **v0.3 rebuilds the dashboard on TanStack Start.** Full upgrade steps:
-> [Migrate to v0.3](docs/content/migrating/v0-3.mdx) ·
-> What's new: [Release notes](docs/content/releases/v0-3.mdx).
-
-### 💥 Breaking Changes
-
-- **Runtime app switched from Next.js to TanStack Start** (`apps/dashboard-tsr`
-  replaces `apps/dashboard` as the primary app). Same features, routes, and
-  ClickHouse setup.
-- **Browser env vars renamed `NEXT_PUBLIC_*` → `VITE_*`** (build-time inlined).
-  The old `NEXT_PUBLIC_*` names still work as a compatibility fallback, so the
-  rename is recommended but not required.
-- **Docker entrypoint changed** from `node server.js` (OpenNext standalone) to
-  `node server/index.mjs` (Nitro node-server). Port `3000` and the
-  `/api/healthz` healthcheck are unchanged.
-
-### 🔧 Environment Changes
-
-| Old (v0.2) | New (v0.3) | Notes |
-|---|---|---|
-| `NEXT_PUBLIC_AUTH_PROVIDER` | `VITE_AUTH_PROVIDER` | client; server uses `CHM_AUTH_PROVIDER` |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `VITE_CLERK_PUBLISHABLE_KEY` | client, build-time |
-| `NEXT_PUBLIC_FEATURE_CONVERSATION_DB` | `VITE_FEATURE_CONVERSATION_DB` | client, build-time |
-| `NEXT_PUBLIC_AUTOCOMPLETE_LIMIT` | `VITE_AUTOCOMPLETE_LIMIT` | client, build-time |
-| `NEXT_PUBLIC_RUNNING_QUERIES_REFRESH_MS` | `VITE_RUNNING_QUERIES_REFRESH_MS` | client, build-time |
-| `CLICKHOUSE_*`, `CHM_*`, `CLERK_SECRET_KEY`, `*_API_KEY` | _unchanged_ | server vars |
-
-New optional vars: `CHM_AUTH_PROVIDER` (`none\|clerk\|proxy`), `CHM_API_KEY_SECRET`,
-`CHM_CF_ACCESS_TEAM_DOMAIN` + `CHM_CF_ACCESS_AUD`, `CHM_PROXY_AUTH_SECRET`,
-`HEALTH_ALERT_ENABLED` + `HEALTH_ALERT_WEBHOOK_URL`,
-`AGENT_CONVERSATION_PERSISTENCE` + `AGENT_CONVERSATION_STORE`.
-
-### ✨ Features
-
-- **Promote TanStack Start dashboard to primary, remove legacy Next.js app** ([#1392](https://github.com/chmonitor/chmonitor/issues/1392)).
-- **postgres:** Postgres as a monitored source (beta) — query insights, running queries, and AI agent tools ([#2570](https://github.com/chmonitor/chmonitor/pull/2570)).
-
-### 🤖 Migrate with an AI assistant
-
-Paste your config into any AI assistant with the prompt in
-[`.github/release-migration-prompt.md`](.github/release-migration-prompt.md)
-(also published in every breaking-change GitHub Release and in the
-[README](README.md#upgrading-to-v03)).
 
 ## [0.2.7](https://github.com/chmonitor/chmonitor/compare/v0.2.6...v0.2.7) (2026-06-13)
 
