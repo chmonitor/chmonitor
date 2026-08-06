@@ -29,11 +29,14 @@
   <img alt="chmonitor overview: cluster status, storage, uptime and a year of query activity as a heatmap" src=".github/screenshots/overview-dark-with-bg.jpeg">
 </picture>
 
-> **Upgrading from v0.2?** v0.3 rebuilds the app on TanStack Start. ClickHouse
+> **Current release: [v0.3.0](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.0).**
+> Upgrading from v0.2? v0.3 rebuilds the app on TanStack Start. ClickHouse
 > connection vars are unchanged; browser vars move from `NEXT_PUBLIC_*` to
 > `VITE_*` (old names still work as a fallback). See
-> **[Upgrading to v0.3](#upgrading-to-v03)** below or the full
-> [Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3) guide.
+> **[Upgrading to v0.3](#upgrading-to-v03)** below, the
+> [v0.3 release notes](https://docs.chmonitor.dev/reference/releases/v0-3), or
+> the full [Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3)
+> guide.
 
 ## Features
 
@@ -69,10 +72,11 @@ docker run -d --name chmonitor -p 3000:3000 \
   -e CLICKHOUSE_HOST=https://clickhouse.example.com:8443 \
   -e CLICKHOUSE_USER=default \
   -e CLICKHOUSE_PASSWORD=change-me \
-  ghcr.io/chmonitor/chmonitor:latest
+  ghcr.io/chmonitor/chmonitor:v0.3.0
 ```
 
-Open **<http://localhost:3000>**. Pin a release tag instead of `latest` for production.
+Open **<http://localhost:3000>**. Use `:latest` for the rolling tip, or pin a
+release tag (`v0.3.0`) for production.
 
 > Just want to look first? The live demo is at **[dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github)** — no setup required.
 > Other targets (Cloudflare Workers, one-click Railway/Render/Fly, Kubernetes) are under [Deployment](#deployment).
@@ -188,10 +192,13 @@ docker run -d \
   -e CLICKHOUSE_HOST=https://your-clickhouse-host.com \
   -e CLICKHOUSE_USER=default \
   -e CLICKHOUSE_PASSWORD=yourpassword \
-  ghcr.io/chmonitor/chmonitor:latest
+  ghcr.io/chmonitor/chmonitor:v0.3.0
 ```
 
 ### Releases
+
+**Latest stable: [v0.3.0](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.0)**
+([changelog](CHANGELOG.md#030) · [what's new](https://docs.chmonitor.dev/reference/releases/v0-3)).
 
 Tagged releases are built by GitHub Actions from tags matching `v*`. The release page includes:
 
