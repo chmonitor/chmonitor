@@ -82,12 +82,20 @@ const ogImage = new URL(image, Astro.site).toString()
     :root{--serif:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
   </style>
   <script is:inline>
-    // Resolve theme before paint (no flash): the landing showcases the dark
-    // near-black canvas by default. A saved choice still wins so the toggle works.
+    // Resolve theme before paint (no flash): landing defaults to auto, which
+    // follows the OS color scheme. An explicit choice still wins so the toggle
+    // keeps working.
     (function () {
       try {
-        var saved = localStorage.getItem('chm-theme')
-        document.documentElement.setAttribute('data-theme', saved || 'dark')
+        var legacy = localStorage.getItem('chm-theme')
+        var saved = localStorage.getItem('chm-theme-state') || (legacy === 'dark' || legacy === 'light' ? legacy : null) || 'auto'
+        document.documentElement.setAttribute('data-theme-state', saved)
+        if (saved === 'auto') {
+          var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          document.documentElement.setAttribute('data-theme', systemDark ? 'dark' : 'light')
+        } else {
+          document.documentElement.setAttribute('data-theme', saved)
+        }
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'dark')
       }
@@ -106,22 +114,40 @@ const ogImage = new URL(image, Astro.site).toString()
         if (wanted && img.getAttribute('src') !== wanted) img.setAttribute('src', wanted)
       }
     }
+    // Apply theme from explicit state, or auto-resolve from system preference.
+    function chmApplyTheme(state) {
+      var html = document.documentElement
+      if (state === 'auto') {
+        var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        html.setAttribute('data-theme', isDark ? 'dark' : 'light')
+      } else {
+        html.setAttribute('data-theme', state)
+      }
+    }
     // Theme toggle: event delegation on document so EVERY .theme-toggle works
     // regardless of where it's rendered (nav drawer, footer, …) — bound in
     // <head>, so parse order can never miss a button.
     document.addEventListener('click', function (e) {
       var toggle = e.target.closest('.theme-toggle')
       if (!toggle) return
-      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
-      document.documentElement.setAttribute('data-theme', next)
-      try { localStorage.setItem('chm-theme', next) } catch (err) {}
+      var html = document.documentElement
+      var state = html.getAttribute('data-theme-state') || 'auto'
+      var next
+      if (state === 'auto') next = 'dark'
+      else if (state === 'dark') next = 'light'
+      else next = 'auto'
+      html.setAttribute('data-theme-state', next)
+      try { localStorage.setItem('chm-theme-state', next) } catch (err) {}
+      chmApplyTheme(next)
+      toggle.setAttribute('aria-label', 'Theme: ' + next)
       if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
     })
-    // Follow OS theme changes only while the user hasn't picked one.
+    // Follow OS theme changes while the user hasn't chosen an explicit mode.
     try {
+      var chmThemeHtml = document.documentElement
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-        if (!localStorage.getItem('chm-theme')) {
-          document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
+        if ((chmThemeHtml.getAttribute('data-theme-state') || 'auto') === 'auto') {
+          chmThemeHtml.setAttribute('data-theme', e.matches ? 'dark' : 'light')
         }
       })
     } catch (e) {}
@@ -384,8 +410,12 @@ const ogImage = new URL(image, Astro.site).toString()
     .theme-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
     .theme-toggle svg{width:16px;height:16px}
     .theme-toggle .i-sun{display:none}
+    .theme-toggle .i-system{display:none}
     :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
     :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
+    :root[data-theme-state="auto"] .theme-toggle .i-system{display:block}
+    :root[data-theme-state="auto"] .theme-toggle .i-moon,
+    :root[data-theme-state="auto"] .theme-toggle .i-sun{display:none}
 
     /* ── theme-aware screenshots ──
        A single <img data-src-light data-src-dark> per slot (no hidden sibling
