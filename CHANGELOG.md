@@ -5,6 +5,19 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `Unreleased` section below is a human-curated
 preview of the next release.
 
+## [0.2.17](https://github.com/chmonitor/chmonitor/compare/v0.2.16...v0.2.17) (2026-08-06)
+
+
+### ✨ Features
+
+* **blog:** add 8 SEO posts from GSC keyword expansion ([#2849](https://github.com/chmonitor/chmonitor/issues/2849)) ([9c3edfb](https://github.com/chmonitor/chmonitor/commit/9c3edfb92233549ed5b855baa6436407d2695de4))
+* **landing:** add explicit auto/system theme mode with 3-state toggle ([#2843](https://github.com/chmonitor/chmonitor/issues/2843)) ([1999ecb](https://github.com/chmonitor/chmonitor/commit/1999ecb298fb83a36be3b19e4131212008d60f59))
+
+
+### 🐛 Bug Fixes
+
+* add clipboard fallback for unsupported environments ([e49630d](https://github.com/chmonitor/chmonitor/commit/e49630d9bc7d8ffd1d211359a47030939f5e488f))
+
 ## [0.2.16](https://github.com/chmonitor/chmonitor/compare/v0.2.15...v0.2.16) (2026-07-30)
 
 

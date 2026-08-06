@@ -1,5 +1,5 @@
 {
-  ".": "0.2.16",
+  ".": "0.2.17",
   "rust/ch-monitor-cli": "0.1.0",
   "deploy/helm/chmonitor": "0.2.15"
 }
