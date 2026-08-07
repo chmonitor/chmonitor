@@ -126,14 +126,15 @@ generated.name = config.name
 generated.routes = config.routes
 generated.vars = vars
 
-// Preview must not attach production cron schedules. Free-plan accounts cap
-// scheduled triggers; registering the same four crons on both chmonitor-dash
-// and preview-chmonitor-dash makes the schedules API fail after a successful
-// script upload (required `dashboard` check exits 1). Preview is PR-only —
-// cron routes remain reachable with CRON_SECRET; only CF scheduler binding is
-// cleared here.
+// Preview must not touch CF cron schedules. Even `crons: []` still calls
+// PUT .../schedules, which fails on this account for preview-chmonitor-dash
+// (required `dashboard` check exits 1 after a successful script upload).
+// Dropping the triggers key entirely makes wrangler skip the schedules API.
+// Production keeps [triggers] from the vite-generated config.
+// Cron HTTP routes still work on preview with CRON_SECRET; only CF attachment
+// is skipped.
 if (isPreview) {
-  generated.triggers = { crons: [] }
+  delete generated.triggers
 }
 
 // --- Patch D1 databases ---
@@ -188,5 +189,5 @@ console.log(
   `   vars: ${Object.keys(vars).length} keys (from .env.production${isPreview ? ' + .env.preview' : ''})`
 )
 if (isPreview) {
-  console.log('   triggers: crons=[] (preview skips CF schedules)')
+  console.log('   triggers: omitted (preview skips schedules API)')
 }
