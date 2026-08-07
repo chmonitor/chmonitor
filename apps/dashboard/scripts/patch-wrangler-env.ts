@@ -126,6 +126,16 @@ generated.name = config.name
 generated.routes = config.routes
 generated.vars = vars
 
+// Preview must not attach production cron schedules. Free-plan accounts cap
+// scheduled triggers; registering the same four crons on both chmonitor-dash
+// and preview-chmonitor-dash makes the schedules API fail after a successful
+// script upload (required `dashboard` check exits 1). Preview is PR-only —
+// cron routes remain reachable with CRON_SECRET; only CF scheduler binding is
+// cleared here.
+if (isPreview) {
+  generated.triggers = { crons: [] }
+}
+
 // --- Patch D1 databases ---
 const conversationsDbId = (
   process.env.CHM_CLOUD_D1_DATABASE_ID ||
@@ -177,3 +187,6 @@ console.log(`   routes: ${config.routes.map((r) => r.pattern).join(', ')}`)
 console.log(
   `   vars: ${Object.keys(vars).length} keys (from .env.production${isPreview ? ' + .env.preview' : ''})`
 )
+if (isPreview) {
+  console.log('   triggers: crons=[] (preview skips CF schedules)')
+}

@@ -240,6 +240,11 @@ crons = ["0 3 * * *", "0 8 * * 1", "0 8 1 * *", "*/10 * * * *"]
 [env.preview]
 name = "preview-chmonitor-dash"
 
+# No CF cron schedules on preview (see scripts/patch-wrangler-env.ts). Free-plan
+# schedule quotas + dual prod/preview workers caused schedules API deploy
+# failures after a successful script upload. Cron routes still work with
+# CRON_SECRET; production keeps [triggers] above.
+
 # Custom domain for the preview worker.
 [[env.preview.routes]]
 pattern = "preview.dash.chmonitor.dev"
