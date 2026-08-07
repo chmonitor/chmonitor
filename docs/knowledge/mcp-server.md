@@ -3,11 +3,12 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-07-17
+updated: 2026-08-07
 tags:
   - mcp
   - api
   - ai-tools
+  - mcp-2026-07-28
 related:
   - query-config-format
   - deployment
@@ -16,6 +17,19 @@ related:
 # MCP Server
 
 The chmonitor exposes a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server at `/api/mcp`. Allows AI assistants to interact with ClickHouse clusters programmatically.
+
+## Protocol / SDK (2026-07-28)
+
+| Item | Value |
+|------|--------|
+| SDK | `@modelcontextprotocol/server` **v2** (split packages; not the v1 `@modelcontextprotocol/sdk`) |
+| HTTP entry | `createMcpHandler(() => createMcpServer(), { legacy: 'stateless' })` in `packages/mcp-server/src/http.ts` |
+| Modern era | **2026-07-28** — per-request factory, `server/discover`, header routing, cache hints |
+| Legacy era | **2025-11-25** (and earlier) via `legacy: 'stateless'` so old clients keep working |
+| Registration | `registerTool` / `registerResource` / `registerPrompt` (v2 API; not `.tool()`) |
+| Discovery card | `GET /.well-known/mcp/server-card.json` lists dual-era `protocolVersions` |
+
+Do **not** reintroduce sessionful Streamable HTTP (`Mcp-Session-Id`) unless you deliberately leave the free-tier / multi-instance model.
 
 ## Available Tools
 

@@ -759,6 +759,14 @@ export default defineConfig({
     },
   },
   ssr: {
+    // Prefer the workerd export conditions of @modelcontextprotocol/server
+    // (`./_shims` → shimsWorkerd) when bundling for Cloudflare Workers so we
+    // do not pull Node-only shims into the free-plan worker graph.
+    resolve: {
+      conditions: isNode
+        ? ['node', 'import', 'module', 'default']
+        : ['workerd', 'worker', 'browser', 'import', 'module', 'default'],
+    },
     // Transpile + bundle the @chm source packages and their bundleable leaf
     // deps into the server build.
     noExternal: [
@@ -782,6 +790,7 @@ export default defineConfig({
       // "Cannot find module '@clickhouse/client-common'").
       '@clickhouse/client-common',
       '@modelcontextprotocol/server',
+      '@modelcontextprotocol/core',
       'lru-cache',
       'zod',
     ],

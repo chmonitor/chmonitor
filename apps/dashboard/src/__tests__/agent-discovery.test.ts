@@ -51,10 +51,20 @@ interface OpenIDConfiguration {
 interface MCPServerCard {
   serverInfo: {
     name: string
+    title?: string
     description: string
     version: string
   }
   endpoint: string
+  transport?: {
+    type: string
+    protocolVersions: string[]
+  }
+  capabilities?: {
+    tools?: { listChanged?: boolean }
+    resources?: { listChanged?: boolean; subscribe?: boolean }
+    prompts?: { listChanged?: boolean }
+  }
 }
 
 interface AgentSkillsDiscovery {
@@ -230,6 +240,13 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     const data = (await res.json()) as MCPServerCard
     expect(data.serverInfo.name).toBe('chmonitor-mcp-server')
     expect(data.endpoint).toBe('/api/mcp')
+    // Dual-era: modern 2026-07-28 + legacy 2025-era clients
+    expect(data.transport?.type).toBe('streamable-http')
+    expect(data.transport?.protocolVersions).toContain('2026-07-28')
+    expect(data.transport?.protocolVersions).toContain('2025-11-25')
+    expect(data.capabilities?.tools).toBeDefined()
+    expect(data.capabilities?.resources).toBeDefined()
+    expect(data.capabilities?.prompts).toBeDefined()
   })
 
   test('/.well-known/agent-skills/index.json returns skills index', async () => {

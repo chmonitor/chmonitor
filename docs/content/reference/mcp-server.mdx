@@ -19,10 +19,23 @@ chmonitor exposes a [Model Context Protocol (MCP)](https://modelcontextprotocol.
 |---|---|
 | URL | `https://your-deployment.example.com/api/mcp` |
 | Transport | Streamable HTTP (`POST` / `GET` / `DELETE`) |
-| Session | Stateless — no session id required |
+| Protocol | **2026-07-28** (stateless) with **2025-era** fallback for older clients |
+| Session | Stateless — no `Mcp-Session-Id` required |
 | Access | Read-only ClickHouse queries |
+| Discovery | `GET /.well-known/mcp/server-card.json` |
 
 The server identifies itself as `clickhouse-monitor`. Pass `hostId` (default `0`) to target a specific host from `CLICKHOUSE_HOST`.
+
+### Protocol versions (MCP 2026-07-28)
+
+chmonitor uses the official TypeScript SDK **v2** (`@modelcontextprotocol/server`) and serves the wire with `createMcpHandler`:
+
+| Era | How clients connect | Notes |
+|-----|---------------------|--------|
+| **2026-07-28** (modern) | Per-request `_meta` envelope + `server/discover` | Default for new clients. Header routing (`Mcp-Method` / `Mcp-Name`), cache hints on list results, no sticky sessions. |
+| **2025-11-25** and earlier | Classic `initialize` handshake | Served via `legacy: 'stateless'` so Claude Desktop / Cursor / older SDKs keep working. |
+
+You do not need to configure anything for dual-era support — one endpoint answers both. Modern clients can probe with `server/discover`; legacy clients keep using `initialize` + `tools/list`.
 
 ## Setup
 
@@ -76,6 +89,10 @@ Settings → **MCP** → **Add Server** → paste the endpoint URL. Add an `Auth
 ### Test the connection
 
 ```bash
+# Discovery card (no auth)
+curl -s https://your-deployment.example.com/.well-known/mcp/server-card.json | jq .
+
+# List tools (legacy-era initialize-style tools/list)
 curl -X POST https://your-deployment.example.com/api/mcp \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer chm_your_api_key" \
