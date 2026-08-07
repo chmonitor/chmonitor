@@ -3,7 +3,7 @@ id: worker-bundle-size
 title: Cloudflare Worker Bundle Size
 type: decision
 status: active
-updated: 2026-06-14
+updated: 2026-08-07
 tags:
   - cloudflare-workers
   - bundle-size
@@ -16,13 +16,13 @@ related:
 
 # Cloudflare Worker Bundle Size
 
-The dashboard worker (`chmonitor-dash`) deploys with `no_bundle: true`, so `wrangler deploy` uploads **every** file under `dist/server/assets/*.js` against the size limit. As of the v0.3 TanStack Start cutover (PR #1613, 2026-06-14) the deployed artifact is:
+The dashboard worker (`chmonitor-dash`) deploys with `no_bundle: true`, so `wrangler deploy` uploads **every** file under `dist/server/assets/*.js` against the size limit. Measured after the 2026-08-07 SSR stub extension (react-markdown + puppeteer):
 
 ```
-Total Upload: 8.5 MiB / gzip: 1.82 MiB   (440 modules)
+Total Upload: ~13.4 MiB / gzip: ~2.94 MiB   (~660 modules)
 ```
 
-This is **under the 3 MiB free-plan limit** (and far under the 10 MiB paid limit). There is no size pressure, and no cold-start regression has been measured.
+This is **under the 3 MiB free-plan limit** with ~130 KiB headroom. **Do not re-add large client-only packages to the Worker graph without re-measuring.** Preview deploys fail hard with `code 10027` when gzip exceeds 3 MiB.
 
 ## What dominates the bundle
 
