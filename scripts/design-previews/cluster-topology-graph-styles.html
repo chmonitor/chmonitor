@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cluster Topology — Graph Styles</title>
+<style>
+  :root {
+    --bg: #0b0b0d;
+    --bg2: #111114;
+    --card: #16161a;
+    --card2: #1b1b20;
+    --border: #2a2a32;
+    --border2: #3a3a44;
+    --fg: #ececef;
+    --muted: #8b8b96;
+    --muted2: #6a6a75;
+    --clay: #cc785c;
+    --honey: #d9a05b;
+    --blue: #7aa2c0;
+    --peri: #9b8bc4;
+    --sage: #6ba292;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --slate: #94a3b8;
+    --ch-y: #faff00;
+    --ch-r: #ff1f00;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); }
+  button, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--bg) 90%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .topbar h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  .topbar h1 span { color: var(--muted); font-weight: 500; }
+  .nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pill {
+    height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card); color: var(--muted); font-size: 12px; cursor: pointer;
+  }
+  .pill:hover, .pill.on { color: var(--fg); border-color: color-mix(in oklab, var(--clay) 50%, var(--border)); }
+  .pill.on { background: color-mix(in oklab, var(--clay) 12%, var(--card)); }
+  .pill a { color: inherit; text-decoration: none; }
+
+  .wrap {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: calc(100vh - 55px);
+    min-height: 0;
+  }
+  @media (max-width: 980px) {
+    .wrap { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 55px); }
+    .side { height: auto; max-height: none; overflow: visible; position: relative; }
+  }
+
+  /* Sidebar: viewport-locked, no page-level double scroll.
+     Style list is compact (all 10 fit). Only Data block may soft-scroll if tiny. */
+  .side {
+    border-right: 1px solid var(--border); background: var(--bg2);
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 12px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    position: sticky; top: 55px;
+  }
+  .side h2 {
+    margin: 0 0 6px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .side section { flex: 0 0 auto; min-height: 0; }
+  .side section.data-sec {
+    flex: 0 0 auto;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .side section.styles-sec { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+  .side section.styles-sec h2 { flex: 0 0 auto; }
+  .side section.pick-sec { flex: 0 0 auto; margin-top: auto; }
+
+  /* Compact style list — single-line rows, no per-card descriptions */
+  #style-list {
+    display: flex; flex-direction: column; gap: 3px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden; /* all 10 rows designed to fit; no scrollbar */
+  }
+  .style-btn {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 8px;
+    padding: 6px 8px;
+    min-height: 32px;
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .style-btn:hover { background: var(--card); border-color: var(--border); }
+  .style-btn.on {
+    border-color: color-mix(in oklab, var(--clay) 55%, var(--border));
+    background: color-mix(in oklab, var(--clay) 12%, var(--card));
+  }
+  .style-btn .id {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    color: var(--muted2);
+  }
+  .style-btn.on .id { color: var(--clay); }
+  .style-btn .n {
+    font-size: 12.5px; font-weight: 550; color: var(--fg);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .style-btn .mark {
+    font-size: 9.5px; font-family: var(--mono); color: var(--emerald);
+    opacity: 0;
+  }
+  .style-btn.on .mark { opacity: 1; }
+  .style-btn .mark.hot { color: var(--clay); }
+  .tag {
+    font-family: var(--mono); font-size: 9.5px; padding: 2px 5px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--muted2);
+  }
+  .tag.good { color: var(--emerald); border-color: color-mix(in oklab, var(--emerald) 35%, var(--border)); }
+  .tag.hot { color: var(--clay); border-color: color-mix(in oklab, var(--clay) 40%, var(--border)); }
+
+  .field { margin-bottom: 8px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .field select {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 9px; font-size: 12.5px;
+  }
+  .checks {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;
+  }
+  .checks label {
+    display: flex; align-items: center; gap: 6px; font-size: 11.5px;
+    margin: 0; color: var(--fg); cursor: pointer; white-space: nowrap;
+  }
+  .pick {
+    border: 1px dashed var(--border2); border-radius: 10px; padding: 10px;
+    background: color-mix(in oklab, var(--clay) 7%, var(--card));
+  }
+  .pick strong { display: block; font-size: 12.5px; margin-bottom: 3px; }
+  .pick p {
+    margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .btn {
+    height: 28px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card2); font-size: 12px; cursor: pointer;
+  }
+  .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 600; }
+
+  .main { padding: 16px 18px 40px; overflow: auto; min-height: 0; }
+  .hero { margin-bottom: 12px; }
+  .hero h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.02em; }
+  .hero p { margin: 0; font-size: 13px; color: var(--muted); max-width: 70ch; line-height: 1.5; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted); background: var(--card);
+  }
+
+  .stage {
+    border: 1px solid var(--border2); border-radius: 14px; overflow: hidden;
+    background: #0a0a0c; box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  .stage-bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    background: #101014; font-size: 11px; color: var(--muted2);
+  }
+  .stage-bar .left { display: flex; gap: 8px; align-items: center; }
+  .dots { display: flex; gap: 5px; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; display: block; background: #333; }
+  .dots i:nth-child(1) { background: #ff5f57; }
+  .dots i:nth-child(2) { background: #febc2e; }
+  .dots i:nth-child(3) { background: #28c840; }
+  .canvas {
+    position: relative; min-height: 520px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(139,139,150,.12) 1.1px, transparent 0) 0 0 / 22px 22px,
+      #121216;
+  }
+  .canvas.nogrid {
+    background: #121216;
+  }
+  .canvas.blueprint {
+    background:
+      linear-gradient(rgba(122,162,192,.06) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgba(122,162,192,.06) 1px, transparent 1px) 0 0 / 40px 40px,
+      #0d1218;
+  }
+  .canvas svg { display: block; width: 100%; height: 520px; }
+
+  .gallery-title {
+    margin: 28px 0 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .gallery {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px;
+  }
+  .gcard {
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    background: var(--card); cursor: pointer; transition: border-color .15s;
+  }
+  .gcard:hover, .gcard.on { border-color: color-mix(in oklab, var(--clay) 50%, var(--border)); }
+  .gcard .gh {
+    display: flex; justify-content: space-between; gap: 8px; align-items: start;
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+  }
+  .gcard .gh b { font-size: 12.5px; }
+  .gcard .gh span { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; line-height: 1.35; }
+  .gcard .mini {
+    height: 200px; background: #121216;
+    background-image: radial-gradient(circle at 1px 1px, rgba(139,139,150,.1) 1px, transparent 0);
+    background-size: 16px 16px;
+  }
+  .gcard .mini svg { width: 100%; height: 100%; }
+  .gcard .pick-mark {
+    display: none; font-size: 10.5px; color: var(--clay); font-weight: 600; white-space: nowrap;
+  }
+  .gcard.on .pick-mark { display: block; }
+
+  .toast {
+    position: fixed; right: 16px; bottom: 16px; z-index: 40;
+    padding: 10px 14px; border-radius: 10px; background: var(--fg); color: var(--bg);
+    font-size: 12.5px; font-weight: 600; opacity: 0; transform: translateY(8px);
+    transition: .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  .note {
+    margin-top: 18px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg2);
+    font-size: 12px; color: var(--muted); line-height: 1.5;
+  }
+  .note code { font-family: var(--mono); font-size: 11px; color: var(--honey); }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Cluster Topology <span>· graph styles</span></h1>
+    <div class="nav">
+      <a class="pill" href="./cluster-topology-options.html">← Chrome / modes (A–D)</a>
+      <button class="pill on" type="button" id="view-focus">Focus</button>
+      <button class="pill" type="button" id="view-gallery">Gallery grid</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <aside class="side">
+      <section class="data-sec">
+        <h2>Data</h2>
+        <div class="field">
+          <label for="scenario">Fixture</label>
+          <select id="scenario">
+            <option value="healthy">Healthy 3 keepers + 3 CH</option>
+            <option value="replicated">1 shard × 3 replicas</option>
+            <option value="sharded">3 shards × 1 replica</option>
+            <option value="overlap">Two clusters share a node</option>
+            <option value="degraded">Degraded + lag</option>
+            <option value="large">Dense 9 nodes</option>
+            <option value="single">Single node</option>
+          </select>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="show-phys" /> physical</label>
+          <label><input type="checkbox" id="show-labels" checked /> labels</label>
+          <label><input type="checkbox" id="show-metrics" checked /> metrics</label>
+          <label><input type="checkbox" id="show-edges" checked /> edges</label>
+        </div>
+      </section>
+      <section class="styles-sec">
+        <h2>Graph style · 1–0 keys</h2>
+        <div id="style-list" role="listbox" aria-label="Graph styles"></div>
+      </section>
+      <section class="pick-sec">
+        <h2>Your pick</h2>
+        <div class="pick">
+          <strong id="pick-title">G1 · Current cards</strong>
+          <p id="pick-desc">Production look: CH rounded square + logo, Keeper hex, nested rect hulls.</p>
+          <div class="actions">
+            <button class="btn primary" type="button" id="btn-pick">Confirm</button>
+            <button class="btn" type="button" id="btn-copy">Copy JSON</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="hero">
+        <h2 id="hero-title">G1 · Current cards</h2>
+        <p id="hero-desc">Production baseline matching the live dashboard screenshot.</p>
+        <div class="badges">
+          <span class="badge" id="b-style">G1</span>
+          <span class="badge" id="b-layout">stacked</span>
+          <span class="badge" id="b-glyph">card+hex</span>
+          <span class="badge" id="b-hull">nested rects</span>
+        </div>
+      </div>
+
+      <div id="focus-stage">
+        <div class="stage">
+          <div class="stage-bar">
+            <div class="left"><div class="dots"><i></i><i></i><i></i></div><span id="stage-name">G1 · Current cards</span></div>
+            <span>click nodes · compare styles in the rail</span>
+          </div>
+          <div class="canvas" id="canvas"></div>
+        </div>
+      </div>
+
+      <div id="gallery-stage" style="display:none">
+        <div class="gallery-title">All graph styles · same fixture</div>
+        <div class="gallery" id="gallery"></div>
+      </div>
+
+      <div class="note">
+        Pick a <b style="color:var(--fg)">graph style (G1–G10)</b> here and a <b style="color:var(--fg)">chrome option (A–D)</b> on the
+        <a href="./cluster-topology-options.html">modes page</a>.
+        Confirm both, copy JSON, and tell the agent e.g. <code>implement graph G4 + chrome C</code>.
+        File: <code>scripts/design-previews/cluster-topology-graph-styles.html</code>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast">Saved</div>
+
+<script>
+const STYLES = [
+  {
+    id: 'G1', key: 'current',
+    name: 'Current cards',
+    desc: 'Production: CH square cards + logo, Keeper hex, nested rect hulls, curved edges.',
+    layout: 'stacked', glyph: 'card+hex', hull: 'nested rects',
+    tags: ['baseline', 'ships today'],
+  },
+  {
+    id: 'G2', key: 'minimal',
+    name: 'Minimal dots',
+    desc: 'Small status circles, labels outside, thin edges. Dense-friendly, less brand-forward.',
+    layout: 'stacked', glyph: 'dots', hull: 'soft rounded',
+    tags: ['dense', 'quiet'],
+  },
+  {
+    id: 'G3', key: 'swimlane',
+    name: 'Swimlanes',
+    desc: 'Horizontal bands: Keeper row · coordination · CH row. Reads like an architecture diagram.',
+    layout: 'lanes', glyph: 'card+hex', hull: 'lane bands',
+    tags: ['ops', 'clear tiers'],
+  },
+  {
+    id: 'G4', key: 'radial',
+    name: 'Radial raft',
+    desc: 'Leader at apex, followers ring, CH arc below. Emphasizes quorum topology.',
+    layout: 'radial', glyph: 'card+hex', hull: 'fan wedge',
+    tags: ['quorum-first', 'recommended'],
+    good: true,
+  },
+  {
+    id: 'G5', key: 'orbital',
+    name: 'Orbital hulls',
+    desc: 'Clusters as concentric circles (not rects). Overlaps read as Venn, not nested boxes.',
+    layout: 'stacked', glyph: 'card+hex', hull: 'circles',
+    tags: ['overlap lens', 'distinct'],
+  },
+  {
+    id: 'G6', key: 'shardcols',
+    name: 'Shard columns',
+    desc: 'Each shard is a vertical column; replicas stack. Best when s/r roles matter more than geography.',
+    layout: 'columns', glyph: 'compact cards', hull: 'column frames',
+    tags: ['sharding', 'recommended'],
+    good: true,
+  },
+  {
+    id: 'G7', key: 'dense',
+    name: 'Dense map',
+    desc: 'Smaller glyphs, dual meters, s/r chips on-card. Max info before Matrix mode.',
+    layout: 'grid', glyph: 'dense cards', hull: 'thin rects',
+    tags: ['metrics-heavy'],
+  },
+  {
+    id: 'G8', key: 'glass',
+    name: 'Glass soft',
+    desc: 'Frosted fills, thicker soft hulls, glow selection. Premium dark UI feel.',
+    layout: 'stacked', glyph: 'glass cards', hull: 'glow rects',
+    tags: ['polish'],
+  },
+  {
+    id: 'G9', key: 'blueprint',
+    name: 'Blueprint',
+    desc: 'Technical grid, mono labels, hairline edges, no fills. Debug / SRE aesthetic.',
+    layout: 'stacked', glyph: 'outline', hull: 'dashed frames',
+    tags: ['sre', 'print-friendly'],
+  },
+  {
+    id: 'G10', key: 'flow',
+    name: 'L→R flow',
+    desc: 'Left Keepers, right ClickHouse mesh, edges as directed flow. Pipeline mental model.',
+    layout: 'flow', glyph: 'card+hex', hull: 'side panels',
+    tags: ['pipeline'],
+  },
+];
+
+const STATUS = { healthy: '#10b981', warn: '#f59e0b', down: '#f43f5e', unreachable: '#94a3b8' };
+const COLORS = ['#cc785c', '#7aa2c0', '#d9a05b', '#9b8bc4', '#6ba292', '#c77b8b'];
+
+const state = {
+  style: 'G1',
+  scenario: 'healthy',
+  showPhys: false,
+  showLabels: true,
+  showMetrics: true,
+  showEdges: true,
+  selected: null,
+  view: 'focus',
+  confirmed: null,
+};
+
+function fixture(id) {
+  const K = (n) => Array.from({ length: n }, (_, i) => ({
+    id: `clickhouse-keeper-${i}`,
+    short: `keeper-${i}`,
+    role: i === 0 ? 'leader' : 'follower',
+    lat: [2.0, 12.0, 3.0][i] ?? 5,
+    ok: true,
+  }));
+  const N = (list) => list.map((x, i) => ({
+    id: x.id || `chi-…-0-${i}`,
+    host: x.host || `chi-clickhouse-cluster-0-${i}.clickhouse.svc…`,
+    s: x.s ?? 1, r: x.r ?? i + 1,
+    status: x.status || 'healthy',
+    local: !!x.local, cpu: x.cpu ?? (8 + i * 7), mem: x.mem ?? (35 + i * 5),
+    lag: x.lag ?? 0,
+    clusters: x.clusters || ['all-clusters', 'cluster'],
+  }));
+  const C = [
+    { id: 'all-clusters', name: 'all-clusters', color: COLORS[0], outline: false },
+    { id: 'cluster', name: 'cluster', color: COLORS[1], outline: false },
+    { id: 'all-replicated', name: 'all-replicated', color: COLORS[2], outline: true },
+    { id: 'all-sharded', name: 'all-sharded', color: COLORS[3], outline: true },
+  ];
+
+  if (id === 'replicated') return {
+    keepers: K(3),
+    nodes: N([
+      { id: 'chi-…-0-0', local: true, s: 1, r: 1, cpu: 12 },
+      { id: 'chi-…-0-1', s: 1, r: 2, cpu: 18 },
+      { id: 'chi-…-0-2', s: 1, r: 3, cpu: 9 },
+    ]),
+    clusters: [C[1]], repl: true,
+  };
+  if (id === 'sharded') return {
+    keepers: K(1),
+    nodes: N([
+      { id: 'chi-…-0-0', local: true, s: 1, r: 1 },
+      { id: 'chi-…-1-0', s: 2, r: 1, cpu: 22 },
+      { id: 'chi-…-2-0', s: 3, r: 1, cpu: 14 },
+    ]),
+    clusters: [C[1]],
+  };
+  if (id === 'overlap') return {
+    keepers: K(1),
+    nodes: N([
+      { id: 'node-a', s: 1, r: 1, local: true, clusters: ['analytics'] },
+      { id: 'node-b', s: 1, r: 1, clusters: ['analytics', 'events'], cpu: 33 },
+      { id: 'node-c', s: 1, r: 1, clusters: ['events'], cpu: 11 },
+    ]),
+    clusters: [
+      { id: 'analytics', name: 'analytics', color: COLORS[0], outline: false },
+      { id: 'events', name: 'events', color: COLORS[1], outline: false },
+    ],
+  };
+  if (id === 'degraded') return {
+    keepers: [
+      { id: 'clickhouse-keeper-0', short: 'keeper-0', role: 'leader', lat: 48, ok: true },
+      { id: 'clickhouse-keeper-1', short: 'keeper-1', role: 'unknown', lat: 0, ok: false },
+      { id: 'clickhouse-keeper-2', short: 'keeper-2', role: 'follower', lat: 22, ok: true },
+    ],
+    nodes: N([
+      { id: 'chi-…-0-0', local: true, status: 'healthy', cpu: 40 },
+      { id: 'chi-…-0-1', status: 'warn', cpu: 91, mem: 88, lag: 14 },
+      { id: 'chi-…-0-2', status: 'unreachable', cpu: null, mem: null },
+    ]),
+    clusters: C.filter((c) => !c.outline),
+  };
+  if (id === 'large') return {
+    keepers: K(3),
+    nodes: N(Array.from({ length: 9 }, (_, i) => ({
+      id: `chi-…-${Math.floor(i / 3)}-${i % 3}`,
+      s: Math.floor(i / 3) + 1, r: (i % 3) + 1,
+      local: i === 0, cpu: 5 + i * 6, lag: i === 4 ? 7 : 0,
+      status: i === 7 ? 'warn' : 'healthy',
+    }))),
+    clusters: C, repl: true,
+  };
+  if (id === 'single') return {
+    keepers: [],
+    nodes: N([{ id: 'localhost', host: 'localhost', local: true, s: 1, r: 1, cpu: 6 }]),
+    clusters: [{ id: 'default', name: 'default', color: COLORS[4], outline: false }],
+  };
+  // healthy
+  return {
+    keepers: K(3),
+    nodes: N([
+      { id: 'chi-…-0-0', local: true, s: 1, r: 1, cpu: 12, mem: 41 },
+      { id: 'chi-…-0-1', s: 1, r: 2, cpu: 19, mem: 38 },
+      { id: 'chi-…-0-2', s: 1, r: 3, cpu: 8, mem: 44 },
+    ]),
+    clusters: C, repl: true,
+  };
+}
+
+function trunc(s, n) {
+  if (!s || s.length <= n) return s || '';
+  return s.slice(0, Math.ceil((n - 1) / 2)) + '…' + s.slice(-Math.floor((n - 1) / 2));
+}
+
+function hex(r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 180) * (60 * i - 90);
+    pts.push(`${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`);
+  }
+  return `M ${pts.join(' L ')} Z`;
+}
+
+function curve(x1, y1, x2, y2, bendScale = 0.16) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const bend = Math.min(46, len * bendScale);
+  const cx = (x1 + x2) / 2 - (dy / len) * bend;
+  const cy = (y1 + y2) / 2 + (dx / len) * bend;
+  return `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
+
+/* ── layouts ── */
+function layoutPositions(styleKey, data, W, H) {
+  const keepers = data.keepers.map((k) => ({ ...k }));
+  const nodes = data.nodes.map((n) => ({ ...n }));
+
+  if (styleKey === 'radial') {
+    const cx = W / 2, cy = 150;
+    keepers.forEach((k, i) => {
+      if (k.role === 'leader') { k.x = cx; k.y = cy - 10; return; }
+      const followers = keepers.filter((x) => x.role !== 'leader');
+      const fi = followers.indexOf(k);
+      const ang = Math.PI * (0.2 + 0.6 * (fi / Math.max(1, followers.length - 1 || 1)));
+      const R = 100;
+      k.x = cx + Math.cos(ang) * R;
+      k.y = cy + Math.sin(ang) * 40 + 20;
+    });
+    const n = nodes.length || 1;
+    nodes.forEach((node, i) => {
+      const t = n === 1 ? 0.5 : i / (n - 1);
+      const ang = Math.PI * (0.15 + 0.7 * t);
+      const R = 210;
+      node.x = cx + Math.cos(ang) * R * 1.15;
+      node.y = cy + 80 + Math.sin(ang) * R * 0.55;
+    });
+    return { keepers, nodes, W, H };
+  }
+
+  if (styleKey === 'swimlane' || styleKey === 'lanes') {
+    const kY = 90, cY = H * 0.58;
+    keepers.forEach((k, i) => {
+      const gap = 150;
+      k.x = W / 2 - ((keepers.length - 1) * gap) / 2 + i * gap;
+      k.y = kY;
+    });
+    nodes.forEach((n, i) => {
+      const gap = Math.min(170, (W - 160) / Math.max(1, nodes.length));
+      n.x = W / 2 - ((nodes.length - 1) * gap) / 2 + i * gap;
+      n.y = cY;
+    });
+    return { keepers, nodes, W, H, lanes: true };
+  }
+
+  if (styleKey === 'shardcols' || styleKey === 'columns') {
+    const shards = [...new Set(nodes.map((n) => n.s))].sort((a, b) => a - b);
+    const colW = Math.min(180, (W - 80) / Math.max(1, shards.length));
+    const baseX = W / 2 - ((shards.length - 1) * colW) / 2;
+    keepers.forEach((k, i) => {
+      k.x = W / 2 - ((keepers.length - 1) * 120) / 2 + i * 120;
+      k.y = 70;
+    });
+    nodes.forEach((n) => {
+      const si = shards.indexOf(n.s);
+      const inShard = nodes.filter((x) => x.s === n.s).sort((a, b) => a.r - b.r);
+      const ri = inShard.findIndex((x) => x.id === n.id);
+      n.x = baseX + si * colW;
+      n.y = 200 + ri * 110;
+    });
+    return { keepers, nodes, W, H, shards, colW, baseX };
+  }
+
+  if (styleKey === 'flow') {
+    keepers.forEach((k, i) => {
+      k.x = 140;
+      k.y = H / 2 - ((keepers.length - 1) * 90) / 2 + i * 90;
+    });
+    const cols = Math.ceil(Math.sqrt(nodes.length));
+    nodes.forEach((n, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      n.x = W * 0.62 + col * 140;
+      n.y = H / 2 - ((Math.ceil(nodes.length / cols) - 1) * 120) / 2 + row * 120;
+    });
+    return { keepers, nodes, W, H, flow: true };
+  }
+
+  if (styleKey === 'dense' || styleKey === 'grid') {
+    keepers.forEach((k, i) => {
+      k.x = W / 2 - ((keepers.length - 1) * 100) / 2 + i * 100;
+      k.y = 60;
+    });
+    const cols = Math.min(nodes.length, 4);
+    nodes.forEach((n, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const gapX = 150, gapY = 115;
+      n.x = W / 2 - ((cols - 1) * gapX) / 2 + col * gapX;
+      n.y = 200 + row * gapY;
+    });
+    return { keepers, nodes, W, H };
+  }
+
+  // stacked default (G1, G2, G5, G8, G9)
+  keepers.forEach((k, i) => {
+    if (keepers.length === 1) { k.x = W / 2; k.y = 70; return; }
+    if (k.role === 'leader') { k.x = W / 2; k.y = 55; return; }
+    const followers = keepers.filter((x) => x.role !== 'leader');
+    const fi = followers.indexOf(k);
+    k.x = W / 2 - ((followers.length - 1) * 140) / 2 + fi * 140;
+    k.y = 115;
+  });
+  const cols = Math.min(nodes.length, 4);
+  nodes.forEach((n, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const gapX = styleKey === 'minimal' ? 150 : 175;
+    const gapY = 130;
+    n.x = W / 2 - ((cols - 1) * gapX) / 2 + col * gapX;
+    n.y = (keepers.length ? 280 : 140) + row * gapY;
+  });
+  return { keepers, nodes, W, H };
+}
+
+function chLogo(muted) {
+  return `<g opacity="${muted ? 0.35 : 1}" ${muted ? 'filter="url(#gray)"' : ''}>
+    <rect x="-10" y="4" width="4" height="4" fill="var(--ch-r, #ff1f00)"/>
+    <rect x="-10" y="-12" width="4" height="16" fill="#faff00"/>
+    <rect x="-4" y="-12" width="4" height="20" fill="#faff00"/>
+    <rect x="2" y="-12" width="4" height="20" fill="#faff00"/>
+    <rect x="8" y="-12" width="4" height="20" fill="#faff00"/>
+    <rect x="14" y="-2" width="4" height="4" fill="#faff00"/>
+  </g>`;
+}
+
+function renderGraph(styleId, data, opts = {}) {
+  const style = STYLES.find((s) => s.id === styleId) || STYLES[0];
+  const key = style.key;
+  const W = opts.mini ? 640 : 1000;
+  const H = opts.mini ? 360 : 520;
+  const L = layoutPositions(key, data, W, H);
+  const { keepers, nodes } = L;
+  const showPhys = state.showPhys;
+  const clusters = (data.clusters || []).filter((c) => showPhys || !c.outline);
+
+  let bgExtra = '';
+  if (key === 'swimlane' || L.lanes) {
+    bgExtra = `
+      <rect x="40" y="30" width="${W - 80}" height="150" rx="16" fill="#10b981" fill-opacity="0.04" stroke="#10b981" stroke-opacity="0.2"/>
+      <text x="56" y="52" fill="#10b981" font-size="10" font-family="ui-monospace,monospace" opacity="0.8">KEEPER LANE</text>
+      <rect x="40" y="${H * 0.42}" width="${W - 80}" height="${H * 0.48}" rx="16" fill="#7aa2c0" fill-opacity="0.04" stroke="#7aa2c0" stroke-opacity="0.2"/>
+      <text x="56" y="${H * 0.42 + 22}" fill="#7aa2c0" font-size="10" font-family="ui-monospace,monospace" opacity="0.8">CLICKHOUSE LANE</text>`;
+  }
+  if (key === 'flow' || L.flow) {
+    bgExtra = `
+      <rect x="40" y="40" width="220" height="${H - 80}" rx="16" fill="#10b981" fill-opacity="0.05" stroke="#10b981" stroke-opacity="0.25" stroke-dasharray="5 4"/>
+      <text x="150" y="62" text-anchor="middle" fill="#10b981" font-size="10" font-family="ui-monospace,monospace">KEEPER</text>
+      <rect x="${W * 0.42}" y="40" width="${W * 0.52}" height="${H - 80}" rx="16" fill="#cc785c" fill-opacity="0.05" stroke="#cc785c" stroke-opacity="0.25"/>
+      <text x="${W * 0.68}" y="62" text-anchor="middle" fill="#cc785c" font-size="10" font-family="ui-monospace,monospace">CLICKHOUSE</text>`;
+  }
+  if ((key === 'shardcols' || L.shards) && L.shards) {
+    bgExtra = L.shards.map((s, i) => {
+      const x = L.baseX + i * L.colW - L.colW * 0.4;
+      const h = H - 160;
+      return `<rect x="${x}" y="160" width="${L.colW * 0.8}" height="${h}" rx="14"
+        fill="${COLORS[i % COLORS.length]}" fill-opacity="0.06" stroke="${COLORS[i % COLORS.length]}" stroke-opacity="0.35"/>
+        <text x="${L.baseX + i * L.colW}" y="178" text-anchor="middle" fill="${COLORS[i % COLORS.length]}" font-size="10" font-family="ui-monospace,monospace">shard ${s}</text>`;
+    }).join('');
+  }
+
+  // hulls
+  let hulls = '';
+  if (nodes.length && !L.lanes && !L.flow && key !== 'shardcols') {
+    const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const pad = key === 'minimal' ? 48 : key === 'dense' ? 52 : 78;
+
+    if (key === 'orbital' || key === 'G5') {
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const baseR = Math.max(maxX - minX, maxY - minY) / 2 + pad;
+      clusters.forEach((c, i) => {
+        const r = baseR + (clusters.length - 1 - i) * 22;
+        hulls += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c.color}" fill-opacity="${c.outline ? 0.04 : 0.08}"
+          stroke="${c.color}" stroke-opacity="${c.outline ? 0.4 : 0.7}" stroke-width="${key === 'glass' ? 2.4 : 1.6}"/>
+          <text x="${cx}" y="${cy + r + 14}" text-anchor="middle" fill="${c.color}" font-size="10" font-family="ui-monospace,monospace">${c.name}</text>`;
+      });
+    } else if (key === 'blueprint') {
+      clusters.forEach((c, i) => {
+        const o = (clusters.length - 1 - i) * 16;
+        hulls += `<rect x="${minX - pad - o}" y="${minY - pad - o}" width="${maxX - minX + (pad + o) * 2}" height="${maxY - minY + (pad + o) * 2}"
+          rx="4" fill="none" stroke="${c.color}" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="${(minX + maxX) / 2}" y="${maxY + pad + o + 14}" text-anchor="middle" fill="${c.color}" font-size="10" font-family="ui-monospace,monospace">${c.name}</text>`;
+      });
+    } else {
+      clusters.forEach((c, i) => {
+        const o = (clusters.length - 1 - i) * (key === 'glass' ? 20 : 16);
+        const fo = key === 'glass' ? (c.outline ? 0.06 : 0.14) : (c.outline ? 0.05 : 0.1);
+        const sw = key === 'glass' ? 2.2 : key === 'minimal' ? 1.2 : 1.7;
+        hulls += `<rect x="${minX - pad - o}" y="${minY - pad - o}" width="${maxX - minX + (pad + o) * 2}" height="${maxY - minY + (pad + o) * 2}"
+          rx="${key === 'minimal' ? 24 : 16}" fill="${c.color}" fill-opacity="${fo}" stroke="${c.color}" stroke-opacity="${c.outline ? 0.45 : 0.72}" stroke-width="${sw}"
+          ${key === 'glass' ? 'filter="url(#soft)"' : ''}/>
+          <g transform="translate(${(minX + maxX) / 2}, ${maxY + pad + o + 2})">
+            <rect x="-44" y="0" width="88" height="17" rx="8" fill="${c.color}" fill-opacity="0.18" stroke="${c.color}" stroke-opacity="0.65"/>
+            <text text-anchor="middle" y="12" fill="${c.color}" font-size="10" font-family="ui-monospace,monospace">${c.name}</text>
+          </g>`;
+      });
+    }
+  }
+
+  // keeper region (stacked styles)
+  let keeperRegion = '';
+  if (keepers.length && !L.lanes && !L.flow) {
+    const xs = keepers.map((k) => k.x), ys = keepers.map((k) => k.y);
+    const minX = Math.min(...xs) - 70, maxX = Math.max(...xs) + 70;
+    const minY = Math.min(...ys) - 50, maxY = Math.max(...ys) + 65;
+    if (key === 'orbital') {
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const r = Math.max(maxX - minX, maxY - minY) / 2 + 10;
+      keeperRegion = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#10b981" fill-opacity="0.05" stroke="#10b981" stroke-opacity="0.4" stroke-dasharray="6 5"/>`;
+    } else if (key !== 'shardcols') {
+      keeperRegion = `<rect x="${minX}" y="${minY}" width="${maxX - minX}" height="${maxY - minY}" rx="14"
+        fill="#10b981" fill-opacity="${key === 'glass' ? 0.08 : 0.05}" stroke="#10b981" stroke-opacity="0.4" stroke-dasharray="6 5"/>
+        <text x="${(minX + maxX) / 2}" y="${minY - 8}" text-anchor="middle" fill="#10b981" font-size="10" font-family="ui-monospace,monospace">Keeper quorum · Raft</text>`;
+    }
+  }
+
+  // edges
+  let edges = '';
+  if (state.showEdges) {
+    if (keepers.length > 1) {
+      for (let i = 0; i < keepers.length; i++) {
+        for (let j = i + 1; j < keepers.length; j++) {
+          const a = keepers[i], b = keepers[j];
+          edges += `<path d="${curve(a.x, a.y, b.x, b.y)}" fill="none" stroke="#10b981" stroke-opacity="${key === 'blueprint' ? 0.55 : 0.35}" stroke-width="${key === 'minimal' ? 1 : 1.3}"/>`;
+        }
+      }
+    }
+    const leader = keepers.find((k) => k.role === 'leader') || keepers[0];
+    if (leader) {
+      nodes.forEach((n) => {
+        edges += `<path d="${curve(n.x, n.y, leader.x, leader.y, key === 'flow' ? 0.08 : 0.16)}" fill="none"
+          stroke="${key === 'blueprint' ? '#7aa2c0' : '#8b8b96'}" stroke-opacity="0.4" stroke-width="1.25" stroke-dasharray="5 5"/>`;
+      });
+    }
+    if (data.repl && nodes.length > 1) {
+      // connect same-shard replicas
+      const byShard = {};
+      nodes.forEach((n) => { (byShard[n.s] ||= []).push(n); });
+      Object.values(byShard).forEach((arr) => {
+        arr.sort((a, b) => a.r - b.r);
+        for (let i = 0; i < arr.length - 1; i++) {
+          const a = arr[i], b = arr[i + 1];
+          edges += `<path d="${curve(a.x, a.y, b.x, b.y)}" fill="none" stroke="#3b82f6" stroke-opacity="0.55" stroke-width="1.5"/>`;
+        }
+      });
+    }
+  }
+
+  // keepers glyphs
+  let kp = keepers.map((k) => {
+    const col = !k.ok ? STATUS.unreachable : k.role === 'leader' ? STATUS.warn : STATUS.healthy;
+    const sel = state.selected === k.id;
+    if (key === 'minimal') {
+      return `<g transform="translate(${k.x},${k.y})" class="hit" data-id="${k.id}" style="cursor:pointer">
+        <circle r="10" fill="${col}" opacity="0.9"/>
+        ${k.role === 'leader' ? '<text y="-16" text-anchor="middle" fill="#f59e0b" font-size="11">★</text>' : ''}
+        ${state.showLabels ? `<text y="26" text-anchor="middle" fill="#ececef" font-size="10" font-family="ui-monospace,monospace">${k.short}</text>
+        <text y="40" text-anchor="middle" fill="#8b8b96" font-size="9">${k.role}</text>` : ''}
+      </g>`;
+    }
+    if (key === 'blueprint') {
+      return `<g transform="translate(${k.x},${k.y})" class="hit" data-id="${k.id}" style="cursor:pointer">
+        <path d="${hex(32)}" fill="none" stroke="${col}" stroke-width="1.2"/>
+        <text text-anchor="middle" y="4" fill="${col}" font-size="9" font-family="ui-monospace,monospace">${k.role === 'leader' ? 'L' : 'F'}</text>
+        ${state.showLabels ? `<text y="48" text-anchor="middle" fill="#7aa2c0" font-size="9" font-family="ui-monospace,monospace">${k.short}</text>` : ''}
+      </g>`;
+    }
+    const r = key === 'dense' ? 28 : 34;
+    const glass = key === 'glass';
+    return `<g transform="translate(${k.x},${k.y})" class="hit" data-id="${k.id}" style="cursor:pointer">
+      ${sel ? `<path d="${hex(r + 5)}" fill="none" stroke="#cc785c" stroke-width="2"/>` : ''}
+      <path d="${hex(r)}" fill="${glass ? 'rgba(23,23,27,0.55)' : '#17171b'}" stroke="${col}" stroke-width="${glass ? 2.2 : 1.8}" ${glass ? 'filter="url(#soft)"' : ''}/>
+      <path transform="scale(0.85)" d="M 0 -8 L 7.5 -4 v 6 c 0 5 -3.8 8.2 -7.5 9.5 c -3.7 -1.3 -7.5 -4.5 -7.5 -9.5 v -6 Z" fill="none" stroke="${col}" stroke-width="1.4" opacity="0.85"/>
+      ${k.role === 'leader' ? `<text y="${-r - 8}" text-anchor="middle" fill="#f59e0b" font-size="12">★</text>` : ''}
+      ${state.showLabels ? `<text y="${r + 15}" text-anchor="middle" fill="#ececef" font-size="10" font-family="ui-monospace,monospace">${k.short || k.id}</text>
+      <text y="${r + 28}" text-anchor="middle" fill="#8b8b96" font-size="9">${k.role}${state.showMetrics ? ` · ${k.lat}ms` : ''}</text>` : ''}
+    </g>`;
+  }).join('');
+
+  // CH glyphs
+  let ch = nodes.map((n) => {
+    const col = STATUS[n.status] || STATUS.healthy;
+    const sel = state.selected === n.id;
+    const dead = n.status === 'unreachable';
+
+    if (key === 'minimal') {
+      return `<g transform="translate(${n.x},${n.y})" class="hit" data-id="${n.id}" style="cursor:pointer">
+        <circle r="12" fill="${col}" opacity="${dead ? 0.4 : 0.95}"/>
+        ${n.local ? '<circle r="17" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.6"/>' : ''}
+        ${sel ? '<circle r="20" fill="none" stroke="#cc785c" stroke-width="2"/>' : ''}
+        ${state.showLabels ? `<text y="30" text-anchor="middle" fill="#ececef" font-size="10" font-family="ui-monospace,monospace">${n.id}</text>
+        <text y="44" text-anchor="middle" fill="#8b8b96" font-size="9">s${n.s}r${n.r}${state.showMetrics && n.cpu != null ? ` · ${n.cpu}%` : ''}</text>` : ''}
+      </g>`;
+    }
+
+    if (key === 'blueprint') {
+      return `<g transform="translate(${n.x},${n.y})" class="hit" data-id="${n.id}" style="cursor:pointer">
+        <rect x="-30" y="-30" width="60" height="60" fill="none" stroke="${col}" stroke-width="1.2" stroke-dasharray="${dead ? '3 2' : 'none'}"/>
+        <text text-anchor="middle" y="4" fill="${col}" font-size="10" font-family="ui-monospace,monospace">${n.id.slice(0, 8)}</text>
+        ${state.showLabels ? `<text y="46" text-anchor="middle" fill="#7aa2c0" font-size="9" font-family="ui-monospace,monospace">s${n.s}/r${n.r}</text>` : ''}
+      </g>`;
+    }
+
+    const r = key === 'dense' ? 32 : key === 'glass' ? 40 : 38;
+    const glass = key === 'glass';
+    const cpu = n.cpu ?? 0;
+    const meter = state.showMetrics && !dead ? `
+      <rect x="${-r + 8}" y="${r - 13}" width="${(r - 8) * 2}" height="4" rx="2" fill="#2a2a31"/>
+      <rect x="${-r + 8}" y="${r - 13}" width="${((r - 8) * 2) * Math.min(1, cpu / 100)}" height="4" rx="2"
+        fill="${cpu > 85 ? '#f43f5e' : cpu > 60 ? '#f59e0b' : '#3b82f6'}"/>
+      ${key === 'dense' && n.mem != null ? `
+        <rect x="${-r + 8}" y="${r - 7}" width="${(r - 8) * 2}" height="3" rx="1.5" fill="#2a2a31"/>
+        <rect x="${-r + 8}" y="${r - 7}" width="${((r - 8) * 2) * Math.min(1, (n.mem || 0) / 100)}" height="3" rx="1.5" fill="#9b8bc4"/>` : ''}` : '';
+    const lag = state.showMetrics && n.lag > 0 ? `
+      <g transform="translate(${r - 4},${-r + 6})">
+        <rect x="-15" y="-7" width="30" height="13" rx="6" fill="#f59e0b" fill-opacity="0.2" stroke="#f59e0b"/>
+        <text text-anchor="middle" y="3" fill="#f59e0b" font-size="8" font-weight="700">lag ${n.lag}</text>
+      </g>` : '';
+    const sr = key === 'dense' || key === 'shardcols' ? `
+      <text y="${r + 28}" text-anchor="middle" fill="#8b8b96" font-size="9">s${n.s} · r${n.r}${n.cpu != null ? ` · ${n.cpu}%` : ''}</text>` : `
+      <text y="${r + 28}" text-anchor="middle" fill="#8b8b96" font-size="9">${dead ? 'unreachable' : n.local ? 'local node' : 'remote node'}${state.showMetrics && n.cpu != null ? ` · cpu ${n.cpu}%` : ''}</text>`;
+
+    return `<g transform="translate(${n.x},${n.y})" class="hit" data-id="${n.id}" style="cursor:pointer">
+      ${n.local ? `<rect x="${-r - 4}" y="${-r - 4}" width="${(r + 4) * 2}" height="${(r + 4) * 2}" rx="14" fill="none" stroke="#3b82f6" stroke-opacity="0.45" stroke-width="2"/>` : ''}
+      ${sel ? `<rect x="${-r - 6}" y="${-r - 6}" width="${(r + 6) * 2}" height="${(r + 6) * 2}" rx="15" fill="none" stroke="#cc785c" stroke-width="2.2"/>` : ''}
+      <rect x="${-r}" y="${-r}" width="${r * 2}" height="${r * 2}" rx="${glass ? 14 : 11}"
+        fill="${glass ? 'rgba(23,23,27,0.5)' : '#17171b'}" stroke="${col}" stroke-width="${glass ? 2 : 1.7}"
+        stroke-dasharray="${dead ? '4 3' : 'none'}" opacity="${dead ? 0.65 : 1}" ${glass ? 'filter="url(#soft)"' : ''}/>
+      ${chLogo(dead)}
+      <text y="20" text-anchor="middle" fill="#ececef" font-size="9" font-family="ui-monospace,monospace">${n.id}</text>
+      ${meter}
+      <circle cx="${r - 3}" cy="${-r + 3}" r="4" fill="${col}" stroke="#17171b" stroke-width="1.4"/>
+      ${lag}
+      ${state.showLabels ? `<text y="${r + 15}" text-anchor="middle" fill="#8b8b96" font-size="9">${trunc(n.host, 20)}</text>${sr}` : sr}
+      ${n.local && key !== 'dense' ? `<g transform="translate(0, ${r + 42})">
+        <rect x="-20" y="-8" width="40" height="13" rx="6" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.5"/>
+        <text text-anchor="middle" y="2" fill="#7aa2c0" font-size="8" font-weight="600">LOCAL</text>
+      </g>` : ''}
+    </g>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img">
+    <defs>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.4"/>
+      </filter>
+      <filter id="gray"><feColorMatrix type="saturate" values="0"/></filter>
+    </defs>
+    ${bgExtra}${keeperRegion}${hulls}${edges}${kp}${ch}
+  </svg>`;
+}
+
+function styleMeta(id) {
+  return STYLES.find((s) => s.id === id) || STYLES[0];
+}
+
+function paint() {
+  const data = fixture(state.scenario);
+  const s = styleMeta(state.style);
+
+  document.getElementById('hero-title').textContent = `${s.id} · ${s.name}`;
+  document.getElementById('hero-desc').textContent = s.desc;
+  document.getElementById('pick-title').textContent = `${s.id} · ${s.name}`;
+  document.getElementById('pick-desc').textContent = s.desc;
+  document.getElementById('stage-name').textContent = `${s.id} · ${s.name}`;
+  document.getElementById('b-style').textContent = s.id;
+  document.getElementById('b-layout').textContent = s.layout;
+  document.getElementById('b-glyph').textContent = s.glyph;
+  document.getElementById('b-hull').textContent = s.hull;
+
+  document.querySelectorAll('.style-btn').forEach((el) => {
+    const on = el.dataset.id === state.style;
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.gcard').forEach((el) => {
+    el.classList.toggle('on', el.dataset.id === state.style);
+  });
+
+  const canvas = document.getElementById('canvas');
+  canvas.className = 'canvas';
+  if (state.style === 'G9') canvas.classList.add('blueprint');
+  if (state.style === 'G2') canvas.classList.add('nogrid');
+  canvas.innerHTML = renderGraph(state.style, data);
+
+  canvas.querySelectorAll('.hit').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.getAttribute('data-id');
+      state.selected = state.selected === id ? null : id;
+      paint();
+    });
+  });
+
+  // gallery
+  if (state.view === 'gallery') {
+    const g = document.getElementById('gallery');
+    g.innerHTML = STYLES.map((st) => {
+      const mini = renderGraph(st.id, data, { mini: true });
+      return `<div class="gcard ${st.id === state.style ? 'on' : ''}" data-id="${st.id}">
+        <div class="gh">
+          <div><b>${st.id} · ${st.name}</b><span>${st.desc}</span></div>
+          <div class="pick-mark">selected</div>
+        </div>
+        <div class="mini">${mini}</div>
+      </div>`;
+    }).join('');
+    g.querySelectorAll('.gcard').forEach((el) => {
+      el.addEventListener('click', () => {
+        state.style = el.dataset.id;
+        paint();
+      });
+    });
+  }
+}
+
+function buildList() {
+  document.getElementById('style-list').innerHTML = STYLES.map((s) => {
+    const mark = s.good ? '★' : (s.tags.includes('ships today') ? '·' : '');
+    const markClass = s.tags.includes('ships today') ? 'mark hot' : 'mark';
+    return `<button type="button" class="style-btn ${s.id === state.style ? 'on' : ''}"
+        data-id="${s.id}" role="option" aria-selected="${s.id === state.style}"
+        title="${s.desc.replace(/"/g, '&quot;')}">
+      <span class="id">${s.id}</span>
+      <span class="n">${s.name}</span>
+      <span class="${markClass}">${mark}</span>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('.style-btn').forEach((el) => {
+    el.addEventListener('click', () => { state.style = el.dataset.id; paint(); });
+  });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function choicePayload() {
+  return state.confirmed || {
+    graphStyle: state.style,
+    name: styleMeta(state.style).name,
+    scenario: state.scenario,
+    layers: {
+      physical: state.showPhys,
+      labels: state.showLabels,
+      metrics: state.showMetrics,
+      edges: state.showEdges,
+    },
+  };
+}
+
+document.getElementById('scenario').addEventListener('change', (e) => {
+  state.scenario = e.target.value;
+  state.selected = null;
+  paint();
+});
+['show-phys', 'show-labels', 'show-metrics', 'show-edges'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    const map = {
+      'show-phys': 'showPhys',
+      'show-labels': 'showLabels',
+      'show-metrics': 'showMetrics',
+      'show-edges': 'showEdges',
+    };
+    state[map[id]] = e.target.checked;
+    paint();
+  });
+});
+
+document.getElementById('view-focus').addEventListener('click', () => {
+  state.view = 'focus';
+  document.getElementById('focus-stage').style.display = '';
+  document.getElementById('gallery-stage').style.display = 'none';
+  document.getElementById('view-focus').classList.add('on');
+  document.getElementById('view-gallery').classList.remove('on');
+});
+document.getElementById('view-gallery').addEventListener('click', () => {
+  state.view = 'gallery';
+  document.getElementById('focus-stage').style.display = 'none';
+  document.getElementById('gallery-stage').style.display = '';
+  document.getElementById('view-gallery').classList.add('on');
+  document.getElementById('view-focus').classList.remove('on');
+  paint();
+});
+
+document.getElementById('btn-pick').addEventListener('click', () => {
+  state.confirmed = {
+    graphStyle: state.style,
+    name: styleMeta(state.style).name,
+    layout: styleMeta(state.style).layout,
+    glyph: styleMeta(state.style).glyph,
+    hull: styleMeta(state.style).hull,
+    scenario: state.scenario,
+    at: new Date().toISOString(),
+  };
+  try { localStorage.setItem('topo-graph-style-pick', JSON.stringify(state.confirmed)); } catch {}
+  toast('Picked ' + state.style);
+});
+document.getElementById('btn-copy').addEventListener('click', async () => {
+  const text = JSON.stringify(choicePayload(), null, 2);
+  try { await navigator.clipboard.writeText(text); toast('Copied JSON'); }
+  catch { prompt('Copy:', text); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input,select,textarea')) return;
+  const idx = STYLES.findIndex((s) => s.id === state.style);
+  if (e.key === 'ArrowDown' || e.key === 'j') {
+    state.style = STYLES[Math.min(STYLES.length - 1, idx + 1)].id; paint();
+  }
+  if (e.key === 'ArrowUp' || e.key === 'k') {
+    state.style = STYLES[Math.max(0, idx - 1)].id; paint();
+  }
+  if (e.key >= '1' && e.key <= '9') {
+    const s = STYLES[Number(e.key) - 1];
+    if (s) { state.style = s.id; paint(); }
+  }
+  if (e.key === '0') { state.style = 'G10'; paint(); }
+});
+
+try {
+  const saved = JSON.parse(localStorage.getItem('topo-graph-style-pick') || 'null');
+  if (saved?.graphStyle) state.style = saved.graphStyle;
+} catch {}
+
+buildList();
+paint();
+</script>
+</body>
+</html>

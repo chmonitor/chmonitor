@@ -524,8 +524,8 @@ export function TopologyView({
           </div>
           {/* Scrolls horizontally on narrow screens (min-width) so the wide
               topology stays readable instead of shrinking to fit. */}
-          <div className="h-[480px] overflow-x-auto bg-muted/60 sm:h-[540px]">
-            <div className="h-full w-full min-w-[720px]">
+          <div className="h-[min(62vh,640px)] min-h-[420px] overflow-hidden bg-muted/60 sm:min-h-[480px]">
+            <div className="h-full w-full">
               <TopoCanvas
                 model={model}
                 liveById={liveById}
@@ -536,6 +536,10 @@ export function TopologyView({
               />
             </div>
           </div>
+          <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+            Drag a node to move it · drag a cluster fill (or Alt-drag a node) to
+            move the group · nodes stay inside their cluster box
+          </p>
         </Card>
 
         {/* inspector */}
