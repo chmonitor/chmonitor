@@ -1,7 +1,5 @@
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
@@ -12,26 +10,6 @@ import { nitro } from 'nitro/vite'
 import { defineConfig, type PluginOption } from 'vite'
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url))
-// Resolve package files from THIS app's node_modules (Docker-safe when @chm/*
-// sources import bare names). Prefer ESM entry + explicit _shims files so
-// rolldown does not require() CJS and miss package.json export conditions.
-const requireFromApp = createRequire(import.meta.url)
-function resolvePkgDir(name: string): string {
-  let dir = dirname(requireFromApp.resolve(name))
-  while (dir !== dirname(dir)) {
-    if (existsSync(join(dir, 'package.json'))) return dir
-    dir = dirname(dir)
-  }
-  return dirname(requireFromApp.resolve(name))
-}
-const mcpServerDir = resolvePkgDir('@modelcontextprotocol/server')
-const mcpServerEntry = join(mcpServerDir, 'dist', 'index.mjs')
-// BUILD_TARGET is set before vite loads; same flag as `isNode` below.
-const mcpServerShims = join(
-  mcpServerDir,
-  'dist',
-  process.env.BUILD_TARGET === 'node' ? 'shimsNode.mjs' : 'shimsWorkerd.mjs'
-)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Build-time client env (`import.meta.env.VITE_*`).
@@ -747,12 +725,13 @@ export default defineConfig({
         '../../packages/mcp-server/src/data/mcp-tools-data.ts'
       ),
       '@chm/mcp-server/auth': r('../../packages/mcp-server/src/auth/index.ts'),
-      // Pin MCP server to ESM entry + concrete _shims file.
-      // Trailing `$` = exact match only — without it, vite treats the alias as a
-      // path prefix and resolves `_shims` to `dist/index.mjs/_shims` (ENOTDIR).
-      // Dockerfile also preserves packages/*/node_modules for bare resolution.
-      '@modelcontextprotocol/server$': mcpServerEntry,
-      '@modelcontextprotocol/server/_shims': mcpServerShims,
+      // @modelcontextprotocol/* is NOT aliased here. Aliasing the package root
+      // or forcing `import`-first ssr.resolve.conditions broke CJS interop for
+      // `pg` (Class extends value #<Object> is not a constructor during
+      // prerender: BoundPool extends Pool). Bare resolution works because:
+      //  - local/CI: packages/mcp-server/node_modules (pnpm workspace links)
+      //  - Docker: Dockerfile copies packages/*/node_modules from the deps stage
+      //  - CF plugin already sets workerd conditions for _shims → shimsWorkerd
       // The node @clickhouse/client (node:os/node:stream/TCP) is a dead static
       // import in clickhouse-client.ts (routes force web:true). Alias it to an
       // empty stub so it resolves in the bundle on BOTH targets.
@@ -765,14 +744,6 @@ export default defineConfig({
     },
   },
   ssr: {
-    // Prefer the workerd export conditions of @modelcontextprotocol/server
-    // (`./_shims` → shimsWorkerd) when bundling for Cloudflare Workers so we
-    // do not pull Node-only shims into the free-plan worker graph.
-    resolve: {
-      conditions: isNode
-        ? ['node', 'import', 'module', 'default']
-        : ['workerd', 'worker', 'browser', 'import', 'module', 'default'],
-    },
     // Transpile + bundle the @chm source packages and their bundleable leaf
     // deps into the server build.
     noExternal: [
