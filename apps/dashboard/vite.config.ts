@@ -289,6 +289,23 @@ const SSR_STUB_PREFIXES = [
   // and local-thread-list-adapter.tsx, both behind React.lazy in the agent thread.
   // Never executes during SSR or prerender.
   'assistant-stream',
+  // react-markdown + remark-gfm (~450 KiB raw / ~99 KiB gz together). Only used
+  // in client-facing markdown cells, chart error dialogs, widget text, and the
+  // optional-table-info panel — never needed for Worker SSR/API correctness.
+  // Stubbed 2026-08-07 to keep the free-plan 3 MiB worker upload under the
+  // limit after router/polar/clerk growth (preview deploy was failing with
+  // code 10027). Client build keeps the real packages.
+  'react-markdown',
+  'remark-gfm',
+  'remark-parse',
+  'remark-rehype',
+  // @cloudflare/puppeteer (~627 KiB raw / ~133 KiB gz). PDF export is already
+  // fail-closed to HTML when launch fails (`report-pdf.ts`). Including the full
+  // package in the no_bundle worker upload blew the free-tier size limit; stub
+  // it in the Worker SSR graph so deploy works. Client never imports it.
+  // Node/Docker already stubbed below. REST Browser Rendering can restore PDF
+  // later without re-pulling the package.
+  '@cloudflare/puppeteer',
 ]
 
 // rolldown does not honour `syntheticNamedExports` from a resolveId result, so
@@ -472,12 +489,11 @@ ${namedExports}
     name: 'chm:ssr-client-only-stub',
     enforce: 'pre',
     resolveId(id) {
-      // @cloudflare/puppeteer is a Workers-only module (PDF export, #2794):
-      // bundled into the CF worker, but the node/Docker target must NOT try to
-      // bundle it. renderReportPdf() short-circuits before importing it there
-      // (env.BROWSER is never present on node), but the dead dynamic import
-      // must still resolve for the bundler — stub it to a harmless proxy.
-      if (isNode && /^@cloudflare\/puppeteer(\/|$)/.test(id)) {
+      // @cloudflare/puppeteer: always resolve via the SSR stub on non-client
+      // builds (Worker size + Node can't load the Workers-only package).
+      // PDF path is fail-closed to HTML when the stub is hit.
+      if (/^@cloudflare\/puppeteer(\/|$)/.test(id)) {
+        if (this.environment?.name === 'client') return null
         return SSR_STUB_VIRTUAL_ID
       }
       // The stub exists ONLY to keep the Cloudflare Worker under the free-plan
