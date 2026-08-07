@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
@@ -11,10 +12,19 @@ import { nitro } from 'nitro/vite'
 import { defineConfig, type PluginOption } from 'vite'
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url))
-// Resolve a package entry from THIS app's node_modules (Docker-safe when
+// Resolve a package ROOT dir from THIS app's node_modules (Docker-safe when
 // @chm/* sources import bare names that only exist under apps/dashboard).
+// Must be a directory — aliasing the main file breaks subpath resolution
+// ("Not a directory" / ENOTDIR in rolldown).
 const requireFromApp = createRequire(import.meta.url)
-const resolvePkgEntry = (name: string) => requireFromApp.resolve(name)
+function resolvePkgRoot(name: string): string {
+  let dir = dirname(requireFromApp.resolve(name))
+  while (dir !== dirname(dir)) {
+    if (existsSync(join(dir, 'package.json'))) return dir
+    dir = dirname(dir)
+  }
+  return dirname(requireFromApp.resolve(name))
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Build-time client env (`import.meta.env.VITE_*`).
@@ -734,7 +744,7 @@ export default defineConfig({
       // @modelcontextprotocol/* must resolve from THIS app's node_modules — in
       // Docker the package dir has no node_modules of its own, so bare resolution
       // from packages/mcp-server/src/http.ts fails (build-docker-pr).
-      '@modelcontextprotocol/server': resolvePkgEntry(
+      '@modelcontextprotocol/server': resolvePkgRoot(
         '@modelcontextprotocol/server'
       ),
       // The node @clickhouse/client (node:os/node:stream/TCP) is a dead static
