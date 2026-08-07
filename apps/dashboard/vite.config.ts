@@ -289,6 +289,31 @@ const SSR_STUB_PREFIXES = [
   // and local-thread-list-adapter.tsx, both behind React.lazy in the agent thread.
   // Never executes during SSR or prerender.
   'assistant-stream',
+  // react-markdown + remark-gfm (~99 KiB gz). Client-only markdown cells /
+  // error dialogs / widget text — never required for Worker API correctness.
+  'react-markdown',
+  'remark-gfm',
+  'remark-parse',
+  'remark-rehype',
+  // @cloudflare/puppeteer (~133 KiB gz). PDF export already fails closed to
+  // HTML (`report-pdf.ts`). Keep out of free-plan worker upload.
+  '@cloudflare/puppeteer',
+  // @dnd-kit (~part of data-table chunk). Column/dashboard drag only runs in
+  // the browser; Proxy stub is fine for SSR shells.
+  '@dnd-kit/core',
+  '@dnd-kit/sortable',
+  '@dnd-kit/modifiers',
+  '@dnd-kit/utilities',
+  '@dnd-kit/accessibility',
+  // OTel export SDK (~tens of KiB gz of the analytics chunk). Opt-in via
+  // CHM_OTEL_EXPORTER_URL; Node/Docker keeps the real packages (isNode path
+  // below skips stubs). On the CF Worker free plan we stub so deploy fits —
+  // opt-in OTEL export is unavailable on CF until headroom recovers.
+  '@opentelemetry/exporter-trace-otlp-http',
+  '@opentelemetry/sdk-trace-base',
+  '@opentelemetry/resources',
+  '@opentelemetry/context-async-hooks',
+  '@opentelemetry/semantic-conventions',
 ]
 
 // rolldown does not honour `syntheticNamedExports` from a resolveId result, so
@@ -416,6 +441,34 @@ const SSR_STUB_NAMED_EXPORTS = [
   // assistant-stream — named import from d1-thread-list-adapter.tsx and
   // local-thread-list-adapter.tsx (both behind React.lazy agent boundary).
   'createAssistantStream',
+  // @opentelemetry/* (stubbed on CF Worker) — named imports from lib/otel/*
+  'BasicTracerProvider',
+  'BatchSpanProcessor',
+  'OTLPTraceExporter',
+  'resourceFromAttributes',
+  'AsyncLocalStorageContextManager',
+  'ATTR_SERVICE_NAME',
+  'ATTR_SERVICE_VERSION',
+  'SEMRESATTRS_SERVICE_NAME',
+  // @dnd-kit/* — named imports from data-table + dashboard grid
+  'DndContext',
+  'DragOverlay',
+  'PointerSensor',
+  'KeyboardSensor',
+  'useSensor',
+  'useSensors',
+  'closestCenter',
+  'horizontalListSortingStrategy',
+  'verticalListSortingStrategy',
+  'SortableContext',
+  'useSortable',
+  'arrayMove',
+  'restrictToHorizontalAxis',
+  'restrictToVerticalAxis',
+  'restrictToParentElement',
+  'CSS',
+  'useDraggable',
+  'useDroppable',
 ]
 
 const SSR_STUB_VIRTUAL_ID = '\0chm-ssr-client-only-stub'
@@ -472,12 +525,10 @@ ${namedExports}
     name: 'chm:ssr-client-only-stub',
     enforce: 'pre',
     resolveId(id) {
-      // @cloudflare/puppeteer is a Workers-only module (PDF export, #2794):
-      // bundled into the CF worker, but the node/Docker target must NOT try to
-      // bundle it. renderReportPdf() short-circuits before importing it there
-      // (env.BROWSER is never present on node), but the dead dynamic import
-      // must still resolve for the bundler — stub it to a harmless proxy.
-      if (isNode && /^@cloudflare\/puppeteer(\/|$)/.test(id)) {
+      // @cloudflare/puppeteer: always stub on non-client builds (Workers-only
+      // package; Node cannot load it; CF free plan cannot afford it).
+      if (/^@cloudflare\/puppeteer(\/|$)/.test(id)) {
+        if (this.environment?.name === 'client') return null
         return SSR_STUB_VIRTUAL_ID
       }
       // The stub exists ONLY to keep the Cloudflare Worker under the free-plan

@@ -89,13 +89,22 @@ function isResourceNotFound(error: unknown): boolean {
         status?: number
         response?: { status?: number }
         name?: string
+        message?: string
       }
     | null
     | undefined
   const status = e?.statusCode ?? e?.status ?? e?.response?.status
   if (status === 404) return true
+  if (
+    typeof e?.name === 'string' &&
+    e.name.toLowerCase().includes('notfound')
+  ) {
+    return true
+  }
+  // Thin REST client (PolarHttpError) uses message "ResourceNotFound".
   return (
-    typeof e?.name === 'string' && e.name.toLowerCase().includes('notfound')
+    typeof e?.message === 'string' &&
+    e.message.toLowerCase().includes('resourcenotfound')
   )
 }
 

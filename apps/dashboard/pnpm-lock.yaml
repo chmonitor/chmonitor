@@ -304,6 +304,9 @@ importers:
       sql-formatter:
         specifier: ^15.8.0
         version: 15.8.2
+      standardwebhooks:
+        specifier: ^1.0.0
+        version: 1.0.0
       streamdown:
         specifier: ^2.5.0
         version: 2.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
