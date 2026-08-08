@@ -36,17 +36,26 @@ export const FALLBACK_AGENT_MODEL = 'openrouter/free'
 /**
  * Resolve the best default model for the current deployment.
  *
- * Server-only — reads provider env vars. The preferred default
- * (`DEFAULT_AGENT_MODEL`, AnyRouter Gemma) requires `ANYROUTER_API_KEY`.
- * If AnyRouter is not configured, fall back to OpenRouter's free
- * auto-router which works with the documented `LLM_API_KEY`-only setup.
+ * Server-only — reads provider env vars.
+ *
+ * When AnyRouter is configured, prefer `anyrouter:auto` — the models endpoint
+ * and agent route resolve it to the current top tool-capable model by
+ * AnyRouter usage (`request_count`), falling back to {@link DEFAULT_AGENT_MODEL}
+ * (curated Gemma) if the dynamic catalog is unavailable.
+ *
+ * If AnyRouter is not configured, fall back to OpenRouter's free auto-router
+ * which works with the documented `LLM_API_KEY`-only setup.
  */
 export function resolveDefaultAgentModel(): string {
-  if (process.env.ANYROUTER_API_KEY) return DEFAULT_AGENT_MODEL
+  if (process.env.ANYROUTER_API_KEY) {
+    // Lazy import-free constant — keep registry free of the dynamic module
+    // cycle (dynamic-models imports isFreeAgentModel from this file).
+    return 'anyrouter:auto'
+  }
   if (process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY) {
     return FALLBACK_AGENT_MODEL
   }
-  // No provider configured — return the preferred default; the caller's
+  // No provider configured — return the curated static default; the caller's
   // provider preflight will surface a clear 503 if it actually runs.
   return DEFAULT_AGENT_MODEL
 }

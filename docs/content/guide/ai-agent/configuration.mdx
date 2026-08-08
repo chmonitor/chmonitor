@@ -37,6 +37,21 @@ Set the key for each provider you want to use. Only providers with a key configu
 | `NVIDIA_API_BASE` | NVIDIA NIM | NIM base URL (defaults to NVIDIA's hosted endpoint). |
 | `ANYROUTER_API_KEY` | AnyRouter | AnyRouter API key. |
 | `ANYROUTER_API_BASE` | AnyRouter | AnyRouter base URL. |
+| `ANYROUTER_DYNAMIC_MODELS` | AnyRouter | Set to `false` / `0` / `off` to disable live catalog enrichment (static registry only). On by default when `ANYROUTER_API_KEY` is set. |
+| `ANYROUTER_TOP_MODELS_N` | AnyRouter | Max usage-ranked models to add to the picker (default `8`, max `32`). |
+| `ANYROUTER_METRICS_CANDIDATE_CAP` | AnyRouter | Max catalog models to score via `/models/{id}/metrics` (default `24`, max `64`). |
+
+### AnyRouter dynamic models (usage ranking)
+
+When `ANYROUTER_API_KEY` is set, `GET /api/v1/agents/models` also loads AnyRouter’s public catalog (`GET {ANYROUTER_API_BASE}/models`) and ranks a **bounded** set of tool-capable models by real usage (`GET .../models/{id}/metrics` → `request_count`). List-level `sort=usage` is not supported by AnyRouter — ranking is always metrics-based.
+
+The picker then includes:
+
+1. **`anyrouter:auto`** — default when AnyRouter is configured. The agent route resolves it at request time to the current top tool-capable model by usage (cached ~5 minutes), falling back to the curated static default (`anyrouter:google/gemma-4-26b-a4b-it`) if the catalog/metrics are unavailable.
+2. **Router aliases** when present in the catalog — e.g. `anyrouter/agent`, `anyrouter/free`, `anyrouter/coding`.
+3. **Top-N concrete models** by `request_count` (function-calling preferred).
+
+Failures are fail-soft: OpenRouter-only / OSS deploys without AnyRouter keep the static `MODEL_REGISTRY` path with no live dependency on anyrouter.dev.
 
 ## Extra models
 

@@ -52,7 +52,14 @@ import {
   loadUserRegisteredServers,
   mergeMcpServers,
 } from '@/lib/ai/agent/mcp/connect-custom-servers'
-import { resolveDefaultAgentModel } from '@/lib/ai/agent-model-registry'
+import {
+  DEFAULT_AGENT_MODEL,
+  resolveDefaultAgentModel,
+} from '@/lib/ai/agent-model-registry'
+import {
+  isAnyRouterAutoModelId,
+  resolveAnyRouterAutoModelId,
+} from '@/lib/ai/anyrouter-dynamic-models'
 import {
   getProviderName,
   isProviderConfigured,
@@ -519,10 +526,19 @@ async function handlePost(request: Request): Promise<Response> {
       ? Math.max(0, Math.trunc(rawHostId))
       : 0
   const configuredModel = process.env.LLM_MODEL?.trim()
-  const model =
+  let model =
     typeof body.model === 'string' && body.model.trim().length > 0
       ? body.model.trim()
       : configuredModel || resolveDefaultAgentModel()
+
+  // `anyrouter:auto` is a picker alias — resolve to the current top-by-usage
+  // tool-capable model (cached) before provider preflight / chat setup.
+  // Fail-soft: curated DEFAULT_AGENT_MODEL when the dynamic catalog is down.
+  if (isAnyRouterAutoModelId(model)) {
+    const top = await resolveAnyRouterAutoModelId()
+    // Fail-soft to curated static default (not `anyrouter:auto` again).
+    model = top ?? DEFAULT_AGENT_MODEL
+  }
 
   // BYOK: the user may supply their own provider API key. When present and
   // valid, it (a) overrides the deployment's env key for this request and (b)
