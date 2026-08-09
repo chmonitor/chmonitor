@@ -47,7 +47,14 @@ mock.module('@/lib/ai/providers', () => ({
   getProviderName: () => 'Test Provider',
 }))
 mock.module('@/lib/ai/agent-model-registry', () => ({
+  DEFAULT_AGENT_MODEL: 'test/test-model',
   resolveDefaultAgentModel: () => 'test/test-model',
+  isFreeAgentModel: () => false,
+}))
+mock.module('@/lib/ai/anyrouter-dynamic-models', () => ({
+  isAnyRouterAutoModelId: () => false,
+  resolveAnyRouterAutoModelId: async () => null,
+  loadAnyRouterDynamicModelEntries: async () => [],
 }))
 
 // --- custom MCP servers: none ------------------------------------------------

@@ -15,9 +15,18 @@
  * metrics for the entire ~180-model catalog on every request.
  */
 
-import { isFreeAgentModel } from './agent-model-registry'
 import { isProviderConfigured } from './providers'
 import { formatCompactNumber } from '@/lib/format-number'
+
+/**
+ * Local free-tier check — intentionally duplicated from
+ * `isFreeAgentModel` in agent-model-registry so this module does not
+ * import the registry (agent route tests mock that module and would
+ * otherwise break on a missing named export during dynamic load).
+ */
+function isFreeTierModelId(modelId: string): boolean {
+  return modelId === 'openrouter/free' || modelId.endsWith(':free')
+}
 
 // ── Types (AnyRouter public catalog shape) ───────────────────────────────────
 
@@ -186,7 +195,7 @@ function parsePricePerMillion(
 }
 
 function isListedAsFree(model: AnyRouterModelListItem): boolean {
-  if (isFreeAgentModel(model.id)) return true
+  if (isFreeTierModelId(model.id)) return true
   const pair = readPricePair(model.pricing)
   if (pair && pair.input === 0 && pair.output === 0) return true
   return false
