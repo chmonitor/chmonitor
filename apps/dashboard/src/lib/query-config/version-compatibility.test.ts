@@ -61,7 +61,7 @@ import { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 // There is no single SUPPORTED_VERSIONS constant in the codebase, so this list
 // is derived from two sources of truth:
 //   1. docs/clickhouse-schemas/index.md — the documented version matrix
-//      (23.1/23.3/23.8 LTS baselines, 24.1/24.3/24.8, 25.1).
+//      (23.x–26.x LTS/stable rows including 25.8 / 26.3 LTS and 26.7 stable).
 //   2. Every distinct `since` major.minor boundary actually declared by shipped
 //      configs (down to 19.x, up to 26.6 at the time of writing).
 // We include a value at (and just below) each real boundary so `selectVersionedSql`
@@ -87,7 +87,10 @@ const SUPPORTED_VERSIONS = [
   '25.8',
   '25.12',
   '26.1',
+  '26.2',
+  '26.3',
   '26.6',
+  '26.7',
 ] as const
 
 // ---------------------------------------------------------------------------
