@@ -8,16 +8,17 @@ table: system.processes
 
 | Version | Change |
 |---------|--------|
-| 25.1+ | Added `peak_threads_usage` column - maximum number of threads used by query (exact version TBD, not available in 24.x) |
+| 24.1+ | Seeded `peak_threads_usage` (availability on processes historically lagged docs; verify on target host) |
+| 26.6+ | Added `client_agent` — detected AI coding agent for the client session |
 
 ## Version Compatibility Matrix
 
 | Column | Since | Description |
 |--------|-------|-------------|
-| peak_threads_usage | 25.1+ | Maximum number of threads used by the query. Note: Despite ClickHouse docs listing this column, CI testing confirms it does NOT exist in versions 24.5-24.12. |
+| peak_threads_usage | 24.1+ | Peak threads for the running query (confirm on older 24.x hosts before selecting) |
+| client_agent | 26.6 | Detected client AI agent name |
 
 ## Notes
 
-- The `peak_threads_usage` column was added to `system.query_log` in version 23.9 (PR #54335)
-- However, the same column in `system.processes` was added much later, likely in version 25.1+
-- See GitHub issue #53417 for the original feature request
+- Prefer VersionedSql when selecting version-new process columns so older hosts still resolve.
+

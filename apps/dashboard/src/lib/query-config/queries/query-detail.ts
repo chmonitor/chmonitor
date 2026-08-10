@@ -7,7 +7,8 @@ import { ColumnFormat } from '@/types/column-format'
  * query-detail: detailed information about a specific query execution.
  *
  * Version boundaries:
- * - 23.8+: `exception` (renamed from `exception_text`), `query_cache_usage` added
+ * - 23.8+: `exception` (renamed from `exception_text`)
+ * - 24.1+: `query_cache_usage` (real column; stub empty string on older variants)
  * - 24.3+: `peak_threads_usage` added (not selected here)
  *
  * Columns verified in ClickHouse 26.5 system.query_log (88 columns):
@@ -71,7 +72,8 @@ export const queryDetailConfig: QueryConfig = {
       sql: `
     SELECT
       ${baseSelect},
-      exception_text
+      exception_text,
+      '' AS query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
     ORDER BY event_time DESC
@@ -81,7 +83,21 @@ export const queryDetailConfig: QueryConfig = {
     {
       since: '23.8',
       description:
-        'exception column (renamed from exception_text), with query_cache_usage',
+        'exception column (renamed from exception_text); query_cache_usage stubbed',
+      sql: `
+    SELECT
+      ${baseSelect},
+      exception AS exception_text,
+      '' AS query_cache_usage
+    FROM system.query_log
+    WHERE query_id = {query_id: String}
+    ORDER BY event_time DESC
+    LIMIT 1
+  `,
+    },
+    {
+      since: '24.1',
+      description: 'Real query_cache_usage column',
       sql: `
     SELECT
       ${baseSelect},

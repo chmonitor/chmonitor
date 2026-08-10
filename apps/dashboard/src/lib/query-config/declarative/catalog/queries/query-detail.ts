@@ -56,7 +56,8 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
       sql: `
     SELECT
       ${baseSelect},
-      exception_text
+      exception_text,
+      '' AS query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
     ORDER BY event_time DESC
@@ -66,7 +67,21 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
     {
       since: '23.8',
       description:
-        'exception column (renamed from exception_text), with query_cache_usage',
+        'exception column (renamed from exception_text); query_cache_usage stubbed',
+      sql: `
+    SELECT
+      ${baseSelect},
+      exception AS exception_text,
+      '' AS query_cache_usage
+    FROM system.query_log
+    WHERE query_id = {query_id: String}
+    ORDER BY event_time DESC
+    LIMIT 1
+  `,
+    },
+    {
+      since: '24.1',
+      description: 'Real query_cache_usage column',
       sql: `
     SELECT
       ${baseSelect},

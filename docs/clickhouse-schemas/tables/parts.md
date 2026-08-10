@@ -29,11 +29,23 @@ Information about parts of MergeTree tables.
 | path | Yes | Yes | Yes | Yes | Path to part folder |
 | active | Yes | Yes | Yes | Yes | Whether part is active |
 | has_lightweight_delete | - | - | Yes | Yes | Added in 22.x |
+| files | - | - | - | 26.1+ | Array of files in the part (ClickHouse 26.1+) |
+
+## Change History
+
+| Version | Change |
+|---------|--------|
+| 26.1+ | Added `files` — files belonging to the part (`length(files)` for count) |
 
 ## Common Mistakes
 
 - **marks vs marks_count**: The column is `marks`, NOT `marks_count`
 - Both `primary_key_bytes_in_memory` columns have been available since at least v19.x
+- **files**: only on 26.1+; never select without a VersionedSql gate
+
+## chmonitor usage
+
+- `part-info` uses `length(files) AS files_count` with `since: '26.1'`; older variants stub `files_count` as 0.
 
 ## References
 
