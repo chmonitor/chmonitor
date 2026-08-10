@@ -22,7 +22,7 @@
 
 import type { PlanId } from './plans'
 
-import { Polar } from '@polar-sh/sdk'
+import { createPolarHttpClient, type PolarHttpClient } from './polar-http'
 
 export type BillingPeriod = 'monthly' | 'yearly'
 
@@ -56,16 +56,20 @@ export function isBillingConfigured(): boolean {
   return Boolean(readEnv('POLAR_ACCESS_TOKEN'))
 }
 
-let cachedClient: Polar | null = null
+let cachedClient: PolarHttpClient | null = null
 
-/** Lazily construct the Polar client. Throws if the token is missing. */
-export function getPolarClient(): Polar {
+/**
+ * Lazily construct the Polar client. Throws if the token is missing.
+ * Uses a thin REST wrapper (not `@polar-sh/sdk`) so the Worker stays under
+ * the free-plan size limit — see polar-http.ts.
+ */
+export function getPolarClient(): PolarHttpClient {
   if (cachedClient) return cachedClient
   const accessToken = readEnv('POLAR_ACCESS_TOKEN')
   if (!accessToken) {
     throw new Error('POLAR_ACCESS_TOKEN is not configured')
   }
-  cachedClient = new Polar({ accessToken, server: getPolarServer() })
+  cachedClient = createPolarHttpClient(accessToken)
   return cachedClient
 }
 

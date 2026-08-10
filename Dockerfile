@@ -44,7 +44,18 @@ ENV NODE_ENV=production \
     BUILD_TARGET=node \
     VITE_DEPLOY_TARGET=${VITE_DEPLOY_TARGET}
 # packages/ is needed at build time for the @chm/* source aliases (../../).
+# Preserve per-package node_modules from the deps stage — a bare COPY packages/
+# would wipe workspace links (e.g. packages/mcp-server → @modelcontextprotocol/*)
+# and break the node target build when vite resolves MCP imports from source.
 COPY packages/ /app/packages/
+COPY --from=deps /app/packages/ /tmp/packages-deps/
+RUN for d in /tmp/packages-deps/*/node_modules; do \
+      pkg="$(basename "$(dirname "$d")")"; \
+      if [ -d "$d" ]; then \
+        rm -rf "/app/packages/$pkg/node_modules"; \
+        cp -a "$d" "/app/packages/$pkg/node_modules"; \
+      fi; \
+    done && rm -rf /tmp/packages-deps
 # tsconfig.base.json lives at the repo root and is extended by apps/dashboard/tsconfig.json.
 COPY tsconfig.base.json /app/tsconfig.base.json
 COPY apps/dashboard/ /app/apps/dashboard/

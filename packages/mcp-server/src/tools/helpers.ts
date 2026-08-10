@@ -39,7 +39,7 @@ export const hostIdSchema = z
  *   known set of systems — never the open web or arbitrary external
  *   services.
  *
- * Spread this into each `server.tool(...)` call and add a tool-specific
+ * Spread this into each `server.registerTool(...)` call and add a tool-specific
  * `title` so every registration stays in sync (see #2703).
  */
 export const READONLY_ANNOTATIONS: ToolAnnotations = {
