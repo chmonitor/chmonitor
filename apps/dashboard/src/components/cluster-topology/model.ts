@@ -119,6 +119,17 @@ export interface ClusterHull {
   d: string
   /** Minkowski-sum area, used to z-order: largest drawn first (behind). */
   area: number
+  /** Axis-aligned box of the territory (same as path bounds). Used to clamp
+   * drag so nodes stay inside their cluster box, and to decide which nested
+   * ring gets the single outer stroke (no overlapping borders). */
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+  /** Stable signature of the rendered member set — coincident clusters share one. */
+  memberSig: string
+  /** Nest rank within a coincident group (0 = outermost / largest). */
+  nestRank: number
   /** resolved label position (may be nudged off the rect to de-overlap). */
   labelX: number
   labelY: number
@@ -1448,6 +1459,12 @@ function buildClusterHulls(
       outline: cl.outline,
       d,
       area: w * h,
+      minX,
+      minY,
+      maxX,
+      maxY,
+      memberSig: sig,
+      nestRank: rank,
       labelX: cx,
       labelY: maxY,
       anchorX: cx,
@@ -1457,6 +1474,20 @@ function buildClusterHulls(
   }
   // Largest first (drawn behind). Tie-break by id for determinism.
   hulls.sort((a, b) => b.area - a.area || a.id.localeCompare(b.id))
+  // Within each coincident group, renumber nestRank so 0 = outermost (largest
+  // area). Canvas draws a stroke ONLY on rank 0 → no stacked/overlapping borders.
+  const bySig = new Map<string, ClusterHull[]>()
+  for (const h of hulls) {
+    const list = bySig.get(h.memberSig) ?? []
+    list.push(h)
+    bySig.set(h.memberSig, list)
+  }
+  for (const list of bySig.values()) {
+    list.sort((a, b) => b.area - a.area || a.id.localeCompare(b.id))
+    list.forEach((h, i) => {
+      h.nestRank = i
+    })
+  }
   nudgeLabels(hulls)
   return hulls
 }

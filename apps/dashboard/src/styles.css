@@ -889,6 +889,28 @@
   animation: topo-current-breathe 2.4s ease-in-out infinite;
 }
 
+/* G8 glass soft — frosted cards + soft selection glow (topology canvas).
+   Uses theme tokens only; filter is light enough for many nodes. */
+.topo-glass-card {
+  /* Soft lift without a hard multi-border stack */
+  filter: drop-shadow(0 2px 8px color-mix(in oklab, var(--foreground) 12%, transparent));
+}
+
+.topo-select-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.topo-canvas.dragging,
+.topo-canvas.dragging .topo-glass-card,
+.topo-canvas.dragging .topo-hull-hit {
+  cursor: grabbing !important;
+}
+
+.topo-hull-hit:focus {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .topo-live-dot,
   .topo-current-ring {

@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cluster Topology — Design Options</title>
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --bg2: #121215;
+    --card: #17171b;
+    --card2: #1c1c21;
+    --border: #2a2a31;
+    --border2: #36363f;
+    --fg: #ececef;
+    --muted: #8b8b96;
+    --muted2: #6a6a75;
+    --primary: #f5f5f7;
+    --clay: #cc785c;
+    --honey: #d9a05b;
+    --blue: #7aa2c0;
+    --peri: #9b8bc4;
+    --sage: #6ba292;
+    --rose: #c77b8b;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose-hot: #f43f5e;
+    --slate: #94a3b8;
+    --ch-yellow: #faff00;
+    --ch-red: #ff1f00;
+    --radius: 12px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); }
+  body { min-height: 100vh; }
+  button, select, input { font: inherit; color: inherit; }
+  a { color: var(--blue); }
+
+  /* ── chrome ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .topbar h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .topbar h1 span { color: var(--muted); font-weight: 500; }
+  .top-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card);
+    font-size: 12px; color: var(--muted); cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .pill:hover { border-color: var(--border2); color: var(--fg); }
+  .pill.active { border-color: color-mix(in oklab, var(--clay) 55%, var(--border)); background: color-mix(in oklab, var(--clay) 12%, var(--card)); color: var(--fg); }
+  .pill kbd { font-family: var(--mono); font-size: 10px; opacity: .7; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 55px);
+  }
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: 0; border-bottom: 1px solid var(--border); max-height: none; }
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 16px;
+    overflow: auto;
+  }
+  .sidebar h2 {
+    margin: 0 0 8px; font-size: 10.5px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .sidebar section { margin-bottom: 22px; }
+  .opt {
+    display: block; width: 100%; text-align: left;
+    border: 1px solid var(--border); background: var(--card);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .opt:hover { border-color: var(--border2); }
+  .opt.selected {
+    border-color: color-mix(in oklab, var(--clay) 60%, var(--border));
+    background: color-mix(in oklab, var(--clay) 10%, var(--card));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--clay) 25%, transparent);
+  }
+  .opt .name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .opt .desc { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+  .opt .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tag {
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--muted2); background: var(--bg2);
+  }
+  .tag.good { color: var(--emerald); border-color: color-mix(in oklab, var(--emerald) 35%, var(--border)); }
+  .tag.warn { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 35%, var(--border)); }
+
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .field select, .field input[type="range"] {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 10px; font-size: 12.5px;
+  }
+  .field select:focus { outline: 1px solid color-mix(in oklab, var(--clay) 50%, transparent); }
+  .seg {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding: 3px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg);
+  }
+  .seg button {
+    border: 0; background: transparent; border-radius: 6px;
+    height: 28px; font-size: 11.5px; color: var(--muted); cursor: pointer;
+  }
+  .seg button.on { background: var(--card2); color: var(--fg); box-shadow: 0 0 0 1px var(--border); }
+
+  .pick-box {
+    border: 1px dashed var(--border2); border-radius: 10px; padding: 12px;
+    background: color-mix(in oklab, var(--clay) 6%, var(--card));
+  }
+  .pick-box strong { display: block; font-size: 12.5px; margin-bottom: 4px; }
+  .pick-box p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .pick-box .actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--border); background: var(--card2); color: var(--fg);
+    border-radius: 8px; height: 30px; padding: 0 12px; font-size: 12px; cursor: pointer;
+  }
+  .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 600; }
+  .btn:hover { filter: brightness(1.08); }
+
+  .main { padding: 18px 20px 48px; overflow: auto; }
+  .hero {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .hero h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .hero p { margin: 0; font-size: 13px; color: var(--muted); max-width: 62ch; line-height: 1.5; }
+  .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted); background: var(--card);
+  }
+  .badge.on { color: var(--emerald); border-color: color-mix(in oklab, var(--emerald) 40%, var(--border)); }
+
+  /* device frame */
+  .stage-wrap { margin-bottom: 18px; }
+  .stage-meta {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .stage-meta .title { font-size: 12px; color: var(--muted); }
+  .stage-meta .title b { color: var(--fg); font-weight: 600; }
+  .device {
+    margin: 0 auto; border: 1px solid var(--border2); border-radius: 16px;
+    background: #08080a; box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    overflow: hidden; transition: width .25s ease;
+  }
+  .device.phone { width: min(390px, 100%); }
+  .device.tablet { width: min(820px, 100%); }
+  .device.desktop { width: min(1280px, 100%); }
+  .device-bar {
+    display: flex; align-items: center; gap: 8px;
+    height: 34px; padding: 0 12px; border-bottom: 1px solid var(--border);
+    background: #101014; font-size: 11px; color: var(--muted2);
+  }
+  .device-bar .dots { display: flex; gap: 5px; }
+  .device-bar .dots i { width: 8px; height: 8px; border-radius: 50%; background: #333; display: block; }
+  .device-bar .dots i:nth-child(1) { background: #ff5f57; }
+  .device-bar .dots i:nth-child(2) { background: #febc2e; }
+  .device-bar .dots i:nth-child(3) { background: #28c840; }
+  .device-body { background: var(--bg); }
+
+  /* mock app */
+  .mock { padding: 14px; }
+  .status-strip {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    margin-bottom: 12px; font-size: 12px;
+  }
+  .status-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--emerald);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--emerald) 20%, transparent);
+  }
+  .dot.warn { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in oklab, var(--amber) 20%, transparent); }
+  .dot.bad { background: var(--rose-hot); box-shadow: 0 0 0 3px color-mix(in oklab, var(--rose-hot) 20%, transparent); }
+  .status-muted { color: var(--muted); font-size: 11.5px; }
+  .status-muted mono, .mono { font-family: var(--mono); }
+
+  .summary-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .sp {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); font-size: 11.5px;
+  }
+  .sp .l { color: var(--muted); }
+  .sp .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sp .v.amber { color: var(--amber); }
+
+  .banner {
+    display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 10px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid color-mix(in oklab, var(--amber) 40%, var(--border));
+    background: color-mix(in oklab, var(--amber) 10%, var(--card));
+    font-size: 11.5px; color: var(--honey);
+  }
+  .banner.show { display: flex; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 26px; padding: 0 8px; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent;
+    font-size: 11.5px; color: var(--muted); cursor: pointer;
+  }
+  .chip.on { background: #25252b; color: var(--fg); border-color: #3a3a44; }
+  .chip .sw { width: 8px; height: 8px; border-radius: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 10.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .mode-tabs {
+    display: none; gap: 4px; padding: 3px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg);
+  }
+  .mode-tabs.show { display: inline-flex; }
+  .mode-tabs button {
+    border: 0; background: transparent; height: 24px; padding: 0 10px;
+    border-radius: 6px; font-size: 11px; color: var(--muted); cursor: pointer;
+  }
+  .mode-tabs button.on { background: var(--card2); color: var(--fg); }
+
+  .panel-grid {
+    display: grid; grid-template-columns: 1fr 320px;
+    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    background: var(--card);
+  }
+  .panel-grid.stack { grid-template-columns: 1fr; }
+  .panel-grid.no-inspector .inspector { display: none; }
+  .canvas-area {
+    position: relative; min-height: 420px; background:
+      radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--muted) 12%, transparent) 1.2px, transparent 0) 0 0 / 24px 24px,
+      #141418;
+    overflow: auto;
+  }
+  .canvas-area.compact { min-height: 320px; }
+  .canvas-area.scroll-min { min-width: 0; }
+  .canvas-area.scroll-min .topo-svg-wrap { min-width: 720px; }
+  .topo-svg-wrap { width: 100%; height: 100%; min-height: inherit; }
+  .topo-svg-wrap svg { display: block; width: 100%; height: 100%; min-height: inherit; }
+
+  .inspector {
+    border-left: 1px solid var(--border); background: var(--card2);
+    display: flex; flex-direction: column; min-height: 100%;
+  }
+  .panel-grid.stack .inspector { border-left: 0; border-top: 1px solid var(--border); }
+  .ins-head {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+  }
+  .ins-head .k { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .ins-head .t { margin-top: 4px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .ins-body { padding: 4px 0 12px; font-size: 12px; }
+  .ins-sec { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .ins-sec h4 {
+    margin: 0 0 8px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .row {
+    display: flex; justify-content: space-between; gap: 10px; padding: 5px 0;
+  }
+  .row .l { color: var(--muted); font-size: 11.5px; }
+  .row .r { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; font-family: var(--mono); font-size: 11.5px; }
+  .meter { height: 6px; border-radius: 99px; background: #2a2a31; overflow: hidden; margin-top: 4px; }
+  .meter > i { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
+
+  /* matrix / cards */
+  .matrix, .cards { display: none; padding: 12px; min-height: 420px; }
+  .matrix.show, .cards.show { display: block; }
+  .matrix table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .matrix th, .matrix td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+  .matrix th { color: var(--muted); font-weight: 500; background: #121216; font-size: 11px; }
+  .matrix td .node {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg2); cursor: pointer;
+  }
+  .matrix td .node:hover, .matrix td .node.on { border-color: var(--clay); }
+  .matrix .nid { font-family: var(--mono); font-weight: 600; font-size: 11.5px; }
+  .matrix .meta { color: var(--muted); font-size: 10.5px; }
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .ncard {
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+    background: var(--bg2); cursor: pointer;
+  }
+  .ncard.on { border-color: var(--clay); }
+  .ncard .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .ncard .nid { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+  .ncard .host { color: var(--muted); font-size: 10.5px; margin-bottom: 8px; word-break: break-all; }
+  .ncard .bars { display: grid; gap: 6px; }
+  .ncard .bl { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
+
+  /* compare strip */
+  .compare {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 22px;
+  }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
+  .ccard {
+    border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--card);
+    cursor: pointer; transition: border-color .15s;
+  }
+  .ccard:hover { border-color: var(--border2); }
+  .ccard.selected { border-color: color-mix(in oklab, var(--clay) 60%, var(--border)); }
+  .ccard h3 { margin: 0 0 6px; font-size: 13px; }
+  .ccard p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .ccard ul { margin: 8px 0 0; padding-left: 16px; font-size: 11.5px; color: var(--muted); }
+  .ccard li { margin: 3px 0; }
+  .ccard .pick-ind {
+    display: none; margin-top: 8px; font-size: 11px; color: var(--clay); font-weight: 600;
+  }
+  .ccard.selected .pick-ind { display: block; }
+
+  .foot-note {
+    margin-top: 18px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg2);
+    font-size: 12px; color: var(--muted); line-height: 1.5;
+  }
+  .foot-note code { font-family: var(--mono); font-size: 11px; color: var(--honey); }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 18px; right: 18px; z-index: 50;
+    padding: 10px 14px; border-radius: 10px;
+    background: var(--fg); color: var(--bg); font-size: 12.5px; font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* mobile sheet */
+  .sheet {
+    display: none; position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 62%; border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0; background: var(--card2);
+    box-shadow: 0 -12px 40px rgba(0,0,0,.4); z-index: 5;
+  }
+  .sheet.show { display: block; }
+  .sheet .handle {
+    width: 36px; height: 4px; border-radius: 99px; background: #3a3a44;
+    margin: 8px auto 0;
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Cluster Topology <span>· chrome / modes</span></h1>
+    <div class="top-actions">
+      <a class="pill" href="./cluster-topology-graph-styles.html" style="text-decoration:none;display:inline-flex;align-items:center">Graph styles G1–G10 →</a>
+      <button class="pill" data-device="phone" type="button">Phone <kbd>1</kbd></button>
+      <button class="pill" data-device="tablet" type="button">Tablet <kbd>2</kbd></button>
+      <button class="pill active" data-device="desktop" type="button">Desktop <kbd>3</kbd></button>
+      <button class="pill" id="toggle-dark-info" type="button" title="Theme matches production dark dashboard">Dark mock</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section>
+        <h2>Design option</h2>
+        <button class="opt selected" data-option="A" type="button">
+          <div class="name">A · Status quo</div>
+          <div class="desc">Fixed height 480/540, min-width 720 scroll. Graph only. Inspector sticky at xl.</div>
+          <div class="tags"><span class="tag">baseline</span><span class="tag warn">weak mobile</span></div>
+        </button>
+        <button class="opt" data-option="B" type="button">
+          <div class="name">B · Adaptive fluid</div>
+          <div class="desc">Viewport-height canvas, no min-width, contentViewBox fit, density comfort/compact.</div>
+          <div class="tags"><span class="tag good">responsive</span><span class="tag">graph only</span></div>
+        </button>
+        <button class="opt" data-option="C" type="button">
+          <div class="name">C · Multi-mode</div>
+          <div class="desc">Graph · Matrix · Cards. Auto-pick by node count / viewport. Truncation banner.</div>
+          <div class="tags"><span class="tag good">recommended</span><span class="tag good">scale</span></div>
+        </button>
+        <button class="opt" data-option="D" type="button">
+          <div class="name">D · Multi-mode + sheet</div>
+          <div class="desc">C + bottom-sheet inspector on phone, stack on tablet, sticky side on desktop.</div>
+          <div class="tags"><span class="tag good">best mobile</span><span class="tag">most work</span></div>
+        </button>
+      </section>
+
+      <section>
+        <h2>Data scenario</h2>
+        <div class="field">
+          <label for="scenario">Fixture</label>
+          <select id="scenario">
+            <option value="healthy">F01 · Healthy 3×3 (screenshot)</option>
+            <option value="physical">F02 · Physical rings on</option>
+            <option value="replicated">F06 · 1 shard × 3 replicas</option>
+            <option value="degraded">F08 · Quorum degraded</option>
+            <option value="unreachable">F09 · Mixed unreachable</option>
+            <option value="single">F11 · Single node</option>
+            <option value="truncated">F12 · Truncated large (48→24)</option>
+            <option value="empty">F15 · Empty clusters</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>View mode (options C/D)</label>
+          <div class="seg" id="mode-seg">
+            <button type="button" data-mode="graph" class="on">Graph</button>
+            <button type="button" data-mode="matrix">Matrix</button>
+            <button type="button" data-mode="cards">Cards</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Density</label>
+          <div class="seg" id="density-seg">
+            <button type="button" data-density="comfort" class="on">Comfort</button>
+            <button type="button" data-density="compact">Compact</button>
+            <button type="button" data-density="focus">Focus</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Layers on graph</label>
+          <label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--fg)">
+            <input type="checkbox" id="layer-sr" checked /> shard · replica chips
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--fg)">
+            <input type="checkbox" id="layer-lag" checked /> replication lag badge
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--fg)">
+            <input type="checkbox" id="layer-mem" /> memory arc (in addition to CPU)
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Your pick</h2>
+        <div class="pick-box" id="pick-box">
+          <strong id="pick-title">Option A · Status quo</strong>
+          <p id="pick-note">Baseline. Fine for desktop ops; weak on phone and large fleets.</p>
+          <div class="actions">
+            <button class="btn primary" type="button" id="btn-pick">Confirm pick</button>
+            <button class="btn" type="button" id="btn-copy">Copy choice JSON</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="hero">
+        <div>
+          <h2 id="hero-title">A · Status quo</h2>
+          <p id="hero-desc">What ships today: fixed canvas height, horizontal scroll under 720px, graph-only rendering. Use the device pills and fixtures to stress each option.</p>
+          <div class="badge-row">
+            <span class="badge on" id="badge-device">desktop 1280</span>
+            <span class="badge" id="badge-option">option A</span>
+            <span class="badge" id="badge-scenario">healthy</span>
+            <span class="badge" id="badge-mode">graph</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-wrap">
+        <div class="stage-meta">
+          <div class="title">Live mock · <b id="stage-label">desktop · option A · healthy</b></div>
+          <div class="title">Click nodes to select · keys 1/2/3 switch device</div>
+        </div>
+        <div class="device desktop" id="device">
+          <div class="device-bar">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <span>dash.chmonitor.dev/clusters?host=0</span>
+          </div>
+          <div class="device-body">
+            <div class="mock" id="mock">
+              <!-- filled by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 style="font-size:13px;margin:0 0 10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600">Compare at a glance</h2>
+      <div class="compare" id="compare">
+        <div class="ccard selected" data-option="A">
+          <h3>A · Status quo</h3>
+          <p>Ship as-is. Lowest effort.</p>
+          <ul>
+            <li>Desktop OK (your screenshot)</li>
+            <li>Phone = horizontal scroll</li>
+            <li>No matrix for large clusters</li>
+          </ul>
+          <div class="pick-ind">← selected</div>
+        </div>
+        <div class="ccard" data-option="B">
+          <h3>B · Adaptive fluid</h3>
+          <p>Same graph, better chrome.</p>
+          <ul>
+            <li>vh-based height, no min-w</li>
+            <li>compact density for overview</li>
+            <li>Still one render mode</li>
+          </ul>
+          <div class="pick-ind">← selected</div>
+        </div>
+        <div class="ccard" data-option="C">
+          <h3>C · Multi-mode</h3>
+          <p>Recommended middle path.</p>
+          <ul>
+            <li>Graph / Matrix / Cards</li>
+            <li>Auto mode by N + viewport</li>
+            <li>Truncation + degraded UX</li>
+          </ul>
+          <div class="pick-ind">← selected</div>
+        </div>
+        <div class="ccard" data-option="D">
+          <h3>D · + Sheet inspector</h3>
+          <p>Best mobile; more UI work.</p>
+          <ul>
+            <li>Everything in C</li>
+            <li>Bottom sheet on phone</li>
+            <li>Matches native app patterns</li>
+          </ul>
+          <div class="pick-ind">← selected</div>
+        </div>
+      </div>
+
+      <div class="foot-note">
+        <strong style="color:var(--fg)">How to use:</strong>
+        pick an option in the left rail (or the cards below) · switch Phone / Tablet / Desktop · change fixtures and modes ·
+        hit <code>Confirm pick</code> to lock a choice. When ready, tell the agent
+        <code>implement option C</code> (or B/D) and it will wire components + fixtures.
+        File: <code>scripts/design-previews/cluster-topology-options.html</code>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">Picked</div>
+
+<script>
+/* ── state ── */
+const state = {
+  option: 'A',
+  device: 'desktop',
+  scenario: 'healthy',
+  mode: 'graph',
+  density: 'comfort',
+  selected: null,
+  layers: { sr: true, lag: true, mem: false },
+  confirmed: null,
+};
+
+const OPTIONS = {
+  A: {
+    title: 'A · Status quo',
+    desc: 'What ships today: fixed canvas height, horizontal scroll under 720px, graph-only rendering. Use the device pills and fixtures to stress each option.',
+    note: 'Baseline. Fine for desktop ops; weak on phone and large fleets.',
+  },
+  B: {
+    title: 'B · Adaptive fluid',
+    desc: 'Keeps a single Graph renderer but drops the 720px min-width, uses viewport-driven height, and adds comfort/compact density for overview embeds.',
+    note: 'Smallest useful upgrade. Improves mobile without new view modes.',
+  },
+  C: {
+    title: 'C · Multi-mode',
+    desc: 'Graph for intuition, Matrix for shard×replica truth, Cards for touch lists. Auto-selects mode from node count and viewport; truncation banner when CH_RENDER_CAP hits.',
+    note: 'Recommended: scales past 12–24 nodes and stays operable on phone.',
+  },
+  D: {
+    title: 'D · Multi-mode + sheet',
+    desc: 'Everything in C, plus a bottom-sheet inspector on phone and stacked inspector on tablet so selection never forces a full-page jump.',
+    note: 'Best mobile UX. Extra component work for the sheet + focus trap.',
+  },
+};
+
+/* ── fixtures ── */
+function fixture(id) {
+  const baseKeepers = [
+    { id: 'clickhouse-keeper-0', role: 'leader', host: 'clickhouse-keeper-0…local', lat: 2.0 },
+    { id: 'clickhouse-keeper-1', role: 'follower', host: 'clickhouse-keeper-1…local', lat: 12.0 },
+    { id: 'clickhouse-keeper-2', role: 'follower', host: 'clickhouse-keeper-2…local', lat: 3.0 },
+  ];
+  const baseNodes = [
+    { id: 'chi-…-0-0', host: 'chi-clickhouse-cluster-0-0.clickhouse.svc…', s: 1, r: 1, status: 'healthy', local: true, cpu: 12, mem: 41, lag: 0 },
+    { id: 'chi-…-0-1', host: 'chi-clickhouse-cluster-0-1.clickhouse.svc…', s: 1, r: 2, status: 'healthy', local: false, cpu: 19, mem: 38, lag: 0 },
+    { id: 'chi-…-0-2', host: 'chi-clickhouse-cluster-0-2.clickhouse.svc…', s: 1, r: 3, status: 'healthy', local: false, cpu: 8, mem: 44, lag: 0 },
+  ];
+  const clusters = [
+    { id: 'all-clusters', name: 'all-clusters', color: '#cc785c', outline: false },
+    { id: 'cluster', name: 'cluster', color: '#7aa2c0', outline: false },
+    { id: 'all-replicated', name: 'all-replicated', color: '#d9a05b', outline: true },
+    { id: 'all-sharded', name: 'all-sharded', color: '#9b8bc4', outline: true },
+    { id: 'default', name: 'default', color: '#6ba292', outline: true },
+  ];
+
+  switch (id) {
+    case 'physical':
+      return {
+        keepers: baseKeepers, nodes: baseNodes, clusters, showPhysical: true,
+        quorum: 'healthy', counts: { nodes: 6, keepers: 3, ch: 3, clusters: '5 (3 phys · 2 log)' },
+        truncated: false, empty: false,
+      };
+    case 'replicated':
+      return {
+        keepers: baseKeepers.slice(0, 1),
+        nodes: baseNodes.map((n, i) => ({ ...n, s: 1, r: i + 1 })),
+        clusters: [clusters[1]],
+        showPhysical: false, quorum: 'healthy',
+        counts: { nodes: 4, keepers: 1, ch: 3, clusters: '1 (0 phys · 1 log)' },
+        truncated: false, empty: false, repl: true,
+      };
+    case 'degraded':
+      return {
+        keepers: [
+          { ...baseKeepers[0], lat: 48 },
+          { ...baseKeepers[1], role: 'unknown', lat: 0 },
+          { ...baseKeepers[2], lat: 22 },
+        ],
+        nodes: baseNodes, clusters, showPhysical: false,
+        quorum: 'degraded', counts: { nodes: 6, keepers: 3, ch: 3, clusters: '5 (3 phys · 2 log)' },
+        truncated: false, empty: false,
+      };
+    case 'unreachable':
+      return {
+        keepers: baseKeepers, clusters, showPhysical: false, quorum: 'healthy',
+        nodes: [
+          { ...baseNodes[0], status: 'healthy' },
+          { ...baseNodes[1], status: 'warn', cpu: 91, mem: 88, lag: 12 },
+          { ...baseNodes[2], status: 'unreachable', cpu: null, mem: null, lag: null },
+        ],
+        counts: { nodes: 6, keepers: 3, ch: 3, clusters: '5 (3 phys · 2 log)' },
+        truncated: false, empty: false,
+      };
+    case 'single':
+      return {
+        keepers: [], nodes: [{ ...baseNodes[0], id: 'localhost', host: 'localhost', s: 1, r: 1 }],
+        clusters: [{ id: 'default', name: 'default', color: '#6ba292', outline: false }],
+        showPhysical: false, quorum: 'none',
+        counts: { nodes: 1, keepers: 0, ch: 1, clusters: '1 (0 phys · 1 log)' },
+        truncated: false, empty: false,
+      };
+    case 'truncated': {
+      const many = Array.from({ length: 24 }, (_, i) => ({
+        id: `chi-…-${Math.floor(i / 3)}-${i % 3}`,
+        host: `chi-clickhouse-cluster-${Math.floor(i / 3)}-${i % 3}…`,
+        s: Math.floor(i / 3) + 1, r: (i % 3) + 1,
+        status: i % 7 === 0 ? 'warn' : 'healthy',
+        local: i === 0, cpu: 5 + (i % 40), mem: 30 + (i % 50), lag: i % 11 === 0 ? 4 : 0,
+      }));
+      return {
+        keepers: baseKeepers, nodes: many, clusters, showPhysical: false, quorum: 'healthy',
+        counts: { nodes: 51, keepers: 3, ch: 48, clusters: '5 (3 phys · 2 log)' },
+        truncated: true, hidden: 24, empty: false,
+      };
+    }
+    case 'empty':
+      return {
+        keepers: [], nodes: [], clusters: [], showPhysical: false, quorum: 'none',
+        counts: { nodes: 0, keepers: 0, ch: 0, clusters: '0' },
+        truncated: false, empty: true,
+      };
+    default:
+      return {
+        keepers: baseKeepers, nodes: baseNodes, clusters, showPhysical: false,
+        quorum: 'healthy', counts: { nodes: 6, keepers: 3, ch: 3, clusters: '5 (3 phys · 2 log)' },
+        truncated: false, empty: false,
+      };
+  }
+}
+
+const STATUS_COLOR = {
+  healthy: '#10b981',
+  warn: '#f59e0b',
+  down: '#f43f5e',
+  unreachable: '#94a3b8',
+};
+
+/* ── layout helpers for mock SVG ── */
+function layoutGraph(data) {
+  const W = 960, H = state.density === 'compact' ? 360 : 480;
+  const keepers = data.keepers.map((k, i) => {
+    const n = data.keepers.length;
+    const cx = W / 2;
+    if (n === 1) return { ...k, x: cx, y: 70 };
+    if (k.role === 'leader') return { ...k, x: cx, y: 58 };
+    const followers = data.keepers.filter((x) => x.role !== 'leader');
+    const fi = followers.indexOf(k);
+    const spread = 140;
+    const x = cx - ((followers.length - 1) * spread) / 2 + fi * spread;
+    return { ...k, x, y: 120 };
+  });
+  const nodes = data.nodes.slice(0, 12).map((n, i, arr) => {
+    const cols = Math.min(arr.length, 4);
+    const rows = Math.ceil(arr.length / cols);
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const gapX = 180, gapY = 130;
+    const totalW = (cols - 1) * gapX;
+    const x = W / 2 - totalW / 2 + col * gapX;
+    const y = (data.keepers.length ? 280 : 140) + row * gapY;
+    return { ...n, x, y };
+  });
+  return { W, H, keepers, nodes };
+}
+
+function hexPath(r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 180) * (60 * i - 90);
+    pts.push(`${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`);
+  }
+  return `M ${pts.join(' L ')} Z`;
+}
+
+function curve(x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const bend = Math.min(40, len * 0.16);
+  const cx = (x1 + x2) / 2 - (dy / len) * bend;
+  const cy = (y1 + y2) / 2 + (dx / len) * bend;
+  return `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+}
+
+function renderSvg(data) {
+  const { W, H, keepers, nodes } = layoutGraph(data);
+  const showPhys = data.showPhysical;
+  const hulls = data.clusters.filter((c) => showPhys || !c.outline);
+  const nest = hulls.length;
+  let hullSvg = '';
+  if (nodes.length) {
+    const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
+    const minX = Math.min(...xs) - 90, maxX = Math.max(...xs) + 90;
+    const minY = Math.min(...ys) - 70, maxY = Math.max(...ys) + 90;
+    hulls.forEach((c, i) => {
+      const o = (nest - 1 - i) * 18;
+      const x = minX - o, y = minY - o;
+      const w = maxX - minX + o * 2, h = maxY - minY + o * 2;
+      const op = c.outline ? 0.08 : 0.12;
+      hullSvg += `
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="18"
+          fill="${c.color}" fill-opacity="${op}" stroke="${c.color}" stroke-opacity="${c.outline ? 0.45 : 0.7}"
+          stroke-width="${c.outline ? 1.4 : 1.8}" />
+        <g transform="translate(${(x + w / 2)}, ${y + h + 4})">
+          <rect x="-42" y="0" width="84" height="18" rx="9" fill="${c.color}" fill-opacity="0.2" stroke="${c.color}" stroke-opacity="0.7"/>
+          <text text-anchor="middle" y="13" fill="${c.color}" font-size="10" font-family="ui-monospace,monospace">${c.name}</text>
+        </g>`;
+    });
+  }
+
+  let keeperHull = '';
+  if (keepers.length) {
+    const xs = keepers.map((k) => k.x), ys = keepers.map((k) => k.y);
+    const minX = Math.min(...xs) - 70, maxX = Math.max(...xs) + 70;
+    const minY = Math.min(...ys) - 55, maxY = Math.max(...ys) + 70;
+    keeperHull = `
+      <rect x="${minX}" y="${minY}" width="${maxX - minX}" height="${maxY - minY}" rx="16"
+        fill="#10b981" fill-opacity="0.05" stroke="#10b981" stroke-opacity="0.4" stroke-dasharray="6 5"/>
+      <g transform="translate(${(minX + maxX) / 2}, ${minY - 6})">
+        <rect x="-70" y="-16" width="140" height="18" rx="9" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.5"/>
+        <text text-anchor="middle" y="-3" fill="#10b981" font-size="10" font-family="ui-monospace,monospace">Keeper quorum · Raft</text>
+      </g>`;
+  }
+
+  let edges = '';
+  if (keepers.length > 1) {
+    for (let i = 0; i < keepers.length; i++) {
+      for (let j = i + 1; j < keepers.length; j++) {
+        const a = keepers[i], b = keepers[j];
+        edges += `<path d="${curve(a.x, a.y, b.x, b.y)}" fill="none" stroke="#10b981" stroke-opacity="0.35" stroke-width="1.3"/>`;
+      }
+    }
+  }
+  const leader = keepers.find((k) => k.role === 'leader');
+  if (leader) {
+    nodes.forEach((n) => {
+      edges += `<path d="${curve(n.x, n.y, leader.x, leader.y)}" fill="none" stroke="#8b8b96" stroke-opacity="0.35" stroke-width="1.3" stroke-dasharray="5 5"/>`;
+    });
+  }
+  if (data.repl && nodes.length > 1) {
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i], b = nodes[i + 1];
+      edges += `<path d="${curve(a.x, a.y, b.x, b.y)}" fill="none" stroke="#3b82f6" stroke-opacity="0.55" stroke-width="1.6"/>`;
+    }
+  }
+
+  const kpR = state.density === 'compact' ? 32 : 36;
+  const chR = state.density === 'compact' ? 34 : 40;
+
+  let kpSvg = keepers.map((k) => {
+    const col = k.role === 'leader' ? '#f59e0b' : '#10b981';
+    const star = k.role === 'leader'
+      ? `<text y="${-kpR - 10}" text-anchor="middle" fill="#f59e0b" font-size="12">★</text>` : '';
+    return `<g transform="translate(${k.x},${k.y})" style="cursor:pointer" data-id="${k.id}" class="node-hit">
+      <path d="${hexPath(kpR)}" fill="#17171b" stroke="${col}" stroke-width="2"/>
+      <path transform="scale(0.9)" d="M 0 -8 L 7.5 -4 v 6 c 0 5 -3.8 8.2 -7.5 9.5 c -3.7 -1.3 -7.5 -4.5 -7.5 -9.5 v -6 Z" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.85"/>
+      ${star}
+      <text y="${kpR + 16}" text-anchor="middle" fill="#ececef" font-size="10.5" font-family="ui-monospace,monospace">${k.id}</text>
+      <text y="${kpR + 30}" text-anchor="middle" fill="#8b8b96" font-size="9.5">${k.role} · ${k.lat}ms</text>
+    </g>`;
+  }).join('');
+
+  let chSvg = nodes.map((n) => {
+    const col = STATUS_COLOR[n.status] || STATUS_COLOR.healthy;
+    const sel = state.selected === n.id;
+    const unreachable = n.status === 'unreachable';
+    const cpu = n.cpu == null ? 0 : n.cpu;
+    const meter = unreachable ? '' : `
+      <rect x="${-chR + 8}" y="${chR - 14}" width="${(chR - 8) * 2}" height="5" rx="2.5" fill="#2a2a31"/>
+      <rect x="${-chR + 8}" y="${chR - 14}" width="${((chR - 8) * 2) * Math.min(1, cpu / 100)}" height="5" rx="2.5" fill="${cpu > 85 ? '#f43f5e' : '#3b82f6'}"/>`;
+    const logo = unreachable
+      ? `<g opacity="0.35" filter="grayscale(1)">
+          <rect x="-10" y="4" width="4" height="4" fill="#ff1f00"/>
+          <rect x="-10" y="-12" width="4" height="16" fill="#faff00"/>
+          <rect x="-4" y="-12" width="4" height="20" fill="#faff00"/>
+          <rect x="2" y="-12" width="4" height="20" fill="#faff00"/>
+          <rect x="8" y="-12" width="4" height="20" fill="#faff00"/>
+          <rect x="14" y="-2" width="4" height="4" fill="#faff00"/>
+        </g>`
+      : `<g>
+          <rect x="-10" y="4" width="4" height="4" fill="#ff1f00"/>
+          <rect x="-10" y="-12" width="4" height="16" fill="#faff00"/>
+          <rect x="-4" y="-12" width="4" height="20" fill="#faff00"/>
+          <rect x="2" y="-12" width="4" height="20" fill="#faff00"/>
+          <rect x="8" y="-12" width="4" height="20" fill="#faff00"/>
+          <rect x="14" y="-2" width="4" height="4" fill="#faff00"/>
+        </g>`;
+    const local = n.local
+      ? `<g transform="translate(0, ${chR + 44})">
+          <rect x="-22" y="-9" width="44" height="14" rx="7" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.6"/>
+          <text text-anchor="middle" y="1.5" fill="#7aa2c0" font-size="8.5" font-weight="600">LOCAL</text>
+        </g>` : '';
+    const sr = state.layers.sr
+      ? `<text y="${chR + 30}" text-anchor="middle" fill="#8b8b96" font-size="9">s${n.s} · r${n.r}${n.cpu != null ? ` · cpu ${n.cpu}%` : ''}</text>`
+      : `<text y="${chR + 30}" text-anchor="middle" fill="#8b8b96" font-size="9">${n.cpu != null ? `cpu ${n.cpu}%` : '—'}</text>`;
+    const lag = state.layers.lag && n.lag > 0
+      ? `<g transform="translate(${chR - 6}, ${-chR + 6})">
+          <rect x="-16" y="-7" width="32" height="14" rx="7" fill="#f59e0b" fill-opacity="0.2" stroke="#f59e0b"/>
+          <text text-anchor="middle" y="3.5" fill="#f59e0b" font-size="8" font-weight="700">lag ${n.lag}</text>
+        </g>` : '';
+    const ring = sel || n.local
+      ? `<rect x="${-chR - 4}" y="${-chR - 4}" width="${(chR + 4) * 2}" height="${(chR + 4) * 2}" rx="14"
+          fill="none" stroke="${sel ? '#cc785c' : '#3b82f6'}" stroke-opacity="${sel ? 0.9 : 0.45}" stroke-width="2"/>` : '';
+    const dash = unreachable ? '4 3' : 'none';
+    return `<g transform="translate(${n.x},${n.y})" style="cursor:pointer" data-id="${n.id}" class="node-hit">
+      ${ring}
+      <rect x="${-chR}" y="${-chR}" width="${chR * 2}" height="${chR * 2}" rx="12"
+        fill="#17171b" stroke="${col}" stroke-width="1.8" stroke-dasharray="${dash}" opacity="${unreachable ? 0.7 : 1}"/>
+      ${logo}
+      <text y="22" text-anchor="middle" fill="#ececef" font-size="9.5" font-family="ui-monospace,monospace">${n.id}</text>
+      ${meter}
+      <circle cx="${chR - 4}" cy="${-chR + 4}" r="4.5" fill="${col}" stroke="#17171b" stroke-width="1.5"/>
+      ${lag}
+      <text y="${chR + 16}" text-anchor="middle" fill="#8b8b96" font-size="9">${truncate(n.host, 22)}</text>
+      ${sr}
+      ${local}
+    </g>`;
+  }).join('');
+
+  const more = data.nodes.length > 12
+    ? `<text x="${W / 2}" y="${H - 16}" text-anchor="middle" fill="#8b8b96" font-size="11">+${data.nodes.length - 12} more in matrix…</text>` : '';
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cluster topology mock">
+    ${keeperHull}${hullSvg}${edges}${kpSvg}${chSvg}${more}
+  </svg>`;
+}
+
+function truncate(s, n) {
+  if (!s || s.length <= n) return s || '';
+  return s.slice(0, Math.ceil((n - 1) / 2)) + '…' + s.slice(-Math.floor((n - 1) / 2));
+}
+
+function renderMatrix(data) {
+  if (data.empty) return emptyBlock();
+  const shards = [...new Set(data.nodes.map((n) => n.s))].sort((a, b) => a - b);
+  const reps = [...new Set(data.nodes.map((n) => n.r))].sort((a, b) => a - b);
+  const head = reps.map((r) => `<th>replica ${r}</th>`).join('');
+  const rows = shards.map((s) => {
+    const cells = reps.map((r) => {
+      const n = data.nodes.find((x) => x.s === s && x.r === r);
+      if (!n) return `<td></td>`;
+      const on = state.selected === n.id ? 'on' : '';
+      return `<td><div class="node ${on}" data-id="${n.id}">
+        <div class="nid">${n.id}</div>
+        <div class="meta">${n.status}${n.cpu != null ? ` · cpu ${n.cpu}%` : ''}${n.local ? ' · local' : ''}</div>
+      </div></td>`;
+    }).join('');
+    return `<tr><th>shard ${s}</th>${cells}</tr>`;
+  }).join('');
+  return `<div class="matrix show"><table><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderCards(data) {
+  if (data.empty) return emptyBlock();
+  const cards = data.nodes.slice(0, 18).map((n) => {
+    const on = state.selected === n.id ? 'on' : '';
+    const cpu = n.cpu ?? 0;
+    const mem = n.mem ?? 0;
+    return `<div class="ncard ${on}" data-id="${n.id}">
+      <div class="top">
+        <span class="nid">${n.id}</span>
+        <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[n.status]}"></span>
+      </div>
+      <div class="host">${n.host}</div>
+      <div class="bars">
+        <div><div class="bl"><span>CPU</span><span>${n.cpu ?? '—'}%</span></div><div class="meter"><i style="width:${cpu}%;background:${cpu > 85 ? 'var(--rose-hot)' : 'var(--blue)'}"></i></div></div>
+        <div><div class="bl"><span>MEM</span><span>${n.mem ?? '—'}%</span></div><div class="meter"><i style="width:${mem}%;background:${mem > 85 ? 'var(--rose-hot)' : 'var(--peri)'}"></i></div></div>
+        <div class="bl"><span>s${n.s} · r${n.r}</span><span>${n.local ? 'LOCAL' : 'remote'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="cards show"><div class="cards-grid">${cards}</div></div>`;
+}
+
+function emptyBlock() {
+  return `<div style="padding:48px 20px;text-align:center;color:var(--muted);font-size:13px">
+    No clusters found in <span class="mono">system.clusters</span> for this host.
+  </div>`;
+}
+
+function inspectorHtml(data) {
+  const node = data.nodes.find((n) => n.id === state.selected);
+  if (!node) {
+    return `
+      <div class="ins-head"><div class="k">Inspector</div><div class="t">Cluster overview</div></div>
+      <div class="ins-body">
+        <div class="ins-sec">
+          <h4>Keeper quorum</h4>
+          <div class="row"><span class="l">Members</span><span class="r">${data.keepers.length} nodes</span></div>
+          <div class="row"><span class="l">Leader</span><span class="r">${data.keepers.find(k=>k.role==='leader')?.id || '—'}</span></div>
+          <div class="row"><span class="l">Status</span><span class="r">${data.quorum}</span></div>
+        </div>
+        <div class="ins-sec">
+          <h4>Virtual clusters</h4>
+          ${data.clusters.map(c => `<div class="row"><span class="l" style="display:flex;align-items:center;gap:6px"><i style="width:8px;height:8px;border-radius:2px;background:${c.color};display:inline-block"></i>${c.name}</span><span class="r">${c.outline ? 'physical' : 'logical'}</span></div>`).join('') || '<div class="row"><span class="l">None</span></div>'}
+        </div>
+      </div>`;
+  }
+  const cpu = node.cpu ?? 0;
+  const mem = node.mem ?? 0;
+  return `
+    <div class="ins-head">
+      <div class="k">Inspector</div>
+      <div class="t"><span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[node.status]}"></span>
+        <span class="mono">${node.id}</span>
+        <span style="font-size:11px;font-weight:400;color:var(--muted)">ClickHouse</span>
+      </div>
+    </div>
+    <div class="ins-body">
+      <div class="ins-sec">
+        <h4>Identity</h4>
+        <div class="row"><span class="l">Hostname</span><span class="r">${truncate(node.host, 28)}</span></div>
+        <div class="row"><span class="l">Shard / Replica</span><span class="r">s${node.s} · r${node.r}</span></div>
+        <div class="row"><span class="l">Status</span><span class="r">${node.status}</span></div>
+        <div class="row"><span class="l">is_local</span><span class="r">${node.local}</span></div>
+      </div>
+      <div class="ins-sec">
+        <h4>Live resources</h4>
+        <div class="row"><span class="l">CPU</span><span class="r">${node.cpu ?? '—'}%</span></div>
+        <div class="meter"><i style="width:${cpu}%"></i></div>
+        <div class="row" style="margin-top:8px"><span class="l">Memory</span><span class="r">${node.mem ?? '—'}%</span></div>
+        <div class="meter"><i style="width:${mem}%;background:var(--peri)"></i></div>
+      </div>
+    </div>`;
+}
+
+function effectiveMode(data) {
+  if (state.option === 'A' || state.option === 'B') return 'graph';
+  // C/D: respect manual, but auto-nudge for truncated / phone
+  if (state.mode !== 'graph' && state.mode !== 'matrix' && state.mode !== 'cards') return 'graph';
+  return state.mode;
+}
+
+function renderMock() {
+  const data = fixture(state.scenario);
+  const device = state.device;
+  const option = state.option;
+  const mode = effectiveMode(data);
+
+  // badges
+  document.getElementById('badge-device').textContent = device === 'phone' ? 'phone 390' : device === 'tablet' ? 'tablet 820' : 'desktop 1280';
+  document.getElementById('badge-option').textContent = 'option ' + option;
+  document.getElementById('badge-scenario').textContent = state.scenario;
+  document.getElementById('badge-mode').textContent = mode;
+  document.getElementById('stage-label').textContent = `${device} · option ${option} · ${state.scenario} · ${mode}`;
+
+  const stack = device !== 'desktop' || option === 'A' && device === 'tablet';
+  const useSheet = option === 'D' && device === 'phone' && state.selected;
+  const noInspector = option === 'D' && device === 'phone'; // inspector moves to sheet
+  const showModes = option === 'C' || option === 'D';
+  const scrollMin = option === 'A';
+  const compact = state.density === 'compact';
+  const panelClass = [
+    'panel-grid',
+    (device !== 'desktop' ? 'stack' : ''),
+    (noInspector ? 'no-inspector' : ''),
+  ].filter(Boolean).join(' ');
+
+  const statusText =
+    data.empty ? 'No topology'
+    : data.quorum === 'degraded' ? 'Quorum degraded'
+    : data.quorum === 'none' ? 'Cluster online · no Keeper'
+    : 'Quorum healthy · all replicas online';
+  const dotClass = data.quorum === 'degraded' ? 'warn' : data.empty ? 'bad' : '';
+
+  const chips = data.clusters
+    .filter((c) => data.showPhysical || !c.outline)
+    .map((c) => `<button type="button" class="chip on"><span class="sw" style="background:${c.color}"></span><span class="mono">${c.name}</span></button>`)
+    .join('');
+  const implicit = data.clusters.some((c) => c.outline)
+    ? `<button type="button" class="chip ${data.showPhysical ? 'on' : ''}">${data.showPhysical ? 'Hide implicit' : 'Implicit (' + data.clusters.filter(c=>c.outline).length + ')'}</button>`
+    : '';
+
+  let body = '';
+  if (mode === 'matrix' && showModes) body = renderMatrix(data);
+  else if (mode === 'cards' && showModes) body = renderCards(data);
+  else if (data.empty) body = emptyBlock();
+  else body = `<div class="topo-svg-wrap">${renderSvg(data)}</div>`;
+
+  const banner = data.truncated
+    ? `<div class="banner show">Showing 24 of ${data.counts.ch} ClickHouse nodes · open <b>Matrix</b> for the full set · ${data.hidden} hidden by render cap</div>`
+    : data.quorum === 'degraded'
+      ? `<div class="banner show">Keeper quorum degraded — 2/3 members connected · lag elevated on leader</div>`
+      : `<div class="banner"></div>`;
+
+  const canvasMin = compact ? 'compact' : '';
+  const canvasScroll = scrollMin ? 'scroll-min' : '';
+
+  document.getElementById('mock').innerHTML = `
+    <div class="status-strip">
+      <div class="status-left">
+        <span class="dot ${dotClass}"></span>
+        <span style="font-weight:500;font-size:12.5px">${statusText}</span>
+        <span class="status-muted">· cluster <span class="mono">default</span> · updated 30s ago</span>
+      </div>
+      <button class="chip" type="button">Refresh</button>
+    </div>
+    <div class="summary-pills">
+      <div class="sp"><span class="l">Nodes</span><span class="v">${data.counts.nodes}</span></div>
+      <div class="sp"><span class="l">Keeper</span><span class="v">${data.counts.keepers}${data.keepers[0] ? ' · leader ' + data.keepers[0].id.replace('clickhouse-','') : ''}</span></div>
+      <div class="sp"><span class="l">ClickHouse</span><span class="v">${data.counts.ch}</span></div>
+      <div class="sp"><span class="l">Clusters</span><span class="v">${data.counts.clusters}</span></div>
+      <div class="sp"><span class="l">Active queries</span><span class="v amber">7</span></div>
+    </div>
+    ${banner}
+    <div class="${panelClass}">
+      <div>
+        <div class="toolbar">
+          <div class="chips">
+            <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px">Clusters</span>
+            ${chips}${implicit}
+            <div class="mode-tabs ${showModes ? 'show' : ''}">
+              <button type="button" data-mode-tab="graph" class="${mode==='graph'?'on':''}">Graph</button>
+              <button type="button" data-mode-tab="matrix" class="${mode==='matrix'?'on':''}">Matrix</button>
+              <button type="button" data-mode-tab="cards" class="${mode==='cards'?'on':''}">Cards</button>
+            </div>
+          </div>
+          <div class="legend">
+            <span>□ ClickHouse</span><span>⬡ Keeper</span>
+            <span style="opacity:.8">— replication</span>
+            <span style="opacity:.8">⋯ coordination</span>
+            <span><i style="width:7px;height:7px;border-radius:50%;background:var(--emerald);display:inline-block"></i> healthy</span>
+            <span><i style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block"></i> warn</span>
+            <span><i style="width:7px;height:7px;border-radius:50%;background:var(--slate);display:inline-block"></i> unreachable</span>
+          </div>
+        </div>
+        <div class="canvas-area ${canvasMin} ${canvasScroll}" style="${mode!=='graph'||data.empty?'background:var(--card);min-height:auto':''}">
+          ${body}
+          ${option === 'D' && device === 'phone' ? `
+            <div class="sheet ${state.selected ? 'show' : ''}" id="sheet">
+              <div class="handle"></div>
+              <div class="inspector" style="border:0">${inspectorHtml(data)}</div>
+            </div>` : ''}
+        </div>
+      </div>
+      ${noInspector ? '' : `<div class="inspector">${inspectorHtml(data)}</div>`}
+    </div>
+  `;
+
+  // bind clicks
+  document.querySelectorAll('.node-hit, .ncard, .matrix .node').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.getAttribute('data-id');
+      state.selected = state.selected === id ? null : id;
+      renderMock();
+    });
+  });
+  document.querySelectorAll('[data-mode-tab]').forEach((el) => {
+    el.addEventListener('click', () => {
+      state.mode = el.getAttribute('data-mode-tab');
+      syncModeSeg();
+      renderMock();
+    });
+  });
+}
+
+function syncModeSeg() {
+  document.querySelectorAll('#mode-seg button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.mode === state.mode);
+  });
+}
+
+function setOption(opt) {
+  state.option = opt;
+  document.querySelectorAll('.opt').forEach((el) => el.classList.toggle('selected', el.dataset.option === opt));
+  document.querySelectorAll('.ccard').forEach((el) => el.classList.toggle('selected', el.dataset.option === opt));
+  const o = OPTIONS[opt];
+  document.getElementById('hero-title').textContent = o.title;
+  document.getElementById('hero-desc').textContent = o.desc;
+  document.getElementById('pick-title').textContent = o.title;
+  document.getElementById('pick-note').textContent = o.note;
+  // default mode hints
+  if (opt === 'A' || opt === 'B') state.mode = 'graph';
+  if (opt === 'C' || opt === 'D') {
+    if (state.device === 'phone' && state.mode === 'graph') {
+      /* leave manual */
+    }
+  }
+  syncModeSeg();
+  renderMock();
+}
+
+function setDevice(dev) {
+  state.device = dev;
+  const el = document.getElementById('device');
+  el.classList.remove('phone', 'tablet', 'desktop');
+  el.classList.add(dev);
+  document.querySelectorAll('[data-device]').forEach((b) => b.classList.toggle('active', b.dataset.device === dev));
+  // sensible mode defaults for C/D
+  if ((state.option === 'C' || state.option === 'D') && dev === 'phone' && state.mode === 'graph') {
+    // keep graph so user can still compare; don't force
+  }
+  renderMock();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ── wire UI ── */
+document.querySelectorAll('.opt').forEach((el) => el.addEventListener('click', () => setOption(el.dataset.option)));
+document.querySelectorAll('.ccard').forEach((el) => el.addEventListener('click', () => setOption(el.dataset.option)));
+document.querySelectorAll('[data-device]').forEach((el) => el.addEventListener('click', () => setDevice(el.dataset.device)));
+document.getElementById('scenario').addEventListener('change', (e) => {
+  state.scenario = e.target.value;
+  state.selected = null;
+  renderMock();
+});
+document.querySelectorAll('#mode-seg button').forEach((b) => {
+  b.addEventListener('click', () => {
+    state.mode = b.dataset.mode;
+    syncModeSeg();
+    renderMock();
+  });
+});
+document.querySelectorAll('#density-seg button').forEach((b) => {
+  b.addEventListener('click', () => {
+    state.density = b.dataset.density;
+    document.querySelectorAll('#density-seg button').forEach((x) => x.classList.toggle('on', x === b));
+    renderMock();
+  });
+});
+['layer-sr', 'layer-lag', 'layer-mem'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    const key = id.replace('layer-', '');
+    state.layers[key] = e.target.checked;
+    renderMock();
+  });
+});
+
+document.getElementById('btn-pick').addEventListener('click', () => {
+  state.confirmed = {
+    option: state.option,
+    deviceChecked: state.device,
+    scenario: state.scenario,
+    mode: state.mode,
+    density: state.density,
+    layers: { ...state.layers },
+    title: OPTIONS[state.option].title,
+    at: new Date().toISOString(),
+  };
+  try { localStorage.setItem('topo-design-pick', JSON.stringify(state.confirmed)); } catch {}
+  toast('Picked ' + state.option + ' · saved locally');
+});
+
+document.getElementById('btn-copy').addEventListener('click', async () => {
+  const payload = state.confirmed || {
+    option: state.option,
+    mode: state.mode,
+    density: state.density,
+    layers: state.layers,
+    title: OPTIONS[state.option].title,
+  };
+  const text = JSON.stringify(payload, null, 2);
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Copied choice JSON');
+  } catch {
+    prompt('Copy this:', text);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, select, textarea')) return;
+  if (e.key === '1') setDevice('phone');
+  if (e.key === '2') setDevice('tablet');
+  if (e.key === '3') setDevice('desktop');
+  if (e.key === 'a' || e.key === 'A') setOption('A');
+  if (e.key === 'b' || e.key === 'B') setOption('B');
+  if (e.key === 'c' || e.key === 'C') setOption('C');
+  if (e.key === 'd' || e.key === 'D') setOption('D');
+});
+
+// restore pick
+try {
+  const saved = JSON.parse(localStorage.getItem('topo-design-pick') || 'null');
+  if (saved?.option) {
+    state.confirmed = saved;
+    setOption(saved.option);
+    if (saved.mode) state.mode = saved.mode;
+    if (saved.density) state.density = saved.density;
+    syncModeSeg();
+  }
+} catch {}
+
+setDevice('desktop');
+setOption(state.option);
+</script>
+</body>
+</html>

@@ -154,12 +154,15 @@ export function ChGlyph({
   selected,
   dimmed,
   onSelect,
+  onPointerDown,
 }: {
   node: ChNode
   live: LiveMetrics | undefined
   selected: boolean
   dimmed: boolean
   onSelect: (id: string) => void
+  /** Start a drag (node). Parent owns move/up listeners. */
+  onPointerDown?: (e: React.PointerEvent, id: string) => void
 }) {
   const r = CH_R
   const side = r * 2
@@ -200,8 +203,19 @@ export function ChGlyph({
       role="button"
       aria-label={`ClickHouse node ${idText}`}
       onClick={(e) => {
+        // When drag is wired, selection is decided on pointer-up in the canvas
+        // (avoids toggle-twice: pointerup select + click select).
+        if (onPointerDown) {
+          e.stopPropagation()
+          return
+        }
         e.stopPropagation()
         onSelect(node.id)
+      }}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return
+        e.stopPropagation()
+        onPointerDown?.(e, node.id)
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -211,7 +225,7 @@ export function ChGlyph({
         }
       }}
       style={{
-        cursor: 'pointer',
+        cursor: onPointerDown ? 'grab' : 'pointer',
         opacity: dimmed ? 0.25 : unreachable ? 0.72 : 1,
         transition: 'opacity .25s',
         outline: 'none',
@@ -232,43 +246,46 @@ export function ChGlyph({
           strokeWidth="2"
         />
       )}
+      {/* G8 glass: soft selection glow (no hard double-ring stack). */}
       {selected && (
         <rect
-          x={-r - 7}
-          y={-r - 7}
-          width={side + 14}
-          height={side + 14}
+          className="topo-select-glow"
+          x={-r - 8}
+          y={-r - 8}
+          width={side + 16}
+          height={side + 16}
           rx="18"
-          fill="none"
+          fill="var(--primary)"
+          fillOpacity="0.08"
           stroke="var(--primary)"
-          strokeWidth="2.5"
-          opacity="0.9"
+          strokeWidth="2"
+          strokeOpacity="0.55"
         />
       )}
-      {/* status glow keeps the card visible over the dotted grid in dark mode */}
+      {/* Soft status wash under the glass card */}
       <rect
         x={-r}
         y={-r}
         width={side}
         height={side}
-        rx="13"
+        rx="14"
         fill={statusCol}
-        fillOpacity="0.1"
+        fillOpacity="0.12"
       />
-      {/* the server card */}
+      {/* Glass card — frosted fill, single status stroke (no stacked casing). */}
       <rect
+        className="topo-glass-card"
         x={-r}
         y={-r}
         width={side}
         height={side}
-        rx="13"
+        rx="14"
         fill="var(--card)"
-        fillOpacity="0.97"
+        fillOpacity="0.72"
         stroke={statusCol}
-        strokeOpacity={unreachable ? 0.9 : 0.85}
-        strokeWidth="2"
+        strokeOpacity={unreachable ? 0.75 : 0.9}
+        strokeWidth="2.1"
         strokeDasharray={unreachable ? '4 4' : undefined}
-        style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.18))' }}
       />
       {/* ClickHouse brand mark — instantly identifies a ClickHouse server */}
       <g transform={`translate(0 ${-r * 0.36})`}>
@@ -353,11 +370,13 @@ export function KeeperGlyph({
   selected,
   dimmed,
   onSelect,
+  onPointerDown,
 }: {
   node: KeeperNode
   selected: boolean
   dimmed: boolean
   onSelect: (id: string) => void
+  onPointerDown?: (e: React.PointerEvent, id: string) => void
 }) {
   const r = KP_R
   const isLeader = node.isLeader
@@ -374,8 +393,17 @@ export function KeeperGlyph({
       role="button"
       aria-label={`Keeper node ${idText}`}
       onClick={(e) => {
+        if (onPointerDown) {
+          e.stopPropagation()
+          return
+        }
         e.stopPropagation()
         onSelect(node.id)
+      }}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return
+        e.stopPropagation()
+        onPointerDown?.(e, node.id)
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -385,7 +413,7 @@ export function KeeperGlyph({
         }
       }}
       style={{
-        cursor: 'pointer',
+        cursor: onPointerDown ? 'grab' : 'pointer',
         opacity: dimmed ? 0.25 : 1,
         transition: 'opacity .25s',
         outline: 'none',
@@ -393,25 +421,27 @@ export function KeeperGlyph({
     >
       {selected && (
         <path
-          d={hexPath(r + 8)}
-          fill="none"
+          className="topo-select-glow"
+          d={hexPath(r + 7)}
+          fill="var(--primary)"
+          fillOpacity="0.08"
           stroke="var(--primary)"
-          strokeWidth="2.5"
-          opacity="0.9"
+          strokeWidth="2"
+          strokeOpacity="0.55"
         />
       )}
-      {/* status glow */}
-      <path d={d} fill={accent} fillOpacity="0.12" />
-      {/* the hexagon body */}
+      {/* Soft glass wash */}
+      <path d={d} fill={accent} fillOpacity="0.14" />
+      {/* Glass hex body */}
       <path
+        className="topo-glass-card"
         d={d}
         fill="var(--card)"
-        fillOpacity="0.97"
+        fillOpacity="0.7"
         stroke={accent}
-        strokeWidth={isLeader ? 2.5 : 2}
+        strokeWidth={isLeader ? 2.4 : 2.1}
         strokeOpacity="0.9"
         strokeLinejoin="round"
-        style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.18))' }}
       />
       {/* coordination shield in the upper band */}
       <g transform={`translate(0 ${-r * 0.44})`}>
@@ -472,15 +502,16 @@ export function HullLabel({
     <g style={{ pointerEvents: 'none' }}>
       {/* rect + text both centered on (x, y) so the label sits dead-center */}
       <rect
+        className="topo-glass-card"
         x={x - w / 2}
         y={y - h / 2}
         width={w}
         height={h}
         rx={h / 2}
         fill="var(--card)"
-        fillOpacity="0.95"
+        fillOpacity="0.78"
         stroke={color}
-        strokeOpacity="0.5"
+        strokeOpacity="0.55"
         strokeWidth="1.2"
       />
       <text
