@@ -59,6 +59,26 @@ async function defaultValidateEvent(
   return validateEvent(body, headers, secret) as ReturnType<ValidateEventFn>
 }
 
+/**
+ * Detect Polar / standardwebhooks signature failures.
+ *
+ * The Polar SDK rethrows `WebhookVerificationError` without setting `Error.name`,
+ * so production failures look like plain `Error` with a signature message.
+ * Tests inject `{ name: 'WebhookVerificationError' }`. Accept both.
+ */
+export function isPolarSignatureError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as {
+    name?: string
+    message?: string
+    constructor?: { name?: string }
+  }
+  if (e.name === 'WebhookVerificationError') return true
+  if (e.constructor?.name === 'WebhookVerificationError') return true
+  const msg = String(e.message ?? '')
+  return /signature|webhook verification|no matching signature/i.test(msg)
+}
+
 export async function handlePolarWebhook(
   request: Request,
   env: Env,
@@ -84,7 +104,11 @@ export async function handlePolarWebhook(
       ? deps.validateEvent(body, headers, secret)
       : await defaultValidateEvent(body, headers, secret)
   } catch (err) {
-    const isSignature = (err as Error)?.name === 'WebhookVerificationError'
+    // Polar SDK's WebhookVerificationError extends Error but does NOT set
+    // `this.name`, so `err.name === 'WebhookVerificationError'` is false in
+    // production. Match the dashboard route (instanceof) and also accept the
+    // injected-test shape (name set) + standardwebhooks message text.
+    const isSignature = isPolarSignatureError(err)
     if (isSignature) {
       await deps.notify(
         'signature_failure',
