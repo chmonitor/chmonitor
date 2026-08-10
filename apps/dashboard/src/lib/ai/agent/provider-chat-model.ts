@@ -7,7 +7,11 @@
 
 import type { LanguageModel } from 'ai'
 
-import { resolveDefaultAgentModel } from '../agent-model-registry'
+import {
+  DEFAULT_AGENT_MODEL,
+  resolveDefaultAgentModel,
+} from '../agent-model-registry'
+import { isAnyRouterAutoModelId } from '../anyrouter-dynamic-models'
 import { parseModelId, resolveProvider } from '../providers'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createAnyRouter } from '@anyr/ai-sdk-provider'
@@ -96,8 +100,15 @@ export function resolveAgentChatModel({
    */
   readonly apiKey?: string
 }): ResolvedAgentChatModel {
-  const resolved = resolveProvider(model, apiKey)
-  const { model: modelId } = parseModelId(model)
+  // Sync safety net: callers (agent route / followups) should resolve
+  // `anyrouter:auto` asynchronously first. If auto still arrives here (e.g.
+  // DEFAULT_MODEL module init, tests), fall back to the curated static model
+  // rather than sending the literal id `auto` upstream.
+  const effectiveModel = isAnyRouterAutoModelId(model)
+    ? DEFAULT_AGENT_MODEL
+    : model
+  const resolved = resolveProvider(effectiveModel, apiKey)
+  const { model: modelId } = parseModelId(effectiveModel)
 
   if (resolved.isOpenRouter) {
     const meta = getAppMetadata(referer)

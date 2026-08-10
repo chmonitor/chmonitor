@@ -6,6 +6,8 @@
  * Returns available models grouped by provider.
  * Generates all valid `provider:model` combinations from MODEL_REGISTRY.
  * Enriches OpenRouter models with capability data from their API.
+ * When AnyRouter is configured, also merges a **dynamic** top-by-usage set
+ * from AnyRouter's public catalog + per-model metrics (fail-soft).
  *
  * Ported from apps/dashboard/app/api/v1/agents/models/route.ts.
  * - next/server NextResponse.json(x, init) -> Response.json(x, init).
@@ -21,6 +23,11 @@ import {
   getModelRegistry,
   isFreeAgentModel,
 } from '@/lib/ai/agent-model-registry'
+import {
+  type AgentModelListEntry,
+  loadAnyRouterDynamicModelEntries,
+  mergeAnyRouterDynamicModels,
+} from '@/lib/ai/anyrouter-dynamic-models'
 import { isProviderConfigured, PROVIDERS } from '@/lib/ai/providers'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
 import { formatCompactNumber } from '@/lib/format-number'
@@ -30,32 +37,7 @@ const OPENROUTER_MODELS_API =
 const OPENROUTER_REFERER = process.env.OPENROUTER_REFERER
 const OPENROUTER_APP_NAME = process.env.OPENROUTER_APP_NAME
 
-interface ModelCapability {
-  /** Combined ID in `provider:model` format */
-  id: string
-  /** Provider-agnostic model ID */
-  modelId: string
-  /** Provider ID */
-  provider: string
-  /** Display name */
-  name: string
-  description: string
-  contextLength: number
-  formattedContextLength: string
-  /** Max completion (output) tokens, when the upstream API reports it. */
-  maxOutputTokens?: number
-  formattedMaxOutputTokens?: string
-  isFree: boolean
-  /** True when the Worker has an API key configured for this provider. */
-  available: boolean
-  pricing?: {
-    inputPerMillion: number
-    outputPerMillion: number
-  }
-  supportsTools?: boolean
-  supportsStreaming?: boolean
-  supportsVision?: boolean
-}
+type ModelCapability = AgentModelListEntry
 
 /**
  * Fetch OpenRouter model metadata for capability enrichment.
@@ -194,7 +176,7 @@ function buildStaticModels(): ModelCapability[] {
   return filterByConfiguredProviders(full)
 }
 
-async function buildModels(): Promise<ModelCapability[]> {
+async function buildRegistryModels(): Promise<ModelCapability[]> {
   let orCapabilities: Map<string, Record<string, unknown>> | undefined
 
   try {
@@ -242,6 +224,26 @@ async function buildModels(): Promise<ModelCapability[]> {
   }
 
   return filterByConfiguredProviders(full)
+}
+
+/**
+ * Build the full models list: static registry (+ OpenRouter enrichment) merged
+ * with AnyRouter dynamic top-by-usage when that provider is configured.
+ * AnyRouter list/metrics failures are fail-soft — static list still returns.
+ */
+async function buildModels(): Promise<ModelCapability[]> {
+  const [registryModels, dynamicAnyRouter] = await Promise.all([
+    buildRegistryModels(),
+    loadAnyRouterDynamicModelEntries(),
+  ])
+
+  if (dynamicAnyRouter.length === 0) {
+    return registryModels
+  }
+
+  return filterByConfiguredProviders(
+    mergeAnyRouterDynamicModels(registryModels, dynamicAnyRouter)
+  )
 }
 
 function getConfiguredProviders(): string[] {

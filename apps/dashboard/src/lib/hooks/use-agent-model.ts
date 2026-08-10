@@ -12,7 +12,6 @@
 
 import { useEffect, useState } from 'react'
 import {
-  DEFAULT_AGENT_MODEL,
   getAllModelOptions,
   MODEL_REGISTRY,
 } from '@/lib/ai/agent-model-registry'
@@ -22,13 +21,19 @@ import {
   type ModelPricing,
   type OpenAIModel,
 } from '@/lib/ai/agent-models'
+import { ANYROUTER_AUTO_MODEL_ID } from '@/lib/ai/anyrouter-dynamic-models'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
 export type { OpenAIModel } from '@/lib/ai/agent-models'
 
 const MODEL_STORAGE_KEY = 'clickhouse-monitor-agent-model'
 
-const DEFAULT_MODEL = DEFAULT_AGENT_MODEL
+/**
+ * Client default when no saved selection exists.
+ * Prefer the AnyRouter auto alias (resolved server-side to top-by-usage);
+ * curated Gemma remains the static registry fallback for offline/static lists.
+ */
+const DEFAULT_MODEL = ANYROUTER_AUTO_MODEL_ID
 
 /**
  * Ensure a model identifier is in `provider:model` form.

@@ -100,13 +100,14 @@ describe('resolveDefaultAgentModel', () => {
   const setEnv = (vars: Record<string, string | undefined>) => env.set(vars)
   afterEach(() => env.restore())
 
-  test('returns DEFAULT_AGENT_MODEL when ANYROUTER_API_KEY is set', () => {
+  test('returns anyrouter:auto when ANYROUTER_API_KEY is set', () => {
     setEnv({
       ANYROUTER_API_KEY: 'ar-key',
       LLM_API_KEY: undefined,
       OPENROUTER_API_KEY: undefined,
     })
-    expect(resolveDefaultAgentModel()).toBe(DEFAULT_AGENT_MODEL)
+    // Dynamic top-by-usage alias; agent route resolves to a concrete model.
+    expect(resolveDefaultAgentModel()).toBe('anyrouter:auto')
   })
 
   test('returns FALLBACK_AGENT_MODEL when only LLM_API_KEY is set', () => {
@@ -133,7 +134,7 @@ describe('resolveDefaultAgentModel', () => {
       LLM_API_KEY: 'llm-key',
       OPENROUTER_API_KEY: undefined,
     })
-    expect(resolveDefaultAgentModel()).toBe(DEFAULT_AGENT_MODEL)
+    expect(resolveDefaultAgentModel()).toBe('anyrouter:auto')
   })
 
   test('falls back to DEFAULT_AGENT_MODEL when no keys are configured', () => {

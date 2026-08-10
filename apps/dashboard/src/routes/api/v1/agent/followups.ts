@@ -24,6 +24,11 @@ import {
   DEFAULT_MODEL,
   resolveAgentChatModel,
 } from '@/lib/ai/agent/provider-chat-model'
+import { DEFAULT_AGENT_MODEL } from '@/lib/ai/agent-model-registry'
+import {
+  isAnyRouterAutoModelId,
+  resolveAnyRouterAutoModelId,
+} from '@/lib/ai/anyrouter-dynamic-models'
 import {
   getProviderName,
   isProviderConfigured,
@@ -294,10 +299,14 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const model =
+  let model =
     typeof body.model === 'string' && body.model.trim().length > 0
       ? body.model.trim()
       : DEFAULT_MODEL
+  if (isAnyRouterAutoModelId(model)) {
+    const top = await resolveAnyRouterAutoModelId()
+    model = top ?? DEFAULT_AGENT_MODEL
+  }
   const { provider: requestedProvider } = parseModelId(model)
 
   if (!isProviderConfigured(requestedProvider)) {

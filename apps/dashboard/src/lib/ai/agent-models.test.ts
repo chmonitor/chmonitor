@@ -51,9 +51,12 @@ describe('resolveDefaultAgentModel', () => {
     if (originalOpenRouter) process.env.OPENROUTER_API_KEY = originalOpenRouter
   })
 
-  test('prefers AnyRouter Gemma when ANYROUTER_API_KEY is set', () => {
+  test('prefers anyrouter:auto when ANYROUTER_API_KEY is set', () => {
     process.env.ANYROUTER_API_KEY = 'ar-test'
-    expect(resolveDefaultAgentModel()).toBe(DEFAULT_AGENT_MODEL)
+    // Auto resolves at request time to top-by-usage; static Gemma is the
+    // fail-soft concrete fallback (DEFAULT_AGENT_MODEL).
+    expect(resolveDefaultAgentModel()).toBe('anyrouter:auto')
+    expect(DEFAULT_AGENT_MODEL).toBe('anyrouter:google/gemma-4-26b-a4b-it')
   })
 
   test('falls back to openrouter/free when only LLM_API_KEY is set', () => {
