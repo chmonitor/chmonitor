@@ -126,6 +126,17 @@ generated.name = config.name
 generated.routes = config.routes
 generated.vars = vars
 
+// Preview must not touch CF cron schedules. Even `crons: []` still calls
+// PUT .../schedules, which fails on this account for preview-chmonitor-dash
+// (required `dashboard` check exits 1 after a successful script upload).
+// Dropping the triggers key entirely makes wrangler skip the schedules API.
+// Production keeps [triggers] from the vite-generated config.
+// Cron HTTP routes still work on preview with CRON_SECRET; only CF attachment
+// is skipped.
+if (isPreview) {
+  delete generated.triggers
+}
+
 // --- Patch D1 databases ---
 const conversationsDbId = (
   process.env.CHM_CLOUD_D1_DATABASE_ID ||
@@ -177,3 +188,6 @@ console.log(`   routes: ${config.routes.map((r) => r.pattern).join(', ')}`)
 console.log(
   `   vars: ${Object.keys(vars).length} keys (from .env.production${isPreview ? ' + .env.preview' : ''})`
 )
+if (isPreview) {
+  console.log('   triggers: omitted (preview skips schedules API)')
+}

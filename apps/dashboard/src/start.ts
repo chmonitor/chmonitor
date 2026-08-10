@@ -345,23 +345,49 @@ For secure machine-to-machine access, configure the \`CHM_API_KEY_SECRET\` envir
   }
 
   // 8. /.well-known/mcp/server-card.json
+  // Discovery card for MCP clients. Protocol versions match
+  // @modelcontextprotocol/server createMcpHandler (2026-07-28 modern +
+  // 2025-era legacy via legacy: 'stateless').
   if (pathname === '/.well-known/mcp/server-card.json') {
     const data = {
       serverInfo: {
         name: 'chmonitor-mcp-server',
-        version: '1.0.0',
+        title: 'ClickHouse Monitor MCP',
+        description:
+          'Read-only ClickHouse monitoring tools via Model Context Protocol',
+        version: '0.2.0',
       },
       endpoint: '/api/mcp',
+      transport: {
+        type: 'streamable-http',
+        // Dual-era: createMcpHandler serves 2026-07-28 per request and falls
+        // back to stateless 2025-era initialize for older clients.
+        protocolVersions: [
+          '2026-07-28',
+          '2025-11-25',
+          '2025-06-18',
+          '2025-03-26',
+        ],
+      },
       capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
+        tools: { listChanged: false },
+        resources: { listChanged: false, subscribe: false },
+        prompts: { listChanged: false },
+      },
+      authentication: {
+        schemes: ['bearer', 'api-key'],
+        headers: {
+          bearer: 'Authorization: Bearer <token>',
+          apiKey: 'x-api-key: <chm_…>',
+        },
       },
     }
     return Response.json(data, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
+        // Short private cache — card is static per deploy.
+        'Cache-Control': 'public, max-age=60',
       },
     })
   }

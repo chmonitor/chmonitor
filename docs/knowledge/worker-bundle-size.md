@@ -8,6 +8,7 @@ tags:
   - cloudflare-workers
   - bundle-size
   - opentelemetry
+  - polar
   - performance
 related:
   - static-site-architecture
@@ -16,52 +17,71 @@ related:
 
 # Cloudflare Worker Bundle Size
 
-The dashboard worker (`chmonitor-dash`) deploys with `no_bundle: true`, so `wrangler deploy` uploads **every** file under `dist/server/assets/*.js` against the size limit. Measured after the 2026-08-07 SSR stub extension (react-markdown + puppeteer):
+The dashboard worker (`chmonitor-dash`) deploys with `no_bundle: true`, so `wrangler deploy` uploads **every** file under `dist/server/assets/*.js` against the size limit.
+
+## Current measurement (2026-08-07)
 
 ```
-Total Upload: ~13.4 MiB / gzip: ~2.94 MiB   (~660 modules)
+Total Upload: ~11.9 MiB / gzip: ~2.78 MiB   (~660 modules)
 ```
 
-This is **under the 3 MiB free-plan limit** with ~130 KiB headroom. **Do not re-add large client-only packages to the Worker graph without re-measuring.** Preview deploys fail hard with `code 10027` when gzip exceeds 3 MiB.
+**Under the free-plan 3 MiB limit** with ~300 KiB headroom. Preview deploys fail hard with `code 10027` when gzip exceeds 3 MiB.
 
-## What dominates the bundle
-
-Every heavy chunk traces to a feature in active use — there is no dead-code smoking gun, and dependency versions are deduplicated cleanly (single zod / React / ajv):
-
-| Chunk | Contents | Legitimacy |
-|-------|----------|-----------|
-| `router-*` (~1.5 MiB raw) | MCP validation: `ajv` + `zod-to-json-schema` + `@modelcontextprotocol/server` | In-process `/api/mcp` route (`@chm/mcp-server/http`) |
-| `permissions-*` | Clerk auth (`@clerk/shared`, `@clerk/react`) | Authentication |
-| `dist-*` | AI SDK (`ai`) + `@json-render/core` + `@vercel/oidc` + `eventsource-parser` | The agent |
-| `lib-*` | Markdown pipeline (micromark + unified + mdast) | Docs + agent output rendering |
-| `data-table-*` | TanStack Table + dnd-kit + radix | Tables |
-
-The existing SSR stub system in `apps/dashboard/vite.config.ts` (`SSR_STUB_PREFIXES`, referencing #1393) already eliminates the browser-only render libraries (mermaid, recharts, codemirror, xyflow, assistant-ui, json-render/shadcn, etc.) from the worker by aliasing them to a no-op Proxy stub.
-
-## Decision: @opentelemetry/api is NOT worth stubbing (2026-06-14)
-
-`@opentelemetry/api` is pulled in transitively by the Vercel AI SDK (`trace`, `context`, `SpanStatusCode` from 2 import sites). Probed as a candidate size win on branch `perf/worker-bundle-size`.
-
-**Measured maximum saving by aliasing OTel to the no-op Proxy stub:**
-```
-Baseline:           1862.90 KiB gzip
-OTel fully stubbed: 1856.43 KiB gzip
-Delta:                 6.47 KiB   (0.35%)
-```
-
-The AI SDK already tree-shakes OTel to the minimal no-op tracer machinery; after minification + gzip the contribution is tiny.
-
-Two reasons not to do it:
-
-1. **It is a runtime API, not a render library.** The stub Proxy is safe for the other packages because they never execute in the worker (all behind `React.lazy` / `<ClientOnly>`). OTel runs on every AI request. The Proxy breaks `context.with(ctx, fn)` (swallows the callback), `context.bind()` (returns itself, not a callable wrapper), and corrupts the `SpanStatusCode` / `TraceFlags` enum values used in span status and bitwise sampling.
-2. **0.35% saving.** Building a runtime-correct OTel shim (real enum numbers, a `context.with` that actually invokes its callback) and verifying the freshly-prod AI agent's tracing path is not worth 6 KiB on an unconstrained bundle.
-
-Revisit only if approaching the 3 MiB limit, or if a cold-start regression is measured. Otherwise: leave it.
-
-## How to re-measure
+Re-measure after any change that adds server imports:
 
 ```bash
 cd apps/dashboard
-pnpm run build
-bun wrangler deploy --minify --dry-run 2>&1 | grep -iE "Total Upload|gzip:"
+pnpm run build:preview
+pnpm exec wrangler deploy --minify --dry-run 2>&1 | grep -iE "Total Upload|gzip:"
 ```
+
+## How size is controlled
+
+1. **SSR stubs** (`apps/dashboard/vite.config.ts` → `SSR_STUB_PREFIXES` + `chm:ssr-client-only-stub`). Client-only packages resolve to a no-op Proxy on the Worker SSR graph; the client build keeps real packages. **Node/Docker (`BUILD_TARGET=node`) does not stub** (except `@cloudflare/puppeteer`, which is Workers-only).
+
+2. **Thin Polar REST client** (`lib/billing/polar-http.ts` + `polar-webhooks.ts`) replaces `@polar-sh/sdk` on the Worker runtime path (~1.3 MiB raw Speakeasy SDK → small fetch + `standardwebhooks`). Dev script `scripts/polar-setup.ts` may still import the SDK.
+
+3. **Do not rely on dynamic `import()` alone** for size. With `no_bundle: true`, every emitted `dist/server/assets/*.js` still counts toward the upload total. Only **removing a package from the server graph** (stub or never import) saves bytes.
+
+## Stubbed on CF Worker (not exhaustive)
+
+| Package | Why safe |
+|---------|----------|
+| mermaid, cytoscape, katex, dagre, codemirror | Client-only diagrams/editors |
+| recharts, @xyflow/react | Client-only charts/graphs |
+| streamdown, assistant-ui, json-render/shadcn|react | Lazy agent UI |
+| sql-formatter, highlight.js | Client interaction only |
+| react-markdown, remark-* | Client markdown cells |
+| @cloudflare/puppeteer | PDF fails closed to HTML |
+| @dnd-kit/* | Column/dashboard drag is browser-only |
+| @opentelemetry/exporter-*, sdk-trace-base, resources, context-async-hooks, semantic-conventions | Opt-in OTEL export; stubbed on CF free plan (Node keeps real packages) |
+
+## What still dominates
+
+| Chunk (approx) | Contents | Notes |
+|----------------|----------|-------|
+| `router-*` (~2.7 MiB raw / ~650 KiB gz) | Route tree + in-process MCP (`@modelcontextprotocol/server`) | Separate `apps/mcp` worker exists; dashboard still mounts `/api/mcp` |
+| `analytics.server-*` | Clerk shared + ClickHouse client + residual OTel API | |
+| `clerk-client-*` | `@clerk/react` / clerk-js UI | Needed for ClerkProvider SSR shell |
+| `dist-*` | AI SDK | Agent server path |
+| `data-table-*` | TanStack Table (+ less dnd after stub) | Table SSR shells |
+| `query-config-*` | Query configs | Required on server |
+
+## Residual risks / next cuts
+
+- **MCP in dashboard worker**: largest remaining win is routing `/api/mcp` only to `apps/mcp` and dropping `@chm/mcp-server/http` → `createMcpHandler` from the dashboard graph.
+- **Clerk client bundle**: hard to stub without breaking auth UI SSR.
+- **CF free plan OTEL**: export packages are stubbed on Worker; set `CHM_OTEL_EXPORTER_URL` only works fully on Node/Docker until headroom allows un-stubbing.
+- **PDF**: Browser Rendering via `@cloudflare/puppeteer` is stubbed; use REST Browser Rendering later if PDF is required on CF free tier.
+
+## Decision: @opentelemetry/api is NOT fully stubbed
+
+Keep `@opentelemetry/api` (and app code using `SpanStatusCode`) for the no-op path. Only the **export SDK** packages are stubbed on CF. Historical note: stubbing the whole API saved ~0.35% and broke `context.with` — do not reintroduce a full API stub.
+
+## History
+
+| Date | gzip (wrangler) | Notes |
+|------|-----------------|-------|
+| 2026-06-14 | ~1.82 MiB | Post TanStack Start cutover |
+| 2026-08-07 (pre) | ~3.21 MiB | Over free limit; preview deploy failed 10027 |
+| 2026-08-07 (post stubs+polar) | ~2.78 MiB | Thin Polar + expanded SSR stubs |

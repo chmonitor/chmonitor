@@ -289,23 +289,31 @@ const SSR_STUB_PREFIXES = [
   // and local-thread-list-adapter.tsx, both behind React.lazy in the agent thread.
   // Never executes during SSR or prerender.
   'assistant-stream',
-  // react-markdown + remark-gfm (~450 KiB raw / ~99 KiB gz together). Only used
-  // in client-facing markdown cells, chart error dialogs, widget text, and the
-  // optional-table-info panel — never needed for Worker SSR/API correctness.
-  // Stubbed 2026-08-07 to keep the free-plan 3 MiB worker upload under the
-  // limit after router/polar/clerk growth (preview deploy was failing with
-  // code 10027). Client build keeps the real packages.
+  // react-markdown + remark-gfm (~99 KiB gz). Client-only markdown cells /
+  // error dialogs / widget text — never required for Worker API correctness.
   'react-markdown',
   'remark-gfm',
   'remark-parse',
   'remark-rehype',
-  // @cloudflare/puppeteer (~627 KiB raw / ~133 KiB gz). PDF export is already
-  // fail-closed to HTML when launch fails (`report-pdf.ts`). Including the full
-  // package in the no_bundle worker upload blew the free-tier size limit; stub
-  // it in the Worker SSR graph so deploy works. Client never imports it.
-  // Node/Docker already stubbed below. REST Browser Rendering can restore PDF
-  // later without re-pulling the package.
+  // @cloudflare/puppeteer (~133 KiB gz). PDF export already fails closed to
+  // HTML (`report-pdf.ts`). Keep out of free-plan worker upload.
   '@cloudflare/puppeteer',
+  // @dnd-kit (~part of data-table chunk). Column/dashboard drag only runs in
+  // the browser; Proxy stub is fine for SSR shells.
+  '@dnd-kit/core',
+  '@dnd-kit/sortable',
+  '@dnd-kit/modifiers',
+  '@dnd-kit/utilities',
+  '@dnd-kit/accessibility',
+  // OTel export SDK (~tens of KiB gz of the analytics chunk). Opt-in via
+  // CHM_OTEL_EXPORTER_URL; Node/Docker keeps the real packages (isNode path
+  // below skips stubs). On the CF Worker free plan we stub so deploy fits —
+  // opt-in OTEL export is unavailable on CF until headroom recovers.
+  '@opentelemetry/exporter-trace-otlp-http',
+  '@opentelemetry/sdk-trace-base',
+  '@opentelemetry/resources',
+  '@opentelemetry/context-async-hooks',
+  '@opentelemetry/semantic-conventions',
 ]
 
 // rolldown does not honour `syntheticNamedExports` from a resolveId result, so
@@ -433,6 +441,34 @@ const SSR_STUB_NAMED_EXPORTS = [
   // assistant-stream — named import from d1-thread-list-adapter.tsx and
   // local-thread-list-adapter.tsx (both behind React.lazy agent boundary).
   'createAssistantStream',
+  // @opentelemetry/* (stubbed on CF Worker) — named imports from lib/otel/*
+  'BasicTracerProvider',
+  'BatchSpanProcessor',
+  'OTLPTraceExporter',
+  'resourceFromAttributes',
+  'AsyncLocalStorageContextManager',
+  'ATTR_SERVICE_NAME',
+  'ATTR_SERVICE_VERSION',
+  'SEMRESATTRS_SERVICE_NAME',
+  // @dnd-kit/* — named imports from data-table + dashboard grid
+  'DndContext',
+  'DragOverlay',
+  'PointerSensor',
+  'KeyboardSensor',
+  'useSensor',
+  'useSensors',
+  'closestCenter',
+  'horizontalListSortingStrategy',
+  'verticalListSortingStrategy',
+  'SortableContext',
+  'useSortable',
+  'arrayMove',
+  'restrictToHorizontalAxis',
+  'restrictToVerticalAxis',
+  'restrictToParentElement',
+  'CSS',
+  'useDraggable',
+  'useDroppable',
 ]
 
 const SSR_STUB_VIRTUAL_ID = '\0chm-ssr-client-only-stub'
@@ -489,9 +525,8 @@ ${namedExports}
     name: 'chm:ssr-client-only-stub',
     enforce: 'pre',
     resolveId(id) {
-      // @cloudflare/puppeteer: always resolve via the SSR stub on non-client
-      // builds (Worker size + Node can't load the Workers-only package).
-      // PDF path is fail-closed to HTML when the stub is hit.
+      // @cloudflare/puppeteer: always stub on non-client builds (Workers-only
+      // package; Node cannot load it; CF free plan cannot afford it).
       if (/^@cloudflare\/puppeteer(\/|$)/.test(id)) {
         if (this.environment?.name === 'client') return null
         return SSR_STUB_VIRTUAL_ID
@@ -690,6 +725,13 @@ export default defineConfig({
         '../../packages/mcp-server/src/data/mcp-tools-data.ts'
       ),
       '@chm/mcp-server/auth': r('../../packages/mcp-server/src/auth/index.ts'),
+      // @modelcontextprotocol/* is NOT aliased here. Aliasing the package root
+      // or forcing `import`-first ssr.resolve.conditions broke CJS interop for
+      // `pg` (Class extends value #<Object> is not a constructor during
+      // prerender: BoundPool extends Pool). Bare resolution works because:
+      //  - local/CI: packages/mcp-server/node_modules (pnpm workspace links)
+      //  - Docker: Dockerfile copies packages/*/node_modules from the deps stage
+      //  - CF plugin already sets workerd conditions for _shims → shimsWorkerd
       // The node @clickhouse/client (node:os/node:stream/TCP) is a dead static
       // import in clickhouse-client.ts (routes force web:true). Alias it to an
       // empty stub so it resolves in the bundle on BOTH targets.
@@ -725,6 +767,7 @@ export default defineConfig({
       // "Cannot find module '@clickhouse/client-common'").
       '@clickhouse/client-common',
       '@modelcontextprotocol/server',
+      '@modelcontextprotocol/core',
       'lru-cache',
       'zod',
     ],

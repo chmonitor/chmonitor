@@ -25,7 +25,6 @@ import {
   toUnixSeconds,
 } from '@chm/billing-webhook-core'
 import { error as logError, log as logInfo } from '@chm/logger'
-import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
 import { captureServerEvent } from '@/lib/analytics/analytics.server'
 import { logEvent } from '@/lib/audit/logEvent'
 import {
@@ -34,6 +33,10 @@ import {
   planForProductId,
 } from '@/lib/billing/polar-config'
 import { invalidateNegativeCache } from '@/lib/billing/polar-subscription'
+import {
+  validateEvent,
+  WebhookVerificationError,
+} from '@/lib/billing/polar-webhooks'
 import { upsertSubscription } from '@/lib/billing/subscription-store'
 
 /**
