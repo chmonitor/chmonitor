@@ -5,7 +5,8 @@
  */
 
 import { useMemo } from 'react'
-import { formatBytes, formatCount, formatDuration } from '@/lib/utils'
+import { formatReadableQuantity, formatReadableSize } from '@/lib/format-readable'
+import { formatDuration } from '@/lib/utils'
 
 export type ReadableFormat = 'bytes' | 'duration' | 'number' | 'quantity'
 
@@ -51,29 +52,36 @@ export function useDonutValueFormatter({
       if (row && readableColumn in row) {
         const readableValue = row[readableColumn]
         if (typeof readableValue === 'number') {
-          return formatReadableValue(readableValue, readable)
+          return dispatchReadableFormat(readableValue, readable)
         }
         return String(readableValue)
       }
 
       // Otherwise, format the value itself
-      return formatReadableValue(value, readable)
+      return dispatchReadableFormat(value, readable)
     }
   }, [valueFormatter, readable, readableColumn, data, valueKey])
 }
 
 /**
- * Format a value according to the readable format type
+ * Dispatch a value to the shared readable formatter for its format type.
+ *
+ * `bytes`/`number`/`quantity` delegate to the shared `lib/format-readable.ts`
+ * module (see #2894). `duration` stays on `formatDuration` from `@/lib/utils`
+ * because donut/agent-visualization duration values are milliseconds (same
+ * convention as the area-chart `readable: 'duration'` usage), while
+ * `formatReadableSecondDuration` in `format-readable.ts` expects seconds —
+ * swapping it in would silently misformat every duration value.
  */
-function formatReadableValue(value: number, format: ReadableFormat): string {
+function dispatchReadableFormat(value: number, format: ReadableFormat): string {
   switch (format) {
     case 'bytes':
-      return formatBytes(value)
+      return formatReadableSize(value)
     case 'duration':
       return formatDuration(value)
     case 'number':
     case 'quantity':
-      return formatCount(value)
+      return formatReadableQuantity(value)
     default:
       return value.toLocaleString()
   }

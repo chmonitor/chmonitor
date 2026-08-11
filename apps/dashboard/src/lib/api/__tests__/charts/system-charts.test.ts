@@ -8,6 +8,76 @@ describe('systemCharts', () => {
     expect(entries.length).toBeGreaterThan(0)
   })
 
+  // Regression guard for the #2898 split of system-charts.ts into
+  // lib/api/charts/system/*.ts: the merged `systemCharts` map must expose
+  // the exact same set of keys, in the exact same order, as before the
+  // split — this is a behaviour-preserving move, not a rename/reorder.
+  test('exposes the same chart keys in the same order as before the #2898 split', () => {
+    expect(Object.keys(systemCharts)).toEqual([
+      'memory-usage',
+      'cpu-usage',
+      'memory-breakdown',
+      'cpu-load-average',
+      'cpu-mode-split',
+      'thread-pool-utilization',
+      'disk-size',
+      'disks-usage',
+      'backup-size',
+      'new-parts-created',
+      'summary-used-by-running-queries',
+      'summary-used-by-mutations',
+      'summary-stuck-mutations',
+      'disk-usage-trend',
+      'disk-usage-by-database',
+      'parts-per-table',
+      'top-table-size',
+      'mutation-progress',
+      'data-freshness',
+      'compression-ratio',
+      'partition-part-health',
+      'partition-part-health-summary',
+      'oom-killed-queries',
+      'top-memory-queries',
+      'health-readonly-replicas',
+      'health-delayed-inserts',
+      'health-max-part-count',
+      'health-parts-pressure',
+      'health-long-running-queries',
+      'health-oom-killed-recent',
+      'health-failed-queries-recent',
+      'health-replication-lag',
+      'health-keeper-exceptions-recent',
+      'health-memory-percent',
+      'health-disk-percent',
+      'health-failed-mutations',
+      'health-stuck-merges',
+      'health-query-timeouts',
+      'health-failed-backups',
+      'health-mv-refresh-failures',
+      'health-readonly-replicas-detail',
+      'health-max-part-count-detail',
+      'health-parts-pressure-detail',
+      'health-long-running-queries-detail',
+      'health-oom-killed-recent-detail',
+      'health-failed-queries-recent-detail',
+      'health-replication-lag-detail',
+      'health-keeper-exceptions-detail',
+      'health-memory-percent-detail',
+      'health-disk-percent-detail',
+      'health-failed-mutations-detail',
+      'health-stuck-merges-detail',
+      'health-query-timeouts-detail',
+      'health-failed-backups-detail',
+      'health-mv-refresh-failures-detail',
+      'health-stuck-mutations-detail',
+      'health-running-mutations-detail',
+      'keeper-requests',
+      'keeper-wait-time',
+      'disk-io-throughput',
+      'storage-policies',
+    ])
+  })
+
   describe.each(entries)('chart "%s"', (name, builder) => {
     test('returns an object with query or queries property', () => {
       const result = builder({})
