@@ -113,6 +113,37 @@ describe('agent error classification', () => {
     })
   })
 
+  test('parses provider_not_configured auth_error JSON from agent route', () => {
+    const payload = {
+      error: {
+        type: 'auth_error',
+        message:
+          'No LLM provider is configured on this deployment. Set one of OPENROUTER_API_KEY (or LLM_API_KEY), ANYROUTER_API_KEY, NVIDIA_API_KEY so the AI agent can run.',
+        suggestion:
+          'Set OPENROUTER_API_KEY (or LLM_API_KEY), ANYROUTER_API_KEY, or NVIDIA_API_KEY on the deployment — at least one is required for the agent.',
+        timestamp: 1766462558646,
+        model: 'anyrouter:@preset/chmonitor',
+        provider: 'anyrouter',
+        code: 'provider_not_configured',
+      },
+    }
+    const error = new Error(JSON.stringify(payload))
+    expect(parseAgentError(error)).toMatchObject({
+      type: 'auth_error',
+      code: 'provider_not_configured',
+      provider: 'anyrouter',
+      message: expect.stringContaining('No LLM provider is configured'),
+    })
+
+    // classifyError should also recover when the message is raw JSON
+    const classified = classifyError(JSON.stringify(payload), {
+      model: 'anyrouter:@preset/chmonitor',
+      provider: 'anyrouter',
+    })
+    expect(classified.type).toBe('auth_error')
+    expect(classified.message).toContain('No LLM provider is configured')
+  })
+
   // The agent route's outermost boundary passes any uncaught throw through
   // classifyError. Whatever escapes must still become a renderable AgentError
   // (round-trippable via parseAgentError) instead of an opaque HTML 500.

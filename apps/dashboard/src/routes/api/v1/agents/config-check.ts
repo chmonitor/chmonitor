@@ -89,17 +89,21 @@ async function handleGet(request: Request): Promise<Response> {
     })
 
     const selectedProviderId = getSelectedProviderId(getSelectedModel())
-    const selectedProviderConfigured = isProviderConfigured(selectedProviderId)
+    // Readiness: the agent works if *any* provider key is set (the UI hides
+    // unconfigured providers and falls back to a configured model).
+    const anyProviderConfigured = providers.some((p) => p.configured)
 
     const configured: ConfigStatus['configured'] = {
-      apiKey: selectedProviderConfigured,
+      apiKey: anyProviderConfigured,
       apiBase: true,
     }
 
-    const isFullyConfigured = configured.apiKey
+    const isFullyConfigured = anyProviderConfigured
 
     const requiredKeys: ConfigStatus['requiredKeys'] = {
-      apiKey: getRequiredApiKeyLabel(selectedProviderId),
+      apiKey: anyProviderConfigured
+        ? getRequiredApiKeyLabel(selectedProviderId)
+        : 'OPENROUTER_API_KEY (or LLM_API_KEY), ANYROUTER_API_KEY, or NVIDIA_API_KEY',
       apiBase: 'Provider default base URL',
     }
 

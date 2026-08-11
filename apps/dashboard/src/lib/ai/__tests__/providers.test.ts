@@ -2,9 +2,12 @@ import { afterEach, describe, expect, mock, test } from 'bun:test'
 
 mock.module('server-only', () => ({}))
 
-const { isProviderConfigured, parseModelId, resolveProvider } = await import(
-  '../providers'
-)
+const {
+  isProviderConfigured,
+  parseModelId,
+  providerNotConfiguredMessage,
+  resolveProvider,
+} = await import('../providers')
 
 describe('parseModelId', () => {
   test('parses provider:model format', () => {
@@ -184,6 +187,44 @@ describe('resolveProvider', () => {
     })
     const resolved = resolveProvider('nvidia:nvidia/test-model')
     expect(resolved.baseURL).toBe('http://custom-nvidia.local/v1')
+  })
+})
+
+describe('providerNotConfiguredMessage', () => {
+  const originalEnv = process.env
+
+  function setEnv(vars: Record<string, string | undefined>) {
+    process.env = { ...originalEnv, ...vars }
+  }
+
+  afterEach(() => {
+    process.env = originalEnv
+  })
+
+  test('lists setup env vars when no provider is configured', () => {
+    setEnv({
+      ANYROUTER_API_KEY: undefined,
+      OPENROUTER_API_KEY: undefined,
+      LLM_API_KEY: undefined,
+      NVIDIA_API_KEY: undefined,
+    })
+    const msg = providerNotConfiguredMessage('anyrouter')
+    expect(msg).toContain('No LLM provider is configured')
+    expect(msg).toContain('OPENROUTER_API_KEY')
+    expect(msg).toContain('ANYROUTER_API_KEY')
+  })
+
+  test('names the missing provider when others are configured', () => {
+    setEnv({
+      ANYROUTER_API_KEY: undefined,
+      OPENROUTER_API_KEY: 'or-key',
+      LLM_API_KEY: undefined,
+      NVIDIA_API_KEY: undefined,
+    })
+    const msg = providerNotConfiguredMessage('anyrouter')
+    expect(msg).toContain('AnyRouter')
+    expect(msg).toContain('openrouter')
+    expect(msg).toContain('ANYROUTER_API_KEY')
   })
 })
 

@@ -56,7 +56,6 @@ import {
   ActionBarPrimitive,
   BranchPickerPrimitive,
   ComposerPrimitive,
-  ErrorPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
   useMessage,
@@ -81,7 +80,9 @@ import {
 } from '@/components/ui/message-scroller'
 import {
   type AgentError,
+  classifyError,
   extractAgentErrorFromParts,
+  parseAgentError,
 } from '@/lib/ai/agent/errors'
 import { getFollowUpPrompts } from '@/lib/ai/agent/follow-up-prompts'
 import { resolveConversationBackend } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
@@ -329,15 +330,97 @@ function LoadingIndicator() {
 // Task #5: MessageError using ErrorPrimitive
 // ---------------------------------------------------------------------------
 
+/**
+ * Render a classified agent error (message + actionable suggestion). Shared by
+ * runtime HTTP errors (`MessagePrimitive.Error`) and streamed `data-error` parts.
+ */
+function AgentErrorAlert({ agentError }: { agentError: AgentError }) {
+  return (
+    <div
+      role="alert"
+      className="border-destructive/40 bg-destructive/10 text-destructive mt-1 rounded-lg border px-3 py-2 text-sm"
+    >
+      <div className="flex items-start gap-2">
+        <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium break-words">{agentError.message}</p>
+          {agentError.suggestion ? (
+            <p className="text-destructive/80 text-xs break-words">
+              {agentError.suggestion}
+            </p>
+          ) : null}
+          {agentError.code ? (
+            <p className="text-destructive/60 font-mono text-[10px]">
+              {agentError.code}
+              {agentError.provider ? ` · ${agentError.provider}` : ''}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Parse the runtime error payload (often a stringified `{ error: AgentError }`
+ * JSON body from the agent route) into a structured alert. Falls back to
+ * {@link classifyError} for plain text / non-AgentError shapes so we never dump
+ * raw JSON into the chat bubble.
+ */
+function resolveRuntimeAgentError(raw: unknown): AgentError {
+  if (raw instanceof Error) {
+    const parsed = parseAgentError(raw)
+    if (parsed) return parsed
+    // AI SDK often puts the JSON body in error.message — classify the Error.
+    return classifyError(raw)
+  }
+  if (typeof raw === 'string') {
+    const parsed = parseAgentError(new Error(raw))
+    if (parsed) return parsed
+    return classifyError(raw)
+  }
+  // Some transports put the parsed JSON body (`{ error: AgentError }`) on
+  // status.error directly rather than as a string.
+  if (raw && typeof raw === 'object') {
+    const asRecord = raw as Record<string, unknown>
+    const nested = asRecord.error
+    if (
+      nested &&
+      typeof nested === 'object' &&
+      typeof (nested as AgentError).type === 'string' &&
+      typeof (nested as AgentError).message === 'string'
+    ) {
+      const parsed = parseAgentError(
+        new Error(JSON.stringify({ error: nested }))
+      )
+      if (parsed) return parsed
+    }
+    const direct = parseAgentError(new Error(JSON.stringify(raw)))
+    if (direct) return direct
+  }
+  return classifyError(raw)
+}
+
 function MessageError() {
+  const status = useMessage((m) => m.status)
+  const rawError =
+    status &&
+    typeof status === 'object' &&
+    'error' in status &&
+    (status as { error?: unknown }).error !== undefined &&
+    (status as { error?: unknown }).error !== null
+      ? (status as { error?: unknown }).error
+      : undefined
+
+  // MessagePrimitive.Error only mounts when the runtime marked the message as
+  // failed; parse any JSON body so we never dump raw `{error:{...}}` into the UI.
+  const agentError = resolveRuntimeAgentError(
+    rawError ?? 'An unexpected error occurred'
+  )
+
   return (
     <MessagePrimitive.Error>
-      <ErrorPrimitive.Root
-        role="alert"
-        className="border-destructive/40 bg-destructive/10 text-destructive mt-1 rounded-lg border px-3 py-2 text-sm"
-      >
-        <ErrorPrimitive.Message className="line-clamp-4" />
-      </ErrorPrimitive.Root>
+      <AgentErrorAlert agentError={agentError} />
     </MessagePrimitive.Error>
   )
 }
@@ -354,25 +437,7 @@ function AgentDataError() {
   const content = useMessage((m) => m.content) as readonly unknown[]
   const agentError: AgentError | null = extractAgentErrorFromParts(content)
   if (!agentError) return null
-
-  return (
-    <div
-      role="alert"
-      className="border-destructive/40 bg-destructive/10 text-destructive mt-1 rounded-lg border px-3 py-2 text-sm"
-    >
-      <div className="flex items-start gap-2">
-        <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-        <div className="min-w-0 space-y-1">
-          <p className="font-medium break-words">{agentError.message}</p>
-          {agentError.suggestion && (
-            <p className="text-destructive/80 text-xs break-words">
-              {agentError.suggestion}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  )
+  return <AgentErrorAlert agentError={agentError} />
 }
 
 // ---------------------------------------------------------------------------

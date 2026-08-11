@@ -21,7 +21,7 @@ import {
   type ModelPricing,
   type OpenAIModel,
 } from '@/lib/ai/agent-models'
-import { ANYROUTER_AUTO_MODEL_ID } from '@/lib/ai/anyrouter-dynamic-models'
+import { FALLBACK_AGENT_MODEL } from '@/lib/ai/agent-model-registry'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
 export type { OpenAIModel } from '@/lib/ai/agent-models'
@@ -29,11 +29,14 @@ export type { OpenAIModel } from '@/lib/ai/agent-models'
 const MODEL_STORAGE_KEY = 'clickhouse-monitor-agent-model'
 
 /**
- * Client default when no saved selection exists.
- * Prefer the AnyRouter auto alias (resolved server-side to top-by-usage);
- * curated Gemma remains the static registry fallback for offline/static lists.
+ * Client default when no saved selection exists and the models API has not
+ * loaded yet. Prefer OpenRouter free (works with LLM_API_KEY / OPENROUTER_API_KEY)
+ * — never hardcode AnyRouter, which would 503 when ANYROUTER_API_KEY is unset.
+ * Format as `provider:model` for the agent route.
  */
-const DEFAULT_MODEL = ANYROUTER_AUTO_MODEL_ID
+const DEFAULT_MODEL: OpenAIModel = FALLBACK_AGENT_MODEL.includes(':')
+  ? (FALLBACK_AGENT_MODEL as OpenAIModel)
+  : (`openrouter:${FALLBACK_AGENT_MODEL}` as OpenAIModel)
 
 /**
  * Ensure a model identifier is in `provider:model` form.
@@ -126,6 +129,15 @@ export interface UseAgentModelResult {
   models: readonly ModelDisplayInfo[]
   setModel: (model: OpenAIModel) => void
   resetModel: () => void
+  /** True once /api/v1/agents/models has returned (possibly empty). */
+  modelsLoaded: boolean
+  /**
+   * Provider ids with a key on this deployment (from models API).
+   * Empty array means no LLM keys — agent chat cannot run.
+   */
+  configuredProviders: readonly string[]
+  /** True when models API reports zero configured providers. */
+  noProvidersConfigured: boolean
 }
 
 function getStaticModels(): ModelDisplayInfo[] {
@@ -150,7 +162,10 @@ function getStaticModels(): ModelDisplayInfo[] {
   })
 }
 
-async function fetchModelsWithCapabilities(): Promise<ModelDisplayInfo[]> {
+async function fetchModelsWithCapabilities(): Promise<{
+  models: ModelDisplayInfo[]
+  configuredProviders: string[]
+}> {
   try {
     const response = await apiFetch('/api/v1/agents/models')
     if (!response.ok) {
@@ -161,9 +176,14 @@ async function fetchModelsWithCapabilities(): Promise<ModelDisplayInfo[]> {
       models: ModelDisplayInfo[]
       configuredProviders?: string[]
     }
-    return data.models
+    return {
+      models: data.models,
+      configuredProviders: data.configuredProviders ?? [],
+    }
   } catch {
-    return getStaticModels()
+    // Offline / error: keep static list for local dev; configuredProviders
+    // unknown so leave empty (UI will not claim "no providers" incorrectly).
+    return { models: getStaticModels(), configuredProviders: [] }
   }
 }
 
@@ -189,13 +209,27 @@ export function useAgentModel(): UseAgentModelResult {
   const [model, setModelState] = useState<OpenAIModel>(() => getSavedModel())
 
   const [models, setModels] = useState<ModelDisplayInfo[]>(getStaticModels)
+  const [modelsLoaded, setModelsLoaded] = useState(false)
+  const [configuredProviders, setConfiguredProviders] = useState<string[]>([])
 
   useEffect(() => {
     let cancelled = false
 
     async function loadModels() {
-      const nextModels = await fetchModelsWithCapabilities()
-      if (cancelled || nextModels.length === 0) return
+      const { models: nextModels, configuredProviders: nextProviders } =
+        await fetchModelsWithCapabilities()
+      if (cancelled) return
+
+      setModelsLoaded(true)
+      setConfiguredProviders(nextProviders)
+
+      // Empty list = no provider keys on this deployment (or only
+      // unconfigured providers were filtered out). Clear the picker and keep
+      // the last model id only as a soft preference until keys exist.
+      if (nextModels.length === 0) {
+        setModels([])
+        return
+      }
 
       setModels(nextModels)
 
@@ -213,8 +247,8 @@ export function useAgentModel(): UseAgentModelResult {
           nextModels.some((m) => m.id === current) &&
           nextModels.find((m) => m.id === current)?.available !== false
         if (stillAvailable) return current
-        fallbackId = fallbackPool[0].id
-        return fallbackId
+        fallbackId = fallbackPool[0]?.id
+        return fallbackId ?? current
       })
 
       // Side effects outside the updater — save and broadcast fallback
@@ -259,5 +293,11 @@ export function useAgentModel(): UseAgentModelResult {
     models,
     setModel,
     resetModel,
+    modelsLoaded,
+    configuredProviders,
+    noProvidersConfigured:
+      modelsLoaded &&
+      configuredProviders.length === 0 &&
+      models.length === 0,
   }
 }

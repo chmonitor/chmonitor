@@ -168,3 +168,45 @@ export function isProviderConfigured(providerId: string): boolean {
 export function getProviderName(providerId: string): string {
   return PROVIDERS[providerId]?.name ?? providerId
 }
+
+/**
+ * Provider ids that currently have an API key on this deployment.
+ */
+export function getConfiguredProviderIds(): string[] {
+  return Object.keys(PROVIDERS).filter((id) => isProviderConfigured(id))
+}
+
+/**
+ * Env var labels an operator can set to enable at least one LLM provider.
+ * OpenRouter also accepts the legacy `LLM_API_KEY` alias.
+ */
+export function getProviderSetupEnvHints(): string[] {
+  return [
+    'OPENROUTER_API_KEY (or LLM_API_KEY)',
+    'ANYROUTER_API_KEY',
+    'NVIDIA_API_KEY',
+  ]
+}
+
+/**
+ * User-facing message when the selected provider has no key, or when no LLM
+ * providers are configured at all.
+ */
+export function providerNotConfiguredMessage(providerId: string): string {
+  const configured = getConfiguredProviderIds()
+  if (configured.length === 0) {
+    return (
+      'No LLM provider is configured on this deployment. Set one of ' +
+      `${getProviderSetupEnvHints().join(', ')} ` +
+      'so the AI agent can run.'
+    )
+  }
+  const envVar =
+    PROVIDERS[providerId]?.apiKeyEnvVar ??
+    `${providerId.toUpperCase()}_API_KEY`
+  return (
+    `Provider "${getProviderName(providerId)}" is not configured on this deployment. ` +
+    `Pick a model from a configured provider (${configured.join(', ')}) ` +
+    `or ask the operator to set ${envVar}.`
+  )
+}

@@ -61,9 +61,9 @@ import {
   resolveAnyRouterAutoModelId,
 } from '@/lib/ai/anyrouter-dynamic-models'
 import {
-  getProviderName,
   isProviderConfigured,
   parseModelId,
+  providerNotConfiguredMessage,
 } from '@/lib/ai/providers'
 import {
   checkRateLimitDurable,
@@ -534,10 +534,16 @@ async function handlePost(request: Request): Promise<Response> {
   // `anyrouter:auto` is a picker alias — resolve to the current top-by-usage
   // tool-capable model (cached) before provider preflight / chat setup.
   // Fail-soft: curated DEFAULT_AGENT_MODEL when the dynamic catalog is down.
+  // If AnyRouter itself is not configured, drop to resolveDefaultAgentModel()
+  // so we do not hard-fail on a stale client default of `anyrouter:auto`.
   if (isAnyRouterAutoModelId(model)) {
-    const top = await resolveAnyRouterAutoModelId()
-    // Fail-soft to curated static default (not `anyrouter:auto` again).
-    model = top ?? DEFAULT_AGENT_MODEL
+    if (!isProviderConfigured('anyrouter')) {
+      model = resolveDefaultAgentModel()
+    } else {
+      const top = await resolveAnyRouterAutoModelId()
+      // Fail-soft to curated static default (not `anyrouter:auto` again).
+      model = top ?? DEFAULT_AGENT_MODEL
+    }
   }
 
   // BYOK: the user may supply their own provider API key. When present and
@@ -559,7 +565,7 @@ async function handlePost(request: Request): Promise<Response> {
         statusCode: 503,
         error: {
           code: 'provider_not_configured',
-          message: `Provider "${getProviderName(requestedProvider)}" is not configured on this deployment. Pick a model from a configured provider or ask the operator to set ${requestedProvider.toUpperCase()}_API_KEY.`,
+          message: providerNotConfiguredMessage(requestedProvider),
         },
       },
       { model, provider: requestedProvider }

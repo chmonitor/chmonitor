@@ -28,7 +28,10 @@ import {
   loadAnyRouterDynamicModelEntries,
   mergeAnyRouterDynamicModels,
 } from '@/lib/ai/anyrouter-dynamic-models'
-import { isProviderConfigured, PROVIDERS } from '@/lib/ai/providers'
+import {
+  getConfiguredProviderIds,
+  isProviderConfigured,
+} from '@/lib/ai/providers'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
 import { formatCompactNumber } from '@/lib/format-number'
 
@@ -135,14 +138,15 @@ function extractCapabilities(
 
 /**
  * Filter models to those whose provider has a key configured.
- * If no provider is configured at all, return the full list so the dev UI
- * is not empty.
+ * Unconfigured providers (e.g. AnyRouter without ANYROUTER_API_KEY) are always
+ * hidden — never fall back to the full registry so the picker cannot offer a
+ * model that would 503 on the first message.
+ * When no provider keys exist, returns [] (the client surfaces a setup message).
  */
 function filterByConfiguredProviders(
   models: ModelCapability[]
 ): ModelCapability[] {
-  const filtered = models.filter((m) => isProviderConfigured(m.provider))
-  return filtered.length > 0 ? filtered : models
+  return models.filter((m) => isProviderConfigured(m.provider))
 }
 
 function buildStaticModels(): ModelCapability[] {
@@ -163,11 +167,8 @@ function buildStaticModels(): ModelCapability[] {
         contextLength: entry.contextLength,
         formattedContextLength: formatCompactNumber(entry.contextLength),
         isFree,
-        // `available` reflects whether THIS provider's key is configured, even
-        // when the whole list is returned as a dev fallback because no provider
-        // is configured at all. The client uses it to avoid sending a model
-        // whose provider would 503 on the first message.
-        available: isProviderConfigured(provider),
+        // Only configured providers reach this list; mark available for clarity.
+        available: true,
         pricing: entry.pricing,
       })
     }
@@ -216,7 +217,7 @@ async function buildRegistryModels(): Promise<ModelCapability[]> {
             }
           : {}),
         isFree,
-        available: isProviderConfigured(provider),
+        available: true,
         pricing: entry.pricing,
         ...capabilities,
       })
@@ -247,7 +248,7 @@ async function buildModels(): Promise<ModelCapability[]> {
 }
 
 function getConfiguredProviders(): string[] {
-  return Object.keys(PROVIDERS).filter((id) => isProviderConfigured(id))
+  return getConfiguredProviderIds()
 }
 
 async function handleGet(request: Request): Promise<Response> {

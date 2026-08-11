@@ -30,9 +30,9 @@ import {
   resolveAnyRouterAutoModelId,
 } from '@/lib/ai/anyrouter-dynamic-models'
 import {
-  getProviderName,
   isProviderConfigured,
   parseModelId,
+  providerNotConfiguredMessage,
 } from '@/lib/ai/providers'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
@@ -315,7 +315,7 @@ async function handlePost(request: Request): Promise<Response> {
         statusCode: 503,
         error: {
           code: 'provider_not_configured',
-          message: `Provider "${getProviderName(requestedProvider)}" is not configured on this deployment.`,
+          message: providerNotConfiguredMessage(requestedProvider),
         },
       },
       { model, provider: requestedProvider }
