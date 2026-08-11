@@ -88,6 +88,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/dashboard/pnpm-lock.yaml
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -560,6 +562,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/landing/pnpm-lock.yaml
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -665,6 +669,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/docs/pnpm-lock.yaml
 
       - name: Detect changes
         id: filter
@@ -750,6 +756,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/blog/pnpm-lock.yaml
 
       - name: Detect changes
         id: filter
@@ -833,6 +841,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/bug-handler/pnpm-lock.yaml
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -976,6 +986,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/cloud-hooks/pnpm-lock.yaml
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

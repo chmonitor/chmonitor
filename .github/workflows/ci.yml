@@ -63,9 +63,13 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/*/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Validate dependency boundaries
         run: pnpm run depcruise
@@ -203,17 +207,22 @@ jobs:
             type=sha,prefix=sha-,format=long
 
       - name: Create and push multi-arch manifests
+        shell: bash
         env:
           TAGS_JSON: ${{ steps.meta.outputs.json }}
         run: |
+          set -euo pipefail
           AMD64=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-amd64
           ARM64=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-arm64
 
-          echo "$TAGS_JSON" | jq -r '.tags[]' | while IFS= read -r TAG; do
+          TAGS=$(jq -r '.tags[]' <<<"$TAGS_JSON")
+          [ -n "$TAGS" ] || { echo "::error::metadata-action produced no tags"; exit 1; }
+
+          while IFS= read -r TAG; do
             [ -z "$TAG" ] && continue
             echo "Creating manifest: $TAG"
             docker buildx imagetools create -t "$TAG" "$AMD64" "$ARM64"
-          done
+          done <<<"$TAGS"
 
   # Validate only on main/release.
   # Reuse the image build-docker-amd64 already built & pushed instead of
