@@ -227,7 +227,7 @@ function CalendarBody({
   if (data.length === 0) {
     return (
       <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
-        No query activity in the last year
+        No recent query activity
       </div>
     )
   }
