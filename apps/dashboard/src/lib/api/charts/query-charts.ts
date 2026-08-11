@@ -379,13 +379,15 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   // One row per calendar day carrying every switchable metric (query volume,
   // failures, peak memory, avg duration, bytes written) so the client can flip
   // modes without a refetch. Conditional aggregation keeps it a single daily
-  // scan. Default window is one year (24 * 365 hours) → ~53 calendar columns.
+  // scan. Default window is two years (24 * 365 * 2 hours) so wide viewports
+  // can render more than a year of months; the client trims to what fits and
+  // caps the window at the oldest row actually returned.
   //
   // SETTINGS max_execution_time=25: keeps execution under the Cloudflare Worker
   // response timeout (~30s). Without it, a slow full-year scan on a busy server
   // drops the connection mid-stream, returning an empty body (error 1016 —
   // RECEIVED_EMPTY_DATA) instead of a clean ClickHouse timeout error (159).
-  'query-count-heatmap': ({ lastHours = 24 * 365 }) => {
+  'query-count-heatmap': ({ lastHours = 24 * 365 * 2 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
       query: `

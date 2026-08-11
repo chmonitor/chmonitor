@@ -18,8 +18,8 @@ import type {
 } from './query-count-calendar'
 
 import {
-  buildCalendarModel,
   buildMonthBlocks,
+  buildMonthWindowModel,
   buildStatCards,
   CALENDAR_DAY_LABELS,
   formatCalendarDate,
@@ -28,6 +28,7 @@ import {
   METRIC_CONFIGS,
   METRIC_ORDER,
   pickVisibleMonthBlocks,
+  summarizeVisibleBlocks,
 } from './query-count-calendar'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createCustomChart } from '@/components/charts/factory'
@@ -170,21 +171,29 @@ function CalendarBody({
   const [gridWidth, setGridWidth] = useState(0)
 
   // `today` is read once per render from the local clock; memoize so the
-  // ~371-cell build is off every hover re-render and only reruns on mode change.
-  // `includeFuture` renders the rest of the current month as dimmed cells.
+  // cell build is off every hover re-render and only reruns on mode change.
+  // The window spans whole months up to MAX_WINDOW_MONTHS back (capped at the
+  // oldest day we actually have data for) and always through the END of the
+  // current month — its remaining days render as dimmed, non-counting cells.
   const model = useMemo(
-    () => buildCalendarModel(data, new Date(), metric, 53, true),
+    () => buildMonthWindowModel(data, new Date(), metric),
     [data, metric]
   )
-  const statCards = useMemo(
-    () => buildStatCards(metric, model),
-    [metric, model]
-  )
   const monthBlocks = useMemo(() => buildMonthBlocks(model), [model])
-  // Trim to the most recent months that fit; always keeps the current month.
+  // Trim to the most recent months that fit the measured width; always keeps
+  // the current month. Wide screens therefore reach further back in time.
   const visibleBlocks = useMemo(
     () => pickVisibleMonthBlocks(monthBlocks, gridWidth),
     [monthBlocks, gridWidth]
+  )
+  // KPIs, colour scale and range caption describe the visible window only.
+  const summary = useMemo(
+    () => summarizeVisibleBlocks(visibleBlocks),
+    [visibleBlocks]
+  )
+  const statCards = useMemo(
+    () => buildStatCards(metric, summary),
+    [metric, summary]
   )
   const todayIso = isoDate(new Date())
 
@@ -223,7 +232,7 @@ function CalendarBody({
     )
   }
 
-  const { max, rangeLabel } = model
+  const { max, rangeLabel } = summary
   const hasTraffic = max > 0
 
   // Render one day cell (or an empty spacer for masked/out-of-range slots).
@@ -486,7 +495,10 @@ function CalendarBody({
 export const ChartQueryCountHeatmap = createCustomChart({
   chartName: 'query-count-heatmap',
   defaultTitle: 'Query Activity Heatmap',
-  defaultLastHours: 24 * 365,
+  // Two years of daily aggregates so wide screens have history to fill with;
+  // the client trims to what fits. Deployments with a short query_log TTL just
+  // return fewer rows (the window is then capped at data coverage).
+  defaultLastHours: 24 * 365 * 2,
   dataTestId: 'query-count-heatmap-chart',
   contentClassName: 'overflow-hidden',
   render: (dataArray, _sql, hostId) => (
