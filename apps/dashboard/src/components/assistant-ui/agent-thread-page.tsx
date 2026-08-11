@@ -35,7 +35,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsLgDown, useIsMobile } from '@/hooks/use-mobile'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { useHostId } from '@/lib/swr/use-host'
 import { useHosts } from '@/lib/swr/use-hosts'
@@ -68,13 +68,19 @@ function AgentThreadPageError() {
 export function AgentThreadPage() {
   const isMobile = useIsMobile()
   // Conversation rail: persistent inline column on desktop (open by default so
-  // its width is reserved on first paint, no CLS); a Drawer on mobile.
+  // its width is reserved on first paint, no CLS); a Drawer on mobile. It also
+  // starts collapsed on tablet-sized (`lg`-down) viewports, where the inline
+  // rail is still used but 280px eats too much of the chat column — the user
+  // can still open it via the toggle button.
+  const isLgDown = useIsLgDown()
   const [railOpen, setRailOpen] = useState(true)
   const [mobileConvOpen, setMobileConvOpen] = useState(false)
   // Settings sidebar (open by default on desktop; Drawer on mobile).
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   useEffect(() => {
-    setRailOpen(!isMobile)
+    setRailOpen(!isLgDown)
+  }, [isLgDown])
+  useEffect(() => {
     setRightSidebarOpen(!isMobile)
   }, [isMobile])
   const firstName = useClerkFirstName()
