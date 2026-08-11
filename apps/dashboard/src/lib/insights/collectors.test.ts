@@ -39,7 +39,13 @@ mock.module('@chm/platform', () => ({
   getPlatformBindings: () => ({ getD1Database: () => null }),
 }))
 
-const { collectInsights, decideSeverity } = await import('./collectors')
+const {
+  alertsOn,
+  collectInsights,
+  decideSeverity,
+  formatBaselineDetail,
+  formatMetricValue,
+} = await import('./collectors')
 const { fitBaseline } = await import('./statistical-baseline')
 
 beforeEach(() => {
@@ -140,6 +146,90 @@ describe('decideSeverity — genuine anomalies still fire with a baseline presen
     const decision = decideSeverity(recent, 1500, baseline, classify)
     expect(decision.usedBaseline).toBe(true)
     expect(decision.severity).toBe('critical')
+  })
+})
+
+// ── Direction gating: a metric that only matters when it RISES. ───────────
+
+describe('decideSeverity — direction gating (alertOn)', () => {
+  const baseline: Baseline = fitBaseline(
+    '0',
+    'memory_usage',
+    [
+      2.0, 2.1, 2.05, 2.2, 2.15, 2.0, 2.1, 2.05, 2.2, 2.15, 2.0, 2.1, 2.05, 2.2,
+      2.1,
+    ]
+  )
+
+  test('an "above"-only check suppresses a below-baseline reading (no "spiked" over a drop)', () => {
+    const recent = baseline.mean - 3 * baseline.stddev
+    const decision = decideSeverity(recent, -60, baseline, classify, 'above')
+    expect(decision.usedBaseline).toBe(true)
+    expect(decision.z).toBeLessThan(0)
+    expect(decision.severity).toBeNull()
+  })
+
+  test('the same below-baseline reading still fires for a "both" check', () => {
+    const recent = baseline.mean - 3 * baseline.stddev
+    expect(
+      decideSeverity(recent, -60, baseline, classify, 'both').severity
+    ).toBe('warning')
+  })
+
+  test('an above-baseline reading is unaffected by the gate', () => {
+    const recent = baseline.mean + 3 * baseline.stddev
+    expect(
+      decideSeverity(recent, 60, baseline, classify, 'above').severity
+    ).toBe('warning')
+  })
+
+  test('the static fallback path is gated too — a drop never fires an "above" check', () => {
+    expect(decideSeverity(1, -80, null, classify, 'above').severity).toBeNull()
+    expect(decideSeverity(9, 80, null, classify, 'above').severity).toBe(
+      'warning'
+    )
+  })
+
+  test('alertsOn treats a zero deviation as no alert', () => {
+    expect(alertsOn('both', 0)).toBe(false)
+    expect(alertsOn('below', -1)).toBe(true)
+    expect(alertsOn('below', 1)).toBe(false)
+  })
+})
+
+// ── Human-readable copy: never a raw byte count in a card body. ───────────
+
+describe('insight copy formatting', () => {
+  test('bytes are humanized, not printed raw', () => {
+    expect(formatMetricValue(2190847074.84, 'bytes')).toBe('2.04 GiB')
+    expect(formatMetricValue(2190847074.84, 'bytes')).not.toContain(
+      '2190847074'
+    )
+  })
+
+  test('durations, percentages and counts are readable', () => {
+    expect(formatMetricValue(840.4, 'ms')).toBe('840ms')
+    expect(formatMetricValue(4200, 'ms')).toBe('4.2s')
+    expect(formatMetricValue(3.4567, 'percent')).toBe('3.46%')
+    expect(formatMetricValue(1234567, 'count')).toBe('1,234,567')
+  })
+
+  test('the baseline detail is one short sentence with humanized values', () => {
+    const baseline: Baseline = fitBaseline(
+      '0',
+      'memory_usage',
+      Array.from({ length: 15 }, () => 2_222_222_222)
+    )
+    const detail = formatBaselineDetail(
+      { metric: 'memory_usage', unit: 'bytes' },
+      2_390_847_074,
+      baseline,
+      2.24
+    )
+    expect(detail).toBe(
+      'Now 2.23 GiB — 2.24σ above its 7-day baseline (typical ~2.07 GiB).'
+    )
+    expect(detail).not.toContain('stddev')
   })
 })
 

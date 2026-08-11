@@ -6,7 +6,6 @@ import { useState } from 'react'
 import { InsightDetailDialog } from '@/components/insights/insight-detail-dialog'
 import { SEVERITY_META } from '@/components/insights/severity-meta'
 import { AppLink as Link } from '@/components/ui/app-link'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { buildUrl } from '@/lib/url/url-builder'
@@ -64,18 +63,30 @@ export function InsightCard({
       }}
       className={cn(
         'h-full cursor-pointer gap-0 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        style.accent,
         className
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div
-          className={cn(
-            'flex size-7 shrink-0 items-center justify-center rounded-md',
-            style.iconBg
-          )}
-        >
-          <Icon className={cn('size-3.5', style.iconColor)} />
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon
+            className={cn('size-4 shrink-0', style.iconColor)}
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
+          <span className="truncate text-xs text-muted-foreground">
+            {style.label}
+            {hasGeneratedAt ? (
+              <>
+                {' · '}
+                <time
+                  dateTime={insight.generatedAt}
+                  title={new Date(generatedMs).toLocaleString()}
+                >
+                  {formatRelativeTime(generatedMs)}
+                </time>
+              </>
+            ) : null}
+          </span>
         </div>
         <Button
           type="button"
@@ -95,28 +106,14 @@ export function InsightCard({
       <h3 className="mt-3 text-sm font-medium leading-snug text-foreground">
         {insight.title}
       </h3>
-      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+      <p
+        className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground"
+        title={insight.detail}
+      >
         {insight.detail}
       </p>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Badge
-            variant="outline"
-            className={cn('text-[10px] font-medium', style.badge)}
-          >
-            {style.label}
-          </Badge>
-          {hasGeneratedAt ? (
-            <time
-              dateTime={insight.generatedAt}
-              title={new Date(generatedMs).toLocaleString()}
-              className="truncate text-[10px] text-muted-foreground/70"
-            >
-              {formatRelativeTime(generatedMs)}
-            </time>
-          ) : null}
-        </div>
+      <div className="mt-3 flex items-center justify-end gap-2">
         {action && actionHref ? (
           <Button
             variant="ghost"
