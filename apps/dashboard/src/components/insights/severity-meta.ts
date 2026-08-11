@@ -16,43 +16,34 @@ export interface SeverityMeta {
   /** Human label shown on badges. Note: `info` reads as "Notice". */
   readonly label: string
   readonly icon: LucideIcon
-  /** Background token for the icon chip. */
-  readonly iconBg: string
-  /** Foreground token for the icon. */
+  /**
+   * Foreground token for the icon — the SINGLE severity signal on a card.
+   * Everything else (surface, border, badge) stays neutral so one finding is
+   * not shouted four times (see the product-design skill, non-negotiable #6).
+   */
   readonly iconColor: string
-  /** Tinted outline-badge classes (also used for header count badges). */
+  /** Neutral outline-badge classes (also used for header count badges). */
   readonly badge: string
-  /** Full-border accent color for the card (all four sides), by severity. */
-  readonly accent: string
 }
 
 export const SEVERITY_META: Record<InsightSeverity, SeverityMeta> = {
   critical: {
     label: 'Critical',
     icon: AlertTriangle,
-    iconBg: 'bg-rose-100 dark:bg-rose-950/50',
     iconColor: 'text-rose-600 dark:text-rose-400',
-    badge:
-      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-400',
-    accent: 'border-rose-300 dark:border-rose-700/60',
+    badge: 'border-border bg-transparent text-muted-foreground',
   },
   warning: {
     label: 'Warning',
     icon: TriangleAlert,
-    iconBg: 'bg-amber-100 dark:bg-amber-950/50',
     iconColor: 'text-amber-600 dark:text-amber-400',
-    badge:
-      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400',
-    accent: 'border-amber-300 dark:border-amber-700/60',
+    badge: 'border-border bg-transparent text-muted-foreground',
   },
   info: {
     label: 'Notice',
     icon: Info,
-    iconBg: 'bg-muted',
     iconColor: 'text-muted-foreground',
-    badge:
-      'border-border bg-muted/50 text-muted-foreground dark:bg-muted/30 dark:text-muted-foreground',
-    accent: 'border-border',
+    badge: 'border-border bg-transparent text-muted-foreground',
   },
 }
 

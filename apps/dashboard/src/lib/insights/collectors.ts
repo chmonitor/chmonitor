@@ -12,6 +12,7 @@ import type { Baseline } from './statistical-baseline'
 import type { InsightCandidate, InsightSeverity } from './types'
 
 import { readOnlyQuery } from '../ai/agent/tools/helpers'
+import { formatReadableQuantity, formatReadableSize } from '../format-readable'
 import {
   buildPartsPressureCurrentSql,
   buildPartsPressureProjectionSql,
@@ -71,9 +72,30 @@ async function firstRow(
 // Anomaly collector — recent (1h) vs baseline (24h), ported from anomaly-tools.
 // ---------------------------------------------------------------------------
 
+/** How a metric's raw value is rendered in user-facing copy. */
+export type AnomalyUnit = 'bytes' | 'ms' | 'percent' | 'count'
+
+/** Which direction of deviation a check alerts on. */
+export type AnomalyCheckDirection = 'above' | 'below' | 'both'
+
 interface AnomalyCheck {
   metric: string
+  /** Title used when the current value is ABOVE the baseline. */
   title: string
+  /**
+   * Title used when the current value is BELOW the baseline. Only reachable for
+   * checks whose `alertOn` includes 'below' — present so a direction-agnostic
+   * check can never render "spiked" over a drop.
+   */
+  titleBelow?: string
+  /**
+   * Which direction of deviation is worth alerting on. Memory/latency/error
+   * rate falling below baseline is not a problem, so those are 'above' only and
+   * a below-baseline reading is suppressed rather than reported as a warning.
+   */
+  alertOn: AnomalyCheckDirection
+  /** Unit used to humanize the value in the detail copy. */
+  unit: AnomalyUnit
   recentQuery: string
   baselineQuery: string
   /**
@@ -95,27 +117,34 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
   {
     metric: 'error_rate',
     title: 'Query error rate is climbing',
+    alertOn: 'above',
+    unit: 'percent',
     recentQuery: `SELECT countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) as value FROM system.query_log WHERE event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) as value FROM system.query_log WHERE event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
     sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) AS value FROM system.query_log WHERE event_time > now() - INTERVAL 7 DAY GROUP BY bucket HAVING isNotNull(value) ORDER BY bucket`,
     format: (recent, baseline) =>
-      `Error rate in the last hour is ${round(recent)}% vs a 24h baseline of ${round(baseline)}%. Investigate failing queries before they spread.`,
+      `Error rate in the last hour is ${formatMetricValue(recent, 'percent')} vs a ${formatMetricValue(baseline, 'percent')} 24h baseline.`,
     classify: (pct) => (pct > 100 ? 'critical' : pct > 50 ? 'warning' : 'info'),
   },
   {
     metric: 'query_duration_p95',
     title: 'Queries are slowing down (p95)',
+    alertOn: 'above',
+    unit: 'ms',
     recentQuery: `SELECT quantile(0.95)(query_duration_ms) as value FROM system.query_log WHERE type = 'QueryFinish' AND event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT quantile(0.95)(query_duration_ms) as value FROM system.query_log WHERE type = 'QueryFinish' AND event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
     sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, quantile(0.95)(query_duration_ms) AS value FROM system.query_log WHERE type = 'QueryFinish' AND event_time > now() - INTERVAL 7 DAY GROUP BY bucket ORDER BY bucket`,
     format: (recent, baseline, pct) =>
-      `p95 query duration rose ${round(pct)}% (now ${round(recent)}ms vs ${round(baseline)}ms baseline). Check for heavy scans or contention.`,
+      `p95 query duration rose ${round(pct)}% — now ${formatMetricValue(recent, 'ms')} vs ${formatMetricValue(baseline, 'ms')} baseline.`,
     classify: (pct) =>
       pct > 200 ? 'critical' : pct > 100 ? 'warning' : 'info',
   },
   {
     metric: 'memory_usage',
     title: 'Memory usage spiked',
+    titleBelow: 'Memory usage dropped',
+    alertOn: 'above',
+    unit: 'bytes',
     // Reads MemoryResident from asynchronous_metric_log (same metric as
     // baselineQuery/sampleQuery below) — a live system.metrics MemoryTracking
     // snapshot would score against a different metric's baseline and produce
@@ -124,10 +153,43 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
     baselineQuery: `SELECT avg(value) as value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
     sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, avg(value) AS value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time > now() - INTERVAL 7 DAY GROUP BY bucket ORDER BY bucket`,
     format: (_recent, _baseline, pct) =>
-      `Tracked memory is ${round(pct)}% above the 24h average. Watch for OOM risk on memory-heavy queries.`,
+      `Tracked memory is ${round(pct)}% above the 24h average — watch for OOM risk on memory-heavy queries.`,
     classify: (pct) => (pct > 80 ? 'critical' : pct > 40 ? 'warning' : 'info'),
   },
 ]
+
+/**
+ * True when a deviation of the given sign is worth alerting on for a check.
+ * A zero deviation is never an alert.
+ */
+export function alertsOn(
+  alertOn: AnomalyCheckDirection,
+  deviation: number
+): boolean {
+  if (deviation === 0) return false
+  if (alertOn === 'both') return true
+  return alertOn === 'above' ? deviation > 0 : deviation < 0
+}
+
+/**
+ * Humanize a metric value for user-facing copy — bytes as `2.04 GiB`, durations
+ * as `1.2s`/`840ms`, percentages as `3.4%`, counts locale-formatted. Never a raw
+ * `2190847074.84`.
+ */
+export function formatMetricValue(value: number, unit: AnomalyUnit): string {
+  switch (unit) {
+    case 'bytes':
+      return formatReadableSize(value, 2)
+    case 'ms':
+      return value >= 1000
+        ? `${round(value / 1000)}s`
+        : `${Math.round(value)}ms`
+    case 'percent':
+      return `${round(value)}%`
+    default:
+      return formatReadableQuantity(value, 'long')
+  }
+}
 
 /** Above this |z|, a baseline-flagged anomaly is 'critical' rather than 'warning'. */
 const CRITICAL_Z_THRESHOLD = 4
@@ -160,12 +222,15 @@ export function decideSeverity(
   recent: number,
   changePct: number,
   baseline: Baseline | null,
-  staticClassify: (changePct: number) => InsightSeverity
+  staticClassify: (changePct: number) => InsightSeverity,
+  alertOn: AnomalyCheckDirection = 'both'
 ): AnomalySeverityDecision {
   const score = scoreAnomaly(recent, baseline)
 
   if (score.usedBaseline) {
     if (!score.isAnomaly)
+      return { severity: null, usedBaseline: true, z: score.z }
+    if (!alertsOn(alertOn, score.z))
       return { severity: null, usedBaseline: true, z: score.z }
     return {
       severity:
@@ -175,6 +240,9 @@ export function decideSeverity(
     }
   }
 
+  if (!alertsOn(alertOn, changePct))
+    return { severity: null, usedBaseline: false, z: null }
+
   const severity = staticClassify(changePct)
   return {
     severity: severity === 'info' ? null : severity,
@@ -183,15 +251,28 @@ export function decideSeverity(
   }
 }
 
-/** Detail string for the baseline-backed path — labels the signal as statistical, not a fixed default. */
-function formatBaselineDetail(
-  check: AnomalyCheck,
+/**
+ * One-sentence detail for the baseline-backed path.
+ *
+ * Values are humanized by unit (bytes → `2.04 GiB`) and the σ phrasing is kept
+ * to a single readable clause — the full fit (mean / stddev / sample count) is
+ * available in the insight detail dialog, not crammed into the card body.
+ */
+export function formatBaselineDetail(
+  check: Pick<AnomalyCheck, 'metric' | 'unit'>,
   recent: number,
   baseline: Baseline,
   z: number
 ): string {
   const direction = z >= 0 ? 'above' : 'below'
-  return `${check.title}: the current value (${round(recent)}) is ${round(Math.abs(z))}σ ${direction} this cluster's own 7-day baseline (mean ${round(baseline.mean)}, stddev ${round(baseline.stddev)}, n=${baseline.sampleCount}). This threshold is statistically fitted per cluster, not a fixed default.`
+  const current = formatMetricValue(recent, check.unit)
+  const typical = formatMetricValue(baseline.mean, check.unit)
+  return `Now ${current} — ${round(Math.abs(z))}σ ${direction} its 7-day baseline (typical ~${typical}).`
+}
+
+/** Title matching the direction of the deviation, so copy never contradicts the data. */
+export function directionalTitle(check: AnomalyCheck, z: number): string {
+  return z < 0 && check.titleBelow ? check.titleBelow : check.title
 }
 
 async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
@@ -228,7 +309,8 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
           recent,
           changePct,
           fittedBaseline,
-          check.classify
+          check.classify,
+          check.alertOn
         )
         if (decision.severity === null) return
 
@@ -241,7 +323,10 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
           severity: decision.severity,
           category: 'anomaly',
           metric: check.metric,
-          title: check.title,
+          title: directionalTitle(
+            check,
+            usedBaseline ? (decision.z as number) : changePct
+          ),
           detail: usedBaseline
             ? formatBaselineDetail(
                 check,

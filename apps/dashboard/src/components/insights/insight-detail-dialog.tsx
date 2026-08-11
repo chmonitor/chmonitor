@@ -91,14 +91,11 @@ export function InsightDetailDialog({
       <DialogContent className="flex max-h-[85vh] w-[calc(100%-1.5rem)] flex-col gap-4 overflow-hidden sm:max-w-4xl lg:max-w-5xl">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <div
-              className={cn(
-                'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md',
-                style.iconBg
-              )}
-            >
-              <Icon className={cn('size-4', style.iconColor)} />
-            </div>
+            <Icon
+              className={cn('mt-1 size-4 shrink-0', style.iconColor)}
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
             <div className="min-w-0 flex-1">
               <DialogTitle className="text-base leading-snug">
                 {insight.title}
