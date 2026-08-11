@@ -3,7 +3,7 @@ services:
     name: chmonitor
     # Community template — not yet boot-verified in CI.
     # Replace the placeholder values below before deploying.
-    image: ghcr.io/chmonitor/chmonitor:latest
+    image: ghcr.io/chmonitor/chmonitor:v0.3.1
     # Render pulls the image from GHCR (public, no registry credentials needed).
     plan: starter
     numInstances: 1

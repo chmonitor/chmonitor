@@ -47,8 +47,13 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+    # /healthz = liveness (static 200 while the process is up).
+    # /api/healthz = readiness (200 only when every configured ClickHouse
+    # host answers; 503 otherwise). The container healthcheck must use the
+    # liveness endpoint so an unreachable ClickHouse doesn't mark the app
+    # container unhealthy. See docs/knowledge/k8s-health-probes.md.
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/api/healthz"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3

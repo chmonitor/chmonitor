@@ -73,6 +73,11 @@ CrashLoopBackOff (`BackOff x37`).
   stale image — check when `:latest` was last built (`gh run list --workflow=ci.yml`).
 - Always include a `startupProbe` so a slow-booting Nitro server isn't killed
   before it binds (liveness has no grace of its own once startup succeeds).
+- The rule applies to **every** chart-managed image, not just the app
+  container — e.g. the `curlimages/curl` sidecar used by the cron `CronJob`s
+  (`deploy/helm/chmonitor/values.yaml` `cron.image`) must also pin an explicit
+  tag with `IfNotPresent`. `rg -n ":latest|tag: \"latest\"" deploy/` should
+  always return no results (#2902).
 
 ## Non-Helm deployments (raw manifests / Kustomize)
 
