@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import {
+  FALLBACK_AGENT_MODEL,
   getAllModelOptions,
   MODEL_REGISTRY,
 } from '@/lib/ai/agent-model-registry'
@@ -21,7 +22,6 @@ import {
   type ModelPricing,
   type OpenAIModel,
 } from '@/lib/ai/agent-models'
-import { FALLBACK_AGENT_MODEL } from '@/lib/ai/agent-model-registry'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
 export type { OpenAIModel } from '@/lib/ai/agent-models'
@@ -296,8 +296,6 @@ export function useAgentModel(): UseAgentModelResult {
     modelsLoaded,
     configuredProviders,
     noProvidersConfigured:
-      modelsLoaded &&
-      configuredProviders.length === 0 &&
-      models.length === 0,
+      modelsLoaded && configuredProviders.length === 0 && models.length === 0,
   }
 }

@@ -81,8 +81,8 @@ export function WelcomeComposer() {
             <code className="font-mono text-[11px]">OPENROUTER_API_KEY</code>{' '}
             (or <code className="font-mono text-[11px]">LLM_API_KEY</code>),{' '}
             <code className="font-mono text-[11px]">ANYROUTER_API_KEY</code>, or{' '}
-            <code className="font-mono text-[11px]">NVIDIA_API_KEY</code> on this
-            deployment so the agent can answer.
+            <code className="font-mono text-[11px]">NVIDIA_API_KEY</code> on
+            this deployment so the agent can answer.
           </p>
         </div>
       ) : null}
