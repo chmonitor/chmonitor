@@ -5,6 +5,7 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
 import { RankBars } from '@/components/charts/primitives/rank-bars'
 import { SegmentedControl } from '@/components/filters/segmented-control'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
 
 type DataRow = {
@@ -76,19 +77,17 @@ export const ChartTopTableSize = function ChartTopTableSize({
             metadata={metadata}
             data-testid="top-table-size-chart"
             contentClassName={chartCardContentClassName}
+            headerControls={
+              <SegmentedControl
+                options={MODE_OPTIONS}
+                value={mode}
+                onChange={(v) => setMode(v as 'size' | 'rows')}
+              />
+            }
           >
-            <div className="flex h-full min-h-0 flex-col gap-3">
-              <div className="flex items-center justify-end">
-                <SegmentedControl
-                  options={MODE_OPTIONS}
-                  value={mode}
-                  onChange={(v) => setMode(v as 'size' | 'rows')}
-                />
-              </div>
-              <div className="min-h-0 flex-1 overflow-auto">
-                <RankBars items={items} />
-              </div>
-            </div>
+            <ScrollArea className="h-full min-h-0">
+              <RankBars items={items} />
+            </ScrollArea>
           </ChartCard>
         )
       }}
