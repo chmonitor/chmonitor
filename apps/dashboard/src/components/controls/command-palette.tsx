@@ -1,43 +1,22 @@
 'use client'
 
-import {
-  CornerDownLeft,
-  Database,
-  GlobeIcon,
-  History,
-  Moon,
-  Pin,
-  Search,
-  SearchX,
-  Settings,
-  Sparkles,
-  Sun,
-  Table,
-  TextSearch,
-} from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
-import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
-
-import { detectQuickNav, parseTableName } from './command-palette-utils'
+import {
+  CommandPaletteFooter,
+  CommandPaletteResults,
+  CommandPaletteTrigger,
+} from './command-palette/command-palette-items'
+import { useCommandPaletteState } from './command-palette/use-command-palette-state'
+import {
+  EXPLORER_RESULTS_LIMIT,
+  type ExplorerTableRow,
+  usePaletteGroups,
+} from './command-palette/use-palette-groups'
+import { parseTableName } from './command-palette-utils'
 import { useTheme } from 'next-themes'
-import * as React from 'react'
-import { useEffect, useState } from 'react'
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from '@/components/ui/command'
-import { IconButton } from '@/components/ui/icon-button'
+import { CommandDialog, CommandInput } from '@/components/ui/command'
 import { useFavoriteHrefs } from '@/hooks/use-favorites'
-import {
-  addRecentItem,
-  getRecentItems,
-} from '@/lib/command-palette/recent-items'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
@@ -46,19 +25,6 @@ import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
-import { cn, getHost } from '@/lib/utils'
-
-// Cap how many databases/tables are rendered — cmdk fuzzy-filters the
-// remaining rows as the user types, but that's about UX (not fetch cost);
-// the API call itself is already limited server-side.
-const EXPLORER_RESULTS_LIMIT = 200
-const EXPLORER_GROUP_MAX = 8
-
-interface ExplorerTableRow {
-  database: string
-  name: string
-  engine: string
-}
 
 async function fetchTables(hostId: number): Promise<ExplorerTableRow[]> {
   const res = await apiFetch(
@@ -75,38 +41,6 @@ interface CommandPaletteProps {
   onOpenSettings?: () => void
 }
 
-/** Small keycap used in the palette footer hints. */
-function Kbd({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <kbd
-      className={cn(
-        'inline-flex h-5 min-w-5 items-center justify-center rounded border bg-muted px-1 font-sans text-[10px] font-medium text-muted-foreground',
-        className
-      )}
-    >
-      {children}
-    </kbd>
-  )
-}
-
-/**
- * Affordance shown on the right of the active row: a subtle "press Enter" hint
- * that only appears on the selected item (cmdk sets `data-selected="true"`).
- */
-function EnterHint() {
-  return (
-    <span className="ml-auto flex items-center gap-1 pl-2 text-[10px] text-muted-foreground opacity-0 transition-opacity group-data-[selected=true]:opacity-100">
-      <CornerDownLeft className="size-3" />
-    </span>
-  )
-}
-
 export const CommandPalette = function CommandPalette({
   open: controlledOpen,
   onOpenChange,
@@ -115,12 +49,17 @@ export const CommandPalette = function CommandPalette({
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
-  const [internalOpen, setInternalOpen] = React.useState(false)
-  const [inputValue, setInputValue] = useState('')
-  const [recentItems, setRecentItems] = useState<
-    ReturnType<typeof getRecentItems>
-  >([])
-  const [mounted, setMounted] = useState(false)
+  const {
+    open,
+    setOpen,
+    inputValue,
+    setInputValue,
+    recentItems,
+    mounted,
+    closeAndReset,
+    rememberSelection,
+  } = useCommandPaletteState({ open: controlledOpen, onOpenChange })
+
   const { config } = useFeaturePermissions()
   const engine = useActiveHostEngine()
   const menuItems = getVisibleMenuItems(config, engine)
@@ -128,32 +67,6 @@ export const CommandPalette = function CommandPalette({
   const favoriteMenuItems = getFavoriteMenuItems(menuItems, favoriteHrefs)
   const { setTheme, resolvedTheme } = useTheme()
   const { hosts } = useMergedHosts()
-
-  const open = controlledOpen ?? internalOpen
-  const setOpen = onOpenChange ?? setInternalOpen
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Recent items can be added from any palette instance (or a prior session),
-  // so re-read them each time the palette opens rather than only on mount.
-  useEffect(() => {
-    if (open) setRecentItems(getRecentItems())
-  }, [open])
-
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Cmd+K or Ctrl+K to open
-      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-        event.preventDefault()
-        setOpen(!open)
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [open, setOpen])
 
   const hostId = searchParams.get('host') || '0'
   const hostIdNum = Number(hostId)
@@ -168,33 +81,21 @@ export const CommandPalette = function CommandPalette({
     refetchOnWindowFocus: false,
   })
 
-  const databases = React.useMemo(() => {
-    const seen = new Set<string>()
-    for (const row of tableRows ?? []) seen.add(row.database)
-    return [...seen].slice(0, EXPLORER_GROUP_MAX)
-  }, [tableRows])
-
-  const tables = React.useMemo(
-    () => (tableRows ?? []).slice(0, EXPLORER_GROUP_MAX),
-    [tableRows]
-  )
-
-  const rememberSelection = (
-    id: string,
-    title: string,
-    href: string,
-    kind: RecentPaletteItemKind,
-    description?: string
-  ) => {
-    addRecentItem({ id, title, href, kind, description })
-  }
+  const { leafItems, sectionedItems, databases, tables, otherHosts, quickNav } =
+    usePaletteGroups({
+      menuItems,
+      favoriteMenuItems,
+      tableRows,
+      hosts,
+      currentHostId: hostIdNum,
+      query: inputValue,
+    })
 
   const navigate = (
     href: string,
     recent?: { id: string; title: string; description?: string }
   ) => {
-    setOpen(false)
-    setInputValue('')
+    closeAndReset()
     if (recent) {
       rememberSelection(
         recent.id,
@@ -214,15 +115,8 @@ export const CommandPalette = function CommandPalette({
     router.push(url)
   }
 
-  const {
-    isQueryId,
-    isTableName,
-    hasMatch: showQuickNav,
-  } = detectQuickNav(inputValue)
-
   const handleGoToQuery = () => {
-    setOpen(false)
-    setInputValue('')
+    closeAndReset()
     const url = buildUrl('/query', {
       host: hostId,
       query_id: inputValue.trim(),
@@ -231,20 +125,14 @@ export const CommandPalette = function CommandPalette({
   }
 
   const handleOpenInExplorer = () => {
-    setOpen(false)
-    setInputValue('')
+    closeAndReset()
     const { database, table } = parseTableName(inputValue)
-    const url = buildUrl('/explorer', {
-      host: hostId,
-      database,
-      table,
-    })
+    const url = buildUrl('/explorer', { host: hostId, database, table })
     router.push(url)
   }
 
   const openExplorerFor = (database: string, table?: string) => {
-    setOpen(false)
-    setInputValue('')
+    closeAndReset()
     const url = buildUrl('/explorer', { host: hostId, database, table })
     if (table) {
       rememberSelection(
@@ -270,50 +158,14 @@ export const CommandPalette = function CommandPalette({
   }
 
   const handleSwitchHost = (id: number) => {
-    setOpen(false)
-    setInputValue('')
+    closeAndReset()
     const url = buildUrl(pathname || '/overview', { host: id }, searchParams)
     router.push(url)
   }
 
-  // Top-level entries without sub-items (Overview, AI Agent, Insights, Health…)
-  // are collapsed into a single "Go to" group so each one no longer renders its
-  // own redundant single-item heading. Entries that have sub-items keep their
-  // own group.
-  const leafItems = menuItems.filter(
-    (group) => !group.items || group.items.length === 0
-  )
-  const sectionedItems = menuItems.filter(
-    (group) => group.items && group.items.length > 0
-  )
-
-  const otherHosts = hosts.filter((h) => h.id !== hostIdNum)
-
   return (
     <>
-      {/* Search icon button for small screens */}
-      <IconButton
-        icon={<Search className="size-4" />}
-        onClick={() => setOpen(true)}
-        tooltip="Search"
-        className="md:hidden"
-      />
-
-      {/* Search trigger - hidden on mobile */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="relative hidden h-8 w-30 items-center gap-2 rounded-md border bg-muted/30 px-2.5 text-xs transition-[border-color,box-shadow,background-color] hover:bg-muted/50 hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 md:inline-flex md:w-40"
-      >
-        <Search aria-hidden="true" className="size-3.5 text-muted-foreground" />
-        <span className="text-muted-foreground">Search…</span>
-        <kbd
-          id="search-shortcut"
-          className="ml-auto rounded border bg-muted px-1.5 text-[10px] font-medium"
-        >
-          ⌘K
-        </kbd>
-      </button>
+      <CommandPaletteTrigger onOpen={() => setOpen(true)} />
 
       <CommandDialog
         open={open}
@@ -331,304 +183,59 @@ export const CommandPalette = function CommandPalette({
           value={inputValue}
           onValueChange={setInputValue}
         />
-        <CommandList className="max-h-[60vh] scroll-py-2">
-          <CommandEmpty>
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <SearchX className="size-6 text-muted-foreground/50" />
-              <p className="text-sm font-medium">No results found</p>
-              <p className="text-xs text-muted-foreground">
-                Try a page name, a query id, or a{' '}
-                <code className="font-mono">database.table</code> reference.
-              </p>
-            </div>
-          </CommandEmpty>
+        <CommandPaletteResults
+          inputValue={inputValue}
+          favoriteMenuItems={favoriteMenuItems}
+          onSelectFavorite={(item) =>
+            navigate(item.href, {
+              id: `page-${item.href}`,
+              title: item.title,
+              description: item.description,
+            })
+          }
+          recentItems={recentItems}
+          onSelectRecent={(recent) => {
+            closeAndReset()
+            rememberSelection(
+              recent.id,
+              recent.title,
+              recent.href,
+              recent.kind,
+              recent.description
+            )
+            router.push(recent.href)
+          }}
+          quickNav={quickNav}
+          onGoToQuery={handleGoToQuery}
+          onOpenInExplorer={handleOpenInExplorer}
+          leafItems={leafItems}
+          sectionedItems={sectionedItems}
+          onSelectMenuItem={(item) =>
+            navigate(item.href, {
+              id: `page-${item.href}`,
+              title: item.title,
+              description: item.description,
+            })
+          }
+          databases={databases}
+          tables={tables}
+          onSelectDatabase={(database) => openExplorerFor(database)}
+          onSelectTable={(row) => openExplorerFor(row.database, row.name)}
+          mounted={mounted}
+          resolvedTheme={resolvedTheme}
+          onToggleTheme={handleToggleTheme}
+          onOpenAiChat={() =>
+            navigate('/agents', {
+              id: 'action-open-ai-chat',
+              title: 'Open AI Agent chat',
+            })
+          }
+          otherHosts={otherHosts}
+          onSwitchHost={handleSwitchHost}
+          onOpenSettings={onOpenSettings ? handleOpenSettings : undefined}
+        />
 
-          {/* Pinned favorites (issue #2769) surface first, above Recent —
-              cmdk's own value-based filter still narrows this group when the
-              user types, so it isn't gated to the empty-query state. */}
-          {favoriteMenuItems.length > 0 && (
-            <>
-              <CommandGroup heading="Favorites">
-                {favoriteMenuItems.map((item) => (
-                  <CommandItem
-                    key={`favorite-${item.href}`}
-                    onSelect={() =>
-                      navigate(item.href, {
-                        id: `page-${item.href}`,
-                        title: item.title,
-                        description: item.description,
-                      })
-                    }
-                    value={`favorite ${[item.title, item.description]
-                      .filter(Boolean)
-                      .join(' ')}`}
-                    className="group"
-                  >
-                    <Pin className="size-4 shrink-0 fill-current text-muted-foreground" />
-                    <span className="font-medium">{item.title}</span>
-                    <EnterHint />
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-              <CommandSeparator />
-            </>
-          )}
-
-          {/* Recent items only make sense as a starting point — once the user
-              is actively searching, cmdk's own filter takes over. */}
-          {inputValue.length === 0 && recentItems.length > 0 && (
-            <>
-              <CommandGroup heading="Recent">
-                {recentItems.map((recent) => (
-                  <CommandItem
-                    key={recent.id}
-                    onSelect={() => {
-                      setOpen(false)
-                      setInputValue('')
-                      rememberSelection(
-                        recent.id,
-                        recent.title,
-                        recent.href,
-                        recent.kind,
-                        recent.description
-                      )
-                      router.push(recent.href)
-                    }}
-                    value={`recent-${recent.id}`}
-                    className="group"
-                  >
-                    <History className="size-4 shrink-0" />
-                    <span className="font-medium">{recent.title}</span>
-                    {recent.description && (
-                      <span className="ml-1 truncate text-xs text-muted-foreground">
-                        {recent.description}
-                      </span>
-                    )}
-                    <EnterHint />
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-              <CommandSeparator />
-            </>
-          )}
-
-          {showQuickNav && (
-            <>
-              <CommandGroup heading="Quick Navigation">
-                {isQueryId && (
-                  <CommandItem
-                    onSelect={handleGoToQuery}
-                    value={`query-id-${inputValue}`}
-                    className="group"
-                  >
-                    <TextSearch className="size-4 shrink-0" />
-                    <span>Go to query</span>
-                    <span className="ml-1 truncate font-mono text-xs text-muted-foreground">
-                      {inputValue.trim()}
-                    </span>
-                    <EnterHint />
-                  </CommandItem>
-                )}
-                {isTableName && (
-                  <CommandItem
-                    onSelect={handleOpenInExplorer}
-                    value={`explorer-${inputValue}`}
-                    className="group"
-                  >
-                    <Table className="size-4 shrink-0" />
-                    <span>Open in explorer</span>
-                    <span className="ml-1 truncate font-mono text-xs text-muted-foreground">
-                      {inputValue.trim()}
-                    </span>
-                    <EnterHint />
-                  </CommandItem>
-                )}
-              </CommandGroup>
-              <CommandSeparator />
-            </>
-          )}
-
-          {leafItems.length > 0 && (
-            <CommandGroup heading="Go to">
-              {leafItems.map((group) => (
-                <CommandItem
-                  key={group.href}
-                  onSelect={() =>
-                    navigate(group.href, {
-                      id: `page-${group.href}`,
-                      title: group.title,
-                      description: group.description,
-                    })
-                  }
-                  value={[group.title, group.description]
-                    .filter(Boolean)
-                    .join(' ')}
-                  className="group"
-                >
-                  {group.icon && <group.icon className="size-4 shrink-0" />}
-                  <span className="font-medium">{group.title}</span>
-                  <EnterHint />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-
-          {sectionedItems.map((group) => (
-            <CommandGroup key={group.title} heading={group.title}>
-              {group.items?.map((item) => (
-                <CommandItem
-                  key={item.href}
-                  onSelect={() =>
-                    navigate(item.href, {
-                      id: `page-${item.href}`,
-                      title: item.title,
-                      description: item.description,
-                    })
-                  }
-                  value={[group.title, item.title, item.description]
-                    .filter(Boolean)
-                    .join(' ')}
-                  className="group flex-col items-start gap-0.5"
-                >
-                  <div className="flex w-full items-center gap-2">
-                    {item.icon && <item.icon className="size-4 shrink-0" />}
-                    <span className="font-medium">{item.title}</span>
-                    <EnterHint />
-                  </div>
-                  {item.description && (
-                    <span className="w-full truncate pl-6 text-xs text-muted-foreground">
-                      {item.description}
-                    </span>
-                  )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          ))}
-
-          {databases.length > 0 && (
-            <CommandGroup heading="Databases">
-              {databases.map((database) => (
-                <CommandItem
-                  key={`db-${database}`}
-                  onSelect={() => openExplorerFor(database)}
-                  value={`database ${database}`}
-                  className="group"
-                >
-                  <Database className="size-4 shrink-0" />
-                  <span className="font-medium">{database}</span>
-                  <EnterHint />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-
-          {tables.length > 0 && (
-            <CommandGroup heading="Tables">
-              {tables.map((row) => (
-                <CommandItem
-                  key={`table-${row.database}-${row.name}`}
-                  onSelect={() => openExplorerFor(row.database, row.name)}
-                  value={`table ${row.database}.${row.name} ${row.engine}`}
-                  className="group"
-                >
-                  <Table className="size-4 shrink-0" />
-                  <span className="font-medium">
-                    {row.database}.{row.name}
-                  </span>
-                  <span className="ml-1 truncate text-xs text-muted-foreground">
-                    {row.engine}
-                  </span>
-                  <EnterHint />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-
-          <CommandSeparator />
-          <CommandGroup heading="Actions">
-            <CommandItem
-              onSelect={() =>
-                navigate('/agents', {
-                  id: 'action-open-ai-chat',
-                  title: 'Open AI Agent chat',
-                })
-              }
-              value="Open AI Agent chat assistant"
-              className="group"
-            >
-              <Sparkles className="size-4 shrink-0" />
-              <span>Open AI Agent chat</span>
-              <EnterHint />
-            </CommandItem>
-
-            {mounted && (
-              <CommandItem
-                onSelect={handleToggleTheme}
-                value="Toggle dark light theme appearance"
-                className="group"
-              >
-                {resolvedTheme === 'dark' ? (
-                  <Sun className="size-4 shrink-0" />
-                ) : (
-                  <Moon className="size-4 shrink-0" />
-                )}
-                <span>
-                  Switch to {resolvedTheme === 'dark' ? 'light' : 'dark'} mode
-                </span>
-                <EnterHint />
-              </CommandItem>
-            )}
-
-            {otherHosts.map((host) => (
-              <CommandItem
-                key={`switch-host-${host.id}`}
-                onSelect={() => handleSwitchHost(host.id)}
-                value={`switch host ${host.name || getHost(host.host)}`}
-                className="group"
-              >
-                <GlobeIcon className="size-4 shrink-0" />
-                <span>Switch to {host.name || getHost(host.host)}</span>
-                <EnterHint />
-              </CommandItem>
-            ))}
-
-            {onOpenSettings && (
-              <CommandItem
-                onSelect={handleOpenSettings}
-                value="Settings preferences"
-                className="group"
-              >
-                <Settings className="size-4 shrink-0" />
-                <span>Settings</span>
-                <Kbd className="ml-auto">⌘,</Kbd>
-              </CommandItem>
-            )}
-          </CommandGroup>
-        </CommandList>
-
-        {/* Footer with keyboard hints — the hallmark of a polished palette. */}
-        <div className="flex items-center justify-between border-t px-3 py-2 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <Kbd>↑</Kbd>
-              <Kbd>↓</Kbd>
-              <span className="hidden sm:inline">navigate</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <Kbd>
-                <CornerDownLeft className="size-3" />
-              </Kbd>
-              <span className="hidden sm:inline">open</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <Kbd>esc</Kbd>
-              <span className="hidden sm:inline">close</span>
-            </span>
-          </div>
-          <span className="font-medium text-muted-foreground/70">
-            ClickHouse Monitor
-          </span>
-        </div>
+        <CommandPaletteFooter />
       </CommandDialog>
     </>
   )
