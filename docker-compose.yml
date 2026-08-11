@@ -1,6 +1,6 @@
 services:
   clickhouse:
-    image: ghcr.io/duyet/docker-images:clickhouse_25.1
+    image: ghcr.io/duyet/docker-images:clickhouse_25.8
     ports:
       - "8123:8123"
       - "9000:9000"
