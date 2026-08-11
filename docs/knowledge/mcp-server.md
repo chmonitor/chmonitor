@@ -3,7 +3,7 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-08-07
+updated: 2026-08-12
 tags:
   - mcp
   - api
@@ -30,6 +30,57 @@ The chmonitor exposes a [Model Context Protocol (MCP)](https://modelcontextproto
 | Discovery card | `GET /.well-known/mcp/server-card.json` lists dual-era `protocolVersions` |
 
 Do **not** reintroduce sessionful Streamable HTTP (`Mcp-Session-Id`) unless you deliberately leave the free-tier / multi-instance model.
+
+`@modelcontextprotocol/server` 2.0.0 IS the latest published SDK — check
+`registry.npmjs.org` before assuming a bump is available.
+
+### Wire requirements a client must satisfy (2026-07-28)
+
+Every request needs, or it is rejected with `-32602`:
+
+- `_meta['io.modelcontextprotocol/protocolVersion']` **and**
+  `_meta['io.modelcontextprotocol/clientCapabilities']` in `params` — the
+  handshake is gone, so both travel per-request.
+- Headers `Mcp-Method` (and `Mcp-Name` for `tools/call`), `MCP-Protocol-Version`,
+  and `Accept: application/json, text/event-stream`.
+
+CORS (`src/cors.ts`) allow-lists exactly those headers plus `x-api-key` /
+`authorization` and the legacy `mcp-session-id` / `last-event-id`, and exposes
+`WWW-Authenticate` + `MCP-Protocol-Version`. Dropping one silently breaks every
+in-browser client (the `/mcp` Playground included) at preflight — covered by
+`src/__tests__/http.test.ts`.
+
+### Structured tool output
+
+`toJsonResult` (`src/tools/helpers.ts`) returns BOTH a text content block and
+`structuredContent`, normalized to an object (`toStructuredContent`: a plain
+object passes through, anything else is wrapped as `{ data: … }`) so it is valid
+in the 2026-07-28 and legacy revisions alike. Errors (`toErrorResult`) stay
+text-only.
+
+## Dashboard `/mcp` page
+
+`apps/dashboard/src/routes/(dashboard)/mcp.tsx` + `components/mcp/*`. Four tabs:
+Setup Guides (per-client icon, platform/transport badges, copy-config at rest),
+Tools (name, description, arg count, read-only badge), Playground, Example
+Prompts.
+
+The **Playground** is a real client of `/api/mcp`, not a snippet generator. Its
+transport lives in `apps/dashboard/src/lib/mcp/`:
+
+- `playground-client.ts` — hand-rolled JSON-RPC over `fetch` (deliberately NO
+  MCP client SDK: the worker bundle has a size budget). Builds the `_meta`
+  envelope + headers above, parses `application/json` AND `text/event-stream`
+  responses, and classifies failures (`401` → API-key prompt, `402/403` → plan
+  gate, `429` → rate limit).
+- `schema-form.ts` — JSON Schema → form fields. Scalars/enums become inputs; any
+  property it cannot represent flips the whole form to a raw-JSON textarea rather
+  than sending a partial argument set.
+
+Tools are DISCOVERED via `tools/list`, falling back to the static `MCP_TOOLS`
+catalog when discovery is blocked, so the tab works in every auth posture.
+`__tests__/playground-client.test.ts` drives the real `handleMcp` in-process —
+a wrong header or envelope fails CI instead of the browser.
 
 ## Available Tools
 

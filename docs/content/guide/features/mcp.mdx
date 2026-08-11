@@ -32,9 +32,28 @@ any other MCP client, see [MCP Client Setup](/reference/mcp-clients).
 
 chmonitor exposes a remote MCP (Model Context Protocol) endpoint at `/api/mcp`. External AI tools — Claude Desktop, Cursor, or any MCP-compatible client — can connect and run tools against your ClickHouse cluster without direct database access.
 
-The MCP server is stateless and uses Streamable HTTP transport. Each request is independently authenticated.
+The MCP server is stateless and speaks the **2026-07-28** protocol revision over the
+Streamable HTTP transport, while still answering pre-2026 clients. Each request is
+independently authenticated and carries its own protocol version — there is no
+`initialize` handshake and no session id. Successful tool results include both a
+text block and machine-readable `structuredContent`.
 
-Tools available via MCP include schema exploration, query execution, metrics, health checks, and more. The `/mcp` page in the dashboard UI shows the connection URL and instructions for configuring an MCP client.
+Tools available via MCP include schema exploration, query execution, metrics, health checks, and more.
+
+### The `/mcp` page
+
+The dashboard's `/mcp` page is the console for this endpoint:
+
+- **Setup Guides** — per-client instructions (Claude Desktop, Claude Code, Cursor,
+  any other MCP client) with a copy-config button on each row.
+- **Tools** — every tool with its arguments, defaults, and an example response.
+- **Playground** — a real MCP client for your own endpoint: it discovers the live
+  tool list, builds a form from each tool's JSON Schema (with a raw-JSON editor for
+  complex arguments), runs the call, and shows the text + structured result plus a
+  request/response inspector. If the endpoint requires a credential it prompts for
+  an API key instead of failing; plan-gated and rate-limited responses are
+  explained rather than surfaced as raw errors.
+- **Example Prompts** — starting points to try in your assistant.
 
 <Mermaid chart={`sequenceDiagram
   participant Client as MCP Client (Claude / Cursor)

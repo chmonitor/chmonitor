@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, ShieldCheck, Wrench } from 'lucide-react'
 
 import { CodeBlock } from './copy-button'
 import { MCP_TOOLS } from '@chm/mcp-server/data'
@@ -19,43 +19,58 @@ function ParamBadge({ required }: { required: boolean }) {
 
 function ToolCard({ tool }: { tool: (typeof MCP_TOOLS)[number] }) {
   const [expanded, setExpanded] = useState(false)
+  const requiredCount = tool.params.filter((param) => param.required).length
 
   return (
     <div className="border rounded-lg overflow-hidden">
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <code className="text-sm font-semibold text-primary shrink-0">
-            {tool.name}
-          </code>
-          <span className="text-xs text-muted-foreground truncate hidden sm:block">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+          <Wrench className="size-4" />
+        </span>
+        <span className="min-w-0 flex-1 space-y-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <code className="text-sm font-semibold text-primary">
+              {tool.name}
+            </code>
+            <Badge
+              variant="secondary"
+              className="px-1.5 py-0 text-[10px] font-normal"
+            >
+              {tool.category}
+            </Badge>
+          </span>
+          {/* Description reads on every breakpoint — it is the row's content,
+              not decoration. */}
+          <span className="block truncate text-xs text-muted-foreground">
             {tool.description}
           </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 ml-2">
+        </span>
+        <span className="hidden shrink-0 items-center gap-2 sm:flex">
+          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+            {tool.params.length} arg{tool.params.length !== 1 ? 's' : ''}
+            {requiredCount > 0 ? ` · ${requiredCount} required` : ''}
+          </Badge>
           <Badge
             variant="outline"
-            className="text-[10px] px-1.5 hidden sm:flex"
+            className="gap-1 px-1.5 py-0 text-[10px] font-normal"
           >
-            {tool.params.length} param{tool.params.length !== 1 ? 's' : ''}
+            <ShieldCheck className="size-3" />
+            read-only
           </Badge>
-          {expanded ? (
-            <ChevronDown className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-4 text-muted-foreground" />
-          )}
-        </div>
+        </span>
+        {expanded ? (
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        )}
       </button>
 
       {expanded && (
         <div className="border-t p-4 space-y-4 bg-muted/20">
-          <p className="text-sm text-muted-foreground sm:hidden">
-            {tool.description}
-          </p>
-
           {/* Parameters */}
           <div className="space-y-2">
             <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
