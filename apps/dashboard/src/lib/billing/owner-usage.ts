@@ -50,6 +50,14 @@ async function resolveHostsUsed(
  * Seats consumed. A user-scoped (free) owner is always a single seat; an org
  * owner counts its current Clerk members. Fail-safe to 1 so a Clerk hiccup can
  * only under-count (never wrongly show an over-limit meter).
+ *
+ * Reads Clerk's server-provided `totalCount` rather than the length of the
+ * returned page: the membership list is paginated, so counting `data` capped
+ * the meter at the page size (100) for every larger org. `totalCount` is the
+ * remote total, so this stays ONE API call regardless of org size. The page
+ * length remains as a fallback for the (typed-impossible, but cheap to guard)
+ * case of a missing `totalCount`, which degrades to today's behaviour instead
+ * of to the 1-seat fail-safe.
  */
 async function resolveSeatsUsed(owner: BillingOwner): Promise<number> {
   if (owner.type !== 'org') return 1
@@ -60,6 +68,10 @@ async function resolveSeatsUsed(owner: BillingOwner): Promise<number> {
         organizationId: owner.id,
         limit: 100,
       })
+    const total = memberships.totalCount
+    if (typeof total === 'number' && Number.isFinite(total) && total > 0) {
+      return total
+    }
     return memberships.data.length || 1
   } catch {
     return 1

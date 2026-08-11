@@ -506,3 +506,69 @@ describe('models endpoint merge simulation', () => {
     expect(merged).toEqual(staticModels)
   })
 })
+
+/**
+ * Pricing-unit regression pins (issue #2914).
+ *
+ * AnyRouter reports EVERY `pricing` field in USD per MILLION tokens — the
+ * OpenRouter-style `prompt`/`completion` strings are a same-unit mirror of
+ * `input_per_1m`/`output_per_1m`, NOT per-token values. Verified 2026-08-12
+ * against `GET https://anyrouter.dev/api/v1/models`: all 188 catalog entries
+ * carry `input_per_1m`, and `Number(prompt) === input_per_1m` for every one
+ * (e.g. `alibaba/qwen3-max` → `prompt: "0.78"`, `input_per_1m: 0.78`).
+ *
+ * These tests exist to stop a future "fix" from multiplying the string branch
+ * by 1e6, which would over-report every price by a million.
+ */
+describe('anyrouter pricing units', () => {
+  function pricingOf(pricing: AnyRouterModelListItem['pricing']) {
+    const ranked = rankModelsByUsage(
+      [{ model: model({ id: 'vendor/priced', pricing }), requestCount: 1 }],
+      1
+    )
+    return ranked[0]
+  }
+
+  test('string prompt/completion are read as per-million, not per-token', () => {
+    // Real shape from the live catalog (alibaba/qwen3-max).
+    const entry = pricingOf({ prompt: '0.78', completion: '3.9' })
+    expect(entry?.pricing).toEqual({
+      inputPerMillion: 0.78,
+      outputPerMillion: 3.9,
+    })
+  })
+
+  test('numeric input_per_1m/output_per_1m are unchanged', () => {
+    const entry = pricingOf({ input_per_1m: 2.5, output_per_1m: 10 })
+    expect(entry?.pricing).toEqual({
+      inputPerMillion: 2.5,
+      outputPerMillion: 10,
+    })
+  })
+
+  test('both shapes agree when the catalog sends both (same unit)', () => {
+    const stringOnly = pricingOf({ prompt: '0.78', completion: '3.9' })
+    const both = pricingOf({
+      prompt: '0.78',
+      completion: '3.9',
+      input_per_1m: 0.78,
+      output_per_1m: 3.9,
+    })
+    expect(both?.pricing).toEqual(stringOnly?.pricing as never)
+  })
+
+  test('zero/zero omits pricing and marks the model free, in either shape', () => {
+    const asStrings = pricingOf({ prompt: '0', completion: '0' })
+    expect(asStrings?.pricing).toBeUndefined()
+    expect(asStrings?.isFree).toBe(true)
+
+    const asNumbers = pricingOf({ input_per_1m: 0, output_per_1m: 0 })
+    expect(asNumbers?.pricing).toBeUndefined()
+    expect(asNumbers?.isFree).toBe(true)
+  })
+
+  test('unparseable pricing yields no pricing rather than NaN', () => {
+    const entry = pricingOf({ prompt: 'n/a', completion: 'n/a' })
+    expect(entry?.pricing).toBeUndefined()
+  })
+})
