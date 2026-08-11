@@ -6,6 +6,15 @@
  * - `GET {base}/models` returns `{ data: AnyRouterModelListItem[] }`. Query
  *   params like `sort=usage` / `order=usage` are **not** supported — the list
  *   order is the same catalog order regardless.
+ * - **Pricing units (re-verified 2026-08-12):** every `pricing` field is USD
+ *   **per million tokens** — the OpenRouter-style `prompt`/`completion`
+ *   strings are NOT per-token here. Across all 188 catalog entries,
+ *   `Number(prompt) === input_per_1m` and `Number(completion) === output_per_1m`
+ *   exactly (e.g. `alibaba/qwen3-max` → `prompt: "0.78"`, `input_per_1m: 0.78`),
+ *   and every entry carries `input_per_1m`, so the string fields are a
+ *   same-unit mirror rather than a differently-scaled fallback. Do NOT add a
+ *   `* 1_000_000` conversion to the fallback branch of `readPricePair` — that
+ *   would over-report prices by 1e6.
  * - Per-model usage lives at `GET {base}/models/{id}/metrics` → field
  *   `request_count` (and success/error/latency stats). Router aliases
  *   (`anyrouter/agent`, `anyrouter/free`, …) often 404 metrics; rank real
@@ -42,10 +51,19 @@ export interface AnyRouterModelListItem {
   capabilities?: string[]
   supported_parameters?: string[]
   category?: string
+  /**
+   * All four fields are USD **per million tokens** (see the pricing-units note
+   * in the module header). `prompt`/`completion` are the OpenRouter-shaped
+   * string mirrors of `input_per_1m`/`output_per_1m`, in the same unit.
+   */
   pricing?: {
+    /** USD per 1M input tokens, as a string (mirrors `input_per_1m`). */
     prompt?: string | number
+    /** USD per 1M output tokens, as a string (mirrors `output_per_1m`). */
     completion?: string | number
+    /** USD per 1M input tokens. */
     input_per_1m?: number
+    /** USD per 1M output tokens. */
     output_per_1m?: number
   }
   architecture?: {
