@@ -10,6 +10,11 @@ export const explorerTableOverviewConfig: QueryConfig = {
       total_rows,
       engine,
       engine_full,
+      sorting_key,
+      partition_key,
+      primary_key,
+      as_select,
+      create_table_query,
       metadata_modification_time,
       (SELECT sum(primary_key_bytes_in_memory)           FROM system.parts WHERE database = {database:String} AND table = {table:String} AND active) AS primary_key_bytes_in_memory,
       (SELECT sum(primary_key_bytes_in_memory_allocated) FROM system.parts WHERE database = {database:String} AND table = {table:String} AND active) AS primary_key_bytes_in_memory_allocated,
@@ -26,6 +31,11 @@ export const explorerTableOverviewConfig: QueryConfig = {
     'total_rows',
     'engine',
     'engine_full',
+    'sorting_key',
+    'partition_key',
+    'primary_key',
+    'as_select',
+    'create_table_query',
     'primary_key_bytes_in_memory',
     'primary_key_bytes_in_memory_allocated',
     'metadata_modification_time',
@@ -34,6 +44,55 @@ export const explorerTableOverviewConfig: QueryConfig = {
     'active_parts',
     'partitions',
     'last_modified',
+  ],
+  defaultParams: { database: 'default', table: '' },
+}
+
+/**
+ * Dictionary-specific overview. Dictionaries have no parts, partitions or
+ * compression, so the Overview tab swaps the storage cards for the metrics
+ * that actually exist: load status, element count, memory and refresh times.
+ */
+export const explorerDictionaryOverviewConfig: QueryConfig = {
+  name: 'explorer-dictionary-overview',
+  description:
+    'Per-dictionary summary: status, element count, memory, load timing and source',
+  optional: true,
+  tableCheck: 'system.dictionaries',
+  sql: `
+    SELECT
+      status,
+      type,
+      element_count,
+      bytes_allocated,
+      load_factor,
+      loading_duration,
+      loading_start_time,
+      last_successful_update_time,
+      last_exception,
+      source,
+      key.names AS key_names,
+      attribute.names AS attribute_names,
+      lifetime_min,
+      lifetime_max
+    FROM system.dictionaries
+    WHERE database = {database:String} AND name = {table:String}
+  `,
+  columns: [
+    'status',
+    'type',
+    'element_count',
+    'bytes_allocated',
+    'load_factor',
+    'loading_duration',
+    'loading_start_time',
+    'last_successful_update_time',
+    'last_exception',
+    'source',
+    'key_names',
+    'attribute_names',
+    'lifetime_min',
+    'lifetime_max',
   ],
   defaultParams: { database: 'default', table: '' },
 }
