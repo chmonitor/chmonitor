@@ -217,6 +217,7 @@ export const Route = createFileRoute('/api/v1/host-status')({
               const replicaSet = await runWithQueryCache(cacheOpts, (cache) =>
                 client.query({
                   query: `${QUERY_COMMENT}SELECT
+  count() AS replicaCount,
   countIf(is_readonly) AS readonlyReplicas,
   max(absolute_delay) AS replicationDelay
 FROM system.replicas`,
@@ -227,10 +228,18 @@ FROM system.replicas`,
               const replicaRows =
                 await replicaSet.json<Record<string, unknown>>()
               const row = replicaRows[0]
-              counts = {
-                ...counts,
-                readonlyReplicas: toNum(row?.readonlyReplicas),
-                replicationDelay: toNum(row?.replicationDelay),
+              // These aggregates return 0 (not NULL) over an empty
+              // system.replicas, so a host with no replicated tables would
+              // otherwise report a meaningless "0s replica lag". Emit the
+              // fields only when the host actually has replicas — the UI then
+              // omits the row entirely rather than showing a fake zero.
+              const replicaCount = toNum(row?.replicaCount) ?? 0
+              if (replicaCount > 0) {
+                counts = {
+                  ...counts,
+                  readonlyReplicas: toNum(row?.readonlyReplicas),
+                  replicationDelay: toNum(row?.replicationDelay),
+                }
               }
             } catch (replicaErr) {
               error(
