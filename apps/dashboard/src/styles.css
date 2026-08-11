@@ -200,6 +200,17 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* Auto-hide the base-ui ScrollArea scrollbar — visible only while
+     hovering/scrolling, hidden otherwise (e.g. the /agents conversation
+     rail list). Scoped via this wrapper class, not global. */
+  .scroll-area-autohide [data-slot='scroll-area-scrollbar'] {
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+  .scroll-area-autohide [data-slot='scroll-area-scrollbar'][data-hovering],
+  .scroll-area-autohide [data-slot='scroll-area-scrollbar'][data-scrolling] {
+    opacity: 1;
+  }
 }
 
 /* Markdown content styling for agent responses */

@@ -235,7 +235,7 @@ export function ConversationRailBody({
         </div>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 flex-1 scroll-area-autohide">
         <div className="px-2 pb-3">
           {groups.length === 0 ? (
             <p className="text-muted-foreground px-2 py-8 text-center text-[12px]">
