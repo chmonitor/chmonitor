@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
   Braces,
@@ -15,10 +16,10 @@ import { toast } from 'sonner'
 import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
 
 import { ActiveAlertsPanel } from './active-alerts-panel'
+import { AlertChannelsPanel } from './alert-channels-panel'
 import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertStateCard } from './alert-state-card'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
-import { ChannelSeverityToggle } from './channel-severity-toggle'
 import { DigestSettingsPanel } from './digest-settings-panel'
 import { HEALTH_CHECKS } from './health-checks'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
@@ -28,11 +29,9 @@ import { RuleBuilderPanel } from './rule-builder'
 import { ServerChannelConfigPanel } from './server-channel-config-panel'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { type ReactNode, useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   fireBrowserNotification,
@@ -66,6 +65,28 @@ export const HEALTH_SETTINGS_TABS = [
 ] as const
 
 export type HealthSettingsTab = (typeof HEALTH_SETTINGS_TABS)[number]
+
+/**
+ * Tab strip definition — one place so every tab gets the same icon size and
+ * spacing (the icons used to be hand-written with an extra `mr-1.5` on top of
+ * the trigger's built-in gap, which read as misaligned).
+ */
+const TAB_DEFS: {
+  value: HealthSettingsTab
+  label: string
+  icon: LucideIcon
+}[] = [
+  { value: 'thresholds', label: 'Thresholds', icon: SlidersHorizontal },
+  { value: 'alerts', label: 'Alerts', icon: Bell },
+  { value: 'active', label: 'Active', icon: CircleAlert },
+  { value: 'history', label: 'History', icon: History },
+  { value: 'routing', label: 'Routing', icon: Route },
+  { value: 'webhooks', label: 'Webhooks', icon: Webhook },
+  { value: 'maintenance', label: 'Maintenance', icon: Wrench },
+  { value: 'quiet-hours', label: 'Quiet Hours', icon: MoonStar },
+  { value: 'suggested', label: 'Suggested', icon: Sparkles },
+  { value: 'custom-rules', label: 'Custom Rules', icon: Braces },
+]
 
 export function isHealthSettingsTab(
   value: string | undefined
@@ -255,48 +276,17 @@ export function HealthSettingsPanel({
   return (
     <>
       <Tabs defaultValue={defaultTab}>
+        {/* One scrollable, non-wrapping strip. Icons carry no margin — the
+            trigger's own `items-center gap-1.5` aligns them with the label, and
+            a single `size-3.5` keeps every tab's glyph the same weight. */}
         <div className="scrollbar-hide -mx-1 shrink-0 overflow-x-auto px-1 py-0.5">
           <TabsList className="w-max flex-nowrap">
-            <TabsTrigger value="thresholds">
-              <SlidersHorizontal className="mr-1.5 size-3.5" />
-              Thresholds
-            </TabsTrigger>
-            <TabsTrigger value="alerts">
-              <Bell className="mr-1.5 size-3.5" />
-              Alerts
-            </TabsTrigger>
-            <TabsTrigger value="active">
-              <CircleAlert className="mr-1.5 size-3.5" />
-              Active
-            </TabsTrigger>
-            <TabsTrigger value="history">
-              <History className="mr-1.5 size-3.5" />
-              History
-            </TabsTrigger>
-            <TabsTrigger value="routing">
-              <Route className="mr-1.5 size-3.5" />
-              Routing
-            </TabsTrigger>
-            <TabsTrigger value="webhooks">
-              <Webhook className="mr-1.5 size-3.5" />
-              Webhooks
-            </TabsTrigger>
-            <TabsTrigger value="maintenance">
-              <Wrench className="mr-1.5 size-3.5" />
-              Maintenance
-            </TabsTrigger>
-            <TabsTrigger value="quiet-hours">
-              <MoonStar className="mr-1.5 size-3.5" />
-              Quiet Hours
-            </TabsTrigger>
-            <TabsTrigger value="suggested">
-              <Sparkles className="mr-1.5 size-3.5" />
-              Suggested
-            </TabsTrigger>
-            <TabsTrigger value="custom-rules">
-              <Braces className="mr-1.5 size-3.5" />
-              Custom Rules
-            </TabsTrigger>
+            {TAB_DEFS.map(({ value, label, icon: Icon }) => (
+              <TabsTrigger key={value} value={value}>
+                <Icon className="size-3.5" strokeWidth={1.5} />
+                {label}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
@@ -376,138 +366,15 @@ export function HealthSettingsPanel({
         {pane(
           'alerts',
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium">
-                    Browser notifications
-                  </Label>
-                  <span className="text-xs text-muted-foreground">
-                    Show desktop notifications for new health alerts
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestBrowser}
-                    disabled={!alerts.browserNotificationsEnabled}
-                  >
-                    Test
-                  </Button>
-                  <Switch
-                    checked={alerts.browserNotificationsEnabled}
-                    onCheckedChange={handleEnableBrowser}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  Minimum severity
-                </span>
-                <ChannelSeverityToggle
-                  value={alerts.channels?.browser?.minSeverity}
-                  onChange={(v) => setChannelMinSeverity('browser', v)}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium">
-                    healthchecks.io pings
-                  </Label>
-                  <span className="text-xs text-muted-foreground">
-                    Send a GET ping to a healthchecks.io check URL on each alert
-                    (append <code className="text-xs">/fail</code> automatically
-                    on recovery)
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="https://hc-ping.com/your-uuid"
-                  value={alerts.healthchecksUrl}
-                  onChange={(e) =>
-                    setAlerts((prev) => ({
-                      ...prev,
-                      healthchecksUrl: e.target.value.trim(),
-                    }))
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void handleTestHealthchecks()}
-                  disabled={!alerts.healthchecksUrl}
-                >
-                  Send test
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  Minimum severity
-                </span>
-                <ChannelSeverityToggle
-                  value={alerts.channels?.healthchecks?.minSeverity}
-                  onChange={(v) => setChannelMinSeverity('healthchecks', v)}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium">Webhook alerts</Label>
-                  <span className="text-xs text-muted-foreground">
-                    POST a JSON payload to a Slack- or Discord-compatible URL
-                  </span>
-                </div>
-                <Switch
-                  checked={alerts.webhookEnabled}
-                  onCheckedChange={(checked) =>
-                    setAlerts((prev) => ({
-                      ...prev,
-                      webhookEnabled: checked,
-                    }))
-                  }
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="https://hooks.slack.com/services/..."
-                  value={alerts.webhookUrl}
-                  onChange={(e) =>
-                    setAlerts((prev) => ({
-                      ...prev,
-                      webhookUrl: e.target.value,
-                    }))
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleTestWebhook}
-                  disabled={!alerts.webhookUrl}
-                >
-                  Send test
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  Minimum severity
-                </span>
-                <ChannelSeverityToggle
-                  value={alerts.channels?.webhook?.minSeverity}
-                  onChange={(v) => setChannelMinSeverity('webhook', v)}
-                />
-              </div>
-            </div>
+            <AlertChannelsPanel
+              alerts={alerts}
+              setAlerts={setAlerts}
+              setChannelMinSeverity={setChannelMinSeverity}
+              onEnableBrowser={(checked) => void handleEnableBrowser(checked)}
+              onTestBrowser={handleTestBrowser}
+              onTestHealthchecks={() => void handleTestHealthchecks()}
+              onTestWebhook={() => void handleTestWebhook()}
+            />
 
             <Separator />
 
