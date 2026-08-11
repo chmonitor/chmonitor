@@ -224,6 +224,13 @@ simple = { limit = 30, period = 60 }
 #     .env.example): when falsy the route no-ops (200); when unset it defaults to
 #     enabled iff CRON_SECRET is configured. 10 min (not 5) leaves CPU headroom
 #     since the sweep also generates AI insights per host.
+# NOTE: these schedules are DOCUMENTATION + the currently-attached state; the
+# deploy does not (re)apply them. scripts/patch-wrangler-env.ts drops the
+# triggers key from the generated config because any schedules PUT fails while
+# the account is over the Workers Free 5-crons-per-account budget (deploy would
+# exit 1 after a successful upload). The crons below stay attached from earlier
+# deploys. Changing this array therefore has NO effect until the account has
+# cron budget again and the patch-script guard is removed.
 # ─────────────────────────────────────────────────────────────────────────────
 [triggers]
 crons = ["0 3 * * *", "0 8 * * 1", "0 8 1 * *", "*/10 * * * *"]
