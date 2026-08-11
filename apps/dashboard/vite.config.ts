@@ -91,16 +91,36 @@ const e: Record<string, string | undefined> = {
 // (lib/config/deployment-mode.ts). `CHM_DEPLOYMENT_MODE=cloud` alone flips cloud mode, clerk
 // auth, public-read, and per-user storage on — each still overridable by its
 // explicit VITE_*/CHM_* var. Fail-closed: anything but cloud/saas → self-hosted.
-const _profile = (e.CHM_DEPLOYMENT_MODE ?? e.VITE_DEPLOYMENT_MODE ?? '')
-  .trim()
-  .toLowerCase()
+//
+// HARD LOCK: cloud mode is only ever considered on the two recognised hosted
+// build pipelines (`CHM_BUILD_ENV=production|preview`, set explicitly by
+// `build:production`/`build:preview` — see loadDeployEnv() above). Every other
+// build path (plain `vite build`, which is what Docker/`build:node:ci` and
+// self-hosted `pnpm run build` use) ignores CHM_DEPLOYMENT_MODE/CHM_CLOUD_MODE
+// entirely, even if one happens to be set in the ambient build environment (a
+// CI runner var, an inherited shell export, a base image ENV). A self-hosted
+// image must never accidentally bake in cloud mode because of environment bleed
+// that has nothing to do with the build itself — cloud is a deliberate,
+// pipeline-scoped opt-in, not something a stray env var can flip on.
+const isHostedBuildPipeline =
+  process.env.CHM_BUILD_ENV === 'production' ||
+  process.env.CHM_BUILD_ENV === 'preview'
+const _profile = isHostedBuildPipeline
+  ? (e.CHM_DEPLOYMENT_MODE ?? e.VITE_DEPLOYMENT_MODE ?? '').trim().toLowerCase()
+  : ''
 const isCloud = _profile === 'cloud' || _profile === 'saas'
+// Same hard lock as `_profile` above — an explicit VITE_DEPLOYMENT_MODE/
+// CHM_DEPLOYMENT_MODE in the ambient env must not leak into a non-hosted build
+// even though it reads directly from `e` below.
+const lockedDeploymentMode = isHostedBuildPipeline
+  ? (e.VITE_DEPLOYMENT_MODE ?? e.CHM_DEPLOYMENT_MODE)
+  : undefined
+const lockedCloudMode = isHostedBuildPipeline
+  ? (e.VITE_CLOUD_MODE ?? e.CHM_CLOUD_MODE)
+  : undefined
 const CLIENT_ENV = {
   // Expose the resolved profile so client code can read it directly.
-  VITE_DEPLOYMENT_MODE:
-    e.VITE_DEPLOYMENT_MODE ??
-    e.CHM_DEPLOYMENT_MODE ??
-    (isCloud ? 'cloud' : 'oss'),
+  VITE_DEPLOYMENT_MODE: lockedDeploymentMode ?? (isCloud ? 'cloud' : 'oss'),
   VITE_AUTH_PROVIDER:
     e.VITE_AUTH_PROVIDER ??
     e.CHM_AUTH_PROVIDER ??
@@ -152,8 +172,7 @@ const CLIENT_ENV = {
   // When on, env hosts are a public read-only demo and signed-in users get a
   // clean per-user workspace. Unset/junk → self-hosted (OSS) behaviour, never
   // degraded. See lib/cloud/cloud-mode.ts.
-  VITE_CLOUD_MODE:
-    e.VITE_CLOUD_MODE ?? e.CHM_CLOUD_MODE ?? (isCloud ? 'true' : ''),
+  VITE_CLOUD_MODE: lockedCloudMode ?? (isCloud ? 'true' : ''),
   // Anonymous product telemetry: ON by default — opt out with VITE_TELEMETRY_ENABLED=off
   // (or 0/false/no), VITE_DO_NOT_TRACK / DO_NOT_TRACK, or an empty endpoint.
   VITE_TELEMETRY_ENABLED:
