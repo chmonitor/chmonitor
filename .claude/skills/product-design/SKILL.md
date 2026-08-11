@@ -83,6 +83,19 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `from-background`→`transparent` edge fade per scrollable side, paging via
   `scrollBy`. Re-measure on scroll / `ResizeObserver` / content-count change.
   Copy `components/insights/insights-strip.tsx`.
+- **Settings channel grid (configured-first):** a settings surface with many
+  optional integrations renders a responsive `grid gap-3 sm:grid-cols-2` of
+  collapsible `ChannelCard`s (summary row = icon + name + status + badges +
+  enable switch; expanded = the config form) for the channels that are ALREADY
+  configured, and compact dashed `AddChannelTile`s (icon + one-line description
+  + an example target value) for the rest, which expand into the same card on
+  click. Nothing configured → `EmptyState`, never a wall of blank forms. Pin a
+  card open once the user edits it so clearing its value can't unmount the input
+  mid-keystroke. See `components/health/channel-card.tsx` +
+  `alert-channels-panel.tsx` (`/alert-settings`).
+- **Tab strips:** define the tabs as one array and map it — an icon per tab with
+  ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
+  `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.
 - **Paired page sections** (e.g. AI-generated vs. plain-statistics content):
   identical-weight header on both — `icon (size-4, muted-foreground) + <h2
   className="text-sm font-medium text-foreground">`. A *genuinely* empty section

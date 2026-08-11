@@ -274,6 +274,38 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   provider) also gates whether `pageContext` rides along with the request — see
   `docs/content/guide/ai-agent.mdx`.
 
+### Settings channel grid (configured-first)
+
+Settings surfaces that expose many optional integrations (today:
+`/alert-settings`, shared with `/health-settings` via `HealthSettingsPanel`)
+must not render every integration as a full-width blank form. The convention,
+implemented by `components/health/channel-card.tsx`:
+
+- `ChannelCard` — a collapsible card (`ui/collapsible`, Base UI: style off
+  `data-open`) whose summary row is `icon + name + status line + badges +
+  optional enable Switch + chevron`, expanding to the channel's config form.
+  It owns no state, so the browser-local channels (localStorage, saved by the
+  page footer) and the server channels (per-card save to D1) can share it while
+  keeping different save semantics.
+- `AddChannelTile` — compact dashed tile (icon + one-line description + an
+  example target value, e.g. a sample Slack webhook URL) for an unconfigured
+  channel; clicking it expands the full card.
+- `ChannelSectionHeader` — section icon + `h2` + count badge + description.
+- Cards render in a `grid gap-3 sm:grid-cols-2`; only CONFIGURED channels get
+  cards (`lib/health/channel-classification.ts` — pure + unit-tested:
+  browser = enabled, URL channels = non-blank URL, server = D1 row OR
+  `HEALTH_ALERT_*` env). Zero configured → `EmptyState`, not blank forms.
+- Once the user edits a card, pin it open (`opened` id set) so clearing its URL
+  can't collapse the card and unmount the focused input mid-keystroke.
+
+### Tab strips
+
+Define tabs as one array and map it. One icon size (`size-3.5`), no margin
+utility — `TabsTrigger` already provides `items-center gap-1.5`; a stacked
+`mr-*` is what makes icons look off-baseline. Keep the strip in the
+`scrollbar-hide overflow-x-auto` + `TabsList w-max flex-nowrap` wrapper so many
+tabs scroll instead of wrapping.
+
 ## UX conventions
 
 - `?host=N` routing; `useHostId()` (`lib/swr`); preserve params via

@@ -1,6 +1,9 @@
 import {
+  Activity,
+  ArrowRight,
   BellRing,
   CircleAlert,
+  Filter,
   Radio,
   SlidersHorizontal,
   TriangleAlert,
@@ -84,6 +87,50 @@ function ThresholdDemo() {
   )
 }
 
+/**
+ * The alert pipeline in one line: health check → threshold crossing → routing,
+ * quiet hours and maintenance → the enabled channels. Plain tokens + lucide
+ * arrows, so it reads correctly in both themes.
+ */
+function AlertFlowStrip() {
+  const steps = [
+    {
+      icon: <Activity className="size-3.5" strokeWidth={1.5} />,
+      label: 'Check',
+    },
+    {
+      icon: <SlidersHorizontal className="size-3.5" strokeWidth={1.5} />,
+      label: 'Threshold',
+    },
+    {
+      icon: <Filter className="size-3.5" strokeWidth={1.5} />,
+      label: 'Routing · quiet hours',
+    },
+    {
+      icon: <Radio className="size-3.5" strokeWidth={1.5} />,
+      label: 'Channels',
+    },
+  ]
+  return (
+    <div className="scrollbar-hide flex items-center gap-1.5 overflow-x-auto py-0.5">
+      {steps.map((step, i) => (
+        <div key={step.label} className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs whitespace-nowrap text-muted-foreground">
+            {step.icon}
+            {step.label}
+          </span>
+          {i < steps.length - 1 && (
+            <ArrowRight
+              className="size-3.5 shrink-0 text-muted-foreground/60"
+              strokeWidth={1.5}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function StatTile({
   icon,
   label,
@@ -159,6 +206,7 @@ export function AlertSettingsHero() {
             Critical ≥ {SAMPLE_CRITICAL}
           </span>
         </div>
+        <AlertFlowStrip />
         <p className="text-xs text-muted-foreground">
           Each health check compares its metric against your warning and
           critical thresholds; crossings fire alerts to every enabled channel,

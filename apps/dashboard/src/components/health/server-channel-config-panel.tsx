@@ -14,18 +14,37 @@
  * form shows an "env" badge so the operator knows a channel is already live.
  */
 
+import {
+  HeartPulse,
+  Mail,
+  MessageCircle,
+  Radio,
+  Send,
+  Siren,
+  Smartphone,
+  Webhook,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
+import type { ReactNode } from 'react'
 import type { AlertConfigChannel } from '@/lib/hooks/use-alert-channel-config'
 
+import {
+  AddChannelTile,
+  ChannelCard,
+  ChannelSectionHeader,
+} from './channel-card'
 import { ChannelSeverityToggle } from './channel-severity-toggle'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
+import {
+  isServerChannelConfigured,
+  partitionChannels,
+} from '@/lib/health/channel-classification'
 import {
   useAlertChannelConfig,
   useAlertChannelConfigMutations,
@@ -42,6 +61,9 @@ interface ChannelSpec {
   channel: AlertConfigChannel
   label: string
   description: string
+  icon: ReactNode
+  /** Example target value shown on the compact "add a channel" tile. */
+  example?: string
   /** Non-secret target fields, in display order. */
   fields: ChannelField[]
   /** The channel's single secret, or `undefined` when it has none. */
@@ -68,6 +90,8 @@ const TEST_ENDPOINTS: Partial<Record<AlertConfigChannel, string>> = {
 const CHANNEL_SPECS: ChannelSpec[] = [
   {
     channel: 'webhook',
+    icon: <Webhook strokeWidth={1.5} />,
+    example: 'https://hooks.slack.com/services/T000/B000/XXXX',
     label: 'Webhook',
     description:
       'POST a JSON payload to a Slack- or Discord-compatible URL on each alert.',
@@ -81,6 +105,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'healthchecks',
+    icon: <HeartPulse strokeWidth={1.5} />,
+    example: 'https://hc-ping.com/your-uuid',
     label: 'healthchecks.io',
     description:
       'GET a healthchecks.io ping URL on each alert (append /fail on recovery).',
@@ -94,6 +120,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'email',
+    icon: <Mail strokeWidth={1.5} />,
+    example: 'mailgun://KEY@domain → ops@example.com',
     label: 'Email',
     description: 'Send an email via Mailgun, SendGrid, or SMTP.',
     fields: [
@@ -112,6 +140,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'opsgenie',
+    icon: <Siren strokeWidth={1.5} />,
+    example: 'Alert API key · region us | eu',
     label: 'Opsgenie',
     description: 'Create an Opsgenie alert via the Alert API.',
     fields: [{ key: 'region', label: 'Region (us | eu)', placeholder: 'us' }],
@@ -123,6 +153,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'telegram',
+    icon: <Send strokeWidth={1.5} />,
+    example: 'bot token · chat id -1001234567890',
     label: 'Telegram',
     description: 'Message a Telegram chat via a bot.',
     fields: [
@@ -136,6 +168,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'ntfy',
+    icon: <Radio strokeWidth={1.5} />,
+    example: 'https://ntfy.sh/your-topic',
     label: 'ntfy',
     description: 'Publish to an ntfy topic (self-hostable).',
     fields: [
@@ -153,6 +187,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'pushover',
+    icon: <Smartphone strokeWidth={1.5} />,
+    example: 'user key u… · app token a…',
     label: 'Pushover',
     description: 'Notify a Pushover user/group via the Messages API.',
     fields: [{ key: 'user', label: 'User/group key', placeholder: 'u…' }],
@@ -164,6 +200,8 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   },
   {
     channel: 'twilio',
+    icon: <MessageCircle strokeWidth={1.5} />,
+    example: '+15557654321 → +15551234567',
     label: 'Twilio SMS',
     description:
       'Send an SMS via Twilio. Critical-only by default; each SMS costs money.',
@@ -209,6 +247,9 @@ export function ServerChannelConfigPanel() {
 
   const [drafts, setDrafts] = useState<Record<string, DraftState>>({})
   const [savingChannel, setSavingChannel] = useState<string | null>(null)
+  // Channels opened from an "Add a channel" tile this session — they render as
+  // full (expanded) cards before they hold any saved config.
+  const [opened, setOpened] = useState<string[]>([])
 
   // Hydrate drafts from the server config whenever it (re)loads.
   useEffect(() => {
@@ -304,132 +345,180 @@ export function ServerChannelConfigPanel() {
     }
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <Label className="text-sm font-medium">Server delivery channels</Label>
-        <span className="text-xs text-muted-foreground">
-          Persisted on the server and used by the automated health sweep. A
-          saved channel overrides its{' '}
-          <code className="text-xs">HEALTH_ALERT_*</code> environment variable;
-          leave a secret blank to keep the stored one.
-        </span>
-      </div>
+  const isConfigured = (spec: ChannelSpec) =>
+    isServerChannelConfigured({
+      hasRow: configs.some((c) => c.channel === spec.channel),
+      envConfigured: Boolean(env[spec.channel]),
+    }) || opened.includes(spec.channel)
 
-      {CHANNEL_SPECS.map((spec, idx) => {
-        const draft = drafts[spec.channel] ?? emptyDraft()
-        const hasRow = configs.some((c) => c.channel === spec.channel)
-        const envConfigured = Boolean(env[spec.channel])
-        return (
-          <div key={spec.channel}>
-            {idx > 0 && <Separator className="mb-4" />}
-            <div className="flex flex-col gap-2 rounded-md border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">{spec.label}</Label>
-                    {!hasRow && envConfigured && (
-                      <Badge variant="secondary">
-                        Configured via server env
-                      </Badge>
-                    )}
-                    {draft.hasSecret && (
-                      <Badge variant="outline">Secret set</Badge>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {spec.description}
-                  </span>
-                </div>
-                <Switch
-                  checked={draft.enabled}
-                  onCheckedChange={(checked) =>
-                    setDraft(spec.channel, { enabled: checked })
-                  }
-                  disabled={isLoading}
-                />
-              </div>
+  const { configured, available } = partitionChannels(
+    CHANNEL_SPECS,
+    isConfigured
+  )
 
-              {spec.fields.map((field) => (
-                <div key={field.key} className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">
-                    {field.label}
-                  </Label>
-                  <Input
-                    placeholder={field.placeholder}
-                    value={draft.target[field.key] ?? ''}
-                    onChange={(e) =>
-                      setTargetField(spec.channel, field.key, e.target.value)
-                    }
-                  />
-                </div>
-              ))}
+  const renderCard = (spec: ChannelSpec) => {
+    const draft = drafts[spec.channel] ?? emptyDraft()
+    const hasRow = configs.some((c) => c.channel === spec.channel)
+    const envConfigured = Boolean(env[spec.channel])
+    return (
+      <ChannelCard
+        key={spec.channel}
+        icon={spec.icon}
+        title={spec.label}
+        status={`${draft.enabled ? 'Enabled' : 'Disabled'} · ${
+          draft.minSeverity === 'warning'
+            ? 'Warning+'
+            : draft.minSeverity === 'critical'
+              ? 'Critical only'
+              : 'Inherits default'
+        }`}
+        badges={
+          <>
+            {!hasRow && envConfigured && <Badge variant="secondary">env</Badge>}
+            {draft.hasSecret && <Badge variant="outline">Secret set</Badge>}
+          </>
+        }
+        enabled={draft.enabled}
+        onEnabledChange={(checked) =>
+          setDraft(spec.channel, { enabled: checked })
+        }
+        switchDisabled={isLoading}
+        defaultOpen={opened.includes(spec.channel)}
+      >
+        <p className="text-xs text-muted-foreground">{spec.description}</p>
 
-              {spec.secret && (
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">
-                    {spec.secret.label}
-                  </Label>
-                  <Input
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={
-                      draft.hasSecret
-                        ? '•••• leave blank to keep the stored secret'
-                        : spec.secret.placeholder
-                    }
-                    value={draft.secret}
-                    onChange={(e) =>
-                      setDraft(spec.channel, { secret: e.target.value })
-                    }
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Minimum severity
-                  </span>
-                  <ChannelSeverityToggle
-                    value={draft.minSeverity}
-                    onChange={(v) => setDraft(spec.channel, { minSeverity: v })}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  {TEST_ENDPOINTS[spec.channel] && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => void handleTest(spec)}
-                      disabled={savingChannel === spec.channel}
-                    >
-                      Send test
-                    </Button>
-                  )}
-                  {hasRow && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => void handleReset(spec)}
-                      disabled={savingChannel === spec.channel}
-                    >
-                      Reset
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={() => void handleSave(spec)}
-                    disabled={savingChannel === spec.channel}
-                  >
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </div>
+        {spec.fields.map((field) => (
+          <div key={field.key} className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">
+              {field.label}
+            </Label>
+            <Input
+              placeholder={field.placeholder}
+              value={draft.target[field.key] ?? ''}
+              onChange={(e) =>
+                setTargetField(spec.channel, field.key, e.target.value)
+              }
+            />
           </div>
-        )
-      })}
+        ))}
+
+        {spec.secret && (
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">
+              {spec.secret.label}
+            </Label>
+            <Input
+              type="password"
+              autoComplete="new-password"
+              placeholder={
+                draft.hasSecret
+                  ? '•••• leave blank to keep the stored secret'
+                  : spec.secret.placeholder
+              }
+              value={draft.secret}
+              onChange={(e) =>
+                setDraft(spec.channel, { secret: e.target.value })
+              }
+            />
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            Minimum severity
+          </span>
+          <ChannelSeverityToggle
+            value={draft.minSeverity}
+            onChange={(v) => setDraft(spec.channel, { minSeverity: v })}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+          {TEST_ENDPOINTS[spec.channel] && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void handleTest(spec)}
+              disabled={savingChannel === spec.channel}
+            >
+              Send test
+            </Button>
+          )}
+          {hasRow && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void handleReset(spec)}
+              disabled={savingChannel === spec.channel}
+            >
+              Reset
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={() => void handleSave(spec)}
+            disabled={savingChannel === spec.channel}
+          >
+            Save
+          </Button>
+        </div>
+      </ChannelCard>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ChannelSectionHeader
+        icon={<Siren className="size-4" strokeWidth={1.5} />}
+        title="Server delivery channels"
+        description={
+          <>
+            Persisted on the server and used by the automated health sweep. A
+            saved channel overrides its{' '}
+            <code className="text-xs">HEALTH_ALERT_*</code> environment
+            variable; leave a secret blank to keep the stored one. Each card
+            saves on its own.
+          </>
+        }
+        count={configured.length}
+      />
+
+      {configured.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {configured.map(renderCard)}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed bg-card/50 p-4">
+          <EmptyState
+            variant="no-data"
+            icon={<Siren className="size-5" strokeWidth={1.5} />}
+            title="No server channel configured"
+            description="The automated health sweep has nowhere to deliver yet. Add one below, or set the matching HEALTH_ALERT_* environment variables on the server."
+          />
+        </div>
+      )}
+
+      {available.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            Add a channel
+          </span>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {available.map((spec) => (
+              <AddChannelTile
+                key={spec.channel}
+                icon={spec.icon}
+                title={spec.label}
+                description={spec.description}
+                example={spec.example}
+                onClick={() =>
+                  setOpened((prev) => [...prev, spec.channel as string])
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
