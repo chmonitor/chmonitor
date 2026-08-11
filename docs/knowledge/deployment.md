@@ -86,7 +86,7 @@ The TanStack Start app builds to **two targets** from one codebase, selected by
 | Target | Build | Runtime | `cloudflare:workers` resolves to |
 |--------|-------|---------|-----------------------------------|
 | `node` (Docker / k8s) | `pnpm run build:node:ci` → `.output/server/index.mjs` | Nitro `node-server` on `node:24-alpine` | `src/lib/cloudflare-workers-shim.ts` (`env` = `process.env`) |
-| `cloudflare` (default `pnpm run build` / `cf:build`) | `@cloudflare/vite-plugin` → workerd bundle | Cloudflare Workers | workerd built-in binding |
+| `cloudflare` (default `pnpm run build`) | `@cloudflare/vite-plugin` → workerd bundle | Cloudflare Workers | workerd built-in binding |
 
 ### The contract (enforced by test)
 
@@ -129,24 +129,28 @@ from the shim first.
 
 | Platform | Build Command | Entry Point |
 |----------|--------------|-------------|
-| **Docker** | `docker build` | `.next/standalone/server.js` |
-| **Cloudflare** | `pnpm run cf:build` | `.open-next/worker.js` |
+| **Docker** | `pnpm run build:node:ci` | `.output/server/index.mjs` (Nitro `node-server`) |
+| **Cloudflare** | `pnpm run build:production` (or `build:preview`) | workerd bundle via `@cloudflare/vite-plugin` |
 
-Both use `next build` with `output: 'standalone'` in `next.config.ts`.
+Both build from the same TanStack Start + Vite pipeline; there is no Next.js
+build step and no `output: 'standalone'` config.
 
 ## Unified Cloudflare Deploy (CI + Local)
 
-The same script deploys from both CI and local:
+The same script deploys from both CI and local (run inside `apps/dashboard`):
 
 ```bash
 pnpm run cf:deploy
 ```
 
-This runs `scripts/cloudflare-deploy.ts` which executes:
+This is `pnpm run build:production && bun scripts/patch-wrangler-env.ts && wrangler deploy --minify`, i.e.:
 
-1. `pnpm run cf:build` — Next.js build + OpenNext transform
-2. `wrangler deploy --minify` — Deploy to Workers
-3. `opennextjs-cloudflare populateCache remote` — Populate KV cache
+1. `pnpm run build:production` — vite build (Cloudflare target) + `tsc --noEmit`
+2. `bun scripts/patch-wrangler-env.ts` — injects Worker runtime `[vars]` from `.env.production` (+ `.env.preview` overlay)
+3. `wrangler deploy --minify` — deploy to Workers
+
+No OpenNext transform, no KV/R2/D1 cache population step — the TanStack Start
+build produces a native Workers bundle directly.
 
 **Auth priority**:
 1. `CLOUDFLARE_API_TOKEN` env var (set in `.env.production.local` or CI secrets)
@@ -156,16 +160,14 @@ This runs `scripts/cloudflare-deploy.ts` which executes:
 
 ```bash
 pnpm run cf:config    # Set secrets from .env.production.local
-pnpm run cf:build     # Build + OpenNext transform
-wrangler deploy --minify
-opennextjs-cloudflare populateCache remote
+pnpm run cf:deploy    # build:production -> patch-wrangler-env.ts -> wrangler deploy --minify
 ```
 
 ### CI
 
-Production deploys on push to `main` via `.github/workflows/cloudflare.yml`. It uses
-the same `pnpm run cf:build` command and the same env var names — secrets come
-from GitHub Secrets instead of local files.
+Production deploys on push to `main` via `.github/workflows/cloudflare.yml`. It
+runs `build:production` (main) / `build:preview` (PRs) and the same env var
+names — secrets come from GitHub Secrets instead of local files.
 
 ## Unified per-Worker deploy (`scripts/deploy-worker.ts`)
 
@@ -222,7 +224,7 @@ docker run -d -p 3000:3000 \
 ### Multi-stage Build
 
 1. **deps**: `pnpm install --frozen-lockfile`
-2. **builder**: `pnpm run build` → `.next/standalone/`
+2. **builder**: `pnpm run build:node:ci` → `.output/`
 3. **runner**: Production image with only necessary files
 
 ### Environment Variables
@@ -242,13 +244,11 @@ pnpm run docker:health
 
 ## Cloudflare Environment Configuration
 
-**Non-sensitive** (`wrangler.toml` `[vars]`):
-```toml
-CLICKHOUSE_HOST = "https://your-host.com"
-CLICKHOUSE_USER = "default"
-CLICKHOUSE_MAX_EXECUTION_TIME = "60"
-CLOUDFLARE_WORKERS = "1"
-```
+`wrangler.toml` declares **no** `[vars]` block (see "Never re-add a `[vars]`
+block to `wrangler.toml`" above). Non-secret config for the hosted product
+lives only in the committed `apps/dashboard/.env.production` (+ `.env.preview`
+overlay); `scripts/patch-wrangler-env.ts` injects it as Worker runtime vars at
+deploy time. To change a value, edit `.env.production`, not `wrangler.toml`.
 
 **Secrets** (set via `pnpm run cf:config` or manually):
 ```bash
@@ -259,10 +259,10 @@ wrangler secret put CLICKHOUSE_PASSWORD
 
 | Resource | Binding | Purpose |
 |----------|---------|---------|
-| R2 Bucket | `NEXT_INC_CACHE_R2_BUCKET` | Incremental static cache |
-| D1 Database | `NEXT_TAG_CACHE_D1` | Tag cache |
-| KV Namespace | `NEXT_INC_CACHE_KV` | Incremental cache |
-| Durable Objects | `NEXT_CACHE_DO_QUEUE` | Cache queue handler |
+| D1 Database | `CHM_CLOUD_D1` | AI agent conversations + per-user connections + billing |
+| KV Namespace | `CHM_DASHBOARD_QUERY_KV` | `/api/v1/data` dashboard-query allowlist cache |
+| KV Namespace | `CHM_VERSION_CACHE_KV` | Version + table-existence L2 cache |
+| Durable Objects | `AgentConversationDurableObject` | AI agent conversation state |
 
 ### Health Check
 
@@ -324,9 +324,9 @@ then `preview-chmonitor-landing` claims it. The two new subdomains
 (`preview.dash`, `preview.docs`) have no prior holder, so they provision cleanly.
 
 **`cloud.chmonitor.dev` → `dash.chmonitor.dev` 301** is a Cloudflare edge
-**Redirect Rule**, NOT Next.js middleware. `middleware.ts` cannot redirect the
-prerendered static root: OpenNext serves `/` as an asset without invoking the
-worker, so the host-redirect code never runs. A zone Redirect Rule fires at the
+**Redirect Rule**, not app-level routing code. TanStack Start prerenders `/` as
+a static asset, so it is served without invoking the worker — any host-redirect
+logic in a route handler would never run. A zone Redirect Rule fires at the
 edge *before* the worker, covering every path uniformly. Provision/refresh it
 (idempotent) with a `CLOUDFLARE_API_TOKEN` scoped to **Zone › Single Redirect ›
 Edit** (manages the rule) **and Zone › Zone › Read** (the script resolves the
@@ -379,7 +379,6 @@ schedules PUT succeeds.
 |-------|----------|
 | Docker connection errors | Check ClickHouse accessibility and docker-compose depends_on |
 | `__name is not defined` (CF) | `wrangler.toml` has `keep_names = false` |
-| Build lock error | Remove `.next/lock` and retry |
 | Secrets not updating | See [secret-rotation.md](secret-rotation.md) — redeploy after updating |
 | `/api/mcp` → 503 "MCP API key auth is not configured" | `CHM_API_KEY_SECRET` empty on `chmonitor-mcp`. Worker secrets don't survive a rename. Set the GitHub secret (`pnpm run gh:sync-secrets`) and redeploy; CI pushes it to both workers. |
-| `cloud.chmonitor.dev` returns 200 instead of 301 | Edge Redirect Rule missing — run `pnpm run cf:redirect-rule`. Middleware can't fix this (prerendered root skips the worker). |
+| `cloud.chmonitor.dev` returns 200 instead of 301 | Edge Redirect Rule missing — run `pnpm run cf:redirect-rule`. App-level routing can't fix this (prerendered root skips the worker). |

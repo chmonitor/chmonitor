@@ -10,7 +10,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!**/*.test.ts", "!**/__tests__/**"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".open-next/**"]
+      "outputs": ["dist/**"]
     },
     "type-check": {
       "dependsOn": ["^build"]
