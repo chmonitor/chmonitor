@@ -2,6 +2,9 @@ import { Database, Filter, Key, Layers, Settings } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { useExplorerState } from '../hooks/use-explorer-state'
+import { useMemo } from 'react'
+import { highlightCode } from '@/components/ai-elements/code-block'
+import { HLJS_TOKEN_CLASSES } from '@/components/ai-elements/hljs-token-classes'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -14,6 +17,21 @@ import {
 } from '@/components/ui/table'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
+import { cn } from '@/lib/utils'
+
+/** Small syntax-highlighted SQL expression block (e.g. engine, key expr). */
+function SqlExprBlock({ code }: { code: string }) {
+  const html = useMemo(() => highlightCode(code, 'sql'), [code])
+  return (
+    <div
+      className={cn(
+        'overflow-auto rounded-md bg-muted [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent! [&_pre]:p-2.5 [&_pre]:text-xs',
+        HLJS_TOKEN_CLASSES
+      )}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
 
 interface IndexesData {
   partition_key: string
@@ -206,9 +224,7 @@ export function IndexesTab() {
               <div className="text-sm font-medium">{indexData.engine}</div>
               {indexData.engine_full &&
                 indexData.engine_full !== indexData.engine && (
-                  <pre className="overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2.5 font-mono text-xs">
-                    <code>{formatEngineFull(indexData.engine_full)}</code>
-                  </pre>
+                  <SqlExprBlock code={formatEngineFull(indexData.engine_full)} />
                 )}
             </div>
           </CardContent>
@@ -227,9 +243,7 @@ export function IndexesTab() {
             </CardHeader>
             <CardContent className="px-4">
               {value ? (
-                <pre className="overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2.5 font-mono text-xs">
-                  <code>{value}</code>
-                </pre>
+                <SqlExprBlock code={value} />
               ) : (
                 <p className="text-xs text-muted-foreground">Not set</p>
               )}
