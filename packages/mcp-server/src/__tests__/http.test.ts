@@ -46,6 +46,35 @@ describe('mcp http', () => {
       expect(res.status).toBe(204)
       expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')
     })
+
+    // A browser MCP client (the dashboard /mcp Playground) sends these on every
+    // POST. Missing any one of them fails the preflight, so the real request is
+    // never sent — assert the whole 2026-07-28 header set explicitly.
+    it('allows the headers a 2026-07-28 browser MCP client sends', () => {
+      const allowed = (
+        corsPreflight().headers.get('Access-Control-Allow-Headers') ?? ''
+      ).toLowerCase()
+      for (const header of [
+        'accept',
+        'authorization',
+        'content-type',
+        'x-api-key',
+        'mcp-protocol-version',
+        'mcp-method',
+        'mcp-name',
+      ]) {
+        expect(allowed).toContain(header)
+      }
+    })
+
+    it('exposes the negotiated protocol version to browser clients', () => {
+      const exposed = (
+        withCors(new Response('ok')).headers.get(
+          'Access-Control-Expose-Headers'
+        ) ?? ''
+      ).toLowerCase()
+      expect(exposed).toContain('mcp-protocol-version')
+    })
   })
 
   describe('normalizePath', () => {
