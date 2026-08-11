@@ -3,7 +3,8 @@ import { useNavigate } from '@tanstack/react-router'
 import type { PgConnectionInfo } from '@/lib/hooks/use-pg-connections'
 import type { MergedHostInfo } from '@/lib/swr/use-merged-hosts'
 
-import { formatCount } from './fleet-helpers'
+import { formatCount, formatPercent, safeRatio } from './fleet-helpers'
+import { FleetSummaryStrip } from './fleet-summary'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatReadableSize } from '@/lib/format-readable'
 import { usePgConnections } from '@/lib/hooks/use-pg-connections'
 import { useRouter } from '@/lib/next-compat'
 import { useHostStatus } from '@/lib/swr/use-host-status'
@@ -22,7 +24,7 @@ import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { cn, getHost } from '@/lib/utils'
 
 /** Number of metric columns between "Host" and the trailing action column. */
-const METRIC_COLSPAN = 6
+const METRIC_COLSPAN = 11
 
 /** Small status dot — green (online), red (offline), muted (unknown). */
 function StatusDot({
@@ -69,7 +71,9 @@ function FleetTableRow({ host }: { host: MergedHostInfo }) {
     data: status,
     isLoading,
     isOnline,
-  } = useHostStatus(isBrowser ? null : host.id, { includeCounts: true })
+  } = useHostStatus(isBrowser ? null : host.id, { fleet: true })
+
+  const diskRatio = safeRatio(status?.diskUsedBytes, status?.diskTotalBytes)
 
   const handleView = () => {
     navigate({
@@ -122,9 +126,9 @@ function FleetTableRow({ host }: { host: MergedHostInfo }) {
           <MetricSkeletonCell />
           <MetricSkeletonCell />
           <MetricSkeletonCell />
-          <MetricSkeletonCell className="text-right" />
-          <MetricSkeletonCell className="text-right" />
-          <MetricSkeletonCell className="text-right" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <MetricSkeletonCell key={i} className="text-right" />
+          ))}
         </>
       ) : status ? (
         <>
@@ -144,15 +148,47 @@ function FleetTableRow({ host }: { host: MergedHostInfo }) {
           <TableCell className="text-right tabular-nums">
             {formatCount(status.clusterNodes)}
           </TableCell>
+          <TableCell className="text-right tabular-nums">
+            {formatCount(status.runningQueries)}
+          </TableCell>
+          <TableCell className="text-right tabular-nums">
+            {status.memoryBytes === undefined
+              ? '—'
+              : formatReadableSize(status.memoryBytes)}
+          </TableCell>
+          <TableCell className="text-right tabular-nums">
+            {formatPercent(diskRatio)}
+          </TableCell>
+          <TableCell className="text-right tabular-nums">
+            {status.replicationDelay === undefined
+              ? '—'
+              : `${formatCount(status.replicationDelay)}s`}
+            {status.readonlyReplicas ? (
+              <span className="text-amber-600 dark:text-amber-500">
+                {' '}
+                · {formatCount(status.readonlyReplicas)} ro
+              </span>
+            ) : null}
+          </TableCell>
+          <TableCell
+            className={cn(
+              'text-right tabular-nums',
+              status.recentErrors && 'text-amber-600 dark:text-amber-500'
+            )}
+          >
+            {formatCount(status.recentErrors)}
+          </TableCell>
         </>
       ) : (
         <>
           <TableCell className="text-muted-foreground">—</TableCell>
           <TableCell className="text-muted-foreground">—</TableCell>
           <TableCell className="text-muted-foreground">—</TableCell>
-          <TableCell className="text-right text-muted-foreground">—</TableCell>
-          <TableCell className="text-right text-muted-foreground">—</TableCell>
-          <TableCell className="text-right text-muted-foreground">—</TableCell>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <TableCell key={i} className="text-right text-muted-foreground">
+              —
+            </TableCell>
+          ))}
         </>
       )}
 
@@ -275,29 +311,39 @@ export function FleetTable() {
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Host</TableHead>
-            <TableHead>Version</TableHead>
-            <TableHead>Uptime</TableHead>
-            <TableHead>Hostname</TableHead>
-            <TableHead className="text-right">Databases</TableHead>
-            <TableHead className="text-right">Tables</TableHead>
-            <TableHead className="text-right">Cluster</TableHead>
-            <TableHead className="w-0" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {hosts.map((host) => (
-            <FleetTableRow key={`${host.source}-${host.id}`} host={host} />
-          ))}
-          {pgConnections.map((pg) => (
-            <FleetPgRow key={`pg-${pg.connectionId}`} pg={pg} />
-          ))}
-        </TableBody>
-      </Table>
+    <div className="flex flex-col gap-4">
+      <FleetSummaryStrip hosts={hosts} />
+      {/* The metric matrix is intentionally wide — scroll it rather than
+          dropping columns. */}
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Host</TableHead>
+              <TableHead>Version</TableHead>
+              <TableHead>Uptime</TableHead>
+              <TableHead>Hostname</TableHead>
+              <TableHead className="text-right">Databases</TableHead>
+              <TableHead className="text-right">Tables</TableHead>
+              <TableHead className="text-right">Cluster</TableHead>
+              <TableHead className="text-right">Running</TableHead>
+              <TableHead className="text-right">Memory</TableHead>
+              <TableHead className="text-right">Disk used</TableHead>
+              <TableHead className="text-right">Replica lag</TableHead>
+              <TableHead className="text-right">Errors (1h)</TableHead>
+              <TableHead className="w-0" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {hosts.map((host) => (
+              <FleetTableRow key={`${host.source}-${host.id}`} host={host} />
+            ))}
+            {pgConnections.map((pg) => (
+              <FleetPgRow key={`pg-${pg.connectionId}`} pg={pg} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

@@ -2,6 +2,8 @@ import { useNavigate } from '@tanstack/react-router'
 
 import type { MergedHostInfo } from '@/lib/swr/use-merged-hosts'
 
+import { formatCount, formatPercent, safeRatio } from './fleet-helpers'
+import { FleetSparkline } from './fleet-sparkline'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +14,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatReadableSize } from '@/lib/format-readable'
 import { useHostStatus } from '@/lib/swr/use-host-status'
+import { cn } from '@/lib/utils'
 
 interface FleetHostCardProps {
   host: MergedHostInfo
@@ -27,7 +31,10 @@ export function FleetHostCard({ host }: FleetHostCardProps) {
     data: status,
     isLoading,
     isOnline,
-  } = useHostStatus(isBrowser ? null : host.id)
+  } = useHostStatus(isBrowser ? null : host.id, { fleet: true })
+
+  const diskRatio = safeRatio(status?.diskUsedBytes, status?.diskTotalBytes)
+  const memRatio = safeRatio(status?.memoryBytes, status?.memoryTotalBytes)
 
   const handleView = () => {
     navigate({
@@ -75,20 +82,80 @@ export function FleetHostCard({ host }: FleetHostCardProps) {
           </p>
         ) : isLoading ? (
           <div className="space-y-1.5">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-20" />
+            {/* Matches the metric list height below to avoid layout shift. */}
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-full" />
+            ))}
+            <Skeleton className="h-5 w-full" />
           </div>
         ) : status ? (
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-            <dt className="text-muted-foreground">Version</dt>
-            <dd className="truncate font-mono">{status.version}</dd>
-            <dt className="text-muted-foreground">Uptime</dt>
-            <dd className="truncate">{status.uptime}</dd>
-            <dt className="text-muted-foreground">Hostname</dt>
-            <dd className="truncate text-muted-foreground">
-              {status.hostname}
-            </dd>
-          </dl>
+          <div className="space-y-2">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+              <dt className="text-muted-foreground">Version</dt>
+              <dd className="truncate font-mono">{status.version}</dd>
+              <dt className="text-muted-foreground">Uptime</dt>
+              <dd className="truncate">{status.uptime}</dd>
+              <dt className="text-muted-foreground">Hostname</dt>
+              <dd className="truncate text-muted-foreground">
+                {status.hostname}
+              </dd>
+              <dt className="text-muted-foreground">Running</dt>
+              <dd className="truncate tabular-nums">
+                {formatCount(status.runningQueries)}
+              </dd>
+              <dt className="text-muted-foreground">Memory</dt>
+              <dd className="truncate tabular-nums">
+                {status.memoryBytes === undefined
+                  ? '—'
+                  : formatReadableSize(status.memoryBytes)}
+                {memRatio === undefined ? null : (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    ({formatPercent(memRatio)})
+                  </span>
+                )}
+              </dd>
+              <dt className="text-muted-foreground">Disk used</dt>
+              <dd className="truncate tabular-nums">
+                {formatPercent(diskRatio)}
+                {status.diskTotalBytes === undefined ? null : (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    of {formatReadableSize(status.diskTotalBytes)}
+                  </span>
+                )}
+              </dd>
+              {status.replicationDelay === undefined ? null : (
+                <>
+                  <dt className="text-muted-foreground">Replica lag</dt>
+                  <dd className="truncate tabular-nums">
+                    {formatCount(status.replicationDelay)}s
+                    {status.readonlyReplicas ? (
+                      <span className="text-amber-600 dark:text-amber-500">
+                        {' '}
+                        · {formatCount(status.readonlyReplicas)} read-only
+                      </span>
+                    ) : null}
+                  </dd>
+                </>
+              )}
+              <dt className="text-muted-foreground">Errors (1h)</dt>
+              <dd
+                className={cn(
+                  'truncate tabular-nums',
+                  status.recentErrors
+                    ? 'text-amber-600 dark:text-amber-500'
+                    : undefined
+                )}
+              >
+                {formatCount(status.recentErrors)}
+              </dd>
+            </dl>
+            <FleetSparkline
+              values={status.series}
+              label="Running queries over the last hour"
+            />
+          </div>
         ) : (
           <p className="text-xs text-muted-foreground">Unable to reach host.</p>
         )}
