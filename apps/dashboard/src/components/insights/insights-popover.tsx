@@ -168,7 +168,6 @@ export function InsightsPopover() {
                 <InsightsPopoverItem
                   key={insight.key}
                   insight={insight}
-                  hostId={hostId}
                   onOpenDetail={() => {
                     setSelected(insight)
                     setIsOpen(false)

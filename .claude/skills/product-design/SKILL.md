@@ -68,6 +68,16 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `<button>`); inner links `e.stopPropagation()` (not `preventDefault`) so they
   still navigate. Drive drill-down from a per-item field, rendered via
   `ResultTable`. See `components/health/{health-card-shell,health-detail-rows}.tsx`.
+- **One severity signal per card:** severity reads from a single tinted icon —
+  never icon tile + colored border + severity pill + header count badge on the
+  same finding. `components/insights/severity-meta.ts` is the source of truth
+  (label / icon / `iconColor` / neutral `badge`); card surface, border and count
+  badges stay neutral. Body `line-clamp-2` + `title` tooltip; the breakdown goes
+  in a detail dialog.
+- **A dialog opened from a popover lives OUTSIDE the popover subtree.** Rendered
+  inside `PopoverContent`, closing the popover unmounts the dialog and nothing
+  appears. Keep the selected item + dialog in the parent, as a sibling of
+  `<Popover>` — see `components/insights/insights-popover.tsx`.
 - **Overflow strip (one row, no wrap):** `scrollbar-hide overflow-x-auto` + `py-*`
   (so shadows/accents/focus rings aren't clipped) with a chevron button + a
   `from-background`→`transparent` edge fade per scrollable side, paging via
