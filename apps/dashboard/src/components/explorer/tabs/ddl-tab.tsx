@@ -2,7 +2,9 @@ import { Check, Copy, SparklesIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { useExplorerState } from '../hooks/use-explorer-state'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { highlightCode } from '@/components/ai-elements/code-block'
+import { HLJS_TOKEN_CLASSES } from '@/components/ai-elements/hljs-token-classes'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,7 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { formatSql } from '@/lib/sql-format'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
-import { dedent } from '@/lib/utils'
+import { cn, dedent } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface DdlRow {
@@ -74,6 +76,11 @@ export function DdlTab() {
   }, [isBeautified, ddl])
 
   const displaySql = isBeautified ? (formatted ?? raw) : raw
+
+  const highlightedHtml = useMemo(() => {
+    if (!displaySql) return ''
+    return highlightCode(displaySql, 'sql')
+  }, [displaySql])
 
   const handleCopy = async () => {
     if (displaySql) {
@@ -148,9 +155,13 @@ export function DdlTab() {
         </div>
       </CardHeader>
       <CardContent>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 font-mono text-xs leading-relaxed">
-          <code>{displaySql}</code>
-        </pre>
+        <div
+          className={cn(
+            'overflow-x-auto rounded-md bg-muted [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent! [&_pre]:p-4 [&_pre]:text-xs [&_pre]:leading-relaxed',
+            HLJS_TOKEN_CLASSES
+          )}
+          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+        />
       </CardContent>
     </Card>
   )
