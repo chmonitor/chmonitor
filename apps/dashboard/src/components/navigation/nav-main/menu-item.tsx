@@ -8,9 +8,32 @@ import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
+import { useIsFavorite } from '@/hooks/use-favorites'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
 import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
 import { useHostId } from '@/lib/swr'
+import { cn } from '@/lib/utils'
+
+/**
+ * Badges hide (rather than just being shifted left) whenever the hover-only
+ * pin button is visible in the same right-hand corner — pinned items keep
+ * the pin showing permanently, so the badge must stay hidden for those too.
+ * Prevents the pin icon from ever rendering on top of badge text (#2769
+ * follow-up).
+ */
+function badgeHiddenClasses(isPinned: boolean) {
+  return cn(
+    'transition-opacity group-hover/menu-item:opacity-0 group-focus-within/menu-item:opacity-0',
+    isPinned && 'opacity-0'
+  )
+}
+
+function subBadgeHiddenClasses(isPinned: boolean) {
+  return cn(
+    'transition-opacity group-hover/menu-sub-item:opacity-0 group-focus-within/menu-sub-item:opacity-0',
+    isPinned && 'opacity-0'
+  )
+}
 
 const NewBadge = lazy(() =>
   import('@/components/menu/components/new-badge').then((mod) => ({
@@ -93,6 +116,7 @@ const SingleMenuItem = function SingleMenuItem({
   const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(item.isNew || item.countKey)
+  const isPinned = useIsFavorite(item.href)
 
   // When the page's backing table is missing, either dim it (default) or hide
   // it entirely per the user's Navigation setting. A missing metadata database
@@ -128,14 +152,14 @@ const SingleMenuItem = function SingleMenuItem({
       </SidebarMenuButton>
       <PinButton href={item.href} title={item.title} hasBadge={hasBadge} />
       {item.isNew && (
-        <SidebarMenuBadge>
+        <SidebarMenuBadge className={badgeHiddenClasses(isPinned)}>
           <Suspense fallback={null}>
             <NewBadge href={item.href} isNew={item.isNew} />
           </Suspense>
         </SidebarMenuBadge>
       )}
       {item.countKey && (
-        <SidebarMenuBadge>
+        <SidebarMenuBadge className={badgeHiddenClasses(isPinned)}>
           <Suspense fallback={null}>
             <CountBadge
               countKey={item.countKey}
@@ -173,6 +197,7 @@ const SubMenuItem = function SubMenuItem({
   const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(subItem.isNew || subItem.countKey)
+  const isPinned = useIsFavorite(subItem.href)
 
   if (!tableAvailable && !settings.dimUnavailablePages) {
     return null
@@ -200,14 +225,24 @@ const SubMenuItem = function SubMenuItem({
           {subItem.title}
         </span>
         {subItem.isNew && (
-          <span className="ml-auto flex shrink-0">
+          <span
+            className={cn(
+              'ml-auto flex shrink-0',
+              subBadgeHiddenClasses(isPinned)
+            )}
+          >
             <Suspense fallback={null}>
               <NewBadge href={subItem.href} isNew={subItem.isNew} />
             </Suspense>
           </span>
         )}
         {subItem.countKey && (
-          <span className="ml-auto flex shrink-0">
+          <span
+            className={cn(
+              'ml-auto flex shrink-0',
+              subBadgeHiddenClasses(isPinned)
+            )}
+          >
             <Suspense fallback={null}>
               <CountBadge
                 countKey={subItem.countKey}
