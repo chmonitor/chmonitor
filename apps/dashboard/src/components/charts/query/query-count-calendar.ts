@@ -265,11 +265,13 @@ export interface CalendarDay {
  *  slot outside the rendered range (e.g. future days in the final column). */
 export type CalendarWeek = (CalendarDay | null)[]
 
-export interface CalendarModel {
-  /** Week columns, oldest → newest (left → right). */
-  weeks: CalendarWeek[]
-  /** Month label per week column, or `null` when the month is unchanged. */
-  monthLabels: (string | null)[]
+/**
+ * Aggregates over a set of day cells. Produced either for the whole model
+ * ({@link buildCalendarModel}) or for just the months currently on screen
+ * ({@link summarizeVisibleBlocks}), so the KPI strip always describes exactly
+ * what the user can see.
+ */
+export interface CalendarStats {
   max: number
   total: number
   activeDays: number
@@ -278,6 +280,13 @@ export interface CalendarModel {
   peak: CalendarDay | null
   /** Caption like "Jun 2025 – Jun 2026", or '' when there are no days. */
   rangeLabel: string
+}
+
+export interface CalendarModel extends CalendarStats {
+  /** Week columns, oldest → newest (left → right). */
+  weeks: CalendarWeek[]
+  /** Month label per week column, or `null` when the month is unchanged. */
+  monthLabels: (string | null)[]
 }
 
 /**
@@ -291,7 +300,13 @@ export function buildCalendarModel(
   today: Date,
   metric: MetricConfig,
   weeksBack = 53,
-  includeFuture = false
+  includeFuture = false,
+  /**
+   * Explicit first day of the window (overrides `weeksBack`). The grid is still
+   * snapped back to the enclosing Sunday, but days before this date are left
+   * empty so the oldest month block is never a partial month.
+   */
+  startOverride?: Date
 ): CalendarModel {
   const byDate = new Map<string, HeatmapDayRow>()
   for (const r of rows) byDate.set(r.date, r)
@@ -309,8 +324,21 @@ export function buildCalendarModel(
   const end = includeFuture
     ? new Date(today.getFullYear(), today.getMonth() + 1, 0, 12)
     : todayNoon
-  const start = new Date(todayNoon)
-  start.setDate(start.getDate() - (weeksBack * 7 - 1))
+  // First day that may render. With `startOverride` this is a month boundary;
+  // otherwise the day `weeksBack` weeks before today.
+  const firstRenderable = startOverride
+    ? new Date(
+        startOverride.getFullYear(),
+        startOverride.getMonth(),
+        startOverride.getDate(),
+        12
+      )
+    : (() => {
+        const d = new Date(todayNoon)
+        d.setDate(d.getDate() - (weeksBack * 7 - 1))
+        return d
+      })()
+  const start = new Date(firstRenderable)
   // Snap to the Sunday on/before the start so columns are whole weeks.
   start.setDate(start.getDate() - start.getDay())
 
@@ -334,6 +362,12 @@ export function buildCalendarModel(
       // Future days (beyond today) stay null so the trailing column matches
       // GitHub: the current week is partially filled.
       if (cursor > end) {
+        cursor.setDate(cursor.getDate() + 1)
+        continue
+      }
+      // Leading days of the Sunday-snap that fall before the window start stay
+      // null, so the oldest month block only ever shows its own days.
+      if (startOverride && cursor < firstRenderable) {
         cursor.setDate(cursor.getDate() + 1)
         continue
       }
@@ -394,6 +428,58 @@ export function buildCalendarModel(
     peak,
     rangeLabel,
   }
+}
+
+/**
+ * Widest window the model ever builds, in calendar months (including the
+ * current one). Wide screens can show more than a year of history; this caps
+ * how far back the grid is built so ultrawide viewports stay bounded.
+ */
+export const MAX_WINDOW_MONTHS = 24
+
+/**
+ * First day of the model window: the start of the month `maxMonths - 1` months
+ * before `today`, but never earlier than the month of the oldest row we have.
+ * Capping at data coverage keeps a wide screen from rendering a year of empty
+ * cells for a deployment with a short `query_log` TTL.
+ */
+export function resolveWindowStart(
+  rows: HeatmapDayRow[],
+  today: Date,
+  maxMonths = MAX_WINDOW_MONTHS
+): Date {
+  const capStart = new Date(
+    today.getFullYear(),
+    today.getMonth() - (Math.max(1, maxMonths) - 1),
+    1,
+    12
+  )
+  let earliest: string | null = null
+  for (const r of rows) {
+    if (r.date && (earliest === null || r.date < earliest)) earliest = r.date
+  }
+  if (!earliest) return capStart
+  const [y, m] = earliest.split('-').map(Number)
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return capStart
+  const dataStart = new Date(y, m - 1, 1, 12)
+  return dataStart > capStart ? dataStart : capStart
+}
+
+/**
+ * Build a calendar model spanning whole months, from {@link resolveWindowStart}
+ * through the end of the current month. The renderer then trims the oldest
+ * months that don't fit the measured container width
+ * ({@link pickVisibleMonthBlocks}), so the number of months on screen follows
+ * the available width instead of a fixed year.
+ */
+export function buildMonthWindowModel(
+  rows: HeatmapDayRow[],
+  today: Date,
+  metric: MetricConfig,
+  maxMonths = MAX_WINDOW_MONTHS
+): CalendarModel {
+  const start = resolveWindowStart(rows, today, maxMonths)
+  return buildCalendarModel(rows, today, metric, 53, true, start)
 }
 
 /**
@@ -502,6 +588,51 @@ export function pickVisibleMonthBlocks(
   return visibleReversed.reverse()
 }
 
+/**
+ * Recompute the aggregates over just the month blocks currently rendered, so
+ * "over N days" / "of N (x%)" / the range caption / the colour scale all
+ * describe the window the user actually sees. Future cells of the current month
+ * render but never count. Every day appears in exactly one block (boundary
+ * weeks are masked per month), so no de-duplication is needed.
+ */
+export function summarizeVisibleBlocks(blocks: MonthBlock[]): CalendarStats {
+  let max = 0
+  let total = 0
+  let activeDays = 0
+  let totalDays = 0
+  let peak: CalendarDay | null = null
+  let firstDay: Date | null = null
+  let lastDay: Date | null = null
+
+  for (const block of blocks) {
+    for (const week of block.weeks) {
+      for (const day of week) {
+        if (!day || day.isFuture) continue
+        if (!firstDay || day.date < firstDay) firstDay = day.date
+        if (!lastDay || day.date > lastDay) lastDay = day.date
+        totalDays += 1
+        total += day.value
+        if (day.value > 0) activeDays += 1
+        if (day.value > max) max = day.value
+        if (!peak || day.value > peak.value) peak = day
+      }
+    }
+  }
+
+  return {
+    max,
+    total,
+    activeDays,
+    totalDays,
+    avgActive: activeDays > 0 ? total / activeDays : 0,
+    peak,
+    rangeLabel:
+      firstDay && lastDay
+        ? `${formatMonthYear(firstDay)} – ${formatMonthYear(lastDay)}`
+        : '',
+  }
+}
+
 /** A single KPI/stat card shown above the calendar. */
 export interface StatCard {
   label: string
@@ -518,7 +649,7 @@ export interface StatCard {
  */
 export function buildStatCards(
   metric: MetricConfig,
-  model: CalendarModel
+  model: CalendarStats
 ): StatCard[] {
   const { total, max, activeDays, totalDays, avgActive, peak } = model
   const hasTraffic = max > 0

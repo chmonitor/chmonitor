@@ -3,6 +3,7 @@ import type { HeatmapDayRow } from './query-count-calendar'
 import {
   buildCalendarModel,
   buildMonthBlocks,
+  buildMonthWindowModel,
   buildStatCards,
   formatCalendarDate,
   formatDurationMs,
@@ -10,6 +11,8 @@ import {
   isoDate,
   METRIC_CONFIGS,
   pickVisibleMonthBlocks,
+  resolveWindowStart,
+  summarizeVisibleBlocks,
 } from './query-count-calendar'
 import { describe, expect, it } from 'bun:test'
 
@@ -322,5 +325,100 @@ describe('buildStatCards', () => {
     // Peak memory = max daily reading = 600 bytes, formatted as a size.
     expect(cards[0].value).toBe('600 Bytes')
     expect(cards[1].label).toBe('Average')
+  })
+})
+
+describe('resolveWindowStart', () => {
+  const today = new Date(2026, 5, 17) // Jun 17 2026
+
+  it('caps at MAX_WINDOW_MONTHS back when data spans further', () => {
+    const start = resolveWindowStart([row('2020-01-05')], today)
+    // 24 months inclusive of the current one → Jul 1 2024.
+    expect(start.getFullYear()).toBe(2024)
+    expect(start.getMonth()).toBe(6)
+    expect(start.getDate()).toBe(1)
+  })
+
+  it('starts at the oldest data month when coverage is shorter', () => {
+    const start = resolveWindowStart(
+      [row('2026-04-20'), row('2026-05-02')],
+      today
+    )
+    expect(start.getFullYear()).toBe(2026)
+    expect(start.getMonth()).toBe(3) // April
+    expect(start.getDate()).toBe(1)
+  })
+
+  it('falls back to the full cap with no rows', () => {
+    const start = resolveWindowStart([], today)
+    expect(start.getFullYear()).toBe(2024)
+    expect(start.getMonth()).toBe(6)
+  })
+})
+
+describe('buildMonthWindowModel', () => {
+  const today = new Date(2026, 5, 17)
+
+  it('starts at a month boundary — the oldest block has no foreign days', () => {
+    const model = buildMonthWindowModel([row('2026-04-10')], today, QUERIES)
+    const blocks = buildMonthBlocks(model)
+    expect(blocks[0]?.key).toBe('2026-3') // April, not a March remnant
+    const days = blocks[0]?.weeks.flat().filter(Boolean) ?? []
+    expect(days.every((d) => d?.date.getMonth() === 3)).toBe(true)
+    expect(days.some((d) => d?.iso === '2026-04-01')).toBe(true)
+  })
+
+  it('runs through the end of the current month (future days dimmed)', () => {
+    const model = buildMonthWindowModel([row('2026-06-01')], today, QUERIES)
+    const june = buildMonthBlocks(model).find((b) => b.key === '2026-5')
+    const days = june?.weeks.flat().filter(Boolean) ?? []
+    expect(days.map((d) => d?.iso)).toContain('2026-06-30')
+    expect(days.find((d) => d?.iso === '2026-06-30')?.isFuture).toBe(true)
+  })
+
+  it('reaches further back than a year when data allows', () => {
+    const model = buildMonthWindowModel([row('2024-08-01')], today, QUERIES)
+    expect(buildMonthBlocks(model).length).toBeGreaterThan(13)
+  })
+})
+
+describe('summarizeVisibleBlocks', () => {
+  const today = new Date(2026, 5, 17)
+  const rows = [
+    row('2026-04-10', { query_count: 500 }),
+    row('2026-06-10', { query_count: 100 }),
+    row('2026-06-11', { query_count: 40 }),
+  ]
+  const blocks = buildMonthBlocks(buildMonthWindowModel(rows, today, QUERIES))
+
+  it('counts only the visible months, not the whole model', () => {
+    const all = summarizeVisibleBlocks(blocks)
+    const juneOnly = summarizeVisibleBlocks(blocks.slice(-1))
+    expect(all.total).toBe(640)
+    expect(juneOnly.total).toBe(140)
+    expect(juneOnly.max).toBe(100)
+    expect(juneOnly.activeDays).toBe(2)
+    expect(juneOnly.totalDays).toBeLessThan(all.totalDays)
+    expect(juneOnly.rangeLabel).toBe('Jun 2026 – Jun 2026')
+  })
+
+  it('excludes future days of the current month from the stats', () => {
+    // Jun 1..17 inclusive — the dimmed Jun 18-30 cells never count.
+    expect(summarizeVisibleBlocks(blocks.slice(-1)).totalDays).toBe(17)
+  })
+
+  it('feeds stat cards that describe the visible window', () => {
+    const cards = buildStatCards(
+      QUERIES,
+      summarizeVisibleBlocks(blocks.slice(-1))
+    )
+    expect(cards[0].sub).toBe('over 17 days')
+  })
+
+  it('is empty-safe', () => {
+    const empty = summarizeVisibleBlocks([])
+    expect(empty.total).toBe(0)
+    expect(empty.peak).toBeNull()
+    expect(empty.rangeLabel).toBe('')
   })
 })
