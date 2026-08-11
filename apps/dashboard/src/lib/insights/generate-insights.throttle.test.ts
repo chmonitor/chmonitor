@@ -17,10 +17,21 @@
 
 import type { InsightCandidate } from './types'
 
-import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
+import * as collectorsModule from './collectors'
+import {
+  afterAll,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from 'bun:test'
 
 // clickhouse-store is statically imported by the store resolver; stub the
 // virtual cloudflare:workers env so the store graph loads without a runtime.
+// (Harmless process-wide: no other test in this directory exercises a real
+// `cloudflare:workers` binding, so this one is safe to leave un-restored.)
 mock.module('cloudflare:workers', () => ({ env: {} }))
 
 // Count collector invocations. The collector is the expensive ~10-scan step the
@@ -34,14 +45,27 @@ const CANDIDATE: InsightCandidate = {
   metric: 'max_active_parts',
   value: 318,
 }
-mock.module('./collectors', () => ({
-  collectInsights: async (): Promise<InsightCandidate[]> => {
-    collectCalls += 1
-    return [CANDIDATE]
-  },
-}))
-// Enrichment is out of scope here — pass candidates through unchanged so the
-// real llm-enrich module (and its AI provider dependency) is never loaded.
+
+// `spyOn` (not `mock.module`) for `./collectors`: it's a sibling module under
+// this same directory, and `mock.module` replaces a specifier's resolution for
+// the rest of the `bun test` process with no way to undo it (`mock.restore()`
+// only resets `mock()`/`spyOn()` call state, not a `mock.module` specifier
+// override) — that broke `collectors.test.ts`'s own `./collectors` import in a
+// full-directory run. `spyOn` overrides just the one export on the shared
+// module-namespace object and IS reversible via `.mockRestore()` in `afterAll`
+// below. See #2922.
+const collectInsightsSpy = spyOn(
+  collectorsModule,
+  'collectInsights'
+).mockImplementation(async (): Promise<InsightCandidate[]> => {
+  collectCalls += 1
+  return [CANDIDATE]
+})
+// Enrichment is out of scope here — pass candidates through unchanged. `./llm-enrich`
+// is left on `mock.module` (rather than `spyOn`) deliberately: no other test in
+// this directory exercises the real module, and a real (non-mocked) import
+// would statically link the AI SDK enrich provider that this test intentionally
+// avoids (see the docblock above).
 mock.module('./llm-enrich', () => ({
   enrichInsights: async (candidates: InsightCandidate[]) => candidates,
 }))
@@ -69,6 +93,7 @@ afterAll(() => {
   if (saved === undefined) delete process.env.INSIGHTS_STORE_BACKEND
   else process.env.INSIGHTS_STORE_BACKEND = saved
   resetInsightsStoreCache?.()
+  collectInsightsSpy.mockRestore()
 })
 
 describe('generateInsights min-interval throttle', () => {

@@ -15,20 +15,35 @@
  * HMAC signature + real delivery/fan-out over the bus is covered by
  * `lib/events/outbound-bus.test.ts`'s `emitInstanceEvent` suite; this file
  * only proves the sweep-side wiring feeding into it.
+ *
+ * The mock uses `spyOn` (not `mock.module`) on `@/lib/events/outbound-bus`:
+ * `server-sweep.test.ts`'s "outbound webhook-subscriptions bus" suite in this
+ * same directory deliberately relies on the REAL `emitInstanceEvent` →
+ * `deliver()` path, and `mock.module` replaces a specifier's resolution for
+ * the rest of the `bun test` process with no way to undo it — that broke that
+ * suite in a full-directory run. `spyOn` overrides just the one export on the
+ * shared module-namespace object and IS reversible via `.mockRestore()`. See
+ * #2922.
  */
 
 import type { AlertDecision } from './alert-state-store'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import * as outboundBusModule from '@/lib/events/outbound-bus'
 
 const emitted: unknown[] = []
 let emitInstanceEventImpl: (evt: unknown) => Promise<void> = async (evt) => {
   emitted.push(evt)
 }
 
-mock.module('@/lib/events/outbound-bus', () => ({
-  emitInstanceEvent: async (evt: unknown) => emitInstanceEventImpl(evt),
-}))
+const emitInstanceEventSpy = spyOn(
+  outboundBusModule,
+  'emitInstanceEvent'
+).mockImplementation(async (evt: unknown) => emitInstanceEventImpl(evt))
+
+afterAll(() => {
+  emitInstanceEventSpy.mockRestore()
+})
 
 const { buildAlertWebhookEvent, dispatchDedupedAlertEvent } = await import(
   './alert-webhook-events'

@@ -144,11 +144,22 @@ describe('registerAdvisorTool', () => {
       ).toBe(false)
     }
 
-    const source = readFileSync(
-      join(import.meta.dir, '..', 'tools', 'advisor.ts'),
-      'utf-8'
-    )
-    expect(source).not.toMatch(/\.command\s*\(/)
-    expect(source).not.toMatch(/\.insert\s*\(/)
+    const advisorDir = join(import.meta.dir, '..', 'tools', 'advisor')
+    const files = [
+      'index.ts',
+      'sql-parse.ts',
+      'impact.ts',
+      'data-fetchers.ts',
+      'types.ts',
+      join('rules', 'skip-index.ts'),
+      join('rules', 'projection.ts'),
+      join('rules', 'partition-key.ts'),
+      join('rules', 'prewhere.ts'),
+    ]
+    for (const file of files) {
+      const source = readFileSync(join(advisorDir, file), 'utf-8')
+      expect(source).not.toMatch(/\.command\s*\(/)
+      expect(source).not.toMatch(/\.insert\s*\(/)
+    }
   })
 })
