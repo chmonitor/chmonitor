@@ -74,8 +74,9 @@ describe('card config', () => {
 // ---------------------------------------------------------------------------
 
 describe('SQL content', () => {
-  // sql is now a versioned array (VersionedSql[]) — two entries: 19.1 base
-  // and 25.12 which adds parts_in_progress_names.
+  // sql is now a versioned array (VersionedSql[]) — three entries: 19.1 base,
+  // 25.12 which adds parts_in_progress_names, and 26.2 which adds
+  // parts_postpone_reasons.
   const sqlField = mutationsConfig.sql
   const sqlEntries = sqlField as Array<{
     since: string
@@ -85,11 +86,18 @@ describe('SQL content', () => {
   // Combined SQL for content assertions that apply across all versions
   const allSql = sqlEntries.map((e) => e.sql).join('\n')
 
-  test('sql is a versioned array with 2 entries (19.1 base, 25.12 adds parts_in_progress_names)', () => {
+  test('sql is a versioned array with 3 entries (19.1 base, 25.12 adds parts_in_progress_names, 26.2 adds parts_postpone_reasons)', () => {
     expect(Array.isArray(sqlField)).toBe(true)
-    expect(sqlEntries.length).toBe(2)
+    expect(sqlEntries.length).toBe(3)
     expect(sqlEntries[0].since).toBe('19.1')
     expect(sqlEntries[1].since).toBe('25.12')
+    expect(sqlEntries[2].since).toBe('26.2')
+  })
+
+  test('26.2 variant selects parts_postpone_reasons; older variants do not', () => {
+    expect(sqlEntries[2].sql).toContain('parts_postpone_reasons')
+    expect(sqlEntries[0].sql).not.toContain('parts_postpone_reasons')
+    expect(sqlEntries[1].sql).not.toContain('parts_postpone_reasons')
   })
 
   test('queries system.mutations', () => {
