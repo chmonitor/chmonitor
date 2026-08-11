@@ -126,16 +126,16 @@ generated.name = config.name
 generated.routes = config.routes
 generated.vars = vars
 
-// Preview must not touch CF cron schedules. Even `crons: []` still calls
-// PUT .../schedules, which fails on this account for preview-chmonitor-dash
-// (required `dashboard` check exits 1 after a successful script upload).
-// Dropping the triggers key entirely makes wrangler skip the schedules API.
-// Production keeps [triggers] from the vite-generated config.
-// Cron HTTP routes still work on preview with CRON_SECRET; only CF attachment
-// is skipped.
-if (isPreview) {
-  delete generated.triggers
-}
+// Deploys must not touch CF cron schedules AT ALL. The account is over the
+// Workers Free 5-crons-per-account budget, so ANY schedules PUT (even
+// `crons: []`) fails after a successful script upload and exits the deploy
+// with code 1 (first seen on preview-chmonitor-dash; since 2026-08-11 it hits
+// production too — cloud-hooks' crons pushed the account further over budget).
+// Dropping the triggers key entirely makes wrangler skip the schedules API;
+// the crons already attached to the deployed workers stay in place.
+// Cron HTTP routes still work with CRON_SECRET; only CF (re)attachment is
+// skipped. If the account regains cron budget, restore the preview-only guard.
+delete generated.triggers
 
 // --- Patch D1 databases ---
 const conversationsDbId = (
@@ -188,6 +188,6 @@ console.log(`   routes: ${config.routes.map((r) => r.pattern).join(', ')}`)
 console.log(
   `   vars: ${Object.keys(vars).length} keys (from .env.production${isPreview ? ' + .env.preview' : ''})`
 )
-if (isPreview) {
-  console.log('   triggers: omitted (preview skips schedules API)')
-}
+console.log(
+  '   triggers: omitted (schedules API skipped — account cron budget)'
+)

@@ -14,21 +14,17 @@
 import { isDailyTick, isWeeklyTick, OPS_SWEEP_CRON } from './index'
 import { describe, expect, test } from 'bun:test'
 
-/** The `crons = [...]` array from wrangler.toml, parsed without a TOML dep. */
-async function configuredCrons(): Promise<string[]> {
-  const toml = await Bun.file(
-    new URL('../wrangler.toml', import.meta.url)
-  ).text()
-  const match = toml.match(/^crons\s*=\s*\[(.*?)\]/ms)
-  if (!match) throw new Error('no `crons = [...]` found in wrangler.toml')
-  return [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
-}
-
 describe('cron triggers', () => {
-  test('the single configured schedule is exactly OPS_SWEEP_CRON', async () => {
-    // More than one schedule would blow the 5-per-account free-plan budget
-    // (dashboard 4 + hooks 1) and break the dashboard's own deploy.
-    expect(await configuredCrons()).toEqual([OPS_SWEEP_CRON])
+  test('wrangler.toml declares NO crons — schedules PUT must be skipped', async () => {
+    // The account is over the Workers Free 5-crons-per-account budget, so ANY
+    // schedules PUT (even `crons = []`) fails after a successful upload and
+    // turns the deploy red. Wrangler only skips the schedules API when the
+    // key is absent. Re-adding a `crons = [...]` line reintroduces the CI
+    // failure — see the wrangler.toml note.
+    const toml = await Bun.file(
+      new URL('../wrangler.toml', import.meta.url)
+    ).text()
+    expect(toml).not.toMatch(/^\s*crons\s*=/m)
   })
 
   test('the sweep cadence actually produces the report ticks', () => {
