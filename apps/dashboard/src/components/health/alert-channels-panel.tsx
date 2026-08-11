@@ -104,6 +104,12 @@ export function AlertChannelsPanel({
   const meta = (id: LocalChannelId) =>
     LOCAL_CHANNELS.find((c) => c.id === id) as LocalChannelMeta
 
+  // Pin a card open once the operator interacts with it, so clearing its URL
+  // (or switching it off) does not collapse the card back into an "Add a
+  // channel" tile mid-edit — which would unmount the input and drop focus.
+  const pin = (id: LocalChannelId) =>
+    setOpened((prev) => (prev.includes(id) ? prev : [...prev, id]))
+
   const renderCard = (id: LocalChannelId) => {
     const m = meta(id)
     const channelSeverity = alerts.channels?.[id]?.minSeverity
@@ -125,7 +131,10 @@ export function AlertChannelsPanel({
           title={m.label}
           status={`${alerts.browserNotificationsEnabled ? 'Enabled' : 'Disabled'} · ${severityLabel(channelSeverity)}`}
           enabled={alerts.browserNotificationsEnabled}
-          onEnabledChange={onEnableBrowser}
+          onEnabledChange={(checked) => {
+            pin(id)
+            onEnableBrowser(checked)
+          }}
           defaultOpen={opened.includes(id)}
         >
           <p className="text-xs text-muted-foreground">
@@ -172,12 +181,13 @@ export function AlertChannelsPanel({
               id="healthchecks-url"
               placeholder="https://hc-ping.com/your-uuid"
               value={alerts.healthchecksUrl}
-              onChange={(e) =>
+              onChange={(e) => {
+                pin(id)
                 setAlerts((prev) => ({
                   ...prev,
                   healthchecksUrl: e.target.value.trim(),
                 }))
-              }
+              }}
             />
           </div>
           {severityRow}
@@ -221,9 +231,10 @@ export function AlertChannelsPanel({
             id="webhook-url"
             placeholder="https://hooks.slack.com/services/..."
             value={alerts.webhookUrl}
-            onChange={(e) =>
+            onChange={(e) => {
+              pin(id)
               setAlerts((prev) => ({ ...prev, webhookUrl: e.target.value }))
-            }
+            }}
           />
         </div>
         {severityRow}
