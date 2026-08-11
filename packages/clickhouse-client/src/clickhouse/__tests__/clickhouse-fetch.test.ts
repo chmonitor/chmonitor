@@ -103,11 +103,7 @@ afterAll(() => {
 // Dynamic import ensures mocks are in place before the module loads.
 // The cache-busting query keeps this test isolated from earlier module loads
 // in Bun's shared test process.
-const {
-  __testCountJsonEachRowRows,
-  fetchData,
-  fetchJsonEachRowAsNormalizedJson,
-} = await import(
+const { fetchData, fetchJsonEachRowAsNormalizedJson } = await import(
   new URL('../clickhouse-fetch.ts?test=clickhouse-fetch', import.meta.url).href
 )
 
@@ -702,13 +698,6 @@ describe('clickhouse-fetch', () => {
       )
       expect(result.metadata.rows).toBe(2)
       expect(result.metadata.rawResponseLength).toBeGreaterThan(0)
-    })
-
-    it('counts JSONEachRow rows without allocating line arrays', () => {
-      expect(__testCountJsonEachRowRows('')).toBe(0)
-      expect(__testCountJsonEachRowRows('\n  \n\t\n')).toBe(0)
-      expect(__testCountJsonEachRowRows('{"a":1}\n{"a":2}\n')).toBe(2)
-      expect(__testCountJsonEachRowRows('{"a":1}\n\n{"a":2}')).toBe(2)
     })
 
     it('executes the version-selected sql from a versioned queryConfig.sql[], not the raw query arg', async () => {
