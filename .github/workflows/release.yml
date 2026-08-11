@@ -96,6 +96,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+
       - name: Login to Container registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
@@ -133,24 +138,9 @@ jobs:
           docker cp "$CONTAINER:/app/." /tmp/cross-build/
           docker rm "$CONTAINER"
 
-          # Create minimal Dockerfile for ARM64 (just copies pre-built JS artifacts)
-          cat > /tmp/cross-build/Dockerfile <<'EOFX'
-          FROM node:24-alpine
-          WORKDIR /app
-          ENV NODE_ENV=production \
-              PORT=3000 \
-              HOST="0.0.0.0"
-          RUN apk add --no-cache libc6-compat curl && \
-              addgroup -S -g 1001 app && \
-              adduser -S -u 1001 -G app app && \
-              chown -R app:app /app
-          COPY --chown=app:app . ./
-          USER app
-          EXPOSE 3000
-          HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=30s \
-            CMD curl -sf http://localhost:3000/healthz || exit 1
-          CMD ["node", "server/index.mjs"]
-          EOFX
+          # Use the shared, checked-in ARM64 wrapper Dockerfile (see
+          # Dockerfile.arm64 for why) rather than an inline heredoc copy.
+          cp "$GITHUB_WORKSPACE/Dockerfile.arm64" /tmp/cross-build/Dockerfile
 
       - name: Build and push ARM64 image
         uses: docker/build-push-action@v7

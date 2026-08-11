@@ -1,0 +1,35 @@
+# Dockerfile for the ARM64 leg of the multi-arch image build.
+#
+# We cross-compile ARM64 by extracting the pre-built JS artifacts (server/,
+# node_modules/, etc.) from the already-built AMD64 image (see
+# `.github/workflows/ci.yml` / `.github/workflows/release.yml`,
+# `build-docker-arm64` jobs) rather than re-running the full Rust+Node build
+# under QEMU, which is far slower. This file is the SHARED, checked-in
+# Dockerfile for that step — both ci.yml (latest/main/edge tags) and
+# release.yml (versioned tags) COPY it into the extracted build context and
+# build from it.
+#
+# Historically each workflow inlined its own copy via a heredoc, and they
+# drifted: ci.yml's copy stayed on `oven/bun:1-alpine` with `CMD ["node",
+# "server.js"]`, which no longer matches the v0.3 TanStack Start output
+# (`server/index.mjs`) or the node:24-alpine runtime used by release.yml.
+# That drift silently broke the `latest`/`main` ARM64 image on ghcr.io.
+# See: https://github.com/chmonitor/chmonitor/issues/2862
+#
+# Keep this file the single source of truth for the ARM64 wrapper image —
+# do not reintroduce a heredoc copy in either workflow.
+FROM node:24-alpine
+WORKDIR /app
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOST="0.0.0.0"
+RUN apk add --no-cache libc6-compat curl && \
+    addgroup -S -g 1001 app && \
+    adduser -S -u 1001 -G app app && \
+    chown -R app:app /app
+COPY --chown=app:app . ./
+USER app
+EXPOSE 3000
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=30s \
+  CMD curl -sf http://localhost:3000/healthz || exit 1
+CMD ["node", "server/index.mjs"]
