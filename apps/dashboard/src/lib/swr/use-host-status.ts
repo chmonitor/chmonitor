@@ -14,6 +14,15 @@ type HostStatusApiResponse = {
     databases?: number
     tables?: number
     clusterNodes?: number
+    runningQueries?: number
+    memoryBytes?: number
+    memoryTotalBytes?: number
+    diskUsedBytes?: number
+    diskTotalBytes?: number
+    recentErrors?: number
+    readonlyReplicas?: number
+    replicationDelay?: number
+    series?: number[]
   }
   error?: string
 }
@@ -23,12 +32,30 @@ export type HostStatus = {
   version: string
   uptime: string
   hostname: string
-  /** Number of databases (only when `includeCounts` is requested). */
+  /** Number of databases (only when `fleet` is requested). */
   databases?: number
-  /** Number of tables (only when `includeCounts` is requested). */
+  /** Number of tables (only when `fleet` is requested). */
   tables?: number
-  /** Distinct cluster nodes (only when `includeCounts` is requested). */
+  /** Distinct cluster nodes (only when `fleet` is requested). */
   clusterNodes?: number
+  /** Currently running queries (`system.metrics`). */
+  runningQueries?: number
+  /** Resident memory in bytes (`asynchronous_metrics.MemoryResident`). */
+  memoryBytes?: number
+  /** Total OS memory in bytes (`asynchronous_metrics.OSMemoryTotal`). */
+  memoryTotalBytes?: number
+  /** Used disk space in bytes across `system.disks`. */
+  diskUsedBytes?: number
+  /** Total disk space in bytes across `system.disks`. */
+  diskTotalBytes?: number
+  /** Distinct error kinds last seen within the past hour (`system.errors`). */
+  recentErrors?: number
+  /** Replicas currently in read-only mode (`system.replicas`). */
+  readonlyReplicas?: number
+  /** Max replica absolute delay in seconds (`system.replicas`). */
+  replicationDelay?: number
+  /** Running-query samples over the last hour (`system.metric_log`), oldest first. */
+  series?: number[]
 }
 
 interface UseHostStatusOptions {
@@ -43,12 +70,15 @@ interface UseHostStatusOptions {
    */
   revalidateOnFocus?: boolean
   /**
-   * Also fetch cross-host comparison counts (databases/tables/cluster nodes)
-   * for the Fleet table. Off by default so the widely-polled status probe stays
-   * a single round-trip. Uses a distinct query key from the countless variant.
+   * Also fetch the Fleet metric bundle (databases/tables/cluster nodes, running
+   * queries, memory, disk, replication, recent errors and the metric_log
+   * sparkline series). Off by default so the widely-polled status probe (host
+   * switcher, logo indicator) stays a single cheap round-trip. Every Fleet
+   * surface passes `fleet: true`, so they share ONE query key per host and
+   * TanStack Query dedupes them into a single request.
    * @default false
    */
-  includeCounts?: boolean
+  fleet?: boolean
 }
 
 /**
@@ -72,15 +102,15 @@ export function useHostStatus(
   const {
     refreshInterval = 60000,
     revalidateOnFocus = false,
-    includeCounts = false,
+    fleet = false,
   } = options
 
   // Skip status check for browser connections (negative hostId) — they have
   // no server-side host entry and the proxy endpoint handles connectivity.
   const isBrowserConnection = hostId !== null && hostId < 0
 
-  const url = includeCounts
-    ? `/api/v1/host-status?hostId=${hostId}&counts=1`
+  const url = fleet
+    ? `/api/v1/host-status?hostId=${hostId}&fleet=1`
     : `/api/v1/host-status?hostId=${hostId}`
   const queryKey = [url]
 
@@ -106,6 +136,15 @@ export function useHostStatus(
         databases: json.data.databases,
         tables: json.data.tables,
         clusterNodes: json.data.clusterNodes,
+        runningQueries: json.data.runningQueries,
+        memoryBytes: json.data.memoryBytes,
+        memoryTotalBytes: json.data.memoryTotalBytes,
+        diskUsedBytes: json.data.diskUsedBytes,
+        diskTotalBytes: json.data.diskTotalBytes,
+        recentErrors: json.data.recentErrors,
+        readonlyReplicas: json.data.readonlyReplicas,
+        replicationDelay: json.data.replicationDelay,
+        series: json.data.series,
       }
     },
     enabled: hostId !== null && !isBrowserConnection,

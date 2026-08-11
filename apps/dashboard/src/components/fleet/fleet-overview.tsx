@@ -1,4 +1,5 @@
 import { FleetHostCard } from './fleet-host-card'
+import { FleetSummaryStrip } from './fleet-summary'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 
@@ -6,7 +7,7 @@ function FleetSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-44 w-full rounded-xl" />
+        <Skeleton key={i} className="h-72 w-full rounded-xl" />
       ))}
     </div>
   )
@@ -34,10 +35,13 @@ export function FleetOverview() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {hosts.map((host) => (
-        <FleetHostCard key={`${host.source}-${host.id}`} host={host} />
-      ))}
+    <div className="flex flex-col gap-4">
+      <FleetSummaryStrip hosts={hosts} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {hosts.map((host) => (
+          <FleetHostCard key={`${host.source}-${host.id}`} host={host} />
+        ))}
+      </div>
     </div>
   )
 }

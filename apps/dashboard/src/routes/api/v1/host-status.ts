@@ -28,11 +28,16 @@ export const Route = createFileRoute('/api/v1/host-status')({
       GET: async ({ request }) => {
         const searchParams = new URL(request.url).searchParams
         const hostIdRaw = searchParams.get('hostId')
-        // Opt-in: the Fleet table asks for extra cross-host comparison counts
-        // (databases/tables/cluster nodes). Off by default so the widely-polled
-        // status probe (host switcher, logo indicator, cards) stays a single
-        // round-trip for every other consumer.
-        const wantCounts = searchParams.get('counts') === '1'
+        // Opt-in Fleet metric bundle (counts + live resource metrics +
+        // replication + metric_log sparkline). Off by default so the
+        // widely-polled status probe (host switcher, logo indicator) stays a
+        // single cheap round-trip for every other consumer. ONE param, so the
+        // Fleet summary tiles, cards and table share a single query key per
+        // host and TanStack Query dedupes them into one request per poll.
+        // `counts=1` is accepted as the original name of this same bundle.
+        const wantCounts =
+          searchParams.get('fleet') === '1' ||
+          searchParams.get('counts') === '1'
 
         if (hostIdRaw === null || hostIdRaw === '') {
           return Response.json(
@@ -128,7 +133,20 @@ export const Route = createFileRoute('/api/v1/host-status')({
             databases?: number
             tables?: number
             clusterNodes?: number
+            runningQueries?: number
+            memoryBytes?: number
+            memoryTotalBytes?: number
+            diskUsedBytes?: number
+            diskTotalBytes?: number
+            recentErrors?: number
+            readonlyReplicas?: number
+            replicationDelay?: number
+            series?: number[]
           } = {}
+          const toNum = (v: unknown) => {
+            const n = Number(v)
+            return Number.isFinite(n) ? n : undefined
+          }
           if (wantCounts) {
             try {
               const countsSet = await runWithQueryCache(cacheOpts, (cache) =>
@@ -147,10 +165,6 @@ export const Route = createFileRoute('/api/v1/host-status')({
                 clusterNodes: string | number
               }>()
               const row = countRows[0]
-              const toNum = (v: string | number | undefined) => {
-                const n = Number(v)
-                return Number.isFinite(n) ? n : undefined
-              }
               counts = {
                 databases: toNum(row?.databases),
                 tables: toNum(row?.tables),
@@ -158,6 +172,109 @@ export const Route = createFileRoute('/api/v1/host-status')({
               }
             } catch (countsErr) {
               error('[GET /api/v1/host-status] counts query failed:', countsErr)
+            }
+
+            // Live resource metrics. Separate guarded block: a restricted
+            // grant on one of these system tables must not drop the counts
+            // above (each missing metric renders as an en-dash).
+            try {
+              const metricsSet = await runWithQueryCache(cacheOpts, (cache) =>
+                client.query({
+                  query: `${QUERY_COMMENT}SELECT
+  (SELECT value FROM system.metrics WHERE metric = 'Query') AS runningQueries,
+  (SELECT value FROM system.asynchronous_metrics WHERE metric = 'MemoryResident') AS memoryBytes,
+  (SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal') AS memoryTotalBytes,
+  (SELECT sum(total_space - free_space) FROM system.disks) AS diskUsedBytes,
+  (SELECT sum(total_space) FROM system.disks) AS diskTotalBytes,
+  (SELECT count() FROM system.errors WHERE last_error_time > now() - 3600) AS recentErrors`,
+                  format: 'JSONEachRow',
+                  clickhouse_settings: cache,
+                })
+              )
+              const metricRows =
+                await metricsSet.json<Record<string, unknown>>()
+              const row = metricRows[0]
+              counts = {
+                ...counts,
+                runningQueries: toNum(row?.runningQueries),
+                memoryBytes: toNum(row?.memoryBytes),
+                memoryTotalBytes: toNum(row?.memoryTotalBytes),
+                diskUsedBytes: toNum(row?.diskUsedBytes),
+                diskTotalBytes: toNum(row?.diskTotalBytes),
+                recentErrors: toNum(row?.recentErrors),
+              }
+            } catch (metricsErr) {
+              error(
+                '[GET /api/v1/host-status] metrics query failed:',
+                metricsErr
+              )
+            }
+
+            // Replication summary. Own block because `system.replicas` may be
+            // restricted; only cheap local columns are read (never the
+            // ZooKeeper-backed ones, which cost a ZK round-trip per table).
+            try {
+              const replicaSet = await runWithQueryCache(cacheOpts, (cache) =>
+                client.query({
+                  query: `${QUERY_COMMENT}SELECT
+  count() AS replicaCount,
+  countIf(is_readonly) AS readonlyReplicas,
+  max(absolute_delay) AS replicationDelay
+FROM system.replicas`,
+                  format: 'JSONEachRow',
+                  clickhouse_settings: cache,
+                })
+              )
+              const replicaRows =
+                await replicaSet.json<Record<string, unknown>>()
+              const row = replicaRows[0]
+              // These aggregates return 0 (not NULL) over an empty
+              // system.replicas, so a host with no replicated tables would
+              // otherwise report a meaningless "0s replica lag". Emit the
+              // fields only when the host actually has replicas — the UI then
+              // omits the row entirely rather than showing a fake zero.
+              const replicaCount = toNum(row?.replicaCount) ?? 0
+              if (replicaCount > 0) {
+                counts = {
+                  ...counts,
+                  readonlyReplicas: toNum(row?.readonlyReplicas),
+                  replicationDelay: toNum(row?.replicationDelay),
+                }
+              }
+            } catch (replicaErr) {
+              error(
+                '[GET /api/v1/host-status] replicas query failed:',
+                replicaErr
+              )
+            }
+
+            // Sparkline series (running queries, last hour). `system.metric_log`
+            // is opt-in in ClickHouse — absent on many installs, so this is
+            // fully guarded and simply yields no sparkline when missing.
+            try {
+              const seriesSet = await runWithQueryCache(cacheOpts, (cache) =>
+                client.query({
+                  query: `${QUERY_COMMENT}SELECT avg(CurrentMetric_Query) AS value
+FROM system.metric_log
+WHERE event_time > now() - INTERVAL 1 HOUR
+GROUP BY toStartOfInterval(event_time, INTERVAL 5 MINUTE) AS t
+ORDER BY t`,
+                  format: 'JSONEachRow',
+                  clickhouse_settings: cache,
+                })
+              )
+              const seriesRows = await seriesSet.json<{
+                value: string | number
+              }>()
+              const series = seriesRows
+                .map((r) => toNum(r?.value))
+                .filter((n): n is number => n !== undefined)
+              if (series.length > 0) counts = { ...counts, series }
+            } catch (seriesErr) {
+              error(
+                '[GET /api/v1/host-status] metric_log query failed:',
+                seriesErr
+              )
             }
           }
 
