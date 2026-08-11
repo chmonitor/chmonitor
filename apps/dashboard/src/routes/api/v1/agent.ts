@@ -8,63 +8,32 @@
  * This enables the frontend `useChat` hook to consume events in real-time,
  * including tool call rendering.
  *
- * Ported from apps/dashboard/app/api/v1/agent/route.ts.
- * - next/server NextResponse not used here (handler builds Web Response /
- *   createUIMessageStreamResponse directly).
- * - `export const dynamic = 'force-dynamic'` dropped (no Next static export).
- * - Clerk: '@clerk/nextjs/server' auth() -> '@clerk/tanstack-react-start/server'
- *   auth(). NOTE: @clerk/tanstack-react-start@1.3.2 exports `auth` with a
- *   no-request signature (GetAuthFnNoRequest), NOT `getAuth(request)`; the task
- *   said getAuth(request) but that symbol does not exist in this SDK version.
- *   Behavior is identical: best-effort userId for OpenRouter tracking, gated by
- *   isClerkAuthProvider(), wrapped in try/catch so anonymous requests still work.
- * - bridgeClickHouseEnv(env) is invoked before agent creation so tools that hit
- *   ClickHouse see CLICKHOUSE_* on process.env.
- * - The AI SDK createUIMessageStreamResponse() returns a Web Response — returned
- *   directly from the TanStack Start server handler.
+ * The handler is a thin orchestration of four phases, each in its own module
+ * under `./-agent/` (the `-` prefix keeps them out of the router's route tree):
+ * parse (`request-parsing.ts`) → gate (`billing.ts`) → build runtime
+ * (`runtime.ts`) → stream (`stream.ts`), with every error → HTTP mapping in
+ * `errors.ts`.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import type { LanguageModelUsage } from 'ai'
-import type { Plan } from '@/lib/billing/plans'
-
+import { applyAiUsageGate } from './-agent/billing'
+import { AGENT_DEBUG_LOGS } from './-agent/debug'
+import {
+  parseFailureResponse,
+  providerNotConfiguredResponse,
+  unhandledErrorResponse,
+} from './-agent/errors'
+import { parseAgentRequest } from './-agent/request-parsing'
+import {
+  buildUiMessages,
+  createAgentRuntime,
+  resolveAgentModel,
+  resolveAgentUserId,
+} from './-agent/runtime'
+import { createAgentStreamResponse } from './-agent/stream'
 import { env } from 'cloudflare:workers'
-import { pipeJsonRender } from '@json-render/core'
-import {
-  convertToModelMessages,
-  createUIMessageStream,
-  createUIMessageStreamResponse,
-  type ModelMessage,
-  type UIDataTypes,
-  type UIMessage,
-  type UITools,
-} from 'ai'
-import { createClickHouseAgent } from '@/lib/ai/agent'
-import { aggregateUsageWithCost } from '@/lib/ai/agent/analytics'
-import { parseByokApiKey } from '@/lib/ai/agent/byok'
-import { classifyError } from '@/lib/ai/agent/errors'
-import { AGENT_JSON_RENDER_INLINE_PROMPT } from '@/lib/ai/agent/json-render-inline-prompt'
-import { createJsonRenderPatchGuardStream } from '@/lib/ai/agent/json-render-patch-guard'
-import {
-  type CustomMcpServerInput,
-  connectCustomMcpServers,
-  loadUserRegisteredServers,
-  mergeMcpServers,
-} from '@/lib/ai/agent/mcp/connect-custom-servers'
-import {
-  DEFAULT_AGENT_MODEL,
-  resolveDefaultAgentModel,
-} from '@/lib/ai/agent-model-registry'
-import {
-  isAnyRouterAutoModelId,
-  resolveAnyRouterAutoModelId,
-} from '@/lib/ai/anyrouter-dynamic-models'
-import {
-  isProviderConfigured,
-  parseModelId,
-  providerNotConfiguredMessage,
-} from '@/lib/ai/providers'
+import { isProviderConfigured, parseModelId } from '@/lib/ai/providers'
 import {
   checkRateLimitDurable,
   clientIpKey,
@@ -74,299 +43,17 @@ import {
 } from '@/lib/api/rate-limiter'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
-import { isClerkAuthProvider } from '@/lib/auth/provider'
-import {
-  getAiSpendThisMonth,
-  meterAiOverage,
-  recordByokActivation,
-  releaseAiUsage,
-  reserveAiUsage,
-} from '@/lib/billing/ai-usage-store'
-import { resolveBillingOwner } from '@/lib/billing/billing-owner'
-import {
-  checkAiBudget,
-  checkAiDailyLimit,
-  limitMessage,
-} from '@/lib/billing/entitlements'
-import { getPlanForOwner } from '@/lib/billing/user-subscription'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
-// Verbose agent request/usage logging. Opt-in via an explicit AGENT_DEBUG flag
-// rather than `NODE_ENV !== 'production'`: a self-hosted deploy that runs with
-// NODE_ENV unset would otherwise log request internals (message keys, resolved
-// user ids, usage) by default. Fails closed — off unless AGENT_DEBUG is truthy.
-const AGENT_DEBUG_LOGS = (() => {
-  const raw = process.env.AGENT_DEBUG?.trim().toLowerCase()
-  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on'
-})()
+export type { SafePageContext } from './-agent/request-parsing'
 
-const AGENT_MAX_REQUEST_SIZE_BYTES = 128 * 1024
-// Free / routed providers can take 20-40s between a tool call and the
-// follow-up summary. The previous 12s step/chunk budget killed the loop
-// after the first tool call on slower models. Give it real room and let
-// stepCountIs(maxSteps) remain the actual termination guard.
-const AGENT_STREAM_TIMEOUT_MS = 120_000
-const AGENT_STREAM_STEP_TIMEOUT_MS = 45_000
-const AGENT_MAX_MESSAGES = 64
-const AGENT_MAX_MESSAGE_PARTS = 64
-const AGENT_MAX_USER_MESSAGE_LENGTH = 8_192
-const AGENT_MAX_PART_TEXT_LENGTH = 2_048
-// Page-context is a short grounding hint ("user is on the Merges page"), not
-// a message body — cap it much tighter than a chat message.
-const AGENT_MAX_PAGE_CONTEXT_FIELD_LENGTH = 200
-const textEncoder = new TextEncoder()
-const textDecoder = new TextDecoder()
-
-type AgentRequestBody = {
-  message?: string
-  messages?: Array<
-    | { id: string; role: string; parts: Array<unknown> }
-    | { role: string; content: string; parts?: unknown[] }
-  >
-  hostId?: number
-  model?: string
-  /**
-   * BYOK — the user's own model-provider API key. When present and valid, the
-   * request runs against their provider credit and chmonitor skips its own
-   * included-credit metering (see `lib/ai/agent/byok.ts`). Never persisted or
-   * logged.
-   */
-  apiKey?: string
-  disabledTools?: string[]
-  sessionId?: string
-  mcpServers?: Array<{ id?: unknown; name?: unknown; endpoint?: unknown }>
-  /**
-   * Optional hint about the dashboard page the chat was opened/sent from
-   * (e.g. `{ route: '/merges', label: 'Merges' }`). Purely additive — a
-   * request omitting this field behaves exactly as before. See
-   * `sanitizePageContext` / `buildPageContextLine`.
-   */
-  pageContext?: { route?: unknown; label?: unknown }
-}
-
-/** Sanitized, safe-to-use page-context hint. */
-export type SafePageContext = {
-  readonly route: string
-  readonly label?: string
-}
-
-/**
- * Validate and clamp the client-supplied `pageContext` hint.
- *
- * Returns `undefined` for anything malformed/empty so callers can simply
- * treat a missing hint and an invalid one the same way (no page context).
- */
-export function sanitizePageContext(
-  raw: AgentRequestBody['pageContext']
-): SafePageContext | undefined {
-  if (!isObject(raw) || typeof raw.route !== 'string') {
-    return undefined
-  }
-
-  const route = clampText(raw.route.trim(), AGENT_MAX_PAGE_CONTEXT_FIELD_LENGTH)
-  if (!route) {
-    return undefined
-  }
-
-  const label =
-    typeof raw.label === 'string' && raw.label.trim().length > 0
-      ? clampText(raw.label.trim(), AGENT_MAX_PAGE_CONTEXT_FIELD_LENGTH)
-      : undefined
-
-  return label ? { route, label } : { route }
-}
-
-/**
- * Build the short synthetic context line describing the page the user is on.
- * Kept out of the (byte-stable, cached) system prompt on purpose — this is
- * threaded in as a separate message ahead of the user's turn instead.
- */
-export function buildPageContextLine(
-  pageContext: SafePageContext,
-  hostId: number
-): string {
-  const page = pageContext.label ?? pageContext.route
-  return `Context: the user is currently viewing the "${page}" page (host ${hostId}).`
-}
-
-type SanitizeIncomingMessagesResult =
-  | {
-      readonly ok: true
-      readonly messages: ReadonlyArray<SafeAgentMessage>
-    }
-  | {
-      readonly ok: false
-      readonly reason: 'too_many_messages'
-    }
-
-type SafeAgentMessage = {
-  readonly id: string
-  readonly role: 'system' | 'user' | 'assistant'
-  readonly parts: Array<{
-    [key: string]: unknown
-    type: string
-  }>
-  readonly content?: string
-}
-
-/**
- * Check whether a value is an object.
- */
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-/**
- * Truncate text to a safe UTF-8 byte length.
- */
-function clampText(value: string, maxBytes: number): string {
-  const encoded = textEncoder.encode(value)
-  if (encoded.length <= maxBytes) {
-    return value
-  }
-
-  let end = maxBytes
-  while (
-    end > 0 &&
-    end < encoded.length &&
-    (encoded[end] & 0b1100_0000) === 0b1000_0000
-  ) {
-    end -= 1
-  }
-
-  return textDecoder.decode(encoded.slice(0, end))
-}
-
-async function readRequestBodyTextWithLimit(
-  request: Request,
-  maxBytes: number
-): Promise<{ text: string; byteLength: number } | null> {
-  const bodyStream = request.body
-  if (!bodyStream) {
-    return { text: '', byteLength: 0 }
-  }
-
-  const reader = bodyStream.getReader()
-  const decoder = new TextDecoder()
-  const chunks: string[] = []
-  let byteLength = 0
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
-        break
-      }
-
-      byteLength += value.length
-      if (byteLength > maxBytes) {
-        try {
-          await reader.cancel()
-        } catch (_error) {
-          // Ignore cancellation errors if the stream is already closed.
-        }
-        return null
-      }
-
-      chunks.push(decoder.decode(value, { stream: true }))
-    }
-  } finally {
-    reader.releaseLock()
-  }
-
-  chunks.push(decoder.decode())
-  return { text: chunks.join(''), byteLength }
-}
-
-/**
- * Sanitize one message part.
- */
-function sanitizeMessagePart(part: unknown): {
-  [key: string]: unknown
-  type: string
-} | null {
-  if (!isObject(part) || typeof part.type !== 'string') {
-    return null
-  }
-
-  const safePart: { [key: string]: unknown; type: string } = {
-    ...part,
-    type: part.type,
-  }
-
-  if (part.type === 'text' && typeof part.text === 'string') {
-    safePart.text = clampText(part.text, AGENT_MAX_PART_TEXT_LENGTH)
-  }
-
-  return safePart
-}
-
-/**
- * Map model roles into the accepted role set.
- */
-function normalizeRole(role: string): 'system' | 'user' | 'assistant' {
-  if (role === 'assistant' || role === 'system') return role
-  return 'user'
-}
-
-/**
- * Sanitize raw user messages into the safe internal message shape.
- *
- * - Cap total messages at `AGENT_MAX_MESSAGES`.
- * - Cap per-message parts at `AGENT_MAX_MESSAGE_PARTS`.
- * - Clamp text fields to configured byte limits.
- * - Drops malformed/empty messages.
- */
-function sanitizeIncomingMessages(
-  messages: unknown[] | undefined
-): SanitizeIncomingMessagesResult {
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return { ok: true, messages: [] }
-  }
-
-  if (messages.length > AGENT_MAX_MESSAGES) {
-    return { ok: false, reason: 'too_many_messages' }
-  }
-
-  const sanitizedMessages = messages
-    .map((msg): SafeAgentMessage | null => {
-      if (!isObject(msg) || typeof msg.role !== 'string') {
-        return null
-      }
-
-      const role = normalizeRole(msg.role)
-      const parts = Array.isArray(msg.parts)
-        ? msg.parts
-            .slice(0, AGENT_MAX_MESSAGE_PARTS)
-            .map(sanitizeMessagePart)
-            .filter(
-              (part): part is { type: string; [key: string]: unknown } =>
-                part !== null
-            )
-        : []
-
-      const contentRaw = msg.content
-      const content =
-        typeof contentRaw === 'string'
-          ? clampText(contentRaw, AGENT_MAX_USER_MESSAGE_LENGTH)
-          : null
-
-      if (parts.length === 0 && !content) {
-        return null
-      }
-
-      return {
-        id: typeof msg.id === 'string' ? msg.id : crypto.randomUUID(),
-        role,
-        parts,
-        content: content ?? undefined,
-      }
-    })
-    .filter((value): value is SafeAgentMessage => value !== null)
-
-  return { ok: true, messages: sanitizedMessages }
-}
+// Re-exported for the pure-helper unit tests (`agent-page-context.test.ts`)
+// and any caller that already imports them from this route module.
+export {
+  buildPageContextLine,
+  sanitizePageContext,
+} from './-agent/request-parsing'
 
 /**
  * Handle POST requests for agent processing with streaming
@@ -386,219 +73,22 @@ async function handlePost(request: Request): Promise<Response> {
   const authResponse = await authorizeAgentApiRequest(request)
   if (authResponse) return authResponse
 
-  const contentLengthHeader = request.headers.get('content-length')
-  if (contentLengthHeader) {
-    const declaredSize = Number(contentLengthHeader)
-    if (
-      !Number.isNaN(declaredSize) &&
-      declaredSize > AGENT_MAX_REQUEST_SIZE_BYTES
-    ) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Request payload too large',
-            limitBytes: AGENT_MAX_REQUEST_SIZE_BYTES,
-          },
-        }),
-        { status: 413, headers: { 'content-type': 'application/json' } }
-      )
-    }
-  }
+  const parsed = await parseAgentRequest(request)
+  if (!parsed.ok) return parseFailureResponse(parsed)
 
-  const requestBodyResult = await readRequestBodyTextWithLimit(
-    request,
-    AGENT_MAX_REQUEST_SIZE_BYTES
-  )
-  if (requestBodyResult === null) {
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Request payload too large',
-          limitBytes: AGENT_MAX_REQUEST_SIZE_BYTES,
-        },
-      }),
-      { status: 413, headers: { 'content-type': 'application/json' } }
-    )
-  }
-
-  let body: AgentRequestBody
-  try {
-    const parsedBody = JSON.parse(requestBodyResult.text)
-    if (
-      !isObject(parsedBody) ||
-      Array.isArray(parsedBody) ||
-      parsedBody === null
-    ) {
-      throw new Error('INVALID_PAYLOAD')
-    }
-
-    body = parsedBody
-  } catch (_error) {
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Invalid JSON payload',
-          code: 'INVALID_JSON',
-        },
-      }),
-      { status: 400, headers: { 'content-type': 'application/json' } }
-    )
-  }
-
-  if (AGENT_DEBUG_LOGS) {
-    console.log('[Agent API] Request body keys:', Object.keys(body))
-    console.log('[Agent API] Messages count:', body.messages?.length)
-  }
-
-  const safeIncomingMessagesResult = sanitizeIncomingMessages(body.messages)
-
-  if (!safeIncomingMessagesResult.ok) {
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: `Too many messages. Maximum is ${AGENT_MAX_MESSAGES}.`,
-          maxMessages: AGENT_MAX_MESSAGES,
-        },
-      }),
-      { status: 400, headers: { 'content-type': 'application/json' } }
-    )
-  }
-
-  const safeIncomingMessages = safeIncomingMessagesResult.messages
-
-  if (
-    Array.isArray(body.messages) &&
-    body.messages.length > 0 &&
-    safeIncomingMessages.length === 0 &&
-    typeof body.message !== 'string'
-  ) {
-    return new Response(
-      JSON.stringify({
-        error: { message: 'No valid messages were provided.' },
-      }),
-      { status: 400, headers: { 'content-type': 'application/json' } }
-    )
-  }
-
-  const lastUserMessage = safeIncomingMessages
-    .filter((m) => m.role === 'user')
-    ?.pop()
-
-  const textPart = lastUserMessage?.parts?.find(
-    (p): p is { type: 'text'; text: string } =>
-      typeof p === 'object' &&
-      p !== null &&
-      'type' in p &&
-      p.type === 'text' &&
-      'text' in p &&
-      typeof p.text === 'string' &&
-      p.text.trim().length > 0
-  )
-
-  const userMessage =
-    (typeof body.message === 'string'
-      ? clampText(body.message, AGENT_MAX_USER_MESSAGE_LENGTH)
-      : undefined) ||
-    textPart?.text ||
-    lastUserMessage?.content
-
-  const hasNonTextParts =
-    Array.isArray(lastUserMessage?.parts) &&
-    lastUserMessage.parts.length > 0 &&
-    !textPart
-
-  if (
-    !hasNonTextParts &&
-    (typeof userMessage !== 'string' || !userMessage.trim())
-  ) {
-    return new Response(
-      JSON.stringify({
-        error: { message: 'Message is required and must be a string' },
-      }),
-      { status: 400, headers: { 'content-type': 'application/json' } }
-    )
-  }
-
-  const rawHostId =
-    typeof body.hostId === 'string' ? Number(body.hostId) : body.hostId
-  const hostId =
-    typeof rawHostId === 'number' && Number.isFinite(rawHostId)
-      ? Math.max(0, Math.trunc(rawHostId))
-      : 0
-  const configuredModel = process.env.LLM_MODEL?.trim()
-  let model =
-    typeof body.model === 'string' && body.model.trim().length > 0
-      ? body.model.trim()
-      : configuredModel || resolveDefaultAgentModel()
-
-  // `anyrouter:auto` is a picker alias — resolve to the current top-by-usage
-  // tool-capable model (cached) before provider preflight / chat setup.
-  // Fail-soft: curated DEFAULT_AGENT_MODEL when the dynamic catalog is down.
-  // If AnyRouter itself is not configured, drop to resolveDefaultAgentModel()
-  // so we do not hard-fail on a stale client default of `anyrouter:auto`.
-  if (isAnyRouterAutoModelId(model)) {
-    if (!isProviderConfigured('anyrouter')) {
-      model = resolveDefaultAgentModel()
-    } else {
-      const top = await resolveAnyRouterAutoModelId()
-      // Fail-soft to curated static default (not `anyrouter:auto` again).
-      model = top ?? DEFAULT_AGENT_MODEL
-    }
-  }
-
-  // BYOK: the user may supply their own provider API key. When present and
-  // valid, it (a) overrides the deployment's env key for this request and (b)
-  // makes the request bypass included-credit metering below — the request bills
-  // their provider account. Parsed once here; never logged.
-  const byokApiKey = parseByokApiKey(body.apiKey)
-  const byok = byokApiKey !== null
+  const model = await resolveAgentModel(parsed.body.model)
+  const byok = parsed.byokApiKey !== null
 
   // Preflight: refuse early if the selected provider has no API key on this
-  // deployment. Without this, the upstream provider returns a confusing
-  // "Missing Authorization header" error that looks like *our* auth failed.
-  // Skipped for BYOK — the user brings the credential, so a deployment without
-  // its own key for that provider is still fine.
+  // deployment. Skipped for BYOK — the user brings the credential.
   const { provider: requestedProvider } = parseModelId(model)
   if (!byok && !isProviderConfigured(requestedProvider)) {
-    const classified = classifyError(
-      {
-        statusCode: 503,
-        error: {
-          code: 'provider_not_configured',
-          message: providerNotConfiguredMessage(requestedProvider),
-        },
-      },
-      { model, provider: requestedProvider }
-    )
-
-    return new Response(
-      JSON.stringify({
-        error: classified,
-      }),
-      { status: 503, headers: { 'content-type': 'application/json' } }
-    )
+    return providerNotConfiguredResponse(model, requestedProvider)
   }
 
-  const disabledTools = Array.isArray(body.disabledTools)
-    ? body.disabledTools.filter((t) => typeof t === 'string')
-    : []
-  const sessionId =
-    typeof body.sessionId === 'string' && body.sessionId.length > 0
-      ? body.sessionId
-      : crypto.randomUUID()
-
-  // Resolve user ID for OpenRouter user tracking
-  let userId = 'guest'
-  if (isClerkAuthProvider()) {
-    try {
-      const { auth } = await import('@clerk/tanstack-react-start/server')
-      const authResult = await auth()
-      if (authResult?.userId) userId = authResult.userId
-    } catch {
-      // Clerk session unavailable
-    }
-  }
-  const openRouterUser = `${userId}/${sessionId}`
+  // Resolve user ID for OpenRouter user tracking.
+  const userId = await resolveAgentUserId()
+  const openRouterUser = `${userId}/${parsed.sessionId}`
 
   // Tighten the coarse per-IP budget (checked at request entry) to a per-identity
   // budget now that auth has resolved, so one signed-in account cannot fan out
@@ -625,453 +115,45 @@ async function handlePost(request: Request): Promise<Response> {
     : null
   const includeControlTools = controlToolsEnabled && !actionsPermissionResponse
 
-  // Parse and validate custom MCP servers from the request body.
-  const rawMcpServers = Array.isArray(body.mcpServers)
-    ? body.mcpServers.slice(0, 5)
-    : []
-  const validMcpServers: CustomMcpServerInput[] = rawMcpServers
-    .filter(
-      (s): s is { id: string; name: string; endpoint: string } =>
-        isObject(s) &&
-        typeof s.id === 'string' &&
-        typeof s.name === 'string' &&
-        typeof s.endpoint === 'string'
-    )
-    .map((s) => ({ id: s.id, name: s.name, endpoint: s.endpoint }))
+  const gate = await applyAiUsageGate(byok)
+  if (!gate.ok) return gate.response
 
-  // Custom MCP servers are connected AFTER the billing gate below (which can
-  // return 402 before any stream exists) so a rejected request never opens —
-  // and then leaks — an MCP client. Declared here so onEnd can close them.
-  let mcpCloseAll: (() => Promise<void>) | null = null
-  let extraTools: Record<string, unknown> | undefined
+  const { agent, mcpCloseAll } = await createAgentRuntime({
+    userId,
+    requestMcpServers: parsed.mcpServers,
+    hostId: parsed.hostId,
+    model,
+    disabledTools: parsed.disabledTools,
+    openRouterUser,
+    requestOrigin: request.headers.get('origin') ?? undefined,
+    includeControlTools,
+    sessionId: parsed.sessionId,
+    byokApiKey: parsed.byokApiKey,
+    releaseReservationOnce: gate.releaseReservationOnce,
+  })
 
-  // AI usage enforcement (cloud only): daily message meter + monthly USD budget.
-  // resolveBillingOwner() throws when Clerk is not configured (self-hosted),
-  // so the entire block is wrapped in try/catch — OSS deployments skip silently.
-  //
-  // billingOwnerId / resolvedPlan / reservedDailyUsage are hoisted so the
-  // stream can (a) meter the actual estimatedCostUsd as overage once the
-  // generation succeeds, and (b) roll back the daily reservation if generation
-  // fails before it produces any output.
-  let billingOwnerId: string | null = null
-  let resolvedPlan: Plan | null = null
-  let reservedDailyUsage = false
-  if (byok) {
-    // BYOK bypasses included-credit metering entirely: no daily reservation, no
-    // monthly budget check, no overage. billingOwnerId stays null so the stream
-    // path below never meters this request. Best-effort record the activation
-    // (cloud only) so BYOK-vs-included-credit conversion is measurable — a no-op
-    // on OSS / when no Clerk owner resolves.
-    try {
-      const owner = await resolveBillingOwner()
-      await recordByokActivation(owner.id)
-    } catch {
-      // Not cloud / no Clerk owner → nothing to record; self-hosted stays whole.
-    }
-  } else {
-    try {
-      const owner = await resolveBillingOwner()
-      const plan = await getPlanForOwner(owner.id)
-      billingOwnerId = owner.id
-      resolvedPlan = plan
-
-      // Monthly LLM spend budget — hard cap (null = Enterprise BYOK / unlimited).
-      if (plan.aiMonthlyUsdBudget != null) {
-        const spentUsd = await getAiSpendThisMonth(owner.id)
-        const budget = checkAiBudget(plan, spentUsd)
-        if (!budget.allowed) {
-          return new Response(
-            JSON.stringify({
-              error: limitMessage(budget),
-              details: {
-                planId: budget.planId,
-                limit: budget.limit ?? plan.aiMonthlyUsdBudget,
-                reason: budget.reason,
-              },
-            }),
-            { status: 402, headers: { 'content-type': 'application/json' } }
-          )
-        }
-      }
-
-      // Daily message meter — reserve one slot atomically, then decide. The
-      // reservation (post-increment count) is rolled back below if it exceeds the
-      // hard cap, and again in the stream if generation fails before starting.
-      if (plan.aiRequestsPerDay != null) {
-        const reservedCount = await reserveAiUsage(owner.id)
-        if (reservedCount != null) {
-          reservedDailyUsage = true
-          // reservedCount is the count *after* this reservation; usage before this
-          // request is reservedCount - 1.
-          const check = checkAiDailyLimit(plan, reservedCount - 1)
-          if (!check.allowed) {
-            await releaseAiUsage(owner.id)
-            reservedDailyUsage = false
-            return new Response(
-              JSON.stringify({
-                error: limitMessage(check),
-                details: {
-                  planId: check.planId,
-                  limit: check.limit ?? plan.aiRequestsPerDay,
-                  reason: check.reason,
-                },
-              }),
-              { status: 402, headers: { 'content-type': 'application/json' } }
-            )
-          }
-        }
-      }
-    } catch {
-      // Not cloud / no Clerk owner → skip enforcement; self-hosted stays whole.
-      billingOwnerId = null
-      resolvedPlan = null
-      reservedDailyUsage = false
-    }
-  }
-
-  // Roll back the daily reservation exactly once. Hoisted here — right after
-  // the reservation itself — so BOTH failure surfaces can release it: (a) a
-  // pre-stream throw below (MCP connect / createClickHouseAgent), where no
-  // stream ever exists so onError/onEnd never run (issue #2675), and (b) the
-  // streaming path, where the inner `execute` catch and the SDK's separate
-  // `onError` callback can each observe a failure that produced no output
-  // (e.g. an error thrown inside the merged/piped stream surfaces via
-  // onError, outside the inner try/catch). releaseAiUsage floors at 0, so
-  // without the idempotency guard a double-observed failure would over-refund
-  // a slot. Idempotent: releases at most one reserved slot.
-  let usageReleased = false
-  const releaseReservationOnce = async (): Promise<void> => {
-    if (usageReleased) return
-    if (!billingOwnerId || !reservedDailyUsage) return
-    usageReleased = true
-    await releaseAiUsage(billingOwnerId)
-  }
-
-  const requestOrigin = request.headers.get('origin') ?? undefined
-  let agent: ReturnType<typeof createClickHouseAgent>
-  try {
-    // Now that all early (402 / validation) returns are behind us, connect the
-    // user's custom MCP servers: request-body servers PLUS their D1-persisted
-    // registrations (loaded per-user, best-effort — [] for guest / no D1).
-    // Merge and dedupe by endpoint so the same server is never connected twice
-    // (which would collide tool keys and bypass the per-call cap), then
-    // connect once. closeAll() runs in onEnd on the streaming path (and on a
-    // pre-stream throw just below).
-    const registeredServers = await loadUserRegisteredServers(userId)
-    const mergedMcpServers = mergeMcpServers(validMcpServers, registeredServers)
-    if (mergedMcpServers.length > 0) {
-      const mcpResult = await connectCustomMcpServers(mergedMcpServers)
-      mcpCloseAll = mcpResult.closeAll
-      extraTools =
-        Object.keys(mcpResult.tools).length > 0 ? mcpResult.tools : undefined
-
-      const connected = mcpResult.statuses.filter(
-        (s) => s.status === 'connected'
-      ).length
-      const errored = mcpResult.statuses.filter(
-        (s) => s.status === 'error'
-      ).length
-      console.log(
-        `[Agent API] Custom MCP servers: ${connected} connected, ${errored} failed`
-      )
-    }
-
-    agent = createClickHouseAgent({
-      hostId,
-      model,
-      disabledTools,
-      systemPrompt: AGENT_JSON_RENDER_INLINE_PROMPT,
-      providerOptions: { openrouter: { user: openRouterUser } },
-      referer: requestOrigin,
-      includeControlTools,
-      sessionId,
-      extraTools,
-      ...(byokApiKey ? { apiKey: byokApiKey } : {}),
-    })
-  } catch (error) {
-    // Pre-stream failure: no stream is ever created, so onEnd/onError won't
-    // run. Close any MCP clients we just opened AND release the daily quota
-    // reservation (issue #2675 — a failed request must not permanently burn
-    // one of the user's daily message slots) before rethrowing to the outer
-    // boundary.
-    if (mcpCloseAll) await mcpCloseAll().catch(() => {})
-    await releaseReservationOnce().catch(() => {})
-    throw error
-  }
-
-  const uiMessages: Array<{
-    id: string
-    role: 'user' | 'system' | 'assistant'
-    parts: Array<unknown>
-  }> = []
-
-  if (safeIncomingMessages.length > 0) {
-    for (const msg of safeIncomingMessages) {
-      if (msg.role === 'user') {
-        if (msg.parts.length > 0) {
-          uiMessages.push({
-            id: msg.id,
-            role: 'user',
-            parts: msg.parts,
-          })
-        } else if (msg.content) {
-          uiMessages.push({
-            id: msg.id,
-            role: 'user',
-            parts: [{ type: 'text' as const, text: msg.content }],
-          })
-        }
-
-        continue
-      }
-
-      if (msg.parts.length > 0) {
-        uiMessages.push({
-          id: msg.id,
-          role: msg.role,
-          parts: msg.parts,
-        })
-      } else if (msg.content) {
-        uiMessages.push({
-          id: msg.id,
-          role: msg.role,
-          parts: [{ type: 'text' as const, text: msg.content }],
-        })
-      }
-    }
-  }
-
-  if (uiMessages.length === 0 && userMessage) {
-    uiMessages.push({
-      id: crypto.randomUUID(),
-      role: 'user',
-      parts: [{ type: 'text' as const, text: userMessage }],
-    })
-  }
-
-  // Thread a lightweight "the user is looking at page X" hint ahead of the
-  // user's turn — only on the first message of a (new) thread, so a
-  // long-running conversation doesn't keep re-asserting page context after
-  // the user has navigated away. The client only sends `pageContext` on the
-  // first turn or when the page changed; this is a server-side belt-and-
-  // braces check against the same signal (a single user turn in the incoming
-  // history). Deliberately NOT folded into `AGENT_JSON_RENDER_INLINE_PROMPT`
-  // (the cached system prompt) — inserted as its own message instead, so
-  // provider prompt caching on the system prompt is unaffected.
-  const safePageContext = sanitizePageContext(body.pageContext)
-  const isFirstThreadMessage =
-    safeIncomingMessages.filter((m) => m.role === 'user').length <= 1
-  if (safePageContext && isFirstThreadMessage) {
-    const lastMessageIndex = uiMessages.length - 1
-    if (lastMessageIndex >= 0 && uiMessages[lastMessageIndex].role === 'user') {
-      uiMessages.splice(lastMessageIndex, 0, {
-        id: crypto.randomUUID(),
-        role: 'system',
-        parts: [
-          {
-            type: 'text' as const,
-            text: buildPageContextLine(safePageContext, hostId),
-          },
-        ],
-      })
-    }
-  }
+  const uiMessages = buildUiMessages({
+    safeIncomingMessages: parsed.safeIncomingMessages,
+    userMessage: parsed.userMessage,
+    pageContext: parsed.pageContext,
+    hostId: parsed.hostId,
+  })
 
   if (AGENT_DEBUG_LOGS) {
     console.log('[Agent API] uiMessages count:', uiMessages.length)
     console.log('[Agent API] Model being used:', model)
   }
 
-  const usageSteps: LanguageModelUsage[] = []
-  // Tracks the provider-reported model ID from the last completed step.
-  // Populated synchronously in onStepEnd so it is available after consumeStream().
-  let lastStepModelId: string | undefined
-
-  const stream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      let modelMessages: ModelMessage[] = []
-
-      try {
-        modelMessages = await convertToModelMessages(
-          uiMessages as Array<
-            Omit<UIMessage<unknown, UIDataTypes, UITools>, 'id'>
-          >,
-          {
-            ignoreIncompleteToolCalls: true,
-          }
-        )
-      } catch (_error) {
-        modelMessages = [
-          {
-            role: 'user',
-            content:
-              typeof userMessage === 'string'
-                ? userMessage
-                : 'Request context unavailable.',
-          },
-        ] as ModelMessage[]
-      }
-
-      try {
-        const result = await agent.stream({
-          messages: modelMessages,
-          onStepEnd: (step) => {
-            usageSteps.push(step.usage)
-            // Capture the provider-reported model ID (e.g., the resolved model
-            // behind an auto-router preset). Falls back gracefully if absent.
-            if (step.response?.modelId) {
-              lastStepModelId = step.response.modelId
-            }
-
-            const { inputTokenDetails } = step.usage
-            if (
-              inputTokenDetails &&
-              (inputTokenDetails.cacheReadTokens ||
-                inputTokenDetails.cacheWriteTokens)
-            ) {
-              if (AGENT_DEBUG_LOGS) {
-                console.log('[Agent API] Cache token stats:', {
-                  cacheReadTokens: inputTokenDetails.cacheReadTokens,
-                  cacheWriteTokens: inputTokenDetails.cacheWriteTokens,
-                  inputTokens: step.usage.inputTokens,
-                  outputTokens: step.usage.outputTokens,
-                })
-              }
-            }
-          },
-          timeout: {
-            totalMs: AGENT_STREAM_TIMEOUT_MS,
-            stepMs: AGENT_STREAM_STEP_TIMEOUT_MS,
-            chunkMs: AGENT_STREAM_STEP_TIMEOUT_MS,
-          },
-        })
-
-        writer.merge(
-          createJsonRenderPatchGuardStream(
-            pipeJsonRender(result.toUIMessageStream())
-          )
-        )
-        await result.consumeStream()
-
-        // After stream consumption, attempt to get the final response modelId.
-        // result.response is a PromiseLike that resolves once the stream is done.
-        let resolvedModel: string | undefined = lastStepModelId
-        if (!resolvedModel) {
-          try {
-            const responseMetadata = await result.response
-            if (responseMetadata.modelId) {
-              resolvedModel = responseMetadata.modelId
-            }
-          } catch {
-            // response metadata unavailable — fall back to requested model
-          }
-        }
-        resolvedModel = resolvedModel || model
-
-        // Send aggregated usage/cost as a data part so the client can display it
-        if (usageSteps.length > 0) {
-          const stats = {
-            ...aggregateUsageWithCost(usageSteps, model),
-            model,
-            provider: requestedProvider,
-            resolvedModel,
-          }
-          writer.write({
-            type: 'data-usage',
-            data: [stats],
-          })
-
-          // Meter the actual spend as overage now that the generation
-          // succeeded (cloud only; Free/Enterprise never accrue overage — see
-          // meterAiOverage; no-op when D1/owner/plan absent).
-          if (billingOwnerId && resolvedPlan && stats.estimatedCostUsd) {
-            await meterAiOverage(
-              resolvedPlan,
-              billingOwnerId,
-              stats.estimatedCostUsd
-            )
-          }
-        }
-      } catch (error) {
-        const classified = classifyError(error, {
-          model,
-          provider: requestedProvider,
-        })
-        console.error('[Agent API] Classified error:', classified)
-        writer.write({
-          type: 'data-error',
-          data: [classified],
-        })
-        if (usageSteps.length > 0) {
-          const stats = {
-            ...aggregateUsageWithCost(usageSteps, model),
-            model,
-            provider: requestedProvider,
-            resolvedModel: lastStepModelId || model,
-          }
-          writer.write({
-            type: 'data-usage',
-            data: [stats],
-          })
-          // Generation started and incurred cost before failing — still meter
-          // what was actually spent as overage.
-          if (billingOwnerId && resolvedPlan && stats.estimatedCostUsd) {
-            await meterAiOverage(
-              resolvedPlan,
-              billingOwnerId,
-              stats.estimatedCostUsd
-            )
-          }
-        } else {
-          // Generation failed before producing any output — release the daily
-          // reservation so aborted requests don't consume the user's quota.
-          await releaseReservationOnce()
-        }
-      }
-    },
-    onError: (error) => {
-      const classified = classifyError(error, {
-        model,
-        provider: requestedProvider,
-      })
-      console.error('[Agent API] Classified error:', classified)
-      // A failure can surface here (rather than the inner execute catch) when it
-      // is thrown inside the merged/piped stream after the reservation. If no
-      // output was produced, release the daily reservation so the user is not
-      // charged for a request that yielded nothing. Best-effort + idempotent:
-      // releaseReservationOnce guards against a double release if the inner
-      // catch already released.
-      if (usageSteps.length === 0) {
-        void releaseReservationOnce()
-      }
-      return JSON.stringify(classified)
-    },
-    onEnd: () => {
-      // Close any connected custom MCP servers now that the stream is done.
-      if (mcpCloseAll) {
-        mcpCloseAll().catch((e) => {
-          console.error('[Agent API] MCP closeAll error:', e)
-        })
-      }
-
-      if (AGENT_DEBUG_LOGS && usageSteps.length > 0) {
-        const stats = {
-          ...aggregateUsageWithCost(usageSteps, model),
-          model,
-          provider: requestedProvider,
-          resolvedModel: lastStepModelId || model,
-        }
-        console.log('[Agent API] Session usage:', stats)
-      }
-    },
-    originalMessages: uiMessages as unknown as UIMessage[],
-  })
-
-  return createUIMessageStreamResponse({
-    stream,
-    headers: {
-      'Cache-Control': 'no-cache',
-    },
+  return createAgentStreamResponse({
+    agent,
+    mcpCloseAll,
+    uiMessages,
+    userMessage: parsed.userMessage,
+    model,
+    requestedProvider,
+    billingOwnerId: gate.billingOwnerId,
+    resolvedPlan: gate.resolvedPlan,
+    releaseReservationOnce: gate.releaseReservationOnce,
   })
 }
 
@@ -1079,30 +161,19 @@ async function handlePost(request: Request): Promise<Response> {
  * Outermost error boundary for the agent endpoint.
  *
  * `handlePost` guards every individual step (auth, MCP connect, billing, the
- * stream body) but the pre-stream setup — `createClickHouseAgent`,
- * `connectCustomMcpServers`, `authorizeAgentApiRequest` — runs before the
- * streaming Response is built. If any of those throws (e.g. a provider/runtime
- * edge case), the rejection would otherwise escape to the framework, which
- * serves a bare `text/html` 500. The client's `apiFetch` then surfaces that as
- * the opaque "Request failed (500 Error)". Wrapping the handler converts any
- * uncaught throw into a structured, classified `application/json` error the chat
- * UI can render (title, cause, suggestion) and logs the raw cause so the true
- * origin is visible in worker logs / Sentry.
+ * stream body) but the pre-stream setup — `createAgentRuntime`,
+ * `authorizeAgentApiRequest` — runs before the streaming Response is built. If
+ * any of those throws (e.g. a provider/runtime edge case), the rejection would
+ * otherwise escape to the framework, which serves a bare `text/html` 500. The
+ * client's `apiFetch` then surfaces that as the opaque "Request failed (500
+ * Error)". Wrapping the handler converts any uncaught throw into a structured,
+ * classified `application/json` error the chat UI can render.
  */
 async function handlePostWithBoundary(request: Request): Promise<Response> {
   try {
     return await handlePost(request)
   } catch (error) {
-    const classified = classifyError(error)
-    console.error('[Agent API] Unhandled error:', classified, error)
-    const status =
-      typeof classified.statusCode === 'number' && classified.statusCode >= 400
-        ? classified.statusCode
-        : 500
-    return new Response(JSON.stringify({ error: classified }), {
-      status,
-      headers: { 'content-type': 'application/json' },
-    })
+    return unhandledErrorResponse(error)
   }
 }
 
