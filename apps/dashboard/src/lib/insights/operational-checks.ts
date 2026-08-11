@@ -86,14 +86,14 @@ export function checkLongRunningQuery(
     maxElapsedSeconds < LONG_QUERY_WARN_SECONDS
   )
     return null
-  const others = Number.isFinite(count) && count > 1 ? count : 0
+  const additional = Number.isFinite(count) && count > 1 ? count - 1 : 0
   return {
     severity:
       maxElapsedSeconds >= LONG_QUERY_CRITICAL_SECONDS ? 'critical' : 'warning',
     category: 'performance',
     metric: 'longest_running_query',
     title: `A query has been running for ${formatDuration(maxElapsedSeconds)}`,
-    detail: `The longest live query has been running for ${formatDuration(maxElapsedSeconds)}${others ? ` (${others} queries over a minute)` : ''}. Long-running queries hold locks and memory — check for a runaway scan or a missing filter, and cancel it if it is stuck.`,
+    detail: `The longest live query has been running for ${formatDuration(maxElapsedSeconds)}${additional ? ` (${additional} other quer${additional > 1 ? 'ies' : 'y'} over ${formatDuration(LONG_QUERY_WARN_SECONDS)})` : ''}. Long-running queries hold locks and memory — check for a runaway scan or a missing filter, and cancel it if it is stuck.`,
     value: Math.round(maxElapsedSeconds),
     action: { label: 'Open running queries', href: '/running-queries' },
   }

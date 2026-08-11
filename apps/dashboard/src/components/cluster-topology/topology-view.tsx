@@ -195,9 +195,10 @@ export function TopologyView({
       ? activeCluster
       : null
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — reset the "updated Ns ago" counter whenever fresh data arrives, not on every render
   useEffect(() => {
     setSecsAgo(0)
-  }, [])
+  }, [topology, liveRow])
   useEffect(() => {
     const t = setInterval(() => setSecsAgo((s) => s + 1), 1000)
     return () => clearInterval(t)

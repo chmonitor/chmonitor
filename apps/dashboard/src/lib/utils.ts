@@ -31,7 +31,7 @@ export function formatBytes(bytes: number): string {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  const safeIndex = Math.min(i, sizes.length - 1)
+  const safeIndex = Math.min(Math.max(i, 0), sizes.length - 1)
   return `${(bytes / k ** safeIndex).toFixed(1)} ${sizes[safeIndex]}`
 }
 
@@ -45,7 +45,7 @@ export function formatCount(count: number): string {
   if (count < 1000) return count.toString()
   const units = ['', 'K', 'M', 'B', 'T']
   const unitIndex = Math.floor(Math.log(count) / Math.log(1000))
-  const safeUnitIndex = Math.min(unitIndex, units.length - 1)
+  const safeUnitIndex = Math.min(Math.max(unitIndex, 0), units.length - 1)
   return `${(count / 1000 ** safeUnitIndex).toFixed(1)}${units[safeUnitIndex]}`
 }
 
