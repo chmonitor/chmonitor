@@ -29,8 +29,8 @@ env:
 jobs:
   # build/lint run `turbo build` (vite + tsc) and `turbo lint` (biome) — neither
   # connects to ClickHouse, but base.yml attaches a clickhouse_<ver> service per
-  # matrix leg. Pin them to a single, actively-used fixture tag (25.1, same as the
-  # docker jobs) instead of the default ["24.5","24.6"] matrix: this halves their
+  # matrix leg. Pin them to a single, actively-used fixture tag (25.8 LTS, same as
+  # the docker jobs) instead of the default ["24.5","24.6"] matrix: this halves their
   # CI time and avoids a flaky `manifest unknown` GHCR pull of the unused 24.5
   # image gating the Docker `latest` publish. (Fully decoupling the DB service
   # from non-docker job-types is a follow-up.)
@@ -39,14 +39,14 @@ jobs:
     uses: ./.github/workflows/base.yml
     with:
       job-type: build
-      clickhouse-versions: '["25.1"]'
+      clickhouse-versions: '["25.8"]'
 
   lint:
     name: lint
     uses: ./.github/workflows/base.yml
     with:
       job-type: lint
-      clickhouse-versions: '["25.1"]'
+      clickhouse-versions: '["25.8"]'
 
   depcruise:
     name: depcruise
@@ -78,7 +78,7 @@ jobs:
     uses: ./.github/workflows/base.yml
     with:
       job-type: docker
-      clickhouse-versions: '["25.1"]'
+      clickhouse-versions: '["25.8"]'
       platforms: linux/amd64
       push-image: false
       skip-rust: false
@@ -91,7 +91,7 @@ jobs:
     uses: ./.github/workflows/base.yml
     with:
       job-type: docker
-      clickhouse-versions: '["25.1"]'
+      clickhouse-versions: '["25.8"]'
       platforms: linux/amd64
       push-image: true
       tag-suffix: -amd64
@@ -239,7 +239,7 @@ jobs:
 
     services:
       clickhouse:
-        image: ghcr.io/duyet/docker-images:clickhouse_24.5
+        image: ghcr.io/duyet/docker-images:clickhouse_25.8
         ports:
           - 8123:8123
           - 9000:9000
