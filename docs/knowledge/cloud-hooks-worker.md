@@ -18,7 +18,7 @@ tags:
     telemetry,
     issues,
   ]
-updated: 2026-07-25
+updated: 2026-08-11
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -45,10 +45,11 @@ Clerk ──► POST hooks.chmonitor.dev/webhooks/clerk
        Telegram notify:  🆕 user.created · 🔑 session.created (KV-throttled
        1/user/6h) · 🏢 organization.created.  Unknown events → 202, ignored.
 
-cron
-  ├─ "0 0 * * *"      → daily digest → Telegram
+cron ("*/15 * * * *" — the ONLY trigger; Workers Free caps crons at 5/account
+and the dashboard uses 4. Reports dispatch off the tick's scheduledTime.)
+  ├─ 00:00 UTC tick   → + daily digest → Telegram
   │                      (users + DAU/WAU/MAU + subs + surfaces)
-  ├─ "0 1 * * 1"      → weekly report → Telegram (Mon 01:00 UTC)
+  ├─ Mon 01:00 tick   → + weekly report → Telegram
   │                      (same sections week-over-week + issue throughput)
   └─ every 15 minutes → ops sweep:
         ├─ full-surface health probes → Telegram on transitions
@@ -74,10 +75,11 @@ prevents; it can only delete real information. Kinds deduped by state and
 therefore unthrottled: `probe` (only fires on a transition), `error` (KV
 fingerprint), `new_issue` (KV cursor), `usage_anomaly` (once a day).
 
-The cron strings are matched **character for character** in `index.ts`
-(`DAILY_CRON` / `WEEKLY_CRON`). Editing one in `wrangler.toml` without the other
-does not error — the report silently falls through to the ops-sweep branch and
-stops being sent. `src/cron.test.ts` compares the two sources to catch that.
+The single cron string is matched **character for character** in `index.ts`
+(`OPS_SWEEP_CRON`), and the daily/weekly reports run off `isDailyTick` /
+`isWeeklyTick` on the tick's `scheduledTime`. Drift between `wrangler.toml`
+and the constant does not error — a report silently stops being sent.
+`src/cron.test.ts` compares the two sources and pins the tick classifiers.
 
 ## Shared core, not a copy
 
@@ -257,7 +259,7 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
 ## Config (`wrangler.toml`)
 
 - `name = chmonitor-hooks`, custom domain `hooks.chmonitor.dev` (auto-provisions
-  DNS on the managed zone), crons `["0 0 * * *", "0 1 * * 1", "*/15 * * * *"]`.
+  DNS on the managed zone), cron `["*/15 * * * *"]` (single trigger — free-plan account cron budget).
 - D1 binding `CHM_CLOUD_D1` → `chm-cloud` (`database_id`
   `cca247b6-9b25-41bd-b9ca-727b35bc6039`, same as the dashboard).
 - D1 binding `CHM_TELEMETRY_DB` → `chm_telemetry` (`database_id`

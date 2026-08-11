@@ -35,13 +35,27 @@ import { handlePolarWebhook } from './webhook'
 import { collectWeekly, formatWeekly, weekBounds } from './weekly'
 
 /**
- * Cron expressions, which MUST match `[triggers] crons` in wrangler.toml
- * character for character — Cloudflare hands `scheduled()` the raw string it
- * was configured with, so a reformatted expression would silently fall through
- * to the ops-sweep branch instead of running its report.
+ * Single cron trigger, which MUST match `[triggers] crons` in wrangler.toml.
+ *
+ * The Workers Free plan allows 5 cron triggers PER ACCOUNT, and the dashboard
+ * Worker uses 4 — so this Worker gets exactly one. The every-15-minutes cadence always
+ * fires at minute 0, so the daily digest (00:00 UTC tick) and weekly report
+ * (Monday 01:00 UTC tick) are dispatched off `event.scheduledTime` instead of
+ * separate cron expressions.
  */
-export const DAILY_CRON = '0 0 * * *'
-export const WEEKLY_CRON = '0 1 * * 1' // Mondays 01:00 UTC
+export const OPS_SWEEP_CRON = '*/15 * * * *'
+
+/** True on the 00:00 UTC tick — run the daily digest. */
+export function isDailyTick(at: Date): boolean {
+  return at.getUTCHours() === 0 && at.getUTCMinutes() === 0
+}
+
+/** True on the Monday 01:00 UTC tick — run the weekly report. */
+export function isWeeklyTick(at: Date): boolean {
+  return (
+    at.getUTCDay() === 1 && at.getUTCHours() === 1 && at.getUTCMinutes() === 0
+  )
+}
 
 function notifierFor(env: Env): Notifier {
   return new Notifier({
@@ -330,20 +344,19 @@ export default {
     ctx: ExecutionContext
   ): Promise<void> {
     const notifier = notifierFor(env)
+    const at = new Date(event.scheduledTime)
 
-    // Weekly first: `0 1 * * 1` is also matched by no other branch, but keeping
-    // the most specific schedule at the top makes the routing order obvious.
-    if (event.cron === WEEKLY_CRON) {
+    // One cron, time-based dispatch (see OPS_SWEEP_CRON): the reports run IN
+    // ADDITION to the sweep on their tick, matching the old behavior where the
+    // daily/weekly crons fired alongside the every-15-minutes sweep.
+    if (isWeeklyTick(at)) {
       ctx.waitUntil(runWeeklyReport(env, notifier))
-      return
-    }
-    if (event.cron === DAILY_CRON) {
+    } else if (isDailyTick(at)) {
       ctx.waitUntil(runDailySummary(env, notifier))
-      return
     }
-    // Default the shorter cadence (and any other trigger) to the ops sweep:
-    // full-surface health probes, the Cloudflare exception → GitHub issue scan,
-    // and the new-issue watch.
+    // Every tick (and any other trigger) runs the ops sweep: full-surface
+    // health probes, the Cloudflare exception → GitHub issue scan, and the
+    // new-issue watch.
     ctx.waitUntil(
       runProbes({
         kv: env.CHM_HOOKS_KV ?? null,

@@ -75,15 +75,16 @@ minify = true
 [observability]
 enabled = true
 
-# Cron triggers. These strings are matched CHARACTER FOR CHARACTER in
-# src/index.ts (DAILY_CRON / WEEKLY_CRON) — reformatting one here without
-# updating it there silently downgrades that report to the ops sweep.
-#   "0 0 * * *"      daily digest — billing + Clerk users + DAU/WAU/MAU
-#   "0 1 * * 1"      weekly report — week-over-week trends + issue throughput
+# Single cron trigger. The Workers Free plan caps cron triggers at 5 PER
+# ACCOUNT and the dashboard Worker uses 4, so this Worker gets exactly one:
 #   "*/15 * * * *"   ops sweep — health probes, Worker exceptions → GitHub
-#                    issues, and new GitHub issues → Telegram
+#                    issues, and new GitHub issues → Telegram.
+# The daily digest (00:00 UTC tick) and weekly report (Monday 01:00 UTC tick)
+# are dispatched off `event.scheduledTime` inside this schedule — see
+# OPS_SWEEP_CRON / isDailyTick / isWeeklyTick in src/index.ts. The string must
+# match OPS_SWEEP_CRON character for character.
 [triggers]
-crons = ["0 0 * * *", "0 1 * * 1", "*/15 * * * *"]
+crons = ["*/15 * * * *"]
 
 # Custom domain — auto-provisions the hooks.chmonitor.dev DNS record on the
 # managed zone (same pattern as the dashboard's dash.chmonitor.dev). The
