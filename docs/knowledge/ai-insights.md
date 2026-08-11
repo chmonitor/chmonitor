@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-07-11
+updated: 2026-08-12
 tags:
   - insights
   - findings
@@ -65,6 +65,22 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
   suggestions into one. `deriveAction` returns a generic "Ask the agent"
   deep-link for `category === 'optimization'` (the full DDL only survives the
   immediate `generate()` response, not the scalar findings store).
+- **Anomaly checks are direction-aware.** Each `AnomalyCheck` declares
+  `alertOn: 'above' | 'below' | 'both'` and a `unit`
+  (`bytes | ms | percent | count`). `decideSeverity` suppresses a deviation whose
+  sign the check does not alert on — in BOTH the baseline and static-threshold
+  paths — so memory / p95 / error rate falling below baseline never fires a
+  warning, and `directionalTitle` picks `titleBelow` when a `'both'` check does
+  fire on a drop. Titles must therefore never hardcode a direction the check can
+  contradict ("Memory usage spiked" over a below-baseline value was the bug this
+  fixed, 2026-08-12).
+- **Card copy is humanized at generation time.** Findings are persisted as text,
+  so raw numbers baked into `detail` live on in the store: format with
+  `formatMetricValue` (bytes → `formatReadableSize`, ms → `840ms` / `4.2s`,
+  percent rounded, counts locale-formatted) before writing. `formatBaselineDetail`
+  emits ONE sentence — `Now 2.23 GiB — 2.24σ above its 7-day baseline (typical
+  ~2.07 GiB).` — the mean/stddev/n fit belongs in the detail dialog, not the card
+  body. Older raw-number findings age out on the next regeneration sweep.
 - **Operational collectors** (`collectOperational` in `collectors.ts`) add cheap
   point-in-time checks across categories — detached parts (`storage`), stuck /
   failing mutations + FAILED dictionaries (`reliability`), and the longest

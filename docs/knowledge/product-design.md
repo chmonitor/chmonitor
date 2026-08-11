@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-07-24
+updated: 2026-08-12
 tags:
   - design-system
   - ui
@@ -286,6 +286,19 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   hover/focus "Details" hint. Drive drill-down generically from a per-item field
   (e.g. each health check's `detailChartName`) rendered via `ResultTable`, not
   per-card code — see `components/health/{health-card-shell,health-detail-rows}.tsx`.
+- **Insight cards carry ONE severity signal.** `components/insights/severity-meta.ts`
+  is the single source of truth (label / icon / `iconColor` / neutral `badge`).
+  The severity reads from the **tinted icon only** — no tinted icon tile, no
+  colored card border, no colored severity pill, and header count badges stay
+  neutral (`border-border bg-transparent text-muted-foreground`). Repeating the
+  same signal four times was the "AI slop" the card was redesigned away from
+  (2026-08-12). Card body is `line-clamp-2` with the full text as a `title`
+  tooltip; the breakdown lives in `InsightDetailDialog`.
+- **A dialog opened from a popover must live OUTSIDE the popover subtree.**
+  Rendering a `Dialog` inside `PopoverContent` means closing the popover
+  unmounts the dialog with it and nothing appears. Keep the selected item +
+  dialog in the parent, as a sibling of `<Popover>` (see
+  `components/insights/insights-popover.tsx`).
 - **Severity-tiered "many checks at a glance":** don't give every item equal
   visual weight. Items that need attention expand to full cards; healthy/normal
   items collapse into ONE dense, quiet bordered list (`divide-y … rounded-xl
