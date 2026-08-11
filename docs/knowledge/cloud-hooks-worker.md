@@ -18,7 +18,7 @@ tags:
     telemetry,
     issues,
   ]
-updated: 2026-08-11
+updated: 2026-08-12
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -45,8 +45,14 @@ Clerk ──► POST hooks.chmonitor.dev/webhooks/clerk
        Telegram notify:  🆕 user.created · 🔑 session.created (KV-throttled
        1/user/6h) · 🏢 organization.created.  Unknown events → 202, ignored.
 
-cron ("*/15 * * * *" — the ONLY trigger; Workers Free caps crons at 5/account
-and the dashboard uses 4. Reports dispatch off the tick's scheduledTime.)
+cron ("*/15 * * * *" — the intended cadence, currently NOT attached: the
+account is over the Workers Free 5-crons-per-account budget, so
+`wrangler.toml` deliberately declares no `[triggers]` block — see
+apps/cloud-hooks/wrangler.toml:78-89 and src/cron.test.ts, which pins this
+so a future edit does not re-add it. Worker is driven by its HTTP endpoints
+only until the account regains cron budget. The tick-dispatch logic below
+still describes what runs once the trigger is re-attached; reports dispatch
+off the tick's scheduledTime.)
   ├─ 00:00 UTC tick   → + daily digest → Telegram
   │                      (users + DAU/WAU/MAU + subs + surfaces)
   ├─ Mon 01:00 tick   → + weekly report → Telegram
@@ -259,7 +265,13 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
 ## Config (`wrangler.toml`)
 
 - `name = chmonitor-hooks`, custom domain `hooks.chmonitor.dev` (auto-provisions
-  DNS on the managed zone), cron `["*/15 * * * *"]` (single trigger — free-plan account cron budget).
+  DNS on the managed zone). **No `[triggers]` block** — the intended
+  `*/15 * * * *` cadence is not attached because the account is over the
+  Workers Free 5-crons-per-account budget (any schedules PUT fails after a
+  successful script upload otherwise). Guarded by `src/cron.test.ts`
+  (`wrangler.toml` must not declare `crons =`); re-attach
+  `[triggers] crons = ["*/15 * * * *"]` if the account ever regains cron
+  budget.
 - D1 binding `CHM_CLOUD_D1` → `chm-cloud` (`database_id`
   `cca247b6-9b25-41bd-b9ca-727b35bc6039`, same as the dashboard).
 - D1 binding `CHM_TELEMETRY_DB` → `chm_telemetry` (`database_id`
@@ -339,6 +351,11 @@ steps (operator, out of v1 scope): add `https://hooks.chmonitor.dev/webhooks/pol
 as a second Polar endpoint and verify deliveries + Telegram in sandbox then prod;
 then remove the old endpoint and delete the dashboard webhook route (keep
 `/api/v1/billing/*` — those are user-facing APIs, not webhooks).
+
+Separately, the cron-driven ops sweep (digests, health probes, exception scan,
+issue watch) is dormant for a different reason: no cron trigger is currently
+attached (account cron budget, see "Config" above), independent of the Polar
+cutover above. It stays dormant until the account regains cron budget.
 
 ## Operator step — Clerk lifecycle endpoint
 

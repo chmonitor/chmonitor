@@ -70,6 +70,23 @@ describe('parseModelId', () => {
       model: 'qwen/qwen3-coder:free',
     })
   })
+
+  // Pin the exact LLM_MODEL values shipped in the committed env files so
+  // .env.example can't silently drift back to a format that resolves
+  // through a different provider branch than .env.production/.env.preview.
+  test('parses the LLM_MODEL shipped in .env.production / .env.example', () => {
+    expect(parseModelId('anyrouter:anyrouter/free')).toEqual({
+      provider: 'anyrouter',
+      model: 'anyrouter/free',
+    })
+  })
+
+  test('parses the LLM_MODEL shipped in .env.preview', () => {
+    expect(parseModelId('anyrouter:z-ai/glm-4.7-flash')).toEqual({
+      provider: 'anyrouter',
+      model: 'z-ai/glm-4.7-flash',
+    })
+  })
 })
 
 describe('resolveProvider', () => {
