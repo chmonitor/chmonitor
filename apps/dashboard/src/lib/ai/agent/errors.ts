@@ -62,8 +62,8 @@ export function getErrorSuggestion(
   switch (type) {
     case 'auth_error':
       return provider === 'anyrouter'
-        ? 'Check ANYROUTER_API_KEY or the selected AnyRouter key in .env.local'
-        : 'Check OPENROUTER_API_KEY, NVIDIA_API_KEY, ANYROUTER_API_KEY, or LLM_API_KEY in .env.local'
+        ? 'Set ANYROUTER_API_KEY on the deployment (or pick a model from another configured provider).'
+        : 'Set OPENROUTER_API_KEY (or LLM_API_KEY), ANYROUTER_API_KEY, or NVIDIA_API_KEY on the deployment — at least one is required for the agent.'
     case 'rate_limit':
       return 'Wait a moment and retry, or switch to a different model'
     case 'billing_error':

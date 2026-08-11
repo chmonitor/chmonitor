@@ -162,7 +162,8 @@ export function AgentModelPicker({
   variant = 'toolbar',
   className,
 }: AgentModelPickerProps) {
-  const { model, models, setModel } = useAgentModel()
+  const { model, models, setModel, noProvidersConfigured, modelsLoaded } =
+    useAgentModel()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -182,6 +183,21 @@ export function AgentModelPicker({
     }
     return Array.from(map.entries())
   }, [models, search])
+
+  if (modelsLoaded && noProvidersConfigured) {
+    return (
+      <div
+        className={cn(
+          'text-muted-foreground border-input flex min-h-10 w-full items-center rounded-md border border-dashed px-3 py-2 text-[11px] leading-snug',
+          variant === 'toolbar' && 'h-7 min-h-0 border-0 px-2 py-0',
+          className
+        )}
+      >
+        No LLM provider configured — set OPENROUTER_API_KEY, ANYROUTER_API_KEY,
+        or NVIDIA_API_KEY
+      </div>
+    )
+  }
 
   if (!selected) {
     return null
