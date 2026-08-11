@@ -6,9 +6,8 @@
  */
 
 import type { ChartQueryBuilder } from '../types'
-import {
-  buildPartsPressureProjectionSql,
-} from '@/lib/health/parts-pressure'
+
+import { buildPartsPressureProjectionSql } from '@/lib/health/parts-pressure'
 
 export const healthDetailACharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas-detail': () => ({
@@ -166,5 +165,4 @@ export const healthDetailACharts: Record<string, ChartQueryBuilder> = {
     LIMIT 20
   `,
   }),
-
 }

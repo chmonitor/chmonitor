@@ -70,10 +70,6 @@ import {
 } from './../quiet-hours'
 import { telegramSendMessageUrl } from './../telegram-dispatch'
 import { dispatchTwilio } from './../twilio-dispatch'
-import { debug, error } from '@chm/logger'
-import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
-import { isSlackAppConfigured } from '@/lib/slack/config'
-import { formatDuration } from '@/lib/utils'
 import { SWEEP_ACK_OWNER_ID, SWEEP_ROUTING_OWNER_ID } from './resolve-config'
 import {
   effectiveSeverity,
@@ -83,6 +79,10 @@ import {
   meetsMinSeverity,
   SEVERITY_ORDER,
 } from './suppression'
+import { debug, error } from '@chm/logger'
+import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
+import { isSlackAppConfigured } from '@/lib/slack/config'
+import { formatDuration } from '@/lib/utils'
 
 /** Which per-channel override (#2661) governs a route of each provider. */
 const PROVIDER_CHANNEL: Record<AlertRouteProvider, AlertChannelId> = {

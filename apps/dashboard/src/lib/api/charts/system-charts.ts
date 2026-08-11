@@ -38,7 +38,8 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
   'disks-usage': diskCharts['disks-usage'],
   'backup-size': backupCharts['backup-size'],
   'new-parts-created': mergesCharts['new-parts-created'],
-  'summary-used-by-running-queries': mergesCharts['summary-used-by-running-queries'],
+  'summary-used-by-running-queries':
+    mergesCharts['summary-used-by-running-queries'],
   'summary-used-by-mutations': mergesCharts['summary-used-by-mutations'],
   'summary-stuck-mutations': mergesCharts['summary-stuck-mutations'],
   'disk-usage-trend': diskCharts['disk-usage-trend'],
@@ -60,7 +61,8 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
   'health-oom-killed-recent': healthCharts['health-oom-killed-recent'],
   'health-failed-queries-recent': healthCharts['health-failed-queries-recent'],
   'health-replication-lag': healthCharts['health-replication-lag'],
-  'health-keeper-exceptions-recent': healthCharts['health-keeper-exceptions-recent'],
+  'health-keeper-exceptions-recent':
+    healthCharts['health-keeper-exceptions-recent'],
   'health-memory-percent': healthCharts['health-memory-percent'],
   'health-disk-percent': healthCharts['health-disk-percent'],
   'health-failed-mutations': healthCharts['health-failed-mutations'],
@@ -68,23 +70,40 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
   'health-query-timeouts': healthCharts['health-query-timeouts'],
   'health-failed-backups': healthCharts['health-failed-backups'],
   'health-mv-refresh-failures': healthCharts['health-mv-refresh-failures'],
-  'health-readonly-replicas-detail': healthDetailACharts['health-readonly-replicas-detail'],
-  'health-max-part-count-detail': healthDetailACharts['health-max-part-count-detail'],
-  'health-parts-pressure-detail': healthDetailACharts['health-parts-pressure-detail'],
-  'health-long-running-queries-detail': healthDetailACharts['health-long-running-queries-detail'],
-  'health-oom-killed-recent-detail': healthDetailACharts['health-oom-killed-recent-detail'],
-  'health-failed-queries-recent-detail': healthDetailACharts['health-failed-queries-recent-detail'],
-  'health-replication-lag-detail': healthDetailACharts['health-replication-lag-detail'],
-  'health-keeper-exceptions-detail': healthDetailACharts['health-keeper-exceptions-detail'],
-  'health-memory-percent-detail': healthDetailACharts['health-memory-percent-detail'],
-  'health-disk-percent-detail': healthDetailBCharts['health-disk-percent-detail'],
-  'health-failed-mutations-detail': healthDetailBCharts['health-failed-mutations-detail'],
-  'health-stuck-merges-detail': healthDetailBCharts['health-stuck-merges-detail'],
-  'health-query-timeouts-detail': healthDetailBCharts['health-query-timeouts-detail'],
-  'health-failed-backups-detail': healthDetailBCharts['health-failed-backups-detail'],
-  'health-mv-refresh-failures-detail': healthDetailBCharts['health-mv-refresh-failures-detail'],
-  'health-stuck-mutations-detail': healthDetailBCharts['health-stuck-mutations-detail'],
-  'health-running-mutations-detail': healthDetailBCharts['health-running-mutations-detail'],
+  'health-readonly-replicas-detail':
+    healthDetailACharts['health-readonly-replicas-detail'],
+  'health-max-part-count-detail':
+    healthDetailACharts['health-max-part-count-detail'],
+  'health-parts-pressure-detail':
+    healthDetailACharts['health-parts-pressure-detail'],
+  'health-long-running-queries-detail':
+    healthDetailACharts['health-long-running-queries-detail'],
+  'health-oom-killed-recent-detail':
+    healthDetailACharts['health-oom-killed-recent-detail'],
+  'health-failed-queries-recent-detail':
+    healthDetailACharts['health-failed-queries-recent-detail'],
+  'health-replication-lag-detail':
+    healthDetailACharts['health-replication-lag-detail'],
+  'health-keeper-exceptions-detail':
+    healthDetailACharts['health-keeper-exceptions-detail'],
+  'health-memory-percent-detail':
+    healthDetailACharts['health-memory-percent-detail'],
+  'health-disk-percent-detail':
+    healthDetailBCharts['health-disk-percent-detail'],
+  'health-failed-mutations-detail':
+    healthDetailBCharts['health-failed-mutations-detail'],
+  'health-stuck-merges-detail':
+    healthDetailBCharts['health-stuck-merges-detail'],
+  'health-query-timeouts-detail':
+    healthDetailBCharts['health-query-timeouts-detail'],
+  'health-failed-backups-detail':
+    healthDetailBCharts['health-failed-backups-detail'],
+  'health-mv-refresh-failures-detail':
+    healthDetailBCharts['health-mv-refresh-failures-detail'],
+  'health-stuck-mutations-detail':
+    healthDetailBCharts['health-stuck-mutations-detail'],
+  'health-running-mutations-detail':
+    healthDetailBCharts['health-running-mutations-detail'],
   'keeper-requests': keeperCharts['keeper-requests'],
   'keeper-wait-time': keeperCharts['keeper-wait-time'],
   'disk-io-throughput': diskCharts['disk-io-throughput'],

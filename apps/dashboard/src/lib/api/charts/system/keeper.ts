@@ -5,7 +5,12 @@
  * key names, or gating changed.
  */
 
-import { type ChartQueryBuilder, applyInterval, buildTimeFilter, buildTimeFilterInterval } from '../types'
+import {
+  applyInterval,
+  buildTimeFilter,
+  buildTimeFilterInterval,
+  type ChartQueryBuilder,
+} from '../types'
 
 export const keeperCharts: Record<string, ChartQueryBuilder> = {
   'keeper-requests': ({
@@ -49,5 +54,4 @@ export const keeperCharts: Record<string, ChartQueryBuilder> = {
       tableCheck: 'system.metric_log',
     }
   },
-
 }
