@@ -224,7 +224,9 @@ export function IndexesTab() {
               <div className="text-sm font-medium">{indexData.engine}</div>
               {indexData.engine_full &&
                 indexData.engine_full !== indexData.engine && (
-                  <SqlExprBlock code={formatEngineFull(indexData.engine_full)} />
+                  <SqlExprBlock
+                    code={formatEngineFull(indexData.engine_full)}
+                  />
                 )}
             </div>
           </CardContent>

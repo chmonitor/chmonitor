@@ -202,8 +202,7 @@ export function providerNotConfiguredMessage(providerId: string): string {
     )
   }
   const envVar =
-    PROVIDERS[providerId]?.apiKeyEnvVar ??
-    `${providerId.toUpperCase()}_API_KEY`
+    PROVIDERS[providerId]?.apiKeyEnvVar ?? `${providerId.toUpperCase()}_API_KEY`
   return (
     `Provider "${getProviderName(providerId)}" is not configured on this deployment. ` +
     `Pick a model from a configured provider (${configured.join(', ')}) ` +
