@@ -16,6 +16,7 @@ export { explorerIndexesConfig } from './indexes'
 export { explorerProjectionsConfig } from './projections'
 export { explorerSkipIndexesConfig } from './skip-indexes'
 export {
+  explorerDictionaryOverviewConfig,
   explorerTableOverviewConfig,
   explorerTableUsageConfig,
 } from './table-overview'

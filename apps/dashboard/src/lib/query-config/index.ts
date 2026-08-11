@@ -21,6 +21,7 @@ import {
   explorerDdlConfig,
   explorerDependenciesDownstreamConfig,
   explorerDependenciesUpstreamConfig,
+  explorerDictionaryOverviewConfig,
   explorerDictionarySourceConfig,
   explorerIndexesConfig,
   explorerProjectionsConfig,
@@ -152,6 +153,7 @@ export const queries: Array<QueryConfig> = [
   explorerDependenciesDownstreamConfig,
   explorerDependenciesUpstreamConfig,
   explorerDictionarySourceConfig,
+  explorerDictionaryOverviewConfig,
   explorerTableDependenciesConfig,
 
   // Tables

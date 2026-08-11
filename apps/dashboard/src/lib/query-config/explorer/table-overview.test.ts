@@ -6,6 +6,7 @@
  */
 
 import {
+  explorerDictionaryOverviewConfig,
   explorerTableOverviewConfig,
   explorerTableUsageConfig,
 } from './table-overview'
@@ -39,8 +40,46 @@ describe('explorerTableOverviewConfig', () => {
       'compressed_bytes',
       'uncompressed_bytes',
       'active_parts',
+      // Engine-aware overview needs the schema keys + view definition so the
+      // Overview tab can render a summary instead of empty storage cards.
+      'sorting_key',
+      'partition_key',
+      'primary_key',
+      'as_select',
+      'create_table_query',
     ]) {
       expect(explorerTableOverviewConfig.columns).toContain(column)
+    }
+  })
+})
+
+describe('explorerDictionaryOverviewConfig', () => {
+  test('is an optional system.dictionaries query', () => {
+    expect(explorerDictionaryOverviewConfig.name).toBe(
+      'explorer-dictionary-overview'
+    )
+    expect(explorerDictionaryOverviewConfig.optional).toBe(true)
+    expect(explorerDictionaryOverviewConfig.tableCheck).toBe(
+      'system.dictionaries'
+    )
+  })
+
+  test('scopes to one dictionary and exposes dictionary-only metrics', () => {
+    const sql = explorerDictionaryOverviewConfig.sql as string
+    expect(isNonEmptyString(sql)).toBe(true)
+    expect(sql).toContain('system.dictionaries')
+    expect(sql).toContain('{database:String}')
+    expect(sql).toContain('{table:String}')
+
+    // These replace the meaningless size/parts/partitions cards for a Dictionary.
+    for (const column of [
+      'status',
+      'element_count',
+      'bytes_allocated',
+      'last_successful_update_time',
+      'source',
+    ]) {
+      expect(explorerDictionaryOverviewConfig.columns).toContain(column)
     }
   })
 })
