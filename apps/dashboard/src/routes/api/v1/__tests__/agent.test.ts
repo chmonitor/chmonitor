@@ -80,6 +80,8 @@ mock.module('@/lib/ai/providers', () => ({
   parseModelId: () => ({ provider: 'test', model: 'test-model' }),
   isProviderConfigured: () => providerConfigured,
   getProviderName: () => 'Test Provider',
+  providerNotConfiguredMessage: (providerId: string) =>
+    `Provider "${providerId}" is not configured (test stub)`,
 }))
 mock.module('@/lib/ai/agent-model-registry', () => ({
   DEFAULT_AGENT_MODEL: 'test/test-model',
