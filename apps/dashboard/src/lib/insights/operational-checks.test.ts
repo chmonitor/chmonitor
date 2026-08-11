@@ -99,14 +99,22 @@ describe('checkLongRunningQuery', () => {
     ).toBe('critical')
   })
 
-  test('a second concurrent long query is mentioned in the detail', () => {
-    expect(checkLongRunningQuery(LONG_QUERY_WARN_SECONDS, 3)?.detail).toContain(
-      '3 queries over a minute'
+  test('other concurrent long queries are mentioned in the detail, excluding the headline query', () => {
+    expect(checkLongRunningQuery(720, 3)?.detail).toContain(
+      '2 other queries over 5m'
     )
-    // A single long query does not tack on the "(N queries...)" clause.
+  })
+
+  test('a single other long query uses the singular noun', () => {
+    expect(checkLongRunningQuery(720, 2)?.detail).toContain(
+      '1 other query over 5m'
+    )
+  })
+
+  test('a lone long query does not tack on the "(N other...)" clause', () => {
     expect(
       checkLongRunningQuery(LONG_QUERY_WARN_SECONDS, 1)?.detail
-    ).not.toContain('queries over a minute')
+    ).not.toContain('other quer')
   })
 })
 

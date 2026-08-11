@@ -76,6 +76,11 @@ describe('formatBytes', () => {
   test('caps at the largest unit', () => {
     expect(formatBytes(1024 ** 6)).toContain('PB')
   })
+
+  test('clamps the low end for values between 0 and 1', () => {
+    expect(formatBytes(0.5)).toBe('0.5 B')
+    expect(formatBytes(0.001)).toBe('0.0 B')
+  })
 })
 
 describe('formatPercentage', () => {
@@ -100,6 +105,10 @@ describe('formatCount', () => {
     expect(formatCount(1500)).toBe('1.5K')
     expect(formatCount(2_000_000)).toBe('2.0M')
     expect(formatCount(3_000_000_000)).toBe('3.0B')
+  })
+
+  test('clamps the low end for values between 0 and 1', () => {
+    expect(formatCount(0.5)).toBe('0.5')
   })
 })
 
