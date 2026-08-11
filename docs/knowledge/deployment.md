@@ -3,7 +3,7 @@ id: deployment
 title: Deployment Guide
 type: reference
 status: active
-updated: 2026-06-29
+updated: 2026-08-12
 tags:
   - deployment
   - docker
@@ -336,6 +336,42 @@ zone id first, so a token missing read still fails):
 pnpm run cf:redirect-rule            # apply
 pnpm run cf:redirect-rule --dry-run  # preview the ruleset payload
 ```
+
+## Cron triggers (dashboard) — declared but INERT
+
+`apps/dashboard/wrangler.toml` declares four `[triggers] crons`, but **the
+deploy strips the key**, so editing that array has no effect on production.
+Single record of what is attached and why (issue #2900):
+
+| Cron | Job | Notes |
+|------|-----|-------|
+| `0 3 * * *` | retention-prune | daily 03:00 UTC |
+| `0 8 * * 1` | weekly-report | Mondays 08:00 UTC; per-host `CHM_WEEKLY_REPORT_HOSTS` + per-owner `report_subscriptions` fan-out, no-op when both empty |
+| `0 8 1 * *` | monthly-report | 1st of month 08:00 UTC (#2785); `report_subscriptions` cadence `monthly`, no-op when none |
+| `*/10 * * * *` | health-sweep | every 10 min (#2666); gated by `CHM_HEALTH_SWEEP_ENABLED`, defaults enabled iff `CRON_SECRET` set |
+
+**Why it is inert.** The Cloudflare account is over the Workers Free
+5-crons-per-account budget, so any schedules PUT — even `crons: []` — fails
+*after* a successful script upload and exits the deploy 1 (PRs #2866, #2868).
+`scripts/patch-wrangler-env.ts` therefore runs `delete generated.triggers`;
+wrangler skips the schedules API entirely when the key is absent, and the crons
+attached by earlier deploys stay in place. The cron HTTP routes
+(`src/routes/api/cron/*`) still work with `CRON_SECRET` from any scheduler.
+`apps/cloud-hooks` handles the same constraint by declaring no crons at all
+(one `*/15` trigger via its own worker) — see
+[cloud-hooks-worker.md](cloud-hooks-worker.md).
+
+**Guard.** `apps/dashboard/scripts/cron-triggers.test.ts` pins the crons array
+to the table above, asserts preview declares no triggers, and asserts the
+`delete generated.triggers` strip is still present — so removing the strip (and
+reintroducing the #2868 red deploy) fails in CI first.
+
+**Re-enable path.** 1) The account regains cron budget (free plan → 5 total, or
+upgrade; count all workers). 2) Remove `delete generated.triggers` from
+`scripts/patch-wrangler-env.ts`, restoring the earlier preview-only guard.
+3) Update `cron-triggers.test.ts` and this table. 4) Verify with
+`pnpm exec wrangler deploy --minify --dry-run`, then deploy and confirm the
+schedules PUT succeeds.
 
 ## Troubleshooting
 

@@ -231,6 +231,14 @@ simple = { limit = 30, period = 60 }
 # exit 1 after a successful upload). The crons below stay attached from earlier
 # deploys. Changing this array therefore has NO effect until the account has
 # cron budget again and the patch-script guard is removed.
+#
+# ⚠️  INERT — EDITING THE ARRAY BELOW CHANGES NOTHING IN PRODUCTION.
+#     The deploy drops this key (`delete generated.triggers` in
+#     scripts/patch-wrangler-env.ts). Pinned by scripts/cron-triggers.test.ts;
+#     re-enable path + cadence meanings: docs/knowledge/deployment.md
+#     § Cron triggers (issue #2900, PRs #2866 / #2868).
+#     Self-hosters copying this file: these four crons count against the
+#     Workers Free 5-crons-per-account budget.
 # ─────────────────────────────────────────────────────────────────────────────
 [triggers]
 crons = ["0 3 * * *", "0 8 * * 1", "0 8 1 * *", "*/10 * * * *"]
