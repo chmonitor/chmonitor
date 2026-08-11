@@ -296,10 +296,13 @@ cron:
   # enabled: create CronJob resources. Default false — opt-in for K8s deploys.
   enabled: false
 
-  # image: curl image used in the CronJob. Defaults to curlimages/curl:latest.
+  # image: curl image used in the CronJob. Pinned to an explicit version —
+  # never use the "latest" tag here. See the stale-image CrashLoop incident
+  # in docs/knowledge/k8s-health-probes.md: with IfNotPresent, a mutable tag
+  # lets nodes silently diverge on cached images.
   image:
     repository: curlimages/curl
-    tag: "latest"
+    tag: "8.11.1"
     pullPolicy: IfNotPresent
 
   # secret: CRON_SECRET value stored in the chart-managed Secret.

@@ -11,7 +11,7 @@ app = "chmonitor"          # Replace with your Fly app name
 primary_region = "iad"     # Replace with your preferred region
 
 [build]
-  image = "ghcr.io/chmonitor/chmonitor:latest"
+  image = "ghcr.io/chmonitor/chmonitor:v0.3.1"
 
 [env]
   # Required — point at your ClickHouse HTTP interface.
