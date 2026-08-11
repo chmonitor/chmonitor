@@ -5,7 +5,12 @@
  * key names, or gating changed.
  */
 
-import { type ChartQueryBuilder, applyInterval, buildTimeFilter, buildTimeFilterInterval } from '../types'
+import {
+  applyInterval,
+  buildTimeFilter,
+  buildTimeFilterInterval,
+  type ChartQueryBuilder,
+} from '../types'
 import { STUCK_THRESHOLD_SECONDS } from '@/lib/query-config/merges/mutations'
 
 export const mergesCharts: Record<string, ChartQueryBuilder> = {
@@ -139,5 +144,4 @@ export const mergesCharts: Record<string, ChartQueryBuilder> = {
     `,
     }
   },
-
 }

@@ -6,9 +6,8 @@
  */
 
 import type { ChartQueryBuilder } from '../types'
-import {
-  buildPartsPressurePercentSql,
-} from '@/lib/health/parts-pressure'
+
+import { buildPartsPressurePercentSql } from '@/lib/health/parts-pressure'
 
 export const healthCharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas': () => ({
@@ -191,5 +190,4 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
   // Columns are pre-formatted + snake_case-aliased so the generic ResultTable
   // renders them cleanly without per-card formatting code.
   // ---------------------------------------------------------------------------
-
 }

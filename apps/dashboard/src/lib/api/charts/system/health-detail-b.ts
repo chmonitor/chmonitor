@@ -144,5 +144,4 @@ export const healthDetailBCharts: Record<string, ChartQueryBuilder> = {
     optional: true,
     tableCheck: 'system.mutations',
   }),
-
 }

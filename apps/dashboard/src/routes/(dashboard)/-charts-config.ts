@@ -28,10 +28,10 @@ import {
   ChartDataFreshness,
   ChartDiskIOThroughput,
   ChartDiskSize,
+  ChartDisksUsage,
   ChartDiskUsage,
   ChartDiskUsageByDatabase,
   ChartDiskUsageTrend,
-  ChartDisksUsage,
   ChartErrorRateOverTime,
   ChartFailedQueryCount,
   ChartFailedQueryCountByUser,
@@ -140,7 +140,6 @@ export interface OverviewTabConfig {
    */
   customContent?: 'topology'
 }
-
 
 // ============================================================================
 // Chart Configurations by Tab

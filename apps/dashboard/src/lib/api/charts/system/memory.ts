@@ -5,7 +5,11 @@
  * key names, or gating changed.
  */
 
-import { type ChartQueryBuilder, applyInterval, buildTimeFilter } from '../types'
+import {
+  applyInterval,
+  buildTimeFilter,
+  type ChartQueryBuilder,
+} from '../types'
 import { METRICS_PERMISSION } from './permissions'
 
 export const memoryCharts: Record<string, ChartQueryBuilder> = {

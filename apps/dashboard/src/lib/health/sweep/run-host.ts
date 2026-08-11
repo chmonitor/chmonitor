@@ -14,8 +14,8 @@
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
 import type { CompoundRuleInput } from '@/lib/alerting/compound-rules'
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
-import type { SweepContext } from './resolve-config'
 import type { DispatchFindingParams } from './dispatch'
+import type { SweepContext } from './resolve-config'
 
 import { fetchData } from '@chm/clickhouse-client'
 import { debug } from '@chm/logger'

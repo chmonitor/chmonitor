@@ -5,7 +5,7 @@
  * key names, or gating changed.
  */
 
-import { type ChartQueryBuilder, buildTimeFilter } from '../types'
+import { buildTimeFilter, type ChartQueryBuilder } from '../types'
 
 export const dataQualityCharts: Record<string, ChartQueryBuilder> = {
   'data-freshness': () => ({
@@ -79,5 +79,4 @@ export const dataQualityCharts: Record<string, ChartQueryBuilder> = {
   },
 
   // NOTE: 'replication-lag' is defined in replication-charts.ts (authoritative)
-
 }

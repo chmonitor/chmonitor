@@ -13,8 +13,6 @@ import type { AlertAck } from './../alert-ack-store'
 import type { MaintenanceWindow } from './../maintenance-windows'
 import type { QuietHours } from './../quiet-hours'
 
-import { describe, expect, test } from 'bun:test'
-
 import {
   effectiveSeverity,
   isAckGated,
@@ -23,6 +21,7 @@ import {
   meetsMinSeverity,
   SEVERITY_ORDER,
 } from './suppression'
+import { describe, expect, test } from 'bun:test'
 
 const NOW = Date.UTC(2026, 0, 15, 12, 0, 0)
 

@@ -5,7 +5,10 @@
  */
 
 import { useMemo } from 'react'
-import { formatReadableQuantity, formatReadableSize } from '@/lib/format-readable'
+import {
+  formatReadableQuantity,
+  formatReadableSize,
+} from '@/lib/format-readable'
 import { formatDuration } from '@/lib/utils'
 
 export type ReadableFormat = 'bytes' | 'duration' | 'number' | 'quantity'

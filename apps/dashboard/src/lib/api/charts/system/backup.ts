@@ -36,5 +36,4 @@ export const backupCharts: Record<string, ChartQueryBuilder> = {
       tableCheck: 'system.backup_log',
     }
   },
-
 }

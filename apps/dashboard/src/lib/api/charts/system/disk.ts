@@ -5,7 +5,11 @@
  * key names, or gating changed.
  */
 
-import { type ChartQueryBuilder, applyInterval, buildTimeFilterInterval } from '../types'
+import {
+  applyInterval,
+  buildTimeFilterInterval,
+  type ChartQueryBuilder,
+} from '../types'
 import { METRICS_PERMISSION } from './permissions'
 
 export const diskCharts: Record<string, ChartQueryBuilder> = {
@@ -197,5 +201,4 @@ export const diskCharts: Record<string, ChartQueryBuilder> = {
     FROM system.parts
   `,
   }),
-
 }
