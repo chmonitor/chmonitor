@@ -5,6 +5,27 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.1](https://github.com/chmonitor/chmonitor/compare/v0.3.0...v0.3.1) (2026-08-11)
+
+
+### ✨ Features
+
+* **agent:** rank AnyRouter models by usage for auto pick ([#2856](https://github.com/chmonitor/chmonitor/issues/2856)) ([75bf15d](https://github.com/chmonitor/chmonitor/commit/75bf15dd7d3aa01d550ee851cc14501647105968))
+* **dashboard:** interactive cluster topology drag and glass glyphs ([#2854](https://github.com/chmonitor/chmonitor/issues/2854)) ([7bc7d67](https://github.com/chmonitor/chmonitor/commit/7bc7d676f108dd439bf9d478b67e9740165c64a2))
+* **mutations:** surface parts_postpone_reasons (ClickHouse 26.2+) ([#2864](https://github.com/chmonitor/chmonitor/issues/2864)) ([5ae5761](https://github.com/chmonitor/chmonitor/commit/5ae5761d8f4fd8787f7270a3d8b9efd8ebde88c5))
+
+
+### 🐛 Bug Fixes
+
+* **ci:** use shared node-based ARM64 Dockerfile for latest/release images ([#2863](https://github.com/chmonitor/chmonitor/issues/2863)) ([34ffcd3](https://github.com/chmonitor/chmonitor/commit/34ffcd3f7307f56163dea2a9349c3e8798112378)), closes [#2862](https://github.com/chmonitor/chmonitor/issues/2862)
+* **cloud-hooks:** detect Polar signature failures without Error.name ([#2853](https://github.com/chmonitor/chmonitor/issues/2853)) ([dd239b1](https://github.com/chmonitor/chmonitor/commit/dd239b1fedbf9614be939a832d006b86f6672d68))
+* **schema:** refresh ClickHouse version matrix through 26.7 LTS/stable ([3d4f90e](https://github.com/chmonitor/chmonitor/commit/3d4f90e532d1447b2666dba92fada955e25e2db9)), closes [#2857](https://github.com/chmonitor/chmonitor/issues/2857)
+
+
+### ⚡ Performance
+
+* **dashboard:** Worker bundle size headroom under free 3 MiB ([#2855](https://github.com/chmonitor/chmonitor/issues/2855)) ([b4a5836](https://github.com/chmonitor/chmonitor/commit/b4a58365c30e327cc79dd228948d6336677584bf))
+
 ## [0.3.0](https://github.com/chmonitor/chmonitor/compare/v0.2.16...v0.3.0) (2026-08-06)
 
 **The TanStack Start release.** v0.3 rebuilds the dashboard on TanStack Start and
