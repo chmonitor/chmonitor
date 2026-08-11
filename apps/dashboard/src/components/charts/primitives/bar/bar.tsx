@@ -121,7 +121,7 @@ export const BarChart = function BarChart({
             dataKey={index}
             tickLine={false}
             tickMargin={10}
-            axisLine={true}
+            axisLine={false}
             tickFormatter={tickFormatter}
           />
         )}
