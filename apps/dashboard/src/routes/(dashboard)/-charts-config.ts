@@ -16,7 +16,65 @@ import type { ClickHouseInterval } from '@chm/types/clickhouse-interval'
 import type { ComponentType } from 'react'
 import type { ChartProps } from '@/components/charts/chart-props'
 
-import { lazy } from 'react'
+import {
+  ChartBackupSize,
+  ChartCancelledQueries,
+  ChartCompressionRatio,
+  ChartConnectionsPool,
+  ChartCPUUsage,
+  ChartCpuLoadAverage,
+  ChartCpuModeSplit,
+  ChartCrashFrequency,
+  ChartDataFreshness,
+  ChartDiskIOThroughput,
+  ChartDiskSize,
+  ChartDiskUsage,
+  ChartDiskUsageByDatabase,
+  ChartDiskUsageTrend,
+  ChartDisksUsage,
+  ChartErrorRateOverTime,
+  ChartFailedQueryCount,
+  ChartFailedQueryCountByUser,
+  ChartInsertPerformance,
+  ChartKeeperException,
+  ChartLogLevelDistribution,
+  ChartMemoryBreakdown,
+  ChartMemoryUsage,
+  ChartMergeAvgDuration,
+  ChartMergeCount,
+  ChartMergeSumReadRows,
+  ChartMutationProgress,
+  ChartNewPartsCreated,
+  ChartOomKilledQueries,
+  ChartPartitionPartHealth,
+  ChartPartsPerTable,
+  ChartQueryCache,
+  ChartQueryCacheUsage,
+  ChartQueryCount,
+  ChartQueryCountByUser,
+  ChartQueryCountHeatmap,
+  ChartQueryDuration,
+  ChartQueryDurationPercentiles,
+  ChartQueryDurationTrend,
+  ChartQueryMemory,
+  ChartQueryType,
+  ChartReadonlyReplica,
+  ChartReplicationLag,
+  ChartReplicationQueueCount,
+  ChartReplicationSummaryTable,
+  ChartSlowQueryOccurrences,
+  ChartStoragePolicies,
+  ChartSummaryStuckMutations,
+  ChartSummaryUsedByMerges,
+  ChartThreadPoolUtilization,
+  ChartThreadUtilization,
+  ChartTopInserters,
+  ChartTopMemoryQueries,
+  ChartTopQueryFingerprintsPerf,
+  ChartTopTableSize,
+  ChartZookeeperRequests,
+  ChartZookeeperWait,
+} from './-charts-lazy'
 
 // ============================================================================
 // Types
@@ -83,305 +141,6 @@ export interface OverviewTabConfig {
   customContent?: 'topology'
 }
 
-// ============================================================================
-// Chart Imports
-// ============================================================================
-
-// Connection charts
-const ChartConnectionsPool = lazy(() =>
-  import('@/components/charts/connections-pool').then((mod) => ({
-    default: mod.ChartConnectionsPool,
-  }))
-)
-// Logs charts
-const ChartCrashFrequency = lazy(() =>
-  import('@/components/charts/logs/crash-frequency').then((mod) => ({
-    default: mod.ChartCrashFrequency,
-  }))
-)
-const ChartErrorRateOverTime = lazy(() =>
-  import('@/components/charts/logs/error-rate-over-time').then((mod) => ({
-    default: mod.ChartErrorRateOverTime,
-  }))
-)
-const ChartLogLevelDistribution = lazy(() =>
-  import('@/components/charts/logs/log-level-distribution').then((mod) => ({
-    default: mod.ChartLogLevelDistribution,
-  }))
-)
-// Merge charts
-const ChartMergeAvgDuration = lazy(() =>
-  import('@/components/charts/merge/merge-avg-duration').then((mod) => ({
-    default: mod.ChartMergeAvgDuration,
-  }))
-)
-const ChartMergeCount = lazy(() =>
-  import('@/components/charts/merge/merge-count').then((mod) => ({
-    default: mod.ChartMergeCount,
-  }))
-)
-const ChartMergeSumReadRows = lazy(() =>
-  import('@/components/charts/merge/merge-sum-read-rows').then((mod) => ({
-    default: mod.ChartMergeSumReadRows,
-  }))
-)
-const ChartNewPartsCreated = lazy(() =>
-  import('@/components/charts/merge/new-parts-created').then((mod) => ({
-    default: mod.ChartNewPartsCreated,
-  }))
-)
-const ChartSummaryUsedByMerges = lazy(() =>
-  import('@/components/charts/merge/summary-used-by-merges').then((mod) => ({
-    default: mod.ChartSummaryUsedByMerges,
-  }))
-)
-const ChartPartsPerTable = lazy(() =>
-  import('@/components/charts/parts-per-table').then((mod) => ({
-    default: mod.ChartPartsPerTable,
-  }))
-)
-// Query additional charts
-const ChartCancelledQueries = lazy(() =>
-  import('@/components/charts/query/cancelled-queries').then((mod) => ({
-    default: mod.ChartCancelledQueries,
-  }))
-)
-// Query charts
-const ChartFailedQueryCount = lazy(() =>
-  import('@/components/charts/query/failed-query-count').then((mod) => ({
-    default: mod.ChartFailedQueryCount,
-  }))
-)
-const ChartFailedQueryCountByUser = lazy(() =>
-  import('@/components/charts/query/failed-query-count-by-user').then(
-    (mod) => ({ default: mod.ChartFailedQueryCountByUser })
-  )
-)
-const ChartQueryCache = lazy(() =>
-  import('@/components/charts/query/query-cache').then((mod) => ({
-    default: mod.ChartQueryCache,
-  }))
-)
-const ChartQueryCacheUsage = lazy(() =>
-  import('@/components/charts/query/query-cache-usage').then((mod) => ({
-    default: mod.ChartQueryCacheUsage,
-  }))
-)
-const ChartQueryCount = lazy(() =>
-  import('@/components/charts/query/query-count').then((mod) => ({
-    default: mod.ChartQueryCount,
-  }))
-)
-const ChartQueryCountByUser = lazy(() =>
-  import('@/components/charts/query/query-count-by-user').then((mod) => ({
-    default: mod.ChartQueryCountByUser,
-  }))
-)
-const ChartQueryCountHeatmap = lazy(() =>
-  import('@/components/charts/query/query-count-heatmap').then((mod) => ({
-    default: mod.ChartQueryCountHeatmap,
-  }))
-)
-const ChartQueryDuration = lazy(() =>
-  import('@/components/charts/query/query-duration').then((mod) => ({
-    default: mod.ChartQueryDuration,
-  }))
-)
-const ChartQueryDurationPercentiles = lazy(() =>
-  import('@/components/charts/query/query-duration-percentiles').then(
-    (mod) => ({ default: mod.ChartQueryDurationPercentiles })
-  )
-)
-const ChartQueryMemory = lazy(() =>
-  import('@/components/charts/query/query-memory').then((mod) => ({
-    default: mod.ChartQueryMemory,
-  }))
-)
-const ChartQueryType = lazy(() =>
-  import('@/components/charts/query/query-type').then((mod) => ({
-    default: mod.ChartQueryType,
-  }))
-)
-const ChartSlowQueryOccurrences = lazy(() =>
-  import('@/components/charts/query/slow-query-occurrences').then((mod) => ({
-    default: mod.ChartSlowQueryOccurrences,
-  }))
-)
-// Query performance charts
-const ChartInsertPerformance = lazy(() =>
-  import('@/components/charts/query-performance/insert-performance').then(
-    (mod) => ({ default: mod.ChartInsertPerformance })
-  )
-)
-const ChartQueryDurationTrend = lazy(() =>
-  import('@/components/charts/query-performance/query-duration-trend').then(
-    (mod) => ({ default: mod.ChartQueryDurationTrend })
-  )
-)
-const ChartTopInserters = lazy(() =>
-  import('@/components/charts/query-performance/top-inserters').then((mod) => ({
-    default: mod.ChartTopInserters,
-  }))
-)
-const ChartTopQueryFingerprintsPerf = lazy(() =>
-  import('@/components/charts/query-performance/top-query-fingerprints').then(
-    (mod) => ({ default: mod.ChartTopQueryFingerprints })
-  )
-)
-// Replication charts
-const ChartReadonlyReplica = lazy(() =>
-  import('@/components/charts/replication/readonly-replica').then((mod) => ({
-    default: mod.ChartReadonlyReplica,
-  }))
-)
-const ChartReplicationLag = lazy(() =>
-  import('@/components/charts/replication/replication-lag').then((mod) => ({
-    default: mod.ChartReplicationLag,
-  }))
-)
-const ChartReplicationQueueCount = lazy(() =>
-  import('@/components/charts/replication/replication-queue-count').then(
-    (mod) => ({ default: mod.ChartReplicationQueueCount })
-  )
-)
-const ChartReplicationSummaryTable = lazy(() =>
-  import('@/components/charts/replication/replication-summary-table').then(
-    (mod) => ({ default: mod.ChartReplicationSummaryTable })
-  )
-)
-const ChartSummaryStuckMutations = lazy(() =>
-  import('@/components/charts/summary-stuck-mutations').then((mod) => ({
-    default: mod.ChartSummaryStuckMutations,
-  }))
-)
-// System charts
-const ChartBackupSize = lazy(() =>
-  import('@/components/charts/system/backup-size').then((mod) => ({
-    default: mod.ChartBackupSize,
-  }))
-)
-const ChartCompressionRatio = lazy(() =>
-  import('@/components/charts/system/compression-ratio').then((mod) => ({
-    default: mod.ChartCompressionRatio,
-  }))
-)
-const ChartCPUUsage = lazy(() =>
-  import('@/components/charts/system/cpu-usage').then((mod) => ({
-    default: mod.ChartCPUUsage,
-  }))
-)
-const ChartDataFreshness = lazy(() =>
-  import('@/components/charts/system/data-freshness').then((mod) => ({
-    default: mod.ChartDataFreshness,
-  }))
-)
-const ChartDiskIOThroughput = lazy(() =>
-  import('@/components/charts/system/disk-io-throughput').then((mod) => ({
-    default: mod.ChartDiskIOThroughput,
-  }))
-)
-const ChartDiskSize = lazy(() =>
-  import('@/components/charts/system/disk-size').then((mod) => ({
-    default: mod.ChartDiskSize,
-  }))
-)
-const ChartDiskUsage = lazy(() =>
-  import('@/components/charts/system/disk-usage').then((mod) => ({
-    default: mod.ChartDiskUsage,
-  }))
-)
-const ChartDiskUsageByDatabase = lazy(() =>
-  import('@/components/charts/system/disk-usage-by-database').then((mod) => ({
-    default: mod.ChartDiskUsageByDatabase,
-  }))
-)
-const ChartDiskUsageTrend = lazy(() =>
-  import('@/components/charts/system/disk-usage-trend').then((mod) => ({
-    default: mod.ChartDiskUsageTrend,
-  }))
-)
-const ChartDisksUsage = lazy(() =>
-  import('@/components/charts/system/disks-usage').then((mod) => ({
-    default: mod.ChartDisksUsage,
-  }))
-)
-const ChartMemoryUsage = lazy(() =>
-  import('@/components/charts/system/memory-usage').then((mod) => ({
-    default: mod.ChartMemoryUsage,
-  }))
-)
-const ChartMemoryBreakdown = lazy(() =>
-  import('@/components/charts/system/memory-breakdown').then((mod) => ({
-    default: mod.ChartMemoryBreakdown,
-  }))
-)
-const ChartCpuLoadAverage = lazy(() =>
-  import('@/components/charts/system/cpu-load-average').then((mod) => ({
-    default: mod.ChartCpuLoadAverage,
-  }))
-)
-const ChartCpuModeSplit = lazy(() =>
-  import('@/components/charts/system/cpu-mode-split').then((mod) => ({
-    default: mod.ChartCpuModeSplit,
-  }))
-)
-const ChartThreadPoolUtilization = lazy(() =>
-  import('@/components/charts/system/thread-pool-utilization').then((mod) => ({
-    default: mod.ChartThreadPoolUtilization,
-  }))
-)
-const ChartMutationProgress = lazy(() =>
-  import('@/components/charts/system/mutation-progress').then((mod) => ({
-    default: mod.ChartMutationProgress,
-  }))
-)
-const ChartOomKilledQueries = lazy(() =>
-  import('@/components/charts/system/oom-killed-queries').then((mod) => ({
-    default: mod.ChartOomKilledQueries,
-  }))
-)
-const ChartPartitionPartHealth = lazy(() =>
-  import('@/components/charts/system/partition-part-health').then((mod) => ({
-    default: mod.ChartPartitionPartHealth,
-  }))
-)
-const ChartStoragePolicies = lazy(() =>
-  import('@/components/charts/system/storage-policies').then((mod) => ({
-    default: mod.ChartStoragePolicies,
-  }))
-)
-const ChartTopMemoryQueries = lazy(() =>
-  import('@/components/charts/system/top-memory-queries').then((mod) => ({
-    default: mod.ChartTopMemoryQueries,
-  }))
-)
-// Thread charts
-const ChartThreadUtilization = lazy(() =>
-  import('@/components/charts/threads/thread-utilization').then((mod) => ({
-    default: mod.ChartThreadUtilization,
-  }))
-)
-const ChartTopTableSize = lazy(() =>
-  import('@/components/charts/top-table-size').then((mod) => ({
-    default: mod.ChartTopTableSize,
-  }))
-)
-// ZooKeeper charts
-const ChartKeeperException = lazy(() =>
-  import('@/components/charts/zookeeper/zookeeper-exception').then((mod) => ({
-    default: mod.ChartKeeperException,
-  }))
-)
-const ChartZookeeperRequests = lazy(() =>
-  import('@/components/charts/zookeeper/zookeeper-requests').then((mod) => ({
-    default: mod.ChartZookeeperRequests,
-  }))
-)
-const ChartZookeeperWait = lazy(() =>
-  import('@/components/charts/zookeeper/zookeeper-wait').then((mod) => ({
-    default: mod.ChartZookeeperWait,
-  }))
-)
 
 // ============================================================================
 // Chart Configurations by Tab
