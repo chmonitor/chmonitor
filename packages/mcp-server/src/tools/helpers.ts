@@ -57,10 +57,34 @@ export function toErrorResult(text: string): CallToolResult {
   }
 }
 
-/** Build a success result envelope from data serialized as pretty JSON. */
+/**
+ * Normalize any tool payload to the object shape `structuredContent` takes.
+ *
+ * Pre-2026 revisions type `structuredContent` as an object, so an array or a
+ * scalar result (every row-returning tool) must be wrapped. One uniform rule —
+ * plain object passes through, anything else becomes `{ data: <value> }` — so
+ * clients can rely on the shape without per-tool knowledge.
+ */
+export function toStructuredContent(data: unknown): Record<string, unknown> {
+  const isPlainObject =
+    typeof data === 'object' && data !== null && !Array.isArray(data)
+  return isPlainObject
+    ? (data as Record<string, unknown>)
+    : { data: data ?? null }
+}
+
+/**
+ * Build a success result envelope from data serialized as pretty JSON.
+ *
+ * Emits BOTH representations required for interop: `content` text (every client
+ * can read it, including pre-2025 ones) and `structuredContent` (2025-06-18+,
+ * loosened to any JSON value by SEP-2106 in 2026-07-28) so modern clients get
+ * machine-readable results without re-parsing the text block.
+ */
 export function toJsonResult(data: unknown): CallToolResult {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+    structuredContent: toStructuredContent(data),
   }
 }
 

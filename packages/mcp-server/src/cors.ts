@@ -8,11 +8,21 @@
 // `*` is safe because MCP payloads are auth-gated by bearer token, not cookies.
 // Expose WWW-Authenticate so cross-origin browser clients can read the OAuth
 // discovery challenge on a 401 (browsers hide non-exposed response headers).
+//
+// Allow-Headers must list every header a browser MCP client sends, or the
+// preflight fails and the real request is never made. The 2026-07-28 Streamable
+// HTTP transport REQUIRES `Mcp-Method` / `Mcp-Name` on POST and carries the
+// negotiated revision in `MCP-Protocol-Version`; `Mcp-Session-Id` and
+// `Last-Event-ID` are only used by the pre-2026 legacy fallback but stay listed
+// so older clients keep working. `accept` is needed because MCP clients send
+// `Accept: application/json, text/event-stream` (not a CORS-safelisted value).
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-api-key',
-  'Access-Control-Expose-Headers': 'WWW-Authenticate',
+  'Access-Control-Allow-Headers':
+    'accept, authorization, content-type, x-api-key, mcp-protocol-version, mcp-method, mcp-name, mcp-session-id, last-event-id',
+  'Access-Control-Expose-Headers':
+    'WWW-Authenticate, MCP-Protocol-Version, Mcp-Session-Id',
   'Access-Control-Max-Age': '86400',
 } as const
 

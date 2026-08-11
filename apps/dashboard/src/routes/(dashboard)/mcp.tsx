@@ -1,6 +1,7 @@
-import { Globe, Lock, Zap } from 'lucide-react'
+import { FileCode2, Globe, Lock, Zap } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 
+import { MCP_TOOLS } from '@chm/mcp-server/data'
 import { McpEndpointUrl } from '@/components/mcp/mcp-endpoint-url'
 import { McpExamplePrompts } from '@/components/mcp/mcp-example-prompts'
 import { McpPlayground } from '@/components/mcp/mcp-playground'
@@ -9,18 +10,32 @@ import { McpToolsDocs } from '@/components/mcp/mcp-tools-docs'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { MCP_PROTOCOL_VERSION } from '@/lib/mcp'
 
-function FeaturePill({
+/**
+ * One labeled fact about the endpoint. Label on top, value below, so the row
+ * reads as a stat strip rather than three anonymous pills.
+ */
+function EndpointStat({
   icon,
   label,
+  value,
 }: {
   icon: React.ReactNode
   label: string
+  value: string
 }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-      <span className="text-muted-foreground/70">{icon}</span>
-      {label}
+    <div className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="truncate text-[13px] font-medium">{value}</p>
+      </div>
     </div>
   )
 }
@@ -41,18 +56,26 @@ function McpPage() {
           clients directly to your ClickHouse cluster. Query data, explore
           schemas, and investigate performance, all through natural language.
         </p>
-        <div className="flex flex-wrap gap-4">
-          <FeaturePill
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <EndpointStat
             icon={<Globe className="size-3.5" />}
-            label="Streamable HTTP"
+            label="Transport"
+            value="Streamable HTTP"
           />
-          <FeaturePill
+          <EndpointStat
+            icon={<FileCode2 className="size-3.5" />}
+            label="Protocol"
+            value={MCP_PROTOCOL_VERSION}
+          />
+          <EndpointStat
             icon={<Lock className="size-3.5" />}
-            label="Read-only access"
+            label="Access"
+            value="Read-only"
           />
-          <FeaturePill
+          <EndpointStat
             icon={<Zap className="size-3.5" />}
-            label="8 tools available"
+            label="Tools"
+            value={`${MCP_TOOLS.length} available`}
           />
         </div>
       </div>

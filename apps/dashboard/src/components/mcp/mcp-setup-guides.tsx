@@ -1,7 +1,15 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  MessageSquare,
+  MousePointerClick,
+  Plug,
+  Terminal,
+} from 'lucide-react'
 
-import { CodeBlock } from './copy-button'
+import { CodeBlock, CopyButton } from './copy-button'
 import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -9,11 +17,25 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { buildJsonRpcRequest, MCP_PROTOCOL_VERSION } from '@/lib/mcp'
+import { cn } from '@/lib/utils'
 
 interface SetupGuide {
   id: string
   name: string
   description: string
+  /** Lucide glyph standing in for the client — no new icon dependency. */
+  icon: React.ComponentType<{ className?: string }>
+  /** Where the config lives, e.g. "macOS · Windows" or "CLI". */
+  platform: string
+  /** How the client connects, e.g. "Streamable HTTP". */
+  transport: string
+  /**
+   * The single snippet a user most likely wants (config JSON or the add
+   * command). Surfaced as a copy button on the collapsed row so the common
+   * case needs no expand.
+   */
+  quickCopy: string
   steps: Array<
     | { type: 'text'; content: string }
     | { type: 'code'; content: string; copyText?: string }
@@ -22,29 +44,60 @@ interface SetupGuide {
 
 function GuideSection({ guide }: { guide: SetupGuide }) {
   const [expanded, setExpanded] = useState(false)
+  const Icon = guide.icon
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="space-y-0.5">
-          <div className="text-sm font-medium">{guide.name}</div>
-          <div className="text-xs text-muted-foreground">
-            {guide.description}
-          </div>
-        </div>
-        {expanded ? (
-          <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-3" />
-        ) : (
-          <ChevronRight className="size-4 text-muted-foreground shrink-0 ml-3" />
-        )}
-      </button>
+    <div
+      className={cn(
+        'rounded-lg border overflow-hidden transition-colors',
+        expanded && 'bg-muted/20'
+      )}
+    >
+      <div className="flex items-center gap-2 pr-3">
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 min-w-0"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+            <Icon className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1 space-y-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">{guide.name}</span>
+              <Badge
+                variant="secondary"
+                className="px-1.5 py-0 text-[10px] font-normal"
+              >
+                {guide.platform}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="hidden px-1.5 py-0 text-[10px] font-normal sm:inline-flex"
+              >
+                {guide.transport}
+              </Badge>
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {guide.description}
+            </span>
+          </span>
+          {expanded ? (
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          )}
+        </button>
+        {/* Visible at rest: the whole point of the row is this snippet. */}
+        <CopyButton
+          text={guide.quickCopy}
+          label="Copy config"
+          className="h-7 shrink-0 px-2 text-xs"
+        />
+      </div>
 
       {expanded && (
-        <div className="border-t p-4 space-y-3 bg-muted/20">
+        <div className="space-y-3 border-t p-4">
           {guide.steps.map((step, i) =>
             step.type === 'text' ? (
               <p key={i} className="text-xs text-muted-foreground">
@@ -71,12 +124,39 @@ export function McpSetupGuides() {
     setEndpointUrl(`${window.location.origin}/api/mcp`)
   }, [])
 
+  // The snippets each row copies at rest — defined once and reused as both the
+  // collapsed-row quick copy and the expanded code block.
+  const desktopConfig = JSON.stringify(
+    { mcpServers: { 'clickhouse-monitor': { url: endpointUrl } } },
+    null,
+    2
+  )
+  const cursorConfig = JSON.stringify(
+    {
+      mcpServers: {
+        'clickhouse-monitor': { url: endpointUrl, transport: 'http' },
+      },
+    },
+    null,
+    2
+  )
+  const claudeCodeCommand = `claude mcp add --transport http clickhouse-monitor ${endpointUrl}`
+  // A complete 2026-07-28 request: there is no initialize handshake, so the
+  // protocol version and client capabilities travel in `_meta` on every call.
+  const listToolsPayload = JSON.stringify(
+    buildJsonRpcRequest('tools/list', {})
+  ).replace(/'/g, "'\\''")
+
   const guides: SetupGuide[] = [
     {
       id: 'claude-desktop',
       name: 'Claude Desktop',
       description:
         'Add to claude_desktop_config.json to connect Claude Desktop',
+      icon: MessageSquare,
+      platform: 'macOS · Windows',
+      transport: 'Streamable HTTP',
+      quickCopy: desktopConfig,
       steps: [
         {
           type: 'text',
@@ -87,31 +167,7 @@ export function McpSetupGuides() {
           type: 'text',
           content: 'Add the following to your mcpServers section:',
         },
-        {
-          type: 'code',
-          content: JSON.stringify(
-            {
-              mcpServers: {
-                'clickhouse-monitor': {
-                  url: endpointUrl,
-                },
-              },
-            },
-            null,
-            2
-          ),
-          copyText: JSON.stringify(
-            {
-              mcpServers: {
-                'clickhouse-monitor': {
-                  url: endpointUrl,
-                },
-              },
-            },
-            null,
-            2
-          ),
-        },
+        { type: 'code', content: desktopConfig },
         {
           type: 'text',
           content: 'Restart Claude Desktop to apply the changes.',
@@ -122,17 +178,17 @@ export function McpSetupGuides() {
       id: 'claude-code',
       name: 'Claude Code',
       description: 'Add via the claude mcp add command in your terminal',
+      icon: Terminal,
+      platform: 'CLI',
+      transport: 'Streamable HTTP',
+      quickCopy: claudeCodeCommand,
       steps: [
         {
           type: 'text',
           content:
             'Run the following command in your terminal to add the MCP server to Claude Code:',
         },
-        {
-          type: 'code',
-          content: `claude mcp add --transport http clickhouse-monitor ${endpointUrl}`,
-          copyText: `claude mcp add --transport http clickhouse-monitor ${endpointUrl}`,
-        },
+        { type: 'code', content: claudeCodeCommand },
         {
           type: 'text',
           content:
@@ -149,6 +205,10 @@ export function McpSetupGuides() {
       id: 'cursor',
       name: 'Cursor',
       description: 'Add via Settings > MCP in the Cursor IDE',
+      icon: MousePointerClick,
+      platform: 'IDE',
+      transport: 'Streamable HTTP',
+      quickCopy: cursorConfig,
       steps: [
         {
           type: 'text',
@@ -160,44 +220,22 @@ export function McpSetupGuides() {
           content:
             'Alternatively, add the following to your .cursor/mcp.json file:',
         },
-        {
-          type: 'code',
-          content: JSON.stringify(
-            {
-              mcpServers: {
-                'clickhouse-monitor': {
-                  url: endpointUrl,
-                  transport: 'http',
-                },
-              },
-            },
-            null,
-            2
-          ),
-          copyText: JSON.stringify(
-            {
-              mcpServers: {
-                'clickhouse-monitor': {
-                  url: endpointUrl,
-                  transport: 'http',
-                },
-              },
-            },
-            null,
-            2
-          ),
-        },
+        { type: 'code', content: cursorConfig },
       ],
     },
     {
       id: 'other',
       name: 'Other MCP Clients',
       description: 'Any MCP-compatible client using Streamable HTTP transport',
+      icon: Plug,
+      platform: 'Any',
+      transport: 'Streamable HTTP',
+      quickCopy: endpointUrl,
       steps: [
         {
           type: 'text',
           content:
-            'This server uses the Streamable HTTP transport (stateless mode). Point your MCP client to the endpoint URL:',
+            'This server speaks the 2026-07-28 Streamable HTTP transport (stateless), and still answers pre-2026 clients. Point your MCP client to the endpoint URL:',
         },
         {
           type: 'code',
@@ -213,8 +251,11 @@ export function McpSetupGuides() {
           type: 'code',
           content: `curl -X POST ${endpointUrl} \\
   -H "Content-Type: application/json" \\
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'`,
-          copyText: `curl -X POST ${endpointUrl} -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'`,
+  -H "Accept: application/json, text/event-stream" \\
+  -H "MCP-Protocol-Version: ${MCP_PROTOCOL_VERSION}" \\
+  -H "Mcp-Method: tools/list" \\
+  -d '${listToolsPayload}'`,
+          copyText: `curl -X POST ${endpointUrl} -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -H "MCP-Protocol-Version: ${MCP_PROTOCOL_VERSION}" -H "Mcp-Method: tools/list" -d '${listToolsPayload}'`,
         },
       ],
     },
