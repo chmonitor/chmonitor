@@ -28,13 +28,22 @@ between them from **real** `system.clusters` + Keeper data.
 > interdependent numbers. The numbers are not arbitrary — each encodes a geometric
 > relationship, and several form **cross-file contracts** (change one side, you must
 > change the other). This note is the single place those contracts are written down.
-> Read it before touching `model.ts` / `topo-canvas.tsx`.
+> Read it before touching `model.ts` (or its siblings below) / `topo-canvas.tsx`.
 
 ## File map
 
+`model.ts` used to hold the whole pipeline in one 1500-line file; it now re-exports
+from four siblings so every existing `import { ... } from './model'` keeps working
+unmodified — split for maintainability only, not a public-API change.
+
 | File | Responsibility |
 |------|----------------|
-| `components/cluster-topology/model.ts` | Data model + **pure layout** (assemble → layout → center → build hulls). No React. |
+| `components/cluster-topology/model.ts` | Types (`TopologyData`, `TopologyModel`, `ChNode`, `KeeperNode`, `ClusterHull`, …) + `export *` from the four siblings below — the public entry point, table of contents. |
+| `components/cluster-topology/model-constants.ts` | Layout constants, geometry envelopes (`CH_R`/`KP_R`, `*Extent` functions), `STATUS_COLOR`, `CLUSTER_PALETTE`. |
+| `components/cluster-topology/model-parse.ts` | Row coercion (`num`, `numOrNull`, `truthy`) + node-identity heuristics (`shortId`, `isLoopbackAddr`, `nameScore`, `isPhysicalName`, `isReplicatedDbRow`, `isKeeperNode`). |
+| `components/cluster-topology/model-assemble.ts` | `assembleTopology`: raw ClickHouse rows → layout-free `TopologyData` (host merge, cluster/keeper assembly, edges). |
+| `components/cluster-topology/model-layout.ts` | `layoutTopology` / `buildTopologyModel` + node placement (`layoutKeepers`, `layoutChNodes`, `fitContent`, `enforceMinDistance`, …). |
+| `components/cluster-topology/model-hulls.ts` | Cluster territory + keeper-region overlay geometry (`buildClusterHulls`, `buildKeeperRect`, `nudgeLabels`). |
 | `components/cluster-topology/geometry.ts` | Pure path math: `roundedRectPath`, `offsetHullPath` (legacy), `convexHull`. |
 | `components/cluster-topology/topo-canvas.tsx` | The SVG render: node glyphs, hull paths, curved edges, label pills. |
 | `components/cluster-topology/topology-view.tsx` | Wrapper: status strip, pills, legend, **canvas container**, inspector. Accepts `detailHref`. |
@@ -70,7 +79,7 @@ the determinism test). Per-cluster size jitter uses a stable string hash (`hashS
 
 ## The constants — and the contracts between them
 
-All in `model.ts` unless noted. **Do not change a number in isolation; check the contract.**
+Mostly in `model-constants.ts` (re-exported from `model.ts`) unless noted. **Do not change a number in isolation; check the contract.**
 
 | Constant | Meaning | Contract / why |
 |----------|---------|----------------|
