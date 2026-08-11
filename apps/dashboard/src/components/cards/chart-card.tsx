@@ -89,6 +89,8 @@ interface ChartCardProps
   enableScaleToggle?: boolean
   /** Optional zoom button to render in header */
   zoomButton?: React.ReactNode
+  /** Optional extra controls (e.g. a segmented toggle) rendered in the header */
+  headerControls?: React.ReactNode
   /** Optional icon rendered before the title */
   icon?: React.ReactNode
   /** Optional className override for the header */
@@ -118,6 +120,7 @@ function ChartCardContent({
   staleError,
   onRetry,
   zoomButton,
+  headerControls,
   href,
   ...cardProps
 }: ChartCardProps) {
@@ -175,6 +178,7 @@ function ChartCardContent({
               )}
               <ScaleToggle />
               {zoomButton}
+              {headerControls}
               {dateRangeConfig && onRangeChange && (
                 <DateRangeSelector
                   config={dateRangeConfig}

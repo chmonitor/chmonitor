@@ -1,5 +1,3 @@
-import { CheckIcon } from 'lucide-react'
-
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -61,7 +59,6 @@ export function SegmentedControl({
             aria-pressed={isActive}
             onClick={() => onChange(option.value)}
           >
-            {isActive && <CheckIcon className="size-3" aria-hidden="true" />}
             <span>{option.label}</span>
           </Button>
         )
