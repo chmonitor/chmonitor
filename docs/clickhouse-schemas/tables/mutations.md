@@ -14,7 +14,7 @@ table: system.mutations
 ## chmonitor usage
 
 - Mutations config gates real `parts_in_progress_names` at `since: '25.12'` (older variants stub `[] AS parts_in_progress_names`).
-- `parts_postpone_reasons` is documented for a follow-up UI column.
+- Mutations config gates `parts_postpone_reasons` at `since: '26.2'`; the expanded row detail panel surfaces it.
 
 ## References
 

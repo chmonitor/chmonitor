@@ -13,7 +13,8 @@ export const mutationsDeclarative: DeclarativeQueryConfig = {
     'Information about mutations of MergeTree tables and their progress',
   // Version-aware queries (oldest → newest)
   // 25.12 adds parts_in_progress_names: names of parts currently being mutated.
-  // The expanded row panel surfaces this field (expandable below).
+  // 26.2 adds parts_postpone_reasons: why parts were postponed from mutating.
+  // The expanded row panel surfaces both fields (expandable below).
   sql: [
     {
       since: '19.1',
@@ -64,6 +65,32 @@ export const mutationsDeclarative: DeclarativeQueryConfig = {
         ORDER BY is_done ASC, is_stuck DESC, create_time DESC
       `,
     },
+    {
+      since: '26.2',
+      description:
+        'Includes parts_postpone_reasons: why parts were postponed from mutating',
+      sql: `
+        SELECT
+          database || '.' || table as table,
+          mutation_id,
+          command,
+          create_time,
+          now() - create_time AS elapsed,
+          parts_to_do,
+          formatReadableQuantity(parts_to_do) AS readable_parts_to_do,
+          round(100 * parts_to_do / nullIf(max(parts_to_do) OVER (), 0), 2) as pct_parts_to_do,
+          parts_to_do_names,
+          parts_in_progress_names,
+          parts_postpone_reasons,
+          is_done,
+          if(is_done = 0 AND parts_to_do > 0 AND (now() - create_time) > ${600}, 1, 0) AS is_stuck,
+          latest_failed_part,
+          latest_fail_time,
+          latest_fail_reason
+        FROM system.mutations
+        ORDER BY is_done ASC, is_stuck DESC, create_time DESC
+      `,
+    },
   ],
   columns: [
     'is_done',
@@ -86,8 +113,9 @@ export const mutationsDeclarative: DeclarativeQueryConfig = {
     elapsed: 'duration',
     readable_parts_to_do: 'background-bar',
   },
-  // Expanding a row surfaces parts_to_do_names and parts_in_progress_names
-  // (in CH 25.12+) in the full-width detail panel.
+  // Expanding a row surfaces parts_to_do_names, parts_in_progress_names
+  // (CH 25.12+), and parts_postpone_reasons (CH 26.2+) in the full-width
+  // detail panel.
   expandable: {
     type: 'config-details',
     primaryColumns: [
