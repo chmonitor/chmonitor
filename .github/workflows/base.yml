@@ -99,7 +99,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
+          # Only cache when this job actually installs (build/lint). A `docker`
+          # job skips "Install dependencies", so the pnpm store never exists and
+          # setup-node's post step fails the job with "Path Validation Error:
+          # Path(s) specified in the action for caching do(es) not exist".
+          cache: ${{ (inputs.job-type == 'build' || inputs.job-type == 'lint') && 'pnpm' || '' }}
           cache-dependency-path: |
             pnpm-lock.yaml
             apps/*/pnpm-lock.yaml

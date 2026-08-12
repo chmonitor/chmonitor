@@ -88,8 +88,14 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/dashboard/pnpm-lock.yaml
+          # NO `cache: pnpm` in this workflow. Every deploy job installs
+          # CONDITIONALLY (dorny/paths-filter), so on a run where the app did not
+          # change the install is skipped and the pnpm store directory is never
+          # created — setup-node's post step then fails the whole job with
+          # "Path Validation Error: Path(s) specified in the action for caching
+          # do(es) not exist" (the cloud-hooks regression from #2910). Caching
+          # stays enabled in the workflows whose install is unconditional
+          # (ci.yml, test.yml, a11y.yml, bundle-size.yml, …).
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -215,7 +221,62 @@ jobs:
             bun scripts/patch-wrangler-env.ts
           fi
 
+      - name: Deploy preview
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.actor != 'dependabot[bot]' &&
+          (steps.filter.outputs.dashboard == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy --minify
+
+      - name: Apply D1 migrations (production)
+        # Bring the chm-cloud D1 schema up to date BEFORE the new worker goes
+        # live, so a cold/behind database can't 500 the billing webhook or block
+        # per-user connections (the incident behind migrations 0001–0004).
+        # Idempotent: wrangler records applied migrations in the d1_migrations
+        # ledger, so re-running every deploy is a no-op once applied. The
+        # migrations here are additive (CREATE TABLE), safe to apply pre-deploy.
+        # Production only — never from a PR, which could push an unmerged
+        # migration to the shared preview/prod D1.
+        if: >-
+          github.event_name != 'pull_request' &&
+          (steps.filter.outputs.dashboard == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 migrations apply chm-cloud --remote
+
+      - name: Deploy production
+        if: >-
+          github.event_name != 'pull_request' &&
+          (steps.filter.outputs.dashboard == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy --minify
+
       - name: Set secrets
+        # DEPLOY FIRST, THEN SET SECRETS. `wrangler secret put` fails with CF
+        # error 10215 ("the latest version of your Worker isn't currently
+        # deployed") whenever a previous run uploaded a Worker version without
+        # deploying it — exactly what a concurrency-cancelled deploy leaves
+        # behind. With secrets running before the deploy that wedged production
+        # permanently: every run died at this step and never reached the deploy.
+        # Secret VALUES persist across versions, so deploying with the secrets
+        # already on the Worker and then re-applying them here is safe and is
+        # Cloudflare's recommended way out of 10215.
+        #
         # Dependabot PRs run with GitHub's isolated dependabot secret store, so
         # the deployment secrets resolve empty and `set-secrets.ts --strict`
         # exits 1 — structurally failing the required `dashboard` check on every
@@ -271,51 +332,6 @@ jobs:
           else
             bun ../../scripts/set-secrets.ts --from-env --strict --target dashboard
           fi
-
-      - name: Deploy preview
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.actor != 'dependabot[bot]' &&
-          (steps.filter.outputs.dashboard == 'true' ||
-          github.event_name == 'workflow_dispatch' ||
-          github.event_name == 'release' ||
-          github.ref_type == 'tag')
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy --minify
-
-      - name: Apply D1 migrations (production)
-        # Bring the chm-cloud D1 schema up to date BEFORE the new worker goes
-        # live, so a cold/behind database can't 500 the billing webhook or block
-        # per-user connections (the incident behind migrations 0001–0004).
-        # Idempotent: wrangler records applied migrations in the d1_migrations
-        # ledger, so re-running every deploy is a no-op once applied. The
-        # migrations here are additive (CREATE TABLE), safe to apply pre-deploy.
-        # Production only — never from a PR, which could push an unmerged
-        # migration to the shared preview/prod D1.
-        if: >-
-          github.event_name != 'pull_request' &&
-          (steps.filter.outputs.dashboard == 'true' ||
-          github.event_name == 'workflow_dispatch' ||
-          github.event_name == 'release' ||
-          github.ref_type == 'tag')
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler d1 migrations apply chm-cloud --remote
-
-      - name: Deploy production
-        if: >-
-          github.event_name != 'pull_request' &&
-          (steps.filter.outputs.dashboard == 'true' ||
-          github.event_name == 'workflow_dispatch' ||
-          github.event_name == 'release' ||
-          github.ref_type == 'tag')
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy --minify
 
       - name: Verify deployment
         # Skip for dependabot PRs — no preview was deployed (see Set secrets).
@@ -373,35 +389,6 @@ jobs:
         working-directory: .
         run: pnpm install --frozen-lockfile
 
-      - name: Set MCP worker secrets
-        # Skip for dependabot — its isolated secret store resolves the deploy
-        # secrets empty and set-secrets.ts --strict exits 1 (see Set secrets).
-        if: >-
-          github.actor != 'dependabot[bot]' &&
-          (steps.filter.outputs.mcp == 'true' ||
-          github.event_name == 'workflow_dispatch' ||
-          github.event_name == 'release' ||
-          github.ref_type == 'tag')
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
-          CHM_API_KEY_SECRET: ${{ secrets.CHM_API_KEY_SECRET }}
-          # Enables Clerk OAuth verification on the MCP worker. set-secrets.ts reads
-          # CLERK_SECRET_KEY_TEST first for --env preview (resolveValue), and
-          # CLERK_SECRET_KEY for production. Without the verifier the worker has the
-          # issuer (pubkey in wrangler.toml) but rejects every Clerk OAuth token.
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          CLERK_SECRET_KEY_TEST: ${{ secrets.CLERK_SECRET_KEY_TEST }}
-        working-directory: apps/mcp
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bun ../../scripts/set-secrets.ts --from-env --strict --target mcp --env preview
-          else
-            bun ../../scripts/set-secrets.ts --from-env --strict --target mcp
-          fi
-
       # The committed wrangler.toml [vars] are GENERIC placeholders (OSS-clean).
       # The real PRIVATE host topology + Clerk publishable key are injected here
       # at deploy with --var, from the same repo secrets the dashboard uses plus
@@ -450,6 +437,39 @@ jobs:
             --var CLICKHOUSE_USER:"$CH_USER" \
             --var CLICKHOUSE_NAME:"$CH_NAME" \
             --var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:"$CLERK_PK"
+
+      - name: Set MCP worker secrets
+        # Runs AFTER the MCP deploys, same reason as the dashboard "Set secrets"
+        # step: `wrangler secret put` errors 10215 when the Worker's latest
+        # version was uploaded but never deployed.
+        #
+        # Skip for dependabot — its isolated secret store resolves the deploy
+        # secrets empty and set-secrets.ts --strict exits 1 (see Set secrets).
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (steps.filter.outputs.mcp == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
+          CHM_API_KEY_SECRET: ${{ secrets.CHM_API_KEY_SECRET }}
+          # Enables Clerk OAuth verification on the MCP worker. set-secrets.ts reads
+          # CLERK_SECRET_KEY_TEST first for --env preview (resolveValue), and
+          # CLERK_SECRET_KEY for production. Without the verifier the worker has the
+          # issuer (pubkey in wrangler.toml) but rejects every Clerk OAuth token.
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_SECRET_KEY_TEST: ${{ secrets.CLERK_SECRET_KEY_TEST }}
+        working-directory: apps/mcp
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun ../../scripts/set-secrets.ts --from-env --strict --target mcp --env preview
+          else
+            bun ../../scripts/set-secrets.ts --from-env --strict --target mcp
+          fi
 
       # Telemetry collector (apps/telemetry) — standalone, no deps, no secrets.
       # Public write-only ingest → Analytics Engine (+ optional D1). The
@@ -562,8 +582,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/landing/pnpm-lock.yaml
+          # No pnpm cache — conditional install, see the dashboard job above.
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -669,8 +688,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/docs/pnpm-lock.yaml
+          # No pnpm cache — conditional install, see the dashboard job above.
 
       - name: Detect changes
         id: filter
@@ -756,8 +774,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/blog/pnpm-lock.yaml
+          # No pnpm cache — conditional install, see the dashboard job above.
 
       - name: Detect changes
         id: filter
@@ -841,8 +858,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/bug-handler/pnpm-lock.yaml
+          # No pnpm cache — conditional install, see the dashboard job above.
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -986,8 +1002,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/cloud-hooks/pnpm-lock.yaml
+          # No pnpm cache — conditional install, see the dashboard job above.
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

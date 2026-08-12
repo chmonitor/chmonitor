@@ -4,7 +4,7 @@
  */
 
 import type { ClusterTopologyRow } from '@/lib/query-config/system/clusters-topology'
-import type { ChNode, KeeperNode, KeeperRole } from './model'
+import type { ChNode, KeeperNode, KeeperRole } from './model-types'
 
 /** Type guard: is this node a Keeper (vs a ClickHouse node)? */
 export function isKeeperNode(n: KeeperNode | ChNode): n is KeeperNode {

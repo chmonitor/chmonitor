@@ -24,7 +24,7 @@ import type {
   NodeLiveMetrics,
   TopologyData,
   TopologyMeta,
-} from './model'
+} from './model-types'
 
 import { CLUSTER_PALETTE } from './model-constants'
 import {
