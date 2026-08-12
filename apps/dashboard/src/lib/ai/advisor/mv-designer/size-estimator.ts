@@ -6,7 +6,28 @@
 
 import { formatBytes } from '@/lib/utils'
 
-import type { ImpactEstimate, SizeEstimate, SizeEstimateInput } from './index'
+export interface SizeEstimate {
+  /** Estimated row count for the MV/projection — approximated by the estimated distinct grouping-key combinations. */
+  estimatedRows: number
+  estimatedBytes: number
+  readableEstimatedBytes: string
+  /** distinctCombinations / sourceRows, clamped to [0, 1]. */
+  aggregationRatio: number
+  label: 'estimate'
+}
+
+export interface ImpactEstimate {
+  callsInWindow: number
+  currentReadBytesTotal: number
+  estimatedBytesSavedTotal: number
+  label: 'estimate'
+}
+
+export interface SizeEstimateInput {
+  sourceRows: number
+  sourceBytes: number
+  distinctCombinations: number
+}
 
 /**
  * MV/projection size ≈ source parts size × aggregation ratio, where the

@@ -40,7 +40,9 @@
 
 import { formatQualifiedTable } from '@/lib/ai/agent/tools/sql-analysis'
 
+import type { DesignKind } from './design-selection'
 import type { MinedShape } from './shape-mining'
+import type { ImpactEstimate, SizeEstimate } from './size-estimator'
 
 import { buildDdl, buildRiskNote } from './ddl'
 import { chooseDesign } from './design-selection'
@@ -97,31 +99,18 @@ const QUERY_LOG_UNAVAILABLE_MESSAGE =
 
 // ---------------------------------------------------------------------------
 // Types
+//
+// `AggregateCall` lives in `./sql-parsing` (where it's first produced),
+// `DesignKind`/`Design`/`DesignInput` in `./design-selection`, and
+// `SizeEstimate`/`ImpactEstimate`/`SizeEstimateInput` in `./size-estimator` —
+// each owned by the module that defines it, so the sibling modules never need
+// to import back from this orchestrator file (which would create a circular
+// dependency, since this file already imports their functions). All of them
+// are re-exported below via `export * from './<sibling>'`, so the full type
+// surface is still available from `@/lib/ai/advisor/mv-designer` exactly as
+// before. Only the result-level types below — used solely by this file's own
+// orchestrator — are declared here.
 // ---------------------------------------------------------------------------
-
-export type DesignKind = 'projection' | 'summing_mv' | 'aggregating_mv'
-
-export interface AggregateCall {
-  func: string
-  arg: string
-}
-
-export interface SizeEstimate {
-  /** Estimated row count for the MV/projection — approximated by the estimated distinct grouping-key combinations. */
-  estimatedRows: number
-  estimatedBytes: number
-  readableEstimatedBytes: string
-  /** distinctCombinations / sourceRows, clamped to [0, 1]. */
-  aggregationRatio: number
-  label: 'estimate'
-}
-
-export interface ImpactEstimate {
-  callsInWindow: number
-  currentReadBytesTotal: number
-  estimatedBytesSavedTotal: number
-  label: 'estimate'
-}
 
 export interface MvRecommendation {
   kind: DesignKind
@@ -153,24 +142,6 @@ export interface MvDesignerResult {
 }
 
 export type DesignResult = MvDesignerUnavailable | MvDesignerResult
-
-export interface DesignInput {
-  tableCount: number
-  groupByKeys: string[]
-  sortingKeyCols: string[]
-  aggregateCalls: AggregateCall[]
-}
-
-export interface Design {
-  kind: DesignKind
-  rationale: string
-}
-
-export interface SizeEstimateInput {
-  sourceRows: number
-  sourceBytes: number
-  distinctCombinations: number
-}
 
 // ---------------------------------------------------------------------------
 // Orchestration — ClickHouse-backed. Thin wrappers around the pure logic in

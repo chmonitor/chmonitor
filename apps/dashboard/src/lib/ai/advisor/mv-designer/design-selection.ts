@@ -5,10 +5,24 @@
  * See `./index.ts` for the module overview.
  */
 
-import type { AggregateCall, Design, DesignInput } from './index'
+import type { AggregateCall } from './sql-parsing'
 
 /** ClickHouse aggregate functions whose merge semantics are a plain sum (safe for SummingMergeTree). Everything else needs `-State`/`-Merge` (AggregatingMergeTree). */
 const SUM_COMPATIBLE_FUNCTIONS = new Set(['sum', 'count'])
+
+export type DesignKind = 'projection' | 'summing_mv' | 'aggregating_mv'
+
+export interface DesignInput {
+  tableCount: number
+  groupByKeys: string[]
+  sortingKeyCols: string[]
+  aggregateCalls: AggregateCall[]
+}
+
+export interface Design {
+  kind: DesignKind
+  rationale: string
+}
 
 function normalizeKey(key: string): string {
   return key.trim().replace(/\s+/g, ' ').toLowerCase()
