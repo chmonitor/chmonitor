@@ -72,9 +72,10 @@ export interface SweepSummary {
  *  1. {@link resolveSweepContext} (`sweep/resolve-config.ts`) — settings,
  *     routes, per-channel config, rules, thresholds/hysteresis, hosts,
  *     maintenance/quiet windows, digest window, ACKs.
- *  2. {@link createDispatcher} (`sweep/dispatch.ts`) — dedup decision,
- *     suppression gates (`sweep/suppression.ts`), per-channel fan-out, digest
- *     grouping, alert-history audit.
+ *  2. {@link createDispatcher} (`sweep/dispatch/`) — dedup decision,
+ *     suppression gates (`sweep/suppression.ts`), per-channel fan-out
+ *     (`sweep/dispatch/channels/*`), digest grouping (`sweep/dispatch/digest.ts`),
+ *     alert-history audit.
  *  3. {@link runHostSweep} (`sweep/run-host.ts`) — per-host base + compound
  *     rule evaluation, feeding each result to the dispatcher.
  *  4. Aggregation into {@link SweepSummary}.
