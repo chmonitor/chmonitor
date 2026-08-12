@@ -1,0 +1,108 @@
+/**
+ * Operations tab charts - merge operations and replication health
+ */
+
+import {
+  ChartMergeAvgDuration,
+  ChartMergeCount,
+  ChartMergeSumReadRows,
+  ChartMutationProgress,
+  ChartReadonlyReplica,
+  ChartReplicationLag,
+  ChartReplicationQueueCount,
+  ChartReplicationSummaryTable,
+  ChartSummaryStuckMutations,
+  ChartSummaryUsedByMerges,
+} from '../-charts-lazy'
+import type { OverviewChartConfig } from './types'
+
+export const OPERATIONS_TAB_CHARTS: OverviewChartConfig[] = [
+  {
+    id: 'merge-count',
+    component: ChartMergeCount,
+    title: 'Merge and PartMutation',
+    lastHours: 24,
+    interval: 'toStartOfHour',
+    className: 'w-full h-full',
+    type: 'custom',
+    href: '/merges',
+  },
+  {
+    id: 'merge-avg-duration',
+    component: ChartMergeAvgDuration,
+    title: 'Merge Avg Duration',
+    lastHours: 24 * 14,
+    interval: 'toStartOfDay',
+    className: 'w-full h-full',
+    type: 'bar',
+    href: '/merge-performance',
+  },
+  {
+    id: 'replication-queue-count',
+    component: ChartReplicationQueueCount,
+    title: 'Replication Queue',
+    className: 'w-full h-full',
+    type: 'metric',
+    href: '/replication-queue',
+  },
+  {
+    id: 'replication-summary-table',
+    component: ChartReplicationSummaryTable,
+    title: 'Replication Queue by Table',
+    className: 'w-full h-full',
+    type: 'table',
+    href: '/replication-queue',
+  },
+  {
+    id: 'readonly-replica',
+    component: ChartReadonlyReplica,
+    title: 'Readonly Replicas',
+    lastHours: 24,
+    interval: 'toStartOfFifteenMinutes',
+    className: 'w-full h-full',
+    type: 'bar',
+    href: '/replicas',
+  },
+  {
+    id: 'replication-lag',
+    component: ChartReplicationLag,
+    title: 'Replication Lag',
+    className: 'w-full h-full',
+    type: 'table',
+    href: '/replicas',
+  },
+  {
+    id: 'mutation-progress',
+    component: ChartMutationProgress,
+    title: 'Mutation Progress',
+    className: 'w-full h-full',
+    type: 'custom',
+    href: '/mutations',
+  },
+  {
+    id: 'merge-sum-read-rows',
+    component: ChartMergeSumReadRows,
+    title: 'Merge Read Rows',
+    lastHours: 24 * 14,
+    interval: 'toStartOfDay',
+    className: 'w-full h-full',
+    type: 'bar',
+    href: '/merge-performance',
+  },
+  {
+    id: 'summary-used-by-merges',
+    component: ChartSummaryUsedByMerges,
+    title: 'Merge Resource Usage',
+    className: 'w-full h-full',
+    type: 'metric',
+    href: '/merges',
+  },
+  {
+    id: 'summary-stuck-mutations',
+    component: ChartSummaryStuckMutations,
+    title: 'Stuck Mutations',
+    className: 'w-full h-full',
+    type: 'metric',
+    href: '/mutations',
+  },
+]
