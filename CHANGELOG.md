@@ -5,6 +5,63 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.2](https://github.com/chmonitor/chmonitor/compare/v0.3.1...v0.3.2) (2026-08-12)
+
+
+### ✨ Features
+
+* **alerts:** redesign alert-settings channels as a configured-first card grid ([#2881](https://github.com/chmonitor/chmonitor/issues/2881)) ([382a02a](https://github.com/chmonitor/chmonitor/commit/382a02acc120ff0ff6512feaea48bca1296ee709))
+* **charts:** responsive month window for the query activity heatmap ([#2874](https://github.com/chmonitor/chmonitor/issues/2874)) ([4760520](https://github.com/chmonitor/chmonitor/commit/4760520d7885efcbd608db2f345a70ada3877a16))
+* **explorer:** make the table Overview tab engine-aware and denser ([#2871](https://github.com/chmonitor/chmonitor/issues/2871)) ([b6a8c6a](https://github.com/chmonitor/chmonitor/commit/b6a8c6a44b64c6d461011d256a6f4e6520489b99))
+* **explorer:** sql syntax highlight for ddl ([#2872](https://github.com/chmonitor/chmonitor/issues/2872)) ([34ed2b3](https://github.com/chmonitor/chmonitor/commit/34ed2b3f0393f911c040b9719114316821c45082))
+* **fleet:** add fleet summary strip, richer host metrics and sparklines ([#2880](https://github.com/chmonitor/chmonitor/issues/2880)) ([15332e7](https://github.com/chmonitor/chmonitor/commit/15332e7620f534a56c1062c79f6d6008ecb2722c))
+* **mcp:** real Playground client + 2026-07-28 spec gaps + /mcp redesign ([#2882](https://github.com/chmonitor/chmonitor/issues/2882)) ([2d5ef1b](https://github.com/chmonitor/chmonitor/commit/2d5ef1b5e9b1d4eac7c1fe01644d02c2f2e2e0d1))
+
+
+### 🐛 Bug Fixes
+
+* **agent:** hide unconfigured providers and parse chat auth errors ([#2869](https://github.com/chmonitor/chmonitor/issues/2869)) ([f0ca2fa](https://github.com/chmonitor/chmonitor/commit/f0ca2fa3984e2a70660897e96f4ab8a60db9e1e8))
+* **agents:** collapse conversation rail by default on small screens ([#2879](https://github.com/chmonitor/chmonitor/issues/2879)) ([c402bd6](https://github.com/chmonitor/chmonitor/commit/c402bd6a29131af065fa13ed19ac554fd930525f))
+* **ai:** break mv-designer module's circular type imports ([#2963](https://github.com/chmonitor/chmonitor/issues/2963)) ([252555f](https://github.com/chmonitor/chmonitor/commit/252555fef0e2c4565f4cdf68aa6dbd86fba58e95))
+* **billing:** count org seats from Clerk totalCount, not the first page ([#2923](https://github.com/chmonitor/chmonitor/issues/2923)) ([e83f490](https://github.com/chmonitor/chmonitor/commit/e83f49070ad327a40097ff6e7806d492391a9f8f))
+* **charts:** drop stale 'last year' wording from the heatmap empty state ([#2878](https://github.com/chmonitor/chmonitor/issues/2878)) ([e299cd2](https://github.com/chmonitor/chmonitor/commit/e299cd2356acfbef80542c953c5c4201aa02d7c6))
+* **charts:** polish Top Tables by Size toggle and scrollbar ([#2877](https://github.com/chmonitor/chmonitor/issues/2877)) ([9acde14](https://github.com/chmonitor/chmonitor/commit/9acde14bf60090a0d7b8f8549821312a7b140d70))
+* **charts:** remove default black axis line from bar charts ([#2876](https://github.com/chmonitor/chmonitor/issues/2876)) ([d2731cc](https://github.com/chmonitor/chmonitor/commit/d2731ccbb651d9595045b36e005c42840621e15a))
+* **ci:** harden workflows — pipefail on manifest step, pnpm caching, frozen-lockfile ([#2910](https://github.com/chmonitor/chmonitor/issues/2910)) ([976bf78](https://github.com/chmonitor/chmonitor/commit/976bf782a37a4339f0be1ad3efcd83b2de34328f)), closes [#2901](https://github.com/chmonitor/chmonitor/issues/2901) [#2890](https://github.com/chmonitor/chmonitor/issues/2890) [#2891](https://github.com/chmonitor/chmonitor/issues/2891)
+* **ci:** stop deploy jobs failing on pnpm cache, 10215 secrets order, topology cycles ([#2932](https://github.com/chmonitor/chmonitor/issues/2932)) ([5672d5e](https://github.com/chmonitor/chmonitor/commit/5672d5e77d71645fa48ed106cd9c1a3cdb836d45))
+* **clickhouse-client:** pool key, release leaks, credential list alignment, probe dedup ([#2961](https://github.com/chmonitor/chmonitor/issues/2961)) ([6dd137c](https://github.com/chmonitor/chmonitor/commit/6dd137cee9678157191c4a9823e11fe3323af926)), closes [#2945](https://github.com/chmonitor/chmonitor/issues/2945) [#2946](https://github.com/chmonitor/chmonitor/issues/2946) [#2947](https://github.com/chmonitor/chmonitor/issues/2947) [#2948](https://github.com/chmonitor/chmonitor/issues/2948) [#2953](https://github.com/chmonitor/chmonitor/issues/2953)
+* **cloud-hooks:** collapse to a single cron trigger to fit account cron budget ([#2866](https://github.com/chmonitor/chmonitor/issues/2866)) ([b54664c](https://github.com/chmonitor/chmonitor/commit/b54664c4fecb852aeaeb6d3b078f305bd7b01d28))
+* **cloud:** hard-lock cloud mode to the hosted build pipeline ([#2870](https://github.com/chmonitor/chmonitor/issues/2870)) ([5131ae9](https://github.com/chmonitor/chmonitor/commit/5131ae988bbea382d6fdb5beb096622e5cef1583))
+* cluster-topology stale counter, formatBytes/Count sub-1 unit, insights long-query wording ([#2921](https://github.com/chmonitor/chmonitor/issues/2921)) ([69d7c9f](https://github.com/chmonitor/chmonitor/commit/69d7c9f160ccb59e2d93aa4867e086c8ee445e24)), closes [#2911](https://github.com/chmonitor/chmonitor/issues/2911) [#2915](https://github.com/chmonitor/chmonitor/issues/2915) [#2916](https://github.com/chmonitor/chmonitor/issues/2916)
+* **dashboard:** finite clampLimit fallback and LRU memory cache ([#2956](https://github.com/chmonitor/chmonitor/issues/2956)) ([95cf5a0](https://github.com/chmonitor/chmonitor/commit/95cf5a04cdeddc2bf8347af53fbadfb706a77e53)), closes [#2952](https://github.com/chmonitor/chmonitor/issues/2952) [#2954](https://github.com/chmonitor/chmonitor/issues/2954)
+* **deploy:** skip schedules API entirely — account over free cron budget ([#2868](https://github.com/chmonitor/chmonitor/issues/2868)) ([c7ca683](https://github.com/chmonitor/chmonitor/commit/c7ca6836405c55313e9298535fce7686ea6e0d1e))
+* **insights:** redesign the AI Insights card, copy and popover dialog ([#2873](https://github.com/chmonitor/chmonitor/issues/2873)) ([14502f7](https://github.com/chmonitor/chmonitor/commit/14502f741f01fa417023367db5a11996926fb4e5))
+* **lint:** resolve biome errors on main ([#2917](https://github.com/chmonitor/chmonitor/issues/2917)) ([c0874f7](https://github.com/chmonitor/chmonitor/commit/c0874f7d2b5c42e4b9a27b8f89cc0904fb1320a6))
+* **lint:** resolve biome errors reintroduced by refactor merges ([#2931](https://github.com/chmonitor/chmonitor/issues/2931)) ([fb1e246](https://github.com/chmonitor/chmonitor/commit/fb1e246351f7efb4ef12e32d82d1fc743055c58e))
+* **sidebar:** hide count/new badge when the pin action is visible ([#2875](https://github.com/chmonitor/chmonitor/issues/2875)) ([f0c29c8](https://github.com/chmonitor/chmonitor/commit/f0c29c8fe730f6e0be950ea5aa91d846efd639fc))
+* **sql-builder:** render SqlFragment columns via toSql in ExtendedBuilder ([#2967](https://github.com/chmonitor/chmonitor/issues/2967)) ([ba0f29b](https://github.com/chmonitor/chmonitor/commit/ba0f29bbc0c316aba85771121188566fdfe8c79c)), closes [#2966](https://github.com/chmonitor/chmonitor/issues/2966)
+* **sql-builder:** stop scanning string literals in validator; fix '/*/' comment parsing ([#2958](https://github.com/chmonitor/chmonitor/issues/2958)) ([fcaeb81](https://github.com/chmonitor/chmonitor/commit/fcaeb81630b3ae925ac969ec8c5fa3ee756c1fc1)), closes [#2949](https://github.com/chmonitor/chmonitor/issues/2949) [#2950](https://github.com/chmonitor/chmonitor/issues/2950)
+
+
+### ♻️ Refactoring
+
+* **advisor:** extract shared query-advisor-core package ([#2968](https://github.com/chmonitor/chmonitor/issues/2968)) ([cc8ec4a](https://github.com/chmonitor/chmonitor/commit/cc8ec4aa38b5aa20e6c091544c039999ea95be53)), closes [#2936](https://github.com/chmonitor/chmonitor/issues/2936) [#2940](https://github.com/chmonitor/chmonitor/issues/2940)
+* **agent-api:** split the 713-line handlePost into phase modules ([#2924](https://github.com/chmonitor/chmonitor/issues/2924)) ([bb71ded](https://github.com/chmonitor/chmonitor/commit/bb71ded57e41b75750c087f389ceb4becdf9701a)), closes [#2885](https://github.com/chmonitor/chmonitor/issues/2885)
+* **ai:** reuse query-advisor-core helpers in sql-analysis ([#2970](https://github.com/chmonitor/chmonitor/issues/2970)) ([a60492a](https://github.com/chmonitor/chmonitor/commit/a60492ab6fa84f929402fd9a0b172df1bf1a0e0a)), closes [#2969](https://github.com/chmonitor/chmonitor/issues/2969)
+* **ai:** split mv-designer into cohesive modules ([#2960](https://github.com/chmonitor/chmonitor/issues/2960)) ([6c05ed1](https://github.com/chmonitor/chmonitor/commit/6c05ed196e95d8454b0602f30e55b7f76efd93ef)), closes [#2939](https://github.com/chmonitor/chmonitor/issues/2939)
+* **charts:** collapse donut formatter, split lazy chart imports and system-charts ([#2925](https://github.com/chmonitor/chmonitor/issues/2925)) ([0187695](https://github.com/chmonitor/chmonitor/commit/018769555ddc0ee7bea95d6b9a14a3b7d0a553aa))
+* **charts:** split query-count-calendar into cohesive modules ([#2957](https://github.com/chmonitor/chmonitor/issues/2957)) ([3b42fa4](https://github.com/chmonitor/chmonitor/commit/3b42fa430fb437d2eeaa7cdc902e910c65935b7f)), closes [#2941](https://github.com/chmonitor/chmonitor/issues/2941)
+* **clickhouse-client:** split the fetchData funnel into testable modules ([#2926](https://github.com/chmonitor/chmonitor/issues/2926)) ([9041c1a](https://github.com/chmonitor/chmonitor/commit/9041c1a2b25855928070fbe1d4649dd5e8b6a8b5)), closes [#2893](https://github.com/chmonitor/chmonitor/issues/2893)
+* **cluster-topology,data-table:** split model.ts into layers + extract DataTable hooks ([#2928](https://github.com/chmonitor/chmonitor/issues/2928)) ([fc45737](https://github.com/chmonitor/chmonitor/commit/fc457373f77ecb6068da8eb43ee5c3f78ee04497)), closes [#2886](https://github.com/chmonitor/chmonitor/issues/2886) [#2889](https://github.com/chmonitor/chmonitor/issues/2889)
+* **cluster-topology:** extract pure geometry from topo-canvas ([#2959](https://github.com/chmonitor/chmonitor/issues/2959)) ([9701c95](https://github.com/chmonitor/chmonitor/commit/9701c953984a3f7085c84d44bf17ddef41c5afe5)), closes [#2943](https://github.com/chmonitor/chmonitor/issues/2943)
+* **connections,menu:** split ConnectionForm and menuItemsConfig ([#2929](https://github.com/chmonitor/chmonitor/issues/2929)) ([1b1ff34](https://github.com/chmonitor/chmonitor/commit/1b1ff34ab682255ef485f867adab0198af9ffdd2)), closes [#2888](https://github.com/chmonitor/chmonitor/issues/2888) [#2897](https://github.com/chmonitor/chmonitor/issues/2897)
+* **health:** split runHealthSweep into a testable pipeline ([#2919](https://github.com/chmonitor/chmonitor/issues/2919)) ([5db5784](https://github.com/chmonitor/chmonitor/commit/5db5784ad82de64a5d129b909c054b9a3d7a0786))
+* **health:** split sweep dispatch into per-channel modules ([#2964](https://github.com/chmonitor/chmonitor/issues/2964)) ([2e73ebb](https://github.com/chmonitor/chmonitor/commit/2e73ebb6077f0ee36de19e7a46997fe98c5c9215)), closes [#2938](https://github.com/chmonitor/chmonitor/issues/2938)
+* **routes:** split -charts-config into per-tab modules ([#2955](https://github.com/chmonitor/chmonitor/issues/2955)) ([06a277c](https://github.com/chmonitor/chmonitor/commit/06a277c05a98a4efcdc8a2c9a7a481e65c7e8e88)), closes [#2942](https://github.com/chmonitor/chmonitor/issues/2942)
+* split advisor.ts and fix cross-file test mock pollution ([#2930](https://github.com/chmonitor/chmonitor/issues/2930)) ([fad191f](https://github.com/chmonitor/chmonitor/commit/fad191fdf0ca9be326a7cf3f794e0e90000705d1)), closes [#2899](https://github.com/chmonitor/chmonitor/issues/2899) [#2922](https://github.com/chmonitor/chmonitor/issues/2922)
+* **sql-builder:** extract shared render engine used by builder and extension ([#2962](https://github.com/chmonitor/chmonitor/issues/2962)) ([dfc7cac](https://github.com/chmonitor/chmonitor/commit/dfc7cace9582cefd421125ff529a2d8d138304a2)), closes [#2937](https://github.com/chmonitor/chmonitor/issues/2937)
+* **ui:** split tool-output, query-detail-view, and command-palette ([#2927](https://github.com/chmonitor/chmonitor/issues/2927)) ([87129b3](https://github.com/chmonitor/chmonitor/commit/87129b39016a22d56ff1fa9d0353207584ef5d79))
+
 ## [0.3.1](https://github.com/chmonitor/chmonitor/compare/v0.3.0...v0.3.1) (2026-08-11)
 
 
