@@ -1,19 +1,27 @@
 import { validateSqlQuery } from '@chm/sql-builder'
+import {
+  extractReferencedTables,
+  formatQualifiedTable,
+  normalizeIdentifier,
+  quoteIdentifier,
+  type ReferencedTable,
+} from '@chm/query-advisor-core'
 
-export interface ReferencedTable {
-  raw: string
-  database: string
-  table: string
-  qualifiedName: string
+// Re-exported so existing `from './sql-analysis'` imports (tests, tool
+// wiring) keep working unchanged — these are pure parsing helpers now shared
+// via `@chm/query-advisor-core` (see recommendation-engine.ts for the same
+// pattern).
+export {
+  extractReferencedTables,
+  formatQualifiedTable,
+  quoteIdentifier,
+  type ReferencedTable,
 }
 
 export interface ReferencedColumn {
   name: string
   count: number
 }
-
-const TABLE_REFERENCE_PATTERN =
-  /\b(?:FROM|JOIN)\s+((?:`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*)(?:\s*\.\s*(?:`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*))?)/gi
 
 const WHERE_COLUMN_PATTERN =
   /\b(?:WHERE|AND|OR|PREWHERE|ON)\s+(?:\w+\.)?(`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*)\s*(?:=|!=|<>|<|>|<=|>=|\bIN\b|\bLIKE\b|\bILIKE\b|\bBETWEEN\b)/gi
@@ -24,66 +32,10 @@ const AGGREGATION_PATTERN =
 const LIMIT_PATTERN = /\bLIMIT\s+\d+/i
 const GROUP_BY_PATTERN = /\bGROUP\s+BY\b/i
 
-function stripQuotedIdentifier(value: string): string {
-  const trimmed = value.trim()
-  if (
-    (trimmed.startsWith('`') && trimmed.endsWith('`')) ||
-    (trimmed.startsWith('"') && trimmed.endsWith('"'))
-  ) {
-    return trimmed.slice(1, -1)
-  }
-  return trimmed
-}
-
-function normalizeIdentifier(value: string): string {
-  return stripQuotedIdentifier(value.trim()).replace(/\s+/g, '')
-}
-
 export function validateAgentSql(sql: string): string {
   const trimmed = sql.trim().replace(/;+$/g, '')
   validateSqlQuery(trimmed)
   return trimmed
-}
-
-export function extractReferencedTables(
-  sql: string,
-  defaultDatabase = 'default'
-): ReferencedTable[] {
-  const tables = new Map<string, ReferencedTable>()
-
-  // Extract CTE names to filter them out later (they're aliases, not real tables)
-  const cteNames = new Set<string>()
-  const cteMatch = sql.match(/WITH\s+(.+?)\s+AS\s*\(/i)
-  if (cteMatch) {
-    // Parse CTE definitions: "cte1 AS (...), cte2 AS (...)"
-    const cteDefs = cteMatch[1].split(/\),\s*/)
-    for (const cteDef of cteDefs) {
-      const name = cteDef.trim().split(/\s+/)[0]
-      if (name) {
-        cteNames.add(normalizeIdentifier(name))
-      }
-    }
-  }
-
-  for (const match of sql.matchAll(TABLE_REFERENCE_PATTERN)) {
-    const raw = match[1]
-    if (!raw || raw.startsWith('(')) continue
-
-    const parts = raw.split('.').map(normalizeIdentifier).filter(Boolean)
-    const database = parts.length > 1 ? parts[0] : defaultDatabase
-    const table = parts.length > 1 ? parts[1] : parts[0]
-    if (!database || !table) continue
-
-    // Skip if this is a CTE alias (not a real table)
-    if (cteNames.has(table)) continue
-
-    const qualifiedName = `${database}.${table}`
-    if (!tables.has(qualifiedName)) {
-      tables.set(qualifiedName, { raw, database, table, qualifiedName })
-    }
-  }
-
-  return [...tables.values()]
 }
 
 export function extractWhereColumns(sql: string): ReferencedColumn[] {
@@ -116,14 +68,6 @@ export function isLikelyExploratorySelect(sql: string): boolean {
     !hasAggregation(sql) &&
     !upper.includes(' FORMAT ')
   )
-}
-
-export function quoteIdentifier(identifier: string): string {
-  return `\`${identifier.replace(/`/g, '``')}\``
-}
-
-export function formatQualifiedTable(database: string, table: string): string {
-  return `${quoteIdentifier(database)}.${quoteIdentifier(table)}`
 }
 
 export function scoreOrderByCandidate(columnName: string): number {
