@@ -1,7 +1,7 @@
 /**
  * MV / projection designer tool.
  *
- * Wraps `lib/ai/advisor/mv-designer.ts` — mines frequent aggregation shapes
+ * Wraps `lib/ai/advisor/mv-designer/` — mines frequent aggregation shapes
  * from `system.query_log` and returns ranked MV/projection DDL
  * recommendations with a size estimate, impact, and risk. Recommend-only:
  * copy-DDL, never applied. See plans/47-mv-projection-designer.md.
