@@ -36,6 +36,7 @@ import type {
   SqlValue,
 } from './types'
 
+import { renderExtendedQuery } from './render'
 import { validateBuilderState } from './validator'
 
 /**
@@ -395,7 +396,7 @@ export class ExtendedBuilder {
   build(): string {
     const state = this.getModifiedState()
     validateBuilderState(state)
-    return this.buildSql(state)
+    return renderExtendedQuery(state)
   }
 
   /**
@@ -417,7 +418,7 @@ export class ExtendedBuilder {
   buildPretty(): string {
     const state = this.getModifiedState()
     validateBuilderState(state)
-    return this.buildSql(state, true)
+    return renderExtendedQuery(state, true)
   }
 
   // ============================================================================
@@ -605,108 +606,5 @@ export class ExtendedBuilder {
       return (column as any).sql as string
     }
     return String(column)
-  }
-
-  /**
-   * Builds SQL string from state
-   * Note: This is a simplified implementation. The real builder should be more robust.
-   */
-  private buildSql(state: BuilderState, pretty = false): string {
-    const nl = pretty ? '\n' : ' '
-    const indent = pretty ? '  ' : ''
-    const parts: string[] = []
-
-    // SELECT
-    const columns = state.columns.map((col) => {
-      if (typeof col === 'string') return col
-      if ('toString' in col && typeof col.toString === 'function') {
-        return col.toString()
-      }
-      return String(col)
-    })
-    parts.push(`SELECT${nl}${indent}${columns.join(`,${nl}${indent}`)}`)
-
-    // FROM
-    if (state.from) {
-      const table =
-        typeof state.from.table === 'string' ? state.from.table : 'subquery'
-      const alias = state.from.alias ? ` AS ${state.from.alias}` : ''
-      parts.push(`${nl}FROM ${table}${alias}`)
-    }
-
-    // JOINs
-    for (const join of state.joins) {
-      const table = typeof join.table === 'string' ? join.table : 'subquery'
-      const alias = join.alias ? ` AS ${join.alias}` : ''
-      let joinClause = `${nl}${join.type} JOIN ${table}${alias}`
-      if (join.condition) {
-        joinClause += ` ON ${join.condition}`
-      } else if (join.using && join.using.length > 0) {
-        joinClause += ` USING (${join.using.join(', ')})`
-      }
-      parts.push(joinClause)
-    }
-
-    // WHERE
-    if (state.wheres.length > 0) {
-      const whereStr = this.buildConditions(state.wheres)
-      parts.push(`${nl}WHERE ${whereStr}`)
-    }
-
-    // GROUP BY
-    if (state.groupBy.length > 0) {
-      parts.push(`${nl}GROUP BY ${state.groupBy.join(', ')}`)
-    }
-
-    // HAVING
-    if (state.having.length > 0) {
-      const havingStr = this.buildConditions(state.having)
-      parts.push(`${nl}HAVING ${havingStr}`)
-    }
-
-    // ORDER BY
-    if (state.orderBy.length > 0) {
-      const orderStr = state.orderBy
-        .map(
-          (o) =>
-            `${o.column} ${o.direction}${o.nulls ? ` NULLS ${o.nulls}` : ''}`
-        )
-        .join(', ')
-      parts.push(`${nl}ORDER BY ${orderStr}`)
-    }
-
-    // LIMIT/OFFSET
-    if (state.limit !== undefined) {
-      parts.push(`${nl}LIMIT ${state.limit}`)
-    }
-    if (state.offset !== undefined) {
-      parts.push(`${nl}OFFSET ${state.offset}`)
-    }
-
-    // FORMAT
-    if (state.format) {
-      parts.push(`${nl}FORMAT ${state.format}`)
-    }
-
-    return parts.join('')
-  }
-
-  /**
-   * Builds WHERE/HAVING conditions string
-   */
-  private buildConditions(
-    conditions: (SqlCondition | { conditions: unknown[] })[]
-  ): string {
-    return conditions
-      .map((cond) => {
-        if ('conditions' in cond) {
-          return '(...)'
-        }
-        const c = cond as SqlCondition
-        const value =
-          typeof c.value === 'string' ? `'${c.value}'` : String(c.value)
-        return `${c.column} ${c.operator} ${value}`
-      })
-      .join(' AND ')
   }
 }
