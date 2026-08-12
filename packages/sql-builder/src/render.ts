@@ -306,8 +306,8 @@ export function renderExtendedQuery(
   // SELECT
   const columns = state.columns.map((col) => {
     if (typeof col === 'string') return col
-    if ('toString' in col && typeof col.toString === 'function') {
-      return col.toString()
+    if ('toSql' in col && typeof col.toSql === 'function') {
+      return col.toSql()
     }
     return String(col)
   })
