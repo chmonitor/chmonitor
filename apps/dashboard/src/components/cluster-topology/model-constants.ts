@@ -7,7 +7,7 @@
  * isolation; check the contract in the knowledge doc first.
  */
 
-import type { ChNode, KeeperNode } from './model'
+import type { ChNode, KeeperNode } from './model-types'
 
 // Canvas viewBox. WIDE aspect so it fills the xl two-column container instead of
 // letterboxing horizontally — the "relax the space" ask. The extra height leaves

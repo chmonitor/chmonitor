@@ -20,7 +20,7 @@ import type {
   TopologyData,
   TopologyMeta,
   TopologyModel,
-} from './model'
+} from './model-types'
 import type {
   ClusterLiveRow,
   KeeperInfoRow,
