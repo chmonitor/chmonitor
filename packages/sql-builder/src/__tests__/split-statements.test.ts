@@ -88,6 +88,36 @@ describe('splitSqlStatements', () => {
     ])
   })
 
+  // Regression for issue #2949's sibling #2950: `/*/` opened a block comment
+  // whose very same `*` was then read as the start of the closing `*/`, so the
+  // comment ended immediately and a `;` inside it split one statement into two
+  // invalid fragments. The closing `*/` must begin at least 2 chars after the
+  // opening `/*`.
+  it("does not close a block comment early on '/*/' (#2950)", () => {
+    expect(splitSqlStatements('SELECT 1 /*/ ; */ , 2')).toEqual([
+      'SELECT 1 /*/ ; */ , 2',
+    ])
+  })
+
+  it("splits on a real ';' after a '/*/'-opened comment (#2950)", () => {
+    expect(splitSqlStatements('SELECT 1 /*/ ; */; SELECT 2')).toEqual([
+      'SELECT 1 /*/ ; */',
+      'SELECT 2',
+    ])
+  })
+
+  it('still closes ordinary block comments at the first valid */', () => {
+    expect(splitSqlStatements('SELECT 1 /**/; SELECT 2')).toEqual([
+      'SELECT 1 /**/',
+      'SELECT 2',
+    ])
+    // Block comments do not nest: `/*/*/` closes at its trailing `*/`.
+    expect(splitSqlStatements('SELECT 1 /*/*/; SELECT 2')).toEqual([
+      'SELECT 1 /*/*/',
+      'SELECT 2',
+    ])
+  })
+
   it('drops comment-only trailing fragments', () => {
     expect(splitSqlStatements('SELECT 1; -- trailing note')).toEqual([
       'SELECT 1',

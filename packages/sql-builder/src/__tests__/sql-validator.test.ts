@@ -2,7 +2,11 @@
  * SQL Validator Tests
  */
 
-import { SQL_PATTERNS, validateSqlQuery } from '../sql-validator'
+import {
+  SQL_PATTERNS,
+  stripSqlComments,
+  validateSqlQuery,
+} from '../sql-validator'
 import { describe, expect, test } from 'bun:test'
 
 // Detect if validateSqlQuery has been globally mocked (e.g., by MCP tool tests)
@@ -403,6 +407,47 @@ describe('SQL_PATTERNS', () => {
       expect(SQL_PATTERNS.DANGEROUS_FUNCTIONS.test('count()')).toBe(false)
       expect(SQL_PATTERNS.DANGEROUS_FUNCTIONS.test('sum(bytes)')).toBe(false)
     })
+  })
+})
+
+// The blocklists scan a copy whose single-quoted literal CONTENTS are blanked
+// (issue #2949). The quotes themselves — and every identifier — must survive so
+// the query keeps its structure and the OR-tautology patterns still match.
+describe('stripSqlComments (blankLiterals)', () => {
+  test('leaves literals intact by default', () => {
+    expect(stripSqlComments("SELECT 'DROP' AS x")).toBe("SELECT 'DROP' AS x")
+  })
+
+  test('blanks single-quoted literal contents, keeping the quotes', () => {
+    expect(
+      stripSqlComments("SELECT 'DROP' AS x", { blankLiterals: true })
+    ).toBe("SELECT '    ' AS x")
+  })
+
+  test('blanks doubled-quote and backslash escapes as literal content', () => {
+    // 'a''b' is one literal (a'b): 1 + 2 + 1 content chars -> 4 spaces.
+    expect(
+      stripSqlComments("SELECT 'a''b' AS x", { blankLiterals: true })
+    ).toBe("SELECT '    ' AS x")
+    // 'a\'b' is one literal too: 1 + 2 + 1 content chars -> 4 spaces.
+    expect(
+      stripSqlComments("SELECT 'a\\'b' AS x", { blankLiterals: true })
+    ).toBe("SELECT '    ' AS x")
+  })
+
+  test('preserves newlines inside a blanked literal', () => {
+    expect(
+      stripSqlComments("SELECT 'a\nb' AS x", { blankLiterals: true })
+    ).toBe("SELECT ' \n ' AS x")
+  })
+
+  test('never blanks quoted or backtick identifiers', () => {
+    expect(
+      stripSqlComments('SELECT "DROP" AS x', { blankLiterals: true })
+    ).toBe('SELECT "DROP" AS x')
+    expect(
+      stripSqlComments('SELECT `DROP` AS x', { blankLiterals: true })
+    ).toBe('SELECT `DROP` AS x')
   })
 })
 
@@ -845,6 +890,97 @@ describe.skipIf(actuallyMocked)('validateSqlQuery', () => {
       ).not.toThrow()
       // A stray */ inside a literal must not desync comment tracking.
       expect(() => validateSqlQuery("SELECT 'x */ y' AS s")).not.toThrow()
+    })
+  })
+
+  // Regression for issue #2949: the blocklists used to scan raw text including
+  // string-literal contents, so auditing DDL history or hunting s3()/url() usage
+  // in system.query_log — routine read-only monitoring — was rejected outright.
+  // Literal contents are data, never executable SQL, so they are blanked before
+  // the blocklists run. Everything OUTSIDE a literal is still blocked.
+  describe('blocked keywords inside string literals (issue #2949)', () => {
+    test('accepts the exact issue query', () => {
+      expect(() =>
+        validateSqlQuery(
+          "SELECT query FROM system.query_log WHERE query LIKE '%DROP TABLE%'"
+        )
+      ).not.toThrow()
+    })
+
+    test('accepts auditing every DDL/DML keyword through a literal', () => {
+      const ok = [
+        "SELECT query FROM system.query_log WHERE query LIKE '%DROP TABLE%'",
+        "SELECT query FROM system.query_log WHERE query LIKE '%INSERT INTO%'",
+        "SELECT count() FROM system.query_log WHERE query ILIKE '%ALTER TABLE%'",
+        "SELECT query FROM system.query_log WHERE query LIKE '%TRUNCATE%' OR query LIKE '%RENAME%'",
+        "SELECT query FROM system.query_log WHERE query LIKE '%GRANT%' OR query LIKE '%KILL%'",
+        "SELECT 'DROP TABLE users' AS example",
+      ]
+      for (const sql of ok) {
+        expect(() => validateSqlQuery(sql)).not.toThrow()
+      }
+    })
+
+    test('accepts hunting dangerous table-function usage in query history', () => {
+      const ok = [
+        "SELECT query FROM system.query_log WHERE query ILIKE '%s3(%'",
+        "SELECT query FROM system.query_log WHERE query ILIKE '%url(%' OR query ILIKE '%remote(%'",
+        "SELECT count() FROM system.query_log WHERE query LIKE '%file(%'",
+      ]
+      for (const sql of ok) {
+        expect(() => validateSqlQuery(sql)).not.toThrow()
+      }
+    })
+
+    test('accepts escaped quotes inside an audited literal', () => {
+      // Doubled-quote and backslash escapes keep the whole span one literal, so
+      // the blocked keyword stays data.
+      expect(() =>
+        validateSqlQuery("SELECT 'it''s a DROP TABLE note' AS s")
+      ).not.toThrow()
+      expect(() =>
+        validateSqlQuery("SELECT 'don\\'t DROP TABLE' AS s")
+      ).not.toThrow()
+    })
+
+    test('still rejects DDL outside a literal', () => {
+      const bad = [
+        'DROP TABLE users',
+        "SELECT 'audit' AS tag; DROP TABLE users",
+        "SELECT query FROM system.query_log WHERE query LIKE '%DROP%'; DROP TABLE t",
+        "SELECT 'x' AS a, 'y' AS b FROM t; TRUNCATE TABLE t",
+      ]
+      for (const sql of bad) {
+        expect(() => validateSqlQuery(sql)).toThrow()
+      }
+    })
+
+    test('still rejects dangerous table functions outside a literal', () => {
+      const bad = [
+        "SELECT * FROM s3('bucket/key')",
+        "SELECT * FROM url('http://evil.com/x', 'CSV')",
+        "SELECT * FROM remote('h','d','t') WHERE query LIKE '%DROP TABLE%'",
+        // Comment-bypass (#2465) and literal blanking must compose.
+        "SELECT * FROM s3/*x*/('b/k') WHERE query LIKE '%s3(%'",
+      ]
+      for (const sql of bad) {
+        expect(() => validateSqlQuery(sql)).toThrow(
+          'Potentially dangerous SQL detected'
+        )
+      }
+    })
+
+    test('still rejects OR-tautologies (blanking keeps quote structure)', () => {
+      const bad = [
+        "SELECT * FROM t WHERE name = '' OR '1'='1",
+        "SELECT * FROM t WHERE name = '' OR '1'='1'",
+        "SELECT * FROM t WHERE name = '' OR 1=1",
+      ]
+      for (const sql of bad) {
+        expect(() => validateSqlQuery(sql)).toThrow(
+          'Potentially dangerous SQL detected'
+        )
+      }
     })
   })
 

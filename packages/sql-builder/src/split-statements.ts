@@ -48,6 +48,10 @@ export function splitSqlStatements(sql: string): string[] {
   let buf = ''
   type State = 'normal' | 'single' | 'double' | 'backtick' | 'line' | 'block'
   let state: State = 'normal'
+  // Index of the `/` that opened the current block comment. The closing `*/`
+  // must begin at least 2 chars later, otherwise `/*/` would be read as an
+  // opened-and-closed comment (the same `*` cannot both open and close it).
+  let blockStart = -1
 
   for (let i = 0; i < sql.length; i++) {
     const ch = sql[i]
@@ -65,7 +69,10 @@ export function splitSqlStatements(sql: string): string[] {
         else if (ch === '"') state = 'double'
         else if (ch === '`') state = 'backtick'
         else if (ch === '-' && next === '-') state = 'line'
-        else if (ch === '/' && next === '*') state = 'block'
+        else if (ch === '/' && next === '*') {
+          state = 'block'
+          blockStart = i
+        }
         break
       }
       case 'line': {
@@ -75,7 +82,7 @@ export function splitSqlStatements(sql: string): string[] {
       }
       case 'block': {
         buf += ch
-        if (ch === '*' && next === '/') {
+        if (ch === '*' && next === '/' && i >= blockStart + 2) {
           buf += next
           i++
           state = 'normal'
