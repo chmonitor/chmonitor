@@ -138,14 +138,30 @@ const SQL_INJECTION_PATTERNS = [
  *
  * Comment markers are only honored outside string literals (`'...'`), quoted
  * identifiers (`"..."`), and backtick identifiers (`` `...` ``), so a benign
- * literal like `'a -- b'` or `'/* not a comment *\/'` is preserved verbatim and
- * never produces a false positive.
+ * literal like `'a -- b'` or `'/* not a comment *\/'` is never mistaken for a
+ * comment.
+ *
+ * With `blankLiterals`, the CONTENTS of single-quoted string literals are
+ * additionally replaced by spaces (newlines preserved) while their delimiting
+ * quotes stay in place, so the result is still structurally valid SQL. This is
+ * what the keyword/function blocklists scan: a literal is *data*, and
+ * `WHERE query LIKE '%DROP TABLE%'` must not read as a DROP statement.
+ * Double-quoted and backtick identifiers are NEVER blanked — they are names,
+ * not data, and {@link SQL_PATTERNS.STRING_INJECTION_DOUBLE} needs them intact.
  *
  * @param sql - The raw SQL string
+ * @param options.blankLiterals - Also blank single-quoted literal contents
  * @returns The SQL with all comments replaced by single spaces
  * @internal
  */
-export function stripSqlComments(sql: string): string {
+export function stripSqlComments(
+  sql: string,
+  options: { blankLiterals?: boolean } = {}
+): string {
+  const blankLiterals = options.blankLiterals === true
+  // Blank a literal's content char, keeping newlines so line structure (and any
+  // non-dotall pattern that relies on it) is unchanged.
+  const mask = (c: string) => (c === '\n' ? '\n' : ' ')
   let out = ''
   let i = 0
   const n = sql.length
@@ -156,23 +172,30 @@ export function stripSqlComments(sql: string): string {
     const ch = sql[i]
 
     if (quote !== null) {
-      // Inside a string literal or quoted identifier: copy verbatim, honoring
-      // both backslash escapes (\' \" \`) and SQL-standard doubled quotes ('').
+      // Inside a string literal or quoted identifier: copy verbatim (or blank
+      // the contents of a `'...'` literal when asked), honoring both backslash
+      // escapes (\' \" \`) and SQL-standard doubled quotes ('').
+      const blank = blankLiterals && quote === "'"
       if (ch === '\\' && i + 1 < n) {
-        out += ch + sql[i + 1]
+        const esc = sql[i + 1]
+        out += blank ? mask(ch) + mask(esc) : ch + esc
         i += 2
         continue
       }
       if (ch === quote) {
         if (sql[i + 1] === quote) {
           // Doubled quote is an escaped quote, still inside the literal.
-          out += ch + sql[i + 1]
+          out += blank ? mask(ch) + mask(ch) : ch + sql[i + 1]
           i += 2
           continue
         }
+        // Closing delimiter: always kept so the quote structure survives.
         quote = null
+        out += ch
+        i += 1
+        continue
       }
-      out += ch
+      out += blank ? mask(ch) : ch
       i += 1
       continue
     }
@@ -238,14 +261,20 @@ export function validateSqlQuery(sql: string): void {
 
   // Normalize comments away BEFORE running keyword/function detection. A block or
   // line comment placed between a blocked token and its `(` (e.g. `remote/*x*/(`)
-  // otherwise slips past `\s*\(` while parsing identically for ClickHouse. String
-  // literals are left intact so benign `'-- text'` / `'/* text */'` don't trip the
-  // patterns. See {@link stripSqlComments}.
+  // otherwise slips past `\s*\(` while parsing identically for ClickHouse.
+  // See {@link stripSqlComments}.
   const normalized = stripSqlComments(sql)
+
+  // The blocklists scan a second copy whose string-literal CONTENTS are blanked
+  // (quotes kept, so the query's structure — and the OR-tautology patterns that
+  // rely on it — is unchanged). Text inside a literal is data, never executable
+  // SQL: `WHERE query LIKE '%DROP TABLE%'` and `LIKE '%s3(%'` are routine
+  // monitoring queries and must not read as DDL or a table-function call.
+  const scannable = stripSqlComments(sql, { blankLiterals: true })
 
   // Check for SQL injection patterns
   for (const pattern of SQL_INJECTION_PATTERNS) {
-    if (pattern.test(normalized)) {
+    if (pattern.test(scannable)) {
       throw new Error(
         'Potentially dangerous SQL detected. Only SELECT, WITH, DESCRIBE, and EXPLAIN queries are allowed.'
       )

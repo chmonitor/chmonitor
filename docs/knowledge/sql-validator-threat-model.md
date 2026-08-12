@@ -3,7 +3,7 @@ id: sql-validator-threat-model
 title: SQL Validator Threat Model & False-Positive Class
 type: decision
 status: active
-updated: 2026-07-10
+updated: 2026-08-12
 tags:
   - security
   - sql
@@ -77,6 +77,28 @@ string literals (`'…'`), double-quoted and backtick identifiers untouched
 (honoring `\` escapes and doubled quotes), so a benign literal like
 `'-- text'` or `'/* text */'` is never mistaken for a comment. Regression cases
 live in `sql-validator.test.ts` ("dangerous functions via comment bypass").
+
+## String literals are data, not SQL (2026-08-12, issue #2949)
+
+The blocklists are raw-text regexes, so they also matched *inside* string
+literals: `SELECT query FROM system.query_log WHERE query LIKE '%DROP TABLE%'`
+was rejected as a DROP statement. Auditing DDL history or hunting `s3()`/`url()`
+usage in `system.query_log` is routine read-only monitoring, and it was
+impossible on every free-form surface.
+
+Fix: `stripSqlComments(sql, { blankLiterals: true })` produces a second copy in
+which the **contents** of single-quoted literals are replaced by spaces
+(newlines preserved) while the delimiting quotes stay put — the query keeps its
+structure, so `STRING_INJECTION_OR_SINGLE` still sees `OR ' '=' '` and rejects
+the tautology. All `SQL_INJECTION_PATTERNS` scan that copy; the statement-type
+prefix check still runs on the comment-only-normalized copy. Double-quoted and
+backtick identifiers are **never** blanked (they are names, and
+`STRING_INJECTION_DOUBLE` needs them). Escapes (`''` and `\'`) are blanked as
+content, so a literal can never be split in half. Regression cases live in
+`sql-validator.test.ts` ("blocked keywords inside string literals").
+
+Anything outside a literal is still blocked, unchanged — chained DDL, table
+functions, comment-obfuscated calls (the two passes compose).
 
 ## Rule: keep shipped SQL and the validator in sync
 
