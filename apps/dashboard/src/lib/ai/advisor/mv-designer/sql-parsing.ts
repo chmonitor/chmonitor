@@ -5,7 +5,10 @@
  * See `./index.ts` for the module overview.
  */
 
-import type { AggregateCall } from './index'
+export interface AggregateCall {
+  func: string
+  arg: string
+}
 
 const AGGREGATE_FUNCTION_NAMES = [
   'count',

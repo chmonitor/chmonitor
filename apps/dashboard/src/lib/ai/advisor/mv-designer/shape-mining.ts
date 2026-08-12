@@ -13,7 +13,7 @@ import {
   formatQualifiedTable,
 } from '@/lib/ai/agent/tools/sql-analysis'
 
-import type { AggregateCall } from './index'
+import type { AggregateCall } from './sql-parsing'
 
 import { scaleCardinality } from './size-estimator'
 import {
