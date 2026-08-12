@@ -1,4 +1,9 @@
 // @ts-nocheck — test file, only runs under bun:test
+//
+// The pure estimate math (estimateBytesSaved / summarizeImpact) moved to
+// @chm/query-advisor-core and is tested there (packages/query-advisor-core/
+// src/impact.test.ts). What remains here is the I/O half this app owns: the
+// before/after EXPLAIN ESTIMATE comparison.
 import { describe, expect, mock, test } from 'bun:test'
 
 // bun test runs with --isolate, so this mock.module is scoped to this file's
@@ -10,63 +15,8 @@ const mockFetchData = mock(
   })
 ) as any
 mock.module('@chm/clickhouse-client', () => ({ fetchData: mockFetchData }))
-mock.module('@/lib/utils', () => ({
-  formatBytes: (bytes: number) => `${bytes}B`,
-}))
 
-const { estimateBytesSaved, summarizeImpact, measurePrewhereImpact } =
-  await import('../impact-estimator')
-
-describe('estimateBytesSaved', () => {
-  test('is proportional to the granules-saved fraction of the table', () => {
-    expect(estimateBytesSaved(50, 100, 1000)).toBe(500)
-  })
-
-  test('returns 0 when granulesTotal is 0 (never divides by zero)', () => {
-    expect(estimateBytesSaved(50, 0, 1000)).toBe(0)
-  })
-
-  test('returns 0 for non-positive granulesSaved', () => {
-    expect(estimateBytesSaved(0, 100, 1000)).toBe(0)
-    expect(estimateBytesSaved(-5, 100, 1000)).toBe(0)
-  })
-
-  test('clamps the fraction at 1 even if granulesSaved exceeds granulesTotal', () => {
-    expect(estimateBytesSaved(150, 100, 1000)).toBe(1000)
-  })
-})
-
-describe('summarizeImpact', () => {
-  test('labels the summary as an estimate and reports a non-zero saved figure', () => {
-    const impact = summarizeImpact({
-      granulesRead: 900,
-      granulesTotal: 1000,
-      granulesSaved: 900,
-      tableBytes: 10_000,
-      unknown: false,
-      label: 'a skip index',
-    })
-    expect(impact.unknown).toBe(false)
-    expect(impact.granulesSaved).toBe(900)
-    expect(impact.summary).toContain('ESTIMATE')
-    expect(impact.summary).toContain('a skip index')
-  })
-
-  test('never fabricates a number when unknown — 0 impact, honest message', () => {
-    const impact = summarizeImpact({
-      granulesRead: 0,
-      granulesTotal: 0,
-      granulesSaved: 0,
-      tableBytes: 0,
-      unknown: true,
-      label: 'a projection',
-    })
-    expect(impact.granulesSaved).toBe(0)
-    expect(impact.bytesSaved).toBe(0)
-    expect(impact.summary).toContain('could not be estimated')
-    expect(impact.summary).not.toContain('ESTIMATE:')
-  })
-})
+const { measurePrewhereImpact } = await import('../impact-estimator')
 
 describe('measurePrewhereImpact', () => {
   test('validates the rewrite when EXPLAIN ESTIMATE marks are unchanged', async () => {

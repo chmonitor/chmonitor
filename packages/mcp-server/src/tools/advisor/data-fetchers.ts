@@ -1,8 +1,10 @@
 /**
  * MCP-specific I/O layer for the query advisor — everything that reaches out
- * to ClickHouse via `runReadonlyFetch`. See `../advisor.ts` header for the
- * duplication note this whole `advisor/` tree inherits and the
- * ABSOLUTE INVARIANT (recommend-only / read-only) it must preserve.
+ * to ClickHouse via `runReadonlyFetch`. The pure parsing/scoring/estimating
+ * logic lives in `@chm/query-advisor-core`, shared with the dashboard engine
+ * (`apps/dashboard/src/lib/ai/advisor/`) so the two surfaces cannot recommend
+ * different things for the same query — see `./index.ts` for the invariant
+ * this whole `advisor/` tree preserves.
  */
 
 import type {
@@ -10,11 +12,15 @@ import type {
   ExplainIndexesInfo,
   PartsStats,
   TableSchema,
-} from './types'
+} from '@chm/query-advisor-core'
 
+import {
+  parseExplainIndexes,
+  prewhereFallbackImpact,
+  sumEstimateMarks,
+  summarizePrewhereMarks,
+} from '@chm/query-advisor-core'
 import { runReadonlyFetch } from '../helpers'
-import { summarizeImpact } from './impact'
-import { parseExplainIndexes } from './sql-parse'
 
 /** Runs a read-only fetch and throws on error, mirroring the dashboard's `readOnlyQuery` so the orchestration logic reads the same way. */
 export async function readOnly<T>(
@@ -158,15 +164,35 @@ export async function fetchExplainIndexes(
   }
 }
 
-export async function measurePrewhereImpact(
-  hostId: number,
-  originalSql: string,
-  rewrittenSql: string,
-  fallbackGranulesRead: number,
-  fallbackGranulesTotal: number,
-  tableBytes: number,
+export interface MeasurePrewhereImpactInput {
+  hostId: number
+  originalSql: string
+  rewrittenSql: string
+  /** Used only if the before/after EXPLAIN comparison itself fails. */
+  fallbackGranulesRead: number
+  fallbackGranulesTotal: number
+  tableBytes: number
   movedColumn: string
+}
+
+/**
+ * Best-effort "validate no plan breakage" check for the PREWHERE rewrite: two
+ * read-only `EXPLAIN ESTIMATE` calls whose mark counts are handed to the
+ * shared verdict function. Never executes either query for real.
+ */
+export async function measurePrewhereImpact(
+  input: MeasurePrewhereImpactInput
 ): Promise<EstimatedImpact> {
+  const {
+    hostId,
+    originalSql,
+    rewrittenSql,
+    fallbackGranulesRead,
+    fallbackGranulesTotal,
+    tableBytes,
+    movedColumn,
+  } = input
+
   try {
     const [before, after] = await Promise.all([
       readOnly<Array<{ marks: number | string }>>(
@@ -178,34 +204,18 @@ export async function measurePrewhereImpact(
         hostId
       ),
     ])
-    const beforeMarks = before.reduce((sum, r) => sum + Number(r.marks ?? 0), 0)
-    const afterMarks = after.reduce((sum, r) => sum + Number(r.marks ?? 0), 0)
 
-    if (afterMarks > beforeMarks) {
-      return {
-        granulesSaved: 0,
-        granulesRead: beforeMarks,
-        bytesSaved: 0,
-        unknown: false,
-        summary: `Rewrite validation: EXPLAIN ESTIMATE shows the PREWHERE rewrite reads MORE granules after (${afterMarks}) than before (${beforeMarks}) — do not apply this rewrite as-is; the estimate suggests it could regress the plan.`,
-      }
-    }
-
-    return {
-      granulesSaved: 0,
-      granulesRead: beforeMarks,
-      bytesSaved: 0,
-      unknown: false,
-      summary: `Rewrite validated: EXPLAIN ESTIMATE shows unchanged granule selection before/after (${beforeMarks} granules) — moving \`${movedColumn}\` to PREWHERE avoids materializing other columns for rows filtered out by it, without changing which granules are read.`,
-    }
+    return summarizePrewhereMarks({
+      beforeMarks: sumEstimateMarks(before),
+      afterMarks: sumEstimateMarks(after),
+      movedColumn,
+    })
   } catch {
-    return summarizeImpact({
-      granulesRead: fallbackGranulesRead,
-      granulesTotal: fallbackGranulesTotal,
-      granulesSaved: fallbackGranulesRead,
+    return prewhereFallbackImpact({
+      fallbackGranulesRead,
+      fallbackGranulesTotal,
       tableBytes,
-      unknown: fallbackGranulesTotal === 0,
-      label: `moving \`${movedColumn}\` to PREWHERE`,
+      movedColumn,
     })
   }
 }

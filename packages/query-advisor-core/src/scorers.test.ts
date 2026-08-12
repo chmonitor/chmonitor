@@ -1,132 +1,45 @@
-// @ts-nocheck — test file, only runs under bun:test
+// Moved here from apps/dashboard (`__tests__/recommendation-engine.test.ts`
+// and `__tests__/sql-rewriter.test.ts`) when the dashboard and MCP forks were
+// merged into this package — issue #2936.
+import { describe, expect, test } from 'bun:test'
+
+import type { Recommendation } from './types'
 
 import {
-  extractClauseColumns,
-  extractPredicates,
-  parseExplainIndexes,
+  buildPrewhereRecommendation,
+  proposePrewhereRewrite,
   rankRecommendations,
   scorePartitionKey,
   scoreProjection,
   scoreSkipIndex,
-} from '../recommendation-engine'
+} from './scorers'
 import {
-  EXPLAIN_INDEXES_LOW_PRUNING,
-  EXPLAIN_INDEXES_WITH_SKIP,
   makeContext,
   makeParts,
   makeSchema,
   makeSkipIndex,
-} from './fixtures'
-import { describe, expect, test } from 'bun:test'
+} from './test-fixtures'
 
-describe('extractPredicates', () => {
-  test('captures equality, range, and IN predicates joined by AND', () => {
-    const sql =
-      "SELECT * FROM t WHERE status = 'error' AND created_at > '2026-01-01' AND user_id IN (1, 2, 3)"
-    const predicates = extractPredicates(sql)
-    expect(predicates).toEqual([
-      { column: 'status', operator: '=', isRange: false, isEqualityOrIn: true },
-      {
-        column: 'created_at',
-        operator: '>',
-        isRange: true,
-        isEqualityOrIn: false,
-      },
-      {
-        column: 'user_id',
-        operator: 'IN',
-        isRange: false,
-        isEqualityOrIn: true,
-      },
-    ])
-  })
-
-  test('ignores queries with no WHERE clause', () => {
-    expect(extractPredicates('SELECT * FROM t')).toEqual([])
-  })
-
-  test('strips backtick-quoted column names', () => {
-    const predicates = extractPredicates('SELECT * FROM t WHERE `user id` = 1')
-    expect(predicates[0]?.column).toBe('user id')
-  })
-})
-
-describe('extractClauseColumns', () => {
-  test('extracts a simple GROUP BY column list', () => {
-    expect(
-      extractClauseColumns(
-        'SELECT a, b, count() FROM t GROUP BY a, b ORDER BY a',
-        'GROUP BY'
-      )
-    ).toEqual(['a', 'b'])
-  })
-
-  test('extracts ORDER BY columns and strips ASC/DESC', () => {
-    expect(
-      extractClauseColumns(
-        'SELECT * FROM t ORDER BY a ASC, b DESC LIMIT 10',
-        'ORDER BY'
-      )
-    ).toEqual(['a', 'b'])
-  })
-
-  test('skips function-expression columns conservatively', () => {
-    expect(
-      extractClauseColumns(
-        'SELECT * FROM t GROUP BY toDate(ts), status',
-        'GROUP BY'
-      )
-    ).toEqual(['status'])
-  })
-
-  test('returns empty when the clause is absent', () => {
-    expect(extractClauseColumns('SELECT * FROM t', 'GROUP BY')).toEqual([])
-  })
-})
-
-describe('parseExplainIndexes', () => {
-  test('parses PrimaryKey parts/granules from realistic EXPLAIN indexes=1 text', () => {
-    const result = parseExplainIndexes(EXPLAIN_INDEXES_LOW_PRUNING)
-    expect(result.primaryKey).toEqual({
-      partsRead: 20,
-      partsTotal: 20,
-      granulesRead: 9000,
-      granulesTotal: 10000,
-    })
-    expect(result.skipIndexes).toEqual([])
-  })
-
-  test('parses an existing Skip index block alongside PrimaryKey', () => {
-    const result = parseExplainIndexes(EXPLAIN_INDEXES_WITH_SKIP)
-    expect(result.primaryKey?.granulesRead).toBe(9000)
-    expect(result.skipIndexes).toEqual([
-      {
-        name: 'idx_status',
-        description: 'minmax GRANULARITY 4',
-        partsRead: 5,
-        partsTotal: 20,
-        granulesRead: 100,
-        granulesTotal: 9000,
-      },
-    ])
-  })
-
-  test('degrades gracefully (no throw, null primaryKey) on unrecognized output', () => {
-    const result = parseExplainIndexes([
-      'Some totally different EXPLAIN shape',
-      'from a future ClickHouse version',
-    ])
-    expect(result.primaryKey).toBeNull()
-    expect(result.skipIndexes).toEqual([])
-  })
-
-  test('handles an empty explain result', () => {
-    expect(parseExplainIndexes([])).toEqual({
-      primaryKey: null,
-      skipIndexes: [],
-    })
-  })
-})
+function makeRecommendation(
+  overrides: Partial<Recommendation> & { title: string }
+): Recommendation {
+  return {
+    kind: 'skip_index',
+    rationale: '',
+    ddl: '',
+    risk: 'low',
+    riskNote: '',
+    effort: 'low',
+    estImpact: {
+      granulesSaved: 10,
+      granulesRead: 100,
+      bytesSaved: 0,
+      unknown: false,
+      summary: '',
+    },
+    ...overrides,
+  }
+}
 
 describe('scoreSkipIndex', () => {
   test('recommends a set index for an equality predicate on a non-sorting-key column', () => {
@@ -347,35 +260,155 @@ describe('scorePartitionKey', () => {
   })
 })
 
+describe('proposePrewhereRewrite', () => {
+  test('moves a single selective predicate into PREWHERE', () => {
+    const ctx = makeContext({
+      sql: "SELECT * FROM default.events WHERE status = 'error'",
+      predicates: [
+        {
+          column: 'status',
+          operator: '=',
+          isRange: false,
+          isEqualityOrIn: true,
+        },
+      ],
+    })
+    const rewrite = proposePrewhereRewrite(ctx)
+    expect(rewrite).not.toBeNull()
+    expect(rewrite?.rewrittenSql).toBe(
+      "SELECT * FROM default.events PREWHERE status = 'error'"
+    )
+    expect(rewrite?.movedPredicate.column).toBe('status')
+  })
+
+  test('keeps the remaining AND-joined conditions in WHERE', () => {
+    const ctx = makeContext({
+      sql: "SELECT * FROM default.events WHERE status = 'error' AND user_id = 5",
+      predicates: [
+        {
+          column: 'status',
+          operator: '=',
+          isRange: false,
+          isEqualityOrIn: true,
+        },
+        {
+          column: 'user_id',
+          operator: '=',
+          isRange: false,
+          isEqualityOrIn: true,
+        },
+      ],
+      schema: makeSchema({ sortingKeyColumns: ['event_date', 'user_id'] }),
+    })
+    const rewrite = proposePrewhereRewrite(ctx)
+    expect(rewrite?.rewrittenSql).toContain('PREWHERE')
+    expect(rewrite?.rewrittenSql).toContain('WHERE user_id = 5')
+  })
+
+  test('preserves clauses after WHERE (GROUP BY / ORDER BY / LIMIT) verbatim', () => {
+    const ctx = makeContext({
+      sql: "SELECT status, count() FROM default.events WHERE status = 'error' GROUP BY status ORDER BY count() DESC LIMIT 10",
+      predicates: [
+        {
+          column: 'status',
+          operator: '=',
+          isRange: false,
+          isEqualityOrIn: true,
+        },
+      ],
+    })
+    const rewrite = proposePrewhereRewrite(ctx)
+    expect(rewrite?.rewrittenSql).toContain(
+      'GROUP BY status ORDER BY count() DESC LIMIT 10'
+    )
+    expect(rewrite?.rewrittenSql).toContain('PREWHERE')
+  })
+
+  test('keeps a parenthesized OR group intact as a single condition (does not split inside it)', () => {
+    const ctx = makeContext({
+      sql: "SELECT * FROM default.events WHERE status = 'error' AND (region = 'us' OR region = 'eu')",
+      predicates: [
+        {
+          column: 'status',
+          operator: '=',
+          isRange: false,
+          isEqualityOrIn: true,
+        },
+      ],
+    })
+    const rewrite = proposePrewhereRewrite(ctx)
+    expect(rewrite?.rewrittenSql).toContain(
+      "WHERE (region = 'us' OR region = 'eu')"
+    )
+  })
+
+  test('returns null when there is no WHERE clause', () => {
+    expect(
+      proposePrewhereRewrite(
+        makeContext({ sql: 'SELECT * FROM default.events' })
+      )
+    ).toBeNull()
+  })
+
+  test('returns null when there are no recognized predicates', () => {
+    expect(
+      proposePrewhereRewrite(
+        makeContext({
+          sql: 'SELECT * FROM default.events WHERE 1 = 1',
+          predicates: [],
+        })
+      )
+    ).toBeNull()
+  })
+
+  test('never executes anything — it only returns a string, synchronously', () => {
+    const ctx = makeContext({
+      sql: "SELECT * FROM default.events WHERE status = 'error'",
+    })
+    const result = proposePrewhereRewrite(ctx)
+    // Not a Promise, no side effects possible from a plain sync function
+    // returning a plain object of strings.
+    expect(result).not.toBeInstanceOf(Promise)
+    expect(typeof result?.rewrittenSql).toBe('string')
+    for (const value of Object.values(result ?? {})) {
+      expect(typeof value === 'function').toBe(false)
+    }
+  })
+})
+
+describe('buildPrewhereRecommendation', () => {
+  test('wraps a rewrite as an inert prewhere recommendation (no DDL)', () => {
+    const rewrite = {
+      rewrittenSql: "SELECT * FROM t PREWHERE status = 'error'",
+      movedPredicate: {
+        column: 'status',
+        operator: '=',
+        isRange: false,
+        isEqualityOrIn: true,
+      },
+    }
+    const rec = buildPrewhereRecommendation(rewrite, {
+      granulesSaved: 0,
+      granulesRead: 42,
+      bytesSaved: 0,
+      unknown: false,
+      summary: 'Rewrite validated',
+    })
+    expect(rec.kind).toBe('prewhere')
+    expect(rec.ddl).toBeNull()
+    expect(rec.rewrittenSql).toBe(rewrite.rewrittenSql)
+    expect(rec.title).toContain('status')
+    expect(rec.risk).toBe('low')
+  })
+})
+
 describe('rankRecommendations', () => {
   test('sorts by granules saved descending', () => {
-    const low = makeContext().schema // unused, just to keep imports tidy
-    void low
     const recs = [
-      {
-        kind: 'skip_index',
-        title: 'a',
-        rationale: '',
-        ddl: '',
-        risk: 'low',
-        riskNote: '',
-        effort: 'low',
-        estImpact: {
-          granulesSaved: 10,
-          granulesRead: 100,
-          bytesSaved: 0,
-          unknown: false,
-          summary: '',
-        },
-      },
-      {
-        kind: 'projection',
+      makeRecommendation({ title: 'a' }),
+      makeRecommendation({
         title: 'b',
-        rationale: '',
-        ddl: '',
-        risk: 'low',
-        riskNote: '',
-        effort: 'low',
+        kind: 'projection',
         estImpact: {
           granulesSaved: 500,
           granulesRead: 100,
@@ -383,52 +416,30 @@ describe('rankRecommendations', () => {
           unknown: false,
           summary: '',
         },
-      },
-    ] as const
-    const ranked = rankRecommendations([...recs])
+      }),
+    ]
+    const ranked = rankRecommendations(recs)
     expect(ranked[0]?.title).toBe('b')
     expect(ranked[1]?.title).toBe('a')
   })
 
   test('breaks ties on equal impact by lower risk, then lower effort', () => {
-    const base = {
-      rationale: '',
-      ddl: '',
-      estImpact: {
-        granulesSaved: 10,
-        granulesRead: 100,
-        bytesSaved: 0,
-        unknown: false,
-        summary: '',
-      },
-    }
     const recs = [
-      {
-        ...base,
-        kind: 'partition_key',
+      makeRecommendation({
         title: 'high-risk',
+        kind: 'partition_key',
         risk: 'high',
         effort: 'high',
-        riskNote: '',
-      },
-      {
-        ...base,
-        kind: 'skip_index',
-        title: 'low-risk',
-        risk: 'low',
-        effort: 'low',
-        riskNote: '',
-      },
-      {
-        ...base,
-        kind: 'projection',
+      }),
+      makeRecommendation({ title: 'low-risk' }),
+      makeRecommendation({
         title: 'medium-risk',
+        kind: 'projection',
         risk: 'medium',
         effort: 'medium',
-        riskNote: '',
-      },
-    ] as const
-    const ranked = rankRecommendations([...recs])
+      }),
+    ]
+    const ranked = rankRecommendations(recs)
     expect(ranked.map((r) => r.title)).toEqual([
       'low-risk',
       'medium-risk',
@@ -438,30 +449,9 @@ describe('rankRecommendations', () => {
 
   test('never mutates the input array', () => {
     const recs = [
-      {
-        kind: 'skip_index',
-        title: 'a',
-        rationale: '',
-        ddl: '',
-        risk: 'low',
-        riskNote: '',
-        effort: 'low',
-        estImpact: {
-          granulesSaved: 1,
-          granulesRead: 1,
-          bytesSaved: 0,
-          unknown: false,
-          summary: '',
-        },
-      },
-      {
-        kind: 'projection',
+      makeRecommendation({ title: 'a' }),
+      makeRecommendation({
         title: 'b',
-        rationale: '',
-        ddl: '',
-        risk: 'low',
-        riskNote: '',
-        effort: 'low',
         estImpact: {
           granulesSaved: 2,
           granulesRead: 1,
@@ -469,10 +459,10 @@ describe('rankRecommendations', () => {
           unknown: false,
           summary: '',
         },
-      },
-    ] as const
+      }),
+    ]
     const original = [...recs]
-    rankRecommendations([...recs])
+    rankRecommendations(recs)
     expect(recs).toEqual(original)
   })
 })

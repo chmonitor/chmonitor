@@ -55,6 +55,9 @@ importers:
       '@chm/pricing':
         specifier: workspace:*
         version: link:../../packages/pricing
+      '@chm/query-advisor-core':
+        specifier: workspace:*
+        version: link:../../packages/query-advisor-core
       '@chm/sql-builder':
         specifier: workspace:*
         version: link:../../packages/sql-builder
@@ -442,6 +445,9 @@ importers:
       '@chm/clickhouse-client':
         specifier: workspace:*
         version: link:../clickhouse-client
+      '@chm/query-advisor-core':
+        specifier: workspace:*
+        version: link:../query-advisor-core
       '@chm/sql-builder':
         specifier: workspace:*
         version: link:../sql-builder
@@ -479,6 +485,12 @@ importers:
         version: 6.0.3
 
   ../../packages/pricing:
+    devDependencies:
+      typescript:
+        specifier: ^6.0.0
+        version: 6.0.3
+
+  ../../packages/query-advisor-core:
     devDependencies:
       typescript:
         specifier: ^6.0.0

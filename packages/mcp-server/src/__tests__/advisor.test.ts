@@ -144,18 +144,11 @@ describe('registerAdvisorTool', () => {
       ).toBe(false)
     }
 
+    // The pure engine now lives in @chm/query-advisor-core, which carries its
+    // own recommend-only guard (src/recommend-only.test.ts). What is left here
+    // is the MCP orchestration + I/O layer.
     const advisorDir = join(import.meta.dir, '..', 'tools', 'advisor')
-    const files = [
-      'index.ts',
-      'sql-parse.ts',
-      'impact.ts',
-      'data-fetchers.ts',
-      'types.ts',
-      join('rules', 'skip-index.ts'),
-      join('rules', 'projection.ts'),
-      join('rules', 'partition-key.ts'),
-      join('rules', 'prewhere.ts'),
-    ]
+    const files = ['index.ts', 'data-fetchers.ts']
     for (const file of files) {
       const source = readFileSync(join(advisorDir, file), 'utf-8')
       expect(source).not.toMatch(/\.command\s*\(/)

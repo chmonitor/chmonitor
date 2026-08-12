@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@chm/clickhouse-client": "workspace:*",
+    "@chm/query-advisor-core": "workspace:*",
     "@chm/sql-builder": "workspace:*",
     "@clickhouse/client": "^1.18.5",
     "@modelcontextprotocol/core": "^2.0.0",

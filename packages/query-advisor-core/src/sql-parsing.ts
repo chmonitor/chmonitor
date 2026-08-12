@@ -1,14 +1,21 @@
 /**
- * Hand-rolled SQL parsing helpers for the query advisor — pure string →
- * structure functions with no I/O and no dependency on the rest of the
- * advisor (see `../advisor.ts` header for the duplication note this whole
- * `advisor/` tree inherits).
+ * Query advisor — SQL parsing helpers.
+ *
+ * Best-effort, top-level only (no nested parens/OR handling). Everything here
+ * degrades to "nothing extracted" rather than throwing, matching the advisor's
+ * "read-only, degrade gracefully" invariant. Pure string → structure functions:
+ * no I/O, no dependency on the rest of the advisor.
  */
 
 import type {
   ExplainIndexesInfo,
+  PartsStats,
+  PrimaryKeyExplain,
+  QueryContext,
+  ReferencedTable,
   SkipIndexExplain,
   SqlPredicate,
+  TableSchema,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -18,6 +25,14 @@ import type {
 const RANGE_OPERATORS = new Set(['<', '>', '<=', '>=', 'BETWEEN'])
 const EQUALITY_OPERATORS = new Set(['=', 'IN'])
 
+/**
+ * Extract top-level `WHERE`/`AND`-joined predicates as `{ column, operator }`.
+ * Deliberately excludes `OR`-joined and `PREWHERE`/`ON` conditions — this
+ * engine only reasons about conditions it can confidently attribute to a
+ * single column with AND semantics (same scoping as `WHERE_COLUMN_PATTERN` in
+ * the dashboard's `agent/tools/sql-analysis.ts`, but this one also captures
+ * the operator so callers can tell equality/IN from range).
+ */
 export function extractPredicates(sql: string): SqlPredicate[] {
   const pattern =
     /\b(?:WHERE|AND)\s+(?:\w+\.)?(`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*)\s*(=|!=|<>|<=|>=|<|>|\bIN\b|\bBETWEEN\b|\bLIKE\b|\bILIKE\b)/gi
@@ -37,6 +52,7 @@ export function extractPredicates(sql: string): SqlPredicate[] {
   return predicates
 }
 
+/** Extract a simple comma-separated column list following `GROUP BY` or `ORDER BY`. Expressions (containing `(`) are skipped — conservative to avoid false schema-mismatch positives. */
 export function extractClauseColumns(
   sql: string,
   keyword: 'GROUP BY' | 'ORDER BY'
@@ -59,10 +75,17 @@ export function extractClauseColumns(
     .filter(Boolean)
 }
 
+/**
+ * Parse `EXPLAIN PLAN indexes=1` text output into structured granule/part
+ * counts. Best-effort line-scanner (not a real parser) — tolerant of missing
+ * sections; returns `primaryKey: null` / `skipIndexes: []` rather than
+ * throwing when the shape doesn't match what it expects (degrades
+ * gracefully, e.g. non-MergeTree tables or older/newer CH output variants).
+ */
 export function parseExplainIndexes(
   explainLines: string[]
 ): ExplainIndexesInfo {
-  let primaryKey: ExplainIndexesInfo['primaryKey'] = null
+  let primaryKey: PrimaryKeyExplain | null = null
   const skipIndexes: SkipIndexExplain[] = []
   let section: 'none' | 'primaryKey' | 'skip' = 'none'
   let currentSkip: Partial<SkipIndexExplain> | null = null
@@ -104,6 +127,9 @@ export function parseExplainIndexes(
       currentSkip = {}
       continue
     }
+    // Any other bare section header (Partition, Condition, Keys, ...) ends
+    // the current Skip/PrimaryKey block's field capture but we keep scanning
+    // in case Parts/Granules appear a couple of lines later within it.
     const nameMatch = line.match(/^Name:\s*(.+)$/i)
     if (nameMatch && section === 'skip' && currentSkip) {
       currentSkip.name = nameMatch[1].trim()
@@ -167,25 +193,46 @@ export function normalizeIdentifier(value: string): string {
   return stripQuotedIdentifier(value.trim()).replace(/\s+/g, '')
 }
 
+/**
+ * Extract the real tables a query reads from (`FROM`/`JOIN`), skipping CTE
+ * aliases declared by a leading `WITH ... AS (...)` — those are query-local
+ * names, not tables the advisor can look up in `system.tables`.
+ */
 export function extractReferencedTables(
   sql: string,
   defaultDatabase = 'default'
-): Array<{ database: string; table: string; qualifiedName: string }> {
-  const tables = new Map<
-    string,
-    { database: string; table: string; qualifiedName: string }
-  >()
+): ReferencedTable[] {
+  const tables = new Map<string, ReferencedTable>()
+
+  // Extract CTE names to filter them out later (they're aliases, not real tables)
+  const cteNames = new Set<string>()
+  const cteMatch = sql.match(/WITH\s+(.+?)\s+AS\s*\(/i)
+  if (cteMatch) {
+    // Parse CTE definitions: "cte1 AS (...), cte2 AS (...)"
+    const cteDefs = cteMatch[1].split(/\),\s*/)
+    for (const cteDef of cteDefs) {
+      const name = cteDef.trim().split(/\s+/)[0]
+      if (name) {
+        cteNames.add(normalizeIdentifier(name))
+      }
+    }
+  }
 
   for (const match of sql.matchAll(TABLE_REFERENCE_PATTERN)) {
     const raw = match[1]
     if (!raw || raw.startsWith('(')) continue
+
     const parts = raw.split('.').map(normalizeIdentifier).filter(Boolean)
     const database = parts.length > 1 ? parts[0] : defaultDatabase
     const table = parts.length > 1 ? parts[1] : parts[0]
     if (!database || !table) continue
+
+    // Skip if this is a CTE alias (not a real table)
+    if (cteNames.has(table)) continue
+
     const qualifiedName = `${database}.${table}`
     if (!tables.has(qualifiedName)) {
-      tables.set(qualifiedName, { database, table, qualifiedName })
+      tables.set(qualifiedName, { raw, database, table, qualifiedName })
     }
   }
 
@@ -207,7 +254,17 @@ export function formatQualifiedTable(database: string, table: string): string {
 const CLAUSE_STOP_WORDS =
   'GROUP BY|ORDER BY|LIMIT|HAVING|SETTINGS|FORMAT|WITH|UNION'
 
+/**
+ * Split a WHERE body on top-level `AND` (i.e. not inside parentheses),
+ * so a parenthesized `OR` group is kept intact as one condition instead of
+ * being incorrectly torn apart. Not a full SQL parser — good enough for the
+ * common case; anything it can't confidently segment is left as a single
+ * condition (the caller then just won't find its target column in it, and
+ * `proposePrewhereRewrite` returns `null` rather than risk a broken rewrite).
+ */
 export function splitTopLevelAnd(whereBody: string): string[] {
+  // Track paren depth per character so an AND inside `(...)` (e.g. a
+  // parenthesized OR group) is never treated as a split point.
   const depthAt: number[] = []
   let depth = 0
   for (let i = 0; i < whereBody.length; i++) {
@@ -228,13 +285,14 @@ export function splitTopLevelAnd(whereBody: string): string[] {
   let lastIndex = 0
   for (const pos of positions) {
     parts.push(whereBody.slice(lastIndex, pos).trim())
-    lastIndex = pos + 3
+    lastIndex = pos + 3 // length of "AND"
   }
   parts.push(whereBody.slice(lastIndex).trim())
 
   return parts.filter(Boolean)
 }
 
+/** Locate the WHERE clause span `[start, end)` in `sql` — `start` is the index of the `WHERE` keyword itself. */
 export function findWhereSpan(
   sql: string
 ): { start: number; end: number; body: string } | null {
@@ -248,5 +306,41 @@ export function findWhereSpan(
     start: match.index,
     end: match.index + match[0].length,
     body: match[1].trim(),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Context assembly
+// ---------------------------------------------------------------------------
+
+export interface BuildQueryContextInput {
+  sql: string
+  database: string
+  table: string
+  schema: TableSchema
+  parts: PartsStats
+  explain: ExplainIndexesInfo | null
+}
+
+/**
+ * Assemble the caller's read-only findings (schema, parts, EXPLAIN) plus the
+ * SQL parsed here into the `QueryContext` every scorer consumes. Pure: the
+ * caller does the fetching, this only parses and packs.
+ */
+export function buildQueryContext(
+  input: BuildQueryContextInput
+): QueryContext {
+  const { sql, database, table, schema, parts, explain } = input
+  return {
+    sql,
+    database,
+    table,
+    predicates: extractPredicates(sql),
+    groupByColumns: extractClauseColumns(sql, 'GROUP BY'),
+    orderByColumns: extractClauseColumns(sql, 'ORDER BY'),
+    hasPrewhere: /\bPREWHERE\b/i.test(sql),
+    schema,
+    parts,
+    explain,
   }
 }
