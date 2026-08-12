@@ -138,11 +138,9 @@ generated.vars = vars
 delete generated.triggers
 
 // --- Patch D1 databases ---
-const conversationsDbId = (
-  process.env.CHM_CLOUD_D1_DATABASE_ID ||
-  process.env.AGENT_CHM_CLOUD_D1_DATABASE_ID ||
-  ''
-).trim()
+// CI/deploy-only secret — not a browser/runtime CHM_* var, so it has no
+// .env.example entry; set it directly as a CLOUDFLARE deploy secret.
+const conversationsDbId = (process.env.CHM_CLOUD_D1_DATABASE_ID || '').trim()
 
 if (conversationsDbId) {
   generated.d1_databases = (generated.d1_databases ?? []).map((db: any) => {
