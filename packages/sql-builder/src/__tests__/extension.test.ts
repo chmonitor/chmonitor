@@ -5,6 +5,8 @@
  */
 
 import { sql } from '../builder'
+import { col } from '../column'
+import { raw } from '../raw'
 import { SqlBuilderError } from '../validator'
 import { describe, expect, it } from 'bun:test'
 
@@ -617,6 +619,43 @@ describe('ExtendedBuilder', () => {
 
       // ext1 should still be the same
       expect(ext1.build()).toBe(ext1Query)
+    })
+  })
+
+  describe('SqlFragment columns (#2966)', () => {
+    it('should render col() columns via toSql, not [object Object]', () => {
+      const base = sql().select('id').from('users')
+      const extended = base.extend().addColumn(col('bytes').readable())
+
+      const query = extended.build()
+      expect(query).toContain('formatReadableSize(bytes) AS readable_bytes')
+      expect(query).not.toContain('[object Object]')
+    })
+
+    it('should render raw() columns via toSql, not [object Object]', () => {
+      const base = sql().select('id').from('users')
+      const extended = base.extend().addColumn(raw('COUNT(*) AS total'))
+
+      const query = extended.build()
+      expect(query).toContain('COUNT(*) AS total')
+      expect(query).not.toContain('[object Object]')
+    })
+
+    it('should render a mix of plain string, col(), and raw() columns', () => {
+      const base = sql().select('id').from('users')
+      const extended = base
+        .extend()
+        .addColumn(col('elapsed').pctOfMax())
+        .addColumn(raw('now() AS ts'))
+        .addColumn('name')
+
+      const query = extended.build()
+      expect(query).toContain(
+        'round(100 * elapsed / max(elapsed) OVER (), 2) AS pct_elapsed'
+      )
+      expect(query).toContain('now() AS ts')
+      expect(query).toContain('name')
+      expect(query).not.toContain('[object Object]')
     })
   })
 })
