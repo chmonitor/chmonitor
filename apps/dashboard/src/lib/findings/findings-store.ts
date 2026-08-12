@@ -15,7 +15,7 @@
  * This module must only be imported by server route handlers (src/routes/api/**).
  */
 
-import { fetchData, getClient } from '@chm/clickhouse-client'
+import { fetchData, getClient, releaseClient } from '@chm/clickhouse-client'
 import { ErrorLogger } from '@chm/logger'
 import { FINDINGS_TABLE } from '@/lib/app-tables'
 
@@ -91,10 +91,16 @@ async function ensureTable(hostId: number): Promise<boolean> {
 
   try {
     const client = await getClient({ hostId })
-    await client.command({ query: CREATE_FINDINGS_TABLE })
-    ensuredHosts.add(hostId)
-    log(`ensured ${FINDINGS_TABLE} on host ${hostId}`)
-    return true
+    // getClient leases the pooled client (inUse++) — release it or the pool
+    // entry is never reclaimed by cleanupStaleClients (issue #2946).
+    try {
+      await client.command({ query: CREATE_FINDINGS_TABLE })
+      ensuredHosts.add(hostId)
+      log(`ensured ${FINDINGS_TABLE} on host ${hostId}`)
+      return true
+    } finally {
+      releaseClient({ hostId })
+    }
   } catch (err) {
     warn(
       `could not ensure ${FINDINGS_TABLE} on host ${hostId} (read-only?): ${err}`
@@ -130,24 +136,28 @@ export async function recordFinding(
 
   try {
     const client = await getClient({ hostId })
-    await client.insert({
-      table: FINDINGS_TABLE,
-      format: 'JSONEachRow',
-      values: [
-        {
-          host_id: String(hostId),
-          severity: finding.severity,
-          category: finding.category,
-          source: finding.source,
-          title: finding.title,
-          detail: finding.detail ?? '',
-          metric: finding.metric ?? '',
-          value: finding.value ?? 0,
-        },
-      ],
-    })
-    log(`recorded finding "${finding.title}" on host ${hostId}`)
-    return true
+    try {
+      await client.insert({
+        table: FINDINGS_TABLE,
+        format: 'JSONEachRow',
+        values: [
+          {
+            host_id: String(hostId),
+            severity: finding.severity,
+            category: finding.category,
+            source: finding.source,
+            title: finding.title,
+            detail: finding.detail ?? '',
+            metric: finding.metric ?? '',
+            value: finding.value ?? 0,
+          },
+        ],
+      })
+      log(`recorded finding "${finding.title}" on host ${hostId}`)
+      return true
+    } finally {
+      releaseClient({ hostId })
+    }
   } catch (err) {
     warn(`failed to record finding on host ${hostId}: ${err}`)
     return false

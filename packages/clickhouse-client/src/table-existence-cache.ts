@@ -1,4 +1,4 @@
-import { getClient } from './clickhouse/clickhouse-client'
+import { getClient, releaseClient } from './clickhouse/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { LRUCache } from 'lru-cache'
 
@@ -58,6 +58,14 @@ export function setTableExistenceL2Provider(
  */
 export type TableExistsResult = boolean | 'unknown'
 
+/**
+ * Probes already running, keyed the same way as the L1 cache. A fresh Worker
+ * isolate mounting a dozen charts used to fire a dozen identical probes that
+ * all raced to `cache.set` (issue #2953); now the first one wins and the rest
+ * await its promise.
+ */
+const inFlightProbes = new Map<string, Promise<TableExistsResult>>()
+
 export async function checkTableExists(
   hostId: number,
   database: string,
@@ -69,6 +77,25 @@ export async function checkTableExists(
     return cached
   }
 
+  const running = inFlightProbes.get(key)
+  if (running) {
+    debug(`[Table Cache] Joined in-flight probe for ${key}`)
+    return running
+  }
+
+  const probe = probeTableExists(key, hostId, database, table).finally(() => {
+    inFlightProbes.delete(key)
+  })
+  inFlightProbes.set(key, probe)
+  return probe
+}
+
+async function probeTableExists(
+  key: string,
+  hostId: number,
+  database: string,
+  table: string
+): Promise<TableExistsResult> {
   // L2: KV cache (survives Worker isolate churn). No-op when no provider is
   // registered (self-hosted Node/Docker, or Cloudflare before the KV
   // namespace is provisioned — see #2183).
@@ -89,28 +116,34 @@ export async function checkTableExists(
   try {
     // getClient will auto-detect and use web client for Cloudflare Workers
     const client = await getClient({ hostId })
-    const result = await client.query({
-      query: `
-        SELECT COUNT() AS count
-        FROM system.tables
-        WHERE database = {database:String}
-          AND name     = {table:String}
-      `,
-      query_params: { database, table },
-      format: 'JSONEachRow',
-    })
-    const data = (await result.json()) as { count: string }[]
-    const exists = parseInt(data?.[0]?.count || '0', 10) > 0
+    // getClient leases the pooled client (inUse++); without the release the
+    // pool entry can never be reclaimed by cleanupStaleClients (issue #2946).
+    try {
+      const result = await client.query({
+        query: `
+          SELECT COUNT() AS count
+          FROM system.tables
+          WHERE database = {database:String}
+            AND name     = {table:String}
+        `,
+        query_params: { database, table },
+        format: 'JSONEachRow',
+      })
+      const data = (await result.json()) as { count: string }[]
+      const exists = parseInt(data?.[0]?.count || '0', 10) > 0
 
-    cache.set(key, exists)
-    if (l2) {
-      try {
-        await l2.set(key, exists, CACHE_TTL_MS / 1000)
-      } catch (err) {
-        error('[Table Cache] L2 cache set error:', err)
+      cache.set(key, exists)
+      if (l2) {
+        try {
+          await l2.set(key, exists, CACHE_TTL_MS / 1000)
+        } catch (err) {
+          error('[Table Cache] L2 cache set error:', err)
+        }
       }
+      return exists
+    } finally {
+      releaseClient({ hostId })
     }
-    return exists
   } catch (err) {
     error(`Error checking table ${database}.${table}:`, err)
     // Transient probe failure (network/timeout/auth) — NOT "table missing".

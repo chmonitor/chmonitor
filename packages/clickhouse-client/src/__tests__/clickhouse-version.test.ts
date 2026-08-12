@@ -44,6 +44,11 @@ const { _resetEnvCache: resetEnvCache } = await import(
   '../clickhouse/env-schema'
 )
 const { clientPool } = await import('../clickhouse/connection-pool')
+// Same `?test=version` buster as the module under test, so this is the SAME
+// pool instance its probes lease from.
+const { clientPool: versionPool } = await import(
+  new URL('../clickhouse/connection-pool.ts?test=version', import.meta.url).href
+)
 
 describe('parseVersion', () => {
   it('parses a standard 3-part version', () => {
@@ -690,5 +695,105 @@ describe('getClickHouseVersion — L2 (KV) cache wiring (issue #2183)', () => {
     const result = await getClickHouseVersion(0)
     expect(result).toEqual(parseVersion('24.3.1.1'))
     expect(mockClientQuery).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('probe lifecycle (issues #2946, #2953)', () => {
+  const originalEnv = { ...process.env }
+  // The module under test is loaded through a `?test=version` cache-buster, so
+  // read both pool instances and assert on whichever one actually got leased.
+  const leasedEntries = () => [
+    ...Array.from(versionPool.values()),
+    ...Array.from(clientPool.values()),
+  ]
+  const expectEveryClientReleased = () => {
+    const entries = leasedEntries() as { inUse: number }[]
+    expect(entries.length).toBeGreaterThan(0)
+    expect(entries.map((entry) => entry.inUse)).toEqual(entries.map(() => 0))
+  }
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
+    process.env.CLICKHOUSE_USER = 'default'
+    process.env.CLICKHOUSE_PASSWORD = ''
+    resetEnvCache()
+    versionPool.clear()
+    clientPool.clear()
+    clearVersionCache()
+    setVersionCacheL2Provider(null)
+    mockCreateClient.mockReset()
+    mockClientQuery.mockReset()
+    mockCreateClient.mockReturnValue(mockClient)
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ version: '24.3.1.1' }]),
+    })
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+  })
+
+  // getClient() leases the pooled client (inUse++); without a matching
+  // releaseClient the entry never drops back to 0, so cleanupStaleClients can
+  // never reclaim it (issue #2946).
+  it('releases the pooled client after a successful version probe', async () => {
+    await getClickHouseVersion(0)
+
+    expectEveryClientReleased()
+  })
+
+  it('releases the pooled client when the version probe throws', async () => {
+    mockClientQuery.mockRejectedValue(new Error('connection refused'))
+
+    expect(await getClickHouseVersion(0)).toBeNull()
+    expectEveryClientReleased()
+  })
+
+  it('releases the pooled client after checkTableExists', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ exists: 1 }]),
+    })
+
+    await checkTableExists(0, 'system', 'query_log')
+
+    expectEveryClientReleased()
+  })
+
+  it('releases the pooled client after checkTableHasData', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ has_data: 1 }]),
+    })
+
+    await checkTableHasData(0, 'system.query_log')
+
+    expectEveryClientReleased()
+  })
+
+  // Concurrent callers on a cold isolate used to each fire their own
+  // `SELECT version()` (issue #2953).
+  it('runs one query for concurrent version probes of the same host', async () => {
+    const results = await Promise.all([
+      getClickHouseVersion(0),
+      getClickHouseVersion(0),
+      getClickHouseVersion(0),
+    ])
+
+    expect(results).toEqual([
+      parseVersion('24.3.1.1'),
+      parseVersion('24.3.1.1'),
+      parseVersion('24.3.1.1'),
+    ])
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears the in-flight entry so a failed probe can be retried', async () => {
+    mockClientQuery.mockRejectedValueOnce(new Error('connection refused'))
+
+    expect(await getClickHouseVersion(0)).toBeNull()
+    expect(mockClientQuery).toHaveBeenCalledTimes(1)
+
+    expect(await getClickHouseVersion(0)).toEqual(parseVersion('24.3.1.1'))
+    expect(mockClientQuery).toHaveBeenCalledTimes(2)
   })
 })

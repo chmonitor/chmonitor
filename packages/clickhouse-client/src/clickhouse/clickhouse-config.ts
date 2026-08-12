@@ -93,6 +93,20 @@ function splitByComma(value: string) {
     .filter(Boolean)
 }
 
+/**
+ * Split a credential list positionally: trim only, NO `filter(Boolean)`.
+ *
+ * Credentials are matched to hosts by index, so dropping empty slots shifts
+ * every later value onto the wrong host — with `CLICKHOUSE_PASSWORD=p1,,p3` the
+ * third host's password used to be sent to the second (issue #2947). An
+ * entirely empty value still
+ * yields `[]` so the per-field fallbacks ('default' / '') apply.
+ */
+function splitByCommaKeepEmpty(value: string) {
+  if (!value.trim()) return []
+  return value.split(',').map((item) => item.trim())
+}
+
 export const getClickHouseConfigs = (): ClickHouseConfig[] => {
   const env = validateClickHouseEnv()
   if (_cachedConfigs && _cachedEnv === env) return _cachedConfigs
@@ -127,9 +141,9 @@ export const getClickHouseConfigs = (): ClickHouseConfig[] => {
   }
 
   const hosts = splitByComma(hostEnv)
-  const users = splitByComma(userEnv)
-  const passwords = splitByComma(passwordEnv)
-  const customLabels = splitByComma(customNameEnv)
+  const users = splitByCommaKeepEmpty(userEnv)
+  const passwords = splitByCommaKeepEmpty(passwordEnv)
+  const customLabels = splitByCommaKeepEmpty(customNameEnv)
 
   debug('[ClickHouse Config] Parsed hosts count:', hosts.length)
 
@@ -142,23 +156,21 @@ export const getClickHouseConfigs = (): ClickHouseConfig[] => {
   }
 
   const configs = hosts.map((host, index) => {
-    // User and password fallback to the first value,
-    // supporting multiple hosts with the same user/password
-    let user, password
-    if (users.length === 1 && passwords.length === 1) {
-      user = users[0]
-      password = passwords[0]
-    } else {
-      user = users[index] || 'default'
-      password = passwords[index] || ''
-    }
+    // A single-entry list is broadcast to every host, so one credential can
+    // serve all of them. This is decided PER FIELD: a single CLICKHOUSE_USER
+    // with three passwords used to fall through to the 'default' username for
+    // hosts 2..n (issue #2948).
+    const user = (users.length === 1 ? users[0] : users[index]) || 'default'
+    const password =
+      (passwords.length === 1 ? passwords[0] : passwords[index]) ?? ''
 
     const config = {
       id: index,
       host,
       user,
       password,
-      customName: customLabels[index],
+      // Names are never broadcast — an empty slot means "no custom name".
+      customName: customLabels[index] || undefined,
     }
 
     if (isDebugEnabled()) {

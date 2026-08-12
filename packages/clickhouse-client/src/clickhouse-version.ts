@@ -20,7 +20,7 @@
 import type { VersionedSql } from '@chm/sql-builder'
 
 // Use getClient directly to avoid circular dependency with fetchData.
-import { getClient } from './clickhouse/clickhouse-client'
+import { getClient, releaseClient } from './clickhouse/clickhouse-client'
 import { getClickHouseConfigs } from './clickhouse/clickhouse-config'
 import { QUERY_COMMENT } from './clickhouse/constants'
 import { debug, error as logError } from '@chm/logger'
@@ -47,6 +47,13 @@ const versionCache = new Map<
 
 // Cache TTL: 24 hours (version only changes on server upgrade)
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Version probes already running, keyed by hostId. A cold isolate rendering a
+ * page fires one version query per concurrent data fetch; deduping means the
+ * first caller pays for it and the rest await the same promise (issue #2953).
+ */
+const inFlightVersions = new Map<number, Promise<ClickHouseVersion | null>>()
 
 /**
  * L2 cache contract for `getClickHouseVersion` (issue #2183) — survives Worker
@@ -139,6 +146,22 @@ export async function getClickHouseVersion(
     return cached.version
   }
 
+  const running = inFlightVersions.get(hostId)
+  if (running) {
+    debug(`[clickhouse-version] Joined in-flight probe for host ${hostId}`)
+    return running
+  }
+
+  const probe = fetchClickHouseVersion(hostId).finally(() => {
+    inFlightVersions.delete(hostId)
+  })
+  inFlightVersions.set(hostId, probe)
+  return probe
+}
+
+async function fetchClickHouseVersion(
+  hostId: number
+): Promise<ClickHouseVersion | null> {
   // L2: KV cache (survives Worker isolate churn). No-op when no provider is
   // registered (self-hosted Node/Docker, or Cloudflare before the KV
   // namespace is provisioned — see #2183).
@@ -170,32 +193,38 @@ export async function getClickHouseVersion(
 
     // Use raw client to avoid circular dependency with fetchData
     const client = await getClient({ clientConfig })
-    const resultSet = await client.query({
-      query: `${QUERY_COMMENT}SELECT version() as version`,
-      format: 'JSONEachRow',
-    })
+    // getClient leases the pooled client (inUse++) — release it so the pool
+    // entry stays reclaimable by cleanupStaleClients (issue #2946).
+    try {
+      const resultSet = await client.query({
+        query: `${QUERY_COMMENT}SELECT version() as version`,
+        format: 'JSONEachRow',
+      })
 
-    const data = (await resultSet.json()) as { version: string }[]
-    const versionStr = data?.[0]?.version
+      const data = (await resultSet.json()) as { version: string }[]
+      const versionStr = data?.[0]?.version
 
-    if (!versionStr) {
-      logError('[clickhouse-version] Failed to get version from response')
-      return null
-    }
-
-    const version = parseVersion(versionStr)
-    versionCache.set(hostId, { version, timestamp: Date.now() })
-
-    if (l2) {
-      try {
-        await l2.set(hostId, version, CACHE_TTL_MS / 1000)
-      } catch (err) {
-        logError('[clickhouse-version] L2 cache set error:', err)
+      if (!versionStr) {
+        logError('[clickhouse-version] Failed to get version from response')
+        return null
       }
-    }
 
-    debug(`[clickhouse-version] Host ${hostId}: ${version.raw}`)
-    return version
+      const version = parseVersion(versionStr)
+      versionCache.set(hostId, { version, timestamp: Date.now() })
+
+      if (l2) {
+        try {
+          await l2.set(hostId, version, CACHE_TTL_MS / 1000)
+        } catch (err) {
+          logError('[clickhouse-version] L2 cache set error:', err)
+        }
+      }
+
+      debug(`[clickhouse-version] Host ${hostId}: ${version.raw}`)
+      return version
+    } finally {
+      releaseClient({ clientConfig })
+    }
   } catch (err) {
     logError('[clickhouse-version] Error fetching version:', err)
     return null
@@ -221,16 +250,20 @@ export async function checkTableExists(
     if (!clientConfig) return false
 
     const client = await getClient({ clientConfig })
-    const resultSet = await client.query({
-      query:
-        QUERY_COMMENT +
-        `SELECT count() > 0 as exists FROM system.tables WHERE database = {database:String} AND name = {table:String}`,
-      query_params: { database, table },
-      format: 'JSONEachRow',
-    })
+    try {
+      const resultSet = await client.query({
+        query:
+          QUERY_COMMENT +
+          `SELECT count() > 0 as exists FROM system.tables WHERE database = {database:String} AND name = {table:String}`,
+        query_params: { database, table },
+        format: 'JSONEachRow',
+      })
 
-    const data = (await resultSet.json()) as { exists: number }[]
-    return data?.[0]?.exists === 1
+      const data = (await resultSet.json()) as { exists: number }[]
+      return data?.[0]?.exists === 1
+    } finally {
+      releaseClient({ clientConfig })
+    }
   } catch {
     return 'unknown'
   }
@@ -253,15 +286,19 @@ export async function checkTableHasData(
     if (!clientConfig) return false
 
     const client = await getClient({ clientConfig })
-    const resultSet = await client.query({
-      query:
-        QUERY_COMMENT +
-        `SELECT count() > 0 as has_data FROM ${fullTableName} LIMIT 1`,
-      format: 'JSONEachRow',
-    })
+    try {
+      const resultSet = await client.query({
+        query:
+          QUERY_COMMENT +
+          `SELECT count() > 0 as has_data FROM ${fullTableName} LIMIT 1`,
+        format: 'JSONEachRow',
+      })
 
-    const data = (await resultSet.json()) as { has_data: number }[]
-    return data?.[0]?.has_data === 1
+      const data = (await resultSet.json()) as { has_data: number }[]
+      return data?.[0]?.has_data === 1
+    } finally {
+      releaseClient({ clientConfig })
+    }
   } catch {
     return 'unknown'
   }

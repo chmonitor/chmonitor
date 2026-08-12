@@ -31,7 +31,7 @@ const { getClient, releaseClient, isCloudflareWorkers, _resetEnvCache } =
     new URL('../clickhouse-client.ts?test=client', import.meta.url).href
   )
 // Import connection-pool to clear between tests
-const { clientPool, cleanupStaleClients } = await import(
+const { clientPool, cleanupStaleClients, getPoolKey } = await import(
   new URL('../connection-pool.ts?test=client', import.meta.url).href
 )
 
@@ -187,6 +187,29 @@ describe('getClient', () => {
     expect(client1).toBe(client2)
   })
 
+  // Regression coverage for issue #2945: the pool key used to ignore the
+  // password, so a long-lived process kept querying with the OLD credentials
+  // after a CLICKHOUSE_PASSWORD rotation.
+  it('creates a fresh client after a password rotation instead of reusing the old one', async () => {
+    // A distinct client object per createClient() call, so identity tells us
+    // whether the pool handed back the stale one.
+    mockCreateClient.mockImplementation(() => ({ query: mock(() => {}) }))
+
+    process.env.CLICKHOUSE_PASSWORD = 'old_pw'
+    _resetEnvCache()
+    const beforeRotation = await getClient({ web: false })
+
+    process.env.CLICKHOUSE_PASSWORD = 'rotated_pw'
+    _resetEnvCache()
+    const afterRotation = await getClient({ web: false })
+
+    expect(afterRotation).not.toBe(beforeRotation)
+    expect(mockCreateClient).toHaveBeenCalledTimes(2)
+    expect(mockCreateClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({ password: 'rotated_pw' })
+    )
+  })
+
   it('creates separate clients for web and non-web', async () => {
     mockCreateClient.mockReturnValue({ query: () => {} })
     mockCreateClientWeb.mockReturnValue({ query: () => {} })
@@ -250,7 +273,11 @@ describe('releaseClient', () => {
     mockCreateClient.mockReturnValue({})
     await getClient({ web: false })
 
-    const key = 'http://localhost:8123:default:false'
+    // CLICKHOUSE_PASSWORD=',p2' → host 0 has an empty password (#2947).
+    const key = getPoolKey(
+      { id: 0, host: 'http://localhost:8123', user: 'default', password: '' },
+      false
+    )
     const pooled = clientPool.get(key)
     expect(pooled).toBeDefined()
     expect(pooled?.inUse).toBe(1)
@@ -267,7 +294,10 @@ describe('releaseClient', () => {
     mockCreateClient.mockReturnValue({})
     await getClient({ hostId: 1, web: false })
 
-    const key = 'host2:u2:false'
+    const key = getPoolKey(
+      { id: 1, host: 'host2', user: 'u2', password: 'p2' },
+      false
+    )
     const pooled = clientPool.get(key)
     expect(pooled).toBeDefined()
     expect(pooled?.inUse).toBe(1)
@@ -280,7 +310,10 @@ describe('releaseClient', () => {
     mockCreateClient.mockReturnValue({})
     await getClient({ web: false })
 
-    const key = 'http://localhost:8123:default:false'
+    const key = getPoolKey(
+      { id: 0, host: 'http://localhost:8123', user: 'default', password: '' },
+      false
+    )
     const pooled = clientPool.get(key)
     expect(pooled).toBeDefined()
 

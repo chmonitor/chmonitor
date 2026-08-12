@@ -25,8 +25,12 @@ describe('getPoolKey', () => {
       user: 'admin',
       password: 'secret',
     }
-    expect(getPoolKey(config, false)).toBe('http://localhost:8123:admin:false')
-    expect(getPoolKey(config, true)).toBe('http://localhost:8123:admin:true')
+    expect(getPoolKey(config, false)).toStartWith(
+      'http://localhost:8123:admin:false:'
+    )
+    expect(getPoolKey(config, true)).toStartWith(
+      'http://localhost:8123:admin:true:'
+    )
   })
 
   it('differentiates web vs non-web clients', () => {
@@ -44,6 +48,39 @@ describe('getPoolKey', () => {
     const c1 = { id: 0, host: 'host', user: 'user1', password: '' }
     const c2 = { id: 0, host: 'host', user: 'user2', password: '' }
     expect(getPoolKey(c1, false)).not.toBe(getPoolKey(c2, false))
+  })
+
+  // Regression coverage for issue #2945: the password is part of the client's
+  // identity. Without it, a rotated CLICKHOUSE_PASSWORD resolves to the pooled
+  // client built with the OLD credentials.
+  describe('password is part of the key (issue #2945)', () => {
+    it('differentiates a rotated password on the same host+user', () => {
+      const before = { id: 0, host: 'host', user: 'admin', password: 'old_pw' }
+      const after = { id: 0, host: 'host', user: 'admin', password: 'new_pw' }
+      expect(getPoolKey(before, false)).not.toBe(getPoolKey(after, false))
+    })
+
+    it('distinguishes an empty password from a set one', () => {
+      const none = { id: 0, host: 'host', user: 'admin', password: '' }
+      const some = { id: 0, host: 'host', user: 'admin', password: 'pw' }
+      expect(getPoolKey(none, false)).not.toBe(getPoolKey(some, false))
+    })
+
+    it('is stable for the same credentials (pooling still works)', () => {
+      const a = { id: 0, host: 'host', user: 'admin', password: 'same_pw' }
+      const b = { id: 9, host: 'host', user: 'admin', password: 'same_pw' }
+      expect(getPoolKey(a, false)).toBe(getPoolKey(b, false))
+    })
+
+    it('never embeds the raw secret — the key is debug-logged', () => {
+      const config = {
+        id: 0,
+        host: 'host',
+        user: 'admin',
+        password: 'super-secret-value',
+      }
+      expect(getPoolKey(config, false)).not.toContain('super-secret-value')
+    })
   })
 })
 
@@ -67,7 +104,7 @@ describe('getPooledClient', () => {
     expect(pooled.createdAt).toBeGreaterThan(0)
     expect(pooled.lastUsed).toBeGreaterThan(0)
     expect(pooled.inUse).toBe(0)
-    expect(clientPool.has('host1:admin:false')).toBe(true)
+    expect(clientPool.has(getPoolKey(config, false))).toBe(true)
   })
 
   it('reuses existing pooled client on subsequent calls', () => {
@@ -173,7 +210,7 @@ describe('getConnectionPoolStats', () => {
     expect(stats.totalInUse).toBe(3)
     expect(stats.totalIdle).toBe(0)
     expect(stats.clients).toHaveLength(1)
-    expect(stats.clients[0].key).toBe('host1:admin:false')
+    expect(stats.clients[0].key).toBe(getPoolKey(config, false))
     expect(stats.clients[0].inUse).toBe(3)
   })
 

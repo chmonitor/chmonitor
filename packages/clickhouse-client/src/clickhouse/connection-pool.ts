@@ -43,12 +43,31 @@ function startPeriodicCleanup(): void {
 }
 
 /**
+ * Short, non-reversible digest (FNV-1a 32-bit) used to fingerprint a secret
+ * inside a pool key. Deliberately dependency-free and synchronous — the
+ * WebCrypto digest API is async and `node:crypto` is unavailable on Workers.
+ * It is a change detector, not a security primitive.
+ */
+function secretFingerprint(secret: string): string {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < secret.length; i++) {
+    hash ^= secret.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(36)
+}
+
+/**
  * Generate a pool key from client configuration and web flag
  */
 export function getPoolKey(config: ClickHouseConfig, web: boolean): PoolKey {
-  const base = `${config.host}:${config.user}:${web}`
-  // Scope a distinct pooled client per default database. Keys without a
-  // database are byte-identical to before, so existing pooling is unchanged.
+  // The password is part of the client's identity: without it, two configs
+  // sharing host+user+web+db collide, so a rotated CLICKHOUSE_PASSWORD kept
+  // reusing the client built with the OLD credentials (issue #2945). Only the
+  // digest goes into the key — the key itself is debug-logged below.
+  const pw = secretFingerprint(config.password ?? '')
+  const base = `${config.host}:${config.user}:${web}:pw=${pw}`
+  // Scope a distinct pooled client per default database.
   return config.database ? `${base}:db=${config.database}` : base
 }
 
