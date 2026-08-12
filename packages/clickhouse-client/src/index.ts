@@ -41,6 +41,7 @@ export {
   getClient,
   getConnectionPoolStats,
   isCloudflareWorkers,
+  releaseClient,
 } from './clickhouse/clickhouse-client'
 // Re-export configuration functions
 export {

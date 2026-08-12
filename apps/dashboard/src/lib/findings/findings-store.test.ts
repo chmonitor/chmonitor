@@ -19,15 +19,25 @@ let fetchDataImpl: (arg: {
 let lastQuery = ''
 let lastParams: Record<string, unknown> = {}
 
+// Every getClient() lease must be handed back — see issue #2946.
+let getClientCalls = 0
+let releaseClientCalls = 0
+
 // NB: do NOT mock '@chm/logger' — replacing the whole module drops named
 // exports other modules import (e.g. clerk-client's `error`), and bun's
 // mock.module is global + persists across files. The real logger is harmless
 // in tests. Only the data client is mocked.
 mock.module('@chm/clickhouse-client', () => ({
-  getClient: async () => ({
-    command: (...a: unknown[]) => commandImpl.apply(null, a as []),
-    insert: (arg: unknown) => insertImpl(arg),
-  }),
+  getClient: async () => {
+    getClientCalls++
+    return {
+      command: (...a: unknown[]) => commandImpl.apply(null, a as []),
+      insert: (arg: unknown) => insertImpl(arg),
+    }
+  },
+  releaseClient: () => {
+    releaseClientCalls++
+  },
   fetchData: (arg: {
     query: string
     query_params?: Record<string, unknown>
@@ -46,6 +56,8 @@ beforeEach(() => {
   fetchDataImpl = async () => ({ data: [] })
   lastQuery = ''
   lastParams = {}
+  getClientCalls = 0
+  releaseClientCalls = 0
 })
 
 // Use a unique hostId per recordFinding test — ensureTable() memoizes success
@@ -99,6 +111,49 @@ describe('recordFinding', () => {
       title: 'z',
     })
     expect(ok).toBe(false)
+  })
+
+  // Regression coverage for issue #2946: getClient() leases a pooled client,
+  // so ensureTable/recordFinding must hand every lease back — otherwise the
+  // pool entry can never be reclaimed by cleanupStaleClients.
+  test('releases every leased client on the happy path', async () => {
+    await recordFinding(hostSeq++, {
+      severity: 'info',
+      category: 'x',
+      source: 'y',
+      title: 'z',
+    })
+    // One lease for ensureTable (CREATE TABLE), one for the insert.
+    expect(getClientCalls).toBe(2)
+    expect(releaseClientCalls).toBe(getClientCalls)
+  })
+
+  test('releases the leased client when CREATE TABLE fails', async () => {
+    commandImpl = async () => {
+      throw new Error('READONLY')
+    }
+    await recordFinding(hostSeq++, {
+      severity: 'info',
+      category: 'x',
+      source: 'y',
+      title: 'z',
+    })
+    expect(getClientCalls).toBe(1)
+    expect(releaseClientCalls).toBe(getClientCalls)
+  })
+
+  test('releases the leased client when the insert fails', async () => {
+    insertImpl = async () => {
+      throw new Error('insert blew up')
+    }
+    await recordFinding(hostSeq++, {
+      severity: 'info',
+      category: 'x',
+      source: 'y',
+      title: 'z',
+    })
+    expect(getClientCalls).toBe(2)
+    expect(releaseClientCalls).toBe(getClientCalls)
   })
 })
 

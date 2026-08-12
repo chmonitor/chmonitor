@@ -135,27 +135,101 @@ describe('getClickHouseConfigs', () => {
     expect(configs[1].password).toBe('shared_pw')
   })
 
-  it('falls back to "default" user when not enough user entries', () => {
-    process.env.CLICKHOUSE_HOST = 'host1,host2'
-    process.env.CLICKHOUSE_USER = 'only_one_user'
-    process.env.CLICKHOUSE_PASSWORD = 'pw1,pw2'
+  // Regression coverage for issue #2948: the "one credential for all hosts"
+  // shortcut used to require BOTH lists to be length 1, so a single user with
+  // per-host passwords silently degraded hosts 2..n to the 'default' username.
+  it('broadcasts a single user across hosts even when passwords are per-host (#2948)', () => {
+    process.env.CLICKHOUSE_HOST = 'host1,host2,host3'
+    process.env.CLICKHOUSE_USER = 'monitor'
+    process.env.CLICKHOUSE_PASSWORD = 'pw1,pw2,pw3'
 
     const configs = getClickHouseConfigs()
-    // When users.length !== 1 or passwords.length !== 1, per-index fallback applies
-    expect(configs[0].user).toBe('only_one_user')
-    expect(configs[1].user).toBe('default') // fallback
+    expect(configs.map((c) => c.user)).toEqual([
+      'monitor',
+      'monitor',
+      'monitor',
+    ])
+    expect(configs.map((c) => c.password)).toEqual(['pw1', 'pw2', 'pw3'])
   })
 
-  it('falls back to empty password when not enough password entries', () => {
+  it('broadcasts a single password across hosts even when users are per-host (#2948)', () => {
     process.env.CLICKHOUSE_HOST = 'host1,host2'
     process.env.CLICKHOUSE_USER = 'u1,u2'
     process.env.CLICKHOUSE_PASSWORD = 'only_one_pw'
 
     const configs = getClickHouseConfigs()
-    expect(configs[0].password).toBe('only_one_pw')
-    // users.length === 1 && passwords.length === 1 -> shared path
-    // Actually no: users has 2, passwords has 1 -> per-index fallback
-    expect(configs[1].password).toBe('')
+    expect(configs.map((c) => c.password)).toEqual([
+      'only_one_pw',
+      'only_one_pw',
+    ])
+  })
+
+  it('falls back to "default" user for hosts beyond the user list', () => {
+    process.env.CLICKHOUSE_HOST = 'host1,host2,host3'
+    process.env.CLICKHOUSE_USER = 'u1,u2'
+    process.env.CLICKHOUSE_PASSWORD = 'p1,p2,p3'
+
+    const configs = getClickHouseConfigs()
+    expect(configs.map((c) => c.user)).toEqual(['u1', 'u2', 'default'])
+  })
+
+  it('falls back to an empty password for hosts beyond the password list', () => {
+    process.env.CLICKHOUSE_HOST = 'host1,host2,host3'
+    process.env.CLICKHOUSE_USER = 'u1,u2,u3'
+    process.env.CLICKHOUSE_PASSWORD = 'p1,p2'
+
+    const configs = getClickHouseConfigs()
+    expect(configs.map((c) => c.password)).toEqual(['p1', 'p2', ''])
+  })
+
+  // Regression coverage for issue #2947: credential lists are positional, so
+  // dropping empty slots shifted every later value onto the wrong host —
+  // sending one host's password to another server.
+  describe('empty slots keep credential lists index-aligned (#2947)', () => {
+    it('does not shift passwords onto the wrong host', () => {
+      process.env.CLICKHOUSE_HOST = 'a,b,c'
+      process.env.CLICKHOUSE_USER = 'u1,u2,u3'
+      process.env.CLICKHOUSE_PASSWORD = 'p1,,p3'
+
+      const configs = getClickHouseConfigs()
+      expect(configs.map((c) => c.host)).toEqual(['a', 'b', 'c'])
+      // Host "b" has no password configured — it must NOT inherit "p3".
+      expect(configs.map((c) => c.password)).toEqual(['p1', '', 'p3'])
+    })
+
+    it('does not shift users onto the wrong host', () => {
+      process.env.CLICKHOUSE_HOST = 'a,b,c'
+      process.env.CLICKHOUSE_USER = 'u1,,u3'
+      process.env.CLICKHOUSE_PASSWORD = 'p1,p2,p3'
+
+      const configs = getClickHouseConfigs()
+      // The empty slot falls back to 'default', it does not consume 'u3'.
+      expect(configs.map((c) => c.user)).toEqual(['u1', 'default', 'u3'])
+    })
+
+    it('does not shift custom names onto the wrong host', () => {
+      process.env.CLICKHOUSE_HOST = 'a,b,c'
+      process.env.CLICKHOUSE_USER = 'u1,u2,u3'
+      process.env.CLICKHOUSE_PASSWORD = 'p1,p2,p3'
+      process.env.CLICKHOUSE_NAME = 'prod,,dev'
+
+      const configs = getClickHouseConfigs()
+      expect(configs.map((c) => c.customName)).toEqual([
+        'prod',
+        undefined,
+        'dev',
+      ])
+    })
+
+    it('still applies the per-field defaults when a list is entirely empty', () => {
+      process.env.CLICKHOUSE_HOST = 'a,b'
+      process.env.CLICKHOUSE_USER = ''
+      process.env.CLICKHOUSE_PASSWORD = ''
+
+      const configs = getClickHouseConfigs()
+      expect(configs.map((c) => c.user)).toEqual(['default', 'default'])
+      expect(configs.map((c) => c.password)).toEqual(['', ''])
+    })
   })
 
   it('assigns custom names from CLICKHOUSE_NAME', () => {

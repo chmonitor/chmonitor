@@ -5,6 +5,14 @@
 import * as cache from '../table-existence-cache'
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
+// The L2 suite below loads the module under test through a `?test=l2`
+// cache-buster, so hold BOTH connection-pool instances and assert on whichever
+// one actually got leased (issue #2946 coverage).
+const { clientPool: bustedPool } = await import(
+  new URL('../clickhouse/connection-pool.ts?test=l2', import.meta.url).href
+)
+const { clientPool: plainPool } = await import('../clickhouse/connection-pool')
+
 // These tests only touch the public side-effect-free shims around the LRU
 // cache (size / invalidate / clear / metrics). The async checkTableExists
 // path is skipped here — it hits the ClickHouse client and lives in the
@@ -68,6 +76,8 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
   let l2cache: typeof import('../table-existence-cache')
 
   beforeEach(async () => {
+    bustedPool.clear()
+    plainPool.clear()
     process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
     process.env.CLICKHOUSE_USER = 'default'
     process.env.CLICKHOUSE_PASSWORD = ''
@@ -165,6 +175,77 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
 
       expect(result).toBe('unknown')
       expect(setSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  // Regression coverage for issue #2946: getClient() leases the pooled client
+  // (inUse++). Without a matching releaseClient the entry never drops back to
+  // 0, so cleanupStaleClients can never reclaim it and totalInUse grows
+  // monotonically.
+  describe('pooled client lease (issue #2946)', () => {
+    const expectEveryClientReleased = () => {
+      const entries = [
+        ...Array.from(bustedPool.values()),
+        ...Array.from(plainPool.values()),
+      ] as { inUse: number }[]
+      expect(entries.length).toBeGreaterThan(0)
+      expect(entries.map((entry) => entry.inUse)).toEqual(entries.map(() => 0))
+    }
+
+    it('releases the pooled client after a successful probe', async () => {
+      await l2cache.checkTableExists(0, 'system', 'backup_log')
+
+      expectEveryClientReleased()
+    })
+
+    it('releases the pooled client when the probe throws', async () => {
+      mockClientQuery.mockRejectedValue(new Error('connection refused'))
+
+      await l2cache.checkTableExists(0, 'system', 'backup_log')
+
+      expectEveryClientReleased()
+    })
+  })
+
+  // Regression coverage for issue #2953: a cold isolate mounting a dozen
+  // charts used to fire a dozen identical probes that all raced to cache.set.
+  describe('in-flight probe dedup (issue #2953)', () => {
+    it('runs one query for concurrent probes of the same table', async () => {
+      const results = await Promise.all([
+        l2cache.checkTableExists(0, 'system', 'backup_log'),
+        l2cache.checkTableExists(0, 'system', 'backup_log'),
+        l2cache.checkTableExists(0, 'system', 'backup_log'),
+      ])
+
+      expect(results).toEqual([true, true, true])
+      expect(mockClientQuery).toHaveBeenCalledTimes(1)
+    })
+
+    it('still probes separately for different tables', async () => {
+      await Promise.all([
+        l2cache.checkTableExists(0, 'system', 'backup_log'),
+        l2cache.checkTableExists(0, 'system', 'error_log'),
+      ])
+
+      expect(mockClientQuery).toHaveBeenCalledTimes(2)
+    })
+
+    it('clears the in-flight entry so a later probe can retry', async () => {
+      mockClientQuery.mockRejectedValueOnce(new Error('timeout'))
+
+      const [first, second] = await Promise.all([
+        l2cache.checkTableExists(0, 'system', 'backup_log'),
+        l2cache.checkTableExists(0, 'system', 'backup_log'),
+      ])
+      // Both joined the same failed probe — nothing cached.
+      expect(first).toBe('unknown')
+      expect(second).toBe('unknown')
+      expect(mockClientQuery).toHaveBeenCalledTimes(1)
+
+      // The registry entry was removed, so a fresh probe runs.
+      const retried = await l2cache.checkTableExists(0, 'system', 'backup_log')
+      expect(retried).toBe(true)
+      expect(mockClientQuery).toHaveBeenCalledTimes(2)
     })
   })
 })
