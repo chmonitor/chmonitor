@@ -730,6 +730,9 @@ export default defineConfig({
       '@chm/billing-webhook-core': r(
         '../../packages/billing-webhook-core/src/index.ts'
       ),
+      '@chm/query-advisor-core': r(
+        '../../packages/query-advisor-core/src/index.ts'
+      ),
       // Postgres source client (phase 2, #2449). Bundled from source like the
       // other @chm/* packages; its `pg` driver resolves from THIS app's
       // node_modules (own-lockfile), so `pg` is a direct app dependency too.
@@ -772,6 +775,7 @@ export default defineConfig({
       '@chm/types',
       '@chm/pricing',
       '@chm/billing-webhook-core',
+      '@chm/query-advisor-core',
       '@chm/postgres-client',
       '@chm/mcp-server',
       // `pg` (+ its `pg-cloudflare` workerd transport) must be bundled: the

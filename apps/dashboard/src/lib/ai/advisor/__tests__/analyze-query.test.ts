@@ -124,9 +124,13 @@ mock.module('@/lib/utils', () => ({
   formatBytes: (bytes: number) => `${bytes}B`,
 }))
 
-const { analyzeQuery, scoreSkipIndex, scoreProjection, scorePartitionKey } =
-  await import('../recommendation-engine')
-const { proposePrewhereRewrite } = await import('../sql-rewriter')
+const {
+  analyzeQuery,
+  scoreSkipIndex,
+  scoreProjection,
+  scorePartitionKey,
+  proposePrewhereRewrite,
+} = await import('../recommendation-engine')
 
 function deepAssertNoFunctions(value: unknown, path = 'root') {
   if (typeof value === 'function') {
@@ -178,7 +182,7 @@ describe('analyzeQuery — recommend-only invariant (load-bearing)', () => {
     for (const file of [
       'recommendation-engine.ts',
       'impact-estimator.ts',
-      'sql-rewriter.ts',
+      'query-context.ts',
     ]) {
       const source = readFileSync(join(dir, file), 'utf-8')
       expect(source).not.toMatch(/\bwriteQuery\b/)

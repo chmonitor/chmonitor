@@ -1,0 +1,80 @@
+/**
+ * @chm/query-advisor-core — the shared ClickHouse query-advisor engine.
+ *
+ * Given a slow query, this package scores candidate ClickHouse-specific
+ * optimizations (skip index, projection, partition key, PREWHERE rewrite) and
+ * ranks them by estimated granules/bytes saved. It is the single source of
+ * truth for two surfaces that used to carry byte-for-byte copies of the same
+ * logic (issue #2936):
+ *
+ *  - `apps/dashboard/src/lib/ai/advisor/` (agent tool + `/api/v1/advisor`)
+ *  - `packages/mcp-server/src/tools/advisor/` (`get_optimization_recommendations`)
+ *
+ * ABSOLUTE INVARIANT: this package RECOMMENDS ONLY. It does no I/O at all —
+ * callers gather EXPLAIN/schema/parts data with their own read-only fetcher,
+ * hand it over as a `QueryContext`, and get back inert data (strings +
+ * numbers). No function here executes, applies, or mutates anything, and none
+ * should ever be added — see `src/recommend-only.test.ts` for the enforcing
+ * test.
+ *
+ * Layers:
+ *  - `types.ts` — the shared vocabulary (`QueryContext`, `Recommendation`, …).
+ *  - `sql-parsing.ts` — hand-rolled, best-effort SQL/EXPLAIN parsing.
+ *  - `scorers.ts` — the pure scoring rules + ranking.
+ *  - `impact.ts` — estimate math and the honest estimate summaries.
+ */
+
+export {
+  estimateBytesSaved,
+  formatBytes,
+  prewhereFallbackImpact,
+  sumEstimateMarks,
+  summarizeImpact,
+  summarizePrewhereMarks,
+  type PrewhereFallbackInput,
+  type PrewhereMarksInput,
+  type SummarizeImpactInput,
+} from './impact'
+export {
+  buildPrewhereRecommendation,
+  pickPrewhereCandidate,
+  proposePrewhereRewrite,
+  rankRecommendations,
+  scorePartitionKey,
+  scoreProjection,
+  scoreSkipIndex,
+} from './scorers'
+export {
+  buildQueryContext,
+  extractClauseColumns,
+  extractPredicates,
+  extractReferencedTables,
+  findWhereSpan,
+  formatQualifiedTable,
+  normalizeIdentifier,
+  parseExplainIndexes,
+  quoteIdentifier,
+  splitTopLevelAnd,
+  stripQuotedIdentifier,
+  type BuildQueryContextInput,
+} from './sql-parsing'
+export {
+  EFFORT_ORDER,
+  RISK_ORDER,
+  type ColumnStat,
+  type EffortLevel,
+  type EstimatedImpact,
+  type ExistingSkipIndex,
+  type ExplainIndexesInfo,
+  type PartsStats,
+  type PrewhereRewrite,
+  type PrimaryKeyExplain,
+  type QueryContext,
+  type Recommendation,
+  type RecommendationKind,
+  type ReferencedTable,
+  type RiskLevel,
+  type SkipIndexExplain,
+  type SqlPredicate,
+  type TableSchema,
+} from './types'

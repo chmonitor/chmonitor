@@ -1,0 +1,27 @@
+{
+  "name": "@chm/query-advisor-core",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Framework-agnostic ClickHouse query-advisor core: SQL parsing, pure scorers (skip-index / projection / partition-key / PREWHERE) and impact estimation, shared by apps/dashboard and packages/mcp-server so the two advisor surfaces cannot fork.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test src/",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0"
+  },
+  "files": [
+    "src",
+    "tsconfig.json"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

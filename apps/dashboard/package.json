@@ -51,6 +51,7 @@
     "@chm/mcp-server": "workspace:*",
     "@chm/postgres-client": "workspace:*",
     "@chm/pricing": "workspace:*",
+    "@chm/query-advisor-core": "workspace:*",
     "@chm/sql-builder": "workspace:*",
     "@chm/types": "workspace:*",
     "@clerk/backend": "^3.10.0",
