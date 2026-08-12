@@ -43,6 +43,11 @@ export class MemoryCacheAdapter implements QueryCacheAdapter {
     const entry = this.cache.get(key)
     if (entry && Date.now() < entry.expires) {
       debug('[query-cache] Memory cache hit', { key, ttl })
+      // Move the entry to the tail of insertion order so eviction (which
+      // walks from the front) is LRU rather than FIFO — a hot key that keeps
+      // getting read survives even after 1000 distinct keys have been set.
+      this.cache.delete(key)
+      this.cache.set(key, entry)
       return entry.value as T
     }
 

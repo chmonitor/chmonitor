@@ -21,6 +21,7 @@ import { debug, error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { FINDINGS_TABLE } from '@/lib/app-tables'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { clampLimit } from '@/lib/insights/store/types'
 
 type FindingSeverity = 'info' | 'warning' | 'critical'
 
@@ -83,7 +84,7 @@ async function listRecentFindings(
     }
   }
 
-  const safeLimit = Math.min(Math.max(Math.trunc(limit) || 0, 1), 1000)
+  const safeLimit = clampLimit(limit)
 
   // Filter and order on the real DateTime `event_time` column inside a
   // subquery, then format it to a string in the outer SELECT. Formatting in

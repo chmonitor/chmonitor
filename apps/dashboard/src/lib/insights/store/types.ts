@@ -107,7 +107,8 @@ export function toFindingRow(
  * in one place rather than being copy-pasted per adapter.
  */
 export function clampLimit(limit: number | undefined, fallback = 100): number {
-  return Math.min(Math.max(Math.trunc(limit ?? fallback) || 0, 1), 1000)
+  const n = Math.trunc(limit ?? fallback)
+  return Number.isFinite(n) ? Math.min(Math.max(n, 1), 1000) : fallback
 }
 
 /** Loose shape of a row read back from a DB-backed store before normalization. */
