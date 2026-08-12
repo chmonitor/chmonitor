@@ -66,12 +66,18 @@ ONCE (e.g. set `CHM_AUTH_PROVIDER`, never also `VITE_AUTH_PROVIDER`). The hosted
 product's non-secret config lives in committed `apps/dashboard/.env.production`
 (+ `.env.preview` overlay) — the SINGLE source for both the vite client build
 (`CHM_BUILD_ENV=production|preview`, npm `build:production`/`build:preview`) and the Worker
-runtime vars. `wrangler.toml` declares NO `[vars]`; `scripts/patch-wrangler-env.ts`
-injects them from `.env.production` at deploy. Self-hosters use `apps/dashboard/.env.example`
+runtime vars. `apps/dashboard/wrangler.toml` declares NO `[vars]`;
+`scripts/patch-wrangler-env.ts` injects them from `.env.production` at deploy
+(other apps' `wrangler.toml`, e.g. `apps/mcp`, `apps/bug-handler`, may carry
+their own placeholder `[vars]` overlaid by their own `deploy.config.ts` — this
+rule is scoped to `apps/dashboard`). Self-hosters use `apps/dashboard/.env.example`
 (same names) on Docker (`docker-compose.yml` `env_file`) / K8s (Helm `values.yaml`).
 Secrets NEVER live in committed `.env*` — only in `scripts/set-secrets.ts` / a
-K8s Secret / `.env.local`. **Never re-add a `[vars]` block to `wrangler.toml` —
-edit `.env.production`.**
+K8s Secret / `.env.local`. **Never re-add a `[vars]` block to `apps/dashboard/wrangler.toml` —
+edit `.env.production`.** `apps/dashboard/wrangler.toml`'s `[triggers]` crons block is
+documentation-only (stripped at deploy by `patch-wrangler-env.ts`, pinned by
+`scripts/cron-triggers.test.ts`) — see the CF account cron-budget note in
+`docs/knowledge/deployment.md` before "fixing" it.
 
 **Deployment mode (the ONE high-level switch):** `CHM_DEPLOYMENT_MODE=oss`
 (default) `| cloud` resolves good defaults for cloud mode, auth provider,
