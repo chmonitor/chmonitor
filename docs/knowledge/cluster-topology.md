@@ -3,7 +3,7 @@ id: cluster-topology
 title: Cluster Topology Visualization
 type: spec
 status: active
-updated: 2026-05-31
+updated: 2026-08-12
 tags:
   - cluster-topology
   - svg
@@ -45,7 +45,8 @@ unmodified — split for maintainability only, not a public-API change.
 | `components/cluster-topology/model-layout.ts` | `layoutTopology` / `buildTopologyModel` + node placement (`layoutKeepers`, `layoutChNodes`, `fitContent`, `enforceMinDistance`, …). |
 | `components/cluster-topology/model-hulls.ts` | Cluster territory + keeper-region overlay geometry (`buildClusterHulls`, `buildKeeperRect`, `nudgeLabels`). |
 | `components/cluster-topology/geometry.ts` | Pure path math: `roundedRectPath`, `offsetHullPath` (legacy), `convexHull`. |
-| `components/cluster-topology/topo-canvas.tsx` | The SVG render: node glyphs, hull paths, curved edges, label pills. |
+| `components/cluster-topology/topo-canvas-geometry.ts` | Pure geometry for the canvas, zero React deps: `contentViewBox`, `clientToSvg`, `cageForNode`, `clampToHull`, `groupSafeDelta` + drag/position types. Imports from `model-types`/`model-constants`/`model-parse` directly, never `./model` or a component file, so it can't reintroduce the barrel import cycle. Unit-tested in `topo-canvas-geometry.test.ts`. |
+| `components/cluster-topology/topo-canvas.tsx` | The SVG render: node glyphs, hull paths, curved edges, label pills, plus the drag pointer handlers (consumes `topo-canvas-geometry.ts`). |
 | `components/cluster-topology/topology-view.tsx` | Wrapper: status strip, pills, legend, **canvas container**, inspector. Accepts `detailHref`. |
 | `components/cluster-topology/inspector.tsx` | Right-hand detail panel (per-node / cluster overview). |
 | `components/cluster-topology/use-topology.ts` | SWR hook → `/api/v1/cluster-topology`. |
