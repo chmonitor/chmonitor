@@ -5,9 +5,46 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createQueryClient } from './query-client'
 import { useEffect, useState } from 'react'
 import { USER_CONNECTIONS_QUERY_PREFIX } from '@/lib/hooks/use-user-connections'
+import { USER_SETTINGS_QUERY_KEY } from '@/lib/hooks/use-user-settings'
 
 interface QueryProviderProps {
   children: React.ReactNode
+}
+
+/**
+ * Queries that are a *view* of some other client-side store rather than of
+ * server state, and so must never be written into the persisted cache.
+ *
+ * These entries already have an authoritative home in localStorage under their
+ * own key, with their own expiry rules. Persisting them too would create a
+ * second copy governed by this cache's 24h maxAge instead — and because such
+ * queries are configured with `staleTime: Infinity` + `refetchOnMount: false`
+ * (there is no server to revalidate against), a rehydrated copy would win
+ * permanently and the real store would never be re-read. `user-settings`
+ * mirrors `clickhouse-monitor-user-settings`; keeping it out of here means the
+ * query function re-reads that key once per load, so it stays the single source
+ * of truth.
+ */
+const NEVER_PERSIST_QUERY_KEYS = new Set<string>([
+  String(USER_SETTINGS_QUERY_KEY[0]),
+])
+
+/**
+ * Decide whether a query may be written to the persisted cache. Exported so the
+ * exclusions can be tested without rendering the provider.
+ */
+export function shouldDehydrateQuery(query: {
+  state: { status: string }
+  queryKey: readonly unknown[]
+}): boolean {
+  // Only persist queries that actually succeeded — never cache a
+  // pending/errored state to disk (it would rehydrate as a stuck
+  // loading or error on next load).
+  if (query.state.status !== 'success') return false
+  // Never persist per-user server connections — would leak across accounts.
+  if (query.queryKey[0] === USER_CONNECTIONS_QUERY_PREFIX) return false
+  if (NEVER_PERSIST_QUERY_KEYS.has(String(query.queryKey[0]))) return false
+  return true
 }
 
 // Persisted cache settings — see PersistQueryClientProvider below.
@@ -80,19 +117,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
         persister,
         maxAge: PERSIST_MAX_AGE_MS,
         buster: PERSIST_BUSTER,
-        dehydrateOptions: {
-          // Only persist queries that actually succeeded — never cache a
-          // pending/errored state to disk (it would rehydrate as a stuck
-          // loading or error on next load).
-          shouldDehydrateQuery: (query) => {
-            if (query.state.status !== 'success') return false
-            // Never persist per-user server connections — would leak across accounts.
-            if (query.queryKey[0] === USER_CONNECTIONS_QUERY_PREFIX) {
-              return false
-            }
-            return true
-          },
-        },
+        dehydrateOptions: { shouldDehydrateQuery },
       }}
     >
       {children}
