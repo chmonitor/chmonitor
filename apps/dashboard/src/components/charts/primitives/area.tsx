@@ -24,7 +24,11 @@ import {
   ChartContainer,
   ChartLegend,
 } from '@/components/ui/chart'
-import { getYAxisDomain, resolveYAxisScale } from '@/lib/chart-scale'
+import {
+  clampDataForLogScale,
+  getYAxisDomain,
+  resolveYAxisScale,
+} from '@/lib/chart-scale'
 import { augmentWithBand, OVERLAY_KEYS } from '@/lib/insights/anomaly-overlay'
 import { useStatsInsightsSettings } from '@/lib/query/use-stats-insights-settings'
 import { cn } from '@/lib/utils'
@@ -212,6 +216,16 @@ export const AreaChart = function AreaChart({
     domainCategories,
     resolvedScale === 'log'
   )
+
+  // Log scale can't represent zero/negative values (Recharts maps them to
+  // `null`), which breaks the Area's filled polygon into disconnected
+  // slivers around every such point — visually the fill vanishes and only
+  // isolated stroke marks remain. Floor those values to the domain minimum
+  // so the area renders as one continuous shape (see LOG_SCALE_MIN).
+  const renderData =
+    resolvedScale === 'log'
+      ? clampDataForLogScale(chartData as Record<string, unknown>[], categories)
+      : chartData
   const chartConfig = (() => {
     const config = categories.reduce(
       (acc, category, index) => {
@@ -267,7 +281,7 @@ export const AreaChart = function AreaChart({
     >
       <RechartAreaChart
         accessibilityLayer
-        data={chartData}
+        data={renderData}
         margin={{
           top: 4,
           left: 12,

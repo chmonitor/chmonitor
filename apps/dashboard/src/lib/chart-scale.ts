@@ -10,7 +10,7 @@ const LOG_SCALE_THRESHOLD = 100
  * Minimum positive value to use for log scale domain
  * Values at or below zero will be treated as this value
  */
-const LOG_SCALE_MIN = 1
+export const LOG_SCALE_MIN = 1
 
 /**
  * Analyze data to determine if log scale is appropriate
@@ -123,4 +123,45 @@ export function getYAxisDomain(
   // For log scale, always use LOG_SCALE_MIN (1) as the domain minimum
   // This ensures area charts fill all the way to the bottom
   return [LOG_SCALE_MIN, 'auto']
+}
+
+/**
+ * Floor zero/negative category values to LOG_SCALE_MIN for log-scale rendering.
+ *
+ * Log scale cannot represent zero or negative values (log(0) is undefined),
+ * so Recharts maps those points to `null`. On an Area chart that breaks the
+ * filled polygon into disconnected slivers around every zero/negative point
+ * instead of one continuous shape — the area effectively disappears and only
+ * the stroke on the surviving points remains visible. Per LOG_SCALE_MIN's
+ * contract ("values at or below zero are treated as this value"), clamp
+ * those values to the domain floor before they reach the chart so every
+ * point stays finite and the area renders as a continuous fill.
+ *
+ * @param data - Chart data rows
+ * @param categories - Category keys to clamp
+ * @returns A new array with clamped values; rows needing no change are
+ *   returned unmodified (reference-equal) to avoid unnecessary copies.
+ *
+ * Note: this does not help the bottom-most series of a *stacked* Area chart.
+ * Recharts derives a stacked series' baseline from the cumulative stack sum,
+ * which always starts at 0 regardless of the (clamped) data values — that
+ * baseline bypasses `baseValue`/data entirely, so it stays unmappable on a
+ * log axis. Log scale + `stack` together is a structural limitation, not
+ * something this function can paper over.
+ */
+export function clampDataForLogScale(
+  data: Record<string, unknown>[],
+  categories: string[]
+): Record<string, unknown>[] {
+  return data.map((point) => {
+    let clamped: Record<string, unknown> | undefined
+    for (const category of categories) {
+      const value = point[category]
+      if (typeof value === 'number' && Number.isFinite(value) && value <= 0) {
+        clamped ??= { ...point }
+        clamped[category] = LOG_SCALE_MIN
+      }
+    }
+    return clamped ?? point
+  })
 }
