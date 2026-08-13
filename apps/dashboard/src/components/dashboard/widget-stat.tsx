@@ -18,6 +18,7 @@ import type { DashboardWidget } from '@/types/dashboard-layout'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { visibilityAwareInterval } from '@/lib/swr/config'
 
 interface StatQueryResponse {
   success: boolean
@@ -43,7 +44,9 @@ function useStatQuery(sql: string | undefined, hostId: number) {
     },
     enabled: Boolean(sql),
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    // Pause while the tab is hidden. A custom dashboard can mount many stat
+    // widgets, each of which would otherwise poll forever in a background tab.
+    refetchInterval: visibilityAwareInterval(60_000),
   })
 }
 
