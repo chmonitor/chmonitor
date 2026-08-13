@@ -1,6 +1,8 @@
 import {
   analyzeDataForLogScale,
+  clampDataForLogScale,
   getYAxisDomain,
+  LOG_SCALE_MIN,
   resolveYAxisScale,
 } from './chart-scale'
 import { describe, expect, test } from 'bun:test'
@@ -235,5 +237,88 @@ describe('getYAxisDomain', () => {
     const bigData = [{ x: 0 }, { x: 1_000_000 }]
     expect(getYAxisDomain(bigData, ['x'], true)).toEqual([1, 'auto'])
     expect(getYAxisDomain(bigData, ['x'], false)).toEqual(['auto', 'auto'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// clampDataForLogScale
+//
+// Regression coverage for the "log scale area chart becomes a line chart"
+// bug: Recharts maps zero/negative values to `null` on a log axis, which
+// breaks the Area's filled polygon into disconnected slivers around every
+// such point instead of one continuous shape. clampDataForLogScale floors
+// those values to LOG_SCALE_MIN before the data reaches the chart.
+// ---------------------------------------------------------------------------
+
+describe('clampDataForLogScale', () => {
+  test('floors zero values to LOG_SCALE_MIN', () => {
+    const data = [{ v: 0 }, { v: 10 }, { v: 1000 }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result).toEqual([{ v: LOG_SCALE_MIN }, { v: 10 }, { v: 1000 }])
+  })
+
+  test('floors negative values to LOG_SCALE_MIN', () => {
+    const data = [{ v: -5 }, { v: 10 }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result).toEqual([{ v: LOG_SCALE_MIN }, { v: 10 }])
+  })
+
+  test('leaves positive values untouched', () => {
+    const data = [{ v: 1 }, { v: 500 }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result).toEqual(data)
+  })
+
+  test('rows needing no change are returned reference-equal (no copy)', () => {
+    const data = [{ v: 5 }, { v: 10 }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result[0]).toBe(data[0])
+    expect(result[1]).toBe(data[1])
+  })
+
+  test('rows that are clamped are copies, not mutations of the original', () => {
+    const data = [{ v: 0 }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result[0]).not.toBe(data[0])
+    expect(data[0]?.v).toBe(0) // original untouched
+    expect(result[0]?.v).toBe(LOG_SCALE_MIN)
+  })
+
+  test('only clamps the given categories, leaving other fields untouched', () => {
+    const data = [{ v: 0, other: -1, t: '2024-01-01' }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result).toEqual([{ v: LOG_SCALE_MIN, other: -1, t: '2024-01-01' }])
+  })
+
+  test('multiple categories on the same row are each clamped independently', () => {
+    const data = [{ a: 0, b: -3, c: 50 }]
+    const result = clampDataForLogScale(data, ['a', 'b', 'c'])
+    expect(result).toEqual([{ a: LOG_SCALE_MIN, b: LOG_SCALE_MIN, c: 50 }])
+  })
+
+  test('non-numeric and NaN values are left untouched', () => {
+    const data = [{ v: 'n/a' }, { v: NaN }, { v: null }, { v: undefined }]
+    const result = clampDataForLogScale(data, ['v'])
+    expect(result).toEqual(data)
+  })
+
+  test('empty data returns empty array', () => {
+    expect(clampDataForLogScale([], ['v'])).toEqual([])
+  })
+
+  test('mixed zero/negative/positive series stays finite end-to-end', () => {
+    // Regression case matching the reported bug: a metric that dips to zero
+    // between spikes (e.g. an error count) must not break the area fill.
+    const data = [
+      { t: '1', v: 0 },
+      { t: '2', v: 10 },
+      { t: '3', v: 0 },
+      { t: '4', v: 1000 },
+    ]
+    const result = clampDataForLogScale(data, ['v'])
+    for (const row of result) {
+      expect(row.v).toBeGreaterThan(0)
+      expect(Number.isFinite(row.v)).toBe(true)
+    }
   })
 })
