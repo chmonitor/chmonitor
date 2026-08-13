@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useQueryFavorites } from '@/lib/stores/use-query-favorites'
-import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 function relTime(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000)
@@ -70,13 +70,13 @@ function FavoriteItem({
 
   const copyLink = async () => {
     if (!fav.shareUrl) return
-    try {
-      await navigator.clipboard.writeText(fav.shareUrl)
+    const success = await copyToClipboard(fav.shareUrl)
+    if (success) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    } catch (err) {
+    } else {
       // Silent failure here left the user clicking Copy with no feedback (#2729).
-      toast.error('Failed to copy link', { description: describeError(err) })
+      toast.error('Failed to copy link')
     }
   }
 

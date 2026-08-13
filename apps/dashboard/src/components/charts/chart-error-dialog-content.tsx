@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { type CardError, getTableMissingInfo } from '@/lib/card-error-utils'
-import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface ChartErrorDialogContentProps {
   error: CardError
@@ -36,21 +36,21 @@ export default function ChartErrorDialogContent({
   const hasTableGuidance = tableMissingInfo?.guidance
 
   const handleCopyError = async () => {
-    try {
-      await navigator.clipboard.writeText(errorMarkdown)
+    const success = await copyToClipboard(errorMarkdown)
+    if (success) {
       toast.success('Error details copied to clipboard')
-    } catch (err) {
-      toast.error('Failed to copy error', { description: describeError(err) })
+    } else {
+      toast.error('Failed to copy error')
     }
   }
 
   const handleAskAI = async () => {
     const prompt = `Please analyze this ClickHouse monitoring error and provide a fix:\n\n${errorMarkdown}`
-    try {
-      await navigator.clipboard.writeText(prompt)
+    const success = await copyToClipboard(prompt)
+    if (success) {
       toast.info('Prompt copied! Paste into your AI agent (Claude, etc.)')
-    } catch (err) {
-      toast.error('Failed to copy prompt', { description: describeError(err) })
+    } else {
+      toast.error('Failed to copy prompt')
     }
   }
 
@@ -80,13 +80,11 @@ export default function ChartErrorDialogContent({
                   size="sm"
                   className="h-7 text-xs px-2.5 hover:bg-muted/80 rounded-md gap-1"
                   onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(sql)
+                    const success = await copyToClipboard(sql)
+                    if (success) {
                       toast.success('SQL query copied to clipboard')
-                    } catch (err) {
-                      toast.error('Failed to copy SQL', {
-                        description: describeError(err),
-                      })
+                    } else {
+                      toast.error('Failed to copy SQL')
                     }
                   }}
                 >

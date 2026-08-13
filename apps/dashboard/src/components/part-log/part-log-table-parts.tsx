@@ -6,6 +6,7 @@ import {
   MoreHorizontal,
   ZoomIn,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import type { PartLogRow, Tone } from './lib'
 
@@ -22,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 // ───────────────────────── sorting ─────────────────────────
 
@@ -146,8 +148,9 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
     { label: 'Event time', value: row.event_time },
   ]
 
-  const copyName = () => {
-    void navigator.clipboard?.writeText(row.part_name)
+  const copyName = async () => {
+    const success = await copyToClipboard(row.part_name)
+    if (!success) toast.error('Failed to copy part name')
   }
 
   return (
@@ -386,7 +389,9 @@ export function Row({
               title="Copy part name"
               onClick={(e) => {
                 e.stopPropagation()
-                void navigator.clipboard?.writeText(row.part_name)
+                void copyToClipboard(row.part_name).then((success) => {
+                  if (!success) toast.error('Failed to copy part name')
+                })
               }}
               className="hidden size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex"
             >

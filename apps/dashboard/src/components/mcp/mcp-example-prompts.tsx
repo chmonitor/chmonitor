@@ -1,4 +1,5 @@
 import { Check, Copy, MessageSquare } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { EXAMPLE_PROMPTS } from '@chm/mcp-server/data'
 import { useState } from 'react'
@@ -10,14 +11,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 function PromptItem({ prompt }: { prompt: string }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(prompt)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const success = await copyToClipboard(prompt)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error('Failed to copy prompt')
+    }
   }
 
   return (

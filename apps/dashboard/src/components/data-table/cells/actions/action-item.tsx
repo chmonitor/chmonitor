@@ -14,6 +14,7 @@ import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { useRouter } from '@/lib/next-compat'
 import { useActions } from '@/lib/swr'
 import { useHostId } from '@/lib/swr/use-host'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface ActionButtonProps<TData extends RowData, TValue> {
   row: Row<TData>
@@ -124,8 +125,10 @@ export function ActionItem<TData extends RowData, TValue>({
         )
 
         const prompt = lines.join('\n')
-        await navigator.clipboard.writeText(prompt)
-        return { success: true, message: 'AI prompt copied to clipboard' }
+        const success = await copyToClipboard(prompt)
+        return success
+          ? { success: true, message: 'AI prompt copied to clipboard' }
+          : { success: false, message: 'Failed to copy prompt to clipboard' }
       },
     },
     optimize: {
