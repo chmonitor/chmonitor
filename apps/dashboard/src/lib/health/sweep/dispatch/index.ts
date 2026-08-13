@@ -32,8 +32,8 @@ import type { SweepContext } from './../resolve-config'
 import type { FindingContext } from './finding-context'
 import type {
   DispatchCounters,
-  DispatchFindingParams,
   Dispatcher,
+  DispatchFindingParams,
 } from './types'
 
 import { clearAck } from './../../alert-ack-store'
@@ -78,12 +78,13 @@ import { createDigestPipeline } from './digest'
 import { debug } from '@chm/logger'
 import { formatDuration } from '@/lib/utils'
 
-export { buildAlertEventRecord } from './alert-event-record'
 export type {
   DispatchCounters,
-  DispatchFindingParams,
   Dispatcher,
+  DispatchFindingParams,
 } from './types'
+
+export { buildAlertEventRecord } from './alert-event-record'
 export { postPagerDutyEvent, postWebhook } from './webhook-post'
 
 /** Which per-channel override (#2661) governs a route of each provider. */

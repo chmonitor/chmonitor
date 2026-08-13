@@ -46,6 +46,13 @@ import type {
   TableSchema,
 } from './types'
 
+import { measurePrewhereImpact } from './impact-estimator'
+import {
+  fetchExplainIndexes,
+  fetchPartsStats,
+  fetchTableSchema,
+  resolveSql,
+} from './query-context'
 import {
   buildPrewhereRecommendation,
   buildQueryContext,
@@ -55,13 +62,6 @@ import {
   scoreProjection,
   scoreSkipIndex,
 } from '@chm/query-advisor-core'
-import { measurePrewhereImpact } from './impact-estimator'
-import {
-  fetchExplainIndexes,
-  fetchPartsStats,
-  fetchTableSchema,
-  resolveSql,
-} from './query-context'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { extractReferencedTables } from '@/lib/ai/agent/tools/sql-analysis'
 
@@ -85,20 +85,20 @@ export type {
   TableSchema,
 }
 
+export { estimateBytesSaved } from './impact-estimator'
 // The pure engine, re-exported from the shared package so callers of this
 // module keep a single import site for "the advisor".
 export {
   extractClauseColumns,
   extractPredicates,
+  type PrewhereRewrite,
   parseExplainIndexes,
   proposePrewhereRewrite,
   rankRecommendations,
   scorePartitionKey,
   scoreProjection,
   scoreSkipIndex,
-  type PrewhereRewrite,
 } from '@chm/query-advisor-core'
-export { estimateBytesSaved } from './impact-estimator'
 
 // ---------------------------------------------------------------------------
 // Orchestration — gathers read-only data, builds QueryContext, ranks output.

@@ -2,6 +2,8 @@
  * Health tab charts - errors, connections, and coordination
  */
 
+import type { OverviewChartConfig } from './types'
+
 import {
   ChartCancelledQueries,
   ChartConnectionsPool,
@@ -16,7 +18,6 @@ import {
   ChartZookeeperRequests,
   ChartZookeeperWait,
 } from '../-charts-lazy'
-import type { OverviewChartConfig } from './types'
 
 export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
   {

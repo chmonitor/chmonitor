@@ -8,9 +8,9 @@ import {
   _KP_DOWN,
   _KP_HALF,
   _KP_UP,
+  CLICK_SLOP,
   cageForNode,
   clampToHull,
-  CLICK_SLOP,
   clientToSvg,
   contentViewBox,
   groupSafeDelta,
@@ -62,6 +62,7 @@ export function TopoCanvas({
     [keepers, chNodes, clusterHulls]
   )
   // Reset free-form positions when the topology structure changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: structureKey is derived from keepers/chNodes/clusterHulls and is the intended trigger for this reset
   useEffect(() => {
     setOffsets({})
     dragRef.current = null
@@ -128,12 +129,12 @@ export function TopoCanvas({
 
   // dragTick intentionally invalidates while a drag is in progress so live
   // positions (read from liveDeltaRef) re-materialize each pointermove.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dragTick drives live drag frames and offsets must retrigger the live position recompute; both are deliberate
   const posById = useMemo(() => {
     const map: PosMap = {}
     for (const k of keepers) map[k.id] = renderPos(k.id)
     for (const n of chNodes) map[n.id] = renderPos(n.id)
     return map
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- dragTick drives live drag frames
   }, [keepers, chNodes, renderPos, dragTick, offsets])
 
   const edge = (a: string, b: string) => {

@@ -327,9 +327,7 @@ export interface BuildQueryContextInput {
  * SQL parsed here into the `QueryContext` every scorer consumes. Pure: the
  * caller does the fetching, this only parses and packs.
  */
-export function buildQueryContext(
-  input: BuildQueryContextInput
-): QueryContext {
+export function buildQueryContext(input: BuildQueryContextInput): QueryContext {
   const { sql, database, table, schema, parts, explain } = input
   return {
     sql,

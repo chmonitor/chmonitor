@@ -2,6 +2,8 @@
  * Queries tab charts - query performance and patterns (detailed view)
  */
 
+import type { OverviewChartConfig } from './types'
+
 import {
   ChartInsertPerformance,
   ChartQueryCache,
@@ -15,7 +17,6 @@ import {
   ChartTopInserters,
   ChartTopQueryFingerprintsPerf,
 } from '../-charts-lazy'
-import type { OverviewChartConfig } from './types'
 
 export const QUERIES_TAB_CHARTS: OverviewChartConfig[] = [
   {

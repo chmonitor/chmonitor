@@ -2,12 +2,14 @@
  * Storage tab charts - disk usage, tables, parts, backups
  */
 
+import type { OverviewChartConfig } from './types'
+
 import {
   ChartBackupSize,
   ChartCompressionRatio,
   ChartDataFreshness,
-  ChartDisksUsage,
   ChartDiskSize,
+  ChartDisksUsage,
   ChartDiskUsageByDatabase,
   ChartDiskUsageTrend,
   ChartNewPartsCreated,
@@ -16,7 +18,6 @@ import {
   ChartStoragePolicies,
   ChartTopTableSize,
 } from '../-charts-lazy'
-import type { OverviewChartConfig } from './types'
 
 export const STORAGE_TAB_CHARTS: OverviewChartConfig[] = [
   {

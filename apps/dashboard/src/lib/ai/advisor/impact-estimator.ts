@@ -26,8 +26,8 @@ import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 
 export {
   estimateBytesSaved,
-  summarizeImpact,
   type SummarizeImpactInput,
+  summarizeImpact,
 } from '@chm/query-advisor-core'
 
 export interface MeasurePrewhereImpactInput {

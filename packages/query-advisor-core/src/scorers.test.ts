@@ -1,7 +1,6 @@
 // Moved here from apps/dashboard (`__tests__/recommendation-engine.test.ts`
 // and `__tests__/sql-rewriter.test.ts`) when the dashboard and MCP forks were
 // merged into this package — issue #2936.
-import { describe, expect, test } from 'bun:test'
 
 import type { Recommendation } from './types'
 
@@ -19,6 +18,7 @@ import {
   makeSchema,
   makeSkipIndex,
 } from './test-fixtures'
+import { describe, expect, test } from 'bun:test'
 
 function makeRecommendation(
   overrides: Partial<Recommendation> & { title: string }

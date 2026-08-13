@@ -3,8 +3,9 @@
  * contribution calendar) and derive the aggregate stats for the KPI strip.
  */
 
-import { isoDate, MONTH_NAMES, formatMonthYear } from './date-utils'
 import type { HeatmapDayRow, MetricConfig } from './metrics'
+
+import { formatMonthYear, isoDate, MONTH_NAMES } from './date-utils'
 
 /** A single day cell once placed in the calendar grid. */
 export interface CalendarDay {

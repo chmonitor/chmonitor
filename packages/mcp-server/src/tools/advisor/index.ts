@@ -23,24 +23,13 @@
 
 import { z } from 'zod'
 
-import type { McpServer } from '@modelcontextprotocol/server'
 import type {
   PartsStats,
   Recommendation,
   TableSchema,
 } from '@chm/query-advisor-core'
+import type { McpServer } from '@modelcontextprotocol/server'
 
-import {
-  buildPrewhereRecommendation,
-  buildQueryContext,
-  extractReferencedTables,
-  proposePrewhereRewrite,
-  rankRecommendations,
-  scorePartitionKey,
-  scoreProjection,
-  scoreSkipIndex,
-} from '@chm/query-advisor-core'
-import { validateSqlQuery } from '@chm/sql-builder'
 import {
   hostIdSchema,
   READONLY_ANNOTATIONS,
@@ -54,6 +43,17 @@ import {
   measurePrewhereImpact,
   resolveSql,
 } from './data-fetchers'
+import {
+  buildPrewhereRecommendation,
+  buildQueryContext,
+  extractReferencedTables,
+  proposePrewhereRewrite,
+  rankRecommendations,
+  scorePartitionKey,
+  scoreProjection,
+  scoreSkipIndex,
+} from '@chm/query-advisor-core'
+import { validateSqlQuery } from '@chm/sql-builder'
 
 interface AnalyzeQueryResult {
   ok: boolean
