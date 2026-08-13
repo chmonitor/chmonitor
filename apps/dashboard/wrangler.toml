@@ -111,7 +111,8 @@ preview_id = "1f8ab0acc6114802bf5c14d883dae341"
 # ─────────────────────────────────────────────────────────────────────────────
 # Fleet-wide rate limiting (Cloudflare Rate Limiting API, "unsafe" binding).
 # Backs the public/anonymous abuse guards (share links, anon pageview inserts,
-# public chart GETs, agent burst guard, MCP tool-call burst guard). The
+# public chart GETs, agent burst guard, MCP tool-call burst guard, the
+# browser-connections test/sessions outbound-connection guard, #2978). The
 # in-memory token bucket in lib/api/rate-limiter.ts is per-isolate, so Workers'
 # isolate spread means configured limits are not enforced fleet-wide — these
 # edge counters are.
@@ -137,6 +138,19 @@ name = "CHM_RATE_LIMIT_MCP"
 type = "ratelimit"
 namespace_id = "2003"
 simple = { limit = 30, period = 60 }
+
+# Dedicated binding (not a share of CHM_RATE_LIMIT_API) — the browser-connections
+# test/sessions routes dial an attacker-supplied host per request (#2978) and need
+# the tight 10/min threshold enforced at the edge, not CHM_RATE_LIMIT_API's looser
+# 100/min (sized for cheap GET data routes). Both routes share this ONE binding
+# with distinct bucket-key prefixes (`browser-conn-test:ip:` /
+# `browser-conn-sessions:ip:`) — Cloudflare scopes the edge counter by the `key`
+# passed to `.limit()`, so one binding safely serves two independent buckets.
+[[unsafe.bindings]]
+name = "CHM_RATE_LIMIT_BROWSER_CONN"
+type = "ratelimit"
+namespace_id = "2004"
+simple = { limit = 10, period = 60 }
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -306,6 +320,12 @@ name = "CHM_RATE_LIMIT_MCP"
 type = "ratelimit"
 namespace_id = "2003"
 simple = { limit = 30, period = 60 }
+
+[[env.preview.unsafe.bindings]]
+name = "CHM_RATE_LIMIT_BROWSER_CONN"
+type = "ratelimit"
+namespace_id = "2004"
+simple = { limit = 10, period = 60 }
 
 # DO migrations are not inherited by named environments — repeat the chain that
 # drops the legacy preview worker's Durable Objects (see top-level note).
