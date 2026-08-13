@@ -13,9 +13,10 @@
  * popover.
  *
  * Provider API keys are fixed at deploy time via environment variables, with
- * one exception: AnyRouter can be signed into from here, which keeps a
- * browser-held token and bills that user's own credits. Otherwise this tab is
- * status + "which model is active", not an editable provider form.
+ * one exception: when no `ANYROUTER_API_KEY` is set, AnyRouter can be signed
+ * into from here, which keeps a browser-held token and bills that user's own
+ * credits. Otherwise this tab is status + "which model is active", not an
+ * editable provider form.
  */
 
 import {
@@ -128,6 +129,16 @@ export function ProviderModelsTab() {
     configError instanceof AgentConfigCheckError && configError.status === 401
   const genuineError = Boolean(configError) && !authRequired
 
+  // Sign-in is offered only when AnyRouter has no deploy-time key — with one
+  // set the provider already works for everyone. `configCheck` is the
+  // authoritative source here; while it is unknown, show nothing rather than
+  // imply the deployment is unconfigured. A signed-in user always keeps the
+  // row so they can sign out.
+  const anyRouterStatus = configStatusByProvider.get('anyrouter')
+  const showAnyRouterSignIn =
+    anyRouter.isSignedIn ||
+    (anyRouterStatus !== undefined && !anyRouterStatus.configured)
+
   return (
     <div className="space-y-4">
       {authRequired && !signedIn && (
@@ -168,34 +179,38 @@ export function ProviderModelsTab() {
         </Alert>
       )}
 
-      <div className="border-input flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2">
-        <div className="min-w-0">
-          <p className="text-[12px] font-medium">Sign in with AnyRouter</p>
-          <p className="text-muted-foreground text-[11px] leading-snug">
-            {anyRouter.isSignedIn
-              ? 'AnyRouter requests from this browser are billed to your account.'
-              : 'Use your own AnyRouter credits instead of this deployment’s key. The token stays in this browser.'}
-          </p>
-          {anyRouter.error ? (
-            <p className="text-destructive pt-0.5 text-[11px]">
-              {anyRouter.error}
+      {showAnyRouterSignIn && (
+        <div className="border-input flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-[12px] font-medium">Sign in with AnyRouter</p>
+            <p className="text-muted-foreground text-[11px] leading-snug">
+              {anyRouter.isSignedIn
+                ? 'AnyRouter requests from this browser are billed to your account.'
+                : 'This deployment has no AnyRouter key. Sign in to use AnyRouter models on your own credits — the token stays in this browser.'}
             </p>
-          ) : null}
+            {anyRouter.error ? (
+              <p className="text-destructive pt-0.5 text-[11px]">
+                {anyRouter.error}
+              </p>
+            ) : null}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 shrink-0"
+            disabled={anyRouter.isSigningIn}
+            onClick={
+              anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn
+            }
+          >
+            {anyRouter.isSigningIn
+              ? 'Signing in…'
+              : anyRouter.isSignedIn
+                ? 'Sign out'
+                : 'Sign in'}
+          </Button>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 shrink-0"
-          disabled={anyRouter.isSigningIn}
-          onClick={anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn}
-        >
-          {anyRouter.isSigningIn
-            ? 'Signing in…'
-            : anyRouter.isSignedIn
-              ? 'Sign out'
-              : 'Sign in'}
-        </Button>
-      </div>
+      )}
 
       <div className="space-y-3">
         {grouped.map(([provider, list]) => {
@@ -243,10 +258,10 @@ export function ProviderModelsTab() {
         )}
       >
         Provider API keys are configured at deploy time via environment
-        variables — except AnyRouter, which you can sign in to above to use your
-        own credits from this browser. Model choice above is saved to this
-        browser; existing conversations keep the model they started with. See
-        the{' '}
+        variables. AnyRouter is the exception when no key is set: you can sign
+        in above to use your own credits from this browser. Model choice above
+        is saved to this browser; existing conversations keep the model they
+        started with. See the{' '}
         <a
           href={docsSiteUrl('guide/ai-agent')}
           target="_blank"
