@@ -1,7 +1,10 @@
 import { keepPreviousData, QueryClient } from '@tanstack/react-query'
 
+import { shouldDehydrateQuery } from '../provider'
 import { createQueryClient } from '../query-client'
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
+import { USER_CONNECTIONS_QUERY_PREFIX } from '@/lib/hooks/use-user-connections'
+import { USER_SETTINGS_QUERY_KEY } from '@/lib/hooks/use-user-settings'
 
 describe('QueryProvider swr:revalidate integration', () => {
   let queryClient: QueryClient
@@ -90,5 +93,37 @@ describe('createQueryClient default query options', () => {
   it('does not refetch on window focus', () => {
     const queries = createQueryClient().getDefaultOptions().queries
     expect(queries?.refetchOnWindowFocus).toBe(false)
+  })
+})
+
+describe('shouldDehydrateQuery persistence exclusions', () => {
+  const q = (key: readonly unknown[], status = 'success') => ({
+    state: { status },
+    queryKey: key,
+  })
+
+  it('persists ordinary successful server-state queries', () => {
+    expect(shouldDehydrateQuery(q(['/api/v1/charts/query-count']))).toBe(true)
+  })
+
+  it('never persists pending or errored queries', () => {
+    expect(shouldDehydrateQuery(q(['/api/v1/hosts'], 'pending'))).toBe(false)
+    expect(shouldDehydrateQuery(q(['/api/v1/hosts'], 'error'))).toBe(false)
+  })
+
+  it('never persists per-user connections, which would leak across accounts', () => {
+    expect(shouldDehydrateQuery(q([USER_CONNECTIONS_QUERY_PREFIX, 0]))).toBe(
+      false
+    )
+  })
+
+  // user-settings is a *view* of the `clickhouse-monitor-user-settings`
+  // localStorage key, not of server state. It is configured with
+  // staleTime: Infinity + refetchOnMount: false because there is nothing to
+  // revalidate against — so if a copy were persisted here it would rehydrate
+  // and win permanently, and the real store would never be read again. Keeping
+  // it out of the persisted cache is what preserves the single source of truth.
+  it('never persists user-settings, so localStorage stays authoritative', () => {
+    expect(shouldDehydrateQuery(q(USER_SETTINGS_QUERY_KEY))).toBe(false)
   })
 })
