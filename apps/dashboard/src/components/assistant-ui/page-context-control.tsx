@@ -21,6 +21,8 @@
  * transport keeps its default send behaviour).
  */
 
+import { useLocation } from '@tanstack/react-router'
+
 import {
   createContext,
   type MutableRefObject,
@@ -32,7 +34,6 @@ import {
   useState,
 } from 'react'
 import { buildPageContext, type PageContext } from '@/lib/ai/agent/page-context'
-import { useLocation } from '@tanstack/react-router'
 
 export interface PageContextControl {
   /** Current page context, or `null` when the route can't be resolved. */

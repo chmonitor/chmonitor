@@ -23,14 +23,22 @@ import { BotIcon, Minimize2Icon, PanelRightIcon, XIcon } from 'lucide-react'
 import { Thread } from './thread'
 import { AssistantModalPrimitive } from '@assistant-ui/react'
 import { forwardRef, useState } from 'react'
+import { AssistantModalButton } from '@/components/assistant-ui/assistant-modal-button'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
-import { Button } from '@/components/ui/button'
 import { useAgentWidgetMode } from '@/lib/hooks/use-agent-widget-mode'
 import { cn } from '@/lib/utils'
 
-export function AssistantModal() {
+export function AssistantModal({
+  initialOpen = false,
+}: {
+  initialOpen?: boolean
+}) {
   const { isDocked, toggleMode } = useAgentWidgetMode()
-  const [open, setOpen] = useState(false)
+  // `initialOpen` is the first-activation handoff: the lightweight gate in
+  // global-assistant-modal.tsx mounts this module only once the user has
+  // clicked the bubble, so it must come up already open rather than needing a
+  // second click.
+  const [open, setOpen] = useState(initialOpen)
 
   const header = (
     <WidgetHeader
@@ -120,41 +128,3 @@ function WidgetHeader({
     </div>
   )
 }
-
-type ButtonProps = React.ComponentPropsWithoutRef<typeof Button>
-
-const AssistantModalButton = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    { 'data-state': state, ...rest }: ButtonProps & { 'data-state'?: string },
-    ref
-  ) => {
-    const open = state === 'open'
-    return (
-      <Button
-        {...rest}
-        ref={ref}
-        size="icon"
-        aria-label={open ? 'Close agent' : 'Open agent'}
-        className="size-11 rounded-full transition-transform hover:scale-105"
-      >
-        <span
-          className={cn(
-            'absolute transition-all',
-            open ? 'rotate-90 scale-0' : 'rotate-0 scale-100'
-          )}
-        >
-          <BotIcon className="size-5" />
-        </span>
-        <span
-          className={cn(
-            'absolute transition-all',
-            open ? 'rotate-0 scale-100' : 'rotate-90 scale-0'
-          )}
-        >
-          <XIcon className="size-5" />
-        </span>
-      </Button>
-    )
-  }
-)
-AssistantModalButton.displayName = 'AssistantModalButton'
