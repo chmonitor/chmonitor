@@ -7,12 +7,6 @@
  * See `./index.ts` for the module overview.
  */
 
-import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
-import {
-  extractReferencedTables,
-  formatQualifiedTable,
-} from '@/lib/ai/agent/tools/sql-analysis'
-
 import type { AggregateCall } from './sql-parsing'
 
 import { scaleCardinality } from './size-estimator'
@@ -21,6 +15,11 @@ import {
   extractGroupByKeys,
   splitTopLevelCommas,
 } from './sql-parsing'
+import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
+import {
+  extractReferencedTables,
+  formatQualifiedTable,
+} from '@/lib/ai/agent/tools/sql-analysis'
 
 /** Row cap for the cardinality sample query — bounded so mining never triggers a full-table scan. */
 export const CARDINALITY_SAMPLE_SIZE = 100_000

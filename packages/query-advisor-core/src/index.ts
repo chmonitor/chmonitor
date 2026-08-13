@@ -27,13 +27,13 @@
 export {
   estimateBytesSaved,
   formatBytes,
+  type PrewhereFallbackInput,
+  type PrewhereMarksInput,
   prewhereFallbackImpact,
+  type SummarizeImpactInput,
   sumEstimateMarks,
   summarizeImpact,
   summarizePrewhereMarks,
-  type PrewhereFallbackInput,
-  type PrewhereMarksInput,
-  type SummarizeImpactInput,
 } from './impact'
 export {
   buildPrewhereRecommendation,
@@ -45,6 +45,7 @@ export {
   scoreSkipIndex,
 } from './scorers'
 export {
+  type BuildQueryContextInput,
   buildQueryContext,
   extractClauseColumns,
   extractPredicates,
@@ -56,12 +57,10 @@ export {
   quoteIdentifier,
   splitTopLevelAnd,
   stripQuotedIdentifier,
-  type BuildQueryContextInput,
 } from './sql-parsing'
 export {
-  EFFORT_ORDER,
-  RISK_ORDER,
   type ColumnStat,
+  EFFORT_ORDER,
   type EffortLevel,
   type EstimatedImpact,
   type ExistingSkipIndex,
@@ -73,6 +72,7 @@ export {
   type Recommendation,
   type RecommendationKind,
   type ReferencedTable,
+  RISK_ORDER,
   type RiskLevel,
   type SkipIndexExplain,
   type SqlPredicate,

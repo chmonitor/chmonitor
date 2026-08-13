@@ -6,12 +6,12 @@
  * the MCP tool for its fetchers (`packages/mcp-server/src/__tests__/advisor.test.ts`).
  * This one guards the shared engine both of them now import.
  */
-import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 
 import { scorePartitionKey, scoreProjection, scoreSkipIndex } from './scorers'
 import { makeContext, makeSchema } from './test-fixtures'
+import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const SOURCE_FILES = [
   'index.ts',

@@ -38,8 +38,6 @@
  * exactly as before.
  */
 
-import { formatQualifiedTable } from '@/lib/ai/agent/tools/sql-analysis'
-
 import type { DesignKind } from './design-selection'
 import type { MinedShape } from './shape-mining'
 import type { ImpactEstimate, SizeEstimate } from './size-estimator'
@@ -53,6 +51,7 @@ import {
   mineAggregationShapes,
 } from './shape-mining'
 import { estimateImpact, estimateMvSize } from './size-estimator'
+import { formatQualifiedTable } from '@/lib/ai/agent/tools/sql-analysis'
 
 /** History window used to mine aggregation shapes when the caller doesn't specify one. */
 export const DEFAULT_WINDOW_HOURS = 24 * 7
@@ -285,8 +284,8 @@ export async function designMaterializedViews(params: {
   }
 }
 
-export * from './sql-parsing'
-export * from './design-selection'
 export * from './ddl'
-export * from './size-estimator'
+export * from './design-selection'
 export * from './shape-mining'
+export * from './size-estimator'
+export * from './sql-parsing'

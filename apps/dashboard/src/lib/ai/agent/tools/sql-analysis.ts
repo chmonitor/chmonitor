@@ -1,4 +1,3 @@
-import { validateSqlQuery } from '@chm/sql-builder'
 import {
   extractReferencedTables,
   formatQualifiedTable,
@@ -6,6 +5,7 @@ import {
   quoteIdentifier,
   type ReferencedTable,
 } from '@chm/query-advisor-core'
+import { validateSqlQuery } from '@chm/sql-builder'
 
 // Re-exported so existing `from './sql-analysis'` imports (tests, tool
 // wiring) keep working unchanged — these are pure parsing helpers now shared

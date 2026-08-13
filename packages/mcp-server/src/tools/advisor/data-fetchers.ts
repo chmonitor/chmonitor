@@ -14,13 +14,13 @@ import type {
   TableSchema,
 } from '@chm/query-advisor-core'
 
+import { runReadonlyFetch } from '../helpers'
 import {
   parseExplainIndexes,
   prewhereFallbackImpact,
   sumEstimateMarks,
   summarizePrewhereMarks,
 } from '@chm/query-advisor-core'
-import { runReadonlyFetch } from '../helpers'
 
 /** Runs a read-only fetch and throws on error, mirroring the dashboard's `readOnlyQuery` so the orchestration logic reads the same way. */
 export async function readOnly<T>(

@@ -24,13 +24,14 @@ export * from './queries'
 export * from './storage'
 export * from './types'
 
+import type { OverviewTabConfig } from './types'
+
 import { HEALTH_TAB_CHARTS } from './health'
 import { MEMORY_CPU_TAB_CHARTS } from './memory-cpu'
 import { OPERATIONS_TAB_CHARTS } from './operations'
 import { OVERVIEW_TAB_CHARTS } from './overview'
 import { QUERIES_TAB_CHARTS } from './queries'
 import { STORAGE_TAB_CHARTS } from './storage'
-import type { OverviewTabConfig } from './types'
 
 // ============================================================================
 // Tab Configurations
