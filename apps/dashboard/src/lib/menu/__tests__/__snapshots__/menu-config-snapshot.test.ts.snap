@@ -58,6 +58,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/traffic",
+    "section": undefined,
+    "title": "Traffic",
+  },
+  {
+    "depth": 1,
     "href": "/insights-settings",
     "section": undefined,
     "title": "Insights Settings",
@@ -91,12 +97,6 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "href": "/alert-settings",
     "section": undefined,
     "title": "Alert Settings",
-  },
-  {
-    "depth": 0,
-    "href": "/traffic",
-    "section": "main",
-    "title": "Traffic",
   },
   {
     "depth": 0,
