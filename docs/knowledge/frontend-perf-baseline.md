@@ -101,6 +101,28 @@ measurement first.
 | 8–16 duplicate `GET /api/v1/dashboard/settings` per load ([#2984](https://github.com/chmonitor/chmonitor/issues/2984)) | `useUserSettings` was `useState`+`useEffect`+raw `apiFetch`, outside TanStack Query, so no dedup; called once per nav entry by `MenuItem`/`SubMenuItem` | 16 → 1 |
 | 3 concurrent `POST /api/v1/insights/generate`, ~30 ClickHouse scans instead of ~10 ([#2985](https://github.com/chmonitor/chmonitor/issues/2985)) | auto-generate guard was a **per-instance** `useRef`; three components mount the hook | 3 → 1 |
 | `new-parts-created` shipping 87.8 KB/response ([#2986](https://github.com/chmonitor/chmonitor/issues/2986)) | four columns selected that no consumer reads | −60.4% (→ 34.8 KB) |
+| the floating agent's chunk graph loading on every dashboard page ([#2995](https://github.com/chmonitor/chmonitor/issues/2995)) | a `React.lazy` element rendered unconditionally — the import fires on *render*, not on open | −1,941 KB (prod `/overview`: 6,910 → 4,969 KB) |
+| `react-markdown` (~114 KB) loading on every page with a table ([#2997](https://github.com/chmonitor/chmonitor/issues/2997)) | the formatter registry is imported by the table machinery, and statically imported `MarkdownFormat` | chunk absent from `/overview` and `/merges` |
+
+### Bundle: what still loads on `/overview`
+
+After the two deferrals above (production, uncompressed, initial load):
+
+```
+scripts=267  JS=4969KB
+  536KB  index-*.js            app entry
+  262KB  chart-*.js            Recharts — genuinely used
+  203KB  module-*.js
+  194KB  data-table-*.js
+  140KB  sentry.client-*.js
+   98KB  surveys.js            third-party (PostHog)
+   47KB  code-block-*.js       via code-dialog/code-toggle formatters
+```
+
+`cytoscape` (428 KB), `sql-editor` (364 KB), `katex` (256 KB) and the mermaid
+diagram chunks are correctly route-lazy and do **not** load here — the splitting
+is mostly right; the two bugs above were cases where a lazy boundary existed but
+never actually deferred anything.
 
 ## Rules these produced
 
@@ -123,6 +145,21 @@ measurement first.
    store and is configured `staleTime: Infinity` + `refetchOnMount: false` would
    rehydrate, win permanently, and the real store would never be read again. Add
    such keys to `NEVER_PERSIST_QUERY_KEYS` in `lib/query/provider.tsx`.
+6. **`React.lazy` defers the import to *render*, not to interaction.** A lazy
+   element rendered unconditionally downloads immediately — the split exists on
+   paper and buys nothing. If the widget starts closed, render a lightweight
+   trigger and mount the lazy component on first activation (prefetch on
+   hover/focus so the click still feels instant). This is the single most
+   expensive mistake found in this codebase (1.9 MB).
+7. **A registry imported by always-running code must not statically import its
+   heavy members.** The data-table formatter catalogue pulled `react-markdown`
+   into every table page for a formatter almost no column uses. Same failure
+   shape as rule 6: the expensive module is reachable from code that always
+   runs, so the bundler cannot split it out.
+
+> Rules 6 and 7 are the same bug wearing different clothes, and neither is
+> visible in code review — both files *look* correctly lazy. Only a measurement
+> of what actually downloads catches them.
 
 ## Known-good, do not re-propose
 
