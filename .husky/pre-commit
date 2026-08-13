@@ -5,6 +5,14 @@
 # Runs: lint-staged (Biome format + lint) → TypeScript type-check
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Guard against a fresh clone / isolated app install where root node_modules
+# was never populated — without this, the workspace-wide type-check below
+# fails with a raw, confusing TS2307 instead of a clear next step.
+[ -d node_modules ] || {
+  echo "❌ Root node_modules missing — run 'pnpm install' at the repo root first."
+  exit 1
+}
+
 # Run lint-staged for formatting and linting staged files
 echo "🔍 Running lint-staged (Biome check on staged files)..."
 pnpm exec lint-staged
