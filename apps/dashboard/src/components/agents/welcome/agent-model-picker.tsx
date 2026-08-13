@@ -211,12 +211,19 @@ export function AgentModelPicker({
   }, [matches])
 
   /**
-   * Sign-in is always offered, not just on keyless deployments: on a shared
-   * deployment the deploy key foots the bill for everyone, so letting a user
-   * spend their own AnyRouter credits is most valuable exactly where a key
-   * already exists. The copy below distinguishes the two situations.
+   * Offer sign-in only when AnyRouter has no deploy-time key. With
+   * `ANYROUTER_API_KEY` set the provider already works for everyone, so the
+   * flow would only redirect billing and add a way to get it wrong.
+   *
+   * Requires a non-empty `configuredProviders`: it comes back empty whenever
+   * the models fetch fails, and treating that as "no AnyRouter key" would
+   * offer sign-in on a properly configured deployment during an upstream blip.
    */
-  const anyRouterHasDeployKey = configuredProviders.includes('anyrouter')
+  const showAnyRouterSignIn =
+    modelsLoaded &&
+    (anyRouter.isSignedIn ||
+      (configuredProviders.length > 0 &&
+        !configuredProviders.includes('anyrouter')))
 
   const submitCustomModel = () => {
     const error = addCustomModel(customInput)
@@ -447,31 +454,31 @@ export function AgentModelPicker({
             </p>
           ) : null}
 
-          <div className="flex items-center justify-between gap-2 px-1 pt-1.5">
-            <span className="text-muted-foreground text-[10.5px]">
-              {anyRouter.isSignedIn
-                ? 'Using your AnyRouter credits'
-                : anyRouterHasDeployKey
-                  ? 'Or use your own AnyRouter credits'
+          {showAnyRouterSignIn ? (
+            <div className="flex items-center justify-between gap-2 px-1 pt-1.5">
+              <span className="text-muted-foreground text-[10.5px]">
+                {anyRouter.isSignedIn
+                  ? 'Using your AnyRouter credits'
                   : 'No AnyRouter key on this deployment'}
-            </span>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-[10.5px]"
-              disabled={anyRouter.isSigningIn}
-              onClick={
-                anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn
-              }
-            >
-              {anyRouter.isSigningIn
-                ? 'Signing in…'
-                : anyRouter.isSignedIn
-                  ? 'Sign out'
-                  : 'Sign in with AnyRouter'}
-            </Button>
-          </div>
+              </span>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[10.5px]"
+                disabled={anyRouter.isSigningIn}
+                onClick={
+                  anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn
+                }
+              >
+                {anyRouter.isSigningIn
+                  ? 'Signing in…'
+                  : anyRouter.isSignedIn
+                    ? 'Sign out'
+                    : 'Sign in with AnyRouter'}
+              </Button>
+            </div>
+          ) : null}
           {anyRouter.error ? (
             <p className="text-destructive px-1 pt-1 text-[10.5px]">
               {anyRouter.error}

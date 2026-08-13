@@ -76,9 +76,9 @@ through the existing BYOK path, so it is never persisted or logged
 server-side. AnyRouter tokens last about 30 days and have no refresh token —
 signing in again mints a fresh one.
 
-This works on a deployment with or without `ANYROUTER_API_KEY`: with a key, it
-lets a user spend their own credits instead of the deployment's; without one,
-it unlocks AnyRouter models that would otherwise be unavailable.
+Sign-in is offered **only when `ANYROUTER_API_KEY` is not set**. With a key
+configured the provider already works for everyone, so the flow is hidden;
+without one, it unlocks AnyRouter models that would otherwise be unavailable.
 
 ### AnyRouter dynamic models (usage ranking)
 
