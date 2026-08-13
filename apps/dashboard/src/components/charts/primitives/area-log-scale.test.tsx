@@ -64,7 +64,7 @@ async function renderAreaChart(props: {
 }): Promise<{ html: string; cleanup: () => Promise<void> }> {
   const { act } = await import('react')
   const { createRoot } = await import('react-dom/client')
-  const { AreaChart } = await import('./area.tsx')
+  const { AreaChart } = await import('./area')
 
   const container = document.createElement('div')
   container.style.width = '600px'
