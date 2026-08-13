@@ -186,6 +186,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Architecture | [static-site-architecture.md](docs/knowledge/static-site-architecture.md) | TanStack Start + CF Worker; static shell, TanStack Query, `?host=0` routing |
 | Architecture | [rust-wasm-performance.md](docs/knowledge/rust-wasm-performance.md) | WASM benchmarks: keep object transforms in TS |
 | Architecture | [memory-optimization.md](docs/knowledge/memory-optimization.md) | Pooling, memoization, cache limits, monitoring |
+| Architecture | [frontend-perf-baseline.md](docs/knowledge/frontend-perf-baseline.md) | Measured perf baseline + how to profile (first-12s probe distinguishes duplicate fetches from polling); **no memory leak** — cost is request fan-out and payload size; rules: fetching hooks must use TanStack Query, session guards must not live in a `useRef`, client-derived caches must be excluded from the persister; plus a known-good list to stop re-proposing existing optimizations |
 | Operations | [deployment.md](docs/knowledge/deployment.md) | Docker + Cloudflare Workers dual deployment |
 | Operations | [core-memory.md](docs/knowledge/core-memory.md) | Automation memory: code-smell scans, dead-code rules |
 | Operations | [secret-rotation.md](docs/knowledge/secret-rotation.md) | Redeploy after `wrangler secret put` |
