@@ -17,6 +17,13 @@ import { formatPostgresError, getPostgresVersion } from '@chm/postgres-client'
 import { isSourceEngine } from '@chm/types'
 import { createValidationError } from '@/lib/api/error-handler'
 import {
+  checkRateLimitDurable,
+  clientIpKey,
+  getBrowserConnectionRateLimitPerMin,
+  RATE_LIMIT_BINDING_BROWSER_CONN,
+  rateLimitResponse,
+} from '@/lib/api/rate-limiter'
+import {
   createHostValidationFetch,
   validateHostUrl,
   validatePostgresHost,
@@ -26,6 +33,26 @@ const ROUTE_CONTEXT = {
   route: '/api/v1/browser-connections/test',
   method: 'POST',
 } as const
+
+/**
+ * IP-keyed rate limit guard (#2978). This route is unauthenticated and dials
+ * an attacker-supplied host (ClickHouse SELECT version() or Postgres
+ * getPostgresVersion()) on every request — an SSRF-guarded but otherwise
+ * unthrottled outbound-connection oracle. Same `checkRateLimitDurable`
+ * pattern as `/api/mcp` (routes/api/mcp.ts), keyed distinctly
+ * (`browser-conn-test:ip:`) from the sibling `/browser-connections/sessions`
+ * route so a burst against one doesn't consume the other's budget.
+ */
+async function checkBrowserConnTestRateLimit(
+  request: Request
+): Promise<Response | null> {
+  const rl = await checkRateLimitDurable(
+    `browser-conn-test:ip:${clientIpKey(request)}`,
+    getBrowserConnectionRateLimitPerMin(),
+    RATE_LIMIT_BINDING_BROWSER_CONN
+  )
+  return rl.allowed ? null : rateLimitResponse(rl.retryAfterSec)
+}
 
 interface TestConnectionRequest {
   host: string
@@ -55,6 +82,11 @@ async function handlePost(request: Request): Promise<Response> {
       ROUTE_CONTEXT
     )
   }
+
+  // Rate limit BEFORE any outbound work — this single check point sits above
+  // the postgres/clickhouse branch below, so it guards both engines.
+  const limited = await checkBrowserConnTestRateLimit(request)
+  if (limited) return limited
 
   const { host, user, password, engine } = body
 
@@ -169,3 +201,9 @@ export const Route = createFileRoute('/api/v1/browser-connections/test')({
     },
   },
 })
+
+// Exported for unit tests only.
+export {
+  handlePost as __handlePostForTests,
+  checkBrowserConnTestRateLimit as __checkBrowserConnTestRateLimitForTests,
+}

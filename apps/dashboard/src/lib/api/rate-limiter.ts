@@ -6,9 +6,10 @@
  *   Cloudflare Workers isolates are short-lived, so this is a best-effort
  *   first pass. No Durable Objects required.
  * - Limits are env-configurable:
- *     RATE_LIMIT_AGENT_PER_MIN  (default 10)  — POST /api/v1/agent per identity
- *     RATE_LIMIT_API_PER_MIN    (default 100) — GET  data routes per IP
- *     RATE_LIMIT_MCP_PER_MIN    (default 30)  — /api/mcp per IP
+ *     RATE_LIMIT_AGENT_PER_MIN         (default 10)  — POST /api/v1/agent per identity
+ *     RATE_LIMIT_API_PER_MIN           (default 100) — GET  data routes per IP
+ *     RATE_LIMIT_MCP_PER_MIN           (default 30)  — /api/mcp per IP
+ *     RATE_LIMIT_BROWSER_CONN_PER_MIN  (default 10)  — browser-connections test/sessions per IP
  * - Returns { allowed, retryAfterSec } so callers can build the 429 response.
  * - Safe for Workers: no Node-only APIs (no `process.hrtime`, no node timers).
  */
@@ -174,6 +175,7 @@ export function getRateLimitBinding(
 export const RATE_LIMIT_BINDING_API = 'CHM_RATE_LIMIT_API'
 export const RATE_LIMIT_BINDING_AGENT = 'CHM_RATE_LIMIT_AGENT'
 export const RATE_LIMIT_BINDING_MCP = 'CHM_RATE_LIMIT_MCP'
+export const RATE_LIMIT_BINDING_BROWSER_CONN = 'CHM_RATE_LIMIT_BROWSER_CONN'
 
 /**
  * Fleet-wide rate limit check with graceful fallback.
@@ -271,6 +273,26 @@ export function getApiRateLimitPerMin(): number {
  */
 export function getMcpRateLimitPerMin(): number {
   return readIntEnv('RATE_LIMIT_MCP_PER_MIN', 30)
+}
+
+/**
+ * `/api/v1/browser-connections/{test,sessions}` are unauthenticated routes
+ * that dial an attacker-supplied host on every request (#2978) — SSRF-guarded
+ * against private targets, but otherwise an unauthenticated outbound-connection
+ * oracle against public hosts (port/host scanning, credential stuffing relayed
+ * through our egress IP). A human clicking "Test connection" issues single-digit
+ * requests per minute, so 10/min per IP is generous for real usage while cutting
+ * off automated abuse. Enforced via the dedicated `CHM_RATE_LIMIT_BROWSER_CONN`
+ * binding on Workers (this getter's default only backs the in-memory fallback
+ * used when that binding is absent, e.g. self-hosted) — kept separate from
+ * `CHM_RATE_LIMIT_API`, whose 100/min edge threshold is sized for cheap GET data
+ * routes and would be far too loose for a route that dials out. Both
+ * browser-connections routes share this ONE binding + getter but use distinct
+ * bucket-key prefixes (`browser-conn-test:ip:` / `browser-conn-sessions:ip:`) so
+ * a burst against one doesn't consume the other's budget.
+ */
+export function getBrowserConnectionRateLimitPerMin(): number {
+  return readIntEnv('RATE_LIMIT_BROWSER_CONN_PER_MIN', 10)
 }
 
 /**

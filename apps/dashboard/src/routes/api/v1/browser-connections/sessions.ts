@@ -6,6 +6,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { createValidationError } from '@/lib/api/error-handler'
+import {
+  checkRateLimitDurable,
+  clientIpKey,
+  getBrowserConnectionRateLimitPerMin,
+  RATE_LIMIT_BINDING_BROWSER_CONN,
+  rateLimitResponse,
+} from '@/lib/api/rate-limiter'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { queryConnection } from '@/lib/connection-query/connection-client'
 import { toSessionPayload } from '@/lib/connection-query/resolve-credentials'
@@ -21,6 +28,25 @@ const ROUTE_CONTEXT = {
   method: 'POST',
 } as const
 
+/**
+ * IP-keyed rate limit guard (#2978). This route is unauthenticated and dials
+ * an attacker-supplied host (`queryConnection` → SELECT 1) plus an encrypt +
+ * session-store write on every success. Same `checkRateLimitDurable` pattern
+ * as `/api/mcp` (routes/api/mcp.ts), keyed distinctly
+ * (`browser-conn-sessions:ip:`) from the sibling `/browser-connections/test`
+ * route so a burst against one doesn't consume the other's budget.
+ */
+async function checkBrowserConnSessionsRateLimit(
+  request: Request
+): Promise<Response | null> {
+  const rl = await checkRateLimitDurable(
+    `browser-conn-sessions:ip:${clientIpKey(request)}`,
+    getBrowserConnectionRateLimitPerMin(),
+    RATE_LIMIT_BINDING_BROWSER_CONN
+  )
+  return rl.allowed ? null : rateLimitResponse(rl.retryAfterSec)
+}
+
 interface SessionRequest {
   host: string
   user: string
@@ -28,6 +54,8 @@ interface SessionRequest {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  // Cheap, no-socket check first: don't spend a rate-limit bucket token on a
+  // request this deployment can never service anyway.
   if (!isEncryptionConfigured()) {
     return Response.json(
       {
@@ -41,6 +69,10 @@ async function handlePost(request: Request): Promise<Response> {
       { status: 503 }
     )
   }
+
+  // Rate limit BEFORE any outbound work (queryConnection below).
+  const limited = await checkBrowserConnSessionsRateLimit(request)
+  if (limited) return limited
 
   let body: Partial<SessionRequest>
   try {
@@ -104,3 +136,9 @@ export const Route = createFileRoute('/api/v1/browser-connections/sessions')({
     },
   },
 })
+
+// Exported for unit tests only.
+export {
+  handlePost as __handlePostForTests,
+  checkBrowserConnSessionsRateLimit as __checkBrowserConnSessionsRateLimitForTests,
+}

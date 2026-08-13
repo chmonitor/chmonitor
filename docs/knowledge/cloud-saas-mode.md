@@ -241,6 +241,29 @@ free forever (auth `none` ⇒ unlimited, plans inert).
   (`lib/swr/browser-proxy-fetcher.ts`, `lib/host-fetch/resolve-host-fetch.ts`)
   always mints a sessionToken first, so this is purely a hardening gate for
   callers hitting the API directly.
+- **`/browser-connections/{test,sessions}` are IP-rate-limited (#2978).** Both
+  are unauthenticated (must be reachable before a session/connection exists)
+  and dial an attacker-supplied host on every request — `test.ts` runs
+  ClickHouse `SELECT version()` or Postgres `getPostgresVersion()`, `sessions.ts`
+  runs `queryConnection` (`SELECT 1`) plus an encrypt + session-store write on
+  success. Without a throttle this is an unauthenticated outbound-connection
+  oracle (port/host scanning, credential stuffing) relayed through the
+  deployment's own egress IP, even though the SSRF guard above blocks private
+  targets. Same `checkRateLimitDurable` pattern as `/api/mcp`
+  (`lib/api/rate-limiter.ts`, `getBrowserConnectionRateLimitPerMin`, default
+  10/min, env `RATE_LIMIT_BROWSER_CONN_PER_MIN`), with **distinct bucket-key
+  prefixes** (`browser-conn-test:ip:` / `browser-conn-sessions:ip:`) so a burst
+  against one route doesn't consume the other's budget. The check runs before
+  any outbound work: right after body parse in `test.ts` (covers both the
+  ClickHouse and Postgres branches from one call site), and in `sessions.ts`
+  right after the existing `isEncryptionConfigured()` 503 check (cheaper, no
+  socket, checked first) but before body parse / `queryConnection`. Uses its
+  OWN dedicated `CHM_RATE_LIMIT_BROWSER_CONN` Worker binding (namespace_id
+  `2004` in `wrangler.toml`, `simple = { limit = 10, period = 60 }`) rather
+  than sharing `CHM_RATE_LIMIT_API` — that binding's 100/min edge threshold is
+  sized for cheap GET data routes and would be far too loose for a route that
+  dials out. Applies unconditionally (not cloud-only) since it costs nothing on
+  self-hosted deployments.
 - `apps/dashboard` is NOT a root pnpm workspace — run `pnpm install` *inside*
   `apps/dashboard`, not just at the monorepo root.
 - The dashboard `build` script calls `vite` directly; run via `pnpm run build`
