@@ -146,8 +146,15 @@ function RootComponent() {
   )
 }
 
-// Root renders the full HTML document (the SPA shell in SPA mode). Providers
-// mount client-side: ThemeProvider > QueryProvider (TanStack Query).
+// Root renders the full HTML document (the SPA shell in SPA mode).
+//
+// QueryProvider (TanStack Query) sits outermost, directly inside the Clerk
+// provider: TimezoneProvider and AppearanceSettingsProvider both read
+// `useUserSettings`, which resolves through the query cache so that every
+// consumer shares one request. A hook calling `useQuery` must have a
+// QueryClient above it, so those two providers have to nest *inside*
+// QueryProvider — nothing between them consumes timezone/appearance context,
+// so hoisting the query client is otherwise behaviour-neutral.
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -163,11 +170,11 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <StructuredData />
         <WebMcpRegistration />
         <ClerkAuthProvider>
-          <TimezoneProvider>
-            <AppearanceSettingsProvider>
-              <ThemeProvider>
-                <TimeRangeProvider>
-                  <QueryProvider>
+          <QueryProvider>
+            <TimezoneProvider>
+              <AppearanceSettingsProvider>
+                <ThemeProvider>
+                  <TimeRangeProvider>
                     {isClerkClientEnabled() ? (
                       <>
                         <UserConnectionsCacheGuard />
@@ -181,11 +188,11 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
                         </FeaturePermissionsProvider>
                       </AppProvider>
                     </BrowserConnectionsProvider>
-                  </QueryProvider>
-                </TimeRangeProvider>
-              </ThemeProvider>
-            </AppearanceSettingsProvider>
-          </TimezoneProvider>
+                  </TimeRangeProvider>
+                </ThemeProvider>
+              </AppearanceSettingsProvider>
+            </TimezoneProvider>
+          </QueryProvider>
         </ClerkAuthProvider>
         <Scripts />
       </body>
