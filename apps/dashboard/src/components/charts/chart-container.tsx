@@ -8,10 +8,25 @@ import type { ChartSkeletonType } from './chart-registry'
 import { ChartEmpty } from './chart-empty'
 import { ChartError } from './chart-error'
 import { getChartSkeletonType } from './chart-registry'
-import { ChartZoomButton, ChartZoomDialog } from './chart-zoom-dialog'
+import { ChartZoomButton } from './chart-zoom-button'
+
+/**
+ * The zoom dialog renders the underlying rows in a full DataTable, so its
+ * module pulls in the entire data-table system (~11k lines). ChartContainer
+ * wraps every chart in the app, so a static import shipped all of that to every
+ * page with a chart, for a dialog that is only opened deliberately. The render
+ * site below was already gated on `zoomOpen`; the import needs to be too.
+ */
+const ChartZoomDialog = lazy(async () => {
+  const m = await import('./chart-zoom-dialog')
+  return { default: m.ChartZoomDialog }
+})
+
 import {
   cloneElement,
   isValidElement,
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -195,22 +210,24 @@ export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
         </div>
       </FadeIn>
       {enableZoom && zoomOpen && (
-        <ChartZoomDialog
-          open={zoomOpen}
-          onOpenChange={setZoomOpen}
-          title={title}
-          sql={sql}
-          data={data}
-          metadata={toolbarMetadata}
-          dateRangeConfig={dateRangeConfig}
-          currentRange={currentRange}
-          onRangeChange={onRangeChange}
-          staleError={staleError}
-          onRetry={staleError ? mutate : undefined}
-          className={_chartClassName}
-        >
-          {dialogContent}
-        </ChartZoomDialog>
+        <Suspense fallback={null}>
+          <ChartZoomDialog
+            open={zoomOpen}
+            onOpenChange={setZoomOpen}
+            title={title}
+            sql={sql}
+            data={data}
+            metadata={toolbarMetadata}
+            dateRangeConfig={dateRangeConfig}
+            currentRange={currentRange}
+            onRangeChange={onRangeChange}
+            staleError={staleError}
+            onRetry={staleError ? mutate : undefined}
+            className={_chartClassName}
+          >
+            {dialogContent}
+          </ChartZoomDialog>
+        </Suspense>
       )}
     </>
   )

@@ -536,38 +536,7 @@ export const ChartZoomDialog = function ChartZoomDialog({
   )
 }
 
-export interface ChartZoomButtonProps {
-  onClick: () => void
-  disabled?: boolean
-}
-
-export const ChartZoomButton = function ChartZoomButton({
-  onClick,
-  disabled = false,
-}: ChartZoomButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClick}
-            disabled={disabled}
-            aria-label="Zoom chart"
-            className={cn(
-              'size-6 rounded-full transition-opacity',
-              'relative before:content-[""] before:absolute before:-inset-4',
-              'opacity-0 group-hover:opacity-40 hover:!opacity-100'
-            )}
-          />
-        }
-      >
-        <Maximize2Icon className="size-3.5" strokeWidth={2} />
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        Zoom to
-      </TooltipContent>
-    </Tooltip>
-  )
-}
+export {
+  ChartZoomButton,
+  type ChartZoomButtonProps,
+} from '@/components/charts/chart-zoom-button'
