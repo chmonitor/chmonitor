@@ -7,7 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 export const SEVERITY_LEVELS = [
   'All',
@@ -40,9 +42,9 @@ export function LogFilters({
   onSeverityChange,
   onSearchChange,
 }: LogFiltersProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
 
   const severityFromUrl = (searchParams.get('severity') ??
     'All') as SeverityLevel
@@ -64,9 +66,12 @@ export function LogFilters({
         params.delete(key)
       }
       const qs = params.toString()
-      router.replace(`${pathname}${qs ? `?${qs}` : ''}`)
+      navigate({
+        ...splitHref(`${pathname}${qs ? `?${qs}` : ''}`),
+        replace: true,
+      })
     },
-    [router, pathname, searchParams]
+    [navigate, pathname, searchParams]
   )
 
   const handleSeverityChange = useCallback(

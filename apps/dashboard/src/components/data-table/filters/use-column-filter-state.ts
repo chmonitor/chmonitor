@@ -9,7 +9,9 @@ import {
   parseFiltersFromParams,
   serializeFilter,
 } from '@/lib/filters/url-state'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Reads/writes a single field's active filter via URL params. The filter bar
@@ -17,9 +19,9 @@ import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
  * single source of truth so SWR re-fetches automatically.
  */
 export function useColumnFilterState(schema: FilterSchema | undefined) {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
+  const searchParams = useUrlSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
 
   const getActiveFilter = (field: FilterField): ActiveFilter | null => {
     if (!schema) return null
@@ -31,7 +33,10 @@ export function useColumnFilterState(schema: FilterSchema | undefined) {
     const params = new URLSearchParams(searchParams.toString())
     params.set(key, serializeFilter({ key, ...draft }))
     const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    navigate({
+      ...splitHref(qs ? `${pathname}?${qs}` : pathname),
+      replace: true,
+    })
   }
 
   const clearFilter = (key: string) => {
@@ -40,7 +45,10 @@ export function useColumnFilterState(schema: FilterSchema | undefined) {
     if (field?.defaultValue) params.set(key, '')
     else params.delete(key)
     const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    navigate({
+      ...splitHref(qs ? `${pathname}?${qs}` : pathname),
+      replace: true,
+    })
   }
 
   return { getActiveFilter, setFilter, clearFilter }

@@ -22,12 +22,14 @@ import {
 } from '@/lib/card-error-utils'
 import { useTimeRange } from '@/lib/context/time-range-context'
 import { truncateSql } from '@/lib/explain-heuristics'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useTableData } from '@/lib/query/use-table-data'
 import { slowQueriesConfig } from '@/lib/query-config/queries/slow-queries'
 import { useHostId } from '@/lib/swr/use-host'
 import { useFeatureTracking } from '@/lib/telemetry'
+import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /** Refresh the slow-queries list every 60s — `query_log` is append-only. */
 const REFRESH_INTERVAL = 60_000
@@ -102,9 +104,9 @@ export function SlowQueriesView() {
   // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('slow_queries')
   const { timeRange } = useTimeRange()
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
   const [chartsOpen, setChartsOpen] = useState(true)
   const [explainOpen, setExplainOpen] = useState(false)
 
@@ -160,7 +162,7 @@ export function SlowQueriesView() {
   const setFilter = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams)
     next.set(key, value)
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+    navigate({ ...splitHref(`${pathname}?${next.toString()}`), replace: true })
   }
 
   return (

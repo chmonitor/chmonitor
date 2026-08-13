@@ -22,8 +22,8 @@ import {
 } from '@/components/data-table/hooks'
 import { resolveTableBehavior } from '@/components/data-table/utils/resolve-table-behavior'
 import { FilterBar } from '@/components/filters/filter-bar'
-import { useSearchParams } from '@/lib/next-compat'
 import { cn } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * DataTable - Main data table component with sorting, filtering, virtualization
@@ -83,7 +83,7 @@ export function DataTable<
   const expandable = expandableProp ?? queryConfig.expandable
 
   // Check if schema-driven filter bar has active URL filters (q param or field keys)
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const hasActiveSchemaFilters = Boolean(
     queryConfig.filterSchema &&
       (searchParams.get('q') ||

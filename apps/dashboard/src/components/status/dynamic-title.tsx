@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { useEffect } from 'react'
-import { usePathname, useSearchParams } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { visibilityAwareInterval } from '@/lib/swr/config'
 
 const BASE_TITLE = 'chmonitor'
@@ -122,8 +123,8 @@ function getPageTitle(pathname: string, searchParams: URLSearchParams): string {
  * Polls /api/healthz every 60 seconds.
  */
 export function DynamicTitle() {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
 
   const { data } = useQuery<HealthzResponse>({
     queryKey: ['/api/healthz'],

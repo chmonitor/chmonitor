@@ -11,10 +11,10 @@ import { OverviewCharts } from '@/components/overview-charts/overview-charts-cli
 import { OverviewStatusStrip } from '@/components/overview-charts/overview-status-strip'
 import { ChartSkeleton, Skeleton, TabsSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useSearchParams } from '@/lib/next-compat'
 import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // Shared cluster-topology view — large SVG chunk, must not SSR. Reused as-is
 // from the /clusters page so both surfaces render the same component.
@@ -185,11 +185,11 @@ function TabContentSkeleton({ tab }: { tab: (typeof OVERVIEW_TABS)[number] }) {
 
 function OverviewPageContent() {
   const hostId = useHostId()
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
 
   // Active tab is LOCAL state (source of truth for rendering) seeded once from
   // the URL. We persist changes back to the URL via the History API rather than
-  // reading the tab from `useSearchParams()` on every render — a router-driven
+  // reading the tab from `useUrlSearchParams()` on every render — a router-driven
   // param read would re-suspend and flash the page fallback on each tab click.
   const [activeTab, setActiveTab] = useState<string>(() => {
     const tabParam = searchParams.get('tab')
@@ -210,7 +210,7 @@ function OverviewPageContent() {
     // A router navigation refetches the route's RSC payload, which re-suspends
     // the searchParams boundary and flashes `OverviewPageFallback` (the 4 KPI
     // skeletons) on EVERY tab click — even though the cards' SWR data is cached.
-    // History.replaceState updates `useSearchParams()` reactively with no
+    // History.replaceState updates `useUrlSearchParams()` reactively with no
     // navigation, so only the (cached) tab content swaps in. Matches the pattern
     // in use-table-filters.ts / time-range-context.tsx.
     const qs = params.toString()
@@ -303,7 +303,7 @@ const FIRST_TAB = OVERVIEW_TABS[0]
 /**
  * Full-page loading fallback for the searchParams Suspense boundary.
  *
- * `OverviewPageContent` reads `useSearchParams()`/`useHostId()`, which Next.js
+ * `OverviewPageContent` reads `useUrlSearchParams()`/`useHostId()`, which Next.js
  * requires to sit under Suspense. A tiny single-card fallback collapses the
  * document to ~140px during that flash, so the scroll container has nothing to
  * scroll and the viewport snaps back to the top. Reserving the real layout's

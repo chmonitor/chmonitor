@@ -3,10 +3,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { QueryDetailView } from '@/components/query-detail/query-detail-view'
 import { TableSkeleton } from '@/components/skeletons'
-import { useSearchParams } from '@/lib/next-compat'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function QueryDetailContent() {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const query_id = searchParams.get('query_id')
 
   if (!query_id) {

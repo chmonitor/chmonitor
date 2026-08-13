@@ -5,7 +5,7 @@ import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
 import { getBreadcrumbPath } from '@/lib/menu/breadcrumb'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 
 interface BreadcrumbProps {
@@ -13,7 +13,7 @@ interface BreadcrumbProps {
 }
 
 export const Breadcrumb = function Breadcrumb({ className }: BreadcrumbProps) {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const { config } = useFeaturePermissions()
   const menuItems = filterMenuItemsByPermissions(menuItemsConfig, config)
 

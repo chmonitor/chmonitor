@@ -53,10 +53,10 @@ import {
   type NotableRunReason,
 } from '@/lib/api/insights/query-patterns'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
-import { useSearchParams } from '@/lib/next-compat'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { formatDuration } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /** Duration fields on a slow-query-patterns row that need seconds→"1.2s"
  * formatting — unlike the size/row-count fields, these have no
@@ -159,7 +159,7 @@ function PatternDetailSheetContent({
   pattern: Record<string, unknown>
 }) {
   const hostId = useHostId()
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
 
   const normalizedQuery = String(pattern.normalized_query ?? '')
   const normalizedQueryHash = String(

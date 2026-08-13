@@ -26,12 +26,12 @@ import {
   parseFiltersFromParams,
   serializeActiveFilters,
 } from '@/lib/filters/url-state'
-import { useSearchParams } from '@/lib/next-compat'
 import { useTableData } from '@/lib/query/use-table-data'
 import { runningQueriesConfig } from '@/lib/query-config/queries/running-queries'
 import { useHostId } from '@/lib/swr/use-host'
 import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Auto-refresh cadence for the running-queries list (ms).
@@ -97,7 +97,7 @@ function runningToCompleted(row: RunningQueryRow): CompletedQueryRow {
  */
 export const RunningQueriesView = function RunningQueriesView() {
   const hostId = useHostId()
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const [chartsOpen, setChartsOpen] = useState(true)
   const [live, setLive] = useState(true)
 

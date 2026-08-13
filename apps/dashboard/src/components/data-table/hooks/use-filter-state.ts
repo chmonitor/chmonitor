@@ -3,8 +3,8 @@
  */
 
 import type { QueryConfig } from '@/types/query-config'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
-import { useSearchParams } from '@/lib/next-compat'
 
 interface UseFilterStateOptions {
   filterParamPresets?: QueryConfig['filterParamPresets']
@@ -26,7 +26,7 @@ export function useFilterState({
   filterParamPresets = [],
   defaultParams = {},
 }: UseFilterStateOptions): FilterState {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
 
   const selected = (() => {
     const params = new URLSearchParams(searchParams)

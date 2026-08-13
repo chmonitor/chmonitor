@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from 'react'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 export function useLayoutView(): [
   'table' | 'cards',
   (newView: 'table' | 'cards') => void,
 ] {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
+  const searchParams = useUrlSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const layoutParam = searchParams.get('layout')
 
   const isMobile = useIsMobile()
@@ -26,9 +28,12 @@ export function useLayoutView(): [
       } else {
         params.set('layout', 'table')
       }
-      router.replace(`${pathname}?${params.toString()}`)
+      navigate({
+        ...splitHref(`${pathname}?${params.toString()}`),
+        replace: true,
+      })
     },
-    [searchParams, router, pathname]
+    [searchParams, navigate, pathname]
   )
 
   return [view, setView]

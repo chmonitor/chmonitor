@@ -10,7 +10,7 @@ import {
   isMenuItemActive,
   isMenuItemActiveAmongSiblings,
 } from '@/lib/menu/breadcrumb'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 /**
  * Check if a menu item or any of its children are active.
@@ -25,7 +25,7 @@ export function useMenuActiveState(
   item: MenuItem,
   siblingHrefs?: string[]
 ): boolean {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
 
   return (() => {
     // Check if item itself is active

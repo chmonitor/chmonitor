@@ -6,8 +6,8 @@ import { apiFetch } from './api-fetch'
 import { visibilityAwareInterval } from './config'
 import { type FetchError, throwIfNotOk } from './fetch-error'
 import { useCallback } from 'react'
-import { useSearchParams } from '@/lib/next-compat'
 import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * SWR hook for the view-only PeerDB proxy at `/api/v1/peerdb/*`.
@@ -38,7 +38,7 @@ export function usePeerDB<T = unknown>(
   const method = hasBody ? 'POST' : 'GET'
   const bodyKey = hasBody ? JSON.stringify(body) : ''
 
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const connection =
     options && 'connection' in options
       ? (options.connection ?? undefined)

@@ -7,12 +7,12 @@ import {
   parseFiltersFromParams,
   serializeActiveFilters,
 } from '@/lib/filters/url-state'
-import { useSearchParams } from '@/lib/next-compat'
 import { pageOgHead } from '@/lib/og'
 import { historyQueriesConfig } from '@/lib/query-config/queries/history-queries'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function HistoryQueriesPageContent() {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
 
   // Normalize URL filter state into the params the table query consumes.
   const tableSearchParams = (() => {

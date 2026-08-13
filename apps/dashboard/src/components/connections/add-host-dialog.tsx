@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { docsSiteUrl } from '@/lib/docs-site'
+import { keepHostSearch } from '@/routes/-root-search'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -25,8 +26,9 @@ import {
   useUserConnections,
   useUserConnectionsMutations,
 } from '@/lib/hooks/use-user-connections'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
-import { buildUrl } from '@/lib/url/url-builder'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { buildUrl, splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface AddHostDialogProps {
   open: boolean
@@ -61,9 +63,9 @@ export function AddHostDialog({
   initialEngine = 'self-hosted',
   showSamplePreset = true,
 }: AddHostDialogProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
   const { config } = useFeaturePermissions()
   const { addConnection, connections: browserConnections } =
     useBrowserConnections()
@@ -107,7 +109,7 @@ export function AddHostDialog({
           toast.error(fetchErr.message, {
             action: {
               label: 'Choose a plan',
-              onClick: () => router.push('/billing'),
+              onClick: () => navigate({ to: '/billing', search: keepHostSearch }),
             },
           })
           return
@@ -116,8 +118,10 @@ export function AddHostDialog({
       }
       await refetchDb()
       if (isPostgres) {
-        router.push(
-          `/postgres/queries?pg=${encodeURIComponent(result.data.id)}`
+        navigate(
+          splitHref(
+            `/postgres/queries?pg=${encodeURIComponent(result.data.id)}`
+          )
         )
       } else if (result.data.hostId !== undefined) {
         const url = buildUrl(
@@ -125,15 +129,17 @@ export function AddHostDialog({
           { host: result.data.hostId },
           searchParams
         )
-        router.push(url)
+        navigate(splitHref(url))
       }
     } else {
       const created = addConnection(data)
       if (isPostgres) {
-        router.push(`/postgres/queries?pg=${encodeURIComponent(created.id)}`)
+        navigate(
+          splitHref(`/postgres/queries?pg=${encodeURIComponent(created.id)}`)
+        )
       } else {
         const url = buildUrl(pathname, { host: created.hostId }, searchParams)
-        router.push(url)
+        navigate(splitHref(url))
       }
     }
 

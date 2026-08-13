@@ -6,10 +6,10 @@ import { FeatureUnavailable } from './feature-unavailable'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { findMenuPermissionForPath } from '@/lib/feature-permissions/menu'
 import { resolveFeatureState } from '@/lib/feature-permissions/shared'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 export function FeatureRouteGate({ children }: { children: ReactNode }) {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const { config, isLoading } = useFeaturePermissions()
   const permission = findMenuPermissionForPath(menuItemsConfig, pathname)
 

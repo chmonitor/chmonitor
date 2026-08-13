@@ -21,10 +21,11 @@ import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
-import { buildUrl } from '@/lib/url/url-builder'
+import { buildUrl, splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 async function fetchTables(hostId: number): Promise<ExplorerTableRow[]> {
   const res = await apiFetch(
@@ -46,9 +47,11 @@ export const CommandPalette = function CommandPalette({
   onOpenChange,
   onOpenSettings,
 }: CommandPaletteProps = {}) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const pathname = usePathname()
+  // Named `routerNavigate` (not `navigate`) — this file defines its own
+  // `navigate` wrapper below (external-link handling, recent-item tracking).
+  const routerNavigate = useNavigate()
+  const searchParams = useUrlSearchParams()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const {
     open,
     setOpen,
@@ -112,7 +115,7 @@ export const CommandPalette = function CommandPalette({
       return
     }
     const url = buildUrl(href, { host: hostId })
-    router.push(url)
+    routerNavigate(splitHref(url))
   }
 
   const handleGoToQuery = () => {
@@ -121,14 +124,14 @@ export const CommandPalette = function CommandPalette({
       host: hostId,
       query_id: inputValue.trim(),
     })
-    router.push(url)
+    routerNavigate(splitHref(url))
   }
 
   const handleOpenInExplorer = () => {
     closeAndReset()
     const { database, table } = parseTableName(inputValue)
     const url = buildUrl('/explorer', { host: hostId, database, table })
-    router.push(url)
+    routerNavigate(splitHref(url))
   }
 
   const openExplorerFor = (database: string, table?: string) => {
@@ -144,7 +147,7 @@ export const CommandPalette = function CommandPalette({
     } else {
       rememberSelection(`db-${hostId}-${database}`, database, url, 'database')
     }
-    router.push(url)
+    routerNavigate(splitHref(url))
   }
 
   const handleOpenSettings = () => {
@@ -160,7 +163,7 @@ export const CommandPalette = function CommandPalette({
   const handleSwitchHost = (id: number) => {
     closeAndReset()
     const url = buildUrl(pathname || '/overview', { host: id }, searchParams)
-    router.push(url)
+    routerNavigate(splitHref(url))
   }
 
   return (
@@ -203,7 +206,7 @@ export const CommandPalette = function CommandPalette({
               recent.kind,
               recent.description
             )
-            router.push(recent.href)
+            routerNavigate(splitHref(recent.href))
           }}
           quickNav={quickNav}
           onGoToQuery={handleGoToQuery}

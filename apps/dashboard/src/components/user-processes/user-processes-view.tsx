@@ -3,8 +3,10 @@ import { Timer } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { useTimeRange } from '@/lib/context/time-range-context'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { userProcessesConfig } from '@/lib/query-config/tables/user-processes'
+import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
 /** Presets that drive the dynamic `last_hours` window, from the query config. */
@@ -68,9 +70,9 @@ function FilterGroup({
  */
 export function UserProcessesView() {
   const { timeRange } = useTimeRange()
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
 
   // URL param wins; otherwise seed from the global picker (defaults to 24h).
   const lastHours =
@@ -79,7 +81,7 @@ export function UserProcessesView() {
   const setFilter = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams)
     next.set(key, value)
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+    navigate({ ...splitHref(`${pathname}?${next.toString()}`), replace: true })
   }
 
   const tableSearchParams = useMemo(

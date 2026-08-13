@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 
 interface DataTableFacetedFilterProps {
@@ -32,7 +32,7 @@ export function DataTableFacetedFilter({
   title,
   queryConfig,
 }: DataTableFacetedFilterProps) {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const { filterParamPresets = [], defaultParams = {} } = queryConfig
 
   const { selected, filters, selectedCount } = useFilterState({

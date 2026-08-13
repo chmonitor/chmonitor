@@ -30,7 +30,7 @@ import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resol
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import { useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { useToolConfig } from '@/lib/hooks/use-tool-config'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
@@ -57,7 +57,7 @@ function useAgentChatRuntime() {
   const { model } = useAgentModel()
   const sessionId = useMemo(() => crypto.randomUUID(), [])
   const { customServers, disabledServers } = useMcpConfig()
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   // Present only for the floating widget (null on the full /agents page). When
   // present, the composer chip can switch page context off for the current
   // page. The ref object is stable across renders, so it's a safe memo dep that

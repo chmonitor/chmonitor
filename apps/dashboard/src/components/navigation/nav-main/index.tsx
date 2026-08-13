@@ -2,7 +2,7 @@ import type { NavMainProps, NavRenderSection } from './types'
 
 import { MenuGroup } from './menu-group'
 import { NavFavorites } from './nav-favorites'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 /**
  * NavMain component - main navigation sidebar with grouped menu items
@@ -21,7 +21,7 @@ import { usePathname } from '@/lib/next-compat'
  * ```
  */
 export function NavMain({ items }: NavMainProps) {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const sections: NavRenderSection[] = ['main', 'others']
 
   return (

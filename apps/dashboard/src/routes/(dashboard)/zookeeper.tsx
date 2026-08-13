@@ -1,8 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { Suspense, useEffect } from 'react'
 import { ChartSkeleton } from '@/components/skeletons'
-import { useRouter, useSearchParams } from '@/lib/next-compat'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Legacy route. ZooKeeper monitoring moved under the dedicated "Keeper" menu
@@ -11,13 +12,16 @@ import { useRouter, useSearchParams } from '@/lib/next-compat'
  * keep working.
  */
 function ZookeeperRedirect() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const searchParams = useUrlSearchParams()
 
   useEffect(() => {
     const query = searchParams.toString()
-    router.replace(`/keeper${query ? `?${query}` : '?path=/'}`)
-  }, [router, searchParams])
+    navigate({
+      ...splitHref(`/keeper${query ? `?${query}` : '?path=/'}`),
+      replace: true,
+    })
+  }, [navigate, searchParams])
 
   return <ChartSkeleton />
 }

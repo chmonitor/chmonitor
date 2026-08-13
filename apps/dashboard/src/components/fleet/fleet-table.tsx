@@ -18,9 +18,9 @@ import {
 } from '@/components/ui/table'
 import { formatReadableSize } from '@/lib/format-readable'
 import { usePgConnections } from '@/lib/hooks/use-pg-connections'
-import { useRouter } from '@/lib/next-compat'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
+import { splitHref } from '@/lib/url/url-builder'
 import { cn, getHost } from '@/lib/utils'
 
 /** Number of metric columns between "Host" and the trailing action column. */
@@ -224,9 +224,11 @@ function MetricSkeletonCell({ className }: { className?: string }) {
 
 /** Static row for a Postgres source — no ClickHouse status hook applies. */
 function FleetPgRow({ pg }: { pg: PgConnectionInfo }) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const handleView = () => {
-    router.push(`/postgres/queries?pg=${encodeURIComponent(pg.connectionId)}`)
+    navigate(
+      splitHref(`/postgres/queries?pg=${encodeURIComponent(pg.connectionId)}`)
+    )
   }
   return (
     <TableRow

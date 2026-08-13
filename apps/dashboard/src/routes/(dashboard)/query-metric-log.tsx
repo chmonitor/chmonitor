@@ -3,11 +3,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
-import { useSearchParams } from '@/lib/next-compat'
 import { queryMetricLogConfig } from '@/lib/query-config/system/query-metric-log'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function QueryMetricLogPageContent() {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
 
   // When navigated from "View Resource Timeline" action on a query row,
   // ?query_id= is set to filter the metric log to that specific query.

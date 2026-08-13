@@ -11,18 +11,18 @@
 
 import type { SourceEngine } from '@chm/types'
 
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   type PgConnectionInfo,
   usePgConnections,
 } from '@/lib/hooks/use-pg-connections'
-import { useSearchParams } from '@/lib/next-compat'
 
 /** The `?pg=` query-param name carrying the active Postgres connection id. */
 export const PG_HOST_PARAM = 'pg'
 
 /** The active Postgres connection, or `null` when no Postgres source is active. */
 export function useActivePgConnection(): PgConnectionInfo | null {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const pgId = searchParams.get(PG_HOST_PARAM)
   const { getByConnectionId } = usePgConnections()
   if (!pgId) return null

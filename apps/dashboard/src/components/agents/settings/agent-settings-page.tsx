@@ -18,6 +18,7 @@ import {
   ScrollTextIcon,
   SparklesIcon,
 } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 
 import { McpSettingsTab } from './mcp-settings-tab'
 import { ProviderModelsTab } from './provider-models-tab'
@@ -26,7 +27,8 @@ import { SystemPromptTab } from './system-prompt-tab'
 import { useCallback, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useRouter, useSearchParams } from '@/lib/next-compat'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 const TAB_IDS = ['provider', 'system-prompt', 'skills', 'mcp'] as const
 type TabId = (typeof TAB_IDS)[number]
@@ -38,8 +40,8 @@ function isTabId(value: string | null): value is TabId {
 }
 
 export function AgentSettingsPage() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  const searchParams = useUrlSearchParams()
+  const navigate = useNavigate()
 
   const tab = useMemo(() => {
     const raw = searchParams.get('tab')
@@ -54,9 +56,12 @@ export function AgentSettingsPage() {
       if (value === tab) return
       const params = new URLSearchParams(searchParams.toString())
       params.set('tab', value)
-      router.replace(`/agents/settings?${params.toString()}`)
+      navigate({
+        ...splitHref(`/agents/settings?${params.toString()}`),
+        replace: true,
+      })
     },
-    [tab, searchParams, router]
+    [tab, searchParams, navigate]
   )
 
   return (

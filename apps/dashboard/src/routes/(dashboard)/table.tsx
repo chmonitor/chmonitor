@@ -1,12 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { Suspense, useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useRouter, useSearchParams } from '@/lib/next-compat'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function TableRedirect() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const searchParams = useUrlSearchParams()
 
   useEffect(() => {
     const params = new URLSearchParams()
@@ -18,8 +19,11 @@ function TableRedirect() {
     if (database) params.set('database', database)
     if (table) params.set('table', table)
 
-    router.replace(`/explorer?${params.toString()}`)
-  }, [searchParams, router])
+    navigate({
+      ...splitHref(`/explorer?${params.toString()}`),
+      replace: true,
+    })
+  }, [searchParams, navigate])
 
   return (
     <div className="flex h-96 items-center justify-center">

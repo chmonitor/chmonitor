@@ -27,3 +27,12 @@ export function validateSearch(search: Record<string, unknown>): RootSearch {
     host: Number.isInteger(parsed) ? parsed : 0,
   }
 }
+
+/**
+ * Search reducer for typed `navigate({ to, search })` calls that only want to
+ * carry the global `?host=` across a redirect. `host` is required on the root
+ * search schema, so a bare `navigate({ to })` does not type-check.
+ */
+export function keepHostSearch(prev: Record<string, unknown>): RootSearch {
+  return validateSearch(prev)
+}

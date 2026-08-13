@@ -24,9 +24,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PG_HOST_PARAM } from '@/lib/hooks/use-active-pg-connection'
-import { useSearchParams } from '@/lib/next-compat'
 import { usePostgresInsights } from '@/lib/query/use-postgres-insights'
 import { cn } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface PostgresInsightsPanelProps {
   /**
@@ -50,7 +50,7 @@ export function PostgresInsightsPanel({
     dismiss,
     dismissAll,
   } = usePostgresInsights(pgHostId)
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const activePg = searchParams.get(PG_HOST_PARAM)
   // Preserve the active ?pg= connection on card deep-links (the Postgres routing
   // dimension), falling back to the env source id when no connection is active.
