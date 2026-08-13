@@ -6,8 +6,18 @@
  * Returns available models grouped by provider.
  * Generates all valid `provider:model` combinations from MODEL_REGISTRY.
  * Enriches OpenRouter models with capability data from their API.
- * When AnyRouter is configured, also merges a **dynamic** top-by-usage set
- * from AnyRouter's public catalog + per-model metrics (fail-soft).
+ *
+ * On top of the curated registry (the "must have" floor), it merges — each
+ * step independently fail-soft, so any upstream outage degrades to the list
+ * built so far rather than emptying the picker:
+ *  - AnyRouter's **top-by-usage** set (public catalog + per-model metrics),
+ *  - OpenRouter's **top** set, ranked by curated relevance (their API exposes
+ *    no usage ranking — see `openrouter-dynamic-models.ts`),
+ *  - the signed-in workspace's **AnyRouter presets** (`@preset/<slug>`).
+ *
+ * A successful catalog fetch never implies the provider is configured: both
+ * catalogs are public, so `filterByConfiguredProviders` stays the sole
+ * authority on what the picker may offer.
  *
  * Ported from apps/dashboard/app/api/v1/agents/models/route.ts.
  * - next/server NextResponse.json(x, init) -> Response.json(x, init).
@@ -28,6 +38,14 @@ import {
   loadAnyRouterDynamicModelEntries,
   mergeAnyRouterDynamicModels,
 } from '@/lib/ai/anyrouter-dynamic-models'
+import {
+  loadAnyRouterPresetEntries,
+  mergeAnyRouterPresets,
+} from '@/lib/ai/anyrouter-presets'
+import {
+  loadOpenRouterDynamicModelEntries,
+  mergeOpenRouterDynamicModels,
+} from '@/lib/ai/openrouter-dynamic-models'
 import {
   getConfiguredProviderIds,
   isProviderConfigured,
@@ -233,18 +251,33 @@ async function buildRegistryModels(): Promise<ModelCapability[]> {
  * AnyRouter list/metrics failures are fail-soft — static list still returns.
  */
 async function buildModels(): Promise<ModelCapability[]> {
-  const [registryModels, dynamicAnyRouter] = await Promise.all([
+  const [
+    registryModels,
+    dynamicAnyRouter,
+    dynamicOpenRouter,
+    anyRouterPresets,
+  ] = await Promise.all([
     buildRegistryModels(),
     loadAnyRouterDynamicModelEntries(),
+    loadOpenRouterDynamicModelEntries(),
+    loadAnyRouterPresetEntries(),
   ])
 
-  if (dynamicAnyRouter.length === 0) {
-    return registryModels
+  // The curated registry is the floor: every merge helper keeps its `base`
+  // entries, so an upstream outage degrades to the static list rather than an
+  // empty picker.
+  let models = registryModels
+  if (dynamicAnyRouter.length > 0) {
+    models = mergeAnyRouterDynamicModels(models, dynamicAnyRouter)
+  }
+  if (dynamicOpenRouter.length > 0) {
+    models = mergeOpenRouterDynamicModels(models, dynamicOpenRouter)
+  }
+  if (anyRouterPresets.length > 0) {
+    models = mergeAnyRouterPresets(models, anyRouterPresets)
   }
 
-  return filterByConfiguredProviders(
-    mergeAnyRouterDynamicModels(registryModels, dynamicAnyRouter)
-  )
+  return filterByConfiguredProviders(models)
 }
 
 function getConfiguredProviders(): string[] {

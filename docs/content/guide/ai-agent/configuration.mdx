@@ -40,6 +40,45 @@ Set the key for each provider you want to use. Only providers with a key configu
 | `ANYROUTER_DYNAMIC_MODELS` | AnyRouter | Set to `false` / `0` / `off` to disable live catalog enrichment (static registry only). On by default when `ANYROUTER_API_KEY` is set. |
 | `ANYROUTER_TOP_MODELS_N` | AnyRouter | Max usage-ranked models to add to the picker (default `8`, max `32`). |
 | `ANYROUTER_METRICS_CANDIDATE_CAP` | AnyRouter | Max catalog models to score via `/models/{id}/metrics` (default `24`, max `64`). |
+| `ANYROUTER_PRESETS` | AnyRouter | Set to `false` / `0` / `off` to hide your workspace presets from the picker. On by default when `ANYROUTER_API_KEY` is set. |
+| `ANYROUTER_PRESETS_MAX` | AnyRouter | Max presets to surface (default `8`, max `32`). |
+| `ANYROUTER_OAUTH_CLIENT_ID` | AnyRouter | Pin a pre-registered OAuth client for "Sign in with AnyRouter". Optional — the server registers one on first use. |
+| `OPENROUTER_DYNAMIC_MODELS` | OpenRouter | Set to `false` / `0` / `off` to disable live catalog enrichment (curated registry only). On by default when `OPENROUTER_API_KEY` is set. |
+| `OPENROUTER_TOP_MODELS_N` | OpenRouter | Max dynamically ranked models to add to the picker (default `12`, max `32`). |
+
+### OpenRouter dynamic models (relevance ranking)
+
+When `OPENROUTER_API_KEY` is set, `GET /api/v1/agents/models` also loads
+OpenRouter's public catalog (`GET {OPENROUTER_MODELS_API}`) and appends a
+bounded set of tool-capable models on top of the curated registry.
+
+Unlike AnyRouter, **OpenRouter exposes no usage-ranking API** — the `order`
+query parameter is accepted but ignored, and the ranking endpoints behind
+openrouter.ai are not public. The ranking is therefore a deterministic
+*relevance* score (curated-registry membership, well-known model authors, free
+variants, context size, recency), not measured usage. Models without tool
+calling are excluded, since the agent cannot use them.
+
+### AnyRouter presets
+
+When `ANYROUTER_API_KEY` is set, the authenticated catalog response also
+carries your workspace's presets, which the picker lists as
+`anyrouter:@preset/<slug>`. Selecting one sends the preset's own model, system
+prompt, and sampling settings.
+
+### Sign in with AnyRouter (bring your own credits)
+
+Users can sign in to AnyRouter directly from the model picker (or the
+**Provider & Models** settings tab) instead of relying on the deployment's key.
+The server runs an OAuth 2.1 authorization-code + PKCE flow in a popup; the
+resulting token is held **in that browser only** and replayed per request
+through the existing BYOK path, so it is never persisted or logged
+server-side. AnyRouter tokens last about 30 days and have no refresh token —
+signing in again mints a fresh one.
+
+This works on a deployment with or without `ANYROUTER_API_KEY`: with a key, it
+lets a user spend their own credits instead of the deployment's; without one,
+it unlocks AnyRouter models that would otherwise be unavailable.
 
 ### AnyRouter dynamic models (usage ranking)
 
