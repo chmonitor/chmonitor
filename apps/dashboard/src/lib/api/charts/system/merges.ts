@@ -19,16 +19,19 @@ export const mergesCharts: Record<string, ChartQueryBuilder> = {
     lastHours = 24,
   }) => {
     const timeFilter = buildTimeFilterInterval(lastHours)
+    // Only the three columns the stacked bar chart actually plots are selected.
+    // The chart previously also received total_rows / total_bytes_on_disk and
+    // their formatReadable* twins, none of which any consumer reads — see
+    // components/charts/merge/new-parts-created.tsx, which destructures exactly
+    // { event_time, table, new_parts }. On the cloud demo those four dead
+    // columns were about two thirds of an 88 KB response, and this chart is the
+    // largest single endpoint on /overview.
     return {
       query: `
     SELECT
         ${applyInterval(interval, 'event_time')},
         count() AS new_parts,
-        table,
-        sum(rows) AS total_rows,
-        formatReadableQuantity(total_rows) AS readable_total_rows,
-        sum(size_in_bytes) AS total_bytes_on_disk,
-        formatReadableSize(total_bytes_on_disk) AS readable_total_bytes_on_disk
+        table
     FROM system.part_log
     WHERE toInt8(event_type) = 1
       ${timeFilter ? `AND ${timeFilter}` : ''}

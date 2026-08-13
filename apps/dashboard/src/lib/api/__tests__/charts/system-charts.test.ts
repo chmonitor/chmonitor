@@ -208,3 +208,51 @@ describe('systemCharts', () => {
     }
   })
 })
+
+/**
+ * Wire-payload contract for `new-parts-created` (#2986).
+ *
+ * The stacked bar chart in components/charts/merge/new-parts-created.tsx types
+ * its rows as exactly { event_time, table, new_parts } and reads nothing else.
+ * The query used to also select total_rows / total_bytes_on_disk plus their
+ * formatReadable* twins, which no consumer ever read: measured on the cloud
+ * demo, that was 87.8 KB per response against 34.8 KB for the columns actually
+ * plotted (60% waste), on the largest single endpoint of /overview.
+ *
+ * These tests fail if a dead column is reintroduced.
+ */
+describe('new-parts-created wire payload', () => {
+  const build = systemCharts['new-parts-created']
+
+  function sqlFor(): string {
+    const def = build?.({ interval: 'toStartOfHour', lastHours: 24 })
+    if (!def || !('query' in def))
+      throw new Error('expected a single-query def')
+    return def.query
+  }
+
+  test('selects the three columns the chart plots', () => {
+    const sql = sqlFor()
+    expect(sql).toContain('event_time')
+    expect(sql).toContain('count() AS new_parts')
+    expect(sql).toMatch(/\btable\b/)
+  })
+
+  test('does not ship columns no consumer reads', () => {
+    const sql = sqlFor()
+    for (const dead of [
+      'total_rows',
+      'readable_total_rows',
+      'total_bytes_on_disk',
+      'readable_total_bytes_on_disk',
+    ]) {
+      expect(sql).not.toContain(dead)
+    }
+  })
+
+  test('still aggregates per time bucket and table', () => {
+    // Dropping the sums must not change the grouping — one row per
+    // (bucket, table) is what the stacked series are built from.
+    expect(sqlFor()).toMatch(/GROUP BY\s+event_time,\s+table/)
+  })
+})
