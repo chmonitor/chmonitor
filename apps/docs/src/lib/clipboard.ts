@@ -10,7 +10,7 @@
  *
  * @example
  * ```ts
- * import { copyToClipboard } from '@/lib/utils/clipboard'
+ * import { copyToClipboard } from '@/lib/clipboard'
  *
  * const success = await copyToClipboard('Hello, world!')
  * if (!success) {
