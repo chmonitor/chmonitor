@@ -2,6 +2,8 @@
  * Operations tab charts - merge operations and replication health
  */
 
+import type { OverviewChartConfig } from './types'
+
 import {
   ChartMergeAvgDuration,
   ChartMergeCount,
@@ -14,7 +16,6 @@ import {
   ChartSummaryStuckMutations,
   ChartSummaryUsedByMerges,
 } from '../-charts-lazy'
-import type { OverviewChartConfig } from './types'
 
 export const OPERATIONS_TAB_CHARTS: OverviewChartConfig[] = [
   {

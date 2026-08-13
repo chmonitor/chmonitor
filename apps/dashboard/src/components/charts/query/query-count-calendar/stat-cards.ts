@@ -2,10 +2,11 @@
  * Build the KPI/stat cards shown above the calendar for a chosen metric.
  */
 
-import { formatCompactNumber } from '@/lib/format-readable'
 import type { CalendarStats } from './build-model'
-import { formatShortDate } from './date-utils'
 import type { MetricConfig } from './metrics'
+
+import { formatShortDate } from './date-utils'
+import { formatCompactNumber } from '@/lib/format-readable'
 
 /** A single KPI/stat card shown above the calendar. */
 export interface StatCard {

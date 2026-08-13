@@ -2,7 +2,6 @@
 // moved here with the estimate math — issue #2936. The I/O half
 // (`measurePrewhereImpact`, which issues the two EXPLAIN ESTIMATE calls) stays
 // in the dashboard/MCP fetchers that own the ClickHouse connection.
-import { describe, expect, test } from 'bun:test'
 
 import {
   estimateBytesSaved,
@@ -12,6 +11,7 @@ import {
   summarizeImpact,
   summarizePrewhereMarks,
 } from './impact'
+import { describe, expect, test } from 'bun:test'
 
 describe('estimateBytesSaved', () => {
   test('is proportional to the granules-saved fraction of the table', () => {

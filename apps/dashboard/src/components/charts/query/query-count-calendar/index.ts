@@ -16,12 +16,28 @@
  */
 
 export type {
+  CalendarDay,
+  CalendarModel,
+  CalendarStats,
+  CalendarWeek,
+} from './build-model'
+export type {
   DayCell,
   HeatmapDayRow,
   MetricAggregation,
   MetricConfig,
   MetricKey,
 } from './metrics'
+export type { MonthBlock, MonthBlockSizing } from './month-window'
+export type { StatCard } from './stat-cards'
+
+export { buildCalendarModel } from './build-model'
+export {
+  CALENDAR_DAY_LABELS,
+  formatCalendarDate,
+  formatShortDate,
+  isoDate,
+} from './date-utils'
 export {
   formatDurationMs,
   getIntensityClass,
@@ -30,13 +46,6 @@ export {
   METRIC_ORDER,
   TIER_THRESHOLDS,
 } from './metrics'
-
-export { CALENDAR_DAY_LABELS, formatCalendarDate, formatShortDate, isoDate } from './date-utils'
-
-export type { CalendarDay, CalendarModel, CalendarStats, CalendarWeek } from './build-model'
-export { buildCalendarModel } from './build-model'
-
-export type { MonthBlock, MonthBlockSizing } from './month-window'
 export {
   buildMonthBlocks,
   buildMonthWindowModel,
@@ -45,6 +54,4 @@ export {
   resolveWindowStart,
   summarizeVisibleBlocks,
 } from './month-window'
-
-export type { StatCard } from './stat-cards'
 export { buildStatCards } from './stat-cards'

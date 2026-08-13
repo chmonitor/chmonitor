@@ -3,6 +3,7 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 
 import { useState } from 'react'
+import { copyToClipboard } from '@/lib/clipboard'
 
 /* ------------------------------------------------------------------ */
 /* Feature definitions                                                  */
@@ -210,9 +211,11 @@ export function GrantBuilder() {
   const code = mode === 'sql' ? buildSQL(enabled) : buildXML(enabled)
 
   async function copy() {
-    await navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const success = await copyToClipboard(code)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const highlighted = mode === 'sql' ? colourSQL(code) : colourXML(code)

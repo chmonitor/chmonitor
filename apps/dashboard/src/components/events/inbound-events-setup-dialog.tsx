@@ -26,8 +26,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 const DOCS_URL = 'https://docs.chmonitor.dev/guide/features/inbound-events'
 
@@ -51,13 +51,13 @@ function CopyBlock({
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code)
+    const success = await copyToClipboard(code)
+    if (success) {
       setCopied(true)
       toast.success(label ? `${label} copied` : 'Copied to clipboard')
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      toast.error('Failed to copy', { description: describeError(err) })
+    } else {
+      toast.error('Failed to copy')
     }
   }
 

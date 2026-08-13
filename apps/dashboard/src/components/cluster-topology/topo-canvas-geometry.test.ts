@@ -6,8 +6,8 @@
 
 import type { ClusterHull } from './model-types'
 
-import { describe, expect, test } from 'bun:test'
 import { clampToHull, clientToSvg } from './topo-canvas-geometry'
+import { describe, expect, test } from 'bun:test'
 
 function makeHull(overrides: Partial<ClusterHull> = {}): ClusterHull {
   return {

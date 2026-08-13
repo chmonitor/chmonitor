@@ -46,8 +46,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { formatSql } from '@/lib/sql-format'
-import { describeError } from '@/lib/swr/fetch-error'
 import { cn, dedent } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 const BEAUTIFY_STORAGE_KEY = 'chart-zoom-sql-beautify'
 
@@ -78,9 +78,13 @@ function CopyableValue({
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(String(value))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    const success = await copyToClipboard(String(value))
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } else {
+      toast.error('Failed to copy')
+    }
   }
 
   return (
@@ -239,15 +243,15 @@ export const ChartZoomDialog = function ChartZoomDialog({
 
   const handleQueryCopy = async () => {
     if (!sql) return
-    try {
-      const text = isBeautified ? await formatSql(sql) : dedent(sql)
-      await navigator.clipboard.writeText(text)
+    const text = isBeautified ? await formatSql(sql) : dedent(sql)
+    const success = await copyToClipboard(text)
+    if (success) {
       setQueryCopied(true)
       setTimeout(() => setQueryCopied(false), 2000)
-    } catch (err) {
+    } else {
       // Previously an unhandled rejection — the user clicked Copy and nothing
       // happened, with no feedback at all (#2729).
-      toast.error('Failed to copy SQL', { description: describeError(err) })
+      toast.error('Failed to copy SQL')
     }
   }
 

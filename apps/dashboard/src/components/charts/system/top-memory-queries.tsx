@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/dialog'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
-import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 type DataRow = {
   normalized_query_hash: string
@@ -59,15 +59,13 @@ function QueryDetailDialog({
   const explainUrl = `/explain?query=${encodeURIComponent(query)}&host=${hostId}`
 
   const handleCopy = async () => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText)
-      return
-    try {
-      await navigator.clipboard.writeText(query)
+    const success = await copyToClipboard(query)
+    if (success) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
+    } else {
       // Silent failure here left the user clicking Copy with no feedback (#2729).
-      toast.error('Failed to copy query', { description: describeError(err) })
+      toast.error('Failed to copy query')
     }
   }
 

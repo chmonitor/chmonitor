@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-07-11
+updated: 2026-08-13
 tags:
   - saas
   - cloud
@@ -226,6 +226,21 @@ free forever (auth `none` ⇒ unlimited, plans inert).
 
 ## Gotchas
 
+- **Browser-connection proxy routes require a sessionToken in cloud mode
+  (#2951).** `/api/v1/browser-connections/{proxy,charts/$name,tables/$name}`
+  all resolve credentials via `resolveProxyCredentials`
+  (`lib/connection-query/resolve-credentials.ts`). It accepts either a
+  `sessionToken` (minted by `/browser-connections/sessions` after validating
+  the connection) or inline `connection.{host,user,password}` from the request
+  body. In cloud mode (`isCloudModeServer()`) the inline path is **rejected**
+  — these are public, unauthenticated endpoints, and honoring raw creds would
+  let anyone use the deployment as a ClickHouse credential-spraying relay from
+  the operator's egress IP. The inline path stays enabled for self-hosted
+  deployments (default), which are typically not publicly exposed and rely on
+  it for the browser-connections feature. The legitimate client
+  (`lib/swr/browser-proxy-fetcher.ts`, `lib/host-fetch/resolve-host-fetch.ts`)
+  always mints a sessionToken first, so this is purely a hardening gate for
+  callers hitting the API directly.
 - `apps/dashboard` is NOT a root pnpm workspace — run `pnpm install` *inside*
   `apps/dashboard`, not just at the monorepo root.
 - The dashboard `build` script calls `vite` directly; run via `pnpm run build`

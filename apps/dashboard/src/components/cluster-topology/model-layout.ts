@@ -13,6 +13,11 @@
 
 import type { ClusterTopologyRow } from '@/lib/query-config/system/clusters-topology'
 import type {
+  ClusterLiveRow,
+  KeeperInfoRow,
+  KeeperPresenceRow,
+} from './model-assemble'
+import type {
   ChNode,
   ClusterInfo,
   KeeperNode,
@@ -21,11 +26,6 @@ import type {
   TopologyMeta,
   TopologyModel,
 } from './model-types'
-import type {
-  ClusterLiveRow,
-  KeeperInfoRow,
-  KeeperPresenceRow,
-} from './model-assemble'
 
 import { assembleTopology } from './model-assemble'
 import {

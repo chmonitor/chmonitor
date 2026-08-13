@@ -171,4 +171,3 @@ export async function fetchExplainIndexes(
     return null
   }
 }
-

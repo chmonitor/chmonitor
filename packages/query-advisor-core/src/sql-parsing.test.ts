@@ -1,7 +1,6 @@
 // Moved here from apps/dashboard (`__tests__/recommendation-engine.test.ts`)
 // and packages/mcp-server (`__tests__/advisor-sql-parse.test.ts`) when the two
 // forks were merged into this package — issue #2936.
-import { describe, expect, test } from 'bun:test'
 
 import {
   extractClauseColumns,
@@ -17,6 +16,7 @@ import {
   EXPLAIN_INDEXES_LOW_PRUNING,
   EXPLAIN_INDEXES_WITH_SKIP,
 } from './test-fixtures'
+import { describe, expect, test } from 'bun:test'
 
 describe('extractPredicates', () => {
   test('captures equality, range, and IN predicates joined by AND', () => {
@@ -156,22 +156,23 @@ describe('extractReferencedTables', () => {
   test('JOIN across two databases returns both qualified tables', () => {
     const sql =
       'SELECT * FROM db1.events e JOIN db2.users u ON e.user_id = u.id'
-    expect(
-      extractReferencedTables(sql).map((t) => t.qualifiedName)
-    ).toEqual(['db1.events', 'db2.users'])
+    expect(extractReferencedTables(sql).map((t) => t.qualifiedName)).toEqual([
+      'db1.events',
+      'db2.users',
+    ])
   })
 
   test('unqualified tables fall back to the default database', () => {
-    expect(extractReferencedTables('SELECT * FROM events', 'analytics')).toEqual(
-      [
-        {
-          raw: 'events',
-          database: 'analytics',
-          table: 'events',
-          qualifiedName: 'analytics.events',
-        },
-      ]
-    )
+    expect(
+      extractReferencedTables('SELECT * FROM events', 'analytics')
+    ).toEqual([
+      {
+        raw: 'events',
+        database: 'analytics',
+        table: 'events',
+        qualifiedName: 'analytics.events',
+      },
+    ])
   })
 
   test('CTE aliases are not reported as tables, but their real FROM table is', () => {
@@ -204,7 +205,9 @@ describe('splitTopLevelAnd / findWhereSpan', () => {
   })
 
   test('extracts the WHERE body up to the next clause keyword', () => {
-    const span = findWhereSpan('SELECT * FROM t WHERE a = 1 AND b = 2 ORDER BY a')
+    const span = findWhereSpan(
+      'SELECT * FROM t WHERE a = 1 AND b = 2 ORDER BY a'
+    )
     expect(span?.body).toBe('a = 1 AND b = 2')
   })
 })

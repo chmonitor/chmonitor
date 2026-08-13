@@ -4,10 +4,16 @@
  * measured container width, and re-summarizing just the visible blocks.
  */
 
-import { buildCalendarModel } from './build-model'
-import type { CalendarDay, CalendarModel, CalendarStats, CalendarWeek } from './build-model'
-import { MONTH_NAMES, formatMonthYear } from './date-utils'
+import type {
+  CalendarDay,
+  CalendarModel,
+  CalendarStats,
+  CalendarWeek,
+} from './build-model'
 import type { HeatmapDayRow, MetricConfig } from './metrics'
+
+import { buildCalendarModel } from './build-model'
+import { formatMonthYear, MONTH_NAMES } from './date-utils'
 
 /**
  * Widest window the model ever builds, in calendar months (including the

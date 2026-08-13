@@ -2,6 +2,8 @@
  * Overview tab charts - at-a-glance health metrics
  */
 
+import type { OverviewChartConfig } from './types'
+
 import {
   ChartConnectionsPool,
   ChartCPUUsage,
@@ -22,7 +24,6 @@ import {
   ChartTopMemoryQueries,
   ChartTopTableSize,
 } from '../-charts-lazy'
-import type { OverviewChartConfig } from './types'
 
 export const OVERVIEW_TAB_CHARTS: OverviewChartConfig[] = [
   {

@@ -4,13 +4,14 @@
  * individual-query BackgroundBar tables ranked by peak memory / CPU time.
  */
 
+import type { OverviewChartConfig } from './types'
+
 import {
   ChartCpuLoadAverage,
   ChartCpuModeSplit,
   ChartMemoryBreakdown,
   ChartThreadPoolUtilization,
 } from '../-charts-lazy'
-import type { OverviewChartConfig } from './types'
 
 export const MEMORY_CPU_TAB_CHARTS: OverviewChartConfig[] = [
   {

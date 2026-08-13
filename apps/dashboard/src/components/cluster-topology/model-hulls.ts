@@ -7,7 +7,12 @@
  * for the envelope/boundary contracts these functions rely on.
  */
 
-import type { ChNode, ClusterHull, ClusterInfo, KeeperNode } from './model-types'
+import type {
+  ChNode,
+  ClusterHull,
+  ClusterInfo,
+  KeeperNode,
+} from './model-types'
 
 import { roundedRectPath } from './geometry'
 import {
