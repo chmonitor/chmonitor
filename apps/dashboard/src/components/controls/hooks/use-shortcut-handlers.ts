@@ -4,27 +4,27 @@
  * Provides navigation handlers for keyboard shortcuts.
  */
 
-import { useRouter } from '@/lib/next-compat'
+import { useNavigate } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
-import { buildUrl } from '@/lib/url/url-builder'
+import { buildUrl, splitHref } from '@/lib/url/url-builder'
 
 /**
  * Navigation handlers for keyboard shortcuts
  */
 export function useShortcutHandlers() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const hostId = useHostId()
 
   const goToOverview = () => {
-    router.push(buildUrl('/overview', { host: hostId }))
+    navigate(splitHref(buildUrl('/overview', { host: hostId })))
   }
 
   const goToQueries = () => {
-    router.push(buildUrl('/running-queries', { host: hostId }))
+    navigate(splitHref(buildUrl('/running-queries', { host: hostId })))
   }
 
   const goToTables = () => {
-    router.push(buildUrl('/tables', { host: hostId }))
+    navigate(splitHref(buildUrl('/tables', { host: hostId })))
   }
 
   const triggerRevalidate = () => {

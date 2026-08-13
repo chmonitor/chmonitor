@@ -14,7 +14,9 @@ import {
   parseFiltersFromParams,
   serializeFilter,
 } from '@/lib/filters/url-state'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface FilterBarProps {
   queryConfig: QueryConfig
@@ -29,9 +31,9 @@ interface FilterBarProps {
  */
 export function FilterBar({ queryConfig }: FilterBarProps) {
   const schema = queryConfig.filterSchema
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
+  const searchParams = useUrlSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
 
   const activeFilters = schema
     ? parseFiltersFromParams(schema, searchParams)
@@ -41,8 +43,9 @@ export function FilterBar({ queryConfig }: FilterBarProps) {
     const params = new URLSearchParams(searchParams.toString())
     mutate(params)
     const queryString = params.toString()
-    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-      scroll: false,
+    navigate({
+      ...splitHref(queryString ? `${pathname}?${queryString}` : pathname),
+      replace: true,
     })
   }
 

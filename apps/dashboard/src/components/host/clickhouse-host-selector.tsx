@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useHostStatus } from '@/lib/swr/use-host-status'
-import { buildUrl } from '@/lib/url/url-builder'
+import { buildUrl, splitHref } from '@/lib/url/url-builder'
 import { getHost } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 type ClickHouseHostSelectorProps = {
   currentHostId: number
@@ -32,9 +33,9 @@ export function ClickHouseHostSelector({
   currentHostId = 0,
   hosts,
 }: ClickHouseHostSelectorProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
   const [dialogOpen, setDialogOpen] = useState(false)
   const { connections, addConnection, updateConnection, deleteConnection } =
     useBrowserConnections()
@@ -47,7 +48,7 @@ export function ClickHouseHostSelector({
     const hostId = parseInt(val, 10)
     if (!Number.isNaN(hostId)) {
       const url = buildUrl(pathname, { host: hostId }, searchParams)
-      router.push(url)
+      navigate(splitHref(url))
     }
   }
 

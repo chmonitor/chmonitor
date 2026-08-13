@@ -1,6 +1,10 @@
 import { WandSparklesIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useLocation,
+  useNavigate,
+} from '@tanstack/react-router'
 
 import type { AdvisorRecommendationsOutput } from '@/components/agents/advisor-recommendations-panel'
 
@@ -17,10 +21,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // CodeMirror is heavy and browser-only — lazy-load it, same as /explain.
 const SqlEditor = lazy(() =>
@@ -56,9 +61,9 @@ function AdvisorContent() {
   const hostId = useHostId()
   // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('advisor')
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
 
   const [mode, setMode] = useState<'sql' | 'queryId'>(
     searchParams.get('queryId') ? 'queryId' : 'sql'
@@ -100,14 +105,20 @@ function AdvisorContent() {
       const params = new URLSearchParams(searchParams.toString())
       params.set('query', sqlInput)
       params.delete('queryId')
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+      navigate({
+        ...splitHref(`${pathname}?${params.toString()}`),
+        replace: true,
+      })
     } else {
       if (!queryIdInput.trim()) return
       setCommitted({ mode: 'queryId', queryId: queryIdInput })
       const params = new URLSearchParams(searchParams.toString())
       params.set('queryId', queryIdInput)
       params.delete('query')
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+      navigate({
+        ...splitHref(`${pathname}?${params.toString()}`),
+        replace: true,
+      })
     }
   }
 

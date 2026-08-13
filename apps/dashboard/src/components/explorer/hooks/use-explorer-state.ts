@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 export type ExplorerTab =
   | 'overview'
@@ -44,9 +46,9 @@ export function useExplorerState(): ExplorerState & {
   setTab: (tab: ExplorerTab) => void
   setCustomQuery: (sql: string | null) => void
 } {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
+  const searchParams = useUrlSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
 
   const state = useMemo<ExplorerState>(() => {
     const hostParam = searchParams.get('host')
@@ -121,9 +123,9 @@ export function useExplorerState(): ExplorerState & {
         }
       }
 
-      router.push(`${pathname}?${params.toString()}`)
+      navigate(splitHref(`${pathname}?${params.toString()}`))
     },
-    [pathname, router]
+    [pathname, navigate]
   )
 
   const setDatabase = useCallback(

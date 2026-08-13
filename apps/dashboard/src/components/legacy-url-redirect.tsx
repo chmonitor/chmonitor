@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Detects and redirects from legacy URL format:
@@ -10,9 +12,9 @@ import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
  * Preserves existing query parameters while adding host param.
  */
 export function LegacyUrlRedirect() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
 
   useEffect(() => {
     // Pattern: /{number}/{anything}
@@ -28,9 +30,9 @@ export function LegacyUrlRedirect() {
       const queryString = params.toString()
       const newUrl = `/${route}${queryString ? `?${queryString}` : ''}`
 
-      router.replace(newUrl)
+      navigate({ ...splitHref(newUrl), replace: true })
     }
-  }, [pathname, searchParams, router])
+  }, [pathname, searchParams, navigate])
 
   return null
 }

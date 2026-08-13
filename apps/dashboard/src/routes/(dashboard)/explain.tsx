@@ -4,7 +4,11 @@ import {
   ExternalLinkIcon,
 } from '@radix-ui/react-icons'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useLocation,
+  useNavigate,
+} from '@tanstack/react-router'
 
 import { splitSqlStatements } from '@chm/sql-builder'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -24,10 +28,11 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
+import { splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // CodeMirror is heavy and pulls in browser-only APIs — lazy-load it so it never
 // blocks the route's initial render and stays out of the server bundle.
@@ -328,9 +333,9 @@ function ExplainContent() {
   const hostId = useHostId()
   // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('explain')
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
   const queryFromUrl = searchParams.get('query') || ''
 
   const [queryInput, setQueryInput] = useState(queryFromUrl)
@@ -375,8 +380,11 @@ function ExplainContent() {
     const params = new URLSearchParams(searchParams.toString())
     params.delete('query_id')
     const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [queryIdFromUrl, qlRow, pathname, router, searchParams])
+    navigate({
+      ...splitHref(qs ? `${pathname}?${qs}` : pathname),
+      replace: true,
+    })
+  }, [queryIdFromUrl, qlRow, pathname, navigate, searchParams])
 
   const setMode = (newMode: string) => {
     setModeState(newMode)
@@ -386,7 +394,10 @@ function ExplainContent() {
     } else {
       params.delete('mode')
     }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    navigate({
+      ...splitHref(`${pathname}?${params.toString()}`),
+      replace: true,
+    })
   }
 
   const toggleSetting = (key: string) => {
@@ -428,7 +439,10 @@ function ExplainContent() {
     }
     const params = new URLSearchParams(searchParams.toString())
     params.set('query_id', selection.queryId)
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    navigate({
+      ...splitHref(`${pathname}?${params.toString()}`),
+      replace: true,
+    })
   }
 
   // A ?query_id is still resolving to editor content (loading / not-found).

@@ -1,4 +1,5 @@
 import { ArrowUpRight, ScalingIcon } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 
 import type { ComponentPropsWithoutRef } from 'react'
 import type { CardToolbarMetadata } from '@/components/cards/card-toolbar'
@@ -22,8 +23,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ExpandableText } from '@/components/utilities/expandable-text'
-import { useRouter } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
+import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
 /**
@@ -124,7 +125,7 @@ function ChartCardContent({
   href,
   ...cardProps
 }: ChartCardProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const hostId = useHostId()
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -139,7 +140,9 @@ function ChartCardContent({
       return
     }
 
-    router.push(`${href}${href.includes('?') ? '&' : '?'}host=${hostId}`)
+    navigate(
+      splitHref(`${href}${href.includes('?') ? '&' : '?'}host=${hostId}`)
+    )
   }
 
   return (

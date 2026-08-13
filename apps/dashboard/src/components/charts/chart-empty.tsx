@@ -1,4 +1,5 @@
 import { ArrowUpRight, RefreshCw } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 
 import type { CardToolbarMetadata } from '@/components/cards/card-toolbar'
 import type { ApiResponseMetadata } from '@/lib/api/types'
@@ -16,8 +17,8 @@ import {
 } from '@/components/ui/card'
 import { SuggestionCard } from '@/components/ui/suggestion-card'
 import { activateOnEnterOrSpace } from '@/lib/a11y'
-import { useRouter } from '@/lib/next-compat'
 import { useHostId } from '@/lib/swr'
+import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
 interface ChartEmptyProps {
@@ -54,7 +55,7 @@ export const ChartEmpty = function ChartEmpty({
   href,
   headerClassName,
 }: ChartEmptyProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const hostId = useHostId()
 
   // Use sql from props or metadata
@@ -79,7 +80,9 @@ export const ChartEmpty = function ChartEmpty({
 
   const navigateToHref = () => {
     if (!href) return
-    router.push(`${href}${href.includes('?') ? '&' : '?'}host=${hostId}`)
+    navigate(
+      splitHref(`${href}${href.includes('?') ? '&' : '?'}host=${hostId}`)
+    )
   }
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {

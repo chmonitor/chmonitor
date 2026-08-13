@@ -1,16 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { useEffect } from 'react'
 import { PageSkeleton } from '@/components/skeletons'
-import { useRouter } from '@/lib/next-compat'
 import { pageOgHead } from '@/lib/og'
+import { splitHref } from '@/lib/url/url-builder'
 
 function TablesPage() {
-  const router = useRouter()
+  const navigate = useNavigate()
 
   useEffect(() => {
-    router.push('/table?database=default')
-  }, [router])
+    navigate(splitHref('/table?database=default'))
+  }, [navigate])
 
   return <PageSkeleton />
 }

@@ -6,12 +6,12 @@ import { TableSkeleton } from '@/components/skeletons'
 import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
-import { useSearchParams } from '@/lib/next-compat'
 import { partInfoConfig } from '@/lib/query-config/tables/part-info'
 import { useHostId } from '@/lib/swr'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function PartInfoContent() {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const hostId = useHostId()
   const database = searchParams.get('database')
   const table = searchParams.get('table')

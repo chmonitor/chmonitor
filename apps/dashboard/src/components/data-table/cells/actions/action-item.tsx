@@ -5,15 +5,16 @@ import {
 } from '@radix-ui/react-icons'
 import { toast } from 'sonner'
 import type { Row, RowData } from '@tanstack/react-table'
+import { useNavigate } from '@tanstack/react-router'
 
 import type { Action } from './types'
 
 import { useState } from 'react'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
-import { useRouter } from '@/lib/next-compat'
 import { useActions } from '@/lib/swr'
 import { useHostId } from '@/lib/swr/use-host'
+import { splitHref } from '@/lib/url/url-builder'
 
 interface ActionButtonProps<TData extends RowData, TValue> {
   row: Row<TData>
@@ -29,7 +30,7 @@ export function ActionItem<TData extends RowData, TValue>({
   const [status, updateStatus] = useState<
     'none' | 'loading' | 'success' | 'failed'
   >('none')
-  const router = useRouter()
+  const navigate = useNavigate()
   const hostId = useHostId()
   const { killQuery, optimizeTable, querySettings } = useActions()
 
@@ -167,7 +168,7 @@ export function ActionItem<TData extends RowData, TValue>({
           action === 'view-resource-timeline') &&
         result.success
       ) {
-        router.push(result.message)
+        navigate(splitHref(result.message))
         return
       }
 

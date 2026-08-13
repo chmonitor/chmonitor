@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useSearchParams } from '@/lib/next-compat'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 export interface UseTableFiltersOptions {
   /** Enable URL synchronization for filters (default: false) */
@@ -25,7 +25,7 @@ export interface UseTableFiltersOptions {
  */
 export function useTableFilters(options: UseTableFiltersOptions = {}) {
   const { enableUrlSync = false, urlPrefix = 'filter' } = options
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
 
   // Initialize filters from URL if sync is enabled
   const getInitialFilters = (): Record<string, string> => {

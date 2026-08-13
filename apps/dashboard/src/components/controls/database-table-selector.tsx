@@ -11,10 +11,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface DatabaseItem {
   name: string
@@ -47,9 +49,9 @@ export function DatabaseTableSelector({
   showLabels = true,
 }: DatabaseTableSelectorProps) {
   const hostId = useHostId()
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
 
   const database = searchParams.get('database')
   const table = searchParams.get('table')
@@ -100,7 +102,7 @@ export function DatabaseTableSelector({
       }
     }
 
-    router.push(`${pathname}?${params.toString()}`)
+    navigate(splitHref(`${pathname}?${params.toString()}`))
   }
 
   const handleDatabaseChange = (value: string) => {

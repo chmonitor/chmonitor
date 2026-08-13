@@ -4,10 +4,11 @@ import {
 } from './first-run-decision'
 import { useEffect } from 'react'
 import { PageSkeleton } from '@/components/skeletons'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
-import { buildUrl } from '@/lib/url/url-builder'
+import { buildUrl, splitHref } from '@/lib/url/url-builder'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * The frontend is a pure rendering layer; the backend is the security boundary
@@ -43,9 +44,9 @@ import { buildUrl } from '@/lib/url/url-builder'
 export function FirstRunGate({ children }: { children: React.ReactNode }) {
   const { hosts, isLoading, isUnauthorized, cloudMode, isSignedIn } =
     useMergedHosts()
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
   const hostId = useHostId()
 
   // Account/billing/about pages stay reachable with zero hosts (a paying user
@@ -73,11 +74,14 @@ export function FirstRunGate({ children }: { children: React.ReactNode }) {
   const repointHostId = action.type === 'repoint' ? action.hostId : null
   useEffect(() => {
     if (goSetup) {
-      router.replace('/setup')
+      navigate({ to: '/setup', replace: true })
     } else if (repointHostId !== null) {
-      router.replace(buildUrl(pathname, { host: repointHostId }, searchParams))
+      navigate({
+        ...splitHref(buildUrl(pathname, { host: repointHostId }, searchParams)),
+        replace: true,
+      })
     }
-  }, [goSetup, repointHostId, pathname, searchParams, router])
+  }, [goSetup, repointHostId, pathname, searchParams, navigate])
 
   // Render a skeleton (never the routed page's demo-backed charts) whenever we
   // are waiting on host resolution or a pending navigation.

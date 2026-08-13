@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import type { ApiResponse } from '@/lib/api/types'
 import type { PeerDBStatusPayload } from '@/lib/peerdb/types'
 
-import { useSearchParams } from '@/lib/next-compat'
 import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 const STATUS_URL = '/api/v1/peerdb-status'
 
@@ -43,7 +43,7 @@ export function usePeerDBStatus(
   refreshInterval = 60_000,
   connection?: string | null
 ) {
-  const searchParams = useSearchParams()
+  const searchParams = useUrlSearchParams()
   const activeConnection =
     connection === undefined
       ? (searchParams.get(PEERDB_CONNECTION_PARAM) ?? undefined)

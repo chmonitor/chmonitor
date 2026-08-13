@@ -1,4 +1,5 @@
 import { ReloadIcon } from '@radix-ui/react-icons'
+import { useRouter } from '@tanstack/react-router'
 
 import { useReloadCountdown } from './use-reload-countdown'
 import { useReloadIntervals } from './use-reload-intervals'
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAppContext } from '@/lib/context/app-context'
 import { formatReadableSecondDuration } from '@/lib/format-readable'
-import { useRouter } from '@/lib/next-compat'
 import { cn } from '@/lib/utils'
 
 export interface ReloadButtonProps {
@@ -45,7 +45,7 @@ export const ReloadButton = function ReloadButton({
   // Handle manual refresh
   const revalidateCacheAndReload = () =>
     startTransition(async () => {
-      router.refresh()
+      router.invalidate()
     })
 
   // Countdown timer hook

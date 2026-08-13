@@ -1,4 +1,5 @@
 import { Archive } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 
 import type { ChartProps } from '@/components/charts/chart-props'
 
@@ -8,9 +9,9 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartError } from '@/components/charts/chart-error'
 import { ChartSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/ui/empty-state'
-import { useRouter } from '@/lib/next-compat'
 import { useChartData, useHostId } from '@/lib/swr'
 import { REFRESH_INTERVAL } from '@/lib/swr/config'
+import { splitHref } from '@/lib/url/url-builder'
 
 type BackupSizeRow = {
   total_size: number
@@ -32,7 +33,7 @@ export const ChartBackupSize = memo(function ChartBackupSize({
 }: ChartProps) {
   const routeHostId = useHostId()
   const hostId = hostIdProp ?? routeHostId
-  const router = useRouter()
+  const navigate = useNavigate()
   const { data, isLoading, error, mutate, sql, metadata, hasData } =
     useChartData<BackupSizeRow>({
       chartName: 'backup-size',
@@ -87,11 +88,11 @@ export const ChartBackupSize = memo(function ChartBackupSize({
           }
           action={{
             label: 'Enable backups',
-            onClick: () => router.push(`/backups?host=${hostId}`),
+            onClick: () => navigate(splitHref(`/backups?host=${hostId}`)),
           }}
           secondaryAction={{
             label: 'Diagnostics',
-            onClick: () => router.push(`/backups?host=${hostId}`),
+            onClick: () => navigate(splitHref(`/backups?host=${hostId}`)),
           }}
         />
       </ChartCard>

@@ -146,7 +146,8 @@ visual gaps shipped to `dash-tsr` undetected because nothing diffs the DOM:
    shadcn Radix enter/exit animations depend on it).
 3. **Root `/` was the "Hello from TanStack Start" stub**, not the
    `→ /overview?host=0` redirect. Fixed to mirror the Next root page
-   (`useRouter().replace` via `next-compat`).
+   (`useRouter().replace`, then ported to TanStack Router's native
+   `useNavigate` — see "Retiring the `next-compat` shim" below).
 
 The chrome needs `TimezoneProvider` + `TimeRangeProvider` +
 `BrowserConnectionsProvider` (header time-range picker reads `useTimeRange`) —
@@ -218,6 +219,48 @@ data-dashboard pages** (render-delay collapses), but it's not universal.
   (mirrors the Next app's tsconfig); wiring `bun test` for them is a follow-up.
 - Make the **Cloudflare deploy a required CI check** — a size-failing deploy reached main
   during the migration because it isn't.
+
+## Retiring the `next-compat` shim (#2887)
+
+The migration originally shipped `lib/next-compat.ts` — drop-in
+`usePathname`/`useRouter`/`useSearchParams` re-implementations on top of
+`@tanstack/react-router`, so ported components didn't need per-file rewrites.
+Once the migration settled, the shim was retired (~100 call sites, one PR,
+three commits by hook — mirroring the routing-translation table above):
+
+- **`usePathname` → `useLocation({ select: (l) => l.pathname })`** — direct
+  1:1, no behavior change.
+- **`useRouter` → native `useNavigate()`** (or `useRouter()` only for
+  `.invalidate()`/`.history.back()`/`.history.forward()`, which `useNavigate`
+  doesn't expose). The shim's `push`/`replace` accepted a plain href string
+  with an embedded `?query` and split it into TanStack's `{ to, search }`
+  shape itself (`router.navigate({ to: '/x?y=z' })` otherwise percent-encodes
+  the `?` into the pathname). That split is now `splitHref()` in
+  `lib/url/url-builder.ts` — call `navigate(splitHref(href))` /
+  `navigate({ ...splitHref(href), replace: true })`. `search` here is a plain
+  object, which TanStack treats as a full replacement of the current search
+  state (not a merge) — ported faithfully, not "improved," since several call
+  sites intentionally build the next href from scratch.
+- **`useSearchParams` → `useUrlSearchParams()`** (`hooks/use-url-search-params.ts`),
+  NOT TanStack's `Route.useSearch()`. Reason: TanStack Router's *default*
+  search parser is `parseSearchWith(JSON.parse)` — every search value gets
+  `JSON.parse`'d, so `?query_id=12345` becomes the **number** `12345` and
+  `?enabled=true` becomes a **boolean**, not the string Next's
+  `URLSearchParams`-based API always returned. Migrating the ~40 call sites to
+  `useSearch()` would have been a silent, per-param-shape-dependent behavior
+  change (breaks anything that does `.toString()`, re-serializes into another
+  href, or just expects a string). `useUrlSearchParams()` sidesteps the
+  parser entirely — same technique the shim itself used internally
+  (`useRouterState({ select: (s) => s.location.searchStr })` +
+  `new URLSearchParams(searchStr)`), just promoted to a real hook. For a
+  single **known-non-numeric** param (a tab id, an enum), `useSearch({
+  strict: false })` is still the better idiom — see `alert-settings.tsx` /
+  `health-settings.tsx` — it just isn't safe as the universal replacement.
+  **Follow-up (not done here):** per-route typed `validateSearch` schemas,
+  which the original issue framed as the main value of this hook's migration.
+  Deferred because adding a validator is itself a potential behavior change
+  (coercion/defaulting/stripping) — out of scope for a "no behavior change"
+  refactor.
 
 ## Env migration: `NEXT_PUBLIC_*` → `VITE_*` (client) + back-compat
 

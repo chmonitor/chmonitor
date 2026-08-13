@@ -35,15 +35,16 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePgConnections } from '@/lib/hooks/use-pg-connections'
 import { canEditHost } from '@/lib/host-permissions'
-import { usePathname, useRouter, useSearchParams } from '@/lib/next-compat'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
 import {
   isServerHost,
   type MergedHostInfo,
   useMergedHosts,
 } from '@/lib/swr/use-merged-hosts'
-import { buildUrl } from '@/lib/url/url-builder'
+import { buildUrl, splitHref } from '@/lib/url/url-builder'
 import { cn, getHost } from '@/lib/utils'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Host switcher component for sidebar header.
@@ -52,9 +53,9 @@ import { cn, getHost } from '@/lib/utils'
  * Shows host icon, name, and status in collapsed/expanded states.
  */
 export function HostSwitcher() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
   const { isMobile, state } = useSidebar()
   const { hosts, isLoading, error, isUnauthorized } = useMergedHosts()
   const { connections: pgConnections } = usePgConnections()
@@ -90,20 +91,24 @@ export function HostSwitcher() {
     const next = new URLSearchParams(searchParams)
     next.delete('pg')
     const url = buildUrl(pathname, { host: hostId }, next)
-    router.push(url)
+    navigate(splitHref(url))
   }
 
   const handlePgChange = (connectionId: string) => {
     // Route to the Postgres pages carrying the source in the `?pg=` dimension —
     // never overloaded onto the ClickHouse `?host=` id space.
-    router.push(`/postgres/queries?pg=${encodeURIComponent(connectionId)}`)
+    navigate(
+      splitHref(`/postgres/queries?pg=${encodeURIComponent(connectionId)}`)
+    )
     setMenuOpen(false)
   }
 
   const handleFleetOverview = () => {
     // Jump to the all-hosts status view, preserving the current host selection.
-    router.push(
-      buildUrl('/fleet', currentHostId != null ? { host: currentHostId } : {})
+    navigate(
+      splitHref(
+        buildUrl('/fleet', currentHostId != null ? { host: currentHostId } : {})
+      )
     )
     setMenuOpen(false)
   }
