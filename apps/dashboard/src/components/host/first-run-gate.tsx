@@ -9,6 +9,7 @@ import { useHostId } from '@/lib/swr'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { keepHostSearch } from '@/routes/-root-search'
 
 /**
  * The frontend is a pure rendering layer; the backend is the security boundary
@@ -74,7 +75,7 @@ export function FirstRunGate({ children }: { children: React.ReactNode }) {
   const repointHostId = action.type === 'repoint' ? action.hostId : null
   useEffect(() => {
     if (goSetup) {
-      navigate({ to: '/setup', replace: true })
+      navigate({ to: '/setup', search: keepHostSearch, replace: true })
     } else if (repointHostId !== null) {
       navigate({
         ...splitHref(buildUrl(pathname, { host: repointHostId }, searchParams)),

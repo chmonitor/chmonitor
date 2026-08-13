@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { docsSiteUrl } from '@/lib/docs-site'
+import { keepHostSearch } from '@/routes/-root-search'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -108,7 +109,7 @@ export function AddHostDialog({
           toast.error(fetchErr.message, {
             action: {
               label: 'Choose a plan',
-              onClick: () => navigate({ to: '/billing' }),
+              onClick: () => navigate({ to: '/billing', search: keepHostSearch }),
             },
           })
           return
