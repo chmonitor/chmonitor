@@ -204,11 +204,20 @@ export const AreaChart = function AreaChart({
   // all categories when everything is toggled off.
   const domainCategories =
     visibleCategories.length > 0 ? visibleCategories : categories
-  const resolvedScale = resolveYAxisScale(
-    effectiveScale,
-    data as Record<string, unknown>[],
-    domainCategories
-  )
+
+  // Stacked Area charts can't use log scale: Recharts derives a stacked
+  // series' baseline from the cumulative stack sum, which always starts at 0
+  // regardless of the underlying data (clamping can't reach it — see
+  // clampDataForLogScale's note). That leaves the bottom-most series
+  // unrenderable (no valid path at all) on a log axis, so fall back to
+  // linear rather than silently rendering it empty.
+  const resolvedScale = stack
+    ? 'linear'
+    : resolveYAxisScale(
+        effectiveScale,
+        data as Record<string, unknown>[],
+        domainCategories
+      )
 
   // Get appropriate domain for the scale type
   const yAxisDomain = getYAxisDomain(
