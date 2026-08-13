@@ -16,6 +16,8 @@
  * @assistant-ui/react-ai-sdk ships a version targeting ai@7.
  */
 
+import { useLocation } from '@tanstack/react-router'
+
 import {
   AssistantRuntimeProvider,
   useRemoteThreadListRuntime,
@@ -28,9 +30,9 @@ import { buildPageContext } from '@/lib/ai/agent/page-context'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
+import { getAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import { useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { useToolConfig } from '@/lib/hooks/use-tool-config'
-import { useLocation } from '@tanstack/react-router'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
@@ -112,6 +114,15 @@ function useAgentChatRuntime() {
             lastSentPathnameRef.current = pathname
           }
 
+          // BYOK: when the user signed in with AnyRouter, replay their token
+          // per request. Read live (not from the transport body) so signing in
+          // or out takes effect on the next message without a rebuild. Only
+          // sent for AnyRouter models — it is not a key for other providers.
+          const byokApiKey =
+            typeof model === 'string' && model.startsWith('anyrouter:')
+              ? getAnyRouterToken()
+              : null
+
           return {
             body: {
               ...body,
@@ -119,6 +130,7 @@ function useAgentChatRuntime() {
               messages,
               trigger,
               messageId,
+              ...(byokApiKey ? { apiKey: byokApiKey } : {}),
               ...(shouldSendPageContext
                 ? { pageContext: buildPageContext(pathname) }
                 : {}),

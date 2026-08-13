@@ -12,9 +12,10 @@
  * standalone `AgentModelPicker` already had, just inline instead of behind a
  * popover.
  *
- * Provider/model selection and API keys are fixed at deploy time via
- * environment variables; this tab is status + "which model is active",
- * not an editable provider form.
+ * Provider API keys are fixed at deploy time via environment variables, with
+ * one exception: AnyRouter can be signed into from here, which keeps a
+ * browser-held token and bills that user's own credits. Otherwise this tab is
+ * status + "which model is active", not an editable provider form.
  */
 
 import {
@@ -37,6 +38,7 @@ import {
   type ModelDisplayInfo,
   useAgentModel,
 } from '@/lib/hooks/use-agent-model'
+import { useAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import {
   AgentConfigCheckError,
   type AgentConfigCheckProvider,
@@ -100,6 +102,7 @@ export function ProviderModelsTab() {
     error: configError,
   } = useAgentConfigCheck()
   const signedIn = useClerkIsSignedIn()
+  const anyRouter = useAnyRouterToken()
 
   const configStatusByProvider = useMemo(
     () => new Map(configCheck?.providers.map((p) => [p.id, p]) ?? []),
@@ -165,6 +168,35 @@ export function ProviderModelsTab() {
         </Alert>
       )}
 
+      <div className="border-input flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-[12px] font-medium">Sign in with AnyRouter</p>
+          <p className="text-muted-foreground text-[11px] leading-snug">
+            {anyRouter.isSignedIn
+              ? 'AnyRouter requests from this browser are billed to your account.'
+              : 'Use your own AnyRouter credits instead of this deployment’s key. The token stays in this browser.'}
+          </p>
+          {anyRouter.error ? (
+            <p className="text-destructive pt-0.5 text-[11px]">
+              {anyRouter.error}
+            </p>
+          ) : null}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0"
+          disabled={anyRouter.isSigningIn}
+          onClick={anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn}
+        >
+          {anyRouter.isSigningIn
+            ? 'Signing in…'
+            : anyRouter.isSignedIn
+              ? 'Sign out'
+              : 'Sign in'}
+        </Button>
+      </div>
+
       <div className="space-y-3">
         {grouped.map(([provider, list]) => {
           const status = configStatusByProvider.get(provider)
@@ -210,10 +242,11 @@ export function ProviderModelsTab() {
           'border-t pt-3'
         )}
       >
-        Provider selection and API keys are configured at deploy time via
-        environment variables and cannot be changed here. Model choice above is
-        saved to this browser; existing conversations keep the model they
-        started with. See the{' '}
+        Provider API keys are configured at deploy time via environment
+        variables — except AnyRouter, which you can sign in to above to use your
+        own credits from this browser. Model choice above is saved to this
+        browser; existing conversations keep the model they started with. See
+        the{' '}
         <a
           href={docsSiteUrl('guide/ai-agent')}
           target="_blank"

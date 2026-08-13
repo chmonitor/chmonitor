@@ -12,7 +12,7 @@
  * sidebar; both consume `useAgentModel`.
  */
 
-import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, ClockIcon, SearchIcon } from 'lucide-react'
 
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,7 @@ import {
   type ModelDisplayInfo,
   useAgentModel,
 } from '@/lib/hooks/use-agent-model'
+import { useAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import { cn } from '@/lib/utils'
 
 /** Set of model IDs that are part of the curated static registry. */
@@ -162,39 +163,95 @@ export function AgentModelPicker({
   variant = 'toolbar',
   className,
 }: AgentModelPickerProps) {
-  const { model, models, setModel, noProvidersConfigured, modelsLoaded } =
-    useAgentModel()
+  const {
+    model,
+    models,
+    setModel,
+    recentModelIds,
+    addCustomModel,
+    noProvidersConfigured,
+    modelsLoaded,
+    configuredProviders,
+  } = useAgentModel()
+  const anyRouter = useAnyRouterToken()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [customInput, setCustomInput] = useState('')
+  const [customError, setCustomError] = useState<string | null>(null)
 
   const selected = useMemo(
     () => models.find((m) => m.id === model) ?? models[0],
     [model, models]
   )
 
-  const grouped = useMemo(() => {
+  const matches = useMemo(() => {
     const q = search.trim().toLowerCase()
+    if (!q) return models
+    return models.filter((m) =>
+      `${m.provider}:${m.name}`.toLowerCase().includes(q)
+    )
+  }, [models, search])
+
+  /** Recently used models, pinned above the provider groups. */
+  const recent = useMemo(() => {
+    const byId = new Map(matches.map((m) => [m.id, m]))
+    return recentModelIds
+      .map((id) => byId.get(id))
+      .filter((m): m is ModelDisplayInfo => m !== undefined)
+  }, [matches, recentModelIds])
+
+  const grouped = useMemo(() => {
     const map = new Map<string, ModelDisplayInfo[]>()
-    for (const m of models) {
-      if (q && !`${m.provider}:${m.name}`.toLowerCase().includes(q)) continue
+    for (const m of matches) {
       const list = map.get(m.provider) ?? []
       list.push(m)
       map.set(m.provider, list)
     }
     return Array.from(map.entries())
-  }, [models, search])
+  }, [matches])
 
-  if (modelsLoaded && noProvidersConfigured) {
+  /**
+   * Sign-in is always offered, not just on keyless deployments: on a shared
+   * deployment the deploy key foots the bill for everyone, so letting a user
+   * spend their own AnyRouter credits is most valuable exactly where a key
+   * already exists. The copy below distinguishes the two situations.
+   */
+  const anyRouterHasDeployKey = configuredProviders.includes('anyrouter')
+
+  const submitCustomModel = () => {
+    const error = addCustomModel(customInput)
+    if (error) {
+      setCustomError(error)
+      return
+    }
+    setCustomError(null)
+    setCustomInput('')
+    setOpen(false)
+  }
+
+  if (modelsLoaded && noProvidersConfigured && !anyRouter.isSignedIn) {
     return (
       <div
         className={cn(
-          'text-muted-foreground border-input flex min-h-10 w-full items-center rounded-md border border-dashed px-3 py-2 text-[11px] leading-snug',
-          variant === 'toolbar' && 'h-7 min-h-0 border-0 px-2 py-0',
+          'text-muted-foreground border-input flex min-h-10 w-full flex-col items-start gap-1 rounded-md border border-dashed px-3 py-2 text-[11px] leading-snug',
+          variant === 'toolbar' && 'h-7 min-h-0 flex-row border-0 px-2 py-0',
           className
         )}
       >
-        No LLM provider configured — set OPENROUTER_API_KEY, ANYROUTER_API_KEY,
-        or NVIDIA_API_KEY
+        <span>
+          No LLM provider configured — set OPENROUTER_API_KEY,
+          ANYROUTER_API_KEY, or NVIDIA_API_KEY
+        </span>
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-[11px]"
+          disabled={anyRouter.isSigningIn}
+          onClick={anyRouter.signIn}
+        >
+          {anyRouter.isSigningIn ? 'Signing in…' : 'or sign in with AnyRouter'}
+        </Button>
       </div>
     )
   }
@@ -306,7 +363,27 @@ export function AgentModelPicker({
         <div className="max-h-[360px] space-y-1 overflow-y-auto overscroll-contain">
           {grouped.length === 0 ? (
             <div className="text-muted-foreground px-2 py-6 text-center text-[12px]">
-              No models match “{search}”
+              No models match “{search}” — enter a model id below to use it
+              anyway
+            </div>
+          ) : null}
+          {recent.length > 0 ? (
+            <div className="space-y-0.5">
+              <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider uppercase">
+                <ClockIcon className="size-2.5" />
+                recent
+              </div>
+              {recent.map((m) => (
+                <ModelOptionRow
+                  key={`recent-${m.id}`}
+                  model={m}
+                  active={m.id === model}
+                  onSelect={() => {
+                    setModel(m.id)
+                    setOpen(false)
+                  }}
+                />
+              ))}
             </div>
           ) : null}
           {grouped.map(([provider, list]) => (
@@ -333,6 +410,73 @@ export function AgentModelPicker({
               ))}
             </div>
           ))}
+        </div>
+
+        <div className="border-t p-1 pt-1.5">
+          <div className="flex items-center gap-1">
+            <Input
+              value={customInput}
+              onChange={(e) => {
+                setCustomInput(e.target.value)
+                setCustomError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return
+                e.preventDefault()
+                submitCustomModel()
+              }}
+              placeholder="provider:model — use any model id"
+              aria-label="Custom model id"
+              aria-invalid={customError !== null}
+              className="h-8 font-mono text-[11.5px]"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 shrink-0 px-2 text-[11.5px]"
+              disabled={customInput.trim().length === 0}
+              onClick={submitCustomModel}
+            >
+              Use
+            </Button>
+          </div>
+          {customError ? (
+            <p className="text-destructive px-1 pt-1 text-[10.5px]">
+              {customError}
+            </p>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-2 px-1 pt-1.5">
+            <span className="text-muted-foreground text-[10.5px]">
+              {anyRouter.isSignedIn
+                ? 'Using your AnyRouter credits'
+                : anyRouterHasDeployKey
+                  ? 'Or use your own AnyRouter credits'
+                  : 'No AnyRouter key on this deployment'}
+            </span>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-[10.5px]"
+              disabled={anyRouter.isSigningIn}
+              onClick={
+                anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn
+              }
+            >
+              {anyRouter.isSigningIn
+                ? 'Signing in…'
+                : anyRouter.isSignedIn
+                  ? 'Sign out'
+                  : 'Sign in with AnyRouter'}
+            </Button>
+          </div>
+          {anyRouter.error ? (
+            <p className="text-destructive px-1 pt-1 text-[10.5px]">
+              {anyRouter.error}
+            </p>
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>
