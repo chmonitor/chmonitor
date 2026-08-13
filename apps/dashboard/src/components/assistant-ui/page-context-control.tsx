@@ -32,7 +32,7 @@ import {
   useState,
 } from 'react'
 import { buildPageContext, type PageContext } from '@/lib/ai/agent/page-context'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 export interface PageContextControl {
   /** Current page context, or `null` when the route can't be resolved. */
@@ -55,7 +55,7 @@ export function PageContextControlProvider({
 }: {
   children: ReactNode
 }) {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const pageContext = useMemo(
     () => (pathname ? buildPageContext(pathname) : null),
     [pathname]

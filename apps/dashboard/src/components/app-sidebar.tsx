@@ -20,7 +20,7 @@ import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { isMenuItemActive } from '@/lib/menu/breadcrumb'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 export function AppSidebar() {
   const { config } = useFeaturePermissions()
@@ -33,7 +33,7 @@ export function AppSidebar() {
   // as the body, so cloud-only + permission + engine gating still applies; they
   // render as compact rows in the footer instead of a labelled body group.
   const footerItems = menuItems.filter((item) => item.section === 'footer')
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
 
   return (
     <Sidebar collapsible="icon" variant="inset">

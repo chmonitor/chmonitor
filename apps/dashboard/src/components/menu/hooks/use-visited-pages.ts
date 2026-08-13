@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 const COOKIE_NAME = 'visited_pages'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
@@ -44,7 +44,7 @@ function saveVisitedPages(pages: Set<string>): void {
  * Hook to check if a page has been visited and mark pages as visited
  */
 export function useVisitedPages() {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const [visitedPages, setVisitedPages] = useState<Set<string>>(() => new Set())
 
   // Load visited pages from cookie on mount

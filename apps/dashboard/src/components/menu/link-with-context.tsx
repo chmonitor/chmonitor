@@ -7,7 +7,7 @@ import {
   isMenuItemActive,
   isMenuItemActiveAmongSiblings,
 } from '@/lib/menu/breadcrumb'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
 import { prefetchRoute } from '@/lib/swr/prefetch'
 
@@ -56,7 +56,7 @@ export const HostPrefixedLink = ({
   ComponentProps<typeof Link>,
   'to' | 'href' | 'children' | 'className'
 >) => {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   const hostId = useHostId()
   const queryClient = useQueryClient()
 

@@ -13,7 +13,7 @@ import { IconButton } from '@/components/ui/icon-button'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 interface HeaderActionsProps {
   menuComponent?: React.ReactNode
@@ -28,7 +28,7 @@ export const HeaderActions = function HeaderActions({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { config } = useFeaturePermissions()
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   // The /agents page owns its own surface and has no time-series charts, so the
   // global time-range selector and refresh countdown are noise there.
   const showTimeControls = !pathname?.startsWith('/agents')

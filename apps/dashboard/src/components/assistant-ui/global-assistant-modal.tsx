@@ -18,7 +18,7 @@
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { lazy, Suspense } from 'react'
-import { usePathname } from '@/lib/next-compat'
+import { useLocation } from '@tanstack/react-router'
 
 const GlobalAssistantModalImpl = lazy(async () => {
   const m = await import(
@@ -28,7 +28,7 @@ const GlobalAssistantModalImpl = lazy(async () => {
 })
 
 export function GlobalAssistantModal() {
-  const pathname = usePathname()
+  const pathname = useLocation({ select: (l) => l.pathname })
   if (pathname === '/agents' || pathname?.startsWith('/agents/')) {
     return null
   }
