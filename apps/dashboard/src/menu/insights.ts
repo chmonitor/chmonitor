@@ -1,4 +1,5 @@
 import {
+  ArrowDownToLineIcon,
   CalendarClockIcon,
   SlidersHorizontalIcon,
   TrendingUpIcon,
@@ -8,9 +9,9 @@ import type { MenuItem } from '@/components/menu/types'
 
 export const insightsItems: MenuItem[] = [
   {
-    // Parent groups the insights findings view and its settings — two pages
-    // sharing the same `insights` feature gate (set on the parent so the whole
-    // group is filtered together).
+    // Parent groups the insights findings view, traffic, and the settings
+    // pages — all sharing the same `insights` feature gate (set on the parent
+    // so the whole group is filtered together).
     title: 'Insights',
     href: '',
     icon: TrendingUpIcon,
@@ -25,6 +26,15 @@ export const insightsItems: MenuItem[] = [
           'AI-generated findings, record breakers, and query insights for this cluster',
         icon: TrendingUpIcon,
         isNew: true,
+      },
+      {
+        title: 'Traffic',
+        href: '/traffic',
+        description:
+          'Data flowing into the cluster: rows, bytes and insert queries over time',
+        icon: ArrowDownToLineIcon,
+        isNew: true,
+        tableCheck: 'system.query_log',
       },
       {
         title: 'Insights Settings',

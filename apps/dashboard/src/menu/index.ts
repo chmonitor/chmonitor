@@ -20,7 +20,6 @@ import { queriesItems } from './queries'
 import { securityItems } from './security'
 import { systemItems } from './system'
 import { tablesItems } from './tables'
-import { trafficItems } from './traffic'
 
 // Composed in the exact original menu.ts order — see each section file for
 // the top-level group it holds. Keep this order when adding/removing
@@ -31,7 +30,6 @@ export const menuItemsConfig: MenuItem[] = [
   ...aiAgentItems,
   ...insightsItems,
   ...healthItems,
-  ...trafficItems,
   ...inboundEventsItems,
   ...queriesItems,
   ...tablesItems,
