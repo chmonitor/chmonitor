@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import type { ApiResponse } from '@/lib/api/types'
 import type { PeerDBStatusPayload } from '@/lib/peerdb/types'
 
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 import { apiFetch } from '@/lib/swr/api-fetch'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { visibilityAwareInterval } from '@/lib/swr/config'
 
 const STATUS_URL = '/api/v1/peerdb-status'
 
@@ -54,7 +55,8 @@ export function usePeerDBStatus(
   return useQuery<PeerDBStatusPayload>({
     queryKey: [STATUS_URL, activeConnection ?? ''],
     queryFn: () => fetchStatus(url),
-    refetchInterval: refreshInterval,
+    // Pause while the tab is hidden, like every other polling hook.
+    refetchInterval: visibilityAwareInterval(refreshInterval),
     retry: false,
   })
 }

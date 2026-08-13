@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { PgConnectionInfo } from '@/lib/hooks/use-pg-connections'
 
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { visibilityAwareInterval } from '@/lib/swr/config'
 
 export interface PgQueryResult {
   data: Record<string, unknown>[]
@@ -79,7 +80,12 @@ export function usePgQuery(
     queryKey: ['pg-query', configName, pgConn?.connectionId],
     queryFn: () => fetchPgQuery(configName, pgConn as PgConnectionInfo),
     enabled: Boolean(pgConn),
-    refetchInterval: options?.refetchInterval,
+    // Gate at the hook rather than each call site: /postgres/activity polls
+    // every 5s, which is the fastest interval in the app and the least
+    // affordable to leave running in a background tab.
+    refetchInterval: options?.refetchInterval
+      ? visibilityAwareInterval(options.refetchInterval)
+      : undefined,
     // Keep prior rows visible during background refresh (graceful pattern).
     placeholderData: (prev) => prev,
   })
