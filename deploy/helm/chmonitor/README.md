@@ -44,7 +44,7 @@ helm uninstall my-chm
 | `clickhouse.host` | `http://localhost:8123` | Comma-separated ClickHouse host URLs (`CLICKHOUSE_HOST`). |
 | `clickhouse.user` | `default` | Comma-separated usernames (`CLICKHOUSE_USER`). |
 | `clickhouse.password` | `""` | Comma-separated passwords; stored in a Secret (`CLICKHOUSE_PASSWORD`). |
-| `clickhouse.maxExecutionTime` | `"60"` | Query timeout in seconds (`CLICKHOUSE_MAX_EXECUTION_TIME`). |
+| `clickhouse.maxExecutionTime` | `"60"` | Query timeout in seconds (`CLICKHOUSE_MAX_EXECUTION_TIME`). Applied as a **session setting** on every query — the ClickHouse user must be allowed to change settings (see below). |
 | `clickhouse.existingSecret` | `""` | Use an existing Secret (key `CLICKHOUSE_PASSWORD`) instead of `clickhouse.password`. |
 | `auth.provider` | `""` | Auth provider: `""` / `none` / `clerk` / `proxy` / `trusted`. Sets `CHM_AUTH_PROVIDER`. |
 | `auth.trusted.allowInsecure` | `false` | Trust forwarded headers with no shared secret (`CHM_TRUSTED_ALLOW_INSECURE`). Only safe on ClusterIP-isolated pods. |
@@ -62,6 +62,29 @@ helm uninstall my-chm
 | `extraEnv` | `[]` | Extra environment variables (e.g. `CLICKHOUSE_NAME`). |
 
 See [`values.yaml`](./values.yaml) for the full list.
+
+## ClickHouse user requirements
+
+Prefer a **dedicated read-only user** with `SELECT` / `SHOW` (and usually
+`dictGet`) on the databases you want to monitor — privilege-based, not the
+server `readonly` settings profile.
+
+| Do | Don't |
+|---|---|
+| `GRANT SELECT, SHOW ON *.* TO chmonitor` (or narrower) | Assign the ClickHouse **`readonly` profile** (`readonly=1`) |
+| Use a normal / monitoring settings profile | Rely on profile `readonly` for “safety” |
+
+**Why:** chmonitor sends `max_execution_time` (from `clickhouse.maxExecutionTime`)
+as a session setting on every client connection. Users with `readonly=1` cannot
+change settings, so queries fail with:
+
+```text
+Cannot modify 'max_execution_time' setting in readonly mode
+```
+
+That also makes readiness (`GET /api/healthz`) return 503 and the pod never
+becomes Ready. Use grants for data isolation; keep a settings profile that
+allows `max_execution_time`.
 
 ## Health probes
 

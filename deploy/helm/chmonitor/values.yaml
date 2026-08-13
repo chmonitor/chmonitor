@@ -121,6 +121,9 @@ clickhouse:
   # Comma-separated passwords. Stored in a Secret rendered by this chart.
   password: ""
   # Query timeout in seconds (CLICKHOUSE_MAX_EXECUTION_TIME).
+  # Sent as a session setting — do NOT assign the ClickHouse `readonly`
+  # profile (readonly=1) to this user; use privilege grants for read-only
+  # access instead. See README "ClickHouse user requirements".
   maxExecutionTime: "60"
   # Use an existing Secret for the ClickHouse password instead of `clickhouse.password`.
   # The secret must contain a key named `CLICKHOUSE_PASSWORD`.
