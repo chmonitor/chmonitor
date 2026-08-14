@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 
+import type { HTMLAttributes } from 'react'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
@@ -102,9 +103,11 @@ function getMenuItemActiveState(
 const SingleMenuItem = function SingleMenuItem({
   item,
   isActive,
+  liProps,
 }: {
   item: MenuItemType
   isActive: boolean
+  liProps?: HTMLAttributes<HTMLLIElement>
 }) {
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
@@ -126,7 +129,7 @@ const SingleMenuItem = function SingleMenuItem({
   }
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem {...liProps}>
       <SidebarMenuButton
         isActive={isActive}
         tooltip={
@@ -365,12 +368,18 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
 /**
  * MenuItem component - renders a single menu item or collapsible menu with children
  */
-export const MenuItem = function MenuItem({ item, pathname }: MenuItemProps) {
+export const MenuItem = function MenuItem({
+  item,
+  pathname,
+  liProps,
+}: MenuItemProps) {
   const hasChildren = item.items && item.items.length > 0
   const { isActive, hasActiveChild } = getMenuItemActiveState(item, pathname)
 
   if (!hasChildren) {
-    return <SingleMenuItem item={item} isActive={isActive} />
+    return (
+      <SingleMenuItem item={item} isActive={isActive} liProps={liProps} />
+    )
   }
 
   return (

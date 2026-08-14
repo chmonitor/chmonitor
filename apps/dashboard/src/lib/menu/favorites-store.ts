@@ -51,7 +51,26 @@ function emit(): void {
   for (const listener of listeners) listener()
 }
 
-/** Pinned hrefs in pin order (oldest pin first). */
+/**
+ * Move `fromHref` to the current index of `toHref`. Returns a new array.
+ * Unknown or identical hrefs are a no-op (copy of the input).
+ */
+export function moveHref(
+  hrefs: readonly string[],
+  fromHref: string,
+  toHref: string
+): string[] {
+  if (fromHref === toHref) return hrefs.slice()
+  const fromIndex = hrefs.indexOf(fromHref)
+  const toIndex = hrefs.indexOf(toHref)
+  if (fromIndex === -1 || toIndex === -1) return hrefs.slice()
+  const next = hrefs.slice()
+  next.splice(fromIndex, 1)
+  next.splice(toIndex, 0, fromHref)
+  return next
+}
+
+/** Pinned hrefs in pin order (user-reorderable; new pins append). */
 export function getFavoriteHrefs(): string[] {
   ensureLoaded()
   return hrefs
@@ -83,6 +102,18 @@ export function toggleFavorite(href: string): void {
   } else {
     pinFavorite(href)
   }
+}
+
+/** Move a pinned href to another pinned href's index. No-op if either is missing. */
+export function reorderFavorites(fromHref: string, toHref: string): void {
+  ensureLoaded()
+  if (fromHref === toHref) return
+  if (!hrefs.includes(fromHref) || !hrefs.includes(toHref)) return
+  const next = moveHref(hrefs, fromHref, toHref)
+  if (next.every((href, index) => href === hrefs[index])) return
+  hrefs = next
+  persist()
+  emit()
 }
 
 export function subscribeFavorites(listener: () => void): () => void {

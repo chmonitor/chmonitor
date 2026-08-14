@@ -172,6 +172,9 @@ Use the `components/data-table/` system (resizing, wrap toggle, sorting via
 Synthetic column ids `__expand`, `select`, `action` are non-data — skip them in
 filter/search/sort/card wiring.
 
+Favorites in the sidebar can be drag-reordered; order is the localStorage pin
+list (`chm-pinned-favorites`).
+
 ## User appearance settings
 
 **Entry:** sidebar footer gear beside Sign In / the avatar — `[gear] [Sign In /
