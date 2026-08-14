@@ -38,7 +38,7 @@ export const ChartZoomButton = function ChartZoomButton({
             className={cn(
               'size-6 rounded-full transition-opacity',
               'relative before:content-[""] before:absolute before:-inset-4',
-              'opacity-0 group-hover:opacity-40 hover:!opacity-100'
+              'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100'
             )}
           />
         }

@@ -8,6 +8,7 @@
 
 export enum ApiErrorType {
   TableNotFound = 'table_not_found',
+  ColumnNotFound = 'column_not_found',
   ValidationError = 'validation_error',
   QueryError = 'query_error',
   NetworkError = 'network_error',

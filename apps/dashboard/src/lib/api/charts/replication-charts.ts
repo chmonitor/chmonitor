@@ -99,6 +99,7 @@ export const replicationCharts: Record<string, ChartQueryBuilder> = {
   `,
       optional: true,
       tableCheck: 'system.metric_log',
+      columnCheck: 'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
     }
   },
 }

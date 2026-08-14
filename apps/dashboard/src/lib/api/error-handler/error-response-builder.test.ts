@@ -53,6 +53,7 @@ describe('getStatusCodeForErrorType', () => {
 
   it('returns 404 for TableNotFound', () => {
     expect(getStatusCodeForErrorType(ApiErrorType.TableNotFound)).toBe(404)
+    expect(getStatusCodeForErrorType(ApiErrorType.ColumnNotFound)).toBe(404)
   })
 
   it('returns 503 for NetworkError', () => {

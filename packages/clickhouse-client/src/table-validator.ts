@@ -32,13 +32,33 @@ import { getAllSqlStrings } from '@chm/sql-builder'
  * - `probe_failed`: the probe itself errored (network/timeout/auth) —
  *   existence is unknown, NOT confirmed missing. See issue #2505.
  */
-export type TableValidationReason = 'table_missing' | 'probe_failed'
+export type TableValidationReason =
+  | 'table_missing'
+  | 'column_missing'
+  | 'probe_failed'
 
 export type TableValidationResult = {
   shouldProceed: boolean
   missingTables: string[]
+  missingColumns?: string[]
   reason?: TableValidationReason
   error?: string
+}
+
+/** Parse `database.table.column` (column names may contain extra dots). */
+export function parseColumnCheck(
+  qualified: string
+): { database: string; table: string; column: string } | null {
+  const first = qualified.indexOf('.')
+  const second = qualified.indexOf('.', first + 1)
+  if (first <= 0 || second <= first + 1 || second === qualified.length - 1) {
+    return null
+  }
+  return {
+    database: qualified.slice(0, first),
+    table: qualified.slice(first + 1, second),
+    column: qualified.slice(second + 1),
+  }
 }
 
 export function parseTableFromSQL(sql: string): string[] {
@@ -152,9 +172,54 @@ export async function validateTableExistence(
     .filter((r) => r.exists === false)
     .map((r) => r.fullName)
 
+  if (missingTables.length > 0) {
+    return {
+      shouldProceed: false,
+      missingTables,
+      reason: 'table_missing',
+    }
+  }
+
+  const columnsToCheck = ([] as string[]).concat(queryConfig.columnCheck ?? [])
+  if (columnsToCheck.length === 0) {
+    return { shouldProceed: true, missingTables: [] }
+  }
+
+  const columnResults = await Promise.all(
+    columnsToCheck.map(async (fullName) => {
+      const parsed = parseColumnCheck(fullName)
+      if (!parsed) return { fullName, exists: false as const }
+      const exists = await tableExistenceCache.checkColumnExists(
+        hostId,
+        parsed.database,
+        parsed.table,
+        parsed.column
+      )
+      return { fullName, exists }
+    })
+  )
+
+  const unknownColumns = columnResults
+    .filter((r) => r.exists === 'unknown')
+    .map((r) => r.fullName)
+
+  if (unknownColumns.length > 0) {
+    return {
+      shouldProceed: false,
+      missingTables: [],
+      reason: 'probe_failed',
+      error: `Could not verify column availability (connection issue): ${unknownColumns.join(', ')}`,
+    }
+  }
+
+  const missingColumns = columnResults
+    .filter((r) => r.exists === false)
+    .map((r) => r.fullName)
+
   return {
-    shouldProceed: missingTables.length === 0,
-    missingTables,
-    reason: missingTables.length > 0 ? 'table_missing' : undefined,
+    shouldProceed: missingColumns.length === 0,
+    missingTables: [],
+    missingColumns,
+    reason: missingColumns.length > 0 ? 'column_missing' : undefined,
   }
 }

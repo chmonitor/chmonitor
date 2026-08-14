@@ -62,7 +62,7 @@ export const ChartCsvExportButton = function ChartCsvExportButton({
               'relative before:content-[""] before:absolute before:-inset-4',
               alwaysVisible
                 ? 'opacity-40 hover:opacity-100'
-                : 'opacity-0 group-hover:opacity-40 hover:!opacity-100'
+                : 'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100'
             )}
           />
         }

@@ -80,6 +80,8 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
    * are auto-extracted from the SQL by the underlying validator.
    */
   tableCheck?: string | string[]
+  /** Qualified column(s) `database.table.column` that may be absent. */
+  columnCheck?: string | string[]
   /**
    * Schema-driven dynamic filtering. When present, the table registry parses
    * active filters from URL params against this schema and injects a

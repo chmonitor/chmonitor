@@ -86,6 +86,7 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   queryParams?: Record<string, unknown>
   optional?: boolean
   tableCheck?: string | string[]
+  columnCheck?: string | string[]
   cachePolicy?: CachePolicy
   /**
    * Opt out of the ClickHouse query-cache settings (#2182) the route applies

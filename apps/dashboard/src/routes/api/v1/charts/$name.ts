@@ -293,23 +293,28 @@ export async function handler(
         timezone,
         optional: queryDef.optional,
         tableCheck: queryDef.tableCheck,
+        columnCheck: queryDef.columnCheck,
         ttlSeconds: cachePolicyToQueryCacheTtlSeconds(queryDef.cachePolicy),
         disableQueryCache: queryDef.disableQueryCache,
       }
     )
 
-    // Graceful degradation: an *optional* chart whose backing table is absent
-    // is not a server error — the data layer signals this with a benign
-    // `table_not_found`. Returning 200 with empty data (plus an `unavailable`
-    // note) lets the panel render its "not available" empty state instead of a
-    // red error, and stops use-chart-data from retrying the 500 three times.
+    // Graceful degradation: an *optional* chart whose backing table or
+    // metric_log column is absent is not a server error. Returning 200 with
+    // empty data (plus an `unavailable` note) lets the panel render its
+    // "not available" empty state instead of a red error, and stops
+    // use-chart-data from retrying the 500 three times.
     if (
       result.error &&
       queryDef.optional &&
-      result.error.type === 'table_not_found'
+      (result.error.type === 'table_not_found' ||
+        result.error.type === 'column_not_found')
     ) {
       const missingTables = Array.isArray(result.error.details?.missingTables)
         ? result.error.details.missingTables
+        : []
+      const missingColumns = Array.isArray(result.error.details?.missingColumns)
+        ? result.error.details.missingColumns
         : []
       const body = JSON.stringify({
         success: true,
@@ -321,9 +326,10 @@ export async function handler(
           host: String(hostId),
           sql: result.executedSql.trim(),
           unavailable: {
-            reason: 'table_not_found',
+            reason: result.error.type,
             message: result.error.message,
             missingTables,
+            missingColumns,
           },
         },
       })

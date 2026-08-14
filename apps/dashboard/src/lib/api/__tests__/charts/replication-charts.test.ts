@@ -30,5 +30,15 @@ describe('replicationCharts', () => {
     expect(names).toContain('replication-summary-table')
     expect(names).toContain('readonly-replica')
     expect(names).toContain('replication-lag')
+    expect(names).toContain('replication-lag-trend')
+  })
+
+  test('replication-lag-trend checks the metric_log column, not only the table', () => {
+    const result = replicationCharts['replication-lag-trend']!(defaultParams)
+    expect(result.optional).toBe(true)
+    expect(result.tableCheck).toBe('system.metric_log')
+    expect(result.columnCheck).toBe(
+      'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay'
+    )
   })
 })
