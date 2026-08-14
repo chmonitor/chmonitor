@@ -22,7 +22,7 @@ export interface MenuItemProps {
   pathname: string
   /** Optional props for the outer `li` (favorites drag reorder). */
   liProps?: HTMLAttributes<HTMLLIElement> & { ref?: Ref<HTMLLIElement> }
-  /** Optional left-side hover control (favorites drag handle). */
+  /** Optional hover control (favorites drag handle). */
   leadingAction?: ReactNode
 }
 

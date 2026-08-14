@@ -132,7 +132,6 @@ const SingleMenuItem = function SingleMenuItem({
         }
         className={cn(
           'cursor-pointer',
-          leadingAction && 'pl-7 group-data-[collapsible=icon]:pl-2',
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={
