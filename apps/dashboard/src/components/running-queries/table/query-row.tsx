@@ -233,7 +233,7 @@ export const QueryRow = memo(function QueryRow({
         {/* Actions */}
         <td className="px-1.5 py-2.5 sm:px-3">
           <div
-            className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100"
+            className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
             {done ? (

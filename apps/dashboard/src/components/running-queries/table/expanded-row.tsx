@@ -114,7 +114,7 @@ export function ExpandedRow({
           showLineNumbers={lineCount > 1}
           className="max-h-[180px]"
         >
-          <CodeBlockCopyButton className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-background border border-border" />
+          <CodeBlockCopyButton className="h-7 w-7 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity bg-background border border-border" />
         </CodeBlock>
       </div>
 

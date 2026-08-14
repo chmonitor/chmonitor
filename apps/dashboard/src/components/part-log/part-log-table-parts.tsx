@@ -383,7 +383,7 @@ export function Row({
         </td>
 
         <td className="px-1.5 py-2.5 align-middle sm:px-3">
-          <div className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+          <div className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <button
               type="button"
               title="Copy part name"
