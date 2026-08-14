@@ -528,13 +528,6 @@ export function SettingsForm({
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             {/* General */}
             <TabsContent value="general" className="space-y-4 px-1 pb-2">
-              <SettingsRow label="Theme">
-                <ThemePicker
-                  value={settings.theme}
-                  onChange={handleThemeChange}
-                />
-              </SettingsRow>
-
               <Field
                 label="Timezone"
                 icon={Clock}
