@@ -45,10 +45,7 @@ interface NavFavoritesProps {
 function FavoriteDragHandle({
   listeners,
   attributes,
-}: {
-  listeners?: Record<string, unknown>
-  attributes: Record<string, unknown>
-}) {
+}: Pick<ReturnType<typeof useSortable>, 'listeners' | 'attributes'>) {
   return (
     <button
       type="button"
