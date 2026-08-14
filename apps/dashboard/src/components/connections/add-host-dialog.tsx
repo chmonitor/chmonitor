@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { trackEvent } from '@/lib/analytics/analytics'
-import { docsSiteUrl } from '@/lib/docs-site'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -89,6 +88,7 @@ export function AddHostDialog({
 
   const dbStorageConfigured = config.userConnections?.dbStorageEnabled === true
   const dbStorageEnabled = dbStorageConfigured && isSignedIn
+  const dbStorageRequiresSignIn = dbStorageConfigured && !isSignedIn
   const allowPostgres = isFeatureEnabled('postgresSource')
 
   const handleSave = async (data: ConnectionFormData) => {
@@ -177,21 +177,13 @@ export function AddHostDialog({
             on top on narrow screens. */}
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
           <div className="space-y-4">
-            {!isSignedIn && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
-                <p className="font-medium">Sign in for more</p>
-                <p className="mt-0.5 text-amber-700 dark:text-amber-400">
-                  Server storage is disabled on this deployment.{' '}
-                  <a
-                    href={docsSiteUrl('features/user-connections')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200"
-                  >
-                    Enable user connections
-                  </a>
-                  . Sign in to select your plan or join an organization to get
-                  access to your team&apos;s clusters.
+            {dbStorageRequiresSignIn && (
+              <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-xs">
+                <p className="font-medium text-foreground">Sign in to sync</p>
+                <p className="mt-0.5 text-muted-foreground">
+                  Save connections to the server, pick a plan, or join an
+                  organization. Browser-only storage still works without
+                  signing in.
                 </p>
               </div>
             )}
@@ -203,7 +195,7 @@ export function AddHostDialog({
               storageMode={storageMode}
               onStorageModeChange={setStorageMode}
               dbStorageEnabled={dbStorageEnabled}
-              dbStorageRequiresSignIn={dbStorageConfigured && !isSignedIn}
+              dbStorageRequiresSignIn={dbStorageRequiresSignIn}
               showSamplePreset={showSamplePreset}
               allowPostgres={allowPostgres}
               allowPeerdb
