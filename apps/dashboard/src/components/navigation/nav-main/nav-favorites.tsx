@@ -50,7 +50,7 @@ function FavoriteDragHandle({
     <button
       type="button"
       aria-label="Reorder favorite"
-      className="absolute top-1/2 left-1 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden"
+      className="absolute top-1/2 right-7 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden"
       {...attributes}
       {...listeners}
     >
