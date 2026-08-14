@@ -1,3 +1,4 @@
+import { useLocation } from '@tanstack/react-router'
 import { menuItemsConfig } from '@/menu'
 
 import type { ReactNode } from 'react'
@@ -6,7 +7,6 @@ import { FeatureUnavailable } from './feature-unavailable'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { findMenuPermissionForPath } from '@/lib/feature-permissions/menu'
 import { resolveFeatureState } from '@/lib/feature-permissions/shared'
-import { useLocation } from '@tanstack/react-router'
 
 export function FeatureRouteGate({ children }: { children: ReactNode }) {
   const pathname = useLocation({ select: (l) => l.pathname })

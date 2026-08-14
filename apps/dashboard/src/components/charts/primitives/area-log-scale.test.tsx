@@ -49,7 +49,6 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   }
-  // biome-ignore lint/suspicious/noExplicitAny: test shim assigning to globalThis
   ;(globalThis as any).ResizeObserver = FakeResizeObserver
 })
 
@@ -70,7 +69,6 @@ async function renderAreaChart(props: {
   container.style.width = '600px'
   container.style.height = '300px'
   document.body.appendChild(container)
-  // biome-ignore lint/suspicious/noExplicitAny: test shim forcing non-zero layout
   ;(container as any).getBoundingClientRect = () => ({
     width: 600,
     height: 300,

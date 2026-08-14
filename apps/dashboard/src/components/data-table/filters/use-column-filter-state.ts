@@ -1,3 +1,5 @@
+import { useLocation, useNavigate } from '@tanstack/react-router'
+
 import type { FilterDraft } from '@/components/filters/filter-editor'
 import type {
   ActiveFilter,
@@ -5,13 +7,12 @@ import type {
   FilterSchema,
 } from '@/lib/filters/types'
 
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   parseFiltersFromParams,
   serializeFilter,
 } from '@/lib/filters/url-state'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Reads/writes a single field's active filter via URL params. The filter bar

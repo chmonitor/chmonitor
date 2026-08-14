@@ -16,6 +16,7 @@ import { reconcileDoneRows } from '@/components/running-queries/table/done-reten
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   detectCardErrorVariant,
   getCardErrorDescription,
@@ -31,7 +32,6 @@ import { runningQueriesConfig } from '@/lib/query-config/queries/running-queries
 import { useHostId } from '@/lib/swr/use-host'
 import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Auto-refresh cadence for the running-queries list (ms).

@@ -6,6 +6,7 @@ import {
   Pencil,
   PlusIcon,
 } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import { HostDetailsDialog } from './host-details-dialog'
 import { HostMenuRow } from './host-menu-row'
@@ -33,9 +34,9 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { usePgConnections } from '@/lib/hooks/use-pg-connections'
 import { canEditHost } from '@/lib/host-permissions'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
 import {
   isServerHost,
@@ -44,7 +45,6 @@ import {
 } from '@/lib/swr/use-merged-hosts'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
 import { cn, getHost } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /**
  * Host switcher component for sidebar header.

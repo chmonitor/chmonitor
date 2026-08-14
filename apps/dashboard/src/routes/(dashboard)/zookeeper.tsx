@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { Suspense, useEffect } from 'react'
 import { ChartSkeleton } from '@/components/skeletons'
-import { splitHref } from '@/lib/url/url-builder'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 /**
  * Legacy route. ZooKeeper monitoring moved under the dedicated "Keeper" menu

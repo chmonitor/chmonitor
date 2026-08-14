@@ -1,10 +1,10 @@
 import { Timer } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import { useMemo } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
-import { useTimeRange } from '@/lib/context/time-range-context'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { useTimeRange } from '@/lib/context/time-range-context'
 import { userProcessesConfig } from '@/lib/query-config/tables/user-processes'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'

@@ -4,8 +4,9 @@
  * Used to hide "New" badges after a user visits a page
  */
 
-import { useEffect, useState } from 'react'
 import { useLocation } from '@tanstack/react-router'
+
+import { useEffect, useState } from 'react'
 
 const COOKIE_NAME = 'visited_pages'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year

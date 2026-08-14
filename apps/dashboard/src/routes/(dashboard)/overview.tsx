@@ -11,10 +11,10 @@ import { OverviewCharts } from '@/components/overview-charts/overview-charts-cli
 import { OverviewStatusStrip } from '@/components/overview-charts/overview-status-strip'
 import { ChartSkeleton, Skeleton, TabsSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // Shared cluster-topology view — large SVG chunk, must not SSR. Reused as-is
 // from the /clusters page so both surfaces render the same component.

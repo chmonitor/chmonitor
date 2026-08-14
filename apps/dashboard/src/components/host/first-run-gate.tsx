@@ -1,14 +1,15 @@
+import { useLocation, useNavigate } from '@tanstack/react-router'
+
 import {
   isFirstRunExemptPath,
   resolveFirstRunAction,
 } from './first-run-decision'
 import { useEffect } from 'react'
 import { PageSkeleton } from '@/components/skeletons'
-import { useLocation, useNavigate } from '@tanstack/react-router'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useHostId } from '@/lib/swr'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { keepHostSearch } from '@/routes/-root-search'
 
 /**

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import { useLocation } from '@tanstack/react-router'
 
 import { useEffect } from 'react'
-import { useLocation } from '@tanstack/react-router'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { visibilityAwareInterval } from '@/lib/swr/config'
 

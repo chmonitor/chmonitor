@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import {
   CommandPaletteFooter,
@@ -17,15 +18,14 @@ import { parseTableName } from './command-palette-utils'
 import { useTheme } from 'next-themes'
 import { CommandDialog, CommandInput } from '@/components/ui/command'
 import { useFavoriteHrefs } from '@/hooks/use-favorites'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 async function fetchTables(hostId: number): Promise<ExplorerTableRow[]> {
   const res = await apiFetch(

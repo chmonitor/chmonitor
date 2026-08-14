@@ -48,6 +48,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   isValidQueryHash,
   type NotableRunReason,
@@ -56,7 +57,6 @@ import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { formatDuration } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /** Duration fields on a slow-query-patterns row that need seconds→"1.2s"
  * formatting — unlike the size/row-count fields, these have no

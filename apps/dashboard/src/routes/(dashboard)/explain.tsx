@@ -28,11 +28,11 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
 import { splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // CodeMirror is heavy and pulls in browser-only APIs — lazy-load it so it never
 // blocks the route's initial render and stays out of the server bundle.

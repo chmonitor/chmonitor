@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test'
 import { buildUrl, splitHref } from './url-builder'
+import { describe, expect, it } from 'bun:test'
 
 describe('buildUrl', () => {
   it('builds a URL with no existing query string', () => {

@@ -1,3 +1,5 @@
+import { useLocation, useNavigate } from '@tanstack/react-router'
+
 import { useCallback, useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import {
@@ -7,9 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useLocation, useNavigate } from '@tanstack/react-router'
-import { splitHref } from '@/lib/url/url-builder'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 export const SEVERITY_LEVELS = [
   'All',

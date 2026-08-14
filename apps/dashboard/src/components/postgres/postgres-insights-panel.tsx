@@ -23,10 +23,10 @@ import {
 } from '@/components/insights/severity-meta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { PG_HOST_PARAM } from '@/lib/hooks/use-active-pg-connection'
 import { usePostgresInsights } from '@/lib/query/use-postgres-insights'
 import { cn } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface PostgresInsightsPanelProps {
   /**

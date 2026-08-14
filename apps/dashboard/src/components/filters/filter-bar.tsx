@@ -1,4 +1,5 @@
 import { SearchIcon, XIcon } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { FilterDraft } from '@/components/filters/filter-editor'
 import type { FilterPreset } from '@/lib/filters/types'
@@ -10,13 +11,12 @@ import { PresetsMenu } from '@/components/filters/presets-menu'
 import { QuickFilters } from '@/components/filters/quick-filters'
 import { DebouncedInput } from '@/components/inputs/debounced-input'
 import { Button } from '@/components/ui/button'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   parseFiltersFromParams,
   serializeFilter,
 } from '@/lib/filters/url-state'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface FilterBarProps {
   queryConfig: QueryConfig

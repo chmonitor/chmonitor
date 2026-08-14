@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
+import { keepHostSearch } from '../-root-search'
 import { useEffect } from 'react'
 import { PageSkeleton } from '@/components/skeletons'
-import { keepHostSearch } from '../-root-search'
 
 /**
  * Redirect page for legacy /ai-chat route.

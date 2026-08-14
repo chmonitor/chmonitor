@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { useLocation } from '@tanstack/react-router'
 
 import type { ComponentProps } from 'react'
 
@@ -7,7 +8,6 @@ import {
   isMenuItemActive,
   isMenuItemActiveAmongSiblings,
 } from '@/lib/menu/breadcrumb'
-import { useLocation } from '@tanstack/react-router'
 import { useHostId } from '@/lib/swr'
 import { prefetchRoute } from '@/lib/swr/prefetch'
 

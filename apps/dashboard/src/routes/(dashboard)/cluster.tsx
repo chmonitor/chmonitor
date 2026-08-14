@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { useEffect } from 'react'
-import { splitHref } from '@/lib/url/url-builder'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 /** Redirect /cluster → /clusters (topology + table merged into one page) */
 function ClusterRedirectPage() {

@@ -4,13 +4,14 @@
  * Provides logic to determine if a menu item or its children are active.
  */
 
+import { useLocation } from '@tanstack/react-router'
+
 import type { MenuItem } from '../types'
 
 import {
   isMenuItemActive,
   isMenuItemActiveAmongSiblings,
 } from '@/lib/menu/breadcrumb'
-import { useLocation } from '@tanstack/react-router'
 
 /**
  * Check if a menu item or any of its children are active.

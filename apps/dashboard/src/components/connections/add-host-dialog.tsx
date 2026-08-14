@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { FetchError } from '@/lib/swr/fetch-error'
 import type { HostStorageMode } from '@/lib/types/host-storage'
@@ -16,9 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { docsSiteUrl } from '@/lib/docs-site'
-import { keepHostSearch } from '@/routes/-root-search'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -26,9 +27,8 @@ import {
   useUserConnections,
   useUserConnectionsMutations,
 } from '@/lib/hooks/use-user-connections'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { keepHostSearch } from '@/routes/-root-search'
 
 interface AddHostDialogProps {
   open: boolean
@@ -109,7 +109,8 @@ export function AddHostDialog({
           toast.error(fetchErr.message, {
             action: {
               label: 'Choose a plan',
-              onClick: () => navigate({ to: '/billing', search: keepHostSearch }),
+              onClick: () =>
+                navigate({ to: '/billing', search: keepHostSearch }),
             },
           })
           return
