@@ -254,6 +254,8 @@ defaults to apply.
 |---|---|---|
 | `RATE_LIMIT_API_PER_MIN` | `100` | GET data routes (e.g. `/api/v1/charts/$name`), per IP. |
 | `RATE_LIMIT_AGENT_PER_MIN` | `10` | `POST /api/v1/agent`, per IP then tightened per signed-in identity. |
+| `RATE_LIMIT_AGENT_GUEST_PER_MIN` | `5` | Cloud-only: additional per-guest identity bucket on `POST /api/v1/agent` (`agent:guest:guest:<hash>`). OSS anonymous stays IP-only. |
+| `CHM_GUEST_AI_REQUESTS_PER_DAY` | `3` | Cloud-only daily AI message cap for anonymous visitors. D1 `ai_usage_daily` per `guest:<ip-hash>`. OSS is not gated. |
 | `RATE_LIMIT_MCP_PER_MIN` | `30` | `/api/mcp` (POST/GET/DELETE), per IP. Same class of capability as the agent route — arbitrary read-only SQL via the `query` tool — over the MCP transport. |
 | `RATE_LIMIT_BROWSER_CONN_PER_MIN` | `10` | `POST /api/v1/browser-connections/{test,sessions}`, per IP. Both routes are unauthenticated and dial an attacker-supplied host on every request; each route gets its own bucket so a burst against one doesn't consume the other's budget. |
 

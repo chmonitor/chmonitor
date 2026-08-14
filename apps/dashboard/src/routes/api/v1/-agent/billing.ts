@@ -3,7 +3,9 @@
  * meter + monthly USD budget, plus the idempotent reservation release the
  * stream path needs.
  *
- * Extracted from `handlePost` in issue #2885 — no behavioural change.
+ * Extracted from `handlePost` in issue #2885. Cloud guests are gated against
+ * a per-IP `guest:<hash>` owner (see `lib/billing/guest-ai.ts`); OSS still
+ * skips silently.
  */
 
 import type { Plan } from '@/lib/billing/plans'
@@ -21,7 +23,13 @@ import {
   checkAiDailyLimit,
   limitMessage,
 } from '@/lib/billing/entitlements'
+import {
+  getGuestAiPlan,
+  guestDailyLimitMessage,
+  guestOwnerIdFromIp,
+} from '@/lib/billing/guest-ai'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 
 export type AiUsageGate =
   | { readonly ok: false; readonly response: Response }
@@ -33,18 +41,86 @@ export type AiUsageGate =
       readonly releaseReservationOnce: () => Promise<void>
     }
 
+export interface AiUsageGateOptions {
+  /** Client IP from `clientIpKey(request)` — used to derive a guest owner id. */
+  readonly ip?: string
+  /**
+   * Precomputed `guest:<hash>` owner id. When set (Cloud + anonymous), the
+   * catch-skip path reserves against this key instead of failing open.
+   */
+  readonly guestOwnerId?: string
+}
+
+/**
+ * Cloud-anonymous daily cap. OSS / missing identity → null (caller skips).
+ * Same reserve-then-check shape as the signed-in Free path.
+ */
+async function tryGuestAiUsageGate(
+  options: AiUsageGateOptions
+): Promise<AiUsageGate | null> {
+  if (!isCloudModeServer()) return null
+  const guestOwnerId =
+    options.guestOwnerId ??
+    (options.ip ? await guestOwnerIdFromIp(options.ip) : null)
+  if (!guestOwnerId) return null
+
+  const plan = getGuestAiPlan()
+  const reservedCount = await reserveAiUsage(guestOwnerId)
+  let reservedDailyUsage = false
+  if (reservedCount != null && plan.aiRequestsPerDay != null) {
+    reservedDailyUsage = true
+    const check = checkAiDailyLimit(plan, reservedCount - 1)
+    if (!check.allowed) {
+      await releaseAiUsage(guestOwnerId)
+      const limit = check.limit ?? plan.aiRequestsPerDay
+      return {
+        ok: false,
+        response: jsonErrorResponse(
+          {
+            error: guestDailyLimitMessage(limit),
+            details: {
+              reason: 'guest_daily_limit',
+              limit,
+            },
+          },
+          402
+        ),
+      }
+    }
+  }
+
+  let usageReleased = false
+  const releaseReservationOnce = async (): Promise<void> => {
+    if (usageReleased || !reservedDailyUsage) return
+    usageReleased = true
+    await releaseAiUsage(guestOwnerId)
+  }
+
+  return {
+    ok: true,
+    billingOwnerId: guestOwnerId,
+    resolvedPlan: plan,
+    releaseReservationOnce,
+  }
+}
+
 /**
  * Apply the AI usage gate.
  *
  * `resolveBillingOwner()` throws when Clerk is not configured (self-hosted),
  * so the whole block is wrapped in try/catch — OSS deployments skip silently.
+ * On Cloud, an unsigned visitor is gated against a per-IP guest owner id
+ * (`guest:<hash>`) with a dedicated daily cap, not Polar.
  *
  * `billingOwnerId` / `resolvedPlan` are returned so the stream can (a) meter
  * the actual estimatedCostUsd as overage once the generation succeeds, and (b)
  * roll back the daily reservation if generation fails before it produces any
  * output.
  */
-export async function applyAiUsageGate(byok: boolean): Promise<AiUsageGate> {
+export async function applyAiUsageGate(
+  byok: boolean,
+  options: AiUsageGateOptions = {}
+): Promise<AiUsageGate> {
   let billingOwnerId: string | null = null
   let resolvedPlan: Plan | null = null
   let reservedDailyUsage = false
@@ -121,7 +197,9 @@ export async function applyAiUsageGate(byok: boolean): Promise<AiUsageGate> {
         }
       }
     } catch {
-      // Not cloud / no Clerk owner → skip enforcement; self-hosted stays whole.
+      const guestGate = await tryGuestAiUsageGate(options)
+      if (guestGate) return guestGate
+      // OSS / not cloud / no guest identity → skip; self-hosted stays whole.
       billingOwnerId = null
       resolvedPlan = null
       reservedDailyUsage = false

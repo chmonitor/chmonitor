@@ -74,6 +74,23 @@ describe('agent error classification', () => {
     })
   })
 
+  test('classifies a guest daily-limit 402 as billing_error', () => {
+    const classified = classifyError({
+      statusCode: 402,
+      error:
+        "You've reached the guest daily AI limit of 3 requests. Sign in for a higher allowance, or try again tomorrow.",
+      details: { reason: 'guest_daily_limit', limit: 3 },
+    })
+    expect(classified.type).toBe('billing_error')
+  })
+
+  test('classifies guest_daily_limit from the message without a status', () => {
+    const classified = classifyError(
+      "You've reached the guest daily AI limit of 3 requests. Sign in for a higher allowance, or try again tomorrow."
+    )
+    expect(classified.type).toBe('billing_error')
+  })
+
   test('keeps upstream payment details on billing errors', () => {
     const classified = classifyError(
       JSON.stringify({

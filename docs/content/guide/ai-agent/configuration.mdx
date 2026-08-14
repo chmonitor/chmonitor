@@ -120,7 +120,9 @@ Extra models are appended after the built-in registry. If an extra entry shares 
 | `CHM_FEATURE_AGENT_ACCESS` | `public` | Set to `authenticated` to require login before using the agent. |
 | `AGENT_API_TOKEN` | — | Shared Bearer token accepted by `POST /api/v1/agent`. |
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | When `true`, enables `optimize_table`, `kill_query`, and `kill_mutation`. Keep off unless the ClickHouse user is trusted. |
-| `RATE_LIMIT_AGENT_PER_MIN` | `10` | Max `POST /api/v1/agent` requests per minute, applied per signed-in identity and per IP for anonymous callers. |
+| `RATE_LIMIT_AGENT_PER_MIN` | `10` | Max `POST /api/v1/agent` requests per minute, applied per signed-in identity and per IP. |
+| `RATE_LIMIT_AGENT_GUEST_PER_MIN` | `5` | Cloud-only tighter per-guest identity limit (key `agent:guest:guest:<hash>`). OSS anonymous callers stay IP-only. |
+| `CHM_GUEST_AI_REQUESTS_PER_DAY` | `3` | Cloud-only daily AI messages for anonymous visitors. Tracked in D1 `ai_usage_daily` per `guest:<ip-hash>`. Signed-in users keep their plan cap (Free 5 / Pro 100 / …). OSS is not gated. |
 | `AGENT_DEBUG` | `false` | When truthy (`1`/`true`/`yes`/`on`), logs verbose agent request/usage details. Leave off in production — it prints message keys, resolved user ids, and token usage. |
 
 Require auth on public deployments:

@@ -69,6 +69,18 @@ mock.module('@/lib/auth/agent-api-auth', () => ({
 }))
 mock.module('@/lib/auth/provider', () => ({
   isClerkAuthProvider: () => false,
+  getAuthProvider: () => 'none',
+  parseAuthProvider: (value: string | null | undefined) => {
+    const normalized = value?.trim().toLowerCase()
+    if (
+      normalized === 'clerk' ||
+      normalized === 'proxy' ||
+      normalized === 'trusted'
+    ) {
+      return normalized
+    }
+    return 'none'
+  },
 }))
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,

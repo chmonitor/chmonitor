@@ -66,8 +66,10 @@ export async function resolveAgentModel(
 }
 
 /**
- * Best-effort caller id for OpenRouter user tracking and the per-identity rate
- * limit. Anonymous / non-Clerk deployments resolve to `guest`.
+ * Best-effort Clerk caller id for OpenRouter user tracking and the
+ * per-identity rate limit. Anonymous / non-Clerk deployments resolve to
+ * `guest`. Cloud guests are remapped in `handlePost` to a per-IP
+ * `guest:<hash>` before attribution / RL / the usage gate.
  */
 export async function resolveAgentUserId(): Promise<string> {
   if (!isClerkAuthProvider()) return 'guest'

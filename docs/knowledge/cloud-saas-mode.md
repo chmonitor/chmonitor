@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-08-13
+updated: 2026-08-14
 tags:
   - saas
   - cloud
@@ -62,6 +62,7 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 | Signed-in | sees env hosts | demo hidden → own D1 connections only; zero → welcome/setup |
 | Auth | usually `none` | Clerk + `CHM_CLERK_PUBLIC_READ=true` |
 | Per-user conns | optional | on (`VITE_FEATURE_USER_CONNECTIONS_DB=true`) |
+| Agent (anon) | IP rate limit only, no daily cap | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
 
 Read-only on the demo is *enforced* by the existing public-read gate: anonymous
 principals can only read, and signed-in users never see the demo. The `readOnly`
@@ -163,6 +164,35 @@ slug. `extractConnectionErrorMessage(body)` handles both response shapes
 validation builder). Rendered by `ConnectionErrorPanel` in `connection-form.tsx`.
 Docs: `docs/content/guide/guides/connection-errors.mdx` (slug
 `guides/connection-errors`). Tested in `lib/connection-errors.test.ts`.
+
+## Guest AI credits — cloud SaaS only
+
+Anonymous Cloud visitors can use the agent (public-read + demo host). They are
+**not** unlimited: a dedicated daily message cap and a tighter per-identity
+rate limit sit in front of the shared AnyRouter key. OSS / self-host skips
+this entirely (fail-closed to self-hosted).
+
+- **Identity**: `guestOwnerIdFromIp(ip)` in `lib/billing/guest-ai.ts` →
+  `guest:` + first 16 hex chars of SHA-256(client IP). Do **not** key D1 /
+  AnyRouter by the literal owner id `guest` (that would share one global
+  bucket). IP comes from `clientIpKey(request)`.
+- **Daily cap**: `CHM_GUEST_AI_REQUESTS_PER_DAY` (default **3**, fail-closed
+  to 3 on unset/junk). ≤ Free (`aiRequestsPerDay` 5). No monthly USD budget,
+  no Polar. `applyAiUsageGate` (`routes/api/v1/-agent/billing.ts`) reserves
+  `ai_usage_daily` for that guest owner and returns 402
+  `details.reason: 'guest_daily_limit'` when exhausted (copy tells them to
+  sign in — no Polar jargon).
+- **Rate limit**: IP bucket first (existing `RATE_LIMIT_AGENT_PER_MIN`), then
+  Cloud guests get `agent:guest:${guestOwnerId}` at
+  `RATE_LIMIT_AGENT_GUEST_PER_MIN` (default **5**). Signed-in stays
+  `agent:user:${userId}` at 10/min. OSS guests stay IP-only.
+- **Usage UI**: `GET /api/v1/billing/usage` returns a slim Guest payload
+  (`planId: 'guest'`, `aiMessages` from `getAiUsageToday(guestOwnerId)`) when
+  Clerk is missing **and** cloud mode. OSS unsigned stays 401.
+  `useAiQuota` / `parseQuota` read `data.aiMessages` so the quota chip shows
+  for guests (and signed-in users).
+- **AnyRouter attribution**: `openRouterUser` is `${guestOwnerId}/${sessionId}`
+  so the usage explorer groups by guest hash, not a single `guest` string.
 
 ## Billing (Polar) — cloud SaaS only
 

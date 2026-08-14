@@ -6,7 +6,8 @@
  *   Cloudflare Workers isolates are short-lived, so this is a best-effort
  *   first pass. No Durable Objects required.
  * - Limits are env-configurable:
- *     RATE_LIMIT_AGENT_PER_MIN         (default 10)  — POST /api/v1/agent per identity
+ *     RATE_LIMIT_AGENT_PER_MIN         (default 10)  — POST /api/v1/agent per signed-in identity
+ *     RATE_LIMIT_AGENT_GUEST_PER_MIN   (default 5)   — POST /api/v1/agent per Cloud guest (see guest-ai.ts)
  *     RATE_LIMIT_API_PER_MIN           (default 100) — GET  data routes per IP
  *     RATE_LIMIT_MCP_PER_MIN           (default 30)  — /api/mcp per IP
  *     RATE_LIMIT_BROWSER_CONN_PER_MIN  (default 10)  — browser-connections test/sessions per IP

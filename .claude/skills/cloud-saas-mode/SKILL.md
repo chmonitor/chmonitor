@@ -9,9 +9,10 @@ description: >-
   docs links, or the "Try with sample ClickHouse" onboarding preset. Triggers:
   "cloud mode", "SaaS", "demo host", "welcome page", "setup page", "first-run",
   "add host error", "connection error", "read-only host", "hide hosts when
-  signed in", "sample cluster", "sample ClickHouse", "try sample".
+  signed in", "sample cluster", "sample ClickHouse", "try sample",
+  "guest AI", "anonymous agent", "guest credits", "guest quota".
 metadata:
-  tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors, sample-cluster
+  tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors, sample-cluster, guest-ai
 ---
 
 # chmonitor Cloud (SaaS) mode
@@ -61,6 +62,7 @@ on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 | Env hosts | real, full access | `source:'demo'`, read-only |
 | Anonymous | env hosts | the demo |
 | Signed-in | env hosts | demo HIDDEN → own D1 connections; zero → welcome/setup |
+| Agent (anon) | unlimited (IP RL only) | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
 
 Implemented in `lib/swr/use-merged-hosts.ts` (tag demo, hide-when-signed-in;
 returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
@@ -101,6 +103,19 @@ remounted per-CTA. `components/host/sample-cluster-banner.tsx` is the
 dismissible "Connect your own cluster" convert nudge shown once the sample is
 connected. Full detail: `docs/knowledge/cloud-saas-mode.md`.
 
+## Guest AI credits (Cloud only)
+
+Anonymous Cloud visitors can use the agent. They get a **dedicated daily
+message cap** (`CHM_GUEST_AI_REQUESTS_PER_DAY`, default 3) and a **tighter
+per-identity rate limit** (`RATE_LIMIT_AGENT_GUEST_PER_MIN`, default 5) so
+they cannot burn the shared AnyRouter key. Usage is stored in the existing
+D1 `ai_usage_daily` table under `guest:<sha256-ip-prefix>` — never the
+literal owner id `guest`. `GET /api/v1/billing/usage` returns a slim Guest
+payload for unsigned Cloud callers so the quota chip can render. OSS skips
+this (IP RL only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
+`applyAiUsageGate` in `routes/api/v1/-agent/billing.ts`. 402 reason:
+`guest_daily_limit` (sign in for more — no Polar jargon).
+
 ## Connection-error help
 
 `lib/connection-errors.ts`:
@@ -124,6 +139,7 @@ connected. Full detail: `docs/knowledge/cloud-saas-mode.md`.
 ## Keep this skill current
 
 When you change cloud-mode behaviour, demo-host visibility, the welcome/setup
-page, per-user connections, or the connection-error classifier, UPDATE this file
-and `docs/knowledge/cloud-saas-mode.md` in the same change. See the
-"Auto-improve project skills" note in the root `CLAUDE.md`.
+page, per-user connections, the connection-error classifier, or guest-agent
+credits/rate-limits, UPDATE this file and `docs/knowledge/cloud-saas-mode.md`
+in the same change. See the "Auto-improve project skills" note in the root
+`CLAUDE.md`.
