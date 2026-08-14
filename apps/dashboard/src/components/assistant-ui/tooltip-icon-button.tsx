@@ -33,6 +33,7 @@ export const TooltipIconButton = forwardRef<
             <Button
               variant="ghost"
               size="icon"
+              aria-label={tooltip}
               {...rest}
               className={cn('aui-button-icon size-6 p-1', className)}
               ref={ref}

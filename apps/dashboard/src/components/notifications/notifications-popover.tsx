@@ -214,7 +214,8 @@ const NotificationItem = function NotificationItem({
   return (
     <Link
       href={href}
-      className="block rounded-md hover:bg-muted/50 transition-colors group relative"
+      aria-label={`${title} in cluster ${cluster}`}
+      className="block rounded-md hover:bg-muted/50 focus-visible:bg-muted/50 transition-colors group relative"
     >
       <div className="flex items-start gap-3 px-3 py-2.5">
         {/* Icon */}
@@ -247,7 +248,7 @@ const NotificationItem = function NotificationItem({
         </div>
 
         {/* External link icon */}
-        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
+        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity mt-1" />
       </div>
     </Link>
   )
