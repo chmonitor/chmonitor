@@ -23,7 +23,7 @@ export const ColumnVisibilityButton = function ColumnVisibilityButton<
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 sm:size-5 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+            className="size-8 sm:size-5 opacity-40 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
             aria-label="Column Options"
             title="Column Options"
           />

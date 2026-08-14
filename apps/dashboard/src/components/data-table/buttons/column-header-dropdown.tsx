@@ -81,7 +81,7 @@ export const ColumnHeaderDropdown = function ColumnHeaderDropdown({
             size="icon-sm"
             className={cn(
               'size-10 sm:size-7',
-              'opacity-0 group-hover:opacity-40 hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100',
+              'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100',
               'transition'
             )}
             aria-label={`Column options for ${column.id}`}
