@@ -193,7 +193,7 @@ and `select-text` so labels copy. Left rail is a flat column (no boxed
 tab well): section labels + icon rows, selected = muted pill, `border-r`
 divider. Content pane shows the active tab title. Theme (Light / Dark /
 System) is a settings row (label left, three window thumbnails right)
-on General and Appearance.
+on Appearance only.
 Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
