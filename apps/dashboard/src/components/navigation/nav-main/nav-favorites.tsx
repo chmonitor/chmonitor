@@ -1,3 +1,5 @@
+import { GripVertical } from 'lucide-react'
+
 import type { DragEndEvent } from '@dnd-kit/core'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 
@@ -18,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -36,19 +38,36 @@ interface NavFavoritesProps {
   pathname: string
 }
 
-interface SortableFavoriteItemProps {
-  item: MenuItemType
-  pathname: string
-  dragEnabled: boolean
-  suppressClickRef: { current: boolean }
+/**
+ * Hover-only drag handle. Listeners stay on this button so the title
+ * remains a real link (`cursor-pointer`) and a click still navigates.
+ */
+function FavoriteDragHandle({
+  listeners,
+  attributes,
+}: Pick<ReturnType<typeof useSortable>, 'listeners' | 'attributes'>) {
+  return (
+    <button
+      type="button"
+      aria-label="Reorder favorite"
+      className="absolute top-1/2 left-1 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden"
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="size-3.5" />
+    </button>
+  )
 }
 
 function SortableFavoriteItem({
   item,
   pathname,
   dragEnabled,
-  suppressClickRef,
-}: SortableFavoriteItemProps) {
+}: {
+  item: MenuItemType
+  pathname: string
+  dragEnabled: boolean
+}) {
   const {
     attributes,
     listeners,
@@ -68,22 +87,13 @@ function SortableFavoriteItem({
           transform: CSS.Transform.toString(transform),
           transition,
         },
-        className: cn(
-          dragEnabled &&
-            (isDragging
-              ? 'cursor-grabbing [&_a]:cursor-grabbing'
-              : 'cursor-grab [&_a]:cursor-grab'),
-          isDragging && 'z-10 opacity-60'
-        ),
-        ...(dragEnabled ? attributes : undefined),
-        ...(dragEnabled ? listeners : undefined),
-        onClickCapture: (event) => {
-          if (!suppressClickRef.current) return
-          event.preventDefault()
-          event.stopPropagation()
-          suppressClickRef.current = false
-        },
+        className: cn(isDragging && 'z-10 opacity-60'),
       }}
+      leadingAction={
+        dragEnabled ? (
+          <FavoriteDragHandle listeners={listeners} attributes={attributes} />
+        ) : undefined
+      }
     />
   )
 }
@@ -93,8 +103,10 @@ function SortableFavoriteItem({
  * regular Main/Others sections. Hidden entirely when there are no favorites
  * (issue #2769). Favorites are derived from the live menu tree by href, so a
  * pinned route that got renamed or removed is dropped silently instead of
- * rendering a broken link. Expanded (and mobile) rows can be drag-reordered;
- * collapsed icon-only mode stays click-only.
+ * rendering a broken link.
+ *
+ * Pins and the reorder grip are hover-only. Drag the grip to reorder; the
+ * title stays a link. Collapsed icon-only mode is click-only.
  */
 export function NavFavorites({ items, pathname }: NavFavoritesProps) {
   const favoriteHrefs = useFavoriteHrefs()
@@ -102,11 +114,10 @@ export function NavFavorites({ items, pathname }: NavFavoritesProps) {
   const reorderFavorites = useReorderFavorites()
   const { isMobile, state } = useSidebar()
   const dragEnabled = isMobile || state !== 'collapsed'
-  const suppressClickRef = useRef(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: { distance: 4 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -115,16 +126,10 @@ export function NavFavorites({ items, pathname }: NavFavoritesProps) {
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      // A real drag (past the 8px activation) must not navigate. Swallow the
-      // click that follows pointerup; drop the flag if none arrives.
-      suppressClickRef.current = true
       const { active, over } = event
       if (over && active.id !== over.id) {
         reorderFavorites(String(active.id), String(over.id))
       }
-      window.setTimeout(() => {
-        suppressClickRef.current = false
-      }, 0)
     },
     [reorderFavorites]
   )
@@ -154,7 +159,6 @@ export function NavFavorites({ items, pathname }: NavFavoritesProps) {
                 item={item}
                 pathname={pathname}
                 dragEnabled={dragEnabled}
-                suppressClickRef={suppressClickRef}
               />
             ))}
           </SidebarMenu>

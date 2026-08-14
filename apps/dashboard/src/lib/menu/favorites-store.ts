@@ -108,9 +108,13 @@ export function toggleFavorite(href: string): void {
 export function reorderFavorites(fromHref: string, toHref: string): void {
   ensureLoaded()
   if (fromHref === toHref) return
-  if (!hrefs.includes(fromHref) || !hrefs.includes(toHref)) return
   const next = moveHref(hrefs, fromHref, toHref)
-  if (next.every((href, index) => href === hrefs[index])) return
+  if (
+    next.length === hrefs.length &&
+    next.every((href, i) => href === hrefs[i])
+  ) {
+    return
+  }
   hrefs = next
   persist()
   emit()
