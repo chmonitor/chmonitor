@@ -69,7 +69,7 @@ export const ChartRow = function ChartRow({
             }
           >
             <ChartRowSummary charts={charts} />
-            <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
+            <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 transition-opacity duration-200">
               Show
               <ChevronDownIcon className="size-3" />
             </span>
@@ -138,7 +138,7 @@ export const ChartRow = function ChartRow({
                   )
                 })}
               </div>
-              {/* Hide pill - bottom center, shows on hover */}
+              {/* Hide pill - bottom center, shows on hover / keyboard focus */}
               <CollapsibleTrigger
                 render={
                   <Button
@@ -147,7 +147,7 @@ export const ChartRow = function ChartRow({
                     className={cn(
                       'absolute z-50 h-6 px-3 gap-1',
                       'bottom-2 left-1/2 -translate-x-1/2',
-                      'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                      'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200',
                       'bg-muted hover:bg-muted/80 text-muted-foreground',
                       'rounded-full text-xs'
                     )}

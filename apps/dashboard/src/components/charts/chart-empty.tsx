@@ -138,7 +138,7 @@ export const ChartEmpty = function ChartEmpty({
                   {title}
                 </CardDescription>
                 {href && (
-                  <ArrowUpRight className="size-3.5 opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-60 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300 text-muted-foreground shrink-0" />
+                  <ArrowUpRight className="size-3.5 opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-60 group-focus-within:opacity-60 group-hover:translate-x-0 group-hover:translate-y-0 group-focus-within:translate-x-0 group-focus-within:translate-y-0 transition-all duration-300 text-muted-foreground shrink-0" />
                 )}
               </div>
             ) : (

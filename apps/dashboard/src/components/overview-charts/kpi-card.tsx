@@ -132,7 +132,7 @@ export const KpiCard = function KpiCard({
             />
           </div>
         ) : href ? (
-          <span className="ml-auto text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="ml-auto text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             →
           </span>
         ) : null}
