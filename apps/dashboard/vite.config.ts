@@ -481,6 +481,7 @@ const SSR_STUB_NAMED_EXPORTS = [
   'verticalListSortingStrategy',
   'SortableContext',
   'useSortable',
+  'sortableKeyboardCoordinates',
   'arrayMove',
   'restrictToHorizontalAxis',
   'restrictToVerticalAxis',

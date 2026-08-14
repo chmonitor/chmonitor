@@ -8,11 +8,12 @@ import { useCallback, useSyncExternalStore } from 'react'
 import {
   getFavoriteHrefs,
   getFavoritesServerSnapshot,
+  reorderFavorites,
   subscribeFavorites,
   toggleFavorite,
 } from '@/lib/menu/favorites-store'
 
-/** Pinned hrefs in pin order (oldest pin first). */
+/** Pinned hrefs in pin order (user-reorderable; new pins append). */
 export function useFavoriteHrefs(): string[] {
   return useSyncExternalStore(
     subscribeFavorites,
@@ -28,4 +29,14 @@ export function useIsFavorite(href: string): boolean {
 
 export function useToggleFavorite(): (href: string) => void {
   return useCallback((href: string) => toggleFavorite(href), [])
+}
+
+export function useReorderFavorites(): (
+  fromHref: string,
+  toHref: string
+) => void {
+  return useCallback(
+    (fromHref: string, toHref: string) => reorderFavorites(fromHref, toHref),
+    []
+  )
 }

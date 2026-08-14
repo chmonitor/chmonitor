@@ -269,6 +269,9 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
 - **Skeletons:** `components/skeletons/` — match final layout (no layout shift).
 - **First-run:** `components/host/first-run-gate.tsx` →
   `first-run-empty-state.tsx` (cloud signed-in / cloud anon / self-hosted).
+- **Sidebar favorites:** pinned items in the Favorites group can be
+  drag-reordered (`nav-favorites.tsx`); order is the
+  `chm-pinned-favorites` localStorage pin list (`lib/menu/favorites-store.ts`).
 - **Dashboard widget grid** (plan 57, `components/dashboard/`): `grid.tsx`
   lays out `DashboardWidget[]` (chart/table/stat/text, `@/types/dashboard-layout`)
   on a fixed 12-column CSS grid; view mode is plain positioned `div`s, arrange

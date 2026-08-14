@@ -2,7 +2,9 @@ import {
   __resetFavoritesForTests,
   getFavoriteHrefs,
   isFavoriteHref,
+  moveHref,
   pinFavorite,
+  reorderFavorites,
   subscribeFavorites,
   toggleFavorite,
   unpinFavorite,
@@ -176,5 +178,90 @@ describe('subscribeFavorites', () => {
     pinFavorite('/overview')
     unsubscribe()
     expect(calls).toBe(0)
+  })
+})
+
+describe('moveHref', () => {
+  test('swaps adjacent hrefs', () => {
+    expect(moveHref(['/a', '/b', '/c'], '/a', '/b')).toEqual(['/b', '/a', '/c'])
+  })
+
+  test('moves first href to last', () => {
+    expect(moveHref(['/a', '/b', '/c'], '/a', '/c')).toEqual(['/b', '/c', '/a'])
+  })
+
+  test('unknown href is a no-op', () => {
+    expect(moveHref(['/a', '/b'], '/a', '/missing')).toEqual(['/a', '/b'])
+    expect(moveHref(['/a', '/b'], '/missing', '/b')).toEqual(['/a', '/b'])
+  })
+
+  test('same href is a no-op', () => {
+    expect(moveHref(['/a', '/b'], '/a', '/a')).toEqual(['/a', '/b'])
+  })
+})
+
+describe('reorderFavorites', () => {
+  test('swaps adjacent pinned hrefs', () => {
+    pinFavorite('/overview')
+    pinFavorite('/traffic')
+    pinFavorite('/merges')
+    reorderFavorites('/overview', '/traffic')
+    expect(getFavoriteHrefs()).toEqual(['/traffic', '/overview', '/merges'])
+  })
+
+  test('moves first pinned href to last', () => {
+    pinFavorite('/overview')
+    pinFavorite('/traffic')
+    pinFavorite('/merges')
+    reorderFavorites('/overview', '/merges')
+    expect(getFavoriteHrefs()).toEqual(['/traffic', '/merges', '/overview'])
+  })
+
+  test('unknown href is a no-op', () => {
+    pinFavorite('/overview')
+    pinFavorite('/traffic')
+    reorderFavorites('/overview', '/not-pinned')
+    expect(getFavoriteHrefs()).toEqual(['/overview', '/traffic'])
+  })
+
+  test('same href is a no-op and does not notify', () => {
+    pinFavorite('/overview')
+    pinFavorite('/traffic')
+    let calls = 0
+    const unsubscribe = subscribeFavorites(() => {
+      calls += 1
+    })
+    reorderFavorites('/overview', '/overview')
+    unsubscribe()
+    expect(calls).toBe(0)
+    expect(getFavoriteHrefs()).toEqual(['/overview', '/traffic'])
+  })
+
+  test('persists the new order to localStorage', () => {
+    pinFavorite('/overview')
+    pinFavorite('/traffic')
+    pinFavorite('/merges')
+    reorderFavorites('/overview', '/merges')
+    expect(
+      JSON.parse(
+        (
+          globalThis as unknown as { localStorage: MemoryStorage }
+        ).localStorage.getItem('chm-pinned-favorites') as string
+      )
+    ).toEqual(['/traffic', '/merges', '/overview'])
+    __resetFavoritesForTests()
+    expect(getFavoriteHrefs()).toEqual(['/traffic', '/merges', '/overview'])
+  })
+
+  test('notifies listeners when order changes', () => {
+    pinFavorite('/overview')
+    pinFavorite('/traffic')
+    let calls = 0
+    const unsubscribe = subscribeFavorites(() => {
+      calls += 1
+    })
+    reorderFavorites('/overview', '/traffic')
+    unsubscribe()
+    expect(calls).toBe(1)
   })
 })
