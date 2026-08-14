@@ -6,7 +6,6 @@ import {
   ExternalLink,
   GripHorizontal,
   Hash,
-  Maximize2Icon,
   Server,
   SparklesIcon,
   Zap,

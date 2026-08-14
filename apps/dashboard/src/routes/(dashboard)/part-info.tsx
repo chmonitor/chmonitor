@@ -6,9 +6,9 @@ import { TableSkeleton } from '@/components/skeletons'
 import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { partInfoConfig } from '@/lib/query-config/tables/part-info'
 import { useHostId } from '@/lib/swr'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function PartInfoContent() {
   const searchParams = useUrlSearchParams()

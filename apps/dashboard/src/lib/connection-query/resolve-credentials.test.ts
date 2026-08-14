@@ -10,10 +10,12 @@
  * inline-connection path stays available for self-hosted deployments only.
  */
 
+import {
+  resolveProxyCredentials,
+  toSessionPayload,
+} from './resolve-credentials'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { createConnectionSession } from '@/lib/connection-sessions/store'
-import { toSessionPayload } from './resolve-credentials'
-import { resolveProxyCredentials } from './resolve-credentials'
 
 const RAW_CONNECTION = {
   host: 'https://attacker-target.example.com:8443',

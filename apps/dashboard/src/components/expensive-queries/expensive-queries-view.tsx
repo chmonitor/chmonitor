@@ -7,6 +7,7 @@ import {
   ScanSearch,
   Timer,
 } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { ChartProps } from '@/components/charts/chart-props'
 import type { ExpensiveQueryRow } from '@/components/expensive-queries/expensive-queries-table'
@@ -24,6 +25,7 @@ import { QueryPageSkeleton } from '@/components/query-tables/query-page-skeleton
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   detectCardErrorVariant,
   getCardErrorDescription,
@@ -35,13 +37,11 @@ import {
   useTimeRange,
 } from '@/lib/context/time-range-context'
 import { truncateSql } from '@/lib/explain-heuristics'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useTableData } from '@/lib/query/use-table-data'
 import { expensiveQueriesConfig } from '@/lib/query-config/queries/expensive-queries'
 import { useHostId } from '@/lib/swr/use-host'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // LoadingState is replaced by QueryPageSkeleton from @/components/query-tables/query-page-skeleton
 // HeaderButton is imported from @/components/query-tables/header-button

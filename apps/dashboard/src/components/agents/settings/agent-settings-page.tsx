@@ -27,8 +27,8 @@ import { SystemPromptTab } from './system-prompt-tab'
 import { useCallback, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { splitHref } from '@/lib/url/url-builder'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 const TAB_IDS = ['provider', 'system-prompt', 'skills', 'mcp'] as const
 type TabId = (typeof TAB_IDS)[number]

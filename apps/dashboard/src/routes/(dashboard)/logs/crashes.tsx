@@ -4,8 +4,8 @@ import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { LogFilters } from '@/components/logs/log-filters'
 import { PageSkeleton } from '@/components/skeletons'
-import { crashLogConfig } from '@/lib/query-config/logs/crashes'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { crashLogConfig } from '@/lib/query-config/logs/crashes'
 
 function CrashesContent() {
   const searchParams = useUrlSearchParams()

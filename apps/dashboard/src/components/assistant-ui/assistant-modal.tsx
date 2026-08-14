@@ -22,7 +22,7 @@ import { BotIcon, Minimize2Icon, PanelRightIcon, XIcon } from 'lucide-react'
 
 import { Thread } from './thread'
 import { AssistantModalPrimitive } from '@assistant-ui/react'
-import { forwardRef, useState } from 'react'
+import { useState } from 'react'
 import { AssistantModalButton } from '@/components/assistant-ui/assistant-modal-button'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { useAgentWidgetMode } from '@/lib/hooks/use-agent-widget-mode'

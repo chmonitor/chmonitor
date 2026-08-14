@@ -1,11 +1,11 @@
 import { ChevronRightIcon } from 'lucide-react'
+import { useLocation } from '@tanstack/react-router'
 import { menuItemsConfig } from '@/menu'
 
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
 import { getBreadcrumbPath } from '@/lib/menu/breadcrumb'
-import { useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 
 interface BreadcrumbProps {

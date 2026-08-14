@@ -1,4 +1,5 @@
 import { ChevronDown, Gauge, RefreshCw, ScanSearch, Timer } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { SlowQueryRow } from '@/components/slow-queries/slow-queries-table'
 import type { CardError } from '@/lib/card-error-utils'
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   detectCardErrorVariant,
   getCardErrorDescription,
@@ -22,14 +24,12 @@ import {
 } from '@/lib/card-error-utils'
 import { useTimeRange } from '@/lib/context/time-range-context'
 import { truncateSql } from '@/lib/explain-heuristics'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useTableData } from '@/lib/query/use-table-data'
 import { slowQueriesConfig } from '@/lib/query-config/queries/slow-queries'
 import { useHostId } from '@/lib/swr/use-host'
 import { useFeatureTracking } from '@/lib/telemetry'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 /** Refresh the slow-queries list every 60s — `query_log` is append-only. */
 const REFRESH_INTERVAL = 60_000

@@ -3,13 +3,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   parseFiltersFromParams,
   serializeActiveFilters,
 } from '@/lib/filters/url-state'
 import { pageOgHead } from '@/lib/og'
 import { historyQueriesConfig } from '@/lib/query-config/queries/history-queries'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function HistoryQueriesPageContent() {
   const searchParams = useUrlSearchParams()

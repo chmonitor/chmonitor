@@ -1,4 +1,5 @@
 import { Moon, Sun } from 'lucide-react'
+import { useLocation } from '@tanstack/react-router'
 
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
@@ -13,7 +14,6 @@ import { IconButton } from '@/components/ui/icon-button'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
-import { useLocation } from '@tanstack/react-router'
 
 interface HeaderActionsProps {
   menuComponent?: React.ReactNode

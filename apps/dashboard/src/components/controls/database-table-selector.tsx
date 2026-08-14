@@ -1,5 +1,6 @@
 import { Database, Table2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { ApiResponse } from '@/lib/api/types'
 
@@ -11,12 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useLocation, useNavigate } from '@tanstack/react-router'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface DatabaseItem {
   name: string

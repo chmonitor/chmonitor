@@ -4,8 +4,8 @@ import {
   UpdateIcon,
 } from '@radix-ui/react-icons'
 import { toast } from 'sonner'
-import type { Row, RowData } from '@tanstack/react-table'
 import { useNavigate } from '@tanstack/react-router'
+import type { Row, RowData } from '@tanstack/react-table'
 
 import type { Action } from './types'
 

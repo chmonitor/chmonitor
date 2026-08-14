@@ -6,9 +6,9 @@ import { getChartComponent, hasChart } from '@/components/charts/chart-registry'
 import { ChartSkeleton, ChartsOnlyPageSkeleton } from '@/components/skeletons'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // A small, curated set of charts spanning query / system / merge / table
 // categories, surfaced as quick picks when no ?name= is set.

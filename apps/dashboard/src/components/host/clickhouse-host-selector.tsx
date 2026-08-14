@@ -1,4 +1,5 @@
 import { GlobeIcon, PlusIcon } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { MergedHostInfo } from '@/lib/swr/use-merged-hosts'
 
@@ -12,12 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
 import { getHost } from '@/lib/utils'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 type ClickHouseHostSelectorProps = {
   currentHostId: number

@@ -4,8 +4,8 @@ import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { LogFilters } from '@/components/logs/log-filters'
 import { PageSkeleton } from '@/components/skeletons'
-import { textLogConfig } from '@/lib/query-config/logs/text-log'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { textLogConfig } from '@/lib/query-config/logs/text-log'
 
 function TextLogContent() {
   const searchParams = useUrlSearchParams()

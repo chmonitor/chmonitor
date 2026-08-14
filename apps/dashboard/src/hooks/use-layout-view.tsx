@@ -1,8 +1,9 @@
+import { useLocation, useNavigate } from '@tanstack/react-router'
+
 import { useCallback, useMemo } from 'react'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useLocation, useNavigate } from '@tanstack/react-router'
-import { splitHref } from '@/lib/url/url-builder'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 export function useLayoutView(): [
   'table' | 'cards',

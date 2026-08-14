@@ -3,8 +3,8 @@
  */
 
 import type { QueryConfig } from '@/types/query-config'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 interface UseFilterStateOptions {
   filterParamPresets?: QueryConfig['filterParamPresets']

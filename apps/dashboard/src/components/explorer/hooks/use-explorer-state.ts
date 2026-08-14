@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { splitHref } from '@/lib/url/url-builder'
+
+import { useCallback, useMemo, useRef } from 'react'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 export type ExplorerTab =
   | 'overview'

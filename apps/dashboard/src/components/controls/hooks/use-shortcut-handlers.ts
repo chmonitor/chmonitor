@@ -5,6 +5,7 @@
  */
 
 import { useNavigate } from '@tanstack/react-router'
+
 import { useHostId } from '@/lib/swr'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
 

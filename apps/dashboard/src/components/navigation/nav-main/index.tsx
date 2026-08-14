@@ -1,8 +1,9 @@
+import { useLocation } from '@tanstack/react-router'
+
 import type { NavMainProps, NavRenderSection } from './types'
 
 import { MenuGroup } from './menu-group'
 import { NavFavorites } from './nav-favorites'
-import { useLocation } from '@tanstack/react-router'
 
 /**
  * NavMain component - main navigation sidebar with grouped menu items

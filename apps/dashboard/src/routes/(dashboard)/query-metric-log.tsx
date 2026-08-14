@@ -3,8 +3,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
-import { queryMetricLogConfig } from '@/lib/query-config/system/query-metric-log'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { queryMetricLogConfig } from '@/lib/query-config/system/query-metric-log'
 
 function QueryMetricLogPageContent() {
   const searchParams = useUrlSearchParams()

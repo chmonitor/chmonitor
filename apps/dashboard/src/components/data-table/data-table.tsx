@@ -22,8 +22,8 @@ import {
 } from '@/components/data-table/hooks'
 import { resolveTableBehavior } from '@/components/data-table/utils/resolve-table-behavior'
 import { FilterBar } from '@/components/filters/filter-bar'
-import { cn } from '@/lib/utils'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { cn } from '@/lib/utils'
 
 /**
  * DataTable - Main data table component with sorting, filtering, virtualization

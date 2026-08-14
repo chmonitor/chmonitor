@@ -1,4 +1,5 @@
 import { BookOpenIcon } from 'lucide-react'
+import { useLocation } from '@tanstack/react-router'
 
 import { HostSwitcher } from '@/components/host/host-switcher'
 import { SampleClusterBanner } from '@/components/host/sample-cluster-banner'
@@ -20,7 +21,6 @@ import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { isMenuItemActive } from '@/lib/menu/breadcrumb'
 import { getVisibleMenuItems } from '@/lib/menu/visible-items'
-import { useLocation } from '@tanstack/react-router'
 
 export function AppSidebar() {
   const { config } = useFeaturePermissions()

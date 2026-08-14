@@ -5,9 +5,9 @@ import { ReadonlyTablesWarning } from '@/components/clusters/readonly-tables-war
 import { TableSkeleton } from '@/components/skeletons'
 import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { clustersReplicasStatusConfig } from '@/lib/query-config/system/replicas-status'
 import { useHostId } from '@/lib/swr'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 function ReplicasStatusContent() {
   const searchParams = useUrlSearchParams()

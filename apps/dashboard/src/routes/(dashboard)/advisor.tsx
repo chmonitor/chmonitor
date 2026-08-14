@@ -21,11 +21,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
 import { splitHref } from '@/lib/url/url-builder'
-import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 
 // CodeMirror is heavy and browser-only — lazy-load it, same as /explain.
 const SqlEditor = lazy(() =>

@@ -6,8 +6,8 @@ import { apiFetch } from './api-fetch'
 import { visibilityAwareInterval } from './config'
 import { type FetchError, throwIfNotOk } from './fetch-error'
 import { useCallback } from 'react'
-import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 
 /**
  * SWR hook for the view-only PeerDB proxy at `/api/v1/peerdb/*`.

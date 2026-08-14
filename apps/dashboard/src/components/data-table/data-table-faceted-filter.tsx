@@ -1,4 +1,5 @@
 import { ListFilterIcon, XIcon } from 'lucide-react'
+import { useLocation } from '@tanstack/react-router'
 
 import type { ArrayElement } from '@chm/types/generic'
 import type { QueryConfig } from '@/types/query-config'
@@ -14,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 
 interface DataTableFacetedFilterProps {

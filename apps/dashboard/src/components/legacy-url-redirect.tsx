@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { splitHref } from '@/lib/url/url-builder'
+
+import { useEffect } from 'react'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { splitHref } from '@/lib/url/url-builder'
 
 /**
  * Detects and redirects from legacy URL format:
