@@ -22,6 +22,7 @@ import {
   buildMonthWindowModel,
   buildStatCards,
   CALENDAR_DAY_LABELS,
+  earliestRowIso,
   formatCalendarDate,
   getIntensityClass,
   isoDate,
@@ -172,9 +173,11 @@ function CalendarBody({
 
   // `today` is read once per render from the local clock; memoize so the
   // cell build is off every hover re-render and only reruns on mode change.
-  // The window spans whole months up to MAX_WINDOW_MONTHS back (capped at the
-  // oldest day we actually have data for) and always through the END of the
-  // current month — its remaining days render as dimmed, non-counting cells.
+  // The window spans whole months up to MAX_WINDOW_MONTHS back — including
+  // empty months before the first data row — so a wide card fills its width.
+  // pickVisibleMonthBlocks then drops those oldest months first on resize.
+  // The current month always runs through its last day (remaining days dimmed).
+  const dataStartIso = useMemo(() => earliestRowIso(data), [data])
   const model = useMemo(
     () => buildMonthWindowModel(data, new Date(), metric),
     [data, metric]
@@ -186,10 +189,11 @@ function CalendarBody({
     () => pickVisibleMonthBlocks(monthBlocks, gridWidth),
     [monthBlocks, gridWidth]
   )
-  // KPIs, colour scale and range caption describe the visible window only.
+  // KPIs, colour scale and range caption describe the visible data window,
+  // not left-side padding months that only exist to fill the card.
   const summary = useMemo(
-    () => summarizeVisibleBlocks(visibleBlocks),
-    [visibleBlocks]
+    () => summarizeVisibleBlocks(visibleBlocks, dataStartIso),
+    [visibleBlocks, dataStartIso]
   )
   const statCards = useMemo(
     () => buildStatCards(metric, summary),
@@ -340,7 +344,7 @@ function CalendarBody({
           to the latest month (older months clip off the left); the scrollbar is
           hidden for a cleaner look — swipe/wheel still scrolls back in time. */}
       <div ref={scrollRef} className="scrollbar-hide overflow-x-auto">
-        <div className="flex w-max items-start gap-3">
+        <div className="flex w-full items-start gap-3">
           {/* Weekday gutter (Sun-first; GitHub shows Mon/Wed/Fri). The leading
               spacer aligns the rows with each block's month label. */}
           <div className={cn('flex flex-shrink-0 flex-col', CELL_GAP)}>
@@ -355,24 +359,28 @@ function CalendarBody({
             ))}
           </div>
 
-          {/* One block per month (trimmed to what fits; oldest dropped) */}
-          {visibleBlocks.map((block: MonthBlock) => (
-            <div key={block.key} className="flex flex-col">
-              <div className="text-muted-foreground mb-1 h-[10px] text-[10px] leading-none">
-                {block.label}
+          {/* Months pack to the right so leftover space is on the left.
+              Extra empty months are added there to fill; on resize the
+              oldest (left) months drop first. */}
+          <div className="flex min-w-0 flex-1 items-start justify-end gap-3">
+            {visibleBlocks.map((block: MonthBlock) => (
+              <div key={block.key} className="flex flex-col">
+                <div className="text-muted-foreground mb-1 h-[10px] text-[10px] leading-none">
+                  {block.label}
+                </div>
+                <div className={cn('flex', CELL_GAP)}>
+                  {block.weeks.map((week, wi) => (
+                    <div
+                      key={week.find(Boolean)?.iso ?? `${block.key}-w${wi}`}
+                      className={cn('flex flex-col', CELL_GAP)}
+                    >
+                      {week.map((day, dow) => renderDay(day, dow))}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className={cn('flex', CELL_GAP)}>
-                {block.weeks.map((week, wi) => (
-                  <div
-                    key={week.find(Boolean)?.iso ?? `${block.key}-w${wi}`}
-                    className={cn('flex flex-col', CELL_GAP)}
-                  >
-                    {week.map((day, dow) => renderDay(day, dow))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
@@ -496,8 +504,8 @@ export const ChartQueryCountHeatmap = createCustomChart({
   chartName: 'query-count-heatmap',
   defaultTitle: 'Query Activity Heatmap',
   // Two years of daily aggregates so wide screens have history to fill with;
-  // the client trims to what fits. Deployments with a short query_log TTL just
-  // return fewer rows (the window is then capped at data coverage).
+  // the client always builds up to MAX_WINDOW_MONTHS (empty months on the
+  // left when query_log is short) and trims oldest-first to the card width.
   defaultLastHours: 24 * 365 * 2,
   dataTestId: 'query-count-heatmap-chart',
   contentClassName: 'overflow-hidden',

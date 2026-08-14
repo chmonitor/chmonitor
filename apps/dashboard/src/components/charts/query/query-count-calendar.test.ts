@@ -5,6 +5,7 @@ import {
   buildMonthBlocks,
   buildMonthWindowModel,
   buildStatCards,
+  earliestRowIso,
   formatCalendarDate,
   formatDurationMs,
   getIntensityClass,
@@ -260,11 +261,11 @@ describe('pickVisibleMonthBlocks', () => {
   const today = new Date(2026, 5, 17)
   const blocks = buildMonthBlocks(buildCalendarModel([], today, QUERIES, 53))
 
-  it('returns all blocks when width is unknown (≤ 0)', () => {
-    expect(pickVisibleMonthBlocks(blocks, 0)).toHaveLength(blocks.length)
-    expect(pickVisibleMonthBlocks(blocks, Number.NaN)).toHaveLength(
-      blocks.length
-    )
+  it('keeps only the newest month when width is unknown (≤ 0)', () => {
+    const unknown = pickVisibleMonthBlocks(blocks, 0)
+    expect(unknown).toHaveLength(1)
+    expect(unknown[0]?.key).toBe(blocks.at(-1)?.key ?? '')
+    expect(pickVisibleMonthBlocks(blocks, Number.NaN)).toHaveLength(1)
   })
 
   it('drops the oldest months first, always keeping the most recent', () => {
@@ -328,6 +329,15 @@ describe('buildStatCards', () => {
   })
 })
 
+describe('earliestRowIso', () => {
+  it('returns the oldest date string among rows', () => {
+    expect(
+      earliestRowIso([row('2026-05-02'), row('2026-04-20'), row('2026-06-01')])
+    ).toBe('2026-04-20')
+    expect(earliestRowIso([])).toBeNull()
+  })
+})
+
 describe('resolveWindowStart', () => {
   const today = new Date(2026, 5, 17) // Jun 17 2026
 
@@ -339,13 +349,13 @@ describe('resolveWindowStart', () => {
     expect(start.getDate()).toBe(1)
   })
 
-  it('starts at the oldest data month when coverage is shorter', () => {
+  it('still starts at the full cap when coverage is shorter, so empty months can fill the card', () => {
     const start = resolveWindowStart(
       [row('2026-04-20'), row('2026-05-02')],
       today
     )
-    expect(start.getFullYear()).toBe(2026)
-    expect(start.getMonth()).toBe(3) // April
+    expect(start.getFullYear()).toBe(2024)
+    expect(start.getMonth()).toBe(6)
     expect(start.getDate()).toBe(1)
   })
 
@@ -362,10 +372,10 @@ describe('buildMonthWindowModel', () => {
   it('starts at a month boundary — the oldest block has no foreign days', () => {
     const model = buildMonthWindowModel([row('2026-04-10')], today, QUERIES)
     const blocks = buildMonthBlocks(model)
-    expect(blocks[0]?.key).toBe('2026-3') // April, not a March remnant
+    expect(blocks[0]?.key).toBe('2024-6') // Jul 2024 (24-month cap), not a remnant
     const days = blocks[0]?.weeks.flat().filter(Boolean) ?? []
-    expect(days.every((d) => d?.date.getMonth() === 3)).toBe(true)
-    expect(days.some((d) => d?.iso === '2026-04-01')).toBe(true)
+    expect(days.every((d) => d?.date.getMonth() === 6)).toBe(true)
+    expect(days.some((d) => d?.iso === '2024-07-01')).toBe(true)
   })
 
   it('runs through the end of the current month (future days dimmed)', () => {
@@ -420,5 +430,13 @@ describe('summarizeVisibleBlocks', () => {
     expect(empty.total).toBe(0)
     expect(empty.peak).toBeNull()
     expect(empty.rangeLabel).toBe('')
+  })
+
+  it('ignores left-pad months before the first data day in KPIs', () => {
+    const all = summarizeVisibleBlocks(blocks)
+    const fromData = summarizeVisibleBlocks(blocks, '2026-04-10')
+    expect(fromData.total).toBe(all.total)
+    expect(fromData.rangeLabel).toBe('Apr 2026 – Jun 2026')
+    expect(fromData.totalDays).toBeLessThan(all.totalDays)
   })
 })

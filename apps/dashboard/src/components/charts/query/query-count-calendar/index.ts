@@ -49,6 +49,7 @@ export {
 export {
   buildMonthBlocks,
   buildMonthWindowModel,
+  earliestRowIso,
   MAX_WINDOW_MONTHS,
   pickVisibleMonthBlocks,
   resolveWindowStart,

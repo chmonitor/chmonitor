@@ -24,30 +24,30 @@ export const MAX_WINDOW_MONTHS = 24
 
 /**
  * First day of the model window: the start of the month `maxMonths - 1` months
- * before `today`, but never earlier than the month of the oldest row we have.
- * Capping at data coverage keeps a wide screen from rendering a year of empty
- * cells for a deployment with a short `query_log` TTL.
+ * before `today`. Empty months before the first data row still render so a
+ * wide card fills its width; {@link pickVisibleMonthBlocks} then drops those
+ * oldest months first when the viewport shrinks.
  */
 export function resolveWindowStart(
-  rows: HeatmapDayRow[],
+  _rows: HeatmapDayRow[],
   today: Date,
   maxMonths = MAX_WINDOW_MONTHS
 ): Date {
-  const capStart = new Date(
+  return new Date(
     today.getFullYear(),
     today.getMonth() - (Math.max(1, maxMonths) - 1),
     1,
     12
   )
+}
+
+/** ISO date of the oldest row, or null when there is no data. */
+export function earliestRowIso(rows: HeatmapDayRow[]): string | null {
   let earliest: string | null = null
   for (const r of rows) {
     if (r.date && (earliest === null || r.date < earliest)) earliest = r.date
   }
-  if (!earliest) return capStart
-  const [y, m] = earliest.split('-').map(Number)
-  if (!Number.isFinite(y) || !Number.isFinite(m)) return capStart
-  const dataStart = new Date(y, m - 1, 1, 12)
-  return dataStart > capStart ? dataStart : capStart
+  return earliest
 }
 
 /**
@@ -142,9 +142,10 @@ export interface MonthBlockSizing {
 /**
  * Pick the trailing (most recent) month blocks that fit within `availableWidth`,
  * dropping the oldest first so the current month is always kept on screen. The
- * newest month is always included even if it alone exceeds the width. Returns
- * all blocks unchanged when the width is unknown (≤ 0), so the caller can fall
- * back to horizontal scrolling before it has measured its container.
+ * newest month is always included even if it alone exceeds the width. When the
+ * width is unknown (≤ 0) only the newest month is kept — extra left months
+ * are added after ResizeObserver measures the card, so we never flash a
+ * year of empty padding before the first layout.
  */
 export function pickVisibleMonthBlocks(
   blocks: MonthBlock[],
@@ -152,7 +153,9 @@ export function pickVisibleMonthBlocks(
   sizing: MonthBlockSizing = {}
 ): MonthBlock[] {
   if (blocks.length === 0) return blocks
-  if (!Number.isFinite(availableWidth) || availableWidth <= 0) return blocks
+  if (!Number.isFinite(availableWidth) || availableWidth <= 0) {
+    return blocks.slice(-1)
+  }
 
   const colPx = sizing.colPx ?? 13
   const blockGapPx = sizing.blockGapPx ?? 12
@@ -177,10 +180,15 @@ export function pickVisibleMonthBlocks(
  * Recompute the aggregates over just the month blocks currently rendered, so
  * "over N days" / "of N (x%)" / the range caption / the colour scale all
  * describe the window the user actually sees. Future cells of the current month
- * render but never count. Every day appears in exactly one block (boundary
- * weeks are masked per month), so no de-duplication is needed.
+ * render but never count. Days before `excludeBeforeIso` (left-side padding
+ * months with no data) render as empty cells but do not inflate KPIs.
+ * Every day appears in exactly one block (boundary weeks are masked per month),
+ * so no de-duplication is needed.
  */
-export function summarizeVisibleBlocks(blocks: MonthBlock[]): CalendarStats {
+export function summarizeVisibleBlocks(
+  blocks: MonthBlock[],
+  excludeBeforeIso?: string | null
+): CalendarStats {
   let max = 0
   let total = 0
   let activeDays = 0
@@ -193,6 +201,7 @@ export function summarizeVisibleBlocks(blocks: MonthBlock[]): CalendarStats {
     for (const week of block.weeks) {
       for (const day of week) {
         if (!day || day.isFuture) continue
+        if (excludeBeforeIso && day.iso < excludeBeforeIso) continue
         if (!firstDay || day.date < firstDay) firstDay = day.date
         if (!lastDay || day.date > lastDay) lastDay = day.date
         totalDays += 1
