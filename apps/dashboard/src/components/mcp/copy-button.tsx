@@ -51,6 +51,7 @@ export function CopyButton({ text, className, label }: CopyButtonProps) {
       size="sm"
       className={cn('h-7 px-2', className)}
       onClick={handleCopy}
+      aria-label={copied ? 'Copied' : 'Copy'}
     >
       {copied ? (
         <Check className="size-3.5 text-green-600" />
@@ -74,7 +75,7 @@ export function CodeBlock({ children, copyText, className }: CodeBlockProps) {
       <pre className="rounded-md bg-muted p-3 text-xs overflow-x-auto leading-relaxed">
         <code>{children}</code>
       </pre>
-      <div className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <CopyButton text={copyText ?? children} />
       </div>
     </div>

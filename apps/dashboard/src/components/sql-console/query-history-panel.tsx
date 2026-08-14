@@ -178,7 +178,7 @@ export function QueryHistoryPanel({
                       ` · ${e.rows.toLocaleString()} rows`}
                     {!e.ok && ' · failed'}
                   </span>
-                  <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -260,7 +260,7 @@ export function QueryHistoryPanel({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="size-6 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                     title="Run"
                     aria-label="Run"
                     onClick={() => onSelect(r.query, true)}

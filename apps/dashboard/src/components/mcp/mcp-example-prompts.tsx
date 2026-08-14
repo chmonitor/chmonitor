@@ -30,13 +30,14 @@ function PromptItem({ prompt }: { prompt: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="group w-full flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-sm hover:bg-muted/50 transition-colors"
+      aria-label={copied ? 'Copied prompt' : 'Copy prompt'}
+      className="group w-full flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-sm hover:bg-muted/50 focus-visible:bg-muted/50 transition-colors"
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <MessageSquare className="size-3.5 text-muted-foreground shrink-0" />
         <span className="text-sm truncate">{prompt}</span>
       </div>
-      <span className="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+      <span className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-focus-visible:opacity-100">
         {copied ? (
           <Check className="size-3.5 text-green-600" />
         ) : (

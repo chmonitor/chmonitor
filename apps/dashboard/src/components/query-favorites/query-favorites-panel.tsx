@@ -152,7 +152,7 @@ function FavoriteItem({
 
           <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px]">
             <span>{relTime(fav.createdAt)}</span>
-            <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
               {fav.shareUrl && (
                 <Button
                   variant="ghost"
