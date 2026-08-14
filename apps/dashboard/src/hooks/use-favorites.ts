@@ -32,11 +32,12 @@ export function useToggleFavorite(): (href: string) => void {
 }
 
 export function useReorderFavorites(): (
-  fromHref: string,
-  toHref: string
+  activeHref: string,
+  overHref: string
 ) => void {
   return useCallback(
-    (fromHref: string, toHref: string) => reorderFavorites(fromHref, toHref),
+    (activeHref: string, overHref: string) =>
+      reorderFavorites(activeHref, overHref),
     []
   )
 }

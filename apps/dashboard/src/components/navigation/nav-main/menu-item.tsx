@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 
-import type { HTMLAttributes, Ref } from 'react'
+import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
@@ -9,32 +9,21 @@ import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
-import { useIsFavorite } from '@/hooks/use-favorites'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
 import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
 /**
- * Badges hide (rather than just being shifted left) whenever the hover-only
- * pin button is visible in the same right-hand corner — pinned items keep
- * the pin showing permanently, so the badge must stay hidden for those too.
- * Prevents the pin icon from ever rendering on top of badge text (#2769
- * follow-up).
+ * Badges hide on hover/focus so they never stack on the pin in the same
+ * right-hand corner (#2769 follow-up). Pin is hover-only, so badges stay
+ * visible at rest even when the item is favorited.
  */
-function badgeHiddenClasses(isPinned: boolean) {
-  return cn(
-    'transition-opacity group-hover/menu-item:opacity-0 group-focus-within/menu-item:opacity-0',
-    isPinned && 'opacity-0'
-  )
-}
+const badgeHiddenClasses =
+  'transition-opacity group-hover/menu-item:opacity-0 group-focus-within/menu-item:opacity-0'
 
-function subBadgeHiddenClasses(isPinned: boolean) {
-  return cn(
-    'transition-opacity group-hover/menu-sub-item:opacity-0 group-focus-within/menu-sub-item:opacity-0',
-    isPinned && 'opacity-0'
-  )
-}
+const subBadgeHiddenClasses =
+  'transition-opacity group-hover/menu-sub-item:opacity-0 group-focus-within/menu-sub-item:opacity-0'
 
 const NewBadge = lazy(() =>
   import('@/components/menu/components/new-badge').then((mod) => ({
@@ -104,10 +93,12 @@ const SingleMenuItem = function SingleMenuItem({
   item,
   isActive,
   liProps,
+  leadingAction,
 }: {
   item: MenuItemType
   isActive: boolean
   liProps?: HTMLAttributes<HTMLLIElement> & { ref?: Ref<HTMLLIElement> }
+  leadingAction?: ReactNode
 }) {
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
@@ -119,7 +110,6 @@ const SingleMenuItem = function SingleMenuItem({
   const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(item.isNew || item.countKey)
-  const isPinned = useIsFavorite(item.href)
 
   // When the page's backing table is missing, either dim it (default) or hide
   // it entirely per the user's Navigation setting. A missing metadata database
@@ -130,6 +120,7 @@ const SingleMenuItem = function SingleMenuItem({
 
   return (
     <SidebarMenuItem {...liProps}>
+      {leadingAction}
       <SidebarMenuButton
         isActive={isActive}
         tooltip={
@@ -139,11 +130,15 @@ const SingleMenuItem = function SingleMenuItem({
               ? `${item.title} (System table not found on this host)`
               : `${item.title} (Requires a metadata database — configure D1 or Postgres)`
         }
-        className={available ? '' : 'opacity-50 text-muted-foreground/50'}
+        className={cn(
+          'cursor-pointer',
+          leadingAction && 'pl-7 group-data-[collapsible=icon]:pl-2',
+          available ? '' : 'opacity-50 text-muted-foreground/50'
+        )}
         render={
           <HostPrefixedLink
             href={item.href}
-            className="flex w-full items-center"
+            className="flex w-full cursor-pointer items-center"
             onClick={closeMobileSidebar}
           />
         }
@@ -155,14 +150,14 @@ const SingleMenuItem = function SingleMenuItem({
       </SidebarMenuButton>
       <PinButton href={item.href} title={item.title} hasBadge={hasBadge} />
       {item.isNew && (
-        <SidebarMenuBadge className={badgeHiddenClasses(isPinned)}>
+        <SidebarMenuBadge className={badgeHiddenClasses}>
           <Suspense fallback={null}>
             <NewBadge href={item.href} isNew={item.isNew} />
           </Suspense>
         </SidebarMenuBadge>
       )}
       {item.countKey && (
-        <SidebarMenuBadge className={badgeHiddenClasses(isPinned)}>
+        <SidebarMenuBadge className={badgeHiddenClasses}>
           <Suspense fallback={null}>
             <CountBadge
               countKey={item.countKey}
@@ -200,7 +195,6 @@ const SubMenuItem = function SubMenuItem({
   const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(subItem.isNew || subItem.countKey)
-  const isPinned = useIsFavorite(subItem.href)
 
   if (!tableAvailable && !settings.dimUnavailablePages) {
     return null
@@ -214,12 +208,15 @@ const SubMenuItem = function SubMenuItem({
           siblingHrefs,
           pathname
         )}
-        className={available ? '' : 'opacity-50 text-muted-foreground/50'}
+        className={cn(
+          'cursor-pointer',
+          available ? '' : 'opacity-50 text-muted-foreground/50'
+        )}
         render={
           <HostPrefixedLink
             href={subItem.href}
             siblingHrefs={siblingHrefs}
-            className="flex w-full items-center gap-2"
+            className="flex w-full cursor-pointer items-center gap-2"
             onClick={closeMobileSidebar}
           />
         }
@@ -228,24 +225,14 @@ const SubMenuItem = function SubMenuItem({
           {subItem.title}
         </span>
         {subItem.isNew && (
-          <span
-            className={cn(
-              'ml-auto flex shrink-0',
-              subBadgeHiddenClasses(isPinned)
-            )}
-          >
+          <span className={cn('ml-auto flex shrink-0', subBadgeHiddenClasses)}>
             <Suspense fallback={null}>
               <NewBadge href={subItem.href} isNew={subItem.isNew} />
             </Suspense>
           </span>
         )}
         {subItem.countKey && (
-          <span
-            className={cn(
-              'ml-auto flex shrink-0',
-              subBadgeHiddenClasses(isPinned)
-            )}
-          >
+          <span className={cn('ml-auto flex shrink-0', subBadgeHiddenClasses)}>
             <Suspense fallback={null}>
               <CountBadge
                 countKey={subItem.countKey}
@@ -372,13 +359,19 @@ export const MenuItem = function MenuItem({
   item,
   pathname,
   liProps,
+  leadingAction,
 }: MenuItemProps) {
   const hasChildren = item.items && item.items.length > 0
   const { isActive, hasActiveChild } = getMenuItemActiveState(item, pathname)
 
   if (!hasChildren) {
     return (
-      <SingleMenuItem item={item} isActive={isActive} liProps={liProps} />
+      <SingleMenuItem
+        item={item}
+        isActive={isActive}
+        liProps={liProps}
+        leadingAction={leadingAction}
+      />
     )
   }
 

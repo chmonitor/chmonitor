@@ -27,13 +27,12 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
 
   return (
     <SidebarMenuAction
-      showOnHover={!isPinned}
+      showOnHover
       className={cn(
         // `SidebarMenuAction` forces `[&>svg]:size-4`; override so the pin
         // stays small and inset from the very right edge with breathing room.
         'right-2 [&>svg]:size-3',
-        hasBadge && 'right-7',
-        isPinned && 'opacity-100'
+        hasBadge && 'right-7'
       )}
       onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
@@ -77,8 +76,7 @@ export function SubPinButton({ href, title, hasBadge }: SubPinButtonProps) {
       aria-pressed={isPinned}
       className={cn(
         'absolute top-1/2 right-2 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden',
-        hasBadge && 'right-7',
-        isPinned && 'opacity-100'
+        hasBadge && 'right-7'
       )}
     >
       <Pin className={cn('size-3', isPinned && 'fill-current')} />

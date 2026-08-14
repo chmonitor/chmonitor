@@ -78,6 +78,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   inside `PopoverContent`, closing the popover unmounts the dialog and nothing
   appears. Keep the selected item + dialog in the parent, as a sibling of
   `<Popover>` — see `components/insights/insights-popover.tsx`.
+- **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
+  hover-only. Favorites also reveal a grip handle on hover — drag it to
+  reorder (`nav-favorites.tsx`).
 - **Overflow strip (one row, no wrap):** `scrollbar-hide overflow-x-auto` + `py-*`
   (so shadows/accents/focus rings aren't clipped) with a chevron button + a
   `from-background`→`transparent` edge fade per scrollable side, paging via

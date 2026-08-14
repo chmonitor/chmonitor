@@ -1,4 +1,4 @@
-import type { HTMLAttributes, Ref } from 'react'
+import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import type {
   MenuItem as MenuItemType,
   MenuSection,
@@ -22,6 +22,8 @@ export interface MenuItemProps {
   pathname: string
   /** Optional props for the outer `li` (favorites drag reorder). */
   liProps?: HTMLAttributes<HTMLLIElement> & { ref?: Ref<HTMLLIElement> }
+  /** Optional left-side hover control (favorites drag handle). */
+  leadingAction?: ReactNode
 }
 
 /**
