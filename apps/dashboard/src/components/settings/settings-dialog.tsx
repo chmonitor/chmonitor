@@ -47,7 +47,7 @@ export function SettingsDialog({
         />
       )}
       <DialogContent
-        className="max-h-[85vh] sm:max-w-3xl"
+        className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-3xl"
         data-testid="settings-dialog"
       >
         <DialogHeader>

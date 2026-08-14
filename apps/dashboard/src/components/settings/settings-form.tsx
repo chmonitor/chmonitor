@@ -267,7 +267,7 @@ export function SettingsForm({
         orientation="vertical"
         className="flex min-h-0 flex-1 gap-4"
       >
-        <TabsList className="h-fit w-44 shrink-0 flex-col items-stretch border-r border-border pr-1">
+        <TabsList className="h-fit max-h-[60vh] w-36 shrink-0 flex-col items-stretch overflow-y-auto border-r border-border pr-1 sm:w-44">
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
@@ -357,7 +357,7 @@ export function SettingsForm({
                       type="button"
                       onClick={() => handleThemeChange(option.value)}
                       className={cn(
-                        'relative flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-[opacity,border-color,background-color,box-shadow] hover:opacity-80',
+                        'relative flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-[opacity,border-color,background-color,box-shadow] hover:opacity-80 focus-visible:opacity-80',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                         isSelected
                           ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
@@ -420,7 +420,7 @@ export function SettingsForm({
             </Field>
 
             <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-              <Type className="size-3.5 shrink-0" />
+              <Type className="size-3.5 shrink-0" aria-hidden="true" />
               <span className="tabular-nums">{bytePreview}</span>
               <Separator orientation="vertical" className="mx-1 h-4" />
               <span className="tabular-nums">{numberPreview}</span>
