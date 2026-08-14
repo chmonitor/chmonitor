@@ -25,6 +25,7 @@ function mapErrorTypeToStatusCode(errorType: ApiErrorType): number {
     [ApiErrorType.ValidationError]: 400,
     [ApiErrorType.PermissionError]: 403,
     [ApiErrorType.TableNotFound]: 404,
+    [ApiErrorType.ColumnNotFound]: 404,
     [ApiErrorType.NetworkError]: 503,
     [ApiErrorType.QueryError]: 500,
     [ApiErrorType.SslError]: 503,
