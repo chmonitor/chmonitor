@@ -391,7 +391,10 @@ export function SettingsForm({
     { value: 'full', label: 'Full', description: fullExample },
   ]
 
-  const navGroups = [
+  const navGroups: {
+    label: string
+    items: { value: string; label: string; icon: typeof Clock }[]
+  }[] = [
     {
       label: 'Preferences',
       items: [
@@ -413,9 +416,9 @@ export function SettingsForm({
         { value: 'integrations', label: 'Integrations', icon: Globe },
       ],
     },
-  ] as const
+  ]
 
-  const [activeTab, setActiveTab] = useState<string>('general')
+  const [activeTab, setActiveTab] = useState('general')
   const activeLabel =
     navGroups
       .flatMap((group) => group.items)
