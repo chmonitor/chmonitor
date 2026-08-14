@@ -29,7 +29,7 @@ mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwnerId: async () => (await resolveBillingOwner()).id,
 }))
 
-const getPlanForOwner = mock(async () => ({
+const getPlanForOwner = mock(async (_ownerId?: string) => ({
   id: 'free',
   name: 'Free',
   aiRequestsPerDay: 5,
@@ -37,16 +37,16 @@ const getPlanForOwner = mock(async () => ({
   aiOverage: null,
 }))
 mock.module('@/lib/billing/user-subscription', () => ({
-  getPlanForOwner: (ownerId: string) => getPlanForOwner(ownerId),
+  getPlanForOwner: (ownerId?: string) => getPlanForOwner(ownerId),
   resolveOwnerSubscription: async () => null,
 }))
 
 let reserveResult: number | null = 1
-const reserveAiUsage = mock(async (_ownerId: string) => reserveResult)
-const releaseAiUsage = mock(async () => {})
+const reserveAiUsage = mock(async (_ownerId?: string) => reserveResult)
+const releaseAiUsage = mock(async (_ownerId?: string) => {})
 mock.module('@/lib/billing/ai-usage-store', () => ({
-  reserveAiUsage: (ownerId: string) => reserveAiUsage(ownerId),
-  releaseAiUsage: (ownerId: string) => releaseAiUsage(ownerId),
+  reserveAiUsage: (ownerId?: string) => reserveAiUsage(ownerId),
+  releaseAiUsage: (ownerId?: string) => releaseAiUsage(ownerId),
   getAiSpendThisMonth: async () => 0,
   getAiUsageToday: async () => 0,
   incrementAiUsage: async () => {},

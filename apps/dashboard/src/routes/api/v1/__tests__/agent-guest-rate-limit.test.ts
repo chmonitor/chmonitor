@@ -18,10 +18,13 @@ mock.module('@/lib/cloud/cloud-mode', () => ({
     value === 'true' || value === '1' || value === 'cloud',
 }))
 
-const checkRateLimitDurable = mock(async () => ({
-  allowed: true as const,
-  retryAfterSec: 0,
-}))
+const checkRateLimitDurable = mock(
+  async (_key?: string, _limit?: number, _binding?: string) => ({
+    allowed: true as const,
+    retryAfterSec: 0,
+    remaining: 10,
+  })
+)
 
 mock.module('@/lib/api/rate-limiter', () => ({
   checkRateLimitDurable,
