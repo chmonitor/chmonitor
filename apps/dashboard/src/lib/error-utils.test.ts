@@ -21,6 +21,18 @@ function mkError(
 // ─── formatErrorMessage ───────────────────────────────────────────────────────
 
 describe('formatErrorMessage', () => {
+  it('column_not_found — lists missing columns', () => {
+    const err = mkError('column_not_found', 'missing', {
+      missingColumns: [
+        'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
+      ],
+    })
+    const result = formatErrorMessage(err)
+    expect(result).toContain(
+      'Required columns not found: system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay'
+    )
+  })
+
   it('table_not_found — no missingTables → generic message + docs link', () => {
     const err = mkError('table_not_found', 'missing')
     const result = formatErrorMessage(err)
@@ -98,6 +110,12 @@ describe('formatErrorMessage', () => {
 // ─── formatErrorTitle ─────────────────────────────────────────────────────────
 
 describe('formatErrorTitle', () => {
+  it('column_not_found → "Column Not Found"', () => {
+    expect(formatErrorTitle(mkError('column_not_found'))).toBe(
+      'Column Not Found'
+    )
+  })
+
   it('table_not_found → "Table Not Found"', () => {
     expect(formatErrorTitle(mkError('table_not_found'))).toBe('Table Not Found')
   })
@@ -134,6 +152,10 @@ describe('formatErrorTitle', () => {
 // ─── shouldDisplayError ───────────────────────────────────────────────────────
 
 describe('shouldDisplayError', () => {
+  it('column_not_found → false (silent)', () => {
+    expect(shouldDisplayError(mkError('column_not_found'))).toBe(false)
+  })
+
   it('table_not_found → false (silent)', () => {
     expect(shouldDisplayError(mkError('table_not_found'))).toBe(false)
   })
