@@ -99,7 +99,8 @@ Settings dialog (`components/settings/settings-dialog.tsx` +
 + "Local to this browser" header, a **stable height**
 (`h-[min(36rem,85vh)]`) so tabs do not resize the panel, and `select-text`
 so labels copy. Vertical tabs: General / Appearance / Units / Layout /
-Navigation / Integrations. Timezone is a searchable combobox
+Navigation / Integrations. Theme (Light / Dark / System, next-themes) sits
+on General and Appearance with a mini window preview. Timezone is a searchable combobox
 (`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
 Chart palette is a three-card picker with a mini bar preview. Unit options
 show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
