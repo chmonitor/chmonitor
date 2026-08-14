@@ -126,6 +126,90 @@ function Field({
   )
 }
 
+function ThemePreview({ mode }: { mode: 'light' | 'dark' | 'system' }) {
+  if (mode === 'system') {
+    return (
+      <div className="flex h-14 overflow-hidden rounded-md border border-border">
+        <div className="flex flex-1 flex-col bg-zinc-50 p-1.5">
+          <div className="h-1.5 w-8 rounded-sm bg-zinc-300" />
+          <div className="mt-1 h-6 rounded-sm bg-white ring-1 ring-zinc-200" />
+        </div>
+        <div className="flex flex-1 flex-col bg-zinc-900 p-1.5">
+          <div className="h-1.5 w-8 rounded-sm bg-zinc-600" />
+          <div className="mt-1 h-6 rounded-sm bg-zinc-800 ring-1 ring-zinc-700" />
+        </div>
+      </div>
+    )
+  }
+
+  const isDark = mode === 'dark'
+  return (
+    <div
+      className={cn(
+        'flex h-14 flex-col rounded-md border p-1.5',
+        isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
+      )}
+    >
+      <div
+        className={cn(
+          'h-1.5 w-10 rounded-sm',
+          isDark ? 'bg-zinc-600' : 'bg-zinc-300'
+        )}
+      />
+      <div
+        className={cn(
+          'mt-1 flex-1 rounded-sm ring-1',
+          isDark ? 'bg-zinc-800 ring-zinc-700' : 'bg-white ring-zinc-200'
+        )}
+      />
+    </div>
+  )
+}
+
+function ThemePicker({
+  value,
+  onChange,
+}: {
+  value: UserSettings['theme']
+  onChange: (value: UserSettings['theme']) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Theme"
+      className="grid grid-cols-3 gap-2"
+    >
+      {themeOptions.map((option) => {
+        const Icon = option.icon
+        const isSelected = value === option.value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'flex flex-col gap-2 rounded-lg border-2 p-2 text-left transition-[opacity,border-color,background-color,box-shadow] hover:opacity-80',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              isSelected
+                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                : 'border-muted bg-muted/20'
+            )}
+            aria-label={`Select ${option.description}`}
+          >
+            <ThemePreview mode={option.value} />
+            <span className="flex items-center justify-center gap-1 text-xs font-medium">
+              <Icon className="size-3.5" aria-hidden="true" />
+              {option.label}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 const PALETTE_BAR_HEIGHTS = [38, 72, 48, 88, 60]
 
 function PalettePicker({
@@ -343,6 +427,17 @@ export function SettingsForm({
           {/* General */}
           <TabsContent value="general" className="space-y-4 px-1 pb-2">
             <Field
+              label="Theme"
+              icon={Sun}
+              description="Light mode, dark mode, or follow the system. Local to this browser."
+            >
+              <ThemePicker
+                value={settings.theme}
+                onChange={handleThemeChange}
+              />
+            </Field>
+
+            <Field
               label="Timezone"
               icon={Clock}
               description="All datetimes will be displayed in your selected timezone"
@@ -372,34 +467,15 @@ export function SettingsForm({
 
           {/* Appearance */}
           <TabsContent value="appearance" className="space-y-5 px-1 pb-2">
-            <Field label="Theme">
-              <div className="grid grid-cols-3 gap-2">
-                {themeOptions.map((option) => {
-                  const Icon = option.icon
-                  const isSelected = settings.theme === option.value
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleThemeChange(option.value)}
-                      className={cn(
-                        'relative flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-[opacity,border-color,background-color,box-shadow] hover:opacity-80 focus-visible:opacity-80',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-                        isSelected
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-muted bg-muted/20'
-                      )}
-                      aria-pressed={isSelected}
-                      aria-label={`Select ${option.description}`}
-                    >
-                      <Icon className="mb-2 size-5" aria-hidden="true" />
-                      <span className="text-xs font-medium">
-                        {option.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+            <Field
+              label="Theme"
+              icon={Sun}
+              description="Light mode, dark mode, or follow the system."
+            >
+              <ThemePicker
+                value={settings.theme}
+                onChange={handleThemeChange}
+              />
             </Field>
 
             <Field
