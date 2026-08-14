@@ -6,13 +6,11 @@ import {
   Globe,
   Hash,
   LayoutGrid,
-  Moon,
   Palette,
   RotateCcw,
   Rows3,
   Settings,
   SlidersHorizontal,
-  Sun,
 } from 'lucide-react'
 
 import type {
@@ -56,14 +54,9 @@ interface SettingsFormProps {
 }
 
 const themeOptions = [
-  { value: 'light', label: 'Light', icon: Sun, description: 'Light mode' },
-  { value: 'dark', label: 'Dark', icon: Moon, description: 'Dark mode' },
-  {
-    value: 'system',
-    label: 'System',
-    icon: Settings,
-    description: 'Sync with system',
-  },
+  { value: 'light', label: 'Light', description: 'Light mode' },
+  { value: 'dark', label: 'Dark', description: 'Dark mode' },
+  { value: 'system', label: 'System', description: 'Sync with system' },
 ] as const
 
 const chartPaletteMeta: {
@@ -126,42 +119,67 @@ function Field({
   )
 }
 
-function ThemePreview({ mode }: { mode: 'light' | 'dark' | 'system' }) {
-  if (mode === 'system') {
-    return (
-      <div className="flex h-14 overflow-hidden rounded-md border border-border">
-        <div className="flex flex-1 flex-col bg-zinc-50 p-1.5">
-          <div className="h-1.5 w-8 rounded-sm bg-zinc-300" />
-          <div className="mt-1 h-6 rounded-sm bg-white ring-1 ring-zinc-200" />
-        </div>
-        <div className="flex flex-1 flex-col bg-zinc-900 p-1.5">
-          <div className="h-1.5 w-8 rounded-sm bg-zinc-600" />
-          <div className="mt-1 h-6 rounded-sm bg-zinc-800 ring-1 ring-zinc-700" />
-        </div>
-      </div>
-    )
-  }
-
-  const isDark = mode === 'dark'
+function WindowPane({ dark }: { dark?: boolean }) {
   return (
     <div
       className={cn(
-        'flex h-14 flex-col rounded-md border p-1.5',
-        isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
+        'flex min-w-0 flex-1 flex-col px-1.5 pt-1.5',
+        dark ? 'bg-zinc-900' : 'bg-zinc-100'
       )}
     >
+      <div className="mb-1.5 flex gap-0.5">
+        <span
+          className={cn(
+            'size-1 rounded-full',
+            dark ? 'bg-zinc-600' : 'bg-zinc-300'
+          )}
+        />
+        <span
+          className={cn(
+            'size-1 rounded-full',
+            dark ? 'bg-zinc-600' : 'bg-zinc-300'
+          )}
+        />
+        <span
+          className={cn(
+            'size-1 rounded-full',
+            dark ? 'bg-zinc-600' : 'bg-zinc-300'
+          )}
+        />
+      </div>
       <div
         className={cn(
-          'h-1.5 w-10 rounded-sm',
-          isDark ? 'bg-zinc-600' : 'bg-zinc-300'
+          'mb-0.5 h-1 w-3/4 rounded-sm',
+          dark ? 'bg-zinc-700' : 'bg-zinc-300'
         )}
       />
       <div
         className={cn(
-          'mt-1 flex-1 rounded-sm ring-1',
-          isDark ? 'bg-zinc-800 ring-zinc-700' : 'bg-white ring-zinc-200'
+          'mb-0.5 h-1 w-full rounded-sm',
+          dark ? 'bg-zinc-700' : 'bg-zinc-300'
         )}
       />
+      <div
+        className={cn(
+          'h-1 w-2/3 rounded-sm',
+          dark ? 'bg-zinc-700' : 'bg-zinc-300'
+        )}
+      />
+    </div>
+  )
+}
+
+function ThemePreview({ mode }: { mode: 'light' | 'dark' | 'system' }) {
+  return (
+    <div className="flex h-[52px] w-[68px] overflow-hidden rounded-lg ring-1 ring-black/10 dark:ring-white/10">
+      {mode === 'light' && <WindowPane />}
+      {mode === 'dark' && <WindowPane dark />}
+      {mode === 'system' && (
+        <>
+          <WindowPane dark />
+          <WindowPane />
+        </>
+      )}
     </div>
   )
 }
@@ -177,10 +195,9 @@ function ThemePicker({
     <div
       role="radiogroup"
       aria-label="Theme"
-      className="grid grid-cols-3 gap-2"
+      className="flex items-start gap-3"
     >
       {themeOptions.map((option) => {
-        const Icon = option.icon
         const isSelected = value === option.value
         return (
           <button
@@ -189,23 +206,45 @@ function ThemePicker({
             role="radio"
             aria-checked={isSelected}
             onClick={() => onChange(option.value)}
-            className={cn(
-              'flex flex-col gap-2 rounded-lg border-2 p-2 text-left transition-[opacity,border-color,background-color,box-shadow] hover:opacity-80',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-              isSelected
-                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                : 'border-muted bg-muted/20'
-            )}
+            className="flex flex-col items-center gap-1.5 focus-visible:outline-none"
             aria-label={`Select ${option.description}`}
           >
-            <ThemePreview mode={option.value} />
-            <span className="flex items-center justify-center gap-1 text-xs font-medium">
-              <Icon className="size-3.5" aria-hidden="true" />
+            <span
+              className={cn(
+                'rounded-[14px] p-0.5 ring-2 transition-shadow',
+                isSelected
+                  ? 'ring-foreground'
+                  : 'ring-transparent hover:ring-border'
+              )}
+            >
+              <ThemePreview mode={option.value} />
+            </span>
+            <span
+              className={cn(
+                'text-xs',
+                isSelected ? 'text-foreground' : 'text-muted-foreground'
+              )}
+            >
               {option.label}
             </span>
           </button>
         )
       })}
+    </div>
+  )
+}
+
+function SettingsRow({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-1">
+      <span className="text-sm">{label}</span>
+      {children}
     </div>
   )
 }
@@ -489,16 +528,12 @@ export function SettingsForm({
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             {/* General */}
             <TabsContent value="general" className="space-y-4 px-1 pb-2">
-              <Field
-                label="Theme"
-                icon={Sun}
-                description="Light mode, dark mode, or follow the system. Local to this browser."
-              >
+              <SettingsRow label="Theme">
                 <ThemePicker
                   value={settings.theme}
                   onChange={handleThemeChange}
                 />
-              </Field>
+              </SettingsRow>
 
               <Field
                 label="Timezone"
@@ -530,16 +565,12 @@ export function SettingsForm({
 
             {/* Appearance */}
             <TabsContent value="appearance" className="space-y-5 px-1 pb-2">
-              <Field
-                label="Theme"
-                icon={Sun}
-                description="Light mode, dark mode, or follow the system."
-              >
+              <SettingsRow label="Theme">
                 <ThemePicker
                   value={settings.theme}
                   onChange={handleThemeChange}
                 />
-              </Field>
+              </SettingsRow>
 
               <Field
                 label="Chart palette"

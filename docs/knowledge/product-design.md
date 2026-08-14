@@ -101,8 +101,8 @@ Settings dialog (`components/settings/settings-dialog.tsx` +
 so labels copy. Layout is `p-0`: a flat left rail (section labels
 Preferences / Display / Workspace, icon + label rows, selected as a muted
 pill, `border-r`) and a content pane whose heading is the active tab.
-Theme (Light / Dark / System, next-themes) sits
-on General and Appearance with a mini window preview. Timezone is a searchable combobox
+Theme (Light / Dark / System, next-themes) is a
+label-left / thumbnails-right row on General and Appearance. Timezone is a searchable combobox
 (`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
 Chart palette is a three-card picker with a mini bar preview. Unit options
 show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
