@@ -192,7 +192,7 @@ function DraggableTableHeader({
           className={cn(
             'absolute left-0 size-6 shrink-0 cursor-grab text-muted-foreground opacity-0 sm:inline-flex',
             'active:cursor-grabbing',
-            'group-hover:opacity-40 hover:opacity-100 focus:opacity-100 focus-visible:opacity-100',
+            'group-hover:opacity-40 group-focus-within:opacity-40 hover:opacity-100 focus:opacity-100 focus-visible:opacity-100',
             'transition',
             'disabled:cursor-default disabled:opacity-50'
           )}
