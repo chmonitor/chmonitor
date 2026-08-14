@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from 'react'
+import type { HTMLAttributes, Ref } from 'react'
 import type {
   MenuItem as MenuItemType,
   MenuSection,
@@ -21,7 +21,7 @@ export interface MenuItemProps {
   /** Current pathname for active state detection */
   pathname: string
   /** Optional props for the outer `li` (favorites drag reorder). */
-  liProps?: HTMLAttributes<HTMLLIElement>
+  liProps?: HTMLAttributes<HTMLLIElement> & { ref?: Ref<HTMLLIElement> }
 }
 
 /**

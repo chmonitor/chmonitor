@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 
-import type { HTMLAttributes } from 'react'
+import type { HTMLAttributes, Ref } from 'react'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
@@ -107,7 +107,7 @@ const SingleMenuItem = function SingleMenuItem({
 }: {
   item: MenuItemType
   isActive: boolean
-  liProps?: HTMLAttributes<HTMLLIElement>
+  liProps?: HTMLAttributes<HTMLLIElement> & { ref?: Ref<HTMLLIElement> }
 }) {
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
