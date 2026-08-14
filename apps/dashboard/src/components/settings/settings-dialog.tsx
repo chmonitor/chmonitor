@@ -48,7 +48,7 @@ export function SettingsDialog({
         />
       )}
       <DialogContent
-        className="flex max-h-[85vh] flex-col overflow-hidden rounded-xl border bg-card sm:max-w-3xl"
+        className="flex h-[min(36rem,85vh)] flex-col overflow-hidden rounded-xl border bg-card select-text sm:max-w-3xl"
         data-testid="settings-dialog"
       >
         <DialogHeader className="gap-1.5">

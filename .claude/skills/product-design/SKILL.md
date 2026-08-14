@@ -188,13 +188,16 @@ The Settings dialog (`components/settings/settings-form.tsx`) exposes units
 (`byteUnit`, `numberFormat`), chart palette (`chartPalette`), table density
 (`tableDensity`) and default time range on `UserSettings`. Header is Settings
 icon + title + one-line "Local to this browser"; surface is
-`rounded-xl border bg-card`. Every DEFAULT reproduces the prior look
-byte-for-byte. Applied by `AppearanceSettingsProvider`
-(`lib/context/appearance-settings.tsx`): units → module snapshot in
-`lib/format-settings.ts` (read by the `format-readable` helpers); palette/density
-→ `data-chart-palette` / `data-density` on `<html>` with `--chart-*` and
-`data-slot` padding overrides in `styles.css` (never edit `ui/table.tsx`). For
-2–3 choices use `components/settings/segmented-control.tsx`. Full detail:
+`rounded-xl border bg-card` with a **stable height** (`h-[min(36rem,85vh)]`)
+and `select-text` so labels copy. Timezone uses `timezone-combobox.tsx`
+(search + browser zone on top). Palette is a card picker with mini bars, not
+a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
+Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
+Every DEFAULT reproduces the prior look byte-for-byte. Applied by
+`AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
+module snapshot in `lib/format-settings.ts`; palette/density →
+`data-chart-palette` / `data-density` on `<html>`. For 2–3 choices use
+`components/settings/segmented-control.tsx`. Full detail:
 `docs/knowledge/product-design.md`.
 
 ## Adding a page

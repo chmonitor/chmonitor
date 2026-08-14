@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 export interface SegmentedOption<T extends string> {
   value: T
   label: string
+  /** Example value shown under the label (e.g. "1.5 GiB"). */
+  description?: string
   icon?: LucideIcon
 }
 
@@ -55,6 +57,11 @@ export function SegmentedControl<T extends string>({
           >
             {Icon && <Icon className="size-4" aria-hidden="true" />}
             <span className="text-xs font-medium">{option.label}</span>
+            {option.description && (
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                {option.description}
+              </span>
+            )}
           </button>
         )
       })}
