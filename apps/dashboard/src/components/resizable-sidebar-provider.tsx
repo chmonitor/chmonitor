@@ -34,6 +34,49 @@ function ResizeHandle() {
     }
   }, [])
 
+  const applyWidth = (newWidth: number, persist: boolean) => {
+    const wrapper = document.querySelector(
+      '[data-slot="sidebar-wrapper"]'
+    ) as HTMLElement | null
+    if (!wrapper) return
+    const clamped = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth))
+    wrapper.style.setProperty('--sidebar-width', `${clamped}px`)
+    setCurrentWidth(clamped)
+    if (persist) {
+      localStorage.setItem(STORAGE_KEY, clamped.toString())
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 32 : 8
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      if (state === 'collapsed') return
+      const next = currentWidth - step
+      if (next < COLLAPSE_THRESHOLD) {
+        setOpen(false)
+        return
+      }
+      applyWidth(next, true)
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      if (state === 'collapsed') {
+        setOpen(true)
+        applyWidth(Math.max(currentWidth, DEFAULT_WIDTH), true)
+        return
+      }
+      applyWidth(currentWidth + step, true)
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      setOpen(true)
+      applyWidth(MIN_WIDTH, true)
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      setOpen(true)
+      applyWidth(MAX_WIDTH, true)
+    }
+  }
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -144,19 +187,22 @@ function ResizeHandle() {
       aria-valuenow={currentWidth}
       aria-valuemin={MIN_WIDTH}
       aria-valuemax={MAX_WIDTH}
+      tabIndex={0}
       onMouseDown={handleMouseDown}
-      className="group fixed top-0 bottom-0 z-20 hidden w-4 -translate-x-1/2 cursor-col-resize items-center justify-center md:flex"
+      onKeyDown={handleKeyDown}
+      className="group fixed top-0 bottom-0 z-20 hidden w-4 -translate-x-1/2 cursor-col-resize items-center justify-center outline-none md:flex"
       style={{ left: leftPosition }}
     >
       {/* Grip icon */}
       <div
         className={cn(
           'relative flex h-6 w-4 items-center justify-center rounded-sm opacity-0 transition-opacity',
-          'group-hover:opacity-100',
+          'group-hover:opacity-100 group-focus-visible:opacity-100',
+          'group-focus-visible:ring-2 group-focus-visible:ring-ring',
           isResizing && 'opacity-100'
         )}
       >
-        <GripVertical className="size-3 text-muted-foreground" />
+        <GripVertical className="size-3 text-muted-foreground" aria-hidden />
       </div>
     </div>
   )

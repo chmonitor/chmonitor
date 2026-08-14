@@ -137,6 +137,7 @@ export function ClerkNavWrapper() {
                     size="lg"
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     data-testid="nav-user-trigger"
+                    aria-label="Open user menu"
                   />
                 }
               >
@@ -180,7 +181,7 @@ export function ClerkNavWrapper() {
                     {user?.primaryEmailAddress?.emailAddress}
                   </span>
                 </div>
-                <ChevronsUpDown className="ml-auto size-4" />
+                <ChevronsUpDown className="ml-auto size-4" aria-hidden="true" />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-(--anchor-width) min-w-56 rounded-lg"
