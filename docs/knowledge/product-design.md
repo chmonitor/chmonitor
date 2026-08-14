@@ -98,8 +98,10 @@ Settings dialog (`components/settings/settings-dialog.tsx` +
 `settings-form.tsx`) uses `rounded-xl border bg-card`, a Settings icon + title
 + "Local to this browser" header, a **stable height**
 (`h-[min(36rem,85vh)]`) so tabs do not resize the panel, and `select-text`
-so labels copy. Vertical tabs: General / Appearance / Units / Layout /
-Navigation / Integrations. Theme (Light / Dark / System, next-themes) sits
+so labels copy. Layout is `p-0`: a flat left rail (section labels
+Preferences / Display / Workspace, icon + label rows, selected as a muted
+pill, `border-r`) and a content pane whose heading is the active tab.
+Theme (Light / Dark / System, next-themes) sits
 on General and Appearance with a mini window preview. Timezone is a searchable combobox
 (`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
 Chart palette is a three-card picker with a mini bar preview. Unit options

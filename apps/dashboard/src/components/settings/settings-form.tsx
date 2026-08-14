@@ -391,259 +391,322 @@ export function SettingsForm({
     { value: 'full', label: 'Full', description: fullExample },
   ]
 
-  const tabs = [
-    { value: 'general', label: 'General', icon: Clock },
-    { value: 'appearance', label: 'Appearance', icon: Palette },
-    { value: 'units', label: 'Units', icon: Binary },
-    { value: 'layout', label: 'Layout', icon: Rows3 },
-    { value: 'navigation', label: 'Navigation', icon: EyeOff },
-    { value: 'integrations', label: 'Integrations', icon: Globe },
-  ] as const
+  const navGroups: {
+    label: string
+    items: { value: string; label: string; icon: typeof Clock }[]
+  }[] = [
+    {
+      label: 'Preferences',
+      items: [
+        { value: 'general', label: 'General', icon: Clock },
+        { value: 'appearance', label: 'Appearance', icon: Palette },
+      ],
+    },
+    {
+      label: 'Display',
+      items: [
+        { value: 'units', label: 'Units', icon: Binary },
+        { value: 'layout', label: 'Layout', icon: Rows3 },
+      ],
+    },
+    {
+      label: 'Workspace',
+      items: [
+        { value: 'navigation', label: 'Navigation', icon: EyeOff },
+        { value: 'integrations', label: 'Integrations', icon: Globe },
+      ],
+    },
+  ]
+
+  const [activeTab, setActiveTab] = useState('general')
+  const activeLabel =
+    navGroups
+      .flatMap((group) => group.items)
+      .find((item) => item.value === activeTab)?.label ?? 'Settings'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1">
       <Tabs
-        defaultValue="general"
+        value={activeTab}
+        onValueChange={(value) => value && setActiveTab(value)}
         orientation="vertical"
-        className="flex min-h-0 flex-1 gap-4"
+        className="flex min-h-0 flex-1 gap-0"
       >
-        <TabsList className="h-full w-36 shrink-0 flex-col items-stretch overflow-y-auto border-r border-border pr-1 sm:w-44">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            return (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="justify-start gap-2 px-3 py-2"
+        <aside className="flex w-44 shrink-0 flex-col border-r border-border px-3 py-4 sm:w-48">
+          <div className="mb-4 px-2.5">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <Settings
+                className="size-3.5 text-muted-foreground"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+              Settings
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Local to this browser
+            </p>
+          </div>
+          <TabsList
+            variant="line"
+            className="h-auto w-full flex-col items-stretch gap-0.5 overflow-y-auto p-0"
+          >
+            {navGroups.map((group) => (
+              <div key={group.label} className="pb-2">
+                <p className="px-2.5 pb-1 pt-2 text-[11px] font-medium text-muted-foreground">
+                  {group.label}
+                </p>
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <TabsTrigger
+                      key={item.value}
+                      value={item.value}
+                      className={cn(
+                        'h-8 justify-start gap-2 rounded-lg px-2.5 font-normal shadow-none after:hidden',
+                        'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                        'data-active:bg-muted data-active:text-foreground data-active:shadow-none',
+                        'dark:data-active:bg-muted dark:data-active:text-foreground'
+                      )}
+                    >
+                      <Icon
+                        className="size-3.5"
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                      />
+                      {item.label}
+                    </TabsTrigger>
+                  )
+                })}
+              </div>
+            ))}
+          </TabsList>
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center px-5 pt-4 pr-12">
+            <h2 className="text-sm font-semibold">{activeLabel}</h2>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            {/* General */}
+            <TabsContent value="general" className="space-y-4 px-1 pb-2">
+              <Field
+                label="Theme"
+                icon={Sun}
+                description="Light mode, dark mode, or follow the system. Local to this browser."
               >
-                <Icon className="size-4" aria-hidden="true" />
-                {tab.label}
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
-
-        <div className="min-w-0 flex-1 overflow-y-auto pr-1">
-          {/* General */}
-          <TabsContent value="general" className="space-y-4 px-1 pb-2">
-            <Field
-              label="Theme"
-              icon={Sun}
-              description="Light mode, dark mode, or follow the system. Local to this browser."
-            >
-              <ThemePicker
-                value={settings.theme}
-                onChange={handleThemeChange}
-              />
-            </Field>
-
-            <Field
-              label="Timezone"
-              icon={Clock}
-              description="All datetimes will be displayed in your selected timezone"
-            >
-              {!isLoadingDefault && defaultTimezone && (
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={handleResetTimezone}
-                    disabled={!!isUsingDefault}
-                  >
-                    <RotateCcw className="mr-1 size-3" />
-                    Reset to default
-                  </Button>
-                </div>
-              )}
-              <TimezoneCombobox
-                value={settings.timezone}
-                onChange={(timezone) => onUpdate({ timezone })}
-                defaultTimezone={defaultTimezone}
-              />
-            </Field>
-          </TabsContent>
-
-          {/* Appearance */}
-          <TabsContent value="appearance" className="space-y-5 px-1 pb-2">
-            <Field
-              label="Theme"
-              icon={Sun}
-              description="Light mode, dark mode, or follow the system."
-            >
-              <ThemePicker
-                value={settings.theme}
-                onChange={handleThemeChange}
-              />
-            </Field>
-
-            <Field
-              label="Chart palette"
-              icon={Palette}
-              description="Colour scheme for chart series. Applied to every chart on this browser."
-            >
-              <PalettePicker
-                value={settings.chartPalette}
-                onChange={(value) => onUpdate({ chartPalette: value })}
-              />
-            </Field>
-          </TabsContent>
-
-          {/* Units */}
-          <TabsContent value="units" className="space-y-5 px-1 pb-2">
-            <Field
-              label="Byte sizes"
-              icon={Binary}
-              description="Binary is 1024-based (KiB, MiB, GiB). Decimal is 1000-based (KB, MB, GB)."
-            >
-              <SegmentedControl
-                ariaLabel="Byte sizes"
-                value={settings.byteUnit}
-                onChange={(value) => onUpdate({ byteUnit: value })}
-                options={byteUnitOptions}
-              />
-            </Field>
-
-            <Field
-              label="Large numbers"
-              icon={Hash}
-              description="Abbreviated uses compact suffixes. Full shows grouped digits."
-            >
-              <SegmentedControl
-                ariaLabel="Large numbers"
-                value={settings.numberFormat}
-                onChange={(value) => onUpdate({ numberFormat: value })}
-                options={numberFormatOptions}
-              />
-            </Field>
-          </TabsContent>
-
-          {/* Layout */}
-          <TabsContent value="layout" className="space-y-5 px-1 pb-2">
-            <Field
-              label="Table density"
-              icon={Rows3}
-              description="Row height for data tables. Compact fits more rows on screen."
-            >
-              <SegmentedControl
-                ariaLabel="Table density"
-                value={settings.tableDensity}
-                onChange={(value) => onUpdate({ tableDensity: value })}
-                options={densityOptions}
-              />
-              <DensityPreview density={settings.tableDensity} />
-            </Field>
-
-            <Field
-              label="Default time range"
-              icon={Clock}
-              description="Initial time range for time-series pages. Explicit clicks and shared ?range= links still take priority."
-            >
-              <Select
-                value={settings.defaultTimeRange}
-                onValueChange={(value) =>
-                  value &&
-                  onUpdate({ defaultTimeRange: value as DefaultTimeRange })
-                }
-              >
-                <SelectTrigger id="default-time-range" className="h-9">
-                  <SelectValue placeholder="Select default range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_RANGE_PRESETS.map((preset) => (
-                    <SelectItem key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </TabsContent>
-
-          {/* Navigation */}
-          <TabsContent value="navigation" className="space-y-4 px-1 pb-2">
-            <Field
-              label="Dim unavailable pages"
-              icon={EyeOff}
-              description="Pages whose backing system table isn't found on this host appear grayed out in the menu. Turn off to hide them completely."
-            >
-              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 px-3 py-3">
-                <Switch
-                  checked={settings.dimUnavailablePages}
-                  onCheckedChange={(checked) =>
-                    onUpdate({ dimUnavailablePages: checked })
-                  }
-                  aria-label="Dim unavailable pages"
+                <ThemePicker
+                  value={settings.theme}
+                  onChange={handleThemeChange}
                 />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    {settings.dimUnavailablePages ? 'Dimmed' : 'Hidden'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {settings.dimUnavailablePages
-                      ? 'Unavailable pages stay visible but grayed out.'
-                      : 'Unavailable pages are removed from the menu.'}
-                  </p>
-                </div>
-                <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" />
-              </div>
-            </Field>
-            <MenuPreview />
-          </TabsContent>
+              </Field>
 
-          {/* Integrations */}
-          <TabsContent value="integrations" className="space-y-4 px-1 pb-2">
-            <Field
-              label="MCP Server"
-              icon={Globe}
-              description="Connect AI assistants to your ClickHouse cluster via the Model Context Protocol."
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-                onClick={() => window.open('/mcp', '_blank')}
+              <Field
+                label="Timezone"
+                icon={Clock}
+                description="All datetimes will be displayed in your selected timezone"
               >
-                <Globe className="mr-2 size-3" />
-                View MCP Server Details
-              </Button>
-            </Field>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium">More channels</p>
-              <p className="text-xs text-muted-foreground">
-                These destinations are not wired yet. They stay visible so you
-                can see what is coming.
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {COMING_SOON_INTEGRATIONS.map((item) => (
-                  <div
-                    key={item.name}
-                    aria-disabled="true"
-                    className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2.5 opacity-60"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium">{item.name}</span>
-                      <Badge variant="secondary" className="text-[10px]">
-                        Soon
-                      </Badge>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      {item.description}
-                    </span>
+                {!isLoadingDefault && defaultTimezone && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={handleResetTimezone}
+                      disabled={!!isUsingDefault}
+                    >
+                      <RotateCcw className="mr-1 size-3" />
+                      Reset to default
+                    </Button>
                   </div>
-                ))}
+                )}
+                <TimezoneCombobox
+                  value={settings.timezone}
+                  onChange={(timezone) => onUpdate({ timezone })}
+                  defaultTimezone={defaultTimezone}
+                />
+              </Field>
+            </TabsContent>
+
+            {/* Appearance */}
+            <TabsContent value="appearance" className="space-y-5 px-1 pb-2">
+              <Field
+                label="Theme"
+                icon={Sun}
+                description="Light mode, dark mode, or follow the system."
+              >
+                <ThemePicker
+                  value={settings.theme}
+                  onChange={handleThemeChange}
+                />
+              </Field>
+
+              <Field
+                label="Chart palette"
+                icon={Palette}
+                description="Colour scheme for chart series. Applied to every chart on this browser."
+              >
+                <PalettePicker
+                  value={settings.chartPalette}
+                  onChange={(value) => onUpdate({ chartPalette: value })}
+                />
+              </Field>
+            </TabsContent>
+
+            {/* Units */}
+            <TabsContent value="units" className="space-y-5 px-1 pb-2">
+              <Field
+                label="Byte sizes"
+                icon={Binary}
+                description="Binary is 1024-based (KiB, MiB, GiB). Decimal is 1000-based (KB, MB, GB)."
+              >
+                <SegmentedControl
+                  ariaLabel="Byte sizes"
+                  value={settings.byteUnit}
+                  onChange={(value) => onUpdate({ byteUnit: value })}
+                  options={byteUnitOptions}
+                />
+              </Field>
+
+              <Field
+                label="Large numbers"
+                icon={Hash}
+                description="Abbreviated uses compact suffixes. Full shows grouped digits."
+              >
+                <SegmentedControl
+                  ariaLabel="Large numbers"
+                  value={settings.numberFormat}
+                  onChange={(value) => onUpdate({ numberFormat: value })}
+                  options={numberFormatOptions}
+                />
+              </Field>
+            </TabsContent>
+
+            {/* Layout */}
+            <TabsContent value="layout" className="space-y-5 px-1 pb-2">
+              <Field
+                label="Table density"
+                icon={Rows3}
+                description="Row height for data tables. Compact fits more rows on screen."
+              >
+                <SegmentedControl
+                  ariaLabel="Table density"
+                  value={settings.tableDensity}
+                  onChange={(value) => onUpdate({ tableDensity: value })}
+                  options={densityOptions}
+                />
+                <DensityPreview density={settings.tableDensity} />
+              </Field>
+
+              <Field
+                label="Default time range"
+                icon={Clock}
+                description="Initial time range for time-series pages. Explicit clicks and shared ?range= links still take priority."
+              >
+                <Select
+                  value={settings.defaultTimeRange}
+                  onValueChange={(value) =>
+                    value &&
+                    onUpdate({ defaultTimeRange: value as DefaultTimeRange })
+                  }
+                >
+                  <SelectTrigger id="default-time-range" className="h-9">
+                    <SelectValue placeholder="Select default range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_RANGE_PRESETS.map((preset) => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </TabsContent>
+
+            {/* Navigation */}
+            <TabsContent value="navigation" className="space-y-4 px-1 pb-2">
+              <Field
+                label="Dim unavailable pages"
+                icon={EyeOff}
+                description="Pages whose backing system table isn't found on this host appear grayed out in the menu. Turn off to hide them completely."
+              >
+                <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 px-3 py-3">
+                  <Switch
+                    checked={settings.dimUnavailablePages}
+                    onCheckedChange={(checked) =>
+                      onUpdate({ dimUnavailablePages: checked })
+                    }
+                    aria-label="Dim unavailable pages"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {settings.dimUnavailablePages ? 'Dimmed' : 'Hidden'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {settings.dimUnavailablePages
+                        ? 'Unavailable pages stay visible but grayed out.'
+                        : 'Unavailable pages are removed from the menu.'}
+                    </p>
+                  </div>
+                  <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" />
+                </div>
+              </Field>
+              <MenuPreview />
+            </TabsContent>
+
+            {/* Integrations */}
+            <TabsContent value="integrations" className="space-y-4 px-1 pb-2">
+              <Field
+                label="MCP Server"
+                icon={Globe}
+                description="Connect AI assistants to your ClickHouse cluster via the Model Context Protocol."
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-xs"
+                  onClick={() => window.open('/mcp', '_blank')}
+                >
+                  <Globe className="mr-2 size-3" />
+                  View MCP Server Details
+                </Button>
+              </Field>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">More channels</p>
+                <p className="text-xs text-muted-foreground">
+                  These destinations are not wired yet. They stay visible so you
+                  can see what is coming.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {COMING_SOON_INTEGRATIONS.map((item) => (
+                    <div
+                      key={item.name}
+                      aria-disabled="true"
+                      className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2.5 opacity-60"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium">{item.name}</span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          Soon
+                        </Badge>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">
+                        {item.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          </div>
+          <div className="flex justify-end border-t border-border px-5 py-3">
+            <Button onClick={onClose}>Done</Button>
+          </div>
         </div>
       </Tabs>
-
-      <div className="flex justify-end pt-2">
-        <Button onClick={onClose}>Done</Button>
-      </div>
     </div>
   )
 }
