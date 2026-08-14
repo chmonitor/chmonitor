@@ -144,6 +144,19 @@ describe('getAllSqlStrings', () => {
       expect(config.tableCheck).toBe('system.query_log')
     })
 
+    it('QueryConfigLike should accept columnCheck', () => {
+      const config: QueryConfigLike = {
+        name: 'test',
+        sql: 'SELECT 1',
+        optional: true,
+        tableCheck: 'system.metric_log',
+        columnCheck: 'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
+      }
+      expect(config.columnCheck).toBe(
+        'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay'
+      )
+    })
+
     it('QueryConfigLike should accept tableCheck as array', () => {
       const config: QueryConfigLike = {
         name: 'test',

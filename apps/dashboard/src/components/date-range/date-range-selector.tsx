@@ -86,7 +86,7 @@ export const DateRangeSelector = function DateRangeSelector({
               disabled && 'opacity-50 cursor-not-allowed',
               alwaysVisible || isOpen
                 ? 'opacity-40 hover:opacity-100'
-                : 'opacity-0 group-hover:opacity-40 hover:!opacity-100',
+                : 'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100',
               className
             )}
           />

@@ -66,12 +66,53 @@ export type TableExistsResult = boolean | 'unknown'
  */
 const inFlightProbes = new Map<string, Promise<TableExistsResult>>()
 
+export async function checkColumnExists(
+  hostId: number,
+  database: string,
+  table: string,
+  column: string
+): Promise<TableExistsResult> {
+  const key = `${hostId}:${database}.${table}.${column}`
+  return checkExists(key, hostId, {
+    query: `
+          SELECT COUNT() AS count
+          FROM system.columns
+          WHERE database = {database:String}
+            AND table    = {table:String}
+            AND name     = {column:String}
+        `,
+    query_params: { database, table, column },
+    label: `column ${database}.${table}.${column}`,
+  })
+}
+
 export async function checkTableExists(
   hostId: number,
   database: string,
   table: string
 ): Promise<TableExistsResult> {
   const key = `${hostId}:${database}.${table}`
+  return checkExists(key, hostId, {
+    query: `
+          SELECT COUNT() AS count
+          FROM system.tables
+          WHERE database = {database:String}
+            AND name     = {table:String}
+        `,
+    query_params: { database, table },
+    label: `table ${database}.${table}`,
+  })
+}
+
+async function checkExists(
+  key: string,
+  hostId: number,
+  spec: {
+    query: string
+    query_params: Record<string, string>
+    label: string
+  }
+): Promise<TableExistsResult> {
   const cached = cache.get(key)
   if (cached !== undefined) {
     return cached
@@ -83,18 +124,21 @@ export async function checkTableExists(
     return running
   }
 
-  const probe = probeTableExists(key, hostId, database, table).finally(() => {
+  const pending = probeExists(key, hostId, spec).finally(() => {
     inFlightProbes.delete(key)
   })
-  inFlightProbes.set(key, probe)
-  return probe
+  inFlightProbes.set(key, pending)
+  return pending
 }
 
-async function probeTableExists(
+async function probeExists(
   key: string,
   hostId: number,
-  database: string,
-  table: string
+  spec: {
+    query: string
+    query_params: Record<string, string>
+    label: string
+  }
 ): Promise<TableExistsResult> {
   // L2: KV cache (survives Worker isolate churn). No-op when no provider is
   // registered (self-hosted Node/Docker, or Cloudflare before the KV
@@ -114,19 +158,11 @@ async function probeTableExists(
   }
 
   try {
-    // getClient will auto-detect and use web client for Cloudflare Workers
     const client = await getClient({ hostId })
-    // getClient leases the pooled client (inUse++); without the release the
-    // pool entry can never be reclaimed by cleanupStaleClients (issue #2946).
     try {
       const result = await client.query({
-        query: `
-          SELECT COUNT() AS count
-          FROM system.tables
-          WHERE database = {database:String}
-            AND name     = {table:String}
-        `,
-        query_params: { database, table },
+        query: spec.query,
+        query_params: spec.query_params,
         format: 'JSONEachRow',
       })
       const data = (await result.json()) as { count: string }[]
@@ -145,10 +181,7 @@ async function probeTableExists(
       releaseClient({ hostId })
     }
   } catch (err) {
-    error(`Error checking table ${database}.${table}:`, err)
-    // Transient probe failure (network/timeout/auth) — NOT "table missing".
-    // Never cached (falls through without `cache.set`/L2 `set`), so the next
-    // probe retries naturally.
+    error(`Error checking ${spec.label}:`, err)
     return 'unknown'
   }
 }
@@ -190,6 +223,7 @@ export const tableCacheSize = () => cache.size
 // Keep the old interface for backward compatibility
 export const tableExistenceCache = {
   checkTableExists,
+  checkColumnExists,
   invalidate: invalidateTable,
   clear: clearTableCache,
   getCacheSize: tableCacheSize,

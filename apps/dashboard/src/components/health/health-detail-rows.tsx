@@ -49,7 +49,9 @@ export function HealthDetailRows({
   // An *optional* backing table that is absent returns 200 + a benign
   // `metadata.unavailable` note (see /api/v1/charts/$name), not an error.
   const unavailable = (
-    metadata as { unavailable?: { message?: string } } | undefined
+    metadata as
+      | { unavailable?: { message?: string; reason?: string } }
+      | undefined
   )?.unavailable
 
   const rowCount = data.length
@@ -77,7 +79,9 @@ export function HealthDetailRows({
           title="Not available on this server"
           description={
             unavailable.message ??
-            'The system table backing this check is not present.'
+            (unavailable.reason === 'column_not_found'
+              ? 'This ClickHouse build does not expose the metric this check needs.'
+              : 'The system table backing this check is not present.')
           }
         />
       ) : isLoading ? (

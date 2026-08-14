@@ -122,6 +122,7 @@ function handleQueryError(
 ): Response {
   const errorTypeMap: Record<FetchDataError['type'], ApiErrorType> = {
     table_not_found: ApiErrorType.TableNotFound,
+    column_not_found: ApiErrorType.ColumnNotFound,
     validation_error: ApiErrorType.ValidationError,
     query_error: ApiErrorType.QueryError,
     network_error: ApiErrorType.NetworkError,

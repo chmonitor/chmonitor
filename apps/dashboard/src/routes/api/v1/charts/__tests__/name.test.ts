@@ -130,6 +130,43 @@ describe('GET /api/v1/charts/$name — optional table degradation', () => {
     )
   })
 
+  test('optional chart with missing column → 200 empty + unavailable note (not 500)', async () => {
+    mockExecuteChartQuery.mockResolvedValueOnce({
+      dataJson: null,
+      metadata: {},
+      error: {
+        type: 'column_not_found',
+        message:
+          'Missing required columns: system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
+        details: {
+          missingColumns: [
+            'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
+          ],
+        },
+      },
+      executedSql:
+        "SELECT max(CurrentMetric_ReplicasMaxAbsoluteDelay) FROM merge('system', '^metric_log')",
+      clickhouseVersion: null,
+    })
+
+    const response = await call('opt-chart')
+    expect(response.status).toBe(200)
+
+    const body = (await response.json()) as {
+      success: boolean
+      data: unknown[]
+      metadata: {
+        unavailable?: { reason: string; missingColumns: string[] }
+      }
+    }
+    expect(body.success).toBe(true)
+    expect(body.data).toEqual([])
+    expect(body.metadata.unavailable?.reason).toBe('column_not_found')
+    expect(body.metadata.unavailable?.missingColumns).toContain(
+      'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay'
+    )
+  })
+
   test('optional chart with a REAL query error still → 500 (errors not swallowed)', async () => {
     mockExecuteChartQuery.mockResolvedValueOnce({
       dataJson: null,

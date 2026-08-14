@@ -124,15 +124,25 @@ export async function checkOptionalTables({
   if (validation.shouldProceed) return null
 
   const missingTables = validation.missingTables
+  const missingColumns = validation.missingColumns ?? []
   const isProbeFailure =
     classifyProbeFailure && validation.reason === 'probe_failed'
+  const isMissingColumn = validation.reason === 'column_missing'
   const errorMessage =
-    validation.error || `Missing required tables: ${missingTables.join(', ')}`
+    validation.error ||
+    (isMissingColumn
+      ? `Missing required columns: ${missingColumns.join(', ')}`
+      : `Missing required tables: ${missingTables.join(', ')}`)
 
   if (isProbeFailure) {
     warn(
       `Skipping query "${queryConfig.name}" — could not verify table availability:`,
       errorMessage
+    )
+  } else if (isMissingColumn) {
+    warn(
+      `Skipping query "${queryConfig.name}" due to missing columns:`,
+      missingColumns
     )
   } else {
     warn(
@@ -149,10 +159,15 @@ export async function checkOptionalTables({
       host,
     },
     error: {
-      type: isProbeFailure ? 'network_error' : 'table_not_found',
+      type: isProbeFailure
+        ? 'network_error'
+        : isMissingColumn
+          ? 'column_not_found'
+          : 'table_not_found',
       message: errorMessage,
       details: {
         missingTables,
+        missingColumns,
         host,
       },
     },

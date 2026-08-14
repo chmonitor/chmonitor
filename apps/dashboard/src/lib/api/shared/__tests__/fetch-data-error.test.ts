@@ -18,6 +18,7 @@ describe('statusForFetchDataError', () => {
     expect(statusForFetchDataError('validation_error')).toBe(400)
     expect(statusForFetchDataError('permission_error')).toBe(403)
     expect(statusForFetchDataError('table_not_found')).toBe(404)
+    expect(statusForFetchDataError('column_not_found')).toBe(404)
   })
 
   it('treats a genuine query fault as 500', () => {

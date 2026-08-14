@@ -9,6 +9,13 @@ import type { FetchDataError } from '@chm/clickhouse-client'
  */
 export function formatErrorMessage(error: FetchDataError): string {
   switch (error.type) {
+    case 'column_not_found': {
+      const cols = error.details?.missingColumns?.join(', ')
+      return cols
+        ? `Required columns not found: ${cols}. This ClickHouse build may not expose that metric.`
+        : 'Required columns not found. This ClickHouse build may not expose that metric.'
+    }
+
     case 'table_not_found': {
       const docs =
         'Checkout https://docs.chmonitor.dev/getting-started/clickhouse-enable-system-tables'
@@ -40,6 +47,9 @@ export function formatErrorMessage(error: FetchDataError): string {
  */
 export function formatErrorTitle(error: FetchDataError): string {
   switch (error.type) {
+    case 'column_not_found':
+      return 'Column Not Found'
+
     case 'table_not_found':
       return 'Table Not Found'
 
@@ -62,7 +72,7 @@ export function formatErrorTitle(error: FetchDataError): string {
 export function shouldDisplayError(error: FetchDataError): boolean {
   // Table not found errors for optional queries should typically be handled silently
   // Only show them if explicitly requested
-  if (error.type === 'table_not_found') {
+  if (error.type === 'table_not_found' || error.type === 'column_not_found') {
     return false
   }
 
@@ -113,6 +123,7 @@ export function getErrorVariant(
   error: FetchDataError
 ): 'default' | 'destructive' | 'warning' | 'info' {
   switch (error.type) {
+    case 'column_not_found':
     case 'table_not_found':
       return 'warning'
     case 'permission_error':

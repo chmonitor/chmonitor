@@ -32,6 +32,8 @@ export interface QueryConfigLike {
   sql?: string | VersionedSql[]
   optional?: boolean
   tableCheck?: string | string[]
+  /** Qualified column(s) `database.table.column` that may be absent. */
+  columnCheck?: string | string[]
 }
 
 /**

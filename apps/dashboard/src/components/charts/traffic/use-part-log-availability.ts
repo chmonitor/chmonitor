@@ -6,9 +6,10 @@ import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
  * server config). Drives the /traffic smart-detection for the Bytes on Disk,
  * Merges & Data Movement, and Top Tables sections.
  *
- * Fail-open: only the API's explicit `metadata.unavailable` table_not_found
- * signal reports the table as missing — loading states and transient errors
- * keep the sections visible so a network blip never hides good content.
+ * Fail-open: only the API's explicit `metadata.unavailable` note
+ * (missing table or column) reports the source as absent — loading
+ * states and transient errors keep the sections visible so a network
+ * blip never hides good content.
  */
 export function usePartLogAvailability(): {
   available: boolean
@@ -23,7 +24,7 @@ export function usePartLogAvailability(): {
   })
 
   return {
-    available: detect.metadata?.unavailable?.reason !== 'table_not_found',
+    available: detect.metadata?.unavailable == null,
     isLoading: detect.isLoading,
   }
 }

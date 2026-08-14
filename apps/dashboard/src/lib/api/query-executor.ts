@@ -260,6 +260,7 @@ export async function executeChartQuery(
   opts: ExecuteOptions & {
     optional?: boolean
     tableCheck?: string | string[]
+    columnCheck?: string | string[]
     /** ClickHouse query-cache TTL (seconds); omit/0 to skip caching. */
     ttlSeconds?: number
     /** Per-chart opt-out of the query cache; see ChartQueryResult. */
@@ -299,6 +300,7 @@ export async function executeChartQuery(
                 name: chartName,
                 sql: executedSql,
                 tableCheck: opts.tableCheck,
+                columnCheck: opts.columnCheck,
                 optional: true,
               }
             : undefined,

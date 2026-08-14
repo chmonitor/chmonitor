@@ -1,11 +1,16 @@
 import type { QueryConfigLike } from '@chm/sql-builder'
 
-import { parseTableFromSQL, validateTableExistence } from '../table-validator'
+import {
+  parseColumnCheck,
+  parseTableFromSQL,
+  validateTableExistence,
+} from '../table-validator'
 
 // Mock the table existence cache
 jest.mock('../table-existence-cache', () => ({
   tableExistenceCache: {
     checkTableExists: jest.fn(),
+    checkColumnExists: jest.fn(),
   },
 }))
 
@@ -327,6 +332,59 @@ describe('Table Validator', () => {
       const result = await validateTableExistence(config, 0)
       expect(result.shouldProceed).toBe(false)
       expect(result.reason).toBe('probe_failed')
+    })
+
+    it('should skip the query when columnCheck is missing on an existing table', async () => {
+      const { tableExistenceCache } = await import('../table-existence-cache')
+      const mockCheckTableExists =
+        tableExistenceCache.checkTableExists as jest.MockedFunction<
+          typeof tableExistenceCache.checkTableExists
+        >
+      const mockCheckColumnExists =
+        tableExistenceCache.checkColumnExists as jest.MockedFunction<
+          typeof tableExistenceCache.checkColumnExists
+        >
+      mockCheckTableExists.mockResolvedValue(true)
+      mockCheckColumnExists.mockResolvedValue(false)
+
+      const config: QueryConfigLike = {
+        name: 'replication-lag-trend',
+        sql: "SELECT max(CurrentMetric_ReplicasMaxAbsoluteDelay) FROM merge('system', '^metric_log')",
+        optional: true,
+        tableCheck: 'system.metric_log',
+        columnCheck: 'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
+      }
+
+      const result = await validateTableExistence(config, 0)
+      expect(result.shouldProceed).toBe(false)
+      expect(result.reason).toBe('column_missing')
+      expect(result.missingColumns).toEqual([
+        'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay',
+      ])
+      expect(mockCheckColumnExists).toHaveBeenCalledWith(
+        0,
+        'system',
+        'metric_log',
+        'CurrentMetric_ReplicasMaxAbsoluteDelay'
+      )
+    })
+  })
+
+  describe('parseColumnCheck', () => {
+    it('parses database.table.column', () => {
+      expect(
+        parseColumnCheck(
+          'system.metric_log.CurrentMetric_ReplicasMaxAbsoluteDelay'
+        )
+      ).toEqual({
+        database: 'system',
+        table: 'metric_log',
+        column: 'CurrentMetric_ReplicasMaxAbsoluteDelay',
+      })
+    })
+
+    it('rejects a table-only name', () => {
+      expect(parseColumnCheck('system.metric_log')).toBeNull()
     })
   })
 })

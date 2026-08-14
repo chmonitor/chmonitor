@@ -406,6 +406,8 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
    * ```
    */
   tableCheck?: string | string[]
+  /** Qualified column(s) `database.table.column` that may be absent. */
+  columnCheck?: string | string[]
   /**
    * Sorting functions to be used for table.
    *

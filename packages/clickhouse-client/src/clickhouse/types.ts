@@ -30,6 +30,7 @@ type _QuerySettings = QueryParams['clickhouse_settings'] &
 
 export type FetchDataErrorType =
   | 'table_not_found'
+  | 'column_not_found'
   | 'validation_error'
   | 'query_error'
   | 'network_error'
@@ -42,6 +43,7 @@ export interface FetchDataError {
   readonly message: string
   readonly details?: {
     readonly missingTables?: readonly string[]
+    readonly missingColumns?: readonly string[]
     readonly queryId?: string
     readonly originalError?: Error
     readonly host?: string

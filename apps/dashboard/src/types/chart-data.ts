@@ -100,6 +100,7 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   queryParams?: Record<string, unknown>
   optional?: boolean
   tableCheck?: string | string[]
+  columnCheck?: string | string[]
   /** Cache policy for HTTP Cache-Control headers */
   cachePolicy?: CachePolicy
   /**

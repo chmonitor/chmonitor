@@ -55,7 +55,7 @@ export const ChartStaleIndicator = function ChartStaleIndicator({
               'relative before:content-[""] before:absolute before:-inset-4',
               alwaysVisible || isOpen
                 ? 'opacity-60 hover:opacity-100'
-                : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
+                : 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-60 hover:!opacity-100'
             )}
             aria-label="Data may be stale - click for details"
             title="Data may be stale"
