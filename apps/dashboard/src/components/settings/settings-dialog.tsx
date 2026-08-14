@@ -48,21 +48,12 @@ export function SettingsDialog({
         />
       )}
       <DialogContent
-        className="flex h-[min(36rem,85vh)] flex-col overflow-hidden rounded-xl border bg-card select-text sm:max-w-3xl"
+        className="flex h-[min(36rem,85vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 select-text sm:max-w-3xl"
         data-testid="settings-dialog"
       >
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="flex items-center gap-2">
-            <Settings
-              className="size-4 text-muted-foreground"
-              strokeWidth={1.5}
-              aria-hidden="true"
-            />
-            Settings
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Local to this browser
-          </DialogDescription>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>Local to this browser</DialogDescription>
         </DialogHeader>
         <SettingsForm
           settings={settings}

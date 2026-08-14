@@ -188,10 +188,12 @@ The Settings dialog (`components/settings/settings-form.tsx`) exposes units
 (`byteUnit`, `numberFormat`), chart palette (`chartPalette`), table density
 (`tableDensity`) and default time range on `UserSettings`. Header is Settings
 icon + title + one-line "Local to this browser"; surface is
-`rounded-xl border bg-card` with a **stable height** (`h-[min(36rem,85vh)]`)
-and `select-text` so labels copy. Theme (Light / Dark / System) is on
-General and Appearance, with a mini light/dark window preview. Timezone uses
-`timezone-combobox.tsx`
+`rounded-xl border bg-card p-0` with a **stable height** (`h-[min(36rem,85vh)]`)
+and `select-text` so labels copy. Left rail is a flat column (no boxed
+tab well): section labels + icon rows, selected = muted pill, `border-r`
+divider. Content pane shows the active tab title. Theme (Light / Dark /
+System) is on General and Appearance, with a mini light/dark window preview.
+Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
