@@ -1,31 +1,38 @@
 /**
- * Regression for issue #2675: the daily AI-message reservation must be
- * RELEASED when agent construction throws before any stream exists.
+ * Cloud guest identity rate limit on POST /api/v1/agent.
  *
- * `POST /api/v1/agent` reserves one daily-quota slot up front
- * (`reserveAiUsage`) and rolls it back on failure via
- * `releaseReservationOnce`. That release used to be wired only into the
- * stream's `execute`/`onError`/`onEnd` — none of which run when
- * `createClickHouseAgent(...)` throws pre-stream (bad model id, broken
- * custom-MCP tool merge, invalid BYOK key, ...), so every such failure
- * permanently burned one of a Free-tier user's daily messages.
- *
- * These tests drive the real route handler with everything external mocked,
- * force `createClickHouseAgent` to throw, and assert the reservation is
- * released exactly once (and never released when nothing was reserved).
+ * Asserts the durable RL key + guest-per-min limit after auth resolves to
+ * `guest`. Mocking strategy mirrors agent.test.ts.
  */
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { guestOwnerIdFromIp } from '@/lib/billing/guest-ai'
 
 mock.module('cloudflare:workers', () => ({ env: {} }))
 
-// --- rate limiting / auth: always allow -------------------------------------
+let cloudMode = false
+mock.module('@/lib/cloud/cloud-mode', () => ({
+  isCloudModeServer: () => cloudMode,
+  isCloudModeClient: () => cloudMode,
+  parseCloudMode: (value: string | null | undefined) =>
+    value === 'true' || value === '1' || value === 'cloud',
+}))
+
+const checkRateLimitDurable = mock(async () => ({
+  allowed: true as const,
+  retryAfterSec: 0,
+}))
+
 mock.module('@/lib/api/rate-limiter', () => ({
-  checkRateLimitDurable: async () => ({ allowed: true }),
-  clientIpKey: () => 'test-ip',
-  getAgentRateLimitPerMin: () => 1000,
+  checkRateLimitDurable,
+  clientIpKey: () => '203.0.113.9',
+  getAgentRateLimitPerMin: () => 10,
   RATE_LIMIT_BINDING_AGENT: 'AGENT_RL',
-  rateLimitResponse: () => new Response('rate limited', { status: 429 }),
+  rateLimitResponse: (retryAfterSec: number) =>
+    new Response(JSON.stringify({ error: 'rate limited', retryAfterSec }), {
+      status: 429,
+      headers: { 'content-type': 'application/json' },
+    }),
 }))
 mock.module('@/lib/api/server-env', () => ({
   bridgeClickHouseEnv: () => {},
@@ -51,8 +58,6 @@ mock.module('@/lib/auth/provider', () => ({
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
 }))
-
-// --- model/provider resolution: always configured ----------------------------
 mock.module('@/lib/ai/providers', () => ({
   parseModelId: () => ({ provider: 'test', model: 'test-model' }),
   isProviderConfigured: () => true,
@@ -70,8 +75,6 @@ mock.module('@/lib/ai/anyrouter-dynamic-models', () => ({
   resolveAnyRouterAutoModelId: async () => null,
   loadAnyRouterDynamicModelEntries: async () => [],
 }))
-
-// --- custom MCP servers: none ------------------------------------------------
 mock.module('@/lib/ai/agent/mcp/connect-custom-servers', () => ({
   loadUserRegisteredServers: async () => [],
   mergeMcpServers: () => [],
@@ -82,11 +85,12 @@ mock.module('@/lib/ai/agent/mcp/connect-custom-servers', () => ({
   }),
 }))
 
-// --- billing: cloud-mode owner on a capped plan ------------------------------
-const OWNER_ID = 'owner-quota-test'
-
+const resolveBillingOwner = mock(async () => {
+  throw new Error('no clerk owner')
+})
 mock.module('@/lib/billing/billing-owner', () => ({
-  resolveBillingOwner: async () => ({ id: OWNER_ID }),
+  resolveBillingOwner: () => resolveBillingOwner(),
+  resolveBillingOwnerId: async () => 'unused',
 }))
 mock.module('@/lib/billing/user-subscription', () => ({
   getPlanForOwner: async () => ({
@@ -100,31 +104,23 @@ mock.module('@/lib/billing/entitlements', () => ({
   checkAiBudget: () => ({ allowed: true }),
   limitMessage: () => 'limit reached',
 }))
-
-// reserveAiUsage returns the post-increment count (a reservation was made)
-// unless a test overrides it to return null (no D1 → no reservation).
-let reserveResult: number | null = 1
-const reserveAiUsage = mock(async () => reserveResult)
-const releaseAiUsage = mock(async () => {})
-
 mock.module('@/lib/billing/ai-usage-store', () => ({
-  reserveAiUsage,
-  releaseAiUsage,
+  reserveAiUsage: async () => 1,
+  releaseAiUsage: async () => {},
   getAiSpendThisMonth: async () => 0,
   meterAiOverage: async () => {},
   recordByokActivation: async () => {},
 }))
 
-// --- the agent factory under test: throws pre-stream -------------------------
 const createClickHouseAgent = mock(() => {
-  throw new Error('boom: agent construction failed')
+  throw new Error('boom: stop after gates')
 })
 mock.module('@/lib/ai/agent', () => ({ createClickHouseAgent }))
 
 const { Route } = await import('@/routes/api/v1/agent')
 
-async function postAgent(): Promise<Response> {
-  const handlers = (
+function getHandler(): (ctx: { request: Request }) => Promise<Response> {
+  return (
     Route.options as unknown as {
       server: {
         handlers: {
@@ -132,8 +128,11 @@ async function postAgent(): Promise<Response> {
         }
       }
     }
-  ).server.handlers
-  return handlers.POST({
+  ).server.handlers.POST
+}
+
+async function postAgent(): Promise<Response> {
+  return getHandler()({
     request: new Request('http://localhost/api/v1/agent', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -142,32 +141,49 @@ async function postAgent(): Promise<Response> {
   })
 }
 
-describe('POST /api/v1/agent — daily-quota reservation on pre-stream failure (#2675)', () => {
+describe('POST /api/v1/agent — cloud guest identity rate limit', () => {
   beforeEach(() => {
-    reserveResult = 1
-    reserveAiUsage.mockClear()
-    releaseAiUsage.mockClear()
+    cloudMode = false
+    checkRateLimitDurable.mockClear()
     createClickHouseAgent.mockClear()
   })
 
-  test('releases the reservation when createClickHouseAgent throws', async () => {
-    const res = await postAgent()
+  test('cloud guest uses agent:guest:<ownerId> at the guest per-min limit', async () => {
+    cloudMode = true
+    const guestOwnerId = await guestOwnerIdFromIp('203.0.113.9')
 
-    // The outer boundary converts the throw into a structured JSON error.
-    expect(res.status).toBeGreaterThanOrEqual(400)
-    expect(createClickHouseAgent).toHaveBeenCalledTimes(1)
-    expect(reserveAiUsage).toHaveBeenCalledTimes(1)
-    expect(releaseAiUsage).toHaveBeenCalledTimes(1)
-    expect(releaseAiUsage).toHaveBeenCalledWith(OWNER_ID)
+    await postAgent()
+
+    expect(checkRateLimitDurable.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(checkRateLimitDurable.mock.calls[0]?.[0]).toBe(
+      'agent:ip:203.0.113.9'
+    )
+    expect(checkRateLimitDurable.mock.calls[0]?.[1]).toBe(10)
+
+    const guestCall = checkRateLimitDurable.mock.calls.find(
+      (call) =>
+        typeof call[0] === 'string' &&
+        (call[0] as string).startsWith('agent:guest:')
+    )
+    expect(guestCall).toBeDefined()
+    expect(guestCall?.[0]).toBe(`agent:guest:${guestOwnerId}`)
+    expect(guestCall?.[1]).toBe(5)
   })
 
-  test('does not release when nothing was reserved (no D1 counter)', async () => {
-    reserveResult = null
+  test('OSS guest does not add a per-guest identity bucket', async () => {
+    cloudMode = false
 
-    const res = await postAgent()
+    await postAgent()
 
-    expect(res.status).toBeGreaterThanOrEqual(400)
-    expect(createClickHouseAgent).toHaveBeenCalledTimes(1)
-    expect(releaseAiUsage).not.toHaveBeenCalled()
+    const guestCall = checkRateLimitDurable.mock.calls.find(
+      (call) =>
+        typeof call[0] === 'string' &&
+        (call[0] as string).startsWith('agent:guest:')
+    )
+    expect(guestCall).toBeUndefined()
+    expect(checkRateLimitDurable).toHaveBeenCalledTimes(1)
+    expect(checkRateLimitDurable.mock.calls[0]?.[0]).toBe(
+      'agent:ip:203.0.113.9'
+    )
   })
 })

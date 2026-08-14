@@ -64,18 +64,22 @@ function toFiniteNumber(value: unknown): number | null {
  *
  * The sibling slice owns the exact shape, so we accept a few plausible layouts:
  * the meter fields at the top level of `data`, or nested under an `aiDaily` /
- * `ai` key. Anything we cannot make sense of resolves to the hidden default.
+ * `ai` / `aiMessages` key. Anything we cannot make sense of resolves to the
+ * hidden default.
  */
-function parseQuota(payload: unknown): AiQuota {
+export function parseQuota(payload: unknown): AiQuota {
   if (!payload || typeof payload !== 'object') return HIDDEN
 
   const root = payload as Record<string, unknown>
+  const data = (root.data as Record<string, unknown> | undefined) ?? undefined
   const candidates: unknown[] = [
     root.data ?? root,
-    (root.data as Record<string, unknown> | undefined)?.aiDaily,
-    (root.data as Record<string, unknown> | undefined)?.ai,
+    data?.aiDaily,
+    data?.ai,
+    data?.aiMessages,
     root.aiDaily,
     root.ai,
+    root.aiMessages,
   ]
 
   for (const candidate of candidates) {

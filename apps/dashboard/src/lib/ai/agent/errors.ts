@@ -325,10 +325,13 @@ export function classifyError(
   } else if (
     statusCode === 402 ||
     parsed.code === 'payment_required' ||
+    parsed.code === 'guest_daily_limit' ||
     lower.includes('payment') ||
     lower.includes('credit') ||
     lower.includes('billing') ||
-    lower.includes('insufficient funds')
+    lower.includes('insufficient funds') ||
+    lower.includes('guest daily') ||
+    lower.includes('guest_daily_limit')
   ) {
     type = 'billing_error'
   } else if (

@@ -105,6 +105,17 @@ Self-hosted (OSS) deployments are unaffected — they already run on their own
 `LLM_API_KEY` with no metering. BYOK simply lets a Cloud user do the same
 per-request.
 
+## Guest (anonymous) credits — Cloud only
+
+Anonymous visitors on the hosted product can use the agent against the public
+demo. They get a **smaller daily message cap** than signed-in Free (default 3,
+`CHM_GUEST_AI_REQUESTS_PER_DAY`) and a **tighter per-minute rate limit**
+(default 5, `RATE_LIMIT_AGENT_GUEST_PER_MIN`) so the shared provider key cannot
+be burned. Usage is tracked in the same D1 `ai_usage_daily` table, keyed by a
+per-visitor `guest:<ip-hash>` id — not a single global `guest` bucket. Sign in
+to get the plan allowance (Free 5 / Pro 100 / …). Self-hosted / OSS is unchanged
+(no guest gate).
+
 ## Child pages
 
 <Cards>

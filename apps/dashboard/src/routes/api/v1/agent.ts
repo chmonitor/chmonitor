@@ -43,6 +43,11 @@ import {
 } from '@/lib/api/rate-limiter'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
+import {
+  getGuestAiRateLimitPerMin,
+  guestOwnerIdFromIp,
+} from '@/lib/billing/guest-ai'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -86,15 +91,28 @@ async function handlePost(request: Request): Promise<Response> {
     return providerNotConfiguredResponse(model, requestedProvider)
   }
 
-  // Resolve user ID for OpenRouter user tracking.
-  const userId = await resolveAgentUserId()
+  // Resolve user ID for OpenRouter / AnyRouter attribution. Cloud guests get a
+  // stable per-IP `guest:<hash>` so usage explorer can group by visitor, not a
+  // single shared `guest` string. OSS guests stay the literal `guest`.
+  const clerkUserId = await resolveAgentUserId()
+  const isGuest = clerkUserId === 'guest'
+  const guestOwnerId =
+    isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
+  const userId = guestOwnerId ?? clerkUserId
   const openRouterUser = `${userId}/${parsed.sessionId}`
 
-  // Tighten the coarse per-IP budget (checked at request entry) to a per-identity
-  // budget now that auth has resolved, so one signed-in account cannot fan out
-  // across many IPs to exceed its allowance. Anonymous callers keep the per-IP
-  // bucket above as their identity, so this only adds a stricter per-user gate.
-  if (userId !== 'guest') {
+  // Tighten the coarse per-IP budget (checked at request entry) to a
+  // per-identity budget now that auth has resolved. Signed-in accounts cannot
+  // fan out across IPs. Cloud guests get a tighter dedicated bucket in
+  // addition to the IP bucket above. OSS guests keep IP-only.
+  if (guestOwnerId) {
+    const identityRl = await checkRateLimitDurable(
+      `agent:guest:${guestOwnerId}`,
+      getGuestAiRateLimitPerMin(),
+      RATE_LIMIT_BINDING_AGENT
+    )
+    if (!identityRl.allowed) return rateLimitResponse(identityRl.retryAfterSec)
+  } else if (!isGuest) {
     const identityRl = await checkRateLimitDurable(
       `agent:user:${userId}`,
       getAgentRateLimitPerMin(),
@@ -115,7 +133,7 @@ async function handlePost(request: Request): Promise<Response> {
     : null
   const includeControlTools = controlToolsEnabled && !actionsPermissionResponse
 
-  const gate = await applyAiUsageGate(byok)
+  const gate = await applyAiUsageGate(byok, { ip, guestOwnerId })
   if (!gate.ok) return gate.response
 
   const { agent, mcpCloseAll } = await createAgentRuntime({
