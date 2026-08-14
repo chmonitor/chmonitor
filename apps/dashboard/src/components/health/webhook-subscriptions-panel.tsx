@@ -147,7 +147,10 @@ function SubscriptionRow({
     <div className="rounded-md border">
       <div className="flex items-center justify-between gap-2 p-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="truncate text-sm font-medium">
+          <span
+            className="truncate text-sm font-medium"
+            title={subscription.url}
+          >
             {subscription.url}
           </span>
           <div className="flex flex-wrap gap-1">

@@ -163,10 +163,16 @@ function HealthCheckRow({
           aria-hidden
         />
       )}
-      <span className="flex-none truncate text-[13px] font-medium">
+      <span
+        className="flex-none truncate text-[13px] font-medium"
+        title={title}
+      >
         {title}
       </span>
-      <span className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:block">
+      <span
+        className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:block"
+        title={sublabel}
+      >
         {sublabel}
       </span>
       {series && (
@@ -187,7 +193,7 @@ function HealthCheckRow({
         {displayValue}
       </span>
       <ChevronRight
-        className="size-4 flex-none text-muted-foreground/40 transition-colors group-hover:text-muted-foreground"
+        className="size-4 flex-none text-muted-foreground/40 transition-colors group-hover:text-muted-foreground group-focus-visible:text-muted-foreground"
         aria-hidden
       />
     </div>
@@ -234,7 +240,10 @@ function HealthCheckCard({
               aria-hidden
             />
           )}
-          <span className="truncate text-[13px] font-semibold leading-tight">
+          <span
+            className="truncate text-[13px] font-semibold leading-tight"
+            title={title}
+          >
             {title}
           </span>
         </div>
@@ -280,7 +289,8 @@ function HealthCheckCard({
               'inline-flex items-center rounded-md px-2 py-0.5',
               'text-[11px] font-medium leading-none whitespace-nowrap',
               'bg-muted/60 text-muted-foreground',
-              'transition-colors hover:bg-muted hover:text-foreground'
+              'transition-colors hover:bg-muted hover:text-foreground',
+              'focus-visible:bg-muted focus-visible:text-foreground'
             )}
           >
             {l.label}

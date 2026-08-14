@@ -255,8 +255,13 @@ function InsightsPopoverItem({
           aria-hidden="true"
         />
         <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="truncate text-sm font-medium">{insight.title}</p>
-          <p className="line-clamp-2 text-xs text-muted-foreground">
+          <p className="truncate text-sm font-medium" title={insight.title}>
+            {insight.title}
+          </p>
+          <p
+            className="line-clamp-2 text-xs text-muted-foreground"
+            title={insight.detail}
+          >
             {insight.detail}
           </p>
         </div>

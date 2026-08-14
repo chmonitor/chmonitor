@@ -334,7 +334,9 @@ export function HealthGrid() {
         <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
           {filter === 'issues'
             ? 'Nothing needs attention right now.'
-            : 'No checks in this view.'}
+            : filter === 'healthy'
+              ? 'No healthy checks right now.'
+              : 'No health checks to show.'}
         </div>
       ) : (
         <HealthResults items={visible} history={history} hostId={hostId} />
