@@ -10,7 +10,6 @@ import {
   RotateCcw,
   Rows3,
   Settings,
-  SlidersHorizontal,
 } from 'lucide-react'
 
 import type {
@@ -37,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TIME_RANGE_PRESETS } from '@/lib/context/time-range-context'
 import {
@@ -341,21 +339,96 @@ function DensityPreview({ density }: { density: TableDensity }) {
 }
 
 /**
- * Mini sidebar-menu illustration for the Navigation tab — shows a normal item
- * alongside an "unavailable" one (dimmed), so the dim/hide behaviour is
- * visible at a glance.
+ * Mini sidebar demo for unavailable-page behaviour.
+ * Dim keeps Backups grayed out; Hide drops that row so only live pages remain.
  */
-function MenuPreview() {
+function MenuPreview({ mode }: { mode: 'dim' | 'hide' }) {
   return (
-    <div className="flex w-full flex-col gap-1 rounded-md border border-border bg-muted/20 p-2">
-      <div className="flex items-center gap-2 rounded px-1.5 py-1 text-xs">
-        <LayoutGrid className="size-3.5 text-foreground" />
+    <div className="flex h-[72px] w-[88px] flex-col gap-1 overflow-hidden rounded-lg bg-zinc-100 p-1.5 ring-1 ring-black/10 dark:bg-zinc-900 dark:ring-white/10">
+      <div className="flex items-center gap-1 text-[10px] leading-none">
+        <LayoutGrid className="size-3 shrink-0" />
         <span>Queries</span>
       </div>
-      <div className="flex items-center gap-2 rounded px-1.5 py-1 text-xs text-muted-foreground/50">
-        <BlocksIcon className="size-3.5" />
-        <span>Backups</span>
+      {mode === 'dim' ? (
+        <div className="flex items-center gap-1 text-[10px] leading-none text-muted-foreground/40">
+          <BlocksIcon className="size-3 shrink-0" />
+          <span>Backups</span>
+        </div>
+      ) : (
+        <div
+          className="h-3 rounded border border-dashed border-muted-foreground/25"
+          aria-hidden="true"
+        />
+      )}
+      <div className="flex items-center gap-1 text-[10px] leading-none">
+        <Rows3 className="size-3 shrink-0" />
+        <span>Tables</span>
       </div>
+    </div>
+  )
+}
+
+const unavailablePageOptions = [
+  {
+    value: true,
+    mode: 'dim' as const,
+    label: 'Dim',
+    description: 'Keep unavailable pages grayed out in the menu',
+  },
+  {
+    value: false,
+    mode: 'hide' as const,
+    label: 'Hide',
+    description: 'Remove unavailable pages from the menu',
+  },
+]
+
+function UnavailablePagesPicker({
+  value,
+  onChange,
+}: {
+  value: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Unavailable pages"
+      className="flex items-start gap-3"
+    >
+      {unavailablePageOptions.map((option) => {
+        const isSelected = value === option.value
+        return (
+          <button
+            key={option.label}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => onChange(option.value)}
+            className="flex flex-col items-center gap-1.5 focus-visible:outline-none"
+            aria-label={option.description}
+          >
+            <span
+              className={cn(
+                'rounded-[14px] p-0.5 ring-2 transition-shadow',
+                isSelected
+                  ? 'ring-foreground'
+                  : 'ring-transparent hover:ring-border'
+              )}
+            >
+              <MenuPreview mode={option.mode} />
+            </span>
+            <span
+              className={cn(
+                'text-xs',
+                isSelected ? 'text-foreground' : 'text-muted-foreground'
+              )}
+            >
+              {option.label}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -650,33 +723,21 @@ export function SettingsForm({
 
             {/* Navigation */}
             <TabsContent value="navigation" className="space-y-4 px-1 pb-2">
-              <Field
-                label="Dim unavailable pages"
-                icon={EyeOff}
-                description="Pages whose backing system table isn't found on this host appear grayed out in the menu. Turn off to hide them completely."
-              >
-                <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 px-3 py-3">
-                  <Switch
-                    checked={settings.dimUnavailablePages}
-                    onCheckedChange={(checked) =>
-                      onUpdate({ dimUnavailablePages: checked })
+              <div className="space-y-2">
+                <SettingsRow label="Unavailable pages">
+                  <UnavailablePagesPicker
+                    value={settings.dimUnavailablePages}
+                    onChange={(dimUnavailablePages) =>
+                      onUpdate({ dimUnavailablePages })
                     }
-                    aria-label="Dim unavailable pages"
                   />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {settings.dimUnavailablePages ? 'Dimmed' : 'Hidden'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {settings.dimUnavailablePages
-                        ? 'Unavailable pages stay visible but grayed out.'
-                        : 'Unavailable pages are removed from the menu.'}
-                    </p>
-                  </div>
-                  <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" />
-                </div>
-              </Field>
-              <MenuPreview />
+                </SettingsRow>
+                <p className="text-xs text-muted-foreground">
+                  {settings.dimUnavailablePages
+                    ? 'Pages whose system table is missing stay in the menu, grayed out (example: Backups).'
+                    : 'Pages whose system table is missing are removed from the menu entirely.'}
+                </p>
+              </div>
             </TabsContent>
 
             {/* Integrations */}
