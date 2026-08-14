@@ -174,10 +174,22 @@ filter/search/sort/card wiring.
 
 ## User appearance settings
 
+**Entry:** sidebar footer gear beside Sign In / the avatar — `[gear] [Sign In /
+avatar]` with `flex items-center gap-1.5`. Use `NavSettingsButton` /
+`NavUserFooterRow` (`components/nav-user/nav-settings-button.tsx`): lucide
+`Settings`, `size-4`, `strokeWidth={1.5}`, `aria-label="Open settings"`,
+`data-testid="nav-settings-button"`, tooltip "Settings". Hide when
+`canUseSettings` is false. Gear must work signed-out (these are local settings).
+Keep the dialog a **sibling** of the menu (not inside `DropdownMenu` /
+`SignInButton`). ⌘, still opens it (`useSettingsShortcut`). Do **not** invent a
+second settings store — always `SettingsDialog` + `useUserSettings`.
+
 The Settings dialog (`components/settings/settings-form.tsx`) exposes units
 (`byteUnit`, `numberFormat`), chart palette (`chartPalette`), table density
-(`tableDensity`) and default time range on `UserSettings`. Every DEFAULT
-reproduces the prior look byte-for-byte. Applied by `AppearanceSettingsProvider`
+(`tableDensity`) and default time range on `UserSettings`. Header is Settings
+icon + title + one-line "Local to this browser"; surface is
+`rounded-xl border bg-card`. Every DEFAULT reproduces the prior look
+byte-for-byte. Applied by `AppearanceSettingsProvider`
 (`lib/context/appearance-settings.tsx`): units → module snapshot in
 `lib/format-settings.ts` (read by the `format-readable` helpers); palette/density
 → `data-chart-palette` / `data-density` on `<html>` with `--chart-*` and

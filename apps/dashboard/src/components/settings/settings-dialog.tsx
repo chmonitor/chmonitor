@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -40,18 +41,28 @@ export function SettingsDialog({
           render={
             children || (
               <Button variant="ghost" size="icon" aria-label="Open settings">
-                <Settings className="size-4" />
+                <Settings className="size-4" strokeWidth={1.5} />
               </Button>
             )
           }
         />
       )}
       <DialogContent
-        className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-3xl"
+        className="flex max-h-[85vh] flex-col overflow-hidden rounded-xl border bg-card sm:max-w-3xl"
         data-testid="settings-dialog"
       >
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="flex items-center gap-2">
+            <Settings
+              className="size-4 text-muted-foreground"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
+            Settings
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Local to this browser
+          </DialogDescription>
         </DialogHeader>
         <SettingsForm
           settings={settings}

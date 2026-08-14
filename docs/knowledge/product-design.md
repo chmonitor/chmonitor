@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-12
+updated: 2026-08-14
 tags:
   - design-system
   - ui
@@ -78,16 +78,29 @@ Fonts: Geist Variable (sans) + Geist Mono.
 
 ## User appearance settings (Settings dialog)
 
+**Entry:** the sidebar footer gear sits beside Sign In / the avatar
+(`[gear] [control]`, `flex items-center gap-1.5`) via `NavSettingsButton` /
+`NavUserFooterRow` (`apps/dashboard/src/components/nav-user/nav-settings-button.tsx`).
+Icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
+`aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
+"Settings". Hide when `canUseSettings` / `SETTINGS_FEATURE_PERMISSION` is off.
+Local settings do not need an account — the gear stays outside `SignInButton`
+and `DropdownMenu`, and the `SettingsDialog` is a sibling of the menu. ⌘,
+(`useSettingsShortcut`) still opens the same dialog. Do not invent a second
+settings store.
+
 `UserSettings` (`lib/types/user-settings.ts`, localStorage
 `clickhouse-monitor-user-settings`, merged over `DEFAULT_USER_SETTINGS` via
 `mergeUserSettings` so legacy blobs pick up new keys) carries the
 timezone/theme plus **units** (`byteUnit`, `numberFormat`), **colors**
 (`chartPalette`), and **layout** (`tableDensity`, `defaultTimeRange`). The
-Settings dialog (`components/settings/settings-form.tsx`) groups these into
-labeled `<section>`s (General / Appearance / Units / Layout / Integrations) with
-`Separator`s; 2–3 choice toggles use the shared
-`components/settings/segmented-control.tsx` (card look mirroring the theme
-picker), 5-option ones use `Select`.
+Settings dialog (`components/settings/settings-dialog.tsx` +
+`settings-form.tsx`) uses `rounded-xl border bg-card`, a Settings icon + title
++ "Local to this browser" header, and groups fields into labeled `<section>`s
+(General / Appearance / Units / Layout / Integrations) with `Separator`s; 2–3
+choice toggles use the shared `components/settings/segmented-control.tsx` (card
+look mirroring the theme picker), 5-option ones use `Select`. Dialog keeps
+`data-testid="settings-dialog"`.
 
 **Invariant: every default reproduces the prior behaviour byte-for-byte** —
 `byteUnit: 'binary'`, `numberFormat: 'abbreviated'`, `chartPalette: 'default'`
