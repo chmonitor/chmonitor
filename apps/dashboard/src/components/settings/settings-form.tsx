@@ -13,7 +13,6 @@ import {
   Settings,
   SlidersHorizontal,
   Sun,
-  Type,
 } from 'lucide-react'
 
 import type {
@@ -27,23 +26,21 @@ import type {
 import type { SegmentedOption } from './segmented-control'
 
 import { SegmentedControl } from './segmented-control'
+import { TimezoneCombobox } from './timezone-combobox'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TIMEZONE_GROUPS } from '@/lib/constants/timezones'
 import { TIME_RANGE_PRESETS } from '@/lib/context/time-range-context'
 import {
   formatReadableQuantity,
@@ -69,20 +66,18 @@ const themeOptions = [
   },
 ] as const
 
-const byteUnitOptions: readonly SegmentedOption<ByteUnit>[] = [
-  { value: 'binary', label: 'Binary' },
-  { value: 'decimal', label: 'Decimal' },
-]
-
-const numberFormatOptions: readonly SegmentedOption<NumberFormat>[] = [
-  { value: 'abbreviated', label: 'Abbreviated' },
-  { value: 'full', label: 'Full' },
-]
-
-const chartPaletteOptions: readonly SegmentedOption<ChartPalette>[] = [
-  { value: 'default', label: 'Default' },
-  { value: 'colorblind-safe', label: 'Colorblind' },
-  { value: 'monochrome', label: 'Mono' },
+const chartPaletteMeta: {
+  value: ChartPalette
+  label: string
+  hint: string
+}[] = [
+  { value: 'default', label: 'Default', hint: 'Brand orange ramp' },
+  {
+    value: 'colorblind-safe',
+    label: 'Colorblind',
+    hint: 'Okabe–Ito distinct hues',
+  },
+  { value: 'monochrome', label: 'Mono', hint: 'Single-hue amber ramp' },
 ]
 
 const densityOptions: readonly SegmentedOption<TableDensity>[] = [
@@ -131,20 +126,70 @@ function Field({
   )
 }
 
-/** A row of colour dots previewing a chart palette. */
-function PaletteSwatches({ palette }: { palette: ChartPalette }) {
+const PALETTE_BAR_HEIGHTS = [38, 72, 48, 88, 60]
+
+function PalettePicker({
+  value,
+  onChange,
+}: {
+  value: ChartPalette
+  onChange: (value: ChartPalette) => void
+}) {
   return (
-    <div className="flex items-center gap-1">
-      {PALETTE_SWATCHES[palette].map((color, i) => (
-        <span
-          key={`${palette}-${i}`}
-          className="size-4 rounded-full ring-1 ring-black/10 dark:ring-white/15"
-          style={{ backgroundColor: color }}
-        />
-      ))}
+    <div
+      role="radiogroup"
+      aria-label="Chart palette"
+      className="grid gap-2 sm:grid-cols-3"
+    >
+      {chartPaletteMeta.map((option) => {
+        const isSelected = value === option.value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'flex flex-col gap-2 rounded-lg border-2 p-2.5 text-left transition-[opacity,border-color,background-color,box-shadow] hover:opacity-80',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              isSelected
+                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                : 'border-muted bg-muted/20'
+            )}
+          >
+            <div className="flex h-10 items-end gap-0.5">
+              {PALETTE_SWATCHES[option.value].map((color, i) => (
+                <span
+                  key={`${option.value}-${i}`}
+                  className="min-w-0 flex-1 rounded-sm ring-1 ring-black/10 dark:ring-white/10"
+                  style={{
+                    backgroundColor: color,
+                    height: `${PALETTE_BAR_HEIGHTS[i]}%`,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="space-y-0.5">
+              <span className="block text-xs font-medium">{option.label}</span>
+              <span className="block text-[11px] text-muted-foreground">
+                {option.hint}
+              </span>
+            </div>
+          </button>
+        )
+      })}
     </div>
   )
 }
+
+const COMING_SOON_INTEGRATIONS = [
+  { name: 'Slack', description: 'Post health alerts to a Slack channel' },
+  { name: 'Telegram', description: 'Send alerts to a Telegram chat' },
+  { name: 'PagerDuty', description: 'Page on-call when a check fails' },
+  { name: 'Email', description: 'Email a digest or incident notice' },
+  { name: 'Discord', description: 'Post alerts to a Discord webhook' },
+] as const
 
 /**
  * Mini illustration of table row density — taller, looser rows for
@@ -241,15 +286,26 @@ export function SettingsForm({
 
   // Live previews reflect the selected unit explicitly (independent of the
   // global format snapshot), so the example updates as the user toggles.
-  const bytePreview = `${formatReadableSize(
-    BYTE_PREVIEW_SAMPLE,
-    1,
-    'binary'
-  )} ↔ ${formatReadableSize(BYTE_PREVIEW_SAMPLE, 1, 'decimal')}`
-  const numberPreview = `${formatReadableQuantity(
+  const binaryExample = formatReadableSize(BYTE_PREVIEW_SAMPLE, 1, 'binary')
+  const decimalExample = formatReadableSize(BYTE_PREVIEW_SAMPLE, 1, 'decimal')
+  const abbreviatedExample = formatReadableQuantity(
     NUMBER_PREVIEW_SAMPLE,
     'short'
-  )} ↔ ${formatReadableQuantity(NUMBER_PREVIEW_SAMPLE, 'long')}`
+  )
+  const fullExample = formatReadableQuantity(NUMBER_PREVIEW_SAMPLE, 'long')
+
+  const byteUnitOptions: readonly SegmentedOption<ByteUnit>[] = [
+    { value: 'binary', label: 'Binary', description: binaryExample },
+    { value: 'decimal', label: 'Decimal', description: decimalExample },
+  ]
+  const numberFormatOptions: readonly SegmentedOption<NumberFormat>[] = [
+    {
+      value: 'abbreviated',
+      label: 'Abbreviated',
+      description: abbreviatedExample,
+    },
+    { value: 'full', label: 'Full', description: fullExample },
+  ]
 
   const tabs = [
     { value: 'general', label: 'General', icon: Clock },
@@ -267,7 +323,7 @@ export function SettingsForm({
         orientation="vertical"
         className="flex min-h-0 flex-1 gap-4"
       >
-        <TabsList className="h-fit max-h-[60vh] w-36 shrink-0 flex-col items-stretch overflow-y-auto border-r border-border pr-1 sm:w-44">
+        <TabsList className="h-full w-36 shrink-0 flex-col items-stretch overflow-y-auto border-r border-border pr-1 sm:w-44">
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
@@ -306,41 +362,11 @@ export function SettingsForm({
                   </Button>
                 </div>
               )}
-              <Select
+              <TimezoneCombobox
                 value={settings.timezone}
-                onValueChange={(value) =>
-                  onUpdate({ timezone: value ?? undefined })
-                }
-              >
-                <SelectTrigger id="timezone" className="h-9">
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONE_GROUPS.map((group) => (
-                    <SelectGroup key={group.label}>
-                      <SelectLabel className="text-xs">
-                        {group.label}
-                      </SelectLabel>
-                      {group.timezones.map((tz) => (
-                        <SelectItem
-                          key={tz.value}
-                          value={tz.value}
-                          className="text-xs"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span>{tz.label}</span>
-                            {defaultTimezone === tz.value && (
-                              <span className="text-[10px] text-muted-foreground">
-                                (default)
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(timezone) => onUpdate({ timezone })}
+                defaultTimezone={defaultTimezone}
+              />
             </Field>
           </TabsContent>
 
@@ -379,15 +405,12 @@ export function SettingsForm({
             <Field
               label="Chart palette"
               icon={Palette}
-              description="Colour scheme for chart series. Colorblind uses the Okabe-Ito palette; Mono is a single-hue ramp."
+              description="Colour scheme for chart series. Applied to every chart on this browser."
             >
-              <SegmentedControl
-                ariaLabel="Chart palette"
+              <PalettePicker
                 value={settings.chartPalette}
                 onChange={(value) => onUpdate({ chartPalette: value })}
-                options={chartPaletteOptions}
               />
-              <PaletteSwatches palette={settings.chartPalette} />
             </Field>
           </TabsContent>
 
@@ -396,7 +419,7 @@ export function SettingsForm({
             <Field
               label="Byte sizes"
               icon={Binary}
-              description={`Binary uses 1024-based KiB/MiB; Decimal uses 1000-based KB/MB. e.g. ${bytePreview}`}
+              description="Binary is 1024-based (KiB, MiB, GiB). Decimal is 1000-based (KB, MB, GB)."
             >
               <SegmentedControl
                 ariaLabel="Byte sizes"
@@ -409,7 +432,7 @@ export function SettingsForm({
             <Field
               label="Large numbers"
               icon={Hash}
-              description={`Abbreviated shows compact suffixes; Full shows grouped digits. e.g. ${numberPreview}`}
+              description="Abbreviated uses compact suffixes. Full shows grouped digits."
             >
               <SegmentedControl
                 ariaLabel="Large numbers"
@@ -418,13 +441,6 @@ export function SettingsForm({
                 options={numberFormatOptions}
               />
             </Field>
-
-            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-              <Type className="size-3.5 shrink-0" aria-hidden="true" />
-              <span className="tabular-nums">{bytePreview}</span>
-              <Separator orientation="vertical" className="mx-1 h-4" />
-              <span className="tabular-nums">{numberPreview}</span>
-            </div>
           </TabsContent>
 
           {/* Layout */}
@@ -518,6 +534,33 @@ export function SettingsForm({
                 View MCP Server Details
               </Button>
             </Field>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">More channels</p>
+              <p className="text-xs text-muted-foreground">
+                These destinations are not wired yet. They stay visible so you
+                can see what is coming.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {COMING_SOON_INTEGRATIONS.map((item) => (
+                  <div
+                    key={item.name}
+                    aria-disabled="true"
+                    className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2.5 opacity-60"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium">{item.name}</span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        Soon
+                      </Badge>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      {item.description}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>

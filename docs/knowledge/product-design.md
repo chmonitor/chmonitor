@@ -96,10 +96,15 @@ timezone/theme plus **units** (`byteUnit`, `numberFormat`), **colors**
 (`chartPalette`), and **layout** (`tableDensity`, `defaultTimeRange`). The
 Settings dialog (`components/settings/settings-dialog.tsx` +
 `settings-form.tsx`) uses `rounded-xl border bg-card`, a Settings icon + title
-+ "Local to this browser" header, and groups fields into labeled `<section>`s
-(General / Appearance / Units / Layout / Integrations) with `Separator`s; 2–3
-choice toggles use the shared `components/settings/segmented-control.tsx` (card
-look mirroring the theme picker), 5-option ones use `Select`. Dialog keeps
++ "Local to this browser" header, a **stable height**
+(`h-[min(36rem,85vh)]`) so tabs do not resize the panel, and `select-text`
+so labels copy. Vertical tabs: General / Appearance / Units / Layout /
+Navigation / Integrations. Timezone is a searchable combobox
+(`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
+Chart palette is a three-card picker with a mini bar preview. Unit options
+show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
+(available) plus disabled coming-soon channels. 2–3 choice toggles use
+`segmented-control.tsx` (optional `description`). Dialog keeps
 `data-testid="settings-dialog"`.
 
 **Invariant: every default reproduces the prior behaviour byte-for-byte** —

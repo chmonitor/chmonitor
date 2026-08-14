@@ -92,3 +92,19 @@ export const TIMEZONE_GROUPS = [
 
 export type TimeZoneValue =
   (typeof TIMEZONE_GROUPS)[number]['timezones'][number]['value']
+
+export function getBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
+export function timezoneLabel(value: string): string {
+  for (const group of TIMEZONE_GROUPS) {
+    const found = group.timezones.find((tz) => tz.value === value)
+    if (found) return found.label
+  }
+  return value.replaceAll('_', ' ')
+}
