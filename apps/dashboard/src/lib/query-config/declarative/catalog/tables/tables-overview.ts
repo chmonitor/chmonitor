@@ -61,7 +61,7 @@ export const tablesOverviewDeclarative: DeclarativeQueryConfig = {
         )
       SELECT
         parts.*,
-        detached_parts.*,
+        detached_parts.* EXCEPT (\`table\`),
         splitByChar('.', parts.table)[1] AS _database,
         splitByChar('.', parts.table)[2] AS _table
       FROM parts

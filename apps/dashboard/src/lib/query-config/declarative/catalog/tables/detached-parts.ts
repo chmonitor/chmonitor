@@ -8,7 +8,7 @@ export const detachedPartsDeclarative: DeclarativeQueryConfig = {
   optional: false,
   tableCheck: 'system.detached_parts',
   sql: `
-      SELECT *,
+      SELECT * EXCEPT (table),
              format('{}.{}', database, table) AS table,
              formatReadableSize(bytes_on_disk) AS readable_bytes_on_disk
       FROM system.detached_parts
