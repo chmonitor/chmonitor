@@ -11,7 +11,7 @@ import {
 import { toast } from 'sonner'
 
 import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
-import type { AdvancedSectionId } from './advanced-settings-panel'
+import type { HealthSettingsTab } from '@/lib/health/health-settings-tabs'
 
 import { ActiveAlertsPanel } from './active-alerts-panel'
 import { AdvancedSettingsPanel } from './advanced-settings-panel'
@@ -38,6 +38,7 @@ import {
   loadAlertSettings,
   saveAlertSettings,
 } from '@/lib/health/alert-settings-storage'
+import { resolveHealthSettingsTab } from '@/lib/health/health-settings-tabs'
 import {
   loadThresholds,
   saveThresholds,
@@ -46,43 +47,12 @@ import {
 import { useNotificationPermission } from '@/lib/health/use-notification-permission'
 import { describeError } from '@/lib/swr/fetch-error'
 
-/**
- * The four tabs the page renders. The surface used to have ten, six of which
- * were single panels an operator visits once a quarter — those now live behind
- * cards in `Advanced`.
- */
-export const HEALTH_SETTINGS_TABS = [
-  'alerts',
-  'thresholds',
-  'activity',
-  'advanced',
-] as const
-
-export type HealthSettingsTab = (typeof HEALTH_SETTINGS_TABS)[number]
-
-/**
- * Legacy `?tab=` values (the pre-collapse ten) mapped to where their content
- * lives now. Deep links from the menu, docs and older bookmarks must keep
- * working — `advancedSection` additionally opens the right dialog.
- */
-const LEGACY_TAB_MAP: Record<
-  string,
-  { tab: HealthSettingsTab; advancedSection?: AdvancedSectionId }
-> = {
-  thresholds: { tab: 'thresholds' },
-  alerts: { tab: 'alerts' },
-  active: { tab: 'activity' },
-  history: { tab: 'activity' },
-  activity: { tab: 'activity' },
-  advanced: { tab: 'advanced' },
-  routing: { tab: 'advanced', advancedSection: 'routing' },
-  webhooks: { tab: 'advanced', advancedSection: 'webhooks' },
-  maintenance: { tab: 'advanced', advancedSection: 'maintenance' },
-  'quiet-hours': { tab: 'advanced', advancedSection: 'quiet-hours' },
-  digest: { tab: 'advanced', advancedSection: 'digest' },
-  suggested: { tab: 'advanced', advancedSection: 'suggested' },
-  'custom-rules': { tab: 'advanced', advancedSection: 'custom-rules' },
-}
+export {
+  HEALTH_SETTINGS_TABS,
+  type HealthSettingsTab,
+  isHealthSettingsTab,
+  resolveHealthSettingsTab,
+} from '@/lib/health/health-settings-tabs'
 
 /**
  * Tab strip definition — one place so every tab gets the same icon size and
@@ -99,19 +69,6 @@ const TAB_DEFS: {
   { value: 'activity', label: 'Activity', icon: CircleAlert },
   { value: 'advanced', label: 'Advanced', icon: Cog },
 ]
-
-/** True for any tab id this page understands, including the legacy ones. */
-export function isHealthSettingsTab(value: string | undefined): boolean {
-  return value !== undefined && value in LEGACY_TAB_MAP
-}
-
-/** Resolve any (current or legacy) `?tab=` value to a tab + optional dialog. */
-export function resolveHealthSettingsTab(value: string | undefined): {
-  tab: HealthSettingsTab
-  advancedSection?: AdvancedSectionId
-} {
-  return (value ? LEGACY_TAB_MAP[value] : undefined) ?? { tab: 'alerts' }
-}
 
 /**
  * Shared body of the health/alert settings surface — tabs, form state and
