@@ -218,6 +218,13 @@ jobs:
       - name: Test queries config
         working-directory: apps/dashboard
         run: pnpm run test:query-config
+        env:
+          # This is the ONLY job with a real ClickHouse service. CLICKHOUSE_HOST
+          # is set workflow-wide (see top-level env), so it cannot signal that a
+          # server actually exists — the live tests key off this instead, and
+          # fail loudly here if the service is unreachable rather than quietly
+          # covering nothing.
+          CHM_LIVE_CLICKHOUSE: '1'
 
       - name: Run package integration tests
         run: pnpm run test:packages:ci
