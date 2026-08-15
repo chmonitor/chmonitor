@@ -6,6 +6,8 @@
  * exist to fail the moment one of them stops resolving.
  */
 
+import type { AdvancedSectionId } from '../health-settings-tabs'
+
 import {
   HEALTH_SETTINGS_TABS,
   isHealthSettingsTab,
@@ -69,7 +71,7 @@ describe('resolveHealthSettingsTab', () => {
   })
 
   test('the six retired panel tabs open their dialog on the Advanced tab', () => {
-    const expected: Record<string, string> = {
+    const expected: Record<string, AdvancedSectionId> = {
       routing: 'routing',
       webhooks: 'webhooks',
       maintenance: 'maintenance',
