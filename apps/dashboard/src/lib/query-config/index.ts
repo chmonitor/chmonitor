@@ -46,6 +46,7 @@ import { textLogConfig } from './logs/text-log'
 import { mergePerformanceConfig } from './merges/merge-performance'
 import { mergesConfig } from './merges/merges'
 import { mutationsConfig } from './merges/mutations'
+import { recentMergesConfig } from './merges/recent-merges'
 import { asynchronousMetricsConfig } from './more/asynchronous-metrics'
 import { backupsConfig } from './more/backups'
 import { dictionariesConfig } from './more/dictionaries'
@@ -193,6 +194,7 @@ export const queries: Array<QueryConfig> = [
 
   // Merges
   mergesConfig,
+  recentMergesConfig,
   mergePerformanceConfig,
   mutationsConfig,
   partLogConfig,

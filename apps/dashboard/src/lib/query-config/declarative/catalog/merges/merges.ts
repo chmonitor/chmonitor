@@ -7,9 +7,9 @@ export const mergesDeclarative: DeclarativeQueryConfig = {
   refreshInterval: 30000,
   description:
     'Merges and part mutations currently in process for tables in the MergeTree family',
-  suggestion: `system.merges only lists merges that are running right now, so an idle cluster shows nothing here.
+  suggestion: `system.merges only lists merges that are running right now, so an idle cluster shows nothing here — this is normal, not an error.
 
-To see finished merges, open Merge Performance (backed by system.part_log), or force one:
+Recently completed merges are listed below this table (from system.part_log). To watch a merge appear here live:
 OPTIMIZE TABLE <db>.<table>;`,
   // Version-aware queries (oldest → newest). Columns are listed explicitly —
   // never `SELECT *` — because the qualified `database || '.' || table` alias
