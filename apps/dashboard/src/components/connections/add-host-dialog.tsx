@@ -182,8 +182,8 @@ export function AddHostDialog({
                 <p className="font-medium text-foreground">Sign in to sync</p>
                 <p className="mt-0.5 text-muted-foreground">
                   Save connections to the server, pick a plan, or join an
-                  organization. Browser-only storage still works without
-                  signing in.
+                  organization. Browser-only storage still works without signing
+                  in.
                 </p>
               </div>
             )}
