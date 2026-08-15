@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 
 import type { ReactNode } from 'react'
+import type { AdvancedSectionId } from '@/lib/health/health-settings-tabs'
 
 import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
@@ -37,18 +38,9 @@ import { cn } from '@/lib/utils'
  * These six panels used to be six top-level tabs, which made a settings page
  * with ten tabs where most operators only ever touch two. Nothing is removed —
  * each panel renders unchanged inside its dialog, and its old `?tab=` deep link
- * still lands here with the right dialog already open (see `ADVANCED_SECTIONS`
- * ids, which match the legacy tab ids).
+ * still lands here with the right dialog already open (the ids below match the
+ * `advancedSection` values in `LEGACY_TAB_MAP`).
  */
-export type AdvancedSectionId =
-  | 'routing'
-  | 'webhooks'
-  | 'maintenance'
-  | 'quiet-hours'
-  | 'digest'
-  | 'suggested'
-  | 'custom-rules'
-
 interface AdvancedSection {
   id: AdvancedSectionId
   title: string

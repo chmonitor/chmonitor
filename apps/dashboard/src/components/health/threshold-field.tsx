@@ -118,8 +118,14 @@ function StepperButton({
   )
 }
 
-/** Step proportional to magnitude: 0.1 / 1 / 5 / 10 / 50 / 100. */
-function stepFor(value: number): number {
+/**
+ * Step proportional to magnitude: 0.1 / 1 / 5 / 10 / 50 / 100.
+ *
+ * Exported for its unit test — the native spinner's fixed step of 1 is what
+ * made a threshold of 300 unusable, so the magnitude mapping is the behaviour
+ * worth pinning.
+ */
+export function stepFor(value: number): number {
   const v = Math.abs(value)
   if (v < 1) return 0.1
   if (v < 10) return 1
