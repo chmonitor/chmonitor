@@ -9,25 +9,93 @@ export const mergesConfig: QueryConfig = {
   refreshInterval: 30_000,
   description:
     'Merges and part mutations currently in process for tables in the MergeTree family',
-  // Version-aware queries (oldest → newest)
+  suggestion: `system.merges only lists merges that are running right now, so an idle cluster shows nothing here.
+
+To see finished merges, open Merge Performance (backed by system.part_log), or force one:
+OPTIMIZE TABLE <db>.<table>;`,
+  // Version-aware queries (oldest → newest). Columns are listed explicitly —
+  // never `SELECT *` — because the qualified `database || '.' || table` alias
+  // collides with system.merges' own `table` column and produces a duplicate
+  // column (AMBIGUOUS_COLUMN_NAME, or a duplicated key in the JSON response).
+  //
+  // 21.11 adds merge_type / merge_algorithm.
   // 26.6 adds per-projection tracking: current_projection,
-  // current_projection_progress, projections_completed, projections_remaining.
+  // current_projection_progress, projections_completed, projections_remaining
+  // (the last two are Array(String), so they are surfaced as counts).
   sql: [
     {
       since: '19.1',
-      description: 'Base query — projection tracking columns not available',
+      description:
+        'Base query — merge_type/merge_algorithm and projection tracking not available',
       sql: `
-        SELECT *,
+        SELECT
+          database,
           database || '.' || table as table,
-          round(100 * num_parts / nullIf(max(num_parts) OVER (), 0)) as pct_num_parts,
+          partition_id,
+          result_part_name,
+          source_part_names,
+          elapsed,
+          progress,
           round(progress * 100, 1) as pct_progress,
           (cast(pct_progress, 'String') || '%') as readable_progress,
+          num_parts,
+          round(100 * num_parts / nullIf(max(num_parts) OVER (), 0)) as pct_num_parts,
+          rows_read,
           round(100 * rows_read / nullIf(max(rows_read) OVER (), 0)) as pct_rows_read,
           formatReadableQuantity(rows_read) as readable_rows_read,
+          rows_written,
           round(100 * rows_written / nullIf(max(rows_written) OVER (), 0)) as pct_rows_written,
           formatReadableQuantity(rows_written) as readable_rows_written,
+          memory_usage,
           round(100 * memory_usage / nullIf(max(memory_usage) OVER (), 0)) as pct_memory_usage,
           formatReadableSize(memory_usage) as readable_memory_usage,
+          total_size_bytes_compressed,
+          formatReadableSize(total_size_bytes_compressed) as readable_total_size_bytes_compressed,
+          is_mutation,
+          thread_id,
+          '' AS merge_type,
+          '' AS merge_algorithm,
+          '-' AS current_projection,
+          toFloat64(0) AS current_projection_progress,
+          '0%' AS readable_current_projection_progress,
+          toFloat64(0) AS pct_current_projection_progress,
+          toUInt64(0) AS projections_completed,
+          toUInt64(0) AS projections_remaining
+        FROM system.merges
+        ORDER BY progress DESC
+      `,
+    },
+    {
+      since: '21.11',
+      description: 'Includes merge_type / merge_algorithm',
+      sql: `
+        SELECT
+          database,
+          database || '.' || table as table,
+          partition_id,
+          result_part_name,
+          source_part_names,
+          elapsed,
+          progress,
+          round(progress * 100, 1) as pct_progress,
+          (cast(pct_progress, 'String') || '%') as readable_progress,
+          num_parts,
+          round(100 * num_parts / nullIf(max(num_parts) OVER (), 0)) as pct_num_parts,
+          rows_read,
+          round(100 * rows_read / nullIf(max(rows_read) OVER (), 0)) as pct_rows_read,
+          formatReadableQuantity(rows_read) as readable_rows_read,
+          rows_written,
+          round(100 * rows_written / nullIf(max(rows_written) OVER (), 0)) as pct_rows_written,
+          formatReadableQuantity(rows_written) as readable_rows_written,
+          memory_usage,
+          round(100 * memory_usage / nullIf(max(memory_usage) OVER (), 0)) as pct_memory_usage,
+          formatReadableSize(memory_usage) as readable_memory_usage,
+          total_size_bytes_compressed,
+          formatReadableSize(total_size_bytes_compressed) as readable_total_size_bytes_compressed,
+          is_mutation,
+          thread_id,
+          merge_type,
+          merge_algorithm,
           '-' AS current_projection,
           toFloat64(0) AS current_projection_progress,
           '0%' AS readable_current_projection_progress,
@@ -43,21 +111,41 @@ export const mergesConfig: QueryConfig = {
       description:
         'Includes projection tracking: current_projection, projections_completed/remaining',
       sql: `
-        SELECT *,
+        SELECT
+          database,
           database || '.' || table as table,
-          round(100 * num_parts / nullIf(max(num_parts) OVER (), 0)) as pct_num_parts,
+          partition_id,
+          result_part_name,
+          source_part_names,
+          elapsed,
+          progress,
           round(progress * 100, 1) as pct_progress,
           (cast(pct_progress, 'String') || '%') as readable_progress,
+          num_parts,
+          round(100 * num_parts / nullIf(max(num_parts) OVER (), 0)) as pct_num_parts,
+          rows_read,
           round(100 * rows_read / nullIf(max(rows_read) OVER (), 0)) as pct_rows_read,
           formatReadableQuantity(rows_read) as readable_rows_read,
+          rows_written,
           round(100 * rows_written / nullIf(max(rows_written) OVER (), 0)) as pct_rows_written,
           formatReadableQuantity(rows_written) as readable_rows_written,
+          memory_usage,
           round(100 * memory_usage / nullIf(max(memory_usage) OVER (), 0)) as pct_memory_usage,
           formatReadableSize(memory_usage) as readable_memory_usage,
+          total_size_bytes_compressed,
+          formatReadableSize(total_size_bytes_compressed) as readable_total_size_bytes_compressed,
+          is_mutation,
+          thread_id,
+          merge_type,
+          merge_algorithm,
+          current_projection,
+          current_projection_progress,
           concat(toString(round(current_projection_progress * 100, 1)), '%')
             AS readable_current_projection_progress,
           round(current_projection_progress * 100, 0)
-            AS pct_current_projection_progress
+            AS pct_current_projection_progress,
+          length(projections_completed) AS projections_completed,
+          length(projections_remaining) AS projections_remaining
         FROM system.merges
         ORDER BY progress DESC
       `,
