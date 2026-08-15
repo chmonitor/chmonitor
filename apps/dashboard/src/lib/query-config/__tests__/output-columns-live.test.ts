@@ -134,12 +134,16 @@ describe('shipped SQL output columns against a live ClickHouse (optional)', () =
     }
   }, 10000)
 
-  // Reachability is PROBED, not inferred from the env var: `bun` auto-loads
-  // .env, so CLICKHOUSE_HOST is routinely set on a machine with no server. But
-  // in CI a server is guaranteed, so an unreachable one there is a real failure
-  // rather than a reason to quietly cover nothing.
-  it('has a live server whenever CI says it should', () => {
-    if (process.env.CI) expect(liveVersion).not.toBeNull()
+  // Reachability is PROBED, never inferred. Neither CLICKHOUSE_HOST nor CI can
+  // stand in for "a server exists": the workflow sets CLICKHOUSE_HOST at the
+  // top level for EVERY job, and `bun` auto-loads .env locally, so both are
+  // routinely set with nothing listening. Only `test-queries-config` provisions
+  // a service container, and it alone sets CHM_LIVE_CLICKHOUSE — so that is the
+  // signal that an unreachable server is a real failure rather than a reason to
+  // skip. (Learned the hard way: an earlier `if (process.env.CI)` here failed
+  // the unit-tests job, which has no ClickHouse.)
+  it('has a live server whenever one is supposed to be provisioned', () => {
+    if (process.env.CHM_LIVE_CLICKHOUSE) expect(liveVersion).not.toBeNull()
   })
 
   for (const analyzer of [1, 0] as const) {
