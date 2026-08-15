@@ -18,6 +18,7 @@ import {
   HeartPulse,
   Mail,
   MessageCircle,
+  Plus,
   Radio,
   Send,
   Siren,
@@ -30,8 +31,8 @@ import type { ReactNode } from 'react'
 import type { AlertConfigChannel } from '@/lib/hooks/use-alert-channel-config'
 
 import {
-  AddChannelTile,
   ChannelCard,
+  ChannelPickerDialog,
   ChannelSectionHeader,
 } from './channel-card'
 import { ChannelSeverityToggle } from './channel-severity-toggle'
@@ -250,6 +251,7 @@ export function ServerChannelConfigPanel() {
   // Channels opened from an "Add a channel" tile this session — they render as
   // full (expanded) cards before they hold any saved config.
   const [opened, setOpened] = useState<string[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   // Hydrate drafts from the server config whenever it (re)loads.
   useEffect(() => {
@@ -468,20 +470,33 @@ export function ServerChannelConfigPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <ChannelSectionHeader
-        icon={<Siren className="size-4" strokeWidth={1.5} />}
-        title="Server delivery channels"
-        description={
-          <>
-            Persisted on the server and used by the automated health sweep. A
-            saved channel overrides its{' '}
-            <code className="text-xs">HEALTH_ALERT_*</code> environment
-            variable; leave a secret blank to keep the stored one. Each card
-            saves on its own.
-          </>
-        }
-        count={configured.length}
-      />
+      <div className="flex items-start justify-between gap-2">
+        <ChannelSectionHeader
+          icon={<Siren className="size-4" strokeWidth={1.5} />}
+          title="Server delivery channels"
+          description={
+            <>
+              Persisted on the server and used by the automated health sweep. A
+              saved channel overrides its{' '}
+              <code className="text-xs">HEALTH_ALERT_*</code> environment
+              variable; leave a secret blank to keep the stored one. Each card
+              saves on its own.
+            </>
+          }
+          count={configured.length}
+        />
+        {available.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setPickerOpen(true)}
+          >
+            <Plus className="size-3.5" strokeWidth={1.5} />
+            Add channel
+          </Button>
+        )}
+      </div>
 
       {configured.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -493,32 +508,30 @@ export function ServerChannelConfigPanel() {
             variant="no-data"
             icon={<Siren className="size-5" strokeWidth={1.5} />}
             title="No server channel configured"
-            description="The automated health sweep has nowhere to deliver yet. Add one below, or set the matching HEALTH_ALERT_* environment variables on the server."
+            description="The automated health sweep has nowhere to deliver yet. Add one, or set the matching HEALTH_ALERT_* environment variables on the server."
+            action={{
+              label: 'Add channel',
+              icon: <Plus className="size-3.5" strokeWidth={1.5} />,
+              onClick: () => setPickerOpen(true),
+            }}
           />
         </div>
       )}
 
-      {available.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
-            Add a channel
-          </span>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {available.map((spec) => (
-              <AddChannelTile
-                key={spec.channel}
-                icon={spec.icon}
-                title={spec.label}
-                description={spec.description}
-                example={spec.example}
-                onClick={() =>
-                  setOpened((prev) => [...prev, spec.channel as string])
-                }
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <ChannelPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        title="Add a server channel"
+        description="Persisted on the server and delivered by the automated health sweep, even when no browser is open."
+        items={available.map((spec) => ({
+          id: spec.channel,
+          label: spec.label,
+          description: spec.description,
+          icon: spec.icon,
+          example: spec.example,
+        }))}
+        onPick={(id) => setOpened((prev) => [...prev, id])}
+      />
     </div>
   )
 }

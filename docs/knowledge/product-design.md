@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-14
+updated: 2026-08-15
 tags:
   - design-system
   - ui
@@ -324,6 +324,64 @@ implemented by `components/health/channel-card.tsx`:
   `HEALTH_ALERT_*` env). Zero configured → `EmptyState`, not blank forms.
 - Once the user edits a card, pin it open (`opened` id set) so clearing its URL
   can't collapse the card and unmount the focused input mid-keystroke.
+- The unconfigured channels live behind a `ChannelPickerDialog` reached from an
+  "Add channel" button in the section header (and from the empty state's
+  `action`), NOT as a permanent inline tile grid — a settings page shows what IS
+  set up. The dialog renders the same `AddChannelTile`s.
+
+### Settings page shape: few tabs, dialogs for the rest
+
+A settings surface with many independent panels gets FOUR tabs at most, and the
+rarely-visited panels become a `grid gap-2 sm:grid-cols-2` of launcher cards
+(icon tile + title + one-line description + `ChevronRight`) that each open the
+unchanged panel inside a `Dialog`. `/alert-settings` collapsed ten tabs into
+`Alerts · Thresholds · Activity · Advanced` this way
+(`components/health/advanced-settings-panel.tsx`).
+
+**Nothing may become unreachable, and no deep link may die.** Keep a
+`LEGACY_TAB_MAP` from every retired `?tab=` id to `{ tab, advancedSection? }`,
+so an old link lands on the right tab with the right dialog already open
+(`health-settings-panel.tsx`).
+
+### Presets before forms
+
+When a settings surface would otherwise render N identical input pairs (16
+health checks × warning/critical), lead with a named `SegmentedControl` preset
+that covers all of them, then show ONLY the items tuned away from that baseline;
+the rest are added from a searchable picker dialog. Presets scale each item's
+OWN defaults by a factor (`lib/health/threshold-presets.ts`) rather than writing
+absolute numbers, so a "percent" and a "count" check stay proportional, and
+"overridden" is judged by comparing VALUES to the defaults — never by key
+presence, which a global preset would trip for every item.
+
+Related: a **quick-start template** dialog (`lib/health/alert-templates.ts`) may
+set several of these at once. A template must write only into the EXISTING
+stored shapes — never add its own persisted field, or the whitelist parsers
+(`loadAlertSettings`) will silently drop it — and must never overwrite a target
+the user typed (a webhook URL); it decides *when*, the channel cards decide
+*where*.
+
+### Numeric threshold input
+
+Use `components/health/threshold-field.tsx` (a wrapper — never edit
+`ui/input.tsx`): a severity dot + label, `−`/`+` stepper buttons flanking a
+centered `tabular-nums` input, with the step derived from the value's magnitude
+(0.1 / 1 / 5 / 10 / 50 / 100). The native spinner's fixed step of 1 is unusable
+on a threshold of 300. Clamp `critical ≥ warning` by construction on change,
+rather than relying on a save-time error toast.
+
+### Browser-permission-backed toggles
+
+A switch that depends on a browser permission must reflect the LIVE permission,
+not just the stored preference — `DEFAULT_ALERT_SETTINGS.browserNotificationsEnabled`
+is `true` while `Notification.permission` is `'default'`, which read as working
+while nothing was delivered. Use `lib/health/use-notification-permission.ts`:
+effect-only (the app prerenders), synced via
+`navigator.permissions.query(...).onchange` with a `visibilitychange`/`focus`
+re-read as the Safari fallback. Render four states (unsupported / needs-grant /
+granted / blocked); on `denied` disable the switch and explain the unblock, and
+NEVER write `false` into storage — that destroys intent and would not come back
+when the user unblocks the site. Gate "Send test" on the live permission.
 
 ### Tab strips
 
