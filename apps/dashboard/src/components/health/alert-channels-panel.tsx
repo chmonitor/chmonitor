@@ -1,16 +1,20 @@
-import { BellRing, HeartPulse, Laptop, Webhook } from 'lucide-react'
+'use client'
+
+import { BellRing, HeartPulse, Laptop, Plus, Webhook } from 'lucide-react'
 
 import type { ReactNode } from 'react'
 import type { AlertSettings } from '@/lib/health/alert-settings-storage'
 import type { LocalChannelId } from '@/lib/health/channel-classification'
+import type { NotificationPermissionInfo } from '@/lib/health/use-notification-permission'
 
 import {
-  AddChannelTile,
   ChannelCard,
+  ChannelPickerDialog,
   ChannelSectionHeader,
 } from './channel-card'
 import { ChannelSeverityToggle } from './channel-severity-toggle'
 import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
@@ -59,6 +63,21 @@ function severityLabel(value: 'warning' | 'critical' | undefined): string {
   return 'Inherits default'
 }
 
+/**
+ * Status line for the browser channel — the stored preference AND the live
+ * browser permission, because either one alone can silently stop delivery.
+ */
+function browserStatus(
+  enabled: boolean,
+  permission: NotificationPermissionInfo
+): string {
+  if (permission.state === 'unsupported') return 'Not supported in this browser'
+  if (permission.state === 'denied') return 'Blocked in browser settings'
+  if (!enabled) return 'Disabled'
+  if (permission.state === 'default') return 'Permission not granted yet'
+  return 'Delivering'
+}
+
 export interface AlertChannelsPanelProps {
   alerts: AlertSettings
   setAlerts: (updater: (prev: AlertSettings) => AlertSettings) => void
@@ -70,18 +89,23 @@ export interface AlertChannelsPanelProps {
   onTestBrowser: () => void
   onTestHealthchecks: () => void
   onTestWebhook: () => void
+  /** Live browser notification permission (owned by the parent so it can gate its handlers too). */
+  permission: NotificationPermissionInfo
 }
 
 /**
- * Browser-local delivery channels as a responsive card grid (issue: alert
- * settings redesign).
+ * Browser-local delivery channels as a responsive card grid.
  *
- * Configured channels get a full collapsible card (icon, status, enable
- * switch, target field, severity floor, "Send test"); the rest are compact
- * "Add a channel" tiles that expand into the same card on click, so a fresh
- * install sees a short menu instead of a wall of blank forms. These settings
- * live in this browser's localStorage and persist with the page's Save button
- * — unlike the server channels, which save per card.
+ * Only channels that are ALREADY configured render as cards; the rest live
+ * behind an "Add channel" dialog, so a fresh install sees a short menu instead
+ * of a wall of blank forms. These settings live in this browser's localStorage
+ * and persist with the page's Save button — unlike the server channels, which
+ * save per card.
+ *
+ * The browser card additionally reflects the live `Notification.permission`
+ * (see `useNotificationPermission`): the toggle used to show "on" while the
+ * permission was still ungranted, which read as working when nothing was being
+ * delivered.
  */
 export function AlertChannelsPanel({
   alerts,
@@ -91,10 +115,12 @@ export function AlertChannelsPanel({
   onTestBrowser,
   onTestHealthchecks,
   onTestWebhook,
+  permission,
 }: AlertChannelsPanelProps) {
-  // Ids the operator opened from an "Add a channel" tile this session; they
-  // render as full (open) cards even before they hold a value.
+  // Ids the operator opened from the picker this session; they render as full
+  // (open) cards even before they hold a value.
   const [opened, setOpened] = useState<LocalChannelId[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const { configured, available } = partitionChannels(
     LOCAL_CHANNEL_IDS,
@@ -105,8 +131,8 @@ export function AlertChannelsPanel({
     LOCAL_CHANNELS.find((c) => c.id === id) as LocalChannelMeta
 
   // Pin a card open once the operator interacts with it, so clearing its URL
-  // (or switching it off) does not collapse the card back into an "Add a
-  // channel" tile mid-edit — which would unmount the input and drop focus.
+  // (or switching it off) does not collapse the card back into the picker
+  // mid-edit — which would unmount the input and drop focus.
   const pin = (id: LocalChannelId) =>
     setOpened((prev) => (prev.includes(id) ? prev : [...prev, id]))
 
@@ -124,13 +150,34 @@ export function AlertChannelsPanel({
     )
 
     if (id === 'browser') {
+      // The switch mirrors the *effective* state: the stored preference AND a
+      // usable permission. We never write `false` into storage on a denial —
+      // that would destroy the operator's intent and not come back when they
+      // unblock the site.
+      const effectivelyOn =
+        alerts.browserNotificationsEnabled && permission.canNotify
       return (
         <ChannelCard
           key={id}
           icon={m.icon}
           title={m.label}
-          status={`${alerts.browserNotificationsEnabled ? 'Enabled' : 'Disabled'} · ${severityLabel(channelSeverity)}`}
-          enabled={alerts.browserNotificationsEnabled}
+          badges={
+            permission.state === 'denied' ? (
+              <Badge variant="outline" className="text-xs">
+                blocked
+              </Badge>
+            ) : permission.state === 'default' &&
+              alerts.browserNotificationsEnabled ? (
+              <Badge variant="outline" className="text-xs">
+                needs permission
+              </Badge>
+            ) : undefined
+          }
+          status={`${browserStatus(alerts.browserNotificationsEnabled, permission)} · ${severityLabel(channelSeverity)}`}
+          enabled={effectivelyOn}
+          switchDisabled={
+            permission.state === 'unsupported' || permission.state === 'denied'
+          }
           onEnabledChange={(checked) => {
             pin(id)
             onEnableBrowser(checked)
@@ -138,16 +185,46 @@ export function AlertChannelsPanel({
           defaultOpen={opened.includes(id)}
         >
           <p className="text-xs text-muted-foreground">
-            Show desktop notifications for new health alerts. Requires the
-            browser notification permission.
+            Show desktop notifications for new health alerts while this browser
+            is open.
           </p>
+          {permission.state === 'denied' && (
+            <p className="text-xs text-muted-foreground">
+              This site is blocked from sending notifications. Allow them in the
+              browser's site settings (the icon left of the address bar), then
+              this toggle re-enables itself.
+            </p>
+          )}
+          {permission.state === 'unsupported' && (
+            <p className="text-xs text-muted-foreground">
+              This browser has no Notification API — use a webhook or
+              healthchecks.io instead.
+            </p>
+          )}
+          {permission.state === 'default' && (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-dashed p-2">
+              <span className="text-xs text-muted-foreground">
+                Permission not granted yet
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  pin(id)
+                  onEnableBrowser(true)
+                }}
+              >
+                Allow notifications
+              </Button>
+            </div>
+          )}
           {severityRow}
           <div className="flex justify-end">
             <Button
               variant="ghost"
               size="sm"
               onClick={onTestBrowser}
-              disabled={!alerts.browserNotificationsEnabled}
+              disabled={!effectivelyOn}
             >
               Send test
             </Button>
@@ -254,12 +331,25 @@ export function AlertChannelsPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <ChannelSectionHeader
-        icon={<BellRing className="size-4" strokeWidth={1.5} />}
-        title="Browser channels"
-        description="Delivered by this browser while the dashboard is open, and stored locally on this device — press Save below to persist them."
-        count={configured.length}
-      />
+      <div className="flex items-start justify-between gap-2">
+        <ChannelSectionHeader
+          icon={<BellRing className="size-4" strokeWidth={1.5} />}
+          title="Browser channels"
+          description="Delivered by this browser while the dashboard is open, and stored locally on this device — press Save below to persist them."
+          count={configured.length}
+        />
+        {available.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setPickerOpen(true)}
+          >
+            <Plus className="size-3.5" strokeWidth={1.5} />
+            Add channel
+          </Button>
+        )}
+      </div>
 
       {configured.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -271,33 +361,33 @@ export function AlertChannelsPanel({
             variant="no-data"
             icon={<BellRing className="size-5" strokeWidth={1.5} />}
             title="No browser channel configured"
-            description="Pick a channel below to get alerted — desktop notifications, a healthchecks.io ping URL, or a Slack/Discord webhook."
+            description="Pick a channel to get alerted — desktop notifications, a healthchecks.io ping URL, or a Slack/Discord webhook."
+            action={{
+              label: 'Add channel',
+              icon: <Plus className="size-3.5" strokeWidth={1.5} />,
+              onClick: () => setPickerOpen(true),
+            }}
           />
         </div>
       )}
 
-      {available.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
-            Add a channel
-          </span>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {available.map((id) => {
-              const m = meta(id)
-              return (
-                <AddChannelTile
-                  key={id}
-                  icon={m.icon}
-                  title={m.label}
-                  description={m.description}
-                  example={m.example}
-                  onClick={() => setOpened((prev) => [...prev, id])}
-                />
-              )
-            })}
-          </div>
-        </div>
-      )}
+      <ChannelPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        title="Add a browser channel"
+        description="Delivered by this browser while the dashboard is open. Stored locally on this device."
+        items={available.map((id) => {
+          const m = meta(id)
+          return {
+            id,
+            label: m.label,
+            description: m.description,
+            icon: m.icon,
+            example: m.example,
+          }
+        })}
+        onPick={(id) => setOpened((prev) => [...prev, id as LocalChannelId])}
+      />
     </div>
   )
 }

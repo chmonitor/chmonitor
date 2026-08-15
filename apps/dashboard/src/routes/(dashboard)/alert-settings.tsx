@@ -27,7 +27,7 @@ function AlertSettingsContent() {
             Alert Settings
           </span>
         }
-        description="Alert channels, webhooks, routing, quiet hours, digests and alert history — stored locally in your browser"
+        description="Where alerts go, when they fire, and what has fired recently — start from a template, then tune anything"
       />
       <AlertSettingsHero />
       <HealthSettingsPanel

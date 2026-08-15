@@ -8,6 +8,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
@@ -130,6 +137,62 @@ export function AddChannelTile({
         )}
       </span>
     </button>
+  )
+}
+
+/**
+ * Dialog listing every channel that is not configured yet.
+ *
+ * The add-tiles used to sit inline under the configured grid, which put a
+ * permanent menu of things-you-are-not-using on a settings page whose job is to
+ * show what IS set up. Behind a dialog the page stays short, and the picker gets
+ * room to describe each channel properly.
+ */
+export function ChannelPickerDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  items,
+  onPick,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  items: readonly {
+    id: string
+    label: string
+    description: string
+    icon: ReactNode
+    example?: string
+  }[]
+  onPick: (id: string) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[60vh] gap-2 overflow-y-auto">
+          {items.map((item) => (
+            <AddChannelTile
+              key={item.id}
+              icon={item.icon}
+              title={item.label}
+              description={item.description}
+              example={item.example}
+              onClick={() => {
+                onPick(item.id)
+                onOpenChange(false)
+              }}
+            />
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

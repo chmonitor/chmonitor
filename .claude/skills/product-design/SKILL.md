@@ -94,8 +94,37 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   + an example target value) for the rest, which expand into the same card on
   click. Nothing configured → `EmptyState`, never a wall of blank forms. Pin a
   card open once the user edits it so clearing its value can't unmount the input
-  mid-keystroke. See `components/health/channel-card.tsx` +
+  mid-keystroke. Unconfigured channels live behind a `ChannelPickerDialog`
+  opened from an "Add channel" button in the section header — not a permanent
+  inline tile grid. See `components/health/channel-card.tsx` +
   `alert-channels-panel.tsx` (`/alert-settings`).
+- **Settings page shape — few tabs, dialogs for the rest:** at most FOUR tabs;
+  rarely-visited panels become a `grid gap-2 sm:grid-cols-2` of launcher cards
+  (icon tile + title + one-line description + `ChevronRight`) that open the
+  unchanged panel in a `Dialog`. `/alert-settings` went from ten tabs to
+  `Alerts · Thresholds · Activity · Advanced` this way. Nothing may become
+  unreachable, and every retired `?tab=` id must still resolve — keep a
+  `LEGACY_TAB_MAP` to `{ tab, advancedSection? }` so an old link opens the right
+  dialog (`advanced-settings-panel.tsx` + `health-settings-panel.tsx`).
+- **Presets before forms:** when a surface would render N identical input pairs,
+  lead with a named `SegmentedControl` preset covering all of them and show only
+  the items tuned away from that baseline; the rest come from a searchable
+  picker dialog. Presets scale each item's OWN defaults by a factor
+  (`lib/health/threshold-presets.ts`), and "overridden" compares VALUES to the
+  defaults, never key presence. A quick-start **template**
+  (`lib/health/alert-templates.ts`) may set several at once, but must write only
+  into existing stored shapes (whitelist parsers drop unknown fields) and never
+  overwrite a target the user typed.
+- **Numeric threshold input:** `components/health/threshold-field.tsx` — severity
+  dot + label, `−`/`+` steppers around a centered `tabular-nums` input, step
+  derived from magnitude. Clamp `critical ≥ warning` on change, not at save.
+- **Permission-backed toggles:** a switch gated on a browser permission must
+  reflect the LIVE permission, not just the stored preference. Use
+  `lib/health/use-notification-permission.ts` (effect-only — the app prerenders;
+  `navigator.permissions` `onchange` + a `visibilitychange`/`focus` Safari
+  fallback). Four states: unsupported / needs-grant / granted / blocked. On
+  `denied` disable the switch and explain the unblock — never write `false` into
+  storage. Gate "Send test" on the live permission.
 - **Tab strips:** define the tabs as one array and map it — an icon per tab with
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.
