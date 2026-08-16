@@ -8,12 +8,6 @@
  *   `sessionId`) the route expects.
  * - `useRemoteThreadListRuntime` layers persistent conversation history on top,
  *   backed by either D1 or localStorage (see `resolve-thread-list-adapter`).
- *
- * NOTE — dual-ai transport cast: `DefaultChatTransport` is from ai@7 (root).
- * `@assistant-ui/react-ai-sdk` still depends on `@ai-sdk/react@3` which bundles
- * ai@6 internally, so `UIMessageChunk` types diverge at the TypeScript level
- * (they're wire-compatible). The `as any` cast below is intentional until
- * @assistant-ui/react-ai-sdk ships a version targeting ai@7.
  */
 
 import { useLocation } from '@tanstack/react-router'
@@ -51,7 +45,7 @@ function trackedAgentFetch(
 
 /**
  * Per-thread chat runtime. assistant-ui invokes this hook once per active
- * thread; it talks to the existing AI SDK v6 agent route.
+ * thread; it talks to the `/api/v1/agent` route.
  */
 function useAgentChatRuntime() {
   const hostId = useHostId()
@@ -152,8 +146,7 @@ function useAgentChatRuntime() {
     ]
   )
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return useChatRuntime({ transport: transport as any })
+  return useChatRuntime({ transport })
 }
 
 /**
