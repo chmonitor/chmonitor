@@ -69,17 +69,23 @@ export function AgentThreadPage() {
   const isMobile = useIsMobile()
   // Conversation rail: persistent inline column on desktop (open by default so
   // its width is reserved on first paint, no CLS); a Drawer on mobile. It also
-  // starts collapsed on tablet-sized (`lg`-down) viewports, where the inline
-  // rail is still used but 280px eats too much of the chat column — the user
-  // can still open it via the toggle button.
+  // defaults collapsed on tablet-sized (`lg`-down) viewports, where the inline
+  // rail is still used but 280px eats too much of the chat column.
+  //
+  // `railOpen` stays `null` ("follow the breakpoint") until the user
+  // explicitly toggles it via the collapse/open button; from then on their
+  // choice sticks for the session even if the breakpoint changes again. This
+  // also means the breakpoint-driven default never re-fires an effect that
+  // could stomp a manual toggle. `ConversationRail`'s `animate` prop only
+  // turns on once the user has taken control, so the automatic default never
+  // *animates* the open/close transition (no visible slide on load) — only a
+  // deliberate click slides the rail.
   const isLgDown = useIsLgDown()
-  const [railOpen, setRailOpen] = useState(true)
+  const [railOpen, setRailOpen] = useState<boolean | null>(null)
+  const effectiveRailOpen = railOpen ?? !isLgDown
   const [mobileConvOpen, setMobileConvOpen] = useState(false)
   // Settings sidebar (open by default on desktop; Drawer on mobile).
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
-  useEffect(() => {
-    setRailOpen(!isLgDown)
-  }, [isLgDown])
   useEffect(() => {
     setRightSidebarOpen(!isMobile)
   }, [isMobile])
@@ -97,7 +103,8 @@ export function AgentThreadPage() {
             {/* Conversation rail — persistent left column (desktop). */}
             {!isMobile && (
               <ConversationRail
-                open={railOpen}
+                open={effectiveRailOpen}
+                animate={railOpen !== null}
                 onCollapse={() => setRailOpen(false)}
               />
             )}
@@ -124,7 +131,7 @@ export function AgentThreadPage() {
 
             {/* Main column */}
             <div className="relative flex min-w-0 flex-1 flex-col">
-              {(isMobile || !railOpen) && (
+              {(isMobile || !effectiveRailOpen) && (
                 <ConversationRailOpenButton
                   onClick={() =>
                     isMobile ? setMobileConvOpen(true) : setRailOpen(true)

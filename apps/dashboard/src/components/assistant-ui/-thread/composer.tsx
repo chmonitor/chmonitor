@@ -20,41 +20,6 @@ import { PageContextChip } from '@/components/assistant-ui/-thread/page-context-
 import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import { track } from '@/lib/telemetry'
-import { cn } from '@/lib/utils'
-
-/**
- * Compact keyboard-hint row shown under the composer in both the welcome and
- * in-thread positions (issue #2804).
- */
-function ComposerHints({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        'flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-muted-foreground',
-        className
-      )}
-    >
-      <span className="flex items-center gap-1">
-        <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border bg-muted px-1 font-sans text-[10px] font-medium">
-          Enter
-        </kbd>
-        send
-      </span>
-      <span className="flex items-center gap-1">
-        <kbd className="inline-flex h-4 items-center justify-center rounded border bg-muted px-1 font-sans text-[10px] font-medium">
-          Shift+Enter
-        </kbd>
-        newline
-      </span>
-      <span className="flex items-center gap-1">
-        <kbd className="inline-flex h-4 items-center justify-center rounded border bg-muted px-1 font-sans text-[10px] font-medium">
-          ⌘K
-        </kbd>
-        new chat
-      </span>
-    </div>
-  )
-}
 
 /**
  * Welcome-screen composer card: mentions textarea + toolbar (model · skills ·
@@ -112,7 +77,6 @@ export function WelcomeComposer() {
           setContextItems((prev) => prev.filter((i) => i.id !== id))
         }
       />
-      <ComposerHints />
     </div>
   )
 }
@@ -166,7 +130,6 @@ export function ThreadComposer() {
           setContextItems((prev) => prev.filter((i) => i.id !== id))
         }
       />
-      <ComposerHints />
     </div>
   )
 }

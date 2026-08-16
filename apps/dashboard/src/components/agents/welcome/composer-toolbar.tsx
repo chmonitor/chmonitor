@@ -79,7 +79,7 @@ export function ComposerToolbar({
 
   return (
     <div
-      className={cn('flex flex-wrap items-center gap-1 px-1 py-1', className)}
+      className={cn('flex flex-wrap items-center gap-1 px-1 py-0.5', className)}
     >
       <AgentModelPicker variant="toolbar" />
 
@@ -91,7 +91,7 @@ export function ComposerToolbar({
               type="button"
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
+              className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]"
             />
           }
         >
@@ -178,7 +178,7 @@ export function ComposerToolbar({
               type="button"
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
+              className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]"
             />
           }
         >
@@ -249,7 +249,7 @@ export function ComposerToolbar({
         variant="ghost"
         size="sm"
         onClick={() => setAddContextOpen(true)}
-        className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]"
+        className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]"
       >
         <PaperclipIcon className="size-3" />
         <span>
