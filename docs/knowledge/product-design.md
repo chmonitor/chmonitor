@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-15
+updated: 2026-08-17
 tags:
   - design-system
   - ui
@@ -328,6 +328,36 @@ implemented by `components/health/channel-card.tsx`:
   "Add channel" button in the section header (and from the empty state's
   `action`), NOT as a permanent inline tile grid — a settings page shows what IS
   set up. The dialog renders the same `AddChannelTile`s.
+
+### Compact rail sidebar: static primary block + collapsible groups
+
+A narrow (≈320px) settings rail attached to a full-height surface (e.g. the
+`/agents` right-hand `AgentSettingsSidebar`) uses a two-tier structure instead
+of stacking every section with equal, always-expanded weight:
+
+- **Primary block, never collapses.** The 1-3 controls users reach for most
+  (host, model) render as `LabeledRow`s — a fixed-width uppercase tag
+  (`text-[9.5px] font-semibold tracking-wider uppercase text-muted-foreground`,
+  `w-11 shrink-0`) to the left of the control, all under one small static
+  `StaticSectionHeader` (label, optional right-aligned badge, no chevron).
+  Read-only/status rows in the same block (e.g. conversation-history backend)
+  replace an explanatory paragraph with an info-icon `Tooltip` next to the row
+  — see `ConversationHistoryRow` in `agent-settings-sidebar.tsx`.
+- **Everything else is a `CollapsibleSidebarSection`** — chevron
+  (`ChevronDownIcon`/`ChevronRightIcon`, `size-3`) + section icon (`size-3.5`)
+  + `text-[10.5px] font-semibold tracking-wider uppercase` label + optional
+  right-aligned count badge, built on `ui/collapsible` (Base UI, controlled
+  `open`/`onOpenChange`, no animation needed — `CollapsibleContent` renders
+  directly, matching `agent-data-sources.tsx`). Defaults to **open** so first
+  visits show everything; collapsing only hides a section, it never removes a
+  control or entry point.
+- A bounded list inside a collapsible section (e.g. the first 3 of N skills)
+  still ends in a "View all (N)" button/dialog rather than rendering the full
+  list — the collapsible fold is for the section, not a substitute for
+  bounding an unbounded list.
+- Header copy: a page-level "open full settings" link belongs in the sidebar's
+  own title row (icon/text button next to the close button), not as a second
+  paragraph + link stacked underneath the title.
 
 ### Settings page shape: few tabs, dialogs for the rest
 

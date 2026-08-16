@@ -3,23 +3,36 @@
 /**
  * Right-hand "Agent settings" sidebar for the AI Agent page.
  *
- * Five stacked sections — Host · Model · MCP Server · Skills · Suggested
- * prompts — that mirror the chrome of competing agent UIs (Codex, Replit
- * Agent etc.). On desktop the sidebar is an inline collapsible column; on
- * mobile (< 768px) it slides up as a shadcn Drawer so the chat column
- * stays usable on small screens.
+ * Structure (top to bottom):
+ *  - Header: title + "Full settings" link + close button (one row).
+ *  - Connection — a static, always-visible primary block: Host, Model, and
+ *    Conversation History. These are the controls that matter most, so they
+ *    never collapse.
+ *  - Daily AI usage — compact progress meter (cloud-only; renders nothing on
+ *    OSS / unlimited plans).
+ *  - MCP Servers, Skills, Suggested prompts — collapsible sections (chevron
+ *    header, default open) so returning users can fold away what they don't
+ *    need without losing any control or entry point.
+ *
+ * On desktop the sidebar is an inline collapsible column; on mobile
+ * (< 768px) it slides up as a shadcn Drawer so the chat column stays usable
+ * on small screens.
  */
 
 import {
   ArrowRightIcon,
-  DatabaseIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   ExternalLinkIcon,
-  MonitorIcon,
+  InfoIcon,
+  LightbulbIcon,
+  type LucideIcon,
   PanelRightCloseIcon,
   PlugZapIcon,
   SparklesIcon,
 } from 'lucide-react'
 
+import type { ReactNode } from 'react'
 import type { Skill } from '@/components/agents/welcome/skills-data'
 
 import { useEffect, useState } from 'react'
@@ -37,6 +50,11 @@ import { AppLink } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -44,6 +62,11 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAiQuota } from '@/lib/ai/agent/use-ai-quota'
 import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
@@ -95,29 +118,18 @@ export function AgentSettingsSidebar({
 
   const sections = (
     <>
-      {/* HOST */}
-      <SidebarSection label="Host">
-        <div className="bg-background border-input flex h-9 items-center gap-2 rounded-md border px-3">
-          <MonitorIcon className="text-muted-foreground size-3.5" />
-          <span className="font-mono text-[12.5px]">{hostName}</span>
-        </div>
-      </SidebarSection>
-
-      {/* MODEL */}
-      <SidebarSection label="Model">
-        <AgentModelPicker variant="panel" />
-      </SidebarSection>
-
-      {/* CONVERSATION HISTORY */}
-      <SidebarSection label="Conversation History">
-        <ConversationHistoryPanel />
-      </SidebarSection>
+      {/* CONNECTION — primary block, always visible */}
+      <ConnectionSummary hostName={hostName} />
 
       {/* DAILY AI USAGE (cloud-only; renders nothing on OSS / unlimited) */}
       <AiUsagePanel />
 
-      {/* MCP SERVER */}
-      <SidebarSection label="MCP Servers">
+      {/* MCP SERVERS — no header count badge: `useMcpConfig`'s toggle state is
+          per-hook-instance `useState` (localStorage-backed, no cross-instance
+          broadcast), so a second instance here would go stale against the one
+          inside `AgentMcpPanel`. The panel's own summary row is the source of
+          truth. */}
+      <CollapsibleSidebarSection label="MCP servers" icon={PlugZapIcon}>
         <AgentMcpPanel />
         {/* For users who run their own agent/IDE and want to point it at this
             cluster's MCP endpoint directly. */}
@@ -137,11 +149,12 @@ export function AgentSettingsSidebar({
           </span>
           <ArrowRightIcon className="size-3 shrink-0" />
         </button>
-      </SidebarSection>
+      </CollapsibleSidebarSection>
 
       {/* SKILLS */}
-      <SidebarSection
+      <CollapsibleSidebarSection
         label="Skills"
+        icon={SparklesIcon}
         right={
           <span className="text-muted-foreground text-[10px] tabular-nums">
             <span className="text-foreground font-medium">
@@ -201,17 +214,17 @@ export function AgentSettingsSidebar({
           </span>
           <ArrowRightIcon className="text-muted-foreground size-2.5" />
         </Button>
-      </SidebarSection>
+      </CollapsibleSidebarSection>
 
       {/* SUGGESTED PROMPTS */}
-      <SidebarSection label="Suggested prompts">
+      <CollapsibleSidebarSection label="Suggested prompts" icon={LightbulbIcon}>
         <SuggestedPrompts
           variant="list"
           limit={3}
           collapsible
           onPickPrompt={onPickPrompt}
         />
-      </SidebarSection>
+      </CollapsibleSidebarSection>
 
       <SkillDetailDialog
         skill={skillDetail}
@@ -266,32 +279,31 @@ export function AgentSettingsSidebar({
       )}
       style={{ maxHeight: 'calc(100dvh - 6rem)' }}
     >
-      <div className="w-[320px] min-w-0 max-w-full p-4">
-        <div className="mb-1 flex items-center justify-between gap-2">
+      <div className="w-[320px] min-w-0 max-w-full p-3.5">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-[14px] font-semibold whitespace-nowrap">
             Agent settings
           </h3>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground size-7 shrink-0"
-            aria-label="Close agent settings"
-          >
-            <PanelRightCloseIcon className="size-3.5" />
-          </Button>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <AppLink
+              href="/agents/settings"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px] font-medium transition-colors"
+            >
+              Full settings
+              <ArrowRightIcon className="size-2.5" />
+            </AppLink>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground size-7 shrink-0"
+              aria-label="Close agent settings"
+            >
+              <PanelRightCloseIcon className="size-3.5" />
+            </Button>
+          </div>
         </div>
-        <p className="text-muted-foreground mb-1 text-[11.5px]">
-          Host, model, tools, and skills.
-        </p>
-        <AppLink
-          href="/agents/settings"
-          className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-[11px] underline underline-offset-2"
-        >
-          Open full agent settings
-          <ArrowRightIcon className="size-2.5" />
-        </AppLink>
         {sections}
       </div>
     </aside>
@@ -299,39 +311,105 @@ export function AgentSettingsSidebar({
 }
 
 /**
- * Read-only panel showing where conversation history is persisted. The backend
- * is fixed at deploy time via environment variables, so nothing here is
- * editable — it only surfaces the active backend and, for AgentState, a link to
- * the service plus the AI-enrichment status.
+ * Small uppercase caption to the left of a compact row's control, e.g. "Host"
+ * next to the host chip. Keeps every row in the Connection block scannable
+ * without a full per-control header.
  */
-function ConversationHistoryPanel() {
+function LabeledRow({ tag, children }: { tag: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-muted-foreground w-11 shrink-0 text-[9.5px] font-semibold tracking-wider uppercase">
+        {tag}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  )
+}
+
+/**
+ * Primary block, always visible (never collapses): the host, model, and
+ * conversation-history backend for this session. These are the controls
+ * users reach for most, so they sit at the top with the most visual weight.
+ * Host and history get a small tag label; the model picker is already
+ * self-identifying (provider dot + "provider:name"), so it renders untagged
+ * at full width to leave room for long model ids.
+ */
+function ConnectionSummary({ hostName }: { hostName: string }) {
+  return (
+    <div className="mb-3">
+      <StaticSectionHeader label="Connection" />
+      <div className="space-y-1.5">
+        <LabeledRow tag="Host">
+          <div className="bg-background border-input flex h-8 items-center rounded-md border px-2.5">
+            <span className="truncate font-mono text-[12px]">{hostName}</span>
+          </div>
+        </LabeledRow>
+        {/* No "Model" tag: the picker button already self-identifies via its
+            provider dot + "provider:name" text, and a tag here would shave
+            ~50px off the row — enough to truncate long model ids. */}
+        <AgentModelPicker variant="panel" />
+        <ConversationHistoryRow />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Read-only row showing where conversation history is persisted. The backend
+ * is fixed at deploy time via environment variables, so nothing here is
+ * editable — an info tooltip explains that instead of a standing paragraph.
+ * For AgentState, a link to the service plus the AI-enrichment status.
+ */
+function ConversationHistoryRow() {
   const { backend, supportsAiEnrichment, isLoading } = useConversationBackend()
   const label = CONVERSATION_BACKEND_LABELS[backend]
   const isAgentState = backend === 'agentstate'
 
   return (
-    <div className="space-y-1.5">
-      <div className="bg-background border-input flex h-9 items-center gap-2 rounded-md border px-3">
-        <DatabaseIcon className="text-muted-foreground size-3.5 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-[12.5px]">
-          {isLoading ? 'Detecting…' : label}
-        </span>
-        {isAgentState && (
-          <Badge
-            variant={supportsAiEnrichment ? 'default' : 'secondary'}
-            className="shrink-0 text-[9.5px]"
-          >
-            {supportsAiEnrichment ? 'AI enrichment on' : 'AI enrichment off'}
-          </Badge>
-        )}
-      </div>
+    <div>
+      <LabeledRow tag="History">
+        <div className="flex items-center gap-1.5">
+          <div className="bg-background border-input flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md border px-2.5">
+            <span className="min-w-0 flex-1 truncate text-[12px]">
+              {isLoading ? 'Detecting…' : label}
+            </span>
+            {isAgentState && (
+              <Badge
+                variant={supportsAiEnrichment ? 'default' : 'secondary'}
+                className="h-4 shrink-0 px-1.5 text-[9px]"
+              >
+                {supportsAiEnrichment ? 'Enrichment on' : 'Enrichment off'}
+              </Badge>
+            )}
+          </div>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                  aria-label="About conversation history"
+                />
+              }
+            >
+              <InfoIcon className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-56 text-[11px]">
+              Fixed at deploy time via environment variables — not editable
+              here.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </LabeledRow>
 
       {isAgentState && (
         <a
           href="https://agentstate.app"
           target="_blank"
           rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 -mx-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-[11px] transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-[11px] transition-colors"
         >
           <ExternalLinkIcon className="size-3 shrink-0" />
           <span className="min-w-0 flex-1 truncate">
@@ -340,11 +418,6 @@ function ConversationHistoryPanel() {
           <ArrowRightIcon className="size-2.5 shrink-0" />
         </a>
       )}
-
-      <p className="text-muted-foreground text-[10.5px] leading-snug">
-        The history backend is configured at deploy time via environment
-        variables and cannot be changed here.
-      </p>
     </div>
   )
 }
@@ -363,30 +436,79 @@ function AiUsagePanel() {
   if (!quota.show || quota.limit === null) return null
 
   return (
-    <SidebarSection label="Daily AI usage" right={<AiUsageMeterBadge />}>
+    <div className="mb-3">
+      <StaticSectionHeader
+        label="Daily AI usage"
+        right={<AiUsageMeterBadge />}
+      />
       <AiUsageMeter variant="panel" />
-    </SidebarSection>
+    </div>
   )
 }
 
-function SidebarSection({
+/** Header for a static (non-collapsible) block — Connection, Daily AI usage. */
+function StaticSectionHeader({
   label,
   right,
+}: {
+  label: string
+  right?: ReactNode
+}) {
+  return (
+    <div className="mb-1.5 flex items-center justify-between">
+      <div className="text-muted-foreground text-[10.5px] font-semibold tracking-wider uppercase">
+        {label}
+      </div>
+      {right}
+    </div>
+  )
+}
+
+/**
+ * A collapsible, chevron-headed section (MCP servers, Skills, Suggested
+ * prompts). Defaults to open so nothing is hidden on first visit; returning
+ * users can fold away sections they don't need. Every control inside stays
+ * reachable — collapsing only hides it, it never removes it.
+ */
+function CollapsibleSidebarSection({
+  label,
+  icon: Icon,
+  right,
+  defaultOpen = true,
   children,
 }: {
   label: string
-  right?: React.ReactNode
-  children: React.ReactNode
+  icon: LucideIcon
+  right?: ReactNode
+  defaultOpen?: boolean
+  children: ReactNode
 }) {
+  const [open, setOpen] = useState(defaultOpen)
+
   return (
-    <div className="mb-4">
-      <div className="mb-1.5 flex items-center justify-between">
-        <div className="text-muted-foreground text-[10.5px] font-semibold tracking-wider uppercase">
-          {label}
-        </div>
-        {right}
-      </div>
-      {children}
+    <div className="mb-3">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger
+          render={
+            <button
+              type="button"
+              className="hover:bg-muted/40 -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-1.5 rounded-md px-1 py-1 text-left transition-colors"
+            />
+          }
+        >
+          {open ? (
+            <ChevronDownIcon className="text-muted-foreground size-3 shrink-0" />
+          ) : (
+            <ChevronRightIcon className="text-muted-foreground size-3 shrink-0" />
+          )}
+          <Icon className="text-muted-foreground size-3.5 shrink-0" />
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-[10.5px] font-semibold tracking-wider uppercase">
+            {label}
+          </span>
+          {right}
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-1.5">{children}</CollapsibleContent>
+      </Collapsible>
     </div>
   )
 }
