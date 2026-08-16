@@ -56,6 +56,11 @@ export function ResultTable({
       enableColumnReordering={false}
       compact
       footnote={footnote}
+      // Compact tables render no outer chrome of their own — bound the whole
+      // card so it reads as one contained result, not a floating grid whose
+      // scrollbar fights the page (the row count already lives in the
+      // compact footer; the inner body scrolls within its own max-height).
+      className="rounded-md border border-border/60"
     />
   )
 }

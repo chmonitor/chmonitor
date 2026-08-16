@@ -29,6 +29,130 @@ export function getRowsFromOutput(output: unknown): Record<string, unknown>[] {
   return []
 }
 
+const SUMMARY_MAX_LENGTH = 60
+/** Param names treated as the tool's "primary" free-text argument (e.g. a SQL
+ * query) — summarized alone in the header instead of the full key=value dump. */
+const PRIMARY_PARAM_NAMES = /^(sql|query|prompt|question|text)$/i
+
+/** Collapses whitespace/newlines to a single line and caps the length. */
+function truncateOneLine(
+  value: string,
+  maxLength = SUMMARY_MAX_LENGTH
+): string {
+  const oneLine = value.replace(/\s+/g, ' ').trim()
+  return oneLine.length > maxLength
+    ? `${oneLine.slice(0, maxLength - 1)}…`
+    : oneLine
+}
+
+/**
+ * Short, single-line summary of a tool call's input for the collapsed row
+ * header. Long values (e.g. a `sql` param) are truncated instead of dumping
+ * every `key=value` pair inline — the full input still renders in the
+ * "Parameters" disclosure of the expanded body.
+ */
+export function summarizeToolInput(input: unknown): string | null {
+  if (!input || typeof input !== 'object') return null
+  const entries = Object.entries(input as Record<string, unknown>)
+  if (entries.length === 0) return null
+
+  const primary = entries.find(
+    ([key, value]) => typeof value === 'string' && PRIMARY_PARAM_NAMES.test(key)
+  )
+  if (primary) return truncateOneLine(primary[1] as string)
+
+  // Otherwise join all params as `key=value` — most tools take a couple of
+  // short scalars (`database=default, tableName=events`), which is more
+  // scannable than a bare count. Cap the joined form so a tool with several
+  // longer values doesn't reproduce the original "unreadable mid-string
+  // truncation" problem; only degrade to a count when even the first pair
+  // alone doesn't fit.
+  const joined = entries
+    .map(([key, value]) => {
+      const rendered = typeof value === 'string' ? value : JSON.stringify(value)
+      return `${key}=${rendered}`
+    })
+    .join(', ')
+  const oneLine = joined.replace(/\s+/g, ' ').trim()
+  if (oneLine.length <= SUMMARY_MAX_LENGTH) return oneLine
+
+  const firstPair = entries[0]
+  const firstRendered =
+    typeof firstPair[1] === 'string'
+      ? firstPair[1]
+      : JSON.stringify(firstPair[1])
+  const firstPairText = `${firstPair[0]}=${firstRendered}`.replace(/\s+/g, ' ')
+  if (firstPairText.length <= SUMMARY_MAX_LENGTH) return truncateOneLine(joined)
+
+  return `${entries.length} parameters`
+}
+
+/** Param whose value should render as a syntax-highlighted code block in the
+ * expanded "Parameters" disclosure rather than an inline `key: value` row. */
+export function isLongToolInputValue(value: unknown): value is string {
+  return (
+    typeof value === 'string' && (value.length > 60 || value.includes('\n'))
+  )
+}
+
+/** Language hint for a long tool-input value shown in a code block. */
+export function toolInputCodeLanguage(key: string): string {
+  return /sql|query/i.test(key) ? 'sql' : 'text'
+}
+
+export interface ToolErrorSummary {
+  /** Short, human-readable message — never raw JSON. */
+  readonly message: string
+  /** Pretty-printed JSON to show behind an expandable "Details" disclosure,
+   * only when it carries more information than `message` alone. */
+  readonly detail: string | null
+}
+
+/**
+ * Turns a tool's `errorText` (plain text, or a JSON-stringified error object —
+ * see `tool-fallback.tsx`) into a short message + optional expandable detail.
+ * Never surfaces a raw `{"error":"..."}` blob as the visible message.
+ */
+export function summarizeToolError(
+  errorText: string | undefined
+): ToolErrorSummary {
+  const trimmed = errorText?.trim()
+  if (!trimmed) return { message: 'An error occurred.', detail: null }
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const obj = parsed as Record<string, unknown>
+      const readableKey =
+        typeof obj.error === 'string'
+          ? 'error'
+          : typeof obj.message === 'string'
+            ? 'message'
+            : null
+      if (readableKey) {
+        // Only offer a "Details" disclosure when the payload carries more
+        // than the message itself — otherwise expanding it just re-shows
+        // the same text wrapped in braces.
+        const hasExtraFields = Object.keys(obj).some(
+          (key) => key !== readableKey
+        )
+        return {
+          message: obj[readableKey] as string,
+          detail: hasExtraFields ? JSON.stringify(parsed, null, 2) : null,
+        }
+      }
+      return {
+        message: 'Tool call failed.',
+        detail: JSON.stringify(parsed, null, 2),
+      }
+    }
+  } catch {
+    // Not JSON — errorText is already plain text.
+  }
+
+  return { message: trimmed, detail: null }
+}
+
 export function getPromotedOutputType(output: unknown) {
   if (typeof output !== 'object' || output === null) return null
 

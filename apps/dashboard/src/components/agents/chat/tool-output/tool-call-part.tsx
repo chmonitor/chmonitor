@@ -1,11 +1,20 @@
 'use client'
 
-import { ChevronDownIcon, ChevronRightIcon, DownloadIcon } from 'lucide-react'
+import {
+  AlertCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  DownloadIcon,
+} from 'lucide-react'
 
 import {
   createResultQueryConfig,
   getPromotedOutputType,
   getRowsFromOutput,
+  isLongToolInputValue,
+  summarizeToolError,
+  summarizeToolInput,
+  toolInputCodeLanguage,
 } from './output-shape'
 import {
   renderRawOutput,
@@ -19,6 +28,7 @@ import {
   AskUserWidget,
   isAskUserOutput,
 } from '@/components/agents/ask-user-widget'
+import { CodeBlock } from '@/components/ai-elements/code-block'
 import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
@@ -109,6 +119,39 @@ function RowDisclosure({
 }
 
 /**
+ * Compact destructive row for a failed tool call: a short human-readable
+ * message (never raw JSON), with the parsed detail tucked behind an
+ * expandable disclosure. Falls back to a generic message when the backend
+ * only sent a boilerplate error (issue: agent tool-call rendering polish).
+ */
+function ToolErrorRow({
+  errorText,
+}: {
+  readonly errorText: string | undefined
+}) {
+  const { message, detail } = summarizeToolError(errorText)
+  return (
+    <div className="mb-1.5 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2">
+      <div className="flex items-start gap-1.5 text-xs text-destructive">
+        <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0" />
+        <span className="leading-relaxed">{message}</span>
+      </div>
+      {detail ? (
+        <div className="mt-1 pl-5">
+          <RowDisclosure label="Details">
+            <CodeBlock
+              code={detail}
+              language="json"
+              className="max-h-48 overflow-auto text-xs"
+            />
+          </RowDisclosure>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
  * Non-promoted tool output. Rich structured renders (ResultTable, charts,
  * advisor recommendations) stay visible; a raw JSON blob collapses behind a
  * "Response" disclosure so the row stays clean by default.
@@ -155,12 +198,10 @@ export function ToolCallPart({
     }
   }, [isMessageStreaming, hasOutput, hasError, isExpanded])
 
-  const inputParams = (() => {
-    if (!part.input || typeof part.input !== 'object') return null
-    return Object.entries(part.input as Record<string, unknown>)
-      .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
-      .join(', ')
-  })()
+  // Short, single-line summary for the header — long values (e.g. a `sql`
+  // param) are truncated instead of dumping every key=value pair inline; the
+  // full input is always available in the "Parameters" disclosure below.
+  const toolSummary = summarizeToolInput(part.input)
 
   const inputParamCount =
     part.input && typeof part.input === 'object'
@@ -231,9 +272,12 @@ export function ToolCallPart({
               </span>
             )}
             <span className="font-mono text-xs font-medium">{toolName}</span>
-            {inputParams && (
-              <span className="text-muted-foreground/70 truncate font-mono text-xs">
-                {inputParams}
+            {toolSummary && (
+              <span
+                className="text-muted-foreground/70 truncate font-mono text-xs"
+                title={toolSummary}
+              >
+                {toolSummary}
               </span>
             )}
           </div>
@@ -285,11 +329,7 @@ export function ToolCallPart({
           dump and raw JSON response collapse into opt-in disclosures. */}
       {isExpanded ? (
         <div className="pl-4 pt-1">
-          {hasError && Boolean(part.errorText) ? (
-            <div className="pb-1.5 text-sm text-destructive">
-              {String(part.errorText)}
-            </div>
-          ) : null}
+          {hasError ? <ToolErrorRow errorText={part.errorText} /> : null}
 
           {/* Output: the interactive ask-user widget and rich structured
               renders stay visible; a raw JSON blob collapses behind "Response".
@@ -316,6 +356,39 @@ export function ToolCallPart({
                   ([key, value]) => {
                     const paramDef = toolParams.find((p) => p.name === key)
                     const isOptional = paramDef?.required === false
+
+                    // A long / multi-line value (e.g. a `sql` param) gets its
+                    // own syntax-highlighted, horizontally-scrollable block
+                    // instead of a truncated inline `key: value` row.
+                    if (isLongToolInputValue(value)) {
+                      return (
+                        <div key={key} className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span
+                              className={cn(
+                                'font-mono',
+                                isOptional
+                                  ? 'text-muted-foreground'
+                                  : 'font-medium text-foreground'
+                              )}
+                            >
+                              {key}
+                            </span>
+                            {isOptional ? (
+                              <span className="text-[10px] text-muted-foreground/60">
+                                (optional)
+                              </span>
+                            ) : null}
+                          </div>
+                          <CodeBlock
+                            code={value}
+                            language={toolInputCodeLanguage(key)}
+                            className="max-h-64 overflow-auto text-xs"
+                          />
+                        </div>
+                      )
+                    }
+
                     return (
                       <div
                         key={key}
