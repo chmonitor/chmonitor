@@ -45,12 +45,20 @@ interface NavFavoritesProps {
 function FavoriteDragHandle({
   listeners,
   attributes,
-}: Pick<ReturnType<typeof useSortable>, 'listeners' | 'attributes'>) {
+  hasBadge,
+}: Pick<ReturnType<typeof useSortable>, 'listeners' | 'attributes'> & {
+  /** The pin sits at `right-7` instead of `right-2` when the item has a
+   * badge slot, so the grip has to step one slot further left to match. */
+  hasBadge: boolean
+}) {
   return (
     <button
       type="button"
       aria-label="Reorder favorite"
-      className="absolute top-1/2 right-7 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden"
+      className={cn(
+        'absolute top-1/2 right-7 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden',
+        hasBadge && 'right-12'
+      )}
       {...attributes}
       {...listeners}
     >
@@ -91,7 +99,11 @@ function SortableFavoriteItem({
       }}
       leadingAction={
         dragEnabled ? (
-          <FavoriteDragHandle listeners={listeners} attributes={attributes} />
+          <FavoriteDragHandle
+            listeners={listeners}
+            attributes={attributes}
+            hasBadge={Boolean(item.isNew || item.countKey)}
+          />
         ) : undefined
       }
     />
