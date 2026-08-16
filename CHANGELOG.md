@@ -5,6 +5,64 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.3](https://github.com/chmonitor/chmonitor/compare/v0.3.2...v0.3.3) (2026-08-15)
+
+
+### ✨ Features
+
+* **agent:** cap and track guest AI usage on Cloud ([#3023](https://github.com/chmonitor/chmonitor/issues/3023)) ([02773cc](https://github.com/chmonitor/chmonitor/commit/02773cc8f56ea6862fae4ecbd270e5951b319e4c))
+* **agent:** dynamic model listing, AnyRouter presets and sign-in, custom model input ([#2982](https://github.com/chmonitor/chmonitor/issues/2982)) ([5d1b482](https://github.com/chmonitor/chmonitor/commit/5d1b48226d0fb679942338223bf47bef768f84b2))
+* **alerts:** simplify alert settings with templates and presets ([#3030](https://github.com/chmonitor/chmonitor/issues/3030)) ([da6ffd2](https://github.com/chmonitor/chmonitor/commit/da6ffd283db4be1e9be3dde4edd9a9d6e39b8e8a))
+* **merges:** show recently completed merges when none are running ([#3033](https://github.com/chmonitor/chmonitor/issues/3033)) ([c9cdcdc](https://github.com/chmonitor/chmonitor/commit/c9cdcdc74a9b630d9aaa942f783fb5b68abef69c))
+* **nav:** drag to reorder pinned favorites ([#3026](https://github.com/chmonitor/chmonitor/issues/3026)) ([f5c5fb1](https://github.com/chmonitor/chmonitor/commit/f5c5fb180bca5791f0033563350f74652559d57a))
+* **ui:** add settings icon next to sign-in and avatar ([#3018](https://github.com/chmonitor/chmonitor/issues/3018)) ([0192a41](https://github.com/chmonitor/chmonitor/commit/0192a4114904725a361cfb889d999934a5f18371))
+
+
+### 🐛 Bug Fixes
+
+* **agent:** show AnyRouter sign-in only when no ANYROUTER_API_KEY is set ([#2983](https://github.com/chmonitor/chmonitor/issues/2983)) ([b2c71ea](https://github.com/chmonitor/chmonitor/commit/b2c71ea82c9ef88e16192f92cb4ebb273ec6e440))
+* **api:** rate limit browser-connections test and sessions routes ([#2979](https://github.com/chmonitor/chmonitor/issues/2979)) ([a8bafc5](https://github.com/chmonitor/chmonitor/commit/a8bafc5364856c6432556563bf42e4eeea3da08e)), closes [#2978](https://github.com/chmonitor/chmonitor/issues/2978)
+* **charts:** degrade optional charts when a metric_log column is missing ([#3007](https://github.com/chmonitor/chmonitor/issues/3007)) ([523fb99](https://github.com/chmonitor/chmonitor/commit/523fb99f0027d91188a08bd362d4fac48f09bf77))
+* **charts:** keep area fill when log scale is enabled ([#2981](https://github.com/chmonitor/chmonitor/issues/2981)) ([ab143fc](https://github.com/chmonitor/chmonitor/commit/ab143fc7477112065b7505613a89bedab4887422))
+* **charts:** pad heatmap months left to fill width ([#3017](https://github.com/chmonitor/chmonitor/issues/3017)) ([fc34acc](https://github.com/chmonitor/chmonitor/commit/fc34acc321f805c4801ec42be607d75b4f2ff8e6))
+* **ci:** do not cancel in-flight main deploys ([#3006](https://github.com/chmonitor/chmonitor/issues/3006)) ([823e767](https://github.com/chmonitor/chmonitor/commit/823e767cec66dc6734fc8bcb15109ae0c9b58e12))
+* **clipboard:** fall back to execCommand when navigator.clipboard is unavailable ([#2974](https://github.com/chmonitor/chmonitor/issues/2974)) ([3addd0c](https://github.com/chmonitor/chmonitor/commit/3addd0c36232df04ea62fe3d2016ed1ae03fc5bf))
+* **dashboard:** keep user-settings out of the persisted query cache ([#2990](https://github.com/chmonitor/chmonitor/issues/2990)) ([dd033bd](https://github.com/chmonitor/chmonitor/commit/dd033bdbf8c72f88e60eb4753bf7e84441783068))
+* **merges:** stop duplicate table column breaking the merges page ([#3029](https://github.com/chmonitor/chmonitor/issues/3029)) ([7bde351](https://github.com/chmonitor/chmonitor/commit/7bde351c81402dafa4260f0411ab6953a0cad1e1))
+* **nav:** align favorite rows with the main menu ([#3028](https://github.com/chmonitor/chmonitor/issues/3028)) ([4f53b13](https://github.com/chmonitor/chmonitor/commit/4f53b1322d03e0ca28c25911f40c60f4d7d88a23))
+* **nav:** hover-only pin and grip to reorder favorites ([#3027](https://github.com/chmonitor/chmonitor/issues/3027)) ([4b5791e](https://github.com/chmonitor/chmonitor/commit/4b5791e32ad9ad4b2e0345d97127acbdc13be7c5))
+* **settings:** flatten dialog nav into a sectioned rail ([#3021](https://github.com/chmonitor/chmonitor/issues/3021)) ([8b6fb31](https://github.com/chmonitor/chmonitor/commit/8b6fb3111e2f40aba20f196a7031cf5f7c9d79c8))
+* **settings:** keep theme on Appearance only ([#3024](https://github.com/chmonitor/chmonitor/issues/3024)) ([1ea92ae](https://github.com/chmonitor/chmonitor/commit/1ea92ae01ee3079737b125b0ab40fc0501b54dee))
+* **settings:** pick Dim or Hide with menu demos ([#3025](https://github.com/chmonitor/chmonitor/issues/3025)) ([2204c8f](https://github.com/chmonitor/chmonitor/commit/2204c8f7c7aeeb88668029aa86bf60fa996a9303))
+* **settings:** put light and dark theme on General ([#3020](https://github.com/chmonitor/chmonitor/issues/3020)) ([106bd73](https://github.com/chmonitor/chmonitor/commit/106bd7319070ad3884c5bb6836af95adb0f46904))
+* **settings:** put theme on a compact window-preview row ([#3022](https://github.com/chmonitor/chmonitor/issues/3022)) ([895bc48](https://github.com/chmonitor/chmonitor/commit/895bc48e6565177b827f9e06a6f7f46fd9245208))
+* **settings:** stabilize dialog and polish timezone, palette, units ([#3019](https://github.com/chmonitor/chmonitor/issues/3019)) ([7aca4db](https://github.com/chmonitor/chmonitor/commit/7aca4db285770986dc1eeaef6f90a3d5db43973c))
+* **ui:** reveal agent and notification actions on keyboard focus ([#3010](https://github.com/chmonitor/chmonitor/issues/3010)) ([7239d64](https://github.com/chmonitor/chmonitor/commit/7239d647c6c423822082b8f83a35b9ec2ec259d9))
+* **ui:** reveal console and MCP copy actions on keyboard focus ([#3008](https://github.com/chmonitor/chmonitor/issues/3008)) ([14e7daa](https://github.com/chmonitor/chmonitor/commit/14e7daad5acff98f696960ce96e27242a96ffc4c))
+* **ui:** reveal leftover query-page hover controls on keyboard focus ([#3011](https://github.com/chmonitor/chmonitor/issues/3011)) ([bb69bdd](https://github.com/chmonitor/chmonitor/commit/bb69bddcdccf265e0d56aab0713f51181e525642))
+* **ui:** reveal query-row actions on keyboard focus ([#3012](https://github.com/chmonitor/chmonitor/issues/3012)) ([2c4018d](https://github.com/chmonitor/chmonitor/commit/2c4018df862044232b0706f545113a16a40143dd))
+* **ui:** show data-table header controls on keyboard focus ([#3013](https://github.com/chmonitor/chmonitor/issues/3013)) ([adb3fb7](https://github.com/chmonitor/chmonitor/commit/adb3fb7cae7810fe50c06070e383d764b2432bc1))
+* **ui:** small health and insights keyboard/empty polish ([#3015](https://github.com/chmonitor/chmonitor/issues/3015)) ([4b8b55d](https://github.com/chmonitor/chmonitor/commit/4b8b55d6ece3b1048b9af67e596c2b5aae9a79c1))
+* **ui:** small host and connection empty-state polish ([#3016](https://github.com/chmonitor/chmonitor/issues/3016)) ([1c6247e](https://github.com/chmonitor/chmonitor/commit/1c6247e6979972d8d7952dad5953ef8f30d5d660))
+* **ui:** small settings and sidebar keyboard polish ([#3009](https://github.com/chmonitor/chmonitor/issues/3009)) ([b53e6aa](https://github.com/chmonitor/chmonitor/commit/b53e6aa56001a76bfe4d03ae795d129040e45cd9))
+* **workspace:** exclude test files from query-advisor-core type-check ([#2973](https://github.com/chmonitor/chmonitor/issues/2973)) ([f20bd79](https://github.com/chmonitor/chmonitor/commit/f20bd79a9895534c10b60827451fa72a3a15acac))
+
+
+### ⚡ Performance
+
+* **agent:** load the floating agent's chunk on first open, not on page load ([#2996](https://github.com/chmonitor/chmonitor/issues/2996)) ([41d4763](https://github.com/chmonitor/chmonitor/commit/41d476379f791aa9eda68d3bfc87c364b6357667)), closes [#2995](https://github.com/chmonitor/chmonitor/issues/2995)
+* **charts:** lazy-load the zoom dialog so charts stop shipping the data-table ([#3001](https://github.com/chmonitor/chmonitor/issues/3001)) ([d736ff1](https://github.com/chmonitor/chmonitor/commit/d736ff19f83fde779fdedd224c0ebf5303b9ebff)), closes [#3000](https://github.com/chmonitor/chmonitor/issues/3000)
+* **charts:** stop shipping unread columns in new-parts-created ([#2991](https://github.com/chmonitor/chmonitor/issues/2991)) ([bc10ad3](https://github.com/chmonitor/chmonitor/commit/bc10ad3b36e4fc3eefe4d9c75197d796708d2427)), closes [#2986](https://github.com/chmonitor/chmonitor/issues/2986)
+* **dashboard:** dedupe user-settings fetch through TanStack Query ([#2988](https://github.com/chmonitor/chmonitor/issues/2988)) ([a616404](https://github.com/chmonitor/chmonitor/commit/a616404ef2c8f337c83f6f94747b9ff5e419454e))
+* **dashboard:** pause the last three polling sites on hidden tabs ([#3004](https://github.com/chmonitor/chmonitor/issues/3004)) ([8cd382b](https://github.com/chmonitor/chmonitor/commit/8cd382b4ffaf4ac6dcf818a42de0914eb94826ba)), closes [#3003](https://github.com/chmonitor/chmonitor/issues/3003)
+* **data-table:** defer react-markdown out of the eager formatter registry ([#2998](https://github.com/chmonitor/chmonitor/issues/2998)) ([f1aa749](https://github.com/chmonitor/chmonitor/commit/f1aa749541caecf4a384fca7298f144b3cc3fa1f)), closes [#2997](https://github.com/chmonitor/chmonitor/issues/2997)
+* **insights:** generate once per host instead of once per mounted consumer ([#2989](https://github.com/chmonitor/chmonitor/issues/2989)) ([8e4272a](https://github.com/chmonitor/chmonitor/commit/8e4272afb31ea39f654c4437e6d0ad28ab034d90)), closes [#2985](https://github.com/chmonitor/chmonitor/issues/2985)
+
+
+### ♻️ Refactoring
+
+* **menu:** move Traffic under the Insights group ([#2980](https://github.com/chmonitor/chmonitor/issues/2980)) ([ecbd8ec](https://github.com/chmonitor/chmonitor/commit/ecbd8ec31e68b7531cb94b1af63e9d6ecacce20f))
+
 ## [0.3.2](https://github.com/chmonitor/chmonitor/compare/v0.3.1...v0.3.2) (2026-08-12)
 
 
