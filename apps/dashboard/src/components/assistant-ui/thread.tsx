@@ -546,7 +546,12 @@ function AssistantFollowUpChips() {
   }
 
   return (
-    <FollowUpChips prompts={prompts} onSelect={handleSelect} className="mt-1" />
+    <FollowUpChips
+      prompts={prompts}
+      onSelect={handleSelect}
+      anchored
+      className="mt-2"
+    />
   )
 }
 
