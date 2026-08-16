@@ -98,6 +98,15 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   opened from an "Add channel" button in the section header — not a permanent
   inline tile grid. See `components/health/channel-card.tsx` +
   `alert-channels-panel.tsx` (`/alert-settings`).
+- **Compact rail sidebar (primary block + collapsible groups):** a narrow
+  (~320px) settings rail (e.g. `/agents` right-hand sidebar) keeps its 1-3 most
+  important controls (host, model) as a static, never-collapsing "primary"
+  block of `LabeledRow`s (small uppercase tag left of the control, one shared
+  header, no chevron); everything else is a `CollapsibleSidebarSection`
+  (chevron + icon + uppercase label + optional count badge, `ui/collapsible`,
+  defaults OPEN so nothing is hidden on first visit). A read-only status row
+  explains itself via an info-icon `Tooltip`, not a standing paragraph. See
+  `agent-settings-sidebar.tsx`.
 - **Settings page shape — few tabs, dialogs for the rest:** at most FOUR tabs;
   rarely-visited panels become a `grid gap-2 sm:grid-cols-2` of launcher cards
   (icon tile + title + one-line description + `ChevronRight`) that open the
