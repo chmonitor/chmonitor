@@ -6,15 +6,20 @@
  * When the active conversation backend supports AI enrichment (AgentState) and
  * a persisted conversation exists, this renders a small "Suggested follow-ups"
  * control. Suggestions are fetched on demand (not automatically) and rendered
- * as clickable chips; clicking one appends it to the thread as a user message.
+ * as clickable chips (via `FollowUpChips`, shared with the deterministic
+ * per-message chips so both affordances read as one visual system); clicking
+ * one appends it to the thread as a user message.
  *
  * The component renders nothing unless enrichment is supported and a remote
  * conversation id is available, so it can be dropped into the thread
- * unconditionally.
+ * unconditionally. It sits directly above the composer (see `thread.tsx`), so
+ * its own top border + padding is what visually anchors it there rather than
+ * floating loose above the input.
  */
 
 import { SparklesIcon } from 'lucide-react'
 
+import { FollowUpChips } from './follow-up-chips'
 import { useThreadListItem, useThreadRuntime } from '@assistant-ui/react'
 import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { Button } from '@/components/ui/button'
@@ -45,7 +50,7 @@ export function FollowUpSuggestions() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-1.5">
+    <div className="border-border/60 flex w-full flex-col gap-1.5 border-t pt-2">
       {questions.length === 0 ? (
         <Button
           type="button"
@@ -64,16 +69,7 @@ export function FollowUpSuggestions() {
             <SparklesIcon className="size-3" />
             Follow-ups
           </span>
-          {questions.map((question) => (
-            <button
-              key={question}
-              type="button"
-              onClick={() => handlePick(question)}
-              className="border-border text-foreground hover:bg-muted/60 rounded-full border px-2.5 py-1 text-[11.5px] transition-colors"
-            >
-              {question}
-            </button>
-          ))}
+          <FollowUpChips prompts={questions} onSelect={handlePick} />
         </div>
       )}
     </div>

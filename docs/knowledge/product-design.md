@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-15
+updated: 2026-08-17
 tags:
   - design-system
   - ui
@@ -300,6 +300,29 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   the agent can see; its shared state (`page-context-control.tsx`, floating-only
   provider) also gates whether `pageContext` rides along with the request — see
   `docs/content/guide/ai-agent.mdx`.
+- **Follow-up suggestion chips (two affordances, one shared look):**
+  `-thread/follow-up-chips.tsx` (`FollowUpChips`) is the single pill component
+  — `rounded-full border border-border/70 text-muted-foreground`, foreground +
+  `bg-muted/60` on hover, `flex flex-wrap gap-1.5` so it wraps on narrow
+  widths without layout shift. It takes an `anchored` prop (`border-t
+  border-border/60 pt-2`) for callers with nothing else separating the strip
+  from what's above it. Two producers render it: (1) `AssistantFollowUpChips`
+  in `thread.tsx` passes `anchored` (it sits directly under
+  `MessageStatsFooter` inside the message column, with no divider of its
+  own) and is driven by `lib/ai/agent/follow-up-prompts.ts` — deterministic,
+  client-side, derived primarily from the tool(s) the agent just called
+  (`TOOL_FOLLOW_UPS`, keyed by tool name) rather than generic keyword
+  matching, so suggestions are genuinely different next steps instead of
+  re-asking what the last tool call already answered (a candidate is dropped
+  when its `relatedTool` is already in `toolsUsed` this turn); when no tool
+  maps, a keyword-rule fallback picks the *highest-scoring* rule (not just the
+  first one declared) so a reply that only incidentally mentions an unrelated
+  rule's keyword doesn't hijack the match. (2) `FollowUpSuggestions` — the
+  AgentState-backed "AI follow-ups" button/row that sits directly above the
+  composer — leaves `anchored` off and instead puts `border-t
+  border-border/60 pt-2` on its own outer column (it has to cover both the
+  ghost-button and populated-chips states), so it reads as part of the
+  composer rather than floating loose above it.
 
 ### Settings channel grid (configured-first)
 
