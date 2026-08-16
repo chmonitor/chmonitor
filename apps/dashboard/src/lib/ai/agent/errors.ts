@@ -288,6 +288,92 @@ function parseErrorPayload(error: unknown): {
 }
 
 /**
+ * Regex-shaped secrets to strip from any error text that reaches the client:
+ * URL userinfo (`https://user:pass@host`), `Authorization`/`Bearer` header
+ * values, and common provider API-key shapes (OpenAI-style `sk-…`, AgentState
+ * `as_live_…`, Google `AIza…`). Applied in addition to exact-match redaction
+ * of the deployment's own configured keys (see {@link redactSecrets}).
+ */
+const SECRET_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/(:\/\/)[^\s/@]+:[^\s/@]+@/g, '$1[redacted]@'],
+  [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]{8,}=*/gi, '$1 [redacted]'],
+  [
+    /\bauthorization"?\s*[:=]\s*"?[A-Za-z0-9._~+/-]{8,}=*/gi,
+    'authorization: [redacted]',
+  ],
+  [/\bsk-[A-Za-z0-9_-]{10,}\b/g, '[redacted]'],
+  [/\bas_live_[A-Za-z0-9_-]{6,}\b/g, '[redacted]'],
+  [/\bAIza[0-9A-Za-z_-]{20,}\b/g, '[redacted]'],
+]
+
+/**
+ * Strip secrets from an error message before it reaches the client.
+ *
+ * Two layers of defense: `extraSecrets` are exact-match replaced (the
+ * request's BYOK key, this deployment's configured provider/DB credentials —
+ * anything we know the literal value of and never want echoed back verbatim),
+ * and {@link SECRET_PATTERNS} catches common credential *shapes* even when we
+ * don't know the exact value (e.g. a third-party upstream error that embeds
+ * its own token).
+ */
+export function redactSecrets(
+  text: string,
+  extraSecrets: readonly (string | null | undefined)[] = []
+): string {
+  let result = text
+  for (const secret of extraSecrets) {
+    if (!secret || secret.length < 6) continue
+    result = result.split(secret).join('[redacted]')
+  }
+  for (const [pattern, replacement] of SECRET_PATTERNS) {
+    result = result.replace(pattern, replacement)
+  }
+  return result
+}
+
+/** Redact secrets from every free-text field of a classified {@link AgentError}. */
+export function sanitizeAgentError(
+  error: AgentError,
+  extraSecrets: readonly (string | null | undefined)[] = []
+): AgentError {
+  return {
+    ...error,
+    message: redactSecrets(error.message, extraSecrets),
+    details: error.details
+      ? redactSecrets(error.details, extraSecrets)
+      : error.details,
+    upstreamMessage: error.upstreamMessage
+      ? redactSecrets(error.upstreamMessage, extraSecrets)
+      : error.upstreamMessage,
+  }
+}
+
+/**
+ * Classify + sanitize + summarize an unknown error into a single display
+ * string, for contexts that need `errorText: string` rather than a
+ * structured {@link AgentError} — e.g. the AI SDK's UI-message-stream `error`
+ * / `tool-error` chunks (`toUIMessageStream({ onError })`). Without an
+ * explicit `onError`, the AI SDK masks every such chunk with the generic
+ * "An error occurred." (its safe default), which hides the real cause from
+ * both the user and the agent's own self-correction loop. This keeps the
+ * classified message + suggestion (the same information already shown for a
+ * top-level `data-error` part) while still redacting secrets.
+ */
+export function formatAgentErrorText(
+  error: unknown,
+  context: ClassifyErrorContext = {},
+  extraSecrets: readonly (string | null | undefined)[] = []
+): string {
+  const classified = sanitizeAgentError(
+    classifyError(error, context),
+    extraSecrets
+  )
+  return classified.suggestion
+    ? `${classified.message} — ${classified.suggestion}`
+    : classified.message
+}
+
+/**
  * Classifies an unknown error into a structured AgentError.
  *
  * Numeric HTTP status codes take priority over keyword matching so that

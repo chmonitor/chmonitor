@@ -172,6 +172,7 @@ async function handlePost(request: Request): Promise<Response> {
     billingOwnerId: gate.billingOwnerId,
     resolvedPlan: gate.resolvedPlan,
     releaseReservationOnce: gate.releaseReservationOnce,
+    byokApiKey: parsed.byokApiKey,
   })
 }
 

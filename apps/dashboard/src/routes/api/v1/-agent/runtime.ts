@@ -96,6 +96,18 @@ export async function resolveAgentUserId(): Promise<string> {
  * NOT folded into `AGENT_JSON_RENDER_INLINE_PROMPT` (the cached system prompt)
  * — inserted as its own message instead, so provider prompt caching on the
  * system prompt is unaffected.
+ *
+ * The hint is threaded in with `role: 'user'`, never `'system'`: the AI SDK's
+ * `ToolLoopAgent`/`streamText` reject any `system`-role entry inside
+ * `messages` (`allowSystemInMessages` defaults to `false` — see
+ * `standardizePrompt` in the `ai` package), throwing `AI_InvalidPromptError`.
+ * Because `pageContext` is only present on the first turn, a `'system'` role
+ * here made every brand-new session's first message fail outright (caught,
+ * classified, and streamed back as a masked error part instead of a real
+ * reply) while every later message — with no `pageContext` — worked fine.
+ * The extra `'user'`-role line is never echoed back to the client (the
+ * response stream only carries new assistant content), so it does not appear
+ * as a stray chat bubble.
  */
 export function buildUiMessages(options: {
   safeIncomingMessages: ReadonlyArray<SafeAgentMessage>
@@ -133,7 +145,7 @@ export function buildUiMessages(options: {
     if (lastMessageIndex >= 0 && uiMessages[lastMessageIndex].role === 'user') {
       uiMessages.splice(lastMessageIndex, 0, {
         id: crypto.randomUUID(),
-        role: 'system',
+        role: 'user',
         parts: [
           {
             type: 'text' as const,
