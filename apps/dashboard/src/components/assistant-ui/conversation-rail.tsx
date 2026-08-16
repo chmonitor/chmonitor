@@ -271,17 +271,30 @@ interface ConversationRailProps {
   /** Desktop inline column open/closed. */
   open: boolean
   onCollapse: () => void
+  /**
+   * Whether to animate the width/opacity transition. Off for the initial,
+   * breakpoint-driven default (so the small-screen default-closed state snaps
+   * in instantly instead of visibly sliding shut on load); on once the user
+   * has explicitly toggled the rail, so that interaction still slides
+   * smoothly. Defaults to `true` for any other caller.
+   */
+  animate?: boolean
 }
 
 /**
  * Desktop inline collapsible rail column. Mirrors the settings sidebar's width
  * animation so the chat column reserves its space without layout shift.
  */
-export function ConversationRail({ open, onCollapse }: ConversationRailProps) {
+export function ConversationRail({
+  open,
+  onCollapse,
+  animate = true,
+}: ConversationRailProps) {
   return (
     <aside
       className={cn(
-        'bg-card border-border shrink-0 overflow-hidden border-r transition-all duration-200',
+        'bg-card border-border shrink-0 overflow-hidden border-r',
+        animate && 'transition-all duration-200',
         open ? 'w-[280px] opacity-100' : 'pointer-events-none w-0 opacity-0'
       )}
       style={{ maxHeight: 'calc(100dvh - 6rem)' }}

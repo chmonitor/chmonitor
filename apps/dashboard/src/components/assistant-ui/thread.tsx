@@ -51,7 +51,6 @@ import { ThreadComposer, WelcomeComposer } from './-thread/composer'
 import { FollowUpChips } from './-thread/follow-up-chips'
 import { FollowUpSuggestions } from './-thread/follow-up-suggestions'
 import { MessageStatsFooter } from './-thread/message-stats'
-import { SessionStats } from './-thread/session-stats'
 import {
   ActionBarPrimitive,
   BranchPickerPrimitive,
@@ -85,7 +84,6 @@ import {
   parseAgentError,
 } from '@/lib/ai/agent/errors'
 import { getFollowUpPrompts } from '@/lib/ai/agent/follow-up-prompts'
-import { resolveConversationBackend } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
 import { track } from '@/lib/telemetry'
 
@@ -150,19 +148,10 @@ export function Thread({
               </MessageScrollerViewport>
             </MessageScroller>
 
-            {/* Composer + disclaimer pinned below the scroll area. */}
+            {/* Composer pinned below the scroll area. */}
             <div className="mx-auto flex w-full flex-col items-start gap-2 bg-background px-4 pb-3">
               <FollowUpSuggestions />
               <ThreadComposer />
-              <SessionStats />
-              <p className="text-muted-foreground text-[11px] leading-4">
-                The agent runs read-only ClickHouse queries. Conversations are
-                saved{' '}
-                {resolveConversationBackend() === 'd1'
-                  ? 'to your account'
-                  : 'in this browser'}
-                .
-              </p>
             </div>
           </div>
         </MessageScrollerProvider>

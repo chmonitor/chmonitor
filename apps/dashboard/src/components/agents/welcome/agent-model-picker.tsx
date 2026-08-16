@@ -241,7 +241,7 @@ export function AgentModelPicker({
       <div
         className={cn(
           'text-muted-foreground border-input flex min-h-10 w-full flex-col items-start gap-1 rounded-md border border-dashed px-3 py-2 text-[11px] leading-snug',
-          variant === 'toolbar' && 'h-7 min-h-0 flex-row border-0 px-2 py-0',
+          variant === 'toolbar' && 'h-6 min-h-0 flex-row border-0 px-2 py-0',
           className
         )}
       >
@@ -283,7 +283,7 @@ export function AgentModelPicker({
               variant="ghost"
               size="sm"
               className={cn(
-                'text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-[11.5px]',
+                'text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]',
                 className
               )}
             >

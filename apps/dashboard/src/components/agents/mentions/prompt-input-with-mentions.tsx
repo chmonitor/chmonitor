@@ -17,6 +17,11 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from '@/components/ui/input-group'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAutocompleteData } from '@/lib/hooks/use-autocomplete-data'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
@@ -222,26 +227,37 @@ export function PromptInputTextareaWithMentions({
         />
 
         <InputGroupAddon align="inline-end">
-          <InputGroupButton
-            size="icon-sm"
-            onClick={handleActionClick}
-            disabled={buttonDisabled}
-            aria-label={isLoading ? 'Stop response' : 'Send message'}
-            className={cn(
-              'rounded-full transition-[transform,background-color,color] duration-200 active:scale-[0.92]',
-              isLoading
-                ? 'bg-foreground text-background hover:bg-foreground/90'
-                : canSubmit
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'bg-muted text-muted-foreground'
-            )}
-          >
-            {isLoading ? (
-              <SquareIcon className="size-3.5 fill-current" />
-            ) : (
-              <ArrowUpIcon className="size-4" />
-            )}
-          </InputGroupButton>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <InputGroupButton
+                  size="icon-sm"
+                  onClick={handleActionClick}
+                  disabled={buttonDisabled}
+                  aria-label={isLoading ? 'Stop response' : 'Send message'}
+                  className={cn(
+                    'rounded-full transition-[transform,background-color,color] duration-200 active:scale-[0.92]',
+                    isLoading
+                      ? 'bg-foreground text-background hover:bg-foreground/90'
+                      : canSubmit
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'bg-muted text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              {isLoading ? (
+                <SquareIcon className="size-3.5 fill-current" />
+              ) : (
+                <ArrowUpIcon className="size-4" />
+              )}
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {isLoading
+                ? 'Stop response'
+                : 'Enter to send · Shift+Enter for a new line'}
+            </TooltipContent>
+          </Tooltip>
         </InputGroupAddon>
       </InputGroup>
 
