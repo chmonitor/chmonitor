@@ -29,28 +29,26 @@
   padding-bottom: 0.5rem; /* 8 px instead of 16 px */
 }
 
-/* Base code block styling */
-.markdown-content pre {
-  background-color: hsl(var(--muted));
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  margin: 0.5rem 0;
-  overflow-x: auto;
-}
-
-.markdown-content code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.875rem;
-}
-
-/* Inline code */
-.markdown-content :not(pre) > code {
-  background-color: hsl(var(--muted));
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-}
-
 /*
+ * NOTE: there is no generic `.markdown-content pre` / `code` background rule
+ * here (or in styles.css's `.markdown-content` block) on purpose.
+ *
+ * Streamdown's own `code:`/`pre:` renderers already own ALL code chrome —
+ * fenced blocks get a bordered `bg-background` card (`data-streamdown=
+ * "code-block-body"`, styled above), inline code gets `rounded bg-muted
+ * px-1.5 py-0.5` directly on the `<code data-streamdown="inline-code">`
+ * element. A prior sitewide `pre`/`code` override here (and a duplicate,
+ * *also broken* `hsl(var(--muted))` version — oklch tokens can't be wrapped
+ * in `hsl()`) painted a second muted, padded box INSIDE Streamdown's already-
+ * bordered `code-block-body` card (Streamdown's `pre:` renderer just returns
+ * its child unwrapped, so the generic `pre` selector was hitting the inner
+ * token-holding `<pre>`) and shrank inline code's font-size below the block's.
+ * `.markdown-content` has exactly one consumer
+ * (`markdown-text.tsx`), so removing the override is safe — Streamdown's
+ * Tailwind classes are already token-based (`bg-muted`, `border-border`,
+ * `bg-background`), matching the project's OKLCH design system. Re-add a
+ * rule here only if it targets something Streamdown does NOT already style.
+ *
  * NOTE: .hljs-* rules have been removed.
  *
  * Streamdown v2.4.0 uses Shiki for syntax highlighting via the `shikiTheme`

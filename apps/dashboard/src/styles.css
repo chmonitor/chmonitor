@@ -272,25 +272,19 @@
   list-style-type: decimal;
 }
 
-.markdown-content code {
-  font-size: 0.75rem;
-  background-color: oklch(from var(--muted) l c h);
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-}
-
-.markdown-content pre {
-  margin: 0.75em 0;
-  padding: 0.75rem;
-  background-color: oklch(from var(--muted) l c h);
-  border-radius: 0.375rem;
-  overflow-x: auto;
-}
-
-.markdown-content pre code {
-  background-color: transparent;
-  padding: 0;
-}
+/*
+ * No `.markdown-content code` / `pre` rule here — Streamdown's own `code:`
+ * renderer (see `components/agents/markdown-code.css`) already owns fenced
+ * and inline code styling via token-based Tailwind classes (`bg-muted`,
+ * `border-border`, `bg-background`, `text-sm`). A sitewide override at this
+ * specificity was overriding Streamdown's own font-size/padding and, for
+ * fenced blocks, painting a second padded background box INSIDE its
+ * already-bordered card (Streamdown's `pre:` renderer returns its child
+ * unwrapped, so the generic `pre` selector hit the inner token-holding
+ * `<pre>`). Headings/blockquote below stay: those ARE an intentional, working
+ * override of Streamdown's chat-width-oversized defaults (its own h1 is
+ * `text-3xl`, tuned for full-page docs, not a narrow chat column).
+ */
 
 .markdown-content table {
   margin: 0.75em 0;
@@ -405,14 +399,6 @@
 /* Dark mode adjustments */
 .dark .markdown-content {
   color: oklch(from var(--foreground) l c h);
-}
-
-.dark .markdown-content code {
-  background-color: oklch(from var(--muted) l c h);
-}
-
-.dark .markdown-content pre {
-  background-color: oklch(from var(--muted) l c h);
 }
 
 /* Disable sidebar transitions during resize for instant feedback */

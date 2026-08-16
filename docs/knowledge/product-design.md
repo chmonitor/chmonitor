@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-15
+updated: 2026-08-17
 tags:
   - design-system
   - ui
@@ -300,6 +300,59 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   the agent can see; its shared state (`page-context-control.tsx`, floating-only
   provider) also gates whether `pageContext` rides along with the request — see
   `docs/content/guide/ai-agent.mdx`.
+
+### Agent chat: reasoning / tool-call rendering
+
+The thread's "chat machinery" (reasoning blocks, tool-call groups, individual
+tool rows) must stay visually secondary to the assistant's own prose — the
+reply text is the loudest thing on the page, not the plumbing that produced
+it. Implemented in `components/assistant-ui/{reasoning,tool-group}.tsx` +
+`components/agents/chat/tool-output/tool-call-part.tsx`:
+
+- **Ghost text row triggers, not background cards.** `ReasoningTrigger`
+  ("Thought process") and `ToolGroupTrigger` ("N tool calls") are plain
+  `icon + label + chevron` rows (`text-xs text-muted-foreground`,
+  `hover:bg-muted/40 hover:text-foreground`, `focus-visible:ring-[3px]
+  focus-visible:ring-ring/50`) — **no `bg-muted/50` slab**. Two adjacent
+  colored/boxed triggers read as identical heavy blocks and bury the message
+  between them; a bare row differentiates by icon (Sparkles vs Wrench) and
+  label instead. Their content indents under the trigger (`pl-5` /
+  `pl-3.5`) rather than adding another box.
+- **Tool-call header: a short summary, never a raw param dump.** The
+  collapsed row shows `toolName` + `summarizeToolInput(part.input)`
+  (`tool-output/output-shape.ts`) — a single-line, whitespace-collapsed,
+  ~60-char-capped string (prefers a primary `sql`/`query`/`prompt` param
+  alone over concatenating every `key=value`). The full input always lives in
+  the "Parameters" disclosure in the expanded body; a long/multiline value
+  there (`isLongToolInputValue`) renders as a `CodeBlock` (sql-aware,
+  horizontally scrollable) instead of an inline JSON string.
+- **Tool errors: a compact destructive row, never raw JSON.** A failed tool
+  renders `summarizeToolError(part.errorText)` — a short human message
+  (extracted from a `{error:...}`/`{message:...}` JSON payload when present,
+  or the plain text as-is, or a generic fallback when there's nothing
+  readable) in a `border-destructive/30 bg-destructive/5` row. An expandable
+  "Details" disclosure only appears when the payload carries fields beyond
+  the message itself — never a bare `{"error":"..."}` blob inline.
+- **Embedded result tables are bounded.** `ResultTable` (compact `DataTable`)
+  gets `rounded-md border border-border/60` at the call site — compact mode
+  has no border of its own — so it reads as one contained card, with its own
+  `max-h-[50vh]` scroll and a row count in the footer, instead of floating
+  content whose scrollbar fights the page.
+- **`.markdown-content` owns no `pre`/`code` background rule** (neither in
+  `styles.css` nor `components/agents/markdown-code.css`). Streamdown's own
+  `code:`/`pre:` renderers already style both fenced blocks (bordered
+  `bg-background` card) and inline code (`rounded bg-muted px-1.5 py-0.5`)
+  with token-based Tailwind classes — a sitewide override at that specificity
+  paints a second padded background box INSIDE Streamdown's already-bordered
+  fenced-block card (its `pre:` renderer returns its child unwrapped, so a
+  generic `pre` selector hits the inner token-holding `<pre>`) and shrinks
+  inline code's font-size below the block's. Don't re-add one; if code
+  styling looks off, fix it in the
+  Streamdown-rendered markup's own classes, not a `.markdown-content`
+  override. (`.markdown-content` has exactly one consumer, `markdown-text.tsx`
+  — safe to keep spare.) The heading/blockquote overrides that DO remain in
+  `styles.css` are intentional chat-width right-sizing (Streamdown's own h1 is
+  `text-3xl`, tuned for full-page docs) — don't remove those.
 
 ### Settings channel grid (configured-first)
 

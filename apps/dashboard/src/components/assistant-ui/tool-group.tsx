@@ -111,18 +111,18 @@ export function ToolGroupTrigger({
   return (
     <CollapsibleTrigger
       className={cn(
-        'flex w-full items-center gap-1.5 px-3 py-2 rounded-md',
-        'bg-muted/50',
+        // Ghost text row, not a background card — matches ReasoningTrigger's
+        // weight so the two "chat machinery" collapsibles read as siblings,
+        // differentiated by icon/label rather than a stacked grey slab each.
+        '-mx-1.5 flex w-full items-center gap-1.5 rounded-sm px-1.5 py-1',
         'text-xs font-medium text-muted-foreground',
-        'hover:bg-muted transition-colors',
+        'outline-none transition-colors hover:bg-muted/40 hover:text-foreground',
+        'focus-visible:ring-[3px] focus-visible:ring-ring/50',
         className
       )}
     >
       <WrenchIcon
-        className={cn(
-          'size-3.5 shrink-0 text-muted-foreground',
-          isRunning && 'animate-pulse'
-        )}
+        className={cn('size-3.5 shrink-0', isRunning && 'animate-pulse')}
       />
       <span className="flex-1 text-left">
         {count != null && count > 0
@@ -130,9 +130,9 @@ export function ToolGroupTrigger({
           : 'Tool calls'}
       </span>
       {isRunning && (
-        <span className="mr-1 inline-block size-2 animate-pulse rounded-full bg-primary/60" />
+        <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-[var(--chart-yellow)]" />
       )}
-      <ChevronRightIcon className="size-3 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/toolgroup:rotate-90" />
+      <ChevronRightIcon className="size-3 shrink-0 transition-transform duration-200 group-data-[state=open]/toolgroup:rotate-90" />
     </CollapsibleTrigger>
   )
 }
@@ -160,7 +160,11 @@ export function ToolGroupContent({
         'data-open:animate-collapsible-down'
       )}
     >
-      <div className={cn('flex flex-col gap-0', className)}>{children}</div>
+      {/* Indented under the trigger's icon + label — each contained tool row
+          keeps its own accent bar / disclosures, this just groups them. */}
+      <div className={cn('flex flex-col gap-0 pl-3.5', className)}>
+        {children}
+      </div>
     </CollapsibleContent>
   )
 }

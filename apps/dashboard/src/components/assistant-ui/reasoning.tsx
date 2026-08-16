@@ -111,21 +111,22 @@ export function ReasoningTrigger({
   return (
     <CollapsibleTrigger
       className={cn(
-        'flex w-full items-center gap-1.5 px-3 py-2 rounded-md',
-        'bg-muted/50',
-        'text-xs font-medium text-muted-foreground',
-        'hover:bg-muted transition-colors',
+        // Ghost text row, not a background card — chat machinery stays
+        // secondary so the assistant's own prose is the loudest thing on
+        // the thread. `-mx-1.5` keeps the hover/focus box from nudging the
+        // row's text out of alignment with the reply above/below it.
+        '-mx-1.5 flex w-full items-center gap-1.5 rounded-sm px-1.5 py-1',
+        'text-xs italic text-muted-foreground/80',
+        'outline-none transition-colors hover:bg-muted/40 hover:text-foreground',
+        'focus-visible:ring-[3px] focus-visible:ring-ring/50',
         className
       )}
     >
       <SparklesIcon
-        className={cn(
-          'size-3.5 shrink-0 text-muted-foreground',
-          active && 'animate-pulse'
-        )}
+        className={cn('size-3.5 shrink-0', active && 'animate-pulse')}
       />
       <span className="flex-1 text-left">{children ?? 'Thought process'}</span>
-      <ChevronRightIcon className="size-3 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/reasoning:rotate-90" />
+      <ChevronRightIcon className="size-3 shrink-0 transition-transform duration-200 group-data-[state=open]/reasoning:rotate-90" />
     </CollapsibleTrigger>
   )
 }
@@ -153,7 +154,9 @@ export function ReasoningContent({
         'data-open:animate-collapsible-down'
       )}
     >
-      <div className={cn('px-3 py-2', className)}>{children}</div>
+      {/* Indented under the trigger's icon + label, matching the tool row's
+          left-accent-bar indent so reasoning reads as one visual "system" */}
+      <div className={cn('py-1 pl-5', className)}>{children}</div>
     </CollapsibleContent>
   )
 }
