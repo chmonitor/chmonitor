@@ -24,9 +24,35 @@ import {
   type UITools,
 } from 'ai'
 import { aggregateUsageWithCost } from '@/lib/ai/agent/analytics'
-import { classifyError } from '@/lib/ai/agent/errors'
+import {
+  classifyError,
+  formatAgentErrorText,
+  sanitizeAgentError,
+} from '@/lib/ai/agent/errors'
 import { createJsonRenderPatchGuardStream } from '@/lib/ai/agent/json-render-patch-guard'
 import { meterAiOverage } from '@/lib/billing/ai-usage-store'
+
+/**
+ * Secrets that must never be echoed back to the client inside an error
+ * message: the deployment's own provider/DB credentials plus this request's
+ * BYOK key (if any). An upstream provider error, or a tool failure touching
+ * ClickHouse, can otherwise echo a credential verbatim in its message. Exact
+ * values only — shape-based redaction (URL userinfo, `Bearer …`, `sk-…`, …)
+ * is handled separately by `redactSecrets`.
+ */
+function collectSecretsToRedact(
+  byokApiKey: string | null
+): (string | null | undefined)[] {
+  return [
+    byokApiKey,
+    process.env.OPENROUTER_API_KEY,
+    process.env.ANYROUTER_API_KEY,
+    process.env.NVIDIA_API_KEY,
+    process.env.LLM_API_KEY,
+    process.env.CLICKHOUSE_PASSWORD,
+    process.env.AGENTSTATE_API_KEY,
+  ]
+}
 
 // Free / routed providers can take 20-40s between a tool call and the
 // follow-up summary. The previous 12s step/chunk budget killed the loop
@@ -45,6 +71,9 @@ export function createAgentStreamResponse(options: {
   billingOwnerId: string | null
   resolvedPlan: Plan | null
   releaseReservationOnce: () => Promise<void>
+  /** BYOK key for this request, if any — redacted from any error text that
+   * reaches the client (see `collectSecretsToRedact`). */
+  byokApiKey?: string | null
 }): Response {
   const {
     agent,
@@ -56,12 +85,26 @@ export function createAgentStreamResponse(options: {
     billingOwnerId,
     resolvedPlan,
     releaseReservationOnce,
+    byokApiKey = null,
   } = options
 
   const usageSteps: LanguageModelUsage[] = []
   // Tracks the provider-reported model ID from the last completed step.
   // Populated synchronously in onStepEnd so it is available after consumeStream().
   let lastStepModelId: string | undefined
+
+  const secretsToRedact = collectSecretsToRedact(byokApiKey)
+  // Formats an unknown thrown/streamed error into a client-safe display
+  // string (classified message + suggestion, secrets stripped) — used
+  // wherever the AI SDK asks for `errorText: string` rather than a
+  // structured AgentError, so those chunks never fall back to the SDK's
+  // masked "An error occurred." default.
+  const formatErrorText = (error: unknown) =>
+    formatAgentErrorText(
+      error,
+      { model, provider: requestedProvider },
+      secretsToRedact
+    )
 
   const buildStats = (resolvedModel: string) => ({
     ...aggregateUsageWithCost(usageSteps, model),
@@ -131,7 +174,14 @@ export function createAgentStreamResponse(options: {
 
         writer.merge(
           createJsonRenderPatchGuardStream(
-            pipeJsonRender(result.toUIMessageStream())
+            pipeJsonRender(
+              // `onError` formats `error` / `tool-error` chunk `errorText`
+              // (e.g. a dynamicTool's `execute` throwing) — without it the AI
+              // SDK falls back to its safe-by-default "An error occurred.",
+              // which hides the real cause from both the user and the
+              // agent's own self-correction loop.
+              result.toUIMessageStream({ onError: formatErrorText })
+            )
           )
         )
         await result.consumeStream()
@@ -171,10 +221,10 @@ export function createAgentStreamResponse(options: {
           }
         }
       } catch (error) {
-        const classified = classifyError(error, {
-          model,
-          provider: requestedProvider,
-        })
+        const classified = sanitizeAgentError(
+          classifyError(error, { model, provider: requestedProvider }),
+          secretsToRedact
+        )
         console.error('[Agent API] Classified error:', classified)
         writer.write({
           type: 'data-error',
@@ -203,10 +253,10 @@ export function createAgentStreamResponse(options: {
       }
     },
     onError: (error) => {
-      const classified = classifyError(error, {
-        model,
-        provider: requestedProvider,
-      })
+      const classified = sanitizeAgentError(
+        classifyError(error, { model, provider: requestedProvider }),
+        secretsToRedact
+      )
       console.error('[Agent API] Classified error:', classified)
       // A failure can surface here (rather than the inner execute catch) when it
       // is thrown inside the merged/piped stream after the reservation. If no
@@ -217,7 +267,13 @@ export function createAgentStreamResponse(options: {
       if (usageSteps.length === 0) {
         void releaseReservationOnce()
       }
-      return JSON.stringify(classified)
+      // Plain, redacted, human-readable text — matches `formatErrorText`
+      // above and how the client renders an `errorText` field (raw text, not
+      // JSON) for both the top-level `error` chunk and per-tool
+      // `tool-output-error` chunks (see `ToolFallback` / `MessageError`).
+      return classified.suggestion
+        ? `${classified.message} — ${classified.suggestion}`
+        : classified.message
     },
     onEnd: () => {
       // Close any connected custom MCP servers now that the stream is done.
