@@ -49,16 +49,13 @@ Open `http://localhost:3000`.
 
 ### Using .env
 
-Put env vars in `.env.local` in the project root (Next.js) or `.env` for the TanStack app. Never commit credentials.
+Put env vars in `apps/dashboard/.env.local`. Never commit credentials.
 
 ```bash
-cat <<'EOF' > .env.local
+cat <<'EOF' > apps/dashboard/.env.local
 CLICKHOUSE_HOST=https://clickhouse.example.com:8443
 CLICKHOUSE_USER=monitoring
 CLICKHOUSE_PASSWORD=change-me
-CLICKHOUSE_NAME=prod
-CLICKHOUSE_MAX_EXECUTION_TIME=30
-CLICKHOUSE_TZ=UTC
 EOF
 
 pnpm run start
@@ -72,216 +69,17 @@ curl -sf http://localhost:3000/api/healthz && echo OK
 
 ## Configure
 
-### ClickHouse connection
-
-| Variable | Default | Description |
-|---|---|---|
-| `CLICKHOUSE_HOST` | — (required) | ClickHouse URL(s), comma-separated |
-| `CLICKHOUSE_USER` | `default` | Username(s), same count as HOST |
-| `CLICKHOUSE_PASSWORD` | `""` | Password(s), same count as HOST |
-| `CLICKHOUSE_NAME` | — | Friendly label(s) for host switcher |
-
-#### Multiple hosts
-
-`CLICKHOUSE_HOST` defines the host count. `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` may be a single value (applied to all hosts) or one value per host position. `CLICKHOUSE_NAME` is optional:
+Required:
 
 ```bash
-export CLICKHOUSE_HOST='https://ch1:8443,https://ch2:8443'
-export CLICKHOUSE_USER='monitoring,monitoring'
-export CLICKHOUSE_PASSWORD='pass1,pass2'
-export CLICKHOUSE_NAME='shard-1,shard-2'
+CLICKHOUSE_HOST=https://clickhouse.example.com:8443
+CLICKHOUSE_USER=monitoring
+CLICKHOUSE_PASSWORD=change-me
 ```
 
-### Query / pool tuning
-
-| Variable | Default | Description |
-|---|---|---|
-| `CLICKHOUSE_MAX_EXECUTION_TIME` | `60` | Query timeout in seconds |
-| `CLICKHOUSE_TZ` | — | Timezone for queries |
-| `CLICKHOUSE_DATABASE` | `system` | Default database |
-| `CLICKHOUSE_POOL_SIZE` | `10` | Connection pool size |
-| `CLICKHOUSE_POOL_TIMEOUT` | `300000` | Pool acquire timeout (ms) |
-| `CLICKHOUSE_POOL_CLEANUP_INTERVAL` | `60000` | Pool cleanup interval (ms) |
-
-### Feature permissions
-
-<Tabs items={["Env vars", "Config file (TOML)"]}>
-<Tab value="Env vars">
-
-```bash
-export CHM_DISABLED_FEATURES='peerdb,actions'
-export CHM_AUTH_REQUIRED_FEATURES='agent,settings,mcp'
-export CHM_FEATURE_AGENT_ACCESS='authenticated'
-export CHM_FEATURE_SETTINGS_ENABLED='false'
-```
-
-</Tab>
-<Tab value="Config file (TOML)">
-
-```bash
-export CHM_CONFIG_FILE='/etc/chmonitor/config.toml'
-```
-
-```toml
-# /etc/chmonitor/config.toml
-[features.agent]
-access = "authenticated"
-
-[features.settings]
-enabled = false
-
-[features.mcp]
-access = "authenticated"
-```
-
-</Tab>
-</Tabs>
-
-Feature ids: `overview`, `agent`, `insights`, `health`, `queries`, `tables`, `metrics`, `dashboard`, `security`, `logs`, `settings`, `billing`, `cluster`, `operations`, `actions`, `mcp`, `peerdb`, `docs`, `about`.
-
-### Authentication
-
-<Tabs items={["None (default)", "API key layer", "Clerk", "Proxy — CF Access", "Proxy — trusted header"]}>
-<Tab value="None (default)">
-
-```bash
-export CHM_AUTH_PROVIDER='none'
-```
-
-</Tab>
-<Tab value="API key layer">
-
-```bash
-export CHM_API_KEY_SECRET='a-long-random-secret'
-```
-
-</Tab>
-<Tab value="Clerk">
-
-```bash
-# Build with the canonical names (the client VITE_* derive from them):
-# CHM_AUTH_PROVIDER=clerk CHM_CLERK_PUBLISHABLE_KEY=pk_live_... pnpm run build
-export CHM_AUTH_PROVIDER='clerk'   # also needed at runtime
-export CLERK_SECRET_KEY='sk_live_...'
-```
-
-Set `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY` before `pnpm run build` (the client values are inlined at build time), then keep `CHM_AUTH_PROVIDER` and the `CLERK_SECRET_KEY` secret in the runtime env.
-
-</Tab>
-<Tab value="Proxy — CF Access">
-
-Cloudflare Access:
-
-```bash
-export CHM_AUTH_PROVIDER='proxy'
-export CHM_CF_ACCESS_TEAM_DOMAIN='https://yourteam.cloudflareaccess.com'
-export CHM_CF_ACCESS_AUD='<audience-tag>'
-```
-
-</Tab>
-<Tab value="Proxy — trusted header">
-
-nginx. Put chmonitor behind nginx. Configure nginx to set an auth header and pass the secret.
-
-```bash
-export CHM_AUTH_PROVIDER='proxy'
-export CHM_PROXY_AUTH_HEADER='X-Forwarded-User'
-export CHM_PROXY_AUTH_SECRET='a-long-random-secret'
-```
-
-Without `CHM_PROXY_AUTH_SECRET`, the trusted-header provider is disabled. See [Authentication](/operate/authentication).
-
-Example nginx config:
-
-```nginx
-upstream chmonitor {
-    server 127.0.0.1:3000;
-}
-
-server {
-    listen 443 ssl;
-    server_name monitor.example.com;
-
-    # Set after your auth module populates $remote_user
-    proxy_set_header X-Forwarded-User $remote_user;
-    proxy_set_header X-Chm-Proxy-Secret "$chm_proxy_secret";  # inject via env/secrets manager, not hardcoded
-
-    location / {
-        proxy_pass http://chmonitor;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-</Tab>
-</Tabs>
-
-### AI agent
-
-```bash
-export LLM_API_KEY='sk-...'
-export LLM_API_BASE='https://openrouter.ai/api/v1'
-export LLM_MODEL='openrouter/free'
-export AGENT_API_TOKEN='bearer-token-for-agent-api'
-export AGENT_ENABLE_CONTROL_TOOLS='false'
-```
-
-Keep `LLM_API_KEY` server-side — never set it as a `VITE_*` variable.
-
-### Conversation store
-
-**Default:** browser localStorage. No server config needed.
-
-Server-side persistence requires `CHM_FEATURE_CONVERSATION_DB=true` set at build time (its client `VITE_FEATURE_CONVERSATION_DB` is derived at build). Build with this flag set. At runtime, select the backend:
-
-<Tabs items={["Postgres (recommended)", "AgentState"]}>
-<Tab value="Postgres (recommended)">
-
-```bash
-export CONVERSATION_STORE_BACKEND='postgres'
-export DATABASE_URL='postgresql://user:pass@host:5432/dbname'
-```
-
-</Tab>
-<Tab value="AgentState">
-
-```bash
-export CONVERSATION_STORE_BACKEND='agentstate'
-export AGENTSTATE_API_KEY='as_live_...'
-```
-
-</Tab>
-</Tabs>
-
-D1 and Durable Object stores are Cloudflare-only.
-
-### Health alerting
-
-The health sweep runs at `GET /api/cron/health-sweep`. Call it from a cron job:
-
-```bash
-export HEALTH_ALERT_ENABLED='true'
-export HEALTH_ALERT_WEBHOOK_URL='https://hooks.slack.com/services/...'
-export HEALTH_ALERT_MIN_SEVERITY='warning'
-export CRON_SECRET='a-random-secret'
-```
-
-Add a crontab entry:
-
-```
-*/5 * * * * curl -sf -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/health-sweep
-```
-
-### Branding
-
-Branding vars are inlined at build time:
-
-```bash
-VITE_TITLE_SHORT=MyCluster VITE_LOGO=/logo.png pnpm run build
-```
-
-These are inlined at build time — set them before running `pnpm run build`.
+Put them in `apps/dashboard/.env.local`. Template:
+[`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/.env.example).
+Full list: [Environment variables](/reference/environment-variables).
 
 ## systemd unit
 

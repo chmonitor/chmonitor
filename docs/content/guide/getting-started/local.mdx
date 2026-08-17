@@ -8,7 +8,7 @@ Run chmonitor from source for development or to test changes before deploying.
 
 ## The dashboard app
 
-The dashboard is `apps/dashboard` (TanStack Start, v0.3+). Client env vars use the `VITE_*` prefix. The legacy Next.js app has been removed. The steps below target `apps/dashboard`.
+The dashboard is `apps/dashboard` (TanStack Start). Set `CHM_*` once; client `VITE_*` is derived. Copy `apps/dashboard/.env.example` → `.env.local`.
 
 ## Steps
 
@@ -48,24 +48,12 @@ In `apps/dashboard/`, create `.env.local`:
 CLICKHOUSE_HOST=http://localhost:8123
 CLICKHOUSE_USER=monitoring
 CLICKHOUSE_PASSWORD=your-password
-
-# Optional
-CLICKHOUSE_NAME=local-dev
-CLICKHOUSE_MAX_EXECUTION_TIME=60
-CLICKHOUSE_TZ=UTC
-EVENTS_TABLE_NAME=system.monitoring_events
 ```
 
-For dual-surface settings you normally set the canonical `CHM_*` name once and the `VITE_*` is derived at build time (e.g. set `CHM_AUTH_PROVIDER`, not `VITE_AUTH_PROVIDER`). Client-side variables in the TanStack app use the `VITE_*` prefix. The Next.js app uses `NEXT_PUBLIC_*` for the same variables. For example:
-
-| TanStack (`VITE_*`) | Next.js (`NEXT_PUBLIC_*`) |
-|---|---|
-| `VITE_AUTH_PROVIDER` | `NEXT_PUBLIC_AUTH_PROVIDER` |
-| `VITE_CLERK_PUBLISHABLE_KEY` | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` |
-| `VITE_TITLE_SHORT` | `NEXT_PUBLIC_TITLE_SHORT` |
+Optional names and flags: [Environment variables](/reference/environment-variables).
 
 <Callout type="warn" title="Never put secrets in VITE_* variables">
-Client vars are inlined at build time and shipped to the browser.
+Set `CHM_*`. Client vars are inlined at build time.
 </Callout>
 
 </Step>
