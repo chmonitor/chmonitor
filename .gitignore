@@ -116,3 +116,6 @@ docs/machines.md
 
 # Shared image library synced from repo-root assets/ (scripts/sync-shared-assets.mjs)
 apps/*/public/assets/
+
+# Mac-sourced 4K masters (encode before commit)
+assets/videos/*.source.mp4

@@ -10,6 +10,10 @@ const html = readFileSync(distIndex, 'utf8')
 
 const required = [
   'data-hero',
+  'data-hero-video',
+  'data-hero-intro',
+  '/assets/videos/chmonitor-v0.3.mp4',
+  '/assets/videos/chmonitor-v0.3-poster.jpg',
   'data-hero-features',
   // Headline may include a <br> between "dashboard" and "for" — match pieces.
   'The ops dashboard',
