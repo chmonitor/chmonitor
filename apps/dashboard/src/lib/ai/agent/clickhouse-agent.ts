@@ -112,7 +112,11 @@ export function stopWhenIdleOrMaxSteps(maxSteps: number) {
   const atCap = isStepCount(maxSteps)
   return (options: Parameters<typeof atCap>[0]) => {
     const last = options.steps[options.steps.length - 1]
-    if (last?.toolCalls.length > 0 && options.steps.length < maxSteps) {
+    if (
+      last !== undefined &&
+      last.toolCalls.length > 0 &&
+      options.steps.length < maxSteps
+    ) {
       return false
     }
     return atCap(options)
