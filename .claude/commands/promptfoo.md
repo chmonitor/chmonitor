@@ -1,15 +1,12 @@
-Run promptfoo e2e agent tests.
+Run promptfoo live agent tests (AnyRouter rubric).
 
-Starts the dev server if needed, then runs promptfoo against the agent API at localhost:3000.
+Starts nothing by default — point `AGENT_EVAL_URL` at a running dashboard
+(`http://localhost:3000/api/v1/agent` or `https://dash.chmonitor.dev/api/v1/agent`).
 
 Usage: /test-agent-e2e [filter pattern]
 
-Arguments:
-- $ARGUMENTS - Optional filter pattern to run specific tests (e.g., "greeting" or "query tool")
-
-Steps:
-1. Check if dev server is running at http://localhost:3000/api/healthz
-2. If not running, start it with `bun run dev` in the background and wait until healthy
-3. Run: `AGENT_API_TOKEN=16bc4bae467d8726b5b2baacc42741bc4bc5590735221962c3c3538bd6e91357 bunx promptfoo eval -c tests/agent/promptfooconfig.yaml --no-cache --max-concurrency 1` (add `--filter-pattern "$ARGUMENTS"` if arguments provided)
-4. Report the results table and pass/fail summary
-5. Kill the dev server if we started it
+1. Require `ANYROUTER_API_KEY` and `AGENT_API_TOKEN` in the environment (never commit them).
+2. Default URL is `http://localhost:3000/api/v1/agent`. If `/api/healthz` is down, start `pnpm run dev` and wait.
+3. Run `bun scripts/agent-eval.ts --tags core,safety` (add `--filter-pattern "$ARGUMENTS"` when given).
+4. Report the pass/fail table. `bun scripts/agent-eval-improve.ts --skip-eval` writes AnyRouter notes to `tests/agent/results/improve.md` without editing prompts.
+5. Kill a dev server only if this command started it.

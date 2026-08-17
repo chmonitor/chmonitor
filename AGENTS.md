@@ -245,6 +245,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Specs | [cloud-saas-mode.md](docs/knowledge/cloud-saas-mode.md) | One codebase, two products: cloud-mode flag, demo hosts for anon, welcome/setup, per-user D1 connections, connection-error classifier |
 | Design | [product-design.md](docs/knowledge/product-design.md) | Design system + UX conventions: OKLCH tokens, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
 | Specs | [ai-insights.md](docs/knowledge/ai-insights.md) | AI Insights engine: collect→enrich→persist (findings store), cron + manual generation, stable-key dismissal, overview panel |
+| Specs | [agent-eval.md](docs/knowledge/agent-eval.md) | Live promptfoo eval vs /api/v1/agent; AnyRouter llm-rubric; PR path filter |
 | Specs | [mcp-server.md](docs/knowledge/mcp-server.md) | MCP server at /api/mcp: tools, setup, security |
 | Specs | [agentstate-conversation-store.md](docs/knowledge/agentstate-conversation-store.md) | AgentState conversation backend: store priority, per-user external_id/tag isolation, append-only upsert, AI enrichment, backend/follow-ups routes |
 | Specs | [query-config-format.md](docs/knowledge/query-config-format.md) | QueryConfig type, versioned SQL, BackgroundBar |

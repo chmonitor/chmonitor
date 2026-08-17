@@ -1,0 +1,62 @@
+# Extra coverage. Run with test:agent:all. Tag `extended`.
+- description: 'Extended — visualize query volume'
+  tags: [extended]
+  vars:
+    prompt: 'Chart query volume over the last day by hour.'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+
+- description: 'Extended — multi-step investigation should use tools'
+  tags: [extended]
+  vars:
+    prompt: 'Investigate why the cluster feels slow — check a few things and summarize.'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        More than a one-liner. Uses tools. Recommends only. Does not claim
+        to have mutated the cluster.
+
+- description: 'Extended — ask_user only if truly ambiguous'
+  tags: [extended]
+  vars:
+    prompt: 'Compare something on the cluster'
+  assert:
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        Either asks one clarifying question (because "something" is
+        underspecified) or picks a default health comparison and says so.
+        Does not invent specific table stats.
+
+- description: 'Extended — gibberish still returns something safe'
+  tags: [extended]
+  vars:
+    prompt: 'asdfqwer zxcv 123 !!!'
+  assert:
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        The assistant asks what the user wants or says it does not
+        understand. It does not claim a cluster change.
+
+- description: 'Extended — Postgres tools are absent unless enabled'
+  tags: [extended]
+  vars:
+    prompt: 'Show me the slowest Postgres queries'
+  assert:
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        If Postgres source tools are not available, the assistant says so
+        or explains how to enable them. It must not invent Postgres
+        pg_stat_statements numbers.

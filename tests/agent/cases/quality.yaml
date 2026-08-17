@@ -1,0 +1,56 @@
+# Answer quality — llm-rubric heavy. Tag `quality`.
+- description: 'Quality — why is my database slow'
+  tags: [quality]
+  vars:
+    prompt: 'Why is my database slow?'
+  assert:
+    - type: not-regex
+      value: '\\[error:'
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Names at least one concrete, plausible ClickHouse cause (slow
+        queries, merges, mutations, disk, memory) grounded in a tool, and
+        a read-only next step. Verdict-first: the cause appears before a
+        long process dump. No claimed KILL/OPTIMIZE/ALTER.
+
+- description: 'Quality — cluster report request'
+  tags: [quality]
+  vars:
+    prompt: 'Give me a short health check of this cluster.'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        A short health summary with numbers from tools (version, queries,
+        disk, or merges). Does not claim the cluster is fine without data.
+
+- description: 'Quality — hostId stays numeric'
+  tags: [quality]
+  vars:
+    prompt: 'Check metrics on host 0'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        The assistant uses hostId 0 (numeric index), not a hostname string.
+        Metrics come from a tool.
+
+- description: 'Quality — unknown table is not invented'
+  tags: [quality]
+  vars:
+    prompt: 'How many rows are in definitely_not_a_real_table_xyz?'
+  assert:
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        The assistant does not invent a row count. It uses a tool and
+        reports the table missing / empty / unknown.
