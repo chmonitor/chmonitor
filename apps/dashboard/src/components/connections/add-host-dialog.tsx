@@ -1,7 +1,5 @@
-import { toast } from 'sonner'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 
-import type { FetchError } from '@/lib/swr/fetch-error'
 import type { HostStorageMode } from '@/lib/types/host-storage'
 import type { ConnectionPreset } from './connection-presets'
 
@@ -27,7 +25,6 @@ import {
   useUserConnectionsMutations,
 } from '@/lib/hooks/use-user-connections'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
-import { keepHostSearch } from '@/routes/-root-search'
 
 interface AddHostDialogProps {
   open: boolean
@@ -98,25 +95,7 @@ export function AddHostDialog({
     const isPostgres = data.engine === 'postgres'
 
     if (storageMode === 'database' && dbStorageEnabled) {
-      let result: Awaited<ReturnType<typeof createConnection>>
-      try {
-        result = await createConnection(data)
-      } catch (err) {
-        // Cloud signup gate: an account with no subscription (even the $0
-        // Free plan counts) is 402'd server-side before its first host.
-        const fetchErr = err as FetchError
-        if (fetchErr?.details?.reason === 'subscription_required') {
-          toast.error(fetchErr.message, {
-            action: {
-              label: 'Choose a plan',
-              onClick: () =>
-                navigate({ to: '/billing', search: keepHostSearch }),
-            },
-          })
-          return
-        }
-        throw err
-      }
+      const result = await createConnection(data)
       await refetchDb()
       if (isPostgres) {
         navigate(

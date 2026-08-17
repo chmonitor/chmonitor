@@ -302,66 +302,19 @@ describe('POST /api/v1/user-connections — Postgres engine branch', () => {
   })
 })
 
-// A signed-in cloud user must hold a live subscription (any plan, including the
-// $0 Free plan) before their first host can be created. Driven through real
-// isCloudModeServer() / isBillingConfigured() by env, not module mocks, so the
-// gate wiring itself is exercised end to end.
-describe('POST /api/v1/user-connections — active-subscription gate (cloud)', () => {
+describe('POST /api/v1/user-connections — no Polar subscription required', () => {
   const OLD_CLOUD = process.env.CHM_CLOUD_MODE
-  const OLD_DEPLOY = process.env.CHM_DEPLOYMENT_MODE
   const OLD_TOKEN = process.env.POLAR_ACCESS_TOKEN
 
   afterEach(() => {
-    restoreEnv('CHM_CLOUD_MODE', OLD_CLOUD)
-    restoreEnv('CHM_DEPLOYMENT_MODE', OLD_DEPLOY)
-    restoreEnv('POLAR_ACCESS_TOKEN', OLD_TOKEN)
+    if (OLD_CLOUD === undefined) delete process.env.CHM_CLOUD_MODE
+    else process.env.CHM_CLOUD_MODE = OLD_CLOUD
+    if (OLD_TOKEN === undefined) delete process.env.POLAR_ACCESS_TOKEN
+    else process.env.POLAR_ACCESS_TOKEN = OLD_TOKEN
   })
 
-  function restoreEnv(key: string, prev: string | undefined) {
-    if (prev === undefined) delete process.env[key]
-    else process.env[key] = prev
-  }
-
-  test('cloud + billing configured, no live subscription → 402 subscription_required, no create', async () => {
+  test('cloud + billing configured + no live subscription still creates', async () => {
     process.env.CHM_CLOUD_MODE = 'true'
-    process.env.POLAR_ACCESS_TOKEN = 'polar_oat_test'
-    resolveOwnerSubscription = mock(async () => null as unknown)
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(402)
-    // Envelope shape (createApiErrorResponse) — the client keys off
-    // details.reason === 'subscription_required'.
-    const body = (await res.json()) as {
-      error: { message: string; details?: { reason?: string } }
-    }
-    expect(body.error.details?.reason).toBe('subscription_required')
-    expect(body.error.message).toBe(
-      'An active plan is required before adding a host. Pick a plan on the billing page — Free is $0.'
-    )
-    expect(storeCreate).not.toHaveBeenCalled()
-  })
-
-  test('cloud + a live Free subscription → passes the gate into the normal create flow', async () => {
-    process.env.CHM_CLOUD_MODE = 'true'
-    process.env.POLAR_ACCESS_TOKEN = 'polar_oat_test'
-    resolveOwnerSubscription = mock(async () => ({
-      planId: 'free' as const,
-      billingPeriod: 'monthly' as const,
-      status: 'active',
-      currentPeriodEnd: null,
-      cancelAtPeriodEnd: false,
-    }))
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(200)
-    expect(storeCreate).toHaveBeenCalledTimes(1)
-  })
-
-  test('OSS / non-cloud mode → gate is skipped even with no subscription (fail open)', async () => {
-    delete process.env.CHM_CLOUD_MODE
-    delete process.env.CHM_DEPLOYMENT_MODE
     process.env.POLAR_ACCESS_TOKEN = 'polar_oat_test'
     resolveOwnerSubscription = mock(async () => null as unknown)
 

@@ -11,12 +11,10 @@ import {
   LayoutDashboard,
   Minus,
   Network,
-  Server,
   ShieldCheck,
   Sliders,
   Sparkles,
   Terminal,
-  Users,
   Webhook,
 } from 'lucide-react'
 
@@ -28,9 +26,7 @@ import {
   planAiUsage,
   planAlertRules,
   planHasCapability,
-  planHosts,
   planRetention,
-  planSeats,
 } from '@/lib/billing/plans'
 import { cn } from '@/lib/utils'
 
@@ -73,8 +69,6 @@ type FeatureRow = {
 }
 
 const LIMIT_ROWS: LimitRow[] = [
-  { label: 'ClickHouse hosts', icon: Server, value: planHosts },
-  { label: 'Team seats', icon: Users, value: planSeats },
   { label: 'Alert rules', icon: BellRing, value: planAlertRules },
   {
     label: 'Conversation & insights history',

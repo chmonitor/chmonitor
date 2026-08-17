@@ -80,10 +80,10 @@ returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
 cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
 Gate `ClerkSignInButton` behind `isClerkEnabled()`.
 
-**Plan-before-first-host (cloud):** the signed-in variant can still show Cloud
-plans, but Polar Cloud seat products are archived. Public paid checkout is
-self-host licenses (`/api/v1/billing/license-checkout`). Host/seat counts are
-not enforced. OSS fails open.
+**Cloud signed-in welcome:** connect a host immediately. There is no Polar
+plan picker and no `subscription_required` gate. Public paid checkout is
+self-host licenses (`/api/v1/billing/license-checkout` and
+chmonitor.dev/pricing). Host/seat counts are not enforced. OSS fails open.
 
 **"Try with sample ClickHouse" preset** — a DIFFERENT thing from the `demo` host
 above (server env-configured, cloud-only): a one-click preset any user (OSS or

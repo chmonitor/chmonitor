@@ -7,25 +7,17 @@ import {
   ShieldCheck,
   Terminal,
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import type { ReactNode } from 'react'
 import type { ConnectionPreset } from '@/components/connections/connection-presets'
 
-import { useEffect, useState } from 'react'
-import { PlanCard, PopularBadge } from '@/components/billing/plan-card'
+import { useState } from 'react'
 import { ClerkSignInButton as ClerkSignInButtonImpl } from '@/components/clerk/clerk-sign-in-button'
 import { AddHostDialog } from '@/components/connections'
 import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
 import { WelcomeIllustration } from '@/components/illustrations/welcome-illustration'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { trackEvent } from '@/lib/analytics/analytics'
-import { BILLING_PLAN_LIST } from '@/lib/billing/plans'
-import {
-  startCheckout,
-  useBillingSubscription,
-} from '@/lib/billing/use-billing'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { docsSiteUrl } from '@/lib/docs-site'
 import { isFeatureEnabled } from '@/lib/feature-flags'
@@ -229,38 +221,6 @@ function ConnectYourHost({
   onAddHost: (opts?: OpenAddHostOptions) => void
 }) {
   const allowPostgres = isFeatureEnabled('postgresSource')
-  const { data: sub } = useBillingSubscription()
-  const currentPlanId = sub?.planId ?? 'free'
-  // status 'none' = no subscription at all; the server requires an active one
-  // (even the $0 Free plan) before the first host can be added, so onboarding
-  // must route through plan selection first.
-  const hasActiveSub = sub != null && sub.status !== 'none'
-  // Onboarding: pick a plan first, then connect a host. Anyone with an active
-  // subscription (including Free) skips straight to connect.
-  const [step, setStep] = useState<'plan' | 'connect'>(
-    hasActiveSub ? 'connect' : 'plan'
-  )
-  // The subscription loads async (and refreshes after the Polar redirect
-  // returns) — advance to the connect step as soon as it turns up active.
-  useEffect(() => {
-    if (hasActiveSub) setStep('connect')
-  }, [hasActiveSub])
-
-  if (step === 'plan') {
-    return (
-      <div className="space-y-7">
-        <WelcomeHeader
-          title="Choose your plan"
-          subtitle="Start free, or pick a paid plan for more hosts, seats and history. You can upgrade anytime — no card needed for Free."
-        />
-        <OnboardingPlans
-          currentPlanId={currentPlanId}
-          hasActiveSub={hasActiveSub}
-          onContinueFree={() => setStep('connect')}
-        />
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-7">
@@ -356,6 +316,23 @@ function ConnectYourHost({
         </p>
       </div>
 
+      <p className="text-muted-foreground text-center text-xs">
+        Already run ClickHouse yourself?{' '}
+        <a
+          href="https://chmonitor.dev/pricing/"
+          className="text-primary font-medium underline-offset-4 hover:underline"
+        >
+          Self-host license
+        </a>
+        {' · '}
+        <a
+          href="https://docs.chmonitor.dev/operate/advanced/commercial-license"
+          className="text-primary font-medium underline-offset-4 hover:underline"
+        >
+          How licenses work
+        </a>
+      </p>
+
       <DocsFooter
         links={[
           { slug: 'getting-started', label: 'Getting started' },
@@ -373,115 +350,6 @@ function ConnectYourHost({
           },
         ]}
       />
-    </div>
-  )
-}
-
-/**
- * Onboarding plan picker. Every plan — including Free — goes through Polar
- * checkout so the account holds a real (possibly $0) subscription before the
- * first host; the free checkout collects no card and returns straight here.
- * When billing isn't configured (OSS/preview → checkout 501s) Free falls open
- * to plain continue, mirroring the server gate's fail-open behaviour.
- */
-function OnboardingPlans({
-  currentPlanId,
-  hasActiveSub,
-  onContinueFree,
-}: {
-  currentPlanId: string
-  hasActiveSub: boolean
-  onContinueFree: () => void
-}) {
-  const [busy, setBusy] = useState<string | null>(null)
-
-  async function choosePaid(planId: 'pro' | 'max') {
-    setBusy(planId)
-    trackEvent('upgrade_click', { plan_id: planId, source: 'welcome' })
-    try {
-      await startCheckout(planId, 'yearly')
-    } catch (err) {
-      setBusy(null)
-      toast.error(err instanceof Error ? err.message : 'Checkout failed')
-    }
-  }
-
-  async function chooseFree() {
-    if (hasActiveSub) {
-      onContinueFree()
-      return
-    }
-    setBusy('free')
-    try {
-      await startCheckout('free', 'monthly', { returnPath: '/' })
-    } catch (err) {
-      setBusy(null)
-      const message = err instanceof Error ? err.message : ''
-      // 501 = billing not configured on this deployment — the server gate is
-      // off too, so continuing without a subscription is correct here.
-      if (/billing is not enabled|no polar product/i.test(message)) {
-        onContinueFree()
-        return
-      }
-      toast.error(message || 'Could not start the Free plan')
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="grid items-stretch gap-4 sm:grid-cols-3">
-        {BILLING_PLAN_LIST.filter((p) => p.id !== 'enterprise').map((plan) => {
-          const isFree = plan.id === 'free'
-          const isCurrent = plan.id === currentPlanId
-          return (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              period="yearly"
-              featured={plan.id === 'pro'}
-              badge={plan.id === 'pro' ? <PopularBadge /> : undefined}
-              maxHighlights={3}
-              cta={
-                isFree ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={chooseFree}
-                    disabled={busy !== null}
-                    data-testid="onboarding-choose-free"
-                  >
-                    {busy === 'free'
-                      ? 'Redirecting…'
-                      : hasActiveSub
-                        ? 'Continue with Free'
-                        : 'Start Free — $0'}
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full"
-                    onClick={() => choosePaid(plan.id as 'pro' | 'max')}
-                    disabled={busy !== null || isCurrent}
-                    data-testid={`onboarding-choose-${plan.id}`}
-                  >
-                    {busy === plan.id
-                      ? 'Redirecting…'
-                      : isCurrent
-                        ? 'Current plan'
-                        : `Choose ${plan.name}`}
-                  </Button>
-                )
-              }
-            />
-          )
-        })}
-      </div>
-      <button
-        type="button"
-        onClick={onContinueFree}
-        className="text-muted-foreground hover:text-foreground mx-auto block text-xs underline-offset-4 hover:underline"
-      >
-        Skip — I'll decide later
-      </button>
     </div>
   )
 }

@@ -4,9 +4,8 @@ import type { MenuItem } from '@/components/menu/types'
 
 export const billingItems: MenuItem[] = [
   {
-    // Cloud (SaaS) plan + host limits. Self-hosting is free forever, so this
-    // only makes sense in the cloud product — `cloudOnly` hides it in OSS
-    // across every nav surface (see getVisibleMenuItems).
+    // Cloud (SaaS) billing + self-host license checkout. Hidden on OSS
+    // (`cloudOnly`, see getVisibleMenuItems).
     title: 'Billing',
     href: '/billing',
     icon: CircleDollarSignIcon,
