@@ -38,6 +38,14 @@ describe('formatEvalComment', () => {
     expect(md).toContain('tags `core,safety`')
   })
 
+  test('includes a promptfoo share link when present', () => {
+    const md = formatEvalComment(
+      { results: { results: [{ success: true, testCase: { description: 'A' } }] } },
+      { shareUrl: 'https://www.promptfoo.app/eval/abc' }
+    )
+    expect(md).toContain('[promptfoo.app](https://www.promptfoo.app/eval/abc)')
+  })
+
   test('handles an empty parse', () => {
     const md = formatEvalComment({})
     expect(md).toContain('| Status | **NO_RESULTS** |')

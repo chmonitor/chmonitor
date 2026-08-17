@@ -106,6 +106,9 @@ const promptfooArgs = [
   jsonOut,
   ...extra,
 ]
+if (process.env.PROMPTFOO_API_KEY && !extra.includes('--share')) {
+  promptfooArgs.push('--share')
+}
 
 console.log(
   `[agent-eval] url=${defaults.AGENT_EVAL_URL} model=${defaults.AGENT_EVAL_MODEL} suite=${useAll ? 'all' : 'core,safety'}`
@@ -123,9 +126,18 @@ const result = spawnSync('bunx', promptfooArgs, {
 let summaryLine = ''
 try {
   const json = JSON.parse(readFileSync(jsonOut, 'utf8')) as unknown
+  const shareUrl =
+    json &&
+    typeof json === 'object' &&
+    typeof (json as { shareableUrl?: unknown }).shareableUrl === 'string'
+      ? String((json as { shareableUrl: string }).shareableUrl)
+      : ''
   const summary = summarize(json)
-  const board = formatScoreboard(summary)
+  const board = formatScoreboard(summary, { shareUrl })
   writeFileSync(join(outDir, 'scoreboard.md'), `${board}\n`)
+  if (shareUrl) {
+    writeFileSync(join(outDir, 'share-url.txt'), `${shareUrl}\n`)
+  }
   summaryLine = `\n${board}\n`
   console.log(summaryLine)
 } catch {
