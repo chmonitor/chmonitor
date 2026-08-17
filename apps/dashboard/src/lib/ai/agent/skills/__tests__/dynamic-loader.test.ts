@@ -17,6 +17,7 @@ import {
   parseFrontmatter,
   registerSkill,
 } from '../dynamic-loader'
+import { SKILLS } from '../registry'
 import { describe, expect, test } from 'bun:test'
 
 describe('parseFrontmatter', () => {
@@ -75,6 +76,18 @@ describe('registerSkill / getAllSkills priority', () => {
     expect(found).toBeDefined()
     expect(found?.source).toBe('remote')
     expect(found?.content).toBe('runtime body')
+  })
+
+  test('filesystem skills not in the builtin registry are not exposed', () => {
+    const builtin = new Set(SKILLS.map((s) => s.name))
+    const names = getAllSkills()
+      .filter((s) => s.source !== 'remote')
+      .map((s) => s.name)
+    for (const name of names) {
+      expect(builtin.has(name)).toBe(true)
+    }
+    expect(names).not.toContain('hyperframes')
+    expect(names).not.toContain('seo-audit')
   })
 
   test('a runtime skill overrides a builtin skill of the same name', () => {

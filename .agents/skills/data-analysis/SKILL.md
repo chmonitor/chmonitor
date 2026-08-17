@@ -5,7 +5,7 @@ description: "Analyze cluster data and metrics using raw SQL recipes against sys
 
 # Data Analysis
 
-Use this skill when dedicated tools (`get_slow_queries`, `get_expensive_queries`,
+Use this skill when dedicated tools (`get_slow_queries`, `list_slow_query_patterns`,
 etc.) don't cover the specific aggregation you need. All recipes below are
 **read-only**. Always verify column names against `system-tables-reference` before
 running — `system.query_log` columns vary across ClickHouse versions.
@@ -72,7 +72,7 @@ LIMIT 20
 
 Swap `ORDER BY memory_usage DESC` for `read_bytes DESC` or
 `query_duration_ms DESC` to rank by a different cost axis. The
-`get_expensive_queries` tool covers the common case; use raw SQL when you need
+`list_slow_query_patterns` / `get_slow_queries` cover the common case; use raw SQL when you need
 a custom time window or additional columns like `tables` or `ProfileEvents`.
 
 ---

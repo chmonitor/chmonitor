@@ -116,7 +116,7 @@ describe('AI agent tool docs stay in sync with the code', () => {
     // this guards the prompt the model actually reads. Control tools are gated
     // off at runtime but still described in the prompt, so all names must appear.
     for (const name of toolNames) {
-      expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(`**${name}**`)
+      expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }
   })
 

@@ -36,7 +36,7 @@ export function createQueryTools(hostId: number) {
 
     get_slow_queries: dynamicTool({
       description:
-        'Get the slowest completed queries. Useful for identifying performance bottlenecks and slow query patterns.',
+        'Get the slowest completed queries from the last 1 hour by default (override with lastHours). Individual executions ranked by duration — not grouped patterns. Query text is truncated to 2000 chars so it can be passed to explain_query.',
       inputSchema: z.object({
         limit: z
           .number()
@@ -46,11 +46,24 @@ export function createQueryTools(hostId: number) {
           .optional()
           .default(10)
           .describe('Number of queries to return'),
+        lastHours: z
+          .number()
+          .int()
+          .min(1)
+          .max(720)
+          .optional()
+          .default(1)
+          .describe('Time window in hours (default 1)'),
         hostId: hostIdSchema,
       }),
       execute: async (input: unknown) => {
-        const { limit = 10, hostId: toolHostId } = input as {
+        const {
+          limit = 10,
+          lastHours = 1,
+          hostId: toolHostId,
+        } = input as {
           limit?: number
+          lastHours?: number
           hostId?: number
         }
         const resolvedHostId = resolveHostId(toolHostId, hostId)
@@ -62,14 +75,20 @@ export function createQueryTools(hostId: number) {
               query_duration_ms,
               read_rows,
               memory_usage,
-              substring(query, 1, 200) AS query,
+              substring(query, 1, 2000) AS query,
               event_time
             FROM system.query_log
-            WHERE type = 'QueryFinish' AND is_initial_query = 1
+            WHERE type = 'QueryFinish'
+              AND is_initial_query = 1
+              AND event_date >= today() - toUInt32({lastHours:UInt32} / 24)
+              AND event_time > now() - INTERVAL {lastHours:UInt32} HOUR
             ORDER BY query_duration_ms DESC
             LIMIT {limit:UInt32}
           `,
-          query_params: { limit: limit.toString() },
+          query_params: {
+            limit: limit.toString(),
+            lastHours: lastHours.toString(),
+          },
           hostId: resolvedHostId,
         })
         return result
@@ -118,9 +137,11 @@ export function createQueryTools(hostId: number) {
               substring(exception, 1, 300) AS error,
               query_duration_ms,
               event_time,
-              substring(query, 1, 200) AS query
+              substring(query, 1, 2000) AS query
             FROM system.query_log
-            WHERE type = 'ExceptionWhileProcessing' AND event_time > now() - INTERVAL {lastHours:UInt32} HOUR
+            WHERE type = 'ExceptionWhileProcessing'
+              AND event_date >= today() - toUInt32({lastHours:UInt32} / 24)
+              AND event_time > now() - INTERVAL {lastHours:UInt32} HOUR
             ORDER BY event_time DESC
             LIMIT {limit:UInt32}
           `,

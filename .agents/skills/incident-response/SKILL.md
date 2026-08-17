@@ -28,7 +28,7 @@ Alert threshold: `used_pct > 85`. Note which disk is filling and which storage p
 
 **Step 2 — Find the biggest tables and parts**
 
-Use `get_largest_tables` tool or:
+Use `list_tables` (or query `system.parts`) or:
 ```sql
 SELECT database, table,
        formatReadableSize(sum(bytes_on_disk)) AS disk,
@@ -44,7 +44,7 @@ Also look at `system.parts` with high `modification_time` age — old unmerged p
 
 **Step 3 — Estimate insert rate and time-to-full**
 
-Use the `forecast_capacity` tool. Manual estimate:
+Use the `forecast_disk_capacity` tool. Manual estimate:
 ```sql
 SELECT toStartOfHour(event_time) AS hour,
        sum(rows) AS rows_inserted,
@@ -87,7 +87,7 @@ LIMIT 20
 
 **Step 2 — Failed queries with exceptions**
 
-Use `query_log_errors` tool or:
+Use `get_failed_queries` or:
 ```sql
 SELECT exception_code,
        count() AS cnt,
@@ -114,7 +114,7 @@ ORDER BY cnt DESC
 
 **Step 4 — Check resource pressure**
 
-Use `get_cluster_health` or `get_server_metrics`:
+Use `get_metrics` or:
 ```sql
 SELECT metric, value
 FROM system.metrics
@@ -142,7 +142,7 @@ Cross-references: **troubleshooting** (error code details, OOM), **anomaly-detec
 
 **Step 1 — Check per-table replication lag**
 
-Use `check_replication_status` tool or:
+Use `get_replication_status` or query `system.replication_queue` after `get_table_schema`:
 ```sql
 SELECT database, table, replica_name, replica_path,
        is_leader, is_readonly,
@@ -176,7 +176,7 @@ SELECT *
 FROM system.zookeeper
 WHERE path = '/clickhouse'
 ```
-Or use the `check_zookeeper_status` tool. Look for high `zookeeper_sessions` in `system.metrics` and watch for `ZooKeeperRequest` latency spikes in `system.asynchronous_metrics`.
+Or query `system.zookeeper` with a `path` filter after `get_table_schema`. Look for high `zookeeper_sessions` in `system.metrics` and watch for `ZooKeeperRequest` latency spikes in `system.asynchronous_metrics`.
 
 Also check the distributed DDL queue for stuck operations:
 ```sql
@@ -203,7 +203,7 @@ Cross-references: **replication-guide** (full recovery playbook, detach/reattach
 
 **Step 1 — Find stuck mutations**
 
-Use `check_mutations` tool or:
+Query `system.mutations` (columns in `system-tables-reference`) or:
 ```sql
 SELECT database, table, mutation_id,
        command, create_time,
@@ -261,7 +261,7 @@ Run these in order. Each surfaces a different failure class.
 
 **Step 1 — Server uptime and version**
 
-Use `get_server_info` tool:
+Use `get_metrics` or:
 ```sql
 SELECT version(), uptime(), now()
 ```
@@ -288,7 +288,7 @@ LIMIT 10
 
 **Step 4 — Recent errors**
 
-Use `get_error_summary` tool or run step 1 of recipe 2.
+Use `get_failed_queries` or run step 1 of recipe 2.
 
 **Step 5 — Merge backlog**
 

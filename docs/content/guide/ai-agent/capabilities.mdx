@@ -46,7 +46,7 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 | `get_table_schema` | Get column definitions for a specific table. | |
 | `explore_table_schema` | Three-mode exploration: no args → databases; database only → tables; database + table → full schema with indexes and keys. | |
 | `get_running_queries` | Currently running queries ordered by elapsed time. | Reads `system.processes`. |
-| `get_slow_queries` | Slowest completed queries from the query log. | Reads `system.query_log`. |
+| `get_slow_queries` | Slowest completed queries from the last 1 hour by default (`lastHours` override). Query text is truncated to 2000 characters so it can be passed to `explain_query`. | Reads `system.query_log` (`QueryFinish`, `is_initial_query = 1`, `event_time` window). |
 | `list_slow_query_patterns` | Normalized slow query patterns — `system.query_log` grouped by `normalized_query_hash`, with calls, total/avg/p50/p95/p99/max duration, CPU time, peak memory, read/write bytes, errors, and cache-hit ratio per pattern. | Read-only. Use for "which query shape is expensive overall" — unlike `get_slow_queries`, which ranks individual executions. First step of the `query-optimization` diagnose loop. |
 | `get_failed_queries` | Recent failed queries with error details. | Reads `system.query_log`. |
 | `explain_query` | EXPLAIN PLAN / PIPELINE / PLAN with indexes for a query. | |

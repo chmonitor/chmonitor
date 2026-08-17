@@ -98,6 +98,36 @@ describe('createQueryTools', () => {
       expect(result[0].query_duration_ms).toBe(30000)
     })
 
+    test('injects a 1-hour event_time predicate when called with no args', async () => {
+      let capturedQuery = ''
+      let capturedParams: Record<string, string> | undefined
+      mockFetchData.mockImplementation(
+        async ({
+          query,
+          query_params,
+        }: {
+          query: string
+          query_params?: Record<string, string>
+        }) => {
+          capturedQuery = query
+          capturedParams = query_params
+          return { data: queryResults.slow, error: null }
+        }
+      )
+
+      const tools = createQueryTools(0) as any
+      await tools.get_slow_queries.execute({})
+
+      expect(capturedQuery).toContain(
+        'event_time > now() - INTERVAL {lastHours:UInt32} HOUR'
+      )
+      expect(capturedQuery).toContain("type = 'QueryFinish'")
+      expect(capturedQuery).toContain('is_initial_query = 1')
+      expect(capturedQuery).toContain('substring(query, 1, 2000)')
+      expect(capturedQuery).not.toContain('substring(query, 1, 200)')
+      expect(capturedParams?.lastHours).toBe('1')
+    })
+
     test('passes custom limit', async () => {
       setupQueryMock()
 
@@ -118,6 +148,32 @@ describe('createQueryTools', () => {
       expect(Array.isArray(result)).toBe(true)
       expect(result[0].error).toContain('Missing column')
       expect(result[0].exception_code).toBe(47)
+    })
+
+    test('injects lastHours into the SQL when called with no args', async () => {
+      let capturedQuery = ''
+      let capturedParams: Record<string, string> | undefined
+      mockFetchData.mockImplementation(
+        async ({
+          query,
+          query_params,
+        }: {
+          query: string
+          query_params?: Record<string, string>
+        }) => {
+          capturedQuery = query
+          capturedParams = query_params
+          return { data: queryResults.failed, error: null }
+        }
+      )
+
+      const tools = createQueryTools(0) as any
+      await tools.get_failed_queries.execute({})
+
+      expect(capturedQuery).toContain(
+        'event_time > now() - INTERVAL {lastHours:UInt32} HOUR'
+      )
+      expect(capturedParams?.lastHours).toBe('24')
     })
 
     test('accepts custom limit and lastHours', async () => {

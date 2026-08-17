@@ -5,7 +5,7 @@ description: "Recommend table ORDER BY keys, partition strategies, column data-t
 
 # Schema Design Advisor
 
-Replaces the removed `recommend_table_design` tool. Follow the sections below in order: inspect first, then recommend.
+Replaces the removed table-design advisor tool. Follow the sections below in order: inspect first, then recommend.
 
 ## Inspect First
 
