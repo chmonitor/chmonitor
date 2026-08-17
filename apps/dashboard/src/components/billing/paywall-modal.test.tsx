@@ -99,10 +99,11 @@ describe('paywall-logic — honest enforced/deferred copy', () => {
     }
   })
 
-  test('host/seat/ai_daily/ai_budget are all `enforced` per plan-enforcement.ts (hard CTA)', () => {
-    for (const reason of ['host', 'seat', 'ai_daily', 'ai_budget'] as const) {
-      expect(enforcementForReason(reason).status).toBe('enforced')
-    }
+  test('host/seat are inherent; AI daily/budget stay enforced', () => {
+    expect(enforcementForReason('host').status).toBe('inherent')
+    expect(enforcementForReason('seat').status).toBe('inherent')
+    expect(enforcementForReason('ai_daily').status).toBe('enforced')
+    expect(enforcementForReason('ai_budget').status).toBe('enforced')
   })
 
   test('formatReasonCap renders Unlimited for null caps and $/mo for ai_budget', () => {
@@ -110,7 +111,7 @@ describe('paywall-logic — honest enforced/deferred copy', () => {
     expect(formatReasonCap('host', enterprise)).toBe('Unlimited')
     const free = resolveCurrentPlan('free')
     expect(formatReasonCap('ai_budget', free)).toBe('$0.5/mo')
-    expect(formatReasonCap('host', free)).toBe('1')
+    expect(formatReasonCap('host', free)).toBe('Unlimited')
   })
 
   test('findNextTier walks free -> pro -> max -> enterprise per metric', () => {

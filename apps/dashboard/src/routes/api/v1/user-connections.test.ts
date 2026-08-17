@@ -192,29 +192,10 @@ describe('POST /api/v1/user-connections — audit wiring', () => {
     })
   })
 
-  test('Free hard-caps: a denial (over cap) logs connection.created:denied instead of creating', async () => {
+  test('host count is not capped: many existing hosts still create and log success', async () => {
     getPlanForOwner = mock(async () => BILLING_PLANS.free)
     countOwnerHosts = mock(async () => ({
-      count: BILLING_PLANS.free.hosts as number,
-      memberUserIds: ['user_1'],
-    }))
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(402)
-    expect(storeCreate).not.toHaveBeenCalled()
-    expect(logEventImpl).toHaveBeenCalledTimes(1)
-    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
-      orgId: 'org_1',
-      event: 'connection.created',
-      action: 'create',
-      result: 'denied',
-    })
-  })
-
-  test('Pro soft-caps: a host past the included allowance is allowed and metered as overage', async () => {
-    countOwnerHosts = mock(async () => ({
-      count: BILLING_PLANS.pro.hosts as number,
+      count: 50,
       memberUserIds: ['user_1'],
     }))
 
@@ -222,13 +203,11 @@ describe('POST /api/v1/user-connections — audit wiring', () => {
 
     expect(res.status).toBe(200)
     expect(storeCreate).toHaveBeenCalledTimes(1)
-    // Soft-capped plans skip the atomic hard limit entirely.
     expect(storeCreate.mock.calls[0]?.[2]).toEqual({
       memberUserIds: ['user_1'],
       limit: null,
     })
-    expect(recordHostOverage).toHaveBeenCalledTimes(1)
-    expect(recordHostOverage).toHaveBeenCalledWith('org_1', 1)
+    expect(recordHostOverage).not.toHaveBeenCalled()
     expect(logEventImpl).toHaveBeenCalledTimes(1)
     expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
       orgId: 'org_1',

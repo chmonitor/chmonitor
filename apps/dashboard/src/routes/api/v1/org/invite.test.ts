@@ -119,10 +119,6 @@ function membershipsOfSize(count: number) {
   return { data: Array.from({ length: count }) }
 }
 
-function invitationsOfSize(count: number) {
-  return { data: Array.from({ length: count }) }
-}
-
 function makeRequest(body: unknown = { emailAddress: 'new@example.com' }) {
   return new Request('https://dash.example.com/api/v1/org/invite', {
     method: 'POST',
