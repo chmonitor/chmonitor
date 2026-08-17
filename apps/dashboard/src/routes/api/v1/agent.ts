@@ -24,7 +24,10 @@ import {
   providerNotConfiguredResponse,
   unhandledErrorResponse,
 } from './-agent/errors'
-import { parseAgentRequest } from './-agent/request-parsing'
+import {
+  hardenGuestAgentRequest,
+  parseAgentRequest,
+} from './-agent/request-parsing'
 import {
   buildUiMessages,
   createAgentRuntime,
@@ -78,8 +81,17 @@ async function handlePost(request: Request): Promise<Response> {
   const authResponse = await authorizeAgentApiRequest(request)
   if (authResponse) return authResponse
 
-  const parsed = await parseAgentRequest(request)
-  if (!parsed.ok) return parseFailureResponse(parsed)
+  const parsedRaw = await parseAgentRequest(request)
+  if (!parsedRaw.ok) return parseFailureResponse(parsedRaw)
+
+  const clerkUserId = await resolveAgentUserId()
+  const isGuest = clerkUserId === 'guest'
+  const guestOwnerId =
+    isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
+  const parsed =
+    guestOwnerId !== undefined
+      ? hardenGuestAgentRequest(parsedRaw)
+      : parsedRaw
 
   const model = await resolveAgentModel(parsed.body.model)
   const byok = parsed.byokApiKey !== null
@@ -91,13 +103,10 @@ async function handlePost(request: Request): Promise<Response> {
     return providerNotConfiguredResponse(model, requestedProvider)
   }
 
-  // Resolve user ID for OpenRouter / AnyRouter attribution. Cloud guests get a
-  // stable per-IP `guest:<hash>` so usage explorer can group by visitor, not a
-  // single shared `guest` string. OSS guests stay the literal `guest`.
-  const clerkUserId = await resolveAgentUserId()
-  const isGuest = clerkUserId === 'guest'
-  const guestOwnerId =
-    isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
+  // Cloud guests get a stable per-IP `guest:<hash>` so usage explorer can
+  // group by visitor, not a single shared `guest` string. OSS guests stay
+  // the literal `guest`. Identity is resolved before hardening so BYOK/MCP
+  // never reach the runtime for Cloud guests.
   const userId = guestOwnerId ?? clerkUserId
   const openRouterUser = `${userId}/${parsed.sessionId}`
 

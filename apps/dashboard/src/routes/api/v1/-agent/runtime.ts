@@ -26,6 +26,7 @@ import {
 } from '@/lib/ai/anyrouter-dynamic-models'
 import { isProviderConfigured } from '@/lib/ai/providers'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
+import { isGuestOwnerId } from '@/lib/billing/guest-ai'
 
 export type AgentUiMessage = {
   id: string
@@ -197,7 +198,9 @@ export async function createAgentRuntime(options: {
   let extraTools: Record<string, unknown> | undefined
 
   try {
-    const registeredServers = await loadUserRegisteredServers(options.userId)
+    const registeredServers = isGuestOwnerId(options.userId)
+      ? []
+      : await loadUserRegisteredServers(options.userId)
     const mergedMcpServers = mergeMcpServers(
       options.requestMcpServers,
       registeredServers

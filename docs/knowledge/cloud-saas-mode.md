@@ -171,10 +171,29 @@ Docs: `docs/content/guide/guides/connection-errors.mdx` (slug
 
 ## Guest AI credits — cloud SaaS only
 
-Anonymous Cloud visitors can use the agent (public-read + demo host). They are
-**not** unlimited: a dedicated daily message cap and a tighter per-identity
-rate limit sit in front of the shared AnyRouter key. OSS / self-host skips
-this entirely (fail-closed to self-hosted).
+Anonymous Cloud visitors can **actually reach** the agent on the demo host
+(`dash.chmonitor.dev`). Clerk public-read still 401s unsigned writes, so
+**do not** flip `CHM_FEATURE_AGENT_ACCESS=public`. The guest allow is a
+wrapper in `lib/auth/agent-api-auth.ts`: `isCloudModeServer()` +
+`publicReadEnabled()` + unsigned → allow only `/api/v1/agent`,
+`/api/v1/agents/models`, `/api/v1/agents/config-check`, and
+`/api/v1/agent/followups`. `anonymousCapabilities.write` stays false;
+actions, SQL console, user-connections, and conversation persist stay
+Clerk-only. OSS Clerk deployments stay gated.
+
+The client (`agent-auth-gate.tsx`) treats Cloud + unsigned as a guest
+(`ensureAuthed()` true). Unsigned Cloud threads stay in localStorage —
+conversation APIs remain Clerk-only.
+
+Guests share the deploy `ANYROUTER_API_KEY`, defaulting to
+`anyrouter:auto` (top tool-capable models). Server hardening
+(`hardenGuestAgentRequest`) strips body `apiKey` (no BYOK), ignores
+`mcpServers` / user-registered MCP, allowlists auto + `anyrouter/free`,
+and keeps `hostId` on env/demo (`>= 0`).
+
+They are **not** unlimited: a dedicated daily message cap and a tighter
+per-identity rate limit sit in front of the shared AnyRouter key. OSS /
+self-host skips this entirely (fail-closed to self-hosted).
 
 - **Identity**: `guestOwnerIdFromIp(ip)` in `lib/billing/guest-ai.ts` →
   `guest:` + first 16 hex chars of SHA-256(client IP). Do **not** key D1 /

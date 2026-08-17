@@ -22,6 +22,9 @@ import { type ReactNode, useMemo, useRef } from 'react'
 import { usePageContextControl } from '@/components/assistant-ui/page-context-control'
 import { buildPageContext } from '@/lib/ai/agent/page-context'
 import { trackEvent } from '@/lib/analytics/analytics'
+import { useClerkIsSignedIn as useClerkIsSignedInImpl } from '@/components/assistant-ui/use-clerk-is-signed-in'
+import { isClerkEnabled } from '@/lib/clerk/clerk-client'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import { getAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
@@ -43,12 +46,18 @@ function trackedAgentFetch(
   return apiFetch(input, init)
 }
 
+const useClerkIsSignedIn: () => boolean = isClerkEnabled()
+  ? useClerkIsSignedInImpl
+  : () => true
+
 /**
  * Per-thread chat runtime. assistant-ui invokes this hook once per active
  * thread; it talks to the `/api/v1/agent` route.
  */
 function useAgentChatRuntime() {
   const hostId = useHostId()
+  const signedIn = useClerkIsSignedIn()
+  const cloudGuest = isCloudModeClient() && !signedIn
   const { disabledTools } = useToolConfig()
   const { model } = useAgentModel()
   const sessionId = useMemo(() => crypto.randomUUID(), [])
@@ -84,7 +93,13 @@ function useAgentChatRuntime() {
       new DefaultChatTransport({
         api: '/api/v1/agent',
         fetch: trackedAgentFetch as typeof globalThis.fetch,
-        body: { hostId, model, disabledTools, sessionId, mcpServers },
+        body: {
+          hostId,
+          model: cloudGuest ? 'anyrouter:auto' : model,
+          disabledTools,
+          sessionId,
+          mcpServers: cloudGuest ? [] : mcpServers,
+        },
         prepareSendMessagesRequest: ({
           id,
           messages,
@@ -113,7 +128,9 @@ function useAgentChatRuntime() {
           // or out takes effect on the next message without a rebuild. Only
           // sent for AnyRouter models — it is not a key for other providers.
           const byokApiKey =
-            typeof model === 'string' && model.startsWith('anyrouter:')
+            !cloudGuest &&
+            typeof model === 'string' &&
+            model.startsWith('anyrouter:')
               ? getAnyRouterToken()
               : null
 
@@ -124,6 +141,7 @@ function useAgentChatRuntime() {
               messages,
               trigger,
               messageId,
+              ...(cloudGuest ? { mcpServers: [] } : {}),
               ...(byokApiKey ? { apiKey: byokApiKey } : {}),
               ...(shouldSendPageContext
                 ? { pageContext: buildPageContext(pathname) }
@@ -143,6 +161,7 @@ function useAgentChatRuntime() {
       mcpServers,
       pathname,
       pageEnabledRef,
+      cloudGuest,
     ]
   )
 
@@ -155,7 +174,12 @@ function useAgentChatRuntime() {
  * floating modal each get an independent instance.
  */
 export function AgentRuntimeProvider({ children }: { children: ReactNode }) {
-  const adapter = useMemo(() => resolveThreadListAdapter(), [])
+  const signedIn = useClerkIsSignedIn()
+  const persistRemote = !(isCloudModeClient() && !signedIn)
+  const adapter = useMemo(
+    () => resolveThreadListAdapter({ persistRemote }),
+    [persistRemote]
+  )
 
   const runtime = useRemoteThreadListRuntime({
     runtimeHook: useAgentChatRuntime,

@@ -11,6 +11,10 @@ import type { CustomMcpServerInput } from '@/lib/ai/agent/mcp/connect-custom-ser
 
 import { AGENT_DEBUG_LOGS } from './debug'
 import { parseByokApiKey } from '@/lib/ai/agent/byok'
+import {
+  GUEST_DEFAULT_AGENT_MODEL,
+  isGuestAllowedAgentModel,
+} from '@/lib/billing/guest-ai'
 
 export const AGENT_MAX_REQUEST_SIZE_BYTES = 128 * 1024
 export const AGENT_MAX_MESSAGES = 64
@@ -448,5 +452,31 @@ export async function parseAgentRequest(
     byokApiKey,
     mcpServers,
     pageContext: sanitizePageContext(body.pageContext),
+  }
+}
+
+/**
+ * Cloud guest hardening: no BYOK, no custom MCP, demo/env hostId only,
+ * model allowlist (anyrouter:auto + free). Does not change message text.
+ */
+export function hardenGuestAgentRequest(
+  parsed: ParsedAgentRequest
+): ParsedAgentRequest {
+  const requested = parsed.body.model
+  const model = isGuestAllowedAgentModel(requested)
+    ? requested!.trim()
+    : GUEST_DEFAULT_AGENT_MODEL
+
+  return {
+    ...parsed,
+    body: {
+      ...parsed.body,
+      model,
+      apiKey: undefined,
+      mcpServers: undefined,
+    },
+    byokApiKey: null,
+    mcpServers: [],
+    hostId: Math.max(0, parsed.hostId),
   }
 }
