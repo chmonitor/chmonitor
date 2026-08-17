@@ -1,18 +1,15 @@
 {
+  "$schema": "https://raw.githubusercontent.com/duyet/herdr-desk/main/herdr-desk.schema.json",
   "name": "chmonitor",
   "tasks": [
     {
-      "id": "issues",
-      "label": "GitHub issues and PRs",
-      "task": "github-issues",
+      "id": "desk:github-issues",
+      "playbook": "github-issues",
       "agentName": "chm-desk",
       "kind": "grok",
       "maxChildren": 5,
-      "stateDir": ".herdr-desk/runs/issues",
-      "extraPrompt": ".herdr-desk/extra.md",
-      "schedule": {
-        "morning": "0 7 * * *"
-      }
+      "schedule": ["0 7 * * *", "0 22 * * *"],
+      "extra": ".herdr-desk/extra.md"
     }
   ]
 }
