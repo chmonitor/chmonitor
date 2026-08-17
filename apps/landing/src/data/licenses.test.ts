@@ -1,11 +1,19 @@
 import { publicLicensedCompanies } from './licensed-companies'
-import { bossPitch, buyHref, invoiceMailto, paidLicenseSkus } from './licenses'
+import {
+  bossPitch,
+  bossPitchPaste,
+  buyHref,
+  invoiceMailto,
+  PRICING_PAGE_HREF,
+  paidLicenseSkus,
+} from './licenses'
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   getLicense,
   LICENSE_SKU_LIST,
+  licensePriceUsd,
   PERSONAL_SELFHOST_HREF,
 } from '@chm/pricing'
 
@@ -34,17 +42,39 @@ describe('landing license offer', () => {
     expect(LICENSE_SKU_LIST).toHaveLength(3)
   })
 
-  test('boss pitch is a paste-ready ask with Team price and no license key', () => {
-    expect(bossPitch).toContain('$499')
-    expect(bossPitch).toContain('https://chmonitor.dev/pricing/')
-    expect(bossPitch).toMatch(/no license key/i)
-    expect(bossPitch).toContain('Subject:')
+  test('boss pitch is built from catalog prices and pastes as one email', () => {
+    const team = getLicense('team')
+    const unlimited = getLicense('unlimited')
+    const yearly = licensePriceUsd(team, 'yearly')
+    const lifetime = licensePriceUsd(team, 'lifetime')
+    const unlimitedYearly = licensePriceUsd(unlimited, 'yearly')
+
+    expect(bossPitch.subject).toContain(`$${yearly}`)
+    expect(bossPitch.body).toContain(`$${yearly}/year`)
+    expect(bossPitch.body).toContain(`$${lifetime}`)
+    expect(bossPitch.body).toContain(`$${unlimitedYearly}/year`)
+    expect(bossPitch.body).toContain(PRICING_PAGE_HREF)
+    expect(bossPitch.body).toMatch(/no license key/i)
+    expect(bossPitch.body).toMatch(/invoice/i)
+    expect(bossPitch.body).not.toMatch(/2am|begging|eleven browser tabs/i)
+
+    expect(bossPitchPaste).toBe(
+      `Subject: ${bossPitch.subject}\n\n${bossPitch.body}`
+    )
+  })
+
+  test('pricing page renders the email composer from the same pitch', () => {
     const src = readFileSync(
       join(landingRoot, 'src/pages/pricing.astro'),
       'utf8'
     )
+    expect(src).toContain('bossPitch.to')
+    expect(src).toContain('bossPitch.subject')
+    expect(src).toContain('bossPitch.body')
+    expect(src).toContain('bossPitchPaste')
     expect(src).toContain('Copy this to your boss')
-    expect(src).toContain('bossPitch')
+    expect(src).toContain('New message')
+    expect(src).not.toContain('Copy for Slack')
     expect(src.indexOf('tell-your-boss')).toBeLessThan(
       src.indexOf('pricing-faq')
     )
