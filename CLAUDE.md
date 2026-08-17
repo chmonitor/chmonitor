@@ -35,6 +35,20 @@ dismiss). Do NOT dismiss a human reviewer's changes-requested, and never dismiss
 to skip an unaddressed finding. To avoid the gate entirely, prefer
 `request_changes_workflow: false` in CodeRabbit config so it only comments.
 
+## Manager session: stay on `main`, isolate work in Herdr
+
+The **manager** session (this checkout) stays on **`main`**. Do not implement
+features on `main`. `git pull --ff-only origin main` whenever a PR merges.
+
+**Isolated tasks go to Herdr worktrees** (`herdr worktree create --branch
+feat/<name> --base origin/main`). Give each worktree a full spec: implement,
+commit, open a PR (`cpr`), `gh pr merge --auto --squash`, babysit required CI
+until merge, rebase onto `origin/main` if main moves. Close the worktree after
+the PR lands.
+
+Do not mix unrelated tasks in one worktree. After merge, update this `main`
+checkout and tell remaining worktrees to rebase.
+
 ## Project Overview
 
 This is a monorepo ClickHouse monitoring dashboard. The primary (and only) dashboard app is `apps/dashboard` (TanStack Start, as of v0.3). The Next.js migration is complete — the TanStack Start app has replaced the legacy Next.js app and is now at `apps/dashboard`. The application connects to ClickHouse instances and provides real-time insights into clusters through system tables — metrics, query performance, table information, and cluster health.
