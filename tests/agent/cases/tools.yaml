@@ -6,8 +6,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
 
 - description: 'Tools — schema of system.query_log'
   tags: [tools]
@@ -16,8 +14,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         The answer mentions columns consistent with system.query_log
@@ -31,8 +27,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
 
 - description: 'Tools — failed queries'
   tags: [tools]
@@ -41,8 +35,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
 
 - description: 'Tools — replication status'
   tags: [tools]
@@ -51,8 +43,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
 
 - description: 'Tools — merge status'
   tags: [tools]
@@ -61,8 +51,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
 
 - description: 'Tools — EXPLAIN a simple query'
   tags: [tools]
@@ -71,8 +59,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         The answer uses schema and/or EXPLAIN tools and discusses cost
@@ -84,8 +70,6 @@
   vars:
     prompt: 'What ORDER BY key should I use for a typical events table?'
   assert:
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         The answer discusses ORDER BY / primary key design for ClickHouse

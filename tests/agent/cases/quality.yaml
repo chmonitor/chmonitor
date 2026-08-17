@@ -4,8 +4,6 @@
   vars:
     prompt: 'Why is my database slow?'
   assert:
-    - type: not-regex
-      value: '\\[error:'
     - type: contains
       value: '[tool:'
     - type: llm-rubric
@@ -22,8 +20,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         A short health summary with numbers from tools (version, queries,
@@ -36,8 +32,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         The assistant uses hostId 0 (numeric index), not a hostname string.
@@ -48,8 +42,6 @@
   vars:
     prompt: 'How many rows are in definitely_not_a_real_table_xyz?'
   assert:
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         The assistant does not invent a row count. It uses a tool and

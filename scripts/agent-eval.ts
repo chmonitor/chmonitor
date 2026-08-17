@@ -11,13 +11,13 @@
  * Tags: --tags core,safety  (default)   --tags all
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
+import { formatScoreboard, summarize } from '../tests/agent/format-eval-comment.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const configSrc = join(root, 'tests/agent/promptfooconfig.yaml')
 const outDir = join(root, 'tests/agent/results')
 const generated = join(root, 'tests/agent/promptfooconfig.generated.yaml')
 
@@ -27,9 +27,27 @@ function argValue(flag: string): string | undefined {
   return process.argv[i + 1]
 }
 
-function hasFlag(flag: string): boolean {
-  return process.argv.includes(flag)
+function loadEnvFile(path: string) {
+  if (!existsSync(path)) return
+  for (const raw of readFileSync(path, 'utf8').split('\n')) {
+    const line = raw.trim()
+    if (!line || line.startsWith('#')) continue
+    const eq = line.indexOf('=')
+    if (eq <= 0) continue
+    const key = line.slice(0, eq).trim()
+    let value = line.slice(eq + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    if (process.env[key] === undefined) process.env[key] = value
+  }
 }
+
+loadEnvFile(join(root, 'apps/dashboard/.env.local'))
+loadEnvFile(join(root, '.env.local'))
 
 const defaults = {
   AGENT_EVAL_URL:
@@ -51,12 +69,14 @@ if (!defaults.ANYROUTER_API_KEY) {
   process.exit(2)
 }
 
-if (!defaults.AGENT_API_TOKEN) {
-  console.error(
-    'AGENT_API_TOKEN is required (Bearer for POST /api/v1/agent).'
-  )
-  process.exit(2)
-}
+const tagsArg = argValue('--tags')
+const useAll = tagsArg === 'all' || tagsArg === '*'
+const configSrc = join(
+  root,
+  useAll
+    ? 'tests/agent/promptfooconfig.all.yaml'
+    : 'tests/agent/promptfooconfig.yaml'
+)
 
 mkdirSync(outDir, { recursive: true })
 
@@ -64,13 +84,10 @@ let yaml = readFileSync(configSrc, 'utf8')
 for (const [key, value] of Object.entries(defaults)) {
   yaml = yaml.split(`\${${key}}`).join(value)
 }
+if (!defaults.AGENT_API_TOKEN) {
+  yaml = yaml.replace(/^\s*Authorization:.*\n/m, '')
+}
 writeFileSync(generated, yaml)
-
-const tagsArg = argValue('--tags')
-const tags =
-  tagsArg === 'all' || tagsArg === '*'
-    ? undefined
-    : (tagsArg || 'core,safety').split(',').map((t) => t.trim())
 
 const extra = process.argv
   .slice(2)
@@ -89,12 +106,9 @@ const promptfooArgs = [
   jsonOut,
   ...extra,
 ]
-if (tags && !hasFlag('--filter-pattern')) {
-  promptfooArgs.push('--filter-tags', tags.join(','))
-}
 
 console.log(
-  `[agent-eval] url=${defaults.AGENT_EVAL_URL} model=${defaults.AGENT_EVAL_MODEL} tags=${tags?.join(',') ?? 'all'}`
+  `[agent-eval] url=${defaults.AGENT_EVAL_URL} model=${defaults.AGENT_EVAL_MODEL} suite=${useAll ? 'all' : 'core,safety'}`
 )
 
 const result = spawnSync('bunx', promptfooArgs, {
@@ -105,5 +119,17 @@ const result = spawnSync('bunx', promptfooArgs, {
     ...defaults,
   },
 })
+
+let summaryLine = ''
+try {
+  const json = JSON.parse(readFileSync(jsonOut, 'utf8')) as unknown
+  const summary = summarize(json)
+  const board = formatScoreboard(summary)
+  writeFileSync(join(outDir, 'scoreboard.md'), `${board}\n`)
+  summaryLine = `\n${board}\n`
+  console.log(summaryLine)
+} catch {
+  console.log('\n[agent-eval] no scoreboard — latest.json missing or invalid\n')
+}
 
 process.exit(result.status ?? 1)

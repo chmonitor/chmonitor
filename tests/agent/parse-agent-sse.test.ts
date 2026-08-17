@@ -18,6 +18,18 @@ describe('parseAgentSse', () => {
     expect(out).not.toContain('[error:')
   })
 
+  test('dedupes tool start/available events and includes tool output', () => {
+    const text = sse([
+      { type: 'tool-input-start', toolName: 'get_metrics' },
+      { type: 'tool-input-available', toolName: 'get_metrics' },
+      { type: 'tool-output-available', output: { version: '26.4.3.37' } },
+    ])
+    const out = parseAgentSse(text)
+    expect(out.match(/\[tool:get_metrics\]/g)?.length).toBe(1)
+    expect(out).toContain('[tool-output:')
+    expect(out).toContain('26.4.3.37')
+  })
+
   test('accepts legacy textDelta and tool-call events', () => {
     const text = sse([
       { type: 'tool-call', toolName: 'get_metrics' },

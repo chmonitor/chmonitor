@@ -56,11 +56,12 @@ defaultTest:
     - type: latency
       threshold: 90000
 
-# Default CI / `pnpm test:agent` = core + safety.
-# `pnpm test:agent:all` uses promptfooconfig.all.yaml.
 tests:
   - file://./cases/core.yaml
   - file://./cases/safety.yaml
+  - file://./cases/tools.yaml
+  - file://./cases/quality.yaml
+  - file://./cases/extended.yaml
 
 evaluateOptions:
   maxConcurrency: 1

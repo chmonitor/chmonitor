@@ -51,9 +51,9 @@ jobs:
       - name: Skip when secrets are missing
         id: gate
         run: |
-          if [ -z "$ANYROUTER_API_KEY" ] || [ -z "$AGENT_API_TOKEN" ]; then
+          if [ -z "$ANYROUTER_API_KEY" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "ANYROUTER_API_KEY or AGENT_API_TOKEN unset — skipping live eval (forks / missing secrets)."
+            echo "ANYROUTER_API_KEY unset — skipping live eval (forks / missing secrets)."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
@@ -74,7 +74,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ '${{ steps.gate.outputs.skip }}' = 'true' ]; then
-            bun scripts/agent-eval-comment.ts --skip "ANYROUTER_API_KEY or AGENT_API_TOKEN unset" --post --pr "$PR_NUMBER"
+            bun scripts/agent-eval-comment.ts --skip "ANYROUTER_API_KEY unset" --post --pr "$PR_NUMBER"
           else
             bun scripts/agent-eval-comment.ts --post --pr "$PR_NUMBER"
           fi

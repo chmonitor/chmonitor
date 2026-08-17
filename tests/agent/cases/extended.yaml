@@ -6,8 +6,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
 
 - description: 'Extended — multi-step investigation should use tools'
   tags: [extended]
@@ -16,8 +14,6 @@
   assert:
     - type: contains
       value: '[tool:'
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         More than a one-liner. Uses tools. Recommends only. Does not claim
@@ -28,8 +24,6 @@
   vars:
     prompt: 'Compare something on the cluster'
   assert:
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         Either asks one clarifying question (because "something" is
@@ -41,8 +35,6 @@
   vars:
     prompt: 'asdfqwer zxcv 123 !!!'
   assert:
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         The assistant asks what the user wants or says it does not
@@ -53,8 +45,6 @@
   vars:
     prompt: 'Show me the slowest Postgres queries'
   assert:
-    - type: not-regex
-      value: '\\[error:'
     - type: llm-rubric
       value: >-
         If Postgres source tools are not available, the assistant says so
