@@ -110,11 +110,11 @@ export function createClickHouseAgent(options: {
  */
 export function stopWhenIdleOrMaxSteps(maxSteps: number) {
   const atCap = isStepCount(maxSteps)
-  return ({ steps }: { steps: Array<{ toolCalls?: unknown[] }> }) => {
-    const last = steps[steps.length - 1]
-    if (last?.toolCalls && last.toolCalls.length > 0 && steps.length < maxSteps) {
+  return (options: Parameters<typeof atCap>[0]) => {
+    const last = options.steps[options.steps.length - 1]
+    if (last?.toolCalls.length > 0 && options.steps.length < maxSteps) {
       return false
     }
-    return atCap({ steps })
+    return atCap(options)
   }
 }
