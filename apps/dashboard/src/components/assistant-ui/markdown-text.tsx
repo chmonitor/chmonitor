@@ -1,26 +1,22 @@
 'use client'
 
 import type { TextMessagePartComponent } from '@assistant-ui/react'
-import type { MermaidErrorComponentProps } from 'streamdown'
+import type {
+  Components,
+  ExtraProps,
+  MermaidErrorComponentProps,
+} from 'streamdown'
 
 import { mermaid as mermaidPlugin } from '@streamdown/mermaid'
 import { useTheme } from 'next-themes'
-import {
-  type ComponentProps,
-  type ReactNode,
-  memo,
-  useMemo,
-} from 'react'
+import { type ComponentProps, memo, useMemo } from 'react'
 import { Streamdown } from 'streamdown'
-
-type StreamdownNodeProps = Record<string, unknown> & {
-  children?: ReactNode
-  href?: string
-  className?: string
-}
 
 import '@/components/agents/markdown-code.css'
 import { cn } from '@/lib/utils'
+
+type MarkdownLinkProps = ComponentProps<'a'> & ExtraProps
+type MarkdownTableProps = ComponentProps<'table'> & ExtraProps
 
 /**
  * Fallback shown when a mermaid diagram fails to parse or render.
@@ -40,7 +36,7 @@ function MermaidError({ chart, error }: MermaidErrorComponentProps) {
   )
 }
 
-function MarkdownLink({ href, children, className }: StreamdownNodeProps) {
+function MarkdownLink({ href, children, className }: MarkdownLinkProps) {
   const isExternal = typeof href === 'string' && href.startsWith('http')
   return (
     <a
@@ -55,15 +51,21 @@ function MarkdownLink({ href, children, className }: StreamdownNodeProps) {
   )
 }
 
-function MarkdownTable({ children, className }: StreamdownNodeProps) {
+function MarkdownTable({ children, className }: MarkdownTableProps) {
   return (
     <div className="my-3 overflow-x-auto">
-      <table className={className ? `${className} w-full text-sm` : 'w-full text-sm'}>
-        {children}
-      </table>
+      <table className={cn('w-full text-sm', className)}>{children}</table>
     </div>
   )
 }
+
+// Streamdown `Components` intersects per-tag props with a string index of
+// `Record<string, unknown> & ExtraProps`. Typed renderers use the per-tag
+// ExtraProps shape; the map is asserted so tsc does not reject the object.
+const streamdownComponents = {
+  a: MarkdownLink,
+  table: MarkdownTable,
+} as Components
 
 /**
  * Markdown renderer for assistant-ui text message parts.
@@ -104,10 +106,7 @@ const MarkdownTextImpl: TextMessagePartComponent = ({ text }) => {
           errorComponent: MermaidError,
         }}
         plugins={{ mermaid: mermaidPlugin }}
-        components={{
-          a: MarkdownLink,
-          table: MarkdownTable,
-        }}
+        components={streamdownComponents}
       >
         {text ?? ''}
       </Streamdown>
