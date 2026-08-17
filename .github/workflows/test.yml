@@ -74,7 +74,7 @@ jobs:
         run: pnpm run test:packages:ci
 
       - name: Agent eval SSE parser
-        run: bun test tests/agent/parse-agent-sse.test.ts --isolate
+        run: bun test tests/agent --isolate
 
       - name: Upload Bun coverage to Codecov
         uses: codecov/codecov-action@v7

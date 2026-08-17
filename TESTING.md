@@ -159,7 +159,8 @@ pnpm run test:agent:improve             # eval then AnyRouter notes (does not ed
 
 See `tests/agent/README.md`. PRs that change system prompts or `.agents/skills/`
 trigger `.github/workflows/agent-eval.yml` against the public agent when
-GitHub secrets are set.
+GitHub secrets are set. The job upserts a sticky PR comment with the
+pass/fail table (or a skip note if secrets are missing).
 
 Each golden asserts the agent emits a `[tool:...]` call (not a memory answer)
 and stays under a latency threshold. Treat the pass rate + latency as the

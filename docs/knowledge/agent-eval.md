@@ -31,7 +31,8 @@ this suite measures live tool-first + recommend-only behavior.
 | `tests/agent/parse-agent-sse.js` | SSE → `[tool:…]` + answer text |
 | `scripts/agent-eval.ts` | Expand env, run promptfoo |
 | `scripts/agent-eval-improve.ts` | Eval, then AnyRouter notes (no prompt rewrite) |
-| `.github/workflows/agent-eval.yml` | PR path filter → public `dash.chmonitor.dev` |
+| `scripts/agent-eval-comment.ts` | Format + upsert a sticky PR comment |
+| `.github/workflows/agent-eval.yml` | PR path filter → public agent + comment results |
 
 ## Env (no secrets in git)
 
@@ -43,7 +44,8 @@ this suite measures live tool-first + recommend-only behavior.
 - `ANYROUTER_API_BASE` — default `https://anyrouter.dev/api/v1`
 
 CI uses repo secrets `ANYROUTER_API_KEY` and `AGENT_API_TOKEN`. Forks without
-secrets skip the live job.
+secrets skip the live job but still post a skip comment on the PR. Live
+results are upserted onto one sticky comment (`<!-- agent-eval-comment -->`).
 
 ## When to add a case
 
