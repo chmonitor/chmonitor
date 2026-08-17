@@ -68,6 +68,10 @@ next-env.d.ts
 # Turborepo
 .turbo
 
+# herdr-desk run state (config + extra.md stay tracked)
+.herdr-desk/runs/*/
+!.herdr-desk/runs/.gitkeep
+
 # IDE
 .idea
 .vscode

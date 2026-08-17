@@ -33,6 +33,7 @@ Agents discover knowledge in this order:
 | **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip 1.82 MiB (under limit); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
 | **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | operations | Bun-workspaces + Turborepo migration: status, workflow, gotchas, Phase 5 TODO |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |
+| **Operations** | [issue-desk.md](issue-desk.md) | workflow | `.herdr-desk.json` only; scheduled manager CLI is ~/project/herdr-desk |
 | **Operations** | [secret-rotation.md](secret-rotation.md) | workflow | Cloudflare Workers secret rotation: redeploy after wrangler secret put |
 | **Operations** | [github-repo-metadata.md](github-repo-metadata.md) | workflow | Canonical GitHub repo description + topics; banned nextjs/vercel; re-check on stack/positioning change |
 | **Operations** | [k8s-health-probes.md](k8s-health-probes.md) | reference | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image incident; non-helm manifest + migration prompt |
