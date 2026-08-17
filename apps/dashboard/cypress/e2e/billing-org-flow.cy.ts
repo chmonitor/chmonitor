@@ -68,7 +68,7 @@ describe('Billing + Org flow', () => {
   // surface.
 
   describe('anonymous', () => {
-    it('/billing renders the heading and plan grid without a console crash', () => {
+    it('/billing renders the heading and license cards without a console crash', () => {
       cy.visit('/billing')
       cy.get('body').then(($body) => {
         if ($body.text().includes('is a cloud feature')) {
@@ -76,19 +76,17 @@ describe('Billing + Org flow', () => {
           cy.contains('Read the docs').should('be.visible')
         } else {
           cy.get('h1').should('contain.text', 'Billing')
-          // The plan grid renders four plan cards (Free / Pro / Max / Enterprise).
-          cy.contains('Free').should('exist')
-          cy.contains('Pro').should('exist')
-          cy.contains('Max').should('exist')
+          cy.contains('Team').should('exist')
+          cy.contains('Unlimited').should('exist')
         }
       })
     })
 
     it('/setup renders a welcome / setup surface without a console crash', () => {
       cy.visit('/setup')
-      // Any deployment mode should produce at least an <h1> — either the cloud
-      // "Choose your plan" / "Monitor your ClickHouse" heading, or the
-      // self-hosted "Connect a ClickHouse host" heading.
+      // Any deployment mode should produce at least an <h1> — cloud
+      // "Connect your ClickHouse" / "Monitor your ClickHouse", or the
+      // self-hosted setup heading.
       cy.get('h1').should('exist')
     })
 
@@ -116,118 +114,30 @@ describe('Billing + Org flow', () => {
       }
     })
 
-    it('/setup plan picker shows Free / Pro / Max for a signed-in free user', () => {
+    it('/setup shows connect-host for a signed-in cloud user', () => {
       setupClerkTestingToken()
-      // Visit first so Clerk JS loads, then sign in.
       cy.visit('/setup')
       cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
       cy.visit('/setup')
 
-      // The plan picker only shows in cloud mode + signed-in + free plan.
-      // In self-hosted mode the component renders a different surface; guard
-      // with a body check so the test passes gracefully in both environments.
       cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="onboarding-choose-free"]').length) {
-          cy.get('[data-testid="onboarding-choose-free"]')
-            .should('be.visible')
-            .and('contain.text', 'Continue with Free')
-          cy.get('[data-testid="onboarding-choose-pro"]').should('be.visible')
-          cy.get('[data-testid="onboarding-choose-max"]').should('be.visible')
-          cy.contains('Choose your plan').should('exist')
+        if ($body.find('[data-testid="welcome-add-host"]').length) {
+          cy.get('[data-testid="welcome-add-host"]').should('be.visible')
         } else {
-          cy.log(
-            'Plan picker not shown (self-hosted mode or user already paid) — ' +
-              'skipping picker assertions.'
-          )
+          cy.log('Connect CTA not shown (self-hosted setup) — skipping.')
         }
       })
     })
 
-    it('"Continue with Free" advances to the connect-host step', () => {
-      setupClerkTestingToken()
-      cy.visit('/setup')
-      cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
-      cy.visit('/setup')
-
-      cy.get('body').then(($body) => {
-        if (!$body.find('[data-testid="onboarding-choose-free"]').length) {
-          cy.log(
-            'Plan picker not shown — skipping connect-host step assertion.'
-          )
-          return
-        }
-        cy.get('[data-testid="onboarding-choose-free"]').click()
-        // After choosing Free the OnboardingPlans step calls onContinueFree()
-        // which sets step → 'connect', rendering the ConnectYourHost card.
-        cy.contains('Connect your ClickHouse', { timeout: 6000 }).should(
-          'be.visible'
-        )
-        cy.get('[data-testid="welcome-add-host"]').should('be.visible')
-      })
-    })
-
-    it('clicking Pro fires POST /api/v1/billing/checkout with planId=pro', () => {
-      // Intercept before the page loads so the stub is in place when the
-      // button is clicked. Stub the response with a same-origin URL to avoid
-      // triggering a cross-origin navigation that Cypress cannot follow.
-      // In production the real endpoint returns a polar.sh/sandbox URL; the
-      // request shape (planId + period) is what we are asserting here.
-      cy.intercept('POST', '/api/v1/billing/checkout', (req) => {
-        req.reply({
-          statusCode: 200,
-          body: {
-            success: true,
-            data: {
-              // Use a recognisable slug so assertions can verify the stub fired.
-              url:
-                (Cypress.config('baseUrl') as string) +
-                '/billing?status=checkout-intercepted&provider=polar',
-            },
-          },
-        })
-      }).as('checkoutReq')
-
-      setupClerkTestingToken()
-      cy.visit('/setup')
-      cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
-      cy.visit('/setup')
-
-      cy.get('body').then(($body) => {
-        if (!$body.find('[data-testid="onboarding-choose-pro"]').length) {
-          cy.log(
-            'Plan picker not shown — skipping checkout intercept assertion.'
-          )
-          return
-        }
-        cy.get('[data-testid="onboarding-choose-pro"]').click()
-
-        cy.wait('@checkoutReq').then((interception) => {
-          // The client sends { planId, period } in the POST body.
-          const body = interception.request.body as {
-            planId?: string
-            period?: string
-          }
-          expect(body).to.have.property('planId', 'pro')
-          expect(body).to.have.property('period', 'yearly')
-
-          // The stubbed response envelope has our recognisable URL.
-          const responseBody = interception.response?.body as {
-            data?: { url?: string }
-          }
-          expect(responseBody?.data?.url).to.include('polar')
-        })
-      })
-    })
-
-    it('/billing page reflects the plan state for an authenticated user', () => {
+    it('/billing page shows hosted cloud and license cards', () => {
       setupClerkTestingToken()
       cy.visit('/billing')
       cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
       cy.visit('/billing')
       cy.get('h1').should('contain.text', 'Billing')
-      // The current-plan card shows the plan name and a status badge.
-      // For a test account the plan is Free (status badge shows "free").
-      cy.contains(/free|pro|max/i).should('exist')
+      cy.contains('Hosted Cloud').should('exist')
+      cy.contains('Self-host licenses').should('exist')
+      cy.contains('Buy Team').should('exist')
     })
 
     it('/organization renders the org profile or the upgrade prompt', () => {

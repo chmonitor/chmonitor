@@ -8,11 +8,10 @@ import { monthlyEquivalentUsd } from '@/lib/billing/plans'
 import { cn } from '@/lib/utils'
 
 /**
- * Shared billing UI — the single source of truth for plan cards across the
- * /billing page and the /setup onboarding plan picker, so the two surfaces stay
- * visually identical. The card is a full-height flex column with the CTA pinned
- * to the bottom (`mt-auto`), so every card's button lines up on the same
- * baseline regardless of how many feature rows it has.
+ * Shared Cloud-plan card (legacy Free/Pro/Max display). Hosted checkout
+ * no longer uses these cards; keep for comparison helpers and any leftover
+ * plan UI. The card is a full-height flex column with the CTA pinned to
+ * the bottom (`mt-auto`).
  */
 
 export type BillingPeriod = 'monthly' | 'yearly'

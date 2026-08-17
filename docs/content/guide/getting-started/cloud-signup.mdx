@@ -1,13 +1,13 @@
 ---
 title: Sign up for chmonitor Cloud
-description: Create a chmonitor Cloud account, pick a plan, and add your first host — every plan, including the $0 Free plan, goes through a Polar checkout with no card required for Free.
+description: Create a free Cloud account and add your first host. Paid Polar checkout is a self-host commercial license, not Cloud seats.
 icon: CreditCard
 ---
 
-chmonitor **Cloud** (`dash.chmonitor.dev`) is the hosted version of chmonitor — sign up, pick a plan, and connect your ClickHouse or Postgres in minutes. No infrastructure to run.
+chmonitor **Cloud** (`dash.chmonitor.dev`) is the hosted dashboard — sign in, connect ClickHouse or Postgres, and monitor. No infrastructure to run. Hosted Cloud does **not** sell seat or host plans.
 
 <Callout type="info" title="Already self-hosting ClickHouse?">
-Prefer [self-host](/operate/deploy/self-host) plus an optional [commercial license](/operate/advanced/commercial-license) (yearly or lifetime, priced by host count). The hosted cloud is for teams that do not want to run the dashboard themselves.
+Prefer [self-host](/operate/deploy/self-host) plus an optional [commercial license](/operate/advanced/commercial-license) (yearly or lifetime, honor system). That is the paid path for operators who already run infra.
 </Callout>
 
 ## The sign-up flow
@@ -17,50 +17,29 @@ Prefer [self-host](/operate/deploy/self-host) plus an optional [commercial licen
 
 ### Sign in
 
-Before signing in you can explore a live, public **read-only demo** cluster on the Cloud dashboard with no account. Signing in (via Clerk) hides the demo and moves you to your own setup.
+Before signing in you can explore a live, public **read-only demo** cluster. Signing in hides the demo and shows your own setup.
 
 </Step>
 <Step>
 
-### Pick a plan
+### Connect a host
 
-The first time you sign in with zero hosts of your own, chmonitor shows the **/setup** page with a plan picker before you add a host:
+There is no Polar plan picker. Add a ClickHouse or Postgres connection (see [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements), or [Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse)).
 
-| Plan | Price | Hosts / seats | AI agent |
-| --- | --- | --- | --- |
-| **Free** | $0 | no cap | 5 messages/day |
-| **Pro** | paid, monthly or yearly | no cap | higher daily allowance |
-| **Max** | paid, monthly or yearly | no cap | higher daily allowance |
-| **Enterprise** | custom | no cap | unlimited (BYOK) |
-
-**Every plan, including Free, goes through Polar checkout** — Free is a real $0 Polar subscription, not a client-side skip. Choosing any plan (Free, Pro, or Max) briefly redirects your browser to a Polar-hosted checkout page and back:
-
-- **Free** — the checkout collects **no card**, then returns you straight to chmonitor.
-- **Pro / Max** — the checkout collects a payment method before returning you to chmonitor.
-
-</Step>
-<Step>
-
-### Add your first host
-
-Add a ClickHouse or Postgres connection (see [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements) for the minimal grants, or [Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse) if it's behind a firewall). Hosted cloud does not cap hosts or seats.
-
-<Callout type="warn" title="An active subscription is required first">
-Adding a host needs an active subscription on the account — Free included. Without one (checkout skipped or abandoned), the API rejects the request with `402 subscription_required`. Complete the Free checkout above, even though it charges nothing, before adding a host.
-</Callout>
+Hosted Cloud does not cap hosts or seats. AI daily / monthly budget still apply on the hosted product.
 
 </Step>
 </Steps>
 
-## Changing plans later
+## Licenses (self-host)
 
-Upgrade, downgrade, or manage payment from **/billing** at any time — you are not locked into the plan you picked at sign-up.
+Buy Team or Unlimited from [pricing](https://chmonitor.dev/pricing/) or Cloud **/billing**. Polar checkout is for the **self-host license**, then [register](https://chmonitor.dev/license/register) your company. See [commercial license](/operate/advanced/commercial-license).
 
 ## Related
 
 <Cards>
 <Card title="Getting started" href="/guide/getting-started" description="Run chmonitor against your ClickHouse instance in minutes." />
 <Card title="ClickHouse user & grants" href="/guide/getting-started/clickhouse-requirements" description="Create a safe read-only monitoring user with the minimal grants needed." />
-<Card title="Connect a firewalled ClickHouse" href="/guide/guides/connect-firewalled-clickhouse" description="Reach a firewalled cluster from Cloud without a brittle IP allowlist." />
-<Card title="Self-host" href="/operate/deploy/self-host" description="Run chmonitor inside your network with every feature unlocked, no plans." />
+<Card title="Commercial license" href="/operate/advanced/commercial-license" description="Optional yearly or lifetime license. Honor system, no key." />
+<Card title="Self-host" href="/operate/deploy/self-host" description="Run chmonitor inside your network with every feature unlocked." />
 </Cards>
