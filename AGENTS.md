@@ -1,6 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Canonical project instructions for every coding agent (Claude, Grok, Codex, Cursor).
+`CLAUDE.md` is a stub that includes this file — edit **this** file only.
 
 ## Git Commit Convention
 
@@ -34,6 +35,20 @@ Dismiss with
 dismiss). Do NOT dismiss a human reviewer's changes-requested, and never dismiss
 to skip an unaddressed finding. To avoid the gate entirely, prefer
 `request_changes_workflow: false` in CodeRabbit config so it only comments.
+
+## Manager session: stay on `main`, isolate work in Herdr
+
+The **manager** session (this checkout) stays on **`main`**. Do not implement
+features on `main`. `git pull --ff-only origin main` whenever a PR merges.
+
+**Isolated tasks go to Herdr worktrees** (`herdr worktree create --branch
+feat/<name> --base origin/main`). Give each worktree a full spec: implement,
+commit, open a PR (`cpr`), `gh pr merge --auto --squash`, babysit required CI
+until merge, rebase onto `origin/main` if main moves. Close the worktree after
+the PR lands.
+
+Do not mix unrelated tasks in one worktree. After merge, update this `main`
+checkout and tell remaining worktrees to rebase.
 
 ## Project Overview
 
