@@ -220,7 +220,7 @@ describe('filterMenuItemsByEngine', () => {
     expect(pgTitles).toContain('Running Queries')
     // Account-level footer rows are engine-independent and stay visible.
     expect(pgTitles).toContain('About')
-    expect(pgTitles).toContain('Billing')
+    expect(pgTitles).not.toContain('Billing')
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')
