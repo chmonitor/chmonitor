@@ -22,13 +22,13 @@ describe('landing license offer', () => {
   test('paid CTA goes to Polar license checkout', () => {
     const team = getLicense('team')
     expect(buyHref(team, 'yearly')).toBe(
-      'https://dash.chmonitor.dev/api/v1/billing/license-checkout?sku=team&term=yearly'
+      'https://hooks.chmonitor.dev/checkout/license?sku=team&term=yearly'
     )
     expect(buyHref(team, 'lifetime')).toBe(
-      'https://dash.chmonitor.dev/api/v1/billing/license-checkout?sku=team&term=lifetime'
+      'https://hooks.chmonitor.dev/checkout/license?sku=team&term=lifetime'
     )
     expect(buyHref(getLicense('unlimited'), 'yearly')).toBe(
-      'https://dash.chmonitor.dev/api/v1/billing/license-checkout?sku=unlimited&term=yearly'
+      'https://hooks.chmonitor.dev/checkout/license?sku=unlimited&term=yearly'
     )
     expect(paidLicenseSkus.map((s) => s.id)).toEqual(['team', 'unlimited'])
     expect(LICENSE_SKU_LIST).toHaveLength(3)
@@ -81,6 +81,9 @@ describe('static pages exist', () => {
     expect(
       existsSync(join(landingRoot, 'src/pages/license/register.astro'))
     ).toBe(true)
+    expect(
+      existsSync(join(landingRoot, 'src/pages/license/lookup.astro'))
+    ).toBe(true)
     expect(existsSync(join(landingRoot, 'src/pages/customers.astro'))).toBe(
       true
     )
@@ -97,5 +100,7 @@ describe('static pages exist', () => {
     expect(src).not.toMatch(/name="list_public"[^>]*checked/)
     expect(src).toContain('paidLicenseSkus')
     expect(src).toContain('Honor system')
+    expect(src).toContain('licenseRegisterApiHref')
+    expect(src).toContain('fetch(registerApi')
   })
 })

@@ -1058,12 +1058,28 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        # CF_ACCOUNT_ID (non-secret): needed by the exception scan to query the
-        # Workers Observability Telemetry API. GITHUB_REPOSITORY defaults in code.
-        run: >-
-          pnpm exec wrangler deploy --minify --env preview
-          --var CF_ACCOUNT_ID:${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          --var GITHUB_REPOSITORY:${{ github.repository }}
+        # Polar license product ids + CHM_POLAR_SERVER come from the committed
+        # dashboard .env.production (non-secret UUIDs). Values are passed as
+        # wrangler --var and never echoed. Same keys locally via
+        # `bun scripts/deploy-worker.ts cloud-hooks --no-secrets`.
+        run: |
+          set -euo pipefail
+          extra_vars=()
+          while IFS= read -r line || [ -n "$line" ]; do
+            case "$line" in
+              ''|\#*) continue ;;
+            esac
+            key="${line%%=*}"
+            case "$key" in
+              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*)
+                extra_vars+=(--var "${key}:${line#*=}")
+                ;;
+            esac
+          done < "${GITHUB_WORKSPACE}/apps/dashboard/.env.production"
+          pnpm exec wrangler deploy --minify --env preview \
+            --var "CF_ACCOUNT_ID:${CLOUDFLARE_ACCOUNT_ID}" \
+            --var "GITHUB_REPOSITORY:${GITHUB_REPOSITORY}" \
+            "${extra_vars[@]}"
 
       - name: Deploy production
         if: >-
@@ -1075,10 +1091,24 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: >-
-          pnpm exec wrangler deploy --minify
-          --var CF_ACCOUNT_ID:${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          --var GITHUB_REPOSITORY:${{ github.repository }}
+        run: |
+          set -euo pipefail
+          extra_vars=()
+          while IFS= read -r line || [ -n "$line" ]; do
+            case "$line" in
+              ''|\#*) continue ;;
+            esac
+            key="${line%%=*}"
+            case "$key" in
+              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*)
+                extra_vars+=(--var "${key}:${line#*=}")
+                ;;
+            esac
+          done < "${GITHUB_WORKSPACE}/apps/dashboard/.env.production"
+          pnpm exec wrangler deploy --minify \
+            --var "CF_ACCOUNT_ID:${CLOUDFLARE_ACCOUNT_ID}" \
+            --var "GITHUB_REPOSITORY:${GITHUB_REPOSITORY}" \
+            "${extra_vars[@]}"
 
       # Runtime secrets: set AFTER deploy (the worker must exist first). Each is
       # skipped — with a clear log — when its repo secret is empty, so the deploy

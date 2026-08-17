@@ -62,8 +62,14 @@ export interface Env {
   CF_OBSERVABILITY_API_TOKEN?: string
 
   // ── Non-secret config ──────────────────────────────────────────────────────
-  /** sandbox | production — selects the Polar API host for re-key calls. */
+  /** sandbox | production — selects the Polar API host for re-key + checkout. */
   CHM_POLAR_SERVER?: string
+  /**
+   * Origin Polar redirects to after a paid license checkout. Default
+   * `https://chmonitor.dev`. Must stay a public landing origin — Polar
+   * substitutes `{CHECKOUT_ID}` on the success URL.
+   */
+  CHM_LICENSE_SUCCESS_ORIGIN?: string
   /** Cloudflare account id — required (with CF_OBSERVABILITY_API_TOKEN) to query exceptions. */
   CF_ACCOUNT_ID?: string
   /** `owner/repo` issues are filed in. Defaults to `chmonitor/chmonitor`. */

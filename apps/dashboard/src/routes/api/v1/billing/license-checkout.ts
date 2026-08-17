@@ -1,51 +1,29 @@
 /**
  * GET /api/v1/billing/license-checkout?sku=team|unlimited&term=yearly|lifetime
  *
- * Starts a Polar checkout for a self-hosted license. No Clerk session required
- * (honor-system commercial license). Redirects the browser to Polar, then
- * Polar returns to chmonitor.dev/license/register to collect company + website.
+ * Legacy dash URL. Polar checkout lives on cloud-hooks so this route never
+ * calls Polar (a missing `{CHECKOUT_ID}` on the old success_url 500'd here).
+ * 302 to hooks.chmonitor.dev/checkout/license.
  */
 import { createFileRoute } from '@tanstack/react-router'
 
-import type { LicenseTerm, PaidLicenseId } from '@chm/pricing'
-
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { ApiErrorType } from '@/lib/api/types'
-import {
-  getPolarClient,
-  isBillingConfigured,
-  isPaidLicenseId,
-  licenseProductIdFor,
-} from '@/lib/billing/polar-config'
 
 const ROUTE = { route: '/api/v1/billing/license-checkout', method: 'GET' }
 
-const LICENSE_SUCCESS_ORIGIN =
-  process.env.CHM_LICENSE_SUCCESS_ORIGIN ?? 'https://chmonitor.dev'
+const HOOKS_ORIGIN =
+  process.env.CHM_LICENSE_CHECKOUT_ORIGIN ?? 'https://hooks.chmonitor.dev'
 
-function licenseCheckoutExternalId(
-  sku: PaidLicenseId,
-  term: LicenseTerm
-): string {
-  return `license_${sku}_${term}_${crypto.randomUUID()}`
+function isPaidSku(v: string): v is 'team' | 'unlimited' {
+  return v === 'team' || v === 'unlimited'
 }
 
 async function handleGet({ request }: { request: Request }): Promise<Response> {
-  if (!isBillingConfigured()) {
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.PermissionError,
-        message: 'Billing is not enabled.',
-      },
-      501,
-      ROUTE
-    )
-  }
-
   const url = new URL(request.url)
   const skuRaw = url.searchParams.get('sku') ?? ''
   const termRaw = url.searchParams.get('term') ?? ''
-  if (!isPaidLicenseId(skuRaw)) {
+  if (!isPaidSku(skuRaw)) {
     return createApiErrorResponse(
       {
         type: ApiErrorType.ValidationError,
@@ -65,29 +43,23 @@ async function handleGet({ request }: { request: Request }): Promise<Response> {
       ROUTE
     )
   }
-  const sku: PaidLicenseId = skuRaw
-  const term: LicenseTerm = termRaw
 
-  const productId = licenseProductIdFor(sku, term)
-  if (!productId) {
+  try {
+    const dest = new URL('/checkout/license', HOOKS_ORIGIN)
+    dest.searchParams.set('sku', skuRaw)
+    dest.searchParams.set('term', termRaw)
+    return Response.redirect(dest.toString(), 302)
+  } catch (err) {
+    console.error('[license-checkout] redirect to hooks failed', err)
     return createApiErrorResponse(
       {
-        type: ApiErrorType.PermissionError,
-        message: `No Polar product configured for ${sku}/${term}.`,
+        type: ApiErrorType.QueryError,
+        message: 'License checkout is temporarily unavailable.',
       },
-      501,
+      502,
       ROUTE
     )
   }
-
-  const successUrl = `${LICENSE_SUCCESS_ORIGIN}/license/register?sku=${sku}&term=${term}&paid=1`
-  const checkout = await getPolarClient().checkouts.create({
-    products: [productId],
-    externalCustomerId: licenseCheckoutExternalId(sku, term),
-    successUrl,
-    metadata: { kind: 'selfhost-license', sku, term },
-  })
-  return Response.redirect(checkout.url, 302)
 }
 
 export const Route = createFileRoute('/api/v1/billing/license-checkout')({

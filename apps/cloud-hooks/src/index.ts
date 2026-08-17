@@ -4,6 +4,10 @@
  * Routes:
  *   POST /webhooks/polar  → validate signature → shared billing core → Telegram
  *   POST /webhooks/clerk  → verify Svix signature → Clerk lifecycle → Telegram
+ *   GET  /checkout/license → Polar self-host license checkout (302)
+ *   GET  /licenses/lookup  → honor-system Polar checkout/customer lookup
+ *   POST /licenses/register → persist company + website in KV
+ *   GET  /licenses/public   → opt-in customers wall rows
  *   GET  /healthz         → 200 liveness shell (static, no deps)
  *
  * Scheduled (wrangler.toml [triggers] crons):
@@ -26,6 +30,9 @@ import { handleClerkWebhook } from './clerk-webhook'
 import { parseRepo, runExceptionScan } from './exceptions'
 import { resolveGitHubAuth } from './github-app'
 import { fetchIssueStats, runIssueWatch } from './issues'
+import { handleLicenseCheckout } from './license-checkout'
+import { handleLicenseLookup } from './license-lookup'
+import { handleLicensePublic, handleLicenseRegister } from './license-register'
 import { fetchWorkerExceptions } from './observability'
 import { readProbeSnapshot, runProbes } from './probes'
 import { collectSummary, formatDigest } from './summary'
@@ -333,6 +340,22 @@ export default {
         notify: (kind, text) => notifier.notify(kind, text),
         kv: env.CHM_HOOKS_KV ?? null,
       })
+    }
+
+    if (url.pathname === '/checkout/license') {
+      return handleLicenseCheckout(request, env)
+    }
+
+    if (url.pathname === '/licenses/lookup') {
+      return handleLicenseLookup(request, env)
+    }
+
+    if (url.pathname === '/licenses/register') {
+      return handleLicenseRegister(request, env)
+    }
+
+    if (url.pathname === '/licenses/public') {
+      return handleLicensePublic(request, env)
     }
 
     return new Response('Not Found', { status: 404 })

@@ -28,8 +28,8 @@ const DEFAULT_COLOR = 'bg-[var(--canvas-soft)] border-border'
     )}
 
     <div class="reveal mt-8 sm:mt-8 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-      <div class="bill-toggle inline-flex w-full sm:w-auto gap-0.5 rounded-full bg-card p-1" role="tablist" aria-label="License term">
-        <button type="button" data-term="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium transition-colors active:scale-[.98] border-0 border-transparent outline-none">Yearly</button>
+      <div class="bill-toggle inline-flex w-full sm:w-auto gap-0.5 rounded-full bg-muted p-1" role="tablist" aria-label="License term">
+        <button type="button" data-term="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] border-0 border-transparent outline-none">Yearly</button>
         <button type="button" data-term="lifetime" role="tab" aria-selected="false" class="billing-toggle-btn flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] border-0 border-transparent outline-none">
           Lifetime <span class="save text-xs font-semibold">pay once</span>
         </button>
@@ -113,19 +113,29 @@ const DEFAULT_COLOR = 'bg-[var(--canvas-soft)] border-border'
       outline: none !important;
       box-shadow: none !important;
       background: transparent;
+      /* Native <button> color is ButtonText (near-black) — set ink so the
+         unselected tab is readable when .active is removed. */
+      color: var(--muted-foreground);
     }
+    /* Segmented control — not a CTA. Do not use --primary (pure white in dark). */
     .billing-toggle-btn.active {
-      background: var(--primary);
-      color: var(--primary-foreground);
+      background: var(--card);
+      color: var(--foreground) !important;
+      box-shadow: 0 0 0 1px var(--border);
     }
     .billing-toggle-btn.active .save {
-      color: color-mix(in oklch, var(--primary-foreground) 85%, transparent);
+      color: var(--muted-foreground);
     }
     .billing-toggle-btn:not(.active) .save {
-      color: oklch(0.55 0.14 155);
+      color: var(--semantic-success);
     }
-    [data-theme='dark'] .billing-toggle-btn:not(.active) .save {
-      color: oklch(0.72 0.17 155);
+    :global([data-theme='dark']) .billing-toggle-btn.active {
+      background: var(--surface-strong);
+      color: var(--foreground);
+      box-shadow: 0 0 0 1px var(--hairline-strong);
+    }
+    :global([data-theme='dark']) .billing-toggle-btn.active .save {
+      color: var(--muted-foreground);
     }
 
     .license-grid .amt { display: none; }

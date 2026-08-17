@@ -19,16 +19,26 @@ export const paidLicenseSkus = LICENSE_SKU_LIST.filter((s) =>
 )
 export const salesEmail = LICENSE_SALES_EMAIL
 
-const LICENSE_CHECKOUT_ORIGIN =
+export const LICENSE_HOOKS_ORIGIN =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: { PUBLIC_LICENSE_CHECKOUT_ORIGIN?: string } }).env
       ?.PUBLIC_LICENSE_CHECKOUT_ORIGIN) ||
-  'https://dash.chmonitor.dev'
+  'https://hooks.chmonitor.dev'
 
 export function buyHref(sku: LicenseSku, term: LicenseTerm): string {
   if (!isPaidLicense(sku.id)) return PERSONAL_SELFHOST_HREF
   const params = new URLSearchParams({ sku: sku.id, term })
-  return `${LICENSE_CHECKOUT_ORIGIN}/api/v1/billing/license-checkout?${params}`
+  return `${LICENSE_HOOKS_ORIGIN}/checkout/license?${params}`
+}
+
+export function licenseLookupHref(query?: string): string {
+  const url = `${LICENSE_HOOKS_ORIGIN}/licenses/lookup`
+  if (!query) return url
+  return `${url}?q=${encodeURIComponent(query)}`
+}
+
+export function licenseRegisterApiHref(): string {
+  return `${LICENSE_HOOKS_ORIGIN}/licenses/register`
 }
 
 export function invoiceMailto(sku: LicenseSku, term: LicenseTerm): string {

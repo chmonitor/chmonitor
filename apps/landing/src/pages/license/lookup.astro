@@ -1,0 +1,121 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import { LICENSE_SALES_EMAIL } from '@chm/pricing'
+import { licenseLookupHref } from '../../data/licenses'
+import { btnPrimaryBlock, btnOutline } from '../../lib/button-classes'
+
+const lookupAction = licenseLookupHref()
+---
+<Base
+  title="Look up a chmonitor license"
+  description="Check a Polar order for a self-hosted chmonitor license. Honor system — no license key."
+>
+  <Nav />
+  <main id="top">
+    <section class="band">
+      <div class="wrap form-wrap">
+        <div class="sec-head">
+          <span class="eyebrow">License</span>
+          <h1>Check your order</h1>
+          <p>
+            Enter the Polar checkout id from your receipt, or the billing email
+            you used. We look up the order. There is no license key and nothing
+            phones home.
+          </p>
+        </div>
+
+        <form class="reg" method="get" action={lookupAction} id="lookup-form">
+          <label>
+            Checkout id or billing email
+            <input
+              type="text"
+              name="q"
+              required
+              maxlength="200"
+              autocomplete="off"
+              placeholder="checkout id or you@company.com"
+            />
+          </label>
+          <button class={btnPrimaryBlock} type="submit">Check order</button>
+        </form>
+
+        <div id="result" class="result" hidden></div>
+
+        <p class="alt">
+          Register a purchase instead?
+          <a class={btnOutline} href="/license/register">Register a license</a>
+        </p>
+        <p class="trust">
+          Honor system: we do not ship a key. If lookup misses your order, email
+          <a href={`mailto:${LICENSE_SALES_EMAIL}`}>{LICENSE_SALES_EMAIL}</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+  <Footer />
+  <style>
+    .form-wrap{max-width:560px;margin:0 auto}
+    .form-wrap h1{font-size:clamp(1.75rem,6vw,2.25rem);font-weight:700;letter-spacing:-.03em;margin-top:12px}
+    .reg{display:flex;flex-direction:column;gap:14px}
+    .reg label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}
+    .reg input{font:inherit;font-weight:400;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}
+    .hint,.trust,.alt{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-top:12px}
+    .alt{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    .result{margin-top:20px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+    .result strong{display:block;margin-bottom:4px}
+    .result p{margin:0;font-size:13px;color:var(--muted-fg);line-height:1.5}
+  </style>
+  <script is:inline define:vars={{ lookupAction }}>
+    (function () {
+      var form = document.getElementById('lookup-form')
+      var result = document.getElementById('result')
+      if (!form || !result) return
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+        })
+      }
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        var q = (form.q.value || '').trim()
+        if (!q) return
+        result.hidden = false
+        result.innerHTML = '<p>Looking up…</p>'
+        fetch(lookupAction + '?q=' + encodeURIComponent(q))
+          .then(function (res) {
+            return res.json().then(function (body) {
+              return { ok: res.ok, status: res.status, body: body }
+            })
+          })
+          .then(function (out) {
+            if (out.ok && out.body && out.body.found) {
+              var bits = []
+              if (out.body.sku) bits.push(esc(out.body.sku))
+              if (out.body.term) bits.push(esc(out.body.term))
+              if (out.body.paid) bits.push('paid')
+              else if (out.body.status) bits.push(esc(out.body.status))
+              result.innerHTML =
+                '<strong>Order found</strong><p>' +
+                (bits.join(' · ') || 'Matching Polar record.') +
+                (out.body.email ? ' · ' + esc(out.body.email) : '') +
+                '</p>'
+              return
+            }
+            if (out.status === 404) {
+              result.innerHTML =
+                '<strong>No matching order</strong><p>Email hello@chmonitor.dev with your company name and receipt.</p>'
+              return
+            }
+            result.innerHTML =
+              '<strong>Lookup unavailable</strong><p>Email hello@chmonitor.dev — we will check the order by hand.</p>'
+          })
+          .catch(function () {
+            result.innerHTML =
+              '<strong>Lookup unavailable</strong><p>Email hello@chmonitor.dev — we will check the order by hand.</p>'
+          })
+      })
+    })()
+  </script>
+</Base>

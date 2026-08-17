@@ -25,10 +25,17 @@ self-host ClickHouse. Hosted Polar SaaS stays as a convenience path only.
 - Paid SKUs live in `packages/pricing/src/licenses.ts` (not `plans.ts`).
 - Yearly and lifetime on Team and Unlimited. Personal is $0.
 - Buy + register: company name + website; listing on `/customers` is opt-in.
-- Trust model: Polar checkout (`GET /api/v1/billing/license-checkout`) then
-  register company + website; we add opt-in names to
-  `apps/landing/src/data/licensed-companies.ts`. Products:
+- Trust model: Polar checkout on **cloud-hooks**
+  (`GET https://hooks.chmonitor.dev/checkout/license?sku=&term=`), then
+  register company + website. Polar `success_url` **must** include the
+  literal `{CHECKOUT_ID}` placeholder (Polar 422s without it — that is why
+  dash.chmonitor.dev/api/v1/billing/license-checkout 500'd). The dash route
+  now 302s to hooks and never calls Polar. Lookup:
+  `GET /licenses/lookup?q=` (checkout id or billing email). Register persist:
+  `POST /licenses/register` → KV `license-reg:v1:{uuid}`; opt-in names on
+  `GET /licenses/public`. Products:
   `CHM_POLAR_LICENSE_{TEAM|UNLIMITED}_{YEARLY|LIFETIME}` from `polar-setup.ts`.
+  Do **not** add `CHM_LICENSE_KEY` to the OSS dashboard.
 
 ## SKUs (USD)
 
@@ -52,7 +59,8 @@ $499 / $1,349 (3 hosts), Unlimited $999 / $2,999.
 ## Surfaces
 
 - Landing cards: `apps/landing/src/components/Pricing.astro`
-- Register: `apps/landing/src/pages/license/register.astro`
+- Register: `apps/landing/src/pages/license/register.astro` (paid=1 POSTs to hooks)
+- Lookup: `apps/landing/src/pages/license/lookup.astro`
 - Wall: `apps/landing/src/pages/customers.astro`
 - User docs: `docs/content/operate/advanced/commercial-license.mdx`
 - Cloud Polar path unchanged: [billing-checkout-flow](billing-checkout-flow.md)
