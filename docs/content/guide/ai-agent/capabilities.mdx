@@ -45,10 +45,10 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 | `list_tables` | List tables in a database with row counts and size. | |
 | `get_table_schema` | Get column definitions for a specific table. | |
 | `explore_table_schema` | Three-mode exploration: no args → databases; database only → tables; database + table → full schema with indexes and keys. | |
-| `get_running_queries` | Currently running queries ordered by elapsed time. | Reads `system.processes`. |
+| `get_running_queries` | Currently running queries ordered by elapsed time. Query text is truncated to 2000 characters. | Reads `system.processes`. |
 | `get_slow_queries` | Slowest completed queries from the last 1 hour by default (`lastHours` override). Query text is truncated to 2000 characters so it can be passed to `explain_query`. | Reads `system.query_log` (`QueryFinish`, `is_initial_query = 1`, `event_time` window). |
 | `list_slow_query_patterns` | Normalized slow query patterns — `system.query_log` grouped by `normalized_query_hash`, with calls, total/avg/p50/p95/p99/max duration, CPU time, peak memory, read/write bytes, errors, and cache-hit ratio per pattern. | Read-only. Use for "which query shape is expensive overall" — unlike `get_slow_queries`, which ranks individual executions. First step of the `query-optimization` diagnose loop. |
-| `get_failed_queries` | Recent failed queries with error details. | Reads `system.query_log`. |
+| `get_failed_queries` | Recent failed queries from the last 24 hours by default (`lastHours` override). Query text is truncated to 2000 characters. | Reads `system.query_log`. |
 | `explain_query` | EXPLAIN PLAN / PIPELINE / PLAN with indexes for a query. | |
 | `estimate_query_cost` | Pre-flight cost estimate (rows scanned, bytes read, peak memory, wall time, confidence) from EXPLAIN alone. | Read-only and recommend-only — runs EXPLAIN only, never executes the analyzed query. |
 | `get_metrics` | Server health: version, uptime, active connections, memory. | Reads `system.metrics`. |
@@ -60,7 +60,7 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 | `recommend_materialized_view` | Mine frequent GROUP BY/aggregate query shapes and design a Summing/AggregatingMergeTree MV or projection to pre-aggregate them. | Returns DDL text + size estimate + impact + risk (added write-path/storage cost) — recommend-only, never executed. Reads `system.query_log`, `system.parts`, `system.tables`. |
 | `get_replication_status` | Per-table replication delay, queue size, and replica counts. | Reads `system.replicas`. |
 | `get_merge_status` | Currently running merges with progress and elapsed time. | Reads `system.merges`. |
-| `update_plan` | Create or update a step-by-step workflow plan for the current investigation. | Rendered as a live checklist in the UI. |
+| `update_plan` | Create or update a step-by-step workflow plan for a 3+ step investigation. Skip it for one-tool answers. | Rendered as a live checklist in the UI. |
 | `load_skill` | Load an expert guide (skill) with SQL recipes for a specific domain. | |
 | `find_reference_query` | Search the dashboard's built-in library of 100+ vetted, version-aware monitoring queries and return the closest matches (name, description, SQL). | Read-only, deterministic keyword-overlap lookup over the built-in `QueryConfig` catalog — executes nothing. Meant to be used before hand-writing `system.*` SQL. |
 | `ask_user` | Ask the user a question to gather information before proceeding. | |

@@ -8,7 +8,7 @@ export function createQueryTools(hostId: number) {
   return {
     get_running_queries: dynamicTool({
       description:
-        'Get currently running queries. Useful for identifying long-running queries and monitoring active workloads.',
+        'Get currently running queries ordered by elapsed time. Query text is truncated to 2000 chars so it can be passed to explain_query.',
       inputSchema: z.object({
         hostId: hostIdSchema,
       }),
@@ -23,7 +23,7 @@ export function createQueryTools(hostId: number) {
               elapsed,
               read_rows,
               memory_usage,
-              substring(query, 1, 200) AS query
+              substring(query, 1, 2000) AS query
             FROM system.processes
             ORDER BY elapsed DESC
             LIMIT 100
@@ -97,7 +97,7 @@ export function createQueryTools(hostId: number) {
 
     get_failed_queries: dynamicTool({
       description:
-        'Get recent failed queries. Useful for troubleshooting errors and understanding query failures.',
+        'Get recent failed queries from the last 24 hours by default (override with lastHours). Query text is truncated to 2000 chars.',
       inputSchema: z.object({
         limit: z
           .number()
