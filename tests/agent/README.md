@@ -27,7 +27,9 @@ Never commit keys. CI reads `secrets.ANYROUTER_API_KEY` and `secrets.AGENT_API_T
 | `pnpm run test:agent` | `core` + `safety` tags |
 | `pnpm run test:agent:all` | also `tools`, `quality`, `extended` |
 | `pnpm run test:agent:improve` | eval, then AnyRouter notes in `tests/agent/results/improve.md` |
-| `bun test tests/agent/parse-agent-sse.test.ts` | SSE parser (no key) |
+| `bun test tests/agent/*.test.ts` | SSE parser + PR comment formatter (no key) |
+
+CI posts a sticky PR comment (`## Agent eval (promptfoo)`) on prompt/skill PRs.
 
 Improve loop (manual apply):
 
