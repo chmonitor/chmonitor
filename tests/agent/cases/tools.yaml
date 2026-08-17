@@ -1,0 +1,94 @@
+# Dedicated primitives — assert a tool was called. Tag `tools`.
+- description: 'Tools — list tables in system'
+  tags: [tools]
+  vars:
+    prompt: 'List tables in the system database'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+
+- description: 'Tools — schema of system.query_log'
+  tags: [tools]
+  vars:
+    prompt: 'Show me the schema of system.query_log'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        The answer mentions columns consistent with system.query_log
+        (for example event_time, query, query_duration_ms, type) from a
+        schema tool, not invented column names.
+
+- description: 'Tools — running queries'
+  tags: [tools]
+  vars:
+    prompt: 'How many queries are currently running?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+
+- description: 'Tools — failed queries'
+  tags: [tools]
+  vars:
+    prompt: 'What queries failed in the last day?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+
+- description: 'Tools — replication status'
+  tags: [tools]
+  vars:
+    prompt: 'Is replication lagging on this host?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+
+- description: 'Tools — merge status'
+  tags: [tools]
+  vars:
+    prompt: 'Are there any stuck or long-running merges?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+
+- description: 'Tools — EXPLAIN a simple query'
+  tags: [tools]
+  vars:
+    prompt: 'This query is slow: SELECT * FROM system.query_log LIMIT 10. Why?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        The answer uses schema and/or EXPLAIN tools and discusses cost
+        (SELECT *, no PREWHERE, reading query_log). It does not claim to
+        have rewritten the table.
+
+- description: 'Tools — load_skill for schema design'
+  tags: [tools]
+  vars:
+    prompt: 'What ORDER BY key should I use for a typical events table?'
+  assert:
+    - type: not-regex
+      value: '\\[error:'
+    - type: llm-rubric
+      value: >-
+        The answer discusses ORDER BY / primary key design for ClickHouse
+        (low-cardinality time or tenant first, then filter columns).
+        Loading a skill is good. It must not invent a specific table's
+        current ORDER BY unless a tool returned it.

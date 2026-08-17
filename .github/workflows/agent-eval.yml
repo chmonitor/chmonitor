@@ -1,0 +1,73 @@
+name: Agent eval
+
+on:
+  pull_request:
+    paths:
+      - 'apps/dashboard/src/lib/ai/agent/prompts/**'
+      - 'apps/dashboard/src/lib/ai/agent/clickhouse-agent.ts'
+      - '.agents/skills/**'
+      - 'tests/agent/**'
+      - 'scripts/agent-eval.ts'
+      - 'scripts/agent-eval-improve.ts'
+      - '.github/workflows/agent-eval.yml'
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'promptfoo tags (core,safety or all)'
+        required: false
+        default: 'core,safety'
+
+# Live AnyRouter spend. Informational — does not block merge.
+concurrency:
+  group: agent-eval-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  promptfoo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANYROUTER_API_KEY: ${{ secrets.ANYROUTER_API_KEY }}
+      AGENT_API_TOKEN: ${{ secrets.AGENT_API_TOKEN }}
+      AGENT_EVAL_URL: https://dash.chmonitor.dev/api/v1/agent
+      AGENT_EVAL_MODEL: anyrouter:google/gemma-4-26b-a4b-it
+      AGENT_EVAL_GRADER_MODEL: google/gemma-4-26b-a4b-it
+      ANYROUTER_API_BASE: https://anyrouter.dev/api/v1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Skip when secrets are missing
+        id: gate
+        run: |
+          if [ -z "$ANYROUTER_API_KEY" ] || [ -z "$AGENT_API_TOKEN" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "ANYROUTER_API_KEY or AGENT_API_TOKEN unset — skipping live eval (forks / missing secrets)."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: SSE parser unit tests
+        run: bun test tests/agent/parse-agent-sse.test.ts --isolate
+
+      - name: Live promptfoo (public agent)
+        if: steps.gate.outputs.skip == 'false'
+        run: |
+          TAGS='${{ github.event.inputs.tags || 'core,safety' }}'
+          bun scripts/agent-eval.ts --tags "$TAGS"
+
+      - name: Upload eval artifacts
+        if: always() && steps.gate.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-eval-results
+          path: tests/agent/results/
+          if-no-files-found: ignore

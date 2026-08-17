@@ -148,11 +148,18 @@ model** actually chooses to call a tool. That behavioral signal — the
 run against a running dev server:
 
 ```bash
-export AGENT_API_TOKEN=your-token   # bearer for /api/v1/agent
-export OPENROUTER_API_KEY=your-key  # grader for the llm-rubric goldens below
-pnpm run dev                         # in another shell
-pnpm run test:agent                  # promptfoo eval; `test:agent:view` for the UI
+export AGENT_API_TOKEN=your-token      # bearer for /api/v1/agent
+export ANYROUTER_API_KEY=your-key      # live agent (local) + llm-rubric grader
+export AGENT_EVAL_URL=http://localhost:3000/api/v1/agent
+pnpm run dev                            # in another shell
+pnpm run test:agent                     # core + safety
+pnpm run test:agent:all                 # + tools / quality / extended
+pnpm run test:agent:improve             # eval then AnyRouter notes (does not edit prompts)
 ```
+
+See `tests/agent/README.md`. PRs that change system prompts or `.agents/skills/`
+trigger `.github/workflows/agent-eval.yml` against the public agent when
+GitHub secrets are set.
 
 Each golden asserts the agent emits a `[tool:...]` call (not a memory answer)
 and stays under a latency threshold. Treat the pass rate + latency as the
@@ -166,11 +173,9 @@ tool presence — e.g. does a "why is my database slow?" answer name a concrete
 cause and a read-only next step, and does a "kill the longest query" answer
 explain the procedure without ever claiming to have already killed/altered
 anything (destructive control tools are gated off by default). The grader
-provider is configured via `defaultTest.options.provider` in
-`promptfooconfig.yaml` (currently `openrouter:qwen/qwen3-coder:free` — the
-concrete model the agent's own `openrouter/free` alias resolves to; swap it to
-grade with a stronger model). Add a rubric here whenever a prompt/skill change
-could affect correctness or recommendation safety, not just tool selection.
+grader is AnyRouter (`AGENT_EVAL_GRADER_MODEL`, default
+`google/gemma-4-26b-a4b-it`). Add a rubric in `tests/agent/cases/` whenever a
+prompt/skill change could affect correctness or recommendation safety.
 
 ## Writing New Component Tests
 

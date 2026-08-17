@@ -44,6 +44,7 @@ Agents discover knowledge in this order:
 | **Operations** | [billing-checkout-flow.md](billing-checkout-flow.md) | workflow | Money path: checkout→Polar→webhook (signature auth, monotonic guard)→D1→plan resolution; self-heals missed webhooks via Polar reconcile write-through; recovery runbook; OSS fails open to Free |
 | **Specs** | [commercial-license.md](commercial-license.md) | spec | Self-hosted host-count licenses (yearly/lifetime), honor system, customers wall; Polar SaaS is secondary |
 | **Specs** | [ai-insights.md](ai-insights.md) | spec | AI Insights engine: collect→enrich→persist (pluggable InsightsStore: clickhouse default / d1 / postgres / agentstate / memory), cron + manual generation, stable-key dismissal, overview panel |
+| **Specs** | [agent-eval.md](agent-eval.md) | spec | Live promptfoo eval vs /api/v1/agent; AnyRouter llm-rubric; PR path filter |
 | **Specs** | [cloud-saas-mode.md](cloud-saas-mode.md) | spec | One codebase, two products: cloud-mode flag (fail-closed to OSS), read-only demo hosts for anon, welcome/setup onboarding, per-user D1 connections, connection-error classifier |
 | **Specs** | [mcp-server.md](mcp-server.md) | reference | MCP server at /api/mcp: tools, setup, security |
 | **Specs** | [mcp-clerk-oauth.md](mcp-clerk-oauth.md) | reference | MCP endpoint auth postures (open / HMAC API key / Clerk OAuth); either credential accepted when both set; REST token verification runs in both Worker and Next.js runtimes |

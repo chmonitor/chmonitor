@@ -11,6 +11,9 @@ node_modules/
 .migrations/
 
 # testing
+tests/agent/results/
+tests/agent/promptfooconfig.generated.yaml
+.promptfoo/
 /coverage
 apps/dashboard/coverage
 .nyc_output
