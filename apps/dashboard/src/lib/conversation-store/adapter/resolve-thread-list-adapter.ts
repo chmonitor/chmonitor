@@ -24,7 +24,10 @@ export type ConversationBackend = 'd1' | 'local'
  * Returns `'d1'` when server-side conversation storage is enabled, otherwise
  * `'local'`. Exposed separately so the UI can surface where history lives.
  */
-export function resolveConversationBackend(): ConversationBackend {
+export function resolveConversationBackend(options?: {
+  persistRemote?: boolean
+}): ConversationBackend {
+  if (options?.persistRemote === false) return 'local'
   try {
     return featureFlags.conversationDb() ? 'd1' : 'local'
   } catch {
@@ -34,9 +37,12 @@ export function resolveConversationBackend(): ConversationBackend {
 
 /**
  * Build the active `RemoteThreadListAdapter` for the current deployment.
+ * Cloud unsigned visitors stay on local threads — conversation APIs are Clerk-only.
  */
-export function resolveThreadListAdapter(): RemoteThreadListAdapter {
-  return resolveConversationBackend() === 'd1'
+export function resolveThreadListAdapter(options?: {
+  persistRemote?: boolean
+}): RemoteThreadListAdapter {
+  return resolveConversationBackend(options) === 'd1'
     ? createD1ThreadListAdapter()
     : createLocalThreadListAdapter()
 }

@@ -1,7 +1,9 @@
 import {
   DEFAULT_GUEST_AI_RATE_LIMIT_PER_MIN,
   GUEST_AI_REQUESTS_PER_DAY,
+  GUEST_DEFAULT_AGENT_MODEL,
   getGuestAiPlan,
+  isGuestAllowedAgentModel,
   getGuestAiRateLimitPerMin,
   getGuestAiRequestsPerDay,
   guestDailyLimitMessage,
@@ -118,6 +120,17 @@ describe('getGuestAiPlan', () => {
     expect(plan.aiRequestsPerDay).toBe(3)
     expect(plan.aiMonthlyUsdBudget).toBeNull()
     expect(plan.aiOverage).toBeNull()
+  })
+})
+
+describe('isGuestAllowedAgentModel', () => {
+  test('allows anyrouter:auto and free aliases only', () => {
+    expect(GUEST_DEFAULT_AGENT_MODEL).toBe('anyrouter:auto')
+    expect(isGuestAllowedAgentModel('anyrouter:auto')).toBe(true)
+    expect(isGuestAllowedAgentModel('anyrouter/free')).toBe(true)
+    expect(isGuestAllowedAgentModel('anyrouter:anyrouter/free')).toBe(true)
+    expect(isGuestAllowedAgentModel('openai:gpt-4o')).toBe(false)
+    expect(isGuestAllowedAgentModel('anyrouter:claude-opus')).toBe(false)
   })
 })
 

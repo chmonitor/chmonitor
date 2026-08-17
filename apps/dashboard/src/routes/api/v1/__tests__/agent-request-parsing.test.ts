@@ -14,6 +14,7 @@ import {
   AGENT_MAX_PART_TEXT_LENGTH,
   AGENT_MAX_REQUEST_SIZE_BYTES,
   AGENT_MAX_USER_MESSAGE_LENGTH,
+  hardenGuestAgentRequest,
   parseAgentRequest,
 } from '../-agent/request-parsing'
 import { describe, expect, test } from 'bun:test'
@@ -177,5 +178,41 @@ describe('parseAgentRequest', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.mcpServers).toHaveLength(4)
+  })
+
+  test('hardenGuestAgentRequest strips BYOK, MCP, and expensive models', async () => {
+    const result = await parseAgentRequest(
+      postRequest({
+        message: 'hello',
+        apiKey: 'sk-guest-must-not-use-this',
+        model: 'openai:gpt-4o',
+        mcpServers: [
+          {
+            id: 'evil',
+            name: 'evil',
+            endpoint: 'https://mcp.example.com',
+          },
+        ],
+        hostId: -3,
+      })
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    const hardened = hardenGuestAgentRequest(result)
+    expect(hardened.byokApiKey).toBeNull()
+    expect(hardened.mcpServers).toEqual([])
+    expect(hardened.body.apiKey).toBeUndefined()
+    expect(hardened.body.model).toBe('anyrouter:auto')
+    expect(hardened.hostId).toBe(0)
+  })
+
+  test('hardenGuestAgentRequest keeps anyrouter:auto', async () => {
+    const result = await parseAgentRequest(
+      postRequest({ message: 'hello', model: 'anyrouter:auto' })
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(hardenGuestAgentRequest(result).body.model).toBe('anyrouter:auto')
   })
 })

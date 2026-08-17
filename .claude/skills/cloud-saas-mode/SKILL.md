@@ -67,7 +67,7 @@ on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 | Env hosts | real, full access | `source:'demo'`, read-only |
 | Anonymous | env hosts | the demo |
 | Signed-in | env hosts | demo HIDDEN → own D1 connections; zero → welcome/setup |
-| Agent (anon) | unlimited (IP RL only) | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
+| Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY` + `anyrouter:auto` |
 
 Implemented in `lib/swr/use-merged-hosts.ts` (tag demo, hide-when-signed-in;
 returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
@@ -104,14 +104,26 @@ connected. Full detail: `docs/knowledge/cloud-saas-mode.md`.
 
 ## Guest AI credits (Cloud only)
 
-Anonymous Cloud visitors can use the agent. They get a **dedicated daily
-message cap** (`CHM_GUEST_AI_REQUESTS_PER_DAY`, default 3) and a **tighter
-per-identity rate limit** (`RATE_LIMIT_AGENT_GUEST_PER_MIN`, default 5) so
-they cannot burn the shared AnyRouter key. Usage is stored in the existing
-D1 `ai_usage_daily` table under `guest:<sha256-ip-prefix>` — never the
-literal owner id `guest`. `GET /api/v1/billing/usage` returns a slim Guest
-payload for unsigned Cloud callers so the quota chip can render. OSS skips
-this (IP RL only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
+Anonymous Cloud visitors **can chat** on the demo host. Reachability is
+**not** `CHM_FEATURE_AGENT_ACCESS=public` (agent is `operation: 'write'`;
+Clerk public-read still 401s unsigned POSTs). `authorizeAgentApiRequest`
+allows unsigned Cloud + public-read on agent POST / models / config-check /
+followups only. UI: `agent-auth-gate.tsx` `ensureAuthed()` true for Cloud
+unsigned; OSS Clerk stays gated.
+
+Guests bill the deploy `ANYROUTER_API_KEY` and default to `anyrouter:auto`.
+Server strips BYOK `apiKey`, ignores `mcpServers` / user MCP, allowlists
+auto + free, hostId env/demo only. Conversations stay Clerk-only (local
+thread for unsigned Cloud).
+
+They get a **dedicated daily message cap** (`CHM_GUEST_AI_REQUESTS_PER_DAY`,
+default 3) and a **tighter per-identity rate limit**
+(`RATE_LIMIT_AGENT_GUEST_PER_MIN`, default 5) so they cannot burn the
+shared AnyRouter key. Usage is stored in the existing D1 `ai_usage_daily`
+table under `guest:<sha256-ip-prefix>` — never the literal owner id
+`guest`. `GET /api/v1/billing/usage` returns a slim Guest payload for
+unsigned Cloud callers so the quota chip can render. OSS skips this (IP RL
+only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
 `applyAiUsageGate` in `routes/api/v1/-agent/billing.ts`. 402 reason:
 `guest_daily_limit` (sign in for more — no Polar jargon).
 

@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { AGENT_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { resolveFeatureState } from '@/lib/feature-permissions/shared'
@@ -77,14 +78,19 @@ export function AgentAuthGate({ children }: { children: ReactNode }) {
     resolveFeatureState(AGENT_FEATURE_PERMISSION, config).access ===
     'authenticated'
 
+  const cloudGuest = isCloudModeClient() && !signedIn
+
   const ensureAuthed = useCallback(() => {
     // Optimistic while the permission config loads — the server still enforces
     // auth on /api/v1/agent regardless.
     if (isLoading) return true
+    // Cloud demo guests may chat (server guest allow + quota). OSS Clerk
+    // deployments stay gated when access is authenticated.
+    if (cloudGuest) return true
     if (!requiresAuth || signedIn) return true
     setOpen(true)
     return false
-  }, [isLoading, requiresAuth, signedIn])
+  }, [isLoading, requiresAuth, signedIn, cloudGuest])
 
   const value = useMemo<AgentAuthGateValue>(
     () => ({ ensureAuthed }),
