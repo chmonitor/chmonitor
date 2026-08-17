@@ -457,7 +457,7 @@ export async function parseAgentRequest(
 
 /**
  * Cloud guest hardening: no BYOK, no custom MCP, demo/env hostId only,
- * model allowlist (anyrouter:auto + free). Does not change message text.
+ * model allowlist (LongCat default, auto, free). Does not change message text.
  */
 export function hardenGuestAgentRequest(
   parsed: ParsedAgentRequest

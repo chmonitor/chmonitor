@@ -203,7 +203,7 @@ describe('parseAgentRequest', () => {
     expect(hardened.byokApiKey).toBeNull()
     expect(hardened.mcpServers).toEqual([])
     expect(hardened.body.apiKey).toBeUndefined()
-    expect(hardened.body.model).toBe('anyrouter:auto')
+    expect(hardened.body.model).toBe('anyrouter:meituan/longcat-2.0')
     expect(hardened.hostId).toBe(0)
   })
 

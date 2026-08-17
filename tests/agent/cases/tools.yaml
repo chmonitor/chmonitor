@@ -1,6 +1,8 @@
 # Dedicated primitives — assert a tool was called. Tag `tools`.
 - description: 'Tools — list tables in system'
   tags: [tools]
+  metadata:
+    covers: [list_tables]
   vars:
     prompt: 'List tables in the system database'
   assert:
@@ -9,6 +11,8 @@
 
 - description: 'Tools — schema of system.query_log'
   tags: [tools]
+  metadata:
+    covers: [get_table_schema, explore_table_schema]
   vars:
     prompt: 'Show me the schema of system.query_log'
   assert:
@@ -22,6 +26,8 @@
 
 - description: 'Tools — running queries'
   tags: [tools]
+  metadata:
+    covers: [get_running_queries]
   vars:
     prompt: 'How many queries are currently running?'
   assert:
@@ -30,6 +36,8 @@
 
 - description: 'Tools — failed queries'
   tags: [tools]
+  metadata:
+    covers: [get_failed_queries]
   vars:
     prompt: 'What queries failed in the last day?'
   assert:
@@ -38,6 +46,8 @@
 
 - description: 'Tools — replication status'
   tags: [tools]
+  metadata:
+    covers: [get_replication_status]
   vars:
     prompt: 'Is replication lagging on this host?'
   assert:
@@ -46,6 +56,8 @@
 
 - description: 'Tools — merge status'
   tags: [tools]
+  metadata:
+    covers: [get_merge_status]
   vars:
     prompt: 'Are there any stuck or long-running merges?'
   assert:
@@ -54,6 +66,8 @@
 
 - description: 'Tools — EXPLAIN a simple query'
   tags: [tools]
+  metadata:
+    covers: [explain_query, query]
   vars:
     prompt: 'This query is slow: SELECT * FROM system.query_log LIMIT 10. Why?'
   assert:
@@ -67,6 +81,8 @@
 
 - description: 'Tools — load_skill for schema design'
   tags: [tools]
+  metadata:
+    covers: [load_skill]
   vars:
     prompt: 'What ORDER BY key should I use for a typical events table?'
   assert:

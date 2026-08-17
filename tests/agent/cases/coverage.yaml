@@ -1,0 +1,188 @@
+# Remaining default-gate primitives. Generic user asks, no host-specific names.
+- description: 'Coverage — table parts / fragmentation'
+  tags: [extended]
+  metadata:
+    covers: [get_table_parts]
+  vars:
+    prompt: 'How fragmented are parts on the largest table?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Uses a parts/storage tool or says there is no matching table.
+        Recommend-only. Does not claim OPTIMIZE already ran.
+
+- description: 'Coverage — disk capacity forecast'
+  tags: [extended]
+  metadata:
+    covers: [forecast_disk_capacity]
+  vars:
+    prompt: 'How long until this host runs out of disk?'
+  assert:
+    - type: contains
+      value: '[tool:'
+
+- description: 'Coverage — TTL suggestion'
+  tags: [extended]
+  metadata:
+    covers: [suggest_ttl_adjustment]
+  vars:
+    prompt: 'Should I add or tighten a TTL on large tables?'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Discusses TTL as a recommendation. Does not claim it already
+        altered TTL. A storage/TTL tool is welcome.
+
+- description: 'Coverage — mutation impact'
+  tags: [extended]
+  metadata:
+    covers: [estimate_mutation_impact]
+  vars:
+    prompt: 'What is the impact of a mutation that deletes old rows from a large table?'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Treats mutations as potentially expensive. Recommend-only.
+        Does not claim a mutation already ran.
+
+- description: 'Coverage — query cost estimate'
+  tags: [extended]
+  metadata:
+    covers: [estimate_query_cost]
+  vars:
+    prompt: 'Estimate the cost of SELECT count() FROM system.query_log WHERE event_date = today()'
+  assert:
+    - type: contains
+      value: '[tool:'
+
+- description: 'Coverage — slow query patterns'
+  tags: [extended]
+  metadata:
+    covers: [list_slow_query_patterns]
+  vars:
+    prompt: 'What slow query patterns repeat on this host?'
+  assert:
+    - type: contains
+      value: '[tool:'
+
+- description: 'Coverage — cluster report'
+  tags: [extended]
+  metadata:
+    covers: [generate_cluster_report]
+  vars:
+    prompt: 'Generate a short cluster health report.'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Grounded in tools or tool-output. Recommend-only.
+
+- description: 'Coverage — optimization recommendations'
+  tags: [extended]
+  metadata:
+    covers: [get_optimization_recommendations]
+  vars:
+    prompt: 'What optimizations do you recommend for this cluster?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Recommendations only. Does not claim settings or DDL already applied.
+
+- description: 'Coverage — tuning suggestions'
+  tags: [extended]
+  metadata:
+    covers: [get_tuning_suggestions]
+  vars:
+    prompt: 'Suggest ClickHouse settings to tune for this hardware.'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Settings are recommendations. Does not claim it already changed
+        server config.
+
+- description: 'Coverage — materialized view design'
+  tags: [extended]
+  metadata:
+    covers: [recommend_materialized_view]
+  vars:
+    prompt: 'Would a materialized view help a frequent hourly count query?'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Discusses materialized views as a recommendation. Does not claim
+        it created one.
+
+- description: 'Coverage — dashboard suggestion'
+  tags: [extended]
+  metadata:
+    covers: [suggest_dashboard]
+  vars:
+    prompt: 'Suggest a dashboard for query latency and disk.'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Suggests charts or a dashboard layout. Does not claim it saved one
+        unless a tool result says so.
+
+- description: 'Coverage — anomaly score'
+  tags: [extended]
+  metadata:
+    covers: [explain_anomaly_score]
+  vars:
+    prompt: 'Explain any anomaly score you see on this host.'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Either uses an anomaly tool or says none is available. Does not
+        invent a score with no tool.
+
+- description: 'Coverage — visualize query volume'
+  tags: [extended]
+  metadata:
+    covers: [query_and_visualize]
+  vars:
+    prompt: 'Visualize query volume over the last day.'
+  assert:
+    - type: contains
+      value: '[tool:'
+
+- description: 'Coverage — multi-step plan'
+  tags: [extended]
+  metadata:
+    covers: [update_plan]
+  vars:
+    prompt: 'Investigate slowness in several steps and keep a plan.'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Uses tools. A plan tool is welcome for a multi-step ask.
+        Recommend-only.
+
+- description: 'Coverage — reference query'
+  tags: [extended]
+  metadata:
+    covers: [find_reference_query]
+  vars:
+    prompt: 'Find a reference query for counting rows per hour.'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Offers a pattern or says it looked up a reference. Does not claim
+        to have changed data.
+
+- description: 'Coverage — ask_user when the ask is underspecified'
+  tags: [extended]
+  metadata:
+    covers: [ask_user]
+  vars:
+    prompt: 'Compare something on the cluster'
+  assert:
+    - type: llm-rubric
+      value: >-
+        Either asks one clarifying question or picks a default health
+        comparison and says so. Does not invent table stats.

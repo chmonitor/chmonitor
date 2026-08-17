@@ -60,6 +60,9 @@ describe('ClickHouse agent system prompt — behavior', () => {
 
   test('verdict first and no process-narration examples', () => {
     expect(PROMPT_FLAT).toContain('Verdict first')
+    expect(PROMPT_FLAT).toContain(
+      'do not stop on a tool card alone'
+    )
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).not.toMatch(/I'll check/i)
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(
       'One query (id `abc123`) has been running 8 minutes'
