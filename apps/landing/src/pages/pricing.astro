@@ -4,8 +4,9 @@ import Nav from '../components/Nav.astro'
 import Pricing from '../components/Pricing.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
-import { licenseFaqs } from '../data/licenses'
+import { bossPitch, licenseFaqs } from '../data/licenses'
 import { pricingFaqs } from '../data/pricing'
+import { btnOutline } from '../lib/button-classes'
 
 const allFaqs = [...licenseFaqs, ...pricingFaqs]
 const faqJsonLd = {
@@ -51,6 +52,24 @@ const breadcrumbJsonLd = {
     <!-- Plan cards (shared section, compact: no duplicate header) -->
     <Pricing compact={true} />
 
+    <section id="tell-your-boss" class="band boss-band">
+      <div class="wrap">
+        <div class="boss-card reveal">
+          <div class="boss-head">
+            <div>
+              <span class="eyebrow">Procurement, but funny</span>
+              <h2>Copy this to your boss</h2>
+              <p>A short note you can paste into Slack. We already did the begging.</p>
+            </div>
+            <button type="button" class={btnOutline} id="copy-boss" data-copied="Copied">
+              Copy for Slack
+            </button>
+          </div>
+          <pre id="boss-pitch" class="boss-pre">{bossPitch}</pre>
+        </div>
+      </div>
+    </section>
+
     <!-- Pricing FAQ -->
     <section id="pricing-faq" class="band">
       <div class="wrap">
@@ -77,6 +96,30 @@ const breadcrumbJsonLd = {
   <Footer />
 
   <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
+  <script is:inline>
+    ;(function () {
+      var btn = document.getElementById('copy-boss')
+      var pre = document.getElementById('boss-pitch')
+      if (!btn || !pre) return
+      var idle = btn.textContent
+      btn.addEventListener('click', function () {
+        var text = pre.textContent || ''
+        function done() {
+          btn.textContent = btn.getAttribute('data-copied') || 'Copied'
+          window.setTimeout(function () {
+            btn.textContent = idle
+          }, 1600)
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {
+            window.prompt('Copy this to your boss', text)
+          })
+        } else {
+          window.prompt('Copy this to your boss', text)
+        }
+      })
+    })()
+  </script>
 
   <style>
     /* Centered page intro: the shared .sec-head p is max-width:62ch with no
@@ -98,6 +141,13 @@ const breadcrumbJsonLd = {
     .cmp-scroll{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
     .cmp-note{margin-top:20px;text-align:center;font-size:13px;color:var(--muted-fg);padding:0 4px}
     .cmp-note a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
+
+    .boss-band{padding-top:8px;padding-bottom:0}
+    .boss-card{max-width:760px;margin:0 auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:22px 22px 18px}
+    .boss-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .boss-head h2{margin:10px 0 6px;font-size:clamp(1.25rem,3.5vw,1.6rem);letter-spacing:-.02em}
+    .boss-head p{margin:0;max-width:46ch;font-size:14px;color:var(--muted-fg)}
+    .boss-pre{margin:16px 0 0;padding:14px 16px;border-radius:10px;background:var(--bg-soft, rgba(127,127,127,.06));border:1px solid var(--border);font-size:13px;line-height:1.55;white-space:pre-wrap;text-wrap:pretty;color:var(--foreground)}
 
     .pfaq{max-width:760px;margin:36px auto 0;display:flex;flex-direction:column;gap:10px}
     .pfaq-item{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);overflow:hidden}

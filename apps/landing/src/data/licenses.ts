@@ -79,6 +79,23 @@ export function invoiceMailto(sku: LicenseSku, term: LicenseTerm): string {
   return `mailto:${LICENSE_SALES_EMAIL}?subject=${subject}&body=${body}`
 }
 
+/** Slack/email paste for the engineer who needs a signature. */
+export const bossPitch = `Subject: $499 so I stop SSHing into ClickHouse at 2am
+
+Hi —
+
+I already run chmonitor next to our ClickHouse. GPL-3.0, self-hosted, no license key, no SaaS, no phoning home.
+
+The Team license is $499/year for 3 hosts ($1,349 lifetime if finance hates renewals). Unlimited is $999/year. Polar takes the card; they email the receipt. There is nothing to paste into the app.
+
+What we get: a commercial invoice, priority email, and I stop writing Grafana panels that lie about system.parts.
+
+That's cheaper than one incident where someone asks "why is the merge queue 400" and I open eleven browser tabs.
+
+Please approve. I'll buy it here: https://chmonitor.dev/pricing/
+
+Thanks`
+
 export const licenseFaqs = [
   {
     q: 'The software is already free. Why buy a license?',

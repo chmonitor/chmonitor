@@ -1,5 +1,5 @@
 import { publicLicensedCompanies } from './licensed-companies'
-import { buyHref, invoiceMailto, paidLicenseSkus } from './licenses'
+import { bossPitch, buyHref, invoiceMailto, paidLicenseSkus } from './licenses'
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -32,6 +32,22 @@ describe('landing license offer', () => {
     )
     expect(paidLicenseSkus.map((s) => s.id)).toEqual(['team', 'unlimited'])
     expect(LICENSE_SKU_LIST).toHaveLength(3)
+  })
+
+  test('boss pitch is a paste-ready ask with Team price and no license key', () => {
+    expect(bossPitch).toContain('$499')
+    expect(bossPitch).toContain('https://chmonitor.dev/pricing/')
+    expect(bossPitch).toMatch(/no license key/i)
+    expect(bossPitch).toContain('Subject:')
+    const src = readFileSync(
+      join(landingRoot, 'src/pages/pricing.astro'),
+      'utf8'
+    )
+    expect(src).toContain('Copy this to your boss')
+    expect(src).toContain('bossPitch')
+    expect(src.indexOf('tell-your-boss')).toBeLessThan(
+      src.indexOf('pricing-faq')
+    )
   })
 
   test('invoice mailto is honor-system and asks for company + website', () => {
