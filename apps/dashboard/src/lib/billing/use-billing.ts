@@ -1,7 +1,8 @@
 /**
  * Client hooks for the billing surface.
  *
- * useBillingSubscription() reads the current plan; startCheckout()/openPortal()
+ * useBillingSubscription() is leftover (subscription route removed).
+ * Guest/usage still use GET /api/v1/billing/usage. startCheckout()/openPortal()
  * POST to the billing routes and redirect the browser to the Polar-hosted page.
  */
 import { useQuery } from '@tanstack/react-query'

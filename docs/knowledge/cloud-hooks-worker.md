@@ -312,8 +312,8 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CF_OBSERVABILITY_API_TOKEN`
   (token scope **Account → Workers Observability → Read**).
   `CHM_POLAR_LICENSE_*` + `CHM_POLAR_SERVER` come from
-  `apps/dashboard/.env.production` (CI injects them as wrangler `--var` on
-  the cloud-hooks deploy; locally `bun scripts/deploy-worker.ts cloud-hooks`).
+  `apps/cloud-hooks/.env.production` (deploy-worker overlays app env on
+  dashboard env; locally `bun scripts/deploy-worker.ts cloud-hooks`).
   Required for `GET /checkout/license`. Also used so license webhook products
   skip the Cloud plan path.
 - **Exception-scan config** (non-secret, injected at deploy via `--var`, all

@@ -81,9 +81,9 @@ cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
 Gate `ClerkSignInButton` behind `isClerkEnabled()`.
 
 **Cloud signed-in welcome:** connect a host immediately. There is no Polar
-plan picker and no `subscription_required` gate. Public paid checkout is
-self-host licenses (`/api/v1/billing/license-checkout` and
-chmonitor.dev/pricing). Host/seat counts are not enforced. OSS fails open.
+plan picker and no dashboard `/billing` page. Public paid checkout is
+self-host licenses on chmonitor.dev/pricing → hooks.chmonitor.dev/checkout/license.
+Host/seat counts are not enforced. OSS fails open.
 
 **"Try with sample ClickHouse" preset** — a DIFFERENT thing from the `demo` host
 above (server env-configured, cloud-only): a one-click preset any user (OSS or

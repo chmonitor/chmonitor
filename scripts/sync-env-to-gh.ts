@@ -80,7 +80,7 @@ const SECRET_KEYS = [
   // API calls; webhook secret verifies inbound subscription events. Production
   // uses the base names; preview/PR builds resolve the _TEST (sandbox) variants
   // (see set-secrets.ts resolveValue + cloudflare.yml). Non-secret Polar config
-  // (CHM_POLAR_SERVER, CHM_POLAR_LICENSE_*) lives in .env.production/.env.preview.
+  // Polar license product ids live in apps/cloud-hooks/.env.production.
   'POLAR_ACCESS_TOKEN',
   'POLAR_ACCESS_TOKEN_TEST',
   'POLAR_WEBHOOK_SECRET',

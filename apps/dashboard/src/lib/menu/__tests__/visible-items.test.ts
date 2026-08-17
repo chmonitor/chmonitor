@@ -85,30 +85,24 @@ describe('filterCloudOnly', () => {
   })
 })
 
-// Intent guard: Billing + Organization MUST be marked cloudOnly so every nav
-// surface (sidebar, command palette, …) hides them in self-host / OSS. If this
-// fails, someone added a cloud surface without the flag and self-hosters will
-// see non-functional SaaS menu items again.
+// Intent guard: Organization MUST be marked cloudOnly so every nav
+// surface (sidebar, command palette, …) hides it in self-host / OSS.
 describe('menu config cloud-only contract', () => {
   const find = (href: string) =>
     menuItemsConfig.find((item) => item.href === href)
-
-  test('Billing is cloud-only', () => {
-    expect(find('/billing')?.cloudOnly).toBe(true)
-  })
 
   test('Organization is cloud-only', () => {
     expect(find('/organization')?.cloudOnly).toBe(true)
   })
 
-  test('Billing + Organization are hidden when filtering the real config in OSS', () => {
+  test('Organization is hidden when filtering the real config in OSS', () => {
     const titles = filterCloudOnly(menuItemsConfig, false).map((i) => i.title)
-    expect(titles).not.toContain('Billing')
     expect(titles).not.toContain('Organization')
+    expect(titles).not.toContain('Billing')
   })
 })
 
-// Footer nav rows (Billing / Organization / About) render in the sidebar footer
+// Footer nav rows (Organization / About) render in the sidebar footer
 // (AppSidebar) instead of a labelled body group, but flow through the SAME
 // visibility pipeline. These guard the section wiring so the footer stays in
 // sync with menu.ts.
@@ -116,10 +110,10 @@ describe('menu config footer section', () => {
   const footerTitles = (items: MenuItem[]) =>
     items.filter((i) => i.section === 'footer').map((i) => i.title)
 
-  test('Billing, Organization, About are top-level footer items', () => {
+  test('Organization and About are top-level footer items', () => {
     const byHref = (href: string) =>
       menuItemsConfig.find((item) => item.href === href)
-    expect(byHref('/billing')?.section).toBe('footer')
+    expect(byHref('/billing')).toBeUndefined()
     expect(byHref('/organization')?.section).toBe('footer')
     expect(byHref('/about')?.section).toBe('footer')
   })
@@ -137,15 +131,14 @@ describe('menu config footer section', () => {
     expect(operations?.items?.some((i) => i.href === '/about')).toBe(false)
   })
 
-  test('OSS footer keeps About, drops cloud-only Billing/Organization', () => {
+  test('OSS footer keeps About, drops cloud-only Organization', () => {
     expect(footerTitles(filterCloudOnly(menuItemsConfig, false))).toEqual([
       'About',
     ])
   })
 
-  test('cloud footer surfaces Billing, Organization, About in order', () => {
+  test('cloud footer surfaces Organization, About in order', () => {
     expect(footerTitles(filterCloudOnly(menuItemsConfig, true))).toEqual([
-      'Billing',
       'Organization',
       'About',
     ])

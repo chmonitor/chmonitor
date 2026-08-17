@@ -1,8 +1,8 @@
 // Deploy manifest for scripts/deploy-worker.ts — declares which env vars and
 // secrets this worker needs so the unified deploy script never guesses.
 //
-// Non-secret vars come from apps/dashboard/.env.production(+.env.preview) —
-// same product→plan mapping the dashboard uses, so both Workers stay in sync.
+// Non-secret Polar license ids come from apps/cloud-hooks/.env.production
+// (overrides dashboard env). Dashboard does not ship Polar product IDs.
 // '*' suffix wildcard-matches every key with that prefix.
 export default {
   vars: [

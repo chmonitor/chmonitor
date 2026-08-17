@@ -27,7 +27,7 @@ import { Polar } from '@polar-sh/sdk'
 const here = dirname(fileURLToPath(import.meta.url))
 const dashboardRoot = join(here, '..')
 const repoRoot = join(dashboardRoot, '../..')
-const DASH_ENV_LOCAL = join(dashboardRoot, '.env.local')
+const HOOKS_ENV = join(repoRoot, 'apps/cloud-hooks/.env.production')
 
 function loadEnvFile(path: string): void {
   if (!existsSync(path)) return
@@ -180,13 +180,11 @@ async function main() {
       lines.push(`${envKey}=${id}`)
     }
   }
-  console.log(
-    '\n# Paste into apps/dashboard/.env.production (or .env.production.local):'
-  )
+  console.log('\n# Paste into apps/cloud-hooks/.env.production:')
   console.log(lines.join('\n'))
 
   const licenseLines = lines.filter((l) => l.startsWith('CHM_POLAR_LICENSE_'))
-  if (licenseLines.length) upsertEnvLocal(DASH_ENV_LOCAL, licenseLines)
+  if (licenseLines.length) upsertEnvLocal(HOOKS_ENV, licenseLines)
 }
 
 function upsertEnvLocal(path: string, lines: string[]): void {

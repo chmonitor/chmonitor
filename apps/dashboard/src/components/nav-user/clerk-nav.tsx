@@ -1,7 +1,6 @@
 import {
   Building2,
   ChevronsUpDown,
-  CreditCard,
   ExternalLink,
   Info,
   LogOut,
@@ -21,7 +20,6 @@ import { NavUserFooterRow } from '@/components/nav-user/nav-settings-button'
 import { useSettingsShortcut } from '@/components/nav-user/use-settings-shortcut'
 import { SettingsDialog } from '@/components/settings'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,32 +31,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useBillingSubscription } from '@/lib/billing/use-billing'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
 import { clearUserConnectionsCache } from '@/lib/hooks/use-user-connections'
-import { cn } from '@/lib/utils'
-
-/**
- * Vivid, brand-accented styling for a paid plan badge so it stands out in the
- * muted sidebar footer. Pro = amber→orange (brand), Max = violet→fuchsia, any
- * other paid tier falls back to the solid primary. `free` gets a muted badge
- * (clicking it still opens /billing to upgrade).
- */
-const PLAN_BADGE_STYLES: Record<string, string> = {
-  free: 'bg-muted text-muted-foreground shadow-none',
-  pro: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white dark:from-amber-500 dark:to-orange-600',
-  max: 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white dark:from-violet-600 dark:to-fuchsia-600',
-}
-
-function planBadgeClassName(plan: string): string {
-  return cn(
-    'border-transparent font-semibold uppercase tracking-wide shadow-sm',
-    PLAN_BADGE_STYLES[plan] ?? 'bg-primary text-primary-foreground'
-  )
-}
 
 /**
  * Clerk-integrated navigation user menu.
@@ -77,13 +54,6 @@ export function ClerkNavWrapper() {
   const { config } = useFeaturePermissions()
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
   const cloudMode = isCloudModeClient()
-  // Billing is cloud-only; gate the query so self-host / OSS never calls it.
-  const { data: subscription, isLoading: billingLoading } =
-    useBillingSubscription()
-  // Null while loading (avoid briefly flashing "free" before the real plan loads)
-  // and when not in cloud mode (self-host has no billing).
-  const planLabel =
-    cloudMode && !billingLoading ? (subscription?.planId ?? 'free') : null
   const openSettings = () => {
     if (canUseSettings) setSettingsOpen(true)
   }
@@ -113,9 +83,6 @@ export function ClerkNavWrapper() {
         canUseSettings={canUseSettings}
         onOpenSettings={openSettings}
       >
-        {/* Signed-out plans discovery is covered by the Billing footer row
-            (same /billing target) rendered by AppSidebar — no separate
-            "View plans" entry here, it duplicated that link. */}
         {!isSignedIn && (
           <SignInButton mode="modal">
             <SidebarMenuButton
@@ -167,21 +134,6 @@ export function ClerkNavWrapper() {
                   >
                     {user?.fullName ?? 'User'}
                   </span>
-                  {planLabel && (
-                    <Badge
-                      className={cn(
-                        'h-4 shrink-0 cursor-pointer px-1.5 text-[10px]',
-                        planBadgeClassName(planLabel)
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        window.location.href = '/billing'
-                      }}
-                      data-testid="nav-user-plan-badge"
-                    >
-                      {planLabel}
-                    </Badge>
-                  )}
                 </span>
                 <span
                   className="truncate text-xs text-muted-foreground"
@@ -226,16 +178,6 @@ export function ClerkNavWrapper() {
                             </span>
                           </span>
                         )}
-                        {planLabel && planLabel !== 'free' && (
-                          <Badge
-                            className={cn(
-                              'h-4 px-1.5 text-[10px]',
-                              planBadgeClassName(planLabel)
-                            )}
-                          >
-                            {planLabel}
-                          </Badge>
-                        )}
                       </span>
                     </div>
                   </div>
@@ -252,36 +194,16 @@ export function ClerkNavWrapper() {
                   <span>Account Settings</span>
                 </DropdownMenuItem>
                 {cloudMode && (
-                  <>
-                    <DropdownMenuItem
-                      className="flex items-center gap-2"
-                      onClick={() => (window.location.href = '/billing')}
-                      data-testid="nav-user-billing"
-                    >
-                      <CreditCard className="size-4" />
-                      <span>Billing & plan</span>
-                      {planLabel && planLabel !== 'free' && (
-                        <Badge
-                          className={cn(
-                            'ml-auto h-4 px-1.5 text-[10px]',
-                            planBadgeClassName(planLabel)
-                          )}
-                        >
-                          {planLabel}
-                        </Badge>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="flex items-center gap-2"
-                      onClick={() => (window.location.href = '/organization')}
-                      data-testid="nav-user-organization"
-                    >
-                      <Building2 className="size-4" />
-                      <span>
-                        {organization ? 'Organization' : 'Create a team'}
-                      </span>
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem
+                    className="flex items-center gap-2"
+                    onClick={() => (window.location.href = '/organization')}
+                    data-testid="nav-user-organization"
+                  >
+                    <Building2 className="size-4" />
+                    <span>
+                      {organization ? 'Organization' : 'Create a team'}
+                    </span>
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
                   className="flex items-center gap-2"

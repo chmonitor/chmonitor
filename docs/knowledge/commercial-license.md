@@ -62,10 +62,10 @@ $499 / $1,349 (3 hosts), Unlimited $999 / $2,999.
 - Lookup: `apps/landing/src/pages/license/lookup.astro`
 - Wall: `apps/landing/src/pages/customers.astro`
 - User docs: `docs/content/operate/advanced/commercial-license.mdx`
-- Cloud Polar path unchanged: [billing-checkout-flow](billing-checkout-flow.md)
+- Cloud Polar checkout is hooks/landing only: [billing-checkout-flow](billing-checkout-flow.md)
 
 ## Do not
 
 - Add license-key enforcement or fail-closed edition checks for paying.
-- Remove hosted Polar checkout until we explicitly sunset it.
+- Add Polar checkout or plan picker back into `apps/dashboard`.
 - Auto-list a company without `listPublic: true`.
