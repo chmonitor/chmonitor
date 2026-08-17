@@ -760,7 +760,7 @@ const ogImage = new URL(image, Astro.site).toString()
         render(false);
         start();
       });
-    })();
+    });
     // screenshot zoom (native <dialog>, no React)
     (function(){
       var dlg = document.getElementById('screenshot-zoom-dialog');

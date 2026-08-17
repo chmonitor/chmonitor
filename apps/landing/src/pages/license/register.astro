@@ -10,7 +10,11 @@ import {
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/Nav.astro'
 import Footer from '../../components/Footer.astro'
-import { invoiceMailto, paidLicenseSkus } from '../../data/licenses'
+import {
+  invoiceMailto,
+  licenseRegisterApiHref,
+  paidLicenseSkus,
+} from '../../data/licenses'
 import { btnPrimaryBlock, btnOutline } from '../../lib/button-classes'
 
 const params = Astro.url.searchParams
@@ -23,6 +27,9 @@ const term: LicenseTerm = rawTerm === 'lifetime' ? 'lifetime' : 'yearly'
 const sku = LICENSE_SKUS[skuId]
 const price = licensePriceUsd(sku, term)
 const mailto = invoiceMailto(sku, term)
+const paid = params.get('paid') === '1'
+const checkoutId = params.get('checkout_id') ?? ''
+const registerApi = licenseRegisterApiHref()
 ---
 <Base
   title="Register a chmonitor license"
@@ -36,7 +43,7 @@ const mailto = invoiceMailto(sku, term)
           <span class="eyebrow">License</span>
           <h1>Buy &amp; register</h1>
           <p>
-            {Astro.url.searchParams.get('paid') === '1'
+            {paid
               ? 'Payment received. Register your company name and website — honor system, no license key.'
               : 'Pay on Polar (Buy from the pricing page), then register your company. Or email hello@chmonitor.dev for an invoice.'}
           </p>
@@ -47,8 +54,14 @@ const mailto = invoiceMailto(sku, term)
           <span>{term === 'lifetime' ? 'Lifetime' : 'Yearly'} · ${price} USD · {sku.hosts === null ? 'unlimited hosts' : `${sku.hosts} hosts`}</span>
         </div>
 
-        <form class="reg" method="get" action={`mailto:${LICENSE_SALES_EMAIL}`}>
+        <div id="done" class="summary" hidden>
+          <strong>Registered</strong>
+          <span>We’ll keep this on file. Honor system — no license key. Email hello@chmonitor.dev if anything looks wrong.</span>
+        </div>
+
+        <form class="reg" method="get" action={`mailto:${LICENSE_SALES_EMAIL}`} id="reg-form">
           <input type="hidden" name="subject" value={`chmonitor ${sku.name} ${term} license`} />
+          <input type="hidden" name="checkout_id" value={checkoutId} />
           <label>
             Company name
             <input type="text" name="company" required maxlength="120" placeholder="Acme Analytics" />
@@ -85,11 +98,14 @@ const mailto = invoiceMailto(sku, term)
             Notes (PO number, VAT, host count if you already know)
             <textarea name="notes" rows="4" maxlength="2000"></textarea>
           </label>
-          <button class={btnPrimaryBlock} type="submit" id="send">Email hello@chmonitor.dev to purchase</button>
+          <button class={btnPrimaryBlock} type="submit" id="send">
+            {paid ? 'Register company' : `Email ${LICENSE_SALES_EMAIL} to purchase`}
+          </button>
         </form>
 
         <p class="alt">
           Prefer a pre-filled message? <a class={btnOutline} href={mailto}>Open invoice email</a>
+          <a class={btnOutline} href="/license/lookup">Look up an order</a>
         </p>
         <p class="trust">Honor system: we do not ship a license key or phone home. Use the host count you paid for. Community OSS remains unlimited and free.</p>
       </div>
@@ -109,20 +125,12 @@ const mailto = invoiceMailto(sku, term)
     .hint,.trust,.alt{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-top:12px}
     .alt{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
   </style>
-  <script is:inline>
+  <script is:inline define:vars={{ paid, registerApi }}>
     (function () {
-      var form = document.querySelector('.reg')
+      var form = document.getElementById('reg-form')
+      var done = document.getElementById('done')
       if (!form) return
-      form.addEventListener('submit', function (e) {
-        e.preventDefault()
-        var company = form.company.value.trim()
-        var website = form.website.value.trim()
-        var email = form.email.value.trim()
-        if (!company || !website) return
-        var sku = form.sku.value
-        var term = form.term.value
-        var list = form.list_public.checked ? 'yes' : 'no'
-        var notes = form.notes.value.trim()
+      function mailtoFallback(company, website, email, sku, term, list, notes) {
         var lines = [
           'New chmonitor license registration (honor system).',
           '',
@@ -133,9 +141,50 @@ const mailto = invoiceMailto(sku, term)
           'Term: ' + term,
           'List publicly: ' + list,
         ]
+        if (form.checkout_id && form.checkout_id.value) {
+          lines.push('Checkout: ' + form.checkout_id.value)
+        }
         if (notes) lines.push('Notes: ' + notes)
         var subject = encodeURIComponent('chmonitor license — ' + company + ' (' + sku + ' ' + term + ')')
         window.location.href = 'mailto:hello@chmonitor.dev?subject=' + subject + '&body=' + encodeURIComponent(lines.join('\n'))
+      }
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        var company = form.company.value.trim()
+        var website = form.website.value.trim()
+        var email = form.email.value.trim()
+        if (!company || !website) return
+        var sku = form.sku.value
+        var term = form.term.value
+        var list = form.list_public.checked ? 'yes' : 'no'
+        var notes = form.notes.value.trim()
+        var checkoutId = form.checkout_id ? form.checkout_id.value.trim() : ''
+        if (!paid) {
+          mailtoFallback(company, website, email, sku, term, list, notes)
+          return
+        }
+        fetch(registerApi, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            company: company,
+            website: website,
+            sku: sku,
+            term: term,
+            list_public: list === 'yes',
+            checkout_id: checkoutId || undefined,
+            email: email || undefined,
+            notes: notes || undefined,
+          }),
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('register failed')
+            form.hidden = true
+            if (done) done.hidden = false
+          })
+          .catch(function () {
+            mailtoFallback(company, website, email, sku, term, list, notes)
+          })
       })
     })()
   </script>

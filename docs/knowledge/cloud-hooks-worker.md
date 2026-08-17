@@ -18,7 +18,7 @@ tags:
     telemetry,
     issues,
   ]
-updated: 2026-08-12
+updated: 2026-08-17
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -253,7 +253,20 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
 - `webhook.ts` — `handlePolarWebhook`: `validateEvent` (injectable for tests) →
   core → `notify`. 403 + `signature_failure` alert on a bad signature; 202 on a
   handled event; unhandled types are acknowledged silently.
-- `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`, `/healthz`) +
+- `license-checkout.ts` — `GET /checkout/license?sku=team|unlimited&term=yearly|lifetime`.
+  Plain `fetch` to Polar `POST /v1/checkouts/` (no SDK). `success_url` is
+  `https://chmonitor.dev/license/register?sku=&term=&paid=1&checkout_id={CHECKOUT_ID}`
+  — Polar **requires** the `{CHECKOUT_ID}` placeholder and 422s without it.
+  302 to `checkout.url`. 400 bad sku/term, 501 missing token or
+  `CHM_POLAR_LICENSE_*`, 502 `{error, status}` on Polar failure (never throws).
+- `license-lookup.ts` — `GET /licenses/lookup?q=` honor-system order check
+  (Polar checkout id, then customer by email / id / query). 404 JSON if none.
+- `license-register.ts` — `POST /licenses/register` persists
+  `{company, website, sku, term, list_public, checkout_id?}` to
+  `CHM_HOOKS_KV` `license-reg:v1:{uuid}`; `GET /licenses/public` returns
+  opt-in rows for `/customers`.
+- `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`,
+  `/checkout/license`, `/licenses/*`, `/healthz`) +
   `scheduled` (daily cron → digest, weekly cron → weekly report, everything else
   → the ops sweep: probes, `runExceptions`, `runIssues`). `resolveGitHub(env,
   label)` centralizes credential checks, repo parsing, and token minting for the
@@ -299,7 +312,10 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CF_OBSERVABILITY_API_TOKEN`
   (token scope **Account → Workers Observability → Read**).
   `CHM_POLAR_LICENSE_*` + `CHM_POLAR_SERVER` come from
-  `apps/dashboard/.env.production` so license webhooks skip the Cloud plan path.
+  `apps/dashboard/.env.production` (CI injects them as wrangler `--var` on
+  the cloud-hooks deploy; locally `bun scripts/deploy-worker.ts cloud-hooks`).
+  Required for `GET /checkout/license`. Also used so license webhook products
+  skip the Cloud plan path.
 - **Exception-scan config** (non-secret, injected at deploy via `--var`, all
   optional with defaults): `CF_ACCOUNT_ID` (required to query — from
   `CLOUDFLARE_ACCOUNT_ID`), `GITHUB_REPOSITORY` (default `chmonitor/chmonitor`),

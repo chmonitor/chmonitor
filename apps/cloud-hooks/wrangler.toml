@@ -56,8 +56,8 @@
 # License product mapping (non-secret, set via CI `--var`, mirror
 # apps/dashboard/.env.production):
 #   CHM_POLAR_SERVER, CHM_POLAR_LICENSE_<SKU>_<TERM>
-# These are NOT required until the Polar endpoint is cut over to this worker
-# (plans/103 step 3-4); until then the worker is deployed but dormant.
+# Used by GET /checkout/license (Polar POST /v1/checkouts/). Polar's
+# success_url MUST include the literal `{CHECKOUT_ID}` placeholder.
 #
 # Deploy with the unified per-Worker script (reads ./deploy.config.ts for the
 # vars/secrets above, resolves them from the dashboard's
@@ -118,7 +118,9 @@ database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
 # (src/exceptions.ts) stores exception fingerprints (`exc-fp:v1:<fp>`) so a NEW
 # Worker exception is filed to GitHub exactly once; the Clerk webhook
 # (src/clerk-webhook.ts) stores per-user sign-in throttle keys
-# (`clerk-signin:v1:<user>`, 6h TTL) so an active user doesn't spam the chat.
+# (`clerk-signin:v1:<user>`, 6h TTL) so an active user doesn't spam the chat;
+# license registration (`license-register.ts`) stores `license-reg:v1:<uuid>`
+# plus the opt-in public index `license-public:v1`.
 # Absent → probes fall back to per-run state, the exception scan leans on its
 # GitHub-search fallback, and sign-in notifications are unthrottled.
 # Follows the CHM_ binding-naming rule (like CHM_CLOUD_D1).
