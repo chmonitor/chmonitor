@@ -17,11 +17,13 @@ import { isAnyRouterAutoModelId } from '@/lib/ai/anyrouter-dynamic-models'
 /** Default daily message cap for anonymous Cloud visitors. ≤ Free (5). */
 export const GUEST_AI_REQUESTS_PER_DAY = 3
 
-/** Guests share the deploy AnyRouter key; default to top tool-capable models. */
-export const GUEST_DEFAULT_AGENT_MODEL = 'anyrouter:auto'
+/** Guests share the deploy AnyRouter key. Prefer a known tool-capable model
+ *  — `anyrouter:auto` has routed to providers that 402 on large max_tokens. */
+export const GUEST_DEFAULT_AGENT_MODEL = 'anyrouter:meituan/longcat-2.0'
 
 const GUEST_ALLOWED_MODELS = new Set([
   GUEST_DEFAULT_AGENT_MODEL,
+  'anyrouter:auto',
   'anyrouter/free',
   'anyrouter:anyrouter/free',
 ])

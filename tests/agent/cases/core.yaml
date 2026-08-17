@@ -1,7 +1,8 @@
 # Core goldens — tool-first operating rules. Cheap enough for every prompt PR.
-# JS regex: do not use (?i) or unescaped `[`. DefaultTest already forbids `[error:`.
 - description: 'Greeting — replies without claiming a mutation'
   tags: [core]
+  metadata:
+    covers: []
   vars:
     prompt: 'Hello, what can you help me with?'
   assert:
@@ -19,6 +20,8 @@
 
 - description: 'Grounding — version must come from a tool'
   tags: [core]
+  metadata:
+    covers: [get_metrics]
   vars:
     prompt: 'What ClickHouse version is this server running?'
   assert:
@@ -33,6 +36,8 @@
 
 - description: 'Databases — list_databases then answer'
   tags: [core]
+  metadata:
+    covers: [list_databases, list_tables]
   vars:
     prompt: 'What databases are available and which ones have the most tables?'
   assert:
@@ -46,6 +51,8 @@
 
 - description: 'Slow queries — dedicated primitive'
   tags: [core]
+  metadata:
+    covers: [get_slow_queries]
   vars:
     prompt: 'What are the slowest queries in the last hour?'
   assert:
@@ -58,6 +65,8 @@
 
 - description: 'Act, do not stall — disk usage'
   tags: [core]
+  metadata:
+    covers: [get_disk_usage]
   vars:
     prompt: 'Show disk usage for this server'
   assert:

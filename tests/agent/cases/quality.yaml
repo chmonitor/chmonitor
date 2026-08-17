@@ -1,6 +1,8 @@
 # Answer quality — llm-rubric heavy. Tag `quality`.
 - description: 'Quality — why is my database slow'
   tags: [quality]
+  metadata:
+    covers: [query]
   vars:
     prompt: 'Why is my database slow?'
   assert:
