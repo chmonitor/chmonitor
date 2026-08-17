@@ -102,7 +102,11 @@ export function getAllSkills(): Skill[] {
     SKILLS.map((s: Skill) => [s.name, { ...s, source: 'builtin' as const }])
   )
 
+  // Filesystem skills may include unrelated dirs (video, billing). Only
+  // override builtin names — do not surface unregistered skill folders.
+  const allow = new Set(SKILLS.map((s: Skill) => s.name))
   for (const skill of loadDynamicSkills()) {
+    if (!allow.has(skill.name)) continue
     merged.set(skill.name, skill)
   }
 

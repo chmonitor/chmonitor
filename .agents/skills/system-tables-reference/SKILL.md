@@ -19,7 +19,7 @@ and version-aware:
 | What is running now? | `get_running_queries` |
 | Slowest finished queries? | `get_slow_queries` |
 | Recent failures/errors? | `get_failed_queries` |
-| Heaviest queries by memory/bytes/duration? | `get_expensive_queries` |
+| Heaviest queries by memory/bytes/duration? | `list_slow_query_patterns` / `get_slow_queries` |
 | Active merges? | `get_merge_status` |
 | Replication health? | `get_replication_status` |
 | Disk space? | `get_disk_usage` |
@@ -116,14 +116,14 @@ One row per mutation. Columns: `database`, `table`, `mutation_id`, `command`,
 `latest_failed_part`, `latest_fail_time`, `latest_fail_reason`.
 
 - Stuck mutation = `is_done = 0` with a non-empty `latest_fail_reason`.
-- Prefer the `get_mutations` tool. `parts_to_do > 0` means still running.
+- Use `query` on `system.mutations`. `parts_to_do > 0` means still running.
 
 ## system.replication_queue — pending replication tasks
 
 Columns: `database`, `table`, `type`, `create_time`, `num_tries`,
 `last_exception`, `last_attempt_time`, `num_postponed`, `postpone_reason`,
 `node_name`, `is_currently_executing`. High `num_tries` + `last_exception`
-signals a stuck entry. Prefer the `get_replication_queue` tool.
+signals a stuck entry. Prefer `get_replication_status`, then `query` `system.replication_queue`.
 
 ## system.disks — storage devices
 
@@ -135,22 +135,22 @@ Prefer the `get_disk_usage` tool.
 
 Columns: `database`, `table`, `partition_id`, `name`, `disk`, `reason`,
 `bytes_on_disk`. A non-null `reason` (e.g. `broken`, `unexpected`) flags parts
-that won't be merged. Prefer the `get_detached_parts` tool.
+that won't be merged. Query `system.detached_parts` with `query` (no dedicated tool).
 
 ## system.settings vs system.merge_tree_settings — configuration
 
 - `system.settings`: session/server settings. Columns `name`, `value`,
   `changed`, `default`, `description`, `type`, `readonly`. Filter `changed = 1`
-  for non-default values. Prefer the `get_settings` tool.
-- `system.merge_tree_settings`: MergeTree engine settings, same columns. Prefer
-  the `get_mergetree_settings` tool.
+  for non-default values. Query `system.settings` with `query` (no dedicated tool).
+- `system.merge_tree_settings`: MergeTree engine settings, same columns. Query
+  `system.merge_tree_settings` with `query`.
 
 ## system.zookeeper / Keeper — coordination
 
 `system.zookeeper` is an **optional** table that only exists when ZooKeeper or
 ClickHouse Keeper is configured. Querying it **requires a `path` filter**, e.g.
 `SELECT name, value, ctime, mtime FROM system.zookeeper WHERE path = '/'`.
-Without `WHERE path = ...` it errors. Prefer the `get_zookeeper_info` tool. If
+Without `WHERE path = ...` it errors. Query `system.zookeeper` with a `path` filter. If
 the query fails with "Unknown table", Keeper is not configured.
 
 ## Users, roles & grants — access control
@@ -162,8 +162,8 @@ the query fails with "Unknown table", Keeper is not configured.
   `table`, `column`, `is_partial_revoke`, `grant_option`.
 - `system.role_grants`: `user_name`, `role_name`, `granted_role_name`.
 - `currentUser()` returns the connected user; `system.session_log` (optional)
-  has login history. Prefer the `get_users_and_roles` / `get_login_attempts`
-  tools.
+  has login history. Query `system.users` / `system.grants` / `system.session_log`
+  after `get_table_schema`.
 
 ## system.metric_log & system.asynchronous_metric_log — historical metrics
 
@@ -176,8 +176,8 @@ over time rather than instantaneous values.
 
 Columns: `entry`, `host_name`, `query`, `status`, `cluster`, `initiator`,
 `query_create_time`, `query_finish_time`, `exception_code`. `status = 'Failed'`
-or a non-zero `exception_code` flags a failed distributed DDL. Prefer the
-`get_distributed_ddl_queue` tool.
+or a non-zero `exception_code` flags a failed distributed DDL. Query
+`system.distributed_ddl_queue` with `query`.
 
 ## Recovery Rules
 
