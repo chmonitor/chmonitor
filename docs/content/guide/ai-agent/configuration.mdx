@@ -120,6 +120,7 @@ Extra models are appended after the built-in registry. If an extra entry shares 
 | `CHM_FEATURE_AGENT_ACCESS` | `public` | Set to `authenticated` to require login before using the agent. |
 | `AGENT_API_TOKEN` | — | Shared Bearer token accepted by `POST /api/v1/agent`. |
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | When `true`, enables `optimize_table`, `kill_query`, and `kill_mutation`. Keep off unless the ClickHouse user is trusted. |
+| `CHM_AGENT_FIRECRAWL_MCP` | `true` | Connect Firecrawl's hosted MCP (no API key) on every agent request. Set `false` to disable. |
 | `RATE_LIMIT_AGENT_PER_MIN` | `10` | Max `POST /api/v1/agent` requests per minute, applied per signed-in identity and per IP. |
 | `RATE_LIMIT_AGENT_GUEST_PER_MIN` | `5` | Cloud-only tighter per-guest identity limit (key `agent:guest:guest:<hash>`). OSS anonymous callers stay IP-only. |
 | `CHM_GUEST_AI_REQUESTS_PER_DAY` | `3` | Cloud-only daily AI messages for anonymous visitors. Tracked in D1 `ai_usage_daily` per `guest:<ip-hash>`. Signed-in users keep their plan cap (Free 5 / Pro 100 / …). OSS is not gated. |
@@ -216,6 +217,13 @@ Leave `AGENT_ENABLE_CONTROL_TOOLS=false` unless the ClickHouse user is trusted �
 it enables mutating tools (`optimize_table`, `kill_query`, `kill_mutation`). A
 `readonly = 1` user is a second line of defense even if it is ever turned on.
 </Callout>
+
+### Built-in Firecrawl MCP
+
+The agent connects Firecrawl's hosted MCP (`https://mcp.firecrawl.dev/v2/mcp`)
+on every request. No API key is required for scrape, search, and parse (rate-
+limited). Set `CHM_AGENT_FIRECRAWL_MCP=false` to disable. Register the same
+URL with a bearer token to override the built-in server.
 
 ## Conversation persistence
 

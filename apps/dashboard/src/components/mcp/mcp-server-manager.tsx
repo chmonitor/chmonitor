@@ -49,6 +49,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import {
+  MCP_SERVER_TEMPLATES,
+  type McpServerTemplate,
+} from '@/lib/ai/agent/mcp/server-templates'
+import {
   type CreateMcpServerInput,
   McpRegistryRequestError,
   testMcpConnection,
@@ -59,49 +63,6 @@ import {
   usePatchMcpServer,
 } from '@/lib/swr/use-mcp-registry'
 import { cn } from '@/lib/utils'
-
-// ---------------------------------------------------------------------------
-// Template library — starter presets. The Test button is the source of truth;
-// confirm the exact endpoint/region for your account before saving.
-// ---------------------------------------------------------------------------
-
-interface ServerTemplate {
-  id: string
-  label: string
-  url: string
-  transport: McpTransport
-  authKind: McpAuthKind
-  authHeaderName?: string
-  hint: string
-}
-
-const TEMPLATES: ServerTemplate[] = [
-  {
-    id: 'github',
-    label: 'GitHub',
-    url: 'https://api.githubcopilot.com/mcp/',
-    transport: 'http',
-    authKind: 'bearer',
-    hint: 'Use a GitHub personal access token as the bearer token.',
-  },
-  {
-    id: 'slack',
-    label: 'Slack',
-    url: 'https://mcp.slack.com/mcp',
-    transport: 'http',
-    authKind: 'bearer',
-    hint: 'Provide your Slack MCP bearer token (verify your workspace URL).',
-  },
-  {
-    id: 'datadog',
-    label: 'Datadog',
-    url: 'https://mcp.datadoghq.com/api/unstable/mcp-server/mcp',
-    transport: 'http',
-    authKind: 'header',
-    authHeaderName: 'DD-API-KEY',
-    hint: 'Send your Datadog API key in the DD-API-KEY header.',
-  },
-]
 
 // ---------------------------------------------------------------------------
 // Badges
@@ -275,7 +236,7 @@ function AddServerForm({ onClose }: { onClose: () => void }) {
     setTestError(null)
   }
 
-  const applyTemplate = (t: ServerTemplate) => {
+  const applyTemplate = (t: McpServerTemplate) => {
     setForm({
       name: t.label,
       url: t.url,
@@ -347,7 +308,7 @@ function AddServerForm({ onClose }: { onClose: () => void }) {
             Start from a template
           </Label>
           <div className="flex flex-wrap gap-1.5">
-            {TEMPLATES.map((t) => (
+            {MCP_SERVER_TEMPLATES.map((t) => (
               <Button
                 key={t.id}
                 type="button"
