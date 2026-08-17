@@ -607,10 +607,7 @@ export const backupsConfig: QueryConfig = {
 
 ### Optional Environment Variables
 
-- `CLICKHOUSE_NAME` - Custom names for hosts
-- `CLICKHOUSE_MAX_EXECUTION_TIME` - Query timeout (default: 60s)
-- `VITE_TELEMETRY_ENABLED` - Enable opt-in product telemetry (off by default)
-- `VITE_DEPLOY_TARGET` - Deployment target dimension for telemetry (`docker|helm|cf|dev|unknown`)
+See `apps/dashboard/.env.example` and `docs/content/reference/environment-variables.mdx`. Set `CHM_*`, not `VITE_*`.
 
 ## Common Tasks
 

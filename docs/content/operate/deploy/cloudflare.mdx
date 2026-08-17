@@ -20,7 +20,7 @@ The dashboard app (`apps/dashboard`) uses the `@cloudflare/vite-plugin` to build
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chmonitor/chmonitor/tree/main/apps/dashboard)
 
-This deploys the `apps/dashboard` worker (TanStack Start). You will be prompted to connect your Cloudflare account and configure variables. See the [environment variable reference](#configure) below and the [dashboard README](https://github.com/chmonitor/chmonitor/tree/main/apps/dashboard#deploy-your-own) for the full variable list.
+This deploys the `apps/dashboard` worker. Set the three ClickHouse vars when prompted. Full list: [Environment variables](/reference/environment-variables).
 
 ## Setup
 
@@ -75,10 +75,10 @@ There are two kinds of variables — mixing them up is the most common source of
 
 | Kind | Where to set | Who reads it | Example |
 |---|---|---|---|
-| **Build-time client vars** | CI env / shell before `pnpm run build` | Browser JS (VITE-inlined) | `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` (derived from `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY`) |
-| **Runtime Worker vars** | `wrangler.toml` `[vars]` or `wrangler secret put` | Worker process only | `CLICKHOUSE_HOST`, `LLM_API_KEY`, `CLERK_SECRET_KEY` |
+| **Build-time** | CI / shell before `pnpm run build` | Browser (derived `VITE_*`) | `CHM_AUTH_PROVIDER`, `CHM_CLERK_PUBLISHABLE_KEY` |
+| **Runtime** | `.env.production` (hosted) or `wrangler secret put` | Worker | `CLICKHOUSE_HOST`, `LLM_API_KEY`, `CLERK_SECRET_KEY` |
 
-`VITE_*` vars are baked into the JS bundle at build time. Setting them in `wrangler.toml [vars]` has no effect — they must be in the environment when `pnpm run build` runs (e.g. CI secrets).
+Set `CHM_*` once. Do not also set `VITE_*`. Hosted dashboard `wrangler.toml` has no `[vars]` block — edit `.env.production`.
 
 <Callout type="info" title="One canonical name">
 You usually don't set `VITE_*` directly. Set the canonical `CHM_*` name (e.g. `CHM_AUTH_PROVIDER`) in the build environment and `vite.config.ts` derives the matching `VITE_*`. A dual-surface setting must be present at build time (so the `VITE_*` inlines) **and** as a runtime `[var]` (so the server reads `CHM_*`) — same name, both places. See [One canonical name per setting](/reference/environment-variables#one-canonical-name-per-setting).
@@ -86,46 +86,15 @@ You usually don't set `VITE_*` directly. Set the canonical `CHM_*` name (e.g. `C
 
 Runtime Worker vars (`wrangler.toml [vars]` and secrets) are never visible in the browser.
 
-## wrangler.toml
-
-Non-secret runtime vars go in `[vars]`:
-
-```toml
-name = "chmonitor"
-main = "@tanstack/react-start/server-entry"
-compatibility_date = "2026-05-28"
-compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
-
-[observability]
-enabled = true
-
-[vars]
-CLICKHOUSE_USER = "monitoring"
-CLICKHOUSE_NAME = "prod"
-CLICKHOUSE_MAX_EXECUTION_TIME = "30"
-CLICKHOUSE_TZ = "UTC"
-CLICKHOUSE_POOL_SIZE = "10"
-CLOUDFLARE_WORKERS = "1"
-HEALTH_ALERT_ENABLED = "true"
-HEALTH_ALERT_MIN_SEVERITY = "warning"
-CONVERSATION_STORE_BACKEND = "d1"
-CHM_AUTH_PROVIDER = "none"
-LLM_API_BASE = "https://openrouter.ai/api/v1"
-LLM_MODEL = "openrouter/free"
-AGENT_ENABLE_CONTROL_TOOLS = "false"
-```
-
-Secrets go via `wrangler secret put` (never in `wrangler.toml`):
+## Secrets
 
 ```bash
 wrangler secret put CLICKHOUSE_HOST
 wrangler secret put CLICKHOUSE_PASSWORD
-wrangler secret put CLERK_SECRET_KEY
-wrangler secret put CHM_PROXY_AUTH_SECRET
-wrangler secret put LLM_API_KEY
-wrangler secret put CRON_SECRET
-wrangler secret put CHM_API_KEY_SECRET
 ```
+
+Optional secrets (`CLERK_SECRET_KEY`, `ANYROUTER_API_KEY`, `CRON_SECRET`, …):
+see [Environment variables](/reference/environment-variables).
 
 <Callout type="info" title="Redeploy after secret changes">
 After `wrangler secret put`, redeploy so the Worker picks up the change: `pnpm run cf:deploy`.
@@ -133,245 +102,11 @@ After `wrangler secret put`, redeploy so the Worker picks up the change: `pnpm r
 
 ## Configure
 
-### ClickHouse connection
-
-```bash
-wrangler secret put CLICKHOUSE_HOST    # https://clickhouse.example.com:8443
-wrangler secret put CLICKHOUSE_PASSWORD
-```
-
-```toml
-[vars]
-CLICKHOUSE_USER = "monitoring"
-CLICKHOUSE_NAME = "prod"
-```
-
-#### Multiple hosts
-
-`CLICKHOUSE_HOST` defines the host count. `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` may be a single value (applied to all hosts) or one value per host position. `CLICKHOUSE_NAME` is optional:
-
-```bash
-wrangler secret put CLICKHOUSE_HOST     # https://ch1:8443,https://ch2:8443
-wrangler secret put CLICKHOUSE_PASSWORD # pass1,pass2
-```
-
-```toml
-[vars]
-CLICKHOUSE_USER = "monitoring,monitoring"
-CLICKHOUSE_NAME = "shard-1,shard-2"
-```
-
-### Query / pool tuning
-
-```toml
-[vars]
-CLICKHOUSE_MAX_EXECUTION_TIME = "30"
-CLICKHOUSE_TZ = "UTC"
-CLICKHOUSE_DATABASE = "system"
-CLICKHOUSE_POOL_SIZE = "10"
-CLICKHOUSE_POOL_TIMEOUT = "300000"
-CLICKHOUSE_POOL_CLEANUP_INTERVAL = "60000"
-```
-
-### Feature permissions
-
-**Via wrangler.toml vars:**
-
-```toml
-[vars]
-CHM_DISABLED_FEATURES = "peerdb,actions"
-CHM_AUTH_REQUIRED_FEATURES = "agent,settings,mcp"
-CHM_FEATURE_AGENT_ACCESS = "authenticated"
-CHM_FEATURE_SETTINGS_ENABLED = "false"
-```
-
-**Via a mounted config file:** not directly supported in Workers — use env vars instead.
-
-Feature ids: `overview`, `agent`, `insights`, `health`, `queries`, `tables`, `metrics`, `dashboard`, `security`, `logs`, `settings`, `billing`, `cluster`, `operations`, `actions`, `mcp`, `peerdb`, `docs`, `about`.
-
-### Authentication
-
-<Tabs items={["None (default)", "API key layer", "Clerk", "Proxy — CF Access", "Proxy — trusted header"]}>
-<Tab value="None (default)">
-
-```toml
-[vars]
-CHM_AUTH_PROVIDER = "none"
-```
-
-</Tab>
-<Tab value="API key layer">
-
-```bash
-wrangler secret put CHM_API_KEY_SECRET
-```
-
-</Tab>
-<Tab value="Clerk">
-
-Set the canonical names at build time in CI (the client `VITE_AUTH_PROVIDER` / `VITE_CLERK_PUBLISHABLE_KEY` derive from them):
-
-```bash
-# In your CI environment / GitHub Actions secrets, before `pnpm run build`:
-CHM_AUTH_PROVIDER=clerk
-CHM_CLERK_PUBLISHABLE_KEY=pk_live_...   # public publishable key
-```
-
-Set the server secret at runtime, plus `CHM_AUTH_PROVIDER` as a runtime `[var]` so the Worker reads it too:
-
-```bash
-wrangler secret put CLERK_SECRET_KEY   # sk_live_...
-```
-
-```toml
-[vars]
-CHM_AUTH_PROVIDER = "clerk"
-```
-
-</Tab>
-<Tab value="Proxy — CF Access">
-
-Native option. Put chmonitor behind a Cloudflare Access application. The Worker verifies `Cf-Access-Jwt-Assertion` JWT from the Access JWKS.
-
-```toml
-[vars]
-CHM_AUTH_PROVIDER = "proxy"
-CHM_CF_ACCESS_TEAM_DOMAIN = "https://yourteam.cloudflareaccess.com"
-CHM_CF_ACCESS_AUD = "<audience-tag>"
-```
-
-</Tab>
-<Tab value="Proxy — trusted header">
-
-```toml
-[vars]
-CHM_AUTH_PROVIDER = "proxy"
-CHM_PROXY_AUTH_HEADER = "X-Forwarded-User"
-CHM_PROXY_SHARED_SECRET_HEADER = "X-Chm-Proxy-Secret"
-```
-
-```bash
-wrangler secret put CHM_PROXY_AUTH_SECRET
-```
-
-Without `CHM_PROXY_AUTH_SECRET`, trusted-header auth is disabled.
-
-</Tab>
-</Tabs>
-
-### AI agent
-
-Set at runtime via secrets:
-
-```bash
-wrangler secret put LLM_API_KEY
-wrangler secret put AGENT_API_TOKEN
-```
-
-```toml
-[vars]
-LLM_API_BASE = "https://openrouter.ai/api/v1"
-LLM_MODEL = "openrouter/free"
-AGENT_ENABLE_CONTROL_TOOLS = "false"
-```
-
-Never put `LLM_API_KEY` in a `VITE_*` var or `[vars]` — use `wrangler secret put`.
-
-### Conversation store
-
-Server-side persistence requires `CHM_FEATURE_CONVERSATION_DB=true` set **at build time** (in CI before `pnpm run build`; the client `VITE_FEATURE_CONVERSATION_DB` derives from it), plus Clerk auth. The backend is then selected at runtime.
-
-<Tabs items={["D1 (recommended)", "AgentState", "Postgres"]}>
-<Tab value="D1 (recommended)">
-
-Cloudflare-native. Create a D1 database:
-
-```bash
-wrangler d1 create chmonitor-conversations
-```
-
-Add the binding to `wrangler.toml`:
-
-```toml
-[[d1_databases]]
-binding = "CHM_CLOUD_D1"
-database_name = "chmonitor-conversations"
-database_id = "<database-id-from-above>"
-```
-
-```toml
-[vars]
-CONVERSATION_STORE_BACKEND = "d1"
-CHM_CLOUD_D1_DATABASE_ID = "<database-id>"
-```
-
-In CI, also set `CHM_FEATURE_CONVERSATION_DB=true` before the build step (the client `VITE_FEATURE_CONVERSATION_DB` derives from it):
-
-```bash
-# In your CI environment or GitHub Actions secrets:
-CHM_FEATURE_CONVERSATION_DB=true
-```
-
-Run migrations:
-
-```bash
-pnpm run cf:migrate-conversations
-```
-
-</Tab>
-<Tab value="AgentState">
-
-Cloud-hosted:
-
-```toml
-[vars]
-CONVERSATION_STORE_BACKEND = "agentstate"
-```
-
-```bash
-wrangler secret put AGENTSTATE_API_KEY
-```
-
-</Tab>
-<Tab value="Postgres">
-
-Also available on Cloudflare Workers via outbound HTTP (`DATABASE_URL` runtime secret).
-
-</Tab>
-</Tabs>
-
-### Health alerting — Cron Trigger
-
-Add a Cron Trigger in `wrangler.toml`:
-
-```toml
-[triggers]
-crons = ["*/5 * * * *"]
-```
-
-The Worker calls `GET /api/cron/health-sweep` every 5 minutes. Protect the endpoint:
-
-```bash
-wrangler secret put CRON_SECRET
-wrangler secret put HEALTH_ALERT_WEBHOOK_URL
-```
-
-```toml
-[vars]
-HEALTH_ALERT_ENABLED = "true"
-HEALTH_ALERT_MIN_SEVERITY = "warning"
-```
-
-### Branding
-
-Set these in CI before running `pnpm run build` (they are baked into the JS bundle):
-
-```bash
-VITE_TITLE_SHORT=MyCluster
-VITE_LOGO=/logo.png
-VITE_MEASUREMENT_ID=G-XXXXXXXXXX
-VITE_POSTHOG_KEY=phc_...
-```
+Required: `CLICKHOUSE_HOST`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`.
+
+Template: [`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/.env.example).
+Full names: [Environment variables](/reference/environment-variables).
+Auth: [Authentication](/operate/authentication). Conversations: [Conversation storage](/operate/advanced/agent-conversation-storage).
 
 ## Deploy
 
@@ -384,7 +119,7 @@ This runs: `vite build` (produces the Cloudflare Workers bundle) → `wrangler d
 **CI (GitHub Actions):** push to `main` triggers `.github/workflows/cloudflare.yml`. Set `CLOUDFLARE_API_TOKEN` as a repository secret, plus `CLICKHOUSE_*`, and any canonical build-time vars (e.g. `CHM_AUTH_PROVIDER`, `CHM_CLERK_PUBLISHABLE_KEY` — the client `VITE_*` derive from them).
 
 <Callout type="info" title="This repo's hosted deploy uses .env.production">
-The chmonitor monorepo's own `wrangler.toml` declares **no** `[vars]`. Its non-secret hosted config lives in committed `apps/dashboard/.env.production` (+ `.env.preview` for PR previews), which feeds both the client build and the Worker runtime vars (injected by `scripts/patch-wrangler-env.ts`). If you fork this repo, edit `.env.production` rather than re-adding a `[vars]` block. When deploying your own standalone Worker from scratch, the `[vars]` examples above are the simplest path.
+Dashboard `wrangler.toml` declares **no** `[vars]`. Non-secret hosted config lives in `apps/dashboard/.env.production` (+ `.env.preview`). Edit that file — do not re-add `[vars]`.
 </Callout>
 
 ### Preview locally

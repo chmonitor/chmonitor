@@ -335,7 +335,7 @@ cron:
       cpu: 100m
       memory: 64Mi
 
-# Extra environment variables injected into the container, e.g.
+# Extra env (canonical CHM_* names from apps/dashboard/.env.example).
 # extraEnv:
 #   - name: CLICKHOUSE_NAME
 #     value: "prod"

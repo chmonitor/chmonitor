@@ -5,9 +5,17 @@ icon: Variable
 
 # Environment Variables
 
-This is the complete list of every supported environment variable, grouped by
-category. Start with the two rules that govern how variables are named and when
-they take effect, then jump to the category you need.
+Self-hosters need three vars. Everything else is optional and listed here.
+
+```bash
+CLICKHOUSE_HOST=http://localhost:8123
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=
+```
+
+Copy [`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/.env.example)
+for a short template. Polar license checkout belongs on landing / `apps/cloud-hooks`,
+not the standalone monitor.
 
 ## One canonical name per setting
 
@@ -44,23 +52,9 @@ single name in both places.
   (fail-closed: both halves degrade to OSS).
 </Callout>
 
-### Client variable prefix by app
-
-Browser-exposed variables are **build-time inlined**. The prefix depends on which
-app you run:
-
-| App | Client prefix | Example |
-|---|---|---|
-| `apps/dashboard` (TanStack Start, current) | `VITE_*` | `VITE_AUTH_PROVIDER` |
-| Legacy Next.js (v0.2 and earlier) | `NEXT_PUBLIC_*` | `NEXT_PUBLIC_AUTH_PROVIDER` |
-
-Tables below show the explicit `VITE_*` form for clarity, but you usually only set
-the canonical `CHM_*` name (above) and let the `VITE_*` derive. If you are
-migrating from v0.2, substitute `NEXT_PUBLIC_` wherever you see `VITE_`.
-Server-side variables (`CLICKHOUSE_*`, `CHM_*`, `LLM_*`, `CLERK_SECRET_KEY`, etc.)
-are the same.
-
-Authoritative example: [`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/.env.example).
+Operators set `CHM_*` (and `CLICKHOUSE_*` / third-party secrets). Do **not** also
+set `VITE_*`. The build derives client values. Legacy `NEXT_PUBLIC_*` still works
+as a fallback — see [Migrate to v0.3](/reference/migrating/v0-3).
 
 ## Build-time vs runtime
 
@@ -68,7 +62,7 @@ There are two categories of environment variables:
 
 | Category | When resolved | How to set | Example |
 |---|---|---|---|
-| **Build-time** | When `pnpm run build` runs | CI environment / shell before the build | `VITE_FEATURE_CONVERSATION_DB`, `VITE_AUTH_PROVIDER`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| **Build-time** | When `pnpm run build` runs | CI / shell before the build | `CHM_FEATURE_CONVERSATION_DB`, `CHM_AUTH_PROVIDER`, `CHM_CLERK_PUBLISHABLE_KEY` |
 | **Runtime** | When the server process starts per request | `wrangler.toml [vars]`, `wrangler secret put`, Docker `-e`, k8s ConfigMap/Secret | `CLICKHOUSE_HOST`, `CONVERSATION_STORE_BACKEND` |
 
 <Callout type="warn" title="VITE_* variables are build-time only">
@@ -82,13 +76,13 @@ Worker or Node process handles a request.
 
 ## ClickHouse connection
 
-Required. Set at least `CLICKHOUSE_HOST`.
+Required for a working dashboard: host, user, password. Name is optional.
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `CLICKHOUSE_HOST` | Yes | — | Comma-separated ClickHouse host URLs, e.g. `http://ch-1:8123,http://ch-2:8123`. |
-| `CLICKHOUSE_USER` | No | `default` | Comma-separated usernames, one per host. |
-| `CLICKHOUSE_PASSWORD` | No | `""` | Comma-separated passwords, one per host. |
+| `CLICKHOUSE_USER` | Yes | `default` | Comma-separated usernames, one per host. |
+| `CLICKHOUSE_PASSWORD` | Yes | `""` | Comma-separated passwords, one per host. |
 | `CLICKHOUSE_NAME` | No | — | Comma-separated display labels shown in the host selector. |
 
 `CLICKHOUSE_HOST` defines the host count. `CLICKHOUSE_USER` and
@@ -520,19 +514,28 @@ PEERDB_API_URL=http://localhost:8113
 
 ## Analytics & branding
 
-All client-side, all build-time. `VITE_*` for TanStack app; `NEXT_PUBLIC_*` for
-legacy Next.js.
+Set the canonical `CHM_*` names. Client `VITE_*` is derived at build time.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `VITE_TITLE_SHORT` | `ClickHouse` | Browser tab title (short form). |
-| `VITE_LOGO` | — | Custom logo URL shown in the header. |
-| `VITE_AUTOCOMPLETE_LIMIT` | — | Max results in autocomplete dropdowns. |
-| `VITE_MEASUREMENT_ID` | — | Google Analytics measurement ID (`G-...`). |
-| `VITE_SELINE_ENABLED` | `false` | Enable Seline analytics. |
-| `VITE_VERCEL_ANALYTICS` | `false` | Enable Vercel Analytics. |
-| `VITE_ANALYTICS_KEY` (derived from `CHM_ANALYTICS_KEY`) | — | PostHog project key for opt-in [Product Analytics](/operate/advanced/product-analytics) (SaaS funnel tracking). Empty = disabled. |
-| `VITE_ANALYTICS_HOST` (derived from `CHM_ANALYTICS_HOST`) | `https://us.i.posthog.com` | PostHog ingest host — point at a self-hosted PostHog instance. |
+| `CHM_ANALYTICS_KEY` | — | PostHog project key for opt-in [Product Analytics](/operate/advanced/product-analytics). Empty = disabled. |
+| `CHM_ANALYTICS_HOST` | `https://us.i.posthog.com` | PostHog ingest host. |
+
+Build-time branding overrides (optional; do not set unless you custom-build):
+`VITE_TITLE_SHORT`, `VITE_LOGO`, `VITE_AUTOCOMPLETE_LIMIT`, `VITE_MEASUREMENT_ID`.
+
+## Polar licenses (landing / cloud-hooks)
+
+Self-host license checkout is **not** configured on the dashboard example.
+Set Polar product ids and secrets on `apps/cloud-hooks` (and the hosted
+`.env.production` catalog). See `apps/cloud-hooks/.env.example`.
+
+| Variable | Purpose |
+|---|---|
+| `CHM_POLAR_SERVER` | `sandbox` or `production`. |
+| `CHM_POLAR_LICENSE_*` | License SKU product ids (team/unlimited × yearly/lifetime). |
+| `POLAR_ACCESS_TOKEN` | Org access token (secret). |
+| `POLAR_WEBHOOK_SECRET` | Webhook signing secret. |
 
 ## Runtime & build
 

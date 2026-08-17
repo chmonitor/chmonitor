@@ -19,24 +19,9 @@ Click the button above to deploy your own instance to Cloudflare Workers. You wi
 | `CLICKHOUSE_USER` | Username(s). Single value or one per host, comma-separated |
 | `CLICKHOUSE_PASSWORD` | Password(s). Single value or one per host, comma-separated |
 
-### Optional variables
+### Optional
 
-| Variable | Purpose |
-|---|---|
-| `CLICKHOUSE_NAME` | Friendly display name(s) for each host, comma-separated |
-| `CLICKHOUSE_MAX_EXECUTION_TIME` | Query timeout in seconds (default: `60`) |
-| `VITE_AUTH_PROVIDER` | Auth mode: `none` (default) or `clerk` |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (`pk_...`). Required when `VITE_AUTH_PROVIDER=clerk` |
-| `CLERK_SECRET_KEY` | Clerk server secret (`sk_...`). Required when auth provider is `clerk` |
-| `CHM_AUTH_PROVIDER` | Server-side auth mirror of `VITE_AUTH_PROVIDER` (`none` / `clerk` / `proxy`) |
-| `CHM_API_KEY_SECRET` | Enables Bearer-token auth on `/api/v1/*` |
-| `LLM_API_KEY` | AI provider key (OpenRouter, AnyRouter, etc.) |
-| `LLM_API_BASE` | AI provider base URL (e.g. `https://openrouter.ai/api/v1`) |
-| `LLM_MODEL` | Model to use (e.g. `openrouter/free`, `anyrouter/free`) |
-| `OPENROUTER_API_KEY` | OpenRouter API key (alternative to `LLM_API_KEY`) |
-| `ANYROUTER_API_KEY` | AnyRouter API key (alternative to `LLM_API_KEY`) |
-
-`VITE_*` variables are baked into the browser bundle at build time; `CLICKHOUSE_*` and secret keys are runtime Worker variables set via `wrangler secret put` or the Cloudflare dashboard.
+See [`.env.example`](./.env.example) and [environment variables](../../docs/content/reference/environment-variables.mdx). Set `CHM_*` (e.g. `CHM_AUTH_PROVIDER`) — do not also set `VITE_*`.
 
 88 page routes and 53 API routes cover the full feature set: real-time cluster
 metrics, query/merge/mutation monitoring, a database explorer, ClickHouse Keeper
@@ -128,12 +113,8 @@ vars come from the Worker binding / `process.env`.
 | `CLICKHOUSE_USER` | ✅ | Username(s) |
 | `CLICKHOUSE_PASSWORD` | ✅ | Password(s) |
 | `CLICKHOUSE_NAME` | | Friendly host name(s) |
-| `CLICKHOUSE_DATABASE` | | Default database |
-| `CLICKHOUSE_MAX_EXECUTION_TIME` | | Query timeout (default 60s) |
-| `VITE_AUTH_PROVIDER` / `CHM_AUTH_PROVIDER` | | `none` (default) \| `clerk` \| `proxy` |
-| `CHM_API_KEY_SECRET` | | Enables API-key auth on `/api/v1/*` |
-| `VITE_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | | When auth provider is `clerk` |
-| `LLM_API_KEY` / `LLM_API_BASE` / `LLM_MODEL` | | AI agent (OpenRouter/AnyRouter-compatible) |
+
+Optional: [`.env.example`](./.env.example). Set `CHM_AUTH_PROVIDER` / `CHM_CLERK_PUBLISHABLE_KEY`, not `VITE_*`.
 
 ### Security headers
 

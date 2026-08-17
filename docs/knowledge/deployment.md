@@ -59,9 +59,9 @@ canonical `CHM_*` → legacy `NEXT_PUBLIC_*` → committed default. The explicit
 | **Docker** | `.env` (optional, `env_file` with `required: false` in `docker-compose.yml`) or `-e` flags; template is `.env.example` | `.env.local` / `-e` / orchestrator secret | plain `process.env`; client `VITE_*` is baked into the image at build time |
 | **Kubernetes / Helm** | `values.yaml` → ConfigMap | Kubernetes `Secret` | `envFrom` ConfigMap + Secret; client `VITE_*` is baked into the image at build time |
 
-`apps/dashboard/.env.example` is the self-hosted template (canonical names,
-secret vs non-secret split). The **same names** work on every target — switching
-from Docker to Wrangler is a config swap, not a re-learn.
+`apps/dashboard/.env.example` is the short self-hosted template (required
+`CLICKHOUSE_*` first; optional flags commented). Full catalog:
+`docs/content/reference/environment-variables.mdx`. Same names on every target.
 
 ### Where `.env*` files live
 
