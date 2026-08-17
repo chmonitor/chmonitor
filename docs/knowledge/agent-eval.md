@@ -39,8 +39,8 @@ this suite measures live tool-first + recommend-only behavior.
 - `ANYROUTER_API_KEY` — rubric + local agent
 - `AGENT_API_TOKEN` — Bearer for the agent route
 - `AGENT_EVAL_URL` — default `http://localhost:3000/api/v1/agent`
-- `AGENT_EVAL_MODEL` — default `anyrouter:google/gemma-4-26b-a4b-it`
-- `AGENT_EVAL_GRADER_MODEL` — default `google/gemma-4-26b-a4b-it`
+- `AGENT_EVAL_MODEL` — default `anyrouter:meituan/longcat-2.0`
+- `AGENT_EVAL_GRADER_MODEL` — default `meituan/longcat-2.0`
 - `ANYROUTER_API_BASE` — default `https://anyrouter.dev/api/v1`
 
 CI uses repo secrets `ANYROUTER_API_KEY` and `AGENT_API_TOKEN`. Forks without

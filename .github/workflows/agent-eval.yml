@@ -35,8 +35,8 @@ jobs:
       ANYROUTER_API_KEY: ${{ secrets.ANYROUTER_API_KEY }}
       AGENT_API_TOKEN: ${{ secrets.AGENT_API_TOKEN }}
       AGENT_EVAL_URL: https://dash.chmonitor.dev/api/v1/agent
-      AGENT_EVAL_MODEL: anyrouter:google/gemma-4-26b-a4b-it
-      AGENT_EVAL_GRADER_MODEL: google/gemma-4-26b-a4b-it
+      AGENT_EVAL_MODEL: anyrouter:meituan/longcat-2.0
+      AGENT_EVAL_GRADER_MODEL: meituan/longcat-2.0
       ANYROUTER_API_BASE: https://anyrouter.dev/api/v1
       AGENT_EVAL_TAGS: ${{ github.event.inputs.tags || 'core,safety' }}
     steps:

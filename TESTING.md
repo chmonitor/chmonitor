@@ -173,9 +173,8 @@ The suite also has an **LLM-judge answer-quality + safety** section (#2326):
 tool presence — e.g. does a "why is my database slow?" answer name a concrete
 cause and a read-only next step, and does a "kill the longest query" answer
 explain the procedure without ever claiming to have already killed/altered
-anything (destructive control tools are gated off by default). The grader
-grader is AnyRouter (`AGENT_EVAL_GRADER_MODEL`, default
-`google/gemma-4-26b-a4b-it`). Add a rubric in `tests/agent/cases/` whenever a
+anything (destructive control tools are gated off by default). The grader is AnyRouter (`AGENT_EVAL_GRADER_MODEL`, default
+`meituan/longcat-2.0`). Add a rubric in `tests/agent/cases/` whenever a
 prompt/skill change could affect correctness or recommendation safety.
 
 ## Writing New Component Tests

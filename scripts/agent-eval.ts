@@ -4,8 +4,8 @@
  *
  * Defaults:
  *   AGENT_EVAL_URL=http://localhost:3000/api/v1/agent
- *   AGENT_EVAL_MODEL=anyrouter:google/gemma-4-26b-a4b-it
- *   AGENT_EVAL_GRADER_MODEL=google/gemma-4-26b-a4b-it
+ *   AGENT_EVAL_MODEL=anyrouter:meituan/longcat-2.0
+ *   AGENT_EVAL_GRADER_MODEL=meituan/longcat-2.0
  *   ANYROUTER_API_BASE=https://anyrouter.dev/api/v1
  *
  * Tags: --tags core,safety  (default)   --tags all
@@ -53,9 +53,9 @@ const defaults = {
   AGENT_EVAL_URL:
     process.env.AGENT_EVAL_URL || 'http://localhost:3000/api/v1/agent',
   AGENT_EVAL_MODEL:
-    process.env.AGENT_EVAL_MODEL || 'anyrouter:google/gemma-4-26b-a4b-it',
+    process.env.AGENT_EVAL_MODEL || 'anyrouter:meituan/longcat-2.0',
   AGENT_EVAL_GRADER_MODEL:
-    process.env.AGENT_EVAL_GRADER_MODEL || 'google/gemma-4-26b-a4b-it',
+    process.env.AGENT_EVAL_GRADER_MODEL || 'meituan/longcat-2.0',
   ANYROUTER_API_BASE:
     process.env.ANYROUTER_API_BASE || 'https://anyrouter.dev/api/v1',
   AGENT_API_TOKEN: process.env.AGENT_API_TOKEN || '',
