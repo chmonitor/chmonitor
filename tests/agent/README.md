@@ -24,7 +24,7 @@ Never commit keys. CI reads `secrets.ANYROUTER_API_KEY` and `secrets.AGENT_API_T
 
 | Command | What |
 |---|---|
-| `pnpm run test:agent` | `core` + `safety` tags |
+| `pnpm run test:agent` | 10 core+safety cases; prints Status / Score / Tests / Passed / Failed |
 | `pnpm run test:agent:all` | also `tools`, `quality`, `extended` |
 | `pnpm run test:agent:improve` | eval, then AnyRouter notes in `tests/agent/results/improve.md` |
 | `bun test tests/agent/*.test.ts` | SSE parser + PR comment formatter (no key) |

@@ -46,27 +46,44 @@ function failReason(row) {
   return text.length > 240 ? `${text.slice(0, 237)}…` : text
 }
 
+function summarize(json) {
+  const rows = extractRows(json)
+  const passed = rows.filter(rowPassed).length
+  const failed = rows.length - passed
+  const total = rows.length
+  const scorePct = total === 0 ? 0 : Math.round((passed / total) * 100)
+  const status =
+    total === 0 ? 'NO_RESULTS' : failed === 0 ? 'PASS' : 'FAIL'
+  return { rows, passed, failed, total, scorePct, status }
+}
+
+function formatScoreboard(summary) {
+  return [
+    `| | |`,
+    `|---|---|`,
+    `| Status | **${summary.status}** |`,
+    `| Score | **${summary.scorePct}%** |`,
+    `| Tests | ${summary.total} |`,
+    `| Passed | ${summary.passed} |`,
+    `| Failed | ${summary.failed} |`,
+  ].join('\n')
+}
+
 function formatSkipComment(reason) {
   return `${MARKER}
 ## Agent eval (promptfoo)
 
 _Skipped:_ ${reason}
 
-Set repo secrets \`ANYROUTER_API_KEY\` and \`AGENT_API_TOKEN\` to run live
-goldens against \`/api/v1/agent\`. SSE parser tests still run in \`unit-tests\`.
+Set repo secret \`ANYROUTER_API_KEY\` to run live goldens against the public
+agent. \`AGENT_API_TOKEN\` is optional (cloud guests work without it).
+SSE parser tests still run in \`unit-tests\`.
 `
 }
 
 function formatEvalComment(json, meta = {}) {
-  const rows = extractRows(json)
-  const passed = rows.filter(rowPassed).length
-  const failed = rows.length - passed
-  const status =
-    rows.length === 0
-      ? 'no cases parsed'
-      : failed === 0
-        ? 'all passed'
-        : `${failed} failed`
+  const summary = summarize(json)
+  const { rows, passed, failed, total, scorePct, status } = summary
 
   const model = meta.model || process.env.AGENT_EVAL_MODEL || ''
   const tags = meta.tags || ''
@@ -76,7 +93,9 @@ function formatEvalComment(json, meta = {}) {
     MARKER,
     '## Agent eval (promptfoo)',
     '',
-    `**${passed}/${rows.length} passed** — ${status}`,
+    formatScoreboard(summary),
+    '',
+    `**${passed}/${total} passed** (${scorePct}%) — ${status}`,
   ]
   if (tags || model || url) {
     lines.push('')
@@ -116,6 +135,8 @@ function formatEvalComment(json, meta = {}) {
 module.exports = {
   MARKER,
   extractRows,
+  summarize,
+  formatScoreboard,
   formatSkipComment,
   formatEvalComment,
 }
