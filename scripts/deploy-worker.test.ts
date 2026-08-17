@@ -63,20 +63,20 @@ describe('parseDotenv', () => {
   })
 })
 
-describe('expandManifestKeys — CHM_POLAR_PRODUCT_* wildcard expansion', () => {
+describe('expandManifestKeys — CHM_POLAR_LICENSE_* wildcard expansion', () => {
   test('expands a trailing-* pattern to every matching key, sorted', () => {
     const source = {
-      CHM_POLAR_PRODUCT_PRO_YEARLY: 'y',
-      CHM_POLAR_PRODUCT_FREE_MONTHLY: 'f',
+      CHM_POLAR_LICENSE_TEAM_YEARLY: 'y',
+      CHM_POLAR_LICENSE_UNLIMITED_LIFETIME: 'l',
       CHM_POLAR_SERVER: 'production',
       UNRELATED: 'x',
     }
     expect(
-      expandManifestKeys(['CHM_POLAR_SERVER', 'CHM_POLAR_PRODUCT_*'], source)
+      expandManifestKeys(['CHM_POLAR_SERVER', 'CHM_POLAR_LICENSE_*'], source)
     ).toEqual([
       'CHM_POLAR_SERVER',
-      'CHM_POLAR_PRODUCT_FREE_MONTHLY',
-      'CHM_POLAR_PRODUCT_PRO_YEARLY',
+      'CHM_POLAR_LICENSE_TEAM_YEARLY',
+      'CHM_POLAR_LICENSE_UNLIMITED_LIFETIME',
     ])
   })
 
@@ -179,10 +179,10 @@ describe('resolveVarsEnv — real repo fixtures (dashboard/preview overlay)', ()
     const appDir = join(import.meta.dir, '..', 'apps', 'cloud-hooks')
     const prod = resolveVarsEnv(appDir, false)
     expect(prod.CHM_POLAR_SERVER).toBe('production')
-    expect(prod.CHM_POLAR_PRODUCT_FREE_MONTHLY).toBeDefined()
+    expect(prod.CHM_POLAR_LICENSE_TEAM_YEARLY).toBeDefined()
 
     const preview = resolveVarsEnv(appDir, true)
-    expect(preview.CHM_POLAR_SERVER).toBe('sandbox')
+    expect(preview.CHM_POLAR_SERVER).toBe('production')
   })
 })
 
@@ -192,7 +192,7 @@ describe('loadManifest', () => {
       join(import.meta.dir, '..', 'apps', 'cloud-hooks')
     )
     expect(cloudHooks.vars).toContain('CHM_POLAR_SERVER')
-    expect(cloudHooks.vars).toContain('CHM_POLAR_PRODUCT_*')
+    expect(cloudHooks.vars).toContain('CHM_POLAR_LICENSE_*')
     expect(cloudHooks.secrets).toContain('POLAR_WEBHOOK_SECRET')
 
     const bugHandler = await loadManifest(

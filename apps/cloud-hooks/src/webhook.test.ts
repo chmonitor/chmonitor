@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const env: Env = {
   POLAR_WEBHOOK_SECRET: 'whsec_test',
-  CHM_POLAR_PRODUCT_PRO_MONTHLY: 'prod_pro',
+  CHM_POLAR_LICENSE_TEAM_YEARLY: 'prod_team_y',
 }
 
 function req(body = '{}') {

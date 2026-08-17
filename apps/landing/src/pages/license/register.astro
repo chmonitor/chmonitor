@@ -1,0 +1,142 @@
+---
+import {
+  LICENSE_SALES_EMAIL,
+  LICENSE_SKUS,
+  type LicenseId,
+  type LicenseTerm,
+  isPaidLicense,
+  licensePriceUsd,
+} from '@chm/pricing'
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import { invoiceMailto, paidLicenseSkus } from '../../data/licenses'
+import { btnPrimaryBlock, btnOutline } from '../../lib/button-classes'
+
+const params = Astro.url.searchParams
+const rawSku = params.get('sku') ?? 'team'
+const rawTerm = params.get('term') ?? 'yearly'
+const parsed: LicenseId =
+  rawSku in LICENSE_SKUS ? (rawSku as LicenseId) : 'team'
+const skuId: LicenseId = isPaidLicense(parsed) ? parsed : 'team'
+const term: LicenseTerm = rawTerm === 'lifetime' ? 'lifetime' : 'yearly'
+const sku = LICENSE_SKUS[skuId]
+const price = licensePriceUsd(sku, term)
+const mailto = invoiceMailto(sku, term)
+---
+<Base
+  title="Register a chmonitor license"
+  description="Buy or register a self-hosted chmonitor license. Enter your company name and website. We trust you — no license key."
+>
+  <Nav />
+  <main id="top">
+    <section class="band">
+      <div class="wrap form-wrap">
+        <div class="sec-head">
+          <span class="eyebrow">License</span>
+          <h1>Buy &amp; register</h1>
+          <p>
+            {Astro.url.searchParams.get('paid') === '1'
+              ? 'Payment received. Register your company name and website — honor system, no license key.'
+              : 'Pay on Polar (Buy from the pricing page), then register your company. Or email hello@chmonitor.dev for an invoice.'}
+          </p>
+        </div>
+
+        <div class="summary">
+          <strong>{sku.name}</strong>
+          <span>{term === 'lifetime' ? 'Lifetime' : 'Yearly'} · ${price} USD · {sku.hosts === null ? 'unlimited hosts' : `${sku.hosts} hosts`}</span>
+        </div>
+
+        <form class="reg" method="get" action={`mailto:${LICENSE_SALES_EMAIL}`}>
+          <input type="hidden" name="subject" value={`chmonitor ${sku.name} ${term} license`} />
+          <label>
+            Company name
+            <input type="text" name="company" required maxlength="120" placeholder="Acme Analytics" />
+          </label>
+          <label>
+            Website
+            <input type="url" name="website" required placeholder="https://acme.example" />
+          </label>
+          <label>
+            Billing email
+            <input type="email" name="email" required placeholder="ops@acme.example" />
+          </label>
+          <label>
+            License
+            <select id="sku" name="sku">
+              {paidLicenseSkus.map((s) => (
+                <option value={s.id} selected={s.id === sku.id}>{s.name} — {s.hosts === null ? 'unlimited' : `${s.hosts} hosts`}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Term
+            <select id="term" name="term">
+              <option value="yearly" selected={term === 'yearly'}>Yearly</option>
+              <option value="lifetime" selected={term === 'lifetime'}>Lifetime</option>
+            </select>
+          </label>
+          <label class="check">
+            <input type="checkbox" name="list_public" value="yes" />
+            List our company on the public <a href="/customers">customers</a> page
+          </label>
+          <p class="hint">Unchecked = private. We only publish names that opt in.</p>
+          <label>
+            Notes (PO number, VAT, host count if you already know)
+            <textarea name="notes" rows="4" maxlength="2000"></textarea>
+          </label>
+          <button class={btnPrimaryBlock} type="submit" id="send">Email hello@chmonitor.dev to purchase</button>
+        </form>
+
+        <p class="alt">
+          Prefer a pre-filled message? <a class={btnOutline} href={mailto}>Open invoice email</a>
+        </p>
+        <p class="trust">Honor system: we do not ship a license key or phone home. Use the host count you paid for. Community OSS remains unlimited and free.</p>
+      </div>
+    </section>
+  </main>
+  <Footer />
+  <style>
+    .form-wrap{max-width:560px;margin:0 auto}
+    .form-wrap h1{font-size:clamp(1.75rem,6vw,2.25rem);font-weight:700;letter-spacing:-.03em;margin-top:12px}
+    .summary{margin:24px 0;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);display:flex;flex-direction:column;gap:4px}
+    .summary span{font-size:13px;color:var(--muted-fg)}
+    .reg{display:flex;flex-direction:column;gap:14px}
+    .reg label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}
+    .reg input,.reg select,.reg textarea{font:inherit;font-weight:400;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}
+    .reg .check{flex-direction:row;align-items:center;gap:10px;font-weight:500}
+    .reg .check input{width:auto}
+    .hint,.trust,.alt{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-top:12px}
+    .alt{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  </style>
+  <script is:inline>
+    (function () {
+      var form = document.querySelector('.reg')
+      if (!form) return
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        var company = form.company.value.trim()
+        var website = form.website.value.trim()
+        var email = form.email.value.trim()
+        if (!company || !website) return
+        var sku = form.sku.value
+        var term = form.term.value
+        var list = form.list_public.checked ? 'yes' : 'no'
+        var notes = form.notes.value.trim()
+        var lines = [
+          'New chmonitor license registration (honor system).',
+          '',
+          'Company: ' + company,
+          'Website: ' + website,
+          'Billing email: ' + email,
+          'SKU: ' + sku,
+          'Term: ' + term,
+          'List publicly: ' + list,
+        ]
+        if (notes) lines.push('Notes: ' + notes)
+        var subject = encodeURIComponent('chmonitor license — ' + company + ' (' + sku + ' ' + term + ')')
+        window.location.href = 'mailto:hello@chmonitor.dev?subject=' + subject + '&body=' + encodeURIComponent(lines.join('\n'))
+      })
+    })()
+  </script>
+</Base>

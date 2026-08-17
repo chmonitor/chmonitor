@@ -19,8 +19,8 @@
  * Auth: needs CLOUDFLARE_API_TOKEN with permissions
  *   Zone > Single Redirect > Edit  (manages the dynamic_redirect ruleset)
  *   Zone > Zone > Read             (resolve the zone id before the PUT)
- * Sourced from the environment or, failing that, .env.prod / .env.local
- * (same resolution as scripts/cloudflare-deploy.ts).
+ * Sourced from the environment, then apps/dashboard/.env.local, then
+ * repo-root .env.local (token fallback only).
  *
  * Usage:
  *   CLOUDFLARE_API_TOKEN=... bun run scripts/cloudflare-redirect-rule.ts
@@ -34,13 +34,12 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(__dirname, '..')
 const DASHBOARD = join(REPO_ROOT, 'apps', 'dashboard')
-// Search order: repo-root files (as the deploy/env-sync scripts use) first,
-// then the dashboard app dir where this repo actually keeps its env files.
+// Dashboard first (canonical). Root .env.local is token fallback only.
 const ENV_FILE_CANDIDATES = [
-  join(REPO_ROOT, '.env.prod'),
-  join(REPO_ROOT, '.env.local'),
-  join(DASHBOARD, '.env.prod'),
+  join(DASHBOARD, '.env.production.local'),
   join(DASHBOARD, '.env.local'),
+  join(REPO_ROOT, '.env.local'),
+  join(REPO_ROOT, '.env.prod'),
 ]
 
 // --- Config -----------------------------------------------------------------

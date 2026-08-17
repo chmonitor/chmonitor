@@ -3,11 +3,10 @@
 /**
  * Sync local env files to GitHub Actions secrets.
  *
- * Cascade (first occurrence of each key wins):
- *   .env.prod.local > .env.prod > .env.local > .env
- *
- * `.env.prod.local` and `.env.local` are gitignored — safe place for keys
- * you don't want in `.env.prod` (which is shared with the team).
+ * Cascade (first occurrence of each key wins), per-app first:
+ *   apps/dashboard/.env.production.local
+ *   apps/dashboard/.env.local
+ *   cwd .env.prod.local / .env.prod / .env.local / .env  (root fallback)
  *
  * Then `gh secret set <KEY>` uploads each value. CI's deploy workflow
  * subsequently pushes them onto the Worker via wrangler.
@@ -20,14 +19,20 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const DASHBOARD = join(REPO_ROOT, 'apps', 'dashboard')
 
 /** Order: highest priority first. First file containing a given key wins. */
 const ENV_FILE_CASCADE = [
-  '.env.prod.local',
-  '.env.prod',
-  '.env.local',
-  '.env',
+  join(DASHBOARD, '.env.production.local'),
+  join(DASHBOARD, '.env.local'),
+  join(REPO_ROOT, '.env.prod.local'),
+  join(REPO_ROOT, '.env.prod'),
+  join(REPO_ROOT, '.env.local'),
+  join(REPO_ROOT, '.env'),
 ] as const
 
 /**
@@ -75,7 +80,7 @@ const SECRET_KEYS = [
   // API calls; webhook secret verifies inbound subscription events. Production
   // uses the base names; preview/PR builds resolve the _TEST (sandbox) variants
   // (see set-secrets.ts resolveValue + cloudflare.yml). Non-secret Polar config
-  // (CHM_POLAR_SERVER, CHM_POLAR_PRODUCT_*) lives in .env.production/.env.preview.
+  // (CHM_POLAR_SERVER, CHM_POLAR_LICENSE_*) lives in .env.production/.env.preview.
   'POLAR_ACCESS_TOKEN',
   'POLAR_ACCESS_TOKEN_TEST',
   'POLAR_WEBHOOK_SECRET',
@@ -147,14 +152,13 @@ function loadCascade(): {
   const merged: Record<string, string> = {}
   const sources: Record<string, string> = {}
   for (const file of ENV_FILE_CASCADE) {
-    const path = join(process.cwd(), file)
-    if (!existsSync(path)) continue
-    const parsed = parseEnvFile(readFileSync(path, 'utf-8'))
+    if (!existsSync(file)) continue
+    const parsed = parseEnvFile(readFileSync(file, 'utf-8'))
     for (const [key, value] of Object.entries(parsed)) {
       if (key in merged) continue // first-write wins (higher priority file)
       if (!value) continue
       merged[key] = value
-      sources[key] = file
+      sources[key] = file.replace(`${REPO_ROOT}/`, '')
     }
   }
   return { merged, sources }

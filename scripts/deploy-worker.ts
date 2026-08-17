@@ -21,7 +21,7 @@
  * guessed) via a small `apps/<app>/deploy.config.ts` exporting:
  *
  *   export default {
- *     vars: ['CHM_POLAR_SERVER', 'CHM_POLAR_PRODUCT_*'],   // '*' suffix = wildcard prefix match
+ *     vars: ['CHM_POLAR_SERVER', 'CHM_POLAR_LICENSE_*'],   // '*' suffix = wildcard prefix match
  *     secrets: ['POLAR_WEBHOOK_SECRET', 'POLAR_ACCESS_TOKEN'],
  *   } satisfies DeployManifest
  *
@@ -159,7 +159,7 @@ export function resolveSecretsEnv(
 
 /**
  * Expands manifest key patterns against a resolved env source. A trailing '*'
- * matches every key with that literal prefix (used for CHM_POLAR_PRODUCT_*);
+ * matches every key with that literal prefix (used for CHM_POLAR_LICENSE_*);
  * a plain key is returned as-is whether or not it's present (callers report
  * "missing" separately) — only wildcard entries are expanded/dropped here.
  */

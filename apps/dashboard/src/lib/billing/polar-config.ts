@@ -9,9 +9,10 @@
  *   POLAR_ACCESS_TOKEN          (secret)     org access token
  *   POLAR_WEBHOOK_SECRET        (secret)     verifies inbound webhooks
  *   CHM_POLAR_SERVER            sandbox|production (default sandbox)
- *   CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>        Polar product id per plan/period
- *     e.g. CHM_POLAR_PRODUCT_PRO_MONTHLY, CHM_POLAR_PRODUCT_MAX_YEARLY,
- *          CHM_POLAR_PRODUCT_FREE_MONTHLY (Free is a $0 monthly-only product)
+ *   CHM_POLAR_LICENSE_<SKU>_<TERM>           self-host license products
+ *     e.g. CHM_POLAR_LICENSE_TEAM_YEARLY, CHM_POLAR_LICENSE_UNLIMITED_LIFETIME
+ *   CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>        archived Cloud seats catalog
+ *     leftover mapping only; Polar products are archived, env unset in prod
  *
  * Product ids live in env (not plans.ts) because they differ per Polar org /
  * environment; plans.ts stays the pricing + capability source of truth.
@@ -20,9 +21,11 @@
  * secrets onto process.env, so reading process.env works in the Worker runtime.
  */
 
+import type { LicenseTerm, PaidLicenseId } from '@chm/pricing'
 import type { PlanId } from './plans'
 
 import { createPolarHttpClient, type PolarHttpClient } from './polar-http'
+import { licensePolarProductEnvKey, PAID_LICENSE_IDS } from '@chm/pricing'
 
 export type BillingPeriod = 'monthly' | 'yearly'
 
@@ -107,6 +110,30 @@ export function planForProductId(
     }
   }
   return null
+}
+
+export function licenseProductIdFor(
+  id: PaidLicenseId,
+  term: LicenseTerm
+): string | null {
+  return readEnv(licensePolarProductEnvKey(id, term)) ?? null
+}
+
+export function licenseForProductId(
+  productId: string
+): { sku: PaidLicenseId; term: LicenseTerm } | null {
+  for (const id of PAID_LICENSE_IDS) {
+    for (const term of ['yearly', 'lifetime'] as const) {
+      if (licenseProductIdFor(id, term) === productId) {
+        return { sku: id, term }
+      }
+    }
+  }
+  return null
+}
+
+export function isPaidLicenseId(value: string): value is PaidLicenseId {
+  return (PAID_LICENSE_IDS as readonly string[]).includes(value)
 }
 
 /** Type guard usable by routes that accept a plan id from the client. */

@@ -10,6 +10,19 @@ Quick answers to the questions that come up most often when you run chmonitor: c
 
 <Accordions type="multiple">
 
+<Accordion title="Do I need to pay to self-host?">
+
+No. The GPL-3.0 build is free, unlimited, and has no license key. An optional [commercial license](/operate/advanced/commercial-license) is for invoices, support, and an optional listing on the customers page.
+
+</Accordion>
+
+<Accordion title="How do commercial licenses work?">
+
+Personal Self Hosted is free. Team is $499/year or $1,349 lifetime (3 hosts). Unlimited is $999/year or $2,999 lifetime. After payment, register your company name and website. We trust you. See [pricing](https://chmonitor.dev/pricing/).
+
+</Accordion>
+
+
 <Accordion title="The dashboard shows a connection error.">
 
 Check that `CLICKHOUSE_HOST` is a full URL including scheme and port, e.g. `http://your-host:8123` or `https://your-host:8443`. Inside Docker, `localhost` points at the container itself — use the ClickHouse service name on the Docker network, or `host.docker.internal` (Mac/Windows) / `172.17.0.1` (Linux) to reach a process on the Docker host.

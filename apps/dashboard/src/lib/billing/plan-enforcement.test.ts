@@ -60,8 +60,8 @@ describe('plan-enforcement — anti-drift coverage', () => {
   test('the cost/abuse-bounded limits are enforced; alertRules stays deferred', () => {
     // Enforcement is live for the limits that cap a cost/abuse vector. alertRules
     // stays deferred only because no alert-rule feature exists to gate yet.
-    expect(LIMIT_ENFORCEMENT.hosts.status).toBe('enforced')
-    expect(LIMIT_ENFORCEMENT.seats.status).toBe('enforced')
+    expect(LIMIT_ENFORCEMENT.hosts.status).toBe('inherent')
+    expect(LIMIT_ENFORCEMENT.seats.status).toBe('inherent')
     expect(LIMIT_ENFORCEMENT.aiRequestsPerDay.status).toBe('enforced')
     expect(LIMIT_ENFORCEMENT.aiMonthlyUsdBudget.status).toBe('enforced')
     expect(LIMIT_ENFORCEMENT.retentionDays.status).toBe('enforced')
@@ -71,7 +71,7 @@ describe('plan-enforcement — anti-drift coverage', () => {
   test('host overage is honestly deferred pending Polar usage reporting', () => {
     // The local meter is live (host-usage-store.ts), but nothing reports usage
     // to Polar yet — never claim billed revenue for an integration that isn't wired.
-    expect(LIMIT_ENFORCEMENT.hostOverage.status).toBe('deferred')
+    expect(LIMIT_ENFORCEMENT.hostOverage.status).toBe('inherent')
   })
 
   test('api_mcp_access is the enforced capability gate', () => {
@@ -104,18 +104,12 @@ describe('plan-enforcement — monthly AI USD budget really blocks', () => {
   })
 })
 
-describe('plan-enforcement — host cap really blocks', () => {
-  test('Pro blocks at its host limit, allows below it', () => {
-    const pro = BILLING_PLANS.pro
-    expect(pro.hosts).toBe(1)
-    expect(checkHostLimit(pro, 0).allowed).toBe(true)
-    expect(checkHostLimit(pro, 1).allowed).toBe(false)
-  })
-
-  test('Enterprise (unlimited hosts) never blocks', () => {
-    const ent = BILLING_PLANS.enterprise
-    expect(ent.hosts).toBeNull()
-    expect(checkHostLimit(ent, 10_000).allowed).toBe(true)
+describe('plan-enforcement — no host or seat cap', () => {
+  test('every plan allows any host count', () => {
+    for (const plan of BILLING_PLAN_LIST) {
+      expect(plan.hosts).toBeNull()
+      expect(checkHostLimit(plan, 10_000).allowed).toBe(true)
+    }
   })
 })
 
@@ -125,15 +119,15 @@ describe('plan-enforcement — cross-surface render parity', () => {
   // helper (which would silently change BOTH surfaces) is caught here.
   test('limit cells render the agreed strings for every tier', () => {
     expect(BILLING_PLAN_LIST.map(planHosts)).toEqual([
-      '1',
-      '1',
-      '3',
+      'Unlimited',
+      'Unlimited',
+      'Unlimited',
       'Unlimited',
     ])
     expect(BILLING_PLAN_LIST.map(planSeats)).toEqual([
-      '1',
-      '3',
-      '10',
+      'Unlimited',
+      'Unlimited',
+      'Unlimited',
       'Unlimited',
     ])
     expect(BILLING_PLAN_LIST.map(planAlertRules)).toEqual([

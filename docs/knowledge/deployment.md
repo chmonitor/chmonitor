@@ -3,7 +3,7 @@ id: deployment
 title: Deployment Guide
 type: reference
 status: active
-updated: 2026-08-12
+updated: 2026-08-17
 tags:
   - deployment
   - docker
@@ -62,6 +62,25 @@ canonical `CHM_*` → legacy `NEXT_PUBLIC_*` → committed default. The explicit
 `apps/dashboard/.env.example` is the self-hosted template (canonical names,
 secret vs non-secret split). The **same names** work on every target — switching
 from Docker to Wrangler is a config swap, not a re-learn.
+
+### Where `.env*` files live
+
+**Per-app.** Vite, Astro, and Wrangler load env from the package that owns
+the config, not the git root.
+
+| File | Role |
+|------|------|
+| `apps/dashboard/.env.example` | Self-host template (committed) |
+| `apps/dashboard/.env.production` (+ `.env.preview`) | Hosted Cloud catalog + Polar license ids (committed) |
+| `apps/dashboard/.env.local` | Operator secrets for dashboard + inherited workers |
+| `apps/{landing,docs,blog}/.env.production` | App-only public vars (tiny) |
+| repo-root `.env.local` | Optional fallback for **root scripts** (tokens only) |
+| repo-root `.env` | Optional Docker Compose override (`required: false`) |
+
+Other Workers (`cloud-hooks`, …) inherit dashboard env via
+`deploy-worker.ts`; an `apps/<app>/.env.production` overlay is only for
+values that app uniquely owns. Do not copy Polar product ids or the
+`CHM_*` catalog into a root `.env.production`.
 
 ### Rules
 
@@ -183,7 +202,7 @@ names — secrets come from GitHub Secrets instead of local files.
   `apps/<app>/deploy.config.ts` manifest:
   ```ts
   export default {
-    vars: ['CHM_POLAR_SERVER', 'CHM_POLAR_PRODUCT_*'], // trailing '*' = wildcard prefix match
+    vars: ['CHM_POLAR_SERVER', 'CHM_POLAR_LICENSE_*'], // trailing '*' = wildcard prefix match
     secrets: ['POLAR_WEBHOOK_SECRET', 'POLAR_ACCESS_TOKEN'],
   }
   ```

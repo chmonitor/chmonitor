@@ -26,8 +26,13 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const ENV_FILE_PROD = join(__dirname, '..', '.env.prod')
-const ENV_FILE_LOCAL = join(__dirname, '..', '.env.local')
+const DASHBOARD = join(__dirname, '..', 'apps', 'dashboard')
+const ENV_FILE_CANDIDATES = [
+  join(DASHBOARD, '.env.production.local'),
+  join(DASHBOARD, '.env.local'),
+  join(__dirname, '..', '.env.local'),
+  join(__dirname, '..', '.env.prod'),
+]
 
 // The MCP worker now lives at apps/mcp/. cf:deploy runs with cwd=apps/dashboard,
 // so pass an absolute --config path (wrangler resolves `main` relative to it).
@@ -96,20 +101,15 @@ const PREDEPLOY_REQUIRED_SECRETS = [
 ] as const
 
 function loadEnvFile(): Record<string, string> {
-  const file = existsSync(ENV_FILE_PROD)
-    ? ENV_FILE_PROD
-    : existsSync(ENV_FILE_LOCAL)
-      ? ENV_FILE_LOCAL
-      : null
-
-  if (!file) return {}
-
   const vars: Record<string, string> = {}
-  for (const line of readFileSync(file, 'utf-8').split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const match = trimmed.match(/^([^=]+)=(.*)$/)
-    if (match) vars[match[1]] = match[2]
+  for (const file of ENV_FILE_CANDIDATES) {
+    if (!existsSync(file)) continue
+    for (const line of readFileSync(file, 'utf-8').split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const match = trimmed.match(/^([^=]+)=(.*)$/)
+      if (match && vars[match[1]] === undefined) vars[match[1]] = match[2]
+    }
   }
   return vars
 }

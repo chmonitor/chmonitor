@@ -3,7 +3,7 @@ id: billing-checkout-flow
 title: Billing checkout → webhook → D1 → plan resolution (money path + recovery)
 type: workflow
 status: active
-updated: 2026-07-11
+updated: 2026-08-17
 tags:
   - billing
   - polar
@@ -18,10 +18,13 @@ related:
 
 # Billing checkout → webhook → D1 → plan resolution
 
-The revenue critical path: how a paid upgrade travels from a checkout click to
-an enforced plan, and how it **self-heals** when a webhook is missed or arrives
-out of order. Cloud (SaaS) only — self-hosted/OSS has no Polar/Clerk and
-**fails open to the Free plan** at every stage (see [cloud-saas-mode](cloud-saas-mode.md)).
+The Cloud seat checkout path below is **legacy**. Public paid checkout is
+self-host licenses (`GET /api/v1/billing/license-checkout`,
+`CHM_POLAR_LICENSE_*`). Polar Cloud Free/Pro/Max products are archived.
+
+Historical Cloud (SaaS) path: how a paid upgrade traveled from checkout to
+D1. Self-hosted/OSS has no Polar/Clerk and **fails open to the Free plan**
+(see [cloud-saas-mode](cloud-saas-mode.md)).
 
 ## Flow
 

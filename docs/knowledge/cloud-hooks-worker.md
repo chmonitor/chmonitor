@@ -246,8 +246,8 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   name, monthly value from `@chm/pricing`, period). The webhook reads the prior
   D1 row before persistence so upgrade vs downgrade is decidable.
 - `billing-deps.ts` — the cloud-hooks implementations of the core collaborators:
-  env-driven `planForProductId` (mirrors the dashboard's `CHM_POLAR_PRODUCT_*`
-  map), lazy Clerk org creation over the Backend REST API, Polar customer re-key
+  env-driven `planForProductId` (legacy Cloud seats; license SKUs use
+  `CHM_POLAR_LICENSE_*` and are skipped as Cloud plans), lazy Clerk org creation over the Backend REST API, Polar customer re-key
   via the SDK, and the retry-wrapped D1 upsert. Funnel + audit hooks are no-ops
   in v1 (the dashboard still owns PostHog + org audit until cutover).
 - `webhook.ts` — `handlePolarWebhook`: `validateEvent` (injectable for tests) →
@@ -297,9 +297,9 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `GH_APP_PRIVATE_KEY` for GitHub App auth — preferred — **or** `GITHUB_TOKEN`, a
   PAT with `issues:write`, repo secret `CLOUD_HOOKS_GITHUB_TOKEN`) and
   `CF_OBSERVABILITY_API_TOKEN`
-  (token scope **Account → Workers Observability → Read**). The `CHM_POLAR_PRODUCT_*`
-  map + `CHM_POLAR_SERVER` must be set (mirroring `apps/dashboard/.env.production`)
-  before the Polar endpoint is cut over, or products won't map.
+  (token scope **Account → Workers Observability → Read**).
+  `CHM_POLAR_LICENSE_*` + `CHM_POLAR_SERVER` come from
+  `apps/dashboard/.env.production` so license webhooks skip the Cloud plan path.
 - **Exception-scan config** (non-secret, injected at deploy via `--var`, all
   optional with defaults): `CF_ACCOUNT_ID` (required to query — from
   `CLOUDFLARE_ACCOUNT_ID`), `GITHUB_REPOSITORY` (default `chmonitor/chmonitor`),

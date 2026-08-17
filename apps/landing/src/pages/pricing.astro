@@ -4,15 +4,14 @@ import Nav from '../components/Nav.astro'
 import Pricing from '../components/Pricing.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
-import { compareColumns, compareGroups, pricingFaqs } from '../data/pricing'
+import { licenseFaqs } from '../data/licenses'
+import { pricingFaqs } from '../data/pricing'
 
-const checkSvg = `<svg class="cmp-yes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="m5 12 5 5L20 7"/></svg>`
-const crossSvg = `<svg class="cmp-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:middle"><path d="m18 6-12 12M6 6l12 12"/></svg>`
-
+const allFaqs = [...licenseFaqs, ...pricingFaqs]
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: pricingFaqs.map((f) => ({
+  mainEntity: allFaqs.map((f) => ({
     '@type': 'Question',
     name: f.q,
     acceptedAnswer: { '@type': 'Answer', text: f.a },
@@ -30,8 +29,8 @@ const breadcrumbJsonLd = {
 }
 ---
 <Base
-  title="chmonitor Pricing — Free, Pro, Max & Enterprise Plans"
-  description="chmonitor pricing — self-host free under GPL-3.0, or use the hosted cloud. Compare Free, Pro, Max and Enterprise plans, limits and features side by side."
+  title="chmonitor Pricing — Self-hosted licenses (yearly & lifetime)"
+  description="Self-host chmonitor free under GPL-3.0. Buy an optional commercial license sized by host count — yearly or lifetime. No DRM. Hosted cloud is optional."
   image="/og/og-pricing.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
@@ -42,71 +41,15 @@ const breadcrumbJsonLd = {
       <div class="wrap">
         <div class="sec-head price-head reveal">
           <span class="eyebrow">Pricing</span>
-          <h1>Simple pricing that scales with your fleet</h1>
-          <p>Self-hosting is always free under GPL-3.0. The hosted cloud connects a cluster in minutes — start free, upgrade when your team grows. <strong>Early access is free to try</strong> while in beta.</p>
-          <p><strong>During early access, every plan feature is unlocked for all tiers</strong> — paid plans currently differ by limits only (hosts, seats, alert rules, history, AI usage). Feature gating by tier arrives at paid GA, with advance notice to subscribers.</p>
-          <p>Postgres source monitoring (beta) is available on every plan, including Free and self-hosted.</p>
+          <h1>License the dashboard you already self-host</h1>
+          <p>You already run ClickHouse. Run chmonitor next to it — free under GPL-3.0, no key. If procurement, support, or a commercial agreement matter, buy a license sized by host count. Yearly or lifetime. We trust you.</p>
+          <p>Listing your company on the <a href="/customers">customers page</a> is optional and off by default.</p>
         </div>
       </div>
     </section>
 
     <!-- Plan cards (shared section, compact: no duplicate header) -->
     <Pricing compact={true} />
-
-    <!-- Full feature comparison matrix -->
-    <section id="compare" class="band band-soft">
-      <div class="wrap">
-        <div class="sec-head reveal" style="text-align:center">
-          <span class="eyebrow">Compare</span>
-          <h2>Every plan, side by side</h2>
-          <p>Limits and features across all {compareColumns.length} tiers. Self-hosting includes everything, with no caps.</p>
-          <p>Feature checkmarks show where each capability lands at paid GA — during early access they are unlocked for every tier, and only the Limits rows are enforced today.</p>
-        </div>
-
-        <div class="cmp-wrap reveal">
-          <p class="cmp-swipe-hint">Swipe to compare →</p>
-          <div class="cmp-scroll">
-            <table class="cmp-table price-cmp">
-              <thead>
-                <tr>
-                  <th></th>
-                  {compareColumns.map((c) => (
-                    <th>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {compareGroups.map((g) => (
-                  <>
-                    <tr class="cmp-group">
-                      <td colspan={compareColumns.length + 1}>{g.group}</td>
-                    </tr>
-                    {g.rows.map((row) => (
-                      <tr>
-                        <td>{row.label}</td>
-                        {row.values.map((v, i) => (
-                          <td>
-                            {v === true ? (
-                              <span set:html={checkSvg} />
-                            ) : v === false ? (
-                              <span set:html={crossSvg} />
-                            ) : (
-                              <span class="cmp-val">{v}</span>
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <p class="cmp-note reveal">All paid plans include the full monitoring dashboard. <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Self-host</a> for unlimited everything, free forever.</p>
-      </div>
-    </section>
 
     <!-- Pricing FAQ -->
     <section id="pricing-faq" class="band">
@@ -116,7 +59,7 @@ const breadcrumbJsonLd = {
           <h2>Pricing questions</h2>
         </div>
         <div class="pfaq reveal">
-          {pricingFaqs.map((f) => (
+          {allFaqs.map((f) => (
             <details class="pfaq-item">
               <summary>
                 {f.q}

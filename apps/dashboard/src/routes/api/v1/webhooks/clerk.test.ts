@@ -188,64 +188,16 @@ describe('POST /api/v1/webhooks/clerk — config + signature gate', () => {
   })
 })
 
-describe('POST /api/v1/webhooks/clerk — seat enforcement (organizationMembership.created)', () => {
-  test('enterprise plan (seats: null) bypasses the seat check entirely', async () => {
-    getPlanForOwner = mock(async () => BILLING_PLANS.enterprise)
+describe('POST /api/v1/webhooks/clerk — membership created', () => {
+  test('never rolls back a member for seat count', async () => {
+    getOrganizationMembershipList = mock(async () => membershipsOfSize(99))
 
     const res = await handlePost(makeRequest())
 
     expect(res.status).toBe(202)
-    expect(getOrganizationMembershipList).not.toHaveBeenCalled()
-    expect(deleteOrganizationMembership).not.toHaveBeenCalled()
-    expect(logEventImpl).toHaveBeenCalledTimes(1)
-    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
-      orgId: 'org_1',
-      userId: 'user_new',
-      event: 'member.invited',
-      action: 'invite',
-      result: 'success',
-    })
-  })
-
-  test('count === seats (post-addition) fits — the new member is NOT rolled back', async () => {
-    getPlanForOwner = mock(async () => BILLING_PLANS.pro) // seats: 3
-    getOrganizationMembershipList = mock(async () => membershipsOfSize(3))
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(202)
-    expect(getOrganizationMembershipList).toHaveBeenCalledWith({
-      organizationId: 'org_1',
-      limit: 100,
-    })
     expect(deleteOrganizationMembership).not.toHaveBeenCalled()
     expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
       result: 'success',
-    })
-  })
-
-  test('count === seats + 1 (post-addition) is over cap — the new member IS rolled back', async () => {
-    getPlanForOwner = mock(async () => BILLING_PLANS.pro) // seats: 3
-    getOrganizationMembershipList = mock(async () => membershipsOfSize(4))
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(202)
-    expect(getOrganizationMembershipList).toHaveBeenCalledWith({
-      organizationId: 'org_1',
-      limit: 100,
-    })
-    expect(deleteOrganizationMembership).toHaveBeenCalledTimes(1)
-    expect(deleteOrganizationMembership.mock.calls[0]?.[0]).toEqual({
-      organizationId: 'org_1',
-      userId: 'user_new',
-    })
-    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
-      orgId: 'org_1',
-      userId: 'user_new',
-      event: 'member.invited',
-      action: 'invite',
-      result: 'denied',
     })
   })
 })

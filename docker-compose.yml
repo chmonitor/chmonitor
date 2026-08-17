@@ -23,11 +23,9 @@ services:
         VITE_DEPLOY_TARGET: docker
     ports:
       - "3000:3000"
-    # Optional single-source env file: `cp apps/dashboard/.env.example .env` and
-    # set CHM_AUTH_PROVIDER, feature flags, LLM keys, etc. — the SAME var names as
-    # the Cloudflare/Helm deploys. `required: false` so the quick-start works with
-    # no file. The `environment:` block below wins, keeping the bundled ClickHouse
-    # service wired; override CLICKHOUSE_* in `.env` to point at your own host.
+    # Optional Docker override only (`required: false`). Copy
+    # apps/dashboard/.env.example → repo-root `.env`. The `environment:`
+    # block below wins for the bundled ClickHouse service.
     env_file:
       - path: .env
         required: false

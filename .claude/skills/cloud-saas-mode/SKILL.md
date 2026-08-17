@@ -20,6 +20,11 @@ metadata:
 One codebase, two products. `dash.chmonitor.dev` = Cloud; Docker/K8s/self-built
 Worker = self-hosted (OSS). The difference is runtime config behind one flag.
 
+**Paid self-host path:** operators who already run ClickHouse buy a
+[commercial license](../../../docs/knowledge/commercial-license.md)
+(yearly/lifetime, host count, honor system). Do not push them to Polar cloud
+seats. Do not add a license key to the OSS binary.
+
 > This is a project skill kept under `.claude/skills/` (NOT `.agents/skills/`,
 > which the `build:skills` registry scans for end-user AI-agent skills). Keep dev
 > skills here so they never leak into the agent bundle.
@@ -75,16 +80,10 @@ returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
 cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
 Gate `ClerkSignInButton` behind `isClerkEnabled()`.
 
-**Plan-before-first-host (cloud):** the signed-in variant is a two-step
-`'plan' | 'connect'` flow. Every plan — including the $0 Free tier — is a REAL
-Polar subscription: Free goes through checkout too (`startCheckout('free',
-'monthly', {returnPath:'/'})`, no card). The server enforces it: `POST
-/api/v1/user-connections` returns 402 with `details.reason =
-'subscription_required'` when the owner has no live subscription (cloud mode +
-billing configured only; OSS fails open). `AddHostDialog` catches that 402 →
-toast with "Choose a plan" → `/billing`, which shows "Start Free — $0" for a
-never-subscribed user. Client fail-open mirrors the server: Free checkout 501
-("billing not enabled") falls back to plain continue.
+**Plan-before-first-host (cloud):** the signed-in variant can still show Cloud
+plans, but Polar Cloud seat products are archived. Public paid checkout is
+self-host licenses (`/api/v1/billing/license-checkout`). Host/seat counts are
+not enforced. OSS fails open.
 
 **"Try with sample ClickHouse" preset** — a DIFFERENT thing from the `demo` host
 above (server env-configured, cloud-only): a one-click preset any user (OSS or

@@ -83,13 +83,11 @@ export interface Env {
   /** Max new issues announced per ops sweep. Default `10`; the rest defer to the next run. */
   CHM_ISSUE_WATCH_MAX_PER_RUN?: string
 
-  // Polar product ids per plan/period (CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>). Same
-  // names the dashboard uses so both Workers map products identically.
-  CHM_POLAR_PRODUCT_FREE_MONTHLY?: string
-  CHM_POLAR_PRODUCT_PRO_MONTHLY?: string
-  CHM_POLAR_PRODUCT_PRO_YEARLY?: string
-  CHM_POLAR_PRODUCT_MAX_MONTHLY?: string
-  CHM_POLAR_PRODUCT_MAX_YEARLY?: string
+  // Polar self-host license product ids (CHM_POLAR_LICENSE_*).
+  CHM_POLAR_LICENSE_TEAM_YEARLY?: string
+  CHM_POLAR_LICENSE_TEAM_LIFETIME?: string
+  CHM_POLAR_LICENSE_UNLIMITED_YEARLY?: string
+  CHM_POLAR_LICENSE_UNLIMITED_LIFETIME?: string
 
   [key: string]: unknown
 }

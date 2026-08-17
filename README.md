@@ -55,13 +55,13 @@
 Same codebase, same features — the only difference is who runs it. See
 [Editions](docs/content/operate/advanced/editions.mdx) for the open-core feature gates.
 
-| | Self-hosted (OSS) | Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github)) |
-|---|---|---|
-| Cost | Free forever, GPL-3.0 | Free tier, then Pro $29/mo, Max $99/mo, Enterprise custom |
-| Runs on | Your infra — Docker, Kubernetes, bare metal, Cloudflare Workers | Hosted by us on Cloudflare's global edge |
-| ClickHouse hosts | Unlimited | 1 (Free) · 3 (Pro) · 10 (Max) · unlimited (Enterprise) |
-| Setup | `docker run` one-liner below | Sign up — no install |
-| Try without an account | — | Public read-only demo cluster |
+| | Self-hosted (OSS) | Optional license | Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github)) |
+|---|---|---|---|
+| Cost | Free forever, GPL-3.0 | Yearly or lifetime, priced by host count ([pricing](https://chmonitor.dev/pricing/)) | Hosted convenience — Free / Pro / Max |
+| Runs on | Your infra — Docker, Kubernetes, bare metal, Cloudflare Workers | Same binary, no license key | Hosted by us on Cloudflare's global edge |
+| ClickHouse hosts | Unlimited | Personal (free) · Team 3 · Unlimited | No host or seat cap |
+| Setup | `docker run` one-liner below | Register company + website after invoice | Sign up — no install |
+| Try without an account | — | — | Public read-only demo cluster |
 
 ## Quick start
 

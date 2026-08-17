@@ -53,9 +53,9 @@
 # / CF_ACCOUNT_ID unset → the exception-scan capability logs one line and no-ops
 # (never crashes).
 #
-# Product→plan mapping (non-secret, set via CI `--var` or the dashboard, mirror
-# apps/dashboard/.env.production so both Workers map products IDENTICALLY):
-#   CHM_POLAR_SERVER, CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>
+# License product mapping (non-secret, set via CI `--var`, mirror
+# apps/dashboard/.env.production):
+#   CHM_POLAR_SERVER, CHM_POLAR_LICENSE_<SKU>_<TERM>
 # These are NOT required until the Polar endpoint is cut over to this worker
 # (plans/103 step 3-4); until then the worker is deployed but dormant.
 #

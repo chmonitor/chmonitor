@@ -1,0 +1,70 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import FinalCta from '../components/FinalCta.astro'
+import { publicLicensedCompanies } from '../data/licensed-companies'
+import { btnPrimary, btnOutline } from '../lib/button-classes'
+
+function hostLabel(hosts: number | null): string {
+  if (hosts === null) return 'Unlimited hosts'
+  return `${hosts} host${hosts === 1 ? '' : 's'}`
+}
+---
+<Base
+  title="Licensed companies — chmonitor"
+  description="Companies that bought a chmonitor commercial license and chose to be listed."
+>
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head" style="text-align:center">
+          <span class="eyebrow">Customers</span>
+          <h1>Companies that licensed chmonitor</h1>
+          <p>A public list of teams that bought a commercial license and opted in. Listing is never required. Self-host stays free either way.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        {publicLicensedCompanies().length === 0 ? (
+          <div class="empty">
+            <p>No public listings yet. If you already bought a license, register your company and tick “list us”.</p>
+            <div class="empty-cta">
+              <a class={btnPrimary} href="/license/register">Register a license</a>
+              <a class={btnOutline} href="/pricing">See licenses</a>
+            </div>
+          </div>
+        ) : (
+          <ul class="co-grid">
+            {publicLicensedCompanies().map((c) => (
+              <li class="co">
+                <a href={c.website} target="_blank" rel="noopener">
+                  <strong>{c.name}</strong>
+                </a>
+                <p class="meta">{hostLabel(c.hosts)} · {c.term} · since {c.since}</p>
+                {c.note && <p class="note">{c.note}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+    <FinalCta />
+  </main>
+  <Footer />
+  <style>
+    .price-head h1{font-size:clamp(1.75rem,6vw,2.5rem);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px}
+    .price-head p{margin-inline:auto;font-size:clamp(14px,3.5vw,17px)}
+    .empty{max-width:560px;margin:0 auto;text-align:center;padding:48px 16px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--card)}
+    .empty p{color:var(--muted-fg);line-height:1.6}
+    .empty-cta{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}
+    .co-grid{list-style:none;padding:0;margin:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .co{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:18px}
+    .co strong{font-size:16px}
+    .co .meta{margin-top:6px;font-size:12px;color:var(--muted-fg)}
+    .co .note{margin-top:8px;font-size:13px;color:var(--muted-fg)}
+  </style>
+</Base>

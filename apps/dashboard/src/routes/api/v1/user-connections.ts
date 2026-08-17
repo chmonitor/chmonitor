@@ -6,7 +6,6 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import type { LimitCheck } from '@/lib/billing/entitlements'
 import type { CreateUserConnectionInput } from '@/lib/connection-store/types'
 
 import { formatPostgresError, queryPostgres } from '@chm/postgres-client'
@@ -16,18 +15,8 @@ import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { logEvent } from '@/lib/audit/logEvent'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
-import {
-  checkHostLimit,
-  checkHostSoftCap,
-  limitMessage,
-} from '@/lib/billing/entitlements'
-import { recordHostOverage } from '@/lib/billing/host-usage-store'
-import { countOwnerHosts } from '@/lib/billing/org-host-count'
 import { isBillingConfigured } from '@/lib/billing/polar-config'
-import {
-  getPlanForOwner,
-  resolveOwnerSubscription,
-} from '@/lib/billing/user-subscription'
+import { resolveOwnerSubscription } from '@/lib/billing/user-subscription'
 import {
   validateHostUrl,
   validatePostgresHost,
@@ -38,7 +27,6 @@ import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
-import { ConnectionStoreError } from '@/lib/connection-store/types'
 import { emitEvent } from '@/lib/events/outbound-bus'
 import { buildPeerdbCredentialFields } from '@/lib/peerdb/peerdb-auth'
 
@@ -94,29 +82,6 @@ interface CreateRequest {
   peerdbApiUrl?: string
   peerdbAuthScheme?: string
   peerdbAuthSecret?: string
-}
-
-/**
- * The 402 response shape for a tripped host-limit check (pre-check or atomic
- * recheck). Both call sites only reach this with a plan that caps hosts, so
- * `check.limit` is always non-null there — but `LimitCheck.limit` is typed
- * `number | null` (it doubles as the unlimited-plan shape), so the caller
- * passes the known-non-null cap explicitly rather than us re-deriving it.
- */
-function hostLimitResponse(check: LimitCheck, limit: number): Response {
-  return createApiErrorResponse(
-    {
-      type: ApiErrorType.PermissionError,
-      message: limitMessage(check),
-      details: {
-        planId: check.planId,
-        limit,
-        reason: check.reason,
-      },
-    },
-    402,
-    ROUTE_POST
-  )
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -180,31 +145,6 @@ async function handlePost(request: Request): Promise<Response> {
     const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
 
-    // Host-limit enforcement FIRST: paid plans cap how many connections a user
-    // keeps. plan.hosts === null means unlimited (Enterprise). Checking before
-    // the SSRF check + outbound connection test fails fast and avoids opening a
-    // network connection to an attacker-supplied host for a request we'll reject.
-    //
-    // Enforce against the BILLING OWNER's plan (org or user): if the user has an
-    // active Clerk org in their session the org's plan determines the limit, and
-    // the host count is POOLED across all current org members (countOwnerHosts).
-    // For a user owner it's just this user's connections. The count is fail-safe:
-    // an org-enumeration error falls back to the acting user's count, so it never
-    // blocks a paying org on a Clerk hiccup.
-    //
-    // This is a UX fast-path only, not the authoritative guard: two concurrent
-    // requests (two tabs, or two org members) can both pass this check before
-    // either has inserted. The authoritative guard is the atomic INSERT-with-
-    // count `store.create()` performs below — see CreateLimitEnforcement.
-    // Unlimited plans (plan.hosts === null) skip the count entirely — no
-    // Clerk member enumeration needed when there's no cap to check against.
-    //
-    // SOFT-CAP (plan 18): plans that publish `plan.hostOverage` (Pro/Max) never
-    // hard-block past the included allowance — the add is allowed and the extra
-    // host is billed as monthly overage (`recordHostOverage` below). Free
-    // (`hostOverage: null`) keeps the hard cap. `hardCapLimit` mirrors that split
-    // for the atomic store insert: null for soft-capped plans (so a paid owner's
-    // pooled count can legitimately exceed `plan.hosts`), the real cap for Free.
     const owner = await resolveBillingOwner()
 
     // Active-subscription gate (cloud only): a signed-in cloud user must hold a
@@ -218,10 +158,8 @@ async function handlePost(request: Request): Promise<Response> {
     if (isCloudModeServer() && isBillingConfigured()) {
       const sub = await resolveOwnerSubscription(owner.id)
       if (!sub) {
-        // Same envelope shape as hostLimitResponse so the client detects it via
-        // FetchError.details.reason (see lib/api/fetch-error.ts). Keep
-        // details.reason exactly 'subscription_required' — the onboarding flow
-        // keys off it to route the user to plan selection.
+        // Keep details.reason exactly 'subscription_required' — the onboarding
+        // flow keys off it to route the user to plan selection.
         return createApiErrorResponse(
           {
             type: ApiErrorType.PermissionError,
@@ -235,36 +173,10 @@ async function handlePost(request: Request): Promise<Response> {
       }
     }
 
-    const plan = await getPlanForOwner(owner.id)
-    const usage =
-      plan.hosts != null
-        ? await countOwnerHosts(owner, store, userId)
-        : { count: 0, memberUserIds: [] as string[] }
-    let overageHosts = 0
-    let hardCapLimit: number | null = null
-    if (plan.hosts != null) {
-      const check = checkHostSoftCap(plan, usage.count)
-      if (!check.allowed) {
-        if (owner.type === 'org') {
-          await logEvent({
-            orgId: owner.id,
-            userId,
-            event: 'connection.created',
-            action: 'create',
-            result: 'denied',
-          })
-        }
-        return hostLimitResponse(checkHostLimit(plan, usage.count), plan.hosts)
-      }
-      overageHosts = check.overageHosts
-      hardCapLimit = plan.hostOverage == null ? plan.hosts : null
-    }
-
     // Engine-specific: SSRF guard + live connectivity test + the credential
     // envelope to persist. Postgres connects over raw TCP with its own guard
     // and a read-only `pg` probe; clickhouse / clickhouse-cloud share the HTTP
-    // path. The connection test runs AFTER the host-limit check so we never open
-    // a socket to an attacker-supplied host for a request we'd reject anyway.
+    // path.
     let input: CreateUserConnectionInput
     if (engine === 'postgres') {
       const port = body.port ?? 5432
@@ -386,37 +298,10 @@ async function handlePost(request: Request): Promise<Response> {
       input.credentials = { ...input.credentials, ...peerdb.fields }
     }
 
-    let created
-    try {
-      created = await store.create(userId, input, {
-        memberUserIds: usage.memberUserIds,
-        limit: hardCapLimit,
-      })
-    } catch (err) {
-      if (
-        err instanceof ConnectionStoreError &&
-        err.code === 'LIMIT_EXCEEDED'
-      ) {
-        // Lost the race: another concurrent request filled the last slot
-        // between our fast-path check above and this atomic insert. The
-        // store only throws LIMIT_EXCEEDED when it was given a non-null
-        // limit — i.e. only for hard-capped (Free) plans, since soft-capped
-        // plans pass `hardCapLimit: null` above — so plan.hosts is guaranteed
-        // non-null here; `used: plan.hosts` reflects that the pool was already
-        // at (or past) the cap when the atomic recheck ran.
-        const limit = plan.hosts as number
-        return hostLimitResponse(checkHostLimit(plan, limit), limit)
-      }
-      throw err
-    }
-
-    // Meter the over-limit host-month (soft-capped paid plans only —
-    // `overageHosts` stays 0 for Free/Enterprise/under-allowance adds).
-    // recordHostOverage is fail-open (D1-absent self-host/OSS is a no-op), so
-    // this can't fail or block the request.
-    if (overageHosts > 0) {
-      await recordHostOverage(owner.id, overageHosts)
-    }
+    const created = await store.create(userId, input, {
+      memberUserIds: [userId],
+      limit: null,
+    })
 
     if (owner.type === 'org') {
       await logEvent({

@@ -85,6 +85,9 @@ mock.module('@/lib/billing/polar-config', () => ({
   }),
   getWebhookSecret: () => 'whsec_test',
   productIdFor: () => null,
+  licenseProductIdFor: () => null,
+  licenseForProductId: () => null,
+  isPaidLicenseId: () => false,
   planForProductId: (productId: string) => {
     if (productId === 'prod_free')
       return { planId: 'free', period: 'monthly' as const }
