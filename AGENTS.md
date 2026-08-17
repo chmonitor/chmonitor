@@ -41,14 +41,50 @@ to skip an unaddressed finding. To avoid the gate entirely, prefer
 The **manager** session (this checkout) stays on **`main`**. Do not implement
 features on `main`. `git pull --ff-only origin main` whenever a PR merges.
 
+Requires `HERDR_ENV=1`. Name the manager pane so children can address it:
+
+```bash
+herdr agent rename "$HERDR_PANE_ID" manager
+```
+
 **Isolated tasks go to Herdr worktrees** (`herdr worktree create --branch
-feat/<name> --base origin/main`). Give each worktree a full spec: implement,
-commit, open a PR (`cpr`), `gh pr merge --auto --squash`, babysit required CI
-until merge, rebase onto `origin/main` if main moves. Close the worktree after
-the PR lands.
+feat/<name> --base origin/main`). Start a named agent in the worktree pane
+(`herdr agent start <name> --kind grok --pane <id>`). Give each worktree a
+full spec that includes the manager target: implement, commit, open a PR
+(`cpr`), `gh pr merge --auto --squash`, babysit required CI until merge,
+rebase onto `origin/main` if main moves. Close the worktree after the PR
+lands.
 
 Do not mix unrelated tasks in one worktree. After merge, update this `main`
 checkout and tell remaining worktrees to rebase.
+
+### Child worktrees report back via Herdr (session-wide)
+
+Child workspaces (`wN`) share the same Herdr **session** as the manager.
+`herdr agent list` / `prompt` / `notification` work across worktrees. Every
+child spec must say: **report to `manager` (or `$HERDR_MANAGER_PANE`)**.
+
+**Child → manager** (do this; do not only write STATUS.md):
+
+```bash
+# Status line into the manager agent (wakes it)
+herdr agent prompt manager "STATUS <name>: <opened|ci-red|merged|blocked> PR #<n> <url> — <one line>"
+
+# Optional toast for humans
+herdr notification show "<name> <event>" --body "PR #<n> <url>" --sound done
+```
+
+Report at least: PR opened (number + url), required CI red (job + snippet),
+merged, or stuck (GitHub 503/429 after 3 retries). Keep each report one
+short paragraph.
+
+**Manager → child:** `herdr agent prompt <name> "..."`, `herdr agent get/read
+<name>`, `herdr agent wait <name>`. After a merge: pull `main`, then prompt
+every still-open child to rebase onto `origin/main`.
+
+Pass in the spawn prompt: `HERDR_MANAGER=manager` and the manager pane id
+(`$HERDR_PANE_ID` from the manager). Children must not `herdr workspace
+close` the manager workspace.
 
 ## Project Overview
 
