@@ -21,7 +21,8 @@ if (!existsSync(SRC)) {
   process.exit(1)
 }
 
-const skip = (name) => name === '.DS_Store'
+const skip = (name) =>
+  name === '.DS_Store' || name.endsWith('.source.mp4')
 
 function syncDir(src, dest) {
   mkdirSync(dest, { recursive: true })

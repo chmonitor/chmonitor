@@ -1,21 +1,8 @@
 ---
-import ScreenshotShot from './ScreenshotShot.astro'
-
-/* The anchor image(s). Framed "with background" variants of the overview
-   capture (sharp at the 1080px column). They rotate on a slow interval;
-   the first stays the eager LCP element. */
-const HERO_SHOTS = [
-  {
-    id: 'hero-overview',
-    src: '/assets/screenshots/overview-dark-with-bg.jpeg',
-    alt: 'chmonitor Overview: cluster status, storage, uptime and a year of query activity as a heatmap',
-  },
-  {
-    id: 'hero-overview-charts',
-    src: '/assets/screenshots/overview-with-charts-dark-with-bg.jpeg',
-    alt: 'chmonitor Overview detailed charts: query count, duration and data written over time',
-  },
-] as const
+const HERO_VIDEO = '/assets/videos/chmonitor-v0.3.mp4'
+const HERO_POSTER = '/assets/videos/chmonitor-v0.3-poster.jpg'
+const HERO_POSTER_ALT =
+  'chmonitor v0.3: Overview with query heatmap, charts and cluster health'
 
 const HERO_FEATURES = [
   'Real-time queries, merges and replication from system tables',
@@ -107,25 +94,40 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
       </p>
     </div>
 
-    {/* Anchor screenshot(s). The hairline lives on THIS wrapper — see
-        ScreenshotShot. The two overview shots rotate; the first is the eager
-        LCP element. Every shot after the first ships hidden so a slow network
-        never shows them stacked while waiting for the first rotation tick. */}
+    {/* Launch film as the hero intro. Poster is the LCP image; the video
+        autoplays muted once when motion is allowed. Reduced-motion and
+        failed playback keep the poster. */}
     <div
       class="mt-12 sm:mt-16 overflow-hidden rounded-xl hero-shot-frame"
-      data-hero-rotate
+      data-hero-video
     >
-      {
-        HERO_SHOTS.map((shot, i) => (
-          <ScreenshotShot
-            id={shot.id}
-            src={shot.src}
-            alt={shot.alt}
-            eager={i === 0}
-            hidden={i > 0}
-          />
-        ))
-      }
+      <video
+        class="block h-auto w-full bg-transparent"
+        poster={HERO_POSTER}
+        width="1920"
+        height="1126"
+        autoplay
+        muted
+        playsinline
+        preload="metadata"
+        disablepictureinpicture
+        disableremoteplayback
+        aria-label={HERO_POSTER_ALT}
+        data-hero-intro
+      >
+        <source src={HERO_VIDEO} type="video/mp4" />
+      </video>
+      <img
+        src={HERO_POSTER}
+        alt={HERO_POSTER_ALT}
+        width="1920"
+        height="1126"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+        data-hero-poster
+        class="hidden h-auto w-full"
+      />
     </div>
 
     <ul
@@ -145,27 +147,27 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
 
   <script is:inline>
     (function () {
-      var wrap = document.querySelector('[data-hero-rotate]')
+      var wrap = document.querySelector('[data-hero-video]')
       if (!wrap) return
-      var shots = wrap.querySelectorAll('[data-screenshot-zoom]')
-      if (shots.length < 2) return
-      var idx = 0
+      var video = wrap.querySelector('[data-hero-intro]')
+      var poster = wrap.querySelector('[data-hero-poster]')
+      if (!video) return
       var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      if (reduce) return
-      // Hidden slots carry loading=lazy and display:none, so the browser never
-      // fetched them — warm them after load so the first swap isn't blank.
-      window.addEventListener('load', function () {
-        shots.forEach(function (shot, i) {
-          if (i === 0) return
-          var img = shot.querySelector('img')
-          if (img) new Image().src = img.currentSrc || img.src
-        })
-      })
-      setInterval(function () {
-        shots[idx].style.display = 'none'
-        idx = (idx + 1) % shots.length
-        shots[idx].style.display = ''
-      }, 6000)
+      var showPoster = function () {
+        video.style.display = 'none'
+        if (poster) poster.classList.remove('hidden')
+      }
+      if (reduce) {
+        showPoster()
+        return
+      }
+      var play = function () {
+        var p = video.play()
+        if (p && typeof p.catch === 'function') p.catch(showPoster)
+      }
+      video.addEventListener('error', showPoster)
+      if (video.readyState >= 2) play()
+      else video.addEventListener('loadeddata', play, { once: true })
     })()
   </script>
 
@@ -174,7 +176,7 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
       layout/CLS); the section's overflow-hidden clips the enlarged edges. */}
   <script is:inline>
     (function () {
-      var frame = document.querySelector('[data-hero-rotate]')
+      var frame = document.querySelector('[data-hero-video]')
       if (!frame) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
       var MAX = 0.045
