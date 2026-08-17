@@ -7,12 +7,11 @@
       "task": "github-issues",
       "agentName": "chm-desk",
       "kind": "grok",
-      "maxChildren": 3,
+      "maxChildren": 5,
       "stateDir": ".herdr-desk/runs/issues",
       "extraPrompt": ".herdr-desk/extra.md",
       "schedule": {
-        "morning": "0 7 * * *",
-        "nightly": "0 22 * * *"
+        "morning": "0 7 * * *"
       }
     }
   ]
