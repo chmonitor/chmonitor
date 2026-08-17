@@ -23,7 +23,7 @@ describe('formatEvalComment', () => {
           ],
         },
       },
-      { tags: 'core,safety', model: 'anyrouter:google/gemma-4-26b-a4b-it' }
+      { tags: 'core,safety', model: 'anyrouter:meituan/longcat-2.0' }
     )
     expect(md.startsWith(MARKER)).toBe(true)
     expect(md).toContain('| Status | **FAIL** |')
