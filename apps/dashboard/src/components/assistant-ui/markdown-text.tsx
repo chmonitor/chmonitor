@@ -5,7 +5,13 @@ import type { MermaidErrorComponentProps } from 'streamdown'
 
 import { mermaid as mermaidPlugin } from '@streamdown/mermaid'
 import { useTheme } from 'next-themes'
-import { type ComponentProps, memo, useMemo } from 'react'
+import {
+  type AnchorHTMLAttributes,
+  type ComponentProps,
+  memo,
+  type TableHTMLAttributes,
+  useMemo,
+} from 'react'
 import { Streamdown } from 'streamdown'
 
 import '@/components/agents/markdown-code.css'
@@ -16,13 +22,46 @@ import '@/components/agents/markdown-code.css'
  */
 function MermaidError({ chart, error }: MermaidErrorComponentProps) {
   return (
-    <div className="my-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">
-      <p className="mb-2 font-medium text-destructive">
-        Diagram error: {error}
+    <div className="my-3 rounded-md border border-border/60 px-3 py-2 text-sm">
+      <p className="mb-1.5 text-xs text-muted-foreground">
+        Diagram could not be rendered
+        {error ? ` — ${error}` : ''}
       </p>
-      <pre className="overflow-x-auto rounded bg-muted p-2 font-mono text-xs text-muted-foreground">
+      <pre className="overflow-x-auto font-mono text-xs text-muted-foreground">
         {chart}
       </pre>
+    </div>
+  )
+}
+
+function MarkdownLink({
+  href,
+  children,
+  ...props
+}: AnchorHTMLAttributes<HTMLAnchorElement>) {
+  const isExternal = href?.startsWith('http')
+  return (
+    <a
+      href={href}
+      {...props}
+      {...(isExternal
+        ? { target: '_blank', rel: 'noopener noreferrer' }
+        : {})}
+    >
+      {children}
+    </a>
+  )
+}
+
+function MarkdownTable({
+  children,
+  ...props
+}: TableHTMLAttributes<HTMLTableElement>) {
+  return (
+    <div className="my-3 overflow-x-auto">
+      <table {...props} className="w-full text-sm">
+        {children}
+      </table>
     </div>
   )
 }
@@ -66,6 +105,10 @@ const MarkdownTextImpl: TextMessagePartComponent = ({ text }) => {
           errorComponent: MermaidError,
         }}
         plugins={{ mermaid: mermaidPlugin }}
+        components={{
+          a: MarkdownLink,
+          table: MarkdownTable,
+        }}
       >
         {text ?? ''}
       </Streamdown>

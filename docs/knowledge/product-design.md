@@ -341,14 +341,19 @@ it. Implemented in `components/assistant-ui/{reasoning,tool-group}.tsx` +
   between them; a bare row differentiates by icon (Sparkles vs Wrench) and
   label instead. Their content indents under the trigger (`pl-5` /
   `pl-3.5`) rather than adding another box.
-- **Tool-call header: a short summary, never a raw param dump.** The
-  collapsed row shows `toolName` + `summarizeToolInput(part.input)`
-  (`tool-output/output-shape.ts`) — a single-line, whitespace-collapsed,
-  ~60-char-capped string (prefers a primary `sql`/`query`/`prompt` param
-  alone over concatenating every `key=value`). The full input always lives in
-  the "Parameters" disclosure in the expanded body; a long/multiline value
-  there (`isLongToolInputValue`) renders as a `CodeBlock` (sql-aware,
-  horizontally scrollable) instead of an inline JSON string.
+- **Tool-call header: family icon + short summary, never a raw param dump.**
+  The collapsed row shows a lucide family icon (`getToolFamily`: query,
+  schema, health, disk, replication, merge, skill, plan, visualize,
+  ask_user) + `toolName` + a one-line summary. While running, the name stays
+  muted with a tiny spinner. On success, `summarizeToolOutput` wins (row
+  count, table name, lag, …); otherwise `summarizeToolInput` (`output-shape.ts`)
+  — a single-line, whitespace-collapsed, ~60-char-capped string (prefers a
+  primary `sql`/`query`/`prompt` param alone over concatenating every
+  `key=value`). The full input always lives in the "Parameters" disclosure
+  in the expanded body; a long/multiline value there (`isLongToolInputValue`)
+  renders as a `CodeBlock` (sql-aware, horizontally scrollable) instead of an
+  inline JSON string. Do not add Done/Failed badges on the header — the
+  summary (or the compact error row) is enough.
 - **Tool errors: a compact destructive row, never raw JSON.** A failed tool
   renders `summarizeToolError(part.errorText)` — a short human message
   (extracted from a `{error:...}`/`{message:...}` JSON payload when present,
@@ -375,7 +380,15 @@ it. Implemented in `components/assistant-ui/{reasoning,tool-group}.tsx` +
   override. (`.markdown-content` has exactly one consumer, `markdown-text.tsx`
   — safe to keep spare.) The heading/blockquote overrides that DO remain in
   `styles.css` are intentional chat-width right-sizing (Streamdown's own h1 is
-  `text-3xl`, tuned for full-page docs) — don't remove those.
+  `text-3xl`, tuned for full-page docs) — don't remove those. Tables wrap in
+  a horizontal scroll container (`text-sm`, header `bg-muted/40`). Mermaid
+  parse failures stay muted (border + source), not a destructive slab.
+  Dropped json-render patches (`json-render-patch-guard` or spec validation)
+  fail quiet — no empty Card and no yellow warning chip.
+- **Message chrome stays quiet.** User turns are a compact end-aligned bubble
+  (`max-w` + wrap for long SQL). Assistant prose is flush, no full-answer
+  bubble. Copy / retry / edit appear on hover or focus-visible, not as
+  standing chrome. One loading indicator after submit.
 
 ### Settings channel grid (configured-first)
 

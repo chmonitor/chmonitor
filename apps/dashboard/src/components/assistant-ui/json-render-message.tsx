@@ -188,23 +188,17 @@ export function JsonRenderMessage() {
   const isRunning = useMessage((message) => message.status?.type === 'running')
   const jsonRender = useSafeJsonRender(parts ?? [])
 
-  if (!jsonRender.hasSpec && !jsonRender.parseError) return null
+  if (!jsonRender.hasSpec || !jsonRender.spec) return null
 
   return (
     <div className="mt-2">
-      {jsonRender.hasSpec && jsonRender.spec ? (
-        <ErrorBoundary fallbackRender={() => null}>
-          <Renderer
-            spec={jsonRender.spec}
-            registry={AGENT_JSON_RENDER_REGISTRY}
-            loading={isRunning}
-          />
-        </ErrorBoundary>
-      ) : (
-        <div className="rounded border border-[var(--chart-yellow)]/40 bg-[var(--chart-yellow)]/10 p-2 text-xs text-[var(--chart-yellow)]">
-          {jsonRender.parseError}
-        </div>
-      )}
+      <ErrorBoundary fallbackRender={() => null}>
+        <Renderer
+          spec={jsonRender.spec}
+          registry={AGENT_JSON_RENDER_REGISTRY}
+          loading={isRunning}
+        />
+      </ErrorBoundary>
     </div>
   )
 }

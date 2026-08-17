@@ -4,8 +4,10 @@ import {
   getPromotedOutputType,
   getRowsFromOutput,
   isLongToolInputValue,
+  getToolFamily,
   summarizeToolError,
   summarizeToolInput,
+  summarizeToolOutput,
   toolInputCodeLanguage,
 } from '@/components/agents/chat/tool-output/output-shape'
 
@@ -166,5 +168,38 @@ describe('summarizeToolError', () => {
       message: 'Connection timed out',
       detail: null,
     })
+  })
+})
+
+describe('getToolFamily', () => {
+  test('maps well-known tool names onto presentational families', () => {
+    expect(getToolFamily('query')).toBe('query')
+    expect(getToolFamily('get_table_schema')).toBe('schema')
+    expect(getToolFamily('get_metrics')).toBe('health')
+    expect(getToolFamily('get_disk_usage')).toBe('disk')
+    expect(getToolFamily('get_replication_status')).toBe('replication')
+    expect(getToolFamily('get_merge_status')).toBe('merge')
+    expect(getToolFamily('load_skill')).toBe('skill')
+    expect(getToolFamily('update_plan')).toBe('plan')
+    expect(getToolFamily('query_and_visualize')).toBe('visualize')
+    expect(getToolFamily('ask_user')).toBe('ask_user')
+    expect(getToolFamily('unknown_widget')).toBe('generic')
+  })
+})
+
+describe('summarizeToolOutput', () => {
+  test('summarizes a rows array by count', () => {
+    expect(summarizeToolOutput([{ a: 1 }, { a: 2 }])).toBe('2 rows')
+    expect(summarizeToolOutput({ rows: [{ a: 1 }] })).toBe('1 row')
+  })
+
+  test('prefers a table name or lag scalar over dumping the payload', () => {
+    expect(summarizeToolOutput({ tableName: 'events' })).toBe('events')
+    expect(summarizeToolOutput({ absolute_delay: 12 })).toBe('lag 12s')
+  })
+
+  test('returns null for empty or unreadable output', () => {
+    expect(summarizeToolOutput(null)).toBeNull()
+    expect(summarizeToolOutput({})).toBeNull()
   })
 })

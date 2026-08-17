@@ -1,19 +1,34 @@
 'use client'
 
 import {
+  ActivityIcon,
   AlertCircleIcon,
+  BarChart3Icon,
+  BookOpenIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  DatabaseIcon,
   DownloadIcon,
+  GitBranchIcon,
+  GitMergeIcon,
+  HardDriveIcon,
+  ListTreeIcon,
+  LoaderCircleIcon,
+  MessageCircleQuestionIcon,
+  Table2Icon,
+  WrenchIcon,
 } from 'lucide-react'
 
 import {
   createResultQueryConfig,
   getPromotedOutputType,
   getRowsFromOutput,
+  getToolFamily,
   isLongToolInputValue,
   summarizeToolError,
   summarizeToolInput,
+  summarizeToolOutput,
+  type ToolFamily,
   toolInputCodeLanguage,
 } from './output-shape'
 import {
@@ -29,7 +44,6 @@ import {
   isAskUserOutput,
 } from '@/components/agents/ask-user-widget'
 import { CodeBlock } from '@/components/ai-elements/code-block'
-import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
   CollapsibleContent,
@@ -54,35 +68,29 @@ interface ToolCallPartProps {
   readonly isMessageStreaming?: boolean
 }
 
-/**
- * Animated ellipsis — the single "in progress" motion for a running tool.
- * Three dots pulse in a staggered wave; `bg-current` inherits the label colour.
- */
-function AnimatedDots() {
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-hidden>
-      {[0, 200, 400].map((delay) => (
-        <span
-          key={delay}
-          className="size-1 shrink-0 animate-pulse rounded-full bg-current"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
-    </span>
-  )
+const TOOL_FAMILY_ICONS: Record<ToolFamily, typeof WrenchIcon> = {
+  query: DatabaseIcon,
+  schema: Table2Icon,
+  health: ActivityIcon,
+  disk: HardDriveIcon,
+  replication: GitBranchIcon,
+  merge: GitMergeIcon,
+  skill: BookOpenIcon,
+  plan: ListTreeIcon,
+  visualize: BarChart3Icon,
+  ask_user: MessageCircleQuestionIcon,
+  generic: WrenchIcon,
 }
 
-/**
- * The one, unmistakable "Running…" acknowledgement — replaces the old scattered
- * label + "Executing…" badge + body spinner with a single animated indicator.
- */
-function RunningIndicator() {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--chart-yellow)]">
-      Running
-      <AnimatedDots />
-    </span>
-  )
+function ToolFamilyIcon({
+  toolName,
+  className,
+}: {
+  readonly toolName: string
+  readonly className?: string
+}) {
+  const Icon = TOOL_FAMILY_ICONS[getToolFamily(toolName)]
+  return <Icon className={className} strokeWidth={1.5} />
 }
 
 /**
@@ -201,7 +209,9 @@ export function ToolCallPart({
   // Short, single-line summary for the header — long values (e.g. a `sql`
   // param) are truncated instead of dumping every key=value pair inline; the
   // full input is always available in the "Parameters" disclosure below.
-  const toolSummary = summarizeToolInput(part.input)
+  const inputSummary = summarizeToolInput(part.input)
+  const outputSummary = hasOutput ? summarizeToolOutput(part.output) : null
+  const toolSummary = outputSummary ?? inputSummary
 
   const inputParamCount =
     part.input && typeof part.input === 'object'
@@ -248,56 +258,43 @@ export function ToolCallPart({
         >
           <span className="text-muted-foreground shrink-0">
             {isExpanded ? (
-              <ChevronDownIcon className="size-3" />
+              <ChevronDownIcon className="size-3" strokeWidth={1.5} />
             ) : (
-              <ChevronRightIcon className="size-3" />
+              <ChevronRightIcon className="size-3" strokeWidth={1.5} />
             )}
           </span>
 
-          <div
-            className={cn(
-              'size-1.5 shrink-0 rounded-full',
-              isActive && 'animate-pulse bg-[var(--chart-yellow)]',
-              hasOutput && 'bg-[var(--chart-green)]',
-              hasError && 'bg-destructive'
-            )}
+          <ToolFamilyIcon
+            toolName={toolName}
+            className="size-3.5 shrink-0 text-muted-foreground"
           />
 
           <div className="flex min-w-0 items-center gap-1.5">
             {isActive ? (
-              <RunningIndicator />
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <LoaderCircleIcon
+                  className="size-3 animate-spin motion-reduce:animate-none"
+                  strokeWidth={1.5}
+                />
+                {toolName}
+              </span>
             ) : (
-              <span className="text-muted-foreground text-xs">
-                {hasError ? 'Failed' : 'Ran'}
+              <span
+                className={cn(
+                  'text-xs font-medium',
+                  hasError ? 'text-destructive' : 'text-muted-foreground'
+                )}
+              >
+                {toolName}
               </span>
             )}
-            <span className="font-mono text-xs font-medium">{toolName}</span>
             {toolSummary && (
               <span
-                className="text-muted-foreground/70 truncate font-mono text-xs"
+                className="truncate text-xs text-muted-foreground/70"
                 title={toolSummary}
               >
                 {toolSummary}
               </span>
-            )}
-          </div>
-
-          <div className="ml-auto flex items-center gap-1.5">
-            {hasOutput && (
-              <Badge
-                variant="outline"
-                className="shrink-0 text-[10px] text-[var(--chart-green)]"
-              >
-                ✓ Done
-              </Badge>
-            )}
-            {hasError && (
-              <Badge
-                variant="outline"
-                className="shrink-0 text-[10px] text-destructive"
-              >
-                ✗ Failed
-              </Badge>
             )}
           </div>
         </button>
