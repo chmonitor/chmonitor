@@ -652,6 +652,35 @@ describe('AI enrichment', () => {
     )
     expect(callsTo('generateTitle')).toHaveLength(1)
     expect(callsTo('generateTitle')[0].args[0]).toBe('internal-1')
+    expect(callsTo('updateConversation')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          args: ['internal-1', { title: 'AI Title' }],
+        }),
+      ])
+    )
+  })
+
+  test('calls generateTitle when title is New Chat and persists the result', async () => {
+    existingNone()
+    const store = new AgentStateStore({ apiKey: 'k', aiEnrich: true })
+    await store.upsert(
+      storedConversation({
+        title: 'New Chat',
+        messages: [
+          uiMessage('m1', 'user', 'hi'),
+          uiMessage('m2', 'assistant', 'hello'),
+        ],
+      })
+    )
+    expect(callsTo('generateTitle')).toHaveLength(1)
+    expect(callsTo('updateConversation')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          args: ['internal-1', { title: 'AI Title' }],
+        }),
+      ])
+    )
   })
 
   test('does NOT call generateTitle when aiEnrich is false', async () => {

@@ -92,7 +92,33 @@ export function createClickHouseAgent(options: {
     model: modelInstance,
     tools,
     instructions: systemPrompt,
-    stopWhen: isStepCount(maxSteps),
+    // Cap wandering at maxSteps, but never treat a step that emitted
+    // tool calls as terminal. Some OpenAI-compat providers (Gemma) send
+    // finishReason "stop" on the same step as a tool call; the SDK still
+    // continues when those calls are recorded as client outputs. This
+    // guard keeps isStepCount from ending the loop early if a step is
+    // counted before tools are folded into the next model turn.
+    stopWhen: stopWhenIdleOrMaxSteps(maxSteps),
     ...(providerOptions && { providerOptions }),
   })
+}
+
+/**
+ * Stop only when the step cap is reached, or when the latest step did not
+ * emit tool calls (the SDK already stops then). A tool-bearing step always
+ * continues until `maxSteps`.
+ */
+export function stopWhenIdleOrMaxSteps(maxSteps: number) {
+  const atCap = isStepCount(maxSteps)
+  return (options: Parameters<typeof atCap>[0]) => {
+    const last = options.steps[options.steps.length - 1]
+    if (
+      last !== undefined &&
+      last.toolCalls.length > 0 &&
+      options.steps.length < maxSteps
+    ) {
+      return false
+    }
+    return atCap(options)
+  }
 }

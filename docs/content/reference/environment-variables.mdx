@@ -414,7 +414,7 @@ Configure a backend at runtime via `CONVERSATION_STORE_BACKEND`.
 |---|---|---|
 | `AGENTSTATE_API_KEY` | — | AgentState API key. Required when `CONVERSATION_STORE_BACKEND=agentstate`. |
 | `AGENTSTATE_BASE_URL` | `https://agentstate.app/api` | AgentState API base URL. |
-| `AGENTSTATE_AI_ENRICH` | `false` | Set `true` to enable AI enrichment of stored conversations. |
+| `AGENTSTATE_AI_ENRICH` | `false` (cloud production: `true`) | Set `true` to enable AI titles and follow-up suggestions. |
 
 **Cloudflare D1 backend:**
 

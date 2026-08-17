@@ -52,7 +52,9 @@ const APP_ID = 'clickhouse-monitoring'
  */
 const GENERIC_TITLES = new Set([
   'New Conversation',
+  'New Chat',
   'Untitled Conversation',
+  'Untitled',
   '',
 ])
 
@@ -587,6 +589,10 @@ export class AgentStateStore implements ConversationStore {
         internalId,
         title,
       })
+      const nextTitle = typeof title === 'string' ? title.trim() : ''
+      if (nextTitle && !GENERIC_TITLES.has(nextTitle)) {
+        await this.client.updateConversation(internalId, { title: nextTitle })
+      }
     } catch (err) {
       // Swallow — enrichment is best-effort and must never fail the upsert.
       logError(

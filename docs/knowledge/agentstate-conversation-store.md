@@ -3,7 +3,7 @@ id: agentstate-conversation-store
 title: AgentState Conversation Store
 type: spec
 status: active
-updated: 2026-06-17
+updated: 2026-08-18
 related:
   - agent-conversation-storage
   - ai-insights
@@ -74,11 +74,15 @@ isolation requires an authenticated identity (Clerk: `VITE_AUTH_PROVIDER=clerk` 
 
 When AgentState is active **and** `AGENTSTATE_AI_ENRICH=true`:
 
-- **Auto-title** — AgentState generates a concise conversation title.
+- **Auto-title** — if the stored title is generic (`New Chat`, `New Conversation`,
+  empty), `generateTitle` runs and the returned title is persisted via
+  `updateConversation` so the next list shows it.
 - **Follow-ups** — AgentState suggests follow-up questions, surfaced in the chat.
 
-With enrichment off, conversations persist normally but no titles/follow-ups are
-generated. `supportsAiEnrichment` in the backend endpoint reflects this.
+Cloud production sets `AGENTSTATE_AI_ENRICH=true` in
+`apps/dashboard/.env.production`. With enrichment off, conversations persist
+normally but no titles/follow-ups are generated. `supportsAiEnrichment` in the
+backend endpoint reflects this.
 
 ## Routes
 
