@@ -34,6 +34,7 @@ jobs:
     env:
       ANYROUTER_API_KEY: ${{ secrets.ANYROUTER_API_KEY }}
       AGENT_API_TOKEN: ${{ secrets.AGENT_API_TOKEN }}
+      PROMPTFOO_API_KEY: ${{ secrets.PROMPTFOO_API_KEY }}
       AGENT_EVAL_URL: https://dash.chmonitor.dev/api/v1/agent
       AGENT_EVAL_MODEL: anyrouter:meituan/longcat-2.0
       AGENT_EVAL_GRADER_MODEL: meituan/longcat-2.0

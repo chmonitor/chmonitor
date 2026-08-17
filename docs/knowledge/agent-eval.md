@@ -42,6 +42,8 @@ this suite measures live tool-first + recommend-only behavior.
 - `AGENT_EVAL_MODEL` — default `anyrouter:meituan/longcat-2.0`
 - `AGENT_EVAL_GRADER_MODEL` — default `meituan/longcat-2.0`
 - `ANYROUTER_API_BASE` — default `https://anyrouter.dev/api/v1`
+- `PROMPTFOO_API_KEY` — optional Promptfoo Cloud token (`promptfoo auth login`);
+  when set, `agent-eval` adds `--share` and links the report
 
 CI uses repo secrets `ANYROUTER_API_KEY` and `AGENT_API_TOKEN`. Forks without
 secrets skip the live job but still post a skip comment on the PR. Live

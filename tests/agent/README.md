@@ -18,7 +18,9 @@ export ANYROUTER_API_BASE=https://anyrouter.dev/api/v1
 Local: run the dashboard (`pnpm run dev`) with ClickHouse + `ANYROUTER_API_KEY`.
 Public: set `AGENT_EVAL_URL=https://dash.chmonitor.dev/api/v1/agent`.
 
-Never commit keys. CI reads `secrets.ANYROUTER_API_KEY` and `secrets.AGENT_API_TOKEN`.
+Never commit keys. Put `PROMPTFOO_API_KEY` in `.env.local` (gitignored) so
+`pnpm run test:agent` publishes a shareable report to promptfoo.app. CI can use
+`secrets.PROMPTFOO_API_KEY` the same way.
 
 ## Commands
 

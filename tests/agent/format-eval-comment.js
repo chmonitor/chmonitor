@@ -57,8 +57,8 @@ function summarize(json) {
   return { rows, passed, failed, total, scorePct, status }
 }
 
-function formatScoreboard(summary) {
-  return [
+function formatScoreboard(summary, extra = {}) {
+  const lines = [
     `| | |`,
     `|---|---|`,
     `| Status | **${summary.status}** |`,
@@ -66,7 +66,12 @@ function formatScoreboard(summary) {
     `| Tests | ${summary.total} |`,
     `| Passed | ${summary.passed} |`,
     `| Failed | ${summary.failed} |`,
-  ].join('\n')
+  ]
+  const shareUrl = extra.shareUrl || summary.shareUrl
+  if (shareUrl) {
+    lines.push(`| Report | [promptfoo.app](${shareUrl}) |`)
+  }
+  return lines.join('\n')
 }
 
 function formatSkipComment(reason) {
@@ -88,12 +93,17 @@ function formatEvalComment(json, meta = {}) {
   const model = meta.model || process.env.AGENT_EVAL_MODEL || ''
   const tags = meta.tags || ''
   const url = meta.url || process.env.AGENT_EVAL_URL || ''
+  const shareUrl =
+    meta.shareUrl ||
+    (json && typeof json === 'object' && typeof json.shareableUrl === 'string'
+      ? json.shareableUrl
+      : '')
 
   const lines = [
     MARKER,
     '## Agent eval (promptfoo)',
     '',
-    formatScoreboard(summary),
+    formatScoreboard(summary, { shareUrl }),
     '',
     `**${passed}/${total} passed** (${scorePct}%) — ${status}`,
   ]
