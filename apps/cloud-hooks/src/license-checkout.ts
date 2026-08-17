@@ -65,17 +65,29 @@ export async function handleLicenseCheckout(
   try {
     const externalId = licenseCheckoutExternalId(skuRaw, termRaw, deps.uuid?.())
     const successUrl = licenseSuccessUrl(skuRaw, termRaw, successOrigin(env))
+    const email = (url.searchParams.get('email') ?? '').trim()
+    const company = (url.searchParams.get('company') ?? '').trim().slice(0, 120)
+    const website = (url.searchParams.get('website') ?? '').trim().slice(0, 200)
+    const metadata: Record<string, string> = {
+      kind: 'selfhost-license',
+      sku: skuRaw,
+      term: termRaw,
+    }
+    if (company) metadata.company = company
+    if (website) metadata.website = website
+    const body: Record<string, unknown> = {
+      products: [productId],
+      external_customer_id: externalId,
+      success_url: successUrl,
+      metadata,
+    }
+    if (email.includes('@')) body.customer_email = email
     const polar = await polarFetch(
       env,
       '/v1/checkouts/',
       {
         method: 'POST',
-        body: JSON.stringify({
-          products: [productId],
-          external_customer_id: externalId,
-          success_url: successUrl,
-          metadata: { kind: 'selfhost-license', sku: skuRaw, term: termRaw },
-        }),
+        body: JSON.stringify(body),
       },
       deps.fetchImpl ?? fetch
     )

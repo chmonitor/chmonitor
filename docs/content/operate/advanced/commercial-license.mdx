@@ -26,14 +26,80 @@ A **host** is one monitored connection (one ClickHouse endpoint, or one Postgres
 
 Source of truth: `@chm/pricing` (`packages/pricing/src/licenses.ts`) and [chmonitor.dev/pricing](https://chmonitor.dev/pricing/).
 
-## How to buy
+## There is no license key
 
-1. Open [pricing](https://chmonitor.dev/pricing/) and click Buy (Polar checkout).
-2. After payment, Polar returns you to [register](https://chmonitor.dev/license/register) — enter **company name** and **website**. We trust you.
-3. Optionally opt in to the [customers](https://chmonitor.dev/customers) list. Default is private.
-4. Need a PO? Email [hello@chmonitor.dev](mailto:hello@chmonitor.dev).
+The dashboard never asks for a key. There is no `CHM_LICENSE_KEY` env var and
+the binary does not phone home. A license is a **commercial agreement**
+(invoice + support + optional public listing), not a DRM unlock.
 
-There is no `CHM_LICENSE_KEY` and you should not add one. Do not gate OSS features on a license.
+To check a purchase later, use [Look up an order](https://chmonitor.dev/license/lookup)
+with the **Polar checkout id** from the receipt, or the **billing email** you
+used at Polar. That page does not unlock features.
+
+## How purchase actually works
+
+```
+You                    Polar                         chmonitor
+──                     ─────                         ─────────
+Pricing → Buy
+  or fill company +
+  website + email
+  then Pay
+         ──────────►  hosted checkout
+                      card / invoice
+                      Polar emails the receipt
+         ◄──────────  back to /license/register?paid=1&checkout_id=…
+                      register company (honor system)
+                      optional list on /customers
+```
+
+1. Open [pricing](https://chmonitor.dev/pricing/) and click **Buy Team** or
+   **Buy Unlimited**. That opens the company form first (name, website,
+   billing email). We save that, then send you to **Polar** with the same
+   customer email so Polar has your details on the payment.
+2. **Polar** collects payment (card). Polar — not chmonitor — sends the
+   **receipt email**. We do not send a license-key email.
+3. Polar returns you to
+   [register](https://chmonitor.dev/license/register?paid=1) with a
+   `checkout_id`. Enter **company name**, **website**, and billing email.
+   Optionally opt in to the [customers](https://chmonitor.dev/customers)
+   page (off by default).
+4. Need a PO / Net-30 / vendor form instead of card? Email
+   [hello@chmonitor.dev](mailto:hello@chmonitor.dev) — we invoice; Polar is
+   skipped.
+
+You may also start on `/license/register` **before** paying: fill the
+company form and click Pay — we pass email (and company as metadata) into
+Polar so the receipt is addressed to you.
+
+## How to “validate” a purchase
+
+| What you have | What to do |
+|---|---|
+| Polar receipt email | Keep it. Polar is the payment record. |
+| Checkout / order id | [Look up](https://chmonitor.dev/license/lookup) |
+| Billing email used at Polar | Same lookup page |
+| A license key field in the app | **Does not exist.** Do not add one. |
+
+If lookup misses, email [hello@chmonitor.dev](mailto:hello@chmonitor.dev)
+with the Polar receipt. We do not automatically email a “you are licensed”
+message after register.
+
+## Who sends email?
+
+- **Polar** — payment receipt / invoice PDF (their branding).
+- **hello@chmonitor.dev** — only if you wrote us (PO, lookup miss, support).
+  Register does not trigger a mail from us.
+
+## How to buy (short)
+
+1. [Pricing](https://chmonitor.dev/pricing/) → Buy → Polar pay.
+2. Land on register → company + website.
+3. Optional: [lookup](https://chmonitor.dev/license/lookup) later.
+4. PO? Email hello@chmonitor.dev.
+
+There is no `CHM_LICENSE_KEY` and you should not add one. Do not gate OSS
+features on a license.
 
 ## What you get
 

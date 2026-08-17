@@ -90,6 +90,30 @@ describe('POST /licenses/register', () => {
     })
   })
 
+  test('intent without checkout_id is stored but stays off the public wall', async () => {
+    const kv = makeKV()
+    const res = await handleLicenseRegister(
+      post({
+        company: 'Lead Co',
+        website: 'https://lead.example',
+        sku: 'team',
+        term: 'yearly',
+        list_public: true,
+        email: 'ops@lead.example',
+      }),
+      {},
+      { kv, uuid: () => 'lead-1' }
+    )
+    expect(res.status).toBe(201)
+    expect(await kv.get(`${LICENSE_REG_KEY_PREFIX}lead-1`)).toContain('Lead Co')
+    const pub = await handleLicensePublic(
+      new Request('https://hooks.chmonitor.dev/licenses/public'),
+      {},
+      { kv }
+    )
+    expect(await pub.json()).toEqual({ licenses: [] })
+  })
+
   test('private rows stay off GET /licenses/public', async () => {
     const kv = makeKV()
     await handleLicenseRegister(

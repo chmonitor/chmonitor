@@ -36,7 +36,7 @@ const ClerkSignInButton:
   | null = isClerkEnabled() ? ClerkSignInButtonImpl : null
 
 function licenseCheckoutHref(sku: PaidLicenseId, term: LicenseTerm): string {
-  return `/api/v1/billing/license-checkout?sku=${sku}&term=${term}`
+  return `https://chmonitor.dev/license/register?sku=${sku}&term=${term}`
 }
 
 function BillingPage() {

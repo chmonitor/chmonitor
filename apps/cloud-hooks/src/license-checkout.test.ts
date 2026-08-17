@@ -54,6 +54,31 @@ describe('GET /checkout/license', () => {
     expect(called).toBe('https://sandbox-api.polar.sh/v1/checkouts/')
   })
 
+  test('forwards email and company into Polar checkout', async () => {
+    const fetchImpl = mock(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as Record<
+        string,
+        unknown
+      >
+      expect(body.customer_email).toBe('ops@acme.example')
+      expect(body.metadata).toMatchObject({
+        company: 'Acme',
+        website: 'https://acme.example',
+      })
+      return new Response(JSON.stringify({ url: 'https://polar.sh/c' }), {
+        status: 200,
+      })
+    })
+    const res = await handleLicenseCheckout(
+      req(
+        'sku=team&term=yearly&email=ops@acme.example&company=Acme&website=https://acme.example'
+      ),
+      env,
+      { fetchImpl }
+    )
+    expect(res.status).toBe(302)
+  })
+
   test('lifetime unlimited uses the lifetime product and production host', async () => {
     const fetchImpl = mock(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? '{}')) as Record<

@@ -12,6 +12,7 @@ import Nav from '../../components/Nav.astro'
 import Footer from '../../components/Footer.astro'
 import {
   invoiceMailto,
+  LICENSE_HOOKS_ORIGIN,
   licenseRegisterApiHref,
   paidLicenseSkus,
 } from '../../data/licenses'
@@ -44,8 +45,8 @@ const registerApi = licenseRegisterApiHref()
           <h1>Buy &amp; register</h1>
           <p>
             {paid
-              ? 'Payment received. Register your company name and website — honor system, no license key.'
-              : 'Pay on Polar (Buy from the pricing page), then register your company. Or email hello@chmonitor.dev for an invoice.'}
+              ? 'Polar received payment and emailed you a receipt. Register your company here — there is no license key.'
+              : 'Enter company details, then pay on Polar. Polar emails the receipt. There is no license key to paste into the app.'}
           </p>
         </div>
 
@@ -99,7 +100,7 @@ const registerApi = licenseRegisterApiHref()
             <textarea name="notes" rows="4" maxlength="2000"></textarea>
           </label>
           <button class={btnPrimaryBlock} type="submit" id="send">
-            {paid ? 'Register company' : `Email ${LICENSE_SALES_EMAIL} to purchase`}
+            {paid ? 'Register company' : 'Continue to Polar to pay'}
           </button>
         </form>
 
@@ -125,7 +126,7 @@ const registerApi = licenseRegisterApiHref()
     .hint,.trust,.alt{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-top:12px}
     .alt{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
   </style>
-  <script is:inline define:vars={{ paid, registerApi }}>
+  <script is:inline define:vars={{ paid, registerApi, hooksOrigin: LICENSE_HOOKS_ORIGIN }}>
     (function () {
       var form = document.getElementById('reg-form')
       var done = document.getElementById('done')
@@ -159,30 +160,47 @@ const registerApi = licenseRegisterApiHref()
         var list = form.list_public.checked ? 'yes' : 'no'
         var notes = form.notes.value.trim()
         var checkoutId = form.checkout_id ? form.checkout_id.value.trim() : ''
-        if (!paid) {
-          mailtoFallback(company, website, email, sku, term, list, notes)
-          return
+        var payload = {
+          company: company,
+          website: website,
+          sku: sku,
+          term: term,
+          list_public: list === 'yes',
+          checkout_id: checkoutId || undefined,
+          email: email || undefined,
+          notes: notes || undefined,
+        }
+        function goPolar() {
+          var dest =
+            hooksOrigin +
+            '/checkout/license?sku=' +
+            encodeURIComponent(sku) +
+            '&term=' +
+            encodeURIComponent(term)
+          if (email) dest += '&email=' + encodeURIComponent(email)
+          if (company) dest += '&company=' + encodeURIComponent(company)
+          if (website) dest += '&website=' + encodeURIComponent(website)
+          window.location.href = dest
         }
         fetch(registerApi, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            company: company,
-            website: website,
-            sku: sku,
-            term: term,
-            list_public: list === 'yes',
-            checkout_id: checkoutId || undefined,
-            email: email || undefined,
-            notes: notes || undefined,
-          }),
+          body: JSON.stringify(payload),
         })
           .then(function (res) {
+            if (!paid) {
+              goPolar()
+              return
+            }
             if (!res.ok) throw new Error('register failed')
             form.hidden = true
             if (done) done.hidden = false
           })
           .catch(function () {
+            if (!paid) {
+              goPolar()
+              return
+            }
             mailtoFallback(company, website, email, sku, term, list, notes)
           })
       })

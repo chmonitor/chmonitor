@@ -160,7 +160,8 @@ export async function handleLicenseRegister(
 
   try {
     await kv.put(`${LICENSE_REG_KEY_PREFIX}${row.id}`, JSON.stringify(row))
-    if (row.list_public) {
+    // Public wall only after Polar proof (checkout_id). Intent rows stay private.
+    if (row.list_public && checkoutId) {
       const index = await readPublicIndex(kv)
       if (index.length < PUBLIC_CAP) {
         index.push(toPublic(row))

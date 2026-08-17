@@ -19,16 +19,16 @@ describe('landing license offer', () => {
     expect(invoiceMailto(personal, 'yearly')).toBe(PERSONAL_SELFHOST_HREF)
   })
 
-  test('paid CTA goes to Polar license checkout', () => {
+  test('paid CTA goes to the company form before Polar', () => {
     const team = getLicense('team')
     expect(buyHref(team, 'yearly')).toBe(
-      'https://hooks.chmonitor.dev/checkout/license?sku=team&term=yearly'
+      '/license/register?sku=team&term=yearly'
     )
     expect(buyHref(team, 'lifetime')).toBe(
-      'https://hooks.chmonitor.dev/checkout/license?sku=team&term=lifetime'
+      '/license/register?sku=team&term=lifetime'
     )
     expect(buyHref(getLicense('unlimited'), 'yearly')).toBe(
-      'https://hooks.chmonitor.dev/checkout/license?sku=unlimited&term=yearly'
+      '/license/register?sku=unlimited&term=yearly'
     )
     expect(paidLicenseSkus.map((s) => s.id)).toEqual(['team', 'unlimited'])
     expect(LICENSE_SKU_LIST).toHaveLength(3)
