@@ -1,6 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Canonical project instructions for every coding agent (Claude, Grok, Codex, Cursor).
+`CLAUDE.md` is a stub that includes this file — edit **this** file only.
 
 ## Git Commit Convention
 
