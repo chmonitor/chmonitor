@@ -12,13 +12,21 @@ const products: Record<string, string> = {
 }
 
 mock.module('@/lib/billing/polar-config', () => ({
+  PAID_PLAN_IDS: ['pro', 'max'] as const,
+  getPolarServer: () => 'sandbox' as const,
   isBillingConfigured: () => billingOn,
   isPaidLicenseId: (v: string) => v === 'team' || v === 'unlimited',
   licenseProductIdFor: (sku: string, term: string) =>
     products[`${sku}/${term}`] ?? null,
+  licenseForProductId: () => null,
   getPolarClient: () => ({
     checkouts: { create: (args: unknown) => checkoutsCreate(args) },
   }),
+  getWebhookSecret: () => 'whsec_test',
+  productIdFor: () => null,
+  planForProductId: () => null,
+  isPaidPlanId: () => false,
+  isSubscribablePlanId: () => false,
 }))
 
 const { __handleGetForTests: handleGet } = await import('./license-checkout')
