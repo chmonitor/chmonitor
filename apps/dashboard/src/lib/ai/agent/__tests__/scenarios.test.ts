@@ -114,7 +114,11 @@ const USAGE = {
 }
 
 /** One scripted LLM turn that calls a single tool. */
-function toolCallTurn(toolName: string, input: Record<string, unknown>) {
+function toolCallTurn(
+  toolName: string,
+  input: Record<string, unknown>,
+  finishReason: string = 'tool-calls'
+) {
   return {
     content: [
       {
@@ -124,7 +128,7 @@ function toolCallTurn(toolName: string, input: Record<string, unknown>) {
         input: JSON.stringify(input),
       },
     ],
-    finishReason: 'tool-calls',
+    finishReason,
     usage: USAGE,
     warnings: [],
   }
@@ -196,6 +200,26 @@ function assertNoDestructiveExecution(result: {
 }
 
 // ── Golden scenarios ────────────────────────────────────────────────────────
+
+describe('agent golden scenarios — tool loop continues', () => {
+  test('list_databases with finishReason stop still takes a second model step', async () => {
+    const answer =
+      'default has the most tables; system and information_schema are metadata.'
+    const { result, toolCallNames } = await runAgentScenario({
+      prompt: 'What databases are available and which ones have the most tables?',
+      turns: [
+        toolCallTurn('list_databases', {}, 'stop'),
+        textTurn(answer),
+      ],
+    })
+
+    expect(toolCallNames).toEqual(['list_databases'])
+    expect(result.toolResults).toHaveLength(1)
+    expect(result.steps.length).toBeGreaterThanOrEqual(2)
+    expect(result.text).toBe(answer)
+    assertNoDestructiveExecution(result)
+  })
+})
 
 describe('agent golden scenarios — query performance', () => {
   test('slow query: explains the cause and recommends an index/PREWHERE fix', async () => {

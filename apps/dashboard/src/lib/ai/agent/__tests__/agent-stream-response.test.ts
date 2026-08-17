@@ -73,7 +73,10 @@ function textStreamResult(text: string) {
 
 /** A scripted `doStream` result that calls the given tool, then never
  * produces a text reply — mirroring a tool whose failure ends the turn. */
-function toolCallStreamResult(toolName: string) {
+function toolCallStreamResult(
+  toolName: string,
+  finishReason: string = 'tool-calls'
+) {
   return {
     stream: new ReadableStream({
       start(controller) {
@@ -86,7 +89,7 @@ function toolCallStreamResult(toolName: string) {
         })
         controller.enqueue({
           type: 'finish',
-          finishReason: 'tool-calls',
+          finishReason,
           usage: STREAM_USAGE,
         })
         controller.close()
@@ -189,6 +192,61 @@ describe('createAgentStreamResponse — first message of a new session', () => {
               typeof p.text === 'string' &&
               p.text.includes('viewing the "Merges" page')
           )
+      )
+    ).toBe(true)
+  })
+})
+
+describe('createAgentStreamResponse — tool loop continues after first tool', () => {
+  test('streams a follow-up answer when the first step is a tool call with finishReason stop', async () => {
+    const model = new MockLanguageModelV3({
+      doStream: [
+        toolCallStreamResult('list_databases', 'stop'),
+        textStreamResult('default has the most tables.'),
+      ],
+    })
+    const agent = createClickHouseAgent({ hostId: 0, model })
+
+    const uiMessages = buildUiMessages({
+      safeIncomingMessages: [
+        {
+          id: 'u1',
+          role: 'user',
+          parts: [
+            {
+              type: 'text',
+              text: 'What databases are available and which ones have the most tables?',
+            },
+          ],
+        },
+      ],
+      userMessage:
+        'What databases are available and which ones have the most tables?',
+      pageContext: undefined,
+      hostId: 0,
+    })
+
+    const response = createAgentStreamResponse({
+      ...baseStreamOptions(),
+      agent,
+      mcpCloseAll: null,
+      uiMessages,
+      userMessage:
+        'What databases are available and which ones have the most tables?',
+    })
+
+    const body = await readSseBody(response)
+    const chunks = parseSseChunks(body)
+
+    expect(chunks.some((c) => c.type === 'error')).toBe(false)
+    expect(chunks.some((c) => c.type === 'data-error')).toBe(false)
+    expect(assembleText(chunks)).toContain('default has the most tables')
+    expect(
+      chunks.some(
+        (c) =>
+          c.type === 'tool-input-available' ||
+          c.type === 'tool-call' ||
+          c.toolName === 'list_databases'
       )
     ).toBe(true)
   })
