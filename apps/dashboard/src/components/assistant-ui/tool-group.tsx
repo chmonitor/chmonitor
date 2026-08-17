@@ -162,7 +162,7 @@ export function ToolGroupContent({
     >
       {/* Indented under the trigger's icon + label — each contained tool row
           keeps its own accent bar / disclosures, this just groups them. */}
-      <div className={cn('flex flex-col gap-0 pl-3.5', className)}>
+      <div className={cn('flex flex-col gap-0.5 pl-3.5', className)}>
         {children}
       </div>
     </CollapsibleContent>

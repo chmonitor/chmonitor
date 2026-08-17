@@ -90,12 +90,14 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   (`components/assistant-ui/{reasoning,tool-group}.tsx`) are plain
   `icon + label + chevron` text rows — no `bg-muted/50` slab — so the
   assistant's prose stays the loudest element, not two stacked grey cards.
-  Tool-call headers show a short capped summary
-  (`summarizeToolInput`), never a raw `key=value` param dump; long params
-  (e.g. `sql`) render as a syntax-highlighted `CodeBlock` in the "Parameters"
-  disclosure, not inline. Tool errors render via `summarizeToolError` as a
-  compact `border-destructive/30` row with an expandable "Details" disclosure
-  — never a raw `{"error":...}` blob. Don't add a `.markdown-content`
+  Tool-call headers show a family icon + short capped summary
+  (`summarizeToolOutput` when done, else `summarizeToolInput`), never a raw
+  `key=value` param dump; long params (e.g. `sql`) render as a
+  syntax-highlighted `CodeBlock` in the "Parameters" disclosure, not inline.
+  Running rows use a muted label + tiny spinner. Tool errors render via
+  `summarizeToolError` as a compact `border-destructive/30` row with an
+  expandable "Details" disclosure — never a raw `{"error":...}` blob. Don't
+  add a `.markdown-content`
   `pre`/`code` background rule — Streamdown's own `code:` renderer already
   owns that styling with token-based Tailwind classes; a sitewide override
   paints a second box INSIDE its already-bordered fenced-block card. See

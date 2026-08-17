@@ -1,7 +1,11 @@
 'use client'
 
 import type { TextMessagePartComponent } from '@assistant-ui/react'
-import type { MermaidErrorComponentProps } from 'streamdown'
+import type {
+  Components,
+  ExtraProps,
+  MermaidErrorComponentProps,
+} from 'streamdown'
 
 import { mermaid as mermaidPlugin } from '@streamdown/mermaid'
 import { useTheme } from 'next-themes'
@@ -9,6 +13,10 @@ import { type ComponentProps, memo, useMemo } from 'react'
 import { Streamdown } from 'streamdown'
 
 import '@/components/agents/markdown-code.css'
+import { cn } from '@/lib/utils'
+
+type MarkdownLinkProps = ComponentProps<'a'> & ExtraProps
+type MarkdownTableProps = ComponentProps<'table'> & ExtraProps
 
 /**
  * Fallback shown when a mermaid diagram fails to parse or render.
@@ -16,16 +24,48 @@ import '@/components/agents/markdown-code.css'
  */
 function MermaidError({ chart, error }: MermaidErrorComponentProps) {
   return (
-    <div className="my-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">
-      <p className="mb-2 font-medium text-destructive">
-        Diagram error: {error}
+    <div className="my-3 rounded-md border border-border/60 px-3 py-2 text-sm">
+      <p className="mb-1.5 text-xs text-muted-foreground">
+        Diagram could not be rendered
+        {error ? ` — ${error}` : ''}
       </p>
-      <pre className="overflow-x-auto rounded bg-muted p-2 font-mono text-xs text-muted-foreground">
+      <pre className="overflow-x-auto font-mono text-xs text-muted-foreground">
         {chart}
       </pre>
     </div>
   )
 }
+
+function MarkdownLink({ href, children, className }: MarkdownLinkProps) {
+  const isExternal = typeof href === 'string' && href.startsWith('http')
+  return (
+    <a
+      href={href}
+      className={className}
+      {...(isExternal
+        ? { target: '_blank', rel: 'noopener noreferrer' }
+        : {})}
+    >
+      {children}
+    </a>
+  )
+}
+
+function MarkdownTable({ children, className }: MarkdownTableProps) {
+  return (
+    <div className="my-3 overflow-x-auto">
+      <table className={cn('w-full text-sm', className)}>{children}</table>
+    </div>
+  )
+}
+
+// Streamdown `Components` intersects per-tag props with a string index of
+// `Record<string, unknown> & ExtraProps`. Typed renderers use the per-tag
+// ExtraProps shape; the map is asserted so tsc does not reject the object.
+const streamdownComponents = {
+  a: MarkdownLink,
+  table: MarkdownTable,
+} as Components
 
 /**
  * Markdown renderer for assistant-ui text message parts.
@@ -66,6 +106,7 @@ const MarkdownTextImpl: TextMessagePartComponent = ({ text }) => {
           errorComponent: MermaidError,
         }}
         plugins={{ mermaid: mermaidPlugin }}
+        components={streamdownComponents}
       >
         {text ?? ''}
       </Streamdown>

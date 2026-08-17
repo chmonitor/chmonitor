@@ -153,6 +153,93 @@ export function summarizeToolError(
   return { message: trimmed, detail: null }
 }
 
+export type ToolFamily =
+  | 'query'
+  | 'schema'
+  | 'health'
+  | 'disk'
+  | 'replication'
+  | 'merge'
+  | 'skill'
+  | 'plan'
+  | 'visualize'
+  | 'ask_user'
+  | 'generic'
+
+const TOOL_FAMILY_MATCHERS: readonly {
+  readonly family: ToolFamily
+  readonly pattern: RegExp
+}[] = [
+  { family: 'ask_user', pattern: /ask_user/i },
+  { family: 'visualize', pattern: /visuali[sz]|chart/i },
+  { family: 'skill', pattern: /skill|reference_query/i },
+  { family: 'plan', pattern: /plan|workflow/i },
+  { family: 'replication', pattern: /replicat|keeper/i },
+  { family: 'merge', pattern: /merge|mutation/i },
+  { family: 'disk', pattern: /disk|parts|storage/i },
+  { family: 'health', pattern: /health|metric|error|anomaly/i },
+  { family: 'schema', pattern: /schema|table|database|column/i },
+  { family: 'query', pattern: /query|sql|explain/i },
+]
+
+/** Maps a tool name onto a presentational family for the chat row icon. */
+export function getToolFamily(toolName: string): ToolFamily {
+  for (const { family, pattern } of TOOL_FAMILY_MATCHERS) {
+    if (pattern.test(toolName)) return family
+  }
+  return 'generic'
+}
+
+/**
+ * One-line success summary for a finished tool row. Prefers a row count,
+ * then a well-known scalar (table, lag, status), then a promoted type label.
+ * Never dumps the raw payload.
+ */
+export function summarizeToolOutput(output: unknown): string | null {
+  if (output == null) return null
+
+  if (typeof output === 'string') {
+    const trimmed = output.trim()
+    if (!trimmed) return null
+    return trimmed.length > 60 ? `${trimmed.slice(0, 59)}…` : trimmed
+  }
+
+  if (Array.isArray(output)) {
+    return output.length === 1 ? '1 row' : `${output.length} rows`
+  }
+
+  if (typeof output !== 'object') return null
+
+  const obj = output as Record<string, unknown>
+  const rows = getRowsFromOutput(output)
+  if (rows.length > 0) {
+    return rows.length === 1 ? '1 row' : `${rows.length} rows`
+  }
+
+  const table =
+    (typeof obj.table === 'string' && obj.table) ||
+    (typeof obj.tableName === 'string' && obj.tableName) ||
+    (typeof obj.name === 'string' && obj.name)
+  if (table) return table
+
+  if (typeof obj.absolute_delay === 'number') {
+    return `lag ${obj.absolute_delay}s`
+  }
+  if (typeof obj.lag === 'number') {
+    return `lag ${obj.lag}s`
+  }
+  if (typeof obj.status === 'string') return obj.status
+
+  const promoted = getPromotedOutputType(output)
+  if (promoted) return promoted.replace(/_/g, ' ')
+
+  if (typeof obj.count === 'number') {
+    return obj.count === 1 ? '1 item' : `${obj.count} items`
+  }
+
+  return null
+}
+
 export function getPromotedOutputType(output: unknown) {
   if (typeof output !== 'object' || output === null) return null
 

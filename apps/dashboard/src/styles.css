@@ -287,9 +287,22 @@
  */
 
 .markdown-content table {
-  margin: 0.75em 0;
+  margin: 0;
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.markdown-content th {
+  background-color: color-mix(in oklch, var(--muted) 40%, transparent);
+  font-weight: 600;
+  text-align: left;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border);
+  padding: 0.375rem 0.625rem;
 }
 
 .markdown-content a {

@@ -211,10 +211,10 @@ const UserMessage: FC = () => {
     <MessageScrollerItem messageId={messageId} scrollAnchor className="w-full">
       <MessagePrimitive.Root className="w-full py-3">
         <Message align="end">
-          <MessageContent className="items-end">
+          <MessageContent className="max-w-[min(100%,36rem)] items-end">
             <UserActionBar />
-            <Bubble variant="secondary" align="end">
-              <BubbleContent className="break-words text-sm">
+            <Bubble variant="secondary" align="end" className="max-w-full">
+              <BubbleContent className="overflow-x-auto whitespace-pre-wrap break-words text-sm">
                 <MessagePrimitive.Parts />
               </BubbleContent>
             </Bubble>
@@ -231,7 +231,7 @@ function UserActionBar() {
     <ActionBarPrimitive.Root
       hideWhenRunning
       autohide="not-last"
-      className="flex items-center"
+      className="flex items-center opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100 focus-within:opacity-100"
     >
       <ActionBarPrimitive.Edit asChild>
         <TooltipIconButton tooltip="Edit" className="text-muted-foreground">
@@ -244,7 +244,7 @@ function UserActionBar() {
 
 const EditComposer: FC = () => {
   return (
-    <ComposerPrimitive.Root className="bg-muted mx-auto my-2 flex w-full max-w-[var(--thread-max-width)] flex-col gap-2 rounded-2xl p-3">
+    <ComposerPrimitive.Root className="mx-auto my-2 flex w-full max-w-[var(--thread-max-width)] flex-col gap-2 rounded-xl border border-border bg-card p-3">
       <ComposerPrimitive.Input
         className="text-foreground min-h-12 w-full resize-none bg-transparent text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
         autoFocus
@@ -444,7 +444,7 @@ const AssistantMessage: FC = () => {
     <MessageScrollerItem messageId={messageId} className="w-full">
       <MessagePrimitive.Root className="mx-auto w-full max-w-[var(--assistant-max-width)] py-3">
         <Message align="start">
-          <MessageContent className="text-foreground w-full max-w-full gap-1.5">
+          <MessageContent className="w-full max-w-full gap-1 text-foreground">
             {/* Task #1: loading dots while no parts exist yet */}
             <LoadingIndicator />
 
@@ -471,7 +471,7 @@ const AssistantMessage: FC = () => {
                 message looks dead. */}
             <AgentDataError />
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100 focus-within:opacity-100">
               <BranchPicker />
               <AssistantActionBar />
             </div>
