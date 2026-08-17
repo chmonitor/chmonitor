@@ -1,18 +1,9 @@
 /**
  * GET /api/v1/billing/usage — the current billing owner's usage vs. plan caps.
  *
- * Complements /api/v1/billing/subscription (which returns the plan + renewal
- * metadata) by adding the actual consumption the current-plan card needs to
- * render meters: hosts used/cap, seats used/cap, AI messages today/limit, plus
- * the renewal date and cancel-grace state so the UI can surface a banner.
- *
- * Every meter is computed through the shared entitlement helpers
- * ({@link checkHostLimit} / {@link checkSeatLimit} / {@link checkAiDailyLimit})
- * so the used/limit/unlimited semantics match the server-side enforcement gates
- * exactly (`limit: null` = unlimited). The underlying consumption numbers come
- * from {@link resolveOwnerUsage} (`lib/billing/owner-usage.ts`), the SAME
- * resolver POST /api/v1/billing/can-downgrade uses, so the two routes can never
- * drift on what "current usage" means.
+ * Agent quota / usage meters (not Polar checkout). Every meter uses the
+ * shared entitlement helpers so used/limit/unlimited match the gates.
+ * Numbers come from {@link resolveOwnerUsage}.
  *
  * Auth mirrors the other billing routes: resolveBillingOwner() throws
  * UNAUTHORIZED (→ 401 via mapConnectionApiError) when Clerk is not configured.

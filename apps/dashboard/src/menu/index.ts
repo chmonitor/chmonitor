@@ -2,7 +2,6 @@ import type { MenuItem } from '@/components/menu/types'
 
 import { aboutItems } from './about'
 import { aiAgentItems } from './ai-agent'
-import { billingItems } from './billing'
 import { clusterItems } from './cluster'
 import { healthItems } from './health'
 import { inboundEventsItems } from './inbound-events'
@@ -39,7 +38,6 @@ export const menuItemsConfig: MenuItem[] = [
   ...peerdbItems,
   ...securityItems,
   ...logsItems,
-  ...billingItems,
   ...organizationItems,
   ...aboutItems,
   ...systemItems,

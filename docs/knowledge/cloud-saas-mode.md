@@ -94,7 +94,7 @@ Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
 - `.github/workflows/cloudflare.yml` build step — `build:preview` (PRs) / `build:production` (main) set `CHM_BUILD_ENV`; values come from the `.env*` files, none hardcoded.
 - `lib/swr/use-merged-hosts.ts` — demo tagging, hide-when-signed-in; exposes `cloudMode` / `isSignedIn`.
 - `components/host/host-switcher.tsx` — Demo / read-only badges; `demo` behaves like `env` for live status (server-backed by index).
-- `components/host/first-run-empty-state.tsx` — welcome/setup (cloud signed-in / cloud anon / self-hosted). Signed-in cloud goes straight to connect (no Polar plan picker). `POST /api/v1/user-connections` does not require a Polar Cloud subscription. Paid path is self-host licenses (`/api/v1/billing/license-checkout`). `/billing` shows hosted Cloud as free plus license cards.
+- `components/host/first-run-empty-state.tsx` — welcome/setup (cloud signed-in / cloud anon / self-hosted). Signed-in cloud goes straight to connect (no Polar plan picker). `POST /api/v1/user-connections` does not require a Polar subscription. Paid path is landing `/pricing` → `hooks.chmonitor.dev/checkout/license`. The dashboard has no `/billing` page.
 - `components/host/first-run-gate.tsx` + `first-run-decision.ts` — enforce the "signed-in ⇒ no demo data" invariant at the render boundary. The active host for data comes from `?host=` (`useHostId`), which is DECOUPLED from the visible host list; a stale `?host=0` (carried over from browsing the demo while anonymous) points at the now-hidden demo, and `resolve-host-fetch.ts` falls back to the server/demo host for an id not in the merged list — so a signed-in, zero-connection user could otherwise see demo data. The gate refuses to render the routed page (its charts fetch `?host` directly) until the active host resolves to one of the user's OWN visible hosts: while their connections load it shows a skeleton (never demo charts); with zero it routes to `/setup`; with some it re-points `?host` at a real host. Discriminator is deterministic — user connections use NEGATIVE ids (`DB_CONNECTION_HOST_ID_START = -1000`), env/demo use `0,1,2…`, so a non-negative `?host` for a signed-in user is always the demo. OSS + anonymous-cloud behaviour is unchanged. Invariant covered by `first-run-decision.test.ts`.
 - `lib/cloud/reject-demo-host.ts` (#2172) — the SERVER-side half of the same invariant, since the gate above is client-render-only and a hand-crafted `GET /api/v1/charts/$name?hostId=0` would otherwise still reach the demo. `isDemoHostBlockedForRequest(hostId, bindings)` rejects a non-negative `hostId` when `isCloudModeServer()` is true AND the caller is an authenticated Clerk principal (`isSignedInServer()`) — the same negative-vs-non-negative discriminator as `first-run-decision.ts`. OSS and anonymous-cloud callers are unaffected (both legitimately use `hostId=0`). Wired into every `/api/v1/*` data route that resolves a user-supplied `hostId` against the env/demo ClickHouse host — the two `resolve-host-fetch.ts` entry points (`routes/api/v1/charts/$name.ts`, `routes/api/v1/tables/$name.ts`) plus `overview.ts`, `host-status.ts`, `health/snapshot.ts`, `health/checks.ts`, `notifications.ts`, `findings.ts`, `insights.ts`, `insights/generate.ts`, `actions.ts`, and the `explorer/*` routes (`query.ts` GET+POST, `preview.ts`, `query-log.ts`, `tables.ts`, `projections.ts`, `skip-indexes.ts`, `columns.ts`, `databases.ts`, `ddl.ts`, `dependencies.ts`, `indexes.ts`) — right after each route's own non-negative-integer `hostId` boundary check; a blocked request gets a 200 structured-empty response shaped to match that route's own conventions (`{success:true, data:[]/null, metadata.unavailable}`, or a flat `unavailable`/`error` field where that's the route's idiom), never a 403. Deliberately NOT wired into `management.ts` (POST only echoes a locally-generated DDL string + static message, no ClickHouse data) or `insights/weekly-report.ts` (reads a D1-only store, never queries ClickHouse). Tested in `reject-demo-host.test.ts` (boolean logic) and each route's own `__tests__/cloud-demo-host-guard.test.ts` (OSS / anonymous-cloud / authenticated-cloud+hostId=0 / authenticated-cloud+negative-hostId).
 - `lib/dashboard-storage/` — saved Chart Builder dashboards. Client entrypoint (`index.ts`) picks D1 (per-owner, cross-device, optional read-only sharing) vs. localStorage the same way conversations do — via `featureFlags.conversationDb()` (same `CHM_CLOUD_D1` + Clerk gate, no dedicated flag) — so OSS/self-host and cloud-signed-out always get the localStorage path. `d1-store.ts` + `auth.ts` are server-only (never imported by client code — reached only through `routes/api/dashboards/*`); the public `share/$slug` read is the one deliberately owner-unscoped query, projecting only `{name, charts}`. See `plans/56-dashboard-d1-persistence-sharing.md`.
@@ -198,62 +198,31 @@ this entirely (fail-closed to self-hosted).
 - **AnyRouter attribution**: `openRouterUser` is `${guestOwnerId}/${sessionId}`
   so the usage explorer groups by guest hash, not a single `guest` string.
 
-## Billing (Polar) — cloud SaaS only
+## Billing (Polar) — not in the dashboard
 
-M3 wires paid plans via [Polar](https://polar.sh). Cloud-only; OSS/self-host is
-free forever (auth `none` ⇒ unlimited, plans inert).
+The dashboard does **not** sell plans. Polar checkout, license product IDs,
+and the customer portal live on landing (`chmonitor.dev/pricing`) and
+[`apps/cloud-hooks`](cloud-hooks-worker.md) (`hooks.chmonitor.dev`).
 
-- **Plans**: `lib/billing/plans.ts` (`BILLING_PLANS`) is the Cloud
-  price/capability source. Host/seat hard caps are off (`null`). The public
-  paid path is self-host licenses in `@chm/pricing` (`LICENSE_SKUS`), shown
-  on landing `/pricing` via `apps/landing/src/data/pricing.ts`.
-- **Entitlements**: `lib/billing/entitlements.ts` is the single place that turns
-  a `Plan` into yes/no limit decisions — `checkHostLimit` / `checkSeatLimit` /
-  `checkAlertRuleLimit` / `checkAiDailyLimit` / `checkAiBudget` (all `null` =
-  unlimited, return a `LimitCheck` with the API error shape), plus
-  `hasCapability`, `retentionCutoffMs` / `isWithinRetention`, and `limitMessage`
-  for the upgrade nudge. Server limit checks go through here, never `plan.hosts`
-  inline. Fully unit-tested in `entitlements.test.ts` (every plan × every limit).
-- **Config**: `lib/billing/polar-config.ts` — `getPolarClient()` (server
-  `sandbox|production` from `CHM_POLAR_SERVER`) + license product mapping from
-  `CHM_POLAR_LICENSE_<SKU>_<TERM>`. Cloud seat product env
-  (`CHM_POLAR_PRODUCT_*`) is retired; those Polar products are archived.
-  `POLAR_ACCESS_TOKEN` is a secret.
-- **Storage**: one row per user in `user_subscriptions` (migration
-  `0003_user_subscriptions.sql`) in the shared `CHM_CLOUD_D1` database.
-  `subscription-store.ts` (D1 CRUD; degrades to null without D1),
-  `user-subscription.ts` `getUserPlan()` (defaults free; downgrades when status
-  not live or the period ended — no cron needed).
-- **Routes**: `api/v1/billing/license-checkout` (GET, Polar 302, no Clerk) is
-  the public paid path. Legacy `…/checkout` (Cloud Free/Pro/Max) has no live
-  products. Also `…/portal`, `…/subscription`, `…/usage`, `…/can-downgrade`,
-  `api/v1/webhooks/polar`.
-- **Enforcement**: host/seat counts are not capped. AI daily/budget helpers in
-  `entitlements.ts` still apply where wired.
-- **Shared usage resolution**: `lib/billing/owner-usage.ts`
-  `resolveOwnerUsage(owner, userId)` is the ONE resolver for current
-  consumption (hosts pooled across org members, seats, AI daily/monthly) —
-  both `…/usage` (GET) and `…/can-downgrade` (POST) call it so "current usage"
-  can never drift between the usage card and the downgrade check.
-- **Downgrade protection** (plan 19): before sending a user to the Polar
-  portal to change to a lower/different plan, the billing page (`Change to
-  <plan>` CTA) calls `POST api/v1/billing/can-downgrade { targetPlanId }`. It
-  compares current usage to the target plan's caps through the SAME
-  `entitlements.ts` `check*` helpers, but only reports a metric in `exceeded`
-  when it is BOTH numerically over the target cap AND classified `enforced` in
-  `plan-enforcement.ts` (`LIMIT_ENFORCEMENT`) — a `deferred` limit never
-  manufactures a warning (honest paywalls, same invariant as the upgrade
-  paywall modal). Fails open (`{ ok: true, exceeded: [] }`, never throws) with
-  no Clerk, so OSS is unaffected. `ok: false` opens
-  `components/billing/downgrade-confirm-modal.tsx` (`DowngradeConfirmModal`) —
-  "Stay on current plan" vs "Downgrade anyway" (the latter proceeds to the
-  portal and fires the `downgrade_override` product-analytics event).
-- **UI**: `routes/(dashboard)/billing.tsx` — hosted Cloud as free + AI meters
-  + self-host license cards. Gated to cloud mode; `feature: 'billing'`.
-- **Setup**: `apps/dashboard/scripts/polar-setup.ts` creates Team/Unlimited
-  yearly+lifetime license products and writes `CHM_POLAR_LICENSE_*` to
-  `.env.local`. Leftover Cloud Free/Pro/Max products are archived. Sandbox
-  and production tokens are distinct.
+Cloud-only leftovers in the dashboard are **quota / guest AI / fail-open
+entitlements**, not Polar seats:
+
+- **Plans catalog**: `lib/billing/plans.ts` still describes Cloud capability
+  floors (AI daily/budget, retention). Host/seat hard caps are off (`null`).
+  Public paid SKUs are `@chm/pricing` `LICENSE_SKUS` on landing.
+- **Entitlements**: `lib/billing/entitlements.ts` + guest AI
+  (`lib/billing/guest-ai.ts`, `applyAiUsageGate`). OSS fails open.
+- **Usage API**: `GET /api/v1/billing/usage` remains for the agent quota chip
+  (including slim Guest payload). No checkout/portal/subscription/can-downgrade
+  routes.
+- **Polar product env**: `CHM_POLAR_*` belongs in
+  `apps/cloud-hooks/.env.production`. Never in dashboard `.env.production` /
+  `.env.example`.
+- **Webhook**: dashboard `/api/v1/webhooks/polar` is a leftover adapter over
+  `@chm/billing-webhook-core` until Polar cutover to hooks. Secrets only — no
+  product UUIDs in dashboard env.
+- **Setup**: `apps/dashboard/scripts/polar-setup.ts` writes
+  `CHM_POLAR_LICENSE_*` to `apps/cloud-hooks/.env.production`.
 
 ## Gotchas
 

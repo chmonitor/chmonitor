@@ -18,13 +18,17 @@ related:
 
 # Billing checkout → webhook → D1 → plan resolution
 
-The Cloud seat checkout path below is **legacy**. Public paid checkout is
-self-host licenses (`GET /api/v1/billing/license-checkout`,
-`CHM_POLAR_LICENSE_*`). Polar Cloud Free/Pro/Max products are archived.
+**Money path is landing + cloud-hooks, not the dashboard.** Public paid
+checkout is self-host licenses: landing `polarCheckoutHref` →
+`GET https://hooks.chmonitor.dev/checkout/license`. Polar product IDs
+(`CHM_POLAR_LICENSE_*`, `CHM_POLAR_SERVER`) live in
+`apps/cloud-hooks/.env.production`. `apps/dashboard` is a ClickHouse monitor:
+no `/billing` UI, no Polar checkout/portal routes, no Polar product IDs in
+dashboard env. Polar Cloud Free/Pro/Max products are archived.
 
-Historical Cloud (SaaS) path: how a paid upgrade traveled from checkout to
-D1. Self-hosted/OSS has no Polar/Clerk and **fails open to the Free plan**
-(see [cloud-saas-mode](cloud-saas-mode.md)).
+Historical Cloud (SaaS) seat checkout (below) used dashboard
+`POST /api/v1/billing/checkout`. That route is **removed**. Self-hosted/OSS
+has no Polar and **fails open** (see [cloud-saas-mode](cloud-saas-mode.md)).
 
 ## Flow
 
@@ -68,22 +72,20 @@ D1. Self-hosted/OSS has no Polar/Clerk and **fails open to the Free plan**
 ## Topology: the webhook is moving to a dedicated worker
 
 The Polar `subscription.*` logic (`applySubscription` + the D1 subscription-store
-upsert with its monotonic guard) now lives in the framework-agnostic
-**`packages/billing-webhook-core`** package. The dashboard route
-`/api/v1/webhooks/polar` is a thin adapter over it — **unchanged in behaviour and
-still the live endpoint**. A new Cloud-only worker,
-[`apps/cloud-hooks`](cloud-hooks-worker.md) (`hooks.chmonitor.dev`), is the same
-adapter plus Telegram ops notifications + scheduled jobs; it deploys but stays
-**dormant** until the Polar endpoint is cut over to it (plans/103 step 3-4).
-Both Workers bind the same `chm-cloud` D1, so plan resolution is identical
-regardless of which one persisted the row. Until cutover, treat the dashboard
-route as authoritative.
+upsert with its monotonic guard) lives in
+**`packages/billing-webhook-core`**. License checkout and Polar product IDs
+belong on [`apps/cloud-hooks`](cloud-hooks-worker.md)
+(`hooks.chmonitor.dev`). The dashboard adapter
+`/api/v1/webhooks/polar` may still exist as a thin leftover until Polar
+webhooks are cut over to hooks (plans/103). Do **not** put
+`CHM_POLAR_LICENSE_*` on the dashboard Worker. Polar secrets, if the
+dashboard adapter is still bound, are Worker secrets only.
 
 ## Component reference
 
 | Stage | File | Key contract |
 |-------|------|--------------|
-| Checkout URL | `apps/dashboard/src/routes/api/v1/billing/checkout.ts` | `POST {planId,period}` → `{url}`; `501` if billing not configured / product unmapped; `400` on bad body/plan/period |
+| License checkout | `apps/cloud-hooks/src/license-checkout.ts` | `GET /checkout/license?sku=&term=` → Polar 302 |
 | Webhook receive | `apps/dashboard/src/routes/api/v1/webhooks/polar.ts` | `validateEvent` over the **raw** body (`:304`) → `403` bad signature; `501` no secret; `202` on handled event; `500` → Polar retries |
 | Owner resolution | `polar.ts` `applySubscription` (`:186`) | `externalId` `user_*` → lazy Clerk org (idempotent membership check) + re-key customer→org; `org_*` → direct |
 | Unknown product | `polar.ts` (`:199`) | Logged as **ERROR** (config/deploy mismatch), skipped — never a silent drop, never garbage in D1 |
@@ -139,10 +141,8 @@ wins regardless of delivery order.
    Polar. A subsequent read should be a cache hit with no Polar call.
 
 ### 4. Self-hosted / OSS shows Free unexpectedly
-Expected when Clerk/Polar are not configured — billing resolution fails open to
-Free by design. Verify `isBillingConfigured()` and the `CHM_POLAR_*` /
-`CHM_CLERK_*` env are set for a Cloud deploy; the checkout route returns `501`
-("Billing is not enabled") when they are not.
+Expected — the dashboard does not require Polar. Guest AI quota still applies
+on Cloud. License checkout is on hooks/landing, not the dashboard.
 
 ## Test coverage
 
@@ -176,8 +176,8 @@ cross-file contamination. Tracked in `plans/17-checkout-webhook-e2e-tests.md`.
 
 Polar Cloud Free/Pro/Max products are archived. Adding a host does **not**
 require a Polar subscription. Public paid checkout is
-`GET /api/v1/billing/license-checkout` (self-host licenses). The historical
-Cloud checkout route still exists but has no live products.
+`GET https://hooks.chmonitor.dev/checkout/license` (self-host licenses),
+linked from landing `/pricing`. The dashboard does not sell plans.
 
 ## Annual billing (yearly = 10× monthly, ≈2 months free)
 

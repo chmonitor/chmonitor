@@ -28,7 +28,7 @@
 /**
  * Paths that stay reachable with zero hosts configured and are never re-pointed:
  *  - `/setup` renders the onboarding surface (exempting it avoids a redirect loop);
- *  - `/billing` + `/organization` let a paying user manage plan/org before they
+ *  - `/organization` lets a signed-in user manage team membership before they
  *    connect a host;
  *  - `/about` is a static version-info page with no host dependency.
  * These render as footer rows (Billing/Organization/About) — see AppSidebar.

@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 /**
- * Billing + Org E2E harness — Polar checkout + Clerk org onboarding.
+ * Org + setup E2E harness — Clerk org onboarding (no Polar checkout).
  *
  * Required env vars (all optional — tests degrade gracefully when absent):
  *   CYPRESS_BASE_URL              Live deployment URL, e.g.
@@ -64,24 +64,9 @@ describe('Billing + Org flow', () => {
   // ── Suite A: Anonymous (no Clerk auth required) ──────────────────────────
   //
   // These run on every CI invocation regardless of whether Clerk keys are
-  // present. They guard against import/route/render crashes on the billing
-  // surface.
+  // present.
 
   describe('anonymous', () => {
-    it('/billing renders the heading and license cards without a console crash', () => {
-      cy.visit('/billing')
-      cy.get('body').then(($body) => {
-        if ($body.text().includes('is a cloud feature')) {
-          cy.contains('Billing is a cloud feature').should('be.visible')
-          cy.contains('Read the docs').should('be.visible')
-        } else {
-          cy.get('h1').should('contain.text', 'Billing')
-          cy.contains('Team').should('exist')
-          cy.contains('Unlimited').should('exist')
-        }
-      })
-    })
-
     it('/setup renders a welcome / setup surface without a console crash', () => {
       cy.visit('/setup')
       // Any deployment mode should produce at least an <h1> — cloud
@@ -129,18 +114,7 @@ describe('Billing + Org flow', () => {
       })
     })
 
-    it('/billing page shows hosted cloud and license cards', () => {
-      setupClerkTestingToken()
-      cy.visit('/billing')
-      cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
-      cy.visit('/billing')
-      cy.get('h1').should('contain.text', 'Billing')
-      cy.contains('Hosted Cloud').should('exist')
-      cy.contains('Self-host licenses').should('exist')
-      cy.contains('Buy Team').should('exist')
-    })
-
-    it('/organization renders the org profile or the upgrade prompt', () => {
+    it('/organization renders the org profile or the empty-org card', () => {
       setupClerkTestingToken()
       cy.visit('/organization')
       cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
