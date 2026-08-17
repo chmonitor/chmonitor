@@ -8,7 +8,7 @@
       "agentName": "chm-desk",
       "kind": "grok",
       "maxChildren": 5,
-      "schedule": ["0 7 * * *", "0 22 * * *"],
+      "schedule": "0 7 * * *",
       "extra": ".herdr-desk/extra.md"
     }
   ]
