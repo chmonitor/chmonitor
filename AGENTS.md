@@ -86,6 +86,12 @@ Pass in the spawn prompt: `HERDR_MANAGER=manager` and the manager pane id
 (`$HERDR_PANE_ID` from the manager). Children must not `herdr workspace
 close` the manager workspace.
 
+## Scheduled desk (herdr-desk plugin)
+
+Config only: `.herdr-desk.json`. The Herdr plugin
+(`herdr plugin install duyet/herdr-desk`) picks this workspace up
+automatically. Do not put scheduler/spawn logic in this repo.
+
 ## Project Overview
 
 This is a monorepo ClickHouse monitoring dashboard. The primary (and only) dashboard app is `apps/dashboard` (TanStack Start, as of v0.3). The Next.js migration is complete — the TanStack Start app has replaced the legacy Next.js app and is now at `apps/dashboard`. The application connects to ClickHouse instances and provides real-time insights into clusters through system tables — metrics, query performance, table information, and cluster health.
@@ -233,6 +239,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Architecture | [memory-optimization.md](docs/knowledge/memory-optimization.md) | Pooling, memoization, cache limits, monitoring |
 | Operations | [deployment.md](docs/knowledge/deployment.md) | Docker + Cloudflare Workers dual deployment |
 | Operations | [core-memory.md](docs/knowledge/core-memory.md) | Automation memory: code-smell scans, dead-code rules |
+| Operations | [issue-desk.md](docs/knowledge/issue-desk.md) | Scheduled desk: `.herdr-desk.json` only; CLI is ~/project/herdr-desk |
 | Operations | [secret-rotation.md](docs/knowledge/secret-rotation.md) | Redeploy after `wrangler secret put` |
 | Operations | [k8s-health-probes.md](docs/knowledge/k8s-health-probes.md) | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image CrashLoop incident; non-helm manifest + migration prompt |
 | Specs | [cloud-saas-mode.md](docs/knowledge/cloud-saas-mode.md) | One codebase, two products: cloud-mode flag, demo hosts for anon, welcome/setup, per-user D1 connections, connection-error classifier |
