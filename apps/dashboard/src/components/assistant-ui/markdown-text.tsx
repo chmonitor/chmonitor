@@ -6,15 +6,21 @@ import type { MermaidErrorComponentProps } from 'streamdown'
 import { mermaid as mermaidPlugin } from '@streamdown/mermaid'
 import { useTheme } from 'next-themes'
 import {
-  type AnchorHTMLAttributes,
   type ComponentProps,
+  type ReactNode,
   memo,
-  type TableHTMLAttributes,
   useMemo,
 } from 'react'
 import { Streamdown } from 'streamdown'
 
+type StreamdownNodeProps = Record<string, unknown> & {
+  children?: ReactNode
+  href?: string
+  className?: string
+}
+
 import '@/components/agents/markdown-code.css'
+import { cn } from '@/lib/utils'
 
 /**
  * Fallback shown when a mermaid diagram fails to parse or render.
@@ -34,16 +40,12 @@ function MermaidError({ chart, error }: MermaidErrorComponentProps) {
   )
 }
 
-function MarkdownLink({
-  href,
-  children,
-  ...props
-}: AnchorHTMLAttributes<HTMLAnchorElement>) {
-  const isExternal = href?.startsWith('http')
+function MarkdownLink({ href, children, className }: StreamdownNodeProps) {
+  const isExternal = typeof href === 'string' && href.startsWith('http')
   return (
     <a
       href={href}
-      {...props}
+      className={className}
       {...(isExternal
         ? { target: '_blank', rel: 'noopener noreferrer' }
         : {})}
@@ -53,13 +55,10 @@ function MarkdownLink({
   )
 }
 
-function MarkdownTable({
-  children,
-  ...props
-}: TableHTMLAttributes<HTMLTableElement>) {
+function MarkdownTable({ children, className }: StreamdownNodeProps) {
   return (
     <div className="my-3 overflow-x-auto">
-      <table {...props} className="w-full text-sm">
+      <table className={className ? `${className} w-full text-sm` : 'w-full text-sm'}>
         {children}
       </table>
     </div>
