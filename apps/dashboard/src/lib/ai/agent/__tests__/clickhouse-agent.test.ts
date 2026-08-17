@@ -20,7 +20,9 @@ mock.module('@/lib/ai/agent/mcp-tool-adapter', () => ({
 
 // Dynamic import to ensure mock.module('server-only') takes effect first
 // (bun 1.3.x static imports may resolve before mock.module hoisting)
-const { createClickHouseAgent } = await import('../clickhouse-agent')
+const { createClickHouseAgent, DEFAULT_MAX_STEPS } = await import(
+  '../clickhouse-agent'
+)
 
 describe('createClickHouseAgent', () => {
   test('creates agent with required hostId parameter', () => {
@@ -93,11 +95,10 @@ describe('createClickHouseAgent', () => {
     expect(typeof agent.tools).toBe('object')
   })
 
-  test('default maxSteps is 30 when not specified', () => {
+  test('default maxSteps is 16 when not specified', () => {
+    expect(DEFAULT_MAX_STEPS).toBe(16)
     const agent = createClickHouseAgent({ hostId: 0 })
-
     expect(agent).toBeDefined()
-    // Default should be 30 as defined in DEFAULT_MAX_STEPS
   })
 
   test('agent uses environment variables for defaults', () => {

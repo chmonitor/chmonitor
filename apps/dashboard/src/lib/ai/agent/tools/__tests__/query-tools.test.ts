@@ -85,6 +85,20 @@ describe('createQueryTools', () => {
       expect(result[0].query_id).toBe('abc-123')
       expect(result[0].user).toBe('analyst')
     })
+
+    test('returns 2000 chars of query text', async () => {
+      let capturedQuery = ''
+      mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+        capturedQuery = query
+        return { data: queryResults.running, error: null }
+      })
+
+      const tools = createQueryTools(0) as any
+      await tools.get_running_queries.execute({})
+
+      expect(capturedQuery).toContain('substring(query, 1, 2000)')
+      expect(capturedQuery).not.toContain('substring(query, 1, 200)')
+    })
   })
 
   describe('get_slow_queries', () => {

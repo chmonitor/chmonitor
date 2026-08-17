@@ -55,6 +55,7 @@ describe('ClickHouse agent system prompt — behavior', () => {
   test('error recovery retries once then stops', () => {
     expect(PROMPT_FLAT).toContain('retry **once**')
     expect(PROMPT_FLAT).toContain('Do not loop blindly')
+    expect(PROMPT_FLAT).toContain('The loop stops after 16 steps')
   })
 
   test('verdict first and no process-narration examples', () => {

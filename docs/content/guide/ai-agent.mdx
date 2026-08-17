@@ -41,7 +41,7 @@ A small set of tools delivers this: dedicated primitives for the common reads, a
 
 **Skills** — when a question needs domain depth, the agent loads a bundled expert guide (a skill) with copy-pasteable SQL recipes before answering. Eighteen skills cover data analysis, anomaly detection, query tuning, schema & data-type design, hardware tuning, version upgrades, concept explanations, incident response, plan-and-verify, and the core domains (replication, cluster, storage, migration, security, best practices, troubleshooting, system tables). Available skills: `GET /api/v1/agent/skills`.
 
-**Plan and verify** — for investigations that need 3 or more steps the agent may author a live checklist with `update_plan`. Simple one-step questions skip the plan. See [Capabilities](/guide/ai-agent/capabilities) for details.
+**Plan and verify** — for investigations that need 3 or more steps the agent may author a live checklist with `update_plan`. Simple one-step questions skip the plan. The tool loop stops after 16 steps. See [Capabilities](/guide/ai-agent/capabilities) for details.
 
 ## Quick start
 

@@ -26,7 +26,8 @@ function filterTools<T extends Record<string, unknown>>(
   return filtered
 }
 
-const DEFAULT_MAX_STEPS = 30
+/** Bound wandering. Override per request via `maxSteps`. */
+export const DEFAULT_MAX_STEPS = 16
 
 export function createClickHouseAgent(options: {
   /**
