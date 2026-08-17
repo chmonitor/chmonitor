@@ -10,6 +10,7 @@ import type { SafeAgentMessage, SafePageContext } from './request-parsing'
 import { buildPageContextLine } from './request-parsing'
 import { createClickHouseAgent } from '@/lib/ai/agent'
 import { AGENT_JSON_RENDER_INLINE_PROMPT } from '@/lib/ai/agent/json-render-inline-prompt'
+import { getBuiltInMcpServers } from '@/lib/ai/agent/mcp/built-in-servers'
 import {
   type CustomMcpServerInput,
   connectCustomMcpServers,
@@ -203,7 +204,8 @@ export async function createAgentRuntime(options: {
       : await loadUserRegisteredServers(options.userId)
     const mergedMcpServers = mergeMcpServers(
       options.requestMcpServers,
-      registeredServers
+      registeredServers,
+      getBuiltInMcpServers()
     )
     if (mergedMcpServers.length > 0) {
       const mcpResult = await connectCustomMcpServers(mergedMcpServers)

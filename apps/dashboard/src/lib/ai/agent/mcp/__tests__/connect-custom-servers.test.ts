@@ -379,6 +379,29 @@ describe('mergeMcpServers', () => {
     const merged = mergeMcpServers(body, registered)
     expect(merged.map((s) => s.id)).toEqual(['a', 'c'])
   })
+
+  test('built-in Firecrawl loses to an earlier registration of the same URL', () => {
+    const registered = [
+      {
+        id: 'user-fc',
+        name: 'firecrawl',
+        endpoint: 'https://mcp.firecrawl.dev/v2/mcp',
+        auth: { kind: 'bearer' as const, token: 'tok' },
+      },
+    ]
+    const builtin = [
+      {
+        id: 'builtin-firecrawl',
+        name: 'firecrawl',
+        endpoint: 'https://mcp.firecrawl.dev/v2/mcp/',
+        auth: { kind: 'none' as const },
+      },
+    ]
+    const merged = mergeMcpServers([], registered, builtin)
+    expect(merged).toHaveLength(1)
+    expect(merged[0]?.id).toBe('user-fc')
+    expect(merged[0]?.auth).toEqual({ kind: 'bearer', token: 'tok' })
+  })
 })
 
 // ---------------------------------------------------------------------------

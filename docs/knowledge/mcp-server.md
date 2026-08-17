@@ -3,7 +3,7 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-08-12
+updated: 2026-08-18
 tags:
   - mcp
   - api
@@ -201,5 +201,6 @@ per-user, and additive — self-hosted without D1 falls back to the browser
 - **Routes / UI** — `routes/api/v1/mcp/servers.ts` (CRUD) + `mcp/probe.ts`
   (test), `routes/(dashboard)/mcp-servers.tsx` +
   `components/mcp/mcp-server-manager.tsx` (manager with template library:
-  Slack / GitHub / Datadog). See `docs/content/guide/ai-agent.mdx` §"Persistent
-  MCP server registry".
+  Firecrawl / Slack / GitHub / Datadog). The agent also auto-connects the
+  keyless Firecrawl MCP (`CHM_AGENT_FIRECRAWL_MCP`, default on). See
+  `docs/content/guide/ai-agent.mdx` §"Persistent MCP server registry".
