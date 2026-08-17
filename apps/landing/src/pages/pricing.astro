@@ -4,7 +4,7 @@ import Nav from '../components/Nav.astro'
 import Pricing from '../components/Pricing.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
-import { bossPitch, licenseFaqs } from '../data/licenses'
+import { bossPitch, bossPitchPaste, licenseFaqs } from '../data/licenses'
 import { pricingFaqs } from '../data/pricing'
 import { btnOutline } from '../lib/button-classes'
 
@@ -54,19 +54,31 @@ const breadcrumbJsonLd = {
 
     <section id="tell-your-boss" class="band boss-band">
       <div class="wrap">
-        <div class="boss-card reveal">
-          <div class="boss-head">
-            <div>
-              <span class="eyebrow">Procurement, but funny</span>
-              <h2>Copy this to your boss</h2>
-              <p>A short note you can paste into Slack. We already did the begging.</p>
-            </div>
-            <button type="button" class={btnOutline} id="copy-boss" data-copied="Copied">
-              Copy for Slack
-            </button>
-          </div>
-          <pre id="boss-pitch" class="boss-pre">{bossPitch}</pre>
+        <div class="sec-head reveal" style="text-align:center">
+          <h2>Copy this to your boss</h2>
+          <p>A short note you can paste into Slack or email.</p>
         </div>
+        <article class="mail reveal" aria-label="Draft email to your boss">
+          <header class="mail-bar">
+            <span class="mail-lights" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="mail-ttl">New message</span>
+            <button type="button" class={btnOutline} id="copy-boss" data-copied="Copied">
+              Copy
+            </button>
+          </header>
+          <dl class="mail-meta">
+            <div class="mail-row">
+              <dt>To</dt>
+              <dd>{bossPitch.to}</dd>
+            </div>
+            <div class="mail-row">
+              <dt>Subject</dt>
+              <dd>{bossPitch.subject}</dd>
+            </div>
+          </dl>
+          <div class="mail-body" id="boss-pitch-body">{bossPitch.body}</div>
+          <pre id="boss-pitch" class="sr-only">{bossPitchPaste}</pre>
+        </article>
       </div>
     </section>
 
@@ -143,11 +155,24 @@ const breadcrumbJsonLd = {
     .cmp-note a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
 
     .boss-band{padding-top:8px;padding-bottom:0}
-    .boss-card{max-width:760px;margin:0 auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:22px 22px 18px}
-    .boss-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
-    .boss-head h2{margin:10px 0 6px;font-size:clamp(1.25rem,3.5vw,1.6rem);letter-spacing:-.02em}
-    .boss-head p{margin:0;max-width:46ch;font-size:14px;color:var(--muted-fg)}
-    .boss-pre{margin:16px 0 0;padding:14px 16px;border-radius:10px;background:var(--bg-soft, rgba(127,127,127,.06));border:1px solid var(--border);font-size:13px;line-height:1.55;white-space:pre-wrap;text-wrap:pretty;color:var(--foreground)}
+    .boss-band .sec-head{margin-bottom:22px}
+    .boss-band .sec-head p{margin-inline:auto}
+    .mail{max-width:760px;margin:0 auto;border:1px solid var(--border);border-radius:14px;background:var(--card);overflow:hidden;box-shadow:var(--shadow-float, 0 12px 40px rgba(0,0,0,.08))}
+    .mail-bar{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--border);background:var(--bg-soft, rgba(127,127,127,.05))}
+    .mail-lights{display:flex;gap:6px}
+    .mail-lights i{width:10px;height:10px;border-radius:50%;display:block;background:var(--border)}
+    .mail-lights i:nth-child(1){background:#ff5f57}
+    .mail-lights i:nth-child(2){background:#febc2e}
+    .mail-lights i:nth-child(3){background:#28c840}
+    .mail-ttl{font-size:13px;font-weight:600;color:var(--muted-fg);flex:1}
+    .mail-bar .h-10{height:34px;padding-inline:12px;font-size:13px}
+    .mail-meta{margin:0;border-bottom:1px solid var(--border)}
+    .mail-row{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:baseline;padding:11px 18px;border-bottom:1px solid var(--border)}
+    .mail-row:last-child{border-bottom:0}
+    .mail-row dt{margin:0;font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--muted-fg)}
+    .mail-row dd{margin:0;font-size:15px;font-weight:550}
+    .mail-body{padding:18px 20px 22px;font-size:14.5px;line-height:1.65;white-space:pre-wrap;text-wrap:pretty}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
     .pfaq{max-width:760px;margin:36px auto 0;display:flex;flex-direction:column;gap:10px}
     .pfaq-item{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);overflow:hidden}

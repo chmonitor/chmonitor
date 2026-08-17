@@ -2,6 +2,7 @@
  * Landing view of self-hosted licenses. Numbers come from @chm/pricing.
  */
 import {
+  getLicense,
   isPaidLicense,
   LICENSE_SALES_EMAIL,
   LICENSE_SKU_LIST,
@@ -80,21 +81,38 @@ export function invoiceMailto(sku: LicenseSku, term: LicenseTerm): string {
 }
 
 /** Slack/email paste for the engineer who needs a signature. */
-export const bossPitch = `Subject: $499 so I stop SSHing into ClickHouse at 2am
+const team = getLicense('team')
+const unlimited = getLicense('unlimited')
+const teamYearly = licensePriceUsd(team, 'yearly')
+const teamLifetime = licensePriceUsd(team, 'lifetime')
+const unlimitedYearly = licensePriceUsd(unlimited, 'yearly')
 
-Hi —
+export const PRICING_PAGE_HREF = 'https://chmonitor.dev/pricing/'
 
-I already run chmonitor next to our ClickHouse. GPL-3.0, self-hosted, no license key, no SaaS, no phoning home.
+export const bossPitch = {
+  to: 'Your boss',
+  subject: `Approve chmonitor ${team.name} license — $${teamYearly}/year, self-hosted`,
+  body: `Hi,
 
-The Team license is $499/year for 3 hosts ($1,349 lifetime if finance hates renewals). Unlimited is $999/year. Polar takes the card; they email the receipt. There is nothing to paste into the app.
+I'd like approval to buy a commercial license for chmonitor, the ClickHouse monitoring dashboard we already self-host.
 
-What we get: a commercial invoice, priority email, and I stop writing Grafana panels that lie about system.parts.
+Why this, not another SaaS:
+• It runs next to our cluster. GPL-3.0. No license key, no cloud tenant, no data leaving our network.
+• ${team.name} is $${teamYearly}/year for ${team.hosts} hosts ($${teamLifetime} lifetime if we want to stop renewing). ${unlimited.name} is $${unlimitedYearly}/year.
+• We get an invoice, a named vendor, and email support. Polar takes the card and emails the receipt. Nothing to paste into the app.
 
-That's cheaper than one incident where someone asks "why is the merge queue 400" and I open eleven browser tabs.
+The software itself is already free. The license is paperwork and support — not a feature unlock.
 
-Please approve. I'll buy it here: https://chmonitor.dev/pricing/
+That is less than one hour of someone grepping system.query_log during an incident.
 
-Thanks`
+Please approve. I can check out here: ${PRICING_PAGE_HREF}
+
+Thanks`,
+} as const
+
+export const bossPitchPaste = `Subject: ${bossPitch.subject}
+
+${bossPitch.body}`
 
 export const licenseFaqs = [
   {
