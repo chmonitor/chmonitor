@@ -26,15 +26,14 @@ self-host ClickHouse. Hosted Polar SaaS stays as a convenience path only.
 - Yearly and lifetime on Team and Unlimited. Personal is $0.
 - Buy + register: company name + website; listing on `/customers` is opt-in.
 - Trust model: Polar checkout on **cloud-hooks**
-  (`GET https://hooks.chmonitor.dev/checkout/license?sku=&term=`), then
-  register company + website. Polar `success_url` **must** include the
-  literal `{CHECKOUT_ID}` placeholder (Polar 422s without it — that is why
-  dash.chmonitor.dev/api/v1/billing/license-checkout 500'd). The dash route
-  now 302s to hooks and never calls Polar. Lookup:
-  `GET /licenses/lookup?q=` (checkout id or billing email). Register persist:
-  `POST /licenses/register` → KV `license-reg:v1:{uuid}`; opt-in names on
-  `GET /licenses/public`. Products:
-  `CHM_POLAR_LICENSE_{TEAM|UNLIMITED}_{YEARLY|LIFETIME}` from `polar-setup.ts`.
+  (`GET https://hooks.chmonitor.dev/checkout/license?sku=&term=`), optional
+  `email`/`company`/`website` query params (customer_email + metadata).
+  Polar emails the **receipt**. We do not send a license-key email.
+  Register company + website after `paid=1`. Polar `success_url` **must**
+  include `{CHECKOUT_ID}`. Dash URL 302s to hooks. Lookup:
+  `GET /licenses/lookup?q=` (checkout id or billing email) — not a key.
+  Register persist: `POST /licenses/register`. User-facing how-to:
+  `docs/content/operate/advanced/commercial-license.mdx`.
   Do **not** add `CHM_LICENSE_KEY` to the OSS dashboard.
 
 ## SKUs (USD)
