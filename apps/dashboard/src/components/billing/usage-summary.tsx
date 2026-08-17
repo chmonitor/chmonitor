@@ -136,28 +136,11 @@ export function UsageSummary({
     )
   }
 
-  const {
-    hosts,
-    seats,
-    aiMessages,
-    aiSpentThisMonth,
-    aiMonthlyUsdBudget,
-    renewal,
-  } = data
+  const { aiMessages, aiSpentThisMonth, aiMonthlyUsdBudget, renewal } = data
 
   return (
     <div className="space-y-4 pt-2">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <UsageMeterBar
-          label="Hosts"
-          meter={hosts}
-          note={deferredNote('hosts') ?? 'detected replicas count as 0.5 host'}
-        />
-        <UsageMeterBar
-          label="Team seats"
-          meter={seats}
-          note={deferredNote('seats')}
-        />
         <UsageMeterBar
           label="AI messages today"
           meter={aiMessages}
@@ -223,14 +206,6 @@ function ComparisonRow({
         ) : null}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <UsageMeterBar
-          label="Hosts"
-          meter={project(usage.hosts.used, plan.hosts)}
-        />
-        <UsageMeterBar
-          label="Team seats"
-          meter={project(usage.seats.used, plan.seats)}
-        />
         <UsageMeterBar
           label="AI messages today"
           meter={project(usage.aiMessages.used, plan.aiRequestsPerDay)}

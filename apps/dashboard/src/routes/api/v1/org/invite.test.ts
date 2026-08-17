@@ -193,27 +193,16 @@ describe('POST /api/v1/org/invite — auth gates', () => {
   })
 })
 
-describe('POST /api/v1/org/invite — pre-emptive seat gate', () => {
-  test('at cap (currentMembers === seats): 402 reason seat_limit BEFORE the invite is created', async () => {
-    getOrganizationMembershipList = mock(async () => membershipsOfSize(3)) // Pro: seats=3
+describe('POST /api/v1/org/invite — no seat gate', () => {
+  test('large org still creates the invitation', async () => {
+    getOrganizationMembershipList = mock(async () => membershipsOfSize(99))
 
     const res = await handlePost(makeRequest())
-    const body = (await res.json()) as {
-      error: { details?: { reason?: string } }
-    }
-
-    expect(res.status).toBe(402)
-    expect(body.error.details?.reason).toBe('seat_limit')
-    expect(createOrganizationInvitation).not.toHaveBeenCalled()
-    expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
-      orgId: 'org_1',
-      event: 'member.invited',
-      action: 'invite',
-      result: 'denied',
-    })
+    expect(res.status).toBe(200)
+    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
   })
 
-  test('at seats-1: allowed — the Clerk invitation is created', async () => {
+  test('invitation is created', async () => {
     getOrganizationMembershipList = mock(async () => membershipsOfSize(2)) // Pro: seats=3
 
     const res = await handlePost(makeRequest())
@@ -229,70 +218,5 @@ describe('POST /api/v1/org/invite — pre-emptive seat gate', () => {
     expect(logEventImpl.mock.calls[0]?.[0]).toMatchObject({
       result: 'success',
     })
-  })
-
-  test('enterprise plan (seats: null) bypasses the seat check entirely', async () => {
-    getPlanForOwner = mock(async () => BILLING_PLANS.enterprise)
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(200)
-    expect(getOrganizationMembershipList).not.toHaveBeenCalled()
-    expect(getOrganizationInvitationList).not.toHaveBeenCalled()
-    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
-  })
-
-  test('fail-open: plan/member resolution throws (no Clerk) → invite proceeds, no 402', async () => {
-    getPlanForOwner = mock(async () => {
-      throw new Error('Clerk not configured')
-    })
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(200)
-    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('POST /api/v1/org/invite — pending invitations count toward the seat cap', () => {
-  test('members=2, pending=0 (cap=3): allowed — the Clerk invitation is created', async () => {
-    getOrganizationMembershipList = mock(async () => membershipsOfSize(2))
-    getOrganizationInvitationList = mock(async () => invitationsOfSize(0))
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(200)
-    expect(getOrganizationInvitationList).toHaveBeenCalledWith({
-      organizationId: 'org_1',
-      status: ['pending'],
-      limit: 100,
-    })
-    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
-  })
-
-  test('members=2, pending=1 (cap=3): blocked — 402 reason seat_limit BEFORE the invite is created', async () => {
-    getOrganizationMembershipList = mock(async () => membershipsOfSize(2))
-    getOrganizationInvitationList = mock(async () => invitationsOfSize(1))
-
-    const res = await handlePost(makeRequest())
-    const body = (await res.json()) as {
-      error: { details?: { reason?: string } }
-    }
-
-    expect(res.status).toBe(402)
-    expect(body.error.details?.reason).toBe('seat_limit')
-    expect(createOrganizationInvitation).not.toHaveBeenCalled()
-  })
-
-  test('fail-open: pending-invitation list call throws → check is skipped, invite proceeds', async () => {
-    getOrganizationMembershipList = mock(async () => membershipsOfSize(2))
-    getOrganizationInvitationList = mock(async () => {
-      throw new Error('Clerk API hiccup')
-    })
-
-    const res = await handlePost(makeRequest())
-
-    expect(res.status).toBe(200)
-    expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
   })
 })

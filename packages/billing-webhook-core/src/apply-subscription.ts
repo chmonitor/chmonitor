@@ -109,7 +109,7 @@ export async function applySubscription(
   const mapped = deps.planForProductId(data.productId)
   if (!mapped) {
     // An unmapped product is a config/deploy mismatch (a new Polar product
-    // without a CHM_POLAR_PRODUCT_* env mapping) and must be visible/alertable,
+    // without a Polar product env mapping) and must be visible/alertable,
     // not buried at info level.
     deps.logError(
       '[polar-webhook] unknown Polar product id; no plan mapping — skipping',

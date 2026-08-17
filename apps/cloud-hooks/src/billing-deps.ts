@@ -8,13 +8,14 @@
  * that once the Polar endpoint is cut over (plans/103 step 3-4) nothing forks.
  */
 
-import type { PlanId } from '@chm/pricing'
+import type { PaidLicenseId, PlanId } from '@chm/pricing'
 import type { Env } from './env'
 
 import {
   type ApplySubscriptionDeps,
   upsertSubscription as coreUpsertSubscription,
 } from '@chm/billing-webhook-core'
+import { licensePolarProductEnvKey, PAID_LICENSE_IDS } from '@chm/pricing'
 
 type BillingPeriod = 'monthly' | 'yearly'
 
@@ -41,6 +42,20 @@ export function makePlanForProductId(
     }
     return null
   }
+}
+
+export function licenseForProductId(
+  env: Env,
+  productId: string
+): { sku: PaidLicenseId; term: 'yearly' | 'lifetime' } | null {
+  for (const sku of PAID_LICENSE_IDS) {
+    for (const term of ['yearly', 'lifetime'] as const) {
+      if (readEnv(env, licensePolarProductEnvKey(sku, term)) === productId) {
+        return { sku, term }
+      }
+    }
+  }
+  return null
 }
 
 const CLERK_API = 'https://api.clerk.com/v1'

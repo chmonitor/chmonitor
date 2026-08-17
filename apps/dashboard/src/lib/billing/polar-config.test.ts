@@ -16,7 +16,10 @@
 import type { BillingPeriod, PaidPlanId } from './polar-config'
 
 import {
+  isPaidLicenseId,
   isSubscribablePlanId,
+  licenseForProductId,
+  licenseProductIdFor,
   PAID_PLAN_IDS,
   planForProductId,
   productIdFor,
@@ -96,6 +99,47 @@ describe('Free plan — monthly-only $0 product', () => {
     process.env.CHM_POLAR_PRODUCT_FREE_YEARLY = 'prod_should_be_ignored'
     expect(productIdFor('free', 'yearly')).toBeNull()
     expect(planForProductId('prod_should_be_ignored')).toBeNull()
+  })
+})
+
+describe('license Polar products', () => {
+  const keys = [
+    'CHM_POLAR_LICENSE_TEAM_YEARLY',
+    'CHM_POLAR_LICENSE_TEAM_LIFETIME',
+    'CHM_POLAR_LICENSE_UNLIMITED_YEARLY',
+    'CHM_POLAR_LICENSE_UNLIMITED_LIFETIME',
+  ]
+  const saved = new Map(keys.map((k) => [k, process.env[k]]))
+  afterEach(() => {
+    for (const k of keys) {
+      const v = saved.get(k)
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+  })
+
+  test('round-trips team/unlimited yearly and lifetime', () => {
+    process.env.CHM_POLAR_LICENSE_TEAM_YEARLY = 'prod_lic_team_y'
+    process.env.CHM_POLAR_LICENSE_TEAM_LIFETIME = 'prod_lic_team_l'
+    process.env.CHM_POLAR_LICENSE_UNLIMITED_YEARLY = 'prod_lic_unl_y'
+    process.env.CHM_POLAR_LICENSE_UNLIMITED_LIFETIME = 'prod_lic_unl_l'
+    expect(licenseProductIdFor('team', 'yearly')).toBe('prod_lic_team_y')
+    expect(licenseForProductId('prod_lic_team_l')).toEqual({
+      sku: 'team',
+      term: 'lifetime',
+    })
+    expect(licenseForProductId('prod_lic_unl_y')).toEqual({
+      sku: 'unlimited',
+      term: 'yearly',
+    })
+    expect(planForProductId('prod_lic_team_y')).toBeNull()
+  })
+
+  test('isPaidLicenseId', () => {
+    expect(isPaidLicenseId('team')).toBe(true)
+    expect(isPaidLicenseId('unlimited')).toBe(true)
+    expect(isPaidLicenseId('personal')).toBe(false)
+    expect(isPaidLicenseId('pro')).toBe(false)
   })
 })
 

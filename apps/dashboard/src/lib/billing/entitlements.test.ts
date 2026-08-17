@@ -16,125 +16,19 @@ import { describe, expect, test } from 'bun:test'
 
 const { free, pro, max, enterprise } = BILLING_PLANS
 
-describe('entitlements — host limit', () => {
-  test('Free (1 host): blocks the 2nd, allows the 1st', () => {
-    expect(checkHostLimit(free, 0).allowed).toBe(true)
-    expect(checkHostLimit(free, 1).allowed).toBe(false)
-    expect(checkHostLimit(free, 1).remaining).toBe(0)
-    expect(checkHostLimit(free, 0).remaining).toBe(1)
-  })
-
-  test('Pro (1) and Max (3) honor their caps at the boundary', () => {
-    expect(checkHostLimit(pro, 0).allowed).toBe(true)
-    expect(checkHostLimit(pro, 1).allowed).toBe(false)
-    expect(checkHostLimit(max, 2).allowed).toBe(true)
-    expect(checkHostLimit(max, 3).allowed).toBe(false)
-  })
-
-  test('Enterprise is unlimited', () => {
-    const c = checkHostLimit(enterprise, 9999)
-    expect(c.allowed).toBe(true)
-    expect(c.unlimited).toBe(true)
-    expect(c.limit).toBeNull()
-    expect(c.remaining).toBeNull()
-  })
-
-  test('carries plan identity + reason for the API error shape', () => {
-    const c = checkHostLimit(pro, 1)
-    expect(c.planId).toBe('pro')
-    expect(c.planName).toBe('Pro')
-    expect(c.reason).toBe('host_limit')
-  })
-})
-
-describe('entitlements — host soft cap (overage)', () => {
-  test('Free hard-caps: denies at its 1-host limit, no overage reported', () => {
-    const c = checkHostSoftCap(free, 1)
-    expect(c.allowed).toBe(false)
-    expect(c.overageHosts).toBe(0)
-  })
-
-  test('Free allows under the cap, no overage', () => {
-    const c = checkHostSoftCap(free, 0)
-    expect(c.allowed).toBe(true)
-    expect(c.overageHosts).toBe(0)
-  })
-
-  test('Pro soft-caps: allowed under the included allowance, no overage', () => {
-    const c = checkHostSoftCap(pro, 0)
-    expect(c.allowed).toBe(true)
-    expect(c.overageHosts).toBe(0)
-  })
-
-  test('Pro soft-caps: the 2nd host (at the 1-host cap) is allowed and billable', () => {
-    const c = checkHostSoftCap(pro, 1)
-    expect(c.allowed).toBe(true)
-    expect(c.overageHosts).toBe(1)
-  })
-
-  test('Pro soft-caps: the 3rd host is allowed and the overage count grows', () => {
-    const c = checkHostSoftCap(pro, 2)
-    expect(c.allowed).toBe(true)
-    expect(c.overageHosts).toBe(2)
-  })
-
-  test('Max soft-caps the same way at its 3-host allowance', () => {
-    expect(checkHostSoftCap(max, 2).overageHosts).toBe(0)
-    expect(checkHostSoftCap(max, 3)).toEqual({
-      allowed: true,
-      overageHosts: 1,
-    })
-  })
-
-  test('Enterprise (unlimited) is always allowed with no overage', () => {
-    const c = checkHostSoftCap(enterprise, 9999)
-    expect(c.allowed).toBe(true)
-    expect(c.overageHosts).toBe(0)
-  })
-
-  test('defensive: negative/NaN current-host counts never allow negative overage', () => {
-    expect(checkHostSoftCap(pro, -5)).toEqual({
-      allowed: true,
-      overageHosts: 0,
-    })
-    expect(checkHostSoftCap(pro, Number.NaN)).toEqual({
-      allowed: true,
-      overageHosts: 0,
-    })
-  })
-})
-
-describe('entitlements — host overage monthly math', () => {
-  test('Pro: overageHosts * $15/host', () => {
-    expect(hostOverageUsd(pro, 0)).toBe(0)
-    expect(hostOverageUsd(pro, 1)).toBe(15)
-    expect(hostOverageUsd(pro, 3)).toBe(45)
-  })
-
-  test('Max: overageHosts * $19/host', () => {
-    expect(hostOverageUsd(max, 1)).toBe(19)
-    expect(hostOverageUsd(max, 2)).toBe(38)
-  })
-
-  test('Free/Enterprise never owe host overage', () => {
-    expect(hostOverageUsd(free, 5)).toBe(0)
-    expect(hostOverageUsd(enterprise, 5)).toBe(0)
-  })
-
-  test('defensive: non-positive overage counts owe nothing', () => {
-    expect(hostOverageUsd(pro, 0)).toBe(0)
-    expect(hostOverageUsd(pro, -1)).toBe(0)
-    expect(hostOverageUsd(pro, Number.NaN)).toBe(0)
-  })
-})
-
-describe('entitlements — seat limit', () => {
-  test('caps match each tier', () => {
-    expect(checkSeatLimit(free, 1).allowed).toBe(false) // 1 seat used == cap
-    expect(checkSeatLimit(pro, 2).allowed).toBe(true)
-    expect(checkSeatLimit(pro, 3).allowed).toBe(false)
-    expect(checkSeatLimit(max, 10).allowed).toBe(false)
-    expect(checkSeatLimit(enterprise, 1_000).allowed).toBe(true)
+describe('entitlements — no host or seat caps', () => {
+  test('every cloud plan allows any host and seat count', () => {
+    for (const plan of [free, pro, max, enterprise]) {
+      expect(checkHostLimit(plan, 9999).allowed).toBe(true)
+      expect(checkHostLimit(plan, 9999).unlimited).toBe(true)
+      expect(checkSeatLimit(plan, 9999).allowed).toBe(true)
+      expect(checkSeatLimit(plan, 9999).unlimited).toBe(true)
+      expect(checkHostSoftCap(plan, 9999)).toEqual({
+        allowed: true,
+        overageHosts: 0,
+      })
+      expect(hostOverageUsd(plan, 5)).toBe(0)
+    }
   })
 })
 
@@ -249,8 +143,6 @@ describe('entitlements — retention window', () => {
 describe('entitlements — messages', () => {
   test('every reason produces a non-empty upgrade nudge', () => {
     const checks = [
-      checkHostLimit(free, 1),
-      checkSeatLimit(free, 1),
       checkAlertRuleLimit(free, 0),
       checkAiDailyLimit(free, 25),
       checkAiBudget(free, 0.5),

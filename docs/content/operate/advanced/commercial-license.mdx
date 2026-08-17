@@ -1,0 +1,57 @@
+---
+title: Commercial license
+description: Optional host-based yearly or lifetime licenses for teams that self-host chmonitor. Honor system — no license key.
+icon: BadgeDollarSign
+---
+
+chmonitor is **GPL-3.0**. You can self-host every feature, unlimited hosts, with no payment and no key.
+
+A **commercial license** is optional. Buy it if you need an invoice, a named vendor, email support, or a public listing. The app does not check a license key and does not phone home.
+
+## Who this is for
+
+Teams that already run ClickHouse (and already have people to operate infra) should **not** buy hosted cloud seats. Run chmonitor next to the cluster and, if procurement requires it, buy a license sized by host count.
+
+## SKUs
+
+Prices are USD. Personal is free self-host. Team and Unlimited are paid, yearly or lifetime.
+
+| License | Hosts | Yearly | Lifetime |
+|---|---|---|---|
+| Personal Self Hosted | unlimited | $0 | $0 |
+| Team | 3 | $499 | $1,349 |
+| Unlimited | unlimited | $999 | $2,999 |
+
+A **host** is one monitored connection (one ClickHouse endpoint, or one Postgres source). A replica in the same shard counts as 0.5 host.
+
+Source of truth: `@chm/pricing` (`packages/pricing/src/licenses.ts`) and [chmonitor.dev/pricing](https://chmonitor.dev/pricing/).
+
+## How to buy
+
+1. Open [pricing](https://chmonitor.dev/pricing/) and click Buy (Polar checkout).
+2. After payment, Polar returns you to [register](https://chmonitor.dev/license/register) — enter **company name** and **website**. We trust you.
+3. Optionally opt in to the [customers](https://chmonitor.dev/customers) list. Default is private.
+4. Need a PO? Email [hello@chmonitor.dev](mailto:hello@chmonitor.dev).
+
+There is no `CHM_LICENSE_KEY` and you should not add one. Do not gate OSS features on a license.
+
+## What you get
+
+- Commercial agreement / invoice (PO and Net-30 on request)
+- Priority email support for the paid term (lifetime includes year-1 support; ask if you want a support add-on after that)
+- Optional listing on the customers page
+- Funds development of the OSS dashboard
+
+You do **not** get extra dashboard features versus the community build today. Planned Team/Enterprise edition features (SSO, RBAC, fleet) stay on the [editions](/operate/advanced/editions) roadmap and will be included for licensed customers when they ship.
+
+## Hosted cloud
+
+[dash.chmonitor.dev](https://dash.chmonitor.dev) remains a convenience product if you do not want to run the app. See [Cloud sign-up](/guide/getting-started/cloud-signup). For operators who already self-host ClickHouse, prefer this license instead.
+
+## Related
+
+<Cards>
+  <Card title="Editions" href="/operate/advanced/editions" description="Community vs planned Team/Enterprise gates." />
+  <Card title="Self-host" href="/operate/deploy/self-host" description="Run the dashboard on your infra." />
+  <Card title="Cloud sign-up" href="/guide/getting-started/cloud-signup" description="Hosted product if you do not want to operate it." />
+</Cards>

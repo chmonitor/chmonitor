@@ -194,11 +194,7 @@ function BillingPage() {
                 )}
               </CardTitle>
               <CardDescription>
-                {currentPlan.hosts === null
-                  ? 'Unlimited hosts'
-                  : `${currentPlan.hosts} host${currentPlan.hosts === 1 ? '' : 's'} included`}
-                {currentPlan.seats !== null &&
-                  ` · ${currentPlan.seats} seat${currentPlan.seats === 1 ? '' : 's'}`}
+                Hosted dashboard — no host or seat cap.
               </CardDescription>
             </div>
             {hasSubscription && (

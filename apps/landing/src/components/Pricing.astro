@@ -1,17 +1,10 @@
 ---
-// Cloud pricing tiers. Data is shared with the dedicated /pricing page via
-// src/data/pricing.ts (the single landing-side source). Keep those numbers in
-// sync with apps/dashboard/src/lib/billing/plans.ts. Yearly = 10× monthly.
-import {
-  monthsFreeText,
-  pricingTiers as tiers,
-  yearlyMonthsFreeValue,
-} from '../data/pricing'
-
+// Primary: self-hosted licenses (yearly / lifetime). Cloud SaaS cards stay
+// available on /pricing#cloud for people who do not want to operate the app.
+import { buyHref, licenseSkus } from '../data/licenses'
 import {
   btnInkBlock,
   btnOutline,
-  btnOutlineBlock,
   btnPrimaryBlock,
 } from '../lib/button-classes'
 
@@ -20,115 +13,95 @@ const arrowSvg = `<svg class="inline-block size-4" viewBox="0 0 24 24" fill="non
 
 const { compact = false } = Astro.props
 
-// Only the featured tier gets the brand fill; the rest use the ink fill so the
-// brand voltage stays scarce and the featured tier stays legible as featured.
-const primaryBtn = btnInkBlock
-const outlineBtn = btnOutlineBlock
-const outlineBtnAuto = btnOutline
-
-// Tiers are separated by surface, not by hue — the featured tier is marked with
-// a brand hairline rather than a second brand color. Keyed by plan id (not
-// position) so the optional #2381 Fleet tier slots in without reordering
-// these lookups.
 const FEATURED_COLOR =
   'bg-card border-[var(--brand)]/40 ring-1 ring-[var(--brand)]/20'
 const DEFAULT_COLOR = 'bg-[var(--canvas-soft)] border-border'
-const cardColor = (id: string) => (id === 'pro' ? FEATURED_COLOR : DEFAULT_COLOR)
-const isFeaturedCta = (id: string) => id === 'pro' // Pro is the featured tier
 ---
 <section id="pricing" class="py-14 sm:py-18">
   <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
     {!compact && (
     <div class="reveal mx-auto max-w-2xl text-center">
       <p class="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Pricing</p>
-      <h2 class="mt-3 text-balance font-extrabold text-2xl sm:text-3xl md:text-4xl tracking-[-0.04em]">Self-host free. Cloud for teams.</h2>
-      <p class="mt-4 text-pretty text-sm sm:text-base text-muted-foreground">chmonitor is open source — self-hosting is always free under GPL-3.0, with every feature and unlimited clusters. The hosted cloud connects a cluster in minutes when you'd rather not run anything yourself.</p>
+      <h2 class="mt-3 text-balance font-extrabold text-2xl sm:text-3xl md:text-4xl tracking-[-0.04em]">Self-host free. License if you want a commercial agreement.</h2>
+      <p class="mt-4 text-pretty text-sm sm:text-base text-muted-foreground">Run it on your infra under GPL-3.0, no key required. Teams that need an invoice, support, or a named vendor buy a host-based license — yearly or lifetime. We trust you; there is no DRM.</p>
     </div>
     )}
 
-    <!-- Self-host: always free -->
-    <div class="reveal mt-8 sm:mt-9 flex flex-col items-stretch justify-between gap-4 sm:gap-5 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs sm:flex-row sm:items-center" data-pricing-oss>
-      <div class="flex flex-col gap-2 min-w-0">
-        <div class="flex flex-wrap items-center gap-2.5">
-          <strong class="text-base font-semibold text-foreground">Self-host</strong>
-          <span class="inline-flex items-center gap-1 rounded-full border border-border bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">Free forever</span>
-        </div>
-        <p class="max-w-[62ch] text-pretty text-sm text-muted-foreground">Run it on your own infrastructure — Docker, Cloudflare Workers, or Kubernetes. All features, unlimited clusters, and your data stays with you.</p>
-      </div>
-      <a class={`${outlineBtnAuto} w-full sm:w-auto shrink-0`} href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
-        Read the quickstart <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
-      </a>
-    </div>
-
-    <!-- Cloud plans -->
-    <div class="reveal mt-6 sm:mt-8 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-      <div class="bill-toggle inline-flex w-full sm:w-auto gap-0.5 rounded-full bg-card p-1" role="tablist" aria-label="Billing period">
-        <button type="button" data-period="monthly" role="tab" aria-selected="false" class="billing-toggle-btn flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus-visible:ring-0">Monthly</button>
-        <button type="button" data-period="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium transition-colors active:scale-[.98] border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus-visible:ring-0">
-          Yearly <span class="save text-xs font-semibold">{monthsFreeText(yearlyMonthsFreeValue)} free</span>
+    <div class="reveal mt-8 sm:mt-8 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+      <div class="bill-toggle inline-flex w-full sm:w-auto gap-0.5 rounded-full bg-card p-1" role="tablist" aria-label="License term">
+        <button type="button" data-term="yearly" role="tab" aria-selected="true" class="billing-toggle-btn active flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium transition-colors active:scale-[.98] border-0 border-transparent outline-none">Yearly</button>
+        <button type="button" data-term="lifetime" role="tab" aria-selected="false" class="billing-toggle-btn flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 sm:py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-[.98] border-0 border-transparent outline-none">
+          Lifetime <span class="save text-xs font-semibold">pay once</span>
         </button>
       </div>
     </div>
 
-    <div class={`cloud-grid reveal mt-5 grid items-stretch gap-3 sm:gap-4 sm:grid-cols-2 ${tiers.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`} data-period="yearly">
-      {tiers.map((t) => (
-        <div class={`flex flex-col rounded-xl border p-5 sm:p-6 shadow-xs transition-colors ${cardColor(t.id)}`}>
+    <div class="license-grid reveal mt-5 grid items-stretch gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3" data-term="yearly">
+      {licenseSkus.map((sku) => (
+        <div class={`flex flex-col rounded-xl border p-5 sm:p-6 shadow-xs transition-colors ${sku.highlight ? FEATURED_COLOR : DEFAULT_COLOR}`}>
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-bold text-lg tracking-tight">{t.name}</span>
-              {t.badge && (
-                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">{t.badge.label}</span>
+              <span class="font-bold text-lg tracking-tight">{sku.displayName}</span>
+              {sku.id === 'personal' && (
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">Free · GPL-3.0</span>
+              )}
+              {sku.highlight && (
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">Most teams</span>
               )}
             </div>
             <div class="pamount mt-4 flex items-baseline gap-1.5">
-              {t.monthly === null ? (
-                <span class="font-extrabold text-4xl tracking-[-0.04em]">Custom</span>
-              ) : t.monthly === 0 ? (
-                <span class="font-extrabold text-4xl tracking-[-0.04em]">$0 <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
+              {sku.yearlyUsd === 0 ? (
+                <span class="font-extrabold text-4xl tracking-[-0.04em]">$0</span>
               ) : (
                 <>
-                  <span class="amt amt-monthly font-extrabold text-4xl tracking-[-0.04em]">${t.monthly} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
-                  <span class="amt amt-yearly font-extrabold text-4xl tracking-[-0.04em]"><span class="amt-was mr-1 text-base font-medium text-muted-foreground line-through">${t.monthly}</span>${t.yearlyPerMo} <small class="text-sm font-normal text-muted-foreground">/ mo</small></span>
+                  <span class="amt amt-yearly font-extrabold text-4xl tracking-[-0.04em]">${sku.yearlyUsd} <small class="text-sm font-normal text-muted-foreground">/ yr</small></span>
+                  <span class="amt amt-lifetime font-extrabold text-4xl tracking-[-0.04em]">${sku.lifetimeUsd} <small class="text-sm font-normal text-muted-foreground">once</small></span>
                 </>
               )}
             </div>
             <div class="pbilled mt-2 min-h-[1rem] text-xs text-muted-foreground">
-              {(t.monthly ?? 0) > 0 && (
+              {sku.yearlyUsd === 0 ? (
+                <span>unlimited hosts · self-host</span>
+              ) : (
                 <>
-                  <span class="bill-monthly">billed monthly</span>
-                  <span class="bill-yearly">${t.yearlyTotal}/yr · save {monthsFreeText(t.yearlyMonthsFree ?? 0)}</span>
+                  <span class="bill-yearly">{sku.hosts === null ? 'unlimited hosts' : `${sku.hosts} hosts`} · billed yearly</span>
+                  <span class="bill-lifetime">{sku.hosts === null ? 'unlimited hosts' : `${sku.hosts} hosts`} · one-time</span>
                 </>
               )}
             </div>
-            <p class="mt-3 min-h-10 text-pretty text-sm text-muted-foreground">{t.tagline}</p>
+            <p class="mt-3 min-h-10 text-pretty text-sm text-muted-foreground">{sku.tagline}</p>
           </div>
           <ul class="mt-6 space-y-2.5">
-            {t.rows.map((r) => (
-              <li class={`flex items-start gap-2 text-sm text-foreground ${r.startsWith('Everything in') ? 'font-medium' : ''}`}>
+            {sku.highlights.map((r) => (
+              <li class="flex items-start gap-2 text-sm text-foreground">
                 <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={checkSvg} />
                 <span>{r}</span>
               </li>
             ))}
           </ul>
-          <div class="mt-auto pt-6">
+          <div class="mt-auto pt-6 flex flex-col gap-2">
             <a
-              class={isFeaturedCta(t.id) ? btnPrimaryBlock : (t.cta.primary ? primaryBtn : outlineBtn)}
-              href={t.cta.href}
-              target="_blank"
-              rel="noopener"
-              data-cta={`pricing-${t.name.toLowerCase().replace(/\s+/g, '-')}`}
+              class={sku.highlight ? btnPrimaryBlock : btnInkBlock}
+              href={buyHref(sku, 'yearly')}
+              data-cta={`license-${sku.id}-yearly`}
+              data-buy-yearly={buyHref(sku, 'yearly')}
+              data-buy-lifetime={buyHref(sku, 'lifetime')}
             >
-              {t.cta.label} <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
+              {sku.yearlyUsd === 0 ? 'Self-host' : `Buy ${sku.name}`} <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
             </a>
           </div>
         </div>
       ))}
     </div>
 
+    <p class="reveal mt-5 text-center text-sm text-muted-foreground">
+      After payment, register your company name and website. Listing on the <a class="text-primary underline underline-offset-4" href="/customers">customers page</a> is optional.
+    </p>
+
     {!compact && (
     <div class="reveal mt-7 text-center">
-      <a class={outlineBtnAuto} href="/pricing">
-        Compare all plans &amp; features <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
+      <a class={btnOutline} href="/pricing">
+        Compare licenses &amp; hosted cloud <span class="inline-flex items-center justify-center size-4 shrink-0" set:html={arrowSvg} />
       </a>
     </div>
     )}
@@ -155,27 +128,33 @@ const isFeaturedCta = (id: string) => id === 'pro' // Pro is the featured tier
       color: oklch(0.72 0.17 155);
     }
 
-    .cloud-grid .amt { display: none; }
-    .cloud-grid[data-period='monthly'] .amt-monthly { display: inline; }
-    .cloud-grid[data-period='yearly'] .amt-yearly { display: inline; }
-    .cloud-grid[data-period='monthly'] .bill-yearly { display: none; }
-    .cloud-grid[data-period='yearly'] .bill-monthly { display: none; }
+    .license-grid .amt { display: none; }
+    .license-grid[data-term='yearly'] .amt-yearly { display: inline; }
+    .license-grid[data-term='lifetime'] .amt-lifetime { display: inline; }
+    .license-grid[data-term='yearly'] .bill-lifetime { display: none; }
+    .license-grid[data-term='lifetime'] .bill-yearly { display: none; }
   </style>
 
   <script is:inline>
     (function () {
-      var grid = document.querySelector('.cloud-grid')
+      var grid = document.querySelector('.license-grid')
       var buttons = document.querySelectorAll('.bill-toggle button')
       if (!grid || !buttons.length) return
+      function setTerm(term) {
+        grid.setAttribute('data-term', term)
+        buttons.forEach(function (b) {
+          var on = b.getAttribute('data-term') === term
+          b.classList.toggle('active', on)
+          b.setAttribute('aria-selected', on ? 'true' : 'false')
+        })
+        grid.querySelectorAll('[data-buy-yearly]').forEach(function (a) {
+          var href = term === 'lifetime' ? a.getAttribute('data-buy-lifetime') : a.getAttribute('data-buy-yearly')
+          if (href) a.setAttribute('href', href)
+        })
+      }
       buttons.forEach(function (btn) {
         btn.addEventListener('click', function () {
-          var period = btn.getAttribute('data-period')
-          grid.setAttribute('data-period', period)
-          buttons.forEach(function (b) {
-            var on = b === btn
-            b.classList.toggle('active', on)
-            b.setAttribute('aria-selected', on ? 'true' : 'false')
-          })
+          setTerm(btn.getAttribute('data-term'))
         })
       })
     })()

@@ -155,40 +155,20 @@ describe('POST /api/v1/billing/can-downgrade', () => {
     expect(exceeded).toEqual([])
   })
 
-  test('Pro→Free with 3 hosts (Free hard-caps at 1, hostOverage: null) reports hosts exceeded', async () => {
+  test('hosts and seats never appear as exceeded', async () => {
     ownerUsage = {
-      plan: getPlan('pro'),
-      hostsUsed: 3,
-      seatsUsed: 1,
+      plan: getPlan('max'),
+      hostsUsed: 50,
+      seatsUsed: 50,
       aiUsedToday: 0,
       aiSpentThisMonth: 0,
     }
 
     const res = await handlePost(makeRequest({ targetPlanId: 'free' }))
     expect(res.status).toBe(200)
-    const { ok, exceeded } = await readOk(res)
-    expect(ok).toBe(false)
-    expect(exceeded).toContainEqual(
-      expect.objectContaining({ metric: 'hosts', used: 3, targetLimit: 1 })
-    )
-  })
-
-  test('seats over the target plan appear in exceeded', async () => {
-    ownerUsage = {
-      plan: getPlan('max'),
-      hostsUsed: 2,
-      seatsUsed: 5,
-      aiUsedToday: 0,
-      aiSpentThisMonth: 0,
-    }
-
-    const res = await handlePost(makeRequest({ targetPlanId: 'pro' }))
-    expect(res.status).toBe(200)
-    const { ok, exceeded } = await readOk(res)
-    expect(ok).toBe(false)
-    expect(exceeded).toContainEqual(
-      expect.objectContaining({ metric: 'seats', used: 5, targetLimit: 3 })
-    )
+    const { exceeded } = await readOk(res)
+    expect(exceeded.some((e) => e.metric === 'hosts')).toBe(false)
+    expect(exceeded.some((e) => e.metric === 'seats')).toBe(false)
   })
 
   test('a deferred metric never appears in exceeded even when numerically over', async () => {

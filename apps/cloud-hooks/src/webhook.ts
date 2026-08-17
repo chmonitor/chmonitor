@@ -14,7 +14,11 @@ import type { PlanId } from '@chm/pricing'
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
 
-import { makeApplyDeps, makePlanForProductId } from './billing-deps'
+import {
+  licenseForProductId,
+  makeApplyDeps,
+  makePlanForProductId,
+} from './billing-deps'
 import { classifyTransition, formatPolarNotify } from './polar-notify'
 import {
   type ApplySubscriptionDeps,
@@ -122,6 +126,14 @@ export async function handlePolarWebhook(
 
   if (HANDLED_EVENTS.has(event.type)) {
     const data = event.data as PolarSubscriptionData
+    if (data.productId && licenseForProductId(env, data.productId)) {
+      console.log(
+        '[cloud-hooks] self-host license event; skipping cloud plan apply',
+        data.productId,
+        event.type
+      )
+      return Response.json({ received: true }, { status: 202 })
+    }
     try {
       // Read the PRIOR plan (before persistence) so the notification can tell a
       // new signup from an upgrade/downgrade. Degrades to null without D1.

@@ -49,8 +49,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files (secrets). Prod secrets: .env.production.local (covered by
-# .env*.local). .env.prod kept for back-compat with any older local checkout.
+# local env files (secrets). Catalog lives in apps/<app>/.env.production.
+# Root .env / .env.local = Docker override or operator-token fallback only.
 .env*.local
 .env.prod
 

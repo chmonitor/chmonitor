@@ -14,9 +14,12 @@ describe('billing plans', () => {
     expect(BILLING_PLANS.max.priceMonthlyUsd).toBe(99)
   })
 
-  test('seats/hosts per tier match the deal', () => {
-    expect([BILLING_PLANS.pro.seats, BILLING_PLANS.pro.hosts]).toEqual([3, 1])
-    expect([BILLING_PLANS.max.seats, BILLING_PLANS.max.hosts]).toEqual([10, 3])
+  test('cloud plans do not cap seats or hosts', () => {
+    for (const plan of BILLING_PLAN_LIST) {
+      expect(plan.seats).toBeNull()
+      expect(plan.hosts).toBeNull()
+      expect(plan.hostOverage).toBeNull()
+    }
   })
 
   test('yearly = 10× monthly (≈2 months free)', () => {
@@ -75,13 +78,11 @@ describe('billing plans', () => {
     expect(BILLING_PLANS.enterprise.aiOverage).toBeNull()
   })
 
-  test('host overage policy: soft-cap on paid tiers, hard-cap on Free/Enterprise', () => {
-    // Free hard-caps (no expansion); Enterprise is moot (hosts already unlimited).
+  test('no host overage on any cloud plan', () => {
     expect(BILLING_PLANS.free.hostOverage).toBeNull()
+    expect(BILLING_PLANS.pro.hostOverage).toBeNull()
+    expect(BILLING_PLANS.max.hostOverage).toBeNull()
     expect(BILLING_PLANS.enterprise.hostOverage).toBeNull()
-    // Pro/Max publish a per-host overage price within the advertised $15-19 range.
-    expect(BILLING_PLANS.pro.hostOverage).toEqual({ usdPer: 15 })
-    expect(BILLING_PLANS.max.hostOverage).toEqual({ usdPer: 19 })
   })
 
   test('new feature capabilities sit on the right tiers', () => {
@@ -109,8 +110,8 @@ describe('Fleet tier experiment (#2381, B4)', () => {
     const fleet = BILLING_PLANS.fleet
     expect(fleet.priceMonthlyUsd).toBe(199)
     expect(fleet.priceYearlyUsd).toBe(1990)
-    expect(fleet.hosts).toBe(5)
-    expect(fleet.hostOverage).toEqual({ usdPer: 19 })
+    expect(fleet.hosts).toBeNull()
+    expect(fleet.hostOverage).toBeNull()
     expect(planHasCapability('fleet', 'fleet_view')).toBe(true)
   })
 

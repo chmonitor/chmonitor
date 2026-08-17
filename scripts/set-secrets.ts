@@ -82,7 +82,7 @@ const DASHBOARD_SECRET_KEYS = [
   'CHM_USER_CONNECTIONS_ENCRYPTION_KEY',
   // Polar billing (cloud SaaS). Access token authorizes checkout/portal/product
   // API calls; webhook secret verifies inbound subscription events. Non-secret
-  // Polar config (CHM_POLAR_SERVER, CHM_POLAR_PRODUCT_*) lives in .env.production.
+  // Polar config (CHM_POLAR_SERVER, CHM_POLAR_LICENSE_*) lives in .env.production.
   'POLAR_ACCESS_TOKEN',
   'POLAR_WEBHOOK_SECRET',
   'CLICKHOUSE_TZ',

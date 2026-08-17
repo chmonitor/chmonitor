@@ -30,6 +30,7 @@ import { logEvent } from '@/lib/audit/logEvent'
 import {
   getPolarClient,
   getWebhookSecret,
+  licenseForProductId,
   planForProductId,
 } from '@/lib/billing/polar-config'
 import { invalidateNegativeCache } from '@/lib/billing/polar-subscription'
@@ -272,12 +273,19 @@ async function handlePost(request: Request): Promise<Response> {
       case 'subscription.canceled':
       case 'subscription.uncanceled':
       case 'subscription.revoked':
-      case 'subscription.past_due':
-        await applySubscription(
-          event.data as unknown as PolarSubscriptionData,
-          toUnixSeconds(event.timestamp),
-          event.type
-        )
+      case 'subscription.past_due': {
+        const sub = event.data as unknown as PolarSubscriptionData
+        if (sub.productId && licenseForProductId(sub.productId)) {
+          logInfo(
+            '[polar-webhook] self-host license subscription; no cloud plan',
+            {
+              productId: sub.productId,
+              event: event.type,
+            }
+          )
+          break
+        }
+        await applySubscription(sub, toUnixSeconds(event.timestamp), event.type)
         // Funnel: cancellation signal (upgrade_completed fires inside the core
         // flow; cancel has no core hook, so it's captured here).
         if (event.type === 'subscription.canceled') {
@@ -287,6 +295,7 @@ async function handlePost(request: Request): Promise<Response> {
           )
         }
         break
+      }
       case 'checkout.updated': {
         // Hosted checkout reached a terminal success state — the step between
         // checkout_started (client) and upgrade_completed (subscription live).

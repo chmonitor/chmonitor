@@ -203,32 +203,33 @@ export interface PricingFaq {
 
 export const pricingFaqs: PricingFaq[] = [
   {
-    q: 'Are Pro/Max features really exclusive right now?',
-    a: 'Not yet — during early access every plan feature (Fleet view, custom dashboards, webhook integrations, data export, anomaly detection, advanced alerting) is unlocked for all tiers, including Free. Only plan limits (hosts, seats, alert rules, history, AI usage) are enforced today. Per-tier feature gating begins at paid GA, and existing subscribers will be notified before anything changes. Paying now supports development and locks in your limits.',
+    q: 'Is self-hosting really free?',
+    a: 'Yes. chmonitor is open source under GPL-3.0. You can run it on your own infrastructure with every feature, unlimited clusters, and no license key. A paid license is optional: it is a commercial agreement, invoice, and email support — it does not unlock hidden features today.',
   },
   {
-    q: 'Is self-hosting really free?',
-    a: 'Yes. chmonitor is open source under GPL-3.0. Run it on your own infrastructure (Docker, Cloudflare Workers, Kubernetes) with every feature, unlimited clusters, and your data never leaving your network — at no cost, forever.',
+    q: 'Should we buy a license or use the hosted cloud?',
+    a: 'If you already run ClickHouse (and have an infra team), buy a self-hosted license and run chmonitor next to the cluster. The hosted cloud at dash.chmonitor.dev is for people who do not want to operate the dashboard themselves.',
+  },
+  {
+    q: 'Does hosted cloud cap hosts or seats?',
+    a: 'No. Hosted cloud does not cap hosts or team seats. Prefer a self-hosted license if you already run ClickHouse.',
   },
   {
     q: "What's a “host”?",
-    a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. Your plan caps how many hosts you can connect to the hosted dashboard at once. Self-hosting has no host limit. A detected replica (a redundant copy in the same cluster shard) counts as 0.5 host.',
+    a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. A license is sized by how many hosts you monitor. Self-hosting the OSS build has no technical host limit. A detected replica (a redundant copy in the same cluster shard) counts as 0.5 host.',
   },
   {
     q: 'How does AI usage metering work?',
     a: 'Every plan includes a daily allowance of AI agent messages: Free 5 messages / day, Pro 100 / day, Max 1,000 / day. On Pro and Max, usage past the daily allowance is billed as overage at $5 per 2,000 messages. Enterprise brings its own LLM key (BYOK) for unlimited usage.',
   },
+
   {
-    q: 'What happens when I hit a plan limit?',
-    a: 'Limits fail gracefully — you keep full access to everything already in use and see a clear prompt to upgrade. Nothing is deleted or interrupted; you simply cannot add beyond the cap until you upgrade.',
+    q: 'Can I change a license later?',
+    a: 'Yes. Email hello@chmonitor.dev to move up a host tier. Yearly licenses can be cancelled at renewal. Lifetime licenses are one-time.',
   },
   {
-    q: 'Can I change plans or cancel anytime?',
-    a: 'Yes. Upgrade, downgrade, or cancel from the in-app billing portal at any time. Paid access continues until the end of the period you have already paid for, then cleanly returns to Free.',
-  },
-  {
-    q: 'Is annual billing cheaper?',
-    a: 'Yes — annual billing is 10× the monthly price, so you get roughly two months free versus paying month to month.',
+    q: 'Is lifetime cheaper than yearly?',
+    a: 'Lifetime is 3× the yearly price — it pays for itself if you stay past three years.',
   },
   {
     q: 'Do you read or write my data?',

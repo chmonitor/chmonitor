@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-08-14
+updated: 2026-08-17
 tags:
   - saas
   - cloud
@@ -14,6 +14,7 @@ related:
   - deployment
   - agentstate-conversation-store
   - conventions
+  - commercial-license
 ---
 
 # Cloud (SaaS) mode
@@ -21,6 +22,9 @@ related:
 `dash.chmonitor.dev` is the hosted product; Docker / Kubernetes / a self-built
 Cloudflare Worker are the self-hosted (OSS) product. **Same codebase** — the only
 difference is runtime configuration, gated by the **cloud-mode** flag.
+
+Operators who already self-host ClickHouse should buy a
+[commercial license](commercial-license.md), not a hosted Polar seat.
 
 ## The invariant
 
@@ -199,11 +203,10 @@ this entirely (fail-closed to self-hosted).
 M3 wires paid plans via [Polar](https://polar.sh). Cloud-only; OSS/self-host is
 free forever (auth `none` ⇒ unlimited, plans inert).
 
-- **Plans**: `lib/billing/plans.ts` (`BILLING_PLANS`) is the price/capability/
-  limit source of truth (hosts, seats, `alertRules`, `aiRequestsPerDay` daily
-  trial, `aiMonthlyUsdBudget`, `retentionDays`, `capabilities`). The landing app
-  mirrors the numbers via `apps/landing/src/data/pricing.ts` (shared by
-  `Pricing.astro` + the dedicated `/pricing` page).
+- **Plans**: `lib/billing/plans.ts` (`BILLING_PLANS`) is the Cloud
+  price/capability source. Host/seat hard caps are off (`null`). The public
+  paid path is self-host licenses in `@chm/pricing` (`LICENSE_SKUS`), shown
+  on landing `/pricing` via `apps/landing/src/data/pricing.ts`.
 - **Entitlements**: `lib/billing/entitlements.ts` is the single place that turns
   a `Plan` into yes/no limit decisions — `checkHostLimit` / `checkSeatLimit` /
   `checkAlertRuleLimit` / `checkAiDailyLimit` / `checkAiBudget` (all `null` =
@@ -212,9 +215,10 @@ free forever (auth `none` ⇒ unlimited, plans inert).
   for the upgrade nudge. Server limit checks go through here, never `plan.hosts`
   inline. Fully unit-tested in `entitlements.test.ts` (every plan × every limit).
 - **Config**: `lib/billing/polar-config.ts` — `getPolarClient()` (server
-  `sandbox|production` from `CHM_POLAR_SERVER`) + product↔plan mapping from
-  `CHM_POLAR_PRODUCT_<PLAN>_<PERIOD>` env vars. Product ids live in env (sandbox
-  vs production differ), NOT in `plans.ts`. `POLAR_ACCESS_TOKEN` is a secret.
+  `sandbox|production` from `CHM_POLAR_SERVER`) + license product mapping from
+  `CHM_POLAR_LICENSE_<SKU>_<TERM>`. Cloud seat product env
+  (`CHM_POLAR_PRODUCT_*`) is retired; those Polar products are archived.
+  `POLAR_ACCESS_TOKEN` is a secret.
 - **Storage**: one row per user in `user_subscriptions` (migration
   `0003_user_subscriptions.sql`) in the shared `CHM_CLOUD_D1` database.
   `subscription-store.ts` (D1 CRUD; degrades to null without D1),
@@ -225,10 +229,8 @@ free forever (auth `none` ⇒ unlimited, plans inert).
   `…/usage` (GET, current-plan meters), `…/can-downgrade` (POST, pre-flight
   before a plan change — see below), `api/v1/webhooks/polar` (verifies via
   `validateEvent` over the RAW body).
-- **Enforcement**: `api/v1/user-connections` POST returns 402 via
-  `checkHostLimit(plan, count)` + `limitMessage(check)` (null = unlimited). New
-  metered surfaces (alerts, AI) should reuse the matching `entitlements.ts`
-  helper for consistent boundary + error semantics.
+- **Enforcement**: host/seat counts are not capped. AI daily/budget helpers in
+  `entitlements.ts` still apply where wired.
 - **Shared usage resolution**: `lib/billing/owner-usage.ts`
   `resolveOwnerUsage(owner, userId)` is the ONE resolver for current
   consumption (hosts pooled across org members, seats, AI daily/monthly) —
@@ -249,10 +251,10 @@ free forever (auth `none` ⇒ unlimited, plans inert).
   portal and fires the `downgrade_override` product-analytics event).
 - **UI**: `routes/(dashboard)/billing.tsx`, gated to cloud mode in
   `app-sidebar.tsx`; `feature: 'billing'`.
-- **Setup**: `apps/dashboard/scripts/polar-setup.ts` creates Pro/Max
-  monthly+yearly products from `BILLING_PLANS` and prints the
-  `CHM_POLAR_PRODUCT_*` env lines. Sandbox/production tokens are distinct — a
-  production token 401s against `sandbox-api.polar.sh`.
+- **Setup**: `apps/dashboard/scripts/polar-setup.ts` creates Team/Unlimited
+  yearly+lifetime license products and writes `CHM_POLAR_LICENSE_*` to
+  `.env.local`. Leftover Cloud Free/Pro/Max products are archived. Sandbox
+  and production tokens are distinct.
 
 ## Gotchas
 
