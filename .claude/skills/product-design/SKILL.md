@@ -294,8 +294,10 @@ module snapshot in `lib/format-settings.ts`; palette/density →
    Interactive utilities (SQL, explorer, explain, compare, builder) go in
    `menu/tools.ts` — not under Queries/Tables/Operations/System. System-table
    views stay in their domain file. The Tools parent must not set
-   `permission`; copy the child's existing feature onto the leaf. DBA /
-   Engineer / SRE presets include `Tools`.
+   `permission`; copy the child's existing feature onto the leaf. Leave
+   `engines` absent so Postgres hosts hide the whole Tools group — do not
+   add `engines: ['postgres']`. DBA / Engineer / SRE presets include
+   `Tools`.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

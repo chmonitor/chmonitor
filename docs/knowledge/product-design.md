@@ -655,6 +655,12 @@ than watch a system-table monitor. Current leaves, most-used first: SQL Console
 (`/schema-diff`), Settings Diff (`/settings-diff`). AI Agent stays its own
 flagship group. Postgres-only items stay engine-gated and are not moved here.
 
+Leave `engines` **absent** on the Tools parent and children. Absent already
+means the default source-engine family, so `filterMenuItemsByEngine` drops
+the **whole group** on a Postgres host (not an empty heading). Do not add
+`engines: ['postgres']`. Settings > Navigation uses the same engine filter
+(`useActiveHostEngine` → `getSettingsNavMenuItems(engine)`).
+
 The Tools parent must **not** over-gate children: leave `permission` off the
 group and copy each child's existing feature (`tables`, `queries`,
 `dashboard`, `settings`) onto the leaf. DBA, Engineer, and SRE presets all

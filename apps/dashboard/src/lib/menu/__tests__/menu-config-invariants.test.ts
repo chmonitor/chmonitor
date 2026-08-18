@@ -167,10 +167,14 @@ describe('Tools group (interactive utilities)', () => {
     expect(byHref['/settings-diff']).toBe('settings')
   })
 
-  test('has no engines tag so Postgres hosts hide the group (#3105)', () => {
+  test('has no engines tag so Postgres hosts hide the whole group (#3105 / #3115)', () => {
+    // Absent engines = default source-engine family. Do not add
+    // engines: ['postgres'] — that would show CH-only tools on Postgres.
     expect(tools?.engines).toBeUndefined()
+    expect(tools?.engines?.includes('postgres') ?? false).toBe(false)
     for (const item of tools?.items ?? []) {
       expect(item.engines, item.href).toBeUndefined()
+      expect(item.engines?.includes('postgres') ?? false, item.href).toBe(false)
     }
   })
 

@@ -29,6 +29,8 @@ related:
 - Navigation config: Per-section files under `src/menu/` composed by
   `src/menu/index.ts` (re-exported from `src/menu.ts`). Interactive utilities
   live in `menu/tools.ts`; system-table views stay in their domain file.
+  Leave `engines` absent on Tools so Postgres hosts hide the whole group
+  (`filterMenuItemsByEngine`); do not add `engines: ['postgres']`.
 - Styles: Main Tailwind v4 stylesheet at `src/styles.css`
 - Test files co-located with components or in cypress/ directory (`.cy.tsx` / `.cy.ts`)
 

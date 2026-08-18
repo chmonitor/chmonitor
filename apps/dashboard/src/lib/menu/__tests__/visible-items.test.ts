@@ -217,6 +217,26 @@ describe('filterMenuItemsByEngine', () => {
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')
+    // #3115: the whole Tools group is hidden, not an empty parent.
+    expect(pgTitles).not.toContain('Tools')
+  })
+
+  test('Postgres host does not see the Tools group at all (#3115)', () => {
+    // Absent `engines` on the Tools parent fails itemMatchesEngine for
+    // postgres, so the group is dropped before children are considered.
+    const pg = filterMenuItemsByEngine(menuItemsConfig, 'postgres')
+    expect(pg.map((i) => i.title)).not.toContain('Tools')
+    for (const href of [
+      '/sql',
+      '/explorer',
+      '/explain',
+      '/advisor',
+      '/dashboard',
+      '/schema-diff',
+      '/settings-diff',
+    ]) {
+      expect(collectMenuHrefs(pg)).not.toContain(href)
+    }
   })
 })
 

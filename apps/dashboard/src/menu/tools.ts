@@ -17,11 +17,13 @@ export const toolsItems: MenuItem[] = [
     // old groups (`tables`, `queries`, `dashboard`, `settings`) so the
     // group is not over-gated.
     //
-    // No `engines` on the parent or children (#3105): absent already means
-    // the default source-engine family, so filterMenuItemsByEngine hides
-    // Tools on a Postgres host. Do not tag these items — Settings >
-    // Navigation uses the same getSettingsNavMenuItems(engine) path as the
-    // sidebar.
+    // No `engines` on the parent or children (#3105 / #3115): absent already
+    // means the default source-engine family. filterMenuItemsByEngine drops
+    // the parent when itemMatchesEngine fails, so a Postgres host does not
+    // see the Tools group at all — not an empty heading, not CH-only
+    // children. Do NOT add `engines: ['postgres']` (that would show these
+    // pages on a Postgres host). Settings > Navigation uses the same
+    // getSettingsNavMenuItems(engine) path as the sidebar.
     title: 'Tools',
     href: '',
     icon: WrenchIcon,
