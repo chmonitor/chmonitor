@@ -8,6 +8,25 @@ describe('insightCharts', () => {
     expect(entries.length).toBeGreaterThan(0)
   })
 
+  test('live process/metrics tiles and historical tiles get distinct cache policies', async () => {
+    const { getChartQuery } = await import('@/lib/api/chart-registry')
+    expect(getChartQuery('insight-active-queries')?.cachePolicy).toBe(
+      'realtime'
+    )
+    expect(getChartQuery('insight-current-memory')?.cachePolicy).toBe(
+      'realtime'
+    )
+    expect(getChartQuery('insight-http-connections')?.cachePolicy).toBe(
+      'realtime'
+    )
+    expect(getChartQuery('insight-total-storage')?.cachePolicy).toBe(
+      'historical'
+    )
+    expect(getChartQuery('insight-busiest-day-queries')?.cachePolicy).toBe(
+      'historical'
+    )
+  })
+
   describe.each(entries)('chart "%s"', (name, builder) => {
     test('returns an object with a query property', () => {
       const result = builder({})

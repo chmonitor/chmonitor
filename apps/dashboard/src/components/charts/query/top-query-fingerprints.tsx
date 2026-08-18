@@ -6,7 +6,7 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
 import { BarChart } from '@/components/charts/primitives/bar/bar'
 import { resolveDateRangeConfig } from '@/components/date-range'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { useChartData } from '@/lib/swr'
 import { chartTickFormatters } from '@/lib/utils'
 
 interface FingerprintRow {
@@ -73,7 +73,6 @@ export const ChartTopQueryFingerprints = memo(
       hostId,
       interval: effectiveInterval,
       lastHours: effectiveLastHours,
-      refreshInterval: REFRESH_INTERVAL.DEFAULT_60S,
     })
 
     const dateRangeConfig = resolveDateRangeConfig('query-activity')

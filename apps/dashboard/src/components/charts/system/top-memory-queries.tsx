@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
-import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
+import { useChartData, useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
@@ -226,7 +226,6 @@ export const ChartTopMemoryQueries = function ChartTopMemoryQueries({
   const swr = useChartData<DataRow>({
     chartName: 'top-memory-queries',
     hostId,
-    refreshInterval: REFRESH_INTERVAL.DEFAULT_60S,
   })
 
   const [selectedRow, setSelectedRow] = useState<DataRow | null>(null)

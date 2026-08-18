@@ -12,7 +12,6 @@ import { resolveDateRangeConfig } from '@/components/date-range'
 import { useTimeRange } from '@/lib/context/time-range-context'
 import { useTimezone } from '@/lib/context/timezone-context'
 import { useChartData, useHostId } from '@/lib/swr'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { cn, createDateTickFormatter } from '@/lib/utils'
 
 /**
@@ -94,7 +93,7 @@ export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
       hostId,
       interval: effectiveInterval,
       lastHours: effectiveLastHours,
-      refreshInterval: config.refreshInterval ?? REFRESH_INTERVAL.DEFAULT_60S,
+      refreshInterval: config.refreshInterval,
     })
 
     // Get categories (resolve if function)

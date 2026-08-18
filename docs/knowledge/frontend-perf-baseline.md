@@ -3,7 +3,7 @@ id: frontend-perf-baseline
 title: Frontend Performance Baseline
 type: reference
 status: active
-updated: 2026-08-14
+updated: 2026-08-18
 tags:
   - performance
   - memory
@@ -69,9 +69,13 @@ Playwright's bundled Chromium works, given an explicit `executablePath`.
 | `/overview` | 115.2 |
 | `/insights` | 54.4 |
 
-Tracked in [#2992](https://github.com/chmonitor/chmonitor/issues/2992) — the
-question there is whether each chart's interval matches its data's volatility,
-not whether polling should exist.
+Tracked in [#2992](https://github.com/chmonitor/chmonitor/issues/2992).
+Audited charts live in `apps/dashboard/src/lib/swr/chart-freshness.ts`:
+heatmaps, storage snapshots, and long-window aggregates poll at `SLOW_2M` /
+`VERY_SLOW_5M` with `cachePolicy: 'historical'`; live `system.processes` /
+`system.metrics` tiles stay on `FAST_15S` / `DEFAULT_60S` with
+`cachePolicy: 'realtime'`. CPU / memory / connection-pool series are
+intentionally left on the 60s factory default.
 
 ### Memory — healthy, do not optimize
 

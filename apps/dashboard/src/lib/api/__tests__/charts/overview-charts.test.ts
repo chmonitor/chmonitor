@@ -20,6 +20,11 @@ describe('overview-charts', () => {
     expect(result.query).toContain('COUNT')
   })
 
+  test('running-queries-count is realtime-cached via the freshness map', async () => {
+    const { getChartQuery } = await import('@/lib/api/chart-registry')
+    expect(getChartQuery('running-queries-count')?.cachePolicy).toBe('realtime')
+  })
+
   test('database-count excludes system databases', () => {
     const result = overviewCharts['database-count']!({}) as any
     expect(result.query).toContain('system.tables')

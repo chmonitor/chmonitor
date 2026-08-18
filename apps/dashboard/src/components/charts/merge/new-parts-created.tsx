@@ -6,7 +6,7 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
 import { BarChart } from '@/components/charts/primitives/bar/bar'
 import { resolveDateRangeConfig } from '@/components/date-range'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { useChartData } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
 export const ChartNewPartsCreated = function ChartNewPartsCreated({
@@ -37,7 +37,6 @@ export const ChartNewPartsCreated = function ChartNewPartsCreated({
     hostId,
     interval: effectiveInterval,
     lastHours: effectiveLastHours,
-    refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
   })
 
   // Resolve date range config

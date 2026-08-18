@@ -4,7 +4,6 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
 import { RankBars } from '@/components/charts/primitives/rank-bars'
 import { useChartData } from '@/lib/swr'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
 
 type DataRow = {
   table_path: string
@@ -29,7 +28,6 @@ export const ChartDataFreshness = function ChartDataFreshness({
   const swr = useChartData<DataRow>({
     chartName: 'data-freshness',
     hostId,
-    refreshInterval: REFRESH_INTERVAL.DEFAULT_60S,
   })
 
   return (

@@ -35,6 +35,7 @@ import { systemCharts } from './charts/system-charts'
 import { threadCharts } from './charts/thread-charts'
 import { trafficCharts } from './charts/traffic-charts'
 import { zookeeperCharts } from './charts/zookeeper-charts'
+import { chartCachePolicy } from '@/lib/swr/chart-freshness'
 
 /** Cache policy → Cache-Control TTL bucket (handler maps to headers). */
 export type CachePolicy = 'realtime' | 'standard' | 'historical'
@@ -148,7 +149,12 @@ export function getChartQuery(
 ): ChartQueryResult | MultiChartQueryResult | null {
   const builder = chartRegistry.get(chartName)
   if (!builder) return null
-  return builder(params)
+  const result = builder(params)
+  // Audited charts get an explicit HTTP/query-cache TTL (#3005 item 3).
+  // A builder that already set cachePolicy wins.
+  const cachePolicy = result.cachePolicy ?? chartCachePolicy(chartName)
+  if (!cachePolicy || result.cachePolicy === cachePolicy) return result
+  return { ...result, cachePolicy }
 }
 
 /** All registered chart names. */

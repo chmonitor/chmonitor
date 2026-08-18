@@ -7,7 +7,7 @@ import { ChartContainer } from '@/components/charts/chart-container'
 import { BarChart } from '@/components/charts/primitives/bar/bar'
 import { resolveDateRangeConfig } from '@/components/date-range'
 import { transformUserEventCounts } from '@/lib/chart-data-transforms'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { useChartData } from '@/lib/swr'
 import { chartTickFormatters, cn } from '@/lib/utils'
 
 export const ChartQueryCountByUser = memo(function ChartQueryCountByUser({
@@ -38,7 +38,6 @@ export const ChartQueryCountByUser = memo(function ChartQueryCountByUser({
     hostId,
     interval: effectiveInterval,
     lastHours: effectiveLastHours,
-    refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
   })
 
   // Resolve date range config

@@ -14,7 +14,6 @@ import { useTimeRange } from '@/lib/context/time-range-context'
 import { useTimezone } from '@/lib/context/timezone-context'
 import { useDeployments } from '@/lib/deployments/use-deployments'
 import { useChartData, useHostId } from '@/lib/swr'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { cn, createDateTickFormatter } from '@/lib/utils'
 
 /**
@@ -138,7 +137,7 @@ export function createAreaChart(
       hostId,
       interval: effectiveInterval,
       lastHours: effectiveLastHours,
-      refreshInterval: config.refreshInterval ?? REFRESH_INTERVAL.DEFAULT_60S,
+      refreshInterval: config.refreshInterval,
     })
 
     // Deploy-marker overlay (opt-in via config.showDeployments): fetch only
