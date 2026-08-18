@@ -2,7 +2,7 @@ import { agentDiscoveryHandler, securityHeadersHandler } from '@/start'
 
 import { describe, expect, test } from 'bun:test'
 import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   API_SERVICE_DOC_HREF,
   buildOpenApiDocument,
@@ -197,9 +197,9 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
   })
 
   test('catalog service-doc page exists in docs content', () => {
-    const page = resolve(
-      import.meta.dir,
-      '../../../../docs/content/reference/api.mdx'
+    // portable import.meta.url form (tsc doesn't type Bun's import.meta.dir).
+    const page = fileURLToPath(
+      new URL('../../../../docs/content/reference/api.mdx', import.meta.url)
     )
     expect(existsSync(page)).toBe(true)
   })
