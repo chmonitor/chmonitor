@@ -22,7 +22,7 @@ curl -sS https://dash.example.com/.well-known/api-catalog
 curl -sS https://dash.example.com/api/v1/openapi.json
 ```
 
-`GET /api/v1/openapi.json` is public. It returns **200** with `openapi`, `info`, and `paths` for anonymous callers — it does not require a session or API key.
+`GET /api/v1/openapi.json` is public. It returns **200** with `openapi`, `info`, and `paths` for anonymous callers — it does not require a session or API key. The document is the stable public contract (health, hosts, charts, tables, overview, findings, agent, MCP, API-key issuance), assembled from the live dashboard routes — not a two-path stub of `/api/health` and itself.
 
 Neighboring discovery URLs (same origin):
 
@@ -50,13 +50,21 @@ The OpenAPI document is the machine-readable list. These are the endpoints most 
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/api/health` | Liveness only. Anonymous response is `{status, timestamp}` — no deployment metadata ([#1768](https://github.com/chmonitor/chmonitor/issues/1768)). |
-| `GET` | `/api/v1/openapi.json` | This spec. Public. |
+| `GET` | `/api/v1/openapi.json` | This spec. Public. Chart and table `{name}` enums come from the live registries. |
 | `GET` | `/api/v1/hosts` | Configured ClickHouse hosts (sanitized; no passwords). |
-| `GET` | `/api/v1/charts/:name` | Chart series. Requires `hostId`. |
-| `GET` | `/api/v1/tables/:name` | Table pages. Requires `hostId`. |
+| `GET` | `/api/v1/host-status` | Version / uptime / hostname. Requires `hostId`. Pass `fleet=1` for the metric bundle. |
+| `GET` | `/api/v1/overview` | Overview KPI batch. Requires `hostId`. |
+| `GET` | `/api/v1/charts/{name}` | Chart series. `hostId` defaults to `0`. |
+| `GET` | `/api/v1/tables` | Autocomplete list of non-system tables. |
+| `GET` | `/api/v1/tables/{name}` | Named QueryConfig page. `hostId` defaults to `0`. |
+| `GET` | `/api/v1/findings` | Recent findings. Host query param is `host` (not `hostId`). |
+| `POST` | `/api/v1/agent` | Streaming AI agent. Authenticated on cloud. |
 | `POST` | `/api/mcp` | Model Context Protocol server — see [MCP server](/reference/mcp-server). |
+| `POST` | `/api/v1/auth/api-key` | Mint a `chm_` key. Bearer must be `CHM_API_KEY_SECRET`. |
 
-Most data routes take `hostId` (query param, default `0`) to select a host from `CLICKHOUSE_HOST`.
+Most data routes take `hostId` (query param, default `0`) to select a host from the configured host list.
+
+The OpenAPI document is the machine-readable list; this table is the short start set.
 
 ## Related
 
