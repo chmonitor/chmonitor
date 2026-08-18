@@ -1,9 +1,11 @@
 import {
   classifyEngine,
   engineKindLabel,
+  formatDistributedTopologyNote,
   formatTimestamp,
   hasPartStorage,
   isEpochZero,
+  parseDistributedEngine,
   parseMaterializedViewTarget,
 } from './engine-kind'
 import { describe, expect, test } from 'bun:test'
@@ -58,6 +60,64 @@ describe('engineKindLabel', () => {
       'Materialized view'
     )
     expect(engineKindLabel(classifyEngine('MergeTree'))).toBe('Table')
+  })
+})
+
+describe('parseDistributedEngine', () => {
+  test('parses quoted Distributed engine_full', () => {
+    expect(
+      parseDistributedEngine(
+        "Distributed('analytics', 'default', 'events_local', cityHash64(id))"
+      )
+    ).toEqual({
+      cluster: 'analytics',
+      database: 'default',
+      table: 'events_local',
+      shardingKey: 'cityHash64(id)',
+    })
+  })
+
+  test('parses unquoted identifiers and optional sharding key', () => {
+    expect(
+      parseDistributedEngine('Distributed(cluster, db, local_table)')
+    ).toEqual({
+      cluster: 'cluster',
+      database: 'db',
+      table: 'local_table',
+      shardingKey: null,
+    })
+  })
+
+  test('returns null for non-Distributed engines', () => {
+    expect(parseDistributedEngine('MergeTree')).toBeNull()
+    expect(parseDistributedEngine('')).toBeNull()
+    expect(parseDistributedEngine(null)).toBeNull()
+  })
+})
+
+describe('formatDistributedTopologyNote', () => {
+  const dist = {
+    cluster: 'analytics',
+    database: 'default',
+    table: 'events_local',
+    shardingKey: 'rand()',
+  }
+
+  test('includes shard and replica counts when topology rows exist', () => {
+    expect(
+      formatDistributedTopologyNote(dist, [
+        { cluster: 'analytics', shard_num: 1 },
+        { cluster: 'analytics', shard_num: 1 },
+        { cluster: 'analytics', shard_num: 2 },
+        { cluster: 'other', shard_num: 1 },
+      ])
+    ).toContain('2 shards × 2 replicas')
+  })
+
+  test('omits counts when the cluster is missing from topology', () => {
+    expect(formatDistributedTopologyNote(dist, [])).toBe(
+      'Distributed wrapper over local table default.events_local on cluster analytics. Apply schema changes on the local table, then keep this Distributed table in sync.'
+    )
   })
 })
 
