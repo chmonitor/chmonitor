@@ -208,7 +208,8 @@ const SubMenuItem = function SubMenuItem({
           pathname
         )}
         className={cn(
-          'h-11 min-h-11 cursor-pointer lg:h-7 lg:min-h-7',
+          'h-11 min-h-11 w-full cursor-pointer pr-7 lg:h-7 lg:min-h-7',
+          hasBadge && 'pr-12',
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={
@@ -220,7 +221,7 @@ const SubMenuItem = function SubMenuItem({
           />
         }
       >
-        <span className="group-data-[state=collapsed]/sidebar:hidden min-w-0 truncate">
+        <span className="group-data-[state=collapsed]/sidebar:hidden min-w-0 flex-1 truncate">
           {subItem.title}
         </span>
         {subItem.isNew && (
