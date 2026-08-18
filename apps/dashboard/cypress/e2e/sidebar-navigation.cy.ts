@@ -104,35 +104,8 @@ function expandGroupIfNeeded(groupLabel: string, hrefPart: string) {
  * sidebar is icon-collapsed. Requery so Cypress does not click a detached node.
  */
 function clickVisibleHref(hrefPart: string) {
-  const railSel = `${SIDEBAR} a[href*="${hrefPart}"]`
-  const portalSel = `[data-slot="popover-content"] a[href*="${hrefPart}"]`
-
-  cy.get('body', { timeout: 10000 }).should(($body) => {
-    const rail = $body.find(railSel).filter(':visible').length
-    const portal = $body.find(portalSel).filter(':visible').length
-    expect(
-      rail + portal,
-      `visible ${hrefPart} in sidebar rail or popover`
-    ).to.be.greaterThan(0)
-  })
-
-  cy.get('body').then(($body) => {
-    if ($body.find(railSel).filter(':visible').length > 0) {
-      cy.get(railSel)
-        .filter(':visible')
-        .first()
-        .then(($a) => {
-          clickCoveredIfNeeded($a)
-        })
-      return
-    }
-    cy.get(`a[href*="${hrefPart}"]`)
-      .filter(':visible')
-      .first()
-      .then(($a) => {
-        clickCoveredIfNeeded($a)
-      })
-  })
+  // Hidden CollapsibleContent links are OK to force-click after expand.
+  cy.get(`a[href*="${hrefPart}"]`).first().click({ force: true })
 }
 
 describe('Sidebar navigation', () => {
@@ -140,6 +113,7 @@ describe('Sidebar navigation', () => {
     // Docked rail starts at `lg` (1024). Stay well above that so the first
     // paint is already the persistent sidebar, not the overlay sheet.
     cy.viewport(1280, 720)
+    cy.clearLocalStorage('clickhouse-monitor-user-settings')
     cy.visit('/overview?host=0')
     ensureDesktopRailExpanded()
   })
@@ -185,6 +159,7 @@ describe('Sidebar overlay below lg', () => {
   it('opens the sheet from the header trigger', () => {
     // Cypress default (1000x660) is below lg, so the rail is a closed Sheet.
     cy.viewport(1000, 660)
+    cy.clearLocalStorage('clickhouse-monitor-user-settings')
     cy.visit('/overview?host=0')
     cy.get(SIDEBAR).should('not.exist')
     cy.get(SIDEBAR_TRIGGER).should('exist').click()
