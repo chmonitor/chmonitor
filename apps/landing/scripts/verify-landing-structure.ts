@@ -50,6 +50,22 @@ for (const marker of required) {
   }
 }
 
+const ossIdx = html.indexOf('data-hero-oss')
+const ossEnd = ossIdx === -1 ? -1 : html.indexOf('</a>', ossIdx)
+const ossChunk =
+  ossIdx === -1 || ossEnd === -1 ? '' : html.slice(ossIdx, ossEnd)
+if (!ossChunk.includes('self-host free')) {
+  console.error('MISSING self-host free claim in [data-hero-oss]')
+  failed = true
+} else if (/\btruncate\b/.test(ossChunk)) {
+  console.error(
+    'FORBIDDEN truncate on hero OSS pill (clips SELF-HOST FREE at 320px)'
+  )
+  failed = true
+} else {
+  console.log('OK: hero OSS pill keeps the full self-host claim (no truncate)')
+}
+
 for (const text of forbidden) {
   if (html.includes(text)) {
     console.error(`FORBIDDEN on homepage: ${text}`)
