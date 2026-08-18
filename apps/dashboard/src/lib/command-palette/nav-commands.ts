@@ -74,6 +74,12 @@ const NAV_ROUTES = [
     keywords: ['config', 'configuration', 'server'],
   },
   {
+    id: 'nav-schema-diff',
+    label: 'Schema Compare',
+    href: '/schema-diff',
+    keywords: ['schema', 'diff', 'ddl', 'compare', 'hosts'],
+  },
+  {
     id: 'nav-logs-text',
     label: 'Text Log',
     href: '/logs/text-log',

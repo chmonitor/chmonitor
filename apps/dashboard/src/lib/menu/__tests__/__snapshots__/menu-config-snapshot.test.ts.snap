@@ -556,6 +556,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/schema-diff",
+    "section": undefined,
+    "title": "Schema Compare",
+  },
+  {
+    "depth": 1,
     "href": "/disks",
     "section": undefined,
     "title": "Disks",
