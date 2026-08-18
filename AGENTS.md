@@ -88,7 +88,8 @@ close` the manager workspace.
 
 ## Scheduled desk (herdr-desk plugin)
 
-Config only: `.herdr-desk.json`. The Herdr plugin
+Config only: `.herdr-desk.json` (`tasks[].playbook`, id `desk:…`,
+`schedule` is a cron string). The Herdr plugin
 (`herdr plugin install duyet/herdr-desk`) picks this workspace up
 automatically. Do not put scheduler/spawn logic in this repo.
 
