@@ -26,10 +26,24 @@ Before signing in you can explore a live, public **read-only demo** cluster. Sig
 
 There is no Polar plan picker. Add a ClickHouse or Postgres connection (see [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements), or [Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse)).
 
-Hosted Cloud does not cap hosts or seats. AI daily / monthly budget still apply on the hosted product.
+Hosted Cloud does not cap hosts or seats. AI daily caps still apply on the hosted product (see below).
 
 </Step>
 </Steps>
+
+## AI usage (hosted Cloud only)
+
+Self-host OSS is **not** gated. These caps apply only on `dash.chmonitor.dev`.
+
+| Caller | Daily AI messages | Overage |
+|---|---|---|
+| Anonymous guest | **3** (`CHM_GUEST_AI_REQUESTS_PER_DAY`, default 3) | Hard cap — sign in for a plan allowance |
+| Signed-in Free | **5** | Hard cap |
+| Signed-in Pro | **100** | $5 per 2,000 messages past the daily allowance |
+| Signed-in Max | **1,000** | $5 per 2,000 messages past the daily allowance |
+| Enterprise | Unlimited (BYOK) | None |
+
+Anonymous guests also have a tighter per-minute rate limit (`RATE_LIMIT_AGENT_GUEST_PER_MIN`, default 5). See [AI agent configuration](/guide/ai-agent/configuration) and [environment variables](/reference/environment-variables).
 
 ## Licenses (self-host)
 
