@@ -1,0 +1,148 @@
+import { describe, expect, test } from 'bun:test'
+
+import { compareCatalogs } from './compare'
+import { buildChangePlan } from './plan'
+import type { TableSchema } from './types'
+
+function table(partial: Partial<TableSchema> & Pick<TableSchema, 'database' | 'table'>): TableSchema {
+  return {
+    engine: 'MergeTree',
+    sortingKey: 'id',
+    partitionKey: '',
+    primaryKey: 'id',
+    createTableQuery: `CREATE TABLE ${partial.database}.${partial.table} (id UInt64) ENGINE = MergeTree ORDER BY id`,
+    columns: [{ name: 'id', type: 'UInt64', codec: '' }],
+    indexes: [],
+    projections: [],
+    ...partial,
+  }
+}
+
+describe('buildChangePlan', () => {
+  test('additive-only fixture produces only CREATE and ALTER ADD', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'new_tbl',
+          createTableQuery:
+            'CREATE TABLE app.new_tbl (`id` UInt64) ENGINE = MergeTree ORDER BY id',
+        }),
+        table({
+          database: 'app',
+          table: 'events',
+          columns: [
+            { name: 'id', type: 'UInt64', codec: '' },
+            { name: 'note', type: 'String', codec: '' },
+          ],
+          indexes: [
+            { name: 'idx_note', type: 'bloom_filter', expr: 'note', granularity: '1' },
+          ],
+        }),
+      ],
+    }
+    const target = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'events',
+          columns: [{ name: 'id', type: 'UInt64', codec: '' }],
+        }),
+      ],
+    }
+
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    expect(plan.items.every((i) => i.kind !== 'manual')).toBe(true)
+    expect(plan.safeStatements.every((s) => /^(CREATE|ALTER TABLE .+ ADD )/i.test(s))).toBe(
+      true
+    )
+    expect(plan.safeStatements.some((s) => s.startsWith('CREATE TABLE'))).toBe(true)
+    expect(plan.safeStatements.some((s) => s.includes('ADD COLUMN'))).toBe(true)
+    expect(plan.safeStatements.some((s) => s.includes('ADD INDEX'))).toBe(true)
+    expect(plan.items.some((i) => /DROP/i.test(i.statement))).toBe(false)
+  })
+
+  test('engine or ORDER BY mismatch is flagged, not rewritten', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 't',
+          engine: 'ReplacingMergeTree',
+          sortingKey: 'id, ts',
+        }),
+      ],
+    }
+    const target = {
+      tables: [table({ database: 'app', table: 't', engine: 'MergeTree', sortingKey: 'id' })],
+    }
+
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    const manuals = plan.items.filter((i) => i.kind === 'manual')
+    expect(manuals.length).toBeGreaterThanOrEqual(2)
+    expect(manuals.every((i) => i.risk === 'rewrite' && i.statement === '')).toBe(true)
+    expect(plan.safeStatements).toEqual([])
+    expect(plan.items.some((i) => /ENGINE\s*=/i.test(i.statement))).toBe(false)
+    expect(plan.items.some((i) => /MODIFY ORDER BY/i.test(i.statement))).toBe(false)
+  })
+
+  test('drop column is a manual note, never a DROP statement', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 't',
+          columns: [{ name: 'id', type: 'UInt64', codec: '' }],
+        }),
+      ],
+    }
+    const target = {
+      tables: [
+        table({
+          database: 'app',
+          table: 't',
+          columns: [
+            { name: 'id', type: 'UInt64', codec: '' },
+            { name: 'gone', type: 'String', codec: '' },
+          ],
+        }),
+      ],
+    }
+
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    expect(plan.items).toHaveLength(1)
+    expect(plan.items[0].kind).toBe('manual')
+    expect(plan.items[0].statement).toBe('')
+    expect(plan.items[0].summary).toContain('gone')
+    expect(plan.safeStatements).toEqual([])
+  })
+
+  test('type change emits MODIFY COLUMN as mutation, not safe', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 't',
+          columns: [{ name: 'id', type: 'UInt128', codec: '' }],
+        }),
+      ],
+    }
+    const target = {
+      tables: [
+        table({
+          database: 'app',
+          table: 't',
+          columns: [{ name: 'id', type: 'UInt64', codec: '' }],
+        }),
+      ],
+    }
+
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    expect(plan.items).toHaveLength(1)
+    expect(plan.items[0].kind).toBe('modify_column')
+    expect(plan.items[0].risk).toBe('mutation')
+    expect(plan.items[0].safe).toBe(false)
+    expect(plan.items[0].statement).toContain('MODIFY COLUMN')
+    expect(plan.safeStatements).toEqual([])
+  })
+})

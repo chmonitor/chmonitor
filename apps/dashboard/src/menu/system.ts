@@ -59,6 +59,16 @@ export const systemItems: MenuItem[] = [
         permission: { feature: 'settings' },
       },
       {
+        title: 'Schema Compare',
+        href: '/schema-diff',
+        description:
+          'Compare table schemas across hosts and copy a recommend-only change plan',
+        icon: GitCompareArrowsIcon,
+        isNew: true,
+        permission: { feature: 'settings' },
+        tableCheck: 'system.tables',
+      },
+      {
         title: 'Disks',
         href: '/disks',
         description: 'Storage disk configuration and usage',

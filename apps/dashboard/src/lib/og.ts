@@ -153,6 +153,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     description:
       'Compare system.settings and merge_tree_settings across all configured ClickHouse hosts.',
   },
+  'schema-diff': {
+    eyebrow: 'SCHEMA',
+    title: 'Cross-Host Schema Compare',
+    description:
+      'Compare table schemas across hosts and copy a recommend-only change plan.',
+  },
   users: {
     eyebrow: 'ACCESS',
     title: 'Users & Roles',
