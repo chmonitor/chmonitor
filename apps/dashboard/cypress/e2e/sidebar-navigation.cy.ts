@@ -23,6 +23,7 @@
 const SIDEBAR = '[data-sidebar="sidebar"]'
 const SIDEBAR_TRIGGER = '[data-slot="sidebar-trigger"]'
 const SIDEBAR_GROUP = '[data-slot="sidebar"]'
+const SIDEBAR_CONTENT = '[data-sidebar="content"]'
 
 /**
  * Nested groups render as a Popover portal when the rail is icon-collapsed
@@ -41,6 +42,25 @@ function ensureDesktopRailExpanded() {
       }
     })
   cy.get(SIDEBAR_GROUP).should('have.attr', 'data-state', 'expanded')
+}
+
+/**
+ * Scroll `el` inside the sidebar content pane so Queries/Cluster sit above
+ * SidebarFooter. Window `scrollIntoView` can move the page; only the pane
+ * should move.
+ */
+function scrollWithinSidebarContent(el: HTMLElement) {
+  const pane = el.closest(SIDEBAR_CONTENT) as HTMLElement | null
+  if (!pane) return
+  const elRect = el.getBoundingClientRect()
+  const paneRect = pane.getBoundingClientRect()
+  pane.scrollTop += elRect.top - paneRect.top - 8
+}
+
+function clickCoveredIfNeeded($el: JQuery<HTMLElement>) {
+  scrollWithinSidebarContent($el[0])
+  // About footer can still cover the last groups after scroll.
+  cy.wrap($el).click({ force: true })
 }
 
 /**
@@ -70,9 +90,11 @@ function expandGroupIfNeeded(groupLabel: string, hrefPart: string) {
       .filter((_, el) =>
         exactLabel.test((el.innerText || '').replace(/\s+/g, ' ').trim())
       )
-      .should('be.visible')
+      .should('have.length.at.least', 1)
       .first()
-      .click()
+      .then(($btn) => {
+        clickCoveredIfNeeded($btn)
+      })
   })
 }
 
@@ -96,10 +118,20 @@ function clickVisibleHref(hrefPart: string) {
 
   cy.get('body').then(($body) => {
     if ($body.find(railSel).filter(':visible').length > 0) {
-      cy.get(railSel).filter(':visible').first().click()
+      cy.get(railSel)
+        .filter(':visible')
+        .first()
+        .then(($a) => {
+          clickCoveredIfNeeded($a)
+        })
       return
     }
-    cy.get(`a[href*="${hrefPart}"]`).filter(':visible').first().click()
+    cy.get(`a[href*="${hrefPart}"]`)
+      .filter(':visible')
+      .first()
+      .then(($a) => {
+        clickCoveredIfNeeded($a)
+      })
   })
 }
 

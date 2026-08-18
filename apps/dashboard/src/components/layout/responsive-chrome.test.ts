@@ -76,4 +76,20 @@ describe('responsive chrome', () => {
       /<span className="truncate text-\[10\.5px\] font-semibold uppercase/
     )
   })
+
+  test('sidebar content scrolls last groups above the footer', () => {
+    const sidebar = src('components/ui/sidebar.tsx')
+    // Content pane stays the scroll container (44px phone rows overflow svh).
+    expect(sidebar).toContain("data-sidebar=\"content\"")
+    expect(sidebar).toContain(
+      'overflow-auto overscroll-contain group-data-[collapsible=icon]:overflow-hidden'
+    )
+    expect(sidebar).toContain('min-h-0 flex-1')
+    // Header/footer do not shrink over Queries/Cluster.
+    expect(sidebar).toContain("data-sidebar=\"footer\"")
+    expect(sidebar).toContain("data-sidebar=\"header\"")
+    expect(sidebar).toContain('flex shrink-0 flex-col gap-2 p-2')
+    // Inner column clips so the About footer cannot paint over the list.
+    expect(sidebar).toContain('flex size-full flex-col overflow-hidden bg-sidebar')
+  })
 })
