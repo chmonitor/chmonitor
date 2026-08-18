@@ -1,10 +1,10 @@
-import { FEATURE_PAGES } from './feature-pages'
-import { FEATURE_SECTIONS } from './feature-showcase'
 import {
   ALERT_CHANNELS,
   ALERT_CHANNELS_FULL,
   ALERT_CHANNELS_SHORT,
 } from './alert-channels'
+import { FEATURE_PAGES } from './feature-pages'
+import { FEATURE_SECTIONS } from './feature-showcase'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
