@@ -256,9 +256,12 @@ tab well): section labels + icon rows, selected = muted pill, `border-r`
 divider. Content pane shows the active tab title. Theme (Light / Dark /
 System) is a settings row (label left, three window thumbnails right)
 on Appearance only. Navigation leads with a `SegmentedControl` workspace
-preset (Full / DBA / Engineer / SRE / Custom) plus a searchable hide
-picker — never a 40-checkbox wall — then the Dim / Hide unavailable-page
-demos. Hidden pages stay routable. Filter through
+preset (Full / DBA / Engineer / SRE / Custom) plus an in-page sidebar-like
+menu tree (same groups, icons, nested children as `nav-main`). Click a
+leaf to hide or show it — hidden rows stay visible but muted, like Dim
+unavailable pages. Search filters the tree. Never a 40-checkbox wall or a
+separate Hide-pages drawer. Then the Dim / Hide unavailable-page demos.
+Hidden pages stay routable. Filter through
 `getVisibleMenuItems` so sidebar and ⌘K match.
 Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not

@@ -178,3 +178,105 @@ export function workspaceFromSettings(settings: {
     hiddenMenuHrefs: parseHiddenMenuHrefs(settings.hiddenMenuHrefs),
   }
 }
+
+/**
+ * Hide list the customize tree should treat as muted: stored hrefs plus,
+ * on a named preset, every leaf outside that preset's group set.
+ */
+export function effectiveHiddenMenuHrefs(
+  items: readonly MenuItem[],
+  workspace: WorkspaceVisibility
+): string[] {
+  if (
+    workspace.workspacePreset === 'full' ||
+    workspace.workspacePreset === 'custom'
+  ) {
+    return [...workspace.hiddenMenuHrefs]
+  }
+
+  const outside = hrefsOutsidePresetGroups(
+    items,
+    PRESET_GROUP_TITLES[workspace.workspacePreset]
+  )
+  return [...new Set([...outside, ...workspace.hiddenMenuHrefs])]
+}
+
+function hideListForPreset(
+  items: readonly MenuItem[],
+  workspace: WorkspaceVisibility
+): string[] {
+  if (workspace.workspacePreset === 'full') return []
+  if (workspace.workspacePreset === 'custom') {
+    return [...workspace.hiddenMenuHrefs]
+  }
+  return hrefsOutsidePresetGroups(
+    items,
+    PRESET_GROUP_TITLES[workspace.workspacePreset]
+  )
+}
+
+/** Apply a role pill. Named presets clear the hide list; Custom materializes one. */
+export function applyWorkspacePreset(
+  items: readonly MenuItem[],
+  current: WorkspaceVisibility,
+  next: WorkspacePreset
+): WorkspaceVisibility {
+  if (next === 'full') {
+    return { workspacePreset: 'full', hiddenMenuHrefs: [] }
+  }
+  if (next === 'custom') {
+    if (
+      current.workspacePreset !== 'full' &&
+      current.workspacePreset !== 'custom'
+    ) {
+      return {
+        workspacePreset: 'custom',
+        hiddenMenuHrefs: hrefsOutsidePresetGroups(
+          items,
+          PRESET_GROUP_TITLES[current.workspacePreset]
+        ),
+      }
+    }
+    return {
+      workspacePreset: 'custom',
+      hiddenMenuHrefs: [...current.hiddenMenuHrefs],
+    }
+  }
+  return { workspacePreset: next, hiddenMenuHrefs: [] }
+}
+
+/** Hide a leaf. Always lands on Custom so the hide list is the source of truth. */
+export function hideMenuHref(
+  items: readonly MenuItem[],
+  current: WorkspaceVisibility,
+  href: string
+): WorkspaceVisibility {
+  const base = hideListForPreset(items, current)
+  if (base.includes(href)) {
+    return { workspacePreset: 'custom', hiddenMenuHrefs: base }
+  }
+  return { workspacePreset: 'custom', hiddenMenuHrefs: [...base, href] }
+}
+
+/** Show a leaf. Materializes the effective hide list, then drops this href. */
+export function showMenuHref(
+  items: readonly MenuItem[],
+  current: WorkspaceVisibility,
+  href: string
+): WorkspaceVisibility {
+  const next = effectiveHiddenMenuHrefs(items, current).filter(
+    (item) => item !== href
+  )
+  return { workspacePreset: 'custom', hiddenMenuHrefs: next }
+}
+
+/** A parent is hidden when every descendant leaf is on the hide list. */
+export function menuItemIsHidden(
+  item: MenuItem,
+  hidden: ReadonlySet<string>
+): boolean {
+  if (item.items?.length) {
+    return item.items.every((child) => menuItemIsHidden(child, hidden))
+  }
+  return Boolean(item.href) && hidden.has(item.href)
+}

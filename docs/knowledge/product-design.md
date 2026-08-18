@@ -105,13 +105,16 @@ pill, `border-r`) and a content pane whose heading is the active tab.
 Theme (Light / Dark / System, next-themes) is a
 label-left / thumbnails-right row on Appearance only. Navigation
 leads with a workspace **preset** (`Full` / `DBA` / `Engineer` / `SRE` /
-`Custom`) then Dim vs Hide with two menu demos (Queries + dimmed/missing
-Backups). Hidden pages stay routable; Settings gear and the host switcher
-are never filtered. Workspace visibility is applied last in
-`getVisibleMenuItems` and does not replace permission / cloud / engine
-gates. Named presets keep a stable group set; Full is the only
-auto-expand preset. Custom uses a hide list plus a searchable picker —
-never a 40-checkbox wall.
+`Custom`) plus an in-page sidebar-like menu tree (same Main/Others
+groups, chevrons, and leaf icons as `nav-main` / `app-sidebar`). Click a
+leaf to hide or show it; hidden rows stay visible but muted (same idea as
+Dim unavailable pages). Search filters the tree — no Hide-pages drawer
+and never a 40-checkbox wall. Then Dim vs Hide with two menu demos
+(Queries + dimmed/missing Backups). Hidden pages stay routable; Settings
+gear and the host switcher are never filtered. Workspace visibility is
+applied last in `getVisibleMenuItems` and does not replace permission /
+cloud / engine gates. Named presets keep a stable group set; Full is the
+only auto-expand preset. Custom uses `hiddenMenuHrefs` as the hide list.
 Timezone is a searchable combobox
 (`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
 Chart palette is a three-card picker with a mini bar preview. Unit options

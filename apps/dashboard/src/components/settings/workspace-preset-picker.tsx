@@ -4,15 +4,17 @@ import { menuItemsConfig } from '@/menu'
 import type { WorkspacePreset } from '@/lib/types/user-settings'
 
 import { SegmentedControl } from './segmented-control'
+import { WorkspaceMenuTree } from './workspace-menu-tree'
 import { useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { filterMenuItemsByEngine } from '@/lib/menu/visible-items'
 import {
+  applyWorkspacePreset,
   collectMenuLeaves,
-  hrefsOutsidePresetGroups,
-  PRESET_GROUP_TITLES,
+  effectiveHiddenMenuHrefs,
+  hideMenuHref,
+  showMenuHref,
 } from '@/lib/menu/workspace-presets'
-import { cn } from '@/lib/utils'
 
 const PRESET_OPTIONS: {
   value: WorkspacePreset
@@ -49,70 +51,49 @@ export function WorkspacePresetPicker({
   hiddenMenuHrefs,
   onChange,
 }: WorkspacePresetPickerProps) {
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [query, setQuery] = useState('')
 
+  const treeItems = useMemo(
+    () =>
+      filterMenuItemsByEngine(menuItemsConfig, 'clickhouse').filter(
+        (item) => item.section !== 'footer'
+      ),
+    []
+  )
   const leaves = useMemo(() => collectMenuLeaves(menuItemsConfig), [])
-  const hiddenSet = useMemo(() => new Set(hiddenMenuHrefs), [hiddenMenuHrefs])
+  const workspace = useMemo(
+    () => ({ workspacePreset: preset, hiddenMenuHrefs }),
+    [preset, hiddenMenuHrefs]
+  )
+  const hiddenSet = useMemo(
+    () => new Set(effectiveHiddenMenuHrefs(menuItemsConfig, workspace)),
+    [workspace]
+  )
+  const extraHiddenCount = leaves.filter((leaf) =>
+    hiddenMenuHrefs.includes(leaf.href)
+  ).length
 
-  const applyPreset = (next: WorkspacePreset) => {
-    if (next === 'full') {
-      onChange({ workspacePreset: 'full', hiddenMenuHrefs: [] })
-      return
-    }
-    if (next === 'custom') {
-      if (preset !== 'full' && preset !== 'custom') {
-        onChange({
-          workspacePreset: 'custom',
-          hiddenMenuHrefs: hrefsOutsidePresetGroups(
-            menuItemsConfig,
-            PRESET_GROUP_TITLES[preset]
-          ),
-        })
-        return
-      }
-      onChange({ workspacePreset: 'custom', hiddenMenuHrefs })
-      return
-    }
-    onChange({ workspacePreset: next, hiddenMenuHrefs: [] })
-  }
-
-  const hideHref = (href: string) => {
-    const base =
-      preset === 'full'
-        ? []
-        : preset === 'custom'
-          ? hiddenMenuHrefs
-          : hrefsOutsidePresetGroups(
-              menuItemsConfig,
-              PRESET_GROUP_TITLES[preset]
-            )
-    if (base.includes(href)) {
-      onChange({ workspacePreset: 'custom', hiddenMenuHrefs: base })
-      return
-    }
+  const emit = (next: {
+    workspacePreset: WorkspacePreset
+    hiddenMenuHrefs: readonly string[]
+  }) => {
     onChange({
-      workspacePreset: 'custom',
-      hiddenMenuHrefs: [...base, href],
+      workspacePreset: next.workspacePreset,
+      hiddenMenuHrefs: [...next.hiddenMenuHrefs],
     })
   }
 
-  const showHref = (href: string) => {
-    const next = hiddenMenuHrefs.filter((item) => item !== href)
-    onChange({ workspacePreset: 'custom', hiddenMenuHrefs: next })
+  const applyPreset = (next: WorkspacePreset) => {
+    emit(applyWorkspacePreset(menuItemsConfig, workspace, next))
   }
 
-  const filteredLeaves = leaves.filter((leaf) => {
-    if (!query.trim()) return true
-    const q = query.toLowerCase()
-    return (
-      leaf.title.toLowerCase().includes(q) ||
-      leaf.group.toLowerCase().includes(q) ||
-      leaf.href.toLowerCase().includes(q)
+  const toggleHref = (href: string, hidden: boolean) => {
+    emit(
+      hidden
+        ? showMenuHref(menuItemsConfig, workspace, href)
+        : hideMenuHref(menuItemsConfig, workspace, href)
     )
-  })
-
-  const hiddenLeaves = leaves.filter((leaf) => hiddenSet.has(leaf.href))
+  }
 
   return (
     <div className="space-y-3">
@@ -122,100 +103,34 @@ export function WorkspacePresetPicker({
         onChange={applyPreset}
         options={PRESET_OPTIONS}
       />
-      <WorkspacePreview preset={preset} />
       <p className="text-xs text-muted-foreground">{PRESET_HINT[preset]}</p>
 
-      {hiddenLeaves.length > 0 && (
+      {extraHiddenCount > 0 && (
         <p className="text-xs text-muted-foreground">
-          {hiddenLeaves.length} extra page
-          {hiddenLeaves.length === 1 ? '' : 's'} hidden. Search to restore one.
+          {extraHiddenCount} extra page
+          {extraHiddenCount === 1 ? '' : 's'} hidden. Click Show to restore one.
         </p>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-8 text-xs"
-        onClick={() => setPickerOpen((open) => !open)}
-      >
-        {pickerOpen ? 'Close page list' : 'Hide pages…'}
-      </Button>
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute top-2.5 left-2.5 size-3.5 text-muted-foreground"
+          aria-hidden
+        />
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search pages"
+          className="h-8 pl-8 text-[13px]"
+        />
+      </div>
 
-      {pickerOpen && (
-        <div className="space-y-2 rounded-lg border border-border p-2">
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute top-2.5 left-2.5 size-3.5 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search pages"
-              className="h-8 pl-8 text-[13px]"
-            />
-          </div>
-          <ul className="max-h-48 space-y-0.5 overflow-y-auto">
-            {filteredLeaves.map((leaf) => {
-              const hidden = hiddenSet.has(leaf.href)
-              return (
-                <li key={leaf.href}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      hidden ? showHref(leaf.href) : hideHref(leaf.href)
-                    }
-                    className={cn(
-                      'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-muted',
-                      hidden && 'text-muted-foreground'
-                    )}
-                  >
-                    <span>
-                      {leaf.title}
-                      <span className="ml-1.5 text-[11px] text-muted-foreground">
-                        {leaf.group}
-                      </span>
-                    </span>
-                    <span className="text-[11px]">
-                      {hidden ? 'Show' : 'Hide'}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function WorkspacePreview({ preset }: { preset: WorkspacePreset }) {
-  const rows =
-    preset === 'dba'
-      ? ['Queries', 'Tables', 'Keeper']
-      : preset === 'engineer'
-        ? ['Overview', 'Queries', 'Insights']
-        : preset === 'sre'
-          ? ['Health', 'Insights', 'Errors']
-          : preset === 'custom'
-            ? ['Overview', 'Queries']
-            : ['Overview', 'Queries', 'Tables', 'Keeper']
-
-  return (
-    <div
-      className="flex h-[72px] w-full max-w-[180px] flex-col gap-1 overflow-hidden rounded-lg bg-zinc-100 p-1.5 ring-1 ring-black/10 dark:bg-zinc-900 dark:ring-white/10"
-      aria-hidden="true"
-    >
-      {rows.map((row) => (
-        <div
-          key={row}
-          className="h-3 rounded-sm bg-foreground/15 px-1 text-[9px] leading-3 text-foreground/70"
-        >
-          {row}
-        </div>
-      ))}
+      <WorkspaceMenuTree
+        items={treeItems}
+        hiddenHrefs={hiddenSet}
+        query={query}
+        onToggle={toggleHref}
+      />
     </div>
   )
 }
