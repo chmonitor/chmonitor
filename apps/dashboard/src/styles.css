@@ -200,6 +200,20 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* Mobile / tablet sidebar sheet: solid drawer + dim overlay. The default
+     sheet uses bg-black/10 + backdrop-blur, which lets the overview heatmap
+     frost through the menu. */
+  [data-slot='sidebar'][data-mobile='true'] {
+    background-color: var(--sidebar);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    opacity: 1;
+  }
+  body:has([data-slot='sidebar'][data-mobile='true']) [data-slot='sheet-overlay'] {
+    background-color: oklch(0 0 0 / 0.55);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
   /* Auto-hide the base-ui ScrollArea scrollbar — visible only while
      hovering/scrolling, hidden otherwise (e.g. the /agents conversation
      rail list). Scoped via this wrapper class, not global. */

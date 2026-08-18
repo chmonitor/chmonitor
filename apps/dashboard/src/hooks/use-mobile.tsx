@@ -1,10 +1,11 @@
 import * as React from 'react'
 
-const MOBILE_BREAKPOINT = 768
+export const MOBILE_BREAKPOINT = 768
 // Tailwind `lg` breakpoint — used to default collapsible panels (e.g. the
 // agents page conversation rail) closed on tablet-sized viewports too, not
-// just phones.
-const LG_BREAKPOINT = 1024
+// just phones. The app sidebar also overlays (sheet) below this width so a
+// persistent dock cannot crush the overview card grid at 768 / landscape.
+export const LG_BREAKPOINT = 1024
 
 function useBreakpointDown(breakpoint: number) {
   const [isBelow, setIsBelow] = React.useState<boolean | undefined>(undefined)

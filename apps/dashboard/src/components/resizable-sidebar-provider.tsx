@@ -190,7 +190,7 @@ function ResizeHandle() {
       tabIndex={0}
       onMouseDown={handleMouseDown}
       onKeyDown={handleKeyDown}
-      className="group fixed top-0 bottom-0 z-20 hidden w-4 -translate-x-1/2 cursor-col-resize items-center justify-center outline-none md:flex"
+      className="group fixed top-0 bottom-0 z-20 hidden w-4 -translate-x-1/2 cursor-col-resize items-center justify-center outline-none lg:flex"
       style={{ left: leftPosition }}
     >
       {/* Grip icon */}
