@@ -68,7 +68,7 @@ function isCountable(value: string | number): boolean {
 }
 
 const VALUE_CLASS =
-  'text-xl sm:text-[28px] font-bold leading-none tabular-nums tracking-tight text-foreground/90 dark:text-foreground/85'
+  'min-w-0 text-xl sm:text-[28px] font-bold leading-none tabular-nums tracking-tight text-foreground/90 dark:text-foreground/85 max-sm:truncate sm:whitespace-normal sm:break-words sm:leading-tight'
 
 /**
  * KpiCard — one overview KPI with a consistent layout across the strip:
@@ -117,10 +117,12 @@ export const KpiCard = function KpiCard({
         href && cardStyles.hover
       )}
     >
-      {/* Row 1 — icon + label + optional sparkline */}
-      <div className="flex items-center gap-1.5">
-        <Icon className={cn('size-3.5 shrink-0', TONE_ICON[tone])} />
-        <span className="truncate text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      {/* Row 1 — icon + label + optional sparkline.
+          Truncate only on genuine phone widths; at sm+ the label wraps so
+          "Active Queries" stays fully readable in the four-up laptop strip. */}
+      <div className="flex items-start gap-1.5">
+        <Icon className={cn('mt-0.5 size-3.5 shrink-0', TONE_ICON[tone])} />
+        <span className="min-w-0 flex-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground max-sm:truncate sm:whitespace-normal sm:leading-snug">
           {label}
         </span>
         {spark && spark.length >= 2 ? (
@@ -139,14 +141,11 @@ export const KpiCard = function KpiCard({
       </div>
 
       {/* Row 2 — value + unit */}
-      <div className="flex min-w-0 items-baseline gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
         {isCountable(value) ? (
-          <AnimatedNumber
-            value={value}
-            className={cn(VALUE_CLASS, 'truncate')}
-          />
+          <AnimatedNumber value={value} className={VALUE_CLASS} />
         ) : (
-          <span className={cn(VALUE_CLASS, 'truncate font-mono')}>{value}</span>
+          <span className={cn(VALUE_CLASS, 'font-mono')}>{value}</span>
         )}
         {unit && (
           <span className="text-[13px] font-medium text-muted-foreground">
@@ -167,7 +166,7 @@ export const KpiCard = function KpiCard({
 
       {/* Row 4 — optional sub line */}
       {sub && (
-        <div className="truncate text-[11.5px] leading-snug text-muted-foreground">
+        <div className="min-w-0 text-[11.5px] leading-snug text-muted-foreground max-sm:truncate sm:whitespace-normal">
           {sub}
         </div>
       )}
