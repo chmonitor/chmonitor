@@ -262,7 +262,9 @@ leaf to hide or show it — hidden rows stay visible but muted, like Dim
 unavailable pages. Search filters the tree. Never a 40-checkbox wall or a
 separate Hide-pages drawer. Then the Dim / Hide unavailable-page demos.
 Hidden pages stay routable. Filter through
-`getVisibleMenuItems` so sidebar and ⌘K match.
+`getVisibleMenuItems` so sidebar, ⌘K, and the Settings > Navigation
+tree match the **active host engine** (`useActiveHostEngine` —
+default source engine, Postgres pages when `?pg=` is active).
 Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).

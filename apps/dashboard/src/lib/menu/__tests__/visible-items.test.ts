@@ -1,11 +1,13 @@
 import { menuItemsConfig } from '@/menu'
 
+import { DEFAULT_SOURCE_ENGINE } from '@chm/types'
 import type { MenuItem } from '@/components/menu/types'
 
 import { describe, expect, test } from 'bun:test'
 import {
   filterCloudOnly,
   filterMenuItemsByEngine,
+  getSettingsNavMenuItems,
 } from '@/lib/menu/visible-items'
 import {
   applyWorkspaceVisibility,
@@ -216,6 +218,29 @@ describe('filterMenuItemsByEngine', () => {
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')
+  })
+})
+
+describe('getSettingsNavMenuItems', () => {
+  test('defaults to the Queries/Cluster tree (no Postgres pages, no footer)', () => {
+    const titles = getSettingsNavMenuItems().map((i) => i.title)
+    expect(titles).toEqual(
+      getSettingsNavMenuItems(DEFAULT_SOURCE_ENGINE).map((i) => i.title)
+    )
+    expect(titles).toContain('Queries')
+    expect(titles).toContain('Cluster')
+    expect(titles).not.toContain('Query Insights')
+    expect(titles).not.toContain('About')
+  })
+
+  test('Postgres engine yields the Postgres menu tree, not Queries/Cluster groups', () => {
+    const titles = getSettingsNavMenuItems('postgres').map((i) => i.title)
+    expect(titles).toContain('Query Insights')
+    expect(titles).toContain('Running Queries')
+    expect(titles).not.toContain('Queries')
+    expect(titles).not.toContain('Cluster')
+    expect(titles).not.toContain('Overview')
+    expect(titles).not.toContain('About')
   })
 })
 

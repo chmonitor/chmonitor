@@ -1,13 +1,14 @@
 import { Search } from 'lucide-react'
 import { menuItemsConfig } from '@/menu'
 
+import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import type { WorkspacePreset } from '@/lib/types/user-settings'
 
 import { SegmentedControl } from './segmented-control'
 import { WorkspaceMenuTree } from './workspace-menu-tree'
 import { useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
-import { filterMenuItemsByEngine } from '@/lib/menu/visible-items'
+import { getSettingsNavMenuItems } from '@/lib/menu/visible-items'
 import {
   applyWorkspacePreset,
   collectMenuLeaves,
@@ -40,6 +41,12 @@ const PRESET_HINT: Record<WorkspacePreset, string> = {
 interface WorkspacePresetPickerProps {
   preset: WorkspacePreset
   hiddenMenuHrefs: string[]
+  /**
+   * ACTIVE host engine — the same value the sidebar threads into
+   * `getVisibleMenuItems`. Defaults to {@link DEFAULT_SOURCE_ENGINE} so
+   * unspecified hosts keep today's tree.
+   */
+  engine?: SourceEngine
   onChange: (next: {
     workspacePreset: WorkspacePreset
     hiddenMenuHrefs: string[]
@@ -49,18 +56,13 @@ interface WorkspacePresetPickerProps {
 export function WorkspacePresetPicker({
   preset,
   hiddenMenuHrefs,
+  engine = DEFAULT_SOURCE_ENGINE,
   onChange,
 }: WorkspacePresetPickerProps) {
   const [query, setQuery] = useState('')
 
-  const treeItems = useMemo(
-    () =>
-      filterMenuItemsByEngine(menuItemsConfig, 'clickhouse').filter(
-        (item) => item.section !== 'footer'
-      ),
-    []
-  )
-  const leaves = useMemo(() => collectMenuLeaves(menuItemsConfig), [])
+  const treeItems = useMemo(() => getSettingsNavMenuItems(engine), [engine])
+  const leaves = useMemo(() => collectMenuLeaves(treeItems), [treeItems])
   const workspace = useMemo(
     () => ({ workspacePreset: preset, hiddenMenuHrefs }),
     [preset, hiddenMenuHrefs]

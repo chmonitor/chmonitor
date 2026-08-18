@@ -182,4 +182,85 @@ describe('WorkspacePresetPicker', () => {
       await cleanup()
     }
   })
+
+  test('postgres engine shows the Postgres tree, not Queries/Cluster groups', async () => {
+    const { WorkspacePresetPicker } = await import('./workspace-preset-picker')
+
+    function Harness() {
+      return (
+        <WorkspacePresetPicker
+          preset="full"
+          hiddenMenuHrefs={[]}
+          engine="postgres"
+          onChange={() => {}}
+        />
+      )
+    }
+
+    const { container, cleanup } = await renderInto(<Harness />)
+
+    try {
+      expect(
+        container.querySelector('[data-testid="workspace-menu-tree"]')
+      ).toBeTruthy()
+      expect(
+        container.querySelector(
+          '[data-testid="workspace-menu-leaf-/postgres/queries"]'
+        )
+      ).toBeTruthy()
+      expect(
+        container.querySelector(
+          '[data-testid="workspace-menu-leaf-/postgres/activity"]'
+        )
+      ).toBeTruthy()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/overview"]')
+      ).toBeNull()
+      expect(
+        container.querySelector(
+          '[data-testid="workspace-menu-leaf-/running-queries"]'
+        )
+      ).toBeNull()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/clusters"]')
+      ).toBeNull()
+      expect(container.textContent).not.toContain('Cluster')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('default engine still shows the Queries/Cluster tree', async () => {
+    const { WorkspacePresetPicker } = await import('./workspace-preset-picker')
+
+    function Harness() {
+      return (
+        <WorkspacePresetPicker
+          preset="full"
+          hiddenMenuHrefs={[]}
+          onChange={() => {}}
+        />
+      )
+    }
+
+    const { container, cleanup } = await renderInto(<Harness />)
+
+    try {
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/overview"]')
+      ).toBeTruthy()
+      expect(
+        container.querySelector(
+          '[data-testid="workspace-menu-leaf-/running-queries"]'
+        )
+      ).toBeTruthy()
+      expect(
+        container.querySelector(
+          '[data-testid="workspace-menu-leaf-/postgres/queries"]'
+        )
+      ).toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
 })

@@ -113,7 +113,10 @@ and never a 40-checkbox wall. Then Dim vs Hide with two menu demos
 (Queries + dimmed/missing Backups). Hidden pages stay routable; Settings
 gear and the host switcher are never filtered. Workspace visibility is
 applied last in `getVisibleMenuItems` and does not replace permission /
-cloud / engine gates. Named presets keep a stable group set; Full is the
+cloud / engine gates. The Settings > Navigation tree uses the same
+engine filter as the sidebar (`getSettingsNavMenuItems` /
+`useActiveHostEngine`): a Postgres host customizes Postgres pages; the
+default source engine keeps today's Queries/Cluster tree. Named presets keep a stable group set; Full is the
 only auto-expand preset. Custom uses `hiddenMenuHrefs` as the hide list.
 Timezone is a searchable combobox
 (`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
