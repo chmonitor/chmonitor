@@ -377,7 +377,7 @@ chmonitor conforms to modern agent-discovery standards, allowing AI agents to au
 The dashboard exposes the following standardized `.well-known` endpoints at the domain root:
 
 - **Link Headers (RFC 8288)**: The homepage `/` and `/overview` respond with `Link` headers pointing to the API Catalog and the MCP Server Card.
-- **API Catalog (RFC 9727)**: `GET /.well-known/api-catalog` returns linkset JSON (`application/linkset+json`) describing the `/api/v1` base URL, OpenAPI descriptor, health endpoint, and documentation.
+- **API Catalog (RFC 9727)**: `GET /.well-known/api-catalog` returns linkset JSON (`application/linkset+json`) describing the `/api/v1` base URL, OpenAPI descriptor (`GET /api/v1/openapi.json`, public), health endpoint, and documentation (`https://docs.chmonitor.dev/reference/api`).
 - **OAuth Protected Resource (RFC 9728)**: `GET /.well-known/oauth-protected-resource` returns protected resource metadata for `/api/v1`.
 - **OAuth Authorization Server (RFC 8414)**: `GET /.well-known/oauth-authorization-server` advertises issuer endpoints and includes the `agent_auth` configuration for agent registration.
 - **OpenID Connect Discovery**: `GET /.well-known/openid-configuration` returns OIDC discovery metadata.

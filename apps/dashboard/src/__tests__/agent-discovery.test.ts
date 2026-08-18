@@ -1,10 +1,20 @@
 import { agentDiscoveryHandler, securityHeadersHandler } from '@/start'
 
 import { describe, expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import {
+  API_SERVICE_DOC_HREF,
+  buildOpenApiDocument,
+  OPENAPI_CONTENT_TYPE,
+  OPENAPI_SPEC_PATH,
+  openApiResponse,
+} from '@/lib/api/openapi-spec'
 
 // Type definitions for agent discovery responses
 interface LinkSetItem {
   anchor: string
+  'service-desc'?: Array<{ href: string }>
   'service-doc'?: Array<{ href: string }>
   status?: Array<{ href: string }>
   rel?: string
@@ -129,6 +139,8 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     const body = await res.text()
     expect(body).toContain('# auth.md')
     expect(body).toContain('agent registration')
+    expect(body).toContain('/.well-known/api-catalog')
+    expect(body).toContain('https://docs.chmonitor.dev/reference/api')
   })
 
   test('/.well-known/api-catalog returns application/linkset+json', async () => {
@@ -146,29 +158,50 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     const data = (await res.json()) as LinkSetResponse
     expect(data.linkset).toBeDefined()
     expect(data.linkset[0].anchor).toBe('https://example.com/api/v1')
-    expect(data.linkset[0]['service-doc']![0].href).toBe(
+    expect(data.linkset[0]['service-doc']![0].href).toBe(API_SERVICE_DOC_HREF)
+    expect(API_SERVICE_DOC_HREF).toBe(
       'https://docs.chmonitor.dev/reference/api'
+    )
+    expect(data.linkset[0]['service-desc']![0].href).toBe(
+      `https://example.com${OPENAPI_SPEC_PATH}`
     )
     expect(data.linkset[0].status![0].href).toBe(
       'https://example.com/api/health'
     )
   })
 
-  test('/api/v1/openapi.json returns OpenAPI spec', async () => {
-    const request = new Request('https://example.com/api/v1/openapi.json')
+  test('/api/v1/openapi.json is not served by discovery middleware', async () => {
+    const request = new Request(`https://example.com${OPENAPI_SPEC_PATH}`)
     const res = (await agentDiscoveryHandler({
       request,
       next: nextMock,
-    })) as Response
+    })) as { response: Response }
+    // File route owns this path — middleware must not swallow it.
+    expect(res.response).toBeDefined()
+    expect(await res.response.text()).toBe('HTML content')
+  })
+
+  test('/api/v1/openapi.json returns OpenAPI spec', async () => {
+    const res = openApiResponse()
     expect(res).toBeInstanceOf(Response)
     expect(res.status).toBe(200)
-    expect(res.headers.get('Content-Type')).toContain(
-      'application/openapi+json'
-    )
+    expect(res.headers.get('Content-Type')).toContain(OPENAPI_CONTENT_TYPE)
 
     const data = (await res.json()) as OpenAPIResponse
     expect(data.openapi).toBe('3.0.0')
     expect(data.info.title).toBe('chmonitor API')
+    expect(data.paths).toBeDefined()
+    expect(data.paths['/api/health']).toBeDefined()
+    expect(data.paths[OPENAPI_SPEC_PATH]).toBeDefined()
+    expect(buildOpenApiDocument().externalDocs.url).toBe(API_SERVICE_DOC_HREF)
+  })
+
+  test('catalog service-doc page exists in docs content', () => {
+    const page = resolve(
+      import.meta.dir,
+      '../../../../docs/content/reference/api.mdx'
+    )
+    expect(existsSync(page)).toBe(true)
   })
 
   test('/.well-known/oauth-protected-resource returns protected resource metadata', async () => {

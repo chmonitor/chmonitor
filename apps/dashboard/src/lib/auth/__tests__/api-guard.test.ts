@@ -1,4 +1,8 @@
-import { enforceAuth, isAuthenticatedRequest } from '../api-guard'
+import {
+  enforceAuth,
+  getApiKeyAuthFailure,
+  isAuthenticatedRequest,
+} from '../api-guard'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { issueApiKey } from '@chm/mcp-server/auth'
 
@@ -71,5 +75,40 @@ describe('isAuthenticatedRequest', () => {
     process.env.CHM_CLERK_PUBLIC_READ = 'true'
     expect(await enforceAuth(anonReq())).toBeNull()
     expect(await isAuthenticatedRequest(anonReq())).toBe(false)
+  })
+})
+
+describe('GET /api/v1/openapi.json is a public discovery document', () => {
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  function openApiReq(): Request {
+    return new Request('https://dash.example.com/api/v1/openapi.json')
+  }
+
+  it('passes anonymous callers when clerk requires a session', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'clerk'
+    const result = await getApiKeyAuthFailure(openApiReq())
+    expect(result).toBeNull()
+  })
+
+  it('passes anonymous callers when API-key auth is on', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(openApiReq())
+    expect(result).toBeNull()
   })
 })
