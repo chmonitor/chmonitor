@@ -171,7 +171,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
       'Slowest query patterns from pg_stat_statements',
       'Live pg_stat_activity, refreshed every 5 seconds',
       'Every query pinned read-only, SSRF-guarded connections',
-      'Three new AI agent tools for Postgres',
+      'Four env-gated AI agent tools for Postgres',
     ],
     screenshot: {
       src: '/assets/screenshots/add-postgres-host-with-bg.png',

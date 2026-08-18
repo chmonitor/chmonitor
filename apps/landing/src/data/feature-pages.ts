@@ -780,7 +780,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       { value: 'Beta', label: 'free on every plan' },
       { value: 'Read-only', label: 'every query pinned read-only' },
       { value: '5s', label: 'pg_stat_activity refresh' },
-      { value: '3 tools', label: 'new AI agent tools for Postgres' },
+      { value: '4 tools', label: 'env-gated AI agent tools for Postgres' },
     ],
     sections: [
       {
@@ -805,7 +805,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
         bullets: [
           'Slowest query patterns from pg_stat_statements',
           'Live activity, refreshed every 5 seconds',
-          'Three new AI agent tools for Postgres',
+          'Four env-gated AI agent tools for Postgres',
         ],
         screenshot: {
           src: `${S}/ai-agent-dark.png`,
@@ -822,7 +822,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       { title: 'Live activity', body: 'pg_stat_activity every 5 seconds.' },
       { title: 'Read-only', body: 'Pinned at the connection, always.' },
       { title: 'SSRF guard', body: 'Connection URLs validated server-side.' },
-      { title: 'Agent tools', body: 'Three Postgres tools for the AI agent.' },
+      { title: 'Agent tools', body: 'Four env-gated Postgres tools for the AI agent.' },
       { title: 'One dashboard', body: 'Postgres next to ClickHouse, same UX.' },
     ],
     faq: [
