@@ -11,6 +11,7 @@ import {
 } from '@/lib/menu/visible-items'
 import {
   applyWorkspaceVisibility,
+  collectMenuHrefs,
   PRESET_GROUP_TITLES,
 } from '@/lib/menu/workspace-presets'
 
@@ -216,6 +217,26 @@ describe('filterMenuItemsByEngine', () => {
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')
+    // #3115: the whole Tools group is hidden, not an empty parent.
+    expect(pgTitles).not.toContain('Tools')
+  })
+
+  test('Postgres host does not see the Tools group at all (#3115)', () => {
+    // Absent `engines` on the Tools parent fails itemMatchesEngine for
+    // postgres, so the group is dropped before children are considered.
+    const pg = filterMenuItemsByEngine(menuItemsConfig, 'postgres')
+    expect(pg.map((i) => i.title)).not.toContain('Tools')
+    for (const href of [
+      '/sql',
+      '/explorer',
+      '/explain',
+      '/advisor',
+      '/dashboard',
+      '/schema-diff',
+      '/settings-diff',
+    ]) {
+      expect(collectMenuHrefs(pg)).not.toContain(href)
+    }
   })
 })
 
@@ -226,6 +247,7 @@ describe('getSettingsNavMenuItems', () => {
       getSettingsNavMenuItems(DEFAULT_SOURCE_ENGINE).map((i) => i.title)
     )
     expect(titles).toContain('Queries')
+    expect(titles).toContain('Tools')
     expect(titles).toContain('Cluster')
     expect(titles).not.toContain('Query Insights')
     expect(titles).not.toContain('About')
@@ -236,9 +258,25 @@ describe('getSettingsNavMenuItems', () => {
     expect(titles).toContain('Query Insights')
     expect(titles).toContain('Running Queries')
     expect(titles).not.toContain('Queries')
+    expect(titles).not.toContain('Tools')
     expect(titles).not.toContain('Cluster')
     expect(titles).not.toContain('Overview')
     expect(titles).not.toContain('About')
+  })
+
+  test('Postgres Settings tree does not include Tools leaves (#3105)', () => {
+    const hrefs = collectMenuHrefs(getSettingsNavMenuItems('postgres'))
+    for (const href of [
+      '/sql',
+      '/explorer',
+      '/explain',
+      '/advisor',
+      '/dashboard',
+      '/schema-diff',
+      '/settings-diff',
+    ]) {
+      expect(hrefs).not.toContain(href)
+    }
   })
 })
 
@@ -355,7 +393,10 @@ describe('applyWorkspaceVisibility', () => {
 
   test('DBA preset group titles stay the documented set', () => {
     expect(PRESET_GROUP_TITLES.dba).toContain('Tables')
+    expect(PRESET_GROUP_TITLES.dba).toContain('Tools')
+    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools')
     expect(PRESET_GROUP_TITLES.engineer).not.toContain('Keeper')
     expect(PRESET_GROUP_TITLES.sre).toContain('Health')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Tools')
   })
 })

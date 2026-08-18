@@ -24,6 +24,54 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "depth": 0,
     "href": "",
     "section": "main",
+    "title": "Tools",
+  },
+  {
+    "depth": 1,
+    "href": "/sql",
+    "section": undefined,
+    "title": "SQL Console",
+  },
+  {
+    "depth": 1,
+    "href": "/explorer",
+    "section": undefined,
+    "title": "Data Explorer",
+  },
+  {
+    "depth": 1,
+    "href": "/explain",
+    "section": undefined,
+    "title": "Explain",
+  },
+  {
+    "depth": 1,
+    "href": "/advisor",
+    "section": undefined,
+    "title": "Advisor",
+  },
+  {
+    "depth": 1,
+    "href": "/dashboard",
+    "section": undefined,
+    "title": "Chart Builder",
+  },
+  {
+    "depth": 1,
+    "href": "/schema-diff",
+    "section": undefined,
+    "title": "Schema Compare",
+  },
+  {
+    "depth": 1,
+    "href": "/settings-diff",
+    "section": undefined,
+    "title": "Settings Diff",
+  },
+  {
+    "depth": 0,
+    "href": "",
+    "section": "main",
     "title": "AI Agent",
   },
   {
@@ -160,18 +208,6 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
-    "href": "/explain",
-    "section": undefined,
-    "title": "Explain",
-  },
-  {
-    "depth": 1,
-    "href": "/advisor",
-    "section": undefined,
-    "title": "Advisor",
-  },
-  {
-    "depth": 1,
     "href": "/query-views-log",
     "section": undefined,
     "title": "Query Views Log",
@@ -211,18 +247,6 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "href": "/tables",
     "section": "main",
     "title": "Tables",
-  },
-  {
-    "depth": 1,
-    "href": "/explorer",
-    "section": undefined,
-    "title": "Data Explorer",
-  },
-  {
-    "depth": 1,
-    "href": "/sql",
-    "section": undefined,
-    "title": "SQL Console",
   },
   {
     "depth": 1,
@@ -544,18 +568,6 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
-    "href": "/settings-diff",
-    "section": undefined,
-    "title": "Settings Diff",
-  },
-  {
-    "depth": 1,
-    "href": "/schema-diff",
-    "section": undefined,
-    "title": "Schema Compare",
-  },
-  {
-    "depth": 1,
     "href": "/disks",
     "section": undefined,
     "title": "Disks",
@@ -625,12 +637,6 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "href": "",
     "section": "others",
     "title": "Operations",
-  },
-  {
-    "depth": 1,
-    "href": "/dashboard",
-    "section": undefined,
-    "title": "Chart Builder",
   },
   {
     "depth": 1,

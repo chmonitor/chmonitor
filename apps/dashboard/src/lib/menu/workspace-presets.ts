@@ -33,6 +33,7 @@ export const PRESET_GROUP_TITLES: Record<
 > = {
   dba: [
     'Overview',
+    'Tools',
     'Queries',
     'Tables',
     'Merges',
@@ -43,9 +44,10 @@ export const PRESET_GROUP_TITLES: Record<
     'Cluster',
     'System',
   ],
-  engineer: ['Overview', 'Queries', 'Tables', 'Insights', 'AI Agent'],
+  engineer: ['Overview', 'Tools', 'Queries', 'Tables', 'Insights', 'AI Agent'],
   sre: [
     'Overview',
+    'Tools',
     'Health',
     'Insights',
     'Queries',

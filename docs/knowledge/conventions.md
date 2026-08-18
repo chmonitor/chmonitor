@@ -3,7 +3,7 @@ id: conventions
 title: Development Conventions
 type: workflow
 status: active
-updated: 2026-06-02
+updated: 2026-08-18
 tags:
   - conventions
   - patterns
@@ -26,7 +26,11 @@ related:
 - Root route: `src/routes/__root.tsx`
 - Dashboard pages: File-based routes under `src/routes/(dashboard)/`
 - API routes: Server-side API endpoints under `src/routes/api/`
-- Navigation config: Defined in `src/menu.ts`
+- Navigation config: Per-section files under `src/menu/` composed by
+  `src/menu/index.ts` (re-exported from `src/menu.ts`). Interactive utilities
+  live in `menu/tools.ts`; system-table views stay in their domain file.
+  Leave `engines` absent on Tools so Postgres hosts hide the whole group
+  (`filterMenuItemsByEngine`); do not add `engines: ['postgres']`.
 - Styles: Main Tailwind v4 stylesheet at `src/styles.css`
 - Test files co-located with components or in cypress/ directory (`.cy.tsx` / `.cy.ts`)
 

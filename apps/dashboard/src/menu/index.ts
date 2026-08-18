@@ -18,13 +18,16 @@ import { queriesItems } from './queries'
 import { securityItems } from './security'
 import { systemItems } from './system'
 import { tablesItems } from './tables'
+import { toolsItems } from './tools'
 
-// Composed in the exact original menu.ts order — see each section file for
+// Composed in sidebar / command-palette order — see each section file for
 // the top-level group it holds. Keep this order when adding/removing
-// sections: it drives the sidebar and command palette listing order.
+// sections. Tools sits after Overview + Postgres and before AI Agent so
+// daily actions (SQL Console, Data Explorer) are near the top.
 export const menuItemsConfig: MenuItem[] = [
   ...overviewItems,
   ...postgresItems,
+  ...toolsItems,
   ...aiAgentItems,
   ...insightsItems,
   ...healthItems,

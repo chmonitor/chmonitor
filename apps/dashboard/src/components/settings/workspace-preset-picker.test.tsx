@@ -100,6 +100,7 @@ describe('WorkspacePresetPicker', () => {
       ).toBeTruthy()
       expect(container.textContent).toContain('Overview')
       expect(container.textContent).toContain('Queries')
+      expect(container.textContent).toContain('Tools')
       expect(container.textContent).toContain('Main')
 
       const overview = container.querySelector(
@@ -224,7 +225,14 @@ describe('WorkspacePresetPicker', () => {
       expect(
         container.querySelector('[data-testid="workspace-menu-leaf-/clusters"]')
       ).toBeNull()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/sql"]')
+      ).toBeNull()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/explorer"]')
+      ).toBeNull()
       expect(container.textContent).not.toContain('Cluster')
+      expect(container.textContent).not.toContain('Tools')
     } finally {
       await cleanup()
     }
@@ -253,6 +261,9 @@ describe('WorkspacePresetPicker', () => {
         container.querySelector(
           '[data-testid="workspace-menu-leaf-/running-queries"]'
         )
+      ).toBeTruthy()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/sql"]')
       ).toBeTruthy()
       expect(
         container.querySelector(

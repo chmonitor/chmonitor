@@ -6,6 +6,7 @@ import {
   effectiveHiddenMenuHrefs,
   hideMenuHref,
   menuItemIsHidden,
+  PRESET_GROUP_TITLES,
   showMenuHref,
 } from '@/lib/menu/workspace-presets'
 
@@ -168,5 +169,13 @@ describe('effectiveHiddenMenuHrefs / menuItemIsHidden', () => {
         new Set(['/advisor', '/running-queries'])
       )
     ).toBe(true)
+  })
+})
+
+describe('PRESET_GROUP_TITLES', () => {
+  test('DBA, Engineer, and SRE all include Tools', () => {
+    expect(PRESET_GROUP_TITLES.dba).toContain('Tools')
+    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Tools')
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  getBreadcrumbPath,
   isMenuItemActive,
   isMenuItemActiveAmongSiblings,
 } from '@/lib/menu/breadcrumb'
@@ -58,5 +59,28 @@ describe('isMenuItemActiveAmongSiblings', () => {
     expect(
       isMenuItemActiveAmongSiblings('/agents', siblingHrefs, '/agents')
     ).toBe(true)
+  })
+})
+
+describe('getBreadcrumbPath (Tools regroup)', () => {
+  test('SQL Console breadcrumbs go through Tools, not Tables', () => {
+    expect(getBreadcrumbPath('/sql')).toEqual([
+      { title: 'Tools', href: '' },
+      { title: 'SQL Console', href: '/sql' },
+    ])
+  })
+
+  test('Explain breadcrumbs go through Tools, not Queries', () => {
+    expect(getBreadcrumbPath('/explain')).toEqual([
+      { title: 'Tools', href: '' },
+      { title: 'Explain', href: '/explain' },
+    ])
+  })
+
+  test('Chart Builder breadcrumbs go through Tools, not Operations', () => {
+    expect(getBreadcrumbPath('/dashboard')).toEqual([
+      { title: 'Tools', href: '' },
+      { title: 'Chart Builder', href: '/dashboard' },
+    ])
   })
 })

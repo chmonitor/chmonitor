@@ -11,7 +11,6 @@ import {
   Grid2x2CheckIcon,
   LayersIcon,
   RssIcon,
-  TerminalIcon,
   Trash2Icon,
   UnplugIcon,
 } from 'lucide-react'
@@ -26,24 +25,6 @@ export const tablesItems: MenuItem[] = [
     section: 'main',
     permission: { feature: 'tables' },
     items: [
-      {
-        title: 'Data Explorer',
-        href: '/explorer',
-        description: 'Interactive database schema browser with metadata',
-        countKey: 'tables-explorer',
-        countLabel: 'tables',
-        icon: TableIcon,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/databases',
-        tableCheck: ['system.databases', 'system.tables'],
-      },
-      {
-        title: 'SQL Console',
-        href: '/sql',
-        description:
-          'Run read-only SQL with history, EXPLAIN, query log and scan analysis',
-        icon: TerminalIcon,
-        docs: 'https://clickhouse.com/docs/en/sql-reference/statements/select',
-      },
       {
         title: 'Tables Overview',
         href: '/tables-overview',
