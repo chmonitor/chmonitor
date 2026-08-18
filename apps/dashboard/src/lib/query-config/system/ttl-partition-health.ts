@@ -84,6 +84,9 @@ function inventorySql(ttlExpressionSql: string): string {
   `
 }
 
+/** CREATE TABLE parse — works on every supported version; used by Insights. */
+export const ttlPartitionInventorySql = inventorySql(TTL_FROM_CREATE)
+
 export const ttlPartitionHealthConfig: QueryConfig = {
   name: 'ttl-partition-health',
   defaultView: 'auto',
@@ -100,7 +103,7 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     {
       since: '19.1',
       description: 'TTL parsed from CREATE TABLE (no system.tables.ttl)',
-      sql: inventorySql(TTL_FROM_CREATE),
+      sql: ttlPartitionInventorySql,
     },
     {
       since: '21.8',

@@ -112,11 +112,7 @@ export function applyWorkspaceVisibility(
 ): MenuItem[] {
   const { workspacePreset, hiddenMenuHrefs } = workspace
 
-  if (workspacePreset === 'full') {
-    return filterHiddenMenuHrefs(items, hiddenMenuHrefs)
-  }
-
-  if (workspacePreset === 'custom') {
+  if (workspacePreset === 'full' || workspacePreset === 'custom') {
     return filterHiddenMenuHrefs(items, hiddenMenuHrefs)
   }
 
