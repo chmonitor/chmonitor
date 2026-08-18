@@ -1,11 +1,11 @@
 import { Search } from 'lucide-react'
 import { menuItemsConfig } from '@/menu'
 
-import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import type { WorkspacePreset } from '@/lib/types/user-settings'
 
 import { SegmentedControl } from './segmented-control'
 import { WorkspaceMenuTree } from './workspace-menu-tree'
+import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import { useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { getSettingsNavMenuItems } from '@/lib/menu/visible-items'

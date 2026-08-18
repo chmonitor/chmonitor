@@ -12,10 +12,10 @@
 
 import { menuItemsConfig } from '@/menu'
 
-import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import type { MenuItem } from '@/components/menu/types'
 import type { PublicFeaturePermissionConfig } from '@/lib/feature-permissions/types'
 
+import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
 import {

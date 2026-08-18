@@ -1,9 +1,9 @@
 import { menuItemsConfig } from '@/menu'
 
-import { DEFAULT_SOURCE_ENGINE } from '@chm/types'
 import type { MenuItem } from '@/components/menu/types'
 
 import { describe, expect, test } from 'bun:test'
+import { DEFAULT_SOURCE_ENGINE } from '@chm/types'
 import {
   filterCloudOnly,
   filterMenuItemsByEngine,
@@ -49,9 +49,7 @@ describe('filterCloudOnly', () => {
       {
         title: 'Cloud',
         href: '',
-        items: [
-          leaf({ title: 'Billing', href: '/billing', cloudOnly: true }),
-        ],
+        items: [leaf({ title: 'Billing', href: '/billing', cloudOnly: true })],
       },
     ]
 
