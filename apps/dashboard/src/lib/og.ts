@@ -81,6 +81,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     description:
       'Compression ratios, tier utilization and TTL moves to track storage cost and efficiency.',
   },
+  'ttl-partition-health': {
+    eyebrow: 'STORAGE',
+    title: 'TTL & Partition Health',
+    description:
+      'Inventory of table TTL, PARTITION BY, and partition counts — without applying ALTER TTL.',
+  },
   'query-condition-cache': {
     eyebrow: 'CACHE',
     title: 'Query Condition Cache',

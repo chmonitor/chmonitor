@@ -34,6 +34,7 @@ const METRIC_CHARTS: Record<string, readonly string[]> = {
   max_active_parts: ['parts-per-table', 'merge-count'],
   detached_parts: ['parts-per-table', 'new-parts-created'],
   worst_compression_ratio: ['top-table-size', 'disk-usage-by-database'],
+  ttl_partition_health: ['partition-part-health', 'parts-per-table'],
   // Reliability collectors
   readonly_replicas: ['readonly-replica', 'replication-summary-table'],
   max_replication_delay: [

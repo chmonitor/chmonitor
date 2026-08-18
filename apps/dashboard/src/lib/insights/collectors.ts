@@ -20,6 +20,10 @@ import {
   projectHoursToThreshold,
 } from '../health/parts-pressure'
 import {
+  evaluateTtlPartitionHealth,
+  type TtlPartitionInventoryRow,
+} from '../health/ttl-partition-heuristics'
+import {
   checkDetachedParts,
   checkFailedDictionaries,
   checkLongRunningQuery,
@@ -412,7 +416,91 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     }
   }
 
+  out.push(...(await collectTtlPartitionHealth(hostId)))
+
   return out
+}
+
+/** Worst TTL / partition-inventory findings (no part_log required). */
+async function collectTtlPartitionHealth(
+  hostId: number
+): Promise<InsightCandidate[]> {
+  try {
+    const rows = await readOnlyQuery({
+      query: `
+        SELECT
+          t.database AS database,
+          t.name AS table,
+          t.partition_key AS partition_key,
+          if(
+            positionCaseInsensitive(t.create_table_query, ' TTL ') > 0,
+            trim(BOTH ' ' FROM replaceRegexpOne(
+              substring(
+                t.create_table_query,
+                positionCaseInsensitive(t.create_table_query, ' TTL ') + 5
+              ),
+              '\\\\s+(SETTINGS|COMMENT)\\\\s+.*$',
+              ''
+            )),
+            ''
+          ) AS ttl_expression,
+          uniqExact(p.partition) AS partitions,
+          countIf(p.active) AS active_parts
+        FROM system.tables AS t
+        LEFT JOIN system.parts AS p
+          ON p.database = t.database AND p.table = t.name
+        WHERE t.is_temporary = 0
+          AND t.database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
+          AND positionCaseInsensitive(t.engine, 'MergeTree') > 0
+        GROUP BY t.database, t.name, t.partition_key, t.create_table_query
+        ORDER BY partitions DESC
+        LIMIT 50
+      `,
+      hostId,
+    })
+    if (!Array.isArray(rows)) return []
+
+    const flagged: {
+      row: TtlPartitionInventoryRow
+      severity: 'warning' | 'critical'
+    }[] = []
+    for (const raw of rows) {
+      const rec = raw as Record<string, unknown>
+      const row: TtlPartitionInventoryRow = {
+        database: String(rec.database ?? ''),
+        table: String(rec.table ?? ''),
+        partitionKey: String(rec.partition_key ?? ''),
+        ttlExpression: String(rec.ttl_expression ?? ''),
+        partitions: Number(rec.partitions) || 0,
+        activeParts: Number(rec.active_parts) || 0,
+      }
+      const health = evaluateTtlPartitionHealth(row)
+      if (health.severity === 'warning' || health.severity === 'critical') {
+        flagged.push({ row, severity: health.severity })
+      }
+    }
+    if (flagged.length === 0) return []
+
+    flagged.sort((a, b) => b.row.partitions - a.row.partitions)
+    const worst = flagged[0]
+    const fq = `${worst.row.database}.${worst.row.table}`
+    return [
+      {
+        severity: worst.severity,
+        category: 'storage',
+        metric: 'ttl_partition_health',
+        title: `${fq} needs TTL or partition review`,
+        detail: `${fq} has ${worst.row.partitions} partitions (${worst.row.activeParts} active parts). Open TTL & Partitions for the full inventory. This is recommend-only — no ALTER TTL is applied.`,
+        value: worst.row.partitions,
+        action: {
+          label: 'View TTL inventory',
+          href: '/ttl-partition-health',
+        },
+      },
+    ]
+  } catch {
+    return []
+  }
 }
 
 // ---------------------------------------------------------------------------

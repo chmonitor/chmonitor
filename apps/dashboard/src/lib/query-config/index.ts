@@ -121,6 +121,7 @@ import {
   storagePoliciesConfig,
   ttlStorageMovesConfig,
 } from './system/storage-economics'
+import { ttlPartitionHealthConfig } from './system/ttl-partition-health'
 import { warningsConfig } from './system/warnings'
 import { workloadsConfig } from './system/workloads'
 import { detachedPartsConfig } from './tables/detached-parts'
@@ -251,6 +252,7 @@ export const queries: Array<QueryConfig> = [
   storageCompressionConfig,
   storagePoliciesConfig,
   ttlStorageMovesConfig,
+  ttlPartitionHealthConfig,
   histogramMetricsConfig,
   latencyLogConfig,
   workloadsConfig,

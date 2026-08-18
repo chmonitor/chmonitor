@@ -79,6 +79,16 @@ export const systemItems: MenuItem[] = [
         tableCheck: 'system.parts',
       },
       {
+        title: 'TTL & Partitions',
+        href: '/ttl-partition-health',
+        description:
+          'TTL expression, PARTITION BY, and partition counts per table',
+        icon: HardDriveIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#table_engine-mergetree-ttl',
+        tableCheck: 'system.parts',
+      },
+      {
         title: 'Warnings',
         href: '/warnings',
         description:
