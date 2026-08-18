@@ -253,6 +253,15 @@ describe('getSettingsNavMenuItems', () => {
     expect(titles).not.toContain('About')
   })
 
+  test('Tools is after Logs and before System in the Settings tree (#3117)', () => {
+    const titles = getSettingsNavMenuItems().map((i) => i.title)
+    const toolsAt = titles.indexOf('Tools')
+    expect(toolsAt).toBeGreaterThan(titles.indexOf('Logs'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('System'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('Cluster'))
+    expect(toolsAt).toBeGreaterThan(titles.indexOf('AI Agent'))
+  })
+
   test('Postgres engine yields the Postgres menu tree, not Queries/Cluster groups', () => {
     const titles = getSettingsNavMenuItems('postgres').map((i) => i.title)
     expect(titles).toContain('Query Insights')

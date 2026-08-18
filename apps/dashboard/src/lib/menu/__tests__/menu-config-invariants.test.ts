@@ -132,12 +132,15 @@ describe('menu.ts hrefs resolve to a real route file', () => {
 describe('Tools group (interactive utilities)', () => {
   const tools = menuItemsConfig.find((item) => item.title === 'Tools')
 
-  test('is a top-level main group after Overview/Postgres and before AI Agent', () => {
+  test('is the last main-section group: after Logs, before About (#3117)', () => {
     const titles = menuItemsConfig.map((item) => item.title)
     const toolsAt = titles.indexOf('Tools')
-    expect(toolsAt).toBeGreaterThan(titles.indexOf('Overview'))
-    expect(toolsAt).toBeGreaterThan(titles.indexOf('Running Queries'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('AI Agent'))
+    expect(toolsAt).toBeGreaterThan(titles.indexOf('Logs'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('About'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('System'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('Cluster'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('Operations'))
+    expect(toolsAt).toBeGreaterThan(titles.indexOf('AI Agent'))
     expect(tools?.section).toBe('main')
   })
 

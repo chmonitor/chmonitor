@@ -22,12 +22,11 @@ import { toolsItems } from './tools'
 
 // Composed in sidebar / command-palette order — see each section file for
 // the top-level group it holds. Keep this order when adding/removing
-// sections. Tools sits after Overview + Postgres and before AI Agent so
-// daily actions (SQL Console, Data Explorer) are near the top.
+// sections. Tools is the last main-section group: after Logs, before the
+// About footer and the others section (System / Cluster / Operations).
 export const menuItemsConfig: MenuItem[] = [
   ...overviewItems,
   ...postgresItems,
-  ...toolsItems,
   ...aiAgentItems,
   ...insightsItems,
   ...healthItems,
@@ -40,6 +39,7 @@ export const menuItemsConfig: MenuItem[] = [
   ...peerdbItems,
   ...securityItems,
   ...logsItems,
+  ...toolsItems,
   ...aboutItems,
   ...systemItems,
   ...clusterItems,
