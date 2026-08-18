@@ -7,6 +7,7 @@ const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
 
 const base = read('src/layouts/Base.astro')
 const nav = read('src/components/Nav.astro')
+const hero = read('src/components/Hero.astro')
 const homeCmp = read('src/components/Comparison.astro')
 const vsCmp = read('src/components/ComparisonTable.astro')
 const dbCmp = read('src/components/DbComparisonTable.astro')
@@ -90,6 +91,24 @@ describe('mobile nav: open menu shows X + dim, tap targets ≥44px', () => {
       /@media \(max-width:1024px\)[\s\S]*?\.nav-drawer-close,\.theme-toggle\{width:44px;height:44px\}/
     )
     expect(extra).toContain('.nav-drawer-group-body a{min-height:44px}')
+  })
+})
+
+describe('hero OSS pill: 320px shows the full self-host claim', () => {
+  test('does not truncate; wraps below 360px; 375+ stays one line', () => {
+    const oss = hero.split('data-hero-oss')[1] ?? ''
+    const pill = oss.slice(0, oss.indexOf('</a>'))
+    expect(pill).toContain('self-host free')
+    expect(pill).not.toContain('truncate')
+    expect(pill).toContain('min-[360px]:whitespace-nowrap')
+    expect(pill).toContain('<br class="min-[360px]:hidden"')
+  })
+
+  test('type is at least 12px (text-xs), not a squeeze below that', () => {
+    const oss = hero.split('data-hero-oss')[1] ?? ''
+    const pill = oss.slice(0, oss.indexOf('</a>'))
+    expect(pill).toContain('text-xs')
+    expect(pill).not.toMatch(/text-\[(?:9|10|11)px\]/)
   })
 })
 

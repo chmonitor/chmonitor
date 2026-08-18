@@ -77,9 +77,13 @@ const githubSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor"
         class="inline-flex max-w-full"
         data-hero-oss
       >
-        <span class="inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--surface-strong)] px-3 py-1 text-foreground text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors hover:bg-[var(--hairline-strong)]">
+        {/* Wrap below ~360px so 320px shows the full self-host claim. 375+
+            stays one line. Do not truncate, and do not shrink below 12px. */}
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--surface-strong)] px-3 py-1 text-foreground text-xs font-semibold uppercase tracking-[0.06em] sm:tracking-[0.08em] leading-snug transition-colors hover:bg-[var(--hairline-strong)] max-[359px]:py-1.5">
           <span class="inline-flex items-center justify-center size-3.5 shrink-0" set:html={githubSvg} />
-          <span class="truncate">Open source · GPL-3.0 · self-host free</span>
+          <span class="min-w-0 text-center min-[360px]:whitespace-nowrap">
+            Open source · GPL-3.0 ·<br class="min-[360px]:hidden" /> self-host free
+          </span>
         </span>
       </a>
 
