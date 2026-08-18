@@ -23,7 +23,21 @@
 const SIDEBAR = '[data-sidebar="sidebar"]'
 const SIDEBAR_TRIGGER = '[data-slot="sidebar-trigger"]'
 const SIDEBAR_GROUP = '[data-slot="sidebar"]'
-const SIDEBAR_CONTENT = '[data-sidebar="content"]'
+
+const USER_SETTINGS_STORAGE_KEY = 'clickhouse-monitor-user-settings'
+const E2E_USER_SETTINGS = {
+  dimUnavailablePages: true,
+  workspacePreset: 'full',
+  hiddenMenuHrefs: [] as string[],
+}
+
+function seedUserSettings(win: Window) {
+  win.localStorage.removeItem(USER_SETTINGS_STORAGE_KEY)
+  win.localStorage.setItem(
+    USER_SETTINGS_STORAGE_KEY,
+    JSON.stringify(E2E_USER_SETTINGS)
+  )
+}
 
 /**
  * Nested groups render as a Popover portal when the rail is icon-collapsed
@@ -44,67 +58,29 @@ function ensureDesktopRailExpanded() {
   cy.get(SIDEBAR_GROUP).should('have.attr', 'data-state', 'expanded')
 }
 
-/**
- * Scroll `el` inside the sidebar content pane so Queries/Cluster sit above
- * SidebarFooter. Window `scrollIntoView` can move the page; only the pane
- * should move.
- */
-function scrollWithinSidebarContent(el: HTMLElement) {
-  const pane = el.closest(SIDEBAR_CONTENT) as HTMLElement | null
-  if (!pane) return
-  const elRect = el.getBoundingClientRect()
-  const paneRect = pane.getBoundingClientRect()
-  pane.scrollTop += elRect.top - paneRect.top - 8
-}
+function expandGroup(groupLabel: string, hrefPart: string) {
+  const labelRe = new RegExp(`^${groupLabel}(\\s|$)`)
+  cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
+    .filter((_, el) => labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim()))
+    .should('have.length.at.least', 1)
+    .first()
+    .scrollIntoView()
+    .click({ force: true })
 
-function clickCoveredIfNeeded($el: JQuery<HTMLElement>) {
-  scrollWithinSidebarContent($el[0])
-  // About footer can still cover the last groups after scroll.
-  cy.wrap($el).click({ force: true })
-}
-
-/**
- * Expand a collapsible sidebar group only when the target link is missing
- * or hidden. Unconditionally clicking the group toggles it: if the group is
- * already open, the click collapses it and the links unmount.
- *
- * Match the group trigger by exact visible text on `[data-sidebar="menu-button"]`
- * (or the collapsible trigger). `cy.contains('Queries')` substring-matches
- * child titles ("Running Queries") and may click a hidden CollapsibleContent
- * node instead of expanding the group. Requery after the snapshot check so we
- * do not chain contains() on a detached $sidebar wrap.
- */
-function expandGroupIfNeeded(groupLabel: string, hrefPart: string) {
-  const exactLabel = new RegExp(`^${groupLabel}$`)
-
-  cy.get(SIDEBAR).then(($sidebar) => {
-    const $visible = $sidebar.find(`a[href*="${hrefPart}"]`).filter(':visible')
-    if ($visible.length > 0) {
-      return
+  cy.get('body').then(($body) => {
+    if ($body.find(`a[href*="${hrefPart}"]`).length === 0) {
+      // First click collapsed an already-open group — toggle back.
+      cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
+        .filter((_, el) => labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim()))
+        .first()
+        .click({ force: true })
     }
-
-    // Requery — do not chain off the stale $sidebar snapshot.
-    cy.get(
-      `${SIDEBAR} [data-sidebar="menu-button"], ${SIDEBAR} [data-slot="collapsible-trigger"]`
-    )
-      .filter((_, el) =>
-        exactLabel.test((el.innerText || '').replace(/\s+/g, ' ').trim())
-      )
-      .should('have.length.at.least', 1)
-      .first()
-      .then(($btn) => {
-        clickCoveredIfNeeded($btn)
-      })
   })
+
+  cy.get(`a[href*="${hrefPart}"]`, { timeout: 10000 }).should('exist')
 }
 
-/**
- * Click the target href after expand. Prefer the in-rail SIDEBAR link;
- * nested items can render in a popover portal (outside the rail) when the
- * sidebar is icon-collapsed. Requery so Cypress does not click a detached node.
- */
-function clickVisibleHref(hrefPart: string) {
-  // Hidden CollapsibleContent links are OK to force-click after expand.
+function clickHref(hrefPart: string) {
   cy.get(`a[href*="${hrefPart}"]`).first().click({ force: true })
 }
 
@@ -113,8 +89,11 @@ describe('Sidebar navigation', () => {
     // Docked rail starts at `lg` (1024). Stay well above that so the first
     // paint is already the persistent sidebar, not the overlay sheet.
     cy.viewport(1280, 720)
-    cy.clearLocalStorage('clickhouse-monitor-user-settings')
-    cy.visit('/overview?host=0')
+    cy.visit('/overview?host=0', {
+      onBeforeLoad(win) {
+        seedUserSettings(win)
+      },
+    })
     ensureDesktopRailExpanded()
   })
 
@@ -138,8 +117,8 @@ describe('Sidebar navigation', () => {
 
   it('navigates to running-queries via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
-    expandGroupIfNeeded('Queries', '/running-queries')
-    clickVisibleHref('/running-queries')
+    expandGroup('Queries', '/running-queries')
+    clickHref('/running-queries')
     cy.url().should('include', '/running-queries')
     cy.url().should('include', 'host=0')
     cy.get('body').should('exist')
@@ -147,8 +126,8 @@ describe('Sidebar navigation', () => {
 
   it('navigates to clusters via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
-    expandGroupIfNeeded('Cluster', '/clusters')
-    clickVisibleHref('/clusters')
+    expandGroup('Cluster', '/clusters')
+    clickHref('/clusters')
     cy.url().should('include', '/clusters')
     cy.url().should('include', 'host=0')
     cy.get('body').should('exist')
@@ -159,8 +138,11 @@ describe('Sidebar overlay below lg', () => {
   it('opens the sheet from the header trigger', () => {
     // Cypress default (1000x660) is below lg, so the rail is a closed Sheet.
     cy.viewport(1000, 660)
-    cy.clearLocalStorage('clickhouse-monitor-user-settings')
-    cy.visit('/overview?host=0')
+    cy.visit('/overview?host=0', {
+      onBeforeLoad(win) {
+        seedUserSettings(win)
+      },
+    })
     cy.get(SIDEBAR).should('not.exist')
     cy.get(SIDEBAR_TRIGGER).should('exist').click()
     cy.get(SIDEBAR).should('be.visible')
