@@ -11,6 +11,7 @@ import {
 } from '@/lib/menu/visible-items'
 import {
   applyWorkspaceVisibility,
+  collectMenuHrefs,
   PRESET_GROUP_TITLES,
 } from '@/lib/menu/workspace-presets'
 
@@ -241,6 +242,21 @@ describe('getSettingsNavMenuItems', () => {
     expect(titles).not.toContain('Cluster')
     expect(titles).not.toContain('Overview')
     expect(titles).not.toContain('About')
+  })
+
+  test('Postgres Settings tree does not include Tools leaves (#3105)', () => {
+    const hrefs = collectMenuHrefs(getSettingsNavMenuItems('postgres'))
+    for (const href of [
+      '/sql',
+      '/explorer',
+      '/explain',
+      '/advisor',
+      '/dashboard',
+      '/schema-diff',
+      '/settings-diff',
+    ]) {
+      expect(hrefs).not.toContain(href)
+    }
   })
 })
 

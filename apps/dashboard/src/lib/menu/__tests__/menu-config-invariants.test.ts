@@ -167,6 +167,13 @@ describe('Tools group (interactive utilities)', () => {
     expect(byHref['/settings-diff']).toBe('settings')
   })
 
+  test('has no engines tag so Postgres hosts hide the group (#3105)', () => {
+    expect(tools?.engines).toBeUndefined()
+    for (const item of tools?.items ?? []) {
+      expect(item.engines, item.href).toBeUndefined()
+    }
+  })
+
   test('moved pages are gone from their old groups', () => {
     const hrefsOf = (title: string) =>
       menuItemsConfig

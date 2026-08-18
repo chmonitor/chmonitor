@@ -16,6 +16,12 @@ export const toolsItems: MenuItem[] = [
     // parent: children keep the feature gates they inherited from their
     // old groups (`tables`, `queries`, `dashboard`, `settings`) so the
     // group is not over-gated.
+    //
+    // No `engines` on the parent or children (#3105): absent already means
+    // the default source-engine family, so filterMenuItemsByEngine hides
+    // Tools on a Postgres host. Do not tag these items — Settings >
+    // Navigation uses the same getSettingsNavMenuItems(engine) path as the
+    // sidebar.
     title: 'Tools',
     href: '',
     icon: WrenchIcon,

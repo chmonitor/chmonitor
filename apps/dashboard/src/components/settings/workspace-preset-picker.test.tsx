@@ -225,6 +225,12 @@ describe('WorkspacePresetPicker', () => {
       expect(
         container.querySelector('[data-testid="workspace-menu-leaf-/clusters"]')
       ).toBeNull()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/sql"]')
+      ).toBeNull()
+      expect(
+        container.querySelector('[data-testid="workspace-menu-leaf-/explorer"]')
+      ).toBeNull()
       expect(container.textContent).not.toContain('Cluster')
       expect(container.textContent).not.toContain('Tools')
     } finally {
