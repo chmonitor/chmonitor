@@ -7,6 +7,10 @@ import {
   filterCloudOnly,
   filterMenuItemsByEngine,
 } from '@/lib/menu/visible-items'
+import {
+  applyWorkspaceVisibility,
+  PRESET_GROUP_TITLES,
+} from '@/lib/menu/workspace-presets'
 
 const leaf = (overrides: Partial<MenuItem> = {}): MenuItem => ({
   title: overrides.title ?? 'Item',
@@ -224,5 +228,123 @@ describe('filterMenuItemsByEngine', () => {
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')
+  })
+})
+
+describe('applyWorkspaceVisibility', () => {
+  const fixture: MenuItem[] = [
+    leaf({ title: 'Overview', href: '/overview' }),
+    {
+      title: 'Queries',
+      href: '',
+      items: [
+        leaf({ title: 'Running', href: '/running-queries' }),
+        leaf({ title: 'Advisor', href: '/advisor' }),
+      ],
+    },
+    {
+      title: 'Keeper',
+      href: '',
+      items: [leaf({ title: 'Keeper Info', href: '/keeper/info' })],
+    },
+    {
+      title: 'Health',
+      href: '',
+      items: [leaf({ title: 'Health', href: '/health' })],
+    },
+    leaf({ title: 'About', href: '/about', section: 'footer' }),
+  ]
+
+  test('Full keeps every item and applies an extra hide list', () => {
+    const full = applyWorkspaceVisibility(fixture, {
+      workspacePreset: 'full',
+      hiddenMenuHrefs: [],
+    })
+    expect(full.map((i) => i.title)).toEqual([
+      'Overview',
+      'Queries',
+      'Keeper',
+      'Health',
+      'About',
+    ])
+
+    const hidden = applyWorkspaceVisibility(fixture, {
+      workspacePreset: 'full',
+      hiddenMenuHrefs: ['/advisor'],
+    })
+    expect(
+      hidden.find((i) => i.title === 'Queries')?.items?.map((i) => i.href)
+    ).toEqual(['/running-queries'])
+  })
+
+  test('named presets keep a stable group set and never drop the footer', () => {
+    const dba = applyWorkspaceVisibility(fixture, {
+      workspacePreset: 'dba',
+      hiddenMenuHrefs: [],
+    })
+    expect(dba.map((i) => i.title)).toEqual([
+      'Overview',
+      'Queries',
+      'Keeper',
+      'About',
+    ])
+
+    const engineer = applyWorkspaceVisibility(fixture, {
+      workspacePreset: 'engineer',
+      hiddenMenuHrefs: [],
+    })
+    expect(engineer.map((i) => i.title)).toEqual([
+      'Overview',
+      'Queries',
+      'About',
+    ])
+
+    const sre = applyWorkspaceVisibility(fixture, {
+      workspacePreset: 'sre',
+      hiddenMenuHrefs: [],
+    })
+    expect(sre.map((i) => i.title)).toEqual([
+      'Overview',
+      'Queries',
+      'Health',
+      'About',
+    ])
+  })
+
+  test('custom hide-list drops a parent left empty', () => {
+    const result = applyWorkspaceVisibility(fixture, {
+      workspacePreset: 'custom',
+      hiddenMenuHrefs: ['/keeper/info'],
+    })
+    expect(result.map((i) => i.title)).not.toContain('Keeper')
+    expect(result.map((i) => i.title)).toContain('About')
+  })
+
+  test('new fixture groups stay hidden on a named preset and appear on Full', () => {
+    const withNewGroup: MenuItem[] = [
+      ...fixture,
+      {
+        title: 'Brand New',
+        href: '',
+        items: [leaf({ title: 'TTL', href: '/ttl' })],
+      },
+    ]
+    const dba = applyWorkspaceVisibility(withNewGroup, {
+      workspacePreset: 'dba',
+      hiddenMenuHrefs: [],
+    })
+    expect(dba.map((i) => i.title)).not.toContain('Brand New')
+
+    const full = applyWorkspaceVisibility(withNewGroup, {
+      workspacePreset: 'full',
+      hiddenMenuHrefs: [],
+    })
+    expect(full.map((i) => i.title)).toContain('Brand New')
+  })
+
+  test('DBA preset group titles stay the documented set', () => {
+    expect(PRESET_GROUP_TITLES.dba).toContain('Tables')
+    expect(PRESET_GROUP_TITLES.engineer).not.toContain('Keeper')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Health')
   })
 })

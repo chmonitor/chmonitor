@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-17
+updated: 2026-08-18
 tags:
   - design-system
   - ui
@@ -93,7 +93,8 @@ settings store.
 `clickhouse-monitor-user-settings`, merged over `DEFAULT_USER_SETTINGS` via
 `mergeUserSettings` so legacy blobs pick up new keys) carries the
 timezone/theme plus **units** (`byteUnit`, `numberFormat`), **colors**
-(`chartPalette`), and **layout** (`tableDensity`, `defaultTimeRange`). The
+(`chartPalette`), **layout** (`tableDensity`, `defaultTimeRange`), and a
+**workspace** (`workspacePreset`, `hiddenMenuHrefs`). The
 Settings dialog (`components/settings/settings-dialog.tsx` +
 `settings-form.tsx`) uses `rounded-xl border bg-card`, a Settings icon + title
 + "Local to this browser" header, a **stable height**
@@ -103,7 +104,14 @@ Preferences / Display / Workspace, icon + label rows, selected as a muted
 pill, `border-r`) and a content pane whose heading is the active tab.
 Theme (Light / Dark / System, next-themes) is a
 label-left / thumbnails-right row on Appearance only. Navigation
-picks Dim vs Hide with two menu demos (Queries + dimmed/missing Backups).
+leads with a workspace **preset** (`Full` / `DBA` / `Engineer` / `SRE` /
+`Custom`) then Dim vs Hide with two menu demos (Queries + dimmed/missing
+Backups). Hidden pages stay routable; Settings gear and the host switcher
+are never filtered. Workspace visibility is applied last in
+`getVisibleMenuItems` and does not replace permission / cloud / engine
+gates. Named presets keep a stable group set; Full is the only
+auto-expand preset. Custom uses a hide list plus a searchable picker —
+never a 40-checkbox wall.
 Timezone is a searchable combobox
 (`timezone-combobox.tsx`) with the browser local zone pinned under Suggested.
 Chart palette is a three-card picker with a mini bar preview. Unit options
@@ -115,7 +123,7 @@ show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
 **Invariant: every default reproduces the prior behaviour byte-for-byte** —
 `byteUnit: 'binary'`, `numberFormat: 'abbreviated'`, `chartPalette: 'default'`
 (attribute absent), `tableDensity: 'comfortable'` (attribute absent),
-`defaultTimeRange: '24h'`.
+`defaultTimeRange: '24h'`, `workspacePreset: 'full'`, `hiddenMenuHrefs: []`.
 
 How each applies (all wired by `AppearanceSettingsProvider`,
 `lib/context/appearance-settings.tsx`, mounted at `__root`):

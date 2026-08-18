@@ -18,6 +18,10 @@ import type { PublicFeaturePermissionConfig } from '@/lib/feature-permissions/ty
 
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
+import {
+  applyWorkspaceVisibility,
+  type WorkspaceVisibility,
+} from '@/lib/menu/workspace-presets'
 
 /**
  * Drop `cloudOnly` items (and any parent left empty by their removal) when the
@@ -80,20 +84,25 @@ export function filterMenuItemsByEngine(
 
 /**
  * The single source of truth for what a CLIENT nav surface may render:
- * `menuItemsConfig` with feature-permission, cloud-only, and engine gates
- * applied. `isCloudModeClient()` is resolved at build time, so this is cheap and
- * stable across renders.
+ * `menuItemsConfig` with feature-permission, cloud-only, engine, and
+ * workspace-preset gates applied. `isCloudModeClient()` is resolved at build
+ * time, so this is cheap and stable across renders.
  *
  * `engine` is the ACTIVE host's source engine (defaults to `'clickhouse'`), so
  * a caller that doesn't thread it — and every ClickHouse host — sees exactly
- * today's menu.
+ * today's menu when the workspace is Full.
+ *
+ * Workspace filtering is last and never replaces the deployment gates.
  */
 export function getVisibleMenuItems(
   config: PublicFeaturePermissionConfig,
-  engine: SourceEngine = 'clickhouse'
+  engine: SourceEngine = 'clickhouse',
+  workspace?: WorkspaceVisibility
 ): MenuItem[] {
   const cloudMode = isCloudModeClient()
   const byPermission = filterMenuItemsByPermissions(menuItemsConfig, config)
   const byCloud = filterCloudOnly(byPermission, cloudMode)
-  return filterMenuItemsByEngine(byCloud, engine)
+  const byEngine = filterMenuItemsByEngine(byCloud, engine)
+  if (!workspace) return byEngine
+  return applyWorkspaceVisibility(byEngine, workspace)
 }
