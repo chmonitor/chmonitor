@@ -541,7 +541,8 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   FAB moves to `top-16`.
 - **Phone tap targets are 44×44.** Time chips (`min-h-11 min-w-11` until
   `sm`), sidebar rows (`h-11` until `lg`), sidebar trigger (`size-11` until
-  `lg`). Compact sizes return at the desktop rail.
+  `lg`), header utility icons — refresh, search, theme (`min-h-11 min-w-11`
+  until `lg`). Glyph stays 16–20px. Compact sizes return at the desktop rail.
 
 ## UX conventions
 

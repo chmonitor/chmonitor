@@ -62,6 +62,27 @@ describe('responsive chrome', () => {
     expect(src('components/layout/dashboard-shell.tsx')).toContain('pb-16')
   })
 
+  test('header utility icons are 44px below lg', () => {
+    const tap = 'min-h-11 min-w-11'
+    const desktop = 'lg:min-h-8 lg:min-w-8'
+    expect(src('components/header/refresh-countdown.tsx')).toContain(tap)
+    expect(src('components/header/refresh-countdown.tsx')).toContain(desktop)
+    expect(src('components/header/header-actions.tsx')).toContain(tap)
+    expect(src('components/header/header-actions.tsx')).toContain(desktop)
+    expect(
+      src('components/controls/command-palette/command-palette-items.tsx')
+    ).toContain(tap)
+    expect(
+      src('components/controls/command-palette/command-palette-items.tsx')
+    ).toContain(desktop)
+    expect(src('components/header/time-range-picker.tsx')).toContain(
+      'sm:min-h-0 sm:min-w-0'
+    )
+    expect(src('components/layout/dashboard-shell.tsx')).toContain(
+      'size-11 lg:size-7'
+    )
+  })
+
   test('heatmap last stat card clears the FAB on small screens', () => {
     const heatmap = src('components/charts/query/query-count-heatmap.tsx')
     expect(heatmap).toContain('max-lg:col-span-2 max-lg:pr-16')
