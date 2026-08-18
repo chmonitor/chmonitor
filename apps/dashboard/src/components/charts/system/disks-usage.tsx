@@ -8,7 +8,7 @@ import { ChartContainer } from '@/components/charts/chart-container'
 import { ChartEmpty } from '@/components/charts/chart-empty'
 import { AreaChart } from '@/components/charts/primitives/area'
 import { resolveDateRangeConfig } from '@/components/date-range'
-import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
+import { useChartData, useHostId } from '@/lib/swr'
 import { chartTickFormatters, createDateTickFormatter } from '@/lib/utils'
 
 const CHART_NAME = 'disks-usage'
@@ -51,7 +51,6 @@ export function ChartDisksUsage({
     hostId,
     interval: effectiveInterval,
     lastHours: effectiveLastHours,
-    refreshInterval: REFRESH_INTERVAL.DEFAULT_60S,
   })
 
   const tickFormatter = createDateTickFormatter(effectiveLastHours)

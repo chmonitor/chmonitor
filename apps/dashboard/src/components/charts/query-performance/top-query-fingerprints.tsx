@@ -2,7 +2,7 @@ import type { ChartProps } from '@/components/charts/chart-props'
 
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { useChartData } from '@/lib/swr'
 
 type DataRow = {
   normalized_query_hash: string
@@ -25,7 +25,6 @@ export const ChartTopQueryFingerprints = function ChartTopQueryFingerprints({
   const swr = useChartData<DataRow>({
     chartName: 'top-query-fingerprints-perf',
     hostId,
-    refreshInterval: REFRESH_INTERVAL.DEFAULT_60S,
   })
 
   return (

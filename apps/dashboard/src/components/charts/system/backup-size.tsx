@@ -10,7 +10,6 @@ import { ChartError } from '@/components/charts/chart-error'
 import { ChartSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useChartData, useHostId } from '@/lib/swr'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { splitHref } from '@/lib/url/url-builder'
 
 type BackupSizeRow = {
@@ -40,7 +39,6 @@ export const ChartBackupSize = memo(function ChartBackupSize({
       hostId,
       interval,
       lastHours,
-      refreshInterval: REFRESH_INTERVAL.DEFAULT_60S,
     })
 
   const handleRetry = useCallback(() => {

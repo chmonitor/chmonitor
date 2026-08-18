@@ -14,6 +14,11 @@ export {
 export { useTableData } from '../query/use-table-data'
 export { apiFetch } from './api-fetch'
 export {
+  CHART_FRESHNESS,
+  chartCachePolicy,
+  chartRefreshInterval,
+} from './chart-freshness'
+export {
   REFRESH_INTERVAL,
   type RefreshInterval,
   visibilityAwareInterval,

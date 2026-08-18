@@ -10,6 +10,7 @@ import {
 import { hostConnectionKey } from '@/lib/query/host-query-key'
 import { chartQueryKey, serializeChartParams } from '@/lib/query/query-keys'
 import { apiFetch } from '@/lib/swr/api-fetch'
+import { chartRefreshInterval } from '@/lib/swr/chart-freshness'
 import { REFRESH_INTERVAL, type RefreshInterval } from '@/lib/swr/config'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
@@ -61,8 +62,12 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
   lastHours,
   params,
   timezone,
-  refreshInterval = REFRESH_INTERVAL.DEFAULT_60S,
+  refreshInterval: refreshIntervalProp,
 }: UseChartDataParams): UseChartResult<T> {
+  const refreshInterval =
+    refreshIntervalProp ??
+    chartRefreshInterval(chartName) ??
+    REFRESH_INTERVAL.DEFAULT_60S
   const { hosts, getConnectionByHostId } = useMergedHosts()
   const numericHostId =
     hostId === undefined

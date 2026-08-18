@@ -2,7 +2,7 @@ import type { ChartProps } from '@/components/charts/chart-props'
 
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { useChartData } from '@/lib/swr'
 
 type SummaryRow = {
   active_parts: number
@@ -26,7 +26,6 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
   const swr = useChartData<SummaryRow>({
     chartName: 'partition-part-health-summary',
     hostId,
-    refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
   })
 
   return (

@@ -5,7 +5,6 @@ import { type FC, memo } from 'react'
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
 import { useChartData, useHostId } from '@/lib/swr'
-import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { cn } from '@/lib/utils'
 
 /**
@@ -43,7 +42,7 @@ export function createCustomChart(
       hostId,
       interval,
       lastHours,
-      refreshInterval: config.refreshInterval ?? REFRESH_INTERVAL.DEFAULT_60S,
+      refreshInterval: config.refreshInterval,
     })
 
     return (

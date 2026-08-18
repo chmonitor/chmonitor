@@ -6,7 +6,7 @@ import { ChartContainer } from '@/components/charts/chart-container'
 import { ChartEmpty } from '@/components/charts/chart-empty'
 import { AreaChart } from '@/components/charts/primitives/area'
 import { pivotRows, type RawRow } from '@/lib/chart-utils'
-import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
+import { useChartData, useHostId } from '@/lib/swr'
 import { chartTickFormatters, cn, createDateTickFormatter } from '@/lib/utils'
 
 const CHART_NAME = 'disk-io-throughput'
@@ -28,7 +28,6 @@ export function ChartDiskIOThroughput({
     hostId,
     interval,
     lastHours,
-    refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
   })
 
   const { pivoted, categories } = (() => {
