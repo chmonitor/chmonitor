@@ -3,6 +3,7 @@ export type NumberFormat = 'abbreviated' | 'full'
 export type ChartPalette = 'default' | 'colorblind-safe' | 'monochrome'
 export type TableDensity = 'comfortable' | 'compact'
 export type DefaultTimeRange = '1h' | '6h' | '24h' | '7d' | '30d'
+export type WorkspacePreset = 'full' | 'dba' | 'engineer' | 'sre' | 'custom'
 
 export interface UserSettings {
   timezone: string // IANA timezone identifier (e.g., 'America/New_York')
@@ -23,6 +24,18 @@ export interface UserSettings {
    * true to preserve the long-standing "gray, don't hide" behaviour.
    */
   dimUnavailablePages: boolean
+  /**
+   * Role workspace preset. Full is the default and the only auto-expand
+   * preset (new menu pages stay visible). Named presets keep a stable group
+   * set. Custom uses `hiddenMenuHrefs` as a hide list.
+   */
+  workspacePreset: WorkspacePreset
+  /**
+   * Menu hrefs hidden from sidebar + command palette. Hidden is not
+   * unauthorized — routes stay reachable. Footer / Settings / host switcher
+   * are never filtered here.
+   */
+  hiddenMenuHrefs: string[]
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -34,6 +47,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   tableDensity: 'comfortable',
   defaultTimeRange: '24h',
   dimUnavailablePages: true,
+  workspacePreset: 'full',
+  hiddenMenuHrefs: [],
 }
 
 export const USER_SETTINGS_STORAGE_KEY = 'clickhouse-monitor-user-settings'
@@ -48,5 +63,29 @@ export function mergeUserSettings(stored: unknown): UserSettings {
   if (!stored || typeof stored !== 'object') {
     return { ...DEFAULT_USER_SETTINGS }
   }
-  return { ...DEFAULT_USER_SETTINGS, ...(stored as Partial<UserSettings>) }
+  const partial = stored as Partial<UserSettings> & Record<string, unknown>
+  const merged = { ...DEFAULT_USER_SETTINGS, ...partial }
+  merged.workspacePreset = parseWorkspacePreset(partial.workspacePreset)
+  merged.hiddenMenuHrefs = parseHiddenMenuHrefs(partial.hiddenMenuHrefs)
+  return merged
+}
+
+export function parseWorkspacePreset(value: unknown): WorkspacePreset {
+  if (
+    value === 'full' ||
+    value === 'dba' ||
+    value === 'engineer' ||
+    value === 'sre' ||
+    value === 'custom'
+  ) {
+    return value
+  }
+  return DEFAULT_USER_SETTINGS.workspacePreset
+}
+
+export function parseHiddenMenuHrefs(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (href): href is string => typeof href === 'string' && href.length > 0
+  )
 }

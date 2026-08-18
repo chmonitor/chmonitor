@@ -24,6 +24,7 @@ import type { SegmentedOption } from './segmented-control'
 
 import { SegmentedControl } from './segmented-control'
 import { TimezoneCombobox } from './timezone-combobox'
+import { WorkspacePresetPicker } from './workspace-preset-picker'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -723,6 +724,18 @@ export function SettingsForm({
 
             {/* Navigation */}
             <TabsContent value="navigation" className="space-y-4 px-1 pb-2">
+              <Field
+                label="Workspace"
+                icon={LayoutGrid}
+                description="Slim the sidebar and command palette to a role. Hidden pages stay reachable by URL."
+              >
+                <WorkspacePresetPicker
+                  preset={settings.workspacePreset}
+                  hiddenMenuHrefs={settings.hiddenMenuHrefs}
+                  onChange={(next) => onUpdate(next)}
+                />
+              </Field>
+
               <div className="space-y-2">
                 <SettingsRow label="Unavailable pages">
                   <UnavailablePagesPicker

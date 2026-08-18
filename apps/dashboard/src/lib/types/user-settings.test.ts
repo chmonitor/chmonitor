@@ -19,6 +19,8 @@ describe('mergeUserSettings', () => {
     expect(merged.chartPalette).toBe('default')
     expect(merged.tableDensity).toBe('comfortable')
     expect(merged.defaultTimeRange).toBe('24h')
+    expect(merged.workspacePreset).toBe('full')
+    expect(merged.hiddenMenuHrefs).toEqual([])
   })
 
   test('stored values override the defaults', () => {
@@ -39,6 +41,15 @@ describe('mergeUserSettings', () => {
     expect(mergeUserSettings('junk')).toEqual(DEFAULT_USER_SETTINGS)
     // Must be a copy, not the shared reference.
     expect(mergeUserSettings(null)).not.toBe(DEFAULT_USER_SETTINGS)
+  })
+
+  test('junk workspace keys fall back to Full and an empty hide list', () => {
+    const merged = mergeUserSettings({
+      workspacePreset: 'intern',
+      hiddenMenuHrefs: ['/health', 12, ''],
+    })
+    expect(merged.workspacePreset).toBe('full')
+    expect(merged.hiddenMenuHrefs).toEqual(['/health'])
   })
 
   test('default byteUnit/numberFormat reproduce historical behaviour', () => {
