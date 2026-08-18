@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "cf:deploy": "wrangler deploy",
     "types:check": "fumadocs-mdx && tsc --noEmit",
-    "test": "node --test src/styles/mobile-header.test.mjs",
+    "test": "node --test src/styles/*.test.mjs",
     "smoke": "node scripts/smoke-crawl.mjs"
   },
   "dependencies": {

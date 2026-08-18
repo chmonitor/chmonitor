@@ -543,6 +543,9 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   `sm`), sidebar rows (`h-11` until `lg`), sidebar trigger (`size-11` until
   `lg`), header utility icons — refresh, search, theme (`min-h-11 min-w-11`
   until `lg`). Glyph stays 16–20px. Compact sizes return at the desktop rail.
+  Docs article **Copy Markdown** / **Open** (`[data-article-actions]`, below
+  `md`) are the same 44px floor; docs header search/menu is a separate control
+  (`#nd-nav` / `#nd-subnav`).
 
 ## UX conventions
 

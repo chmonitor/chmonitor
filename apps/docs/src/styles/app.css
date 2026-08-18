@@ -84,3 +84,20 @@ html > body[data-scroll-locked] {
     flex-shrink: 0;
   }
 }
+
+/*
+ * Article page actions (issue #3111) — not header chrome (#3107).
+ *
+ * Copy Markdown / Open are fumadocs `size: "sm"` buttons (~30px tall from
+ * `py-1.5` + `text-xs` + border). Pad the hit area to WCAG 2.5.5 44px on
+ * phones. Glyph size stays fumadocs `size-3.5`. Unlayered so this beats
+ * Tailwind `py-*`. Open also gets min-width 44px (Copy Markdown is already
+ * wider). flex-wrap on the row avoids overflow-x at 375px.
+ */
+@media (max-width: 768px) {
+  [data-article-actions] button {
+    box-sizing: border-box;
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
