@@ -99,7 +99,7 @@ describe('hero OSS pill: 320px shows the full self-host claim', () => {
     const oss = hero.split('data-hero-oss')[1] ?? ''
     const pill = oss.slice(0, oss.indexOf('</a>'))
     expect(pill).toContain('self-host free')
-    expect(pill).not.toContain('truncate')
+    expect(pill).not.toMatch(/class="[^"]*\btruncate\b/)
     expect(pill).toContain('min-[360px]:whitespace-nowrap')
     expect(pill).toContain('<br class="min-[360px]:hidden"')
   })
