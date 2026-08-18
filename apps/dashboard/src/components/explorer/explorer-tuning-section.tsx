@@ -26,7 +26,7 @@ import {
 } from '@/lib/explorer/engine-kind'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
-import { buildUrl, splitHref } from '@/lib/url/url-builder'
+import { buildUrl } from '@/lib/url/url-builder'
 
 interface TuningApiResponse extends TuningFindingsOutput {
   success: true
@@ -130,7 +130,7 @@ export function ExplorerTuningSection({
           <h2 className="text-sm font-medium text-foreground">Advisor</h2>
         </div>
         <Link
-          {...splitHref(advisorHref)}
+          href={advisorHref}
           className="text-xs text-muted-foreground hover:text-foreground"
         >
           Analyze a slow query on this table
