@@ -23,6 +23,20 @@
 const SIDEBAR = '[data-sidebar="sidebar"]'
 const SIDEBAR_TRIGGER = '[data-slot="sidebar-trigger"]'
 
+/**
+ * Expand a collapsible sidebar group only when the target link is missing
+ * or hidden. Unconditionally clicking the group button toggles it: if the
+ * group is already open, the click collapses it and the links unmount.
+ */
+function expandGroupIfNeeded(groupLabel: string, hrefPart: string) {
+  cy.get(SIDEBAR).then(($sidebar) => {
+    const $visible = $sidebar.find(`a[href*="${hrefPart}"]`).filter(':visible')
+    if ($visible.length === 0) {
+      cy.wrap($sidebar).contains('button', groupLabel).click()
+    }
+  })
+}
+
 describe('Sidebar navigation', () => {
   beforeEach(() => {
     // Docked rail starts at `lg` (1024). Stay well above that so the first
@@ -51,12 +65,11 @@ describe('Sidebar navigation', () => {
 
   it('navigates to running-queries via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
-    // Expand the "Queries" group menu
-    cy.get(SIDEBAR).contains('button', 'Queries').click()
+    expandGroupIfNeeded('Queries', '/running-queries')
     // Use should('be.visible') instead of :visible CSS pseudo-selector for
     // more reliable visibility detection in headless Electron with Radix UI
     // collapsible animations.
-    cy.get('a[href*="/running-queries"]', { timeout: 10000 })
+    cy.get(`${SIDEBAR} a[href*="/running-queries"]`, { timeout: 10000 })
       .should('be.visible')
       .first()
       .click()
@@ -67,9 +80,8 @@ describe('Sidebar navigation', () => {
 
   it('navigates to clusters via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
-    // Expand the "Cluster" group menu
-    cy.get(SIDEBAR).contains('button', 'Cluster').click()
-    cy.get('a[href*="/clusters"]', { timeout: 10000 })
+    expandGroupIfNeeded('Cluster', '/clusters')
+    cy.get(`${SIDEBAR} a[href*="/clusters"]`, { timeout: 10000 })
       .should('be.visible')
       .first()
       .click()
