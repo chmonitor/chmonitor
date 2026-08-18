@@ -28,15 +28,12 @@
 /**
  * Paths that stay reachable with zero hosts configured and are never re-pointed:
  *  - `/setup` renders the onboarding surface (exempting it avoids a redirect loop);
- *  - `/organization` lets a signed-in user manage team membership before they
- *    connect a host;
  *  - `/about` is a static version-info page with no host dependency.
- * These render as footer rows (Billing/Organization/About) — see AppSidebar.
+ * These render as footer rows (About) — see AppSidebar.
  */
 export const FIRST_RUN_EXEMPT_PATHS = [
   '/setup',
   '/billing',
-  '/organization',
   '/about',
 ] as const
 
@@ -64,7 +61,7 @@ export interface FirstRunInput {
   isLoading: boolean
   /** The env-host fetch returned 401/403 (an auth failure, not a real empty). */
   isUnauthorized: boolean
-  /** Current path is exempt (/setup, /billing, /organization, /about). */
+  /** Current path is exempt (/setup, /billing, /about). */
   onExemptPath: boolean
   /** Number of VISIBLE merged hosts. */
   hostCount: number

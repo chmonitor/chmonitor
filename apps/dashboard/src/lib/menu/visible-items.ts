@@ -7,7 +7,7 @@
 //
 // Previously the cloud-only rule lived as inline logic in app-sidebar.tsx and
 // clerk-nav.tsx but was missing from the command palette, so ⌘K leaked
-// Billing/Organization in self-host / OSS. Encoding the rule as data on the
+// Billing in self-host / OSS. Encoding the rule as data on the
 // item (`cloudOnly: true`) and resolving it here removes that fragility.
 
 import { menuItemsConfig } from '@/menu'

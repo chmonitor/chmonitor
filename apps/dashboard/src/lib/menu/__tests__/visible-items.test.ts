@@ -23,7 +23,6 @@ describe('filterCloudOnly', () => {
     const items = [
       leaf({ title: 'Overview', href: '/overview' }),
       leaf({ title: 'Billing', href: '/billing', cloudOnly: true }),
-      leaf({ title: 'Organization', href: '/organization', cloudOnly: true }),
     ]
 
     expect(filterCloudOnly(items, false).map((i) => i.title)).toEqual([
@@ -50,11 +49,6 @@ describe('filterCloudOnly', () => {
         href: '',
         items: [
           leaf({ title: 'Billing', href: '/billing', cloudOnly: true }),
-          leaf({
-            title: 'Organization',
-            href: '/organization',
-            cloudOnly: true,
-          }),
         ],
       },
     ]
@@ -89,24 +83,22 @@ describe('filterCloudOnly', () => {
   })
 })
 
-// Intent guard: Organization MUST be marked cloudOnly so every nav
-// surface (sidebar, command palette, …) hides it in self-host / OSS.
+// Intent guard: leftover cloud-only nav (e.g. Billing) stays hidden on OSS.
 describe('menu config cloud-only contract', () => {
-  const find = (href: string) =>
-    menuItemsConfig.find((item) => item.href === href)
-
-  test('Organization is cloud-only', () => {
-    expect(find('/organization')?.cloudOnly).toBe(true)
+  test('Organization is no longer a nav item', () => {
+    expect(
+      menuItemsConfig.find((item) => item.href === '/organization')
+    ).toBeUndefined()
   })
 
-  test('Organization is hidden when filtering the real config in OSS', () => {
+  test('Billing is hidden when filtering the real config in OSS', () => {
     const titles = filterCloudOnly(menuItemsConfig, false).map((i) => i.title)
     expect(titles).not.toContain('Organization')
     expect(titles).not.toContain('Billing')
   })
 })
 
-// Footer nav rows (Organization / About) render in the sidebar footer
+// Footer nav rows (About) render in the sidebar footer
 // (AppSidebar) instead of a labelled body group, but flow through the SAME
 // visibility pipeline. These guard the section wiring so the footer stays in
 // sync with menu.ts.
@@ -114,11 +106,11 @@ describe('menu config footer section', () => {
   const footerTitles = (items: MenuItem[]) =>
     items.filter((i) => i.section === 'footer').map((i) => i.title)
 
-  test('Organization and About are top-level footer items', () => {
+  test('About is a top-level footer item', () => {
     const byHref = (href: string) =>
       menuItemsConfig.find((item) => item.href === href)
     expect(byHref('/billing')).toBeUndefined()
-    expect(byHref('/organization')?.section).toBe('footer')
+    expect(byHref('/organization')).toBeUndefined()
     expect(byHref('/about')?.section).toBe('footer')
   })
 
@@ -135,15 +127,11 @@ describe('menu config footer section', () => {
     expect(operations?.items?.some((i) => i.href === '/about')).toBe(false)
   })
 
-  test('OSS footer keeps About, drops cloud-only Organization', () => {
+  test('OSS and cloud footer both keep About only', () => {
     expect(footerTitles(filterCloudOnly(menuItemsConfig, false))).toEqual([
       'About',
     ])
-  })
-
-  test('cloud footer surfaces Organization, About in order', () => {
     expect(footerTitles(filterCloudOnly(menuItemsConfig, true))).toEqual([
-      'Organization',
       'About',
     ])
   })

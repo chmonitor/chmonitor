@@ -11,7 +11,6 @@ import { logsItems } from './logs'
 import { mergesItems } from './merges'
 import { metricsItems } from './metrics'
 import { operationsItems } from './operations'
-import { organizationItems } from './organization'
 import { overviewItems } from './overview'
 import { peerdbItems } from './peerdb'
 import { postgresItems } from './postgres'
@@ -38,7 +37,6 @@ export const menuItemsConfig: MenuItem[] = [
   ...peerdbItems,
   ...securityItems,
   ...logsItems,
-  ...organizationItems,
   ...aboutItems,
   ...systemItems,
   ...clusterItems,
