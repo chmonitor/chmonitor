@@ -89,6 +89,124 @@ export function engineKindLabel(kind: EngineKind): string {
  * (`CREATE MATERIALIZED VIEW x TO db.target (...) AS SELECT ...`). Returns
  * null for an inner-table MV (`ENGINE = ...`), which has no explicit target.
  */
+export interface DistributedEngine {
+  cluster: string
+  database: string
+  table: string
+  shardingKey: string | null
+}
+
+/**
+ * Parse `ENGINE = Distributed(cluster, db, local_table [, sharding_key])`
+ * from `system.tables.engine_full`. Quoted identifiers and string literals
+ * are accepted; missing or non-Distributed engines return null.
+ */
+export function parseDistributedEngine(
+  engineFull: string | null | undefined
+): DistributedEngine | null {
+  if (typeof engineFull !== 'string' || engineFull.trim() === '') return null
+
+  const match = engineFull.match(/Distributed\s*\(([\s\S]*)\)\s*$/i)
+  if (!match) return null
+
+  const args = splitEngineArgs(match[1])
+  if (args.length < 3) return null
+
+  const cluster = unquoteIdent(args[0])
+  const database = unquoteIdent(args[1])
+  const table = unquoteIdent(args[2])
+  if (!cluster || !database || !table) return null
+
+  const shardingKey = args[3]?.trim() ? args[3].trim() : null
+  return { cluster, database, table, shardingKey }
+}
+
+function splitEngineArgs(inner: string): string[] {
+  const args: string[] = []
+  let current = ''
+  let depth = 0
+  let quote: "'" | '"' | '`' | null = null
+
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]
+    const prev = i > 0 ? inner[i - 1] : ''
+
+    if (quote) {
+      current += ch
+      if (ch === quote && prev !== '\\') quote = null
+      continue
+    }
+
+    if (ch === "'" || ch === '"' || ch === '`') {
+      quote = ch
+      current += ch
+      continue
+    }
+
+    if (ch === '(') {
+      depth += 1
+      current += ch
+      continue
+    }
+    if (ch === ')') {
+      depth = Math.max(0, depth - 1)
+      current += ch
+      continue
+    }
+
+    if (ch === ',' && depth === 0) {
+      args.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += ch
+  }
+
+  if (current.trim()) args.push(current.trim())
+  return args
+}
+
+function unquoteIdent(raw: string): string {
+  const value = raw.trim()
+  if (
+    (value.startsWith("'") && value.endsWith("'")) ||
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith('`') && value.endsWith('`'))
+  ) {
+    return value.slice(1, -1).replace(/\\(['"`])/g, '$1')
+  }
+  return value
+}
+
+export interface ClusterReplicaRow {
+  cluster: string
+  shard_num: string | number
+}
+
+/** Compact shard × replica note when topology rows exist for the cluster. */
+export function formatDistributedTopologyNote(
+  dist: DistributedEngine,
+  rows: ClusterReplicaRow[] | null | undefined
+): string {
+  const local = `${dist.database}.${dist.table}`
+  const matching = (rows ?? []).filter((row) => row.cluster === dist.cluster)
+  if (matching.length === 0) {
+    return `Distributed wrapper over local table ${local} on cluster ${dist.cluster}. Apply schema changes on the local table, then keep this Distributed table in sync.`
+  }
+
+  const perShard = new Map<string, number>()
+  for (const row of matching) {
+    const key = String(row.shard_num)
+    perShard.set(key, (perShard.get(key) ?? 0) + 1)
+  }
+  const shards = perShard.size
+  const replicas = Math.max(...perShard.values())
+  const shardLabel = shards === 1 ? 'shard' : 'shards'
+  const replicaLabel = replicas === 1 ? 'replica' : 'replicas'
+  return `Distributed wrapper over local table ${local} on cluster ${dist.cluster} (${shards} ${shardLabel} × ${replicas} ${replicaLabel}). Apply schema changes on the local table, then keep this Distributed table in sync.`
+}
+
 export function parseMaterializedViewTarget(
   createQuery: string | null | undefined
 ): string | null {

@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import type { ReactNode } from 'react'
 
+import { ExplorerTuningSection } from '../explorer-tuning-section'
 import { useExplorerState } from '../hooks/use-explorer-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -548,6 +549,15 @@ export function OverviewTab() {
           <Clock className="size-3.5" strokeWidth={1.5} />
           This engine does not expose part-level storage statistics.
         </p>
+      ) : null}
+
+      {!isViewLike && !isDictionary ? (
+        <ExplorerTuningSection
+          database={database}
+          table={table}
+          engine={summary?.engine}
+          engineFull={summary?.engine_full}
+        />
       ) : null}
     </div>
   )
