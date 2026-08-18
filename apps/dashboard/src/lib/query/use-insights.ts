@@ -233,7 +233,7 @@ export function useInsights(hostId: number): UseInsightsResult {
     // re-appear on the next page load before the server is queried.
     clearCachedInsights(hostId)
     invalidate()
-  }, [insights, hostId, invalidate])
+  }, [insights, hostId, invalidate, setSessionInsights])
 
   return {
     insights,

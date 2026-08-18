@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Run the live agent promptfoo suite.
  *
@@ -11,11 +12,14 @@
  * Tags: --tags core,safety  (default)   --tags all
  */
 
+import {
+  formatScoreboard,
+  summarize,
+} from '../tests/agent/format-eval-comment.js'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
-import { formatScoreboard, summarize } from '../tests/agent/format-eval-comment.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'tests/agent/results')
@@ -63,9 +67,7 @@ const defaults = {
 }
 
 if (!defaults.ANYROUTER_API_KEY) {
-  console.error(
-    'ANYROUTER_API_KEY is required (agent + llm-rubric grader).'
-  )
+  console.error('ANYROUTER_API_KEY is required (agent + llm-rubric grader).')
   process.exit(2)
 }
 
@@ -91,7 +93,9 @@ writeFileSync(generated, yaml)
 
 const extra = process.argv
   .slice(2)
-  .filter((a, i, arr) => a !== '--tags' && arr[i - 1] !== '--tags' && a !== '--json')
+  .filter(
+    (a, i, arr) => a !== '--tags' && arr[i - 1] !== '--tags' && a !== '--json'
+  )
 
 const jsonOut = join(outDir, 'latest.json')
 const promptfooArgs = [

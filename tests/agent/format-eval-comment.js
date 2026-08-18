@@ -52,8 +52,7 @@ function summarize(json) {
   const failed = rows.length - passed
   const total = rows.length
   const scorePct = total === 0 ? 0 : Math.round((passed / total) * 100)
-  const status =
-    total === 0 ? 'NO_RESULTS' : failed === 0 ? 'PASS' : 'FAIL'
+  const status = total === 0 ? 'NO_RESULTS' : failed === 0 ? 'PASS' : 'FAIL'
   return { rows, passed, failed, total, scorePct, status }
 }
 
@@ -88,7 +87,7 @@ SSE parser tests still run in \`unit-tests\`.
 
 function formatEvalComment(json, meta = {}) {
   const summary = summarize(json)
-  const { rows, passed, failed, total, scorePct, status } = summary
+  const { rows, passed, total, scorePct, status } = summary
 
   const model = meta.model || process.env.AGENT_EVAL_MODEL || ''
   const tags = meta.tags || ''

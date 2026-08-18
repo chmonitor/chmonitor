@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test'
 import { parseAgentSse } from './parse-agent-sse.js'
+import { describe, expect, test } from 'bun:test'
 
 function sse(events: unknown[]): string {
-  return events.map((e) => `data: ${JSON.stringify(e)}\n`).join('') + 'data: [DONE]\n'
+  return `${events.map((e) => `data: ${JSON.stringify(e)}\n`).join('')}data: [DONE]\n`
 }
 
 describe('parseAgentSse', () => {

@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Eval → AnyRouter rubric notes → print next-step prompt diffs.
  *
@@ -9,21 +10,19 @@
  *   bun scripts/agent-eval.ts --tags core,safety
  */
 
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'tests/agent/results')
 const resultsPath = join(outDir, 'latest.json')
 const suggestionsPath = join(outDir, 'improve.md')
 
-const apiBase =
-  process.env.ANYROUTER_API_BASE || 'https://anyrouter.dev/api/v1'
+const apiBase = process.env.ANYROUTER_API_BASE || 'https://anyrouter.dev/api/v1'
 const apiKey = process.env.ANYROUTER_API_KEY
-const grader =
-  process.env.AGENT_EVAL_GRADER_MODEL || 'meituan/longcat-2.0'
+const grader = process.env.AGENT_EVAL_GRADER_MODEL || 'meituan/longcat-2.0'
 
 if (!apiKey) {
   console.error('ANYROUTER_API_KEY is required for improve notes.')
@@ -31,11 +30,15 @@ if (!apiKey) {
 }
 
 if (!process.argv.includes('--skip-eval')) {
-  const evalRun = spawnSync('bun', ['scripts/agent-eval.ts', ...process.argv.slice(2)], {
-    cwd: root,
-    stdio: 'inherit',
-    env: process.env,
-  })
+  const evalRun = spawnSync(
+    'bun',
+    ['scripts/agent-eval.ts', ...process.argv.slice(2)],
+    {
+      cwd: root,
+      stdio: 'inherit',
+      env: process.env,
+    }
+  )
   if (evalRun.status === 2) process.exit(2)
 }
 
@@ -43,7 +46,9 @@ let raw: string
 try {
   raw = readFileSync(resultsPath, 'utf8')
 } catch {
-  console.error(`No results at ${resultsPath}. Run bun scripts/agent-eval.ts first.`)
+  console.error(
+    `No results at ${resultsPath}. Run bun scripts/agent-eval.ts first.`
+  )
   process.exit(2)
 }
 
@@ -51,7 +56,11 @@ type ResultRow = {
   success?: boolean
   testCase?: { description?: string; vars?: { prompt?: string } }
   response?: { output?: string }
-  gradingResult?: { pass?: boolean; reason?: string; componentResults?: Array<{ pass?: boolean; reason?: string }> }
+  gradingResult?: {
+    pass?: boolean
+    reason?: string
+    componentResults?: Array<{ pass?: boolean; reason?: string }>
+  }
 }
 
 function extractRows(json: unknown): ResultRow[] {
@@ -149,8 +158,7 @@ const payload = (await res.json()) as {
   choices?: Array<{ message?: { content?: string } }>
 }
 const suggestion =
-  payload.choices?.[0]?.message?.content?.trim() ||
-  '(empty grader response)'
+  payload.choices?.[0]?.message?.content?.trim() || '(empty grader response)'
 
 const md = `# Agent eval improve\n\n${failed.length} failed / ${rows.length} scored.\n\n${suggestion}\n`
 writeFileSync(suggestionsPath, md)

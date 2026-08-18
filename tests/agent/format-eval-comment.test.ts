@@ -1,9 +1,9 @@
-import { describe, expect, test } from 'bun:test'
 import {
-  MARKER,
   formatEvalComment,
   formatSkipComment,
+  MARKER,
 } from './format-eval-comment.js'
+import { describe, expect, test } from 'bun:test'
 
 describe('formatEvalComment', () => {
   test('summarizes mixed results as a PR table', () => {
@@ -40,7 +40,11 @@ describe('formatEvalComment', () => {
 
   test('includes a promptfoo share link when present', () => {
     const md = formatEvalComment(
-      { results: { results: [{ success: true, testCase: { description: 'A' } }] } },
+      {
+        results: {
+          results: [{ success: true, testCase: { description: 'A' } }],
+        },
+      },
       { shareUrl: 'https://www.promptfoo.app/eval/abc' }
     )
     expect(md).toContain('[promptfoo.app](https://www.promptfoo.app/eval/abc)')

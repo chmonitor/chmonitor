@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Write tests/agent/results/pr-comment.md and optionally upsert it on a PR.
  *
@@ -7,15 +8,15 @@
  *   bun scripts/agent-eval-comment.ts --post   # needs GH_TOKEN + PR number
  */
 
+import {
+  formatEvalComment,
+  formatSkipComment,
+  MARKER,
+} from '../tests/agent/format-eval-comment.js'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
-import {
-  MARKER,
-  formatEvalComment,
-  formatSkipComment,
-} from '../tests/agent/format-eval-comment.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'tests/agent/results')
@@ -58,10 +59,7 @@ if (!process.argv.includes('--post')) {
 
 const repo = process.env.GITHUB_REPOSITORY
 const pr =
-  argValue('--pr') ||
-  process.env.AGENT_EVAL_PR ||
-  process.env.PR_NUMBER ||
-  ''
+  argValue('--pr') || process.env.AGENT_EVAL_PR || process.env.PR_NUMBER || ''
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
 
 if (!repo || !pr || !token) {

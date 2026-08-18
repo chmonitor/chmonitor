@@ -206,11 +206,9 @@ describe('agent golden scenarios — tool loop continues', () => {
     const answer =
       'default has the most tables; system and information_schema are metadata.'
     const { result, toolCallNames } = await runAgentScenario({
-      prompt: 'What databases are available and which ones have the most tables?',
-      turns: [
-        toolCallTurn('list_databases', {}, 'stop'),
-        textTurn(answer),
-      ],
+      prompt:
+        'What databases are available and which ones have the most tables?',
+      turns: [toolCallTurn('list_databases', {}, 'stop'), textTurn(answer)],
     })
 
     expect(toolCallNames).toEqual(['list_databases'])
