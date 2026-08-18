@@ -8,7 +8,7 @@ Audit ClickHouse configuration without SQL — see every server setting with non
 
 <TypeTable
   type={{
-    Routes: { type: "/settings, /mergetree-settings, /replicated-merge-tree-settings", description: "Pages in this section" },
+    Routes: { type: "/settings, /mergetree-settings, /replicated-merge-tree-settings, /settings-diff", description: "Pages in this section" },
     "Feature id": { type: "settings", description: "Used by permission env vars and config" },
     "Default access": { type: "public", description: "Set CHM_FEATURE_SETTINGS_ACCESS=authenticated to gate" },
     "Requires auth": { type: "No", description: "Anonymous access allowed by default" },
@@ -35,12 +35,14 @@ This section covers **ClickHouse server** settings (read-only, from system table
 | Settings | `/settings` | All server settings; highlights non-defaults | `system.settings` |
 | MergeTree Settings | `/mergetree-settings` | MergeTree engine settings and values | `system.merge_tree_settings` |
 | Replicated MergeTree Settings | `/replicated-merge-tree-settings` | Replicated MergeTree settings; flags changed-from-default | `system.replicated_merge_tree_settings` |
+| Settings Diff | `/settings-diff` | Compare settings and MergeTree settings across configured hosts | `system.settings`, `system.merge_tree_settings` |
 
 ## Using it
 
 - Open `/settings` to review all server settings; non-default values are highlighted so you can spot unexpected overrides or confirm a change took effect.
 - Open `/mergetree-settings` to inspect MergeTree engine settings, and `/replicated-merge-tree-settings` for Replicated MergeTree settings with changed-from-default values flagged.
-- To change a setting, use ClickHouse SQL (`SET`, `ALTER TABLE ... MODIFY SETTING`) or edit the server config — these pages are read-only.
+- Open `/settings-diff` to compare `system.settings` and `system.merge_tree_settings` across every configured host.
+- To change a setting, use ClickHouse SQL (`SET`, `ALTER TABLE ... MODIFY SETTING`) or edit the server config — these pages are read-only. chmonitor never writes `config.xml`.
 
 ## Permissions & access
 
@@ -88,6 +90,7 @@ No feature-specific environment variables. The pages are read-only — chmonitor
 ## Related
 
 <Cards>
+  <Card title="DBA workflows" href="/guide/guides/dba-workflows" description="Settings Diff, advisor, TTL moves, and Explorer — what exists vs the roadmap." />
   <Card title="Settings reference" href="/reference/settings" description="Every dashboard configuration setting in one place." />
   <Card title="Feature permissions" href="/operate/advanced/feature-permissions" description="Gate or disable features per section." />
   <Card title="ClickHouse system.settings" href="https://clickhouse.com/docs/en/operations/system-tables/settings" description="Upstream reference for server settings." />
