@@ -43,6 +43,7 @@ import {
   formatReadableQuantity,
   formatReadableSize,
 } from '@/lib/format-readable'
+import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { cn } from '@/lib/utils'
 
@@ -440,6 +441,7 @@ export function SettingsForm({
   onClose,
 }: SettingsFormProps) {
   const { setTheme } = useTheme()
+  const engine = useActiveHostEngine()
   const [defaultTimezone, setDefaultTimezone] = useState<string | null>(null)
   const [isLoadingDefault, setIsLoadingDefault] = useState(true)
 
@@ -732,6 +734,7 @@ export function SettingsForm({
                 <WorkspacePresetPicker
                   preset={settings.workspacePreset}
                   hiddenMenuHrefs={settings.hiddenMenuHrefs}
+                  engine={engine}
                   onChange={(next) => onUpdate(next)}
                 />
               </Field>

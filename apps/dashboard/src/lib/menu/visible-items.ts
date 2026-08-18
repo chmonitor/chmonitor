@@ -12,10 +12,10 @@
 
 import { menuItemsConfig } from '@/menu'
 
-import type { SourceEngine } from '@chm/types'
 import type { MenuItem } from '@/components/menu/types'
 import type { PublicFeaturePermissionConfig } from '@/lib/feature-permissions/types'
 
+import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
 import {
@@ -105,4 +105,21 @@ export function getVisibleMenuItems(
   const byEngine = filterMenuItemsByEngine(byCloud, engine)
   if (!workspace) return byEngine
   return applyWorkspaceVisibility(byEngine, workspace)
+}
+
+/**
+ * Settings > Navigation customize tree: the same engine filter as the real
+ * sidebar (`getVisibleMenuItems(..., engine)`), minus footer rows (About lives
+ * next to the gear, not in the hide/show list).
+ *
+ * Defaults to {@link DEFAULT_SOURCE_ENGINE} so unspecified hosts keep today's
+ * tree. Pass the ACTIVE host engine (`useActiveHostEngine`) so a Postgres
+ * host customizes the Postgres pages, not the Queries/Cluster groups.
+ */
+export function getSettingsNavMenuItems(
+  engine: SourceEngine = DEFAULT_SOURCE_ENGINE
+): MenuItem[] {
+  return filterMenuItemsByEngine(menuItemsConfig, engine).filter(
+    (item) => item.section !== 'footer'
+  )
 }

@@ -1,16 +1,16 @@
 /**
  * Resolves the ACTIVE Postgres source from the `?pg=<connectionId>` search
  * param (issue #2450). This is the Postgres analog of `?host=<n>` — a SEPARATE
- * routing dimension so a Postgres source is never overloaded onto a ClickHouse
- * `hostId`. When a valid `?pg=` is present, the active engine is `'postgres'`
+ * routing dimension so a Postgres source is never overloaded onto a hostId.
+ * When a valid `?pg=` is present, the active engine is `'postgres'`
  * and the nav menu swaps to Postgres pages (decision 4).
  *
  * Fail-closed: without the feature flag / a resolvable connection, the engine
- * is `'clickhouse'`, so the ClickHouse menu is byte-for-byte unchanged.
+ * is {@link DEFAULT_SOURCE_ENGINE}, so the default menu is byte-for-byte
+ * unchanged.
  */
 
-import type { SourceEngine } from '@chm/types'
-
+import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import {
   type PgConnectionInfo,
@@ -32,8 +32,8 @@ export function useActivePgConnection(): PgConnectionInfo | null {
 /**
  * The active host's source engine, threaded into `getVisibleMenuItems` to swap
  * the nav menu. `'postgres'` only when a valid `?pg=` is active; otherwise
- * `'clickhouse'` (ClickHouse hosts keep today's exact menu).
+ * {@link DEFAULT_SOURCE_ENGINE} (default-engine hosts keep today's exact menu).
  */
 export function useActiveHostEngine(): SourceEngine {
-  return useActivePgConnection() ? 'postgres' : 'clickhouse'
+  return useActivePgConnection() ? 'postgres' : DEFAULT_SOURCE_ENGINE
 }
