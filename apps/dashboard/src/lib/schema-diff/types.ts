@@ -117,3 +117,16 @@ export type SchemaChangePlan = {
   items: PlanItem[]
   safeStatements: string[]
 }
+
+export type SchemaDiffHostInfo = { id: number; name: string }
+
+export type SchemaDiffResponse = {
+  success: boolean
+  hosts: SchemaDiffHostInfo[]
+  sourceHostId: number | null
+  targetHostId: number | null
+  diff: SchemaDiffResult
+  plan: SchemaChangePlan
+  error?: string
+  unavailable?: { reason: string; message: string }
+}

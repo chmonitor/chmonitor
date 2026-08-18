@@ -20,6 +20,7 @@ import {
   assembleCatalog,
   buildChangePlan,
   compareCatalogs,
+  emptySchemaDiffPayload,
   type ColumnRow,
   type IndexRow,
   type ProjectionRow,
@@ -79,13 +80,22 @@ const PROJECTIONS_QUERY = `
   ORDER BY database, table, name
 `
 
-async function queryRows<T>(hostId: number, query: string): Promise<T[]> {
+async function queryRows<T>(
+  hostId: number,
+  query: string,
+  options?: { optional?: boolean }
+): Promise<T[]> {
   const result = await fetchData<T[]>({
     query,
     hostId,
     format: 'JSONEachRow',
   })
-  if (result.error || !result.data) return []
+  if (result.error || !result.data) {
+    if (options?.optional) return []
+    const message =
+      result.error?.message ?? `Catalog query failed on host ${hostId}`
+    throw new Error(message)
+  }
   return result.data
 }
 
@@ -93,10 +103,8 @@ async function loadCatalog(hostId: number) {
   const [tables, columns, indexes, projections] = await Promise.all([
     queryRows<TableRow>(hostId, TABLES_QUERY),
     queryRows<ColumnRow>(hostId, COLUMNS_QUERY),
-    queryRows<IndexRow>(hostId, INDEXES_QUERY).catch(() => [] as IndexRow[]),
-    queryRows<ProjectionRow>(hostId, PROJECTIONS_QUERY).catch(
-      () => [] as ProjectionRow[]
-    ),
+    queryRows<IndexRow>(hostId, INDEXES_QUERY, { optional: true }),
+    queryRows<ProjectionRow>(hostId, PROJECTIONS_QUERY, { optional: true }),
   ])
   return assembleCatalog(tables, columns, indexes, projections)
 }
@@ -130,20 +138,15 @@ export const Route = createFileRoute('/api/v1/schema-diff')({
             env as Record<string, string | undefined>
           )
         ) {
-          return Response.json({
-            success: true,
-            hosts: [],
-            sourceHostId: null,
-            targetHostId: null,
-            diff: {
-              onlySource: [],
-              onlyTarget: [],
-              changed: [],
-              identical: [],
-            },
-            plan: { items: [], safeStatements: [] },
-            unavailable: demoHiddenUnavailable(),
-          })
+          return Response.json(
+            emptySchemaDiffPayload({
+              success: true,
+              hosts: [],
+              sourceHostId: null,
+              targetHostId: null,
+              unavailable: demoHiddenUnavailable(),
+            })
+          )
         }
 
         const hosts = configs.map((c) => ({
@@ -152,19 +155,14 @@ export const Route = createFileRoute('/api/v1/schema-diff')({
         }))
 
         if (hosts.length < 2) {
-          return Response.json({
-            success: true,
-            hosts,
-            sourceHostId: hosts[0]?.id ?? null,
-            targetHostId: null,
-            diff: {
-              onlySource: [],
-              onlyTarget: [],
-              changed: [],
-              identical: [],
-            },
-            plan: { items: [], safeStatements: [] },
-          })
+          return Response.json(
+            emptySchemaDiffPayload({
+              success: true,
+              hosts,
+              sourceHostId: hosts[0]?.id ?? null,
+              targetHostId: null,
+            })
+          )
         }
 
         const searchParams = new URL(request.url).searchParams
@@ -184,22 +182,31 @@ export const Route = createFileRoute('/api/v1/schema-diff')({
             ? requestedTarget
             : fallbackTarget
 
-        const [sourceCatalog, targetCatalog] = await Promise.all([
-          loadCatalog(sourceHostId),
-          loadCatalog(targetHostId),
-        ])
+        try {
+          const [sourceCatalog, targetCatalog] = await Promise.all([
+            loadCatalog(sourceHostId),
+            loadCatalog(targetHostId),
+          ])
 
-        const diff = compareCatalogs(sourceCatalog, targetCatalog)
-        const plan = buildChangePlan(diff)
+          const diff = compareCatalogs(sourceCatalog, targetCatalog)
+          const plan = buildChangePlan(diff)
 
-        return Response.json({
-          success: true,
-          hosts,
-          sourceHostId,
-          targetHostId,
-          diff,
-          plan,
-        })
+          return Response.json({
+            success: true,
+            hosts,
+            sourceHostId,
+            targetHostId,
+            diff,
+            plan,
+          })
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Catalog query failed'
+          return Response.json(
+            { success: false, error: message },
+            { status: 502 }
+          )
+        }
       },
     },
   },
