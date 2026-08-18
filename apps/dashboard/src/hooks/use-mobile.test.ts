@@ -1,0 +1,14 @@
+import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const here = fileURLToPath(new URL('.', import.meta.url))
+const src = readFileSync(resolve(here, 'use-mobile.tsx'), 'utf8')
+
+describe('layout breakpoints', () => {
+  test('phones stay below Tailwind md; sidebar overlays below lg', () => {
+    expect(src).toContain('export const MOBILE_BREAKPOINT = 768')
+    expect(src).toContain('export const LG_BREAKPOINT = 1024')
+  })
+})

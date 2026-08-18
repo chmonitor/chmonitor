@@ -154,6 +154,13 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Tab strips:** define the tabs as one array and map it — an icon per tab with
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.
+  Wrap the list in `scrollbar-hide overflow-x-auto` + `w-max min-w-full` so
+  labels like "Memory & CPU" scroll instead of clipping.
+- **Responsive chrome:** overview KPIs wrap from `sm` (truncate is `max-sm:`
+  only). App sidebar overlays below `lg` (not a docked rail at 768). Mobile
+  sidebar sheet is opaque — no heatmap-through-frost. Phone time chips /
+  sidebar rows / toggle are `min 44×44`. Agent FAB must not cover heatmap
+  "Avg / active day" (`pb-16` + last-card `pr-16`; landscape FAB at `top-16`).
 - **Paired page sections** (e.g. AI-generated vs. plain-statistics content):
   identical-weight header on both — `icon (size-4, muted-foreground) + <h2
   className="text-sm font-medium text-foreground">`. A *genuinely* empty section

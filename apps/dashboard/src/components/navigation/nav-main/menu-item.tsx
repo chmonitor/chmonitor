@@ -131,7 +131,7 @@ const SingleMenuItem = function SingleMenuItem({
               : `${item.title} (Requires a metadata database — configure D1 or Postgres)`
         }
         className={cn(
-          'cursor-pointer',
+          'h-11 min-h-11 cursor-pointer lg:h-8 lg:min-h-8',
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={
@@ -208,7 +208,8 @@ const SubMenuItem = function SubMenuItem({
           pathname
         )}
         className={cn(
-          'cursor-pointer',
+          'h-11 min-h-11 w-full cursor-pointer pr-7 lg:h-7 lg:min-h-7',
+          hasBadge && 'pr-12',
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={
@@ -220,7 +221,7 @@ const SubMenuItem = function SubMenuItem({
           />
         }
       >
-        <span className="group-data-[state=collapsed]/sidebar:hidden min-w-0 truncate">
+        <span className="group-data-[state=collapsed]/sidebar:hidden min-w-0 flex-1 truncate">
           {subItem.title}
         </span>
         {subItem.isNew && (
@@ -274,7 +275,10 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   // Note: Badges stay inline with button content for collapsed state
   if (isCollapsed) {
     const triggerButton = (
-      <SidebarMenuButton isActive={hasActiveChild}>
+      <SidebarMenuButton
+        isActive={hasActiveChild}
+        className="h-11 min-h-11 lg:h-8 lg:min-h-8"
+      >
         {item.icon && <item.icon className="size-4" />}
         <span className="group-data-[state=collapsed]/sidebar:hidden">
           {item.title}
@@ -315,7 +319,11 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
     >
       <CollapsibleTrigger
         render={
-          <SidebarMenuButton isActive={hasActiveChild} tooltip={item.title} />
+          <SidebarMenuButton
+            isActive={hasActiveChild}
+            tooltip={item.title}
+            className="h-11 min-h-11 lg:h-8 lg:min-h-8"
+          />
         }
       >
         {item.icon && <item.icon className="size-4" />}

@@ -119,15 +119,22 @@ function StatCardView({
   value,
   sub,
   accentClass,
+  className,
 }: {
   label: string
   value: string
   sub?: string
   accentClass?: string
+  className?: string
 }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-lg border border-border/60 bg-card/40 px-3 py-2">
-      <span className="text-muted-foreground truncate text-[10px] font-medium uppercase tracking-wide">
+    <div
+      className={cn(
+        'flex min-w-0 flex-col rounded-lg border border-border/60 bg-card/40 px-3 py-2',
+        className
+      )}
+    >
+      <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide max-sm:truncate sm:whitespace-normal">
         {label}
       </span>
       <span
@@ -326,13 +333,18 @@ function CalendarBody({
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {statCards.map((card) => (
+        {statCards.map((card, index) => (
           <StatCardView
             key={card.label}
             label={card.label}
             value={card.value}
             sub={card.sub}
             accentClass={card.accent ? metric.accentText : undefined}
+            className={
+              index === statCards.length - 1
+                ? 'max-lg:col-span-2 max-lg:pr-16'
+                : undefined
+            }
           />
         ))}
       </div>

@@ -50,7 +50,7 @@ export function AssistantModal({
 
   return (
     <AssistantModalPrimitive.Root open={open} onOpenChange={setOpen}>
-      <AssistantModalPrimitive.Anchor className="fixed right-4 bottom-4 z-40 size-11">
+      <AssistantModalPrimitive.Anchor className="fixed right-4 bottom-4 z-40 size-11 max-md:landscape:top-16 max-md:landscape:bottom-auto">
         <AssistantModalPrimitive.Trigger asChild>
           <AssistantModalButton />
         </AssistantModalPrimitive.Trigger>

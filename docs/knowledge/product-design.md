@@ -515,8 +515,27 @@ when the user unblocks the site. Gate "Send test" on the live permission.
 Define tabs as one array and map it. One icon size (`size-3.5`), no margin
 utility — `TabsTrigger` already provides `items-center gap-1.5`; a stacked
 `mr-*` is what makes icons look off-baseline. Keep the strip in the
-`scrollbar-hide overflow-x-auto` + `TabsList w-max flex-nowrap` wrapper so many
-tabs scroll instead of wrapping.
+`scrollbar-hide overflow-x-auto` + `TabsList w-max min-w-full flex-nowrap`
+wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
+
+### Responsive chrome (phones + tablets)
+
+- **Overview KPI cards** wrap titles/values from `sm` up. `truncate` is
+  `max-sm:` only — a four-up strip at 1280 must show "Active Queries" and
+  typical values in full.
+- **App sidebar overlays below `lg` (1024)**, not `md`. A docked 16rem rail at
+  768 / landscape crushes the card grid. `SidebarProvider` uses `useIsLgDown()`;
+  the desktop rail + resize handle are `lg:flex` / `lg:block`.
+- **Mobile sidebar sheet is opaque.** Drawer `bg-sidebar` + `isolate`; overlay
+  is a solid dim (`oklch(0 0 0 / 0.55)`), no `backdrop-blur`, so the overview
+  heatmap cannot frost through the menu (`styles.css` + sheet classes).
+- **Agent FAB** stays `fixed right-4 bottom-4`. Main content gets `pb-16` below
+  `lg`; the heatmap's last stat card (`Avg / active day`) is `max-lg:col-span-2
+  max-lg:pr-16` so the bubble does not cover the label. On phone landscape the
+  FAB moves to `top-16`.
+- **Phone tap targets are 44×44.** Time chips (`min-h-11 min-w-11` until
+  `sm`), sidebar rows (`h-11` until `lg`), sidebar trigger (`size-11` until
+  `lg`). Compact sizes return at the desktop rail.
 
 ## UX conventions
 
