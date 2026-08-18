@@ -118,6 +118,12 @@ describe('NavSettingsButton', () => {
     const { QueryClient, QueryClientProvider } = await import(
       '@tanstack/react-query'
     )
+    const {
+      RouterContextProvider,
+      createMemoryHistory,
+      createRootRoute,
+      createRouter,
+    } = await import('@tanstack/react-router')
     const { NavSettingsButton } = await import('./nav-settings-button')
     const { SettingsDialog } = await import('@/components/settings')
     const { TooltipProvider } = await import('@/components/ui/tooltip')
@@ -140,16 +146,24 @@ describe('NavSettingsButton', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
+    // SettingsForm reads the active host engine via useUrlSearchParams /
+    // useRouterState. Provide a router so opening the dialog does not throw.
+    const router = createRouter({
+      routeTree: createRootRoute(),
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    })
 
     function Harness() {
       const [open, setOpen] = useState(false)
       return (
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <NavSettingsButton onClick={() => setOpen(true)} />
-            <SettingsDialog open={open} onOpenChange={setOpen} />
-          </TooltipProvider>
-        </QueryClientProvider>
+        <RouterContextProvider router={router}>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <NavSettingsButton onClick={() => setOpen(true)} />
+              <SettingsDialog open={open} onOpenChange={setOpen} />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </RouterContextProvider>
       )
     }
 
