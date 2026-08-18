@@ -45,6 +45,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Test mobile header tap targets
+        run: pnpm test
+
       - name: Build
         run: pnpm run build
 

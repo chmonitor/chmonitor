@@ -64,3 +64,23 @@ html > body[data-scroll-locked] {
 :root {
   --fd-layout-width: 1400px;
 }
+
+/*
+ * Mobile header tap targets (issue #3107).
+ *
+ * Fumadocs home hamburger is `lg` (1024px); docs-page header is `md` (768px).
+ * Both icon buttons render at 34×34: search is `p-2` + `size-4.5` svg, menu is
+ * `p-1.5` + `size-5.5` svg. Pad the hit area to WCAG 2.5.5 44×44 and keep the
+ * glyph size. Unlayered so this beats Tailwind `p-*` utilities.
+ */
+@media (max-width: 1024px) {
+  #nd-nav [data-search],
+  #nd-nav [aria-label='Toggle Menu'],
+  #nd-subnav [data-search],
+  #nd-subnav [aria-label='Open Sidebar'] {
+    box-sizing: border-box;
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+}
