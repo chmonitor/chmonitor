@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const src = readFileSync(resolve(import.meta.dir, 'use-mobile.tsx'), 'utf8')
+const here = fileURLToPath(new URL('.', import.meta.url))
+const src = readFileSync(resolve(here, 'use-mobile.tsx'), 'utf8')
 
 describe('layout breakpoints', () => {
   test('phones stay below Tailwind md; sidebar overlays below lg', () => {

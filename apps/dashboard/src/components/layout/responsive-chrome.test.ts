@@ -9,8 +9,10 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = resolve(import.meta.dir, '../..')
+const here = fileURLToPath(new URL('.', import.meta.url))
+const root = resolve(here, '../..')
 
 function src(rel: string): string {
   return readFileSync(resolve(root, rel), 'utf8')
