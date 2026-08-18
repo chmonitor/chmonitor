@@ -1,7 +1,6 @@
 import {
   CounterClockwiseClockIcon,
   CrossCircledIcon,
-  InfoCircledIcon,
   LightningBoltIcon,
   MixIcon,
 } from '@radix-ui/react-icons'
@@ -12,7 +11,6 @@ import {
   GaugeIcon,
   LayersIcon,
   UsersIcon,
-  WandSparklesIcon,
 } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
@@ -100,21 +98,6 @@ export const queriesItems: MenuItem[] = [
         icon: LayersIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
-      },
-      {
-        title: 'Explain',
-        href: '/explain',
-        description: 'Query execution plan analysis for performance tuning',
-        icon: InfoCircledIcon,
-        docs: 'https://clickhouse.com/docs/en/sql-reference/statements/explain',
-      },
-      {
-        title: 'Advisor',
-        href: '/advisor',
-        description:
-          'Ranked skip-index, projection, partition-key, and PREWHERE recommendations for a slow query (recommend-only)',
-        icon: WandSparklesIcon,
-        isNew: true,
       },
       {
         title: 'Query Views Log',

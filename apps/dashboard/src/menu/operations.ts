@@ -1,4 +1,4 @@
-import { ArchiveIcon, BarChartIcon, DashboardIcon } from '@radix-ui/react-icons'
+import { ArchiveIcon, BarChartIcon } from '@radix-ui/react-icons'
 import { CloudIcon, ShieldAlertIcon } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
@@ -13,13 +13,6 @@ export const operationsItems: MenuItem[] = [
     section: 'others',
     permission: { feature: 'operations' },
     items: [
-      {
-        title: 'Chart Builder',
-        href: '/dashboard',
-        description: 'Build custom monitoring dashboards with charts',
-        icon: DashboardIcon,
-        permission: { feature: 'dashboard' },
-      },
       {
         title: 'Backups',
         href: '/backups',

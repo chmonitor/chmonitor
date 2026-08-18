@@ -290,7 +290,12 @@ module snapshot in `lib/format-settings.ts`; palette/density →
 
 1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
 2. Add a `QueryConfig` in `src/lib/query-config/` if it needs data.
-3. Register in `src/menu.ts` (with feature gate / `tableCheck` if optional).
+3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
+   Interactive utilities (SQL, explorer, explain, compare, builder) go in
+   `menu/tools.ts` — not under Queries/Tables/Operations/System. System-table
+   views stay in their domain file. The Tools parent must not set
+   `permission`; copy the child's existing feature onto the leaf. DBA /
+   Engineer / SRE presets include `Tools`.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

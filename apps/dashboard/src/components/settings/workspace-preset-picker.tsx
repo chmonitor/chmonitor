@@ -30,10 +30,10 @@ const PRESET_OPTIONS: {
 
 const PRESET_HINT: Record<WorkspacePreset, string> = {
   full: 'Every page the host and deployment already allow. New pages stay visible.',
-  dba: 'Tables, queries, merges, replication, disks, cluster, keeper, security.',
+  dba: 'Tables, queries, SQL tools, merges, replication, disks, cluster, keeper, security.',
   engineer:
-    'Overview, queries, SQL/explorer, insights. Less keeper, security, and ops.',
-  sre: 'Overview, health, insights, replication, disks, errors, running queries.',
+    'Overview, SQL/explorer, queries, insights. Less keeper, security, and ops.',
+  sre: 'Overview, health, insights, SQL tools, replication, disks, errors, running queries.',
   custom:
     'Starts from a preset. Hide extra pages without a full checkbox wall.',
 }

@@ -3,7 +3,6 @@ import {
   AlertTriangleIcon,
   CircleDollarSignIcon,
   GaugeIcon,
-  GitCompareArrowsIcon,
   HardDriveIcon,
   SlidersHorizontalIcon,
   WorkflowIcon,
@@ -48,25 +47,6 @@ export const systemItems: MenuItem[] = [
         icon: SlidersHorizontalIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/replicated_merge_tree_settings',
         tableCheck: 'system.replicated_merge_tree_settings',
-      },
-      {
-        title: 'Settings Diff',
-        href: '/settings-diff',
-        description:
-          'Compare system.settings and merge_tree_settings across all configured hosts',
-        icon: GitCompareArrowsIcon,
-        isNew: true,
-        permission: { feature: 'settings' },
-      },
-      {
-        title: 'Schema Compare',
-        href: '/schema-diff',
-        description:
-          'Compare table schemas across hosts and copy a recommend-only change plan',
-        icon: GitCompareArrowsIcon,
-        isNew: true,
-        permission: { feature: 'settings' },
-        tableCheck: 'system.tables',
       },
       {
         title: 'Disks',

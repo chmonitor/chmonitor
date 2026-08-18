@@ -226,6 +226,7 @@ describe('getSettingsNavMenuItems', () => {
       getSettingsNavMenuItems(DEFAULT_SOURCE_ENGINE).map((i) => i.title)
     )
     expect(titles).toContain('Queries')
+    expect(titles).toContain('Tools')
     expect(titles).toContain('Cluster')
     expect(titles).not.toContain('Query Insights')
     expect(titles).not.toContain('About')
@@ -236,6 +237,7 @@ describe('getSettingsNavMenuItems', () => {
     expect(titles).toContain('Query Insights')
     expect(titles).toContain('Running Queries')
     expect(titles).not.toContain('Queries')
+    expect(titles).not.toContain('Tools')
     expect(titles).not.toContain('Cluster')
     expect(titles).not.toContain('Overview')
     expect(titles).not.toContain('About')
@@ -355,7 +357,10 @@ describe('applyWorkspaceVisibility', () => {
 
   test('DBA preset group titles stay the documented set', () => {
     expect(PRESET_GROUP_TITLES.dba).toContain('Tables')
+    expect(PRESET_GROUP_TITLES.dba).toContain('Tools')
+    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools')
     expect(PRESET_GROUP_TITLES.engineer).not.toContain('Keeper')
     expect(PRESET_GROUP_TITLES.sre).toContain('Health')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Tools')
   })
 })

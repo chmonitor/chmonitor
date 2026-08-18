@@ -128,3 +128,57 @@ describe('menu.ts hrefs resolve to a real route file', () => {
     expect(offenders).toEqual([])
   })
 })
+
+describe('Tools group (interactive utilities)', () => {
+  const tools = menuItemsConfig.find((item) => item.title === 'Tools')
+
+  test('is a top-level main group after Overview/Postgres and before AI Agent', () => {
+    const titles = menuItemsConfig.map((item) => item.title)
+    const toolsAt = titles.indexOf('Tools')
+    expect(toolsAt).toBeGreaterThan(titles.indexOf('Overview'))
+    expect(toolsAt).toBeGreaterThan(titles.indexOf('Running Queries'))
+    expect(toolsAt).toBeLessThan(titles.indexOf('AI Agent'))
+    expect(tools?.section).toBe('main')
+  })
+
+  test('lists daily-use utilities in most-used-first order', () => {
+    expect(tools?.items?.map((item) => item.href)).toEqual([
+      '/sql',
+      '/explorer',
+      '/explain',
+      '/advisor',
+      '/dashboard',
+      '/schema-diff',
+      '/settings-diff',
+    ])
+  })
+
+  test('parent does not over-gate children; each child keeps its feature', () => {
+    expect(tools?.permission).toBeUndefined()
+    const byHref = Object.fromEntries(
+      (tools?.items ?? []).map((item) => [item.href, item.permission?.feature])
+    )
+    expect(byHref['/sql']).toBe('tables')
+    expect(byHref['/explorer']).toBe('tables')
+    expect(byHref['/explain']).toBe('queries')
+    expect(byHref['/advisor']).toBe('queries')
+    expect(byHref['/dashboard']).toBe('dashboard')
+    expect(byHref['/schema-diff']).toBe('settings')
+    expect(byHref['/settings-diff']).toBe('settings')
+  })
+
+  test('moved pages are gone from their old groups', () => {
+    const hrefsOf = (title: string) =>
+      menuItemsConfig
+        .find((item) => item.title === title)
+        ?.items?.map((item) => item.href) ?? []
+
+    expect(hrefsOf('Tables')).not.toContain('/sql')
+    expect(hrefsOf('Tables')).not.toContain('/explorer')
+    expect(hrefsOf('Queries')).not.toContain('/explain')
+    expect(hrefsOf('Queries')).not.toContain('/advisor')
+    expect(hrefsOf('Operations')).not.toContain('/dashboard')
+    expect(hrefsOf('System')).not.toContain('/schema-diff')
+    expect(hrefsOf('System')).not.toContain('/settings-diff')
+  })
+})

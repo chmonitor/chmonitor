@@ -61,7 +61,9 @@ function ensureDesktopRailExpanded() {
 function expandGroup(groupLabel: string, hrefPart: string) {
   const labelRe = new RegExp(`^${groupLabel}(\\s|$)`)
   cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
-    .filter((_, el) => labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim()))
+    .filter((_, el) =>
+      labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim())
+    )
     .should('have.length.at.least', 1)
     .first()
     .scrollIntoView()
@@ -71,7 +73,9 @@ function expandGroup(groupLabel: string, hrefPart: string) {
     if ($body.find(`a[href*="${hrefPart}"]`).length === 0) {
       // First click collapsed an already-open group — toggle back.
       cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
-        .filter((_, el) => labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim()))
+        .filter((_, el) =>
+          labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim())
+        )
         .first()
         .click({ force: true })
     }
@@ -115,11 +119,20 @@ describe('Sidebar navigation', () => {
       })
   })
 
-  it('navigates to running-queries via sidebar', () => {
+  test('navigates to running-queries via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
     expandGroup('Queries', '/running-queries')
     clickHref('/running-queries')
     cy.url().should('include', '/running-queries')
+    cy.url().should('include', 'host=0')
+    cy.get('body').should('exist')
+  })
+
+  it('navigates to sql console via Tools sidebar group', () => {
+    cy.get(SIDEBAR).should('be.visible')
+    expandGroup('Tools', '/sql')
+    clickHref('/sql')
+    cy.url().should('include', '/sql')
     cy.url().should('include', 'host=0')
     cy.get('body').should('exist')
   })

@@ -287,6 +287,7 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   is hover-only on that row (never always-on). Favorites also show a grip
   handle on hover; drag it to reorder (`nav-favorites.tsx`). Order is the
   `chm-pinned-favorites` localStorage pin list (`lib/menu/favorites-store.ts`).
+
 - **Dashboard widget grid** (plan 57, `components/dashboard/`): `grid.tsx`
   lays out `DashboardWidget[]` (chart/table/stat/text, `@/types/dashboard-layout`)
   on a fixed 12-column CSS grid; view mode is plain positioned `div`s, arrange
@@ -631,9 +632,41 @@ lettermark (first letter, provider's existing accent color) rather than
 inventing a low-quality logo — see `ProviderMark` in
 `components/agents/settings/provider-models-tab.tsx`.
 
+
+## Sidebar navigation groups
+
+The dashboard sidebar (and Settings > Navigation, ⌘K, breadcrumbs) is composed
+from `apps/dashboard/src/menu/*.ts` via `menu/index.ts` (re-exported as
+`src/menu.ts`). Order in `menuItemsConfig` is the sidebar order.
+
+**Main** (near the top): Overview, Postgres (engine-gated), **Tools**, AI Agent,
+Insights, Health, Queries, Tables, Merges, Metrics, Keeper, PeerDB.
+
+**Others**: Inbound Events, Security, Logs, System, Cluster, Operations.
+
+**Footer**: About (next to the Settings gear; never hidden by a workspace
+preset).
+
+**Tools** is the interactive-utility group — pages where you *do* something
+(run SQL, explore schema, explain a query, compare hosts, build charts) rather
+than watch a system-table monitor. Current leaves, most-used first: SQL Console
+(`/sql`), Data Explorer (`/explorer`), Explain (`/explain`), Advisor
+(`/advisor`, recommend-only), Chart Builder (`/dashboard`), Schema Compare
+(`/schema-diff`), Settings Diff (`/settings-diff`). AI Agent stays its own
+flagship group. Postgres-only items stay engine-gated and are not moved here.
+
+The Tools parent must **not** over-gate children: leave `permission` off the
+group and copy each child's existing feature (`tables`, `queries`,
+`dashboard`, `settings`) onto the leaf. DBA, Engineer, and SRE presets all
+include `Tools` (`PRESET_GROUP_TITLES`); Full auto-includes new groups.
+
+When adding a page: interactive utility → `menu/tools.ts`; system-table view →
+the matching domain file (`queries.ts`, `tables.ts`, …).
+
 ## File / naming
 
 kebab-case files; PascalCase components; `use*` hooks; `'use client'` on
 interactive client components; shared types in `src/types/` or
 `src/lib/api/types.ts`; route pages under `src/routes/(dashboard)/`; nav in
-`src/menu.ts`. See `conventions.md`.
+`src/menu/` (composed by `menu/index.ts`, re-exported from `src/menu.ts`).
+See `conventions.md`.
