@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
@@ -53,7 +52,6 @@ export function ClerkNavWrapper() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { config } = useFeaturePermissions()
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
-  const cloudMode = isCloudModeClient()
   const openSettings = () => {
     if (canUseSettings) setSettingsOpen(true)
   }
@@ -193,18 +191,6 @@ export function ClerkNavWrapper() {
                   <UserIcon className="size-4" />
                   <span>Account Settings</span>
                 </DropdownMenuItem>
-                {cloudMode && (
-                  <DropdownMenuItem
-                    className="flex items-center gap-2"
-                    onClick={() => (window.location.href = '/organization')}
-                    data-testid="nav-user-organization"
-                  >
-                    <Building2 className="size-4" />
-                    <span>
-                      {organization ? 'Organization' : 'Create a team'}
-                    </span>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem
                   className="flex items-center gap-2"
                   onClick={() => (window.location.href = '/about')}

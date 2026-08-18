@@ -9,7 +9,7 @@ import {
 /**
  * Role workspace presets (issue #3077). Named presets keep a stable set of
  * top-level menu groups. Full is the only auto-expand preset: new pages and
- * groups appear there automatically. Footer rows (About / Organization) are
+ * groups appear there automatically. Footer rows (About) are
  * never hidden — they sit next to the Settings gear and Host switcher.
  */
 

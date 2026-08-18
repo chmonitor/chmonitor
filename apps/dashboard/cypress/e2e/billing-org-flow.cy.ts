@@ -75,10 +75,6 @@ describe('Billing + Org flow', () => {
       cy.get('h1').should('exist')
     })
 
-    it('/organization renders without a console crash', () => {
-      cy.visit('/organization')
-      cy.get('body').should('exist')
-    })
   })
 
   // ── Suite B: Authenticated (requires Clerk test mode) ────────────────────
@@ -114,22 +110,5 @@ describe('Billing + Org flow', () => {
       })
     })
 
-    it('/organization renders the org profile or the empty-org card', () => {
-      setupClerkTestingToken()
-      cy.visit('/organization')
-      cy.clerkSignIn({ strategy: 'email_code', identifier: testEmail() })
-      cy.visit('/organization')
-      // Either <OrganizationProfile> (paid user in an org) or <NoOrgState>
-      // ("No organization yet" card + upgrade prompt) must be visible.
-      cy.get('body').then(($body) => {
-        const text = $body.text()
-        const hasOrgProfile =
-          $body.find('.cl-organizationProfile').length > 0 ||
-          $body.find('[data-clerk-component="OrganizationProfile"]').length > 0
-        const hasUpgradePrompt =
-          text.includes('No organization yet') || text.includes('organization')
-        expect(hasOrgProfile || hasUpgradePrompt).to.be.true
-      })
-    })
   })
 })

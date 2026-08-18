@@ -514,12 +514,6 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 0,
-    "href": "/organization",
-    "section": "footer",
-    "title": "Organization",
-  },
-  {
-    "depth": 0,
     "href": "/about",
     "section": "footer",
     "title": "About",

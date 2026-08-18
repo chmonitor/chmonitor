@@ -123,7 +123,7 @@ describe('resolveFirstRunAction — self-hosted (OSS) unchanged', () => {
 })
 
 describe('resolveFirstRunAction — exemptions & auth', () => {
-  it('exempt paths (/setup, /billing, /organization, /about) always render', () => {
+  it('exempt paths (/setup, /billing, /about) always render', () => {
     const action = resolveFirstRunAction(
       input({
         onExemptPath: true,
@@ -155,7 +155,6 @@ describe('isFirstRunExemptPath', () => {
   it.each([
     '/setup',
     '/billing',
-    '/organization',
     '/about',
   ])('exempts %s from the first-run /setup redirect', (path) => {
     expect(isFirstRunExemptPath(path)).toBe(true)
