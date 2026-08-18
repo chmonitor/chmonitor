@@ -10,7 +10,8 @@ description: >-
   "cloud mode", "SaaS", "demo host", "welcome page", "setup page", "first-run",
   "add host error", "connection error", "read-only host", "hide hosts when
   signed in", "sample cluster", "sample ClickHouse", "try sample",
-  "guest AI", "anonymous agent", "guest credits", "guest quota".
+  "guest AI", "anonymous agent", "guest credits", "guest quota",
+  "sign-in", "sign-up", "/auth.md".
 metadata:
   tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors, sample-cluster, guest-ai
 ---
@@ -79,6 +80,14 @@ returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
 `(cloudMode, isSignedIn)`: cloud signed-in (Connect-your-host + Add-host dialog),
 cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
 Gate `ClerkSignInButton` behind `isClerkEnabled()`.
+
+**Human vs agent auth URLs (#3092).** `/sign-in` and `/sign-up` are human HTML
+pages (`components/clerk/auth-page.tsx`: Clerk modal CTA, or an explicit
+"use the dashboard Sign in control" fallback when Clerk is off). `/login`
+redirects to `/sign-in`. `/auth.md` is the agent-facing markdown document.
+`agentDiscoveryHandler` in `start.ts` must never rewrite the human auth
+paths to `text/markdown` — a cached markdown HIT is what made
+`dash.chmonitor.dev/sign-in` unusable for people.
 
 **Cloud signed-in welcome:** connect a host immediately. There is no Polar
 plan picker and no dashboard `/billing` page. Public paid checkout is
@@ -150,7 +159,7 @@ only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
 ## Keep this skill current
 
 When you change cloud-mode behaviour, demo-host visibility, the welcome/setup
-page, per-user connections, the connection-error classifier, or guest-agent
-credits/rate-limits, UPDATE this file and `docs/knowledge/cloud-saas-mode.md`
-in the same change. See the "Auto-improve project skills" note in the root
-`CLAUDE.md`.
+page, human `/sign-in` vs agent `/auth.md`, per-user connections, the
+connection-error classifier, or guest-agent credits/rate-limits, UPDATE this
+file and `docs/knowledge/cloud-saas-mode.md` in the same change. See the
+"Auto-improve project skills" note in the root `CLAUDE.md`.
