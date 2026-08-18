@@ -121,11 +121,18 @@ const clientLoader = browserCollections.docs.createClientLoader({
       <DocsPage toc={toc}>
         <DocsTitle>{frontmatter.title}</DocsTitle>
         <DocsDescription>{frontmatter.description}</DocsDescription>
-        <div className="flex flex-row gap-2 items-center border-b -mt-4 pb-6">
-          <MarkdownCopyButton markdownUrl={markdownUrl} />
+        <div
+          data-article-actions
+          className="flex flex-row flex-wrap items-center gap-2 border-b -mt-4 pb-6"
+        >
+          <MarkdownCopyButton
+            markdownUrl={markdownUrl}
+            className="max-md:min-h-11"
+          />
           <ViewOptionsPopover
             markdownUrl={markdownUrl}
             githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/docs/content/${path}`}
+            className="max-md:min-h-11 max-md:min-w-11"
           />
         </div>
         <DocsBody>
