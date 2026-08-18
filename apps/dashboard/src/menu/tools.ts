@@ -12,10 +12,11 @@ import type { MenuItem } from '@/components/menu/types'
 export const toolsItems: MenuItem[] = [
   {
     // Interactive utilities (run SQL, explore schema, explain, compare,
-    // build charts) — not system-table monitors. No `permission` on the
-    // parent: children keep the feature gates they inherited from their
-    // old groups (`tables`, `queries`, `dashboard`, `settings`) so the
-    // group is not over-gated.
+    // build charts) — not system-table monitors. Composed last among main
+    // groups in index.ts (after Logs, before About / System / Cluster /
+    // Operations). No `permission` on the parent: children keep the
+    // feature gates they inherited from their old groups (`tables`,
+    // `queries`, `dashboard`, `settings`) so the group is not over-gated.
     //
     // No `engines` on the parent or children (#3105 / #3115): absent already
     // means the default source-engine family. filterMenuItemsByEngine drops

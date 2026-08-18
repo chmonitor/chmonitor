@@ -102,6 +102,15 @@ describe('WorkspacePresetPicker', () => {
       expect(container.textContent).toContain('Queries')
       expect(container.textContent).toContain('Tools')
       expect(container.textContent).toContain('Main')
+      // Settings tree groups by section: Tools is last in Main, so it
+      // appears after AI Agent and before the Others heading / Logs.
+      const treeText =
+        container.querySelector('[data-testid="workspace-menu-tree"]')
+          ?.textContent ?? ''
+      expect(treeText.indexOf('Tools')).toBeGreaterThan(
+        treeText.indexOf('AI Agent')
+      )
+      expect(treeText.indexOf('Tools')).toBeLessThan(treeText.indexOf('Logs'))
 
       const overview = container.querySelector(
         '[data-testid="workspace-menu-leaf-/overview"]'

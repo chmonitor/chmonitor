@@ -293,7 +293,9 @@ module snapshot in `lib/format-settings.ts`; palette/density →
 3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
    Interactive utilities (SQL, explorer, explain, compare, builder) go in
    `menu/tools.ts` — not under Queries/Tables/Operations/System. System-table
-   views stay in their domain file. The Tools parent must not set
+   views stay in their domain file. Tools is the last Main group, composed
+   after Logs and before the About footer in `menu/index.ts` — do not put
+   it after Overview / before AI Agent. The Tools parent must not set
    `permission`; copy the child's existing feature onto the leaf. Leave
    `engines` absent so Postgres hosts hide the whole Tools group — do not
    add `engines: ['postgres']`. DBA / Engineer / SRE presets include

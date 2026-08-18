@@ -639,8 +639,8 @@ The dashboard sidebar (and Settings > Navigation, ⌘K, breadcrumbs) is composed
 from `apps/dashboard/src/menu/*.ts` via `menu/index.ts` (re-exported as
 `src/menu.ts`). Order in `menuItemsConfig` is the sidebar order.
 
-**Main** (near the top): Overview, Postgres (engine-gated), **Tools**, AI Agent,
-Insights, Health, Queries, Tables, Merges, Metrics, Keeper, PeerDB.
+**Main**: Overview, Postgres (engine-gated), AI Agent, Insights, Health,
+Queries, Tables, Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 
 **Others**: Inbound Events, Security, Logs, System, Cluster, Operations.
 
@@ -649,9 +649,11 @@ preset).
 
 **Tools** is the interactive-utility group — pages where you *do* something
 (run SQL, explore schema, explain a query, compare hosts, build charts) rather
-than watch a system-table monitor. Current leaves, most-used first: SQL Console
-(`/sql`), Data Explorer (`/explorer`), Explain (`/explain`), Advisor
-(`/advisor`, recommend-only), Chart Builder (`/dashboard`), Schema Compare
+than watch a system-table monitor. It is the last Main group: composed after
+Logs in `menu/index.ts`, before the About footer and System / Cluster /
+Operations. Current leaves, most-used first: SQL Console (`/sql`), Data
+Explorer (`/explorer`), Explain (`/explain`), Advisor (`/advisor`,
+recommend-only), Chart Builder (`/dashboard`), Schema Compare
 (`/schema-diff`), Settings Diff (`/settings-diff`). AI Agent stays its own
 flagship group. Postgres-only items stay engine-gated and are not moved here.
 

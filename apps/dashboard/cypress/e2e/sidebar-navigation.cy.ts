@@ -129,6 +129,8 @@ describe('Sidebar navigation', () => {
   })
 
   it('navigates to sql console via Tools sidebar group', () => {
+    // Tools is the last Main group (composed after Logs in menu/index.ts).
+    // expandGroup scrolls it into view — do not assume it is near the top.
     cy.get(SIDEBAR).should('be.visible')
     expandGroup('Tools', '/sql')
     clickHref('/sql')
