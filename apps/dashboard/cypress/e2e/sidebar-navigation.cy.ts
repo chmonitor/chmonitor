@@ -22,17 +22,38 @@
 // The element has data-sidebar="sidebar" and data-slot="sidebar-inner".
 const SIDEBAR = '[data-sidebar="sidebar"]'
 const SIDEBAR_TRIGGER = '[data-slot="sidebar-trigger"]'
+const SIDEBAR_GROUP = '[data-slot="sidebar"]'
+
+/**
+ * Nested groups render as a Popover portal when the rail is icon-collapsed
+ * (`useSidebar().state === 'collapsed'`). Nested `a` tags then live outside
+ * `[data-sidebar="sidebar"]`. Cookie `sidebar_state` is write-only, so a
+ * prior spec that clicked the trigger can leave this visit collapsed.
+ */
+function ensureDesktopRailExpanded() {
+  // data-state lives on the desktop group (`data-slot="sidebar"`), not the
+  // wrapper. Yield is the attribute string after should('have.attr').
+  cy.get(SIDEBAR_GROUP)
+    .should('have.attr', 'data-state')
+    .then((state) => {
+      if (state === 'collapsed') {
+        cy.get(SIDEBAR_TRIGGER).first().click()
+      }
+    })
+  cy.get(SIDEBAR_GROUP).should('have.attr', 'data-state', 'expanded')
+}
 
 /**
  * Expand a collapsible sidebar group only when the target link is missing
- * or hidden. Unconditionally clicking the group button toggles it: if the
- * group is already open, the click collapses it and the links unmount.
+ * or hidden. Unconditionally clicking the group toggles it: if the group is
+ * already open, the click collapses it and the links unmount. Match visible
+ * text rather than `button` so Base UI CollapsibleTrigger still works.
  */
 function expandGroupIfNeeded(groupLabel: string, hrefPart: string) {
   cy.get(SIDEBAR).then(($sidebar) => {
     const $visible = $sidebar.find(`a[href*="${hrefPart}"]`).filter(':visible')
     if ($visible.length === 0) {
-      cy.wrap($sidebar).contains('button', groupLabel).click()
+      cy.wrap($sidebar).contains(groupLabel).should('be.visible').click()
     }
   })
 }
@@ -43,6 +64,7 @@ describe('Sidebar navigation', () => {
     // paint is already the persistent sidebar, not the overlay sheet.
     cy.viewport(1280, 720)
     cy.visit('/overview?host=0')
+    ensureDesktopRailExpanded()
   })
 
   it('renders the sidebar with navigation links', () => {
