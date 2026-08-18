@@ -87,6 +87,7 @@ describe('insightChartNames', () => {
       { category: 'storage', metric: 'max_active_parts' },
       { category: 'storage', metric: 'detached_parts' },
       { category: 'storage', metric: 'worst_compression_ratio' },
+      { category: 'storage', metric: 'ttl_partition_health' },
       { category: 'reliability', metric: 'readonly_replicas' },
       { category: 'reliability', metric: 'max_replication_delay' },
       { category: 'reliability', metric: 'stuck_mutations' },
