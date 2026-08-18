@@ -1,3 +1,5 @@
+import { ALERT_CHANNELS_SHORT } from './alert-channels'
+
 export type FeatureIconId =
   | 'bot'
   | 'search'
@@ -90,7 +92,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
     description:
       'Built-in health checks watch replication lag, disk, memory and failed queries — each with tunable warning and critical thresholds.',
     bullets: [
-      'One webhook URL — Slack, Discord, PagerDuty or Opsgenie',
+      `${ALERT_CHANNELS_SHORT} — routed per rule`,
       'Editable thresholds per check with full fire and recovery history',
       'One-click AI audit prompt for any failing check',
     ],

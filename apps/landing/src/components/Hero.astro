@@ -1,4 +1,6 @@
 ---
+import { ALERT_CHANNELS_SHORT } from '../data/alert-channels'
+
 const HERO_VIDEO = '/assets/videos/chmonitor-v0.3.mp4'
 const HERO_POSTER = '/assets/videos/chmonitor-v0.3-poster.jpg'
 const HERO_POSTER_ALT =
@@ -9,7 +11,7 @@ const HERO_FEATURES = [
   'Running, slow and expensive query views with EXPLAIN',
   'Cluster topology, replica lag and Keeper health',
   'Disk, memory and merge backlog on one overview',
-  'Threshold alerts to Slack, Opsgenie, PagerDuty and webhooks',
+  `Threshold alerts to ${ALERT_CHANNELS_SHORT}`,
   'AI advisor for schema and tuning — MCP-ready, read-only default',
 ] as const
 
