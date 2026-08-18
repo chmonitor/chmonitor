@@ -249,11 +249,15 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.headers.get('Content-Type')).toContain(OPENAPI_CONTENT_TYPE)
 
     const data = (await res.json()) as OpenAPIResponse
-    expect(data.openapi).toBe('3.0.0')
+    expect(data.openapi).toMatch(/^3\.0\.\d+$/)
     expect(data.info.title).toBe('chmonitor API')
     expect(data.paths).toBeDefined()
     expect(data.paths['/api/health']).toBeDefined()
     expect(data.paths[OPENAPI_SPEC_PATH]).toBeDefined()
+    expect(data.paths['/api/v1/hosts']).toBeDefined()
+    expect(data.paths['/api/v1/charts/{name}']).toBeDefined()
+    expect(data.paths['/api/v1/tables/{name}']).toBeDefined()
+    expect(Object.keys(data.paths).length).toBeGreaterThan(2)
     expect(buildOpenApiDocument().externalDocs.url).toBe(API_SERVICE_DOC_HREF)
   })
 
