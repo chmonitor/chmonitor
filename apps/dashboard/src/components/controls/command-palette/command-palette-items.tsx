@@ -42,13 +42,13 @@ export function CommandPaletteTrigger({ onOpen }: { onOpen: () => void }) {
         icon={<Search className="size-4" />}
         onClick={onOpen}
         tooltip="Search"
-        className="md:hidden"
+        className="min-h-11 min-w-11 md:hidden lg:min-h-8 lg:min-w-8"
       />
 
       <button
         type="button"
         onClick={onOpen}
-        className="relative hidden h-8 w-30 items-center gap-2 rounded-md border bg-muted/30 px-2.5 text-xs transition-[border-color,box-shadow,background-color] hover:bg-muted/50 hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 md:inline-flex md:w-40"
+        className="relative hidden h-8 min-h-11 w-30 items-center gap-2 rounded-md border bg-muted/30 px-2.5 text-xs transition-[border-color,box-shadow,background-color] hover:bg-muted/50 hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 md:inline-flex md:w-40 lg:h-8 lg:min-h-8"
       >
         <Search aria-hidden="true" className="size-3.5 text-muted-foreground" />
         <span className="text-muted-foreground">Search…</span>

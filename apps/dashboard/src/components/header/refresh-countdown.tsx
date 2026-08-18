@@ -52,7 +52,7 @@ export const RefreshCountdown = function RefreshCountdown() {
             variant="ghost"
             size="sm"
             className={cn(
-              'h-8 shrink-0 gap-1.5 px-2 text-xs font-normal',
+              'h-8 min-h-11 min-w-11 shrink-0 gap-1.5 px-2 text-xs font-normal lg:min-h-8 lg:min-w-8',
               isRefreshing && 'animate-pulse'
             )}
             aria-label={`Auto refresh ${reloadInterval ? `in ${formatReadableSecondDuration(remaining)}` : 'disabled'}. Click to change.`}

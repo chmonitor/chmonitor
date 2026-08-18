@@ -70,14 +70,14 @@ export const HeaderActions = function HeaderActions({
           }
           icon={resolvedTheme === 'light' ? <Moon /> : <Sun />}
           onClick={toggleTheme}
-          className="inline-flex"
+          className="inline-flex min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
           suppressHydrationWarning
         />
       ) : (
         <Button
           variant="ghost"
           size="icon"
-          className="inline-flex"
+          className="inline-flex min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
           aria-label="Toggle theme"
         >
           <Sun className="size-4" />
