@@ -1,0 +1,77 @@
+---
+title: DBA compare, TTL, and advisor workflows
+description: What chmonitor already does for settings compare, query/schema advice, TTL moves, and Explorer DDL — and what is still on the roadmap.
+icon: GitCompareArrows
+---
+
+Operators coming from other DBA tools often look for schema compare, change plans, and TTL inventory. This page is the map of **what ships today** versus **what is still planned**.
+
+<Callout type="warn" title="Recommend-only">
+chmonitor does **not** apply schema changes and does **not** edit `config.xml` (or any other ClickHouse server file). Advisor output is copyable SQL and settings you review and run yourself.
+</Callout>
+
+## What exists today
+
+| Workflow | Route | What it does |
+|---|---|---|
+| Settings compare | `/settings-diff` | Compares `system.settings` and `system.merge_tree_settings` across every configured host. Highlights values that differ between hosts and values changed from default. Export as CSV. |
+| Query advisor | `/advisor` (Query Advisor tab) | Ranked skip-index, projection, partition-key, and `PREWHERE` recommendations for a pasted query or a `query_id`. Recommend-only. |
+| Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for schema lint and settings findings. Recommend-only. |
+| TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. This is move history / current economics — not a full TTL and partition health inventory. |
+| Explorer DDL | `/explorer` | Shows the `CREATE TABLE` statement and schema for the **selected host** (`?host=`). Single-host, read-only. |
+
+### Settings compare (`/settings-diff`)
+
+Open **System → Settings Diff**. You need at least two hosts configured. Filter to rows that differ, or to settings changed from default. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
+
+Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTER TABLE … MODIFY SETTING`, or edit the server config yourself.
+
+### Advisor (`/advisor`)
+
+Open **Queries → Advisor**. Two tabs:
+
+- **Query Advisor** — paste SQL or look up a `query_id` from `system.query_log`.
+- **Schema & Settings** — scan a database or table for lint findings.
+
+The same recommend-only engine is available from the [AI agent](/guide/ai-agent) and the MCP server. There is no Apply button.
+
+### Storage economics (`/storage-economics`)
+
+Open **System → Storage Economics**. Three tables:
+
+- Compression by table (from `system.parts`)
+- Storage policies
+- TTL storage moves (parts that already moved because of TTL)
+
+The inventory of *every* table's TTL expression, partition health, and "should this table have a TTL?" is **not** this page. That is [issue #3074](https://github.com/chmonitor/chmonitor/issues/3074).
+
+### Explorer single-host DDL (`/explorer`)
+
+The [Data Explorer](/guide/features/explorer) shows `CREATE TABLE` for the table on the **current host**. It does not compare DDL across hosts. Cross-host schema compare is [issue #3072](https://github.com/chmonitor/chmonitor/issues/3072).
+
+<Callout type="info" title="Read-only explorer">
+The explorer cannot create, alter, or drop objects.
+</Callout>
+
+## Roadmap
+
+These issues are **not** implemented yet. They are the planned follow-ups to the pages above.
+
+| Issue | Planned work |
+|---|---|
+| [#3072](https://github.com/chmonitor/chmonitor/issues/3072) | Compare table schemas across hosts |
+| [#3073](https://github.com/chmonitor/chmonitor/issues/3073) | Recommend-only schema change plan from a host diff |
+| [#3074](https://github.com/chmonitor/chmonitor/issues/3074) | TTL and partition health inventory |
+| [#3075](https://github.com/chmonitor/chmonitor/issues/3075) | Show table schema advisor on Explorer |
+| [#3077](https://github.com/chmonitor/chmonitor/issues/3077) | Role presets and customizable workspace in Settings |
+
+When those land, this guide will point at the new routes. Until then, use `/settings-diff`, `/advisor`, `/storage-economics`, and `/explorer` as listed above.
+
+## Related
+
+<Cards>
+  <Card title="Settings" href="/guide/features/settings" description="Server settings pages, including Settings Diff." />
+  <Card title="Data explorer" href="/guide/features/explorer" description="Single-host DDL, columns, indexes, and projections." />
+  <Card title="Tables & storage" href="/guide/features/tables" description="Table sizes, parts, and replication pages." />
+  <Card title="ClickHouse query optimization" href="/guide/guides/clickhouse-query-optimization" description="The six areas the query advisor reasons about." />
+</Cards>
