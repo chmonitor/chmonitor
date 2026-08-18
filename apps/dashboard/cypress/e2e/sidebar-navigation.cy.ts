@@ -46,15 +46,60 @@ function ensureDesktopRailExpanded() {
 /**
  * Expand a collapsible sidebar group only when the target link is missing
  * or hidden. Unconditionally clicking the group toggles it: if the group is
- * already open, the click collapses it and the links unmount. Match visible
- * text rather than `button` so Base UI CollapsibleTrigger still works.
+ * already open, the click collapses it and the links unmount.
+ *
+ * Match the group trigger by exact visible text on `[data-sidebar="menu-button"]`
+ * (or the collapsible trigger). `cy.contains('Queries')` substring-matches
+ * child titles ("Running Queries") and may click a hidden CollapsibleContent
+ * node instead of expanding the group. Requery after the snapshot check so we
+ * do not chain contains() on a detached $sidebar wrap.
  */
 function expandGroupIfNeeded(groupLabel: string, hrefPart: string) {
+  const exactLabel = new RegExp(`^${groupLabel}$`)
+
   cy.get(SIDEBAR).then(($sidebar) => {
     const $visible = $sidebar.find(`a[href*="${hrefPart}"]`).filter(':visible')
-    if ($visible.length === 0) {
-      cy.wrap($sidebar).contains(groupLabel).should('be.visible').click()
+    if ($visible.length > 0) {
+      return
     }
+
+    // Requery — do not chain off the stale $sidebar snapshot.
+    cy.get(
+      `${SIDEBAR} [data-sidebar="menu-button"], ${SIDEBAR} [data-slot="collapsible-trigger"]`
+    )
+      .filter((_, el) =>
+        exactLabel.test((el.innerText || '').replace(/\s+/g, ' ').trim())
+      )
+      .should('be.visible')
+      .first()
+      .click()
+  })
+}
+
+/**
+ * Click the target href after expand. Prefer the in-rail SIDEBAR link;
+ * nested items can render in a popover portal (outside the rail) when the
+ * sidebar is icon-collapsed. Requery so Cypress does not click a detached node.
+ */
+function clickVisibleHref(hrefPart: string) {
+  const railSel = `${SIDEBAR} a[href*="${hrefPart}"]`
+  const portalSel = `[data-slot="popover-content"] a[href*="${hrefPart}"]`
+
+  cy.get('body', { timeout: 10000 }).should(($body) => {
+    const rail = $body.find(railSel).filter(':visible').length
+    const portal = $body.find(portalSel).filter(':visible').length
+    expect(
+      rail + portal,
+      `visible ${hrefPart} in sidebar rail or popover`
+    ).to.be.greaterThan(0)
+  })
+
+  cy.get('body').then(($body) => {
+    if ($body.find(railSel).filter(':visible').length > 0) {
+      cy.get(railSel).filter(':visible').first().click()
+      return
+    }
+    cy.get(`a[href*="${hrefPart}"]`).filter(':visible').first().click()
   })
 }
 
@@ -88,13 +133,7 @@ describe('Sidebar navigation', () => {
   it('navigates to running-queries via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
     expandGroupIfNeeded('Queries', '/running-queries')
-    // Use should('be.visible') instead of :visible CSS pseudo-selector for
-    // more reliable visibility detection in headless Electron with Radix UI
-    // collapsible animations.
-    cy.get(`${SIDEBAR} a[href*="/running-queries"]`, { timeout: 10000 })
-      .should('be.visible')
-      .first()
-      .click()
+    clickVisibleHref('/running-queries')
     cy.url().should('include', '/running-queries')
     cy.url().should('include', 'host=0')
     cy.get('body').should('exist')
@@ -103,10 +142,7 @@ describe('Sidebar navigation', () => {
   it('navigates to clusters via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
     expandGroupIfNeeded('Cluster', '/clusters')
-    cy.get(`${SIDEBAR} a[href*="/clusters"]`, { timeout: 10000 })
-      .should('be.visible')
-      .first()
-      .click()
+    clickVisibleHref('/clusters')
     cy.url().should('include', '/clusters')
     cy.url().should('include', 'host=0')
     cy.get('body').should('exist')
