@@ -36,13 +36,13 @@ The table below maps STRATEGY §7 capabilities to edition. "Planned" means the f
 | Community config catalog | ✓ | ✓ | ✓ |
 | Alerting & notifications (Slack / Discord / PagerDuty / Opsgenie / webhook, per-rule routing) | ✓ | ✓ | ✓ |
 | Fleet view (many clusters, saved orgs) | — | ✓ planned | ✓ planned |
-| Hosted chmonitor Cloud (no deploy) | — | ✓ planned | ✓ planned |
+| Hosted chmonitor Cloud (no deploy) | — | ✓ | ✓ |
 | SSO / SAML | — | — | scaffold (gated, not functional) |
 | RBAC | — | — | scaffold (gated, not functional) |
 | Audit log, SLA, priority support | — | — | planned |
 | Managed AI (hosted model, no BYO key) | — | add-on planned | ✓ planned |
 
-STRATEGY §7 defines the product intent. The "scaffold" rows reflect code that exists in the repository (`lib/auth/sso`, `lib/rbac`) but is behind an edition gate and not yet functional in any build. Alerting & notifications shipped as a fully-built, ungated feature in the community build — see [Slack/Discord alerting](/guide/guides/alerting-slack-discord) for the per-rule/per-host routing UI and the PagerDuty/Opsgenie adapters.
+STRATEGY §7 defines the product intent. The "scaffold" rows reflect code that exists in the repository (`lib/auth/sso`, `lib/rbac`) but is behind an edition gate and not yet functional in any build. Alerting & notifications shipped as a fully-built, ungated feature in the community build — see [Slack/Discord alerting](/guide/guides/alerting-slack-discord) for the per-rule/per-host routing UI and the PagerDuty/Opsgenie adapters. Hosted chmonitor Cloud is live at [dash.chmonitor.dev](https://dash.chmonitor.dev) as a convenience product (no deploy) — see [Cloud sign-up](/guide/getting-started/cloud-signup).
 
 ## Enterprise feature gate
 
@@ -62,7 +62,7 @@ Enterprise-only code is isolated so the GPL core never depends on it. The planne
 
 <Cards>
   <Card title="Community" description="Everything an individual operator needs — all system-table views, AI agent, MCP. Free, self-hosted, no time limit." href="/guide/getting-started" />
-  <Card title="Team / Enterprise" description="Team-scale convenience and governance (alerting, fleet, SSO, RBAC). Most are planned; scaffolds exist but are not yet functional." href="/operate/advanced/feature-permissions" />
+  <Card title="Team / Enterprise" description="Hosted Cloud is live at dash.chmonitor.dev. Alerting ships in every edition. Fleet, SSO, and RBAC remain planned." href="/operate/advanced/feature-permissions" />
 </Cards>
 
 <Callout type="info" title="Misconfiguration is safe">
