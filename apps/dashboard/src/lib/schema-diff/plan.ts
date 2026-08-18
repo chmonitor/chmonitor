@@ -1,4 +1,5 @@
 import { tableKey } from './catalog'
+import { namedDelta } from './named-delta'
 import type {
   PlanItem,
   SchemaChangePlan,
@@ -40,10 +41,6 @@ function addProjectionStatement(
 ): string | null {
   if (!proj.query) return null
   return `ALTER TABLE ${qualifiedTable(table)} ADD PROJECTION ${quoteIdent(proj.name)} (${proj.query})`
-}
-
-function mapByName<T extends { name: string }>(items: T[]): Map<string, T> {
-  return new Map(items.map((item) => [item.name, item]))
 }
 
 function planForMissingTable(source: TableSchema): PlanItem[] {
@@ -113,102 +110,99 @@ function planForChangedTable(source: TableSchema, target: TableSchema): PlanItem
     })
   }
 
-  const sourceCols = mapByName(source.columns)
-  const targetCols = mapByName(target.columns)
-
-  for (const [name, col] of sourceCols) {
-    const existing = targetCols.get(name)
-    if (!existing) {
-      items.push({
-        id: `add-col:${key}:${name}`,
-        tableKey: key,
-        kind: 'add_column',
-        risk: 'lightweight',
-        statement: addColumnStatement(source, col),
-        summary: `Add column ${name} (${col.type})`,
-        safe: true,
-      })
-      continue
-    }
-    if (col.type !== existing.type || col.codec !== existing.codec) {
-      items.push({
-        id: `mod-col:${key}:${name}`,
-        tableKey: key,
-        kind: 'modify_column',
-        risk: 'mutation',
-        statement: modifyColumnStatement(source, col),
-        summary: `Modify column ${name} (${existing.type} → ${col.type})`,
-        safe: false,
-      })
-    }
+  const columns = namedDelta(
+    source.columns,
+    target.columns,
+    (a, b) => a.type === b.type && a.codec === b.codec
+  )
+  for (const col of columns.added) {
+    items.push({
+      id: `add-col:${key}:${col.name}`,
+      tableKey: key,
+      kind: 'add_column',
+      risk: 'lightweight',
+      statement: addColumnStatement(source, col),
+      summary: `Add column ${col.name} (${col.type})`,
+      safe: true,
+    })
+  }
+  for (const { name, source: src, target: existing } of columns.changed) {
+    items.push({
+      id: `mod-col:${key}:${name}`,
+      tableKey: key,
+      kind: 'modify_column',
+      risk: 'mutation',
+      statement: modifyColumnStatement(source, src),
+      summary: `Modify column ${name} (${existing.type} → ${src.type})`,
+      safe: false,
+    })
+  }
+  for (const col of columns.removed) {
+    items.push({
+      id: `drop-col:${key}:${col.name}`,
+      tableKey: key,
+      kind: 'manual',
+      risk: 'rewrite',
+      statement: '',
+      summary: `Column ${col.name} exists only on the target. Dropping it is destructive — review manually.`,
+      safe: false,
+    })
   }
 
-  for (const [name] of targetCols) {
-    if (!sourceCols.has(name)) {
-      items.push({
-        id: `drop-col:${key}:${name}`,
-        tableKey: key,
-        kind: 'manual',
-        risk: 'rewrite',
-        statement: '',
-        summary: `Column ${name} exists only on the target. Dropping it is destructive — review manually.`,
-        safe: false,
-      })
-    }
+  const indexes = namedDelta(
+    source.indexes,
+    target.indexes,
+    (a, b) =>
+      a.type === b.type && a.expr === b.expr && a.granularity === b.granularity
+  )
+  for (const idx of indexes.added) {
+    items.push({
+      id: `add-idx:${key}:${idx.name}`,
+      tableKey: key,
+      kind: 'add_index',
+      risk: 'mutation',
+      statement: addIndexStatement(source, idx),
+      summary: `Add index ${idx.name}`,
+      safe: true,
+    })
+  }
+  for (const idx of indexes.removed) {
+    items.push({
+      id: `drop-idx:${key}:${idx.name}`,
+      tableKey: key,
+      kind: 'manual',
+      risk: 'rewrite',
+      statement: '',
+      summary: `Index ${idx.name} exists only on the target. Dropping it is destructive — review manually.`,
+      safe: false,
+    })
   }
 
-  const sourceIdx = mapByName(source.indexes)
-  const targetIdx = mapByName(target.indexes)
-  for (const [name, idx] of sourceIdx) {
-    if (!targetIdx.has(name)) {
-      items.push({
-        id: `add-idx:${key}:${name}`,
-        tableKey: key,
-        kind: 'add_index',
-        risk: 'mutation',
-        statement: addIndexStatement(source, idx),
-        summary: `Add index ${name}`,
-        safe: true,
-      })
-    }
-  }
-  for (const [name] of targetIdx) {
-    if (!sourceIdx.has(name)) {
-      items.push({
-        id: `drop-idx:${key}:${name}`,
-        tableKey: key,
-        kind: 'manual',
-        risk: 'rewrite',
-        statement: '',
-        summary: `Index ${name} exists only on the target. Dropping it is destructive — review manually.`,
-        safe: false,
-      })
-    }
-  }
-
-  const sourceProj = mapByName(source.projections)
-  const targetProj = mapByName(target.projections)
-  for (const [name, proj] of sourceProj) {
-    if (targetProj.has(name)) continue
+  const projections = namedDelta(
+    source.projections,
+    target.projections,
+    (a, b) => a.type === b.type && a.query === b.query
+  )
+  for (const proj of projections.added) {
     const statement = addProjectionStatement(source, proj)
     if (statement) {
       items.push({
-        id: `add-proj:${key}:${name}`,
+        id: `add-proj:${key}:${proj.name}`,
         tableKey: key,
         kind: 'add_projection',
         risk: 'mutation',
         statement,
-        summary: `Add projection ${name}`,
+        summary: `Add projection ${proj.name}`,
         safe: true,
       })
     } else {
       items.push({
-        id: `add-proj:${key}:${name}`,
+        id: `add-proj:${key}:${proj.name}`,
         tableKey: key,
         kind: 'manual',
         risk: 'rewrite',
         statement: '',
-        summary: `Projection ${name} is missing on the target. Copy its definition from the source DDL.`,
+        summary: `Projection ${proj.name} is missing on the target. Copy its definition from the source DDL.`,
         safe: false,
       })
     }

@@ -1,4 +1,5 @@
 import { tableKey } from './catalog'
+import { namedDelta } from './named-delta'
 import type {
   FieldChange,
   SchemaCatalog,
@@ -15,10 +16,6 @@ function byTableKey(catalog: SchemaCatalog): Map<string, TableSchema> {
   return map
 }
 
-function mapByName<T extends { name: string }>(items: T[]): Map<string, T> {
-  return new Map(items.map((item) => [item.name, item]))
-}
-
 function collectChanges(source: TableSchema, target: TableSchema): FieldChange[] {
   const changes: FieldChange[] = []
 
@@ -33,90 +30,80 @@ function collectChanges(source: TableSchema, target: TableSchema): FieldChange[]
     }
   }
 
-  const sourceCols = mapByName(source.columns)
-  const targetCols = mapByName(target.columns)
-
-  for (const [name, col] of sourceCols) {
-    const other = targetCols.get(name)
-    if (!other) {
-      changes.push({ field: `column:${name}`, source: col.type, target: '' })
-      continue
-    }
-    if (col.type !== other.type) {
+  const columns = namedDelta(
+    source.columns,
+    target.columns,
+    (a, b) => a.type === b.type && a.codec === b.codec
+  )
+  for (const col of columns.added) {
+    changes.push({ field: `column:${col.name}`, source: col.type, target: '' })
+  }
+  for (const col of columns.removed) {
+    changes.push({ field: `column:${col.name}`, source: '', target: col.type })
+  }
+  for (const { name, source: src, target: tgt } of columns.changed) {
+    if (src.type !== tgt.type) {
       changes.push({
         field: `column_type:${name}`,
-        source: col.type,
-        target: other.type,
+        source: src.type,
+        target: tgt.type,
       })
     }
-    if (col.codec !== other.codec) {
+    if (src.codec !== tgt.codec) {
       changes.push({
         field: `column_codec:${name}`,
-        source: col.codec,
-        target: other.codec,
+        source: src.codec,
+        target: tgt.codec,
       })
     }
   }
 
-  for (const [name, col] of targetCols) {
-    if (!sourceCols.has(name)) {
-      changes.push({ field: `column:${name}`, source: '', target: col.type })
-    }
+  const indexes = namedDelta(
+    source.indexes,
+    target.indexes,
+    (a, b) =>
+      a.type === b.type && a.expr === b.expr && a.granularity === b.granularity
+  )
+  for (const idx of indexes.added) {
+    changes.push({
+      field: `index:${idx.name}`,
+      source: `${idx.type} ${idx.expr}`,
+      target: '',
+    })
+  }
+  for (const idx of indexes.removed) {
+    changes.push({
+      field: `index:${idx.name}`,
+      source: '',
+      target: `${idx.type} ${idx.expr}`,
+    })
+  }
+  for (const { name, source: src, target: tgt } of indexes.changed) {
+    changes.push({
+      field: `index:${name}`,
+      source: `${src.type} ${src.expr} ${src.granularity}`,
+      target: `${tgt.type} ${tgt.expr} ${tgt.granularity}`,
+    })
   }
 
-  const sourceIdx = mapByName(source.indexes)
-  const targetIdx = mapByName(target.indexes)
-  for (const [name, idx] of sourceIdx) {
-    const other = targetIdx.get(name)
-    if (!other) {
-      changes.push({
-        field: `index:${name}`,
-        source: `${idx.type} ${idx.expr}`,
-        target: '',
-      })
-      continue
-    }
-    if (
-      idx.type !== other.type ||
-      idx.expr !== other.expr ||
-      idx.granularity !== other.granularity
-    ) {
-      changes.push({
-        field: `index:${name}`,
-        source: `${idx.type} ${idx.expr} ${idx.granularity}`,
-        target: `${other.type} ${other.expr} ${other.granularity}`,
-      })
-    }
+  const projections = namedDelta(
+    source.projections,
+    target.projections,
+    (a, b) => a.type === b.type && a.query === b.query
+  )
+  for (const proj of projections.added) {
+    changes.push({
+      field: `projection:${proj.name}`,
+      source: proj.type,
+      target: '',
+    })
   }
-  for (const [name, idx] of targetIdx) {
-    if (!sourceIdx.has(name)) {
-      changes.push({
-        field: `index:${name}`,
-        source: '',
-        target: `${idx.type} ${idx.expr}`,
-      })
-    }
-  }
-
-  const sourceProj = mapByName(source.projections)
-  const targetProj = mapByName(target.projections)
-  for (const [name, proj] of sourceProj) {
-    if (!targetProj.has(name)) {
-      changes.push({
-        field: `projection:${name}`,
-        source: proj.type,
-        target: '',
-      })
-    }
-  }
-  for (const [name, proj] of targetProj) {
-    if (!sourceProj.has(name)) {
-      changes.push({
-        field: `projection:${name}`,
-        source: '',
-        target: proj.type,
-      })
-    }
+  for (const proj of projections.removed) {
+    changes.push({
+      field: `projection:${proj.name}`,
+      source: '',
+      target: proj.type,
+    })
   }
 
   return changes
