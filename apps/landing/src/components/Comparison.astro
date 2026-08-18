@@ -1,4 +1,6 @@
 ---
+import { ALERT_CHANNELS_SHORT } from '../data/alert-channels'
+
 const checkSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle text-[var(--semantic-success)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
 const crossSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m18 6-12 12M6 6l12 12"/></svg>`
 const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`
@@ -68,7 +70,7 @@ const partialSvg = `<svg class="inline-block size-[18px] shrink-0 align-middle t
             </tr>
             <tr class="border-t border-border">
               <td class="px-5 py-3.5 font-medium text-foreground">Alert rules &amp; channels</td>
-              <td class="bg-[var(--brand-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Built-in health checks, editable thresholds; one webhook &rarr; Slack or Discord + full alert history</span></td>
+              <td class="bg-[var(--brand-soft)] px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Built-in health checks, editable thresholds; {ALERT_CHANNELS_SHORT} + per-rule routing and full alert history</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Grafana Alerting: many channels and routing rules, once you've built the CH panels</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={checkSvg} /> Datadog Monitors: broad integrations, mature escalation policies</span></td>
               <td class="px-5 py-3.5 text-pretty text-muted-foreground"><span class="inline-flex items-start gap-2"><Fragment set:html={crossSvg} /> none</span></td>

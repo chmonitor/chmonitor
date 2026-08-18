@@ -1,4 +1,6 @@
 ---
+import { ALERT_CHANNELS_SHORT } from '../data/alert-channels'
+
 // Compact capability grid: icon + title on one row, short copy, 4-up on wide
 // screens so the section shows the breadth of coverage without scrolling far.
 const items = [
@@ -49,7 +51,7 @@ const items = [
   },
   {
     title: 'Alerting',
-    desc: 'Health checks with editable thresholds, webhooks to Slack or Discord, full alert history.',
+    desc: `Health checks with editable thresholds; ${ALERT_CHANNELS_SHORT}; full alert history.`,
     icon: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   },
   {

@@ -1,3 +1,8 @@
+import {
+  ALERT_CHANNELS_FULL,
+  ALERT_CHANNELS_SHORT,
+} from './alert-channels'
+
 /**
  * Detailed per-feature landing pages (/features/<slug>), rendered by
  * src/pages/features/[slug].astro. One rich entry per product feature —
@@ -387,7 +392,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
     slug: 'alerting',
     title: 'ClickHouse Alerting & Health Checks — chmonitor',
     description:
-      'Built-in ClickHouse health checks with tunable thresholds: replication lag, disk, memory and failed queries. One webhook to Slack, Discord, PagerDuty or Opsgenie.',
+      `Built-in ClickHouse health checks with tunable thresholds: replication lag, disk, memory and failed queries. Native adapters for ${ALERT_CHANNELS_FULL} — plus per-rule routing.`,
     eyebrow: 'Alerting',
     h1: 'Know before your users do',
     subhead:
@@ -397,7 +402,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       alt: 'Health checks with editable warning and critical thresholds',
     },
     stats: [
-      { value: '1 webhook', label: 'Slack, Discord, PagerDuty or Opsgenie' },
+      { value: 'Native adapters', label: ALERT_CHANNELS_SHORT },
       { value: 'Tunable', label: 'warning and critical thresholds per check' },
       { value: 'History', label: 'full fire and recovery timeline' },
       { value: 'AI audit', label: 'one-click prompt for failing checks' },
@@ -420,11 +425,11 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
       {
         eyebrow: 'Notifications',
-        title: 'One webhook, every channel',
-        body: 'Point chmonitor at a single webhook URL and alerts land in Slack, Discord, PagerDuty or Opsgenie — fired on threshold breach, resolved on recovery.',
+        title: 'Native adapters, per-rule routing',
+        body: `Alerts go to ${ALERT_CHANNELS_FULL} — fired on threshold breach, resolved on recovery. Route per rule or host; a generic webhook is optional, not the only path.`,
         bullets: [
           'Breach and recovery notifications',
-          'No per-channel integrations to maintain',
+          'Per-rule and per-host routing',
           'Works on every deploy target',
         ],
         screenshot: {
@@ -456,8 +461,8 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
       { title: 'Failed queries', body: 'Error-rate spikes surfaced early.' },
       {
-        title: 'Webhooks',
-        body: 'Slack, Discord, PagerDuty, Opsgenie — one URL.',
+        title: 'Channels',
+        body: `${ALERT_CHANNELS_SHORT} — per-rule routing.`,
       },
       { title: 'History', body: 'Every fire and recovery, timestamped.' },
       { title: 'AI audit', body: 'One-click diagnosis for any failing check.' },
@@ -465,7 +470,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
     faq: [
       {
         q: 'Do I need an external alerting stack?',
-        a: 'No. Checks are evaluated by chmonitor itself; you only supply a webhook URL for delivery.',
+        a: 'No. Checks are evaluated by chmonitor itself. Configure the channel you use — native adapters or an optional generic webhook.',
       },
       {
         q: 'Can I change what counts as critical?',
