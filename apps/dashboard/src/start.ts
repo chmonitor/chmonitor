@@ -114,6 +114,10 @@ export async function securityHeadersHandler({
         '</.well-known/api-catalog>; rel="api-catalog", </.well-known/mcp/server-card.json>; rel="mcp-server-card"'
       )
     }
+    if (HUMAN_AUTH_PATHS.has(url.pathname)) {
+      // Never let a negotiated markdown response stick on /sign-in at the edge.
+      result.response.headers.set('Cache-Control', 'private, no-store')
+    }
   }
 
   // Return the result (not void) — TanStack Start types a request middleware
@@ -135,6 +139,25 @@ async function sha256(text: string): Promise<string> {
   return `sha256:${hashHex}`
 }
 
+/**
+ * Human auth URLs. These must stay `text/html` even when the client sends
+ * `Accept: text/markdown`. Agent auth docs live at `/auth.md` (#3092).
+ */
+export const HUMAN_AUTH_PATHS = new Set(['/sign-in', '/sign-up', '/login'])
+
+/** True when a page request should be rewritten to the agent product markdown. */
+export function shouldNegotiatePageMarkdown(
+  pathname: string,
+  acceptHeader: string
+): boolean {
+  if (HUMAN_AUTH_PATHS.has(pathname)) return false
+  const isPage =
+    !pathname.startsWith('/api/') &&
+    !pathname.startsWith('/.well-known/') &&
+    !pathname.includes('.')
+  return isPage && acceptHeader.includes('text/markdown')
+}
+
 export async function agentDiscoveryHandler({
   next,
   request,
@@ -147,11 +170,7 @@ export async function agentDiscoveryHandler({
 
   // 1. HTML response as markdown content negotiation
   const accept = request.headers.get('accept') || ''
-  const isPage =
-    !pathname.startsWith('/api/') &&
-    !pathname.startsWith('/.well-known/') &&
-    !pathname.includes('.')
-  if (isPage && accept.includes('text/markdown')) {
+  if (shouldNegotiatePageMarkdown(pathname, accept)) {
     const markdown = `# chmonitor
 
 ClickHouse monitoring dashboard. Connect to ClickHouse instances and get real-time insights into clusters through system tables — metrics, query performance, table information, and cluster health.
@@ -180,6 +199,8 @@ API endpoints are accessible under \`/api/v1/\`. Discover them programmatically 
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
         'x-markdown-tokens': String(tokens),
+        // Content-negotiated. Without Vary, a markdown HIT poisons browsers.
+        Vary: 'Accept',
       },
     })
   }
@@ -211,6 +232,7 @@ The catalog's \`service-desc\` is the OpenAPI document at \`/api/v1/openapi.json
       status: 200,
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
+        Vary: 'Accept',
       },
     })
   }

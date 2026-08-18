@@ -25,3 +25,11 @@
 # revalidating so a new deploy's fresh asset hashes are always picked up.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Human auth pages must never be cached as agent markdown (#3092).
+/sign-in
+  Cache-Control: private, no-store
+/sign-up
+  Cache-Control: private, no-store
+/login
+  Cache-Control: private, no-store

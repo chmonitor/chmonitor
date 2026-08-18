@@ -1,4 +1,9 @@
-import { agentDiscoveryHandler, securityHeadersHandler } from '@/start'
+import {
+  agentDiscoveryHandler,
+  HUMAN_AUTH_PATHS,
+  securityHeadersHandler,
+  shouldNegotiatePageMarkdown,
+} from '@/start'
 
 import { describe, expect, test } from 'bun:test'
 import { existsSync } from 'node:fs'
@@ -90,6 +95,47 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     return { response: new Response('HTML content') }
   }
 
+  test('shouldNegotiatePageMarkdown skips human auth URLs', () => {
+    expect(
+      shouldNegotiatePageMarkdown('/sign-in', 'text/markdown, text/html')
+    ).toBe(false)
+    expect(shouldNegotiatePageMarkdown('/sign-up', 'text/markdown')).toBe(false)
+    expect(shouldNegotiatePageMarkdown('/login', 'text/markdown')).toBe(false)
+    expect(
+      shouldNegotiatePageMarkdown('/overview', 'text/markdown, text/html')
+    ).toBe(true)
+    expect(shouldNegotiatePageMarkdown('/overview', 'text/html')).toBe(false)
+    expect(HUMAN_AUTH_PATHS.has('/auth.md')).toBe(false)
+  })
+
+  test('/sign-in stays HTML even when Accept includes text/markdown', async () => {
+    const request = new Request('https://example.com/sign-in', {
+      headers: {
+        Accept: 'text/markdown, text/html',
+      },
+    })
+    const res = (await agentDiscoveryHandler({
+      request,
+      next: nextMock,
+    })) as { response: Response }
+    expect(res.response).toBeDefined()
+    expect(await res.response.text()).toBe('HTML content')
+  })
+
+  test('/sign-up stays HTML even when Accept includes text/markdown', async () => {
+    const request = new Request('https://example.com/sign-up', {
+      headers: {
+        Accept: 'text/markdown, text/html',
+      },
+    })
+    const res = (await agentDiscoveryHandler({
+      request,
+      next: nextMock,
+    })) as { response: Response }
+    expect(res.response).toBeDefined()
+    expect(await res.response.text()).toBe('HTML content')
+  })
+
   test('HTML responses return markdown when Accept: text/markdown is passed', async () => {
     const request = new Request('https://example.com/overview', {
       headers: {
@@ -104,6 +150,7 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('text/markdown')
     expect(res.headers.get('x-markdown-tokens')).toBeDefined()
+    expect(res.headers.get('Vary')).toBe('Accept')
 
     const body = await res.text()
     expect(body).toContain('# chmonitor')
@@ -135,12 +182,26 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res).toBeInstanceOf(Response)
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toContain('text/markdown')
+    expect(res.headers.get('Vary')).toBe('Accept')
 
     const body = await res.text()
     expect(body).toContain('# auth.md')
     expect(body).toContain('agent registration')
     expect(body).toContain('/.well-known/api-catalog')
     expect(body).toContain('https://docs.chmonitor.dev/reference/api')
+  })
+
+  test('/auth.md stays markdown for a browser Accept header', async () => {
+    const request = new Request('https://example.com/auth.md', {
+      headers: { Accept: 'text/html,application/xhtml+xml' },
+    })
+    const res = (await agentDiscoveryHandler({
+      request,
+      next: nextMock,
+    })) as Response
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Type')).toContain('text/markdown')
+    expect(await res.text()).toContain('# auth.md')
   })
 
   test('/.well-known/api-catalog returns application/linkset+json', async () => {
@@ -329,6 +390,15 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     expect(res.response.headers.get('Link')).toBe(
       '</.well-known/api-catalog>; rel="api-catalog", </.well-known/mcp/server-card.json>; rel="mcp-server-card"'
     )
+  })
+
+  test('securityHeadersHandler marks human auth pages uncacheable', async () => {
+    const request = new Request('https://example.com/sign-in')
+    const res = (await securityHeadersHandler({
+      request,
+      next: nextMock,
+    })) as { response: Response }
+    expect(res.response.headers.get('Cache-Control')).toBe('private, no-store')
   })
 
   test('securityHeadersHandler does not append Link headers to other routes', async () => {

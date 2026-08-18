@@ -1,16 +1,18 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
-// Sign-up is modal-based (Clerk `<SignUpButton mode="modal">`), so there is no
-// dedicated sign-up page. A direct visit to /sign-up (or Clerk's default
-// redirect-to-sign-up fallback) used to 404. Redirect to the app shell instead:
-// anonymous visitors get the welcome/demo with the sign-up button.
+import { AuthPage } from '@/components/clerk/auth-page'
+
+/**
+ * Human sign-up entry. Must stay HTML (`text/html`). Agent auth docs live at
+ * `/auth.md` and must not be served from this URL.
+ */
 export const Route = createFileRoute('/sign-up')({
-  beforeLoad: () => {
-    throw redirect({
-      to: '/overview',
-      search: {
-        host: 0,
-      },
-    })
-  },
+  component: SignUpPage,
+  head: () => ({
+    meta: [{ title: 'Sign up — chmonitor' }],
+  }),
 })
+
+function SignUpPage() {
+  return <AuthPage mode="sign-up" />
+}
