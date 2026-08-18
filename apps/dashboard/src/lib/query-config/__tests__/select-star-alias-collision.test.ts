@@ -143,12 +143,6 @@ function hasBareStar(selectList: string): boolean {
   return /(^|,)\s*\*/.test(flat)
 }
 
-function aliasesIn(selectList: string): string[] {
-  return [...selectList.matchAll(/\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)].map(
-    (m) => m[1]
-  )
-}
-
 /**
  * Split a select list into top-level items (commas at paren depth 0), so each
  * alias can be examined against ITS OWN defining expression.

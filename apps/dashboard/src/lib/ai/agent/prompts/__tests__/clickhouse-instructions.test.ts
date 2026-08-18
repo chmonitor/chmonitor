@@ -38,7 +38,7 @@ describe('ClickHouse agent system prompt — behavior', () => {
   test('is recommend-only and never claims destructive work', () => {
     expect(PROMPT_FLAT).toContain('Recommend only')
     expect(PROMPT_FLAT).toContain(
-      'Never claim you KILL / OPTIMIZE / ALTER\'d anything'
+      "Never claim you KILL / OPTIMIZE / ALTER'd anything"
     )
     expect(PROMPT_FLAT).toContain('Read-only')
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain('kill_query')
@@ -60,9 +60,7 @@ describe('ClickHouse agent system prompt — behavior', () => {
 
   test('verdict first and no process-narration examples', () => {
     expect(PROMPT_FLAT).toContain('Verdict first')
-    expect(PROMPT_FLAT).toContain(
-      'do not stop on a tool card alone'
-    )
+    expect(PROMPT_FLAT).toContain('do not stop on a tool card alone')
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).not.toMatch(/I'll check/i)
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(
       'One query (id `abc123`) has been running 8 minutes'

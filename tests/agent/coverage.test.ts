@@ -8,10 +8,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const toolsDir = join(
-  here,
-  '../../apps/dashboard/src/lib/ai/agent/tools'
-)
+const toolsDir = join(here, '../../apps/dashboard/src/lib/ai/agent/tools')
 
 const GATED = new Set([
   'kill_query',

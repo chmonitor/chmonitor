@@ -13,6 +13,7 @@ import { type ComponentProps, memo, useMemo } from 'react'
 import { Streamdown } from 'streamdown'
 
 import '@/components/agents/markdown-code.css'
+
 import { cn } from '@/lib/utils'
 
 type MarkdownLinkProps = ComponentProps<'a'> & ExtraProps
@@ -42,9 +43,7 @@ function MarkdownLink({ href, children, className }: MarkdownLinkProps) {
     <a
       href={href}
       className={className}
-      {...(isExternal
-        ? { target: '_blank', rel: 'noopener noreferrer' }
-        : {})}
+      {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >
       {children}
     </a>

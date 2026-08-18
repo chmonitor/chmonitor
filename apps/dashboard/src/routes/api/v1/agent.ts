@@ -89,9 +89,7 @@ async function handlePost(request: Request): Promise<Response> {
   const guestOwnerId =
     isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
   const parsed =
-    guestOwnerId !== undefined
-      ? hardenGuestAgentRequest(parsedRaw)
-      : parsedRaw
+    guestOwnerId !== undefined ? hardenGuestAgentRequest(parsedRaw) : parsedRaw
 
   const model = await resolveAgentModel(parsed.body.model)
   const byok = parsed.byokApiKey !== null

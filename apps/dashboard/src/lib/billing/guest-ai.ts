@@ -11,7 +11,6 @@
 import type { Plan } from './plans'
 
 import { BILLING_PLANS } from './plans'
-
 import { isAnyRouterAutoModelId } from '@/lib/ai/anyrouter-dynamic-models'
 
 /** Default daily message cap for anonymous Cloud visitors. ≤ Free (5). */
@@ -29,9 +28,7 @@ const GUEST_ALLOWED_MODELS = new Set([
 ])
 
 /** True when a guest may keep this picker id (auto or free). Anything else is forced. */
-export function isGuestAllowedAgentModel(
-  model: string | undefined
-): boolean {
+export function isGuestAllowedAgentModel(model: string | undefined): boolean {
   if (!model) return false
   const id = model.trim()
   return isAnyRouterAutoModelId(id) || GUEST_ALLOWED_MODELS.has(id)

@@ -3,11 +3,11 @@ import {
   GUEST_AI_REQUESTS_PER_DAY,
   GUEST_DEFAULT_AGENT_MODEL,
   getGuestAiPlan,
-  isGuestAllowedAgentModel,
   getGuestAiRateLimitPerMin,
   getGuestAiRequestsPerDay,
   guestDailyLimitMessage,
   guestOwnerIdFromIp,
+  isGuestAllowedAgentModel,
   isGuestOwnerId,
 } from './guest-ai'
 import { afterEach, describe, expect, test } from 'bun:test'
