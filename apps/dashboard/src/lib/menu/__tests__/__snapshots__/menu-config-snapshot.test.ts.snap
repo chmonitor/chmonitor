@@ -568,6 +568,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/ttl-partition-health",
+    "section": undefined,
+    "title": "TTL & Partitions",
+  },
+  {
+    "depth": 1,
     "href": "/warnings",
     "section": undefined,
     "title": "Warnings",
