@@ -6,9 +6,9 @@
  * surfaces (explorer/*, conversations/*, billing/*, webhooks/*, cron/*,
  * menu-counts/*, Slack, health-alert admin, user-connections) stay out.
  *
- * Each entry maps an OpenAPI path to the file-route `fullPath` in
- * `src/routeTree.gen.ts`. Tests fail if a catalog path is missing from the
- * route tree, or if the published spec shrinks back to a 2-path stub.
+ * Each entry maps an OpenAPI path to a committed `createFileRoute(...)` under
+ * `src/routes/api/`. Tests fail if a catalog path has no matching route
+ * module, or if the published spec shrinks back to a 2-path stub.
  */
 
 export type PublicHttpMethod =

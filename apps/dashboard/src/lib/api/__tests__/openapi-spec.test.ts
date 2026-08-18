@@ -3,11 +3,13 @@
  *
  * Guards the #3088 follow-up: GET /api/v1/openapi.json must document the real
  * public HTTP API (hosts, charts, tables, …), not a 2-path stub of /api/health
- * + itself. Also asserts every advertised path exists on the TanStack route
- * tree so we do not invent endpoints.
+ * + itself. Also asserts every advertised path has a committed route module
+ * under src/routes/api/ so we do not invent endpoints. Do not read
+ * routeTree.gen.ts — that file is generated and absent from the CI unit-test job.
  */
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getAvailableCharts } from '@/lib/api/chart-registry'
 import {
@@ -35,14 +37,31 @@ const HTTP_METHODS = [
   'options',
 ] as const
 
-function parseTanstackApiPaths(source: string): Set<string> {
+/** Collect createFileRoute('/api/...') paths from committed route modules. */
+function collectApiFileRoutes(dir: string): Set<string> {
   const paths = new Set<string>()
-  const re = /fullPath: '(\/api[^']*)'/g
-  let match: RegExpExecArray | null = re.exec(source)
-  while (match) {
-    paths.add(match[1])
-    match = re.exec(source)
+
+  const walk = (current: string): void => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name === '__tests__') continue
+        walk(full)
+        continue
+      }
+      if (!entry.name.endsWith('.ts') && !entry.name.endsWith('.tsx')) continue
+      if (entry.name.includes('.test.')) continue
+      const source = readFileSync(full, 'utf8')
+      const routeRe = /createFileRoute\('(\/api[^']*)'\)/g
+      let match: RegExpExecArray | null = routeRe.exec(source)
+      while (match) {
+        paths.add(match[1])
+        match = routeRe.exec(source)
+      }
+    }
   }
+
+  walk(dir)
   return paths
 }
 
@@ -139,12 +158,11 @@ describe('public OpenAPI spec', () => {
     expect(tableParam?.schema.enum).toContain('running-queries')
   })
 
-  test('every catalog path exists on the TanStack route tree', () => {
-    const routeTreePath = fileURLToPath(
-      new URL('../../../routeTree.gen.ts', import.meta.url)
+  test('every catalog path exists as a committed API route module', () => {
+    const routesDir = fileURLToPath(
+      new URL('../../../routes/api', import.meta.url)
     )
-    const source = readFileSync(routeTreePath, 'utf8')
-    const live = parseTanstackApiPaths(source)
+    const live = collectApiFileRoutes(routesDir)
     expect(live.size).toBeGreaterThan(MIN_PUBLIC_API_PATHS)
 
     for (const route of PUBLIC_API_ROUTES) {
