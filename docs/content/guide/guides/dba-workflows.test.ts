@@ -23,4 +23,8 @@ describe('dba-workflows guide', () => {
     expect(src).not.toMatch(/not implemented yet/i)
     expect(src).toContain('## Gaps (not shipped)')
   })
+
+  test('does not list Settings role presets as a gap after they shipped', () => {
+    expect(src).not.toMatch(/Settings has no role presets or workspace customization/i)
+  })
 })
