@@ -47,9 +47,9 @@ function iconFor(kind: CellKind): string {
   }
 }
 ---
-<div class="reveal overflow-hidden rounded-xl border border-border shadow-sm">
-  <div class="overflow-x-auto">
-    <table class="w-full min-w-[640px] border-collapse text-sm">
+<div class="reveal cmp-matrix overflow-hidden rounded-xl border border-border shadow-sm">
+  <div class="cmp-matrix-scroll">
+    <table class="w-full border-collapse text-sm">
       <thead>
         <tr class="bg-muted">
           <th class="min-w-[160px] whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"></th>
@@ -61,9 +61,9 @@ function iconFor(kind: CellKind): string {
       <tbody>
         {rows.map((row) => (
           <tr class="border-t border-border">
-            <td class="whitespace-nowrap px-5 py-3.5 font-medium text-foreground">{row.label}</td>
+            <td class="px-5 py-3.5 font-medium text-foreground">{row.label}</td>
             {row.cells.map((cell, i) => (
-              <td class={`px-5 py-3.5 text-pretty text-muted-foreground ${i === 0 ? 'bg-primary/5' : ''}`}>
+              <td class={`px-5 py-3.5 text-pretty ${i === 0 ? 'bg-primary/5' : ''}`} data-label={subjects[i]}>
                 <span class="inline-flex items-start gap-2">
                   {cell.kind !== 'plain' && <Fragment set:html={iconFor(cell.kind)} />} {cell.text}
                 </span>
