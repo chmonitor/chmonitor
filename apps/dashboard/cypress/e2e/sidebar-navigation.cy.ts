@@ -119,7 +119,7 @@ describe('Sidebar navigation', () => {
       })
   })
 
-  test('navigates to running-queries via sidebar', () => {
+  it('navigates to running-queries via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
     expandGroup('Queries', '/running-queries')
     clickHref('/running-queries')
