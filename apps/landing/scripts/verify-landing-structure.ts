@@ -51,7 +51,9 @@ for (const marker of required) {
 }
 
 const ossIdx = html.indexOf('data-hero-oss')
-const ossChunk = ossIdx === -1 ? '' : html.slice(ossIdx, ossIdx + 900)
+const ossEnd = ossIdx === -1 ? -1 : html.indexOf('</a>', ossIdx)
+const ossChunk =
+  ossIdx === -1 || ossEnd === -1 ? '' : html.slice(ossIdx, ossEnd)
 if (!ossChunk.includes('self-host free')) {
   console.error('MISSING self-host free claim in [data-hero-oss]')
   failed = true
