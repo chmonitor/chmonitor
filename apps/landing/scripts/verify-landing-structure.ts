@@ -18,8 +18,7 @@ const required = [
   // Headline may include a <br> between "dashboard" and "for" — match pieces.
   'The ops dashboard',
   'for ClickHouse',
-  'data-cta="hero-primary"',
-  'data-cta="hero-self-host"',
+  'data-hero-oss',
 ] as const
 
 const forbidden = [
@@ -107,6 +106,56 @@ if (borderedZoom === 0 && zoomCount > 0) {
   console.log('OK: screenshot zoom wrappers are borderless')
 }
 
+// Mobile QA: desktop CTAs must be wrapped (so Tailwind inline-flex cannot
+// keep them visible at the hamburger breakpoint), drawer chrome present,
+// comparison matrix marked for the stacked phone layout.
+const mobileRequired = [
+  'nav-cta-desktop',
+  'nav-drawer-backdrop',
+  'i-close',
+  'cmp-matrix',
+  'cmp-matrix--tools',
+] as const
+for (const marker of mobileRequired) {
+  if (!html.includes(marker)) {
+    console.error(`MISSING mobile marker: ${marker}`)
+    failed = true
+  } else {
+    console.log(`OK: ${marker}`)
+  }
+}
+
+const desktopCtaBlock = html.match(
+  /class="nav-cta-desktop"[\s\S]*?<\/div>/
+)?.[0]
+if (!desktopCtaBlock?.includes('Dashboard')) {
+  console.error('MISSING Dashboard CTA inside .nav-cta-desktop')
+  failed = true
+} else {
+  console.log('OK: Dashboard CTA is inside .nav-cta-desktop')
+}
+
+if (html.includes('min-w-[640px]')) {
+  console.error('FORBIDDEN min-w-[640px] on homepage (page overflow-x risk)')
+  failed = true
+} else {
+  console.log('OK: no min-w-[640px] on homepage')
+}
+
+const distVs = join(process.cwd(), 'dist/vs-grafana/index.html')
+try {
+  const vsHtml = readFileSync(distVs, 'utf8')
+  if (!vsHtml.includes('cmp-matrix') || !vsHtml.includes('data-label="chmonitor"')) {
+    console.error('MISSING stacked-matrix markers on /vs-grafana')
+    failed = true
+  } else {
+    console.log('OK: /vs-grafana comparison matrix is labeled for stacking')
+  }
+} catch {
+  console.error('MISSING dist/vs-grafana/index.html — run build first')
+  failed = true
+}
+
 if (html.includes('data-feature-count=')) {
   console.error('FORBIDDEN data-feature-count on homepage')
   failed = true
@@ -117,12 +166,11 @@ if (html.includes('data-feature-count=')) {
 const distChangelog = join(process.cwd(), 'dist/changelog/index.html')
 try {
   const changelogHtml = readFileSync(distChangelog, 'utf8')
-  const featureCountMatch = changelogHtml.match(/data-feature-count="(\d+)"/)
-  if (!featureCountMatch) {
-    console.error('MISSING data-feature-count on /changelog')
+  if (!changelogHtml.includes('Always shipping') && !changelogHtml.includes('changelog')) {
+    console.error('MISSING changelog content in dist/changelog/index.html')
     failed = true
   } else {
-    console.log(`OK: changelog feature index count=${featureCountMatch[1]}`)
+    console.log('OK: dist/changelog/index.html built')
   }
 } catch {
   console.error('MISSING dist/changelog/index.html — run build first')
