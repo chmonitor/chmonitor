@@ -23,7 +23,7 @@ request.
 
 ```bash
 git clone https://github.com/chmonitor/chmonitor
-cd clickhouse-monitoring
+cd chmonitor
 pnpm install
 ```
 
