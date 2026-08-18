@@ -11,14 +11,23 @@
  * container via data-sidebar="sidebar" (not <nav> — there is no nav element).
  * Links use TanStack Router's Link component with `to` + `search` props which
  * renders the correct href (e.g. /running-queries?host=0) on the <a> element.
+ *
+ * Below `lg` (1024px) the rail is a closed Sheet overlay, so the docked
+ * `[data-sidebar="sidebar"]` node is not in the DOM until the trigger opens
+ * it. These specs pin a desktop viewport so they exercise the docked rail
+ * they were written for. Cypress's default 1000px viewport is below `lg`.
  */
 
 // Sidebar links live inside the shadcn/ui Sidebar inner container.
 // The element has data-sidebar="sidebar" and data-slot="sidebar-inner".
 const SIDEBAR = '[data-sidebar="sidebar"]'
+const SIDEBAR_TRIGGER = '[data-slot="sidebar-trigger"]'
 
 describe('Sidebar navigation', () => {
   beforeEach(() => {
+    // Docked rail starts at `lg` (1024). Stay well above that so the first
+    // paint is already the persistent sidebar, not the overlay sheet.
+    cy.viewport(1280, 720)
     cy.visit('/overview?host=0')
   })
 
@@ -41,12 +50,7 @@ describe('Sidebar navigation', () => {
   })
 
   it('navigates to running-queries via sidebar', () => {
-    // Ensure sidebar is in expanded state first (it starts expanded by default
-    // but collapse animation may interfere with visibility checks in CI).
-    cy.get('[data-slot="sidebar-trigger"]')
-      .should('exist')
-      .click({ force: true })
-    cy.get('[data-sidebar="sidebar"]').should('be.visible')
+    cy.get(SIDEBAR).should('be.visible')
     // Expand the "Queries" group menu
     cy.get(SIDEBAR).contains('button', 'Queries').click()
     // Use should('be.visible') instead of :visible CSS pseudo-selector for
@@ -62,10 +66,7 @@ describe('Sidebar navigation', () => {
   })
 
   it('navigates to clusters via sidebar', () => {
-    cy.get('[data-slot="sidebar-trigger"]')
-      .should('exist')
-      .click({ force: true })
-    cy.get('[data-sidebar="sidebar"]').should('be.visible')
+    cy.get(SIDEBAR).should('be.visible')
     // Expand the "Cluster" group menu
     cy.get(SIDEBAR).contains('button', 'Cluster').click()
     cy.get('a[href*="/clusters"]', { timeout: 10000 })
@@ -75,5 +76,17 @@ describe('Sidebar navigation', () => {
     cy.url().should('include', '/clusters')
     cy.url().should('include', 'host=0')
     cy.get('body').should('exist')
+  })
+})
+
+describe('Sidebar overlay below lg', () => {
+  it('opens the sheet from the header trigger', () => {
+    // Cypress default (1000x660) is below lg, so the rail is a closed Sheet.
+    cy.viewport(1000, 660)
+    cy.visit('/overview?host=0')
+    cy.get(SIDEBAR).should('not.exist')
+    cy.get(SIDEBAR_TRIGGER).should('exist').click()
+    cy.get(SIDEBAR).should('be.visible')
+    cy.get(`${SIDEBAR} a`).should('have.length.greaterThan', 0)
   })
 })
