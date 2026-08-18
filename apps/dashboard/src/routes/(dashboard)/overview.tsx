@@ -30,7 +30,7 @@ const DEFAULT_TAB = 'overview'
 /** Underline-active tab styling, overriding the shadcn pill defaults. */
 const TAB_TRIGGER_CLASS = cn(
   // layout
-  'h-auto flex-none px-3 py-2',
+  'h-auto shrink-0 whitespace-nowrap px-3 py-2',
   // borders — bottom-only underline
   'rounded-none border-0 border-b-2 border-transparent bg-transparent shadow-none',
   // typography
@@ -240,8 +240,8 @@ function OverviewPageContent() {
           onValueChange={handleTabChange}
           className="space-y-2"
         >
-          <div>
-            <TabsList className="inline-flex h-auto w-full items-center justify-start gap-1 rounded-none border-b border-border bg-transparent p-0 text-muted-foreground">
+          <div className="scrollbar-hide overflow-x-auto">
+            <TabsList className="inline-flex h-auto w-max min-w-full items-center justify-start gap-1 rounded-none border-b border-border bg-transparent p-0 text-muted-foreground">
               {OVERVIEW_TABS.map((tab) => (
                 <TabsTrigger
                   key={tab.value}

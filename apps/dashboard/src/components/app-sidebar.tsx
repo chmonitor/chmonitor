@@ -71,6 +71,7 @@ export function AppSidebar() {
               <SidebarMenuButton
                 isActive={isMenuItemActive(item.href, pathname)}
                 tooltip={item.title}
+                className="h-11 min-h-11 lg:h-8 lg:min-h-8"
                 render={
                   <HostPrefixedLink
                     href={item.href}
@@ -86,6 +87,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Docs"
+              className="h-11 min-h-11 lg:h-8 lg:min-h-8"
               render={
                 <a
                   href={DOCS_SITE_URL}

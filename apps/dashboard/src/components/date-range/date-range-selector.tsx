@@ -114,7 +114,7 @@ export const DateRangeSelector = function DateRangeSelector({
                 onClick={() => handleSelect(option.value)}
                 title={option.description}
                 className={cn(
-                  'px-2.5 py-1 text-xs font-medium rounded-md transition-colors',
+                  'min-h-11 min-w-11 px-2.5 py-1 text-xs font-medium rounded-md transition-colors sm:min-h-0 sm:min-w-0',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   isActive
                     ? 'bg-primary text-primary-foreground'

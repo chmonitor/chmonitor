@@ -29,7 +29,7 @@ export const GlobalTimeRangePicker = function GlobalTimeRangePicker() {
             aria-pressed={isActive}
             title={`Show last ${preset.label}`}
             className={cn(
-              'rounded px-2 py-0.5 text-xs font-medium transition-colors',
+              'inline-flex min-h-11 min-w-11 items-center justify-center rounded px-2.5 text-xs font-medium transition-colors sm:min-h-0 sm:min-w-0 sm:px-2 sm:py-0.5',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isActive
                 ? 'bg-background text-foreground'

@@ -45,7 +45,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <SidebarInset className="min-w-0 overflow-hidden">
           <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
             <div className="flex min-w-0 flex-1 items-center gap-2 px-4 pt-3 sm:pt-0">
-              <SidebarTrigger className="-ml-1" />
+              <SidebarTrigger className="-ml-1 size-11 lg:size-7" />
               <Separator orientation="vertical" className="h-4" />
               <Suspense fallback={<Skeleton className="h-4 w-32" />}>
                 <Breadcrumb className="min-w-0" />
@@ -60,7 +60,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div
             id="main-content"
             tabIndex={-1}
-            className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 pt-0 outline-none sm:gap-4 sm:p-4 sm:pt-0"
+            className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 pt-0 pb-16 outline-none sm:gap-4 sm:p-4 sm:pt-0 lg:pb-4"
           >
             {children}
           </div>
