@@ -219,8 +219,8 @@ export const pricingFaqs: PricingFaq[] = [
     a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. A license is sized by how many hosts you monitor. Self-hosting the OSS build has no technical host limit. A detected replica (a redundant copy in the same cluster shard) counts as 0.5 host.',
   },
   {
-    q: 'How does AI usage metering work?',
-    a: 'Every plan includes a daily allowance of AI agent messages: Free 5 messages / day, Pro 100 / day, Max 1,000 / day. On Pro and Max, usage past the daily allowance is billed as overage at $5 per 2,000 messages. Enterprise brings its own LLM key (BYOK) for unlimited usage.',
+    q: 'Does a self-host license meter AI usage?',
+    a: 'No. Self-host OSS is not gated — Personal, Team, and Unlimited have no daily AI allowance or overage. Hosted Cloud (dash.chmonitor.dev) meters AI separately; see https://docs.chmonitor.dev/guide/getting-started/cloud-signup for guest and signed-in caps.',
   },
 
   {
