@@ -1,0 +1,66 @@
+---
+description: HTTP API discovery, the public OpenAPI document, authentication, and the stable endpoints agents and scripts should start with.
+icon: Braces
+title: HTTP API
+---
+
+chmonitor exposes a versioned HTTP API under `/api/v1`. Agents and scripts should discover it from the live catalog — do not hard-code individual paths when a catalog or OpenAPI document is available.
+
+## Discovery
+
+| Rel | URL | What it is |
+|---|---|---|
+| API catalog (RFC 9727) | `GET /.well-known/api-catalog` | Linkset (`application/linkset+json`) for the `/api/v1` service |
+| `service-desc` | `GET /api/v1/openapi.json` | OpenAPI 3.0 document (`application/openapi+json`) |
+| `service-doc` | This page | Human-readable API reference |
+| `status` | `GET /api/health` | Liveness (`{"status":"ok"}`) |
+
+The dashboard About page (request it with `Accept: text/markdown`) and `GET /auth.md` also point at the catalog.
+
+```bash
+curl -sS https://dash.example.com/.well-known/api-catalog
+curl -sS https://dash.example.com/api/v1/openapi.json
+```
+
+`GET /api/v1/openapi.json` is public. It returns **200** with `openapi`, `info`, and `paths` for anonymous callers — it does not require a session or API key.
+
+Neighboring discovery URLs (same origin):
+
+- `GET /.well-known/mcp/server-card.json` — MCP server card
+- `GET /.well-known/agent-skills/index.json` — agent skills index
+- `GET /auth.md` — agent authentication notes
+
+## Authentication
+
+How `/api/v1/*` is gated depends on the deployment. See [Authentication](/operate/authentication) for the full matrix.
+
+| Mode | Who can call `/api/v1/*` |
+|---|---|
+| Self-hosted default (`CHM_AUTH_PROVIDER=none`, no `CHM_API_KEY_SECRET`) | Anyone who can reach the server |
+| API keys (`CHM_API_KEY_SECRET` set) | `Authorization: Bearer chm_…` (see [API keys](/operate/authentication/api-keys)) |
+| Cloud / Clerk with public read (`CHM_CLERK_PUBLIC_READ=true`) | Anonymous **reads**; writes and the agent still need a session or key |
+| Clerk without public read | Signed-in session or `chm_` key |
+
+The OpenAPI document itself is exempt from that gate so a client can read the contract before it has credentials.
+
+## Useful endpoints
+
+The OpenAPI document is the machine-readable list. These are the endpoints most clients start with:
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/health` | Liveness only. Anonymous response is `{status, timestamp}` — no deployment metadata ([#1768](https://github.com/chmonitor/chmonitor/issues/1768)). |
+| `GET` | `/api/v1/openapi.json` | This spec. Public. |
+| `GET` | `/api/v1/hosts` | Configured ClickHouse hosts (sanitized; no passwords). |
+| `GET` | `/api/v1/charts/:name` | Chart series. Requires `hostId`. |
+| `GET` | `/api/v1/tables/:name` | Table pages. Requires `hostId`. |
+| `POST` | `/api/mcp` | Model Context Protocol server — see [MCP server](/reference/mcp-server). |
+
+Most data routes take `hostId` (query param, default `0`) to select a host from `CLICKHOUSE_HOST`.
+
+## Related
+
+- [MCP server](/reference/mcp-server) — tools over `/api/mcp`
+- [API keys](/operate/authentication/api-keys) — issuing `chm_` tokens
+- [Environment variables](/reference/environment-variables) — `CHM_*` names
+- [AI agent](/guide/ai-agent) — in-app agent and discovery endpoints

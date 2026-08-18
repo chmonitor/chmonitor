@@ -22,6 +22,7 @@ import { clerkMiddleware } from '@clerk/tanstack-react-start/server'
 import { wrapRequestHandler } from '@sentry/cloudflare'
 import { SKILLS } from '@/lib/ai/agent/skills/registry'
 import { captureServerException } from '@/lib/analytics/analytics.server'
+import { API_SERVICE_DOC_HREF } from '@/lib/api/openapi-spec'
 import {
   bridgeApiKeyEnv,
   bridgePublicReadEnv,
@@ -199,6 +200,12 @@ chmonitor supports two main deployment configurations:
 
 If API-key authentication is enabled, you can obtain a token or register your agent.
 For secure machine-to-machine access, configure the \`CHM_API_KEY_SECRET\` environment variable.
+
+## Discovery
+
+Programmatic clients should start at [/.well-known/api-catalog](/.well-known/api-catalog).
+The catalog's \`service-desc\` is the OpenAPI document at \`/api/v1/openapi.json\`;
+\`service-doc\` is the HTTP API reference at https://docs.chmonitor.dev/reference/api.
 `
     return new Response(markdown, {
       status: 200,
@@ -224,7 +231,7 @@ For secure machine-to-machine access, configure the \`CHM_API_KEY_SECRET\` envir
           ],
           'service-doc': [
             {
-              href: 'https://docs.chmonitor.dev/reference/api',
+              href: API_SERVICE_DOC_HREF,
               type: 'text/html',
             },
           ],
@@ -246,35 +253,9 @@ For secure machine-to-machine access, configure the \`CHM_API_KEY_SECRET\` envir
     })
   }
 
-  // 4. /api/v1/openapi.json
-  if (pathname === '/api/v1/openapi.json') {
-    const openapi = {
-      openapi: '3.0.0',
-      info: {
-        title: 'chmonitor API',
-        version: '1.0.0',
-        description: 'API endpoints for ClickHouse monitoring dashboard.',
-      },
-      paths: {
-        '/api/health': {
-          get: {
-            summary: 'Health Check',
-            responses: {
-              '200': {
-                description: 'Success',
-              },
-            },
-          },
-        },
-      },
-    }
-    return Response.json(openapi, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/openapi+json',
-      },
-    })
-  }
+  // 4. /api/v1/openapi.json is a file route (routes/api/v1/openapi[.]json.ts).
+  //    Do not serve it here: a middleware-only /api/v1 path with no matching
+  //    route can fall through to the dashboard shell and 500.
 
   // 5. /.well-known/oauth-protected-resource
   if (pathname === '/.well-known/oauth-protected-resource') {

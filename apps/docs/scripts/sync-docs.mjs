@@ -180,6 +180,7 @@ const FOLDER_META = {
     root: true,
     pages: [
       'index',
+      'api',
       'environment-variables',
       'configuration',
       'connection-presets',

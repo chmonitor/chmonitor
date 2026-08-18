@@ -21,7 +21,8 @@
  *  - Otherwise a request must present EITHER a valid `chm_` Bearer token OR pass
  *    the active provider's `authenticateRequest`. Anonymous requests get a 401
  *    JSON `{ error: 'Authentication required' }`. Exempt: `/api/v1/auth/api-key`
- *    (it owns its own secret-based auth in the handler).
+ *    (it owns its own secret-based auth in the handler) and
+ *    `/api/v1/openapi.json` (public discovery document).
  *
  * Also reproduced from the Next middleware: the cloud→dash 301 redirect
  * (`getLegacyHostRedirect`).
@@ -43,6 +44,8 @@ import { resolveServerAuthProvider } from '@/lib/auth/providers'
 const API_V1_PREFIX = '/api/v1/'
 // Key issuance route has its own secret-based auth in its handler.
 const API_KEY_ISSUANCE_PATH = '/api/v1/auth/api-key'
+// OpenAPI descriptor is a public discovery document (RFC 9727 service-desc).
+const OPENAPI_SPEC_PATH = '/api/v1/openapi.json'
 
 const LEGACY_HOST = 'cloud.chmonitor.dev'
 const CANONICAL_HOST = 'dash.chmonitor.dev'
@@ -137,7 +140,9 @@ export async function getApiKeyAuthFailure(
   if (getAuthProvider() === 'none' && !apiKeyAuthEnabled()) return null
 
   // Key issuance route has its own secret-based auth in the handler.
-  if (pathname === API_KEY_ISSUANCE_PATH) {
+  // OpenAPI is a public discovery document — agents read it before they have
+  // a key. Never 401 (or 500 via the dashboard shell) this path.
+  if (pathname === API_KEY_ISSUANCE_PATH || pathname === OPENAPI_SPEC_PATH) {
     return null
   }
 
