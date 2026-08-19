@@ -73,29 +73,20 @@ function clickGroupTrigger(groupLabel: string) {
     .click({ force: true })
 }
 
-function sidebarHref(hrefPart: string) {
-  return `${SIDEBAR} a[href*="${hrefPart}"]`
-}
-
 /**
- * Groups default collapsed (#3130). Do not sync-read `$body.find` right after
- * click — that races the submenu mount and a second click closes the group.
- * If the href is already in the sidebar, skip the toggle (already open).
+ * Groups default collapsed (#3130). Click once, then wait for the href.
+ * Nested group links can render in a Popover portal outside
+ * `[data-sidebar="sidebar"]`, so search the document — do not scope to
+ * SIDEBAR. Do not sync-read `$body.find` and click again (that closes a
+ * group whose submenu has not mounted yet).
  */
 function expandGroup(groupLabel: string, hrefPart: string) {
-  const linkSel = sidebarHref(hrefPart)
-
-  cy.get(SIDEBAR).then(($sidebar) => {
-    const alreadyOpen = $sidebar.find(`a[href*="${hrefPart}"]`).length > 0
-    if (alreadyOpen) return
-    clickGroupTrigger(groupLabel)
-  })
-
-  cy.get(linkSel, { timeout: 10000 }).should('exist')
+  clickGroupTrigger(groupLabel)
+  cy.get(`a[href*="${hrefPart}"]`, { timeout: 10000 }).should('exist')
 }
 
 function clickHref(hrefPart: string) {
-  cy.get(sidebarHref(hrefPart)).first().click({ force: true })
+  cy.get(`a[href*="${hrefPart}"]`).first().click({ force: true })
 }
 
 describe('Sidebar navigation', () => {
