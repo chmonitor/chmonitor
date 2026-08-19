@@ -35,7 +35,7 @@ function persisted(
         },
       })),
     },
-  }
+  } as PersistedClient
 }
 
 function quotaError(message = 'QuotaExceededError'): Error {

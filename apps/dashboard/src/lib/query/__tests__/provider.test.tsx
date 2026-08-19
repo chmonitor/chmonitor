@@ -51,7 +51,10 @@ describe('invalidateActiveQueriesInBatches', () => {
       delayMs: 0,
     })
 
-    const calls = invalidateSpy.mock.calls.map((c) => c[0])
+    type InvalidateArg = { type?: string; queryKey?: readonly unknown[] }
+    const calls = invalidateSpy.mock.calls.map(
+      (c) => (c as [InvalidateArg])[0]
+    )
     expect(calls.some((arg) => arg && arg.type === 'active')).toBe(false)
     expect(invalidateSpy).toHaveBeenCalledTimes(20)
 
@@ -63,7 +66,7 @@ describe('invalidateActiveQueriesInBatches', () => {
     }
 
     const firstBatchKeys = calls.slice(0, REFRESH_BATCH_SIZE).map((arg) => {
-      const key = arg?.queryKey as readonly unknown[]
+      const key = arg?.queryKey ?? []
       return key[1]
     })
     expect(firstBatchKeys).toEqual([0, 1, 2, 3, 4, 5])
