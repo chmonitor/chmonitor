@@ -1,16 +1,18 @@
 ---
 title: Commercial license
-description: Optional host-based yearly or lifetime licenses for teams that self-host chmonitor. Honor system — no license key.
+description: Optional host-based yearly or lifetime licenses for teams that self-host chmonitor. Honor system — set CHM_LICENSE_KEY to your Polar checkout id.
 icon: BadgeDollarSign
 ---
 
 chmonitor is **GPL-3.0**. You can self-host every feature, unlimited hosts, with no payment and no key.
 
-A **commercial license** is optional. Buy it if you need an invoice, a named vendor, email support, or a public listing. The app does not check a license key and does not phone home.
+A **commercial license** is optional. Buy it if you need an invoice, a named vendor, email support, or a public listing. The app does **not** unlock features from a key and does **not** fail closed if the key is missing or invalid.
+
+After you buy, set `CHM_LICENSE_KEY` on the dashboard process to the **Polar checkout id** from the receipt (the same id [lookup](https://chmonitor.dev/license/lookup) already accepts). When [product telemetry](/operate/advanced/telemetry) is on, the daily instance ping includes that id so licensed installs can be counted. Opt out of telemetry and nothing is sent.
 
 ## Who this is for
 
-Teams that already run ClickHouse (and already have people to operate infra) should **not** buy hosted cloud seats. Run chmonitor next to the cluster and, if procurement requires it, buy a license sized by host count.
+Teams that already run [REDACTED] (and already have people to operate infra) should **not** buy hosted cloud seats. Run chmonitor next to the cluster and, if procurement requires it, buy a license sized by host count.
 
 ## SKUs
 
@@ -22,19 +24,28 @@ Prices are USD. Personal is free self-host. Team and Unlimited are paid, yearly 
 | Team | 3 | $499 | $1,349 |
 | Unlimited | unlimited | $999 | $2,999 |
 
-A **host** is one monitored connection (one ClickHouse endpoint, or one Postgres source). A replica in the same shard counts as 0.5 host.
+A **host** is one monitored connection (one [REDACTED] endpoint, or one Postgres source). A replica in the same shard counts as 0.5 host.
 
 Source of truth: `@chm/pricing` (`packages/pricing/src/licenses.ts`) and [chmonitor.dev/pricing](https://chmonitor.dev/pricing/).
 
-## There is no license key
+## `CHM_LICENSE_KEY`
 
-The dashboard never asks for a key. There is no `CHM_LICENSE_KEY` env var and
-the binary does not phone home. A license is a **commercial agreement**
-(invoice + support + optional public listing), not a DRM unlock.
+There is no dedicated key format and cloud-hooks does not mint one. The purchase identifier is the **Polar checkout id** (UUID) on the Polar receipt — the same value you enter on [Look up an order](https://chmonitor.dev/license/lookup).
 
-To check a purchase later, use [Look up an order](https://chmonitor.dev/license/lookup)
-with the **Polar checkout id** from the receipt, or the **billing email** you
-used at Polar. That page does not unlock features.
+```bash
+# Polar checkout id from the receipt (example UUID shape)
+CHM_LICENSE_KEY=a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+Set it on the dashboard process (Docker `-e`, Compose `environment`, Helm `extraEnv`, or a self-built Worker var). Restart the process after changing it.
+
+| What it does | What it does not do |
+|---|---|
+| Included on the daily telemetry **instance ping** when telemetry is on | Unlock pages or edition features |
+| Lets us count licensed self-host installs | Fail startup if missing or invalid |
+| Same id lookup already uses | Appear as a Settings field |
+
+Telemetry off (`CHM_TELEMETRY=off` / `DO_NOT_TRACK=1` / empty endpoint) still sends **nothing**, including the key.
 
 ## How purchase actually works
 
@@ -51,6 +62,7 @@ Pricing → Buy
          ◄──────────  back to /license/register?paid=1&checkout_id=…
                       register company (honor system)
                       optional list on /customers
+                      set CHM_LICENSE_KEY=<checkout id>
 ```
 
 1. Open [pricing](https://chmonitor.dev/pricing/) and click **Buy Team** or
@@ -58,13 +70,15 @@ Pricing → Buy
    billing email). We save that, then send you to **Polar** with the same
    customer email so Polar has your details on the payment.
 2. **Polar** collects payment (card). Polar — not chmonitor — sends the
-   **receipt email**. We do not send a license-key email.
+   **receipt email**. We do not send a separate license-key email; the
+   checkout id **on that Polar receipt** is `CHM_LICENSE_KEY`.
 3. Polar returns you to
    [register](https://chmonitor.dev/license/register?paid=1) with a
    `checkout_id`. Enter **company name**, **website**, and billing email.
    Optionally opt in to the [customers](https://chmonitor.dev/customers)
    page (off by default).
-4. Need a PO / Net-30 / vendor form instead of card? Email
+4. Set `CHM_LICENSE_KEY` on the dashboard to that checkout id.
+5. Need a PO / Net-30 / vendor form instead of card? Email
    [hello@chmonitor.dev](mailto:hello@chmonitor.dev) — we invoice; Polar is
    skipped.
 
@@ -76,10 +90,10 @@ Polar so the receipt is addressed to you.
 
 | What you have | What to do |
 |---|---|
-| Polar receipt email | Keep it. Polar is the payment record. |
-| Checkout / order id | [Look up](https://chmonitor.dev/license/lookup) |
-| Billing email used at Polar | Same lookup page |
-| A license key field in the app | **Does not exist.** Do not add one. |
+| Polar receipt email | Keep it. Polar is the payment record. The checkout id on it is `CHM_LICENSE_KEY`. |
+| Checkout / order id | Set `CHM_LICENSE_KEY`, and/or [look up](https://chmonitor.dev/license/lookup) |
+| Billing email used at Polar | Same lookup page (lookup only — do not put an email in `CHM_LICENSE_KEY`) |
+| Settings → license field | **Does not exist.** Do not add one. |
 
 If lookup misses, email [hello@chmonitor.dev](mailto:hello@chmonitor.dev)
 with the Polar receipt. We do not automatically email a “you are licensed”
@@ -95,11 +109,12 @@ message after register.
 
 1. [Pricing](https://chmonitor.dev/pricing/) → Buy → Polar pay.
 2. Land on register → company + website.
-3. Optional: [lookup](https://chmonitor.dev/license/lookup) later.
-4. PO? Email hello@chmonitor.dev.
+3. Set `CHM_LICENSE_KEY` to the Polar checkout id from the receipt.
+4. Optional: [lookup](https://chmonitor.dev/license/lookup) later.
+5. PO? Email hello@chmonitor.dev.
 
-There is no `CHM_LICENSE_KEY` and you should not add one. Do not gate OSS
-features on a license.
+Do not gate OSS features on a license. Missing `CHM_LICENSE_KEY` is a
+normal community install.
 
 ## What you get
 
@@ -112,12 +127,13 @@ You do **not** get extra dashboard features versus the community build today. Pl
 
 ## Hosted cloud
 
-[dash.chmonitor.dev](https://dash.chmonitor.dev) remains a convenience product if you do not want to run the app. See [Cloud sign-up](/guide/getting-started/cloud-signup). For operators who already self-host ClickHouse, prefer this license instead.
+[dash.chmonitor.dev](https://dash.chmonitor.dev) remains a convenience product if you do not want to run the app. See [Cloud sign-up](/guide/getting-started/cloud-signup). For operators who already self-host [REDACTED], prefer this license instead.
 
 ## Related
 
 <Cards>
   <Card title="Editions" href="/operate/advanced/editions" description="Community vs planned Team/Enterprise gates." />
+  <Card title="Product telemetry" href="/operate/advanced/telemetry" description="Optional license_key on the daily instance ping." />
   <Card title="Self-host" href="/operate/deploy/self-host" description="Run the dashboard on your infra." />
   <Card title="Cloud sign-up" href="/guide/getting-started/cloud-signup" description="Hosted product if you do not want to operate it." />
 </Cards>

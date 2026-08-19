@@ -54,7 +54,7 @@ describe('landing license offer', () => {
     expect(bossPitch.body).toContain(`$${lifetime}`)
     expect(bossPitch.body).toContain(`$${unlimitedYearly}/year`)
     expect(bossPitch.body).toContain(PRICING_PAGE_HREF)
-    expect(bossPitch.body).toMatch(/no license key/i)
+    expect(bossPitch.body).toMatch(/no DRM/i)
     expect(bossPitch.body).toMatch(/invoice/i)
     expect(bossPitch.body).not.toMatch(/2am|begging|eleven browser tabs/i)
 

@@ -204,7 +204,7 @@ export interface PricingFaq {
 export const pricingFaqs: PricingFaq[] = [
   {
     q: 'Is self-hosting really free?',
-    a: 'Yes. chmonitor is open source under GPL-3.0. You can run it on your own infrastructure with every feature, unlimited clusters, and no license key. A paid license is optional: it is a commercial agreement, invoice, and email support — it does not unlock hidden features today.',
+    a: 'Yes. chmonitor is open source under GPL-3.0. You can run it on your own infrastructure with every feature and unlimited clusters. A paid license is optional: it is a commercial agreement, invoice, and email support — it does not unlock hidden features today. After purchase, set CHM_LICENSE_KEY to the Polar checkout id (honor system).',
   },
   {
     q: 'Should we buy a license or use the hosted cloud?',
