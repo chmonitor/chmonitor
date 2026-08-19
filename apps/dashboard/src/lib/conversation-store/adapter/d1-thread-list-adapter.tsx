@@ -145,7 +145,7 @@ function createD1HistoryAdapter(
 
       return {
         async load() {
-          const remoteId = aui.threadListItem().getState().remoteId
+          const remoteId = aui.threadListItem.getState().remoteId
           if (!remoteId) return { messages: [] }
           const conversation = await apiGet(remoteId)
           const stored = conversation?.messages
@@ -162,7 +162,7 @@ function createD1HistoryAdapter(
           return repo
         },
         async append(item) {
-          const { remoteId } = await aui.threadListItem().initialize()
+          const { remoteId } = await aui.threadListItem.initialize()
           const repo = getCachedRepo(remoteId)
           upsertHistoryItem(repo, item, getId)
           setRepoCache(remoteId, repo)
@@ -174,17 +174,17 @@ function createD1HistoryAdapter(
           // the runtime's `rename()` so the thread-list UI updates immediately
           // (optimistic in-memory state) and the title is persisted via the
           // adapter's `rename()` (server-side `apiPut({ title })`).
-          if (isUntitledThread(aui.threadListItem().getState().title)) {
+          if (isUntitledThread(aui.threadListItem.getState().title)) {
             const title = deriveTitleFromUserMessage(
               item.message as TitleSourceMessage
             )
             if (title) {
-              await aui.threadListItem().rename(title)
+              await aui.threadListItem.rename(title)
             }
           }
         },
         async update(item, localMessageId) {
-          const remoteId = aui.threadListItem().getState().remoteId
+          const remoteId = aui.threadListItem.getState().remoteId
           if (!remoteId) return
           const repo = getCachedRepo(remoteId)
           replaceHistoryItem(repo, item, localMessageId, getId)

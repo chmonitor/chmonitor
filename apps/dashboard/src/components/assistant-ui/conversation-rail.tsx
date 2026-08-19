@@ -10,8 +10,9 @@
  * same {@link ThreadRow} over {@link useConversationItems} (issue #2809,
  * consolidating `thread-list.tsx` + `recent-threads-rail.tsx` + the dialog).
  *
- * Data comes from assistant-ui's thread-list runtime (`useThreadList`), so it
- * stays in sync with the persistent adapter (D1 or localStorage).
+ * Data comes from assistant-ui's thread-list runtime (`useAuiState` on
+ * `s.threads`), so it stays in sync with the persistent adapter (D1 or
+ * localStorage).
  */
 
 import {
@@ -23,7 +24,7 @@ import {
   Trash2Icon,
 } from 'lucide-react'
 
-import { useAssistantRuntime, useThreadList } from '@assistant-ui/react'
+import { useAui, useAuiState } from '@assistant-ui/react'
 import { useMemo, useState } from 'react'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { Button } from '@/components/ui/button'
@@ -40,18 +41,19 @@ export interface ConversationItem {
 
 /** Sorted (newest first) list of saved conversations from the runtime. */
 export function useConversationItems(): ConversationItem[] {
-  const threadIds = useThreadList((s) => s.threadIds)
-  const threadItems = useThreadList((s) => s.threadItems)
-  const mainThreadId = useThreadList((s) => s.mainThreadId)
+  const threadIds = useAuiState((s) => s.threads.threadIds)
+  const threadItems = useAuiState((s) => s.threads.threadItems)
+  const mainThreadId = useAuiState((s) => s.threads.mainThreadId)
 
   return useMemo(() => {
+    const byId = new Map(threadItems.map((item) => [item.id, item]))
     return threadIds
       .map((id) => {
-        const it = threadItems[id]
-        const custom = it?.custom as Record<string, unknown> | undefined
+        const it = byId.get(id)
+        const custom = it?.custom
         const createdAt =
           typeof custom?.createdAt === 'number'
-            ? (custom.createdAt as number)
+            ? custom.createdAt
             : it?.lastMessageAt?.getTime()
         return {
           id,
@@ -114,10 +116,10 @@ export function ThreadRow({
   onSelect,
   showActions = true,
 }: ThreadRowProps) {
-  const runtime = useAssistantRuntime()
+  const aui = useAui()
 
   const select = () => {
-    void runtime.threads.switchToThread(item.id)
+    void aui.threads.switchToThread(item.id)
     onSelect?.()
   }
 
@@ -145,14 +147,14 @@ export function ThreadRow({
           <TooltipIconButton
             tooltip="Archive"
             className="hover:text-foreground text-muted-foreground size-7 p-0"
-            onClick={() => void runtime.threads.getItemById(item.id).archive()}
+            onClick={() => void aui.threads.item({ id: item.id }).archive()}
           >
             <ArchiveIcon className="size-4" />
           </TooltipIconButton>
           <TooltipIconButton
             tooltip="Delete"
             className="hover:text-destructive text-muted-foreground size-7 p-0"
-            onClick={() => void runtime.threads.getItemById(item.id).delete()}
+            onClick={() => void aui.threads.item({ id: item.id }).delete()}
           >
             <Trash2Icon className="size-4" />
           </TooltipIconButton>
@@ -176,7 +178,7 @@ export function ConversationRailBody({
   onCollapse,
   showCollapse = true,
 }: ConversationRailBodyProps) {
-  const runtime = useAssistantRuntime()
+  const aui = useAui()
   const items = useConversationItems()
   const [query, setQuery] = useState('')
 
@@ -214,7 +216,7 @@ export function ConversationRailBody({
           variant="outline"
           size="sm"
           onClick={() => {
-            void runtime.threads.switchToNewThread()
+            void aui.threads.switchToNewThread()
             onNavigate?.()
           }}
           className="mb-2 h-8 w-full justify-start gap-2 text-[12.5px]"

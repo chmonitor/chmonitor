@@ -12,7 +12,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 
 import type { Spec } from '@json-render/core'
 
-import { useMessage } from '@assistant-ui/react'
+import { useAuiState } from '@assistant-ui/react'
 import {
   type DataPart,
   getTextFromParts,
@@ -184,8 +184,8 @@ function useSafeJsonRender(parts: readonly unknown[]): SafeJsonRenderResult {
  * generative UI. Mounted once per assistant message after its text/tool parts.
  */
 export function JsonRenderMessage() {
-  const parts = useMessage((message) => message.content) as readonly unknown[]
-  const isRunning = useMessage((message) => message.status?.type === 'running')
+  const parts = useAuiState((s) => s.message.content) as readonly unknown[]
+  const isRunning = useAuiState((s) => s.message.status?.type === 'running')
   const jsonRender = useSafeJsonRender(parts ?? [])
 
   if (!jsonRender.hasSpec || !jsonRender.spec) return null

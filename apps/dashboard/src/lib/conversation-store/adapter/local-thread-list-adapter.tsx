@@ -97,12 +97,12 @@ function createLocalHistoryAdapter(
 
       return {
         async load() {
-          const remoteId = aui.threadListItem().getState().remoteId
+          const remoteId = aui.threadListItem.getState().remoteId
           if (!remoteId) return { messages: [] }
           return readRepo(remoteId)
         },
         async append(item) {
-          const { remoteId } = await aui.threadListItem().initialize()
+          const { remoteId } = await aui.threadListItem.initialize()
           const repo = readRepo(remoteId)
           upsertHistoryItem(repo, item, getId)
           writeJson(messagesKey(remoteId), repo)
@@ -112,17 +112,17 @@ function createLocalHistoryAdapter(
           // the runtime's `rename()` so the thread-list UI updates immediately
           // (optimistic in-memory state) and the title is persisted via the
           // adapter's `rename()` below — no page reload required.
-          if (isUntitledThread(aui.threadListItem().getState().title)) {
+          if (isUntitledThread(aui.threadListItem.getState().title)) {
             const title = deriveTitleFromUserMessage(
               item.message as TitleSourceMessage
             )
             if (title) {
-              await aui.threadListItem().rename(title)
+              await aui.threadListItem.rename(title)
             }
           }
         },
         async update(item, localMessageId) {
-          const remoteId = aui.threadListItem().getState().remoteId
+          const remoteId = aui.threadListItem.getState().remoteId
           if (!remoteId) return
           const repo = readRepo(remoteId)
           replaceHistoryItem(repo, item, localMessageId, getId)
