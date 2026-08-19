@@ -13,6 +13,8 @@
  * `routes/api/v1/advisor/history.ts` runs the built query with `fetchData`.
  */
 
+import { QUERY_COMMENT } from '@chm/clickhouse-client/constants' // pragma: allowlist secret
+
 /** A ClickHouse query-kind the picker can filter on (subset of query_kind). */
 export const HISTORY_PICKER_KINDS = [
   'Select',
@@ -24,19 +26,54 @@ export const HISTORY_PICKER_KINDS = [
 ] as const
 export type HistoryPickerKind = (typeof HISTORY_PICKER_KINDS)[number]
 
+/** Omit the `query_kind` predicate — every kind in the window. */
+export const HISTORY_PICKER_KIND_ALL = 'all' as const
+export type HistoryPickerKindFilter =
+  | HistoryPickerKind
+  | typeof HISTORY_PICKER_KIND_ALL
+
+export const HISTORY_PICKER_KIND_OPTIONS: ReadonlyArray<{
+  value: HistoryPickerKindFilter
+  label: string
+}> = [
+  { value: HISTORY_PICKER_KIND_ALL, label: 'All kinds' },
+  { value: 'Select', label: 'Select' },
+  { value: 'Insert', label: 'Insert' },
+  { value: 'Create', label: 'Create' },
+  { value: 'Alter', label: 'Alter' },
+  { value: 'Drop', label: 'Drop' },
+  { value: 'System', label: 'System' },
+]
+
+/**
+ * Distinctive prefix `fetchData` prepends to every dashboard query. Running
+ * query counts already drop rows whose query text contains this comment.
+ * Trim the trailing newline so the match is independent of how query_log
+ * stores whitespace after the block comment.
+ */
+export const DASHBOARD_QUERY_FINGERPRINT = QUERY_COMMENT.trim() // pragma: allowlist secret
+
 export interface HistoryPickerFilters {
   /** Free-text, case-insensitive substring match on the query body. */
   keyword?: string
   /** Exact `user` match. */
   user?: string
-  /** Restrict to a single `query_kind`. Defaults to `Select` (advisor target). */
-  kind?: HistoryPickerKind
+  /**
+   * Restrict to a single `query_kind`. Unset / `'all'` means no kind
+   * predicate — do not default to Select.
+   */
+  kind?: HistoryPickerKindFilter
   /** Minimum `query_duration_ms`. */
   minDurationMs?: number
   /** Look-back window in hours (event_time). */
   hours?: number
   /** Max rows returned (hard-capped). */
   limit?: number
+  /**
+   * When true (the default), drop queries that carry the dashboard
+   * `QUERY_COMMENT` fingerprint. Pass `false` to include them.
+   */
+  excludeSelf?: boolean
 }
 
 /** One row surfaced to the picker UI. */
@@ -72,6 +109,10 @@ function clampInt(
 export interface BuiltHistoryQuery {
   sql: string
   params: Record<string, string>
+}
+
+function isHistoryPickerKind(value: string): value is HistoryPickerKind {
+  return (HISTORY_PICKER_KINDS as readonly string[]).includes(value)
 }
 
 /**
@@ -121,14 +162,17 @@ export function buildHistoryPickerQuery(
     where.push('user = {user:String}')
   }
 
-  // Default to Select (the advisor only analyzes read queries) unless the
-  // caller explicitly widens the kind.
-  const kind: HistoryPickerKind =
-    filters.kind && HISTORY_PICKER_KINDS.includes(filters.kind)
-      ? filters.kind
-      : 'Select'
-  params.kind = kind
-  where.push('query_kind = {kind:String}')
+  const kind = filters.kind
+  if (kind && kind !== HISTORY_PICKER_KIND_ALL && isHistoryPickerKind(kind)) {
+    params.kind = kind
+    where.push('query_kind = {kind:String}')
+  }
+
+  const excludeSelf = filters.excludeSelf !== false
+  if (excludeSelf && DASHBOARD_QUERY_FINGERPRINT !== '') {
+    params.selfFingerprint = DASHBOARD_QUERY_FINGERPRINT // pragma: allowlist secret
+    where.push('position(query, {selfFingerprint:String}) = 0')
+  }
 
   if (minDurationMs > 0) {
     where.push(`query_duration_ms >= ${minDurationMs}`)
