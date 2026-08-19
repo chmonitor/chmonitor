@@ -1,5 +1,3 @@
-import { tableKey } from './catalog'
-import { namedDelta } from './named-delta'
 import type {
   PlanItem,
   SchemaChangePlan,
@@ -9,6 +7,9 @@ import type {
   SchemaProjection,
   TableSchema,
 } from './types'
+
+import { tableKey } from './catalog'
+import { namedDelta } from './named-delta'
 
 function quoteIdent(name: string): string {
   return `\`${name.replace(/`/g, '``')}\``
@@ -58,7 +59,10 @@ function planForMissingTable(source: TableSchema): PlanItem[] {
   ]
 }
 
-function planForChangedTable(source: TableSchema, target: TableSchema): PlanItem[] {
+function planForChangedTable(
+  source: TableSchema,
+  target: TableSchema
+): PlanItem[] {
   const items: PlanItem[] = []
   const key = tableKey(source.database, source.table)
 

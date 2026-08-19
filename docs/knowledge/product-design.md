@@ -636,7 +636,10 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   seed-rotated (not `Math.random()`) so it's SSR-safe, and label it (a "Sample"
   badge + a one-line footnote that it's illustrative, not live analysis).
   Reference: `components/insights/insights-preview.tsx` +
-  `lib/insights/mock-preview.ts`.
+  `lib/insights/mock-preview.ts`. One-host compare pages (`/schema-diff`,
+  `/settings-diff`) reuse `ExamplePreviewChrome` + `AddAnotherHostButton`
+  (opens the existing `ConnectionManagerDialog`; 44px mobile hit) instead of
+  a dead empty state.
 - Overflow strip: for a single-row scroller that must not wrap, use
   `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
   tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped

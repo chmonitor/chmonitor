@@ -77,7 +77,7 @@ const NAV_ROUTES = [
     id: 'nav-schema-diff',
     label: 'Schema Compare',
     href: '/schema-diff',
-    keywords: ['schema', 'diff', 'ddl', 'compare', 'hosts'],
+    keywords: ['schema', 'diff', 'ddl', 'compare', 'hosts', 'nodes'],
   },
   {
     id: 'nav-logs-text',

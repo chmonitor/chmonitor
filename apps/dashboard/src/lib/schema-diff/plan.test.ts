@@ -1,10 +1,12 @@
-import { describe, expect, test } from 'bun:test'
+import type { TableSchema } from './types'
 
 import { compareCatalogs } from './compare'
 import { buildChangePlan } from './plan'
-import type { TableSchema } from './types'
+import { describe, expect, test } from 'bun:test'
 
-function table(partial: Partial<TableSchema> & Pick<TableSchema, 'database' | 'table'>): TableSchema {
+function table(
+  partial: Partial<TableSchema> & Pick<TableSchema, 'database' | 'table'>
+): TableSchema {
   return {
     engine: 'MergeTree',
     sortingKey: 'id',
@@ -36,7 +38,12 @@ describe('buildChangePlan', () => {
             { name: 'note', type: 'String', codec: '' },
           ],
           indexes: [
-            { name: 'idx_note', type: 'bloom_filter', expr: 'note', granularity: '1' },
+            {
+              name: 'idx_note',
+              type: 'bloom_filter',
+              expr: 'note',
+              granularity: '1',
+            },
           ],
         }),
       ],
@@ -53,10 +60,12 @@ describe('buildChangePlan', () => {
 
     const plan = buildChangePlan(compareCatalogs(source, target))
     expect(plan.items.every((i) => i.kind !== 'manual')).toBe(true)
-    expect(plan.safeStatements.every((s) => /^(CREATE|ALTER TABLE .+ ADD )/i.test(s))).toBe(
+    expect(
+      plan.safeStatements.every((s) => /^(CREATE|ALTER TABLE .+ ADD )/i.test(s))
+    ).toBe(true)
+    expect(plan.safeStatements.some((s) => s.startsWith('CREATE TABLE'))).toBe(
       true
     )
-    expect(plan.safeStatements.some((s) => s.startsWith('CREATE TABLE'))).toBe(true)
     expect(plan.safeStatements.some((s) => s.includes('ADD COLUMN'))).toBe(true)
     expect(plan.safeStatements.some((s) => s.includes('ADD INDEX'))).toBe(true)
     expect(plan.items.some((i) => /DROP/i.test(i.statement))).toBe(false)
@@ -74,16 +83,27 @@ describe('buildChangePlan', () => {
       ],
     }
     const target = {
-      tables: [table({ database: 'app', table: 't', engine: 'MergeTree', sortingKey: 'id' })],
+      tables: [
+        table({
+          database: 'app',
+          table: 't',
+          engine: 'MergeTree',
+          sortingKey: 'id',
+        }),
+      ],
     }
 
     const plan = buildChangePlan(compareCatalogs(source, target))
     const manuals = plan.items.filter((i) => i.kind === 'manual')
     expect(manuals.length).toBeGreaterThanOrEqual(2)
-    expect(manuals.every((i) => i.risk === 'rewrite' && i.statement === '')).toBe(true)
+    expect(
+      manuals.every((i) => i.risk === 'rewrite' && i.statement === '')
+    ).toBe(true)
     expect(plan.safeStatements).toEqual([])
     expect(plan.items.some((i) => /ENGINE\s*=/i.test(i.statement))).toBe(false)
-    expect(plan.items.some((i) => /MODIFY ORDER BY/i.test(i.statement))).toBe(false)
+    expect(plan.items.some((i) => /MODIFY ORDER BY/i.test(i.statement))).toBe(
+      false
+    )
   })
 
   test('drop column is a manual note, never a DROP statement', () => {

@@ -78,7 +78,7 @@ export const toolsItems: MenuItem[] = [
         title: 'Schema Compare',
         href: '/schema-diff',
         description:
-          'Compare table schemas across hosts and copy a recommend-only change plan',
+          'Compare table schemas across hosts or cluster nodes and copy a recommend-only change plan',
         icon: GitCompareArrowsIcon,
         isNew: true,
         permission: { feature: 'settings' },
@@ -88,7 +88,7 @@ export const toolsItems: MenuItem[] = [
         title: 'Settings Diff',
         href: '/settings-diff',
         description:
-          'Compare system.settings and merge_tree_settings across all configured hosts',
+          'Compare system.settings and merge_tree_settings across saved hosts or cluster nodes',
         icon: GitCompareArrowsIcon,
         isNew: true,
         permission: { feature: 'settings' },

@@ -62,6 +62,7 @@ import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
 } from '@/lib/cloud/reject-demo-host'
+import { pickFanoutCluster } from '@/lib/cluster/pick-fanout-cluster'
 import { keeperInfoConfig } from '@/lib/query-config/keeper/keeper-info'
 import { keeperPresenceConfig } from '@/lib/query-config/keeper/keeper-presence'
 import {
@@ -71,41 +72,6 @@ import {
 import { clustersTopologyConfig } from '@/lib/query-config/system/clusters-topology'
 
 const ROUTE_CONTEXT = { route: '/api/v1/cluster-topology', method: 'GET' }
-
-/**
- * Pick the cluster to fan live metrics out over: the widest PHYSICAL cluster
- * (most members) so a single fan-out covers every host. Logical clusters reuse
- * the same hosts by name. Falls back to the cluster with the most members.
- */
-function pickFanoutCluster(rows: ClusterTopologyRow[]): string | null {
-  const counts = new Map<string, Set<string>>()
-  const physical = new Set<string>()
-  for (const r of rows) {
-    if (!counts.has(r.cluster)) counts.set(r.cluster, new Set())
-    counts.get(r.cluster)!.add(`${r.host_name}:${r.port}`)
-    const n = r.cluster
-    if (
-      n === 'default' ||
-      n.startsWith('default') ||
-      n === 'all-replicated' ||
-      n === 'all-sharded'
-    ) {
-      physical.add(n)
-    }
-  }
-  let best: string | null = null
-  let bestSize = -1
-  // Prefer physical clusters; among them the widest.
-  for (const [name, hosts] of counts) {
-    const isPhysical = physical.has(name)
-    const size = hosts.size + (isPhysical ? 10_000 : 0)
-    if (size > bestSize) {
-      bestSize = size
-      best = name
-    }
-  }
-  return best
-}
 
 async function handleGet(request: Request): Promise<Response> {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)

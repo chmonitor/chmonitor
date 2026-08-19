@@ -8,6 +8,7 @@ interface TableListProps {
   rows: TableDiff[]
   selectedKey: string | null
   onSelect: (key: string) => void
+  example?: boolean
 }
 
 function kindLabel(kind: TableDiff['kind']): string {
@@ -17,7 +18,12 @@ function kindLabel(kind: TableDiff['kind']): string {
   return 'same'
 }
 
-export function TableList({ rows, selectedKey, onSelect }: TableListProps) {
+export function TableList({
+  rows,
+  selectedKey,
+  onSelect,
+  example = false,
+}: TableListProps) {
   return (
     <Card className="rounded-xl border bg-card shadow-sm">
       <CardContent className="p-0">
@@ -42,9 +48,19 @@ export function TableList({ rows, selectedKey, onSelect }: TableListProps) {
                   onClick={() => onSelect(row.key)}
                 >
                   <span className="truncate font-mono">{row.key}</span>
-                  <Badge variant="outline" className="shrink-0 text-muted-foreground">
-                    {kindLabel(row.kind)}
-                  </Badge>
+                  <span className="flex shrink-0 items-center gap-1">
+                    {example ? (
+                      <Badge
+                        variant="secondary"
+                        className="font-normal text-[10px]"
+                      >
+                        Example
+                      </Badge>
+                    ) : null}
+                    <Badge variant="outline" className="text-muted-foreground">
+                      {kindLabel(row.kind)}
+                    </Badge>
+                  </span>
                 </button>
               </li>
             ))

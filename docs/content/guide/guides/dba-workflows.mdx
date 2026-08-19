@@ -14,7 +14,8 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 
 | Workflow | Route | What it does |
 |---|---|---|
-| Settings compare | `/settings-diff` | Compares `system.settings` and `system.merge_tree_settings` across every configured host. Highlights values that differ between hosts and values changed from default. Export as CSV. |
+| Settings compare | `/settings-diff` | Compares `system.settings` and `system.merge_tree_settings` across saved hosts, or node vs node on the current cluster. Highlights values that differ and values changed from default. Export as CSV. One saved host with a single node shows an example layout and **Add another host**. |
+| Schema compare | `/schema-diff` | Compares table DDL across saved hosts, or node vs node on the current cluster. Recommend-only change plan (copy statements, never apply). One saved host with a single node shows an example layout and **Add another host**. |
 | Query advisor | `/advisor` (Query Advisor tab) | Ranked skip-index, projection, partition-key, and `PREWHERE` recommendations for a pasted query or a `query_id`. Recommend-only. |
 | Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for schema lint and settings findings. Recommend-only. |
 | TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. This is move history / current economics — not a full TTL and partition health inventory. |
@@ -22,9 +23,13 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 
 ### Settings compare (`/settings-diff`)
 
-Open **System → Settings Diff**. You need at least two hosts configured. Filter to rows that differ, or to settings changed from default. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
+Open **Tools → Settings Diff**. Compare saved hosts, or pick two cluster nodes when the current host has 2+ replicas. Filter to rows that differ, or to settings changed from default. One saved host with a single node shows an example layout and **Add another host**. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
 
 Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTER TABLE … MODIFY SETTING`, or edit the server config yourself.
+
+### Schema compare (`/schema-diff`)
+
+Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster). The page lists tables that differ and shows side-by-side `CREATE TABLE` plus a copyable recommend-only plan. It never applies DDL.
 
 ### Advisor (`/advisor`)
 
@@ -47,7 +52,7 @@ The inventory of *every* table's TTL expression, partition health, and "should t
 
 ### Explorer single-host DDL (`/explorer`)
 
-The [Data Explorer](/guide/features/explorer) shows `CREATE TABLE` for the table on the **current host**. It does not compare DDL across hosts. See [Gaps](#gaps-not-shipped).
+The [Data Explorer](/guide/features/explorer) shows `CREATE TABLE` for the table on the **current host**. Cross-host or node-vs-node DDL compare lives on `/schema-diff`.
 
 <Callout type="info" title="Read-only explorer">
 The explorer cannot create, alter, or drop objects.
@@ -59,12 +64,10 @@ These DBA workflows are **not** in the dashboard today. They are described here 
 
 | Gap | What is missing |
 |---|---|
-| Cross-host schema compare | Explorer shows `CREATE TABLE` on the current host only. `/settings-diff` compares settings, not table DDL. |
-| Schema change plan from a host diff | No recommend-only `ALTER` / `CREATE` plan generated from a schema diff. |
 | TTL and partition health inventory | `/storage-economics` is move history and current economics, not every table's TTL expression or partition health. |
 | Schema advisor on Explorer | Schema lint lives on `/advisor` (Schema & Settings tab), not inline on Explorer. |
 
-Until those exist, use `/settings-diff`, `/advisor`, `/storage-economics`, and `/explorer` as listed above. This guide will point at new routes if they ship.
+Until those exist, use `/schema-diff`, `/settings-diff`, `/advisor`, `/storage-economics`, and `/explorer` as listed above. This guide will point at new routes if they ship.
 
 ## Related
 

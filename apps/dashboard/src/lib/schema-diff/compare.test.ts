@@ -1,10 +1,12 @@
-import { describe, expect, test } from 'bun:test'
+import type { TableSchema } from './types'
 
 import { assembleCatalog } from './catalog'
 import { compareCatalogs } from './compare'
-import type { TableSchema } from './types'
+import { describe, expect, test } from 'bun:test'
 
-function table(partial: Partial<TableSchema> & Pick<TableSchema, 'database' | 'table'>): TableSchema {
+function table(
+  partial: Partial<TableSchema> & Pick<TableSchema, 'database' | 'table'>
+): TableSchema {
   return {
     engine: 'MergeTree',
     sortingKey: 'id',
@@ -70,7 +72,10 @@ describe('assembleCatalog', () => {
     )
 
     expect(catalog.tables).toHaveLength(1)
-    expect(catalog.tables[0].columns.map((c) => c.name)).toEqual(['ts', 'payload'])
+    expect(catalog.tables[0].columns.map((c) => c.name)).toEqual([
+      'ts',
+      'payload',
+    ])
     expect(catalog.tables[0].indexes).toHaveLength(1)
     expect(catalog.tables[0].projections[0].name).toBe('by_day')
   })
@@ -83,7 +88,8 @@ describe('compareCatalogs', () => {
         table({
           database: 'app',
           table: 'only_src',
-          createTableQuery: 'CREATE TABLE app.only_src (id UInt64) ENGINE = MergeTree ORDER BY id',
+          createTableQuery:
+            'CREATE TABLE app.only_src (id UInt64) ENGINE = MergeTree ORDER BY id',
         }),
         table({
           database: 'app',
@@ -123,7 +129,10 @@ describe('compareCatalogs', () => {
 
   test('identical tables land in identical', () => {
     const t = table({ database: 'app', table: 'same' })
-    const diff = compareCatalogs({ tables: [t] }, { tables: [structuredClone(t)] })
+    const diff = compareCatalogs(
+      { tables: [t] },
+      { tables: [structuredClone(t)] }
+    )
     expect(diff.identical.map((r) => r.key)).toEqual(['app.same'])
     expect(diff.changed).toEqual([])
   })

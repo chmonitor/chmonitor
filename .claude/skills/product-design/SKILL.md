@@ -174,7 +174,10 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Preview / "Example" surfaces**: render from deterministic mock data
   parameterized by settings (seed-rotated, SSR-safe), never a live query/LLM
   call — no "Couldn't generate" error for anon/read-only visitors. Label it
-  "Sample". See `components/insights/insights-preview.tsx`.
+  "Sample". See `components/insights/insights-preview.tsx`. One-host compare
+  pages (`/schema-diff`, `/settings-diff`) reuse `ExamplePreviewChrome` +
+  `AddAnotherHostButton` (opens existing `ConnectionManagerDialog`; 44px
+  mobile hit) instead of a dead empty state.
 - **Base UI primitives** (`components/ui/*` = shadcn Base UI, not Radix): style
   overlays off `data-open`/`data-closed`/`data-orientation` (needs the
   `@custom-variant data-horizontal|vertical` in `styles.css`) and Base UI CSS

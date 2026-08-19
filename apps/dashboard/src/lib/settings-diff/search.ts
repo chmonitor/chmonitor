@@ -2,16 +2,16 @@ import type { CompareScope } from '@/lib/compare/scope'
 
 import { parseCompareScope, parseOptionalInt } from '@/lib/compare/scope'
 
-export type SchemaDiffSearch = {
+export type SettingsDiffSearch = {
   host: number
   source?: number
   target?: number
   scope?: CompareScope
 }
 
-export function validateSchemaDiffSearch(
+export function validateSettingsDiffSearch(
   search: Record<string, unknown>
-): SchemaDiffSearch {
+): SettingsDiffSearch {
   const hostParsed = Number(search.host)
   const source = parseOptionalInt(search.source)
   const target = parseOptionalInt(search.target)
@@ -26,13 +26,12 @@ export function validateSchemaDiffSearch(
   }
 }
 
-/** Query string for GET /api/v1/schema-diff (host pair or node pair). */
-export function buildSchemaDiffRequest(search: SchemaDiffSearch): string {
+/** Query string for GET /api/v1/settings-diff (node pair + host scope). */
+export function buildSettingsDiffRequest(search: SettingsDiffSearch): string {
   const params = new URLSearchParams()
   params.set('host', String(search.host))
   if (search.scope) params.set('scope', search.scope)
   if (search.source !== undefined) params.set('source', String(search.source))
   if (search.target !== undefined) params.set('target', String(search.target))
-  const qs = params.toString()
-  return `/api/v1/schema-diff?${qs}`
+  return `/api/v1/settings-diff?${params.toString()}`
 }

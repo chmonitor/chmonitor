@@ -1,9 +1,9 @@
 /**
  * Schema Diff API
- * GET /api/v1/schema-diff?source=0&target=1
+ * GET /api/v1/schema-diff?host=0&source=0&target=1&scope=hosts|nodes
  *
- * Read-only catalog compare between two env-configured hosts.
- * Never executes DDL.
+ * Read-only catalog compare between two env-configured hosts, or two nodes of
+ * the current host's cluster. Never executes DDL.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -16,16 +16,36 @@ import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
 } from '@/lib/cloud/reject-demo-host'
+import { loadClusterNodes } from '@/lib/cluster/load-cluster-nodes'
+import { pickFanoutCluster } from '@/lib/cluster/pick-fanout-cluster'
+import {
+  type ClusterNodePeer,
+  rowBelongsToNode,
+} from '@/lib/cluster/unique-nodes'
+import {
+  type CompareScope,
+  parseCompareScope,
+  parseOptionalInt,
+  resolveCompareScope,
+  resolvePair,
+} from '@/lib/compare/scope'
 import {
   assembleCatalog,
   buildChangePlan,
+  type ColumnRow,
   compareCatalogs,
   emptySchemaDiffPayload,
-  type ColumnRow,
   type IndexRow,
   type ProjectionRow,
+  type SchemaCatalog,
   type TableRow,
 } from '@/lib/schema-diff'
+import {
+  CLUSTER_COLUMNS_QUERY,
+  CLUSTER_INDEXES_QUERY,
+  CLUSTER_PROJECTIONS_QUERY,
+  CLUSTER_TABLES_QUERY,
+} from '@/lib/schema-diff/cluster-sql'
 
 const USER_DB_FILTER = `database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')`
 
@@ -80,15 +100,18 @@ const PROJECTIONS_QUERY = `
   ORDER BY database, table, name
 `
 
+type NodeHostRow = { node_host: string }
+
 async function queryRows<T>(
   hostId: number,
   query: string,
-  options?: { optional?: boolean }
+  options?: { optional?: boolean; query_params?: Record<string, string> }
 ): Promise<T[]> {
   const result = await fetchData<T[]>({
     query,
     hostId,
     format: 'JSONEachRow',
+    query_params: options?.query_params,
   })
   if (result.error || !result.data) {
     if (options?.optional) return []
@@ -99,7 +122,7 @@ async function queryRows<T>(
   return result.data
 }
 
-async function loadCatalog(hostId: number) {
+async function loadCatalog(hostId: number): Promise<SchemaCatalog> {
   const [tables, columns, indexes, projections] = await Promise.all([
     queryRows<TableRow>(hostId, TABLES_QUERY),
     queryRows<ColumnRow>(hostId, COLUMNS_QUERY),
@@ -109,10 +132,56 @@ async function loadCatalog(hostId: number) {
   return assembleCatalog(tables, columns, indexes, projections)
 }
 
+function catalogForNode<T extends NodeHostRow>(
+  rows: T[],
+  node: ClusterNodePeer
+): T[] {
+  return rows.filter((row) => rowBelongsToNode(row.node_host, node))
+}
+
+async function loadNodeCatalogs(
+  hostId: number,
+  cluster: string,
+  source: ClusterNodePeer,
+  target: ClusterNodePeer
+): Promise<[SchemaCatalog, SchemaCatalog]> {
+  const params = { cluster }
+  const [tables, columns, indexes, projections] = await Promise.all([
+    queryRows<TableRow & NodeHostRow>(hostId, CLUSTER_TABLES_QUERY, {
+      query_params: params,
+    }),
+    queryRows<ColumnRow & NodeHostRow>(hostId, CLUSTER_COLUMNS_QUERY, {
+      query_params: params,
+    }),
+    queryRows<IndexRow & NodeHostRow>(hostId, CLUSTER_INDEXES_QUERY, {
+      optional: true,
+      query_params: params,
+    }),
+    queryRows<ProjectionRow & NodeHostRow>(hostId, CLUSTER_PROJECTIONS_QUERY, {
+      optional: true,
+      query_params: params,
+    }),
+  ])
+
+  return [
+    assembleCatalog(
+      catalogForNode(tables, source),
+      catalogForNode(columns, source),
+      catalogForNode(indexes, source),
+      catalogForNode(projections, source)
+    ),
+    assembleCatalog(
+      catalogForNode(tables, target),
+      catalogForNode(columns, target),
+      catalogForNode(indexes, target),
+      catalogForNode(projections, target)
+    ),
+  ]
+}
+
 function parseHostId(raw: string | null): number | null {
-  if (raw === null || raw === '') return null
-  const n = Number.parseInt(raw, 10)
-  return Number.isFinite(n) ? n : null
+  const n = parseOptionalInt(raw)
+  return n === undefined ? null : n
 }
 
 export const Route = createFileRoute('/api/v1/schema-diff')({
@@ -142,6 +211,8 @@ export const Route = createFileRoute('/api/v1/schema-diff')({
             emptySchemaDiffPayload({
               success: true,
               hosts: [],
+              nodes: [],
+              scope: 'hosts' as CompareScope,
               sourceHostId: null,
               targetHostId: null,
               unavailable: demoHiddenUnavailable(),
@@ -154,59 +225,127 @@ export const Route = createFileRoute('/api/v1/schema-diff')({
           name: c.customName ?? c.host,
         }))
 
-        if (hosts.length < 2) {
-          return Response.json(
-            emptySchemaDiffPayload({
-              success: true,
-              hosts,
-              sourceHostId: hosts[0]?.id ?? null,
-              targetHostId: null,
-            })
-          )
-        }
-
         const searchParams = new URL(request.url).searchParams
         const requestedSource = parseHostId(searchParams.get('source'))
         const requestedTarget = parseHostId(searchParams.get('target'))
+        const requestedScope = parseCompareScope(searchParams.get('scope'))
+        const requestedHost = parseHostId(searchParams.get('host'))
+        const topologyHostId =
+          requestedHost !== null && hosts.some((h) => h.id === requestedHost)
+            ? requestedHost
+            : (hosts[0]?.id ?? 0)
 
-        const ids = new Set(hosts.map((h) => h.id))
-        const sourceHostId =
-          requestedSource !== null && ids.has(requestedSource)
-            ? requestedSource
-            : hosts[0].id
-        const fallbackTarget = hosts.find((h) => h.id !== sourceHostId)!.id
-        const targetHostId =
-          requestedTarget !== null &&
-          ids.has(requestedTarget) &&
-          requestedTarget !== sourceHostId
-            ? requestedTarget
-            : fallbackTarget
+        const { nodes, rows: clusterRows } =
+          await loadClusterNodes(topologyHostId)
+        const nodePeers = nodes.map((n) => ({ id: n.id, name: n.name }))
+        const scope = resolveCompareScope({
+          hostCount: hosts.length,
+          nodeCount: nodes.length,
+          requested: requestedScope,
+        })
 
-        try {
-          const [sourceCatalog, targetCatalog] = await Promise.all([
-            loadCatalog(sourceHostId),
-            loadCatalog(targetHostId),
-          ])
-
-          const diff = compareCatalogs(sourceCatalog, targetCatalog)
-          const plan = buildChangePlan(diff)
-
-          return Response.json({
+        const empty = (
+          sourceHostId: number | null,
+          targetHostId: number | null
+        ) =>
+          emptySchemaDiffPayload({
             success: true,
             hosts,
+            nodes: nodePeers,
+            scope,
             sourceHostId,
             targetHostId,
-            diff,
-            plan,
           })
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : 'Catalog query failed'
-          return Response.json(
-            { success: false, error: message },
-            { status: 502 }
-          )
+
+        if (scope === 'hosts' && hosts.length >= 2) {
+          const ids = new Set(hosts.map((h) => h.id))
+          const sourceHostId =
+            requestedSource !== null && ids.has(requestedSource)
+              ? requestedSource
+              : hosts[0].id
+          const fallbackTarget = hosts.find((h) => h.id !== sourceHostId)!.id
+          const targetHostId =
+            requestedTarget !== null &&
+            ids.has(requestedTarget) &&
+            requestedTarget !== sourceHostId
+              ? requestedTarget
+              : fallbackTarget
+
+          try {
+            const [sourceCatalog, targetCatalog] = await Promise.all([
+              loadCatalog(sourceHostId),
+              loadCatalog(targetHostId),
+            ])
+
+            const diff = compareCatalogs(sourceCatalog, targetCatalog)
+            const plan = buildChangePlan(diff)
+
+            return Response.json({
+              success: true,
+              hosts,
+              nodes: nodePeers,
+              scope,
+              sourceHostId,
+              targetHostId,
+              diff,
+              plan,
+            })
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : 'Catalog query failed'
+            return Response.json(
+              { success: false, error: message },
+              { status: 502 }
+            )
+          }
         }
+
+        if (scope === 'nodes' && nodes.length >= 2) {
+          const pair = resolvePair(
+            nodePeers,
+            requestedSource ?? undefined,
+            requestedTarget ?? undefined
+          )
+          if (!pair) {
+            return Response.json(empty(nodes[0]?.id ?? null, null))
+          }
+          const sourceNode = nodes.find((n) => n.id === pair.sourceId)
+          const targetNode = nodes.find((n) => n.id === pair.targetId)
+          const cluster = pickFanoutCluster(clusterRows)
+          if (!sourceNode || !targetNode || !cluster) {
+            return Response.json(empty(pair.sourceId, pair.targetId))
+          }
+
+          try {
+            const [sourceCatalog, targetCatalog] = await loadNodeCatalogs(
+              topologyHostId,
+              cluster,
+              sourceNode,
+              targetNode
+            )
+            const diff = compareCatalogs(sourceCatalog, targetCatalog)
+            const plan = buildChangePlan(diff)
+            return Response.json({
+              success: true,
+              hosts,
+              nodes: nodePeers,
+              scope,
+              sourceHostId: pair.sourceId,
+              targetHostId: pair.targetId,
+              diff,
+              plan,
+            })
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : 'Catalog query failed'
+            return Response.json(
+              { success: false, error: message },
+              { status: 502 }
+            )
+          }
+        }
+
+        return Response.json(empty(hosts[0]?.id ?? null, null))
       },
     },
   },
