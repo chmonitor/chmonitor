@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { WhatsNewMenuItem } from '@/components/whats-new/whats-new-menu-item'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
@@ -185,6 +186,7 @@ export function ClerkNavWrapper() {
                   <UserIcon className="size-4" />
                   <span>Account Settings</span>
                 </DropdownMenuItem>
+                <WhatsNewMenuItem />
                 <DropdownMenuItem
                   className="flex items-center gap-2"
                   onClick={() => (window.location.href = '/about')}

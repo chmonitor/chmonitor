@@ -3,7 +3,7 @@ id: release-automation
 title: Release Automation Pipeline
 type: workflow
 status: active
-updated: 2026-06-13
+updated: 2026-08-19
 tags:
   - release
   - ci
@@ -52,12 +52,22 @@ from conventional commits on `main` — no manual version bumps or tagging.
 ## Release body layout
 
 The action renders the body in this order:
-`AI recap blockquote + grouped changelog` → `## 📊 Release recap` (hard stats) →
-`## 🐳 Docker image` (`docker pull` + `FROM` pin, tag = release version) →
-`## 🔁 Full changelog` (compare link `PREVIOUS_TAG...RELEASE_TAG`) → build footer.
+`AI Highlights/summary + Features/Fixes/Perf` → `## 📊 Release recap` (hard
+stats) → `## 🐳 Docker image` (`docker pull` + `FROM` pin, tag = release
+version) → `## 🔁 Full changelog` (compare link `PREVIOUS_TAG...RELEASE_TAG`)
+→ build footer.
 Repo-specific prompts (`.github/release-notes-prompt.md`,
 `.github/release-notes-system-prompt.md`, `.github/release-migration-prompt.md`)
-are passed to the action via its `*-prompt-file` inputs.
+are passed to the action via its `*-prompt-file` inputs. The dashboard What's
+new dialog (`GET /api/v1/releases`) displays the GitHub Release body after
+stripping recap/Docker/internal sections. When GitHub is unreachable, the
+Worker serves a **build-time airgap snapshot** of latest `vX.Y.Z` Features
+(Vite writes a gitignored generated file from CHANGELOG.md; a small committed
+fixture covers tests). Do not fetch `CHANGELOG.md` at runtime — the file is
+too large to ship to the client or pull on every fallback.
+`pnpm --filter dashboard whats-new:snapshot` regenerates the same file.
+The public landing page `/changelog` uses the skip-recap parser
+(`parse-github-release-notes.ts`) so recap stats do not replace Features.
 
 ## LLM summary tiers (best-effort, never blocks a release)
 
@@ -71,8 +81,10 @@ The action calls `actions/ai-inference@v2` in order; the first non-empty wins:
    AnyRouter docs** — `X-AnyRouter-Source: chmonitor`, `X-AnyRouter-Title`,
    `X-AnyRouter-Version` (= release tag), `X-AnyRouter-Categories: programming-app`.
 
-The prompt asks for a narrative **recap blockquote** (weaving in the recap stats)
-followed by the grouped sections. `models: read` permission is required.
+The prompt asks for product **Highlights / summary** first (plus Features /
+Fixes / Perf), and to skip refactors, CI, and other internal-only work.
+Recap stats, Docker, and the compare link stay **below** the AI notes.
+`models: read` permission is required.
 
 ## Release recap stats
 
@@ -90,7 +102,7 @@ shared verbatim across every duyet repo via `duyet/llm-release-action`.
   bumps the **minor** (e.g. `0.2.x → 0.3.0`).
 - To intentionally cut `0.3.0`, the triggering commit must be a breaking change.
 - `changelog-sections` map commit types → emoji sections; `docs/chore/test/ci/
-  style` are hidden from the changelog.
+  style/refactor` are hidden from the dashboard package changelog.
 
 ## Guards that keep it reliable
 
@@ -107,6 +119,13 @@ shared verbatim across every duyet repo via `duyet/llm-release-action`.
 `## [Unreleased]` section at the top is human-curated (e.g. the v0.3 breaking
 -change preview) — release-please leaves it alone and inserts the generated
 version block above it on release. Don't hand-edit released version blocks.
+Do not reintroduce changesets.
+
+`## [Unreleased]` **may** include a `### Highlights` subsection with short
+user-facing bullets and optional markdown screenshots (`![alt](url)`). Those
+highlights are the source for the GitHub Release opening summary and the
+in-dashboard What's new dialog. Keep Highlights product-facing — no refactor /
+CI / chore dumps.
 
 ## Migration prompt (AI-assisted upgrades)
 

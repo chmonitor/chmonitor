@@ -9,7 +9,8 @@ description: >-
   pattern, data-table system, EmptyState variants, graceful error handling,
   ?host routing + hooks-at-deepest-consumer, file/route organization, and brand.
   Triggers: "new page", "add a chart", "build UI", "design", "component",
-  "empty state", "loading", "consistent", "follow-up feature", "match the design".
+  "empty state", "loading", "consistent", "follow-up feature", "match the design",
+  "what's new", "changelog", "settings gear".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -248,8 +249,21 @@ Navigation (Settings → Workspace → Navigation).
 
 ## User appearance settings
 
-**Entry:** sidebar footer gear beside Sign In / the avatar — `[gear] [Sign In /
-avatar]` with `flex items-center gap-1.5`. Use `NavSettingsButton` /
+**Entry:** sidebar footer chrome beside Sign In / the avatar —
+`[what's new] [gear] [Sign In / avatar]` with `flex items-center gap-1.5`.
+What's new is `WhatsNewButton` (`components/whats-new/`, lucide `Newspaper`,
+`aria-label="What's new"`, `data-testid="whats-new-button"`, 44px mobile hit
+`min-h-11 min-w-11 lg:min-h-8`). A primary **dot** badge appears when
+`APP_VERSION` is newer than persisted `lastSeenChangelogVersion` (on
+`UserSettings`). The dialog (`WhatsNewDialog`, sibling of the menu via
+`WhatsNewProvider` in `dashboard-shell.tsx`) lists `vX.Y.Z` GitHub Releases
+newest first; auto-opens **once** per upgrade (sessionStorage), never on every
+navigation. Manual open always works. Extra entry points: `WhatsNewMenuItem`
+next to About in the user dropdown, and a What's new action on `/about`. Do
+**not** add a Settings tab for changelog — Settings stays browser-local prefs.
+`GET /api/v1/releases` loads notes server-side (no browser GitHub calls);
+airgap fallback is the committed `airgap-snapshot.json` (latest `v*` Features),
+never a runtime fetch of CHANGELOG.md. Use `NavSettingsButton` /
 `NavUserFooterRow` (`components/nav-user/nav-settings-button.tsx`): lucide
 `Settings`, `size-4`, `strokeWidth={1.5}`, `aria-label="Open settings"`,
 `data-testid="nav-settings-button"`, tooltip "Settings". Hide when

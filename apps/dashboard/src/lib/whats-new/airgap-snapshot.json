@@ -1,0 +1,20 @@
+{
+  "notes": [
+    {
+      "version": "0.3.3",
+      "tag": "v0.3.3",
+      "publishedAt": "2026-08-15T00:00:00.000Z",
+      "summary": "",
+      "markdown": "### ✨ Features\n\n* **nav:** drag to reorder pinned favorites\n* **ui:** add the What's new dialog\n* **alerts:** simplify alert settings with templates and presets",
+      "highlights": []
+    },
+    {
+      "version": "0.3.2",
+      "tag": "v0.3.2",
+      "publishedAt": "2026-08-12T00:00:00.000Z",
+      "summary": "",
+      "markdown": "### ✨ Features\n\n* **alerts:** redesign alert-settings channels as a configured-first card grid\n* **explorer:** make the table Overview tab engine-aware and denser\n* **fleet:** add fleet summary strip, richer host metrics and sparklines",
+      "highlights": []
+    }
+  ]
+}

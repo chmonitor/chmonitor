@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { IconButton } from '@/components/ui/icon-button'
 import { SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar'
+import { WhatsNewButton } from '@/components/whats-new/whats-new-button'
 
 interface NavSettingsButtonProps {
   onClick: () => void
@@ -35,7 +36,7 @@ interface NavUserFooterRowProps {
   children: ReactNode
 }
 
-/** Footer row: `[settings gear] [Sign In / avatar]`. */
+/** Footer row: `[what's new] [settings gear] [Sign In / avatar]`. */
 export function NavUserFooterRow({
   canUseSettings,
   onOpenSettings,
@@ -45,6 +46,7 @@ export function NavUserFooterRow({
     <SidebarMenu>
       <SidebarMenuItem>
         <div className="flex items-center gap-1.5">
+          <WhatsNewButton />
           {canUseSettings && <NavSettingsButton onClick={onOpenSettings} />}
           <div className="min-w-0 flex-1">{children}</div>
         </div>

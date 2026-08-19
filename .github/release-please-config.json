@@ -36,7 +36,8 @@
         },
         {
           "type": "refactor",
-          "section": "♻️ Refactoring"
+          "section": "♻️ Refactoring",
+          "hidden": true
         },
         {
           "type": "deps",

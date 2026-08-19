@@ -21,6 +21,7 @@
     "cf:dry-run": "CHM_BUILD_ENV=production vite build && bun scripts/patch-wrangler-env.ts && wrangler deploy --dry-run",
     "cf-typegen": "wrangler types",
     "cf:sync-clerk": "bun scripts/sync-clerk.ts",
+    "whats-new:snapshot": "bun scripts/build-whats-new-snapshot.ts",
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "bun test src/ --isolate",

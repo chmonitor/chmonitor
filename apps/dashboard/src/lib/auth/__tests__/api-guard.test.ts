@@ -112,3 +112,31 @@ describe('GET /api/v1/openapi.json is a public discovery document', () => {
     expect(result).toBeNull()
   })
 })
+
+describe('GET /api/v1/releases is a public changelog document', () => {
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  function releasesReq(): Request {
+    return new Request('https://dash.example.com/api/v1/releases')
+  }
+
+  it('passes anonymous callers when clerk requires a session', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'clerk'
+    const result = await getApiKeyAuthFailure(releasesReq())
+    expect(result).toBeNull()
+  })
+})

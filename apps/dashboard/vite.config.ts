@@ -1,5 +1,7 @@
+import { serializeAirgapSnapshot } from './src/lib/whats-new/airgap-snapshot'
+import { buildAirgapSnapshot } from './src/lib/whats-new/parse-changelog'
 import { execSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
@@ -620,6 +622,38 @@ const startConfig = {
   spa: { enabled: true },
 }
 
+/** Bake latest v* Features into a gitignored JSON used by the Worker bundle. */
+function whatsNewSnapshotPlugin(): PluginOption {
+  const generatedPath = r('./src/lib/whats-new/airgap-snapshot.generated.json')
+
+  const writeGenerated = () => {
+    const changelogPath = [r('../../CHANGELOG.md'), r('../CHANGELOG.md')].find(
+      (path) => existsSync(path)
+    )
+    if (!changelogPath) return
+    const notes = buildAirgapSnapshot(readFileSync(changelogPath, 'utf8'))
+    writeFileSync(generatedPath, serializeAirgapSnapshot(notes))
+  }
+
+  return {
+    name: 'whats-new-airgap-snapshot',
+    enforce: 'pre',
+    buildStart() {
+      writeGenerated()
+    },
+    resolveId(id, importer) {
+      if (
+        id.endsWith('airgap-snapshot.json') &&
+        !id.endsWith('airgap-snapshot.generated.json') &&
+        importer?.includes('fetch-releases') &&
+        existsSync(generatedPath)
+      ) {
+        return generatedPath
+      }
+    },
+  }
+}
+
 const runtimePlugins: PluginOption[] = isNode
   ? [tanstackStart(startConfig), nitro({ preset: 'node-server' }), viteReact()]
   : [
@@ -798,6 +832,7 @@ export default defineConfig({
   },
   // Sentry plugin LAST so it sees the final emitted bundle for source-map upload.
   plugins: [
+    whatsNewSnapshotPlugin(),
     ssrClientOnlyStub(),
     tailwindcss(),
     ...runtimePlugins,

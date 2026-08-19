@@ -46,6 +46,8 @@ const API_V1_PREFIX = '/api/v1/'
 const API_KEY_ISSUANCE_PATH = '/api/v1/auth/api-key'
 // OpenAPI descriptor is a public discovery document (RFC 9727 service-desc).
 const OPENAPI_SPEC_PATH = '/api/v1/openapi.json'
+// Product changelog for the What's new dialog — public GitHub notes, no secrets.
+const RELEASES_PATH = '/api/v1/releases'
 
 const LEGACY_HOST = 'cloud.chmonitor.dev'
 const CANONICAL_HOST = 'dash.chmonitor.dev'
@@ -142,7 +144,12 @@ export async function getApiKeyAuthFailure(
   // Key issuance route has its own secret-based auth in the handler.
   // OpenAPI is a public discovery document — agents read it before they have
   // a key. Never 401 (or 500 via the dashboard shell) this path.
-  if (pathname === API_KEY_ISSUANCE_PATH || pathname === OPENAPI_SPEC_PATH) {
+  // `/api/v1/releases` is the public What's new changelog (GitHub notes).
+  if (
+    pathname === API_KEY_ISSUANCE_PATH ||
+    pathname === OPENAPI_SPEC_PATH ||
+    pathname === RELEASES_PATH
+  ) {
     return null
   }
 
