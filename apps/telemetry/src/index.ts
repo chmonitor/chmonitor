@@ -6,8 +6,10 @@
 // Privacy contract (mirrors the dashboard client, defense-in-depth):
 //   - Accepts ONLY a closed, validated shape. Unknown fields are ignored.
 //   - instance_hash is a SHA-256 hex digest of a random local id — opaque, not
-//     reversible to any identity. It is the only per-instance value, used purely
-//     to count distinct installs.
+//     reversible to any identity. It is the per-install counter. Optional
+//     license_key is the Polar checkout id when CHM_LICENSE_KEY is set (honor
+//     system; not a feature gate). It is persisted but never returned by
+//     GET /v1/summary.
 //   - ch_version is accepted only as MAJOR.MINOR (e.g. "24.8"); anything else is
 //     dropped. deploy_target / ch_flavor are coerced to a known enum or dropped.
 //   - No IPs, hostnames, query text, or free-text are stored. The request IP is
@@ -96,6 +98,15 @@ function asVersion(v: unknown): string {
 /** Accept a semver-like CHM version string (e.g. '0.3.1'), else ''. */
 function asChmVersion(v: unknown): string {
   return typeof v === 'string' && SEMVER.test(v) ? v : ''
+}
+
+/** Accept a Polar checkout / order id (UUID charset), else ''. */
+function asLicenseKey(v: unknown): string {
+  if (typeof v !== 'string') return ''
+  const trimmed = v.trim()
+  if (trimmed.length < 8 || trimmed.length > 80) return ''
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$/.test(trimmed)) return ''
+  return trimmed
 }
 
 async function readBody(req: Request): Promise<unknown | null> {
@@ -687,11 +698,12 @@ export default {
         typeof data.install_place === 'string' && HEX64.test(data.install_place)
           ? data.install_place
           : ''
+      const licenseKey = asLicenseKey(data.license_key)
 
       const day = new Date().toISOString().slice(0, 10)
       ctx.waitUntil(
         env.CHM_TELEMETRY_DB.prepare(
-          'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place, license_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
           .bind(
             day,
@@ -702,7 +714,8 @@ export default {
             country || null,
             platform || null,
             chmVersion || null,
-            installPlace || null
+            installPlace || null,
+            licenseKey || null
           )
           .run()
           .then(() => undefined)
@@ -758,11 +771,12 @@ export default {
       const cliVersion = asChmVersion(data.cli_version)
       const os = asEnum(data.os, PLATFORMS, 'unknown')
       const arch = asEnum(data.arch, ARCHES, 'unknown')
+      const licenseKey = asLicenseKey(data.license_key)
 
       const day = new Date().toISOString().slice(0, 10)
       ctx.waitUntil(
         env.CHM_TELEMETRY_DB.prepare(
-          'INSERT OR IGNORE INTO cli_daily (day, install_id, event, command, cli_version, os, arch) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          'INSERT OR IGNORE INTO cli_daily (day, install_id, event, command, cli_version, os, arch, license_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         )
           .bind(
             day,
@@ -771,7 +785,8 @@ export default {
             command,
             cliVersion || null,
             os || null,
-            arch || null
+            arch || null,
+            licenseKey || null
           )
           .run()
           .then(() => undefined)
@@ -791,6 +806,7 @@ export default {
 // COUNT(DISTINCT instance_hash) — distinct installs. Optional
 // ?deploy_target=docker|helm|cf|dev|unknown scopes total + by_ch_version to
 // that target (by_deploy_target is always global). Cached at the edge for 1h.
+// license_key is persisted on ping/cli rows but never returned here.
 //
 // Data accumulates from the moment the D1 binding was wired (2026-07-07)
 // forward; Analytics Engine still holds the prior ~3 months but is not

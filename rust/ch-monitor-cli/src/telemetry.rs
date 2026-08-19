@@ -11,7 +11,8 @@
 //!   "command":     "diagnose" | "hosts" | "chart" | ...,
 //!   "cli_version": "0.1.0",
 //!   "os":          "linux" | "macos" | "windows" | "unknown",
-//!   "arch":        "x86_64" | "aarch64" | "unknown"
+//!   "arch":        "x86_64" | "aarch64" | "unknown",
+//!   "license_key": "<Polar checkout id>"         // only when CHM_LICENSE_KEY is set
 //! }
 //! ```
 //! No ClickHouse host, query text, args, paths, IPs, or usernames are ever
@@ -48,6 +49,9 @@ struct CliPing {
     cli_version: &'static str,
     os: &'static str,
     arch: &'static str,
+    /// Polar checkout id from `CHM_LICENSE_KEY` when set. Honor system — not a gate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    license_key: Option<String>,
 }
 
 /// True when the user has opted out via any supported mechanism.
@@ -142,6 +146,30 @@ fn hex(bytes: &[u8]) -> String {
     s
 }
 
+/// Polar checkout / order id from `CHM_LICENSE_KEY`. Same charset as the
+/// dashboard ping (`sanitizeLicenseKey`): 8–80 `[A-Za-z0-9._-]`, no email/URL.
+fn parse_license_key(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    if trimmed.len() < 8 || trimmed.len() > 80 {
+        return None;
+    }
+    let mut chars = trimmed.chars();
+    let first = chars.next()?;
+    if !first.is_ascii_alphanumeric() {
+        return None;
+    }
+    if !chars.all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-') {
+        return None;
+    }
+    Some(trimmed.to_string())
+}
+
+fn license_key_from_env() -> Option<String> {
+    std::env::var("CHM_LICENSE_KEY")
+        .ok()
+        .and_then(|v| parse_license_key(&v))
+}
+
 /// Load the persisted install id, creating and storing one on first run.
 /// Best-effort: if the config dir is unwritable we still return an id (so the
 /// ping can go out) but simply don't persist it.
@@ -178,6 +206,7 @@ pub fn spawn(event: &'static str, command: &'static str) -> Option<JoinHandle<()
             cli_version: env!("CARGO_PKG_VERSION"),
             os: os(),
             arch: arch(),
+            license_key: license_key_from_env(),
         };
         let Ok(client) = Client::builder().timeout(REQUEST_TIMEOUT).build() else {
             return;
@@ -191,5 +220,57 @@ pub fn spawn(event: &'static str, command: &'static str) -> Option<JoinHandle<()
 pub async fn finish(handle: Option<JoinHandle<()>>) {
     if let Some(handle) = handle {
         let _ = tokio::time::timeout(EXIT_BUDGET, handle).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_license_key, CliPing};
+    use serde_json::{json, Value};
+
+    #[test]
+    fn parse_license_key_accepts_polar_checkout_uuid() {
+        let id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+        assert_eq!(parse_license_key(id).as_deref(), Some(id));
+        assert_eq!(parse_license_key(&format!("  {id}  ")).as_deref(), Some(id));
+    }
+
+    #[test]
+    fn parse_license_key_rejects_email_url_empty() {
+        assert_eq!(parse_license_key(""), None);
+        assert_eq!(parse_license_key("abc"), None);
+        assert_eq!(parse_license_key("billing@example.com"), None);
+        assert_eq!(parse_license_key("https://polar.sh/x"), None);
+    }
+
+    #[test]
+    fn cli_ping_omits_license_key_when_unset() {
+        let ping = CliPing {
+            install_id: "a".repeat(64),
+            event: "cli_run",
+            command: "hosts",
+            cli_version: "0.1.1",
+            os: "linux",
+            arch: "x86_64",
+            license_key: None,
+        };
+        let v: Value = serde_json::to_value(&ping).expect("serialize");
+        assert_eq!(v.get("license_key"), None);
+    }
+
+    #[test]
+    fn cli_ping_includes_license_key_when_set() {
+        let id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+        let ping = CliPing {
+            install_id: "a".repeat(64),
+            event: "cli_run",
+            command: "hosts",
+            cli_version: "0.1.1",
+            os: "linux",
+            arch: "x86_64",
+            license_key: Some(id.to_string()),
+        };
+        let v: Value = serde_json::to_value(&ping).expect("serialize");
+        assert_eq!(v.get("license_key"), Some(&json!(id)));
     }
 }

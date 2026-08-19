@@ -19,12 +19,14 @@ against a closed shape; unknown fields are ignored.
 
 ### `POST /v1/ping`
 ```json
-{ "instance_hash": "<64-char sha256 hex>", "deploy_target": "docker", "ch_version": "24.8" }
+{ "instance_hash": "<64-char sha256 hex>", "deploy_target": "docker", "ch_version": "24.8", "license_key": "<Polar checkout id>" }
 ```
 - `instance_hash` — required, must be 64-char lowercase hex. Opaque per-install
   id (SHA-256 of a random local UUID). Used only to count distinct installs.
 - `deploy_target` — one of `docker | helm | cf | dev | unknown` (else `unknown`).
 - `ch_version` — optional, `MAJOR.MINOR` only (e.g. `24.8`); anything else dropped.
+- `license_key` — optional Polar checkout id (`CHM_LICENSE_KEY`). Omitted when
+  unset. Persisted on `ping_daily`; not exposed by `/v1/summary`.
 
 ### `POST /v1/event`
 ```json
@@ -65,6 +67,7 @@ Returns `200` — liveness only.
 | `platform`    | TEXT    | windows/macos/linux/android/ios/unknown |
 | `chm_version` | TEXT    | semver-like CHM version |
 | `install_place` | TEXT  | deployment environment hash |
+| `license_key`   | TEXT    | Polar checkout id or NULL |
 
 Primary key: `(day, instance_hash)` — one row per install per day.
 
@@ -95,6 +98,7 @@ unbounded. Counts stay directionally correct for the analytics-only
 | `cli_version` | TEXT    | semver-like or NULL |
 | `os`          | TEXT    | linux/macos/windows/unknown |
 | `arch`        | TEXT    | x86_64/aarch64/unknown |
+| `license_key` | TEXT    | Polar checkout id or NULL |
 
 Primary key `(day, install_id, event, command)` — one deduped row per install
 per day per event/command. `/v1/summary` surfaces an aggregate `cli` block
