@@ -94,19 +94,21 @@ describe('mobile nav: open menu shows X + dim, tap targets ≥44px', () => {
   })
 })
 
-describe('hero OSS pill: 320px shows the full self-host claim', () => {
-  test('does not truncate; wraps below 360px; 375+ stays one line', () => {
-    const oss = hero.split('data-hero-oss')[1] ?? ''
-    const pill = oss.slice(0, oss.indexOf('</a>'))
-    expect(pill).toContain('self-host free')
+describe('hero latest-post pill: compact, wrap-friendly, 12px type', () => {
+  test('does not truncate; title may wrap on narrow screens', () => {
+    const idx = hero.indexOf('data-hero-latest-post')
+    expect(idx).toBeGreaterThan(-1)
+    const start = hero.lastIndexOf('<a', idx)
+    const pill = hero.slice(start, hero.indexOf('</a>', idx))
+    expect(pill).toContain('{latestPost.title}')
+    expect(pill).toContain('{latestPost.href}')
     expect(pill).not.toMatch(/class="[^"]*\btruncate\b/)
-    expect(pill).toContain('min-[360px]:whitespace-nowrap')
-    expect(pill).toContain('<br class="min-[360px]:hidden"')
+    expect(pill).not.toMatch(/whitespace-nowrap/)
   })
 
   test('type is at least 12px (text-xs), not a squeeze below that', () => {
-    const oss = hero.split('data-hero-oss')[1] ?? ''
-    const pill = oss.slice(0, oss.indexOf('</a>'))
+    const latest = hero.split('data-hero-latest-post')[1] ?? ''
+    const pill = latest.slice(0, latest.indexOf('</a>'))
     expect(pill).toContain('text-xs')
     expect(pill).not.toMatch(/text-\[(?:9|10|11)px\]/)
   })

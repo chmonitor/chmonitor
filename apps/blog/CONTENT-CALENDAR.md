@@ -52,6 +52,7 @@ published (`draft: false`, merged to main)
 | 11 | case-study | Capacity planning with the TTL and disk-growth advisor | clickhouse capacity planning ttl | `/guide/ai-agent` (advisor tools) | done (`clickhouse-capacity-planning-ttl.md`, published 2026-07-10) |
 | 12 | release | (scaffold from the next GitHub release when it ships) | — | `/reference/releases` | planned |
 | 13 | troubleshooting | ClickHouse disk is full — what to do right now | clickhouse disk full emergency | `/guide/features` | done (`clickhouse-disk-full-emergency.md`, published 2026-07-10) |
+| 14 | product | A DBA, an SRE, and an engineer should not share a sidebar | customize clickhouse monitoring dashboard | `/reference/settings` | done (`customize-dashboard.md`, published 2026-08-20) |
 
 ## Published this cycle (homepage redesign + SEO expansion)
 

@@ -2,6 +2,7 @@
  * Post-build structural assertions for the redesigned homepage.
  * Run: cd apps/landing && pnpm run build && bun scripts/verify-landing-structure.ts
  */
+import { getLatestBlogPost } from '../src/lib/latest-blog-post'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -18,7 +19,7 @@ const required = [
   // Headline may include a <br> between "dashboard" and "for" — match pieces.
   'The ops dashboard',
   'for ClickHouse',
-  'data-hero-oss',
+  'data-hero-latest-post',
 ] as const
 
 const forbidden = [
@@ -53,20 +54,32 @@ for (const marker of required) {
   }
 }
 
-const ossIdx = html.indexOf('data-hero-oss')
-const ossEnd = ossIdx === -1 ? -1 : html.indexOf('</a>', ossIdx)
-const ossChunk =
-  ossIdx === -1 || ossEnd === -1 ? '' : html.slice(ossIdx, ossEnd)
-if (!ossChunk.includes('self-host free')) {
-  console.error('MISSING self-host free claim in [data-hero-oss]')
+const latestIdx = html.indexOf('data-hero-latest-post')
+const latestStart = latestIdx === -1 ? -1 : html.lastIndexOf('<a', latestIdx)
+const latestEnd = latestIdx === -1 ? -1 : html.indexOf('</a>', latestIdx)
+const latestChunk =
+  latestStart === -1 || latestEnd === -1
+    ? ''
+    : html.slice(latestStart, latestEnd)
+const latestPost = getLatestBlogPost()
+if (!latestChunk.includes('blog.chmonitor.dev')) {
+  console.error('MISSING blog.chmonitor.dev href in [data-hero-latest-post]')
   failed = true
-} else if (/\btruncate\b/.test(ossChunk)) {
+} else if (latestPost && !latestChunk.includes(latestPost.href)) {
   console.error(
-    'FORBIDDEN truncate on hero OSS pill (clips SELF-HOST FREE at 320px)'
+    `MISSING latest post href in [data-hero-latest-post]: ${latestPost.href}`
   )
   failed = true
+} else if (latestPost && !latestChunk.includes(latestPost.title)) {
+  console.error(
+    `MISSING latest post title in [data-hero-latest-post]: ${latestPost.title}`
+  )
+  failed = true
+} else if (/\btruncate\b/.test(latestChunk)) {
+  console.error('FORBIDDEN truncate on hero latest-post pill')
+  failed = true
 } else {
-  console.log('OK: hero OSS pill keeps the full self-host claim (no truncate)')
+  console.log('OK: hero pill links to the latest blog post (no truncate)')
 }
 
 for (const text of forbidden) {
