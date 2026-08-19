@@ -30,14 +30,16 @@ describe('blog chrome matches landing shadcn tokens', () => {
     expect(nav).toContain('border-border')
   })
 
-  test('Nav links stay on one line and do not pack Open source / Pricing / RSS', () => {
+  test('Nav drops Features / Open source / RSS and shows the real star count', () => {
     const nav = read('src/components/Nav.astro')
     expect(nav).toContain('whitespace-nowrap')
-    expect(nav).toContain('overflow-hidden')
+    expect(nav).toContain('getGitHubStats')
+    expect(nav).toContain('starLabel')
+    expect(nav).toContain('Stars')
+    expect(nav).not.toContain('#features')
     expect(nav).not.toContain('#open-source')
-    expect(nav).not.toContain('#pricing')
     expect(nav).not.toContain('/rss.xml')
-    expect(nav).toContain('>Features<')
+    expect(nav).not.toContain('>Features<')
     expect(nav).toContain('>Docs<')
     expect(nav).toContain('>Changelog<')
     expect(nav).toContain('>Blog<')
