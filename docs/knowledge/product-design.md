@@ -666,10 +666,11 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   `DdlPair` with placeholder names. Two or more peers keep a **static**
   PageHeader (title + recommend-only description) — do not add a dynamic
   "Comparing X → Y — N tables differ" sentence; the pair is the Source /
-  Target selects. Toolbar is one wrapping row (pair + filter + Differences
-  only left; Connections / Replica nodes toggle + Copy recommended SQL
-  right). Scope toggle (only when both hostCount and nodeCount are ≥ 2)
-  writes `?scope=hosts|nodes` and remounts the pair from that peer list.
+  Target selects. Toolbar is `CompareToolbar` (`p-4` card): Connections /
+  Replica nodes tabs, then stacked Source / Target (peer name) + Filter,
+  then Differences / All. Scope toggle (only when both hostCount and
+  nodeCount are ≥ 2) writes `?scope=hosts|nodes` and remounts the pair
+  from that peer list.
   Differences-only with zero diffs and no name filter is
   `EmptyState variant="no-data"` titled **Schemas match**; "No tables
   match" is only for a name-filter miss. Settings Diff (`/settings-diff`)

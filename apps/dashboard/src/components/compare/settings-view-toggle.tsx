@@ -16,17 +16,17 @@ export function SettingsViewToggle({
   if (hostCount < 2) return null
 
   return (
-    <div aria-label="All hosts matrix or pair">
-      <SegmentedControl
-        value={value}
-        onChange={(next) => {
-          if (next === 'matrix' || next === 'pair') onChange(next)
-        }}
-        options={[
-          { label: 'All hosts', value: 'matrix' },
-          { label: 'Pair', value: 'pair' },
-        ]}
-      />
-    </div>
+    <SegmentedControl
+      size="default"
+      ariaLabel="All hosts matrix or pair"
+      value={value}
+      onChange={(next) => {
+        if (next === 'matrix' || next === 'pair') onChange(next)
+      }}
+      options={[
+        { label: 'All hosts', value: 'matrix' },
+        { label: 'Pair', value: 'pair' },
+      ]}
+    />
   )
 }

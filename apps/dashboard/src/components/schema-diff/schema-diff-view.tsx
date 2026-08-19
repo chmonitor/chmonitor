@@ -8,6 +8,7 @@ import { PlanList } from './plan-list'
 import { TableList } from './table-list'
 import { useMemo, useState } from 'react'
 import { CompareScopeToggle } from '@/components/compare/compare-scope-toggle'
+import { CompareToolbar } from '@/components/compare/compare-toolbar'
 import { HostPairFilter } from '@/components/compare/host-pair-filter'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -87,7 +88,18 @@ export function SchemaDiffView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <CompareToolbar
+        tabs={
+          onScopeChange ? (
+            <CompareScopeToggle
+              value={scope}
+              onChange={onScopeChange}
+              hostCount={hostCount}
+              nodeCount={nodeCount}
+            />
+          ) : null
+        }
+      >
         <HostPairFilter
           hosts={peers}
           sourceHostId={sourceId}
@@ -98,43 +110,36 @@ export function SchemaDiffView({
           onPairChange={onPairChange}
           onNameFilterChange={setNameFilter}
           onShowDiffsOnlyChange={setShowDiffsOnly}
+          extraFilters={
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span className="inline-flex">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={copySafe}
+                        disabled={!hasSafeStatements}
+                        aria-label="Copy recommended SQL"
+                        className="h-8 text-[13px]"
+                      >
+                        <CopyIcon className="mr-2 size-3.5" strokeWidth={1.5} />
+                        {copiedSafe ? 'Copied' : 'Copy recommended SQL'}
+                      </Button>
+                    </span>
+                  }
+                />
+                <TooltipContent side="top" className="max-w-xs">
+                  {hasSafeStatements
+                    ? 'Copy recommended ALTER/CREATE statements. Nothing is applied.'
+                    : 'No recommended SQL — schemas match or every change is a manual rewrite.'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          }
         />
-        <div className="flex flex-wrap items-center gap-2">
-          {onScopeChange ? (
-            <CompareScopeToggle
-              value={scope}
-              onChange={onScopeChange}
-              hostCount={hostCount}
-              nodeCount={nodeCount}
-            />
-          ) : null}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span className="inline-flex">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={copySafe}
-                      disabled={!hasSafeStatements}
-                      aria-label="Copy recommended SQL"
-                    >
-                      <CopyIcon className="mr-2 size-3.5" strokeWidth={1.5} />
-                      {copiedSafe ? 'Copied' : 'Copy recommended SQL'}
-                    </Button>
-                  </span>
-                }
-              />
-              <TooltipContent side="top" className="max-w-xs">
-                {hasSafeStatements
-                  ? 'Copy recommended ALTER/CREATE statements. Nothing is applied.'
-                  : 'No recommended SQL — schemas match or every change is a manual rewrite.'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
+      </CompareToolbar>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <TableList
@@ -145,7 +150,7 @@ export function SchemaDiffView({
           emptyTitle={schemasMatchEmpty ? 'Schemas match' : undefined}
           emptyDescription={
             schemasMatchEmpty
-              ? 'No table differences between source and target. Turn off Differences only to list every table.'
+              ? 'No table differences between source and target. Switch to All to list every table.'
               : undefined
           }
           emptyVariant={schemasMatchEmpty ? 'no-data' : undefined}

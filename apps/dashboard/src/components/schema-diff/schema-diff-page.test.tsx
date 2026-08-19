@@ -413,7 +413,7 @@ describe('Schema Compare two-host path', () => {
     try {
       expect(document.body.textContent).toContain('Schemas match')
       expect(document.body.textContent).toContain(
-        'Turn off Differences only to list every table.'
+        'Switch to All to list every table.'
       )
       expect(document.body.textContent).not.toContain('No tables match')
       expect(document.body.textContent).not.toMatch(

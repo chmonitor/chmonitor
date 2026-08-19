@@ -22,6 +22,8 @@ interface SegmentedControlProps {
   /** Optional className for styling */
   className?: string
   ariaLabel?: string
+  /** `sm` is the dense query-filter pill. `default` is the compare toolbar tab. */
+  size?: 'sm' | 'default'
 }
 
 /**
@@ -36,11 +38,14 @@ export function SegmentedControl({
   placeholder,
   className,
   ariaLabel = 'Segmented control',
+  size = 'sm',
 }: SegmentedControlProps) {
+  const isDefault = size === 'default'
   const group = (
     <div
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/20 p-0.5',
+        'inline-flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/20',
+        isDefault ? 'p-1' : 'p-0.5',
         className
       )}
       role="group"
@@ -58,10 +63,13 @@ export function SegmentedControl({
           variant: (isActive ? 'secondary' : 'ghost') as 'secondary' | 'ghost',
           size: 'sm' as const,
           className: cn(
-            'gap-1.5 px-2.5 text-xs h-7 rounded-md transition-all',
+            'rounded-md font-medium transition-all',
+            isDefault
+              ? 'h-8 min-w-28 px-3 text-[13px]'
+              : 'h-7 gap-1.5 px-2.5 text-xs',
             isActive
-              ? 'bg-background shadow-sm border border-border/50 font-medium'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              ? 'border border-border/50 bg-background shadow-sm'
+              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
           ),
           'aria-pressed': isActive,
           onClick: () => onChange(option.value),

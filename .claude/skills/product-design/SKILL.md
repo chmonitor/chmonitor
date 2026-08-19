@@ -101,18 +101,19 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Schema Compare (`/schema-diff`):** one static `PageHeader` ("Schema
   Compare" + recommend-only description). Pair identity lives in the
   Source/Target selects — no second "Comparing X → Y — N tables differ"
-  line. Toolbar is one wrapping row: pair + filter + Differences only on
-  the left; scope toggle + "Copy recommended SQL" on the right. Scope
-  labels are **Connections** / **Replica nodes** (tooltips: saved
-  connections vs nodes in this cluster). When Differences only is on,
-  zero diffs, and no name filter, the table list is
-  `EmptyState variant="no-data"` titled **Schemas match** — keep
-  "No tables match" only for a name-filter miss. Settings Diff
-  (`/settings-diff`) with diffs-only and zero deltas is
-  `EmptyState` titled **All matched** plus a green check
-  (`CheckCircle2Icon` + `--chart-green`) and **Show matching
-  settings** (turns diffs-only off). "No settings match" is only
-  a name/changed-from-default filter miss.
+  line. Compare tools wrap filters in `CompareToolbar` (`rounded-xl
+  border bg-card p-4`): tabs on top (**Connections** / **Replica
+  nodes**, `SegmentedControl size="default"`), then stacked Source /
+  Target selects (peer **name**, never a raw id) with a Filter field,
+  then **Differences** / **All**. Copy recommended SQL sits on that
+  filter row. When Differences is on, zero diffs, and no name filter,
+  the table list is `EmptyState variant="no-data"` titled **Schemas
+  match** — keep "No tables match" only for a name-filter miss.
+  Settings Diff (`/settings-diff`) uses the same toolbar; diffs-only
+  with zero deltas is **All matched** plus a green check and **Show
+  matching settings**. "Changed from default" is a pressable chip, not
+  a second switch. "No settings match" is only a name/changed-from-default
+  filter miss.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).
