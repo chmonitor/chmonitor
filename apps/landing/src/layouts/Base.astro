@@ -3,6 +3,7 @@
 // here so utility classes are available to every section in <head>, not just the
 // hero island's chunk. This is the foundation for the shadcn section rebuild.
 import '../styles/globals.css'
+import '../styles/nav.css'
 
 const { title = 'chmonitor — A simple UI to monitor ClickHouse', description = 'An open-source dashboard to monitor ClickHouse: queries, merges, parts, replication, health and an AI agent. Self-host it or use the cloud.', image = '/og/og.png', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
@@ -273,152 +274,7 @@ const ogImage = new URL(image, Astro.site).toString()
     .mark-lg.mark--fallback{border-radius:12px}
     .mark-lg svg{width:22px;height:22px}
 
-    /* ── nav ──
-       Sticky, frameless at rest: at the top of the page the header is fully
-       transparent (no background, no border) so it sits on the hero. Once the
-       page scrolls, [data-scrolled] (set in Nav.astro) fades in a translucent
-       blurred background + bottom border so links stay legible over content. */
-    header.nav{position:sticky;top:0;z-index:80;background:transparent;
-      border-bottom:1px solid transparent;
-      transition:background-color .18s ease,border-color .18s ease}
-    header.nav[data-scrolled]{background:color-mix(in oklab,var(--bg) 86%,transparent);
-      -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-      border-bottom-color:var(--border-soft)}
-    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px}
-    .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:600;font-size:15px;letter-spacing:-.02em}
-    .nav-links{display:flex;align-items:center;gap:4px}
-    /* shadcn NavigationMenu link/trigger: h-9, px, rounded-md, hover:bg-accent */
-    .nav-links > a{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:var(--radius);
-      font-size:14px;color:var(--muted-fg);font-weight:500;white-space:nowrap;
-      transition:background .14s,color .14s}
-    .nav-links > a:hover{background:var(--muted);color:var(--fg)}
-    .nav-cta{display:flex;align-items:center;gap:10px;flex:0 0 auto}
-    .nav-cta-desktop{display:flex;align-items:center;gap:10px}
-    /* hamburger — hidden on desktop, revealed at ≤1024px (see responsive block) */
-    .nav-toggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;
-      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
-      cursor:pointer;padding:0;flex:0 0 auto;transition:.16s ease}
-    .nav-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
-    .nav-toggle svg{width:18px;height:18px}
-    .nav-toggle .i-close{display:none}
-    .nav-toggle[aria-expanded="true"] .i-open{display:none}
-    .nav-toggle[aria-expanded="true"] .i-close{display:block}
-
-    /* ── mobile drawer (off-canvas menu) ── */
-    .nav-drawer{position:fixed;inset:0;z-index:70;visibility:hidden;pointer-events:none}
-    .nav-drawer[data-open="true"]{visibility:visible;pointer-events:auto}
-    .nav-drawer-backdrop{position:absolute;inset:0;background:rgba(9,9,11,.56);
-      opacity:0;transition:opacity .24s ease}
-    .nav-drawer[data-open="true"] .nav-drawer-backdrop{opacity:1}
-    /* Sit below the sticky header so the hamburger→X swap stays visible.
-       Leave ≥56px of dimmed page beside the panel (86vw left almost none). */
-    .nav-drawer-panel{position:absolute;top:64px;right:0;height:calc(100dvh - 64px);width:min(360px,calc(100vw - 56px));
-      display:flex;flex-direction:column;background:var(--bg);border-left:1px solid var(--border);
-      box-shadow:var(--shadow-float);transform:translateX(100%);
-      transition:transform .26s cubic-bezier(.22,1,.36,1);overflow-y:auto;overscroll-behavior:contain}
-    .nav-drawer[data-open="true"] .nav-drawer-panel{transform:none}
-    .nav-drawer-head{display:flex;align-items:center;justify-content:space-between;
-      height:64px;padding:0 16px 0 22px;border-bottom:1px solid var(--border-soft);flex:0 0 auto}
-    .nav-drawer-title{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg)}
-    .nav-drawer-close{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
-      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
-      cursor:pointer;padding:0;transition:.16s ease}
-    .nav-drawer-close:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
-    .nav-drawer-close svg{width:18px;height:18px}
-    .nav-drawer-body{display:flex;flex-direction:column;padding:14px 14px 6px;flex:1 1 auto}
-    .nav-drawer-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-      color:var(--muted-fg);padding:14px 10px 6px}
-    .nav-drawer-label:first-child{padding-top:4px}
-    .nav-drawer-body a{display:flex;align-items:center;min-height:44px;padding:8px 10px;border-radius:var(--radius);
-      font-size:15.5px;font-weight:500;color:var(--fg-soft);transition:background .14s,color .14s}
-    .nav-drawer-body a:hover{background:var(--muted);color:var(--fg)}
-    /* Collapsible drawer groups: native <details> so collapse works pre-JS.
-       Summary rows mirror the plain link rows; children indent behind a
-       hairline like a tree level, not a second flat list. */
-    .nav-drawer-group summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;
-      padding:8px 10px;border-radius:var(--radius);font-size:15.5px;font-weight:500;color:var(--fg-soft);
-      cursor:pointer;list-style:none;transition:background .14s,color .14s}
-    .nav-drawer-group summary::-webkit-details-marker{display:none}
-    .nav-drawer-group summary:hover{background:var(--muted);color:var(--fg)}
-    .nav-drawer-group summary svg{width:15px;height:15px;color:var(--muted-fg);
-      transition:transform .2s ease;flex:0 0 auto}
-    .nav-drawer-group[open] summary{color:var(--fg)}
-    .nav-drawer-group[open] summary svg{transform:rotate(180deg)}
-    .nav-drawer-group-body{display:flex;flex-direction:column;margin:2px 0 6px 10px;
-      padding-left:8px;border-left:1px solid var(--border-soft)}
-    .nav-drawer-group-body a{min-height:44px;font-size:14.5px;font-weight:450}
-    @media (prefers-reduced-motion:reduce){.nav-drawer-group summary svg{transition:none}}
-    .nav-drawer-foot{display:flex;flex-direction:column;gap:10px;padding:16px 16px 22px;
-      border-top:1px solid var(--border-soft);flex:0 0 auto}
-    .nav-drawer-theme{display:flex;align-items:center;justify-content:space-between;
-      padding:2px 4px 8px;font-size:14px;font-weight:500;color:var(--fg-soft)}
-    .nav-drawer-foot .btn{width:100%;justify-content:center}
-    @media (prefers-reduced-motion:reduce){
-      .nav-drawer-backdrop,.nav-drawer-panel{transition:none}
-    }
-
-    /* ── nav dropdowns (group child items: Product / Resources) ── */
-    .nav-group{position:relative}
-    /* shadcn NavigationMenuTrigger: rounded-md, hover:bg-accent, chevron flips */
-    .nav-trigger{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:14px;
-      font-weight:500;color:var(--muted-fg);background:none;border:none;cursor:pointer;
-      height:36px;padding:0 12px;border-radius:var(--radius);
-      white-space:nowrap;transition:background .14s,color .14s}
-    .nav-trigger svg{width:13px;height:13px;transition:transform .2s ease;opacity:.7}
-    .nav-group:hover .nav-trigger,.nav-group:focus-within .nav-trigger{color:var(--fg);background:var(--muted)}
-    .nav-group:hover .nav-trigger svg,.nav-group:focus-within .nav-trigger svg{transform:rotate(180deg)}
-    /* shadcn popover panel: popover bg, rounded-lg, md shadow. */
-    .nav-menu{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(6px);
-      min-width:230px;padding:6px;background:var(--popover,var(--card));border:1px solid var(--border);
-      border-radius:calc(var(--radius) + 4px);
-      box-shadow:0 4px 6px -1px rgba(0,0,0,.08),0 2px 4px -2px rgba(0,0,0,.08);
-      display:flex;flex-direction:column;gap:1px;
-      opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease;z-index:60}
-    /* Two-column grid variant for wide menus (Features). */
-    .nav-menu.nav-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(290px,1fr));min-width:620px;gap:1px}
-    /* hover bridge so the cursor can cross the gap to the menu */
-    .nav-group::after{content:"";position:absolute;top:100%;left:0;right:0;height:12px}
-    .nav-group:hover .nav-menu,.nav-group:focus-within .nav-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0)}
-    .nav-menu a{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:calc(var(--radius) - 2px);
-      font-size:14px;font-weight:500;color:var(--fg-soft);transition:background .14s,color .14s}
-    .nav-menu a:hover{background:var(--muted);color:var(--fg)}
-    /* Descriptions stay one line so every item is exactly title + desc, no
-       matter how long the copy is — the panel height must not jump per item. */
-    .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg);
-      display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden}
-    /* Features mega-menu: an icon rail to the left of each title+desc block.
-       Scoped to .nav-menu-grid so the (icon-less) Resources menu keeps its
-       simpler flex-column layout. */
-    .nav-menu-grid a{flex-direction:row;align-items:flex-start;gap:10px}
-    .nav-menu-grid .nav-ico{flex:0 0 auto;display:inline-flex;width:16px;height:16px;margin-top:1px;color:var(--muted-fg);transition:color .14s}
-    .nav-menu-grid .nav-ico svg{width:16px;height:16px}
-    .nav-menu-grid a:hover .nav-ico{color:var(--brand)}
-    .nav-menu-grid .nav-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
-    @media (prefers-reduced-motion:reduce){.nav-trigger svg,.nav-menu{transition:none}}
-    /* Status pill for nav items — e.g. "Beta". `--orange` is the small-text-safe
-       accent token; the tint uses color-mix so it stays legible in both themes
-       without a separate dark-mode override. */
-    .nav-item-label{display:inline-flex;align-items:center;gap:6px}
-    .nav-badge{display:inline-flex;align-items:center;height:16px;padding:0 6px;
-      border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
-      color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent);
-      line-height:1}
-    .nav-drawer-group-body a .nav-badge{margin-left:auto}
-
-    /* ── theme toggle ── */
-    /* Matches .nav-toggle / .btn: 40px box, 8px radius, hairline border. */
-    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
-      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
-      cursor:pointer;transition:.16s ease;flex:0 0 auto;padding:0}
-    .theme-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
-    .theme-toggle svg{width:16px;height:16px}
-    .theme-toggle .i-sun{display:none}
-    .theme-toggle .i-system{display:none}
-    :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
-    :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
-    :root[data-theme-state="auto"] .theme-toggle .i-system{display:block}
-    :root[data-theme-state="auto"] .theme-toggle .i-moon,
-    :root[data-theme-state="auto"] .theme-toggle .i-sun{display:none}
+    /* Nav chrome lives in styles/nav.css (shared with the blog). */
 
     /* ── theme-aware screenshots ──
        A single <img data-src-light data-src-dark> per slot (no hidden sibling
@@ -605,15 +461,6 @@ const ogImage = new URL(image, Astro.site).toString()
 
     /* ── responsive ── */
     @media (max-width:1024px){
-      /* swap the inline nav + CTA cluster for a single hamburger → drawer.
-         Hide the desktop CTA *wrapper* (not the anchors). Tailwind `inline-flex`
-         on those anchors beats this @layer base rule; the unlayered block
-         below is what actually wins. */
-      .nav-links{display:none}
-      .nav-cta-desktop{display:none}
-      .nav-toggle{display:inline-flex;width:44px;height:44px}
-      .nav-drawer-close,.theme-toggle{width:44px;height:44px}
-      .nav-row{gap:12px}
       .wrap{padding:0 16px}
     }
     @media (max-width:880px){
@@ -629,8 +476,6 @@ const ogImage = new URL(image, Astro.site).toString()
       .cap-grid{grid-template-columns:1fr}
       .foot-col a{padding:5px 0;min-height:44px;display:inline-flex;align-items:center}
       .wrap{padding:0 16px}
-      .nav-row{height:52px}
-      .nav-drawer-panel{top:52px;height:calc(100dvh - 52px)}
     }
 
     /* ── comparison (legacy .cmp-table + shared .cmp-matrix) ── */
@@ -660,28 +505,6 @@ const ogImage = new URL(image, Astro.site).toString()
     .cl-body .cl-notes{margin-top:10px;font-size:14px;color:var(--muted-fg);line-height:1.7;text-wrap:pretty}
     .cl-body .cl-notes a{color:var(--orange)}
     @media (max-width:640px){.cl-entry{grid-template-columns:1fr;gap:8px}}
-    }
-
-    /* Unlayered on purpose. Tailwind utilities live in @layer utilities and
-       beat everything in @layer base — that's why `.nav-cta > a { display:none }`
-       lost to `inline-flex` on the Dashboard/GitHub CTAs and clipped the phone
-       header. Rules here must win that fight. */
-    .nav-cta-desktop{display:flex;align-items:center;gap:10px}
-    header.nav{z-index:80}
-    .nav-drawer{z-index:70;pointer-events:none}
-    .nav-drawer[data-open="true"]{pointer-events:auto}
-    .nav-drawer-backdrop{background:rgba(9,9,11,.56)}
-    .nav-drawer-panel{top:64px;height:calc(100dvh - 64px);width:min(360px,calc(100vw - 56px))}
-    .nav-drawer-group-body a{min-height:44px}
-    .nav-drawer-foot a{min-height:44px}
-
-    @media (max-width:1024px){
-      .nav-cta-desktop{display:none}
-      .nav-toggle{display:inline-flex;width:44px;height:44px}
-      .nav-drawer-close,.theme-toggle{width:44px;height:44px}
-    }
-    @media (max-width:560px){
-      .nav-drawer-panel{top:52px;height:calc(100dvh - 52px)}
     }
 
     /* Comparison matrices: stacked cards on phones/tablets so 375 and 768 stay

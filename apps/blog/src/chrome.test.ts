@@ -24,25 +24,12 @@ describe('blog chrome matches landing shadcn tokens', () => {
     expect(css).toContain("@custom-variant dark (&:is([data-theme='dark'] *))")
   })
 
-  test('Nav uses semantic token classes', () => {
+  test('Nav reuses the landing menu pointed at chmonitor.dev', () => {
     const nav = read('src/components/Nav.astro')
-    expect(nav).toContain('text-muted-foreground')
-    expect(nav).toContain('border-border')
-  })
-
-  test('Nav drops Features / Open source / RSS and shows the real star count', () => {
-    const nav = read('src/components/Nav.astro')
-    expect(nav).toContain('whitespace-nowrap')
-    expect(nav).toContain('getGitHubStats')
-    expect(nav).toContain('starLabel')
-    expect(nav).toContain('Stars')
-    expect(nav).not.toContain('#features')
-    expect(nav).not.toContain('#open-source')
-    expect(nav).not.toContain('/rss.xml')
-    expect(nav).not.toContain('>Features<')
-    expect(nav).toContain('>Docs<')
-    expect(nav).toContain('>Changelog<')
-    expect(nav).toContain('>Blog<')
+    const base = read('src/layouts/Base.astro')
+    expect(nav).toContain("from '../../../landing/src/components/Nav.astro'")
+    expect(nav).toContain('origin="https://chmonitor.dev"')
+    expect(base).toContain("landing/src/styles/nav.css")
   })
 
   test('Footer uses semantic token classes', () => {

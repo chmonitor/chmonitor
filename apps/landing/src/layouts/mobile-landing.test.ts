@@ -6,6 +6,7 @@ const landing = join(import.meta.dir, '../..')
 const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
 
 const base = read('src/layouts/Base.astro')
+const navCss = read('src/styles/nav.css')
 const nav = read('src/components/Nav.astro')
 const hero = read('src/components/Hero.astro')
 const homeCmp = read('src/components/Comparison.astro')
@@ -51,11 +52,10 @@ describe('mobile nav: desktop CTAs must not fight Tailwind', () => {
   })
 
   test('unlayered CSS hides the CTA wrapper at ≤1024px (beats inline-flex)', () => {
-    const extra = unlayeredCss(base)
-    expect(extra).toMatch(
-      /@media \(max-width:1024px\)[\s\S]*?\.nav-cta-desktop\{display:none\}/
+    expect(navCss).toMatch(
+      /@media \(max-width:\s*1024px\)[\s\S]*?\.nav-cta-desktop\s*\{[\s\S]*?display:\s*none/
     )
-    expect(extra).not.toMatch(/\.nav-cta\s*>\s*a\{display:none\}/)
+    expect(navCss).not.toMatch(/\.nav-cta\s*>\s*a\s*\{[^}]*display:\s*none/)
   })
 })
 
@@ -63,34 +63,31 @@ describe('mobile nav: open menu shows X + dim, tap targets ≥44px', () => {
   test('hamburger swaps .i-open / .i-close on aria-expanded', () => {
     expect(nav).toContain('class="i-open"')
     expect(nav).toContain('class="i-close"')
-    expect(base).toContain(
-      '.nav-toggle[aria-expanded="true"] .i-close{display:block}'
+    expect(navCss).toContain(
+      ".nav-toggle[aria-expanded='true'] .i-close"
     )
     expect(nav).toContain('class="nav-drawer-backdrop"')
   })
 
   test('header stacks above the drawer so the X is not covered', () => {
-    const extra = unlayeredCss(base)
-    expect(extra).toMatch(/header\.nav\{z-index:80\}/)
-    expect(extra).toMatch(/\.nav-drawer\{z-index:70/)
+    expect(navCss).toMatch(/header\.nav\s*\{[\s\S]*?z-index:\s*80/)
+    expect(navCss).toMatch(/\.nav-drawer\s*\{[\s\S]*?z-index:\s*70/)
   })
 
   test('open drawer dims the page and leaves a visible backdrop strip', () => {
-    const extra = unlayeredCss(base)
-    expect(extra).toContain('rgba(9,9,11,.56)')
-    expect(extra).toContain('calc(100vw - 56px)')
-    expect(extra).toContain('pointer-events:auto')
+    expect(navCss).toContain('rgba(9, 9, 11, 0.56)')
+    expect(navCss).toContain('calc(100vw - 56px)')
+    expect(navCss).toContain('pointer-events: auto')
   })
 
   test('phone chrome tap targets are 44px at the hamburger breakpoint', () => {
-    const extra = unlayeredCss(base)
-    expect(extra).toMatch(
-      /@media \(max-width:1024px\)[\s\S]*?\.nav-toggle\{display:inline-flex;width:44px;height:44px\}/
+    expect(navCss).toMatch(
+      /@media \(max-width:\s*1024px\)[\s\S]*?\.nav-toggle\s*\{[\s\S]*?width:\s*44px/
     )
-    expect(extra).toMatch(
-      /@media \(max-width:1024px\)[\s\S]*?\.nav-drawer-close,\.theme-toggle\{width:44px;height:44px\}/
+    expect(navCss).toMatch(
+      /@media \(max-width:\s*1024px\)[\s\S]*?\.theme-toggle\s*\{[\s\S]*?width:\s*44px/
     )
-    expect(extra).toContain('.nav-drawer-group-body a{min-height:44px}')
+    expect(navCss).toContain('min-height: 44px')
   })
 })
 

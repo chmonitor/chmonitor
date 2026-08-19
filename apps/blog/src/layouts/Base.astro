@@ -1,6 +1,7 @@
 ---
 // Global Tailwind v4 + shadcn tokens (preflight omitted — see globals.css).
 import '../styles/globals.css'
+import '../../../landing/src/styles/nav.css'
 
 const {
   title = 'chmonitor blog',
@@ -147,20 +148,6 @@ const ogImage = new URL(image, Astro.site).toString()
     .mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
     .mark img{width:100%;height:100%;object-fit:contain;display:block}
 
-    /* ── theme toggle (matches landing: 40px box, 8px radius, hairline) ── */
-    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
-      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);
-      cursor:pointer;transition:.16s ease;flex:0 0 auto;padding:0}
-    .theme-toggle:hover{color:var(--foreground);border-color:var(--hairline-strong);background:var(--muted)}
-    .theme-toggle svg{width:16px;height:16px}
-    .theme-toggle .i-sun{display:none}
-    .theme-toggle .i-system{display:none}
-    :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
-    :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
-    :root[data-theme-state="auto"] .theme-toggle .i-system{display:block}
-    :root[data-theme-state="auto"] .theme-toggle .i-moon,
-    :root[data-theme-state="auto"] .theme-toggle .i-sun{display:none}
-
     /* ── article measure ── */
     .article-wrap{max-width:var(--maxw-prose);margin:0 auto;padding:0 24px;width:100%}
 
@@ -222,8 +209,6 @@ const ogImage = new URL(image, Astro.site).toString()
     .hl span{font-size:13.5px;color:var(--muted-foreground);margin-top:6px;display:block;line-height:1.55}
     @media (max-width:600px){.hl-grid{grid-template-columns:1fr}}
     }
-    /* Unlayered so it beats the Star CTA's Tailwind `inline-flex`. */
-    @media (max-width:560px){.nav-cta-star{display:none}}
   </style>
 </head>
 <body>
