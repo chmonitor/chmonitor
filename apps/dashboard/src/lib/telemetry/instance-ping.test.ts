@@ -117,6 +117,42 @@ describe('buildPingPayload', () => {
     expect(payload.chm_version).toBe('0.3.1')
     expect(payload.install_place).toBe('abcde12345')
   })
+
+  test('includes license_key when a Polar checkout id is set', () => {
+    const payload = buildPingPayload({
+      instanceHash: 'abc123',
+      deployTarget: 'docker',
+      licenseKey: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    })
+    expect(payload.license_key).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890')
+  })
+
+  test('omits license_key when unset', () => {
+    const payload = buildPingPayload({
+      instanceHash: 'abc123',
+      deployTarget: 'docker',
+    })
+    expect('license_key' in payload).toBe(false)
+  })
+
+  test('omits license_key when empty or not a Polar checkout id charset', () => {
+    expect(
+      'license_key' in
+        buildPingPayload({
+          instanceHash: 'abc123',
+          deployTarget: 'docker',
+          licenseKey: '',
+        })
+    ).toBe(false)
+    expect(
+      'license_key' in
+        buildPingPayload({
+          instanceHash: 'abc123',
+          deployTarget: 'docker',
+          licenseKey: 'billing@example.com',
+        })
+    ).toBe(false)
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -338,6 +374,74 @@ describe('endpoint resolution and kill-switch', () => {
     )
     expect(result).toBe('skipped-no-endpoint')
     expect(posts).toHaveLength(0)
+  })
+})
+
+describe('runInstancePing license_key', () => {
+  const POLAR_CHECKOUT_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+
+  test('includes license_key on the posted JSON when set', async () => {
+    const deps = makeDeps({ licenseKey: POLAR_CHECKOUT_ID })
+    const result = await runInstancePing(deps)
+    expect(result).toBe('pinged')
+    const body = JSON.parse(deps.posts[0].body) as Record<string, string>
+    expect(body.license_key).toBe(POLAR_CHECKOUT_ID)
+  })
+
+  test('omits license_key when unset', async () => {
+    const deps = makeDeps()
+    await runInstancePing(deps)
+    const body = JSON.parse(deps.posts[0].body) as Record<string, string>
+    expect('license_key' in body).toBe(false)
+  })
+
+  test('does not call resolveLicenseKey when telemetry is off', async () => {
+    let resolved = 0
+    const deps = makeDeps({
+      enabled: false,
+      resolveLicenseKey: async () => {
+        resolved++
+        return POLAR_CHECKOUT_ID
+      },
+    })
+    const result = await runInstancePing(deps)
+    expect(result).toBe('skipped-disabled')
+    expect(deps.posts).toHaveLength(0)
+    expect(resolved).toBe(0)
+  })
+
+  test('resolves license_key lazily only when a ping is sent', async () => {
+    let resolved = 0
+    const deps = makeDeps({
+      resolveLicenseKey: async () => {
+        resolved++
+        return POLAR_CHECKOUT_ID
+      },
+    })
+    await runInstancePing(deps)
+    expect(resolved).toBe(1)
+    const body = JSON.parse(deps.posts[0].body) as Record<string, string>
+    expect(body.license_key).toBe(POLAR_CHECKOUT_ID)
+  })
+
+  test('does not resolve license_key during the cooldown skip', async () => {
+    const now = 1_700_000_000_000
+    let resolved = 0
+    const deps = makeDeps({
+      now,
+      storageOverrides: {
+        chm_telemetry_last_ping_at: String(now - 100),
+        chm_telemetry_last_ping_version: '24.8.1.2',
+      },
+      resolveLicenseKey: async () => {
+        resolved++
+        return POLAR_CHECKOUT_ID
+      },
+    })
+    const result = await runInstancePing(deps)
+    expect(result).toBe('skipped-too-soon')
+    expect(deps.posts).toHaveLength(0)
+    expect(resolved).toBe(0)
   })
 })
 

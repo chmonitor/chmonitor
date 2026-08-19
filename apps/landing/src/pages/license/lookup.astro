@@ -10,7 +10,7 @@ const lookupAction = licenseLookupHref()
 ---
 <Base
   title="Look up a chmonitor license"
-  description="Check a Polar order for a self-hosted chmonitor license. Honor system — no license key."
+  description="Check a Polar order for a self-hosted chmonitor license. The Polar checkout id is CHM_LICENSE_KEY."
 >
   <Nav />
   <main id="top">
@@ -21,8 +21,8 @@ const lookupAction = licenseLookupHref()
           <h1>Check your order</h1>
           <p>
             Enter the Polar checkout id from your receipt, or the billing email
-            you used. We look up the order. There is no license key and nothing
-            phones home.
+            you used. That checkout id is <code>CHM_LICENSE_KEY</code> on the
+            dashboard. Honor system — it does not unlock features.
           </p>
         </div>
 

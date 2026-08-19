@@ -45,7 +45,14 @@ export {
   runInstancePing,
   shouldPing,
 } from './instance-ping'
-export { isBlockedKey, looksSensitive, redactProps } from './redact'
+export { getLicenseKey, sanitizeLicenseKey } from './license-key'
+export {
+  isBlockedKey,
+  looksSensitive,
+  PING_ALLOWLISTED_KEYS,
+  redactPingPayload,
+  redactProps,
+} from './redact'
 export {
   clearTelemetrySinks,
   registerTelemetrySink,

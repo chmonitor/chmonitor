@@ -19,6 +19,8 @@ import {
   getDeployTarget,
   parseMajorMinor,
 } from './environment'
+import { getLicenseKey, sanitizeLicenseKey } from './license-key'
+import { redactPingPayload } from './redact'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -68,6 +70,7 @@ export function buildPingPayload(input: {
   platform?: string
   chmVersion?: string
   installPlace?: string
+  licenseKey?: string
 }): Record<string, string> {
   const {
     instanceHash,
@@ -78,6 +81,7 @@ export function buildPingPayload(input: {
     platform,
     chmVersion,
     installPlace,
+    licenseKey,
   } = input
   const chVersion = version ? parseMajorMinor(version) : undefined
   const payload: Record<string, string> = {
@@ -102,7 +106,11 @@ export function buildPingPayload(input: {
   if (installPlace !== undefined) {
     payload.install_place = installPlace
   }
-  return payload
+  const sanitizedKey = sanitizeLicenseKey(licenseKey)
+  if (sanitizedKey !== undefined) {
+    payload.license_key = sanitizedKey
+  }
+  return redactPingPayload(payload)
 }
 
 /**
@@ -165,6 +173,13 @@ export interface PingDeps {
   chmVersion?: string
   /** Compute install_place hash from deployment environment signals */
   computeInstallPlace: () => Promise<string | undefined>
+  /** Polar checkout id (`CHM_LICENSE_KEY`) when already resolved. */
+  licenseKey?: string
+  /**
+   * Lazy resolve for Docker/Helm: the prerendered client shell cannot inline
+   * a runtime env var. Called only when a ping will actually be sent.
+   */
+  resolveLicenseKey?: () => Promise<string | undefined>
 }
 
 /**
@@ -193,6 +208,8 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
     detectPlatform,
     chmVersion,
     computeInstallPlace,
+    licenseKey: licenseKeyFromDeps,
+    resolveLicenseKey,
   } = deps
 
   if (!enabled) return 'skipped-disabled'
@@ -233,6 +250,15 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   const platform = detectPlatform()
   const installPlace = await computeInstallPlace()
 
+  let licenseKey = sanitizeLicenseKey(licenseKeyFromDeps)
+  if (!licenseKey && resolveLicenseKey) {
+    try {
+      licenseKey = sanitizeLicenseKey(await resolveLicenseKey())
+    } catch {
+      licenseKey = undefined
+    }
+  }
+
   const payload = buildPingPayload({
     instanceHash,
     version,
@@ -242,6 +268,7 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
     platform,
     chmVersion,
     installPlace,
+    licenseKey,
   })
 
   try {
@@ -272,6 +299,26 @@ async function sha256hex(s: string): Promise<string> {
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
+}
+
+/**
+ * Runtime `CHM_LICENSE_KEY` for Docker/Helm (not inlined at image build).
+ * Missing/invalid → omit. Never throws.
+ */
+async function fetchRuntimeLicenseKey(): Promise<string | undefined> {
+  try {
+    const res = await fetch('/api/v1/runtime-env', {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+    if (!res.ok) return undefined
+    const json: unknown = await res.json()
+    if (!json || typeof json !== 'object') return undefined
+    const raw = (json as { license_key?: unknown }).license_key
+    return typeof raw === 'string' ? sanitizeLicenseKey(raw) : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -339,6 +386,8 @@ export function maybePingInstance(
     detectPlatform: detectPlatform,
     // CHM product version from the build-time env var
     chmVersion: import.meta.env.VITE_GIT_REF?.replace(/^v/, '') || undefined,
+    licenseKey: getLicenseKey(runtimeEnv),
+    resolveLicenseKey: fetchRuntimeLicenseKey,
     computeInstallPlace: async () => {
       // Compute a stable hash from deployment environment signals. The hash
       // identifies the deployment location (k8s cluster, Docker host, etc.)

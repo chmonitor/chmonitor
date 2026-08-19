@@ -260,7 +260,9 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   302 to `checkout.url`. 400 bad sku/term, 501 missing token or
   `CHM_POLAR_LICENSE_*`, 502 `{error, status}` on Polar failure (never throws).
 - `license-lookup.ts` — `GET /licenses/lookup?q=` honor-system order check
-  (Polar checkout id, then customer by email / id / query). 404 JSON if none.
+  (Polar checkout id — this is `CHM_LICENSE_KEY` on the dashboard — then
+  customer by email / id / query). 404 JSON if none. Cloud-hooks does not
+  mint a dedicated key.
 - `license-register.ts` — `POST /licenses/register` persists
   `{company, website, sku, term, list_public, checkout_id?}` to
   `CHM_HOOKS_KV` `license-reg:v1:{uuid}`; `GET /licenses/public` returns

@@ -46,6 +46,24 @@ function makeCtx(): ExecutionContext {
   } as unknown as ExecutionContext
 }
 
+function makeFlushingCtx(): {
+  ctx: ExecutionContext
+  flush: () => Promise<void>
+} {
+  const pending: Promise<unknown>[] = []
+  return {
+    ctx: {
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p)
+      },
+      passThroughOnException: () => {},
+    } as unknown as ExecutionContext,
+    flush: async () => {
+      await Promise.all(pending)
+    },
+  }
+}
+
 /** 64 lowercase hex chars, matching the opaque instance/install id shape. */
 function hex64(seed: string): string {
   return seed.repeat(64).slice(0, 64)
@@ -312,6 +330,7 @@ describe('POST /v1/cli — separate CLI tracking stream', () => {
         cli_version TEXT,
         os          TEXT,
         arch        TEXT,
+        license_key TEXT,
         PRIMARY KEY (day, install_id, event, command)
       )
     `)
@@ -390,5 +409,164 @@ describe('POST /v1/cli — separate CLI tracking stream', () => {
     await post(payload)
     await post(payload)
     expect(countCli()).toBe(1)
+  })
+})
+
+describe('POST /v1/ping — optional license_key', () => {
+  let db: Database
+
+  afterEach(() => {
+    db?.close()
+  })
+
+  function seed() {
+    db = new Database(':memory:')
+    db.run(`
+      CREATE TABLE ping_daily (
+        day           TEXT NOT NULL,
+        instance_hash TEXT NOT NULL,
+        deploy_target TEXT NOT NULL DEFAULT 'unknown',
+        ch_version    TEXT,
+        ch_flavor     TEXT,
+        country       TEXT,
+        platform      TEXT,
+        chm_version   TEXT,
+        install_place TEXT,
+        license_key   TEXT,
+        PRIMARY KEY (day, instance_hash)
+      )
+    `)
+  }
+
+  const POLAR_CHECKOUT_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+
+  async function post(body: unknown) {
+    const { ctx, flush } = makeFlushingCtx()
+    const env: Env = { CHM_TELEMETRY_DB: makeMockD1(db) }
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/v1/ping', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      env,
+      ctx
+    )
+    await flush()
+    return res
+  }
+
+  it('persists license_key when it is a Polar checkout id', async () => {
+    seed()
+    const res = await post({
+      instance_hash: hex64('a'),
+      deploy_target: 'docker',
+      license_key: POLAR_CHECKOUT_ID,
+    })
+    expect(res.status).toBe(204)
+    const row = db.query('SELECT license_key FROM ping_daily').get() as {
+      license_key: string | null
+    }
+    expect(row.license_key).toBe(POLAR_CHECKOUT_ID)
+  })
+
+  it('stores null license_key when unset', async () => {
+    seed()
+    const res = await post({
+      instance_hash: hex64('b'),
+      deploy_target: 'docker',
+    })
+    expect(res.status).toBe(204)
+    const row = db.query('SELECT license_key FROM ping_daily').get() as {
+      license_key: string | null
+    }
+    expect(row.license_key).toBeNull()
+  })
+
+  it('drops an email-shaped license_key', async () => {
+    seed()
+    await post({
+      instance_hash: hex64('c'),
+      deploy_target: 'docker',
+      license_key: 'billing@example.com',
+    })
+    const row = db.query('SELECT license_key FROM ping_daily').get() as {
+      license_key: string | null
+    }
+    expect(row.license_key).toBeNull()
+  })
+
+  it('does not expose license_key on GET /v1/summary', async () => {
+    seed()
+    await post({
+      instance_hash: hex64('d'),
+      deploy_target: 'docker',
+      license_key: POLAR_CHECKOUT_ID,
+    })
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/v1/summary'),
+      { CHM_TELEMETRY_DB: makeMockD1(db) } as Env,
+      makeCtx()
+    )
+    expect(res.status).toBe(200)
+    const serialized = JSON.stringify(await res.json())
+    expect(serialized).not.toContain(POLAR_CHECKOUT_ID)
+    expect(serialized).not.toContain('license_key')
+  })
+})
+
+describe('POST /v1/cli — optional license_key', () => {
+  let db: Database
+
+  afterEach(() => {
+    db?.close()
+  })
+
+  function seed() {
+    db = new Database(':memory:')
+    db.run(`
+      CREATE TABLE cli_daily (
+        day         TEXT NOT NULL,
+        install_id  TEXT NOT NULL,
+        event       TEXT NOT NULL,
+        command     TEXT NOT NULL DEFAULT '',
+        cli_version TEXT,
+        os          TEXT,
+        arch        TEXT,
+        license_key TEXT,
+        PRIMARY KEY (day, install_id, event, command)
+      )
+    `)
+  }
+
+  async function post(body: unknown) {
+    const { ctx, flush } = makeFlushingCtx()
+    const env: Env = { CHM_TELEMETRY_DB: makeMockD1(db) }
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/v1/cli', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      env,
+      ctx
+    )
+    await flush()
+    return res
+  }
+
+  it('persists license_key on a CLI ping when set', async () => {
+    seed()
+    const res = await post({
+      install_id: hex64('e'),
+      event: 'cli_run',
+      command: 'hosts',
+      license_key: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    })
+    expect(res.status).toBe(204)
+    const row = db.query('SELECT license_key FROM cli_daily').get() as {
+      license_key: string | null
+    }
+    expect(row.license_key).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890')
   })
 })

@@ -92,6 +92,14 @@ by setting `CHM_TELEMETRY_ENDPOINT` (server) or `VITE_TELEMETRY_ENDPOINT`
 | `ch_version` | `MAJOR.MINOR` only | `24.8` |
 | `ch_flavor` | `oss`, `altinity`, `cloud`, `unknown` | `oss` |
 
+Optional on the **instance ping only** (not on generic `track()` events):
+
+| Field | When | Example |
+|---|---|---|
+| `license_key` | `CHM_LICENSE_KEY` is set | Polar checkout id (UUID) |
+
+See [Commercial license](/operate/advanced/commercial-license). The key does not unlock features.
+
 ## What is NOT collected
 
 - Query text, SQL statements, or fingerprints
@@ -102,8 +110,10 @@ by setting `CHM_TELEMETRY_ENDPOINT` (server) or `VITE_TELEMETRY_ENDPOINT`
 
 A defensive redaction layer (`redact.ts`) runs before every event is emitted. It
 drops any prop whose key name implies sensitive content (`host`, `ip`, `url`,
-`query`, `sql`, `email`, `token`, …) and any string value that matches an email,
-IPv4/IPv6 address, or URL pattern. When in doubt, it drops.
+`query`, `sql`, `email`, `token`, `license_key`, …) and any string value that matches an email,
+IPv4/IPv6 address, or URL pattern. When in doubt, it drops. The instance ping
+**allowlists** `license_key` so a set `CHM_LICENSE_KEY` can be counted; generic
+`track()` events still drop it.
 
 <Callout type="info">
 The ClickHouse version is always truncated to `MAJOR.MINOR` (e.g. `24.8`) — never
@@ -114,7 +124,9 @@ the full four-part string — to avoid matching the IPv4 redaction pattern.
 
 **Instance ping** (`maybePingInstance`) runs once per day when due, sending a
 hashed install id + deploy target + ClickHouse `MAJOR.MINOR` to the collection
-endpoint. It is a hard no-op when telemetry is disabled, when the endpoint is an
+endpoint. When `CHM_LICENSE_KEY` is set (Polar checkout id from a commercial
+license receipt), the ping also includes `license_key`. The field is omitted
+when unset. It is a hard no-op when telemetry is disabled, when the endpoint is an
 empty string, or in non-browser contexts (SSR/prerender).
 
 The endpoint is received by the [telemetry collector](https://github.com/chmonitor/chmonitor/tree/main/apps/telemetry)
@@ -165,6 +177,7 @@ The `install.sh` install ping additionally **skips automatically when `CI=true`*
 | `cli_version` | semver (e.g. `0.1.0`) | The `chm` version. |
 | `os` | `linux`, `macos`, `windows`, `unknown` | |
 | `arch` | `x86_64`, `aarch64`, `unknown` | |
+| `license_key` | Polar checkout id | Only when `CHM_LICENSE_KEY` is already in that process env. Same id as the dashboard ping. |
 
 It sends **nothing else** — no ClickHouse host, query text, command arguments,
 file paths, usernames, or IPs. The install-script ping uses an **ephemeral**
@@ -192,7 +205,7 @@ telemetry store, and this documentation.
 - **Self-hosted data stays put** — chmonitor is fully self-hostable; your ClickHouse data never leaves your network regardless of telemetry settings.
 - **No third-party trackers in this system** — telemetry uses only chmonitor's own collector, never a third-party analytics SDK. (chmonitor separately offers an opt-in, *off-by-default* [Product Analytics](/operate/advanced/product-analytics) integration that sends funnel events to PostHog — only if you explicitly configure a key.)
 - **No PII by design** — the event schema and redaction layer are written to make PII collection structurally impossible, not just policy-forbidden.
-- **Anonymous** — only a hashed random install id is sent; it cannot be tied to an identity, and the collector never stores request IPs.
+- **Anonymous** — only a hashed random install id is sent by default; it cannot be tied to an identity, and the collector never stores request IPs. If you set `CHM_LICENSE_KEY`, the Polar checkout id is included on the instance ping so licensed installs can be counted. Omit the var (or disable telemetry) to stay fully anonymous.
 - **Hard kill-switch** — setting the endpoint env to an empty string stops all network calls regardless of any other setting.
 </Callout>
 

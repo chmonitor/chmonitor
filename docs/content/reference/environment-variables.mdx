@@ -525,11 +525,23 @@ Set the canonical `CHM_*` names. Client `VITE_*` is derived at build time.
 Build-time branding overrides (optional; do not set unless you custom-build):
 `VITE_TITLE_SHORT`, `VITE_LOGO`, `VITE_AUTOCOMPLETE_LIMIT`, `VITE_MEASUREMENT_ID`.
 
+## Product telemetry
+
+Anonymous product telemetry is **on by default**. See [Product telemetry](/operate/advanced/telemetry).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_TELEMETRY` | on | Set to `off` (also `0` / `false` / `no`) to disable. `DO_NOT_TRACK=1` is a hard override. |
+| `CHM_TELEMETRY_ENDPOINT` | `https://telemetry.chmonitor.dev/v1/ping` | Collection endpoint. Empty string = hard kill-switch (no network). |
+| `CHM_LICENSE_KEY` | — | Optional. Polar **checkout id** from a [commercial license](/operate/advanced/commercial-license) receipt (the same id [lookup](https://chmonitor.dev/license/lookup) accepts). Included on the daily instance ping when telemetry is on. Does **not** unlock features or fail startup. Do not put a billing email here. |
+
 ## Polar licenses (landing / cloud-hooks)
 
 Self-host license checkout is **not** configured on the dashboard example.
 Set Polar product ids and secrets on `apps/cloud-hooks` (and the hosted
 `.env.production` catalog). See `apps/cloud-hooks/.env.example`.
+Operators who already bought a license set `CHM_LICENSE_KEY` on the
+**dashboard** process (see Product telemetry above) — not on cloud-hooks.
 
 | Variable | Purpose |
 |---|---|
