@@ -19,6 +19,7 @@ export function CompareScopeToggle({
 
   return (
     <SegmentedControl
+      size="default"
       ariaLabel="Compare saved connections or replica nodes"
       value={value}
       onChange={(next) => {

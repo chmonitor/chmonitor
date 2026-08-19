@@ -102,7 +102,7 @@ export function SettingsDiffTable({
                       <EmptyState
                         variant="no-data"
                         title="All matched"
-                        description="No setting differences between source and target. Turn off Show diffs only to list every setting."
+                        description="No setting differences between source and target. Switch to All to list every setting."
                         icon={
                           <CheckCircle2Icon
                             className="size-6 text-[var(--chart-green)]"
@@ -123,7 +123,7 @@ export function SettingsDiffTable({
                         variant="filtered-empty"
                         compact
                         title="No settings match"
-                        description="Try a different name filter or turn off Show diffs only."
+                        description="Try a different name filter or switch to All."
                       />
                     )}
                   </TableCell>

@@ -11,14 +11,16 @@ import { SettingsCsvButton, SettingsDiffTable } from './settings-diff-table'
 import { useState } from 'react'
 import { AddHostButton } from '@/components/compare/add-host-button'
 import { CompareScopeToggle } from '@/components/compare/compare-scope-toggle'
+import { CompareToolbar } from '@/components/compare/compare-toolbar'
 import { HostPairFilter } from '@/components/compare/host-pair-filter'
 import { SettingsViewToggle } from '@/components/compare/settings-view-toggle'
+import { SegmentedControl } from '@/components/filters/segmented-control'
 import { PageHeader } from '@/components/layout/page-header'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import {
   collectBrowserDiffSessions,
   fetchCompareDiff,
@@ -208,13 +210,7 @@ export function SettingsDiffPage() {
         description={
           oneHostVsDefault
             ? 'Comparing this host against setting defaults'
-            : scope === 'nodes' && pair
-              ? `Comparing cluster nodes — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
-              : hosts.length > 1 && view === 'pair' && pair
-                ? `Comparing ${hosts.find((h) => h.id === pair.sourceId)?.name ?? pair.sourceId} → ${hosts.find((h) => h.id === pair.targetId)?.name ?? pair.targetId} — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
-                : hosts.length > 1
-                  ? `Comparing ${hosts.length} hosts — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
-                  : PAGE_DESCRIPTION
+            : PAGE_DESCRIPTION
         }
         actions={<SettingsCsvButton columns={columns} rows={filteredRows} />}
       />
@@ -232,45 +228,52 @@ export function SettingsDiffPage() {
         </Alert>
       ) : null}
 
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <CompareScopeToggle
-            value={scope}
-            onChange={(next) => {
-              const nextPeers = next === 'nodes' ? nodes : hosts
-              const nextPair = resolvePair(nextPeers)
-              if (!nextPair) return
-              setSearch({
-                source: nextPair.sourceId,
-                target: nextPair.targetId,
-                scope: next,
-                view: next === 'hosts' ? view : undefined,
-              })
-            }}
-            hostCount={hostCount}
-            nodeCount={nodeCount}
-          />
-          {scope === 'hosts' ? (
-            <SettingsViewToggle
-              value={view}
-              hostCount={hostCount}
+      <CompareToolbar
+        tabs={
+          <>
+            <CompareScopeToggle
+              value={scope}
               onChange={(next) => {
-                if (next === 'pair') {
-                  const nextPair = resolvePair(hosts, sourceParam, targetParam)
-                  if (!nextPair) return
-                  setSearch({
-                    source: nextPair.sourceId,
-                    target: nextPair.targetId,
-                    scope: 'hosts',
-                    view: 'pair',
-                  })
-                  return
-                }
-                setSearch({ scope: 'hosts', view: 'matrix' })
+                const nextPeers = next === 'nodes' ? nodes : hosts
+                const nextPair = resolvePair(nextPeers)
+                if (!nextPair) return
+                setSearch({
+                  source: nextPair.sourceId,
+                  target: nextPair.targetId,
+                  scope: next,
+                  view: next === 'hosts' ? view : undefined,
+                })
               }}
+              hostCount={hostCount}
+              nodeCount={nodeCount}
             />
-          ) : null}
-        </div>
+            {scope === 'hosts' ? (
+              <SettingsViewToggle
+                value={view}
+                hostCount={hostCount}
+                onChange={(next) => {
+                  if (next === 'pair') {
+                    const nextPair = resolvePair(
+                      hosts,
+                      sourceParam,
+                      targetParam
+                    )
+                    if (!nextPair) return
+                    setSearch({
+                      source: nextPair.sourceId,
+                      target: nextPair.targetId,
+                      scope: 'hosts',
+                      view: 'pair',
+                    })
+                    return
+                  }
+                  setSearch({ scope: 'hosts', view: 'matrix' })
+                }}
+              />
+            ) : null}
+          </>
+        }
+      >
         {pairMode && pair ? (
           <HostPairFilter
             hosts={peers}
@@ -279,7 +282,6 @@ export function SettingsDiffPage() {
             nameFilter={nameFilter}
             nameFilterPlaceholder="Filter by name…"
             showDiffsOnly={showDiffsOnly}
-            diffsOnlyLabel="Show diffs only"
             onPairChange={(source, target) =>
               setSearch({
                 source,
@@ -290,34 +292,47 @@ export function SettingsDiffPage() {
             }
             onNameFilterChange={setNameFilter}
             onShowDiffsOnlyChange={setShowDiffsOnly}
+            extraFilters={
+              <ChangedFromDefaultChip
+                pressed={showChangedOnly}
+                onPressedChange={setShowChangedOnly}
+              />
+            }
           />
         ) : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Input
-              placeholder="Filter by name…"
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-              className="h-8 w-full sm:w-64"
-            />
-            {hostCount > 1 ? (
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <Switch
-                  checked={showDiffsOnly}
-                  onCheckedChange={setShowDiffsOnly}
+          <div className="flex flex-col gap-4">
+            <label className="flex min-w-48 max-w-72 flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">
+                Filter
+              </span>
+              <Input
+                placeholder="Filter by name…"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                className="h-9"
+              />
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              {hostCount > 1 ? (
+                <SegmentedControl
+                  size="default"
+                  ariaLabel="Show differences or all rows"
+                  value={showDiffsOnly ? 'diffs' : 'all'}
+                  onChange={(next) => setShowDiffsOnly(next === 'diffs')}
+                  options={[
+                    { label: 'Differences', value: 'diffs' },
+                    { label: 'All', value: 'all' },
+                  ]}
                 />
-                Show diffs only
-              </label>
-            ) : null}
+              ) : null}
+              <ChangedFromDefaultChip
+                pressed={showChangedOnly}
+                onPressedChange={setShowChangedOnly}
+              />
+            </div>
           </div>
         )}
-        <label className="flex cursor-pointer items-center gap-2 text-sm">
-          <Switch
-            checked={showChangedOnly}
-            onCheckedChange={setShowChangedOnly}
-          />
-          Show changed from default only
-        </label>
-      </div>
+      </CompareToolbar>
 
       <SettingsDiffTable
         columns={columns}
@@ -333,5 +348,26 @@ export function SettingsDiffPage() {
           ` (filtered from ${(data?.rows?.length ?? 0).toLocaleString()})`}
       </p>
     </div>
+  )
+}
+
+function ChangedFromDefaultChip({
+  pressed,
+  onPressedChange,
+}: {
+  pressed: boolean
+  onPressedChange: (next: boolean) => void
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant={pressed ? 'secondary' : 'outline'}
+      aria-pressed={pressed}
+      className="h-8 rounded-md text-[13px]"
+      onClick={() => onPressedChange(!pressed)}
+    >
+      Changed from default
+    </Button>
   )
 }

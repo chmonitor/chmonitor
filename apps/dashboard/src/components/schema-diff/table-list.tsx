@@ -29,7 +29,7 @@ export function TableList({
   onSelect,
   example = false,
   emptyTitle = 'No tables match',
-  emptyDescription = 'Try a different filter or turn off differences only.',
+  emptyDescription = 'Try a different filter or switch to All.',
   emptyVariant = 'filtered-empty',
   emptyCompact = true,
 }: TableListProps) {
