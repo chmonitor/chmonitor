@@ -1,6 +1,7 @@
 import type { ReleaseNote } from './types'
 
-import { buildReleaseNote } from './parse-release-body'
+import { AIRGAP_SNAPSHOT_LIMIT } from './constants'
+import { buildReleaseNote, stripToProductNotes } from './parse-release-body'
 import { isProductVersionTag, parseSemver, toProductTag } from './version'
 
 const SECTION_RE = /^## \[([^\]]+)\](?:\([^)]+\))?(?:\s+\(([^)]+)\))?[ \t]*$/gm
@@ -59,4 +60,29 @@ export function parseChangelogMarkdown(markdown: string): ReleaseNote[] {
   }
 
   return notes
+}
+
+/**
+ * Small airgap payload: latest `vX.Y.Z` Features only (Fixes / Perf /
+ * Highlights stay on the live GitHub body). Unreleased is omitted.
+ */
+export function buildAirgapSnapshot(
+  changelogMarkdown: string,
+  limit = AIRGAP_SNAPSHOT_LIMIT
+): ReleaseNote[] {
+  return parseChangelogMarkdown(changelogMarkdown)
+    .filter(
+      (note) => note.version !== 'unreleased' && isProductVersionTag(note.tag)
+    )
+    .map((note) => {
+      const features = stripToProductNotes(note.markdown, ['features'])
+      return {
+        ...note,
+        markdown: features.markdown,
+        summary: features.summary,
+        highlights: features.highlights,
+      }
+    })
+    .filter((note) => note.markdown.trim().length > 0)
+    .slice(0, limit)
 }

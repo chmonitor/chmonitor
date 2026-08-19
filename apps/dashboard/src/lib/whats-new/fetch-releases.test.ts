@@ -1,4 +1,4 @@
-import { CHANGELOG_RAW_URL, GITHUB_RELEASES_API_URL } from './constants'
+import { GITHUB_RELEASES_API_URL } from './constants'
 import {
   loadReleases,
   parseGithubReleases,
@@ -29,13 +29,6 @@ const GITHUB_JSON = JSON.stringify([
     body: 'Helm notes',
   },
 ])
-
-const CHANGELOG = `## [0.3.2](https://github.com/chmonitor/chmonitor/compare/v0.3.1...v0.3.2) (2026-08-12)
-
-### ✨ Features
-
-* **alerts:** redesign alert-settings
-`
 
 afterEach(() => {
   resetReleasesCacheForTests()
@@ -84,28 +77,28 @@ describe('loadReleases', () => {
     expect(payload.data[0]?.version).toBe('0.3.3')
   })
 
-  test('falls back to CHANGELOG.md when GitHub is down', async () => {
+  test('falls back to the bundled snapshot when GitHub is down', async () => {
+    const urls: string[] = []
     mockFetch(async (url) => {
-      if (url.startsWith(GITHUB_RELEASES_API_URL.split('?')[0]!)) {
-        return { ok: false, status: 503, text: async () => 'down' }
-      }
-      if (url === CHANGELOG_RAW_URL) {
-        return { ok: true, status: 200, text: async () => CHANGELOG }
-      }
-      throw new Error(`unexpected fetch ${url}`)
+      urls.push(url)
+      return { ok: false, status: 503, text: async () => 'down' }
     })
 
     const payload = await loadReleases()
     expect(payload.success).toBe(true)
-    expect(payload.source).toBe('changelog')
-    expect(payload.data[0]?.version).toBe('0.3.2')
+    expect(payload.source).toBe('snapshot')
+    expect(payload.data.length).toBeGreaterThan(0)
     expect(payload.data[0]?.markdown).toContain('Features')
+    expect(urls.some((url) => url.includes('raw.githubusercontent'))).toBe(
+      false
+    )
+    expect(urls).toHaveLength(1)
   })
 
-  test('returns a quiet failure when both sources fail', async () => {
+  test('returns a quiet failure when GitHub is down and the snapshot is empty', async () => {
     mockFetch(async () => ({ ok: false, status: 500, text: async () => '' }))
 
-    const payload = await loadReleases()
+    const payload = await loadReleases(Date.now(), [])
     expect(payload.success).toBe(false)
     expect(payload.source).toBe('none')
     expect(payload.data).toEqual([])

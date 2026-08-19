@@ -1,5 +1,5 @@
 import { extractMarkdownImages } from './images'
-import { parseChangelogMarkdown } from './parse-changelog'
+import { buildAirgapSnapshot, parseChangelogMarkdown } from './parse-changelog'
 import { classifyHeading, stripToProductNotes } from './parse-release-body'
 import { describe, expect, test } from 'bun:test'
 
@@ -159,5 +159,46 @@ describe('parseChangelogMarkdown', () => {
     expect(notes[0]?.markdown).toContain(
       '![Next](https://example.com/next.png)'
     )
+  })
+
+  test('buildAirgapSnapshot keeps latest v* product notes and skips Unreleased', () => {
+    const changelog = `# Changelog
+
+## [Unreleased]
+
+### Highlights
+
+- Upcoming
+
+## [0.3.3](https://example) (2026-08-15)
+
+### ✨ Features
+
+* **ui:** dialog
+
+### ♻️ Refactoring
+
+* internal
+
+## [0.3.2](https://example) (2026-08-12)
+
+### ✨ Features
+
+* **charts:** fill
+
+### 🐛 Bug Fixes
+
+* **charts:** fill leftover
+`
+    const notes = buildAirgapSnapshot(changelog, 5)
+    expect(notes.map((n) => n.tag)).toEqual(['v0.3.3', 'v0.3.2'])
+    expect(notes[0]?.markdown).toContain('Features')
+    expect(notes[0]?.markdown).toContain('dialog')
+    expect(notes[0]?.markdown).not.toContain('Refactoring')
+    expect(notes[1]?.markdown).toContain('Features')
+    expect(notes[1]?.markdown).not.toContain('Bug Fixes')
+    expect(buildAirgapSnapshot(changelog, 1).map((n) => n.tag)).toEqual([
+      'v0.3.3',
+    ])
   })
 })

@@ -79,13 +79,16 @@ function assertNever(value: never): never {
   throw new Error(`Unhandled product section: ${String(value)}`)
 }
 
-function shouldKeepSection(kind: ProductSectionKind): boolean {
+function shouldKeepSection(
+  kind: ProductSectionKind,
+  keep: ReadonlySet<'highlights' | 'features' | 'fixes' | 'perf'>
+): boolean {
   switch (kind) {
     case 'highlights':
     case 'features':
     case 'fixes':
     case 'perf':
-      return true
+      return keep.has(kind)
     case 'drop':
     case 'version':
     case 'unknown':
@@ -123,29 +126,38 @@ function trimSection(text: string): string {
     .trim()
 }
 
+const DEFAULT_KEEP_KINDS = ['highlights', 'features', 'fixes', 'perf'] as const
+
+export type KeptProductKind = (typeof DEFAULT_KEEP_KINDS)[number]
+
 /**
  * Strip recap-stats / Docker / agent-shoutout / internal sections from a
  * GitHub Release or CHANGELOG body so the dialog stays product-facing.
  * Keeps a leading Highlights/summary blockquote plus Features / Fixes / Perf.
  */
-export function stripToProductNotes(markdown: string): {
+export function stripToProductNotes(
+  markdown: string,
+  keepKinds: readonly KeptProductKind[] = DEFAULT_KEEP_KINDS
+): {
   markdown: string
   summary: string
   highlights: string[]
 } {
+  const keep = new Set(keepKinds)
   const { preface, blocks } = splitHeadingBlocks(markdown ?? '')
   const kept: string[] = []
   const highlights: string[] = []
 
+  const keepPreface = keep.has('highlights')
   const prefaceQuotes = extractBlockquoteSummary(preface)
   const prefaceImages = extractMarkdownImages(preface)
-  if (prefaceQuotes.length > 0 || prefaceImages.length > 0) {
+  if (keepPreface && (prefaceQuotes.length > 0 || prefaceImages.length > 0)) {
     kept.push(trimSection(preface))
     highlights.push(...prefaceQuotes)
   }
 
   for (const block of blocks) {
-    if (!shouldKeepSection(block.kind)) continue
+    if (!shouldKeepSection(block.kind, keep)) continue
     const body = trimSection(block.body)
     if (block.kind === 'highlights') {
       highlights.push(...extractListItems(body))

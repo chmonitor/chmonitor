@@ -38,7 +38,7 @@ describe('GET /api/v1/releases', () => {
     expect(body.data).toHaveLength(1)
   })
 
-  test('returns 503 when both GitHub and CHANGELOG fail', async () => {
+  test('returns 503 when notes are unavailable', async () => {
     loadReleases = mock(
       async (): Promise<ReleasesPayload> => ({
         success: false,

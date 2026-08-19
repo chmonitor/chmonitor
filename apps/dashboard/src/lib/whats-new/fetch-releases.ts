@@ -1,13 +1,13 @@
 import type { ReleaseNote, ReleasesPayload } from './types'
 
+import { parseAirgapSnapshot } from './airgap-snapshot'
+import bundledSnapshot from './airgap-snapshot.json'
 import {
-  CHANGELOG_RAW_URL,
   GITHUB_RELEASES_API_URL,
   MAX_RELEASES,
   RELEASES_CACHE_TTL_MS,
   RELEASES_FETCH_TIMEOUT_MS,
 } from './constants'
-import { parseChangelogMarkdown } from './parse-changelog'
 import { buildReleaseNote } from './parse-release-body'
 import { isProductVersionTag } from './version'
 
@@ -25,6 +25,8 @@ interface CacheEntry {
 }
 
 let memoryCache: CacheEntry | null = null
+
+const bundledSnapshotNotes: ReleaseNote[] = parseAirgapSnapshot(bundledSnapshot)
 
 export function resetReleasesCacheForTests(): void {
   memoryCache = null
@@ -77,19 +79,28 @@ async function fetchGithubReleases(): Promise<ReleaseNote[]> {
   return parseGithubReleases(raw)
 }
 
-async function fetchChangelogReleases(): Promise<ReleaseNote[]> {
-  const raw = await fetchText(CHANGELOG_RAW_URL, {
-    Accept: 'text/plain',
-    'User-Agent': 'chmonitor-dashboard',
-  })
-  return parseChangelogMarkdown(raw).slice(0, MAX_RELEASES)
+function snapshotPayload(
+  notes: readonly ReleaseNote[]
+): ReleasesPayload | null {
+  if (notes.length === 0) return null
+  return {
+    success: true,
+    source: 'snapshot',
+    data: [...notes],
+  }
 }
 
 /**
- * Load product release notes: GitHub Releases first, CHANGELOG.md fallback.
- * Cached in memory for ~1 hour. No user token — public repo only.
+ * Load product release notes: GitHub Releases first, then the build-time
+ * airgap snapshot. Never fetches CHANGELOG.md (too large for the client or
+ * a runtime fallback). Cached in memory for ~1 hour. Public repo only.
+ *
+ * Server-only — do not import this module from client components.
  */
-export async function loadReleases(now = Date.now()): Promise<ReleasesPayload> {
+export async function loadReleases(
+  now = Date.now(),
+  snapshot: readonly ReleaseNote[] = bundledSnapshotNotes
+): Promise<ReleasesPayload> {
   if (memoryCache && memoryCache.expiresAt > now) {
     return memoryCache.payload
   }
@@ -106,22 +117,13 @@ export async function loadReleases(now = Date.now()): Promise<ReleasesPayload> {
       return payload
     }
   } catch {
-    // Fall through to CHANGELOG.md
+    // Fall through to the bundled snapshot.
   }
 
-  try {
-    const data = await fetchChangelogReleases()
-    if (data.length > 0) {
-      const payload: ReleasesPayload = {
-        success: true,
-        source: 'changelog',
-        data,
-      }
-      memoryCache = { expiresAt: now + RELEASES_CACHE_TTL_MS, payload }
-      return payload
-    }
-  } catch {
-    // Both sources failed
+  const fallback = snapshotPayload(snapshot)
+  if (fallback) {
+    memoryCache = { expiresAt: now + RELEASES_CACHE_TTL_MS, payload: fallback }
+    return fallback
   }
 
   return {

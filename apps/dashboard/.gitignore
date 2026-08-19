@@ -5,5 +5,6 @@ dist
 .wrangler
 .turbo
 src/routeTree.gen.ts
+src/lib/whats-new/airgap-snapshot.generated.json
 worker-configuration.d.ts
 *.tsbuildinfo

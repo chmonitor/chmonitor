@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar'
+import { WhatsNewMenuItem } from '@/components/whats-new/whats-new-menu-item'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
@@ -145,6 +146,7 @@ export function NavUser({
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
+                <WhatsNewMenuItem />
                 <DropdownMenuItem
                   className="flex items-center gap-2"
                   onClick={() => (window.location.href = '/about')}

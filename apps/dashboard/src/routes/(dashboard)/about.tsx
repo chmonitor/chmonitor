@@ -1,4 +1,11 @@
-import { BookOpen, ExternalLink, Server, Shield, Zap } from 'lucide-react'
+import {
+  BookOpen,
+  ExternalLink,
+  Newspaper,
+  Server,
+  Shield,
+  Zap,
+} from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 import packageInfo from '@/package.json'
 
@@ -12,6 +19,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { useWhatsNew } from '@/components/whats-new/whats-new-provider'
 
 const GITHUB_REPO =
   packageInfo.repository?.url || 'https://github.com/chmonitor/chmonitor'
@@ -40,6 +48,7 @@ function FeatureCard({
 }
 
 function AboutPage() {
+  const { open } = useWhatsNew()
   return (
     <div className="mx-auto max-w-4xl space-y-8 py-8">
       <div className="space-y-3">
@@ -47,12 +56,21 @@ function AboutPage() {
           <div className="bg-primary/10 flex size-12 items-center justify-center rounded-xl">
             <Server className="text-primary size-6" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-bold tracking-tight">chmonitor</h1>
             <p className="text-muted-foreground text-sm">
               Monitoring Dashboard • v{packageInfo.version}
             </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => open()}
+            data-testid="about-whats-new"
+          >
+            <Newspaper className="size-4" />
+            What's new
+          </Button>
         </div>
         <p className="text-muted-foreground">{packageInfo.description}</p>
       </div>

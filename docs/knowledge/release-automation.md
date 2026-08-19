@@ -60,7 +60,14 @@ Repo-specific prompts (`.github/release-notes-prompt.md`,
 `.github/release-notes-system-prompt.md`, `.github/release-migration-prompt.md`)
 are passed to the action via its `*-prompt-file` inputs. The dashboard What's
 new dialog (`GET /api/v1/releases`) displays the GitHub Release body after
-stripping recap/Docker/internal sections.
+stripping recap/Docker/internal sections. When GitHub is unreachable, the
+Worker serves a **build-time airgap snapshot** of latest `vX.Y.Z` Features
+(Vite writes a gitignored generated file from CHANGELOG.md; a small committed
+fixture covers tests). Do not fetch `CHANGELOG.md` at runtime — the file is
+too large to ship to the client or pull on every fallback.
+`pnpm --filter dashboard whats-new:snapshot` regenerates the same file.
+The public landing page `/changelog` uses the skip-recap parser
+(`parse-github-release-notes.ts`) so recap stats do not replace Features.
 
 ## LLM summary tiers (best-effort, never blocks a release)
 

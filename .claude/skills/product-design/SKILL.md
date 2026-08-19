@@ -258,7 +258,12 @@ What's new is `WhatsNewButton` (`components/whats-new/`, lucide `Newspaper`,
 `UserSettings`). The dialog (`WhatsNewDialog`, sibling of the menu via
 `WhatsNewProvider` in `dashboard-shell.tsx`) lists `vX.Y.Z` GitHub Releases
 newest first; auto-opens **once** per upgrade (sessionStorage), never on every
-navigation. Manual open always works. Use `NavSettingsButton` /
+navigation. Manual open always works. Extra entry points: `WhatsNewMenuItem`
+next to About in the user dropdown, and a What's new action on `/about`. Do
+**not** add a Settings tab for changelog — Settings stays browser-local prefs.
+`GET /api/v1/releases` loads notes server-side (no browser GitHub calls);
+airgap fallback is the committed `airgap-snapshot.json` (latest `v*` Features),
+never a runtime fetch of CHANGELOG.md. Use `NavSettingsButton` /
 `NavUserFooterRow` (`components/nav-user/nav-settings-button.tsx`): lucide
 `Settings`, `size-4`, `strokeWidth={1.5}`, `aria-label="Open settings"`,
 `data-testid="nav-settings-button"`, tooltip "Settings". Hide when

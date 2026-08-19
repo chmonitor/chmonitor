@@ -86,8 +86,12 @@ What's new uses lucide `Newspaper`, `aria-label="What's new"`,
 `data-testid="whats-new-button"`, 44×44 below `lg`, and a primary **dot** when
 `UserSettings.lastSeenChangelogVersion` is older than `APP_VERSION`. The
 dialog is owned by `WhatsNewProvider` (sibling of the shell chrome, not inside
-the user menu). Auto-open once on upgrade; dismiss / Got it writes last-seen.
-Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
+the user menu). The same dialog also opens from a **What's new** item next to
+About in the user dropdown (`WhatsNewMenuItem`) and from an action on
+`/about`. Auto-open once on upgrade; dismiss / Got it writes last-seen.
+Notes come from `GET /api/v1/releases` (server-side GitHub Releases; airgap
+fallback is a **build-time snapshot** of latest `v*` Features, not
+the full CHANGELOG.md). Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
 `aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
 "Settings". Hide when `canUseSettings` / `SETTINGS_FEATURE_PERMISSION` is off.
 Local settings do not need an account — the gear stays outside `SignInButton`

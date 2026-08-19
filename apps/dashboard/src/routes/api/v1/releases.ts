@@ -3,8 +3,9 @@
  *
  * Public product changelog for the in-dashboard What's new dialog.
  * Fetches GitHub Releases for chmonitor/chmonitor server-side (no user token),
- * filters to `vX.Y.Z`, and falls back to CHANGELOG.md when GitHub is down.
- * Cached ~1h in memory. Anonymous callers are allowed — notes are public.
+ * filters to `vX.Y.Z`, and falls back to a build-time airgap snapshot when
+ * GitHub is down. Never fetches CHANGELOG.md. Cached ~1h in memory.
+ * Anonymous callers are allowed — notes are public.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

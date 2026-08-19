@@ -1,4 +1,4 @@
-export type ReleaseSource = 'github' | 'changelog' | 'none'
+export type ReleaseSource = 'github' | 'snapshot' | 'none'
 
 export interface ReleaseNote {
   version: string
