@@ -22,6 +22,8 @@ import {
 } from './inspector'
 import { isKeeperNode, layoutTopology, STATUS_COLOR } from './model'
 import { TopoCanvas } from './topo-canvas'
+import { useOnClearSelect } from './topology-select'
+import { TopologyUpdatedAgo } from './topology-updated-ago'
 import { useTopology } from './use-topology'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppLink as Link } from '@/components/ui/app-link'
@@ -183,7 +185,7 @@ export function TopologyView({
   // ── selection + cluster filter ──
   const [selected, setSelected] = useState<string | null>(null)
   const [activeCluster, setActiveCluster] = useState<string | null>(null)
-  const [secsAgo, setSecsAgo] = useState(0)
+  const onClearSelect = useOnClearSelect(setSelected)
 
   // A hidden physical cluster must not act as the filter — its hull isn't drawn,
   // so it would fade every visible hull with no anchor. Derive the EFFECTIVE
@@ -194,15 +196,6 @@ export function TopologyView({
     (showPhysical || !model.clusterById[activeCluster]?.outline)
       ? activeCluster
       : null
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — reset the "updated Ns ago" counter whenever fresh data arrives, not on every render
-  useEffect(() => {
-    setSecsAgo(0)
-  }, [topology, liveRow])
-  useEffect(() => {
-    const t = setInterval(() => setSecsAgo((s) => s + 1), 1000)
-    return () => clearInterval(t)
-  }, [])
 
   // ── fast-tick live snapshot for the LOCAL node (overrides the 60s server one) ──
   const fastLocalLive: NodeLiveMetrics | null = useMemo(() => {
@@ -337,7 +330,7 @@ export function TopologyView({
           </span>
           <span className="text-[11.5px] text-muted-foreground">
             · cluster <span className="font-mono">{dfltCluster}</span> · updated{' '}
-            <span className="tabular-nums">{secsAgo}s</span> ago
+            <TopologyUpdatedAgo topology={topology} liveRow={liveRow} /> ago
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -533,7 +526,7 @@ export function TopologyView({
                 selected={selected}
                 activeCluster={effectiveActiveCluster}
                 onSelect={setSelected}
-                onClearSelect={() => setSelected(null)}
+                onClearSelect={onClearSelect}
               />
             </div>
           </div>

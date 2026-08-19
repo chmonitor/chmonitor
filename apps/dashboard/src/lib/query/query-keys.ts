@@ -55,6 +55,32 @@ export function chartQueryKey({
   ] as const
 }
 
+export function chartGroupingQueryKey({
+  groupingId,
+  hostId,
+  lastHours,
+  paramsKey,
+  timezone,
+  connectionKey,
+}: {
+  groupingId: string
+  hostId?: number | string
+  lastHours?: number
+  paramsKey: string
+  timezone?: string
+  connectionKey: string | undefined
+}) {
+  return [
+    '/api/v1/charts/batch',
+    groupingId,
+    hostId,
+    lastHours,
+    paramsKey,
+    timezone,
+    connectionKey,
+  ] as const
+}
+
 /**
  * Canonical serialization of table `searchParams` for the cache key. Callers
  * (`useTableData`, `prefetch`) serialize ONCE via this helper and pass the

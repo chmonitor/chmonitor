@@ -6,24 +6,15 @@ import {
 } from 'lucide-react'
 
 import { StatCard, statEmpty, statLoading } from './stat-card'
-import { useChartData } from '@/lib/query/use-chart-data'
-
-interface RangeStatProps {
-  readonly hostId: number
-  readonly lastHours?: number
-  readonly percentile: string
-}
+import { useGroupedChartData } from '@/lib/query/use-chart-grouping'
 
 export function TotalQueriesStat({
-  hostId,
-  lastHours,
   percentile,
-}: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-total-queries',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   if (isLoading) return statLoading('Total Queries')
   if (error || !data?.length)
@@ -52,15 +43,12 @@ export function TotalQueriesStat({
 }
 
 export function TotalScannedStat({
-  hostId,
-  lastHours,
   percentile,
-}: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-total-scanned',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   if (isLoading) return statLoading('Total Data Scanned')
   if (error || !data?.length)
@@ -89,15 +77,12 @@ export function TotalScannedStat({
 }
 
 export function TotalRowsReadStat({
-  hostId,
-  lastHours,
   percentile,
-}: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-total-rows-read',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   if (isLoading) return statLoading('Total Rows Read')
   if (error || !data?.length)
@@ -126,15 +111,12 @@ export function TotalRowsReadStat({
 }
 
 export function PeakMemoryStat({
-  hostId,
-  lastHours,
   percentile,
-}: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-peak-memory',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   if (isLoading) return statLoading('Peak Memory')
   if (error || !data?.length)
