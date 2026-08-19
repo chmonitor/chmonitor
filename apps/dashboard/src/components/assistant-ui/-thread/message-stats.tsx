@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 import { formatAbsolute, formatRelative } from './format'
-import { useMessage, useMessageTiming } from '@assistant-ui/react'
+import { useAuiState, useMessageTiming } from '@assistant-ui/react'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -239,13 +239,13 @@ function MessageStatsDialog({
  */
 export function MessageStatsFooter() {
   const timing = useMessageTiming()
-  const metadata = useMessage((msg) => msg.metadata)
-  const createdAt = useMessage((msg) => msg.createdAt)
+  const metadata = useAuiState((s) => s.message.metadata)
+  const createdAt = useAuiState((s) => s.message.createdAt)
   // While the message is still streaming, its relative timestamp only ever reads
   // "just now" — noisy next to the starting spinner. Hide it until completion.
-  const isRunning = useMessage((msg) => msg.status?.type === 'running')
+  const isRunning = useAuiState((s) => s.message.status?.type === 'running')
   // assistant-ui exposes the AI SDK parts array as `message.content`
-  const content = useMessage((msg) => msg.content) as readonly unknown[]
+  const content = useAuiState((s) => s.message.content) as readonly unknown[]
 
   // Extract data-usage part from content (same shape as UIMessage.parts)
   // extractMessageUsage expects { parts: ... } but assistant-ui uses { content: ... }

@@ -8,7 +8,7 @@
  * `thread.tsx`.
  */
 
-import { useThread, useThreadRuntime } from '@assistant-ui/react'
+import { useAui, useAuiState } from '@assistant-ui/react'
 import { useState } from 'react'
 import { PromptInputTextareaWithMentions } from '@/components/agents/mentions'
 import {
@@ -27,8 +27,8 @@ import { track } from '@/lib/telemetry'
  * composer below.
  */
 export function WelcomeComposer() {
-  const threadRuntime = useThreadRuntime()
-  const isRunning = useThread((thread) => thread.isRunning)
+  const aui = useAui()
+  const isRunning = useAuiState((s) => s.thread.isRunning)
   const { ensureAuthed } = useAgentAuthGate()
   const { noProvidersConfigured } = useAgentModel()
   const [contextItems, setContextItems] = useState<ContextItem[]>([])
@@ -61,14 +61,14 @@ export function WelcomeComposer() {
           if (!ensureAuthed()) return
           const block = formatContextBlock(contextItems)
           const full = block ? `${block}\n\n${trimmed}` : trimmed
-          threadRuntime.append({
+          aui.thread.append({
             role: 'user',
             content: [{ type: 'text', text: full }],
           })
           track('ai_query_sent')
           setContextItems([])
         }}
-        onStop={() => threadRuntime.cancelRun()}
+        onStop={() => aui.thread.cancelRun()}
       />
       <ComposerToolbar
         contextItems={contextItems}
@@ -82,8 +82,8 @@ export function WelcomeComposer() {
 }
 
 export function ThreadComposer() {
-  const threadRuntime = useThreadRuntime()
-  const isRunning = useThread((thread) => thread.isRunning)
+  const aui = useAui()
+  const isRunning = useAuiState((s) => s.thread.isRunning)
   const { ensureAuthed } = useAgentAuthGate()
   const { noProvidersConfigured } = useAgentModel()
   const [contextItems, setContextItems] = useState<ContextItem[]>([])
@@ -112,14 +112,14 @@ export function ThreadComposer() {
           if (!ensureAuthed()) return
           const block = formatContextBlock(contextItems)
           const full = block ? `${block}\n\n${trimmed}` : trimmed
-          threadRuntime.append({
+          aui.thread.append({
             role: 'user',
             content: [{ type: 'text', text: full }],
           })
           track('ai_query_sent')
           setContextItems([])
         }}
-        onStop={() => threadRuntime.cancelRun()}
+        onStop={() => aui.thread.cancelRun()}
       />
       {/* Keep the toolbar (model · skills · tools · add-context) available
           mid-conversation, not just on the welcome screen (issue #2804). */}

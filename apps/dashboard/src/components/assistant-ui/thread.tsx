@@ -57,9 +57,8 @@ import {
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
-  useMessage,
-  useThread,
-  useThreadRuntime,
+  useAui,
+  useAuiState,
 } from '@assistant-ui/react'
 import { type ComponentProps, type FC, useCallback } from 'react'
 import { AgentWelcomeScreen } from '@/components/agents/welcome/agent-welcome-screen'
@@ -172,7 +171,7 @@ function ThreadWelcome({
   hasClusterIssue,
 }: ThreadWelcomeProps) {
   const { activeToolCount } = useAgentSkills()
-  const threadRuntime = useThreadRuntime()
+  const aui = useAui()
   const { ensureAuthed } = useAgentAuthGate()
 
   const handlePickPrompt = useCallback(
@@ -180,13 +179,13 @@ function ThreadWelcome({
       const trimmed = prompt.trim()
       if (!trimmed) return
       if (!ensureAuthed()) return
-      threadRuntime.append({
+      aui.thread.append({
         role: 'user',
         content: [{ type: 'text', text: trimmed }],
       })
       track('ai_query_sent')
     },
-    [threadRuntime, ensureAuthed]
+    [aui, ensureAuthed]
   )
 
   return (
@@ -204,7 +203,7 @@ function ThreadWelcome({
 }
 
 const UserMessage: FC = () => {
-  const messageId = useMessage((m) => m.id)
+  const messageId = useAuiState((s) => s.message.id)
   return (
     // scrollAnchor: a new user turn settles near the top of the viewport
     // (rather than the thread snapping to the document bottom).
@@ -281,22 +280,22 @@ const EditComposer: FC = () => {
  * clear streaming affordance (not just an aria-live region).
  */
 function LoadingIndicator() {
-  const isRunning = useThread((thread) => thread.isRunning)
-  const hasError = useMessage(
-    (msg) =>
-      msg.role === 'assistant' &&
-      (msg.status?.type === 'incomplete' ||
-        msg.content.some(
+  const isRunning = useAuiState((s) => s.thread.isRunning)
+  const hasError = useAuiState(
+    (s) =>
+      s.message.role === 'assistant' &&
+      (s.message.status?.type === 'incomplete' ||
+        s.message.content.some(
           (p) => (p as { type?: string })?.type === 'data-error'
         ))
   )
-  const hasNoParts = useMessage(
-    (msg) =>
-      msg.role === 'assistant' &&
-      (msg.content.length === 0 ||
-        (msg.content.length === 1 &&
-          msg.content[0]?.type === 'text' &&
-          (msg.content[0] as { type: 'text'; text: string }).text === ''))
+  const hasNoParts = useAuiState(
+    (s) =>
+      s.message.role === 'assistant' &&
+      (s.message.content.length === 0 ||
+        (s.message.content.length === 1 &&
+          s.message.content[0]?.type === 'text' &&
+          (s.message.content[0] as { type: 'text'; text: string }).text === ''))
   )
 
   if (!isRunning || hasError || !hasNoParts) return null
@@ -391,7 +390,7 @@ function resolveRuntimeAgentError(raw: unknown): AgentError {
 }
 
 function MessageError() {
-  const status = useMessage((m) => m.status)
+  const status = useAuiState((s) => s.message.status)
   const rawError =
     status &&
     typeof status === 'object' &&
@@ -423,7 +422,7 @@ function MessageError() {
  * empty bubble). This makes the real cause + actionable suggestion visible.
  */
 function AgentDataError() {
-  const content = useMessage((m) => m.content) as readonly unknown[]
+  const content = useAuiState((s) => s.message.content) as readonly unknown[]
   const agentError: AgentError | null = extractAgentErrorFromParts(content)
   if (!agentError) return null
   return <AgentErrorAlert agentError={agentError} />
@@ -439,7 +438,7 @@ function AgentDataError() {
  * while user messages align right, so the chrome stays minimal.
  */
 const AssistantMessage: FC = () => {
-  const messageId = useMessage((m) => m.id)
+  const messageId = useAuiState((s) => s.message.id)
   return (
     <MessageScrollerItem messageId={messageId} className="w-full">
       <MessagePrimitive.Root className="mx-auto w-full max-w-[var(--assistant-max-width)] py-3">
@@ -505,13 +504,13 @@ function messagePartsText(parts: readonly unknown[]): string {
  * backend.
  */
 function AssistantFollowUpChips() {
-  const isLast = useMessage((m) => m.isLast)
-  const isRunning = useMessage((m) => m.status?.type === 'running')
+  const isLast = useAuiState((s) => s.message.isLast)
+  const isRunning = useAuiState((s) => s.message.status?.type === 'running')
   // assistant-ui exposes the AI SDK parts array as `message.content`
   // (same pattern as MessageStatsFooter above).
-  const content = useMessage((m) => m.content) as readonly unknown[]
-  const messages = useThread((t) => t.messages)
-  const threadRuntime = useThreadRuntime()
+  const content = useAuiState((s) => s.message.content) as readonly unknown[]
+  const messages = useAuiState((s) => s.thread.messages)
+  const aui = useAui()
   const { ensureAuthed } = useAgentAuthGate()
 
   if (!isLast || isRunning) return null
@@ -538,7 +537,7 @@ function AssistantFollowUpChips() {
 
   const handleSelect = (text: string) => {
     if (!ensureAuthed()) return
-    threadRuntime.append({
+    aui.thread.append({
       role: 'user',
       content: [{ type: 'text', text }],
     })

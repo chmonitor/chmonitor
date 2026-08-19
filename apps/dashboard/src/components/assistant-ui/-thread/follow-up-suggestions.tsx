@@ -20,7 +20,7 @@
 import { SparklesIcon } from 'lucide-react'
 
 import { FollowUpChips } from './follow-up-chips'
-import { useThreadListItem, useThreadRuntime } from '@assistant-ui/react'
+import { useAui, useAuiState } from '@assistant-ui/react'
 import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { Button } from '@/components/ui/button'
 import { useConversationBackend } from '@/lib/hooks/use-conversation-backend'
@@ -30,8 +30,8 @@ import { track } from '@/lib/telemetry'
 export function FollowUpSuggestions() {
   const { supportsAiEnrichment } = useConversationBackend()
   // `remoteId` is the server-side conversation id used by the follow-ups route.
-  const conversationId = useThreadListItem((s) => s.remoteId)
-  const threadRuntime = useThreadRuntime()
+  const conversationId = useAuiState((s) => s.threadListItem.remoteId)
+  const aui = useAui()
   const { ensureAuthed } = useAgentAuthGate()
   const { questions, fetchFollowUps, isLoading } = useFollowUps(conversationId)
 
@@ -42,7 +42,7 @@ export function FollowUpSuggestions() {
     const trimmed = question.trim()
     if (!trimmed) return
     if (!ensureAuthed()) return
-    threadRuntime.append({
+    aui.thread.append({
       role: 'user',
       content: [{ type: 'text', text: trimmed }],
     })
