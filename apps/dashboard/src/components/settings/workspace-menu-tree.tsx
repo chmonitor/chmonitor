@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuSub,
+  SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
 import { menuItemIsHidden } from '@/lib/menu/workspace-presets'
@@ -28,14 +29,6 @@ const SECTIONS: Exclude<MenuSection, 'footer'>[] = ['main', 'others']
 
 const menuButtonClass =
   'flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0'
-
-/**
- * Settings tree sits outside a real Sidebar, so SidebarMenuSubButton's
- * `w-full` / `pr-7` do not stretch the row. Local classes: full width,
- * left-aligned label, Hide on the right. Do not change the live sidebar.
- */
-const subLeafButtonClass =
-  'flex h-7 w-full min-w-0 items-center justify-start gap-2 overflow-hidden rounded-md px-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2'
 
 interface WorkspaceMenuTreeProps {
   items: readonly MenuItem[]
@@ -128,7 +121,7 @@ function TreeNode({
         <ChevronRight className="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
       </CollapsibleTrigger>
       <CollapsibleContent keepMounted={forceOpen}>
-        <SidebarMenuSub className="w-full">
+        <SidebarMenuSub>
           {item.items?.map((child) => (
             <SubLeafRow
               key={child.href || child.title}
@@ -188,11 +181,11 @@ function SubLeafRow({
 }) {
   if (item.items?.length) {
     return (
-      <SidebarMenuSubItem className="w-full">
+      <SidebarMenuSubItem>
         <div className="px-2 py-1 text-left text-[11px] font-medium text-muted-foreground">
           {item.title}
         </div>
-        <SidebarMenuSub className="w-full">
+        <SidebarMenuSub>
           {item.items.map((child) => (
             <SubLeafRow
               key={child.href || child.title}
@@ -209,24 +202,24 @@ function SubLeafRow({
   const hidden = menuItemIsHidden(item, hiddenHrefs)
 
   return (
-    <SidebarMenuSubItem className="w-full">
-      <button
-        type="button"
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
         data-testid={`workspace-menu-leaf-${item.href}`}
         data-hidden={hidden ? 'true' : 'false'}
-        data-align="start"
         aria-pressed={!hidden}
         aria-label={
           hidden ? `Show ${item.title} in the sidebar` : `Hide ${item.title}`
         }
-        onClick={() => onToggle(item.href, hidden)}
-        className={cn(subLeafButtonClass, hidden && mutedItemClass)}
+        className={cn('cursor-pointer text-left', hidden && mutedItemClass)}
+        render={
+          <button type="button" onClick={() => onToggle(item.href, hidden)} />
+        }
       >
-        <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
-        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate">{item.title}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">
           {hidden ? 'Show' : 'Hide'}
         </span>
-      </button>
+      </SidebarMenuSubButton>
     </SidebarMenuSubItem>
   )
 }

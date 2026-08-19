@@ -339,10 +339,8 @@ describe('WorkspacePresetPicker', () => {
         '[data-testid="workspace-menu-leaf-/agents"]'
       )
       expect(chat).toBeTruthy()
-      expect(chat?.getAttribute('data-align')).toBe('start')
       expect(chat?.className).toMatch(/\btext-left\b/)
-      expect(chat?.className).toMatch(/\bjustify-start\b/)
-      expect(chat?.className).toMatch(/\bw-full\b/)
+      expect(chat?.className).toMatch(/\bitems-center\b/)
       expect(chat?.textContent).toContain('Chat')
       expect(chat?.textContent).toMatch(/Hide$/)
     } finally {
