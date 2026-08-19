@@ -249,6 +249,12 @@ chart in `components/charts/` as the template — don't reinvent the wiring.
   `action`/`onRefresh`. Table query failures use the full (non-compact)
   EmptyState so timeout / missing-column copy is visible — never hourglass +
   Retry with no description.
+- **Interactive tool pages** (Explain, Advisor): before the first run, a
+  dashed-border `EmptyState variant="no-data"` ("Nothing to analyze/explain
+  yet"). User-input issues — table-less SQL like `SELECT 1`, missing
+  `query_id` — use the same EmptyState with next steps, never `ErrorAlert`
+  titled "Analysis failed". `ErrorAlert` is for host/schema/fetch failures.
+  Picking a query from the picker auto-runs, same as `/explain`.
 - **Error (graceful):** initial error (`error && !hasData`) → full `ChartError`
   with retry. Revalidation error (`staleError`) → KEEP showing data + subtle
   amber `ChartStaleIndicator` (hover-revealed), auto-clears on next success.

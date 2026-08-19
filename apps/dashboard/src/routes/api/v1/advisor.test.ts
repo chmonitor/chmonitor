@@ -80,12 +80,14 @@ beforeEach(() => {
 })
 
 describe('advisor route — AI-usage metering gate', () => {
+  const ANALYZABLE_SQL = "SELECT * FROM events WHERE status = 'error'"
+
   test('over the daily allowance: 402, releases the reservation, never runs the engine', async () => {
     // free plan: aiRequestsPerDay = 5, hard cap (aiOverage: null). A
     // post-increment count of 6 means this would be the 6th request today.
     reserveAiUsage = mock(async () => 6)
 
-    const res = await runAdvisor(0, 'SELECT 1', null, null)
+    const res = await runAdvisor(0, ANALYZABLE_SQL, null, null)
 
     expect(res.status).toBe(402)
     const body = (await res.json()) as { success: boolean; error: string }
@@ -100,7 +102,7 @@ describe('advisor route — AI-usage metering gate', () => {
   test('within the allowance: runs the engine, does not release the reservation', async () => {
     reserveAiUsage = mock(async () => 3)
 
-    const res = await runAdvisor(0, 'SELECT 1', null, null)
+    const res = await runAdvisor(0, ANALYZABLE_SQL, null, null)
 
     expect(res.status).toBe(200)
     const body = (await res.json()) as { success: boolean }
@@ -115,7 +117,7 @@ describe('advisor route — AI-usage metering gate', () => {
       throw new Error('ClickHouse unreachable')
     })
 
-    const res = await runAdvisor(0, 'SELECT 1', null, null)
+    const res = await runAdvisor(0, ANALYZABLE_SQL, null, null)
 
     expect(res.status).toBe(500)
     const body = (await res.json()) as { success: boolean; error: string }
@@ -129,7 +131,7 @@ describe('advisor route — AI-usage metering gate', () => {
       throw new Error('Authentication is required for billing.')
     })
 
-    const res = await runAdvisor(0, 'SELECT 1', null, null)
+    const res = await runAdvisor(0, ANALYZABLE_SQL, null, null)
 
     expect(res.status).toBe(200)
     expect(reserveAiUsage).not.toHaveBeenCalled()
@@ -140,10 +142,27 @@ describe('advisor route — AI-usage metering gate', () => {
   test('enterprise-style unlimited plan (aiRequestsPerDay: null): never reserves, never blocks', async () => {
     getPlanForOwner = mock(async () => getPlan('enterprise'))
 
-    const res = await runAdvisor(0, 'SELECT 1', null, null)
+    const res = await runAdvisor(0, ANALYZABLE_SQL, null, null)
 
     expect(res.status).toBe(200)
     expect(reserveAiUsage).not.toHaveBeenCalled()
     expect(analyzeQuery).toHaveBeenCalledTimes(1)
+  })
+
+  test('table-less SQL is 400 and never meters or runs the engine', async () => {
+    const res = await runAdvisor(0, 'select 1', null, null)
+
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as {
+      success: boolean
+      code?: string
+      error: string
+    }
+    expect(body.success).toBe(false)
+    expect(body.code).toBe('no_target_table')
+    expect(body.error).toContain('FROM')
+    expect(reserveAiUsage).not.toHaveBeenCalled()
+    expect(analyzeQuery).not.toHaveBeenCalled()
+    expect(releaseAiUsage).not.toHaveBeenCalled()
   })
 })

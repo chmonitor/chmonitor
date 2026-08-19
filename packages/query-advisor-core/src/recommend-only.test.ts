@@ -17,6 +17,7 @@ const SOURCE_FILES = [
   'index.ts',
   'types.ts',
   'sql-parsing.ts',
+  'advisor-errors.ts',
   'scorers.ts',
   'impact.ts',
 ]
