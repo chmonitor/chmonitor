@@ -2,6 +2,11 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
+import {
+  extractImages,
+  isProductReleaseTag,
+  mdToHtml,
+} from '../lib/parse-github-release-notes'
 
 interface Release {
   tag_name: string
@@ -20,62 +25,14 @@ try {
   )
   if (res.ok) {
     const data = await res.json()
-    releases = (data as Release[]).filter((r) => !r.prerelease).slice(0, 12)
+    releases = (data as Release[])
+      .filter((r) => !r.prerelease && isProductReleaseTag(r.tag_name))
+      .slice(0, 12)
   }
 } catch (_) { /* build-time fetch unavailable */ }
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-const MAX_ITEMS = 5
-const MAX_IMAGES = 4
-
-/** Screenshots embedded in a release body — markdown images or raw <img> tags. */
-function extractImages(md: string): { src: string; alt: string }[] {
-  if (!md) return []
-  const images: { src: string; alt: string }[] = []
-  const seen = new Set<string>()
-  for (const m of md.matchAll(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g)) {
-    if (!seen.has(m[2])) {
-      seen.add(m[2])
-      images.push({ src: m[2], alt: m[1] || 'Release screenshot' })
-    }
-  }
-  for (const m of md.matchAll(/<img[^>]*\bsrc=["'](https?:[^"']+)["'][^>]*>/gi)) {
-    if (!seen.has(m[1])) {
-      seen.add(m[1])
-      const alt = m[0].match(/\balt=["']([^"']*)["']/i)
-      images.push({ src: m[1], alt: alt?.[1] || 'Release screenshot' })
-    }
-  }
-  return images.slice(0, MAX_IMAGES)
-}
-
-function mdToHtml(md: string): string {
-  if (!md) return ''
-  const items: string[] = []
-  for (const raw of md.split('\n')) {
-    const line = raw.trim()
-    if (!line) continue
-    if (/^#{1,6}\s*(new contributors|full changelog)/i.test(line)) break
-    if (/^\*\*full changelog\*\*/i.test(line)) break
-    if (/^#{1,6}\s/.test(line)) continue
-    const m = line.match(/^[*-]\s+(.*)/)
-    if (!m) continue
-    const text = m[1]
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-      .replace(/<img[^>]*>/gi, '')
-      .replace(/\s+by\s+@[\w-]+\s+in\s+\S+/i, '')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-      .trim()
-    if (!text) continue
-    items.push(`<li>${text}</li>`)
-    if (items.length >= MAX_ITEMS) break
-  }
-  return items.length ? `<ul>${items.join('')}</ul>` : ''
 }
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
