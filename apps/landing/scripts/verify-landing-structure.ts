@@ -82,6 +82,18 @@ if (!latestChunk.includes('blog.chmonitor.dev')) {
   console.log('OK: hero pill links to the latest blog post (truncates)')
 }
 
+const introIdx = html.indexOf('data-hero-intro')
+const videoStart = introIdx === -1 ? -1 : html.lastIndexOf('<video', introIdx)
+const videoEnd = introIdx === -1 ? -1 : html.indexOf('>', introIdx)
+const videoTag =
+  videoStart === -1 || videoEnd === -1 ? '' : html.slice(videoStart, videoEnd)
+if (!/\bloop\b/.test(videoTag)) {
+  console.error('MISSING loop on [data-hero-intro] video')
+  failed = true
+} else {
+  console.log('OK: hero video loops')
+}
+
 for (const text of forbidden) {
   if (html.includes(text)) {
     console.error(`FORBIDDEN on homepage: ${text}`)
