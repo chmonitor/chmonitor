@@ -10,6 +10,7 @@ describe('dba-workflows guide', () => {
   test('keeps the what-exists-today table', () => {
     expect(src).toContain('## What exists today')
     expect(src).toContain('/settings-diff')
+    expect(src).toContain('/schema-diff')
     expect(src).toContain('/advisor')
     expect(src).toContain('/storage-economics')
     expect(src).toContain('/explorer')
@@ -25,6 +26,8 @@ describe('dba-workflows guide', () => {
   })
 
   test('does not list Settings role presets as a gap after they shipped', () => {
-    expect(src).not.toMatch(/Settings has no role presets or workspace customization/i)
+    expect(src).not.toMatch(
+      /Settings has no role presets or workspace customization/i
+    )
   })
 })

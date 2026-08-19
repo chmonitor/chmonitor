@@ -10,7 +10,8 @@ description: >-
   ?host routing + hooks-at-deepest-consumer, file/route organization, and brand.
   Triggers: "new page", "add a chart", "build UI", "design", "component",
   "empty state", "loading", "consistent", "follow-up feature", "match the design",
-  "what's new", "changelog", "settings gear".
+  "what's new", "changelog", "settings gear",
+  "schema compare", "settings diff", "add host".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -174,7 +175,11 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Preview / "Example" surfaces**: render from deterministic mock data
   parameterized by settings (seed-rotated, SSR-safe), never a live query/LLM
   call — no "Couldn't generate" error for anon/read-only visitors. Label it
-  "Sample". See `components/insights/insights-preview.tsx`.
+  "Sample". See `components/insights/insights-preview.tsx`. Schema Compare with
+  one saved host uses a real `EmptyState` (Add host via `AddHostDialog`, same
+  as HostSwitcher) plus a faded `TableList` + `DdlPair` example. Settings Diff
+  with one host keeps the live vs-default table and a banner (`AddHostButton`,
+  `data-testid="add-host"`). Pair ids include user connections.
 - **Base UI primitives** (`components/ui/*` = shadcn Base UI, not Radix): style
   overlays off `data-open`/`data-closed`/`data-orientation` (needs the
   `@custom-variant data-horizontal|vertical` in `styles.css`) and Base UI CSS

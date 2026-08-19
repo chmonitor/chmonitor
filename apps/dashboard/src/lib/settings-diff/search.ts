@@ -1,38 +1,53 @@
 import type { CompareScope } from '@/lib/compare/scope'
+import type { SettingsDiffView } from './types'
 
 import { parseCompareScope, parseOptionalInt } from '@/lib/compare/scope'
 
-export type SchemaDiffSearch = {
+export type { SettingsDiffView } from './types'
+
+export type SettingsDiffSearch = {
   host: number
   source?: number
   target?: number
   scope?: CompareScope
+  view?: SettingsDiffView
 }
 
-export function validateSchemaDiffSearch(
+export function parseSettingsDiffView(
+  raw: string | null | undefined
+): SettingsDiffView | undefined {
+  if (raw === 'matrix' || raw === 'pair') return raw
+  return undefined
+}
+
+export function validateSettingsDiffSearch(
   search: Record<string, unknown>
-): SchemaDiffSearch {
+): SettingsDiffSearch {
   const hostParsed = Number(search.host)
   const source = parseOptionalInt(search.source)
   const target = parseOptionalInt(search.target)
   const scope = parseCompareScope(
     typeof search.scope === 'string' ? search.scope : undefined
   )
+  const view = parseSettingsDiffView(
+    typeof search.view === 'string' ? search.view : undefined
+  )
   return {
     host: Number.isInteger(hostParsed) ? hostParsed : 0,
     ...(source !== undefined ? { source } : {}),
     ...(target !== undefined ? { target } : {}),
     ...(scope ? { scope } : {}),
+    ...(view ? { view } : {}),
   }
 }
 
-/** Query string for GET /api/v1/schema-diff (host pair or node pair). */
-export function buildSchemaDiffRequest(search: SchemaDiffSearch): string {
+/** Query string for GET /api/v1/settings-diff (node pair + host scope). */
+export function buildSettingsDiffRequest(search: SettingsDiffSearch): string {
   const params = new URLSearchParams()
   params.set('host', String(search.host))
   if (search.scope) params.set('scope', search.scope)
+  if (search.view) params.set('view', search.view)
   if (search.source !== undefined) params.set('source', String(search.source))
   if (search.target !== undefined) params.set('target', String(search.target))
-  const qs = params.toString()
-  return `/api/v1/schema-diff?${qs}`
+  return `/api/v1/settings-diff?${params.toString()}`
 }

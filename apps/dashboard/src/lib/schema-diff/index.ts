@@ -1,9 +1,3 @@
-export { assembleCatalog, tableKey } from './catalog'
-export { compareCatalogs } from './compare'
-export { namedDelta } from './named-delta'
-export { emptySchemaDiffPayload } from './payload'
-export { buildChangePlan } from './plan'
-export { validateSchemaDiffSearch } from './search'
 export type { SchemaDiffSearch } from './search'
 export type {
   ColumnRow,
@@ -19,6 +13,7 @@ export type {
   SchemaDiffHostInfo,
   SchemaDiffResponse,
   SchemaDiffResult,
+  SchemaDiffScope,
   SchemaIndex,
   SchemaProjection,
   TableDiff,
@@ -26,3 +21,14 @@ export type {
   TableRow,
   TableSchema,
 } from './types'
+
+export { assembleCatalog, tableKey } from './catalog'
+export { compareCatalogs } from './compare'
+export { buildExampleSchemaDiff } from './example'
+export { namedDelta } from './named-delta'
+export { emptySchemaDiffPayload } from './payload'
+export { buildChangePlan } from './plan'
+export {
+  buildSchemaDiffRequest,
+  validateSchemaDiffSearch,
+} from './search'

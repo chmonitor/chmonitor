@@ -1,5 +1,3 @@
-import { tableKey } from './catalog'
-import { namedDelta } from './named-delta'
 import type {
   FieldChange,
   SchemaCatalog,
@@ -7,6 +5,9 @@ import type {
   TableDiff,
   TableSchema,
 } from './types'
+
+import { tableKey } from './catalog'
+import { namedDelta } from './named-delta'
 
 function byTableKey(catalog: SchemaCatalog): Map<string, TableSchema> {
   const map = new Map<string, TableSchema>()
@@ -16,13 +17,18 @@ function byTableKey(catalog: SchemaCatalog): Map<string, TableSchema> {
   return map
 }
 
-function collectChanges(source: TableSchema, target: TableSchema): FieldChange[] {
+function collectChanges(
+  source: TableSchema,
+  target: TableSchema
+): FieldChange[] {
   const changes: FieldChange[] = []
 
-  const scalar: Array<keyof Pick<
-    TableSchema,
-    'engine' | 'sortingKey' | 'partitionKey' | 'primaryKey'
-  >> = ['engine', 'sortingKey', 'partitionKey', 'primaryKey']
+  const scalar: Array<
+    keyof Pick<
+      TableSchema,
+      'engine' | 'sortingKey' | 'partitionKey' | 'primaryKey'
+    >
+  > = ['engine', 'sortingKey', 'partitionKey', 'primaryKey']
 
   for (const field of scalar) {
     if (source[field] !== target[field]) {

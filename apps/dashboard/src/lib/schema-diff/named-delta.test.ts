@@ -1,6 +1,5 @@
-import { describe, expect, test } from 'bun:test'
-
 import { namedDelta } from './named-delta'
+import { describe, expect, test } from 'bun:test'
 
 describe('namedDelta', () => {
   test('splits added, removed, and changed by name', () => {

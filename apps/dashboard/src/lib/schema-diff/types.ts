@@ -69,7 +69,11 @@ export type SchemaCatalog = {
   tables: TableSchema[]
 }
 
-export type TableDiffKind = 'only_source' | 'only_target' | 'changed' | 'identical'
+export type TableDiffKind =
+  | 'only_source'
+  | 'only_target'
+  | 'changed'
+  | 'identical'
 
 export type FieldChange = {
   field: string
@@ -120,9 +124,13 @@ export type SchemaChangePlan = {
 
 export type SchemaDiffHostInfo = { id: number; name: string }
 
+export type SchemaDiffScope = 'hosts' | 'nodes'
+
 export type SchemaDiffResponse = {
   success: boolean
   hosts: SchemaDiffHostInfo[]
+  nodes: SchemaDiffHostInfo[]
+  scope: SchemaDiffScope
   sourceHostId: number | null
   targetHostId: number | null
   diff: SchemaDiffResult
