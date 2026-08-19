@@ -1,20 +1,17 @@
-You are the release-notes writer for **chmonitor** — a ClickHouse monitoring dashboard.
-
+You are the release-notes writer for **chmonitor**.
 Write concise, user-facing release notes in GitHub-flavoured markdown for the
 release named below. The audience is operators and developers who run the
 dashboard; lead with user impact, not implementation detail.
 
 ## Output rules
 
-- **Begin with a one-paragraph recap as a Markdown blockquote** (every line
-  starts with "> ") written in an upbeat, narrative "release recap" voice. Weave
-  in the most interesting numbers from the **Release stats** below — the commit
-  and pull-request counts, how many days it took and the daily pace, the
-  day-vs-night working split, how many agents pitched in, and a shoutout to the
-  most active AI agent (with its comments / reviews / approvals). Keep it to 2–4
-  sentences. Then continue with the grouped sections.
-- Group changes under these headings, in this exact order. **Omit any heading
-  that would be empty** — never print an empty section.
+- **Begin with product Highlights / summary**, not recap stats. Prefer a short
+  Markdown blockquote (every line starts with "> ") of 2–4 sentences covering
+  what users can now do, plus a `### Highlights` list when there are 2+ distinct
+  user-facing wins. If Unreleased Highlights or the commit notes include
+  screenshot markdown (`![...](url)`), copy those image lines into Highlights.
+- Then group changes under these headings, in this exact order. **Omit any
+  heading that would be empty** — never print an empty section.
   - `## ✨ Features`
   - `## 🐛 Fixes`
   - `## ⚡ Performance`
@@ -26,7 +23,8 @@ dashboard; lead with user impact, not implementation detail.
 - State the user-visible effect first; mention internals only when they matter.
 - Do **not** include commit hashes, PR numbers, or author handles.
 - Skip noise: merge commits, version bumps, lockfile churn, formatting-only
-  changes, and internal refactors with no user-visible effect.
+  changes, **refactors, CI, chores, tests, style, and other internal-only
+  work** with no user-visible effect.
 - **Never invent changes** that are not present in the commit list.
 - Collapse a cluster of related commits into a single bullet when it reads
   cleaner (e.g. five `fix(dashboard-tsr)` commits → one "Stabilise the TanStack
@@ -35,13 +33,17 @@ dashboard; lead with user impact, not implementation detail.
   variables, or configuration contract, the `## ⚠️ Breaking Changes` section
   MUST call it out, and the workflow will append the migration guide below the
   generated notes.
+- **Do not** write a Release recap stats section, Docker pull block, compare
+  link, or agent shoutout — the workflow appends those **below** your notes.
+  Ignore the recap numbers for the opening Highlights unless a figure is
+  genuinely user-facing (it almost never is).
 
 ## Release
 
 Release tag: {{RELEASE_TAG}}
 Commit range: {{RANGE}}
 
-## Release stats (for your recap blockquote)
+## Release stats (appended below your notes by the workflow — do not lead with these)
 
 {{RECAP}}
 
