@@ -1,4 +1,4 @@
-import type { ReleaseNote, ReleasesPayload } from './types'
+import type { FriendlyNote, ReleaseNote, ReleasesPayload } from './types'
 
 import { parseAirgapSnapshot } from './airgap-snapshot'
 import bundledSnapshot from './airgap-snapshot.json'
@@ -8,6 +8,11 @@ import {
   RELEASES_CACHE_TTL_MS,
   RELEASES_FETCH_TIMEOUT_MS,
 } from './constants'
+import bundledFriendly from './friendly-notes.json'
+import {
+  overlayFriendlyNotes,
+  parseFriendlyNotesJson,
+} from './parse-friendly-note'
 import { buildReleaseNote } from './parse-release-body'
 import { isProductVersionTag } from './version'
 
@@ -27,6 +32,8 @@ interface CacheEntry {
 let memoryCache: CacheEntry | null = null
 
 const bundledSnapshotNotes: ReleaseNote[] = parseAirgapSnapshot(bundledSnapshot)
+const bundledFriendlyNotes: FriendlyNote[] =
+  parseFriendlyNotesJson(bundledFriendly)
 
 export function resetReleasesCacheForTests(): void {
   memoryCache = null
@@ -92,21 +99,22 @@ function snapshotPayload(
 
 /**
  * Load product release notes: GitHub Releases first, then the build-time
- * airgap snapshot. Never fetches CHANGELOG.md (too large for the client or
- * a runtime fallback). Cached in memory for ~1 hour. Public repo only.
+ * airgap snapshot. Per-version friendly files overlay the stripped GitHub
+ * body when present. Never fetches CHANGELOG.md. Cached ~1 hour.
  *
  * Server-only — do not import this module from client components.
  */
 export async function loadReleases(
   now = Date.now(),
-  snapshot: readonly ReleaseNote[] = bundledSnapshotNotes
+  snapshot: readonly ReleaseNote[] = bundledSnapshotNotes,
+  friendly: readonly FriendlyNote[] = bundledFriendlyNotes
 ): Promise<ReleasesPayload> {
   if (memoryCache && memoryCache.expiresAt > now) {
     return memoryCache.payload
   }
 
   try {
-    const data = await fetchGithubReleases()
+    const data = overlayFriendlyNotes(await fetchGithubReleases(), friendly)
     if (data.length > 0) {
       const payload: ReleasesPayload = {
         success: true,
@@ -120,7 +128,7 @@ export async function loadReleases(
     // Fall through to the bundled snapshot.
   }
 
-  const fallback = snapshotPayload(snapshot)
+  const fallback = snapshotPayload(overlayFriendlyNotes(snapshot, friendly))
   if (fallback) {
     memoryCache = { expiresAt: now + RELEASES_CACHE_TTL_MS, payload: fallback }
     return fallback

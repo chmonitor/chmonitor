@@ -1,6 +1,7 @@
-import type { ReleaseNote } from './types'
+import type { FriendlyNote, ReleaseNote } from './types'
 
 import { AIRGAP_SNAPSHOT_LIMIT } from './constants'
+import { overlayFriendlyNotes } from './parse-friendly-note'
 import { buildReleaseNote, stripToProductNotes } from './parse-release-body'
 import { isProductVersionTag, parseSemver, toProductTag } from './version'
 
@@ -63,24 +64,28 @@ export function parseChangelogMarkdown(markdown: string): ReleaseNote[] {
 }
 
 /**
- * Small airgap payload: latest `vX.Y.Z` Features only (Fixes / Perf /
- * Highlights stay on the live GitHub body). Unreleased is omitted.
+ * Small airgap payload: latest `vX.Y.Z` notes. Friendly files win; otherwise
+ * Features only (Fixes / Perf stay on the live GitHub body). Unreleased is omitted.
  */
 export function buildAirgapSnapshot(
   changelogMarkdown: string,
-  limit = AIRGAP_SNAPSHOT_LIMIT
+  limit = AIRGAP_SNAPSHOT_LIMIT,
+  friendly: readonly FriendlyNote[] = []
 ): ReleaseNote[] {
-  return parseChangelogMarkdown(changelogMarkdown)
-    .filter(
-      (note) => note.version !== 'unreleased' && isProductVersionTag(note.tag)
-    )
+  const released = parseChangelogMarkdown(changelogMarkdown).filter(
+    (note) => note.version !== 'unreleased' && isProductVersionTag(note.tag)
+  )
+  const overlaid = overlayFriendlyNotes(released, friendly)
+  return overlaid
     .map((note) => {
+      if (note.kind === 'friendly') return note
       const features = stripToProductNotes(note.markdown, ['features'])
       return {
         ...note,
         markdown: features.markdown,
         summary: features.summary,
         highlights: features.highlights,
+        kind: 'stripped' as const,
       }
     })
     .filter((note) => note.markdown.trim().length > 0)

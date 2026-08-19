@@ -5,7 +5,12 @@ export const GITHUB_RELEASES_API_URL =
 export const GITHUB_RELEASES_PAGE_URL =
   'https://github.com/chmonitor/chmonitor/releases'
 
-export const LANDING_CHANGELOG_URL = 'https://chmonitor.dev/changelog'
+export const LANDING_ORIGIN = 'https://chmonitor.dev'
+
+export const LANDING_CHANGELOG_URL = `${LANDING_ORIGIN}/changelog`
+
+/** Site-root screenshot paths (`/assets/…`) resolve here in the dashboard dialog. */
+export const WHATS_NEW_ASSET_ORIGIN = LANDING_ORIGIN
 
 export const RELEASES_CACHE_TTL_MS = 60 * 60 * 1000
 

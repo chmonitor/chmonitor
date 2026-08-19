@@ -95,9 +95,9 @@ header and footer are `shrink-0`; only the notes list
 scrolls. Native overflow on that body — not `ScrollArea` + `flex-1` — so a
 tall list cannot paint under GitHub Releases / Changelog / Got it. Footer
 resets the primitive's `-mx-4 -mb-4` (`mx-0 mb-0`) because the dialog is
-`p-0`. Notes come from `GET /api/v1/releases` (server-side GitHub Releases; airgap
-fallback is a **build-time snapshot** of latest `v*` Features, not
-the full CHANGELOG.md). Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
+`p-0`. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
+`docs/whats-new` friendly copy first). Airgap fallback is a **build-time
+snapshot** of latest `v*` notes, not the full CHANGELOG.md. Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
 `aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
 "Settings". Hide when `canUseSettings` / `SETTINGS_FEATURE_PERMISSION` is off.
 Local settings do not need an account — the gear stays outside `SignInButton`

@@ -1,5 +1,7 @@
 import { serializeAirgapSnapshot } from './src/lib/whats-new/airgap-snapshot'
+import { loadFriendlyNotesFromDir } from './src/lib/whats-new/load-friendly-notes'
 import { buildAirgapSnapshot } from './src/lib/whats-new/parse-changelog'
+import { serializeFriendlyNotesJson } from './src/lib/whats-new/parse-friendly-note'
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -622,17 +624,32 @@ const startConfig = {
   spa: { enabled: true },
 }
 
-/** Bake latest v* Features into a gitignored JSON used by the Worker bundle. */
+/** Bake friendly notes + latest v* Features into gitignored JSON for the Worker. */
 function whatsNewSnapshotPlugin(): PluginOption {
-  const generatedPath = r('./src/lib/whats-new/airgap-snapshot.generated.json')
+  const generatedSnapshotPath = r(
+    './src/lib/whats-new/airgap-snapshot.generated.json'
+  )
+  const generatedFriendlyPath = r(
+    './src/lib/whats-new/friendly-notes.generated.json'
+  )
+  const whatsNewDir = [r('../../docs/whats-new'), r('../docs/whats-new')].find(
+    (path) => existsSync(path)
+  )
 
   const writeGenerated = () => {
+    const friendly = whatsNewDir ? loadFriendlyNotesFromDir(whatsNewDir) : []
+    writeFileSync(generatedFriendlyPath, serializeFriendlyNotesJson(friendly))
+
     const changelogPath = [r('../../CHANGELOG.md'), r('../CHANGELOG.md')].find(
       (path) => existsSync(path)
     )
     if (!changelogPath) return
-    const notes = buildAirgapSnapshot(readFileSync(changelogPath, 'utf8'))
-    writeFileSync(generatedPath, serializeAirgapSnapshot(notes))
+    const notes = buildAirgapSnapshot(
+      readFileSync(changelogPath, 'utf8'),
+      undefined,
+      friendly
+    )
+    writeFileSync(generatedSnapshotPath, serializeAirgapSnapshot(notes))
   }
 
   return {
@@ -642,13 +659,20 @@ function whatsNewSnapshotPlugin(): PluginOption {
       writeGenerated()
     },
     resolveId(id, importer) {
+      if (!importer?.includes('fetch-releases')) return
       if (
         id.endsWith('airgap-snapshot.json') &&
         !id.endsWith('airgap-snapshot.generated.json') &&
-        importer?.includes('fetch-releases') &&
-        existsSync(generatedPath)
+        existsSync(generatedSnapshotPath)
       ) {
-        return generatedPath
+        return generatedSnapshotPath
+      }
+      if (
+        id.endsWith('friendly-notes.json') &&
+        !id.endsWith('friendly-notes.generated.json') &&
+        existsSync(generatedFriendlyPath)
+      ) {
+        return generatedFriendlyPath
       }
     },
   }

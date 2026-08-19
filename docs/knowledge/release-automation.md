@@ -58,16 +58,27 @@ version) → `## 🔁 Full changelog` (compare link `PREVIOUS_TAG...RELEASE_TAG`
 → build footer.
 Repo-specific prompts (`.github/release-notes-prompt.md`,
 `.github/release-notes-system-prompt.md`, `.github/release-migration-prompt.md`)
-are passed to the action via its `*-prompt-file` inputs. The dashboard What's
-new dialog (`GET /api/v1/releases`) displays the GitHub Release body after
-stripping recap/Docker/internal sections. When GitHub is unreachable, the
-Worker serves a **build-time airgap snapshot** of latest `vX.Y.Z` Features
-(Vite writes a gitignored generated file from CHANGELOG.md; a small committed
-fixture covers tests). Do not fetch `CHANGELOG.md` at runtime — the file is
-too large to ship to the client or pull on every fallback.
-`pnpm --filter dashboard whats-new:snapshot` regenerates the same file.
-The public landing page `/changelog` uses the skip-recap parser
-(`parse-github-release-notes.ts`) so recap stats do not replace Features.
+are passed to the action via its `*-prompt-file` inputs.
+
+The dashboard What's new dialog (`GET /api/v1/releases`) and landing
+`/changelog` prefer **friendly notes** in `docs/whats-new/vX.Y.Z.md` (summary +
+4–8 bullets + optional screenshots). GitHub Releases stay the detailed
+changelog (recap stats, Docker, full commit list) — do not rewrite those
+bodies. If a version has no friendly file, both UIs fall back to the
+strip-to-Features parser (`parse-release-body.ts` /
+`parse-github-release-notes.ts`), which also drops 0.2.x recap blockquotes.
+When GitHub is unreachable, the Worker serves a **build-time airgap snapshot**
+(friendly notes overlaid on latest CHANGELOG Features). Vite writes a
+gitignored generated file; a small committed fixture covers tests. Do not
+fetch `CHANGELOG.md` at runtime.
+`pnpm --filter dashboard whats-new:snapshot` regenerates the snapshot.
+After a dashboard release, `release.yml` job `whats-new` drafts
+`docs/whats-new/vX.Y.Z.md` from the detailed `release-notes.md` plus any
+`## [Unreleased] ### Highlights`, using the same Copilot → GitHub Models
+tiers. It never replaces the GitHub Release body.
+`bun scripts/write-whats-new.ts --tag vX.Y.Z --release-notes release-notes.md`
+does the same locally. Screenshot files live in `assets/whats-new/` (served
+as `/assets/whats-new/…` after `scripts/sync-shared-assets.mjs`).
 
 ## LLM summary tiers (best-effort, never blocks a release)
 
@@ -122,10 +133,11 @@ version block above it on release. Don't hand-edit released version blocks.
 Do not reintroduce changesets.
 
 `## [Unreleased]` **may** include a `### Highlights` subsection with short
-user-facing bullets and optional markdown screenshots (`![alt](url)`). Those
-highlights are the source for the GitHub Release opening summary and the
-in-dashboard What's new dialog. Keep Highlights product-facing — no refactor /
-CI / chore dumps.
+user-facing bullets and optional markdown screenshots (`![alt](/assets/whats-new/…)`).
+Those highlights seed the GitHub Release opening summary **and** the friendly
+`docs/whats-new/vX.Y.Z.md` file generated after the dashboard release. Keep
+Highlights product-facing — no refactor / CI / chore dumps. GitHub Release
+bodies stay detailed (recap, Docker, commits).
 
 ## Migration prompt (AI-assisted upgrades)
 

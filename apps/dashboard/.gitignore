@@ -6,5 +6,6 @@ dist
 .turbo
 src/routeTree.gen.ts
 src/lib/whats-new/airgap-snapshot.generated.json
+src/lib/whats-new/friendly-notes.generated.json
 worker-configuration.d.ts
 *.tsbuildinfo

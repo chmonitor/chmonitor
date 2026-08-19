@@ -1,0 +1,68 @@
+{
+  "notes": [
+    {
+      "version": "0.3.3",
+      "date": "2026-08-16",
+      "summary": "Guest AI caps, simpler alerts, and pinned favorites you can drag.",
+      "bullets": [
+        "Cap and track guest AI usage on Cloud.",
+        "Pick models dynamically, including AnyRouter presets and a custom model field.",
+        "Alert settings use templates and presets instead of a wall of forms.",
+        "See recently completed merges when none are running.",
+        "Drag to reorder pinned favorites in the sidebar.",
+        "Open Settings from the icon next to Sign in."
+      ],
+      "screenshots": []
+    },
+    {
+      "version": "0.3.2",
+      "date": "2026-08-12",
+      "summary": "A denser fleet view, a live MCP playground, and alert channels that start from what you already configured.",
+      "bullets": [
+        "Alert channels show as a configured-first card grid.",
+        "The query-activity heatmap picks a month window that fits the screen.",
+        "Table Overview in Explorer is denser and engine-aware, with SQL highlighting for DDL.",
+        "Fleet summary strip with richer host metrics and sparklines.",
+        "MCP Playground talks to a live client and covers the 2026-07-28 spec gaps."
+      ],
+      "screenshots": []
+    },
+    {
+      "version": "0.3.1",
+      "date": "2026-08-11",
+      "summary": "Interactive cluster topology and smarter model picking for the agent.",
+      "bullets": [
+        "Drag and inspect cluster topology with glass glyphs.",
+        "Auto-pick AnyRouter models by real usage, not a static list.",
+        "Surface why parts were postponed on 26.2+.",
+        "Keep the Cloudflare Worker under the free 3 MiB limit."
+      ],
+      "screenshots": [
+        {
+          "src": "/assets/screenshots/cluster-topology-dark.png",
+          "alt": "Cluster topology"
+        }
+      ]
+    },
+    {
+      "version": "0.3.0",
+      "date": "2026-08-06",
+      "summary": "The TanStack Start release — Cloud, Postgres, alerting, and AI on a new runtime.",
+      "bullets": [
+        "Dashboard runs on TanStack Start and Vite; Docker and Cloudflare Workers come from the same app.",
+        "Hosted Cloud at dash.chmonitor.dev with a public demo and per-user connections.",
+        "Monitor Postgres (beta) and PeerDB CDC next to your existing clusters.",
+        "Alerting engine with templates, channels, and health reports.",
+        "AI agent, Insights, advisors, and MCP at /api/mcp.",
+        "Pluggable auth: none, Clerk, proxy, or trusted.",
+        "Helm chart and one-click deploys; connection vars stay the same."
+      ],
+      "screenshots": [
+        {
+          "src": "/assets/screenshots/overview-dark-with-bg.jpeg",
+          "alt": "Overview with cluster status, storage, and query activity heatmap"
+        }
+      ]
+    }
+  ]
+}

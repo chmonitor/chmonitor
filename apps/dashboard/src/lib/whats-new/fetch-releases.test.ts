@@ -1,3 +1,5 @@
+import { parseAirgapSnapshot } from './airgap-snapshot'
+import bundledSnapshot from './airgap-snapshot.json'
 import { GITHUB_RELEASES_API_URL } from './constants'
 import {
   loadReleases,
@@ -30,12 +32,15 @@ const GITHUB_JSON = JSON.stringify([
   },
 ])
 
+const originalFetch = globalThis.fetch
+
 afterEach(() => {
   resetReleasesCacheForTests()
   globalThis.fetch = originalFetch
 })
 
-const originalFetch = globalThis.fetch
+const snapshotNotes = parseAirgapSnapshot(bundledSnapshot)
+const noFriendly: [] = []
 
 function mockFetch(
   impl: (
@@ -71,10 +76,34 @@ describe('loadReleases', () => {
       throw new Error(`unexpected fetch ${url}`)
     })
 
-    const payload = await loadReleases()
+    const payload = await loadReleases(Date.now(), snapshotNotes, noFriendly)
     expect(payload.success).toBe(true)
     expect(payload.source).toBe('github')
     expect(payload.data[0]?.version).toBe('0.3.3')
+    expect(payload.data[0]?.markdown).toContain('Features')
+  })
+
+  test('overlays friendly notes over a GitHub recap dump', async () => {
+    mockFetch(async (url) => {
+      if (url.startsWith(GITHUB_RELEASES_API_URL.split('?')[0]!)) {
+        return { ok: true, status: 200, text: async () => GITHUB_JSON }
+      }
+      throw new Error(`unexpected fetch ${url}`)
+    })
+
+    const payload = await loadReleases(Date.now(), snapshotNotes, [
+      {
+        version: '0.3.3',
+        date: '2026-08-16',
+        summary: 'Guest AI caps and simpler alerts.',
+        bullets: ['Cap guest AI usage on Cloud.'],
+        screenshots: [],
+      },
+    ])
+    expect(payload.data[0]?.kind).toBe('friendly')
+    expect(payload.data[0]?.summary).toContain('Guest AI caps')
+    expect(payload.data[0]?.markdown).not.toContain('shoutout')
+    expect(payload.data[0]?.markdown).toContain('Cap guest AI usage')
   })
 
   test('falls back to the bundled snapshot when GitHub is down', async () => {
@@ -84,7 +113,7 @@ describe('loadReleases', () => {
       return { ok: false, status: 503, text: async () => 'down' }
     })
 
-    const payload = await loadReleases()
+    const payload = await loadReleases(Date.now(), snapshotNotes, noFriendly)
     expect(payload.success).toBe(true)
     expect(payload.source).toBe('snapshot')
     expect(payload.data.length).toBeGreaterThan(0)
@@ -98,7 +127,7 @@ describe('loadReleases', () => {
   test('returns a quiet failure when GitHub is down and the snapshot is empty', async () => {
     mockFetch(async () => ({ ok: false, status: 500, text: async () => '' }))
 
-    const payload = await loadReleases(Date.now(), [])
+    const payload = await loadReleases(Date.now(), [], noFriendly)
     expect(payload.success).toBe(false)
     expect(payload.source).toBe('none')
     expect(payload.data).toEqual([])
