@@ -1,6 +1,6 @@
 /**
  * Query-history picker endpoint for the Query Advisor page.
- * GET /api/v1/advisor/history?hostId=0&keyword=...&user=...&kind=Select&minDurationMs=1000&hours=24&limit=50
+ * GET /api/v1/advisor/history?hostId=0&keyword=...&user=...&kind=all&minDurationMs=1000&hours=24&limit=50
  * GET /api/v1/advisor/history?hostId=0&facet=users
  *
  * Read-only browse of `system.query_log` so the advisor input can be populated
@@ -8,6 +8,10 @@
  * `{param:Type}` parameters via {@link buildHistoryPickerQuery} — never
  * interpolated into SQL. Runs in `readonly` mode. `facet=users` returns the
  * DISTINCT-user list used to populate the user filter.
+ *
+ * Anonymous cloud + OSS callers may use hostId=0 (the env/demo host). Signed-in
+ * cloud callers get a structured `demo_hidden` empty payload for non-negative
+ * ids — the client must surface that, not render a blank list.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -18,14 +22,19 @@ import { error } from '@chm/logger'
 import {
   buildHistoryPickerQuery,
   buildHistoryUsersQuery,
+  HISTORY_PICKER_KIND_ALL,
   HISTORY_PICKER_KINDS,
   type HistoryPickerFilters,
   type HistoryPickerKind,
+  type HistoryPickerKindFilter,
   type HistoryQueryRow,
 } from '@/lib/ai/advisor/history-picker'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
-import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import {
+  demoHiddenUnavailable,
+  isDemoHostBlockedForRequest,
+} from '@/lib/cloud/reject-demo-host'
 
 const ROUTE_CONTEXT = { route: '/api/v1/advisor/history' }
 
@@ -57,11 +66,21 @@ function parseIntParam(raw: string | null): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
-function parseKind(raw: string | null): HistoryPickerKind | undefined {
-  if (!raw) return undefined
+function parseKind(
+  raw: string | null
+): HistoryPickerKindFilter | { message: string } {
+  if (!raw || raw === HISTORY_PICKER_KIND_ALL || raw === '__all__') {
+    return HISTORY_PICKER_KIND_ALL
+  }
   return HISTORY_PICKER_KINDS.includes(raw as HistoryPickerKind)
     ? (raw as HistoryPickerKind)
-    : undefined
+    : { message: `Invalid kind: ${raw}` }
+}
+
+function parseIncludeSelf(raw: string | null): boolean {
+  if (raw === null || raw.trim() === '') return false
+  const v = raw.trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes'
 }
 
 function demoHiddenResponse(): Response {
@@ -69,10 +88,7 @@ function demoHiddenResponse(): Response {
     success: true,
     data: [],
     metadata: {
-      unavailable: {
-        reason: 'demo_hidden',
-        message: 'The demo host is hidden for signed-in accounts.',
-      },
+      unavailable: demoHiddenUnavailable(),
     },
   })
 }
@@ -101,6 +117,10 @@ export const Route = createFileRoute('/api/v1/advisor/history')({
         }
 
         const facet = searchParams.get('facet')
+        const kindResult = parseKind(searchParams.get('kind'))
+        if (typeof kindResult === 'object') {
+          return validationError(kindResult.message)
+        }
 
         const { sql, params } =
           facet === 'users'
@@ -108,10 +128,11 @@ export const Route = createFileRoute('/api/v1/advisor/history')({
             : buildHistoryPickerQuery({
                 keyword: searchParams.get('keyword') ?? undefined,
                 user: searchParams.get('user') ?? undefined,
-                kind: parseKind(searchParams.get('kind')),
+                kind: kindResult,
                 minDurationMs: parseIntParam(searchParams.get('minDurationMs')),
                 hours: parseIntParam(searchParams.get('hours')),
                 limit: parseIntParam(searchParams.get('limit')),
+                excludeSelf: !parseIncludeSelf(searchParams.get('includeSelf')),
               } satisfies HistoryPickerFilters)
 
         try {

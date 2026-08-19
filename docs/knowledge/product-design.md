@@ -215,6 +215,11 @@ caused a class of silent runtime breakage in #2361/#2363/#2364:
   `--accordion-panel-height`, collapsible `--collapsible-panel-height`. A stale
   `--radix-*` reference silently drops the animation/layout it drove.
 - **`asChild` → `render`.** Base UI uses a `render` prop, not `asChild`.
+- **`Select.Value` shows the raw value** unless you pass `items` (a
+  `{ value: label }` record or `{ value, label }[]`) on `Select.Root`, or
+  a render-function child. `placeholder` is empty-only — selected `24` /
+  `__all__` otherwise paint those strings in the trigger. Incident: the
+  Advisor pick-query dialog (#3139).
 - Ground-truth attribute/var names live in
   `node_modules/@base-ui/react/**/*DataAttributes.js` / `*CssVars.js`.
 

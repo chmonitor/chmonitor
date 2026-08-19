@@ -1,7 +1,7 @@
 /**
  * Unit tests for the advisor query-history picker's pure SQL/param builders and
  * text helpers (`lib/ai/advisor/history-picker.ts`). No I/O — these guard the
- * injection-safe parameterization and the numeric clamping.
+ * injection-safe parameterization, kind=all, and the default self-query exclude.
  */
 
 import { describe, expect, test } from 'bun:test'
@@ -9,19 +9,63 @@ import {
   buildHistoryPickerQuery,
   buildHistoryUsersQuery,
   HISTORY_PICKER_DEFAULT_HOURS,
+  HISTORY_PICKER_KIND_ALL,
   HISTORY_PICKER_MAX_LIMIT,
   truncateQueryText,
 } from '@/lib/ai/advisor/history-picker'
 
 describe('buildHistoryPickerQuery', () => {
-  test('defaults to finished Select queries within the default window', () => {
+  test('defaults to finished queries of any kind within the default window', () => {
     const { sql, params } = buildHistoryPickerQuery()
     expect(sql).toContain("type = 'QueryFinish'")
     expect(sql).toContain(`INTERVAL ${HISTORY_PICKER_DEFAULT_HOURS} HOUR`)
-    expect(sql).toContain('query_kind = {kind:String}')
-    expect(params.kind).toBe('Select')
+    expect(sql).not.toContain('query_kind = {kind:String}')
+    expect(params.kind).toBeUndefined()
     expect(sql).toContain('ORDER BY query_duration_ms DESC')
     expect(sql).toContain(`LIMIT ${HISTORY_PICKER_MAX_LIMIT}`)
+  })
+
+  test('All kinds omits the query_kind predicate', () => {
+    const { sql, params } = buildHistoryPickerQuery({
+      kind: HISTORY_PICKER_KIND_ALL,
+    })
+    expect(sql).not.toContain('query_kind')
+    expect(params.kind).toBeUndefined()
+  })
+
+  test('unset kind does not fall back to Select', () => {
+    const { sql, params } = buildHistoryPickerQuery({})
+    expect(sql).not.toContain('query_kind = {kind:String}')
+    expect(params.kind).toBeUndefined()
+  })
+
+  test('honors a valid non-Select kind', () => {
+    const { sql, params } = buildHistoryPickerQuery({ kind: 'Insert' })
+    expect(params.kind).toBe('Insert')
+    expect(sql).toContain('query_kind = {kind:String}')
+  })
+
+  test('ignores an unknown kind instead of forcing Select', () => {
+    const { sql, params } = buildHistoryPickerQuery({
+      // @ts-expect-error deliberately invalid kind
+      kind: 'Nonsense',
+    })
+    expect(params.kind).toBeUndefined()
+    expect(sql).not.toContain('query_kind')
+  })
+
+  test('default excludes dashboard queries via the query-comment fingerprint', () => {
+    const { sql, params } = buildHistoryPickerQuery()
+    expect(params.selfFingerprint).toBeDefined()
+    expect(params.selfFingerprint?.length).toBeGreaterThan(0)
+    expect(sql).toContain('position(query, {selfFingerprint:String}) = 0')
+    expect(sql).not.toContain(params.selfFingerprint as string)
+  })
+
+  test('excludeSelf:false (include-self) omits the dashboard fingerprint', () => {
+    const { sql, params } = buildHistoryPickerQuery({ excludeSelf: false })
+    expect(params.selfFingerprint).toBeUndefined()
+    expect(sql).not.toContain('selfFingerprint')
   })
 
   test('binds keyword as a parameter (never interpolated)', () => {
@@ -31,7 +75,6 @@ describe('buildHistoryPickerQuery', () => {
     expect(sql).toContain(
       'positionCaseInsensitiveUTF8(query, {keyword:String}) > 0'
     )
-    // The raw value must not leak into the SQL text.
     expect(sql).not.toContain('DROP TABLE')
   })
 
@@ -62,19 +105,6 @@ describe('buildHistoryPickerQuery', () => {
     expect(buildHistoryPickerQuery({ minDurationMs: 0 }).sql).not.toContain(
       'query_duration_ms >='
     )
-  })
-
-  test('falls back to Select for an unknown kind', () => {
-    const { params } = buildHistoryPickerQuery({
-      // @ts-expect-error deliberately invalid kind
-      kind: 'Nonsense',
-    })
-    expect(params.kind).toBe('Select')
-  })
-
-  test('honors a valid non-Select kind', () => {
-    const { params } = buildHistoryPickerQuery({ kind: 'Insert' })
-    expect(params.kind).toBe('Insert')
   })
 })
 

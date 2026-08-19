@@ -11,7 +11,8 @@ description: >-
   Triggers: "new page", "add a chart", "build UI", "design", "component",
   "empty state", "loading", "consistent", "follow-up feature", "match the design",
   "what's new", "changelog", "dialog scroll", "settings gear",
-  "schema compare", "settings diff", "add host".
+  "schema compare", "settings diff", "add host", "pick a query",
+  "query picker", "select labels".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -85,9 +86,16 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   Header and footer are `shrink-0`. The body is `min-h-0 flex-1 overflow-y-auto`
   — that element is the scroll container. Do not use `ScrollArea` with `flex-1`
   for this: its viewport is `size-full` and does not constrain unless the root
-  has an explicit height, so notes paint under the footer. Reset
-  `DialogFooter`'s default `-mx-4 -mb-4` to `mx-0 mb-0` when the dialog is
-  `p-0`. See `components/whats-new/whats-new-dialog.tsx`.
+  has an explicit height, so notes paint under the footer and EmptyState can
+  vanish inside a blank scrollbar box. Reset `DialogFooter`'s default
+  `-mx-4 -mb-4` to `mx-0 mb-0` when the dialog is `p-0`. Same list-scroll
+  pattern without a footer: `components/agents/advisor-query-picker.tsx`.
+  See `components/whats-new/whats-new-dialog.tsx`.
+- **Base UI Select labels:** pass `items={{ value: 'Human label' }}` on
+  `Select` (the Root) so `SelectValue` shows the label, not the raw value.
+  `placeholder` only appears when nothing is selected — a selected `24` /
+  `__all__` otherwise renders as those strings. See
+  `components/agents/advisor-query-picker.tsx`.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).
