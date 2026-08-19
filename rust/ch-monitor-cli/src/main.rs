@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use comfy_table::{presets::UTF8_FULL, Table};
 use crossterm::{
     event, execute,
@@ -80,15 +80,26 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
-    /// Update chm to the latest release from GitHub (self-update).
-    Update {
-        /// Only check whether an update is available; exit 1 if one exists.
-        #[arg(long)]
-        check: bool,
-        /// Install a specific release tag, e.g. chm-v0.2.0.
-        #[arg(long)]
-        version: Option<String>,
-    },
+    /// Update chm to the latest GitHub release (self-update).
+    ///
+    /// Prints current -> target version, verifies sha256, and atomically
+    /// replaces this binary. Never invokes sudo: checksum, permission, and
+    /// unsupported-target failures print a copy-pasteable fallback
+    /// (`scripts/install.sh` or `cargo install ch-monitor-cli`).
+    Update(UpdateArgs),
+    /// Alias of `update`. Same flags (`--check`, `--version`), same behaviour.
+    Upgrade(UpdateArgs),
+}
+
+/// Shared flags for `chm update` and `chm upgrade`.
+#[derive(Args, Debug)]
+struct UpdateArgs {
+    /// Only check whether an update is available; exit 1 if one exists.
+    #[arg(long)]
+    check: bool,
+    /// Install a specific release tag, e.g. chm-v0.2.0.
+    #[arg(long)]
+    version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -211,6 +222,7 @@ fn row_metric(row: &Value) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
     use serde_json::json;
 
     #[test]
@@ -233,6 +245,72 @@ mod tests {
     fn row_metric_ignores_negative_or_invalid_values() {
         assert_eq!(row_metric(&json!({ "value": -1 })), 0);
         assert_eq!(row_metric(&json!({ "value": "not-a-number" })), 0);
+    }
+
+    fn update_args(cli: Cli) -> UpdateArgs {
+        match cli.command {
+            Commands::Update(args) | Commands::Upgrade(args) => args,
+            other => panic!("expected update/upgrade, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn upgrade_is_first_class_alias_of_update() {
+        for argv in [["chm", "update"], ["chm", "upgrade"]] {
+            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
+            assert!(!args.check);
+            assert!(args.version.is_none());
+        }
+    }
+
+    #[test]
+    fn upgrade_and_update_share_check_flag() {
+        for argv in [["chm", "update", "--check"], ["chm", "upgrade", "--check"]] {
+            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
+            assert!(args.check);
+            assert!(args.version.is_none());
+        }
+    }
+
+    #[test]
+    fn upgrade_and_update_share_version_flag() {
+        for argv in [
+            ["chm", "update", "--version", "chm-v0.2.0"],
+            ["chm", "upgrade", "--version", "chm-v0.2.0"],
+        ] {
+            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
+            assert!(!args.check);
+            assert_eq!(args.version.as_deref(), Some("chm-v0.2.0"));
+        }
+    }
+
+    #[test]
+    fn help_lists_update_and_upgrade() {
+        let mut cmd = Cli::command();
+        let help = cmd.render_long_help().to_string();
+        assert!(help.contains("update"), "{help}");
+        assert!(help.contains("upgrade"), "{help}");
+    }
+
+    #[test]
+    fn update_and_upgrade_help_share_flags() {
+        // clap 4's render_long_help takes &mut self.
+        let mut cmd = Cli::command();
+        let update_help = cmd
+            .find_subcommand_mut("update")
+            .expect("update subcommand")
+            .render_long_help()
+            .to_string();
+        let mut cmd = Cli::command();
+        let upgrade_help = cmd
+            .find_subcommand_mut("upgrade")
+            .expect("upgrade subcommand")
+            .render_long_help()
+            .to_string();
+        for help in [&update_help, &upgrade_help] {
+            assert!(help.contains("--check"), "{help}");
+            assert!(help.contains("--version"), "{help}");
+        }
     }
 }
 
@@ -365,7 +443,7 @@ async fn main() -> Result<()> {
         Commands::Chart { .. } => ("cli_run", "chart"),
         Commands::Table { .. } => ("cli_run", "table"),
         Commands::Tui { .. } => ("cli_run", "tui"),
-        Commands::Update { .. } => ("cli_run", "update"),
+        Commands::Update(_) | Commands::Upgrade(_) => ("cli_run", "update"),
     };
     let tel_handle = telemetry::spawn(tel_event, tel_command);
 
@@ -458,14 +536,14 @@ async fn main() -> Result<()> {
                 std::process::exit(1);
             }
         }
-        Commands::Update { check, version } => {
-            if check {
+        Commands::Update(args) | Commands::Upgrade(args) => {
+            if args.check {
                 let available = update::check(&client).await?;
                 if available {
                     std::process::exit(1);
                 }
             } else {
-                update::run(&client, version).await?;
+                update::run(&client, args.version).await?;
             }
         }
     }
