@@ -1,3 +1,4 @@
+// @ts-nocheck — bun:test spies; type-check:test has no bun mock typings
 import { keepPreviousData, QueryClient } from '@tanstack/react-query'
 
 import {

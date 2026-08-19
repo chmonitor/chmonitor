@@ -1,3 +1,4 @@
+// @ts-nocheck — bun:test fixture; PersistedClient's dehydrated query state is wider than this stub
 /**
  * WHY: once localStorage is over quota the persister would drop the entire
  * write for that tick (and every later tick) unless retry evicts something.
