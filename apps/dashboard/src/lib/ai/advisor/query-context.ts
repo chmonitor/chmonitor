@@ -22,6 +22,10 @@ import type {
 
 import { parseExplainIndexes } from '@chm/query-advisor-core'
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
+import {
+  type ClusterTopology,
+  topologyFromDistributedTable,
+} from '@/lib/ddl/on-cluster'
 
 /** Resolve the SQL to analyze: the caller's raw `sql`, or the query text behind a `query_id`. */
 export async function resolveSql(
@@ -127,6 +131,39 @@ export async function fetchTableSchema(
       expression: i.expression,
       granularity: Number(i.granularity),
     })),
+  }
+}
+
+/** Best-effort cluster topology for copyable ON CLUSTER variants. Never throws. */
+export async function fetchTableTopology(
+  hostId: number,
+  database: string,
+  table: string
+): Promise<ClusterTopology> {
+  try {
+    const tableRows = (await readOnlyQuery({
+      query:
+        'SELECT engine, engine_full FROM system.tables WHERE database = {database:String} AND name = {table:String} LIMIT 1',
+      query_params: { database, table },
+      hostId,
+    })) as Array<{ engine: string; engine_full: string }>
+    const row = tableRows[0]
+    const fromDist = topologyFromDistributedTable({
+      engine: row?.engine,
+      engineFull: row?.engine_full,
+    })
+    if (fromDist) return fromDist
+
+    const clusterRows = (await readOnlyQuery({
+      query:
+        'SELECT cluster FROM system.clusters WHERE is_local = 1 ORDER BY cluster LIMIT 1',
+      hostId,
+    })) as Array<{ cluster: string }>
+    const cluster = clusterRows[0]?.cluster?.trim()
+    if (!cluster) return null
+    return { cluster, localDatabase: database, localTable: table }
+  } catch {
+    return null
   }
 }
 

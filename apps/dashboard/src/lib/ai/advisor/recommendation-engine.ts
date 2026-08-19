@@ -51,6 +51,7 @@ import {
   fetchExplainIndexes,
   fetchPartsStats,
   fetchTableSchema,
+  fetchTableTopology,
   resolveSql,
 } from './query-context'
 import {
@@ -66,6 +67,7 @@ import {
   scoreSkipIndex,
 } from '@chm/query-advisor-core'
 import { validateSqlQuery } from '@chm/sql-builder'
+import { annotateDdlForTopology } from '@/lib/ddl/on-cluster'
 
 // Re-exported so existing `from './recommendation-engine'` imports (tests,
 // tool wiring) keep working unchanged — see `./types`, the app-local import
@@ -120,7 +122,13 @@ export interface AnalyzeQueryOk {
   sql: string
   database: string
   table: string
-  recommendations: Recommendation[]
+  recommendations: Array<
+    Recommendation & {
+      localTableName?: string | null
+      onClusterStatement?: string | null
+      localOnlyReason?: string | null
+    }
+  >
   notes: string[]
 }
 
@@ -246,13 +254,45 @@ export async function analyzeQuery(
     }
   }
 
+  const ranked = rankRecommendations(recommendations)
+  let topology = null
+  try {
+    topology = await fetchTableTopology(hostId, target.database, target.table)
+  } catch {
+    topology = null
+  }
+
+  const annotated = ranked.map((rec) => {
+    if (!rec.ddl) {
+      return {
+        ...rec,
+        localTableName:
+          topology?.localDatabase && topology.localTable
+            ? `${topology.localDatabase}.${topology.localTable}`
+            : null,
+        onClusterStatement: null,
+        localOnlyReason: topology?.cluster
+          ? 'This recommendation is a query rewrite, not table DDL — ON CLUSTER does not apply.'
+          : null,
+      }
+    }
+    const variant = annotateDdlForTopology(rec.ddl, topology)
+    return {
+      ...rec,
+      ddl: variant.statement,
+      localTableName: variant.localTableName,
+      onClusterStatement: variant.onClusterStatement,
+      localOnlyReason: variant.localOnlyReason,
+    }
+  })
+
   return {
     ok: true,
     type: 'query_advisor_recommendations',
     sql,
     database: target.database,
     table: target.table,
-    recommendations: rankRecommendations(recommendations),
+    recommendations: annotated,
     notes,
   }
 }

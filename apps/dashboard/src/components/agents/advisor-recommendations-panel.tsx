@@ -21,10 +21,7 @@ import {
 import type { Recommendation } from '@/lib/ai/advisor/recommendation-engine'
 
 import { useEffect, useRef } from 'react'
-import {
-  CodeBlock,
-  CodeBlockCopyButton,
-} from '@/components/ai-elements/code-block'
+import { RecommendDdlBlocks } from '@/components/ddl/recommend-ddl-blocks'
 import { Badge } from '@/components/ui/badge'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils'
@@ -66,7 +63,11 @@ function RiskBadge({ risk }: { risk: Recommendation['risk'] }) {
 function RecommendationCard({
   recommendation,
 }: {
-  recommendation: Recommendation
+  recommendation: Recommendation & {
+    localTableName?: string | null
+    onClusterStatement?: string | null
+    localOnlyReason?: string | null
+  }
 }) {
   const Icon = KIND_ICON[recommendation.kind]
   const code = recommendation.ddl ?? recommendation.rewrittenSql ?? ''
@@ -102,9 +103,12 @@ function RecommendationCard({
       </div>
 
       {code ? (
-        <CodeBlock code={code} language="sql" className="max-h-56 text-xs">
-          <CodeBlockCopyButton />
-        </CodeBlock>
+        <RecommendDdlBlocks
+          statement={code}
+          onClusterStatement={recommendation.onClusterStatement}
+          localTableName={recommendation.localTableName}
+          localOnlyReason={recommendation.localOnlyReason}
+        />
       ) : null}
 
       <div className="text-xs text-muted-foreground">

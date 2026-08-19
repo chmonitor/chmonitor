@@ -82,6 +82,12 @@ export interface TuningFinding {
   severity: TuningSeverity
   /** Ready-to-review statement. NEVER executed — the user runs it themselves. */
   ddl: string
+  /** Qualified local table when topology is known. */
+  localTableName?: string | null
+  /** Copyable ON CLUSTER variant of `ddl`. Recommend-only. */
+  onClusterStatement?: string | null
+  /** Why ON CLUSTER was not offered. */
+  localOnlyReason?: string | null
   /**
    * Optional read-only query to confirm the finding before applying its DDL
    * (e.g. count NULLs, observe an integer's real range, measure distinct

@@ -271,7 +271,7 @@ async function handleSchemaDiff(request: Request): Promise<Response> {
         targetNode
       )
       const diff = compareCatalogs(sourceCatalog, targetCatalog)
-      const plan = buildChangePlan(diff)
+      const plan = buildChangePlan(diff, { cluster })
       return Response.json({
         success: true,
         hosts,

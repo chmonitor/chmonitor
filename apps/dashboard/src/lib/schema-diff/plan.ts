@@ -10,6 +10,11 @@ import type {
 
 import { tableKey } from './catalog'
 import { namedDelta } from './named-delta'
+import {
+  annotateDdlForTopology,
+  type ClusterTopology,
+  topologyFromDistributedTable,
+} from '@/lib/ddl/on-cluster'
 
 function quoteIdent(name: string): string {
   return `\`${name.replace(/`/g, '``')}\``
@@ -215,7 +220,55 @@ function planForChangedTable(
   return items
 }
 
-export function buildChangePlan(diff: SchemaDiffResult): SchemaChangePlan {
+function tableByKey(
+  diff: SchemaDiffResult,
+  key: string
+): TableSchema | undefined {
+  for (const row of [...diff.onlySource, ...diff.changed, ...diff.identical]) {
+    if (row.key === key) return row.source ?? row.target
+  }
+  return undefined
+}
+
+function topologyForItem(
+  item: PlanItem,
+  diff: SchemaDiffResult,
+  fallback: ClusterTopology
+): ClusterTopology {
+  const table = tableByKey(diff, item.tableKey)
+  const fromDist = table
+    ? topologyFromDistributedTable({
+        engine: table.engine,
+        createTableQuery: table.createTableQuery,
+      })
+    : null
+  if (fromDist) return fromDist
+  if (fallback?.cluster && table) {
+    return {
+      cluster: fallback.cluster,
+      localDatabase: table.database,
+      localTable: table.table,
+    }
+  }
+  return fallback
+}
+
+function annotatePlanItem(item: PlanItem, topology: ClusterTopology): PlanItem {
+  if (!item.statement) return item
+  const annotated = annotateDdlForTopology(item.statement, topology)
+  return {
+    ...item,
+    statement: annotated.statement,
+    localTableName: annotated.localTableName,
+    onClusterStatement: annotated.onClusterStatement,
+    localOnlyReason: annotated.localOnlyReason,
+  }
+}
+
+export function buildChangePlan(
+  diff: SchemaDiffResult,
+  topology: ClusterTopology = null
+): SchemaChangePlan {
   const items: PlanItem[] = []
 
   for (const row of diff.onlySource) {
@@ -228,9 +281,13 @@ export function buildChangePlan(diff: SchemaDiffResult): SchemaChangePlan {
     }
   }
 
-  const safeStatements = items
+  const annotated = items.map((item) =>
+    annotatePlanItem(item, topologyForItem(item, diff, topology))
+  )
+
+  const safeStatements = annotated
     .filter((item) => item.safe && item.statement)
     .map((item) => item.statement)
 
-  return { items, safeStatements }
+  return { items: annotated, safeStatements }
 }

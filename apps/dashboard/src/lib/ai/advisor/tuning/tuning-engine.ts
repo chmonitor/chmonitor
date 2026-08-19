@@ -22,9 +22,11 @@ import type {
   TuningReport,
 } from './types'
 
+import { fetchTableTopology } from '../query-context'
 import { runSchemaRules } from './schema-rules'
 import { runSettingsRules } from './settings-rules'
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
+import { annotateDdlForTopology } from '@/lib/ddl/on-cluster'
 
 /** System databases never worth linting. */
 const SYSTEM_DATABASES = new Set([
@@ -242,12 +244,34 @@ export async function analyzeTuning(
     ...runSettingsRules(settings),
   ])
 
+  let topology = null
+  try {
+    topology = await fetchTableTopology(
+      hostId,
+      database,
+      table ?? columns[0]?.table ?? ''
+    )
+  } catch {
+    topology = null
+  }
+
+  const annotated = findings.map((finding) => {
+    const variant = annotateDdlForTopology(finding.ddl, topology)
+    return {
+      ...finding,
+      ddl: variant.statement || finding.ddl,
+      localTableName: variant.localTableName,
+      onClusterStatement: variant.onClusterStatement,
+      localOnlyReason: variant.localOnlyReason,
+    }
+  })
+
   return {
     ok: true,
     type: 'schema_tuning_findings',
     database,
     ...(table ? { table } : {}),
-    findings,
+    findings: annotated,
     notes,
   }
 }

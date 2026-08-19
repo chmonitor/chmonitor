@@ -300,6 +300,11 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   chart failure automatically gets the matching illustration. Table query
   failures (`TableClient`) use the full EmptyState, not `compact`, so timeout
   and missing-column copy stays visible.
+- **Recommend-only DDL pairs** (Advisor / schema-diff): when topology is
+  known, show the local table name and a copyable `ON CLUSTER` variant of
+  the same statement (`components/ddl/recommend-ddl-blocks.tsx`, transform
+  in `lib/ddl/on-cluster.ts`). Single-node stays one statement. Never
+  execute or add a Run button.
 - **Interactive tool pages** (Explain, Advisor): before the first run, a
   dashed-border `EmptyState variant="no-data"` ("Nothing to analyze/explain
   yet"). User-input issues — table-less SQL like `SELECT 1`, a missing

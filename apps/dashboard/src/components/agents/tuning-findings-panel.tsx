@@ -27,6 +27,7 @@ import {
   CodeBlock,
   CodeBlockCopyButton,
 } from '@/components/ai-elements/code-block'
+import { RecommendDdlBlocks } from '@/components/ddl/recommend-ddl-blocks'
 import { Badge } from '@/components/ui/badge'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils'
@@ -108,9 +109,12 @@ function FindingCard({ finding }: { finding: TuningFinding }) {
         </div>
       </div>
 
-      <CodeBlock code={finding.ddl} language="sql" className="max-h-56 text-xs">
-        <CodeBlockCopyButton />
-      </CodeBlock>
+      <RecommendDdlBlocks
+        statement={finding.ddl}
+        onClusterStatement={finding.onClusterStatement}
+        localTableName={finding.localTableName}
+        localOnlyReason={finding.localOnlyReason}
+      />
 
       {finding.verifyQuery ? (
         <div className="space-y-1">
