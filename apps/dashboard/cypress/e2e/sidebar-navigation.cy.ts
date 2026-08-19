@@ -26,6 +26,9 @@ const SIDEBAR_GROUP = '[data-slot="sidebar"]'
 
 const USER_SETTINGS_STORAGE_KEY = 'clickhouse-monitor-user-settings'
 const E2E_USER_SETTINGS = {
+  // Dim (true) keeps tableCheck-gated leaves in the menu when e2e healthz /
+  // host probes fail. Hide (false) removes them — Running Queries uses
+  // tableCheck `system.processes`, so Hide would drop `a[href*="/running-queries"]`.
   dimUnavailablePages: true,
   workspacePreset: 'full',
   hiddenMenuHrefs: [] as string[],
@@ -58,7 +61,7 @@ function ensureDesktopRailExpanded() {
   cy.get(SIDEBAR_GROUP).should('have.attr', 'data-state', 'expanded')
 }
 
-function expandGroup(groupLabel: string, hrefPart: string) {
+function clickGroupTrigger(groupLabel: string) {
   const labelRe = new RegExp(`^${groupLabel}(\\s|$)`)
   cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
     .filter((_, el) =>
@@ -68,24 +71,31 @@ function expandGroup(groupLabel: string, hrefPart: string) {
     .first()
     .scrollIntoView()
     .click({ force: true })
+}
 
-  cy.get('body').then(($body) => {
-    if ($body.find(`a[href*="${hrefPart}"]`).length === 0) {
-      // First click collapsed an already-open group — toggle back.
-      cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
-        .filter((_, el) =>
-          labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim())
-        )
-        .first()
-        .click({ force: true })
-    }
+function sidebarHref(hrefPart: string) {
+  return `${SIDEBAR} a[href*="${hrefPart}"]`
+}
+
+/**
+ * Groups default collapsed (#3130). Do not sync-read `$body.find` right after
+ * click — that races the submenu mount and a second click closes the group.
+ * If the href is already in the sidebar, skip the toggle (already open).
+ */
+function expandGroup(groupLabel: string, hrefPart: string) {
+  const linkSel = sidebarHref(hrefPart)
+
+  cy.get(SIDEBAR).then(($sidebar) => {
+    const alreadyOpen = $sidebar.find(`a[href*="${hrefPart}"]`).length > 0
+    if (alreadyOpen) return
+    clickGroupTrigger(groupLabel)
   })
 
-  cy.get(`a[href*="${hrefPart}"]`, { timeout: 10000 }).should('exist')
+  cy.get(linkSel, { timeout: 10000 }).should('exist')
 }
 
 function clickHref(hrefPart: string) {
-  cy.get(`a[href*="${hrefPart}"]`).first().click({ force: true })
+  cy.get(sidebarHref(hrefPart)).first().click({ force: true })
 }
 
 describe('Sidebar navigation', () => {
