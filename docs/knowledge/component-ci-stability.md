@@ -3,7 +3,7 @@ id: component-ci-stability
 title: Component CI Stability
 type: incident
 status: active
-updated: 2026-05-13
+updated: 2026-08-19
 source_pr: 1021
 tags:
   - cypress
@@ -161,8 +161,8 @@ Previous investigation (PR #1021):
   missing-module failures.
 - Navigation specs that render `NavMain` must include `SidebarProvider` because
   collapsible menu items call `useSidebar()`.
-- Navigation link specs that assert host-aware URLs need `HostProvider` too.
-  `SearchParamsContext` alone does not drive `useHostId()`.
+- Navigation link specs that assert host-aware URLs need the router search
+  param (`?host=`). `useHostId()` reads `useSearch`, not a host context.
 - Radix/dropdown specs should assert stable accessibility labels and visible
   menu text. Avoid exact Lucide class names and non-DOM variant classes.
 - Radix dialog close buttons in `components/ui/dialog.tsx` expose visible
