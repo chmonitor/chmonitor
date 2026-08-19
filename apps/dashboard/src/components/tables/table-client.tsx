@@ -426,8 +426,10 @@ export const TableClient = function TableClient({
       )
     }
 
-    // Fall back to generic error handling for other error types
-    const errorTitle = getCardErrorTitle(variant, title)
+    // Fall back to generic error handling for other error types.
+    // Do not pass the table title as the error heading — that hid
+    // "Request timed out" / "Failed to load" behind the page name (#3121).
+    const errorTitle = getCardErrorTitle(variant)
     const errorClassName = getCardErrorClassName(variant)
     const errorDescription = getCardErrorDescription(
       error as CardError,
@@ -452,7 +454,6 @@ export const TableClient = function TableClient({
             variant={variant}
             title={errorTitle}
             description={errorDescription}
-            compact={true}
             action={
               showRetry
                 ? {

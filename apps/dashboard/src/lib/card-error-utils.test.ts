@@ -212,6 +212,20 @@ describe('detectCardErrorVariant', () => {
     ).toBe('timeout')
   })
 
+  it('returns error for unknown identifier even when status is 500', () => {
+    expect(
+      detectCardErrorVariant(
+        makeError("Unknown identifier: 'ttl'", { status: 500 })
+      )
+    ).toBe('error')
+  })
+
+  it('returns error for missing columns even when status is 500', () => {
+    expect(
+      detectCardErrorVariant(makeError('Missing columns: ttl', { status: 500 }))
+    ).toBe('error')
+  })
+
   it('returns offline for status 503', () => {
     expect(
       detectCardErrorVariant(makeError('Service Unavailable', { status: 503 }))

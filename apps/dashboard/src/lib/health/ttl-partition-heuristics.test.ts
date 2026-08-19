@@ -4,6 +4,7 @@ import {
   isTimeBasedPartitionKey,
   PARTITION_COUNT_CRITICAL,
   PARTITION_COUNT_WARNING,
+  ttlPartitionFlagsLabel,
   ttlPartitionRowClassName,
 } from './ttl-partition-heuristics'
 import { describe, expect, test } from 'bun:test'
@@ -126,5 +127,33 @@ describe('ttlPartitionRowClassName', () => {
         active_parts: 1,
       })
     ).toBeUndefined()
+  })
+})
+
+describe('ttlPartitionFlagsLabel', () => {
+  test('joins flags for a time-based table with no TTL', () => {
+    expect(
+      ttlPartitionFlagsLabel({
+        database: 'logs',
+        table: 'events',
+        partition_key: 'toYYYYMMDD(ts)',
+        ttl_expression: '',
+        partitions: 10,
+        active_parts: 10,
+      })
+    ).toBe('missing_ttl')
+  })
+
+  test('is empty for healthy rows', () => {
+    expect(
+      ttlPartitionFlagsLabel({
+        database: 'dim',
+        table: 'users',
+        partition_key: 'id',
+        ttl_expression: '',
+        partitions: 1,
+        active_parts: 1,
+      })
+    ).toBe('')
   })
 })

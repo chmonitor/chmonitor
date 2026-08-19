@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-18
+updated: 2026-08-19
 tags:
   - design-system
   - ui
@@ -265,7 +265,9 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   (`components/illustrations/empty-state-illustration.tsx`) inside the shared
   circle frame — differentiate the illustration, not the chrome. `ChartError`
   routes its detected cause through `toEmptyStateVariant` → `EmptyState`, so a
-  chart failure automatically gets the matching illustration.
+  chart failure automatically gets the matching illustration. Table query
+  failures (`TableClient`) use the full EmptyState, not `compact`, so timeout
+  and missing-column copy stays visible.
 - **Illustrations:** bespoke, theme-aware, token-driven, motion-safe inline SVGs
   in `components/illustrations/` — prefer over a lone lucide glyph for
   high-impact moments. `WelcomeIllustration` (first-run hero),

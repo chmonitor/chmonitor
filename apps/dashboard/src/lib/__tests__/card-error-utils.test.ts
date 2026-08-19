@@ -176,6 +176,21 @@ describe('detectCardErrorVariant — HTTP status codes', () => {
     )
   })
 
+  test('unknown identifier / missing columns stay errors even on HTTP 500', () => {
+    expect(
+      detectCardErrorVariant({
+        message: "Unknown identifier: 'ttl'",
+        status: 500,
+      } as any)
+    ).toBe('error')
+    expect(
+      detectCardErrorVariant({
+        message: 'Missing columns: ttl',
+        status: 500,
+      } as any)
+    ).toBe('error')
+  })
+
   test('503 returns offline', () => {
     expect(detectCardErrorVariant({ message: '', status: 503 } as any)).toBe(
       'offline'
