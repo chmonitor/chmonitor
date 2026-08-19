@@ -131,6 +131,7 @@ export function WorkspacePresetPicker({
         items={treeItems}
         hiddenHrefs={hiddenSet}
         query={query}
+        resetKey={preset}
         onToggle={toggleHref}
       />
     </div>
