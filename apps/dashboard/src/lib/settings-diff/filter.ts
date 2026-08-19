@@ -12,3 +12,20 @@ export function filterSettingsDiffRows(
     return true
   })
 }
+
+/** Diffs-only with zero deltas and no other filter — show "All matched", not a filter miss. */
+export function isSettingsDiffAllMatchedEmpty(opts: {
+  totalRows: number
+  diffCount: number
+  showDiffsOnly: boolean
+  showChangedOnly: boolean
+  nameFilter: string
+}): boolean {
+  return (
+    opts.showDiffsOnly &&
+    opts.diffCount === 0 &&
+    opts.totalRows > 0 &&
+    !opts.showChangedOnly &&
+    opts.nameFilter.trim() === ''
+  )
+}

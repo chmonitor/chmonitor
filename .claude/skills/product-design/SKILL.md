@@ -107,7 +107,12 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   connections vs nodes in this cluster). When Differences only is on,
   zero diffs, and no name filter, the table list is
   `EmptyState variant="no-data"` titled **Schemas match** — keep
-  "No tables match" only for a name-filter miss.
+  "No tables match" only for a name-filter miss. Settings Diff
+  (`/settings-diff`) with diffs-only and zero deltas is
+  `EmptyState` titled **All matched** plus a green check
+  (`CheckCircle2Icon` + `--chart-green`) and **Show matching
+  settings** (turns diffs-only off). "No settings match" is only
+  a name/changed-from-default filter miss.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).
@@ -207,7 +212,8 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   one saved host uses a real `EmptyState` (Add host via `AddHostDialog`, same
   as HostSwitcher) plus a faded `TableList` + `DdlPair` example. Settings Diff
   with one host keeps the live vs-default table and a banner (`AddHostButton`,
-  `data-testid="add-host"`). Pair ids include user connections.
+  `data-testid="add-host"`). Pair ids include user connections. Diffs-only
+  with zero deltas is **All matched** (green check) + Show matching settings.
 - **Base UI primitives** (`components/ui/*` = shadcn Base UI, not Radix): style
   overlays off `data-open`/`data-closed`/`data-orientation` (needs the
   `@custom-variant data-horizontal|vertical` in `styles.css`) and Base UI CSS

@@ -1,4 +1,4 @@
-import { filterSettingsDiffRows } from './filter'
+import { filterSettingsDiffRows, isSettingsDiffAllMatchedEmpty } from './filter'
 import { mergeSettingsDiff } from './merge'
 import { buildSettingsDiffRequest, validateSettingsDiffSearch } from './search'
 import { describe, expect, test } from 'bun:test'
@@ -130,5 +130,58 @@ describe('settings-diff node pair filter', () => {
       nameFilter: '',
     })
     expect(filtered.map((r) => r.name)).toEqual(['max_threads'])
+  })
+})
+
+describe('settings-diff all-matched empty', () => {
+  test('is true when diffs-only hides a full matching catalog', () => {
+    expect(
+      isSettingsDiffAllMatchedEmpty({
+        totalRows: 40,
+        diffCount: 0,
+        showDiffsOnly: true,
+        showChangedOnly: false,
+        nameFilter: '',
+      })
+    ).toBe(true)
+  })
+
+  test('is false when there are diffs, a name filter, or diffs-only is off', () => {
+    expect(
+      isSettingsDiffAllMatchedEmpty({
+        totalRows: 40,
+        diffCount: 1,
+        showDiffsOnly: true,
+        showChangedOnly: false,
+        nameFilter: '',
+      })
+    ).toBe(false)
+    expect(
+      isSettingsDiffAllMatchedEmpty({
+        totalRows: 40,
+        diffCount: 0,
+        showDiffsOnly: false,
+        showChangedOnly: false,
+        nameFilter: '',
+      })
+    ).toBe(false)
+    expect(
+      isSettingsDiffAllMatchedEmpty({
+        totalRows: 40,
+        diffCount: 0,
+        showDiffsOnly: true,
+        showChangedOnly: false,
+        nameFilter: 'max_threads',
+      })
+    ).toBe(false)
+    expect(
+      isSettingsDiffAllMatchedEmpty({
+        totalRows: 0,
+        diffCount: 0,
+        showDiffsOnly: true,
+        showChangedOnly: false,
+        nameFilter: '',
+      })
+    ).toBe(false)
   })
 })

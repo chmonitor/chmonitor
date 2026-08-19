@@ -24,7 +24,10 @@ import {
   fetchCompareDiff,
 } from '@/lib/compare/fetch-diff-request'
 import { resolveCompareScope, resolvePair } from '@/lib/compare/scope'
-import { filterSettingsDiffRows } from '@/lib/settings-diff/filter'
+import {
+  filterSettingsDiffRows,
+  isSettingsDiffAllMatchedEmpty,
+} from '@/lib/settings-diff/filter'
 import { useHostId } from '@/lib/swr/use-host'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
@@ -181,13 +184,22 @@ export function SettingsDiffPage() {
       ? peers.filter((p) => p.id === pair.sourceId || p.id === pair.targetId)
       : hosts
 
+  const diffsOnly = hostCount === 1 ? false : showDiffsOnly
+  const totalRows = data.rows?.length ?? 0
   const filteredRows = filterSettingsDiffRows(data.rows ?? [], {
-    showDiffsOnly: hostCount === 1 ? false : showDiffsOnly,
+    showDiffsOnly: diffsOnly,
     showChangedOnly,
     nameFilter,
   })
   const diffCount = (data.rows ?? []).filter((r) => r.hasDiff).length
   const oneHostVsDefault = hostCount === 1 && scope === 'hosts'
+  const allMatched = isSettingsDiffAllMatchedEmpty({
+    totalRows,
+    diffCount,
+    showDiffsOnly: diffsOnly,
+    showChangedOnly,
+    nameFilter,
+  })
 
   return (
     <div className="flex flex-col gap-4">
@@ -307,7 +319,12 @@ export function SettingsDiffPage() {
         </label>
       </div>
 
-      <SettingsDiffTable columns={columns} rows={filteredRows} />
+      <SettingsDiffTable
+        columns={columns}
+        rows={filteredRows}
+        allMatched={allMatched}
+        onShowMatching={() => setShowDiffsOnly(false)}
+      />
 
       <p className="text-xs text-muted-foreground">
         {filteredRows.length.toLocaleString()} row

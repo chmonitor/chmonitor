@@ -1,4 +1,5 @@
 import { DownloadIcon } from '@radix-ui/react-icons'
+import { CheckCircle2Icon } from 'lucide-react'
 
 import type {
   SettingsDiffHostInfo,
@@ -8,6 +9,7 @@ import type {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Table,
   TableBody,
@@ -63,9 +65,16 @@ export function exportSettingsCsv(
 interface SettingsDiffTableProps {
   columns: SettingsDiffHostInfo[]
   rows: SettingsDiffRow[]
+  allMatched?: boolean
+  onShowMatching?: () => void
 }
 
-export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
+export function SettingsDiffTable({
+  columns,
+  rows,
+  allMatched = false,
+  onShowMatching,
+}: SettingsDiffTableProps) {
   return (
     <Card>
       <CardContent className="p-0">
@@ -88,11 +97,35 @@ export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={3 + columns.length}
-                    className="py-12 text-center text-sm text-muted-foreground"
-                  >
-                    No settings match the current filters.
+                  <TableCell colSpan={3 + columns.length} className="py-10">
+                    {allMatched ? (
+                      <EmptyState
+                        variant="no-data"
+                        title="All matched"
+                        description="No setting differences between source and target. Turn off Show diffs only to list every setting."
+                        icon={
+                          <CheckCircle2Icon
+                            className="size-6 text-[var(--chart-green)]"
+                            strokeWidth={1.5}
+                          />
+                        }
+                        action={
+                          onShowMatching
+                            ? {
+                                label: 'Show matching settings',
+                                onClick: onShowMatching,
+                              }
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <EmptyState
+                        variant="filtered-empty"
+                        compact
+                        title="No settings match"
+                        description="Try a different name filter or turn off Show diffs only."
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
