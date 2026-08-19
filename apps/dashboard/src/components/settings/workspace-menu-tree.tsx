@@ -28,12 +28,14 @@ const SECTION_LABELS: Record<Exclude<MenuSection, 'footer'>, string> = {
 const SECTIONS: Exclude<MenuSection, 'footer'>[] = ['main', 'others']
 
 const menuButtonClass =
-  'flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0'
+  'flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0'
 
 interface WorkspaceMenuTreeProps {
   items: readonly MenuItem[]
   hiddenHrefs: ReadonlySet<string>
   query: string
+  /** Remount groups collapsed when the role pill changes. */
+  resetKey?: string
   onToggle: (href: string, hidden: boolean) => void
 }
 
@@ -41,6 +43,7 @@ export function WorkspaceMenuTree({
   items,
   hiddenHrefs,
   query,
+  resetKey = '',
   onToggle,
 }: WorkspaceMenuTreeProps) {
   const filtered = useMemo(() => filterMenuTree(items, query), [items, query])
@@ -65,10 +68,11 @@ export function WorkspaceMenuTree({
             <SidebarMenu>
               {sectionItems.map((item) => (
                 <TreeNode
-                  key={item.title}
+                  key={`${resetKey}:${item.title}`}
                   item={item}
                   hiddenHrefs={hiddenHrefs}
                   forceOpen={searching}
+                  resetKey={resetKey}
                   onToggle={onToggle}
                 />
               ))}
@@ -84,11 +88,13 @@ function TreeNode({
   item,
   hiddenHrefs,
   forceOpen,
+  resetKey,
   onToggle,
 }: {
   item: MenuItem
   hiddenHrefs: ReadonlySet<string>
   forceOpen: boolean
+  resetKey: string
   onToggle: (href: string, hidden: boolean) => void
 }) {
   const hasChildren = Boolean(item.items?.length)
@@ -100,20 +106,21 @@ function TreeNode({
 
   return (
     <Collapsible
-      key={forceOpen ? `${item.title}-search` : item.title}
-      defaultOpen
+      key={forceOpen ? `${item.title}-search` : `${resetKey}:${item.title}`}
+      defaultOpen={forceOpen}
       className="group/collapsible"
       render={<SidebarMenuItem />}
     >
       <CollapsibleTrigger
         className={cn(menuButtonClass, hidden && mutedItemClass)}
+        data-testid={`workspace-menu-group-${item.title}`}
         data-hidden={hidden ? 'true' : 'false'}
       >
         {item.icon && <item.icon className="size-4 shrink-0" />}
-        <span className="min-w-0 flex-1 truncate">{item.title}</span>
+        <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
         <ChevronRight className="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
       </CollapsibleTrigger>
-      <CollapsibleContent>
+      <CollapsibleContent keepMounted={forceOpen}>
         <SidebarMenuSub>
           {item.items?.map((child) => (
             <SubLeafRow
@@ -154,8 +161,8 @@ function LeafRow({
         className={cn(menuButtonClass, hidden && mutedItemClass)}
       >
         {item.icon && <item.icon className="size-4 shrink-0" />}
-        <span className="min-w-0 flex-1 truncate">{item.title}</span>
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
+        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
           {hidden ? 'Show' : 'Hide'}
         </span>
       </button>
@@ -175,7 +182,7 @@ function SubLeafRow({
   if (item.items?.length) {
     return (
       <SidebarMenuSubItem>
-        <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
+        <div className="px-2 py-1 text-left text-[11px] font-medium text-muted-foreground">
           {item.title}
         </div>
         <SidebarMenuSub>
@@ -203,7 +210,7 @@ function SubLeafRow({
         aria-label={
           hidden ? `Show ${item.title} in the sidebar` : `Hide ${item.title}`
         }
-        className={cn('cursor-pointer', hidden && mutedItemClass)}
+        className={cn('cursor-pointer text-left', hidden && mutedItemClass)}
         render={
           <button type="button" onClick={() => onToggle(item.href, hidden)} />
         }

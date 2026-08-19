@@ -139,6 +139,26 @@ describe('hideMenuHref / showMenuHref', () => {
     expect(next.hiddenMenuHrefs).not.toContain('/health')
     expect(next.hiddenMenuHrefs).toContain('/insights')
   })
+
+  test('hiding a leaf already in the preset hide list stays on that role', () => {
+    expect(
+      hideMenuHref(
+        fixture,
+        { workspacePreset: 'dba', hiddenMenuHrefs: [] },
+        '/health'
+      )
+    ).toEqual({ workspacePreset: 'dba', hiddenMenuHrefs: [] })
+  })
+
+  test('showing a visible Full leaf is a no-op', () => {
+    expect(
+      showMenuHref(
+        fixture,
+        { workspacePreset: 'full', hiddenMenuHrefs: [] },
+        '/overview'
+      )
+    ).toEqual({ workspacePreset: 'full', hiddenMenuHrefs: [] })
+  })
 })
 
 describe('effectiveHiddenMenuHrefs / menuItemIsHidden', () => {

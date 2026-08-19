@@ -247,7 +247,33 @@ export function applyWorkspacePreset(
   return { workspacePreset: next, hiddenMenuHrefs: [] }
 }
 
-/** Hide a leaf. Always lands on Custom so the hide list is the source of truth. */
+function sameHrefSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false
+  const seen = new Set(a)
+  return b.every((href) => seen.has(href))
+}
+
+/**
+ * Custom only when `nextHidden` diverges from `hideListForPreset`.
+ * Used by show: a no-op Show on a visible leaf stays on the named role.
+ * Expand/collapse never calls these helpers.
+ */
+function materializeIfDiverged(
+  items: readonly MenuItem[],
+  current: WorkspaceVisibility,
+  nextHidden: readonly string[]
+): WorkspaceVisibility {
+  if (current.workspacePreset === 'custom') {
+    return { workspacePreset: 'custom', hiddenMenuHrefs: [...nextHidden] }
+  }
+  const roleHidden = hideListForPreset(items, current)
+  if (sameHrefSet(roleHidden, nextHidden)) {
+    return current
+  }
+  return { workspacePreset: 'custom', hiddenMenuHrefs: [...nextHidden] }
+}
+
+/** Hide a leaf. Custom only when the hide list leaves the current role. */
 export function hideMenuHref(
   items: readonly MenuItem[],
   current: WorkspaceVisibility,
@@ -255,12 +281,12 @@ export function hideMenuHref(
 ): WorkspaceVisibility {
   const base = hideListForPreset(items, current)
   if (base.includes(href)) {
-    return { workspacePreset: 'custom', hiddenMenuHrefs: base }
+    return current
   }
   return { workspacePreset: 'custom', hiddenMenuHrefs: [...base, href] }
 }
 
-/** Show a leaf. Materializes the effective hide list, then drops this href. */
+/** Show a leaf. Custom only when the hide list leaves the current role. */
 export function showMenuHref(
   items: readonly MenuItem[],
   current: WorkspaceVisibility,
@@ -269,7 +295,7 @@ export function showMenuHref(
   const next = effectiveHiddenMenuHrefs(items, current).filter(
     (item) => item !== href
   )
-  return { workspacePreset: 'custom', hiddenMenuHrefs: next }
+  return materializeIfDiverged(items, current, next)
 }
 
 /** A parent is hidden when every descendant leaf is on the hide list. */
