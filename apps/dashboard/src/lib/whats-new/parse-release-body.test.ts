@@ -102,6 +102,28 @@ describe('stripToProductNotes', () => {
       { alt: 'Overview', url: 'https://example.com/overview.png' },
     ])
   })
+
+  test('drops 0.2.x recap blockquote, shoutout, and Docker even with old headings', () => {
+    const body = `> In this exciting release of **chmonitor**, we’ve celebrated 3 agents over 13 days, resulting in 63 commits and 62 pull requests. A special shoutout goes to @github-actions[bot].
+
+## ✨ Features
+- Introduce outage escalation and error spike alerts.
+
+## 📊 Release recap
+- 📦 **63 commits** across **62 pull requests**
+
+## 🐳 Docker image
+
+\`\`\`bash
+docker pull ghcr.io/chmonitor/chmonitor:0.2.16
+\`\`\`
+`
+    const result = stripToProductNotes(body)
+    expect(result.markdown).toContain('outage escalation')
+    expect(result.markdown).not.toContain('63 commits')
+    expect(result.markdown).not.toContain('shoutout')
+    expect(result.markdown).not.toContain('docker pull')
+  })
 })
 
 describe('parseChangelogMarkdown', () => {
@@ -200,5 +222,29 @@ describe('parseChangelogMarkdown', () => {
     expect(buildAirgapSnapshot(changelog, 1).map((n) => n.tag)).toEqual([
       'v0.3.3',
     ])
+  })
+
+  test('buildAirgapSnapshot overlays friendly notes when present', () => {
+    const changelog = `# Changelog
+
+## [0.3.3](https://example) (2026-08-15)
+
+### ✨ Features
+
+* **ui:** recap dump leftover
+`
+    const notes = buildAirgapSnapshot(changelog, 5, [
+      {
+        version: '0.3.3',
+        date: '2026-08-16',
+        summary: 'Human summary.',
+        bullets: ['Human bullet.'],
+        screenshots: [],
+      },
+    ])
+    expect(notes[0]?.kind).toBe('friendly')
+    expect(notes[0]?.markdown).toContain('Human summary')
+    expect(notes[0]?.markdown).toContain('Human bullet')
+    expect(notes[0]?.markdown).not.toContain('recap dump leftover')
   })
 })

@@ -5,6 +5,9 @@ Committed source of truth for images reused across the marketing/docs sites
 
 - `screenshots/` — product screenshots (dashboard captures, dialogs), both
   `-light`/`-dark` variants where available.
+- `whats-new/` — optional What's new dialog / `/changelog` screenshots.
+  Reference them as `/assets/whats-new/<file>` in `docs/whats-new/vX.Y.Z.md`.
+  Do not invent captures; omit the frontmatter key when none exist.
 - `videos/` — landing/blog launch films (mp4 + poster). Served at
   `/assets/videos/<file>` after sync.
 - `illustrations/` — bespoke brand illustrations (spot art, hero graphics) as

@@ -37,6 +37,9 @@ dashboard; lead with user impact, not implementation detail.
   link, or agent shoutout — the workflow appends those **below** your notes.
   Ignore the recap numbers for the opening Highlights unless a figure is
   genuinely user-facing (it almost never is).
+- The dashboard What's new file (`docs/whats-new/vX.Y.Z.md`) is generated in a
+  later step from these notes. Do not try to replace the GitHub Release body
+  with that short file.
 
 ## Release
 

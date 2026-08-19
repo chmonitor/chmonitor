@@ -1,6 +1,6 @@
 export const PRODUCT_RELEASE_TAG_RE = /^v\d+\.\d+\.\d+$/
 
-export const MAX_CHANGELOG_ITEMS = 5
+export const MAX_CHANGELOG_ITEMS = 8
 export const MAX_CHANGELOG_IMAGES = 4
 
 export type ReleaseNoteImage = { src: string; alt: string }
@@ -35,7 +35,35 @@ export function isProductReleaseTag(tag: string): boolean {
   return PRODUCT_RELEASE_TAG_RE.test(tag.trim())
 }
 
-function formatInline(text: string): string {
+/**
+ * Recap / shoutout / Docker copy that older 0.2.x GitHub Release bodies put
+ * in a leading blockquote. Keep in sync with the dashboard parser
+ * (`apps/dashboard/src/lib/whats-new/parse-release-body.ts`).
+ */
+export function isRecapLikeText(text: string): boolean {
+  const value = text.toLowerCase()
+  if (!value.trim()) return false
+  if (/\bshoutout\b/.test(value)) return true
+  if (/\bdocker\s+pull\b/.test(value)) return true
+  if (
+    /\b\d[\d,]*\s+commits?\b/.test(value) &&
+    /\bpull requests?\b/.test(value)
+  ) {
+    return true
+  }
+  if (
+    /\b\d[\d,]*\s+commits?\b/.test(value) &&
+    /\b(agents?|daytime|night-?time|night owls?)\b/.test(value)
+  ) {
+    return true
+  }
+  if (/\b\d[\d,]*\s+commits?\b/.test(value) && /\bacross\b/.test(value)) {
+    return true
+  }
+  return false
+}
+
+export function formatInline(text: string): string {
   return text
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/<img[^>]*>/gi, '')
@@ -73,14 +101,6 @@ function collectImages(md: string, maxImages: number): ReleaseNoteImage[] {
   return images
 }
 
-function isRecapLikeBullet(text: string): boolean {
-  return (
-    /\b\d+\s+commits?\b/i.test(text) ||
-    /\bshoutout\b/i.test(text) ||
-    /\bdocker\s+pull\b/i.test(text)
-  )
-}
-
 /**
  * Render Highlights + Features / Fixes / Perf from a GitHub Release body.
  * Skips recap stats, Docker, and the duplicated full-changelog dump so the
@@ -112,7 +132,9 @@ export function parseGithubReleaseNotes(
 
     const quote = line.match(/^>\s?(.*)$/)
     if (quote && (section === 'preface' || section === 'keep')) {
-      const text = formatInline(quote[1] ?? '')
+      const rawQuote = quote[1] ?? ''
+      if (section === 'preface' && isRecapLikeText(rawQuote)) continue
+      const text = formatInline(rawQuote)
       if (text) quotes.push(text)
       keptForImages.push(line)
       continue
@@ -121,7 +143,7 @@ export function parseGithubReleaseNotes(
     const bullet = line.match(/^[*-]\s+(.*)/)
     if (!bullet) continue
     const rawText = bullet[1] ?? ''
-    if (section === 'preface' && isRecapLikeBullet(rawText)) continue
+    if (section === 'preface' && isRecapLikeText(rawText)) continue
     const text = formatInline(rawText)
     if (!text) {
       keptForImages.push(line)

@@ -26,6 +26,9 @@ const SIDEBAR_GROUP = '[data-slot="sidebar"]'
 
 const USER_SETTINGS_STORAGE_KEY = 'clickhouse-monitor-user-settings'
 const E2E_USER_SETTINGS = {
+  // Dim (true) keeps tableCheck-gated leaves in the menu when e2e healthz /
+  // host probes fail. Hide (false) removes them — Running Queries uses
+  // tableCheck `system.processes`, so Hide would drop `a[href*="/running-queries"]`.
   dimUnavailablePages: true,
   workspacePreset: 'full',
   hiddenMenuHrefs: [] as string[],
@@ -58,7 +61,7 @@ function ensureDesktopRailExpanded() {
   cy.get(SIDEBAR_GROUP).should('have.attr', 'data-state', 'expanded')
 }
 
-function expandGroup(groupLabel: string, hrefPart: string) {
+function clickGroupTrigger(groupLabel: string) {
   const labelRe = new RegExp(`^${groupLabel}(\\s|$)`)
   cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
     .filter((_, el) =>
@@ -68,20 +71,47 @@ function expandGroup(groupLabel: string, hrefPart: string) {
     .first()
     .scrollIntoView()
     .click({ force: true })
+}
 
-  cy.get('body').then(($body) => {
-    if ($body.find(`a[href*="${hrefPart}"]`).length === 0) {
-      // First click collapsed an already-open group — toggle back.
-      cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
-        .filter((_, el) =>
-          labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim())
-        )
-        .first()
-        .click({ force: true })
-    }
+/**
+ * Groups default collapsed (#3130). Nested group links can render in a
+ * Popover portal outside `[data-sidebar="sidebar"]`, so search the document.
+ *
+ * One click can close an already-open group. Click once, wait up to ~2s for
+ * the href on the live document, and only then click again to re-open. Do
+ * not sync-read `$body.find` immediately after click (that races the
+ * submenu mount and a second click closes a group that was still opening).
+ */
+function waitForHrefOnDocument(hrefPart: string, timeoutMs: number) {
+  const hrefSel = `a[href*="${hrefPart}"]`
+  return cy
+    .document({ log: false })
+    .then({ timeout: timeoutMs + 250 }, (doc) => {
+      const deadline = Date.now() + timeoutMs
+      return new Cypress.Promise<boolean>((resolve) => {
+        const tick = () => {
+          if (doc.querySelector(hrefSel)) {
+            resolve(true)
+            return
+          }
+          if (Date.now() >= deadline) {
+            resolve(false)
+            return
+          }
+          setTimeout(tick, 50)
+        }
+        tick()
+      })
+    })
+}
+
+function expandGroup(groupLabel: string, hrefPart: string) {
+  const hrefSel = `a[href*="${hrefPart}"]`
+  clickGroupTrigger(groupLabel)
+  waitForHrefOnDocument(hrefPart, 2000).then((found) => {
+    if (!found) clickGroupTrigger(groupLabel)
   })
-
-  cy.get(`a[href*="${hrefPart}"]`, { timeout: 10000 }).should('exist')
+  cy.get(hrefSel, { timeout: 10000 }).should('exist')
 }
 
 function clickHref(hrefPart: string) {

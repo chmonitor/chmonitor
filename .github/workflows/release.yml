@@ -352,3 +352,98 @@ jobs:
             "clickhouse-monitor-${TAG}-cloudflare.tar.gz" \
             SHA256SUMS \
             --clobber
+
+  # Friendly What's new file for the dashboard dialog + landing /changelog.
+  # Does not replace the GitHub Release body (already published above).
+  whats-new:
+    name: whats-new
+    needs: [assets]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      contents: write
+      models: read
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Download release notes
+        uses: actions/download-artifact@v7
+        with:
+          name: release-assets-${{ needs.assets.outputs.tag }}
+          path: /tmp/release-assets
+
+      - name: Build What's new prompt
+        id: prompt
+        env:
+          RELEASE_TAG: ${{ needs.assets.outputs.tag }}
+        run: |
+          set -euo pipefail
+          DATE="$(date -u +%F)"
+          bun scripts/build-whats-new-prompt.ts \
+            --tag "$RELEASE_TAG" \
+            --date "$DATE" \
+            --release-notes /tmp/release-assets/release-notes.md \
+            --out whats-new-prompt.txt
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Friendly notes (GitHub Copilot)
+        id: ai_copilot
+        continue-on-error: true
+        uses: actions/ai-inference@v2
+        with:
+          provider: copilot
+          model: openai/gpt-4o
+          prompt-file: whats-new-prompt.txt
+
+      - name: Friendly notes (GitHub Models)
+        id: ai_models
+        if: ${{ steps.ai_copilot.outputs.response == '' }}
+        continue-on-error: true
+        uses: actions/ai-inference@v2
+        with:
+          provider: github-models
+          model: openai/gpt-4o
+          prompt-file: whats-new-prompt.txt
+
+      - name: Write docs/whats-new file
+        env:
+          RELEASE_TAG: ${{ needs.assets.outputs.tag }}
+          COPILOT_FILE: ${{ steps.ai_copilot.outputs.response-file }}
+          MODELS_FILE: ${{ steps.ai_models.outputs.response-file }}
+          DATE: ${{ steps.prompt.outputs.date }}
+        run: |
+          set -euo pipefail
+          AI=""
+          if [ -n "${COPILOT_FILE:-}" ] && [ -s "$COPILOT_FILE" ]; then AI="$COPILOT_FILE"
+          elif [ -n "${MODELS_FILE:-}" ] && [ -s "$MODELS_FILE" ]; then AI="$MODELS_FILE"
+          fi
+          ARGS=(--tag "$RELEASE_TAG" --date "$DATE" --release-notes /tmp/release-assets/release-notes.md)
+          if [ -n "$AI" ]; then ARGS+=(--ai-file "$AI"); fi
+          bun scripts/write-whats-new.ts "${ARGS[@]}"
+
+      - name: Commit friendly notes to main
+        env:
+          TAG: ${{ needs.assets.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git add docs/whats-new/*.md
+          if git diff --cached --quiet; then
+            echo "No What's new changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(dashboard): add What's new notes for ${TAG}
+
+          Co-Authored-By: duyetbot <bot@duyet.net>"
+          git pull --rebase origin main
+          git push origin HEAD:main
+

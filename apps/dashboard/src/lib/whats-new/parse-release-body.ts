@@ -110,6 +110,33 @@ function extractBlockquoteSummary(text: string): string[] {
   return lines
 }
 
+/**
+ * Recap / shoutout / Docker copy that older 0.2.x GitHub Release bodies put
+ * in a leading blockquote (before any heading) or as list items.
+ */
+export function isRecapLikeText(text: string): boolean {
+  const value = text.toLowerCase()
+  if (!value.trim()) return false
+  if (/\bshoutout\b/.test(value)) return true
+  if (/\bdocker\s+pull\b/.test(value)) return true
+  if (
+    /\b\d[\d,]*\s+commits?\b/.test(value) &&
+    /\bpull requests?\b/.test(value)
+  ) {
+    return true
+  }
+  if (
+    /\b\d[\d,]*\s+commits?\b/.test(value) &&
+    /\b(agents?|daytime|night-?time|night owls?)\b/.test(value)
+  ) {
+    return true
+  }
+  if (/\b\d[\d,]*\s+commits?\b/.test(value) && /\bacross\b/.test(value)) {
+    return true
+  }
+  return false
+}
+
 function extractListItems(text: string): string[] {
   const items: string[] = []
   for (const line of text.split('\n')) {
@@ -151,7 +178,14 @@ export function stripToProductNotes(
   const keepPreface = keep.has('highlights')
   const prefaceQuotes = extractBlockquoteSummary(preface)
   const prefaceImages = extractMarkdownImages(preface)
-  if (keepPreface && (prefaceQuotes.length > 0 || prefaceImages.length > 0)) {
+  const prefaceIsRecap = isRecapLikeText(prefaceQuotes.join(' '))
+  if (keepPreface && prefaceIsRecap) {
+    const imageLines = preface.split('\n').filter((line) => IMAGE_RE.test(line))
+    if (imageLines.length > 0) kept.push(imageLines.join('\n'))
+  } else if (
+    keepPreface &&
+    (prefaceQuotes.length > 0 || prefaceImages.length > 0)
+  ) {
     kept.push(trimSection(preface))
     highlights.push(...prefaceQuotes)
   }
@@ -193,5 +227,6 @@ export function buildReleaseNote(input: {
     summary: stripped.summary,
     markdown: stripped.markdown,
     highlights: stripped.highlights,
+    kind: 'stripped',
   }
 }

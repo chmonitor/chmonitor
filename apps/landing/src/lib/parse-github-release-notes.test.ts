@@ -106,4 +106,27 @@ describe('parseGithubReleaseNotes', () => {
     expect(parsed.html).toContain('second product bullet')
     expect(parsed.html).not.toContain('50 commits')
   })
+
+  test('drops 0.2.x recap blockquote, shoutout, and Docker', () => {
+    const body = `> In this exciting release of **chmonitor**, we’ve celebrated 3 agents over 13 days, resulting in a remarkable 63 commits and 62 pull requests. A special shoutout goes to @github-actions[bot].
+
+## ✨ Features
+- Introduce outage escalation and error spike alerts.
+
+## 📊 Release recap
+- 📦 **63 commits** across **62 pull requests**
+- 🏆 Shoutout to **@github-actions[bot]**
+
+## 🐳 Docker image
+
+\`\`\`bash
+docker pull ghcr.io/chmonitor/chmonitor:0.2.16
+\`\`\`
+`
+    const parsed = parseGithubReleaseNotes(body)
+    expect(parsed.html).toContain('outage escalation')
+    expect(parsed.html).not.toContain('63 commits')
+    expect(parsed.html).not.toContain('shoutout')
+    expect(parsed.html).not.toContain('docker pull')
+  })
 })
