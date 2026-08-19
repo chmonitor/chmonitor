@@ -1,7 +1,7 @@
 ---
 title: "A DBA, an SRE, and an engineer should not share a sidebar"
 description: "Pick a workspace role, hide pages you never open, pin the ones you do — the sidebar follows this browser, not the whole team."
-date: 2026-08-20
+date: 2026-08-19
 tag: Product
 ---
 
