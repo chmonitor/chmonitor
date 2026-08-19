@@ -70,7 +70,10 @@ export const FEATURE_PAGES: FeaturePage[] = [
         value: '29',
         label: 'tools across schema, diagnostics and optimization',
       },
-      { value: 'MCP', label: 'endpoint for Claude, Cursor, OpenCode and any client' },
+      {
+        value: 'MCP',
+        label: 'endpoint for Claude, Cursor, OpenCode and any client',
+      },
       { value: 'BYOM', label: 'bring your own model and API key' },
       { value: 'Read-only', label: 'nothing applied without you' },
     ],
