@@ -3,6 +3,14 @@ import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib
 import { formatCount, getGitHubStats } from '../lib/github-stars'
 import ThemeToggle from './ThemeToggle.astro'
 
+interface Props {
+  /** Prefix for on-site paths. Empty on landing; blog passes https://chmonitor.dev. */
+  origin?: string
+}
+
+const { origin = '' } = Astro.props
+const to = (path: string) => `${origin}${path}`
+
 // Build-time star count for the nav GitHub button (shared, fail-open fetch —
 // see github-stars.ts). Empty string when unknown, so the label degrades to
 // "Star" instead of showing a fabricated number.
@@ -30,7 +38,7 @@ const featureIco = (d: string) =>
 ---
   <header class="nav">
     <div class="wrap nav-row">
-      <a class="brand" href="/">
+      <a class="brand" href={to('/')}>
         <span class="mark" aria-hidden="true">
           <img src="/brand/logo-chmonitor.svg" alt="chmonitor" />
         </span>
@@ -43,20 +51,20 @@ const featureIco = (d: string) =>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="nav-menu nav-menu-grid">
-            <a href="/features/ai-agent"><span class="nav-ico" set:html={featureIco(featureIcons.aiAgent)} /><span class="nav-txt">AI Agent<small>Schema-aware recommendations &amp; MCP</small></span></a>
-            <a href="/features/overview"><span class="nav-ico" set:html={featureIco(featureIcons.overview)} /><span class="nav-txt">Cluster overview<small>Live charts the moment you connect</small></span></a>
-            <a href="/features/queries"><span class="nav-ico" set:html={featureIco(featureIcons.queries)} /><span class="nav-txt">Query monitoring<small>Running, slow, failed &amp; expensive</small></span></a>
-            <a href="/features/topology"><span class="nav-ico" set:html={featureIco(featureIcons.topology)} /><span class="nav-txt">Cluster topology<small>Nodes, shards, replicas &amp; Keeper</small></span></a>
-            <a href="/features/storage"><span class="nav-ico" set:html={featureIco(featureIcons.storage)} /><span class="nav-txt">Storage &amp; tables<small>Sizes, compression and disk headroom</small></span></a>
-            <a href="/features/traffic"><span class="nav-ico" set:html={featureIco(featureIcons.traffic)} /><span class="nav-txt">Traffic<small>Ingestion, compression &amp; write amplification</small></span></a>
-            <a href="/features/alerting"><span class="nav-ico" set:html={featureIco(featureIcons.alerting)} /><span class="nav-txt">Alerting<small>Health checks with webhooks</small></span></a>
-            <a href="/features/data-explorer"><span class="nav-ico" set:html={featureIco(featureIcons.explorer)} /><span class="nav-txt">Data Explorer<small>Tables, lineage and SQL console</small></span></a>
-            <a href="/features/insights"><span class="nav-ico" set:html={featureIco(featureIcons.insights)} /><span class="nav-txt">Insights<small>AI findings and cluster vitals</small></span></a>
-            <a href="/features/peerdb"><span class="nav-ico" set:html={featureIco(featureIcons.peerdb)} /><span class="nav-txt">PeerDB replication<small>Postgres → ClickHouse CDC</small></span></a>
-            <a href="/features/postgres"><span class="nav-ico" set:html={featureIco(featureIcons.postgres)} /><span class="nav-txt"><span class="nav-item-label">Postgres<span class="nav-badge">Beta</span></span><small>Monitor Postgres alongside</small></span></a>
+            <a href={to('/features/ai-agent')}><span class="nav-ico" set:html={featureIco(featureIcons.aiAgent)} /><span class="nav-txt">AI Agent<small>Schema-aware recommendations &amp; MCP</small></span></a>
+            <a href={to('/features/overview')}><span class="nav-ico" set:html={featureIco(featureIcons.overview)} /><span class="nav-txt">Cluster overview<small>Live charts the moment you connect</small></span></a>
+            <a href={to('/features/queries')}><span class="nav-ico" set:html={featureIco(featureIcons.queries)} /><span class="nav-txt">Query monitoring<small>Running, slow, failed &amp; expensive</small></span></a>
+            <a href={to('/features/topology')}><span class="nav-ico" set:html={featureIco(featureIcons.topology)} /><span class="nav-txt">Cluster topology<small>Nodes, shards, replicas &amp; Keeper</small></span></a>
+            <a href={to('/features/storage')}><span class="nav-ico" set:html={featureIco(featureIcons.storage)} /><span class="nav-txt">Storage &amp; tables<small>Sizes, compression and disk headroom</small></span></a>
+            <a href={to('/features/traffic')}><span class="nav-ico" set:html={featureIco(featureIcons.traffic)} /><span class="nav-txt">Traffic<small>Ingestion, compression &amp; write amplification</small></span></a>
+            <a href={to('/features/alerting')}><span class="nav-ico" set:html={featureIco(featureIcons.alerting)} /><span class="nav-txt">Alerting<small>Health checks with webhooks</small></span></a>
+            <a href={to('/features/data-explorer')}><span class="nav-ico" set:html={featureIco(featureIcons.explorer)} /><span class="nav-txt">Data Explorer<small>Tables, lineage and SQL console</small></span></a>
+            <a href={to('/features/insights')}><span class="nav-ico" set:html={featureIco(featureIcons.insights)} /><span class="nav-txt">Insights<small>AI findings and cluster vitals</small></span></a>
+            <a href={to('/features/peerdb')}><span class="nav-ico" set:html={featureIco(featureIcons.peerdb)} /><span class="nav-txt">PeerDB replication<small>Postgres → ClickHouse CDC</small></span></a>
+            <a href={to('/features/postgres')}><span class="nav-ico" set:html={featureIco(featureIcons.postgres)} /><span class="nav-txt"><span class="nav-item-label">Postgres<span class="nav-badge">Beta</span></span><small>Monitor Postgres alongside</small></span></a>
           </div>
         </div>
-        <a href="/customers">Customers</a>
+        <a href={to('/customers')}>Customers</a>
         <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a>
         <div class="nav-group">
           <button type="button" class="nav-trigger" aria-haspopup="true" aria-expanded="false">
@@ -65,9 +73,9 @@ const featureIco = (d: string) =>
           </button>
           <div class="nav-menu">
             <a href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog<small>Release notes and product updates</small></a>
-            <a href="/changelog">Changelog<small>Release notes and full ship log</small></a>
+            <a href={to('/changelog')}>Changelog<small>Release notes and full ship log</small></a>
             <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs<small>Setup, deploy and API guides</small></a>
-            <a href="/brand">Brand<small>Logos and brand assets</small></a>
+            <a href={to('/brand')}>Brand<small>Logos and brand assets</small></a>
           </div>
         </div>
       </nav>
@@ -113,19 +121,19 @@ const featureIco = (d: string) =>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
           <div class="nav-drawer-group-body">
-            <a href="/features/ai-agent">AI Agent</a>
-            <a href="/features/overview">Cluster overview</a>
-            <a href="/features/queries">Query monitoring</a>
-            <a href="/features/topology">Cluster topology</a>
-            <a href="/features/storage">Storage &amp; tables</a>
-            <a href="/features/alerting">Alerting</a>
-            <a href="/features/data-explorer">Data Explorer</a>
-            <a href="/features/insights">Insights</a>
-            <a href="/features/peerdb">PeerDB replication</a>
-            <a href="/features/postgres">Postgres<span class="nav-badge">Beta</span></a>
+            <a href={to('/features/ai-agent')}>AI Agent</a>
+            <a href={to('/features/overview')}>Cluster overview</a>
+            <a href={to('/features/queries')}>Query monitoring</a>
+            <a href={to('/features/topology')}>Cluster topology</a>
+            <a href={to('/features/storage')}>Storage &amp; tables</a>
+            <a href={to('/features/alerting')}>Alerting</a>
+            <a href={to('/features/data-explorer')}>Data Explorer</a>
+            <a href={to('/features/insights')}>Insights</a>
+            <a href={to('/features/peerdb')}>PeerDB replication</a>
+            <a href={to('/features/postgres')}>Postgres<span class="nav-badge">Beta</span></a>
           </div>
         </details>
-        <a href="/customers">Customers</a>
+        <a href={to('/customers')}>Customers</a>
         <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a>
         <details class="nav-drawer-group">
           <summary>
@@ -134,8 +142,8 @@ const featureIco = (d: string) =>
           </summary>
           <div class="nav-drawer-group-body">
             <a href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog</a>
-            <a href="/changelog">Changelog</a>
-            <a href="/brand">Brand</a>
+            <a href={to('/changelog')}>Changelog</a>
+            <a href={to('/brand')}>Brand</a>
           </div>
         </details>
       </div>

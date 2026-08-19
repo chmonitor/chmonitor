@@ -9,6 +9,7 @@ const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
 const home = read('src/pages/index.astro')
 const nav = read('src/components/Nav.astro')
 const footer = read('src/components/Footer.astro')
+const baseLayout = read('src/layouts/Base.astro')
 const hero = read('src/components/Hero.astro')
 const showcase = read('src/components/FeatureShowcase.astro')
 const featurePage = read('src/pages/features/[slug].astro')
@@ -39,7 +40,13 @@ describe('header nav does not advertise Pricing', () => {
   })
 
   test('Changelog still links to /changelog', () => {
-    expect(nav).toContain('href="/changelog"')
+    expect(nav).toContain("to('/changelog')")
+  })
+
+  test('Nav can prefix on-site paths for the blog', () => {
+    expect(nav).toContain('origin?: string')
+    expect(nav).toContain("const to = (path: string) => `${origin}${path}`")
+    expect(baseLayout).toContain("import '../styles/nav.css'")
   })
 
   test('footer still links to /pricing', () => {
