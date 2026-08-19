@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-19
+updated: 2026-08-20
 tags:
   - design-system
   - ui
@@ -219,7 +219,9 @@ caused a class of silent runtime breakage in #2361/#2363/#2364:
   `{ value: label }` record or `{ value, label }[]`) on `Select.Root`, or
   a render-function child. `placeholder` is empty-only — selected `24` /
   `__all__` otherwise paint those strings in the trigger. Incident: the
-  Advisor pick-query dialog (#3139).
+  Advisor pick-query dialog (#3139). Compare Source/Target
+  (`HostPairFilter`) must pass `items` as id → peer name so the closed
+  trigger shows `clickhouse-0`, never `0`.
 - Ground-truth attribute/var names live in
   `node_modules/@base-ui/react/**/*DataAttributes.js` / `*CssVars.js`.
 
@@ -661,12 +663,22 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   `lib/insights/mock-preview.ts`. Schema Compare (`/schema-diff`) with one
   saved host uses a real `EmptyState` (Add host opens `AddHostDialog`, same
   as HostSwitcher / first-run) plus a faded EXAMPLE of `TableList` +
-  `DdlPair` with placeholder names. Settings Diff (`/settings-diff`) with one
-  host keeps the live vs-default matrix and a banner to add another host;
-  two or more merged hosts (env + database + browser, including negative
-  ids) keep an All-hosts matrix with an optional pair mode (`HostPairFilter`
-  + URL `source`/`target`). Compare APIs resolve merged hosts the same way
-  charts do (`resolve-host-fetch.ts` / `use-merged-hosts.ts`).
+  `DdlPair` with placeholder names. Two or more peers keep a **static**
+  PageHeader (title + recommend-only description) — do not add a dynamic
+  "Comparing X → Y — N tables differ" sentence; the pair is the Source /
+  Target selects. Toolbar is one wrapping row (pair + filter + Differences
+  only left; Connections / Replica nodes toggle + Copy recommended SQL
+  right). Scope toggle (only when both hostCount and nodeCount are ≥ 2)
+  writes `?scope=hosts|nodes` and remounts the pair from that peer list.
+  Differences-only with zero diffs and no name filter is
+  `EmptyState variant="no-data"` titled **Schemas match**; "No tables
+  match" is only for a name-filter miss. Settings Diff (`/settings-diff`)
+  with one host keeps the live vs-default matrix and a banner to add
+  another host; two or more merged hosts (env + database + browser,
+  including negative ids) keep an All-hosts matrix with an optional pair
+  mode (`HostPairFilter` + URL `source`/`target`). Compare APIs resolve
+  merged hosts the same way charts do (`resolve-host-fetch.ts` /
+  `use-merged-hosts.ts`).
 - Overflow strip: for a single-row scroller that must not wrap, use
   `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
   tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped

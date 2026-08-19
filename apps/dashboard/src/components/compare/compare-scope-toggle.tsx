@@ -18,17 +18,24 @@ export function CompareScopeToggle({
   if (hostCount < 2 || nodeCount < 2) return null
 
   return (
-    <div aria-label="Compare saved hosts or cluster nodes">
-      <SegmentedControl
-        value={value}
-        onChange={(next) => {
-          if (next === 'hosts' || next === 'nodes') onChange(next)
-        }}
-        options={[
-          { label: 'Saved hosts', value: 'hosts' },
-          { label: 'Cluster nodes', value: 'nodes' },
-        ]}
-      />
-    </div>
+    <SegmentedControl
+      ariaLabel="Compare saved connections or replica nodes"
+      value={value}
+      onChange={(next) => {
+        if (next === 'hosts' || next === 'nodes') onChange(next)
+      }}
+      options={[
+        {
+          label: 'Connections',
+          value: 'hosts',
+          tooltip: 'Saved ClickHouse connections',
+        },
+        {
+          label: 'Replica nodes',
+          value: 'nodes',
+          tooltip: 'Nodes in this cluster',
+        },
+      ]}
+    />
   )
 }

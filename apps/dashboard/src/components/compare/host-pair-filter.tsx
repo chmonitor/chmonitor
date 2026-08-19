@@ -35,12 +35,15 @@ export function HostPairFilter({
   onNameFilterChange,
   onShowDiffsOnlyChange,
 }: HostPairFilterProps) {
+  const hostItems = Object.fromEntries(hosts.map((h) => [String(h.id), h.name]))
+
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+    <div className="flex flex-wrap items-center gap-3 sm:gap-4">
       <label className="flex items-center gap-2 text-[13px]">
         <span className="text-muted-foreground">Source</span>
         <Select
           value={String(sourceHostId)}
+          items={hostItems}
           onValueChange={(value) => {
             if (value == null) return
             const next = Number(value)
@@ -49,7 +52,11 @@ export function HostPairFilter({
             onPairChange(next, nextTarget)
           }}
         >
-          <SelectTrigger size="sm" className="h-8 min-w-40 text-[13px]">
+          <SelectTrigger
+            size="sm"
+            className="h-8 min-w-40 text-[13px]"
+            data-testid="compare-source"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -65,6 +72,7 @@ export function HostPairFilter({
         <span className="text-muted-foreground">Target</span>
         <Select
           value={String(targetHostId)}
+          items={hostItems}
           onValueChange={(value) => {
             if (value == null) return
             const next = Number(value)
@@ -73,7 +81,11 @@ export function HostPairFilter({
             onPairChange(nextSource, next)
           }}
         >
-          <SelectTrigger size="sm" className="h-8 min-w-40 text-[13px]">
+          <SelectTrigger
+            size="sm"
+            className="h-8 min-w-40 text-[13px]"
+            data-testid="compare-target"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

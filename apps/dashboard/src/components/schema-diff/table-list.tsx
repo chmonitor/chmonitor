@@ -1,3 +1,4 @@
+import type { EmptyStateVariant } from '@/components/ui/empty-state'
 import type { TableDiff } from '@/lib/schema-diff'
 
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,10 @@ interface TableListProps {
   selectedKey: string | null
   onSelect: (key: string) => void
   example?: boolean
+  emptyTitle?: string
+  emptyDescription?: string
+  emptyVariant?: EmptyStateVariant
+  emptyCompact?: boolean
 }
 
 function kindLabel(kind: TableDiff['kind']): string {
@@ -23,6 +28,10 @@ export function TableList({
   selectedKey,
   onSelect,
   example = false,
+  emptyTitle = 'No tables match',
+  emptyDescription = 'Try a different filter or turn off differences only.',
+  emptyVariant = 'filtered-empty',
+  emptyCompact = true,
 }: TableListProps) {
   return (
     <Card className="rounded-xl border bg-card shadow-sm">
@@ -31,10 +40,10 @@ export function TableList({
           {rows.length === 0 ? (
             <li className="p-4">
               <EmptyState
-                variant="filtered-empty"
-                compact
-                title="No tables match"
-                description="Try a different filter or turn off differences only."
+                variant={emptyVariant}
+                compact={emptyCompact}
+                title={emptyTitle}
+                description={emptyDescription}
               />
             </li>
           ) : (
