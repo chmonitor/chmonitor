@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   GITHUB_RELEASES_PAGE_URL,
@@ -73,14 +72,17 @@ export function WhatsNewDialog({
         className="flex max-h-[min(36rem,85vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 sm:max-w-lg"
         data-testid="whats-new-dialog"
       >
-        <DialogHeader className="border-b border-border px-4 py-3">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-3">
           <DialogTitle>What's new</DialogTitle>
           <DialogDescription>
             Product changes since your last visit.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto"
+          data-testid="whats-new-dialog-body"
+        >
           <div className="flex flex-col gap-6 px-4 py-4">
             {isLoading ? (
               <div
@@ -124,9 +126,9 @@ export function WhatsNewDialog({
               </section>
             ))}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="items-center gap-2 sm:justify-between">
+        <DialogFooter className="mx-0 mb-0 shrink-0 items-center gap-2 sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Button
               variant="link"

@@ -10,7 +10,7 @@ description: >-
   ?host routing + hooks-at-deepest-consumer, file/route organization, and brand.
   Triggers: "new page", "add a chart", "build UI", "design", "component",
   "empty state", "loading", "consistent", "follow-up feature", "match the design",
-  "what's new", "changelog", "settings gear",
+  "what's new", "changelog", "dialog scroll", "settings gear",
   "schema compare", "settings diff", "add host".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
@@ -80,6 +80,14 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   inside `PopoverContent`, closing the popover unmounts the dialog and nothing
   appears. Keep the selected item + dialog in the parent, as a sibling of
   `<Popover>` — see `components/insights/insights-popover.tsx`.
+- **Dialog with sticky header/footer:** `DialogContent` is `flex flex-col
+  overflow-hidden p-0` with `max-h-[min(36rem,85vh)]` (or a stable `h-[…]`).
+  Header and footer are `shrink-0`. The body is `min-h-0 flex-1 overflow-y-auto`
+  — that element is the scroll container. Do not use `ScrollArea` with `flex-1`
+  for this: its viewport is `size-full` and does not constrain unless the root
+  has an explicit height, so notes paint under the footer. Reset
+  `DialogFooter`'s default `-mx-4 -mb-4` to `mx-0 mb-0` when the dialog is
+  `p-0`. See `components/whats-new/whats-new-dialog.tsx`.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).
@@ -263,7 +271,9 @@ What's new is `WhatsNewButton` (`components/whats-new/`, lucide `Newspaper`,
 `UserSettings`). The dialog (`WhatsNewDialog`, sibling of the menu via
 `WhatsNewProvider` in `dashboard-shell.tsx`) lists `vX.Y.Z` GitHub Releases
 newest first; auto-opens **once** per upgrade (sessionStorage), never on every
-navigation. Manual open always works. Extra entry points: `WhatsNewMenuItem`
+navigation. Header and footer stay put; only the notes body
+(`min-h-0 flex-1 overflow-y-auto`) scrolls — see the sticky header/footer
+dialog idiom above. Manual open always works. Extra entry points: `WhatsNewMenuItem`
 next to About in the user dropdown, and a What's new action on `/about`. Do
 **not** add a Settings tab for changelog — Settings stays browser-local prefs.
 `GET /api/v1/releases` loads notes server-side (no browser GitHub calls);
