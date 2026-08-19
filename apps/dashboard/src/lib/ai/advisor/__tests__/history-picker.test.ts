@@ -106,6 +106,34 @@ describe('buildHistoryPickerQuery', () => {
       'query_duration_ms >='
     )
   })
+
+  test('filters in a CTE so aggregate aliases cannot leak into WHERE', () => {
+    const { sql } = buildHistoryPickerQuery({
+      user: 'duyet',
+      minDurationMs: 1000,
+    })
+    expect(sql).toMatch(/WITH\s+filtered\s+AS\s*\(/i)
+    expect(sql).toMatch(/FROM\s+filtered/i)
+
+    const cteOpen = sql.search(/WITH\s+filtered\s+AS\s*\(/i)
+    const cteSelect = sql.indexOf('SELECT', cteOpen)
+    const outerSelect = sql.indexOf('SELECT', cteSelect + 1)
+    expect(cteOpen).toBeGreaterThanOrEqual(0)
+    expect(cteSelect).toBeGreaterThan(cteOpen)
+    expect(outerSelect).toBeGreaterThan(cteSelect)
+
+    const cteBody = sql.slice(cteSelect, outerSelect)
+    expect(cteBody).toContain('event_time >= now()')
+    expect(cteBody).toContain('user = {user:String}')
+    expect(cteBody).toContain('query_duration_ms >= 1000')
+    expect(cteBody).not.toContain('max(event_time)')
+    expect(cteBody).not.toContain('any(user)')
+    expect(cteBody).not.toContain('max(query_duration_ms)')
+
+    const outer = sql.slice(outerSelect)
+    expect(outer).toContain('max(event_time) AS event_time')
+    expect(outer).not.toContain('WHERE')
+  })
 })
 
 describe('buildHistoryUsersQuery', () => {
