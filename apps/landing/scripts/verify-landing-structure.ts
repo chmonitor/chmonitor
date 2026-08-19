@@ -37,6 +37,9 @@ const forbidden = [
   // Removed rotating slogan surface — do not reintroduce a false match via JS.
   'data-hero-slogan',
   'data-slogans',
+  // Homepage no longer embeds Pricing cards or the changelog band.
+  'Always shipping',
+  'id="pricing"',
 ] as const
 
 let failed = false
@@ -161,7 +164,10 @@ if (html.includes('min-w-[640px]')) {
 const distVs = join(process.cwd(), 'dist/vs-grafana/index.html')
 try {
   const vsHtml = readFileSync(distVs, 'utf8')
-  if (!vsHtml.includes('cmp-matrix') || !vsHtml.includes('data-label="chmonitor"')) {
+  if (
+    !vsHtml.includes('cmp-matrix') ||
+    !vsHtml.includes('data-label="chmonitor"')
+  ) {
     console.error('MISSING stacked-matrix markers on /vs-grafana')
     failed = true
   } else {
@@ -179,10 +185,50 @@ if (html.includes('data-feature-count=')) {
   console.log('OK: no feature-count promo on homepage')
 }
 
+const headerStart = html.indexOf('<header')
+const headerEnd = html.indexOf('</header>')
+const header =
+  headerStart === -1 || headerEnd === -1
+    ? ''
+    : html.slice(headerStart, headerEnd)
+if (/href="\/pricing"/.test(header)) {
+  console.error('FORBIDDEN Pricing link in homepage header nav')
+  failed = true
+} else {
+  console.log('OK: homepage header nav has no Pricing link')
+}
+
+const drawerStart = html.indexOf('id="mobile-menu"')
+const drawerFoot = html.indexOf('nav-drawer-foot')
+const drawer =
+  drawerStart === -1 || drawerFoot === -1
+    ? ''
+    : html.slice(drawerStart, drawerFoot)
+if (/href="\/pricing"/.test(drawer)) {
+  console.error('FORBIDDEN Pricing link in homepage mobile nav')
+  failed = true
+} else {
+  console.log('OK: homepage mobile nav has no Pricing link')
+}
+
+const distPricing = join(process.cwd(), 'dist/pricing/index.html')
+try {
+  const pricingHtml = readFileSync(distPricing, 'utf8')
+  if (!pricingHtml.includes('id="pricing"')) {
+    console.error('MISSING pricing section in dist/pricing/index.html')
+    failed = true
+  } else {
+    console.log('OK: dist/pricing/index.html still has Pricing cards')
+  }
+} catch {
+  console.error('MISSING dist/pricing/index.html — run build first')
+  failed = true
+}
+
 const distChangelog = join(process.cwd(), 'dist/changelog/index.html')
 try {
   const changelogHtml = readFileSync(distChangelog, 'utf8')
-  if (!changelogHtml.includes('Always shipping') && !changelogHtml.includes('changelog')) {
+  if (!changelogHtml.toLowerCase().includes('changelog')) {
     console.error('MISSING changelog content in dist/changelog/index.html')
     failed = true
   } else {
