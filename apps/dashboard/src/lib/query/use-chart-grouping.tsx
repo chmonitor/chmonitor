@@ -67,7 +67,7 @@ export function ChartGroupingProvider({
   const browserConnection = hostId < 0 ? getConnectionByHostId(hostId) : null
   const connectionKey = hostConnectionKey(hostId, browserConnection)
 
-  const refreshInterval = names.reduce((min, name) => {
+  const refreshInterval = names.reduce<number>((min, name) => {
     const next = chartRefreshInterval(name) ?? REFRESH_INTERVAL.DEFAULT_60S
     return Math.min(min, next)
   }, REFRESH_INTERVAL.DEFAULT_60S)
@@ -129,10 +129,13 @@ export function ChartGroupingProvider({
       return json.data ?? {}
     },
     staleTime: Math.max(refreshInterval * 0.9, 5_000),
-    refetchInterval: () =>
-      typeof document !== 'undefined' && document.hidden
-        ? false
-        : refreshInterval,
+    refetchInterval:
+      refreshInterval > 0
+        ? () =>
+            typeof document !== 'undefined' && document.hidden
+              ? false
+              : refreshInterval
+        : false,
     refetchOnMount: true,
     refetchOnReconnect: true,
     placeholderData: (prev) => prev,
