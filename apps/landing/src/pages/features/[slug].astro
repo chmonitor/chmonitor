@@ -107,13 +107,12 @@ const faqJsonLd = {
       </div>
     </section>
 
-    <!-- numbered deep-dive sections -->
     {sections.map((section, i) => (
       <section class={`band${i % 2 === 1 ? ' band-soft' : ''}`}>
         <div class="wrap">
           <div class={`fp-section${section.reverse ? ' fp-reverse' : ''}`}>
             <div class="fp-copy reveal">
-              <span class="eyebrow">{String(i + 1).padStart(2, '0')} · {section.eyebrow}</span>
+              <span class="eyebrow">{section.eyebrow}</span>
               <h2>{section.title}</h2>
               <p>{section.body}</p>
               {section.bullets && (

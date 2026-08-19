@@ -10,6 +10,8 @@ const home = read('src/pages/index.astro')
 const nav = read('src/components/Nav.astro')
 const footer = read('src/components/Footer.astro')
 const hero = read('src/components/Hero.astro')
+const showcase = read('src/components/FeatureShowcase.astro')
+const featurePage = read('src/pages/features/[slug].astro')
 
 describe('homepage hides Pricing and the Always shipping band', () => {
   test('does not import or render Pricing or ChangelogBand', () => {
@@ -67,6 +69,18 @@ describe('hero pill links to the latest published blog post', () => {
     expect(hero).not.toMatch(/>New</)
     expect(hero).not.toContain('data-hero-oss')
     expect(hero).not.toContain('https://github.com/chmonitor/chmonitor')
+  })
+})
+
+describe('feature sections have no 01 / 08 index labels', () => {
+  test('homepage showcase does not number every block', () => {
+    expect(showcase).not.toContain('padStart')
+    expect(showcase).not.toContain('FEATURE_SECTIONS.length).padStart')
+  })
+
+  test('feature pages keep the eyebrow without a 01 · prefix', () => {
+    expect(featurePage).toContain('{section.eyebrow}')
+    expect(featurePage).not.toContain('padStart')
   })
 })
 
