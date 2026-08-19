@@ -289,6 +289,9 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   is hover-only on that row (never always-on). Favorites also show a grip
   handle on hover; drag it to reorder (`nav-favorites.tsx`). Order is the
   `chm-pinned-favorites` localStorage pin list (`lib/menu/favorites-store.ts`).
+  Leaf rows also reveal Hide (EyeOff) beside the pin; that writes
+  `hiddenMenuHrefs` via `hideMenuHref` and toasts Undo + Open Navigation
+  (Settings → Workspace → Navigation). Footer About is not hideable this way.
 
 - **Dashboard widget grid** (plan 57, `components/dashboard/`): `grid.tsx`
   lays out `DashboardWidget[]` (chart/table/stat/text, `@/types/dashboard-layout`)
