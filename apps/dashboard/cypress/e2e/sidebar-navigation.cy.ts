@@ -74,15 +74,44 @@ function clickGroupTrigger(groupLabel: string) {
 }
 
 /**
- * Groups default collapsed (#3130). Click once, then wait for the href.
- * Nested group links can render in a Popover portal outside
- * `[data-sidebar="sidebar"]`, so search the document — do not scope to
- * SIDEBAR. Do not sync-read `$body.find` and click again (that closes a
- * group whose submenu has not mounted yet).
+ * Groups default collapsed (#3130). Nested group links can render in a
+ * Popover portal outside `[data-sidebar="sidebar"]`, so search the document.
+ *
+ * One click can close an already-open group. Click once, wait up to ~2s for
+ * the href on the live document, and only then click again to re-open. Do
+ * not sync-read `$body.find` immediately after click (that races the
+ * submenu mount and a second click closes a group that was still opening).
  */
+function waitForHrefOnDocument(hrefPart: string, timeoutMs: number) {
+  const hrefSel = `a[href*="${hrefPart}"]`
+  return cy
+    .document({ log: false })
+    .then({ timeout: timeoutMs + 250 }, (doc) => {
+      const deadline = Date.now() + timeoutMs
+      return new Cypress.Promise<boolean>((resolve) => {
+        const tick = () => {
+          if (doc.querySelector(hrefSel)) {
+            resolve(true)
+            return
+          }
+          if (Date.now() >= deadline) {
+            resolve(false)
+            return
+          }
+          setTimeout(tick, 50)
+        }
+        tick()
+      })
+    })
+}
+
 function expandGroup(groupLabel: string, hrefPart: string) {
+  const hrefSel = `a[href*="${hrefPart}"]`
   clickGroupTrigger(groupLabel)
-  cy.get(`a[href*="${hrefPart}"]`, { timeout: 10000 }).should('exist')
+  waitForHrefOnDocument(hrefPart, 2000).then((found) => {
+    if (!found) clickGroupTrigger(groupLabel)
+  })
+  cy.get(hrefSel, { timeout: 10000 }).should('exist')
 }
 
 function clickHref(hrefPart: string) {
