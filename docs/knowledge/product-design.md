@@ -89,7 +89,13 @@ dialog is owned by `WhatsNewProvider` (sibling of the shell chrome, not inside
 the user menu). The same dialog also opens from a **What's new** item next to
 About in the user dropdown (`WhatsNewMenuItem`) and from an action on
 `/about`. Auto-open once on upgrade; dismiss / Got it writes last-seen.
-Notes come from `GET /api/v1/releases` (server-side GitHub Releases; airgap
+The dialog is a flex column (`max-h-[min(36rem,85vh)] overflow-hidden p-0`):
+header and footer are `shrink-0`; only the notes list
+(`data-testid="whats-new-dialog-body"`, `min-h-0 flex-1 overflow-y-auto`)
+scrolls. Native overflow on that body — not `ScrollArea` + `flex-1` — so a
+tall list cannot paint under GitHub Releases / Changelog / Got it. Footer
+resets the primitive's `-mx-4 -mb-4` (`mx-0 mb-0`) because the dialog is
+`p-0`. Notes come from `GET /api/v1/releases` (server-side GitHub Releases; airgap
 fallback is a **build-time snapshot** of latest `v*` Features, not
 the full CHANGELOG.md). Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
 `aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
