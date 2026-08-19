@@ -271,12 +271,13 @@ System) is a settings row (label left, three window thumbnails right)
 on Appearance only. Navigation leads with a `SegmentedControl` workspace
 preset (Full / DBA / Engineer / SRE / Custom) plus an in-page sidebar-like
 menu tree (same groups, icons, nested children as `nav-main`). Groups
-default collapsed; picking a role remounts them closed. Nested children
-are left-aligned with Hide/Show on the right (local row classes — do
-not use `SidebarMenuSubButton` here). Click a leaf to hide or show it —
-hidden rows stay visible but muted, like Dim unavailable pages.
-Expand/collapse does not write Custom; Hide/Show of a leaf does when
-the hide list leaves the role. Search filters the tree. Never a
+default collapsed; picking a role remounts them closed. Parent rows are
+chevron-only. Nested children use local `w-full justify-start text-left`
+with Hide `ml-auto` (settings tree is not a real Sidebar). Click a leaf
+to hide or show it — hidden rows stay visible but muted, like Dim
+unavailable pages. Expand/collapse does not write settings. Hide of an
+already-hidden-by-preset leaf stays on the role; Custom only when the
+hide list leaves `hideListForPreset`. Search filters the tree. Never a
 40-checkbox wall or a separate Hide-pages drawer. Then the Dim / Hide
 unavailable-page demos.
 Hidden pages stay routable. Filter through

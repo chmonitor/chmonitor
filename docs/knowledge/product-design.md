@@ -107,15 +107,16 @@ label-left / thumbnails-right row on Appearance only. Navigation
 leads with a workspace **preset** (`Full` / `DBA` / `Engineer` / `SRE` /
 `Custom`) plus an in-page sidebar-like menu tree (same Main/Others
 groups, chevrons, and leaf icons as `nav-main` / `app-sidebar`). Groups
-default **collapsed**; picking a role remounts them closed. Nested child
-rows are left-aligned (`text-left justify-start w-full`) with the
-indent + connector; Hide/Show sits on the right — a local settings-tree
-row, not `SidebarMenuSubButton` (its icon-collapsed centering must not
-leak here). Click a leaf to hide or show it; hidden rows stay visible
-but muted (same idea as Dim unavailable pages). Expand/collapse is
-UI-only. `hideMenuHref` / `showMenuHref` switch to Custom only when a
-**leaf** Hide/Show makes the hide list diverge from the selected role —
-not when expanding a parent, and not when the href is a folder. Search
+default **collapsed**; picking a role remounts them closed. Parent rows
+are chevron-only (not hideable). Nested child rows are local
+`w-full justify-start text-left` with Hide `ml-auto` — the settings
+tree is outside a real Sidebar, so `SidebarMenuSubButton`'s `w-full` /
+`pr-7` do not stretch. Do not change the live sidebar. Click a leaf to
+hide or show it; hidden rows stay visible but muted (same idea as Dim
+unavailable pages). Expand/collapse is UI-only. `hideMenuHref` /
+`showMenuHref` stay on the named preset when the hide list already
+matches `hideListForPreset` (hide of an already-hidden-by-preset leaf
+is a no-op); they switch to Custom only when the list diverges. Search
 filters the tree — no Hide-pages drawer and never a 40-checkbox wall.
 Then Dim vs Hide with two menu demos (Queries + dimmed/missing
 Backups). Hidden pages stay routable; Settings gear and the host

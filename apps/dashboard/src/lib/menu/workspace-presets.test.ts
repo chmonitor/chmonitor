@@ -27,16 +27,6 @@ const fixture: MenuItem[] = [
     ],
   },
   {
-    title: 'Tables',
-    href: '/tables',
-    items: [leaf({ title: 'Tables Overview', href: '/tables-overview' })],
-  },
-  {
-    title: 'Merges',
-    href: '/merges',
-    items: [leaf({ title: 'Merges', href: '/merges' })],
-  },
-  {
     title: 'Keeper',
     href: '',
     items: [leaf({ title: 'Keeper Info', href: '/keeper/info' })],
@@ -150,27 +140,7 @@ describe('hideMenuHref / showMenuHref', () => {
     expect(next.hiddenMenuHrefs).toContain('/insights')
   })
 
-  test('hiding a parent folder href does not switch to Custom', () => {
-    expect(
-      hideMenuHref(
-        fixture,
-        { workspacePreset: 'full', hiddenMenuHrefs: [] },
-        '/tables'
-      )
-    ).toEqual({ workspacePreset: 'full', hiddenMenuHrefs: [] })
-  })
-
-  test('showing a parent folder href does not switch to Custom', () => {
-    expect(
-      showMenuHref(
-        fixture,
-        { workspacePreset: 'dba', hiddenMenuHrefs: [] },
-        '/tables'
-      )
-    ).toEqual({ workspacePreset: 'dba', hiddenMenuHrefs: [] })
-  })
-
-  test('hiding a leaf that is already muted by the role stays on that role', () => {
+  test('hiding a leaf already in the preset hide list stays on that role', () => {
     expect(
       hideMenuHref(
         fixture,
@@ -188,19 +158,6 @@ describe('hideMenuHref / showMenuHref', () => {
         '/overview'
       )
     ).toEqual({ workspacePreset: 'full', hiddenMenuHrefs: [] })
-  })
-
-  test('hiding a leaf that shares a parent href still switches to Custom', () => {
-    expect(
-      hideMenuHref(
-        fixture,
-        { workspacePreset: 'full', hiddenMenuHrefs: [] },
-        '/merges'
-      )
-    ).toEqual({
-      workspacePreset: 'custom',
-      hiddenMenuHrefs: ['/merges'],
-    })
   })
 })
 

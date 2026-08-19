@@ -29,7 +29,11 @@ const SECTIONS: Exclude<MenuSection, 'footer'>[] = ['main', 'others']
 const menuButtonClass =
   'flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0'
 
-/** Local row — do not use SidebarMenuSubButton (icon-mode center leaks here). */
+/**
+ * Settings tree sits outside a real Sidebar, so SidebarMenuSubButton's
+ * `w-full` / `pr-7` do not stretch the row. Local classes: full width,
+ * left-aligned label, Hide on the right. Do not change the live sidebar.
+ */
 const subLeafButtonClass =
   'flex h-7 w-full min-w-0 items-center justify-start gap-2 overflow-hidden rounded-md px-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2'
 

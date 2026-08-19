@@ -247,16 +247,6 @@ export function applyWorkspacePreset(
   return { workspacePreset: next, hiddenMenuHrefs: [] }
 }
 
-/** True when `href` is a page with no children. Folder-only hrefs are not. */
-function isLeafMenuHref(items: readonly MenuItem[], href: string): boolean {
-  if (!href) return false
-  for (const item of items) {
-    if (!item.items?.length && item.href === href) return true
-    if (item.items?.length && isLeafMenuHref(item.items, href)) return true
-  }
-  return false
-}
-
 function sameHrefSet(a: readonly string[], b: readonly string[]): boolean {
   if (a.length !== b.length) return false
   const seen = new Set(a)
@@ -264,8 +254,9 @@ function sameHrefSet(a: readonly string[], b: readonly string[]): boolean {
 }
 
 /**
- * Custom only when the hide list actually diverges from the selected role.
- * Expand/collapse is UI-only; folder hrefs are not hide targets.
+ * Custom only when `nextHidden` diverges from `hideListForPreset`.
+ * Used by show: a no-op Show on a visible leaf stays on the named role.
+ * Expand/collapse never calls these helpers.
  */
 function materializeIfDiverged(
   items: readonly MenuItem[],
@@ -282,27 +273,25 @@ function materializeIfDiverged(
   return { workspacePreset: 'custom', hiddenMenuHrefs: [...nextHidden] }
 }
 
-/** Hide a leaf. Lands on Custom only when the hide list leaves the role. */
+/** Hide a leaf. Custom only when the hide list leaves the current role. */
 export function hideMenuHref(
   items: readonly MenuItem[],
   current: WorkspaceVisibility,
   href: string
 ): WorkspaceVisibility {
-  if (!isLeafMenuHref(items, href)) return current
-
   const base = hideListForPreset(items, current)
-  const nextHidden = base.includes(href) ? base : [...base, href]
-  return materializeIfDiverged(items, current, nextHidden)
+  if (base.includes(href)) {
+    return current
+  }
+  return { workspacePreset: 'custom', hiddenMenuHrefs: [...base, href] }
 }
 
-/** Show a leaf. Materializes Custom only when the hide list leaves the role. */
+/** Show a leaf. Custom only when the hide list leaves the current role. */
 export function showMenuHref(
   items: readonly MenuItem[],
   current: WorkspaceVisibility,
   href: string
 ): WorkspaceVisibility {
-  if (!isLeafMenuHref(items, href)) return current
-
   const next = effectiveHiddenMenuHrefs(items, current).filter(
     (item) => item !== href
   )
