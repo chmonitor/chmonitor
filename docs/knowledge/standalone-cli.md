@@ -114,9 +114,12 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 `--version` flags, same `cli_run`/`update` telemetry). Both print
 current -> target version, download the matching `chm-<target>` GitHub Release
 asset, require a matching `.sha256`, and atomically replace the running
-binary. They never invoke sudo. Checksum, permission, and unsupported-target
-failures print a copy-pasteable fallback (`scripts/install.sh` or
-`cargo install ch-monitor-cli --force`). Implementation: `src/update.rs`.
+binary. They never invoke sudo. Checksum, permission, download, and
+unsupported-target failures print a copy-pasteable fallback (`scripts/install.sh`
+or `cargo install ch-monitor-cli --force`; unsupported targets point at cargo
+only). `--version` accepts `chm-v0.2.0`, `v0.2.0`, `0.2.0`, or `chm-0.2.0`.
+Implementation: `src/update.rs`. Latest-tag lookup pages past dashboard/Helm
+releases and ranks published `chm-v*` tags by semver.
 
 ```bash
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- upgrade --check
@@ -142,9 +145,10 @@ curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/ins
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else
   (no silent wrong-arch installs).
-- Resolves the latest `chm-v*` release via the GitHub releases API (not the
-  repo's overall "latest" release — that's dashboard/Helm releases); pin a
-  specific one with `CHM_VERSION=chm-vX.Y.Z`.
+- Resolves the latest **published** `chm-v*` release via the GitHub releases
+  API, ranking by semver (not first-match / created_at) and skipping
+  drafts/prereleases. Dashboard/Helm tags share this API. Pin a specific
+  release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
 - Downloads the binary + its `.sha256` asset and verifies the checksum before
   installing; a missing or mismatched checksum is fatal (never installs an
   unverified binary). Fails loud (`set -euo pipefail`) on any

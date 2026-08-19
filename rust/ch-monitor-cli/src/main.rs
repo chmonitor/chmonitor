@@ -34,15 +34,23 @@ struct FileConfig {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "chm", version, about = "chmonitor CLI")]
+#[command(
+    name = "chm",
+    version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
+    about = "chmonitor CLI — dashboard API, TUI, and zero-signup diagnostics"
+)]
 struct Cli {
-    #[arg(long, env = "CHM_CONFIG")]
+    /// Path to config.toml (default ~/.config/chm/config.toml)
+    #[arg(long, env = "CHM_CONFIG", global = true)]
     config: Option<PathBuf>,
-    #[arg(long, env = "CHM_BASE_URL")]
+    /// Dashboard base URL (default http://localhost:3000)
+    #[arg(long, env = "CHM_BASE_URL", global = true)]
     base_url: Option<String>,
-    #[arg(long, env = "CHM_HOST_ID")]
+    /// Dashboard host id (default 0)
+    #[arg(long, env = "CHM_HOST_ID", global = true)]
     host_id: Option<u32>,
-    #[arg(long, env = "CHM_API_KEY")]
+    /// Dashboard API key (sent as x-api-key)
+    #[arg(long, env = "CHM_API_KEY", global = true)]
     api_key: Option<String>,
     #[command(subcommand)]
     command: Commands,
@@ -50,18 +58,27 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// List hosts from a running chmonitor dashboard
     Hosts,
+    /// Fetch a named chart from the dashboard API
     Chart {
+        /// Chart name, e.g. query-count
         name: String,
+        /// Max rows to print
         #[arg(long, default_value_t = 20)]
         limit: usize,
     },
+    /// Fetch a named table from the dashboard API
     Table {
+        /// Table name, e.g. running-queries
         name: String,
+        /// Max rows to print
         #[arg(long, default_value_t = 20)]
         limit: usize,
     },
+    /// Live terminal UI for a dashboard chart
     Tui {
+        /// Chart name (default: config `default_chart`, else query-count)
         chart: Option<String>,
     },
     /// Zero-signup local diagnostics: connect directly to a ClickHouse host
@@ -149,13 +166,55 @@ fn resolve_config(cli: &Cli) -> Result<AppConfig> {
     })
 }
 
+fn api_error_hint(status: u16) -> &'static str {
+    match status {
+        401 | 403 => " Check --api-key / CHM_API_KEY.",
+        404 => " Check the chart/table name and --host-id.",
+        _ => "",
+    }
+}
+
+fn truncate_body(s: &str, max_chars: usize) -> Option<String> {
+    if s.is_empty() {
+        return None;
+    }
+    let mut iter = s.chars();
+    let head: String = iter.by_ref().take(max_chars).collect();
+    if iter.next().is_some() {
+        Some(format!("{head}…"))
+    } else {
+        Some(head)
+    }
+}
+
 async fn fetch(client: &Client, url: String, api_key: Option<&str>) -> Result<Value> {
-    let mut req = client.get(url);
+    let mut req = client.get(&url);
     if let Some(k) = api_key {
         req = req.header("x-api-key", k);
     }
-    let resp = req.send().await?.error_for_status()?;
-    let parsed: ApiResponse = resp.json().await?;
+    let resp = match req.send().await {
+        Ok(resp) => resp,
+        Err(err) => {
+            bail!(
+                "failed to reach chmonitor API at {url}: {err}\n\
+                 Is the dashboard running? Set --base-url / CHM_BASE_URL \
+                 (default http://localhost:3000)."
+            );
+        }
+    };
+    let status = resp.status();
+    let text = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        let hint = api_error_hint(status.as_u16());
+        let extra = match truncate_body(text.trim(), 200) {
+            None => String::new(),
+            Some(body) => format!(" {body}"),
+        };
+        bail!("chmonitor API returned HTTP {status} for {url}.{hint}{extra}");
+    }
+    let parsed: ApiResponse = serde_json::from_str(&text).with_context(|| {
+        format!("chmonitor API at {url} returned a non-JSON body (HTTP {status})")
+    })?;
     Ok(parsed.data)
 }
 
@@ -282,6 +341,13 @@ mod tests {
             assert!(!args.check);
             assert_eq!(args.version.as_deref(), Some("chm-v0.2.0"));
         }
+        for argv in [
+            ["chm", "update", "--version", "0.2.0"],
+            ["chm", "upgrade", "--version", "0.2.0"],
+        ] {
+            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
+            assert_eq!(args.version.as_deref(), Some("0.2.0"));
+        }
     }
 
     #[test]
@@ -290,6 +356,59 @@ mod tests {
         let help = cmd.render_long_help().to_string();
         assert!(help.contains("update"), "{help}");
         assert!(help.contains("upgrade"), "{help}");
+    }
+
+    #[test]
+    fn dashboard_flags_are_accepted_after_subcommand() {
+        let cli = Cli::try_parse_from([
+            "chm",
+            "hosts",
+            "--base-url",
+            "http://127.0.0.1:3000",
+            "--host-id",
+            "2",
+        ])
+        .expect("global flags after subcommand");
+        assert_eq!(cli.base_url.as_deref(), Some("http://127.0.0.1:3000"));
+        assert_eq!(cli.host_id, Some(2));
+        assert!(matches!(cli.command, Commands::Hosts));
+    }
+
+    #[test]
+    fn version_output_includes_pkg_version_and_target() {
+        let cmd = Cli::command();
+        let version = cmd.get_version().expect("version");
+        assert!(version.contains(env!("CARGO_PKG_VERSION")), "{version}");
+        assert!(
+            version.contains(env!("CHM_TARGET")),
+            "expected compile-time target in version, got {version}"
+        );
+    }
+
+    #[test]
+    fn help_describes_core_commands() {
+        let mut cmd = Cli::command();
+        let help = cmd.render_long_help().to_string();
+        assert!(help.contains("List hosts"), "{help}");
+        assert!(help.contains("named chart"), "{help}");
+        assert!(help.contains("named table"), "{help}");
+        assert!(help.contains("zero-signup"), "{help}");
+        assert!(help.contains("--base-url"), "{help}");
+    }
+
+    #[test]
+    fn api_error_hint_covers_auth_and_missing() {
+        assert!(api_error_hint(401).contains("CHM_API_KEY"));
+        assert!(api_error_hint(403).contains("CHM_API_KEY"));
+        assert!(api_error_hint(404).contains("host-id"));
+        assert_eq!(api_error_hint(500), "");
+    }
+
+    #[test]
+    fn truncate_body_is_char_safe() {
+        assert_eq!(truncate_body("", 8), None);
+        assert_eq!(truncate_body("hello", 8).as_deref(), Some("hello"));
+        assert_eq!(truncate_body("éééé", 2).as_deref(), Some("éé…"));
     }
 
     #[test]
@@ -315,6 +434,9 @@ mod tests {
 }
 
 fn print_records(data: &[HashMap<String, Value>], limit: usize) {
+    if data.is_empty() {
+        return;
+    }
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     if let Some(first) = data.first() {
@@ -450,31 +572,43 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Hosts => {
             let url = format!("{}/api/v1/hosts", cfg.base_url);
-            let data = fetch(&client, url, cfg.api_key.as_deref()).await?;
+            let data = fetch(&client, url.clone(), cfg.api_key.as_deref()).await?;
             let hosts: Vec<HashMap<String, Value>> =
                 serde_json::from_value(data).context("hosts payload parse failed")?;
-            print_records(&hosts, 100);
+            if hosts.is_empty() {
+                eprintln!("no hosts returned from {url}");
+            } else {
+                print_records(&hosts, 100);
+            }
         }
         Commands::Chart { name, limit } => {
             let url = format!(
                 "{}/api/v1/charts/{}?hostId={}",
                 cfg.base_url, name, cfg.host_id
             );
-            let data = fetch(&client, url, cfg.api_key.as_deref()).await?;
+            let data = fetch(&client, url.clone(), cfg.api_key.as_deref()).await?;
             let data = Value::Array(rows_from_chart_data(data)?);
             let rows: Vec<HashMap<String, Value>> =
                 serde_json::from_value(data).context("chart payload parse failed")?;
-            print_records(&rows, limit);
+            if rows.is_empty() {
+                eprintln!("no rows returned from {url}");
+            } else {
+                print_records(&rows, limit);
+            }
         }
         Commands::Table { name, limit } => {
             let url = format!(
                 "{}/api/v1/tables/{}?hostId={}&pageSize={}",
                 cfg.base_url, name, cfg.host_id, limit
             );
-            let data = fetch(&client, url, cfg.api_key.as_deref()).await?;
+            let data = fetch(&client, url.clone(), cfg.api_key.as_deref()).await?;
             let rows: Vec<HashMap<String, Value>> =
                 serde_json::from_value(data).context("table payload parse failed")?;
-            print_records(&rows, limit);
+            if rows.is_empty() {
+                eprintln!("no rows returned from {url}");
+            } else {
+                print_records(&rows, limit);
+            }
         }
         Commands::Tui { chart } => {
             let c = chart.unwrap_or(cfg.default_chart.clone());
@@ -540,6 +674,7 @@ async fn main() -> Result<()> {
             if args.check {
                 let available = update::check(&client).await?;
                 if available {
+                    telemetry::finish(tel_handle).await;
                     std::process::exit(1);
                 }
             } else {

@@ -12,12 +12,16 @@ use reqwest::Client;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases?per_page=100";
+const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases";
 const RELEASE_DOWNLOAD: &str = "https://github.com/chmonitor/chmonitor/releases/download";
 const USER_AGENT: &str = concat!("chm-cli/", env!("CARGO_PKG_VERSION"));
 const INSTALL_SH: &str =
     "curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash";
 const CARGO_INSTALL: &str = "cargo install ch-monitor-cli --force";
+/// GitHub's default page size is 30; this repo also ships dashboard/Helm releases.
+const RELEASES_PER_PAGE: u32 = 100;
+/// Safety cap so a huge releases list cannot loop forever.
+const RELEASES_MAX_PAGES: u32 = 5;
 
 /// Compile-time target triple, injected by `build.rs`.
 const TARGET: &str = env!("CHM_TARGET");
@@ -70,12 +74,29 @@ fn newest_chm_tag(releases: &[Release]) -> Option<String> {
         .map(|(_, tag)| tag)
 }
 
+/// Normalize a user-supplied pin (`chm-v0.2.0`, `v0.2.0`, `0.2.0`, `chm-0.2.0`)
+/// into the GitHub release tag `chm-vX.Y.Z`.
+fn normalize_release_tag(tag: &str) -> String {
+    let t = tag.trim();
+    let rest = t
+        .strip_prefix("chm-v")
+        .or_else(|| t.strip_prefix("chm-"))
+        .or_else(|| t.strip_prefix('v'))
+        .unwrap_or(t)
+        .trim_start_matches('v');
+    format!("chm-v{rest}")
+}
+
 /// Copy-pasteable recovery when self-update cannot finish. Never includes a
 /// `sudo ` command — this path does not escalate privileges.
 fn fallback_block() -> String {
     format!(
         "This command never invokes sudo. Copy-paste a fallback:\n  {INSTALL_SH}\n\nor:\n  {CARGO_INSTALL}"
     )
+}
+
+fn with_fallback(detail: impl std::fmt::Display) -> anyhow::Error {
+    anyhow!("{detail}\n{}", fallback_block())
 }
 
 fn unsupported_target_error(target: &str) -> anyhow::Error {
@@ -87,25 +108,46 @@ fn unsupported_target_error(target: &str) -> anyhow::Error {
 }
 
 fn checksum_failure(detail: &str) -> anyhow::Error {
-    anyhow!("{detail}\n{}", fallback_block())
+    with_fallback(detail)
+}
+
+/// Fetch published GitHub releases, paging past dashboard/Helm tags.
+async fn fetch_releases(client: &Client, max_pages: u32) -> Result<Vec<Release>> {
+    let mut all = Vec::new();
+    for page in 1..=max_pages.max(1) {
+        let url = format!("{RELEASES_API}?per_page={RELEASES_PER_PAGE}&page={page}");
+        let batch: Vec<Release> = client
+            .get(&url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .await
+            .map_err(|e| with_fallback(format!("failed to reach GitHub releases API: {e}")))?
+            .error_for_status()
+            .map_err(|e| {
+                with_fallback(format!("GitHub releases API returned an error status: {e}"))
+            })?
+            .json()
+            .await
+            .map_err(|e| with_fallback(format!("failed to parse GitHub releases JSON: {e}")))?;
+        let n = batch.len();
+        all.extend(batch);
+        if n < RELEASES_PER_PAGE as usize {
+            break;
+        }
+    }
+    Ok(all)
 }
 
 /// Fetch the newest published `chm-v*` release tag.
 async fn latest_tag(client: &Client) -> Result<String> {
-    let releases: Vec<Release> = client
-        .get(RELEASES_API)
-        .header("User-Agent", USER_AGENT)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-        .context("failed to reach GitHub releases API")?
-        .error_for_status()
-        .context("GitHub releases API returned an error status")?
-        .json()
-        .await
-        .context("failed to parse GitHub releases JSON")?;
-    newest_chm_tag(&releases)
-        .ok_or_else(|| anyhow!("no chm-v* release found — has the CLI been released yet?"))
+    let releases = fetch_releases(client, RELEASES_MAX_PAGES).await?;
+    newest_chm_tag(&releases).ok_or_else(|| {
+        with_fallback(
+            "no published chm-v* release found — pin one with --version chm-vX.Y.Z, \
+             or has the CLI been released yet?",
+        )
+    })
 }
 
 fn current_version() -> Version {
@@ -144,16 +186,8 @@ pub async fn hint(client: &Client) {
         return;
     }
     let fut = async {
-        let releases: Vec<Release> = client
-            .get(RELEASES_API)
-            .header("User-Agent", USER_AGENT)
-            .header("Accept", "application/vnd.github+json")
-            .send()
-            .await
-            .ok()?
-            .json()
-            .await
-            .ok()?;
+        // One page is enough for a best-effort hint (sub-second timeout).
+        let releases = fetch_releases(client, 1).await.ok()?;
         let tag = newest_chm_tag(&releases)?;
         let latest = parse_version(&tag)?;
         if latest > current_version() {
@@ -176,13 +210,7 @@ pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
     let current = current_version();
 
     let target_tag = match pinned {
-        Some(tag) => {
-            if tag.starts_with("chm-v") {
-                tag
-            } else {
-                format!("chm-v{}", tag.trim_start_matches('v'))
-            }
-        }
+        Some(tag) => normalize_release_tag(&tag),
         None => latest_tag(client).await?,
     };
     let target_version = parse_version(&target_tag)
@@ -205,14 +233,16 @@ pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
         .header("User-Agent", USER_AGENT)
         .send()
         .await
-        .with_context(|| format!("failed to download {bin_url}"))?
+        .map_err(|e| with_fallback(format!("failed to download {bin_url}: {e}")))?
         .error_for_status()
-        .with_context(|| {
-            format!("no release asset at {bin_url} — is {TARGET} published for {target_tag}?")
+        .map_err(|_| {
+            with_fallback(format!(
+                "no release asset at {bin_url} — is {TARGET} published for {target_tag}?"
+            ))
         })?
         .bytes()
         .await
-        .context("failed to read downloaded binary")?;
+        .map_err(|e| with_fallback(format!("failed to read downloaded binary: {e}")))?;
 
     // Checksum verification is mandatory: abort on a missing or mismatched sum.
     let sha_text = match client
@@ -350,6 +380,24 @@ mod tests {
     }
 
     #[test]
+    fn normalize_release_tag_accepts_common_pins() {
+        assert_eq!(normalize_release_tag("chm-v0.2.0"), "chm-v0.2.0");
+        assert_eq!(normalize_release_tag("v0.2.0"), "chm-v0.2.0");
+        assert_eq!(normalize_release_tag("0.2.0"), "chm-v0.2.0");
+        assert_eq!(normalize_release_tag("chm-0.2.0"), "chm-v0.2.0");
+        assert_eq!(normalize_release_tag("  chm-v0.1.1  "), "chm-v0.1.1");
+    }
+
+    #[test]
+    fn newest_tag_picks_semver_not_list_order() {
+        // install.sh used to take the first chm-v* grep match (GitHub created_at
+        // order, including drafts). Self-update must rank published tags by semver.
+        let json = r#"[{"tag_name":"chm-v0.1.0","prerelease":false,"draft":true},{"tag_name":"v0.3.3","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.0","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.1","prerelease":false,"draft":false}]"#;
+        let releases: Vec<Release> = serde_json::from_str(json).unwrap();
+        assert_eq!(newest_chm_tag(&releases).as_deref(), Some("chm-v0.1.1"));
+    }
+
+    #[test]
     fn semver_ordering() {
         assert!(parse_version("chm-v0.2.0") > parse_version("chm-v0.1.9"));
         assert!(parse_version("chm-v1.0.0") > parse_version("chm-v0.99.99"));
@@ -430,10 +478,21 @@ mod tests {
     }
 
     #[test]
+    fn download_failure_includes_fallback() {
+        let msg = with_fallback("no release asset at https://example/chm-x").to_string();
+        assert!(msg.contains("no release asset"), "{msg}");
+        assert_copy_pasteable_fallback(&msg);
+    }
+
+    #[test]
     fn unsupported_target_points_at_cargo() {
         let msg = unsupported_target_error("wasm32-unknown-unknown").to_string();
         assert!(msg.contains("wasm32-unknown-unknown"), "{msg}");
         assert!(msg.contains("cargo install ch-monitor-cli"), "{msg}");
+        assert!(
+            !msg.contains("install.sh"),
+            "unsupported-target fallback must not point at install.sh: {msg}"
+        );
         assert!(
             !msg.contains("sudo "),
             "unsupported-target fallback must not suggest a sudo command: {msg}"
