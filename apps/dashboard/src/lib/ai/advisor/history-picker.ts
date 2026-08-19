@@ -178,7 +178,23 @@ export function buildHistoryPickerQuery(
     where.push(`query_duration_ms >= ${minDurationMs}`)
   }
 
+  // Filter in a CTE, then aggregate. The analyzer substitutes SELECT
+  // aliases into WHERE when they share a column name — so
+  // `max(event_time) AS event_time` + `WHERE event_time >= …` (and the
+  // same for `user` / `query_duration_ms`) raises ILLEGAL_AGGREGATION
+  // (code 184). Keeping WHERE on the un-aggregated scan avoids that.
   const sql = `
+    WITH filtered AS (
+      SELECT
+        query_id,
+        query,
+        user,
+        query_duration_ms,
+        event_time,
+        read_rows
+      FROM system.query_log
+      WHERE ${where.join('\n        AND ')}
+    )
     SELECT
       query_id,
       any(query) AS query,
@@ -186,8 +202,7 @@ export function buildHistoryPickerQuery(
       max(query_duration_ms) AS query_duration_ms,
       max(event_time) AS event_time,
       max(read_rows) AS read_rows
-    FROM system.query_log
-    WHERE ${where.join('\n      AND ')}
+    FROM filtered
     GROUP BY query_id
     ORDER BY query_duration_ms DESC
     LIMIT ${limit}
