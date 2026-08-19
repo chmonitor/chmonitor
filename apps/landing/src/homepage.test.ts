@@ -1,3 +1,4 @@
+import { getLatestBlogPost } from './lib/latest-blog-post'
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -8,6 +9,7 @@ const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
 const home = read('src/pages/index.astro')
 const nav = read('src/components/Nav.astro')
 const footer = read('src/components/Footer.astro')
+const hero = read('src/components/Hero.astro')
 
 describe('homepage hides Pricing and the Always shipping band', () => {
   test('does not import or render Pricing or ChangelogBand', () => {
@@ -40,5 +42,28 @@ describe('header nav does not advertise Pricing', () => {
 
   test('footer still links to /pricing', () => {
     expect(footer).toContain('href="/pricing"')
+  })
+})
+
+describe('hero pill links to the latest published blog post', () => {
+  const latest = getLatestBlogPost()
+
+  test('helper resolves a published post on blog.chmonitor.dev', () => {
+    expect(latest).not.toBeNull()
+    expect(latest!.href).toContain('blog.chmonitor.dev')
+    expect(latest!.href).toBe(
+      `https://blog.chmonitor.dev/${latest!.slug}/`
+    )
+    expect(latest!.title.length).toBeGreaterThan(0)
+  })
+
+  test('hero source renders that post via the helper (not a hardcoded slug)', () => {
+    expect(hero).toContain("from '../lib/latest-blog-post'")
+    expect(hero).toContain('getLatestBlogPost')
+    expect(hero).toContain('data-hero-latest-post')
+    expect(hero).toContain('href={latestPost.href}')
+    expect(hero).toContain('{latestPost.title}')
+    expect(hero).not.toContain('data-hero-oss')
+    expect(hero).not.toContain('https://github.com/chmonitor/chmonitor')
   })
 })
