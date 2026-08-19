@@ -4,7 +4,6 @@ import { aboutItems } from './about'
 import { aiAgentItems } from './ai-agent'
 import { clusterItems } from './cluster'
 import { healthItems } from './health'
-import { inboundEventsItems } from './inbound-events'
 import { insightsItems } from './insights'
 import { keeperItems } from './keeper'
 import { logsItems } from './logs'
@@ -30,7 +29,6 @@ export const menuItemsConfig: MenuItem[] = [
   ...aiAgentItems,
   ...insightsItems,
   ...healthItems,
-  ...inboundEventsItems,
   ...queriesItems,
   ...tablesItems,
   ...mergesItems,

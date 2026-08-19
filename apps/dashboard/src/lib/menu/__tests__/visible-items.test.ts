@@ -217,6 +217,9 @@ describe('filterMenuItemsByEngine', () => {
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
     expect(pgTitles).not.toContain('Health')
+    // #3134: nested under Health (default source-engine family); do not leak as a
+    // stray top-level item on Postgres hosts.
+    expect(pgTitles).not.toContain('Inbound Events')
     // #3115: the whole Tools group is hidden, not an empty parent.
     expect(pgTitles).not.toContain('Tools')
   })

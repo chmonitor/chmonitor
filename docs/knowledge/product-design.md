@@ -679,10 +679,11 @@ The dashboard sidebar (and Settings > Navigation, ⌘K, breadcrumbs) is composed
 from `apps/dashboard/src/menu/*.ts` via `menu/index.ts` (re-exported as
 `src/menu.ts`). Order in `menuItemsConfig` is the sidebar order.
 
-**Main**: Overview, Postgres (engine-gated), AI Agent, Insights, Health,
-Queries, Tables, Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
+**Main**: Overview, Postgres (engine-gated), AI Agent, Insights, Health
+(Health, Health Settings, Alert Settings, Inbound Events), Queries, Tables,
+Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 
-**Others**: Inbound Events, Security, Logs, System, Cluster, Operations.
+**Others**: Security, Logs, System, Cluster, Operations.
 
 **Footer**: About (next to the Settings gear; never hidden by a workspace
 preset).

@@ -20,7 +20,7 @@ Point Alertmanager, Datadog, or any generic webhook at chmonitor and see the eve
 
 `POST /api/events/ingest` accepts a webhook payload, detects its source, and reduces it to one common event shape: `{ source, severity, resource, title, body, labels }`. Repeated occurrences of the same alert collapse onto a single row (a bumped `count`/`last seen`) via a content hash of `(source, resource, title, severity)`, so a flapping alert doesn't flood the feed.
 
-The `/inbound-events` page lists the stored events with source and severity filters. Use the **Setup** button in the top-right for the host-aware endpoint URL and copy-paste examples.
+The `/inbound-events` page (sidebar: **Health → Inbound Events**) lists the stored events with source and severity filters. Use the **Setup** button in the top-right for the host-aware endpoint URL and copy-paste examples.
 
 ## Where events are stored
 

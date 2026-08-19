@@ -99,9 +99,9 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "title": "Alert Settings",
   },
   {
-    "depth": 0,
+    "depth": 1,
     "href": "/inbound-events",
-    "section": "others",
+    "section": undefined,
     "title": "Inbound Events",
   },
   {

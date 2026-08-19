@@ -1,3 +1,5 @@
+import { menuItemsConfig } from '@/menu'
+
 import type { MenuItem } from '@/components/menu/types'
 
 import { describe, expect, test } from 'bun:test'
@@ -125,5 +127,21 @@ describe('derivePaletteGroups', () => {
       query: 'default.events',
     })
     expect(tableResult.quickNav.isTableName).toBe(true)
+  })
+
+  test('Inbound Events is under Health, not a top-level Go-to leaf (#3134)', () => {
+    const result = derivePaletteGroups({
+      menuItems: menuItemsConfig,
+      favoriteMenuItems: [],
+      tableRows: [],
+      hosts: [],
+      currentHostId: 0,
+      query: '',
+    })
+    expect(result.leafItems.map((item) => item.href)).not.toContain(
+      '/inbound-events'
+    )
+    const health = result.sectionedItems.find((item) => item.title === 'Health')
+    expect(health?.items?.map((item) => item.href)).toContain('/inbound-events')
   })
 })
