@@ -40,6 +40,95 @@ need_cmd curl
 need_cmd uname
 need_cmd mktemp
 
+# Normalize a pin (chm-v0.2.0 / v0.2.0 / 0.2.0 / chm-0.2.0) to chm-vX.Y.Z.
+normalize_chm_tag() {
+  rest="$1"
+  rest="${rest#chm-v}"
+  rest="${rest#chm-}"
+  rest="${rest#v}"
+  printf 'chm-v%s\n' "$rest"
+}
+
+# True when $1 (x.y.z) is strictly greater than $2.
+semver_gt() {
+  IFS=. read -r a1 a2 a3 _ <<EOF
+${1}
+EOF
+  IFS=. read -r b1 b2 b3 _ <<EOF
+${2}
+EOF
+  a1="${a1:-0}"; a2="${a2:-0}"; a3="${a3:-0}"
+  b1="${b1:-0}"; b2="${b2:-0}"; b3="${b3:-0}"
+  case "$a1$a2$a3$b1$b2$b3" in
+    *[!0-9]*) return 1 ;;
+  esac
+  if [ "$a1" -gt "$b1" ]; then return 0; fi
+  if [ "$a1" -lt "$b1" ]; then return 1; fi
+  if [ "$a2" -gt "$b2" ]; then return 0; fi
+  if [ "$a2" -lt "$b2" ]; then return 1; fi
+  [ "$a3" -gt "$b3" ]
+}
+
+# Newest published chm-v* tag from GitHub releases JSON (skip drafts/prereleases).
+# Ranks by semver, not list order — dashboard/Helm releases share this API.
+pick_newest_chm_tag() {
+  json="$1"
+  best_tag=""
+  best_ver="0.0.0"
+  cur_tag=""
+  cur_draft=""
+  cur_pre=""
+
+  consider_tag() {
+    tag="$1"
+    draft="$2"
+    pre="$3"
+    case "$tag" in
+      chm-v*) ;;
+      *) return 0 ;;
+    esac
+    if [ "$draft" = "true" ] || [ "$pre" = "true" ]; then
+      return 0
+    fi
+    ver="${tag#chm-v}"
+    case "$ver" in
+      *-*) return 0 ;;
+    esac
+    if [ -z "$best_tag" ] || semver_gt "$ver" "$best_ver"; then
+      best_tag="$tag"
+      best_ver="$ver"
+    fi
+    return 0
+  }
+
+  # Stream tag_name / draft / prerelease in document order (compact JSON, no jq).
+  # `|| true`: grep exits 1 on no match, and pipefail would abort the installer.
+  fields="$(printf '%s' "$json" | grep -oE '"(tag_name|draft|prerelease)": *("[^"]*"|true|false)' | sed -E 's/"tag_name": *"([^"]*)"/tag_name \1/; s/"draft": *(true|false)/draft \1/; s/"prerelease": *(true|false)/prerelease \1/' || true)"
+  while read -r key val; do
+    [ -n "$key" ] || continue
+    case "$key" in
+      tag_name)
+        if [ -n "$cur_tag" ]; then
+          consider_tag "$cur_tag" "$cur_draft" "$cur_pre"
+        fi
+        cur_tag="$val"
+        cur_draft=""
+        cur_pre=""
+        ;;
+      draft) cur_draft="$val" ;;
+      prerelease) cur_pre="$val" ;;
+    esac
+  done <<EOF
+${fields}
+EOF
+  if [ -n "$cur_tag" ]; then
+    consider_tag "$cur_tag" "$cur_draft" "$cur_pre"
+  fi
+  if [ -n "$best_tag" ]; then
+    printf '%s\n' "$best_tag"
+  fi
+}
+
 # --- detect OS/arch, map to the release workflow's target triples ---------
 detect_target() {
   os="$(uname -s)"
@@ -60,31 +149,41 @@ detect_target() {
   printf '%s-%s\n' "$arch_part" "$os_part"
 }
 
+if [ "${CHM_INSTALL_SELF_TEST:-}" = "1" ]; then
+  [ "$(normalize_chm_tag '0.2.0')" = "chm-v0.2.0" ]
+  [ "$(normalize_chm_tag 'chm-0.2.0')" = "chm-v0.2.0" ]
+  [ "$(normalize_chm_tag 'v0.2.0')" = "chm-v0.2.0" ]
+  [ "$(normalize_chm_tag 'chm-v0.2.0')" = "chm-v0.2.0" ]
+  json='[{"tag_name":"chm-v0.1.0","prerelease":false,"draft":true},{"tag_name":"v0.3.3","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.0","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.1","prerelease":false,"draft":false},{"tag_name":"chm-v0.2.0","prerelease":true,"draft":false}]'
+  got="$(pick_newest_chm_tag "$json")"
+  if [ "$got" != "chm-v0.1.1" ]; then
+    die "pick_newest_chm_tag: expected chm-v0.1.1, got '$got'"
+  fi
+  empty="$(pick_newest_chm_tag '[]')"
+  [ -z "$empty" ]
+  log "install.sh self-test ok"
+  exit 0
+fi
+
 TARGET="$(detect_target)"
 ASSET_NAME="${BIN_NAME}-${TARGET}"
 
 # --- resolve the release tag ----------------------------------------------
 resolve_version() {
   if [ -n "${CHM_VERSION:-}" ]; then
-    printf '%s\n' "$CHM_VERSION"
+    normalize_chm_tag "$CHM_VERSION"
     return
   fi
 
-  log "Looking up latest chm-v* release..."
+  log "Looking up latest published chm-v* release..."
   releases_json="$(curl -fsSL -H "User-Agent: chmonitor-installer" \
     "https://api.github.com/repos/${REPO}/releases?per_page=100" 2>/dev/null)" \
-    || die "failed to query GitHub releases API for ${REPO}"
+    || die "failed to query GitHub releases API for ${REPO}. Fallback: cargo install ch-monitor-cli --force"
 
-  # The API returns compact single-line JSON, so extract just the matching
-  # fragment with `grep -o` — a line-based sed would greedily capture the LAST
-  # tag_name on the line instead of the first chm-v* one.
-  tag="$(printf '%s' "$releases_json" \
-    | grep -o '"tag_name": *"chm-v[^"]*"' \
-    | head -n 1 \
-    | sed -E 's/.*"(chm-v[^"]*)".*/\1/')"
+  tag="$(pick_newest_chm_tag "$releases_json")"
 
   if [ -z "$tag" ]; then
-    die "no chm-v* release found for ${REPO} yet. The CLI has not been cut a release yet — ask the maintainer to push a 'chm-v*' tag, or build from source: cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml. You can also pin an explicit tag with CHM_VERSION=chm-vX.Y.Z."
+    die "no published chm-v* release found for ${REPO} yet. Pin one with CHM_VERSION=chm-vX.Y.Z, or: cargo install ch-monitor-cli --force"
   fi
 
   printf '%s\n' "$tag"
@@ -104,7 +203,7 @@ BIN_PATH="${TMP_DIR}/${ASSET_NAME}"
 SHA_PATH="${TMP_DIR}/${ASSET_NAME}.sha256"
 
 if ! curl -fsSL -o "$BIN_PATH" "$BIN_URL"; then
-  die "failed to download ${BIN_URL} — the release may not include a binary for ${TARGET}, or the tag doesn't exist. Set CHM_VERSION to try a different release, or build from source."
+  die "failed to download ${BIN_URL} — the release may not include a binary for ${TARGET}, or the tag doesn't exist. Set CHM_VERSION=chm-vX.Y.Z to pin a different release, or: cargo install ch-monitor-cli --force"
 fi
 
 if [ ! -s "$BIN_PATH" ]; then
@@ -161,6 +260,7 @@ log "  CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default ${INSTALL_D
 log ""
 log "Update later with:"
 log "  ${BIN_NAME} upgrade"
+log "  ${BIN_NAME} update     # same command"
 
 # --- anonymous, opt-out install ping (best-effort, backgrounded) -----------
 # Records a single anonymous cli_install event (os/arch + version) to the same

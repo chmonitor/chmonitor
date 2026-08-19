@@ -43,7 +43,7 @@ print a copy-pasteable fallback (`scripts/install.sh` or
 chm upgrade                      # alias of update — install the latest chm-v* release
 chm update                       # same behaviour
 chm update --check               # only report if a newer release exists (exit 1 if so)
-chm upgrade --version chm-v0.2.0 # pin a specific release
+chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` also work)
 ```
 
 After a `chm diagnose` run, a one-line "update available" hint is printed to
