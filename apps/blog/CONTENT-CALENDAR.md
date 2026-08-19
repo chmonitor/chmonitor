@@ -50,9 +50,10 @@ published (`draft: false`, merged to main)
 | 9 | how-to | Self-hosting chmonitor on Kubernetes | clickhouse monitoring kubernetes | `/operate/deploy/k8s` | done (`clickhouse-monitoring-kubernetes.md`, published 2026-07-10) |
 | 10 | troubleshooting | Debugging `system.errors` spikes | clickhouse system errors | `/guide/features/health` | done (`clickhouse-system-errors-spikes.md`, published 2026-07-10) |
 | 11 | case-study | Capacity planning with the TTL and disk-growth advisor | clickhouse capacity planning ttl | `/guide/ai-agent` (advisor tools) | done (`clickhouse-capacity-planning-ttl.md`, published 2026-07-10) |
-| 12 | release | (scaffold from the next GitHub release when it ships) | — | `/reference/releases` | planned |
+| 12 | release | What's new in chmonitor 0.3.x | clickhouse monitoring dashboard 0.3 | `/guide/getting-started` | done (`chmonitor-0-3-x.md` → `/v0.3.3/`, published 2026-08-19) |
 | 13 | troubleshooting | ClickHouse disk is full — what to do right now | clickhouse disk full emergency | `/guide/features` | done (`clickhouse-disk-full-emergency.md`, published 2026-07-10) |
 | 14 | product | A DBA, an SRE, and an engineer should not share a sidebar | customize clickhouse monitoring dashboard | `/reference/settings` | done (`customize-dashboard.md`, published 2026-08-19) |
+| 15 | update | What's next in 0.3.x | clickhouse monitoring tools schema compare | `/guide/guides/dba-workflows` | done (`whats-next-0-3-x.md`, published 2026-08-19) |
 
 ## Published this cycle (homepage redesign + SEO expansion)
 
