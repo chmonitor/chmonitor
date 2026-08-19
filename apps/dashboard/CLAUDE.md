@@ -78,7 +78,7 @@ export const Route = createFileRoute('/(dashboard)/merges')({
   `applyInterval`, `withQueryParams`, `fillStep`, …).
 - **Client hooks** — server-state is fetched with TanStack Query hooks:
   - `lib/swr/` — host/config/data hooks (`use-hosts`, `use-host`,
-    `use-host-status`, `use-merged-hosts`, `api-fetch`, `host-context`, …).
+    `use-host-status`, `use-merged-hosts`, `api-fetch`, …).
     `use-merged-hosts.ts` implements cloud demo-host tagging (see root CLAUDE.md
     "cloud mode").
   - `lib/hooks/` — feature hooks (agent, MCP config, user connections, settings,
