@@ -147,6 +147,17 @@ export function detectCardErrorVariant(error: CardError): CardErrorVariant {
     return 'timeout'
   }
 
+  // 2a. SQL identifier / missing-column errors are not timeouts. The table
+  // API returns HTTP 500 for any query_error, which would otherwise become
+  // a silent hourglass (#3121: unknown `system.tables.ttl`).
+  if (
+    message.includes('unknown identifier') ||
+    message.includes('unknown column') ||
+    message.includes('missing columns')
+  ) {
+    return 'error'
+  }
+
   // 2b. Server / resource errors (HTTP 5xx, e.g. a Cloudflare Worker that
   // exceeded CPU/memory limits) are retryable and best surfaced as a "too
   // heavy" timeout-style error rather than a generic failure.

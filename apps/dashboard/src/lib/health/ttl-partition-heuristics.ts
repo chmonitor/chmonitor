@@ -97,6 +97,11 @@ export function ttlPartitionRowClassName(
   return undefined
 }
 
+/** Human-readable flag list for inventory rows (empty when healthy). */
+export function ttlPartitionFlagsLabel(row: Record<string, unknown>): string {
+  return evaluateTtlPartitionHealth(inventoryRowFromQuery(row)).flags.join(', ')
+}
+
 export function inventoryRowFromQuery(
   row: Record<string, unknown>
 ): TtlPartitionInventoryRow {

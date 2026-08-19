@@ -224,7 +224,9 @@ chart in `components/charts/` as the template — don't reinvent the wiring.
 - **Empty:** `EmptyState` (`components/ui/empty-state.tsx`) with the right
   `variant` (`no-data | no-results | error | table-missing | timeout |
   filtered-empty | offline | loading`), `icon`, `title`, `description`, optional
-  `action`/`onRefresh`.
+  `action`/`onRefresh`. Table query failures use the full (non-compact)
+  EmptyState so timeout / missing-column copy is visible — never hourglass +
+  Retry with no description.
 - **Error (graceful):** initial error (`error && !hasData`) → full `ChartError`
   with retry. Revalidation error (`staleError`) → KEEP showing data + subtle
   amber `ChartStaleIndicator` (hover-revealed), auto-clears on next success.

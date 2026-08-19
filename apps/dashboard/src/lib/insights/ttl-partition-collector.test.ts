@@ -4,10 +4,9 @@ mock.module('../ai/agent/tools/helpers', () => ({
   readOnlyQuery: async () => [],
 }))
 
-const {
-  insightFromTtlInventoryRows,
-  rowFromTtlInventoryRecord,
-} = await import('./ttl-partition-collector')
+const { insightFromTtlInventoryRows, rowFromTtlInventoryRecord } = await import(
+  './ttl-partition-collector'
+)
 
 describe('rowFromTtlInventoryRecord', () => {
   test('maps QueryConfig inventory columns', () => {
@@ -72,6 +71,8 @@ describe('insightFromTtlInventoryRows', () => {
     expect(out[0]?.title).toContain('b.worst')
     expect(out[0]?.severity).toBe('critical')
     expect(out[0]?.value).toBe(1500)
+    expect(out[0]?.detail).toContain('too_many_partitions')
+    expect(out[0]?.detail).toContain('recommend-only')
     expect(out[0]?.action).toEqual({
       label: 'View TTL inventory',
       href: '/ttl-partition-health',

@@ -7,29 +7,52 @@ import { ColumnFormat } from '@/types/column-format'
  * Inventory of MergeTree TTL + PARTITION BY + live part counts.
  *
  * Reads system.tables + system.parts only — does not need system.part_log.
- * Older ClickHouse builds have no `system.tables.ttl`; those variants parse
- * `create_table_query` instead. Tables with no TTL still appear.
+ * Table-level TTL is parsed from `engine_full` (the engine clause), not
+ * `create_table_query` (full CREATE TEXT, too heavy on the cloud demo) and
+ * not `system.tables.ttl` (that column does not exist — #3121).
+ * Tables with no TTL still appear.
  */
 
-const TTL_FROM_CREATE = `
+const SYSTEM_DATABASES = `'system', 'INFORMATION_SCHEMA', 'information_schema'`
+
+/**
+ * Table TTL is the clause after ` TTL ` in engine_full, before SETTINGS.
+ * engine_full is far cheaper than create_table_query (no column list).
+ */
+const TTL_FROM_ENGINE_FULL = `
       if(
-        positionCaseInsensitive(t.create_table_query, ' TTL ') > 0,
+        positionCaseInsensitive(t.engine_full, ' TTL ') > 0,
         trim(BOTH ' ' FROM replaceRegexpOne(
           substring(
-            t.create_table_query,
-            positionCaseInsensitive(t.create_table_query, ' TTL ') + 5
+            t.engine_full,
+            positionCaseInsensitive(t.engine_full, ' TTL ') + 5
           ),
-          '\\\\s+(SETTINGS|COMMENT)\\\\s+.*$',
+          '\\\\s+SETTINGS\\\\s+.*$',
           ''
         )),
         ''
       )`
 
-const TTL_FROM_COLUMN = `ifNull(nullIf(t.ttl, ''), ${TTL_FROM_CREATE})`
-
-function inventorySql(ttlExpressionSql: string): string {
-  return `
-    WITH part_stats AS (
+/**
+ * Filter MergeTree tables first (cheap columns + engine_full), aggregate
+ * parts separately, then join. Avoids scanning create_table_query and
+ * avoids a missing `t.ttl` identifier that 500'd the table API as a
+ * silent hourglass (#3121).
+ */
+export const ttlPartitionInventorySql = `
+    WITH mergetree_tables AS (
+      SELECT
+        database,
+        name,
+        engine,
+        partition_key,
+        engine_full
+      FROM system.tables
+      WHERE is_temporary = 0
+        AND database NOT IN (${SYSTEM_DATABASES})
+        AND positionCaseInsensitive(engine, 'MergeTree') > 0
+    ),
+    part_stats AS (
       SELECT
         database,
         table,
@@ -43,6 +66,7 @@ function inventorySql(ttlExpressionSql: string): string {
         sum(bytes_on_disk) AS bytes_on_disk
       FROM system.parts
       WHERE active
+        AND database NOT IN (${SYSTEM_DATABASES})
       GROUP BY database, table
     )
     SELECT
@@ -53,7 +77,7 @@ function inventorySql(ttlExpressionSql: string): string {
       t.name AS _table,
       t.engine,
       t.partition_key,
-      ${ttlExpressionSql} AS ttl_expression,
+      ${TTL_FROM_ENGINE_FULL} AS ttl_expression,
       ifNull(p.partitions, 0) AS partitions,
       ifNull(p.active_parts, 0) AS active_parts,
       ifNull(p.parts_per_partition, 0) AS parts_per_partition,
@@ -74,18 +98,12 @@ function inventorySql(ttlExpressionSql: string): string {
           / nullIf(max(ifNull(p.active_parts, 0)) OVER (), 0),
         2
       ) AS pct_active_parts
-    FROM system.tables AS t
+    FROM mergetree_tables AS t
     LEFT JOIN part_stats AS p
       ON p.database = t.database AND p.table = t.name
-    WHERE t.is_temporary = 0
-      AND t.database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
-      AND positionCaseInsensitive(t.engine, 'MergeTree') > 0
     ORDER BY partitions DESC, bytes_on_disk DESC
+    SETTINGS max_execution_time = 25
   `
-}
-
-/** CREATE TABLE parse — works on every supported version; used by Insights. */
-export const ttlPartitionInventorySql = inventorySql(TTL_FROM_CREATE)
 
 export const ttlPartitionHealthConfig: QueryConfig = {
   name: 'ttl-partition-health',
@@ -99,18 +117,7 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     'TTL expression, PARTITION BY, and partition/part counts per MergeTree table. Does not apply ALTER TTL or DROP PARTITION.',
   docs: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#table_engine-mergetree-ttl',
   tableCheck: 'system.parts',
-  sql: [
-    {
-      since: '19.1',
-      description: 'TTL parsed from CREATE TABLE (no system.tables.ttl)',
-      sql: ttlPartitionInventorySql,
-    },
-    {
-      since: '21.8',
-      description: 'Prefer system.tables.ttl; fall back to CREATE TABLE',
-      sql: inventorySql(TTL_FROM_COLUMN),
-    },
-  ],
+  sql: ttlPartitionInventorySql,
   columns: [
     'full_table',
     'engine',
@@ -121,6 +128,15 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     'parts_per_partition',
     'readable_bytes_on_disk',
   ],
+  columnDescriptions: {
+    ttl_expression:
+      'Table-level TTL from engine_full. Empty means no table TTL.',
+    partition_key: 'PARTITION BY expression.',
+    partitions:
+      'Active partition count. Highlighted rows have 500+ partitions or a time-based key with no TTL.',
+    parts_per_partition:
+      'Active parts divided by partitions. High values mean merge backlog.',
+  },
   columnFormats: {
     full_table: [
       ColumnFormat.Link,

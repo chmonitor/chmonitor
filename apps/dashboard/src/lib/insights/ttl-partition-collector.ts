@@ -10,6 +10,7 @@ import { readOnlyQuery } from '../ai/agent/tools/helpers'
 import {
   evaluateTtlPartitionHealth,
   type TtlPartitionInventoryRow,
+  ttlPartitionFlagsLabel,
 } from '../health/ttl-partition-heuristics'
 import { ttlPartitionInventorySql } from '../query-config/system/ttl-partition-health'
 
@@ -27,21 +28,24 @@ export function rowFromTtlInventoryRecord(
 }
 
 /** Worst flagged row → at most one storage insight. */
-export function insightFromTtlInventoryRows(
-  rows: unknown
-): InsightCandidate[] {
+export function insightFromTtlInventoryRows(rows: unknown): InsightCandidate[] {
   if (!Array.isArray(rows)) return []
 
   const flagged: {
     row: TtlPartitionInventoryRow
     severity: 'warning' | 'critical'
+    flags: string
   }[] = []
   for (const raw of rows) {
     const rec = raw as Record<string, unknown>
     const row = rowFromTtlInventoryRecord(rec)
     const health = evaluateTtlPartitionHealth(row)
     if (health.severity === 'warning' || health.severity === 'critical') {
-      flagged.push({ row, severity: health.severity })
+      flagged.push({
+        row,
+        severity: health.severity,
+        flags: ttlPartitionFlagsLabel(rec),
+      })
     }
   }
   if (flagged.length === 0) return []
@@ -55,7 +59,7 @@ export function insightFromTtlInventoryRows(
       category: 'storage',
       metric: 'ttl_partition_health',
       title: `${fq} needs TTL or partition review`,
-      detail: `${fq} has ${worst.row.partitions} partitions (${worst.row.activeParts} active parts). Open TTL & Partitions for the full inventory. This is recommend-only — no ALTER TTL is applied.`,
+      detail: `${fq} has ${worst.row.partitions} partitions (${worst.row.activeParts} active parts); ${worst.flags}. Open TTL & Partitions for the full inventory. This is recommend-only — no ALTER TTL is applied.`,
       value: worst.row.partitions,
       action: {
         label: 'View TTL inventory',
