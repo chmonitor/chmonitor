@@ -139,6 +139,11 @@ to get the plan allowance (Free 5 / Pro 100 / …). Self-hosted / OSS is unchang
     href="/guide/ai-agent/conversation-history/backends"
     description="Per-backend setup: D1, ClickHouse, Postgres, AgentState, and more."
   />
+  <Card
+    title="OpenCode + AnyRouter"
+    href="/guide/guides/anyrouter-opencode"
+    description="Route OpenCode through AnyRouter and attach chmonitor MCP in the same session."
+  />
 </Cards>
 
 ## Conversation history backends
@@ -295,7 +300,7 @@ back) via the header toggle. The preference is remembered per browser
 
 ## MCP Server
 
-The dashboard exposes an MCP (Model Context Protocol) endpoint at `/api/mcp`. The same implementation runs in the standalone Cloudflare MCP Worker (`apps/mcp`). All tools are read-only by design — write and DDL statements are rejected.
+The dashboard exposes an MCP (Model Context Protocol) endpoint at `/api/mcp`. The same implementation runs in the standalone Cloudflare MCP Worker (`apps/mcp`). All tools are read-only by design — write and DDL statements are rejected. Connect Claude Desktop, Cursor, OpenCode, or any MCP client — see [MCP client setup](/reference/mcp-clients) and [Use OpenCode with AnyRouter](/guide/guides/anyrouter-opencode). Connect Claude Desktop, Cursor, OpenCode, or any MCP client — see [MCP client setup](/reference/mcp-clients) and [Use OpenCode with AnyRouter](/guide/guides/anyrouter-opencode).
 
 ### Agent settings sidebar
 

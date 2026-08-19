@@ -60,7 +60,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
     eyebrow: 'AI Agent',
     h1: 'Ask your cluster anything',
     subhead:
-      'The built-in agent reads schema and query_log before recommending anything. Connect over MCP from Claude, Cursor or any client — read-only, nothing applied without you.',
+      'The built-in agent reads schema and query_log before recommending anything. Connect over MCP from Claude, Cursor, OpenCode or any client — read-only, nothing applied without you.',
     hero: {
       src: `${S}/ai-agent-conversation-dark-with-bg.png`,
       alt: 'chmonitor AI agent conversation with schema-aware recommendations',
@@ -70,7 +70,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
         value: '29',
         label: 'tools across schema, diagnostics and optimization',
       },
-      { value: 'MCP', label: 'endpoint for Claude, Cursor and any client' },
+      { value: 'MCP', label: 'endpoint for Claude, Cursor, OpenCode and any client' },
       { value: 'BYOM', label: 'bring your own model and API key' },
       { value: 'Read-only', label: 'nothing applied without you' },
     ],
@@ -92,7 +92,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       {
         eyebrow: 'MCP server',
         title: 'Bring your own client over MCP',
-        body: 'chmonitor exposes the same tools on a Model Context Protocol endpoint at /api/mcp. Point Claude, Cursor or any MCP client at it and query your cluster from wherever you already work.',
+        body: 'chmonitor exposes the same tools on a Model Context Protocol endpoint at /api/mcp. Point Claude, Cursor, OpenCode or any MCP client at it and query your cluster from wherever you already work.',
         bullets: [
           'Open, API-key or Clerk OAuth auth postures',
           'Same read-only guarantees as the built-in agent',
@@ -169,7 +169,11 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
       {
         q: 'Do I need the dashboard open to use MCP?',
-        a: 'No. The MCP endpoint is served by the same deployment — connect from Claude, Cursor or any MCP client directly.',
+        a: 'No. The MCP endpoint is served by the same deployment — connect from Claude, Cursor, OpenCode or any MCP client directly.',
+      },
+      {
+        q: 'Can I use OpenCode with AnyRouter?',
+        a: 'Yes. Point OpenCode at AnyRouter as an OpenAI-compatible provider for models, then add chmonitor as a remote MCP server in opencode.json so the same session can query your cluster. The docs guide walks through both.',
       },
     ],
     docsHref: 'https://docs.chmonitor.dev/guide/ai-agent',

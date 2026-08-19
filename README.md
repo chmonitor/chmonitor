@@ -284,7 +284,7 @@ plus a short list of what you changed:
     - [Platform Support Matrix](docs/content/reference/support-matrix.mdx) — ClickHouse versions and distributions (supported / best-effort / untested)
     - [Connection Presets](docs/content/reference/connection-presets.mdx) — least-privilege read-only user setup for ClickHouse OSS, Altinity, and Cloud
     - [Contributing a config / check](docs/content/reference/catalog-contributing.mdx) — how to add a declarative monitoring check to the catalog
-    - [MCP Clients](docs/content/reference/mcp-clients.mdx) — connect Claude Desktop, Cursor, or any MCP client
+    - [MCP Clients](docs/content/reference/mcp-clients.mdx) — connect Claude Desktop, Cursor, OpenCode, or any MCP client
     - [Grafana Bridge](docs/content/reference/grafana-bridge.mdx) — read chmonitor's ClickHouse from Grafana (community recipe)
 
 ### AI Agent Access
@@ -311,8 +311,23 @@ claude mcp add --transport http clickhouse-monitor https://your-chmonitor.exampl
 }
 ```
 
+```json
+// OpenCode (./opencode.json or ~/.config/opencode/opencode.json)
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chmonitor": {
+      "type": "remote",
+      "url": "https://your-chmonitor.example.com/api/mcp",
+      "oauth": false,
+      "headers": { "Authorization": "Bearer chm_your_api_key" }
+    }
+  }
+}
+```
+
 Omit the `Authorization` header/flag for an unauthenticated local instance. Full client
-walkthroughs (Claude Desktop, Claude Code, Cursor, any MCP client) and auth setup:
+walkthroughs (Claude Desktop, Claude Code, Cursor, OpenCode, any MCP client) and auth setup:
 [docs/content/reference/mcp-clients.mdx](docs/content/reference/mcp-clients.mdx) ·
 [docs/knowledge/mcp-server.md](docs/knowledge/mcp-server.md).
 

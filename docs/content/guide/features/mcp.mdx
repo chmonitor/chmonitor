@@ -25,7 +25,7 @@ claude mcp add --transport http clickhouse-monitor https://your-chmonitor.exampl
   --header "Authorization: Bearer chm_your_api_key"
 ```
 
-Omit `--header` for an unauthenticated local instance. For Claude Desktop, Cursor, and
+Omit `--header` for an unauthenticated local instance. For Claude Desktop, Cursor, OpenCode, and
 any other MCP client, see [MCP Client Setup](/reference/mcp-clients).
 
 ## What it does
@@ -45,7 +45,7 @@ Tools available via MCP include schema exploration, query execution, metrics, he
 The dashboard's `/mcp` page is the console for this endpoint:
 
 - **Setup Guides** — per-client instructions (Claude Desktop, Claude Code, Cursor,
-  any other MCP client) with a copy-config button on each row.
+  OpenCode, any other MCP client) with a copy-config button on each row.
 - **Tools** — every tool with its arguments, defaults, and an example response.
 - **Playground** — a real MCP client for your own endpoint: it discovers the live
   tool list, builds a form from each tool's JSON Schema (with a raw-JSON editor for
@@ -177,4 +177,5 @@ The MCP endpoint is secure by default: it returns `401` when no auth is configur
   <Card title="API keys" href="/operate/authentication/api-keys" description="Issue and use API keys for programmatic access." />
   <Card title="Authentication" href="/operate/authentication" description="Configure sign-in and access control." />
   <Card title="Feature permissions" href="/operate/advanced/feature-permissions" description="Gate or disable features per section." />
+  <Card title="OpenCode + AnyRouter" href="/guide/guides/anyrouter-opencode" description="Route OpenCode through AnyRouter and attach this MCP endpoint." />
 </Cards>

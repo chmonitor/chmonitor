@@ -33,7 +33,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
     eyebrow: 'AI Agent',
     title: 'Ask your cluster anything',
     description:
-      'The built-in agent reads schema and query_log before recommending. Connect over MCP from Claude, Cursor or any client.',
+      'The built-in agent reads schema and query_log before recommending. Connect over MCP from Claude, Cursor, OpenCode or any client.',
     bullets: [
       '29 tools across schema, diagnostics and optimization',
       'Recommend-only advisor: skip indexes, projections and PREWHERE rewrites',

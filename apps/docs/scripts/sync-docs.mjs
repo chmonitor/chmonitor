@@ -112,6 +112,7 @@ const FOLDER_META = {
       'memory-limit-total-exceeded',
       'upgrade-clickhouse',
       'diagnostics-cli',
+      'anyrouter-opencode',
       'dba-workflows',
       '---Query optimization---',
       'clickhouse-query-optimization',

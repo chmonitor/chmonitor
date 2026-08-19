@@ -39,7 +39,7 @@ export const aiAgentItems: MenuItem[] = [
         title: 'MCP Server',
         href: '/mcp',
         description:
-          "Let external AI tools (Claude Desktop, Cursor, etc.) query this cluster via this dashboard's own MCP endpoint",
+          "Let external AI tools (Claude Desktop, Cursor, OpenCode, etc.) query this cluster via this dashboard's own MCP endpoint",
         icon: UnplugIcon,
         permission: { feature: 'mcp' },
       },

@@ -45,7 +45,7 @@ Connect a client, then verify the connection.
 <Step>
 ### Add the server to your client
 
-<Tabs items={['Claude Code', 'Claude Desktop', 'Cursor']}>
+<Tabs items={['Claude Code', 'Claude Desktop', 'Cursor', 'OpenCode']}>
 <Tab value="Claude Code">
 
 One command:
@@ -83,6 +83,30 @@ Omit `headers` only for a local unauthenticated instance (see [Security](#securi
 Settings → **MCP** → **Add Server** → paste the endpoint URL. Add an `Authorization: Bearer chm_...` header if auth is enabled.
 
 </Tab>
+<Tab value="OpenCode">
+
+Add to `./opencode.json` or `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chmonitor": {
+      "type": "remote",
+      "url": "https://your-deployment.example.com/api/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:CHM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Omit `headers` (and `oauth`) for a local unauthenticated instance. To also route OpenCode models through AnyRouter, see [Use OpenCode with AnyRouter](/guide/guides/anyrouter-opencode).
+
+</Tab>
 </Tabs>
 </Step>
 <Step>
@@ -103,7 +127,7 @@ A successful response lists the available tools.
 </Step>
 </Steps>
 
-For step-by-step client walkthroughs (including Claude Code and any generic MCP client), see [MCP Client Setup](/reference/mcp-clients).
+For step-by-step client walkthroughs (including OpenCode, Claude Code, and any generic MCP client), see [MCP Client Setup](/reference/mcp-clients).
 
 ## Authentication
 
@@ -183,8 +207,9 @@ See [Environment Variables](/reference/environment-variables) for `CHM_API_KEY_S
 ## Related
 
 <Cards>
-  <Card title="MCP client setup" href="/reference/mcp-clients" description="Step-by-step config for Claude Desktop, Claude Code, Cursor, and any client." />
+  <Card title="MCP client setup" href="/reference/mcp-clients" description="Step-by-step config for Claude Desktop, Claude Code, Cursor, OpenCode, and any client." />
   <Card title="AI Agent — Capabilities" href="/guide/ai-agent/capabilities" description="The full list of tools the agent and MCP server expose." />
   <Card title="API keys" href="/operate/authentication/api-keys" description="Issue chm_ tokens to authenticate MCP requests." />
   <Card title="Features — MCP" href="/guide/features/mcp" description="What the MCP feature does and how to gate it." />
+  <Card title="OpenCode + AnyRouter" href="/guide/guides/anyrouter-opencode" description="Route OpenCode through AnyRouter and attach this MCP endpoint in one session." />
 </Cards>

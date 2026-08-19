@@ -3,7 +3,7 @@ id: mcp-server
 title: MCP Server
 type: reference
 status: active
-updated: 2026-08-18
+updated: 2026-08-19
 tags:
   - mcp
   - api
@@ -168,7 +168,7 @@ exposure is visible in logs and cannot be silently forgotten.
 - **One-command install** — `claude mcp add --transport http ...` snippets live in
   README.md, `docs/content/guide/features/mcp.mdx` (Quickstart), and
   `docs/content/reference/mcp-server.mdx` / `mcp-clients.mdx` (full per-client
-  walkthroughs: Claude Code, Claude Desktop, Cursor, generic client). Keep all four in
+  walkthroughs: Claude Code, Claude Desktop, Cursor, OpenCode, generic client). Keep all five in
   sync when the endpoint path, tool list, or auth header shape changes.
 - **External registry submissions** (official registry, PulseMCP, cursor.directory,
   Smithery, Glama) are prepared but NOT auto-submitted — exact payload/text for each is

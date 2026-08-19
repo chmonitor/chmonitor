@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ChevronRight,
+  Code,
   MessageSquare,
   MousePointerClick,
   Plug,
@@ -141,6 +142,20 @@ export function McpSetupGuides() {
     2
   )
   const claudeCodeCommand = `claude mcp add --transport http clickhouse-monitor ${endpointUrl}`
+  const openCodeConfig = JSON.stringify(
+    {
+      $schema: 'https://opencode.ai/config.json',
+      mcp: {
+        chmonitor: {
+          type: 'remote',
+          url: endpointUrl,
+          enabled: true,
+        },
+      },
+    },
+    null,
+    2
+  )
   // A complete 2026-07-28 request: there is no initialize handshake, so the
   // protocol version and client capabilities travel in `_meta` on every call.
   const listToolsPayload = JSON.stringify(
@@ -221,6 +236,29 @@ export function McpSetupGuides() {
             'Alternatively, add the following to your .cursor/mcp.json file:',
         },
         { type: 'code', content: cursorConfig },
+      ],
+    },
+    {
+      id: 'opencode',
+      name: 'OpenCode',
+      description:
+        'Add a remote MCP server in opencode.json (project or global)',
+      icon: Code,
+      platform: 'TUI · CLI',
+      transport: 'Streamable HTTP',
+      quickCopy: openCodeConfig,
+      steps: [
+        {
+          type: 'text',
+          content:
+            'Add the following to project-local ./opencode.json or global ~/.config/opencode/opencode.json. If the endpoint requires a chm_ token, set oauth to false and add headers.Authorization: Bearer {env:CHM_API_KEY}.',
+        },
+        { type: 'code', content: openCodeConfig },
+        {
+          type: 'text',
+          content:
+            'Restart OpenCode so it reloads MCP config. To also route OpenCode models through AnyRouter, see the OpenCode + AnyRouter guide in the docs.',
+        },
       ],
     },
     {

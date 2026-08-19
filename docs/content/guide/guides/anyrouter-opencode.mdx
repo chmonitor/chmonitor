@@ -1,0 +1,244 @@
+---
+title: Use OpenCode with AnyRouter
+description: Route OpenCode through AnyRouter for models, then attach chmonitor MCP so the same coding session can query your cluster.
+icon: Terminal
+---
+
+Use [OpenCode](https://opencode.ai) as your coding agent, [AnyRouter](https://anyrouter.dev) as the model gateway, and chmonitor for cluster tools. One session can edit code, switch models, and ask your cluster questions without leaving the TUI.
+
+<Callout type="info" title="Two independent connections">
+**Inference** (which model answers) goes through AnyRouter's Chat Completions API. **Tools** (catalog, credits, cluster queries) go through MCP. You can set up either path alone; both in one `opencode.json` is the full use case.
+</Callout>
+
+<Mermaid chart={`flowchart LR
+  oc["OpenCode"] -->|"Chat Completions"| ar["AnyRouter"]
+  oc -->|"MCP tools"| arMcp["AnyRouter MCP"]
+  oc -->|"MCP tools"| chm["chmonitor /api/mcp"]
+  ar --> models["Claude · GLM · Gemini · GPT"]
+  chm --> ch["cluster system tables"]
+`} />
+
+## Prerequisites
+
+- [OpenCode installed](https://opencode.ai/docs) (`opencode` on your `$PATH`).
+- An [AnyRouter](https://dash.anyrouter.dev/keys) account. Inference keys start with `sk-ar-`.
+- Optional, for cluster tools: a running chmonitor instance and, if auth is enabled, a `chm_` API key. See [MCP client setup](/reference/mcp-clients).
+
+## 1. Route OpenCode through AnyRouter
+
+AnyRouter is the same OpenAI-compatible gateway the chmonitor AI agent uses (`ANYROUTER_API_KEY`). Pointing OpenCode at it gives you one bill, request logs, and any Chat Completions model in the catalog.
+
+<Tabs items={['AnyRouter CLI', 'Persistent opencode.json']}>
+<Tab value="AnyRouter CLI">
+
+One command logs you in and launches OpenCode with AnyRouter already selected. It does **not** rewrite your global `opencode.json` — the provider is injected for that process only.
+
+```bash
+npx @anyr/cli opencode
+```
+
+Pin a model, or forward flags to OpenCode itself:
+
+```bash
+npx @anyr/cli opencode --model "z-ai/glm-5.2"
+npx @anyr/cli opencode --model auto -- --help
+npx @anyr/cli opencode --dry-run
+```
+
+Flags, profiles, and the login flow are in AnyRouter's [OpenCode CLI reference](https://anyrouter.dev/docs/cli/opencode).
+
+</Tab>
+<Tab value="Persistent opencode.json">
+
+Use this when a bare `opencode` command should talk to AnyRouter every time.
+
+```bash
+export ANYROUTER_API_KEY="sk-ar-your-anyrouter-key"
+```
+
+Then create `~/.config/opencode/opencode.json` (every project) or `./opencode.json` (this repo):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "anyrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "AnyRouter",
+      "options": {
+        "baseURL": "https://anyrouter.dev/api/v1",
+        "apiKey": "{env:ANYROUTER_API_KEY}"
+      },
+      "models": {
+        "anthropic/claude-sonnet-4.6": {
+          "name": "Claude Sonnet 4.6",
+          "limit": { "context": 200000, "output": 65536 }
+        },
+        "z-ai/glm-5.2": {
+          "name": "GLM-5.2",
+          "limit": { "context": 1000000, "output": 65536 }
+        }
+      }
+    }
+  },
+  "model": "anyrouter/anthropic/claude-sonnet-4.6"
+}
+```
+
+Key fields:
+
+- `npm: "@ai-sdk/openai-compatible"` — AnyRouter speaks Chat Completions at `/api/v1`.
+- `options.baseURL` — must end in `/v1`.
+- `options.apiKey` — `{env:ANYROUTER_API_KEY}` is the environment variable **name**, not the secret. Do not paste the `sk-ar-` key into this file.
+- `models` keys — exact AnyRouter ids. Browse [Chat Completions models](https://anyrouter.dev/models?endpoint=chat-completions).
+- `limit` — if you set it, OpenCode requires **both** `context` and `output`. Omit `limit` entirely if you do not know the windows.
+- `model` — `anyrouter/<id>` selects the default (`provider/model-id`).
+
+Run `opencode` and pick an `anyrouter/…` id in `/models`.
+
+</Tab>
+</Tabs>
+
+<Callout type="info" title="Canonical AnyRouter docs">
+This page is the chmonitor walkthrough. AnyRouter's [OpenCode guide](https://anyrouter.dev/docs/guides/opencode) is the source of truth for CLI flags, troubleshooting 401s, and context-window limits.
+</Callout>
+
+## 2. Add AnyRouter MCP (catalog and credits)
+
+The provider block above is **inference only**. To let OpenCode call AnyRouter tools (`get_credits`, `list_models`, key management), add the remote MCP server to the same file.
+
+Project-local (`./opencode.json`) or global (`~/.config/opencode/opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "anyrouter": {
+      "type": "remote",
+      "url": "https://anyrouter.dev/api/v1/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Restart OpenCode. The next tool call opens `anyrouter.dev/oauth/consent` — pick a permission level (Read-only is the default) and click Allow.
+
+Verify: ask **"how many AnyRouter credits do I have left?"**. The agent should call `get_credits`. Full client notes: [AnyRouter MCP with OpenCode](https://anyrouter.dev/docs/mcp/opencode).
+
+## 3. Add chmonitor MCP (cluster tools)
+
+Same `mcp` object, second server. This is how OpenCode reads `system.query_log`, replication, merges, and schema through chmonitor's read-only tools — the same surface as Claude Desktop and Cursor.
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chmonitor": {
+      "type": "remote",
+      "url": "https://your-chmonitor-host/api/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:CHM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+- `type: "remote"` — Streamable HTTP, not a stdio child.
+- `oauth: false` — chmonitor authenticates with a bearer `chm_` token, not OAuth. Omit `headers` (and `oauth`) for an unauthenticated local instance.
+- `{env:CHM_API_KEY}` — export the token in the shell that launches OpenCode. Issue tokens with [API keys](/operate/authentication/api-keys).
+
+Auth modes, tool list, and curl checks: [MCP client setup](/reference/mcp-clients).
+
+## Combined `opencode.json`
+
+Inference + both MCP servers in one file:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "anyrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "AnyRouter",
+      "options": {
+        "baseURL": "https://anyrouter.dev/api/v1",
+        "apiKey": "{env:ANYROUTER_API_KEY}"
+      },
+      "models": {
+        "anthropic/claude-sonnet-4.6": {
+          "name": "Claude Sonnet 4.6",
+          "limit": { "context": 200000, "output": 65536 }
+        }
+      }
+    }
+  },
+  "model": "anyrouter/anthropic/claude-sonnet-4.6",
+  "mcp": {
+    "anyrouter": {
+      "type": "remote",
+      "url": "https://anyrouter.dev/api/v1/mcp",
+      "enabled": true
+    },
+    "chmonitor": {
+      "type": "remote",
+      "url": "https://your-chmonitor-host/api/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:CHM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Export both keys before launching:
+
+```bash
+export ANYROUTER_API_KEY="sk-ar-..."
+export CHM_API_KEY="chm_..."
+opencode
+```
+
+## Verify
+
+1. **AnyRouter inference** — send any prompt, then open [request logs](https://dash.anyrouter.dev/logs). A new row with the model name, tokens, and cost means OpenCode routed through AnyRouter.
+2. **AnyRouter MCP** — ask "how many AnyRouter credits do I have left?"
+3. **chmonitor MCP** — ask "what's my slowest query in the last hour?" The answer should cite real `query_id`s and durations from your cluster, not a generic reply. You can also list tools and confirm `get_slow_queries` / `get_replication_status` appear.
+
+## Example prompts
+
+Once both MCP servers are connected:
+
+- "How many AnyRouter credits do I have left, and which models support tools?"
+- "Show the slowest cluster queries from the last hour."
+- "Is replication lagging? Check the replication queue."
+- "Which tables have the most parts right now?"
+- "Draft a skip-index for the query that spent the most memory yesterday — recommend-only, do not apply it."
+
+The last one uses chmonitor's `get_optimization_recommendations` tool. The agent never runs DDL.
+
+## Troubleshooting
+
+**401 / 403 from AnyRouter** — confirm `echo $ANYROUTER_API_KEY` prints a live `sk-ar-` key in the same process that launched OpenCode. Desktop launchers that skip your shell rc will not inherit the export. With the CLI, run `npx @anyr/cli config get`.
+
+**Model not found** — the models-map key must be an exact AnyRouter id (`anthropic/claude-sonnet-4.6`, not `claude-sonnet-4.6`). The OpenCode default is `anyrouter/<id>`.
+
+**Config is invalid / missing `limit.output`** — OpenCode requires both `limit.context` and `limit.output` if `limit` is set. Add `"output": 65536`, or omit `limit`.
+
+**Wrong provider still answering** — a leftover OpenCode Zen `/connect` login can win when you run `opencode` directly. Pick `anyrouter/…` in `/models`, or launch with `npx @anyr/cli opencode`.
+
+**chmonitor MCP 401** — the token is missing or invalid. Set `oauth: false` and pass `Authorization: Bearer chm_…`. See [MCP client setup](/reference/mcp-clients#authentication).
+
+## Related
+
+<Cards>
+  <Card title="MCP client setup" href="/reference/mcp-clients" description="OpenCode, Claude Desktop, Claude Code, Cursor, and generic clients." />
+  <Card title="AI agent configuration" href="/guide/ai-agent/configuration" description="ANYROUTER_API_KEY and the other provider keys the dashboard agent uses." />
+  <Card title="MCP server" href="/guide/features/mcp" description="What /api/mcp exposes and how to gate it." />
+  <Card title="Blog: OpenCode + AnyRouter" href="https://blog.chmonitor.dev/anyrouter-opencode/" description="Narrative walkthrough of the same setup." />
+</Cards>

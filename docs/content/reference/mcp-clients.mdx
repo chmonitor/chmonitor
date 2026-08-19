@@ -1,10 +1,10 @@
 ---
-description: Connect Claude Desktop, Cursor, Claude Code, or any MCP-compatible client to your chmonitor deployment.
+description: Connect Claude Desktop, Cursor, Claude Code, OpenCode, or any MCP-compatible client to your chmonitor deployment.
 icon: PlugZap
 title: MCP client setup
 ---
 
-Connect Claude Desktop, Cursor, Claude Code, or any MCP-compatible client to your chmonitor deployment, step by step. The server-side reference (endpoint, tools, security model) is at [MCP Server](/reference/mcp-server).
+Connect Claude Desktop, Cursor, Claude Code, OpenCode, or any MCP-compatible client to your chmonitor deployment, step by step. The server-side reference (endpoint, tools, security model) is at [MCP Server](/reference/mcp-server).
 
 ## Before you start
 
@@ -52,7 +52,7 @@ If neither `CHM_API_KEY_SECRET` nor Clerk is configured, the endpoint accepts an
 
 ## Client setup
 
-<Tabs items={['Claude Desktop', 'Claude Code', 'Cursor', 'Any MCP Client']}>
+<Tabs items={['Claude Desktop', 'Claude Code', 'Cursor', 'OpenCode', 'Any MCP Client']}>
 <Tab value="Claude Desktop">
 
 Open the config file:
@@ -122,6 +122,32 @@ claude mcp list
 If auth is enabled, add a `headers` block (same shape as the Claude Desktop example above).
 
 </Tab>
+<Tab value="OpenCode">
+
+Add a remote server to project-local `./opencode.json` or global `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chmonitor": {
+      "type": "remote",
+      "url": "https://dash.example.com/api/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:CHM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+`oauth: false` tells OpenCode not to start an OAuth consent flow — chmonitor uses a bearer `chm_` token. Omit `headers` (and `oauth`) for an unauthenticated local instance. Export `CHM_API_KEY` in the shell that launches OpenCode, then restart OpenCode so it reloads MCP config.
+
+To also route OpenCode's **models** through AnyRouter (the same gateway the dashboard agent uses), see [Use OpenCode with AnyRouter](/guide/guides/anyrouter-opencode).
+
+</Tab>
 <Tab value="Any MCP Client">
 
 The server uses the **Streamable HTTP** transport in stateless mode (`POST /api/mcp`). No session handshake is required.
@@ -166,7 +192,7 @@ Pass `hostId` (integer, default `0`) to any tool to target a specific host when 
 
 ## Example prompts
 
-Paste any of these into Claude, Cursor, or your MCP client after connecting:
+Paste any of these into Claude, Cursor, OpenCode, or your MCP client after connecting:
 
 **Schema and discovery**
 
@@ -197,4 +223,5 @@ Paste any of these into Claude, Cursor, or your MCP client after connecting:
   <Card title="MCP server" href="/reference/mcp-server" description="Full security model, resource URIs, and pre-built prompts." />
   <Card title="API keys" href="/operate/authentication/api-keys" description="Issue and manage the chm_ tokens MCP clients use." />
   <Card title="Features — MCP" href="/guide/features/mcp" description="What the MCP feature does and how to gate it." />
+  <Card title="OpenCode + AnyRouter" href="/guide/guides/anyrouter-opencode" description="Route OpenCode through AnyRouter and attach chmonitor MCP in one session." />
 </Cards>
