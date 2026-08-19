@@ -1,71 +1,90 @@
+import { PlusIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 
 import type { CompareScope } from '@/lib/compare/scope'
 import type { SchemaDiffResponse } from '@/lib/schema-diff'
 
+import { DdlPair } from './ddl-pair'
 import { SchemaDiffView } from './schema-diff-view'
+import { TableList } from './table-list'
 import { useMemo, useState } from 'react'
 import { ExamplePreviewChrome } from '@/components/compare/example-preview-chrome'
+import { AddHostDialog } from '@/components/connections'
 import { PageHeader } from '@/components/layout/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  collectBrowserDiffSessions,
+  fetchCompareDiff,
+} from '@/lib/compare/fetch-diff-request'
 import {
   canComparePair,
   resolveCompareScope,
   resolvePair,
 } from '@/lib/compare/scope'
-import {
-  buildExampleSchemaDiff,
-  buildSchemaDiffRequest,
-} from '@/lib/schema-diff'
-import { apiFetch } from '@/lib/swr/api-fetch'
+import { buildExampleSchemaDiff } from '@/lib/schema-diff'
 import { useHostId } from '@/lib/swr/use-host'
+import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
 
 const PAGE_DESCRIPTION =
   'Compare table schemas across hosts or cluster nodes. Recommend only — copy statements, never apply.'
 
-async function fetchSchemaDiff(search: {
-  host: number
-  source?: number
-  target?: number
-  scope?: CompareScope
-}): Promise<SchemaDiffResponse> {
-  const res = await apiFetch(buildSchemaDiffRequest(search))
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(
-      (body as { error?: string }).error ??
-        `Request failed (${res.status} ${res.statusText})`
-    )
-  }
-  return res.json()
-}
-
 export function SchemaDiffPage() {
   const hostId = useHostId()
   const navigate = useNavigate()
   const search = useSearch({ from: '/(dashboard)/schema-diff' })
+  const {
+    hosts: mergedHosts,
+    getConnectionByHostId,
+    isLoading: hostsLoading,
+  } = useMergedHosts()
+  const [addOpen, setAddOpen] = useState(false)
 
   const sourceParam = Number.isFinite(search.source) ? search.source : undefined
   const targetParam = Number.isFinite(search.target) ? search.target : undefined
   const scopeParam = search.scope
+  const hostKey = mergedHosts.map((h) => `${h.source}:${h.id}`).join('|')
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['schema-diff', hostId, sourceParam, targetParam, scopeParam],
-    queryFn: () =>
-      fetchSchemaDiff({
-        host: search.host ?? hostId,
-        source: sourceParam,
-        target: targetParam,
-        scope: scopeParam,
-      }),
+    queryKey: [
+      'schema-diff',
+      hostId,
+      sourceParam,
+      targetParam,
+      scopeParam,
+      hostKey,
+    ],
+    queryFn: async () => {
+      const browserSessions = await collectBrowserDiffSessions(
+        mergedHosts,
+        getConnectionByHostId
+      )
+      return fetchCompareDiff<SchemaDiffResponse>({
+        path: '/api/v1/schema-diff',
+        search: {
+          host: search.host ?? hostId,
+          source: sourceParam,
+          target: targetParam,
+          scope: scopeParam,
+        },
+        browserSessions,
+      })
+    },
+    enabled: !hostsLoading,
     staleTime: 60_000,
   })
 
-  const [exampleSource, setExampleSource] = useState(0)
-  const [exampleTarget, setExampleTarget] = useState(1)
   const example = useMemo(() => buildExampleSchemaDiff(), [])
+  const exampleRows = useMemo(
+    () => [
+      ...example.diff.onlySource,
+      ...example.diff.onlyTarget,
+      ...example.diff.changed,
+    ],
+    [example]
+  )
+  const exampleSelected = exampleRows[0] ?? null
 
   const setPair = (source: number, target: number, scope: CompareScope) => {
     navigate({
@@ -78,7 +97,7 @@ export function SchemaDiffPage() {
     })
   }
 
-  if (isLoading) {
+  if (hostsLoading || isLoading) {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Schema Compare" description={PAGE_DESCRIPTION} />
@@ -113,22 +132,32 @@ export function SchemaDiffPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Schema Compare" description={PAGE_DESCRIPTION} />
+        <EmptyState
+          variant="no-data"
+          title="Need two saved connections"
+          description="Schema Compare diffs staging vs prod. Add another host, or compare replica nodes when this cluster has two or more."
+          action={{
+            label: 'Add host',
+            onClick: () => setAddOpen(true),
+            icon: (
+              <span data-testid="add-host" className="contents">
+                <PlusIcon className="size-3.5" strokeWidth={1.5} />
+              </span>
+            ),
+          }}
+        />
         <ExamplePreviewChrome>
-          <SchemaDiffView
-            data={example}
-            sourceId={exampleSource}
-            targetId={exampleTarget}
-            scope="hosts"
-            peers={example.hosts}
-            hostCount={2}
-            nodeCount={0}
-            onPairChange={(source, target) => {
-              setExampleSource(source)
-              setExampleTarget(target)
-            }}
-            example
-          />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+            <TableList
+              rows={exampleRows}
+              selectedKey={exampleSelected?.key ?? null}
+              onSelect={() => {}}
+              example
+            />
+            {exampleSelected ? <DdlPair selected={exampleSelected} /> : null}
+          </div>
         </ExamplePreviewChrome>
+        <AddHostDialog open={addOpen} onOpenChange={setAddOpen} />
       </div>
     )
   }
@@ -148,22 +177,21 @@ export function SchemaDiffPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Schema Compare" description={PAGE_DESCRIPTION} />
-        <ExamplePreviewChrome>
-          <SchemaDiffView
-            data={example}
-            sourceId={exampleSource}
-            targetId={exampleTarget}
-            scope="hosts"
-            peers={example.hosts}
-            hostCount={2}
-            nodeCount={0}
-            onPairChange={(source, target) => {
-              setExampleSource(source)
-              setExampleTarget(target)
-            }}
-            example
-          />
-        </ExamplePreviewChrome>
+        <EmptyState
+          variant="no-data"
+          title="Need two saved connections"
+          description="Schema Compare diffs staging vs prod. Add another host, or compare replica nodes when this cluster has two or more."
+          action={{
+            label: 'Add host',
+            onClick: () => setAddOpen(true),
+            icon: (
+              <span data-testid="add-host" className="contents">
+                <PlusIcon className="size-3.5" strokeWidth={1.5} />
+              </span>
+            ),
+          }}
+        />
+        <AddHostDialog open={addOpen} onOpenChange={setAddOpen} />
       </div>
     )
   }

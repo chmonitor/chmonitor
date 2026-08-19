@@ -2,90 +2,110 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 
 import type { CompareScope } from '@/lib/compare/scope'
-import type { SettingsDiffResponse } from '@/lib/settings-diff/types'
+import type {
+  SettingsDiffResponse,
+  SettingsDiffView,
+} from '@/lib/settings-diff/types'
 
 import { SettingsCsvButton, SettingsDiffTable } from './settings-diff-table'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import { AddHostButton } from '@/components/compare/add-host-button'
 import { CompareScopeToggle } from '@/components/compare/compare-scope-toggle'
-import { ExamplePreviewChrome } from '@/components/compare/example-preview-chrome'
 import { HostPairFilter } from '@/components/compare/host-pair-filter'
+import { SettingsViewToggle } from '@/components/compare/settings-view-toggle'
 import { PageHeader } from '@/components/layout/page-header'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import {
-  canComparePair,
-  resolveCompareScope,
-  resolvePair,
-} from '@/lib/compare/scope'
-import { buildExampleSettingsDiff } from '@/lib/settings-diff/example'
+  collectBrowserDiffSessions,
+  fetchCompareDiff,
+} from '@/lib/compare/fetch-diff-request'
+import { resolveCompareScope, resolvePair } from '@/lib/compare/scope'
 import { filterSettingsDiffRows } from '@/lib/settings-diff/filter'
-import { buildSettingsDiffRequest } from '@/lib/settings-diff/search'
-import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
+import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
 
 const PAGE_DESCRIPTION =
   'Compare system.settings and merge_tree_settings across hosts or cluster nodes. Read-only.'
 
-async function fetchSettingsDiff(search: {
-  host: number
-  source?: number
-  target?: number
-  scope?: CompareScope
-}): Promise<SettingsDiffResponse> {
-  const res = await apiFetch(buildSettingsDiffRequest(search))
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(
-      (body as { error?: string }).error ??
-        `Request failed (${res.status} ${res.statusText})`
-    )
-  }
-  return res.json()
-}
-
 export function SettingsDiffPage() {
   const hostId = useHostId()
   const navigate = useNavigate()
   const search = useSearch({ from: '/(dashboard)/settings-diff' })
+  const {
+    hosts: mergedHosts,
+    getConnectionByHostId,
+    isLoading: hostsLoading,
+  } = useMergedHosts()
 
   const [showDiffsOnly, setShowDiffsOnly] = useState(true)
   const [showChangedOnly, setShowChangedOnly] = useState(false)
   const [nameFilter, setNameFilter] = useState('')
-  const [exampleSource, setExampleSource] = useState(0)
-  const [exampleTarget, setExampleTarget] = useState(1)
 
   const sourceParam = Number.isFinite(search.source) ? search.source : undefined
   const targetParam = Number.isFinite(search.target) ? search.target : undefined
   const scopeParam = search.scope
+  const viewParam = search.view
+  const hostKey = mergedHosts.map((h) => `${h.source}:${h.id}`).join('|')
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['settings-diff', hostId, sourceParam, targetParam, scopeParam],
-    queryFn: () =>
-      fetchSettingsDiff({
-        host: search.host ?? hostId,
-        source: sourceParam,
-        target: targetParam,
-        scope: scopeParam,
-      }),
+    queryKey: [
+      'settings-diff',
+      hostId,
+      sourceParam,
+      targetParam,
+      scopeParam,
+      viewParam,
+      hostKey,
+    ],
+    queryFn: async () => {
+      const browserSessions = await collectBrowserDiffSessions(
+        mergedHosts,
+        getConnectionByHostId
+      )
+      return fetchCompareDiff<SettingsDiffResponse>({
+        path: '/api/v1/settings-diff',
+        search: {
+          host: search.host ?? hostId,
+          source: sourceParam,
+          target: targetParam,
+          scope: scopeParam,
+          view: viewParam,
+        },
+        browserSessions,
+      })
+    },
+    enabled: !hostsLoading,
     staleTime: 60_000,
   })
 
-  const example = useMemo(() => buildExampleSettingsDiff(), [])
-
-  const setPair = (source: number, target: number, scope: CompareScope) => {
+  const setSearch = (next: {
+    source?: number
+    target?: number
+    scope?: CompareScope
+    view?: SettingsDiffView
+  }) => {
     navigate({
       href: buildUrl(
         '/settings-diff',
-        { host: search.host ?? hostId, source, target, scope },
+        {
+          host: search.host ?? hostId,
+          source: next.source,
+          target: next.target,
+          scope: next.scope,
+          view: next.view,
+        },
         undefined
       ),
       replace: true,
     })
   }
 
-  if (isLoading) {
+  if (hostsLoading || isLoading) {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Settings Diff" description={PAGE_DESCRIPTION} />
@@ -122,50 +142,18 @@ export function SettingsDiffPage() {
   const hostCount = hosts.length
   const nodeCount = nodes.length
 
-  if (!canComparePair(hostCount, nodeCount)) {
-    const examplePair = resolvePair(example.hosts, exampleSource, exampleTarget)
-    const exampleColumns = example.hosts
-    const exampleRows = filterSettingsDiffRows(example.rows, {
-      showDiffsOnly,
-      showChangedOnly,
-      nameFilter,
-    })
+  if (hostCount === 0 && nodeCount < 2) {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader
-          title="Settings Diff"
-          description={PAGE_DESCRIPTION}
-          actions={
-            <SettingsCsvButton columns={exampleColumns} rows={exampleRows} />
-          }
+        <PageHeader title="Settings Diff" description={PAGE_DESCRIPTION} />
+        <EmptyState
+          variant="no-data"
+          title="No hosts to compare"
+          description="Add a host to compare settings against defaults, or add a second host to diff two nodes."
         />
-        <ExamplePreviewChrome>
-          <div className="flex flex-col gap-4">
-            <HostPairFilter
-              hosts={example.hosts}
-              sourceHostId={examplePair?.sourceId ?? 0}
-              targetHostId={examplePair?.targetId ?? 1}
-              nameFilter={nameFilter}
-              nameFilterPlaceholder="Filter by name…"
-              showDiffsOnly={showDiffsOnly}
-              diffsOnlyLabel="Show diffs only"
-              onPairChange={(source, target) => {
-                setExampleSource(source)
-                setExampleTarget(target)
-              }}
-              onNameFilterChange={setNameFilter}
-              onShowDiffsOnlyChange={setShowDiffsOnly}
-            />
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <Switch
-                checked={showChangedOnly}
-                onCheckedChange={setShowChangedOnly}
-              />
-              Show changed from default only
-            </label>
-            <SettingsDiffTable columns={exampleColumns} rows={exampleRows} />
-          </div>
-        </ExamplePreviewChrome>
+        <div className="flex justify-center">
+          <AddHostButton />
+        </div>
       </div>
     )
   }
@@ -175,37 +163,62 @@ export function SettingsDiffPage() {
     nodeCount,
     requested: data.scope ?? scopeParam,
   })
+  const view: SettingsDiffView =
+    data.view ??
+    viewParam ??
+    (hostCount >= 2 && sourceParam !== undefined && targetParam !== undefined
+      ? 'pair'
+      : 'matrix')
   const peers = scope === 'nodes' ? nodes : hosts
   const pair = resolvePair(
     peers,
     data.sourceHostId ?? sourceParam,
     data.targetHostId ?? targetParam
   )
+  const pairMode = scope === 'nodes' || (scope === 'hosts' && view === 'pair')
   const columns =
-    scope === 'nodes' && pair
+    pairMode && pair
       ? peers.filter((p) => p.id === pair.sourceId || p.id === pair.targetId)
       : hosts
 
   const filteredRows = filterSettingsDiffRows(data.rows ?? [], {
-    showDiffsOnly,
+    showDiffsOnly: hostCount === 1 ? false : showDiffsOnly,
     showChangedOnly,
     nameFilter,
   })
   const diffCount = (data.rows ?? []).filter((r) => r.hasDiff).length
+  const oneHostVsDefault = hostCount === 1 && scope === 'hosts'
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Settings Diff"
         description={
-          scope === 'nodes' && pair
-            ? `Comparing cluster nodes — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
-            : hosts.length > 1
-              ? `Comparing ${hosts.length} hosts — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
-              : PAGE_DESCRIPTION
+          oneHostVsDefault
+            ? 'Comparing this host against setting defaults'
+            : scope === 'nodes' && pair
+              ? `Comparing cluster nodes — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
+              : hosts.length > 1 && view === 'pair' && pair
+                ? `Comparing ${hosts.find((h) => h.id === pair.sourceId)?.name ?? pair.sourceId} → ${hosts.find((h) => h.id === pair.targetId)?.name ?? pair.targetId} — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
+                : hosts.length > 1
+                  ? `Comparing ${hosts.length} hosts — ${diffCount} setting${diffCount !== 1 ? 's' : ''} differ`
+                  : PAGE_DESCRIPTION
         }
         actions={<SettingsCsvButton columns={columns} rows={filteredRows} />}
       />
+
+      {oneHostVsDefault ? (
+        <Alert>
+          <AlertTitle>Comparing against defaults</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              This host is compared to setting defaults. Add host to diff
+              another node.
+            </p>
+            <AddHostButton variant="outline" className="shrink-0" />
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -215,22 +228,54 @@ export function SettingsDiffPage() {
               const nextPeers = next === 'nodes' ? nodes : hosts
               const nextPair = resolvePair(nextPeers)
               if (!nextPair) return
-              setPair(nextPair.sourceId, nextPair.targetId, next)
+              setSearch({
+                source: nextPair.sourceId,
+                target: nextPair.targetId,
+                scope: next,
+                view: next === 'hosts' ? view : undefined,
+              })
             }}
             hostCount={hostCount}
             nodeCount={nodeCount}
           />
+          {scope === 'hosts' ? (
+            <SettingsViewToggle
+              value={view}
+              hostCount={hostCount}
+              onChange={(next) => {
+                if (next === 'pair') {
+                  const nextPair = resolvePair(hosts, sourceParam, targetParam)
+                  if (!nextPair) return
+                  setSearch({
+                    source: nextPair.sourceId,
+                    target: nextPair.targetId,
+                    scope: 'hosts',
+                    view: 'pair',
+                  })
+                  return
+                }
+                setSearch({ scope: 'hosts', view: 'matrix' })
+              }}
+            />
+          ) : null}
         </div>
-        {scope === 'nodes' && pair ? (
+        {pairMode && pair ? (
           <HostPairFilter
-            hosts={nodes}
+            hosts={peers}
             sourceHostId={pair.sourceId}
             targetHostId={pair.targetId}
             nameFilter={nameFilter}
             nameFilterPlaceholder="Filter by name…"
             showDiffsOnly={showDiffsOnly}
             diffsOnlyLabel="Show diffs only"
-            onPairChange={(source, target) => setPair(source, target, 'nodes')}
+            onPairChange={(source, target) =>
+              setSearch({
+                source,
+                target,
+                scope,
+                view: scope === 'hosts' ? 'pair' : undefined,
+              })
+            }
             onNameFilterChange={setNameFilter}
             onShowDiffsOnlyChange={setShowDiffsOnly}
           />
@@ -242,13 +287,15 @@ export function SettingsDiffPage() {
               onChange={(e) => setNameFilter(e.target.value)}
               className="h-8 w-full sm:w-64"
             />
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <Switch
-                checked={showDiffsOnly}
-                onCheckedChange={setShowDiffsOnly}
-              />
-              Show diffs only
-            </label>
+            {hostCount > 1 ? (
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Switch
+                  checked={showDiffsOnly}
+                  onCheckedChange={setShowDiffsOnly}
+                />
+                Show diffs only
+              </label>
+            ) : null}
           </div>
         )}
         <label className="flex cursor-pointer items-center gap-2 text-sm">

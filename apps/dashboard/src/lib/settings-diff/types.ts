@@ -16,11 +16,14 @@ export type SettingsDiffRow = {
   changedFromDefault: boolean
 }
 
+export type SettingsDiffView = 'matrix' | 'pair'
+
 export type SettingsDiffResponse = {
   success: boolean
   hosts: SettingsDiffHostInfo[]
   nodes: SettingsDiffHostInfo[]
   scope: 'hosts' | 'nodes'
+  view?: SettingsDiffView
   sourceHostId: number | null
   targetHostId: number | null
   rows: SettingsDiffRow[]

@@ -60,8 +60,9 @@ describe('responsive chrome', () => {
       'h-11 min-h-11'
     )
     expect(src('components/layout/dashboard-shell.tsx')).toContain('pb-16')
-    expect(src('components/compare/add-another-host-button.tsx')).toContain(
-      'min-h-11'
+    expect(src('components/compare/add-host-button.tsx')).toContain('min-h-11')
+    expect(src('components/compare/add-host-button.tsx')).toContain(
+      'data-testid="add-host"'
     )
   })
 

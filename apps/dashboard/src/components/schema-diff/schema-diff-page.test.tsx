@@ -1,5 +1,5 @@
 /**
- * Schema Compare one-host example + two-host live layout.
+ * Schema Compare one-host empty state + faded TableList/DdlPair example.
  * happy-dom + react-dom/client — same harness as nav-settings-button.test.tsx.
  */
 
@@ -12,6 +12,7 @@ import {
   beforeAll,
   describe,
   expect,
+  mock,
   test,
 } from 'bun:test'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
@@ -19,6 +20,11 @@ import { assembleCatalog } from '@/lib/schema-diff/catalog'
 import { compareCatalogs } from '@/lib/schema-diff/compare'
 import { buildExampleSchemaDiff } from '@/lib/schema-diff/example'
 import { buildChangePlan } from '@/lib/schema-diff/plan'
+
+mock.module('@/components/connections', () => ({
+  AddHostDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="add-host-dialog">Add host dialog</div> : null,
+}))
 
 beforeAll(() => {
   GlobalRegistrator.register()
@@ -138,52 +144,113 @@ function twoHostPayload(): SchemaDiffResponse {
   }
 }
 
-describe('Schema Compare one-host example', () => {
-  test('renders example preview and Add another host opens the connection dialog', async () => {
+describe('Schema Compare one-host empty state', () => {
+  test('shows empty copy, Add host, and a faded TableList + DdlPair example', async () => {
     const { ExamplePreviewChrome } = await import(
       '@/components/compare/example-preview-chrome'
     )
-    const { SchemaDiffView } = await import('./schema-diff-view')
+    const { EmptyState } = await import('@/components/ui/empty-state')
+    const { TableList } = await import('./table-list')
+    const { DdlPair } = await import('./ddl-pair')
     const example = buildExampleSchemaDiff()
+    const rows = [
+      ...example.diff.onlySource,
+      ...example.diff.onlyTarget,
+      ...example.diff.changed,
+    ]
 
+    let addOpen = false
     const { cleanup } = await renderInto(
-      <ExamplePreviewChrome>
-        <SchemaDiffView
-          data={example}
-          sourceId={0}
-          targetId={1}
-          scope="hosts"
-          peers={example.hosts}
-          hostCount={2}
-          nodeCount={0}
-          onPairChange={() => {}}
-          example
+      <div>
+        <EmptyState
+          variant="no-data"
+          title="Need two saved connections"
+          description="Schema Compare diffs staging vs prod. Add another host, or compare replica nodes when this cluster has two or more."
+          action={{
+            label: 'Add host',
+            onClick: () => {
+              addOpen = true
+            },
+            icon: (
+              <span data-testid="add-host" className="contents">
+                +
+              </span>
+            ),
+          }}
         />
-      </ExamplePreviewChrome>
+        <ExamplePreviewChrome>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+            <TableList
+              rows={rows}
+              selectedKey={rows[0]?.key ?? null}
+              onSelect={() => {}}
+              example
+            />
+            {rows[0] ? <DdlPair selected={rows[0]} /> : null}
+          </div>
+        </ExamplePreviewChrome>
+      </div>
     )
 
     try {
+      expect(document.body.textContent).toContain('Need two saved connections')
+      expect(document.body.textContent).toContain('staging vs prod')
       expect(document.body.textContent).toContain('Example')
-      expect(document.body.textContent).toContain('Host A')
-      expect(document.body.textContent).toContain('Host B')
       expect(document.body.textContent).toContain('analytics.events')
-      expect(
-        document.querySelector('[data-testid="add-another-host"]')
-      ).not.toBeNull()
-      expect(
-        document.querySelector('[data-testid="add-another-host"]')?.className
-      ).toContain('min-h-11')
+      expect(document.body.textContent).toContain('Source DDL')
+      const faded = document.querySelector(
+        '[data-testid="compare-example-preview"]'
+      )
+      expect(faded).not.toBeNull()
+      expect(faded?.className).toContain('pointer-events-none')
+      expect(faded?.className).toContain('opacity-40')
+      expect(document.querySelector('[data-testid="add-host"]')).not.toBeNull()
 
       const { act } = await import('react')
+      const add = document
+        .querySelector('[data-testid="add-host"]')
+        ?.closest('button') as HTMLButtonElement
+      await act(async () => {
+        add.click()
+      })
+      expect(addOpen).toBe(true)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('AddHostButton opens AddHostDialog', async () => {
+    const { AddHostDialog } = await import('@/components/connections')
+    const { Button } = await import('@/components/ui/button')
+    const { useState } = await import('react')
+
+    function Harness() {
+      const [addOpen, setAddOpen] = useState(false)
+      return (
+        <>
+          <Button data-testid="add-host" onClick={() => setAddOpen(true)}>
+            Add host
+          </Button>
+          <AddHostDialog open={addOpen} onOpenChange={setAddOpen} />
+        </>
+      )
+    }
+
+    const { cleanup } = await renderInto(<Harness />)
+    try {
+      expect(document.body.textContent).not.toContain('Connections')
+      const { act } = await import('react')
       const button = document.querySelector(
-        '[data-testid="add-another-host"]'
+        '[data-testid="add-host"]'
       ) as HTMLButtonElement
       await act(async () => {
         button.click()
       })
-
-      expect(document.body.textContent).toContain('Connections')
-      expect(document.body.textContent).toContain('Add Connection')
+      expect(
+        document.querySelector('[data-testid="add-host-dialog"]')
+      ).not.toBeNull()
+      expect(document.body.textContent).toContain('Add host dialog')
+      expect(document.body.textContent).not.toContain('Add Connection')
     } finally {
       await cleanup()
     }

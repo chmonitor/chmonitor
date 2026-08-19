@@ -30,6 +30,44 @@ describe('settings-diff request shape', () => {
       scope: 'nodes',
     })
   })
+
+  test('drops invalid scope', () => {
+    expect(validateSettingsDiffSearch({ host: '0', scope: 'nope' })).toEqual({
+      host: 0,
+    })
+  })
+
+  test('parses pair view and negative user-connection ids', () => {
+    expect(
+      validateSettingsDiffSearch({
+        host: '-1000',
+        scope: 'hosts',
+        view: 'pair',
+        source: '-1000',
+        target: '-1',
+      })
+    ).toEqual({
+      host: -1000,
+      source: -1000,
+      target: -1,
+      scope: 'hosts',
+      view: 'pair',
+    })
+  })
+
+  test('builds a pair query string that keeps negative ids', () => {
+    expect(
+      buildSettingsDiffRequest({
+        host: -1000,
+        scope: 'hosts',
+        view: 'pair',
+        source: -1000,
+        target: -1,
+      })
+    ).toBe(
+      '/api/v1/settings-diff?host=-1000&scope=hosts&view=pair&source=-1000&target=-1'
+    )
+  })
 })
 
 describe('settings-diff node pair filter', () => {

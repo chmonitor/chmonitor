@@ -14,8 +14,8 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 
 | Workflow | Route | What it does |
 |---|---|---|
-| Settings compare | `/settings-diff` | Compares `system.settings` and `system.merge_tree_settings` across saved hosts, or node vs node on the current cluster. Highlights values that differ and values changed from default. Export as CSV. One saved host with a single node shows an example layout and **Add another host**. |
-| Schema compare | `/schema-diff` | Compares table DDL across saved hosts, or node vs node on the current cluster. Recommend-only change plan (copy statements, never apply). One saved host with a single node shows an example layout and **Add another host**. |
+| Settings compare | `/settings-diff` | Compares `system.settings` and `system.merge_tree_settings` across saved hosts (including per-user connections), or node vs node on the current cluster. Highlights values that differ and values changed from default. Export as CSV. One saved host compares against defaults; add a host to diff another node. Two or more hosts keep an all-hosts matrix with optional pair mode. |
+| Schema compare | `/schema-diff` | Compares table DDL across saved hosts (including per-user connections), or node vs node on the current cluster. Recommend-only change plan (copy statements, never apply). One saved host shows an empty state (needs two connections, staging vs prod) plus a faded example of the table list and DDL pair. Add host uses the same dialog as the host switcher. |
 | Query advisor | `/advisor` (Query Advisor tab) | Ranked skip-index, projection, partition-key, and `PREWHERE` recommendations for a pasted query or a `query_id`. Recommend-only. |
 | Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for schema lint and settings findings. Recommend-only. |
 | TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. This is move history / current economics — not a full TTL and partition health inventory. |
@@ -23,13 +23,13 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 
 ### Settings compare (`/settings-diff`)
 
-Open **Tools → Settings Diff**. Compare saved hosts, or pick two cluster nodes when the current host has 2+ replicas. Filter to rows that differ, or to settings changed from default. One saved host with a single node shows an example layout and **Add another host**. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
+Open **Tools → Settings Diff**. Compare saved hosts (env, per-user, and browser connections), or pick two cluster nodes when the current host has 2+ replicas. Filter to rows that differ, or to settings changed from default. One saved host compares against setting defaults; use **Add host** to diff another node. Two or more hosts keep an all-hosts matrix with an optional pair picker. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
 
 Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTER TABLE … MODIFY SETTING`, or edit the server config yourself.
 
 ### Schema compare (`/schema-diff`)
 
-Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster). The page lists tables that differ and shows side-by-side `CREATE TABLE` plus a copyable recommend-only plan. It never applies DDL.
+Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster). With one saved host the page explains it needs two connections (staging vs prod) and offers **Add host**. The page lists tables that differ and shows side-by-side `CREATE TABLE` plus a copyable recommend-only plan. It never applies DDL.
 
 ### Advisor (`/advisor`)
 

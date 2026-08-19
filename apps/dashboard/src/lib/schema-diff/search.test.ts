@@ -41,4 +41,18 @@ describe('validateSchemaDiffSearch', () => {
       host: 0,
     })
   })
+
+  test('parses negative user-connection ids', () => {
+    expect(
+      validateSchemaDiffSearch({
+        host: '-1',
+        source: '-1000',
+        target: '-1',
+      })
+    ).toEqual({
+      host: -1,
+      source: -1000,
+      target: -1,
+    })
+  })
 })

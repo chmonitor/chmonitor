@@ -636,10 +636,15 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   seed-rotated (not `Math.random()`) so it's SSR-safe, and label it (a "Sample"
   badge + a one-line footnote that it's illustrative, not live analysis).
   Reference: `components/insights/insights-preview.tsx` +
-  `lib/insights/mock-preview.ts`. One-host compare pages (`/schema-diff`,
-  `/settings-diff`) reuse `ExamplePreviewChrome` + `AddAnotherHostButton`
-  (opens the existing `ConnectionManagerDialog`; 44px mobile hit) instead of
-  a dead empty state.
+  `lib/insights/mock-preview.ts`. Schema Compare (`/schema-diff`) with one
+  saved host uses a real `EmptyState` (Add host opens `AddHostDialog`, same
+  as HostSwitcher / first-run) plus a faded EXAMPLE of `TableList` +
+  `DdlPair` with placeholder names. Settings Diff (`/settings-diff`) with one
+  host keeps the live vs-default matrix and a banner to add another host;
+  two or more merged hosts (env + database + browser, including negative
+  ids) keep an All-hosts matrix with an optional pair mode (`HostPairFilter`
+  + URL `source`/`target`). Compare APIs resolve merged hosts the same way
+  charts do (`resolve-host-fetch.ts` / `use-merged-hosts.ts`).
 - Overflow strip: for a single-row scroller that must not wrap, use
   `scrollbar-hide overflow-x-auto` (util in `styles.css`; also on the overview
   tab bar) with `py-*` so card shadows/accents/focus rings aren't clipped

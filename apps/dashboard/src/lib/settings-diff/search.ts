@@ -1,12 +1,23 @@
 import type { CompareScope } from '@/lib/compare/scope'
+import type { SettingsDiffView } from './types'
 
 import { parseCompareScope, parseOptionalInt } from '@/lib/compare/scope'
+
+export type { SettingsDiffView } from './types'
 
 export type SettingsDiffSearch = {
   host: number
   source?: number
   target?: number
   scope?: CompareScope
+  view?: SettingsDiffView
+}
+
+export function parseSettingsDiffView(
+  raw: string | null | undefined
+): SettingsDiffView | undefined {
+  if (raw === 'matrix' || raw === 'pair') return raw
+  return undefined
 }
 
 export function validateSettingsDiffSearch(
@@ -18,11 +29,15 @@ export function validateSettingsDiffSearch(
   const scope = parseCompareScope(
     typeof search.scope === 'string' ? search.scope : undefined
   )
+  const view = parseSettingsDiffView(
+    typeof search.view === 'string' ? search.view : undefined
+  )
   return {
     host: Number.isInteger(hostParsed) ? hostParsed : 0,
     ...(source !== undefined ? { source } : {}),
     ...(target !== undefined ? { target } : {}),
     ...(scope ? { scope } : {}),
+    ...(view ? { view } : {}),
   }
 }
 
@@ -31,6 +46,7 @@ export function buildSettingsDiffRequest(search: SettingsDiffSearch): string {
   const params = new URLSearchParams()
   params.set('host', String(search.host))
   if (search.scope) params.set('scope', search.scope)
+  if (search.view) params.set('view', search.view)
   if (search.source !== undefined) params.set('source', String(search.source))
   if (search.target !== undefined) params.set('target', String(search.target))
   return `/api/v1/settings-diff?${params.toString()}`

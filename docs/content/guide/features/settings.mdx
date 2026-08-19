@@ -41,7 +41,7 @@ This section covers **ClickHouse server** settings (read-only, from system table
 
 - Open `/settings` to review all server settings; non-default values are highlighted so you can spot unexpected overrides or confirm a change took effect.
 - Open `/mergetree-settings` to inspect MergeTree engine settings, and `/replicated-merge-tree-settings` for Replicated MergeTree settings with changed-from-default values flagged.
-- Open `/settings-diff` to compare `system.settings` and `system.merge_tree_settings` across saved hosts, or node vs node on the current cluster. One saved host with a single node shows an example preview and **Add another host**.
+- Open `/settings-diff` to compare `system.settings` and `system.merge_tree_settings` across saved hosts (env, per-user, and browser connections), or node vs node on the current cluster. One saved host compares against setting defaults — add another host to diff a second node. Two or more hosts keep an all-hosts matrix, with an optional pair picker.
 - To change a setting, use ClickHouse SQL (`SET`, `ALTER TABLE ... MODIFY SETTING`) or edit the server config — these pages are read-only. chmonitor never writes `config.xml`.
 
 ## Permissions & access
