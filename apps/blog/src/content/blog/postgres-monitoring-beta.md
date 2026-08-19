@@ -2,7 +2,7 @@
 title: "Postgres as a monitored source (beta)"
 description: "chmonitor now monitors Postgres alongside ClickHouse — read-only query insights, running queries, and AI agent tools. Beta, free on every plan."
 date: 2026-07-11
-tag: Release
+tag: Feature
 ---
 
 chmonitor started as a ClickHouse dashboard. Today it monitors **Postgres** too —
