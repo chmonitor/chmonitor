@@ -11,6 +11,12 @@ import { CompareScopeToggle } from '@/components/compare/compare-scope-toggle'
 import { HostPairFilter } from '@/components/compare/host-pair-filter'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
 export interface SchemaDiffViewProps {
@@ -62,12 +68,14 @@ export function SchemaDiffView({
     (item) => item.tableKey === selected?.key
   )
 
-  const sourceHost = peers.find((h) => h.id === sourceId)
-  const targetHost = peers.find((h) => h.id === targetId)
   const diffCount =
     data.diff.onlySource.length +
     data.diff.onlyTarget.length +
     data.diff.changed.length
+  const hasNameFilter = nameFilter.trim().length > 0
+  const schemasMatchEmpty =
+    rows.length === 0 && showDiffsOnly && diffCount === 0 && !hasNameFilter
+  const hasSafeStatements = data.plan.safeStatements.length > 0
 
   const copySafe = async () => {
     const text = data.plan.safeStatements.join(';\n\n')
@@ -79,13 +87,18 @@ export function SchemaDiffView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Comparing {sourceHost?.name ?? sourceId} →{' '}
-          {targetHost?.name ?? targetId} — {diffCount} table
-          {diffCount !== 1 ? 's' : ''} differ. Recommend only; copy statements,
-          never apply.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <HostPairFilter
+          hosts={peers}
+          sourceHostId={sourceId}
+          targetHostId={targetId}
+          nameFilter={nameFilter}
+          nameFilterPlaceholder={nameFilterPlaceholder}
+          showDiffsOnly={showDiffsOnly}
+          onPairChange={onPairChange}
+          onNameFilterChange={setNameFilter}
+          onShowDiffsOnlyChange={setShowDiffsOnly}
+        />
         <div className="flex flex-wrap items-center gap-2">
           {onScopeChange ? (
             <CompareScopeToggle
@@ -95,29 +108,33 @@ export function SchemaDiffView({
               nodeCount={nodeCount}
             />
           ) : null}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={copySafe}
-            disabled={data.plan.safeStatements.length === 0}
-          >
-            <CopyIcon className="mr-2 size-3.5" strokeWidth={1.5} />
-            {copiedSafe ? 'Copied' : 'Copy safe statements'}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className="inline-flex">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copySafe}
+                      disabled={!hasSafeStatements}
+                      aria-label="Copy recommended SQL"
+                    >
+                      <CopyIcon className="mr-2 size-3.5" strokeWidth={1.5} />
+                      {copiedSafe ? 'Copied' : 'Copy recommended SQL'}
+                    </Button>
+                  </span>
+                }
+              />
+              <TooltipContent side="top" className="max-w-xs">
+                {hasSafeStatements
+                  ? 'Copy recommended ALTER/CREATE statements. Nothing is applied.'
+                  : 'No recommended SQL — schemas match or every change is a manual rewrite.'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
-
-      <HostPairFilter
-        hosts={peers}
-        sourceHostId={sourceId}
-        targetHostId={targetId}
-        nameFilter={nameFilter}
-        nameFilterPlaceholder={nameFilterPlaceholder}
-        showDiffsOnly={showDiffsOnly}
-        onPairChange={onPairChange}
-        onNameFilterChange={setNameFilter}
-        onShowDiffsOnlyChange={setShowDiffsOnly}
-      />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <TableList
@@ -125,6 +142,14 @@ export function SchemaDiffView({
           selectedKey={selected?.key ?? null}
           onSelect={setSelectedKey}
           example={example}
+          emptyTitle={schemasMatchEmpty ? 'Schemas match' : undefined}
+          emptyDescription={
+            schemasMatchEmpty
+              ? 'No table differences between source and target. Turn off Differences only to list every table.'
+              : undefined
+          }
+          emptyVariant={schemasMatchEmpty ? 'no-data' : undefined}
+          emptyCompact={!schemasMatchEmpty}
         />
 
         <div className="flex flex-col gap-4">

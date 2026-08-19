@@ -144,6 +144,58 @@ function twoHostPayload(): SchemaDiffResponse {
   }
 }
 
+function matchingHostPayload(): SchemaDiffResponse {
+  const catalog = assembleCatalog(
+    [
+      {
+        database: 'app',
+        table: 'events',
+        engine: 'MergeTree',
+        sorting_key: 'id',
+        partition_key: '',
+        primary_key: 'id',
+        create_table_query:
+          'CREATE TABLE app.events (id UInt64) ENGINE = MergeTree ORDER BY id',
+      },
+    ],
+    [
+      {
+        database: 'app',
+        table: 'events',
+        name: 'id',
+        type: 'UInt64',
+        codec: '',
+      },
+    ]
+  )
+  const diff = compareCatalogs(catalog, catalog)
+  return {
+    success: true,
+    hosts: [
+      { id: 0, name: 'clickhouse-0' },
+      { id: 1, name: 'clickhouse-1' },
+    ],
+    nodes: [],
+    scope: 'hosts',
+    sourceHostId: 0,
+    targetHostId: 1,
+    diff,
+    plan: buildChangePlan(diff),
+  }
+}
+
+async function setInputValue(input: HTMLInputElement, value: string) {
+  const { act } = await import('react')
+  await act(async () => {
+    const proto = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value'
+    )
+    proto?.set?.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+
 describe('Schema Compare one-host empty state', () => {
   test('shows empty copy, Add host, and a faded TableList + DdlPair example', async () => {
     const { ExamplePreviewChrome } = await import(
@@ -280,10 +332,169 @@ describe('Schema Compare two-host path', () => {
       expect(document.body.textContent).toContain('production')
       expect(document.body.textContent).toContain('app.events')
       expect(document.body.textContent).not.toContain('Host A')
+      expect(document.body.textContent).not.toMatch(
+        /Comparing .+ tables differ/
+      )
+      const source = document.querySelector(
+        '[data-testid="compare-source"]'
+      ) as HTMLElement
+      const target = document.querySelector(
+        '[data-testid="compare-target"]'
+      ) as HTMLElement
+      expect(source?.textContent).toContain('staging')
+      expect(target?.textContent).toContain('production')
+      expect(source?.textContent).not.toMatch(/^0/)
+      expect(target?.textContent).not.toMatch(/^1/)
+      const copy = document.querySelector(
+        '[aria-label="Copy recommended SQL"]'
+      ) as HTMLButtonElement
+      expect(copy).not.toBeNull()
+      expect(copy.disabled).toBe(true)
+      expect(copy.textContent).toContain('Copy recommended SQL')
       const exampleBadges = [...document.querySelectorAll('span')].filter(
         (el) => el.textContent === 'Example'
       )
       expect(exampleBadges).toHaveLength(0)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('Select closed value shows peer names, not numeric ids', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = twoHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      const sourceValue = document.querySelector(
+        '[data-testid="compare-source"] [data-slot="select-value"]'
+      )
+      const targetValue = document.querySelector(
+        '[data-testid="compare-target"] [data-slot="select-value"]'
+      )
+      expect(sourceValue?.textContent).toBe('staging')
+      expect(targetValue?.textContent).toBe('production')
+      expect(sourceValue?.textContent).not.toBe('0')
+      expect(targetValue?.textContent).not.toBe('1')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('matching schemas with Differences only says Schemas match', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = matchingHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      expect(document.body.textContent).toContain('Schemas match')
+      expect(document.body.textContent).toContain(
+        'Turn off Differences only to list every table.'
+      )
+      expect(document.body.textContent).not.toContain('No tables match')
+      expect(document.body.textContent).not.toMatch(
+        /Comparing .+ tables differ/
+      )
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('name filter miss still says No tables match', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = twoHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      const input = document.querySelector(
+        'input[placeholder="Filter tables…"]'
+      ) as HTMLInputElement
+      expect(input).not.toBeNull()
+      await setInputValue(input, 'no-such-table')
+      expect(document.body.textContent).toContain('No tables match')
+      expect(document.body.textContent).not.toContain('Schemas match')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('scope toggle changes scope from hosts to replica nodes', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = twoHostPayload()
+    const seen: string[] = []
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={{
+          ...data,
+          nodes: [
+            { id: 10, name: 'clickhouse-0' },
+            { id: 11, name: 'clickhouse-1' },
+          ],
+        }}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={2}
+        onPairChange={() => {}}
+        onScopeChange={(next) => {
+          seen.push(next)
+        }}
+      />
+    )
+
+    try {
+      const group = document.querySelector(
+        '[aria-label="Compare saved connections or replica nodes"]'
+      )
+      expect(group).not.toBeNull()
+      const replica = [...document.querySelectorAll('button')].find(
+        (el) => el.textContent === 'Replica nodes'
+      ) as HTMLButtonElement
+      expect(replica).not.toBeNull()
+      const { act } = await import('react')
+      await act(async () => {
+        replica.click()
+      })
+      expect(seen).toEqual(['nodes'])
     } finally {
       await cleanup()
     }

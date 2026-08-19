@@ -94,8 +94,20 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Base UI Select labels:** pass `items={{ value: 'Human label' }}` on
   `Select` (the Root) so `SelectValue` shows the label, not the raw value.
   `placeholder` only appears when nothing is selected — a selected `24` /
-  `__all__` otherwise renders as those strings. See
-  `components/agents/advisor-query-picker.tsx`.
+  `__all__` otherwise renders as those strings. Same map on compare
+  Source/Target (`HostPairFilter` — id → `h.name`, never a raw `0`). See
+  `components/agents/advisor-query-picker.tsx` and
+  `components/compare/host-pair-filter.tsx`.
+- **Schema Compare (`/schema-diff`):** one static `PageHeader` ("Schema
+  Compare" + recommend-only description). Pair identity lives in the
+  Source/Target selects — no second "Comparing X → Y — N tables differ"
+  line. Toolbar is one wrapping row: pair + filter + Differences only on
+  the left; scope toggle + "Copy recommended SQL" on the right. Scope
+  labels are **Connections** / **Replica nodes** (tooltips: saved
+  connections vs nodes in this cluster). When Differences only is on,
+  zero diffs, and no name filter, the table list is
+  `EmptyState variant="no-data"` titled **Schemas match** — keep
+  "No tables match" only for a name-filter miss.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).

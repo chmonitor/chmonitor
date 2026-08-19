@@ -1,9 +1,16 @@
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 export interface SegmentedOption {
   label: string
   value: string
+  tooltip?: string
 }
 
 interface SegmentedControlProps {
@@ -14,6 +21,7 @@ interface SegmentedControlProps {
   placeholder?: string
   /** Optional className for styling */
   className?: string
+  ariaLabel?: string
 }
 
 /**
@@ -27,15 +35,16 @@ export function SegmentedControl({
   onChange,
   placeholder,
   className,
+  ariaLabel = 'Segmented control',
 }: SegmentedControlProps) {
-  return (
+  const group = (
     <div
       className={cn(
         'inline-flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/20 p-0.5',
         className
       )}
       role="group"
-      aria-label="Segmented control"
+      aria-label={ariaLabel}
     >
       {placeholder && value === '' && (
         <div className="px-2.5 text-xs text-muted-foreground/70">
@@ -44,25 +53,41 @@ export function SegmentedControl({
       )}
       {options.map((option) => {
         const isActive = value === option.value
+        const buttonProps = {
+          type: 'button' as const,
+          variant: (isActive ? 'secondary' : 'ghost') as 'secondary' | 'ghost',
+          size: 'sm' as const,
+          className: cn(
+            'gap-1.5 px-2.5 text-xs h-7 rounded-md transition-all',
+            isActive
+              ? 'bg-background shadow-sm border border-border/50 font-medium'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          ),
+          'aria-pressed': isActive,
+          onClick: () => onChange(option.value),
+        }
+        if (!option.tooltip) {
+          return (
+            <Button key={option.value} {...buttonProps}>
+              <span>{option.label}</span>
+            </Button>
+          )
+        }
         return (
-          <Button
-            key={option.value}
-            type="button"
-            variant={isActive ? 'secondary' : 'ghost'}
-            size="sm"
-            className={cn(
-              'gap-1.5 px-2.5 text-xs h-7 rounded-md transition-all',
-              isActive
-                ? 'bg-background shadow-sm border border-border/50 font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            )}
-            aria-pressed={isActive}
-            onClick={() => onChange(option.value)}
-          >
-            <span>{option.label}</span>
-          </Button>
+          <Tooltip key={option.value}>
+            <TooltipTrigger render={<Button {...buttonProps} />}>
+              <span>{option.label}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {option.tooltip}
+            </TooltipContent>
+          </Tooltip>
         )
       })}
     </div>
   )
+
+  if (!options.some((option) => option.tooltip)) return group
+
+  return <TooltipProvider>{group}</TooltipProvider>
 }
