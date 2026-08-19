@@ -165,4 +165,91 @@ describe('buildChangePlan', () => {
     expect(plan.items[0].statement).toContain('MODIFY COLUMN')
     expect(plan.safeStatements).toEqual([])
   })
+
+  test('Distributed table plan items expose local table + ON CLUSTER variant', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'events_dist',
+          engine: 'Distributed',
+          createTableQuery:
+            "CREATE TABLE app.events_dist (`id` UInt64, `note` String) ENGINE = Distributed('analytics', 'default', 'events_local', rand())",
+          columns: [
+            { name: 'id', type: 'UInt64', codec: '' },
+            { name: 'note', type: 'String', codec: '' },
+          ],
+        }),
+      ],
+    }
+    const target = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'events_dist',
+          engine: 'Distributed',
+          createTableQuery:
+            "CREATE TABLE app.events_dist (`id` UInt64) ENGINE = Distributed('analytics', 'default', 'events_local', rand())",
+        }),
+      ],
+    }
+
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    const add = plan.items.find((i) => i.kind === 'add_column')
+    expect(add).toBeTruthy()
+    expect(add?.localTableName).toBe('default.events_local')
+    expect(add?.statement).toContain('`default`.`events_local`')
+    expect(add?.onClusterStatement).toContain("ON CLUSTER 'analytics'")
+    expect(add?.onClusterStatement).toContain('ADD COLUMN')
+    expect(add?.localOnlyReason).toBeNull()
+  })
+
+  test('cluster metadata without Distributed still adds ON CLUSTER to the same table', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'events',
+          columns: [
+            { name: 'id', type: 'UInt64', codec: '' },
+            { name: 'note', type: 'String', codec: '' },
+          ],
+        }),
+      ],
+    }
+    const target = {
+      tables: [table({ database: 'app', table: 'events' })],
+    }
+
+    const plan = buildChangePlan(compareCatalogs(source, target), {
+      cluster: 'prod',
+    })
+    const add = plan.items.find((i) => i.kind === 'add_column')
+    expect(add?.localTableName).toBe('app.events')
+    expect(add?.onClusterStatement).toContain("ON CLUSTER 'prod'")
+    expect(add?.statement).not.toMatch(/ON CLUSTER/i)
+  })
+
+  test('single-host plan without topology does not add ON CLUSTER', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'events',
+          columns: [
+            { name: 'id', type: 'UInt64', codec: '' },
+            { name: 'note', type: 'String', codec: '' },
+          ],
+        }),
+      ],
+    }
+    const target = {
+      tables: [table({ database: 'app', table: 'events' })],
+    }
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    const add = plan.items.find((i) => i.kind === 'add_column')
+    expect(add?.onClusterStatement ?? null).toBeNull()
+    expect(add?.statement).toMatch(/^ALTER TABLE /)
+    expect(add?.statement).not.toMatch(/ON CLUSTER/i)
+  })
 })

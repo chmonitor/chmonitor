@@ -12,7 +12,7 @@ description: >-
   "empty state", "loading", "consistent", "follow-up feature", "match the design",
   "what's new", "changelog", "dialog scroll", "settings gear",
   "schema compare", "settings diff", "add host", "pick a query",
-  "query picker", "select labels".
+  "query picker", "select labels", "ON CLUSTER", "advisor DDL".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -255,6 +255,12 @@ chart in `components/charts/` as the template — don't reinvent the wiring.
   `query_id` — use the same EmptyState with next steps, never `ErrorAlert`
   titled "Analysis failed". `ErrorAlert` is for host/schema/fetch failures.
   Picking a query from the picker auto-runs, same as `/explain`.
+- **Recommend-only DDL pairs:** when cluster topology is known (Distributed
+  engine or cluster metadata), Advisor findings and schema-diff plan items
+  show the local table name plus a copyable `ON CLUSTER` variant of the same
+  statement via `RecommendDdlBlocks` (`components/ddl/recommend-ddl-blocks.tsx`).
+  Single-node / no topology stays a single statement. Never a Run/apply
+  button — `lib/ddl/on-cluster.ts` is a pure transform.
 - **Error (graceful):** initial error (`error && !hasData`) → full `ChartError`
   with retry. Revalidation error (`staleError`) → KEEP showing data + subtle
   amber `ChartStaleIndicator` (hover-revealed), auto-clears on next success.

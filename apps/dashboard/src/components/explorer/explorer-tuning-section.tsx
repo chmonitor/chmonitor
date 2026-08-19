@@ -19,6 +19,7 @@ import { TableSkeleton } from '@/components/skeletons'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { annotateDdlForTopology } from '@/lib/ddl/on-cluster'
 import {
   type ClusterReplicaRow,
   formatDistributedTopologyNote,
@@ -114,7 +115,27 @@ export function ExplorerTuningSection({
     if (dist) {
       notes.unshift(formatDistributedTopologyNote(dist, topologyRows))
     }
-    return { ...data, notes }
+    const topology = dist
+      ? {
+          cluster: dist.cluster,
+          localDatabase: dist.database,
+          localTable: dist.table,
+        }
+      : null
+    const findings = topology
+      ? data.findings.map((finding) => {
+          if (finding.onClusterStatement) return finding
+          const variant = annotateDdlForTopology(finding.ddl, topology)
+          return {
+            ...finding,
+            ddl: variant.statement || finding.ddl,
+            localTableName: variant.localTableName,
+            onClusterStatement: variant.onClusterStatement,
+            localOnlyReason: variant.localOnlyReason,
+          }
+        })
+      : data.findings
+    return { ...data, notes, findings }
   }, [data, dist, topologyRows])
 
   const advisorHref = buildUrl('/advisor', { host: hostId })

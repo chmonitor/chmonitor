@@ -25,12 +25,21 @@ function respond(query: string): { data: unknown[]; error: null } {
     }
   }
   if (q.includes('system.tables')) {
+    if (q.includes('engine_full') || q.includes('engine,')) {
+      return {
+        data: [{ engine: 'MergeTree', engine_full: 'MergeTree' }],
+        error: null,
+      }
+    }
     return {
       data: [
         { partition_key: 'event_date', sorting_key: 'event_date, user_id' },
       ],
       error: null,
     }
+  }
+  if (q.includes('system.clusters')) {
+    return { data: [], error: null }
   }
   if (q.includes('system.columns')) {
     return {

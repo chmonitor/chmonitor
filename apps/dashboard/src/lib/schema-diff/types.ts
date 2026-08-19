@@ -115,6 +115,12 @@ export type PlanItem = {
   statement: string
   summary: string
   safe: boolean
+  /** Qualified local table when topology is known. */
+  localTableName?: string | null
+  /** Copyable ON CLUSTER variant of `statement`. Recommend-only. */
+  onClusterStatement?: string | null
+  /** Why ON CLUSTER was not offered. */
+  localOnlyReason?: string | null
 }
 
 export type SchemaChangePlan = {
