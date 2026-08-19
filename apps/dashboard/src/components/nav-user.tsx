@@ -7,12 +7,10 @@ import {
 } from 'lucide-react'
 
 import { ClerkNavWrapper as ClerkNavWrapperImpl } from './nav-user/clerk-nav'
-import { useState } from 'react'
 import { ClientOnly } from '@/components/client-only'
 import { NavUserFooterRow } from '@/components/nav-user/nav-settings-button'
 import { useAuthIdentity } from '@/components/nav-user/use-auth-identity'
-import { useSettingsShortcut } from '@/components/nav-user/use-settings-shortcut'
-import { SettingsDialog } from '@/components/settings'
+import { useOpenSettings } from '@/components/settings/settings-dialog-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -54,7 +52,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const openSettingsDialog = useOpenSettings()
   // Under reverse-proxy auth (`trusted`/`proxy`), show the forwarded identity
   // instead of the static guest user. No-op for other providers.
   const proxyIdentity = useAuthIdentity()
@@ -68,9 +66,8 @@ export function NavUser({
     : undefined
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
   const openSettings = () => {
-    if (canUseSettings) setSettingsOpen(true)
+    if (canUseSettings) openSettingsDialog()
   }
-  useSettingsShortcut(openSettings, canUseSettings)
 
   // If Clerk is enabled, use Clerk navigation
   if (isClerkEnabled() && ClerkNavWrapper) {
@@ -174,7 +171,7 @@ export function NavUser({
                   <DropdownMenuItem
                     className="flex items-center gap-2"
                     onClick={() => {
-                      setSettingsOpen(true)
+                      openSettings()
                     }}
                     data-testid="nav-user-settings"
                   >
@@ -190,9 +187,6 @@ export function NavUser({
           </DropdownMenu>
         </ClientOnly>
       </NavUserFooterRow>
-      {canUseSettings && (
-        <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-      )}
     </>
   )
 }

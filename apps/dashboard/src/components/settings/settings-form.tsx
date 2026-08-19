@@ -12,6 +12,7 @@ import {
   Settings,
 } from 'lucide-react'
 
+import type { SettingsTab } from '@/lib/settings-tab'
 import type {
   ByteUnit,
   ChartPalette,
@@ -51,6 +52,8 @@ interface SettingsFormProps {
   settings: UserSettings
   onUpdate: (updates: Partial<UserSettings>) => void
   onClose: () => void
+  /** Opens this pane. Defaults to General. */
+  initialTab?: SettingsTab
 }
 
 const themeOptions = [
@@ -439,6 +442,7 @@ export function SettingsForm({
   settings,
   onUpdate,
   onClose,
+  initialTab = 'general',
 }: SettingsFormProps) {
   const { setTheme } = useTheme()
   const engine = useActiveHostEngine()
@@ -533,7 +537,10 @@ export function SettingsForm({
     },
   ]
 
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState(initialTab)
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
   const activeLabel =
     navGroups
       .flatMap((group) => group.items)

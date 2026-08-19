@@ -15,10 +15,8 @@ import {
   useOrganization,
   useUser,
 } from '@clerk/tanstack-react-start'
-import { useState } from 'react'
 import { NavUserFooterRow } from '@/components/nav-user/nav-settings-button'
-import { useSettingsShortcut } from '@/components/nav-user/use-settings-shortcut'
-import { SettingsDialog } from '@/components/settings'
+import { useOpenSettings } from '@/components/settings/settings-dialog-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -49,13 +47,12 @@ export function ClerkNavWrapper() {
   const { organization } = useOrganization()
   const queryClient = useQueryClient()
   const { isMobile } = useSidebar()
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const openSettingsDialog = useOpenSettings()
   const { config } = useFeaturePermissions()
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
   const openSettings = () => {
-    if (canUseSettings) setSettingsOpen(true)
+    if (canUseSettings) openSettingsDialog()
   }
-  useSettingsShortcut(openSettings, canUseSettings)
 
   // Loading state - show skeleton. Gear stays visible so local settings
   // remain reachable while Clerk loads (no account required).
@@ -68,9 +65,6 @@ export function ClerkNavWrapper() {
         >
           <UserSkeletonButton />
         </NavUserFooterRow>
-        {canUseSettings && (
-          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-        )}
       </>
     )
   }
@@ -217,7 +211,7 @@ export function ClerkNavWrapper() {
                   <DropdownMenuItem
                     className="flex items-center gap-2"
                     onClick={() => {
-                      setSettingsOpen(true)
+                      openSettings()
                     }}
                     data-testid="nav-user-settings"
                   >
@@ -249,9 +243,6 @@ export function ClerkNavWrapper() {
           </DropdownMenu>
         )}
       </NavUserFooterRow>
-      {canUseSettings && (
-        <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-      )}
     </>
   )
 }

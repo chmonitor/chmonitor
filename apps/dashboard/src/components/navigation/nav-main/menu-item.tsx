@@ -5,6 +5,7 @@ import type { MenuItem as MenuItemType } from '@/components/menu/types'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
 import { CollapsedSubmenu } from './collapsed-submenu'
+import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
@@ -143,10 +144,18 @@ const SingleMenuItem = function SingleMenuItem({
         }
       >
         {item.icon && <item.icon className="size-4 shrink-0" />}
-        <span className="group-data-[state=collapsed]/sidebar:hidden">
+        <span
+          className={cn(
+            'min-w-0 truncate group-data-[state=collapsed]/sidebar:hidden',
+            hasBadge ? 'pr-16' : 'pr-12'
+          )}
+        >
           {item.title}
         </span>
       </SidebarMenuButton>
+      {item.href ? (
+        <HideButton href={item.href} title={item.title} hasBadge={hasBadge} />
+      ) : null}
       <PinButton href={item.href} title={item.title} hasBadge={hasBadge} />
       {item.isNew && (
         <SidebarMenuBadge className={badgeHiddenClasses}>
@@ -208,8 +217,8 @@ const SubMenuItem = function SubMenuItem({
           pathname
         )}
         className={cn(
-          'h-11 min-h-11 w-full cursor-pointer pr-7 lg:h-7 lg:min-h-7',
-          hasBadge && 'pr-12',
+          'h-11 min-h-11 w-full cursor-pointer pr-12 lg:h-7 lg:min-h-7',
+          hasBadge && 'pr-16',
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={
@@ -243,6 +252,13 @@ const SubMenuItem = function SubMenuItem({
           </span>
         )}
       </SidebarMenuSubButton>
+      {subItem.href ? (
+        <SubHideButton
+          href={subItem.href}
+          title={subItem.title}
+          hasBadge={hasBadge}
+        />
+      ) : null}
       <SubPinButton
         href={subItem.href}
         title={subItem.title}

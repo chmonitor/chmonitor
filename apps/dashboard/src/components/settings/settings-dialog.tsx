@@ -1,5 +1,7 @@
 import { Settings } from 'lucide-react'
 
+import type { SettingsTab } from '@/lib/settings-tab'
+
 import { SettingsForm } from './settings-form'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -17,12 +19,14 @@ interface SettingsDialogProps {
   children?: React.ReactElement
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  initialTab?: SettingsTab
 }
 
 export function SettingsDialog({
   children,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  initialTab = 'general',
 }: SettingsDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const { settings, updateSettings } = useUserSettings()
@@ -59,6 +63,7 @@ export function SettingsDialog({
           settings={settings}
           onUpdate={updateSettings}
           onClose={() => onOpenChange(false)}
+          initialTab={initialTab}
         />
       </DialogContent>
     </Dialog>

@@ -242,7 +242,9 @@ Synthetic column ids `__expand`, `select`, `action` are non-data — skip them i
 filter/search/sort/card wiring.
 
 Favorites in the sidebar can be drag-reordered; order is the localStorage pin
-list (`chm-pinned-favorites`).
+list (`chm-pinned-favorites`). Leaf sidebar rows also reveal Hide (EyeOff)
+beside the pin; that writes `hiddenMenuHrefs` and toasts Undo + Open
+Navigation (Settings → Workspace → Navigation).
 
 ## User appearance settings
 

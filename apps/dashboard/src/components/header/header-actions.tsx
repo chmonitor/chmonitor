@@ -8,7 +8,7 @@ import { RefreshCountdown } from '@/components/header/refresh-countdown'
 import { GlobalTimeRangePicker } from '@/components/header/time-range-picker'
 import { InsightsPopover } from '@/components/insights/insights-popover'
 import { NotificationsPopover } from '@/components/notifications/notifications-popover'
-import { SettingsDialog } from '@/components/settings'
+import { useOpenSettings } from '@/components/settings/settings-dialog-provider'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
@@ -25,7 +25,7 @@ export const HeaderActions = function HeaderActions({
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const openSettings = useOpenSettings()
   const { config } = useFeaturePermissions()
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
   const pathname = useLocation({ select: (l) => l.pathname })
@@ -55,9 +55,7 @@ export const HeaderActions = function HeaderActions({
       <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
-        onOpenSettings={
-          canUseSettings ? () => setSettingsOpen(true) : undefined
-        }
+        onOpenSettings={canUseSettings ? () => openSettings() : undefined}
       />
 
       {/* Theme toggle - visible on all viewports */}
@@ -88,12 +86,6 @@ export const HeaderActions = function HeaderActions({
       <InsightsPopover />
       <NotificationsPopover />
       {menuComponent}
-
-      {canUseSettings && (
-        <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <div />
-        </SettingsDialog>
-      )}
     </div>
   )
 }
