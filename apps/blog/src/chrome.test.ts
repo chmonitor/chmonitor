@@ -30,6 +30,19 @@ describe('blog chrome matches landing shadcn tokens', () => {
     expect(nav).toContain('border-border')
   })
 
+  test('Nav links stay on one line and do not pack Open source / Pricing / RSS', () => {
+    const nav = read('src/components/Nav.astro')
+    expect(nav).toContain('whitespace-nowrap')
+    expect(nav).toContain('overflow-hidden')
+    expect(nav).not.toContain('#open-source')
+    expect(nav).not.toContain('#pricing')
+    expect(nav).not.toContain('/rss.xml')
+    expect(nav).toContain('>Features<')
+    expect(nav).toContain('>Docs<')
+    expect(nav).toContain('>Changelog<')
+    expect(nav).toContain('>Blog<')
+  })
+
   test('Footer uses semantic token classes', () => {
     const footer = read('src/components/Footer.astro')
     expect(footer).toContain('text-muted-foreground')
