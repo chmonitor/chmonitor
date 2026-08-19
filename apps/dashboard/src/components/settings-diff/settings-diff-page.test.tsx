@@ -142,6 +142,55 @@ describe('Settings Diff one-host vs default', () => {
   })
 })
 
+describe('Settings Diff all-matched empty', () => {
+  test('shows a green All matched state when diffs-only has nothing to list', async () => {
+    const { SettingsDiffTable } = await import('./settings-diff-table')
+    let showedMatching = false
+
+    const { cleanup } = await renderInto(
+      <SettingsDiffTable
+        columns={[
+          { id: 0, name: 'clickhouse-0' },
+          { id: 1, name: 'clickhouse-1' },
+        ]}
+        rows={[]}
+        allMatched
+        onShowMatching={() => {
+          showedMatching = true
+        }}
+      />
+    )
+
+    try {
+      expect(document.body.textContent).toContain('All matched')
+      expect(document.body.textContent).not.toContain(
+        'No settings match the current filters'
+      )
+      const button = document.body.querySelector('button')
+      expect(button?.textContent).toContain('Show matching settings')
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(showedMatching).toBe(true)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('a name-filter miss still says No settings match', async () => {
+    const { SettingsDiffTable } = await import('./settings-diff-table')
+
+    const { cleanup } = await renderInto(
+      <SettingsDiffTable columns={[{ id: 0, name: 'prod' }]} rows={[]} />
+    )
+
+    try {
+      expect(document.body.textContent).toContain('No settings match')
+      expect(document.body.textContent).not.toContain('All matched')
+    } finally {
+      await cleanup()
+    }
+  })
+})
+
 describe('Settings Diff pair ids include user connections', () => {
   test('resolvePair accepts negative database and browser ids', async () => {
     const { resolvePair } = await import('@/lib/compare/scope')
