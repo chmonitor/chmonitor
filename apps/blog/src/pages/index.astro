@@ -63,42 +63,49 @@ const groups = allTags
 <Base title="chmonitor blog — release notes, guides & ClickHouse diagnostics" image="/og/blog/index.png">
   <Nav />
   <main>
-    <section class="blog-hero">
+    <section class="relative overflow-hidden pb-9 pt-16">
+      <div
+        class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_50%_at_50%_-30%,var(--brand-soft),transparent_65%)]"
+        aria-hidden="true"
+      ></div>
       <div class="wrap">
-        <span class="eyebrow sec-eyebrow">Blog</span>
-        <h1>What's new in chmonitor</h1>
-        <p>Release notes, product updates, how-to guides, and ClickHouse diagnostic deep-dives from the team building the open-source ClickHouse monitoring dashboard.</p>
+        <span class="font-mono text-[11.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Blog</span>
+        <h1 class="mt-3.5 text-balance font-normal text-[clamp(1.5rem,4vw,2.625rem)] leading-[1.08] tracking-tight text-foreground">What's new in chmonitor</h1>
+        <p class="mt-3.5 max-w-[60ch] text-pretty text-[17px] text-muted-foreground">Release notes, product updates, how-to guides, and ClickHouse diagnostic deep-dives from the team building the open-source ClickHouse monitoring dashboard.</p>
       </div>
     </section>
     <section class="wrap">
-      <div class="cat-grid">
+      <div class="grid grid-cols-1 gap-5 pb-20 pt-2 md:grid-cols-2">
         {groups.map((group) => (
-          <section class={`cat-card${group.featured ? ' is-featured' : ''}`}>
-            <header class="cat-head">
-              <h2>{group.tag}</h2>
-              <span class="cat-count">{group.items.length}</span>
+          <section class:list={[
+            'flex h-full flex-col rounded-xl border border-border p-6',
+            group.featured ? 'col-span-full bg-[var(--brand-soft)]' : 'bg-card',
+          ]}>
+            <header class="flex items-center gap-2.5">
+              <h2 class="text-[17px] font-semibold tracking-tight text-foreground">{group.tag}</h2>
+              <span class="rounded-full bg-muted px-2 py-px font-mono text-xs font-semibold text-muted-foreground">{group.items.length}</span>
             </header>
-            <p class="cat-tagline">{group.tagline}</p>
-            <ul class="cat-list">
+            <p class="mt-2 text-pretty text-[13.5px] leading-relaxed text-muted-foreground">{group.tagline}</p>
+            <ul class="mt-4 flex flex-1 list-none flex-col gap-0.5 border-t border-border pt-1.5">
               {group.visible.map((post) => (
-                <li class="cat-item">
-                  <a class="cat-link" href={`/${postSlug(post)}/`}>
-                    <span class="cat-title">{post.data.title}</span>
-                    {!group.featured && <span class="cat-date">{fmtDate(post.data.date)}</span>}
+                <li class="border-b border-border py-2.5 last:border-b-0">
+                  <a class="flex items-baseline justify-between gap-3.5" href={`/${postSlug(post)}/`}>
+                    <span class="text-[15px] font-medium tracking-tight text-foreground transition-colors hover:text-[var(--brand-ink)]">{post.data.title}</span>
+                    {!group.featured && <span class="shrink-0 font-mono text-[12.5px] text-muted-foreground">{fmtDate(post.data.date)}</span>}
                   </a>
                   {group.featured && (
-                    <span class="cat-date">{fmtDate(post.data.date)}</span>
+                    <span class="font-mono text-[12.5px] text-muted-foreground">{fmtDate(post.data.date)}</span>
                   )}
                   {group.featured && post.data.description && (
-                    <p class="cat-desc">{post.data.description}</p>
+                    <p class="mt-1 max-w-[72ch] text-pretty text-sm leading-relaxed text-muted-foreground">{post.data.description}</p>
                   )}
                 </li>
               ))}
             </ul>
             {group.items.length > group.visible.length && (
-              <a class="cat-more" href={`/category/${group.slug}/`}>
+              <a class="mt-3.5 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-[var(--brand-ink)]" href={`/category/${group.slug}/`}>
                 View all {group.items.length} posts
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </a>
             )}
           </section>

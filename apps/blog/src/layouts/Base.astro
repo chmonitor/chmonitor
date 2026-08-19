@@ -1,4 +1,7 @@
 ---
+// Global Tailwind v4 + shadcn tokens (preflight omitted — see globals.css).
+import '../styles/globals.css'
+
 const {
   title = 'chmonitor blog',
   description = 'Release notes, product updates and engineering notes from the team building chmonitor — the open-source ClickHouse monitoring dashboard.',
@@ -11,7 +14,7 @@ const ogImage = new URL(image, Astro.site).toString()
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
@@ -34,7 +37,8 @@ const ogImage = new URL(image, Astro.site).toString()
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#f97316" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
   <!-- Self-hosted variable fonts (latin subset, ~60KB total). No render-blocking
        Google Fonts request and no cross-origin connection — same-origin preload
        paints text fast with swap fallback. -->
@@ -45,12 +49,20 @@ const ogImage = new URL(image, Astro.site).toString()
     @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/jetbrains-mono-latin.woff2') format('woff2')}
   </style>
   <script is:inline>
-    // Resolve theme before paint (no flash): saved choice wins, else OS pref.
+    // Resolve theme before paint (no flash): blog defaults to auto, which
+    // follows the OS color scheme. An explicit choice still wins so the toggle
+    // keeps working. Mirrors apps/landing/src/layouts/Base.astro.
     (function () {
       try {
-        var saved = localStorage.getItem('chm-theme')
-        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        document.documentElement.setAttribute('data-theme', theme)
+        var legacy = localStorage.getItem('chm-theme')
+        var saved = localStorage.getItem('chm-theme-state') || (legacy === 'dark' || legacy === 'light' ? legacy : null) || 'auto'
+        document.documentElement.setAttribute('data-theme-state', saved)
+        if (saved === 'auto') {
+          var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          document.documentElement.setAttribute('data-theme', systemDark ? 'dark' : 'light')
+        } else {
+          document.documentElement.setAttribute('data-theme', saved)
+        }
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'light')
       }
@@ -58,7 +70,6 @@ const ogImage = new URL(image, Astro.site).toString()
     // Theme-aware post screenshots: a single <img data-src-light data-src-dark>
     // per slot picks the right variant for the current theme, so only ONE
     // image ever downloads (no display:none sibling to fetch on scroll).
-    // Mirrors apps/landing/src/layouts/Base.astro.
     window.chmSyncThemedImages = function (root) {
       var theme = document.documentElement.getAttribute('data-theme')
       var imgs = (root || document).querySelectorAll('img[data-src-light]')
@@ -69,55 +80,56 @@ const ogImage = new URL(image, Astro.site).toString()
         if (wanted && img.getAttribute('src') !== wanted) img.setAttribute('src', wanted)
       }
     }
+    function chmApplyTheme(state) {
+      var html = document.documentElement
+      if (state === 'auto') {
+        var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        html.setAttribute('data-theme', isDark ? 'dark' : 'light')
+      } else {
+        html.setAttribute('data-theme', state)
+      }
+    }
+    // Theme toggle: event delegation on document so EVERY .theme-toggle works
+    // regardless of where it's rendered (nav, footer).
+    document.addEventListener('click', function (e) {
+      var toggle = e.target.closest('.theme-toggle')
+      if (!toggle) return
+      var html = document.documentElement
+      var state = html.getAttribute('data-theme-state') || 'auto'
+      var next
+      if (state === 'auto') next = 'dark'
+      else if (state === 'dark') next = 'light'
+      else next = 'auto'
+      html.setAttribute('data-theme-state', next)
+      try { localStorage.setItem('chm-theme-state', next) } catch (err) {}
+      chmApplyTheme(next)
+      toggle.setAttribute('aria-label', 'Theme: ' + next)
+      if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
+    })
+    try {
+      var chmThemeHtml = document.documentElement
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+        if ((chmThemeHtml.getAttribute('data-theme-state') || 'auto') === 'auto') {
+          chmThemeHtml.setAttribute('data-theme', e.matches ? 'dark' : 'light')
+          if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
+        }
+      })
+    } catch (e) {}
   </script>
   <style is:global>
+    /* Hand-authored blog CSS lives in @layer base so Tailwind utilities win.
+       Unlayered `*{margin:0}` would beat every Tailwind margin/padding utility. */
+    @layer base {
     :root{
-      --bg:#ffffff;
-      --bg-soft:#fafafa;
-      --fg:#09090b;
-      --fg-soft:#3f3f46;
-      --muted-fg:#71717a;
-      --border:#e7e7ea;
-      --border-soft:#f1f1f3;
-      --border-hover:#dcdce0;
-      --muted:#f4f4f5;
-      --card:#ffffff;
-      --nav-bg:rgba(255,255,255,.78);
-      --btn-primary-bg:#09090b;
-      --btn-primary-bg-hover:#26262b;
-      --btn-primary-fg:#ffffff;
-      --amber:#f59e0b;
-      --orange:#f97316;
-      --emerald:#10b981;
-      --radius:14px;
-      --maxw:1140px;
+      --maxw:1080px;
       --maxw-prose:720px;
-      --shadow-card:0 1px 2px rgba(9,9,11,.04), 0 1px 0 rgba(9,9,11,.02);
-      --shadow-float:0 24px 60px -28px rgba(9,9,11,.30), 0 8px 24px -16px rgba(9,9,11,.18);
-    }
-    :root[data-theme="dark"]{
-      --bg:#0b0b0e;
-      --bg-soft:#101014;
-      --fg:#f4f4f5;
-      --fg-soft:#c4c4cb;
-      --muted-fg:#8a8a93;
-      --border:#26262c;
-      --border-soft:#1c1c21;
-      --border-hover:#34343c;
-      --muted:#1a1a1f;
-      --card:#141418;
-      --nav-bg:rgba(11,11,14,.72);
-      --btn-primary-bg:#fafafa;
-      --btn-primary-bg-hover:#e4e4e7;
-      --btn-primary-fg:#09090b;
-      --shadow-card:0 1px 2px rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.3);
-      --shadow-float:0 24px 60px -28px rgba(0,0,0,.7), 0 8px 24px -16px rgba(0,0,0,.5);
     }
     *{margin:0;padding:0;box-sizing:border-box}
+    button{border:0 solid transparent}
     html{scroll-behavior:smooth}
     body{
-      background:var(--bg);
-      color:var(--fg);
+      background:var(--background);
+      color:var(--foreground);
       font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
       -webkit-font-smoothing:antialiased;
       text-rendering:optimizeLegibility;
@@ -129,126 +141,56 @@ const ogImage = new URL(image, Astro.site).toString()
     a{color:inherit;text-decoration:none}
     .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
     .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;width:100%}
-    .eyebrow{font-size:12px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;color:var(--muted-fg)}
     main{flex:1 0 auto}
-
-    /* ── buttons ── */
-    .btn{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;
-      font-size:14.5px;font-weight:600;white-space:nowrap;transition:.16s ease;border:1px solid transparent;cursor:pointer}
-    .btn svg{width:16px;height:16px}
-    .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-fg)}
-    .btn-primary:hover{background:var(--btn-primary-bg-hover);transform:translateY(-1px)}
-    .btn-ghost{background:var(--card);color:var(--fg);border-color:var(--border)}
-    .btn-ghost:hover{background:var(--muted);border-color:var(--border-hover)}
-    .btn-sm{height:36px;padding:0 14px;font-size:13.5px;border-radius:9px}
 
     /* ── logo mark ── */
     .mark{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
     .mark img{width:100%;height:100%;object-fit:contain;display:block}
 
-    /* ── nav ── */
-    header.nav{position:sticky;top:0;z-index:50;background:var(--nav-bg);
-      backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid var(--border-soft)}
-    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:28px;height:64px}
-    .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-weight:600;font-size:16px;letter-spacing:-.01em}
-    .brand .tag{font-size:12.5px;font-weight:600;color:var(--muted-fg);border:1px solid var(--border);
-      border-radius:999px;padding:1px 9px;margin-left:2px}
-    .nav-links{display:flex;align-items:center;gap:22px}
-    .nav-links a{font-size:14px;color:var(--muted-fg);font-weight:500;white-space:nowrap;transition:color .15s}
-    .nav-links a:hover{color:var(--fg)}
-    .nav-cta{display:flex;align-items:center;gap:10px;flex:0 0 auto}
-
-    /* ── theme toggle ── */
-    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;
-      border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--fg-soft);
+    /* ── theme toggle (matches landing: 40px box, 8px radius, hairline) ── */
+    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+      border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);
       cursor:pointer;transition:.16s ease;flex:0 0 auto;padding:0}
-    .theme-toggle:hover{color:var(--fg);border-color:var(--border-hover);background:var(--muted)}
+    .theme-toggle:hover{color:var(--foreground);border-color:var(--hairline-strong);background:var(--muted)}
     .theme-toggle svg{width:16px;height:16px}
     .theme-toggle .i-sun{display:none}
+    .theme-toggle .i-system{display:none}
     :root[data-theme="dark"] .theme-toggle .i-sun{display:block}
     :root[data-theme="dark"] .theme-toggle .i-moon{display:none}
+    :root[data-theme-state="auto"] .theme-toggle .i-system{display:block}
+    :root[data-theme-state="auto"] .theme-toggle .i-moon,
+    :root[data-theme-state="auto"] .theme-toggle .i-sun{display:none}
 
-    /* ── theme-aware post screenshots ──
-       A single <img data-src-light data-src-dark> per slot; `window.chmSyncThemedImages`
-       (defined in the head script) picks the right `src` for the current theme,
-       so only ONE variant ever downloads. */
-
-    /* ── blog header ── */
-    .blog-hero{padding:64px 0 36px;position:relative;overflow:hidden}
-    .blog-hero::before{content:"";position:absolute;inset:0;z-index:-1;
-      background:radial-gradient(ellipse 70% 50% at 50% -30%, rgba(249,115,22,.10), transparent 65%)}
-    .blog-hero h1{font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-.03em;font-weight:700;margin-top:14px}
-    .blog-hero p{margin-top:14px;font-size:17px;color:var(--muted-fg);max-width:60ch;text-wrap:pretty}
-    .sec-eyebrow{display:flex;align-items:center;gap:9px}
-    .sec-eyebrow::before{content:"";width:18px;height:1.5px;background:var(--amber);border-radius:2px}
-
-    /* ── category grid (homepage) ── */
-    .cat-grid{padding:8px 0 80px;display:grid;grid-template-columns:repeat(2,1fr);gap:20px;align-items:stretch}
-    .cat-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
-      padding:24px 26px;transition:.22s cubic-bezier(0.16, 1, 0.3, 1);display:flex;flex-direction:column;height:100%}
-    .cat-card:hover{border-color:var(--border-hover);box-shadow:var(--shadow-card)}
-    .cat-card.is-featured{grid-column:1 / -1;background:linear-gradient(180deg,#fff8f1 0%,var(--card) 60%);
-      border-color:rgba(249,115,22,.35)}
-    :root[data-theme="dark"] .cat-card.is-featured{background:linear-gradient(180deg,#1d160f 0%,var(--card) 60%);
-      border-color:rgba(249,115,22,.30)}
-    .cat-head{display:flex;align-items:center;gap:10px}
-    .cat-head h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
-    .cat-count{font-size:12px;font-weight:600;color:var(--muted-fg);background:var(--muted);
-      border-radius:999px;padding:1px 9px;font-family:'JetBrains Mono',monospace}
-    .cat-tagline{margin-top:8px;font-size:13.5px;color:var(--muted-fg);line-height:1.5;text-wrap:pretty}
-    .cat-list{margin-top:16px;list-style:none;display:flex;flex-direction:column;gap:2px;
-      border-top:1px solid var(--border-soft);padding-top:6px;flex:1 1 auto}
-    .cat-more{margin-top:14px;display:inline-flex;align-items:center;gap:6px;
-      font-size:13.5px;font-weight:600;color:var(--orange);transition:gap .15s}
-    .cat-more:hover{gap:9px}
-    .cat-more svg{width:14px;height:14px}
-    .cat-page-list{margin-top:24px;border-top:none;padding-top:0}
-    .cat-page-list .cat-item{padding:16px 0}
-    .cat-page-list .cat-title{font-size:17px;font-weight:600}
-    .cat-item{display:flex;flex-direction:column;gap:2px;padding:11px 0;border-bottom:1px solid var(--border-soft)}
-    .cat-item:last-child{border-bottom:none}
-    .cat-link{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
-      text-decoration:none;transition:color .15s}
-    .cat-title{font-size:15px;font-weight:550;letter-spacing:-.01em;color:var(--fg)}
-    .cat-link:hover .cat-title{color:var(--orange)}
-    .cat-date{font-size:12.5px;color:var(--muted-fg);white-space:nowrap;flex:0 0 auto;
-      font-family:'JetBrains Mono',monospace}
-    .cat-desc{font-size:14px;color:var(--muted-fg);line-height:1.55;margin-top:4px;text-wrap:pretty;max-width:72ch}
-    @media (max-width:720px){.cat-grid{grid-template-columns:1fr}}
-
-    /* ── article ── */
+    /* ── article measure ── */
     .article-wrap{max-width:var(--maxw-prose);margin:0 auto;padding:0 24px;width:100%}
-    .article-head{padding:56px 0 32px;text-align:left}
-    .back-link{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;color:var(--muted-fg);transition:color .15s}
-    .back-link:hover{color:var(--fg)}
-    .back-link svg{width:15px;height:15px}
-    .article-head h1{font-size:clamp(30px,4.4vw,46px);line-height:1.06;letter-spacing:-.03em;font-weight:700;margin-top:22px;text-wrap:balance}
-    .article-head .lede{margin-top:18px;font-size:19px;color:var(--muted-fg);line-height:1.55;text-wrap:pretty}
-    .article-byline{margin-top:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;color:var(--muted-fg)}
-    .article-byline .post-tag{height:24px}
+
+    /* ── post tag ── */
+    .post-tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;
+      background:var(--muted);font-size:12px;font-weight:600;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+      color:var(--muted-foreground)}
 
     /* ── prose ── */
     .prose{max-width:var(--maxw-prose);margin:0 auto;padding:8px 24px 96px;width:100%;
-      font-size:16.5px;line-height:1.75;color:var(--fg-soft)}
+      font-size:16.5px;line-height:1.75;color:var(--muted-foreground)}
     .prose > * + *{margin-top:20px}
-    .prose h2{font-size:26px;font-weight:700;letter-spacing:-.02em;color:var(--fg);margin-top:52px;line-height:1.2;
+    .prose h2{font-size:26px;font-weight:600;letter-spacing:-.02em;color:var(--foreground);margin-top:52px;line-height:1.2;
       padding-top:12px}
-    .prose h3{font-size:19.5px;font-weight:650;letter-spacing:-.01em;color:var(--fg);margin-top:36px;line-height:1.25}
+    .prose h3{font-size:19.5px;font-weight:600;letter-spacing:-.01em;color:var(--foreground);margin-top:36px;line-height:1.25}
     .prose h2 + p,.prose h3 + p{margin-top:12px}
     .prose p{text-wrap:pretty}
-    .prose strong{color:var(--fg);font-weight:650}
-    .prose a{color:var(--orange);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+    .prose strong{color:var(--foreground);font-weight:600}
+    .prose a{color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
     .prose ul,.prose ol{padding-left:24px;display:flex;flex-direction:column;gap:10px}
     .prose li{padding-left:4px}
-    .prose li::marker{color:var(--muted-fg)}
-    .prose code{font-family:'JetBrains Mono',monospace;font-size:13.5px;background:var(--muted);
-      padding:2px 6px;border-radius:5px;color:var(--fg);white-space:nowrap}
-    .prose pre{background:#0c0c0f;border:1px solid var(--border);border-radius:var(--radius);
-      padding:18px 20px;overflow-x:auto;box-shadow:var(--shadow-card)}
-    .prose pre code{background:none;padding:0;color:#e4e4e7;font-size:13px;white-space:pre;line-height:1.7}
-    .prose blockquote{border-left:3px solid var(--amber);padding:6px 0 6px 20px;color:var(--muted-fg);
+    .prose li::marker{color:var(--muted-foreground)}
+    .prose code{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;background:var(--muted);
+      padding:2px 6px;border-radius:5px;color:var(--foreground);white-space:nowrap}
+    .prose pre{background:var(--surface-strong);border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);
+      padding:18px 20px;overflow-x:auto}
+    .prose pre code{background:none;padding:0;color:var(--foreground);font-size:13px;white-space:pre;line-height:1.7}
+    .prose blockquote{border-left:3px solid var(--border);padding:6px 0 6px 20px;color:var(--muted-foreground);
       font-style:normal}
-    .prose hr{border:none;border-top:1px solid var(--border-soft);margin:44px 0}
+    .prose hr{border:none;border-top:1px solid var(--border);margin:44px 0}
     /* Screenshots break out past the 720px text measure (up to the site width),
        centred on the prose column. `height:auto` is load-bearing: posts ship
        intrinsic width/height attributes, so without it the attribute height is
@@ -257,68 +199,36 @@ const ogImage = new URL(image, Astro.site).toString()
     .prose img{display:block;width:auto;height:auto;
       max-width:min(var(--maxw), calc(100vw - 48px));
       margin:32px 0;margin-left:50%;transform:translateX(-50%);
-      border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card)}
+      border:1px solid var(--border);border-radius:calc(var(--radius) + 4px)}
     .prose table{width:100%;border-collapse:collapse;font-size:14.5px;display:block;overflow-x:auto}
-    .prose th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-fg);
-      font-weight:600;padding:10px 14px;background:var(--bg-soft);border-bottom:1px solid var(--border)}
-    .prose td{padding:11px 14px;border-top:1px solid var(--border-soft);vertical-align:top;color:var(--fg-soft)}
-    .prose td:first-child{color:var(--fg);font-weight:500}
+    .prose th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-foreground);
+      font-weight:600;padding:10px 14px;background:var(--canvas-soft);border-bottom:1px solid var(--border)}
+    .prose td{padding:11px 14px;border-top:1px solid var(--border);vertical-align:top;color:var(--muted-foreground)}
+    .prose td:first-child{color:var(--foreground);font-weight:500}
 
     /* ── video (the launch film) ── */
-    figure.video{margin:32px 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
-      background:#0c0c0f;box-shadow:var(--shadow-float)}
-    figure.video video{display:block;width:100%;height:auto;background:#0c0c0f}
-    figure.video figcaption{font-size:13px;color:var(--muted-fg);padding:12px 16px;border-top:1px solid var(--border-soft);
+    figure.video{margin:32px 0;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);overflow:hidden;
+      background:var(--card)}
+    figure.video video{display:block;width:100%;height:auto;background:var(--card)}
+    figure.video figcaption{font-size:13px;color:var(--muted-foreground);padding:12px 16px;border-top:1px solid var(--border);
       background:var(--card);text-wrap:pretty}
 
     /* ── highlight grid (release highlights) ── */
     .hl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:28px 0}
-    .hl{padding:20px;border:none;border-radius:var(--radius);background:#faf7f2;transition:.22s cubic-bezier(0.16, 1, 0.3, 1)}
-    :root[data-theme="dark"] .hl{background:#171613}
-    .hl:hover{background:#f5efe6;box-shadow:var(--shadow-card);transform:translateY(-2px)}
-    :root[data-theme="dark"] .hl:hover{background:#1f1e1a}
-    .hl b{font-size:15.5px;font-weight:650;letter-spacing:-.01em;color:var(--fg);display:block}
-    .hl span{font-size:13.5px;color:var(--muted-fg);margin-top:6px;display:block;line-height:1.55}
+    .hl{padding:20px;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);background:var(--card);
+      transition:border-color .18s ease}
+    .hl:hover{border-color:var(--hairline-strong)}
+    .hl b{font-size:15.5px;font-weight:600;letter-spacing:-.01em;color:var(--foreground);display:block}
+    .hl span{font-size:13.5px;color:var(--muted-foreground);margin-top:6px;display:block;line-height:1.55}
     @media (max-width:600px){.hl-grid{grid-template-columns:1fr}}
-
-
-    /* ── footer ── */
-    footer{border-top:1px solid var(--border-soft);padding:48px 0 40px;flex-shrink:0}
-    .foot{display:flex;align-items:flex-start;justify-content:space-between;gap:40px;flex-wrap:wrap}
-    .foot-brand{max-width:280px}
-    .foot-brand p{font-size:13.5px;color:var(--muted-fg);margin-top:14px;text-wrap:pretty}
-    .foot-cols{display:flex;gap:64px;flex-wrap:wrap}
-    .foot-col h5{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg);margin-bottom:14px}
-    .foot-col a{display:block;font-size:14px;color:var(--fg-soft);margin-bottom:10px;transition:color .15s}
-    .foot-col a:hover{color:var(--fg)}
-    .foot-bottom{margin-top:44px;padding-top:24px;border-top:1px solid var(--border-soft);
-      display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted-fg)}
-
-    @media (max-width:1024px){.nav-links{display:none}}
-    @media (max-width:560px){.nav-cta .btn-ghost{display:none}}
+    }
+    /* Unlayered so it beats the Star CTA's Tailwind `inline-flex`. */
+    @media (max-width:560px){.nav-cta-star{display:none}}
   </style>
 </head>
 <body>
   <slot />
   <script is:inline>
-    // Theme toggle: flip data-theme, persist the choice.
-    var toggle = document.querySelector('.theme-toggle')
-    if (toggle) {
-      toggle.addEventListener('click', function () {
-        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
-        document.documentElement.setAttribute('data-theme', next)
-        try { localStorage.setItem('chm-theme', next) } catch (e) {}
-        if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
-      })
-    }
-    try {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-        if (!localStorage.getItem('chm-theme')) {
-          document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
-          if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
-        }
-      })
-    } catch (e) {}
     if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
   </script>
   <script>

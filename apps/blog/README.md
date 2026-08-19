@@ -3,10 +3,11 @@
 The chmonitor blog — release notes and product updates — served at
 [blog.chmonitor.dev](https://blog.chmonitor.dev).
 
-A plain **Astro** static site (no React/SSR) that reuses the same black/white/
-orange design tokens as `apps/landing`, so the marketing site, blog and docs feel
-like one product. Posts are Markdown in `src/content/blog/` validated by the
-content-collection schema in `src/content.config.ts`.
+A plain **Astro** static site (no React/SSR) that uses the same Tailwind v4 +
+shadcn semantic tokens as `apps/landing` (`bg-card`, `text-muted-foreground`,
+`--brand-ink`), so the marketing site, blog and docs feel like one product.
+Posts are Markdown in `src/content/blog/` validated by the content-collection
+schema in `src/content.config.ts`.
 
 ## Develop
 

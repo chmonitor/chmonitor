@@ -10,14 +10,17 @@
     "preview": "astro preview",
     "build:og": "bun run scripts/build-og.ts",
     "release-to-post": "bun run scripts/release-to-post.mjs",
-    "test": "bun test src/lib",
+    "test": "bun test src",
     "cf:deploy": "wrangler deploy"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.12",
     "@astrojs/sitemap": "^3.3.0",
+    "@tailwindcss/vite": "^4.3.2",
     "astro": "^7.0.0",
-    "posthog-js": "^1.396.5"
+    "posthog-js": "^1.396.5",
+    "tailwindcss": "^4.3.2",
+    "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
