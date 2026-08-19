@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const landing = join(import.meta.dir, '../..')
+const landing = join(import.meta.dir, '..')
 const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
 
 const home = read('src/pages/index.astro')
