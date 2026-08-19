@@ -1,28 +1,16 @@
 import { ClockIcon, DatabaseIcon, HardDriveIcon, ZapIcon } from 'lucide-react'
 
 import { StatCard, statEmpty, statLoading } from './stat-card'
-import { useChartData } from '@/lib/query/use-chart-data'
+import { useGroupedChartData } from '@/lib/query/use-chart-grouping'
 import { formatDuration } from '@/lib/utils'
 
-interface RangeStatProps {
-  readonly hostId: number
-  readonly lastHours?: number
-}
-
-interface PercentileStatProps extends RangeStatProps {
-  readonly percentile: string
-}
-
 export function LargestScanStat({
-  hostId,
-  lastHours,
   percentile,
-}: PercentileStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-largest-scan',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   const label = `Largest Scan (p${percentile})`
   if (isLoading) return statLoading(label)
@@ -53,15 +41,12 @@ export function LargestScanStat({
 }
 
 export function FastestScanStat({
-  hostId,
-  lastHours,
   percentile,
-}: PercentileStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-fastest-scan',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   const label = `Fastest Scan Speed (p${percentile})`
   if (isLoading) return statLoading(label)
@@ -90,15 +75,12 @@ export function FastestScanStat({
 }
 
 export function LongestQueryStat({
-  hostId,
-  lastHours,
   percentile,
-}: PercentileStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-longest-query',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   const label = `Longest Query (p${percentile})`
   if (isLoading) return statLoading(label)
@@ -123,10 +105,9 @@ export function LongestQueryStat({
   )
 }
 
-export function TotalStorageStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function TotalStorageStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-total-storage',
-    hostId,
   })
   if (isLoading) return statLoading('Total Storage')
   if (error || !data?.length)

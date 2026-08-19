@@ -1,11 +1,47 @@
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import type { QueryClient } from '@tanstack/react-query'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 
+import { retryPersistOnQuotaOverflow } from './persist-retry'
 import { createQueryClient } from './query-client'
 import { useEffect, useState } from 'react'
 import { USER_CONNECTIONS_QUERY_PREFIX } from '@/lib/hooks/use-user-connections'
 import { USER_SETTINGS_QUERY_KEY } from '@/lib/hooks/use-user-settings'
+
+/** Max concurrent invalidations per refresh tick. */
+export const REFRESH_BATCH_SIZE = 6
+
+/** Pause between refresh batches so the Worker/ClickHouse burst stays bounded. */
+export const REFRESH_BATCH_DELAY_MS = 50
+
+/**
+ * Invalidate currently-active queries in chunks instead of one
+ * `invalidateQueries({ type: 'active' })` fan-out.
+ */
+export async function invalidateActiveQueriesInBatches(
+  queryClient: QueryClient,
+  options?: { batchSize?: number; delayMs?: number }
+): Promise<void> {
+  const batchSize = options?.batchSize ?? REFRESH_BATCH_SIZE
+  const delayMs = options?.delayMs ?? REFRESH_BATCH_DELAY_MS
+  const active = queryClient.getQueryCache().findAll({ type: 'active' })
+
+  for (let i = 0; i < active.length; i += batchSize) {
+    const batch = active.slice(i, i + batchSize)
+    await Promise.all(
+      batch.map((query) =>
+        queryClient.invalidateQueries({
+          queryKey: query.queryKey,
+          exact: true,
+        })
+      )
+    )
+    if (i + batchSize < active.length && delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+    }
+  }
+}
 
 interface QueryProviderProps {
   children: React.ReactNode
@@ -82,6 +118,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
           storage: window.localStorage,
           key: PERSIST_KEY,
           throttleTime: PERSIST_THROTTLE_MS,
+          retry: retryPersistOnQuotaOverflow,
         })
       )
     } catch {
@@ -95,7 +132,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
     if (typeof window === 'undefined') return
 
     const handleRevalidate = () => {
-      queryClient.invalidateQueries({ type: 'active' })
+      void invalidateActiveQueriesInBatches(queryClient).catch((err) => {
+        console.error('[QueryProvider] batched refresh invalidate failed', err)
+      })
     }
 
     window.addEventListener('swr:revalidate', handleRevalidate)

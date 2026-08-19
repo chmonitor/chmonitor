@@ -9,12 +9,11 @@ import {
 } from 'lucide-react'
 
 import { StatCard, statEmpty, statLoading } from './stat-card'
-import { useChartData } from '@/lib/query/use-chart-data'
+import { useGroupedChartData } from '@/lib/query/use-chart-grouping'
 
-export function ActiveQueriesStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function ActiveQueriesStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-active-queries',
-    hostId,
   })
   if (isLoading) return statLoading('Active Queries')
   if (error || !data?.length)
@@ -33,10 +32,9 @@ export function ActiveQueriesStat({ hostId }: { readonly hostId: number }) {
   )
 }
 
-export function CurrentMemoryStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function CurrentMemoryStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-current-memory',
-    hostId,
   })
   if (isLoading) return statLoading('Current Memory')
   if (error || !data?.length)
@@ -55,10 +53,9 @@ export function CurrentMemoryStat({ hostId }: { readonly hostId: number }) {
   )
 }
 
-export function HttpConnectionsStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function HttpConnectionsStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-http-connections',
-    hostId,
   })
   if (isLoading) return statLoading('HTTP Connections')
   if (error || !data?.length)
@@ -77,10 +74,9 @@ export function HttpConnectionsStat({ hostId }: { readonly hostId: number }) {
   )
 }
 
-export function ActiveMergesStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function ActiveMergesStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-active-merges',
-    hostId,
   })
   if (isLoading) return statLoading('Active Merges')
   if (error || !data?.length)
@@ -99,10 +95,9 @@ export function ActiveMergesStat({ hostId }: { readonly hostId: number }) {
   )
 }
 
-export function ActivePartsStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function ActivePartsStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-active-parts',
-    hostId,
   })
   if (isLoading) return statLoading('Active Parts')
   if (error || !data?.length)
@@ -125,10 +120,9 @@ export function ActivePartsStat({ hostId }: { readonly hostId: number }) {
   )
 }
 
-export function DetachedPartsStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function DetachedPartsStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-detached-parts',
-    hostId,
   })
   if (isLoading) return statLoading('Detached Parts')
   if (error || !data?.length)
@@ -147,10 +141,9 @@ export function DetachedPartsStat({ hostId }: { readonly hostId: number }) {
   )
 }
 
-export function ActiveMutationsStat({ hostId }: { readonly hostId: number }) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function ActiveMutationsStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-active-mutations',
-    hostId,
   })
   if (isLoading) return statLoading('Active Mutations')
   if (error || !data?.length)

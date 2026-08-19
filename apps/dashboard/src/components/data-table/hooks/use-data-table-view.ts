@@ -13,6 +13,11 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useState } from 'react'
 import { computeTableBodyRenderKey } from '@/components/data-table/utils/body-render-key'
 
+/** Row virtualization is only incompatible with expandable rows. */
+export function isRowVirtualizationDisabled(expandable: unknown): boolean {
+  return Boolean(expandable)
+}
+
 interface UseDataTableViewParams<TData extends RowData> {
   table: Table<TData>
   defaultView: 'table' | 'cards' | 'auto' | undefined
@@ -50,11 +55,12 @@ export function useDataTableView<TData extends RowData>({
 
   // Virtual rows for datasets larger than the standard pagination range.
   // Disabled when row expansion is on because expanded rows add out-of-band
-  // height the fixed-size virtualizer can't account for.
+  // height the fixed-size virtualizer can't account for. Card view stays
+  // virtualized — MobileTableCards already renders virtual items.
   const rows: Row<TData>[] = table.getRowModel().rows
   const { virtualizer, tableContainerRef, isVirtualized } = useVirtualRows(
     rows.length,
-    { disabled: Boolean(expandable) || view === 'cards' }
+    { disabled: isRowVirtualizationDisabled(expandable) }
   )
 
   // Auto-fit columns functionality

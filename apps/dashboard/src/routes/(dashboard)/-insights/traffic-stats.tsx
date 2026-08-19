@@ -9,7 +9,7 @@ import {
 import type { Dispatch, SetStateAction } from 'react'
 
 import { StatCard, statEmpty, statLoading } from './stat-card'
-import { useChartData } from '@/lib/query/use-chart-data'
+import { useGroupedChartData } from '@/lib/query/use-chart-grouping'
 import { cn, formatDuration } from '@/lib/utils'
 
 const PERCENTILES = ['95', '99', '100'] as const
@@ -53,16 +53,9 @@ function formatDay(day: string | Date): string {
   })
 }
 
-interface RangeStatProps {
-  readonly hostId: number
-  readonly lastHours?: number
-}
-
-export function BusiestDayQueriesStat({ hostId, lastHours }: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function BusiestDayQueriesStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-busiest-day-queries',
-    hostId,
-    lastHours,
   })
   if (isLoading) return statLoading('Busiest Day by Queries')
   if (error || !data?.length)
@@ -81,11 +74,9 @@ export function BusiestDayQueriesStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-export function BusiestDayBytesStat({ hostId, lastHours }: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function BusiestDayBytesStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-busiest-day-bytes',
-    hostId,
-    lastHours,
   })
   if (isLoading) return statLoading('Busiest Day by Data Scan')
   if (error || !data?.length)
@@ -112,11 +103,9 @@ export function BusiestDayBytesStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-export function BusiestSecondStat({ hostId, lastHours }: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function BusiestSecondStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-busiest-second',
-    hostId,
-    lastHours,
   })
   if (isLoading) return statLoading('Busiest Second by Query Starts')
   if (error || !data?.length)
@@ -134,20 +123,13 @@ export function BusiestSecondStat({ hostId, lastHours }: RangeStatProps) {
   )
 }
 
-interface PercentileStatProps extends RangeStatProps {
-  readonly percentile: string
-}
-
 export function AvgDurationStat({
-  hostId,
-  lastHours,
   percentile,
-}: PercentileStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+}: {
+  readonly percentile: string
+}) {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-avg-duration',
-    hostId,
-    lastHours,
-    params: { percentile },
   })
   const label = `Average Query Duration (p${percentile})`
   if (isLoading) return statLoading(label)
@@ -169,11 +151,9 @@ export function AvgDurationStat({
   )
 }
 
-export function ErrorRateStat({ hostId, lastHours }: RangeStatProps) {
-  const { data, isLoading, error, sql, metadata } = useChartData({
+export function ErrorRateStat() {
+  const { data, isLoading, error, sql, metadata } = useGroupedChartData({
     chartName: 'insight-error-rate',
-    hostId,
-    lastHours,
   })
   if (isLoading) return statLoading('Query Error Rate')
   if (error || !data?.length)

@@ -1,68 +1,76 @@
 import { keepPreviousData, QueryClient } from '@tanstack/react-query'
 
-import { shouldDehydrateQuery } from '../provider'
+import {
+  invalidateActiveQueriesInBatches,
+  REFRESH_BATCH_SIZE,
+  shouldDehydrateQuery,
+} from '../provider'
 import { createQueryClient } from '../query-client'
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { USER_CONNECTIONS_QUERY_PREFIX } from '@/lib/hooks/use-user-connections'
 import { USER_SETTINGS_QUERY_KEY } from '@/lib/hooks/use-user-settings'
 
-describe('QueryProvider swr:revalidate integration', () => {
+describe('invalidateActiveQueriesInBatches', () => {
   let queryClient: QueryClient
   let invalidateSpy: ReturnType<typeof spyOn>
+  const unsubs: Array<() => void> = []
 
   beforeEach(() => {
-    queryClient = new QueryClient()
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
     invalidateSpy = spyOn(queryClient, 'invalidateQueries')
   })
 
   afterEach(() => {
+    for (const unsub of unsubs) unsub()
+    unsubs.length = 0
     invalidateSpy.mockRestore()
+    queryClient.clear()
   })
 
-  it('calls invalidateQueries({ type: "active" }) when swr:revalidate fires', () => {
-    // Simulate the effect body from QueryProvider directly.
-    // The effect registers a window listener; we replicate that wiring here
-    // so the test stays decoupled from React rendering internals.
-    const listeners: Record<string, EventListenerOrEventListenerObject[]> = {}
-    const mockWindow = {
-      addEventListener: (
-        event: string,
-        cb: EventListenerOrEventListenerObject
-      ) => {
-        listeners[event] = listeners[event] || []
-        listeners[event].push(cb)
-      },
-      removeEventListener: (
-        event: string,
-        cb: EventListenerOrEventListenerObject
-      ) => {
-        if (listeners[event]) {
-          listeners[event] = listeners[event].filter((x) => x !== cb)
-        }
-      },
+  async function seedActiveQueries(count: number) {
+    const { QueryObserver } = await import('@tanstack/react-query')
+    for (let i = 0; i < count; i++) {
+      const key = ['refresh-test', i] as const
+      queryClient.setQueryData(key, i)
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn: async () => i,
+        staleTime: Number.POSITIVE_INFINITY,
+      })
+      unsubs.push(observer.subscribe(() => {}))
+    }
+  }
+
+  it('invalidates each active query by exact key, never type:"active"', async () => {
+    await seedActiveQueries(20)
+
+    await invalidateActiveQueriesInBatches(queryClient, {
+      batchSize: REFRESH_BATCH_SIZE,
+      delayMs: 0,
+    })
+
+    const calls = invalidateSpy.mock.calls.map((c) => c[0])
+    expect(calls.some((arg) => arg && arg.type === 'active')).toBe(false)
+    expect(invalidateSpy).toHaveBeenCalledTimes(20)
+
+    for (let i = 0; i < 20; i++) {
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['refresh-test', i],
+        exact: true,
+      })
     }
 
-    // Wire up the same handler logic as in provider.tsx's useEffect
-    const handleRevalidate = () => {
-      queryClient.invalidateQueries({ type: 'active' })
-    }
-    mockWindow.addEventListener('swr:revalidate', handleRevalidate)
-
-    // Trigger the event
-    listeners['swr:revalidate'].forEach((cb) =>
-      typeof cb === 'function'
-        ? (cb as any)()
-        : cb.handleEvent(new Event('swr:revalidate'))
-    )
-
-    expect(invalidateSpy).toHaveBeenCalledWith({ type: 'active' })
-
-    // Cleanup unregisters the listener
-    mockWindow.removeEventListener('swr:revalidate', handleRevalidate)
-    expect(listeners['swr:revalidate'].length).toBe(0)
+    const firstBatchKeys = calls.slice(0, REFRESH_BATCH_SIZE).map((arg) => {
+      const key = arg?.queryKey as readonly unknown[]
+      return key[1]
+    })
+    expect(firstBatchKeys).toEqual([0, 1, 2, 3, 4, 5])
+    expect(calls.length).toBe(20)
   })
 
-  it('does not call invalidateQueries before the event fires', () => {
+  it('does not call invalidateQueries before the batch helper runs', () => {
     expect(invalidateSpy).not.toHaveBeenCalled()
   })
 })

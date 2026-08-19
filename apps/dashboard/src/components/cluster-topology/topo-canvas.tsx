@@ -16,7 +16,7 @@ import {
   groupSafeDelta,
 } from './topo-canvas-geometry'
 import { ChGlyph, curvePath, HullLabel, KeeperGlyph } from './topo-glyphs'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface TopoCanvasProps {
   model: TopologyModel
@@ -28,7 +28,7 @@ interface TopoCanvasProps {
   onClearSelect: () => void
 }
 
-export function TopoCanvas({
+export const TopoCanvas = memo(function TopoCanvas({
   model,
   liveById,
   selected,
@@ -510,4 +510,4 @@ export function TopoCanvas({
       ))}
     </svg>
   )
-}
+})
