@@ -62,6 +62,15 @@ describe('isMenuItemActiveAmongSiblings', () => {
   })
 })
 
+describe('getBreadcrumbPath (Inbound Events under Health, #3134)', () => {
+  test('Inbound Events breadcrumbs go through Health, not as a top-level leaf', () => {
+    expect(getBreadcrumbPath('/inbound-events')).toEqual([
+      { title: 'Health', href: '' },
+      { title: 'Inbound Events', href: '/inbound-events' },
+    ])
+  })
+})
+
 describe('getBreadcrumbPath (Tools regroup)', () => {
   test('SQL Console breadcrumbs go through Tools, not Tables', () => {
     expect(getBreadcrumbPath('/sql')).toEqual([

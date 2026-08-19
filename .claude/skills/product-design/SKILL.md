@@ -329,7 +329,9 @@ module snapshot in `lib/format-settings.ts`; palette/density →
    `permission`; copy the child's existing feature onto the leaf. Leave
    `engines` absent so Postgres hosts hide the whole Tools group — do not
    add `engines: ['postgres']`. DBA / Engineer / SRE presets include
-   `Tools`.
+   `Tools`. Webhook ingest (Inbound Events) lives under Health after
+   Alert Settings — not as a top-level Others item; leave `engines`
+   absent so Postgres hosts inherit Health (default source-engine family).
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

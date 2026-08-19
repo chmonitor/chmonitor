@@ -1,8 +1,11 @@
+import { menuItemsConfig } from '@/menu'
+
 import type { MenuItem } from '@/components/menu/types'
 
 import { describe, expect, test } from 'bun:test'
 import {
   applyWorkspacePreset,
+  applyWorkspaceVisibility,
   effectiveHiddenMenuHrefs,
   hideMenuHref,
   menuItemIsHidden,
@@ -158,6 +161,40 @@ describe('hideMenuHref / showMenuHref', () => {
         '/overview'
       )
     ).toEqual({ workspacePreset: 'full', hiddenMenuHrefs: [] })
+  })
+})
+
+describe('hideMenuHref with real menu config (#3134)', () => {
+  test('hiding nested /inbound-events still records the leaf href', () => {
+    const next = hideMenuHref(
+      menuItemsConfig,
+      { workspacePreset: 'full', hiddenMenuHrefs: [] },
+      '/inbound-events'
+    )
+    expect(next.workspacePreset).toBe('custom')
+    expect(next.hiddenMenuHrefs).toEqual(['/inbound-events'])
+  })
+
+  test('showing nested /inbound-events drops that href', () => {
+    const next = showMenuHref(
+      menuItemsConfig,
+      { workspacePreset: 'custom', hiddenMenuHrefs: ['/inbound-events'] },
+      '/inbound-events'
+    )
+    expect(next.hiddenMenuHrefs).not.toContain('/inbound-events')
+  })
+
+  test('hiding the leaf keeps the Health group and its other children', () => {
+    const visible = applyWorkspaceVisibility(menuItemsConfig, {
+      workspacePreset: 'custom',
+      hiddenMenuHrefs: ['/inbound-events'],
+    })
+    const health = visible.find((item) => item.title === 'Health')
+    expect(health?.items?.map((item) => item.href)).toEqual([
+      '/health',
+      '/health-settings',
+      '/alert-settings',
+    ])
   })
 })
 

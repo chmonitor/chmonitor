@@ -12,6 +12,7 @@
  * `items`) are required to have a distinct href.
  */
 
+import { RssIcon } from 'lucide-react'
 import { menuItemsConfig } from '@/menu'
 
 import type { MenuItem } from '@/components/menu/types'
@@ -126,6 +127,39 @@ describe('menu.ts hrefs resolve to a real route file', () => {
       .map((item) => ({ title: item.title, path: item.href.split('?')[0] }))
       .filter(({ path }) => !knownRoutePaths.has(path))
     expect(offenders).toEqual([])
+  })
+})
+
+describe('Health group (inbound events nest, #3134)', () => {
+  const health = menuItemsConfig.find((item) => item.title === 'Health')
+
+  test('Inbound Events is a Health child after Alert Settings, not a top-level item', () => {
+    expect(
+      menuItemsConfig.some((item) => item.href === '/inbound-events')
+    ).toBe(false)
+    expect(health?.items?.map((item) => item.href)).toEqual([
+      '/health',
+      '/health-settings',
+      '/alert-settings',
+      '/inbound-events',
+    ])
+  })
+
+  test('keeps href, Rss icon, isNew, and health permission on the leaf', () => {
+    const inbound = health?.items?.find(
+      (item) => item.href === '/inbound-events'
+    )
+    expect(inbound?.title).toBe('Inbound Events')
+    expect(inbound?.isNew).toBe(true)
+    expect(inbound?.permission).toEqual({ feature: 'health' })
+    expect(inbound?.icon).toBe(RssIcon)
+    expect(inbound?.engines).toBeUndefined()
+  })
+
+  test('Health parent stays default source-engine family (no postgres engines tag)', () => {
+    expect(health?.engines).toBeUndefined()
+    expect(health?.permission).toEqual({ feature: 'health' })
+    expect(health?.section).toBe('main')
   })
 })
 
