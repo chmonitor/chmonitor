@@ -54,8 +54,11 @@ import {
   resolveSql,
 } from './query-context'
 import {
+  type AdvisorErrorCode,
   buildPrewhereRecommendation,
   buildQueryContext,
+  extractReferencedTables,
+  findAdvisorTargetTable,
   proposePrewhereRewrite,
   rankRecommendations,
   scorePartitionKey,
@@ -63,7 +66,6 @@ import {
   scoreSkipIndex,
 } from '@chm/query-advisor-core'
 import { validateSqlQuery } from '@chm/sql-builder'
-import { extractReferencedTables } from '@/lib/ai/agent/tools/sql-analysis'
 
 // Re-exported so existing `from './recommendation-engine'` imports (tests,
 // tool wiring) keep working unchanged — see `./types`, the app-local import
@@ -125,6 +127,7 @@ export interface AnalyzeQueryOk {
 export interface AnalyzeQueryError {
   ok: false
   error: string
+  code?: AdvisorErrorCode
 }
 
 export type AnalyzeQueryResult = AnalyzeQueryOk | AnalyzeQueryError
@@ -149,6 +152,7 @@ export async function analyzeQuery(
   } catch (err) {
     return {
       ok: false,
+      code: 'query_not_found',
       error: `Could not resolve query_id: ${err instanceof Error ? err.message : String(err)}`,
     }
   }
@@ -156,8 +160,9 @@ export async function analyzeQuery(
   if (!sql) {
     return {
       ok: false,
+      code: input.queryId ? 'query_not_found' : 'missing_input',
       error: input.queryId
-        ? `No finished query found in system.query_log for query_id "${input.queryId}".`
+        ? `No finished query found in system.query_log for query_id "${input.queryId}". Paste the SQL, or pick a query from history.`
         : 'Provide either `sql` or `queryId`.',
     }
   }
@@ -167,19 +172,15 @@ export async function analyzeQuery(
   } catch (err) {
     return {
       ok: false,
+      code: 'invalid_sql',
       error: `Query failed validation: ${err instanceof Error ? err.message : String(err)}`,
     }
   }
 
+  const targetResult = findAdvisorTargetTable(sql, database)
+  if (!targetResult.ok) return targetResult
+  const target = targetResult.table
   const referencedTables = extractReferencedTables(sql, database)
-  const target = referencedTables[0]
-  if (!target) {
-    return {
-      ok: false,
-      error:
-        'Could not identify a target table in the query (no FROM/JOIN found).',
-    }
-  }
   if (referencedTables.length > 1) {
     notes.push(
       `Query references ${referencedTables.length} tables; only \`${target.qualifiedName}\` (the first) was analyzed.`
@@ -196,6 +197,7 @@ export async function analyzeQuery(
   } catch (err) {
     return {
       ok: false,
+      code: 'schema_unavailable',
       error: `Could not read schema/parts for ${target.qualifiedName}: ${err instanceof Error ? err.message : String(err)}`,
     }
   }

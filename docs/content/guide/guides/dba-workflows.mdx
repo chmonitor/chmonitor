@@ -33,9 +33,12 @@ Open **Tools → Schema Compare**. Pick a source and target host (or two nodes o
 
 ### Advisor (`/advisor`)
 
-Open **Queries → Advisor**. Two tabs:
+Open **Tools → Advisor**. Two tabs:
 
-- **Query Advisor** — paste SQL or look up a `query_id` from `system.query_log`.
+- **Query Advisor** — paste a `SELECT` that reads a table, pick a slow query
+  (loads it and runs analysis), or look up a `query_id` from `system.query_log`.
+  Table-less SQL such as `SELECT 1` is explained as "needs a table", not treated
+  as a failed analysis.
 - **Schema & Settings** — scan a database or table for lint findings.
 
 The same recommend-only engine is available from the [AI agent](/guide/ai-agent) and the MCP server. There is no Apply button.

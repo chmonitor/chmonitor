@@ -313,8 +313,8 @@ export function AdvisorQueryPicker({
         <DialogHeader className="shrink-0 border-b border-border px-4 py-3">
           <DialogTitle>Pick a query to analyze</DialogTitle>
           <DialogDescription>
-            Start from a quick example or browse your query history. Selecting a
-            query loads it into the advisor input.
+            Start from a quick example or browse query history. Selecting a
+            query loads it and runs analysis.
           </DialogDescription>
         </DialogHeader>
 

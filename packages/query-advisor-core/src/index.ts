@@ -20,10 +20,22 @@
  * Layers:
  *  - `types.ts` — the shared vocabulary (`QueryContext`, `Recommendation`, …).
  *  - `sql-parsing.ts` — hand-rolled, best-effort SQL/EXPLAIN parsing.
+ *  - `advisor-errors.ts` — shared no-table / missing-input classification.
  *  - `scorers.ts` — the pure scoring rules + ranking.
  *  - `impact.ts` — estimate math and the honest estimate summaries.
  */
 
+export {
+  ADVISOR_ERROR_CODES,
+  ADVISOR_NO_TARGET_TABLE_MESSAGE,
+  type AdvisorErrorCode,
+  type AdvisorInputError,
+  type AdvisorTargetTableOk,
+  type AdvisorTargetTableResult,
+  advisorNoTargetTableError,
+  findAdvisorTargetTable,
+  isAdvisorUserInputError,
+} from './advisor-errors'
 export {
   estimateBytesSaved,
   formatBytes,

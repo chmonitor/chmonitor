@@ -219,7 +219,21 @@ describe('analyzeQuery — orchestration', () => {
   test('returns a clear error when neither sql nor queryId is given', async () => {
     const result = await analyzeQuery({ hostId: 0 })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.error).toContain('sql')
+    if (!result.ok) {
+      expect(result.code).toBe('missing_input')
+      expect(result.error).toContain('sql')
+    }
+  })
+
+  test('SELECT 1 is a no_target_table error and does not look up schema', async () => {
+    calls.length = 0
+    const result = await analyzeQuery({ hostId: 0, sql: 'select 1' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('no_target_table')
+      expect(result.error).toContain('FROM')
+    }
+    expect(calls).toHaveLength(0)
   })
 
   test('degrades gracefully (still ok) when EXPLAIN fails, with a note explaining reduced precision', async () => {

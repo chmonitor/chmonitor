@@ -15,7 +15,7 @@ import {
   DatabaseZapIcon,
   FilterIcon,
   LayersIcon,
-  WandSparklesIcon,
+  ScanSearchIcon,
 } from 'lucide-react'
 
 import type { Recommendation } from '@/lib/ai/advisor/recommendation-engine'
@@ -42,7 +42,7 @@ const KIND_ICON: Record<Recommendation['kind'], typeof FilterIcon> = {
   skip_index: FilterIcon,
   projection: LayersIcon,
   partition_key: DatabaseZapIcon,
-  prewhere: WandSparklesIcon,
+  prewhere: ScanSearchIcon,
 }
 
 const KIND_LABEL: Record<Recommendation['kind'], string> = {
@@ -140,12 +140,11 @@ export function AdvisorRecommendationsPanel({
   }, [output.recommendations.length])
 
   return (
-    <div className="rounded-md border border-border/60 bg-muted/20">
-      <div className="flex items-center justify-between gap-3 border-b border-border/50 px-3 py-2">
+    <div className="rounded-xl border bg-card shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
-          <WandSparklesIcon className="size-4 text-primary" />
-          <span className="truncate text-sm font-semibold">
-            Optimization advisor: {output.database}.{output.table}
+          <span className="truncate text-sm font-medium">
+            {output.database}.{output.table}
           </span>
         </div>
         <Badge variant="outline" className="text-[10px]">

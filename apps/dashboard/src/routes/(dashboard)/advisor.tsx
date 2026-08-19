@@ -1,4 +1,3 @@
-import { WandSparklesIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   createFileRoute,
@@ -8,6 +7,10 @@ import {
 
 import type { AdvisorRecommendationsOutput } from '@/components/agents/advisor-recommendations-panel'
 
+import {
+  type AdvisorErrorCode,
+  findAdvisorTargetTable,
+} from '@chm/query-advisor-core'
 import { lazy, Suspense, useState } from 'react'
 import { AdvisorQueryPicker } from '@/components/agents/advisor-query-picker'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
@@ -15,13 +18,16 @@ import { AdvisorTuningTab } from '@/components/agents/advisor-tuning-tab'
 import { ErrorAlert } from '@/components/feedback'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import {
+  advisorUserInputCopy,
+  isAdvisorUserInputError,
+} from '@/lib/ai/advisor/empty-copy'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
@@ -40,14 +46,26 @@ interface AdvisorApiResponse extends AdvisorRecommendationsOutput {
 interface AdvisorApiError {
   success: false
   error: string
+  code?: AdvisorErrorCode
+}
+
+class AdvisorClientError extends Error {
+  code?: AdvisorErrorCode
+  constructor(message: string, code?: AdvisorErrorCode) {
+    super(message)
+    this.name = 'AdvisorClientError'
+    this.code = code
+  }
 }
 
 const fetcher = async (url: string): Promise<AdvisorApiResponse> => {
   const res = await apiFetch(url)
   const body = (await res.json()) as AdvisorApiResponse | AdvisorApiError
   if (!res.ok || !body.success) {
-    throw new Error(
-      (body as AdvisorApiError).error || `Analysis failed (HTTP ${res.status})`
+    const err = body as AdvisorApiError
+    throw new AdvisorClientError(
+      err.error || `Analysis failed (HTTP ${res.status})`,
+      err.code
     )
   }
   return body
@@ -57,9 +75,80 @@ function EditorFallback() {
   return <Skeleton className="h-[120px] w-full rounded-md" />
 }
 
+function advisorErrorCode(error: unknown): AdvisorErrorCode | undefined {
+  return error instanceof AdvisorClientError ? error.code : undefined
+}
+
+function AdvisorResult({
+  committed,
+  data,
+  error,
+  isLoading,
+}: {
+  committed: { mode: 'sql'; sql: string } | { mode: 'queryId'; queryId: string }
+  data: AdvisorApiResponse | undefined
+  error: unknown
+  isLoading: boolean
+}) {
+  const localTableCheck =
+    committed.mode === 'sql' ? findAdvisorTargetTable(committed.sql) : null
+  const localCode =
+    localTableCheck && !localTableCheck.ok ? localTableCheck.code : undefined
+  const remoteCode = advisorErrorCode(error)
+  const code = localCode ?? remoteCode
+  const message =
+    localTableCheck && !localTableCheck.ok
+      ? localTableCheck.error
+      : error instanceof Error
+        ? error.message
+        : String(error ?? '')
+
+  if (isLoading) return <TableSkeleton rows={4} />
+
+  if (isAdvisorUserInputError(code)) {
+    const copy = advisorUserInputCopy(code, message)
+    return (
+      <div
+        className="rounded-xl border border-dashed bg-card/40 px-6 py-10"
+        data-testid="advisor-user-input-empty"
+      >
+        <EmptyState
+          variant="no-results"
+          title={copy.title}
+          description={copy.description}
+        />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <ErrorAlert
+        title="Analysis failed"
+        message={error instanceof Error ? error.message : String(error)}
+      />
+    )
+  }
+
+  if (!data) return null
+
+  if (data.recommendations.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed bg-card/40 px-6 py-10">
+        <EmptyState
+          variant="no-data"
+          title="No recommendations"
+          description="This query looks well-tuned for the table's current schema — no skip-index, projection, partition-key, or PREWHERE opportunities were found."
+        />
+      </div>
+    )
+  }
+
+  return <AdvisorRecommendationsPanel output={data} />
+}
+
 function AdvisorContent() {
   const hostId = useHostId()
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('advisor')
   const navigate = useNavigate()
   const pathname = useLocation({ select: (l) => l.pathname })
@@ -82,6 +171,9 @@ function AdvisorContent() {
     return null
   })
 
+  const skipFetch =
+    committed?.mode === 'sql' && !findAdvisorTargetTable(committed.sql).ok
+
   const apiUrl = committed
     ? (() => {
         const params = new URLSearchParams()
@@ -95,137 +187,117 @@ function AdvisorContent() {
   const { data, error, isLoading, isFetching } = useQuery<AdvisorApiResponse>({
     queryKey: [apiUrl],
     queryFn: () => fetcher(apiUrl as string),
-    enabled: Boolean(apiUrl),
+    enabled: Boolean(apiUrl) && !skipFetch,
   })
+
+  const commitSql = (sql: string) => {
+    setCommitted({ mode: 'sql', sql })
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('query', sql)
+    params.delete('queryId')
+    navigate({
+      ...splitHref(`${pathname}?${params.toString()}`),
+      replace: true,
+    })
+  }
 
   const handleAnalyze = () => {
     if (mode === 'sql') {
       if (!sqlInput.trim()) return
-      setCommitted({ mode: 'sql', sql: sqlInput })
-      const params = new URLSearchParams(searchParams.toString())
-      params.set('query', sqlInput)
-      params.delete('queryId')
-      navigate({
-        ...splitHref(`${pathname}?${params.toString()}`),
-        replace: true,
-      })
-    } else {
-      if (!queryIdInput.trim()) return
-      setCommitted({ mode: 'queryId', queryId: queryIdInput })
-      const params = new URLSearchParams(searchParams.toString())
-      params.set('queryId', queryIdInput)
-      params.delete('query')
-      navigate({
-        ...splitHref(`${pathname}?${params.toString()}`),
-        replace: true,
-      })
+      commitSql(sqlInput)
+      return
     }
+    if (!queryIdInput.trim()) return
+    setCommitted({ mode: 'queryId', queryId: queryIdInput })
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('queryId', queryIdInput)
+    params.delete('query')
+    navigate({
+      ...splitHref(`${pathname}?${params.toString()}`),
+      replace: true,
+    })
   }
 
   const handlePickQuery = (sql: string) => {
     setMode('sql')
     setSqlInput(sql)
+    commitSql(sql)
   }
 
   const canAnalyze =
     mode === 'sql' ? Boolean(sqlInput.trim()) : Boolean(queryIdInput.trim())
+  const analyzing = Boolean(apiUrl) && !skipFetch && (isLoading || isFetching)
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <WandSparklesIcon className="size-5" />
-            Query Advisor
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Analyze a slow query and get ranked, recommend-only optimization
-            suggestions — skip indexes, projections, partition keys, and
-            PREWHERE rewrites. Every DDL/rewrite is text to review and run
-            yourself; nothing here is ever applied automatically. Pick a query
-            from{' '}
-            <a href="/slow-queries" className="underline underline-offset-2">
-              Slow Queries
-            </a>{' '}
-            and copy its query ID, or paste SQL directly.
-          </p>
+      <p className="text-sm text-muted-foreground">
+        Ranked skip-index, projection, partition-key, and PREWHERE suggestions
+        for a slow query. Recommend-only — nothing is applied for you.
+      </p>
 
-          <Tabs
-            value={mode}
-            onValueChange={(v) => setMode(v as 'sql' | 'queryId')}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <TabsList>
-                <TabsTrigger value="sql">SQL</TabsTrigger>
-                <TabsTrigger value="queryId">Query ID</TabsTrigger>
-              </TabsList>
-              <AdvisorQueryPicker onPick={handlePickQuery} />
-            </div>
+      <Tabs value={mode} onValueChange={(v) => setMode(v as 'sql' | 'queryId')}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="sql">SQL</TabsTrigger>
+            <TabsTrigger value="queryId">Query ID</TabsTrigger>
+          </TabsList>
+          <AdvisorQueryPicker onPick={handlePickQuery} />
+        </div>
 
-            <TabsContent value="sql" className="space-y-2 pt-2">
-              <Suspense fallback={<EditorFallback />}>
-                <SqlEditor
-                  value={sqlInput}
-                  onChange={setSqlInput}
-                  onRun={handleAnalyze}
-                  placeholder="Enter the slow SELECT query to analyze..."
-                />
-              </Suspense>
-              <p className="text-xs text-muted-foreground">
-                Press Cmd/Ctrl + Enter to analyze.
-              </p>
-            </TabsContent>
+        <TabsContent value="sql" className="space-y-2 pt-2">
+          <Suspense fallback={<EditorFallback />}>
+            <SqlEditor
+              value={sqlInput}
+              onChange={setSqlInput}
+              onRun={handleAnalyze}
+              placeholder="SELECT … FROM events WHERE …"
+            />
+          </Suspense>
+        </TabsContent>
 
-            <TabsContent value="queryId" className="space-y-2 pt-2">
-              <Label htmlFor="advisor-query-id" className="text-xs">
-                query_id from system.query_log
-              </Label>
-              <Input
-                id="advisor-query-id"
-                value={queryIdInput}
-                onChange={(e) => setQueryIdInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAnalyze()
-                }}
-                placeholder="e.g. 5f2b1e3a-..."
-              />
-            </TabsContent>
-          </Tabs>
+        <TabsContent value="queryId" className="space-y-2 pt-2">
+          <Label htmlFor="advisor-query-id" className="text-xs">
+            query_id from system.query_log
+          </Label>
+          <Input
+            id="advisor-query-id"
+            value={queryIdInput}
+            onChange={(e) => setQueryIdInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAnalyze()
+            }}
+            placeholder="e.g. 5f2b1e3a-…"
+          />
+        </TabsContent>
+      </Tabs>
 
-          <div className="flex justify-end">
-            <Button onClick={handleAnalyze} disabled={!canAnalyze}>
-              Analyze
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {mode === 'sql'
+            ? 'Press Cmd/Ctrl + Enter to analyze.'
+            : 'Press Enter to analyze.'}
+        </p>
+        <Button onClick={handleAnalyze} disabled={!canAnalyze || analyzing}>
+          {analyzing ? 'Analyzing…' : 'Analyze'}
+        </Button>
+      </div>
 
-      {isLoading || (isFetching && !data) ? <TableSkeleton rows={4} /> : null}
-
-      {error ? (
-        <ErrorAlert
-          title="Analysis failed"
-          message={error instanceof Error ? error.message : String(error)}
+      {committed ? (
+        <AdvisorResult
+          committed={committed}
+          data={data}
+          error={skipFetch ? undefined : error}
+          isLoading={analyzing && !data}
         />
-      ) : null}
-
-      {!isLoading && !error && data ? (
-        data.recommendations.length === 0 ? (
-          <Card>
-            <CardContent className="py-8">
-              <EmptyState
-                variant="no-data"
-                title="No recommendations"
-                description="This query looks well-tuned for the table's current schema — no skip-index, projection, partition-key, or PREWHERE opportunities were found."
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <AdvisorRecommendationsPanel output={data} />
-        )
-      ) : null}
+      ) : (
+        <div className="rounded-xl border border-dashed bg-card/40 px-6 py-10">
+          <EmptyState
+            variant="no-data"
+            title="Nothing to analyze yet"
+            description="Paste a SELECT that reads a table, pick a slow query, or look up a query_id — then press Analyze."
+          />
+        </div>
+      )}
     </div>
   )
 }

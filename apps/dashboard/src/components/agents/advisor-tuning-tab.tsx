@@ -84,13 +84,10 @@ export function AdvisorTuningTab() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <p className="text-sm text-muted-foreground">
-            Scan a database for ranked schema lint findings (needless Nullable,
-            oversized integers, compression-codec opportunities, LowCardinality
-            candidates) and settings that differ from defaults in risky ways.
-            Every suggestion is copyable text to review and run yourself —
-            nothing here is ever applied automatically. Findings that depend on
-            data (null counts, integer ranges, distinct ratios) include a
-            verification query to confirm first.
+            Scan a database for schema lint (needless Nullable, oversized
+            integers, compression, LowCardinality) and settings that differ from
+            defaults in risky ways. Recommend-only — copy and run the
+            suggestions yourself.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -140,6 +137,16 @@ export function AdvisorTuningTab() {
           title="Scan failed"
           message={error instanceof Error ? error.message : String(error)}
         />
+      ) : null}
+
+      {!committed && !isLoading && !error ? (
+        <div className="rounded-xl border border-dashed bg-card/40 px-6 py-10">
+          <EmptyState
+            variant="no-data"
+            title="Nothing scanned yet"
+            description="Enter a database (and optionally a table), then press Scan."
+          />
+        </div>
       ) : null}
 
       {!isLoading && !error && data ? (

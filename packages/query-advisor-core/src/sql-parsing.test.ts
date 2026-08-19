@@ -153,6 +153,11 @@ describe('parseExplainIndexes', () => {
 })
 
 describe('extractReferencedTables', () => {
+  test('SELECT 1 reports no tables', () => {
+    expect(extractReferencedTables('select 1')).toEqual([])
+    expect(extractReferencedTables('SELECT now()')).toEqual([])
+  })
+
   test('JOIN across two databases returns both qualified tables', () => {
     const sql =
       'SELECT * FROM db1.events e JOIN db2.users u ON e.user_id = u.id'

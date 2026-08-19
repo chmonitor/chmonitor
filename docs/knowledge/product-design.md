@@ -300,6 +300,12 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   chart failure automatically gets the matching illustration. Table query
   failures (`TableClient`) use the full EmptyState, not `compact`, so timeout
   and missing-column copy stays visible.
+- **Interactive tool pages** (Explain, Advisor): before the first run, a
+  dashed-border `EmptyState variant="no-data"` ("Nothing to analyze/explain
+  yet"). User-input issues — table-less SQL like `SELECT 1`, a missing
+  `query_id` — use the same EmptyState with next steps, never `ErrorAlert`
+  titled "Analysis failed". `ErrorAlert` is for host/schema/fetch failures.
+  Picking a query from the picker auto-runs, same as `/explain`.
 - **Illustrations:** bespoke, theme-aware, token-driven, motion-safe inline SVGs
   in `components/illustrations/` — prefer over a lone lucide glyph for
   high-impact moments. `WelcomeIllustration` (first-run hero),

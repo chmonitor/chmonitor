@@ -24,6 +24,7 @@
 import { z } from 'zod'
 
 import type {
+  AdvisorErrorCode,
   PartsStats,
   Recommendation,
   TableSchema,
@@ -47,6 +48,7 @@ import {
   buildPrewhereRecommendation,
   buildQueryContext,
   extractReferencedTables,
+  findAdvisorTargetTable,
   proposePrewhereRewrite,
   rankRecommendations,
   scorePartitionKey,
@@ -63,6 +65,7 @@ interface AnalyzeQueryResult {
   recommendations?: Recommendation[]
   notes?: string[]
   error?: string
+  code?: AdvisorErrorCode
 }
 
 async function analyzeQuery(params: {
@@ -86,8 +89,9 @@ async function analyzeQuery(params: {
   if (!sql) {
     return {
       ok: false,
+      code: params.queryId ? 'query_not_found' : 'missing_input',
       error: params.queryId
-        ? `No finished query found in system.query_log for query_id "${params.queryId}".`
+        ? `No finished query found in system.query_log for query_id "${params.queryId}". Paste the SQL, or pick a query from history.`
         : 'Provide either `sql` or `queryId`.',
     }
   }
@@ -97,19 +101,15 @@ async function analyzeQuery(params: {
   } catch (err) {
     return {
       ok: false,
+      code: 'invalid_sql',
       error: `Query failed validation: ${err instanceof Error ? err.message : String(err)}`,
     }
   }
 
+  const targetResult = findAdvisorTargetTable(sql, database)
+  if (!targetResult.ok) return targetResult
+  const target = targetResult.table
   const referencedTables = extractReferencedTables(sql, database)
-  const target = referencedTables[0]
-  if (!target) {
-    return {
-      ok: false,
-      error:
-        'Could not identify a target table in the query (no FROM/JOIN found).',
-    }
-  }
   if (referencedTables.length > 1) {
     notes.push(
       `Query references ${referencedTables.length} tables; only \`${target.qualifiedName}\` (the first) was analyzed.`

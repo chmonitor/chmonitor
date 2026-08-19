@@ -20,6 +20,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
+import { findAdvisorTargetTable } from '@chm/query-advisor-core'
+import { validateSqlQuery } from '@chm/sql-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
   demoHiddenUnavailable,
@@ -116,6 +118,7 @@ async function runAdvisor(
     return Response.json(
       {
         success: false,
+        code: 'missing_input',
         error: 'Provide either `sql` or `queryId`.',
         ...ROUTE_CONTEXT,
       },
@@ -155,6 +158,36 @@ async function runAdvisor(
     )
   }
 
+  // Cheap local checks before burning an AI-request unit: `SELECT 1` and
+  // other table-less queries are user-input issues, not analysis.
+  if (sql && sql.trim() !== '') {
+    try {
+      validateSqlQuery(sql)
+    } catch (err) {
+      return Response.json(
+        {
+          success: false,
+          code: 'invalid_sql',
+          error: `Query failed validation: ${err instanceof Error ? err.message : String(err)}`,
+          ...ROUTE_CONTEXT,
+        },
+        { status: 400 }
+      )
+    }
+    const target = findAdvisorTargetTable(sql, database ?? 'default')
+    if (!target.ok) {
+      return Response.json(
+        {
+          success: false,
+          code: target.code,
+          error: target.error,
+          ...ROUTE_CONTEXT,
+        },
+        { status: 400 }
+      )
+    }
+  }
+
   const { ownerId, reserved, blocked } = await reserveAdvisorUsage()
   if (blocked) {
     return Response.json(
@@ -186,7 +219,12 @@ async function runAdvisor(
     if (!result.ok) {
       if (reserved) await releaseAdvisorUsage(ownerId)
       return Response.json(
-        { success: false, error: result.error, ...ROUTE_CONTEXT },
+        {
+          success: false,
+          error: result.error,
+          code: result.code,
+          ...ROUTE_CONTEXT,
+        },
         { status: 400 }
       )
     }
