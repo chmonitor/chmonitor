@@ -6,7 +6,8 @@ import {
 } from './on-cluster'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const ALTER = 'ALTER TABLE `app`.`events_dist` ADD COLUMN `note` String'
 
@@ -82,7 +83,10 @@ describe('annotateDdlForTopology', () => {
   })
 
   test('does not invoke any execute/apply helper', () => {
-    const src = readFileSync(join(import.meta.dir, 'on-cluster.ts'), 'utf8')
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'on-cluster.ts'),
+      'utf8'
+    )
     expect(src).not.toMatch(/\bfetchData\b/)
     expect(src).not.toMatch(/\bexecuteDdl\b/)
     expect(src).not.toMatch(/\bapplyDdl\b/)
