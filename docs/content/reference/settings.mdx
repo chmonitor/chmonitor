@@ -1,5 +1,5 @@
 ---
-description: Configure alert thresholds, browser connections, AI agent options, and UI theme from the in-app Settings page, or via server-side environment variables.
+description: Configure alert thresholds, browser connections, AI agent options, UI theme, and workspace navigation from the in-app Settings dialog, or via server-side environment variables.
 icon: Cog
 ---
 
@@ -9,7 +9,9 @@ The in-app Settings page (feature id: `settings`, route `/settings`) lets
 operators configure alert thresholds, manage browser connections, tune agent
 session options, and change the UI theme — without redeploying.
 
-To reach it, open the dashboard and click **Settings** in the navigation.
+To reach it, open the dashboard and click the **Settings** gear (or ⌘,).
+Workspace / Navigation lives in that dialog, not on the `/settings`
+`system.settings` table page.
 
 ## What you can configure in-app
 
@@ -19,9 +21,59 @@ To reach it, open the dashboard and click **Settings** in the navigation.
 | Browser connections | Add/remove personal ClickHouse connections stored in the browser |
 | Agent session | Model picker, token/cost display, conversation store selection |
 | Theme | Light / dark / system |
+| Workspace / Navigation | Role preset, hide/show pages, pin favorites; local to this browser |
 
 Settings changes made in-app are stored per browser session or in the configured
 conversation store. They do not affect server-side environment variables.
+
+## Workspace / Navigation
+
+Open **Settings → Workspace → Navigation**. The dialog header says **Local to
+this browser** — the role and hide list live in this browser, not on the
+server, and they do not change anyone else's sidebar.
+
+Narrative walkthrough: [A DBA, an SRE, and an engineer should not share a
+sidebar](https://blog.chmonitor.dev/customize-dashboard/).
+
+### Roles
+
+| Preset | Groups kept |
+|---|---|
+| **Full** | Every page the host and deployment already allow. New pages stay visible. |
+| **DBA** | Overview, Tools, Queries, Tables, Merges, Metrics, Keeper, Security, Logs, Cluster, System |
+| **Engineer** | Overview, Tools, Queries, Tables, Insights, AI Agent |
+| **SRE** | Overview, Tools, Health, Insights, Queries, Tables, System, Operations, Metrics, Logs |
+| **Custom** | Start from a role, then hide extra leaves |
+
+Picking a role remounts the Settings tree collapsed. Expand only what you care
+about; search filters the tree. The pill flips to **Custom** only when Hide/Show
+on a leaf diverges from that role's hide list. Collapsing a parent does not
+count.
+
+Footer **About** is not hideable. The Settings gear and host switcher are never
+filtered. Hidden pages stay reachable by URL; the sidebar and command palette
+drop them.
+
+### Hide, pin, restore
+
+- In Settings, leaves have **Hide** / **Show**. Hidden rows stay in the tree,
+  dimmed.
+- In the sidebar, hover a leaf: **Hide** sits next to **Pin**. A toast offers
+  **Undo** and **Open Navigation**.
+- Restore always lives at Settings → Workspace → Navigation.
+- Pin adds the page to **Favorites** at the top of the sidebar; drag to reorder.
+  Pins are local to this browser too.
+
+Theme, units, and layout stay on the other Settings tabs (local chrome). The
+role plus hide list is the menu IA. Workspace visibility is applied last —
+permission, cloud, and engine gates still win.
+
+### Tools
+
+**Tools** is the last Main group: SQL Console, Data Explorer, Explain, Advisor
+(recommend-only; never applies DDL), Chart Builder, Schema Compare, Settings
+Diff. **AI Agent** stays its own top-level group. Postgres hosts do not see
+Tools (ClickHouse-family only). DBA, Engineer, and SRE presets all keep Tools.
 
 ## Conversation history (agent settings sidebar)
 
@@ -163,4 +215,5 @@ these client-side variables.
 <Card title="Authentication" href="/operate/authentication" description="Setting up Clerk, Cloudflare Access, or proxy auth." />
 <Card title="AI agent" href="/guide/ai-agent" description="Agent configuration and conversation store options." />
 <Card title="Install & configure" href="/operate/deploy" description="Platform-specific deployment with all env vars." />
+<Card title="A DBA, an SRE, and an engineer should not share a sidebar" href="https://blog.chmonitor.dev/customize-dashboard/" description="Workspace roles, hide/pin, and the Tools menu — local to this browser." />
 </Cards>
