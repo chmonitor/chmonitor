@@ -11,8 +11,8 @@ import {
   friendlyNoteImages,
   friendlyNoteToHtml,
   loadLandingFriendlyNotes,
+  stripVersionPrefix,
 } from '../lib/load-friendly-notes'
-import { normalizeVersion } from '../../../dashboard/src/lib/whats-new/version'
 
 interface Release {
   tag_name: string
@@ -46,7 +46,7 @@ const friendlyNotes = loadLandingFriendlyNotes()
 function notesForRelease(release: Release) {
   const friendly =
     friendlyNotes.get(release.tag_name) ??
-    friendlyNotes.get(normalizeVersion(release.tag_name))
+    friendlyNotes.get(stripVersionPrefix(release.tag_name))
   if (friendly) {
     return {
       html: friendlyNoteToHtml(friendly),

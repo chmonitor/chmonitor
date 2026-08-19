@@ -1,5 +1,3 @@
-import { isRecapLikeText } from '../../../dashboard/src/lib/whats-new/parse-release-body'
-
 export const PRODUCT_RELEASE_TAG_RE = /^v\d+\.\d+\.\d+$/
 
 export const MAX_CHANGELOG_ITEMS = 8
@@ -35,6 +33,34 @@ export function classifyReleaseHeading(headingLine: string): SectionKind {
 
 export function isProductReleaseTag(tag: string): boolean {
   return PRODUCT_RELEASE_TAG_RE.test(tag.trim())
+}
+
+/**
+ * Recap / shoutout / Docker copy that older 0.2.x GitHub Release bodies put
+ * in a leading blockquote. Keep in sync with the dashboard parser
+ * (`apps/dashboard/src/lib/whats-new/parse-release-body.ts`).
+ */
+export function isRecapLikeText(text: string): boolean {
+  const value = text.toLowerCase()
+  if (!value.trim()) return false
+  if (/\bshoutout\b/.test(value)) return true
+  if (/\bdocker\s+pull\b/.test(value)) return true
+  if (
+    /\b\d[\d,]*\s+commits?\b/.test(value) &&
+    /\bpull requests?\b/.test(value)
+  ) {
+    return true
+  }
+  if (
+    /\b\d[\d,]*\s+commits?\b/.test(value) &&
+    /\b(agents?|daytime|night-?time|night owls?)\b/.test(value)
+  ) {
+    return true
+  }
+  if (/\b\d[\d,]*\s+commits?\b/.test(value) && /\bacross\b/.test(value)) {
+    return true
+  }
+  return false
 }
 
 export function formatInline(text: string): string {
