@@ -19,7 +19,7 @@ const HERO_FEATURES = [
 const latestPost = getLatestBlogPost()
 
 const checkSvg = `<svg class="mt-0.5 size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>`
-const sparkSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m5.6 5.6 2.1 2.1"/><path d="m16.3 16.3 2.1 2.1"/><path d="m16.3 7.7 2.1-2.1"/><path d="m5.6 18.4 2.1-2.1"/></svg>`
+const arrowSvg = `<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
 ---
 
 <section class="relative isolate overflow-hidden -mt-16 pt-16 pb-14 sm:pb-16 md:pb-[56px]" data-hero>
@@ -81,18 +81,15 @@ const sparkSvg = `<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="
             href={latestPost.href}
             target="_blank"
             rel="noopener"
-            class="inline-flex max-w-full"
+            title={latestPost.title}
+            class="inline-flex min-w-0 max-w-full"
             data-hero-latest-post
           >
-            {/* Compact announcement pill. Type stays at 12px; title may wrap
-                on narrow screens. Do not truncate. */}
-            <span class="inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--surface-strong)] px-3 py-1 text-foreground text-xs font-semibold leading-snug transition-colors hover:bg-[var(--hairline-strong)] max-[359px]:py-1.5">
-              <span class="inline-flex items-center justify-center size-3.5 shrink-0" set:html={sparkSvg} />
-              <span class="min-w-0 text-center">
-                <span class="uppercase tracking-[0.06em] sm:tracking-[0.08em]">New</span>
-                {' · '}
-                {latestPost.title}
-              </span>
+            {/* Title + arrow. One line; ellipsis on narrow screens so the
+                arrow stays visible. Full title is on `title` for hover. */}
+            <span class="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-[var(--surface-strong)] px-3 py-1 text-foreground text-xs font-medium leading-none transition-colors hover:bg-[var(--hairline-strong)]">
+              <span class="min-w-0 truncate">{latestPost.title}</span>
+              <span class="shrink-0" set:html={arrowSvg} />
             </span>
           </a>
         )

@@ -94,16 +94,19 @@ describe('mobile nav: open menu shows X + dim, tap targets ≥44px', () => {
   })
 })
 
-describe('hero latest-post pill: compact, wrap-friendly, 12px type', () => {
-  test('does not truncate; title may wrap on narrow screens', () => {
+describe('hero latest-post pill: title + arrow, truncates when tight', () => {
+  test('shows the post title and a trailing arrow, no New prefix', () => {
     const idx = hero.indexOf('data-hero-latest-post')
     expect(idx).toBeGreaterThan(-1)
     const start = hero.lastIndexOf('<a', idx)
     const pill = hero.slice(start, hero.indexOf('</a>', idx))
     expect(pill).toContain('{latestPost.title}')
     expect(pill).toContain('{latestPost.href}')
-    expect(pill).not.toMatch(/class="[^"]*\btruncate\b/)
-    expect(pill).not.toMatch(/whitespace-nowrap/)
+    expect(pill).toContain('title={latestPost.title}')
+    expect(pill).toContain('truncate')
+    expect(pill).toContain('shrink-0')
+    expect(pill).not.toMatch(/>New</)
+    expect(pill).not.toContain('sparkSvg')
   })
 
   test('type is at least 12px (text-xs), not a squeeze below that', () => {
