@@ -1,3 +1,5 @@
+import { parseLastSeenChangelogVersion } from '@/lib/whats-new/version'
+
 export type ByteUnit = 'binary' | 'decimal'
 export type NumberFormat = 'abbreviated' | 'full'
 export type ChartPalette = 'default' | 'colorblind-safe' | 'monochrome'
@@ -36,6 +38,12 @@ export interface UserSettings {
    * are never filtered here.
    */
   hiddenMenuHrefs: string[]
+  /**
+   * Last dashboard version whose What's new dialog the user dismissed.
+   * Empty means never acknowledged. Compared against APP_VERSION from
+   * `apps/dashboard/src/package.json`.
+   */
+  lastSeenChangelogVersion: string
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -49,6 +57,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   dimUnavailablePages: true,
   workspacePreset: 'full',
   hiddenMenuHrefs: [],
+  lastSeenChangelogVersion: '',
 }
 
 export const USER_SETTINGS_STORAGE_KEY = 'clickhouse-monitor-user-settings'
@@ -67,6 +76,9 @@ export function mergeUserSettings(stored: unknown): UserSettings {
   const merged = { ...DEFAULT_USER_SETTINGS, ...partial }
   merged.workspacePreset = parseWorkspacePreset(partial.workspacePreset)
   merged.hiddenMenuHrefs = parseHiddenMenuHrefs(partial.hiddenMenuHrefs)
+  merged.lastSeenChangelogVersion = parseLastSeenChangelogVersion(
+    partial.lastSeenChangelogVersion
+  )
   return merged
 }
 

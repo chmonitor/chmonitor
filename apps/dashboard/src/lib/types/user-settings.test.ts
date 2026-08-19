@@ -21,6 +21,7 @@ describe('mergeUserSettings', () => {
     expect(merged.defaultTimeRange).toBe('24h')
     expect(merged.workspacePreset).toBe('full')
     expect(merged.hiddenMenuHrefs).toEqual([])
+    expect(merged.lastSeenChangelogVersion).toBe('')
   })
 
   test('stored values override the defaults', () => {
@@ -50,6 +51,15 @@ describe('mergeUserSettings', () => {
     })
     expect(merged.workspacePreset).toBe('full')
     expect(merged.hiddenMenuHrefs).toEqual(['/health'])
+  })
+
+  test('lastSeenChangelogVersion is kept when it is a product version', () => {
+    const merged = mergeUserSettings({ lastSeenChangelogVersion: 'v0.3.2' })
+    expect(merged.lastSeenChangelogVersion).toBe('0.3.2')
+    expect(
+      mergeUserSettings({ lastSeenChangelogVersion: 'nope' })
+        .lastSeenChangelogVersion
+    ).toBe('')
   })
 
   test('default byteUnit/numberFormat reproduce historical behaviour', () => {

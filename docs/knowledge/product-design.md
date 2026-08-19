@@ -78,10 +78,16 @@ Fonts: Geist Variable (sans) + Geist Mono.
 
 ## User appearance settings (Settings dialog)
 
-**Entry:** the sidebar footer gear sits beside Sign In / the avatar
-(`[gear] [control]`, `flex items-center gap-1.5`) via `NavSettingsButton` /
+**Entry:** the sidebar footer chrome sits beside Sign In / the avatar
+(`[what's new] [gear] [control]`, `flex items-center gap-1.5`) via
+`WhatsNewButton` + `NavSettingsButton` /
 `NavUserFooterRow` (`apps/dashboard/src/components/nav-user/nav-settings-button.tsx`).
-Icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
+What's new uses lucide `Newspaper`, `aria-label="What's new"`,
+`data-testid="whats-new-button"`, 44×44 below `lg`, and a primary **dot** when
+`UserSettings.lastSeenChangelogVersion` is older than `APP_VERSION`. The
+dialog is owned by `WhatsNewProvider` (sibling of the shell chrome, not inside
+the user menu). Auto-open once on upgrade; dismiss / Got it writes last-seen.
+Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
 `aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
 "Settings". Hide when `canUseSettings` / `SETTINGS_FEATURE_PERMISSION` is off.
 Local settings do not need an account — the gear stays outside `SignInButton`
@@ -93,8 +99,9 @@ settings store.
 `clickhouse-monitor-user-settings`, merged over `DEFAULT_USER_SETTINGS` via
 `mergeUserSettings` so legacy blobs pick up new keys) carries the
 timezone/theme plus **units** (`byteUnit`, `numberFormat`), **colors**
-(`chartPalette`), **layout** (`tableDensity`, `defaultTimeRange`), and a
-**workspace** (`workspacePreset`, `hiddenMenuHrefs`). The
+(`chartPalette`), **layout** (`tableDensity`, `defaultTimeRange`), a
+**workspace** (`workspacePreset`, `hiddenMenuHrefs`), and
+`lastSeenChangelogVersion` for the What's new dialog. The
 Settings dialog (`components/settings/settings-dialog.tsx` +
 `settings-form.tsx`) uses `rounded-xl border bg-card`, a Settings icon + title
 + "Local to this browser" header, a **stable height**

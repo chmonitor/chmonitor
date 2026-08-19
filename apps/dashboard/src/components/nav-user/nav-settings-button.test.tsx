@@ -97,11 +97,14 @@ describe('NavSettingsButton', () => {
 
   test('hides the gear when settings are not allowed', async () => {
     const { NavUserFooterRow } = await import('./nav-settings-button')
+    const { TooltipProvider } = await import('@/components/ui/tooltip')
 
     const { cleanup } = await renderInto(
-      <NavUserFooterRow canUseSettings={false} onOpenSettings={() => {}}>
-        <span>Sign In</span>
-      </NavUserFooterRow>
+      <TooltipProvider>
+        <NavUserFooterRow canUseSettings={false} onOpenSettings={() => {}}>
+          <span>Sign In</span>
+        </NavUserFooterRow>
+      </TooltipProvider>
     )
 
     try {
