@@ -63,6 +63,8 @@ describe('hero pill links to the latest published blog post', () => {
     expect(hero).toContain('data-hero-latest-post')
     expect(hero).toContain('href={latestPost.href}')
     expect(hero).toContain('{latestPost.title}')
+    expect(hero).toContain('truncate')
+    expect(hero).not.toMatch(/>New</)
     expect(hero).not.toContain('data-hero-oss')
     expect(hero).not.toContain('https://github.com/chmonitor/chmonitor')
   })

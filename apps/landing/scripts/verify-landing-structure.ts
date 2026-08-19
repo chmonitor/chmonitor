@@ -75,11 +75,11 @@ if (!latestChunk.includes('blog.chmonitor.dev')) {
     `MISSING latest post title in [data-hero-latest-post]: ${latestPost.title}`
   )
   failed = true
-} else if (/\btruncate\b/.test(latestChunk)) {
-  console.error('FORBIDDEN truncate on hero latest-post pill')
+} else if (!/\btruncate\b/.test(latestChunk)) {
+  console.error('MISSING truncate on hero latest-post pill (mobile overflow)')
   failed = true
 } else {
-  console.log('OK: hero pill links to the latest blog post (no truncate)')
+  console.log('OK: hero pill links to the latest blog post (truncates)')
 }
 
 for (const text of forbidden) {
