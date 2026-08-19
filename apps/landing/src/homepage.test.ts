@@ -69,3 +69,15 @@ describe('hero pill links to the latest published blog post', () => {
     expect(hero).not.toContain('https://github.com/chmonitor/chmonitor')
   })
 })
+
+describe('hero video', () => {
+  test('autoplays muted and loops', () => {
+    const idx = hero.indexOf('data-hero-intro')
+    expect(idx).toBeGreaterThan(-1)
+    const start = hero.lastIndexOf('<video', idx)
+    const tag = hero.slice(start, hero.indexOf('>', idx))
+    expect(tag).toMatch(/\bautoplay\b/)
+    expect(tag).toMatch(/\bmuted\b/)
+    expect(tag).toMatch(/\bloop\b/)
+  })
+})

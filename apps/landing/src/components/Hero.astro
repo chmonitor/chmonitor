@@ -107,7 +107,7 @@ const arrowSvg = `<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
     </div>
 
     {/* Launch film as the hero intro. Poster is the LCP image; the video
-        autoplays muted once when motion is allowed. Reduced-motion and
+        autoplays muted and loops when motion is allowed. Reduced-motion and
         failed playback keep the poster. */}
     <div
       class="mt-12 sm:mt-16 overflow-hidden rounded-xl hero-shot-frame"
@@ -120,6 +120,7 @@ const arrowSvg = `<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
         height="1126"
         autoplay
         muted
+        loop
         playsinline
         preload="metadata"
         disablepictureinpicture
