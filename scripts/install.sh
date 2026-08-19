@@ -72,7 +72,7 @@ resolve_version() {
 
   log "Looking up latest chm-v* release..."
   releases_json="$(curl -fsSL -H "User-Agent: chmonitor-installer" \
-    "https://api.github.com/repos/${REPO}/releases" 2>/dev/null)" \
+    "https://api.github.com/repos/${REPO}/releases?per_page=100" 2>/dev/null)" \
     || die "failed to query GitHub releases API for ${REPO}"
 
   # The API returns compact single-line JSON, so extract just the matching
@@ -111,30 +111,34 @@ if [ ! -s "$BIN_PATH" ]; then
   die "downloaded file is empty: ${BIN_URL}"
 fi
 
-# --- verify checksum (best-effort but fatal if the asset exists and mismatches) ---
-if curl -fsSL -o "$SHA_PATH" "$SHA_URL" 2>/dev/null; then
-  expected="$(awk '{print $1}' "$SHA_PATH")"
-  if command -v sha256sum >/dev/null 2>&1; then
-    actual="$(sha256sum "$BIN_PATH" | awk '{print $1}')"
-  elif command -v shasum >/dev/null 2>&1; then
-    actual="$(shasum -a 256 "$BIN_PATH" | awk '{print $1}')"
-  else
-    die "neither sha256sum nor shasum found — cannot verify checksum, refusing to install unverified binary"
-  fi
-
-  if [ "$expected" != "$actual" ]; then
-    die "checksum mismatch for ${ASSET_NAME}: expected ${expected}, got ${actual}. Download may be corrupt or tampered with — aborting."
-  fi
-  log "Checksum verified."
-else
-  log "warning: no .sha256 checksum asset found for ${VERSION}/${ASSET_NAME} — installing without verification."
+# --- verify checksum (mandatory; never install an unverified binary) ---
+if ! curl -fsSL -o "$SHA_PATH" "$SHA_URL"; then
+  die "no checksum asset at ${SHA_URL} — refusing to install unverified binary. Fallback: cargo install ch-monitor-cli --force"
 fi
+
+expected="$(awk '{print $1}' "$SHA_PATH")"
+if [ -z "$expected" ]; then
+  die "checksum file was empty — refusing to install unverified binary. Fallback: cargo install ch-monitor-cli --force"
+fi
+
+if command -v sha256sum >/dev/null 2>&1; then
+  actual="$(sha256sum "$BIN_PATH" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+  actual="$(shasum -a 256 "$BIN_PATH" | awk '{print $1}')"
+else
+  die "neither sha256sum nor shasum found — cannot verify checksum, refusing to install unverified binary. Fallback: cargo install ch-monitor-cli --force"
+fi
+
+if [ "$expected" != "$actual" ]; then
+  die "checksum mismatch for ${ASSET_NAME}: expected ${expected}, got ${actual}. Download may be corrupt or tampered with — aborting. Fallback: cargo install ch-monitor-cli --force"
+fi
+log "Checksum verified."
 
 chmod +x "$BIN_PATH"
 
 mkdir -p "$INSTALL_DIR" 2>/dev/null || die "could not create install directory '$INSTALL_DIR'"
 if [ ! -w "$INSTALL_DIR" ]; then
-  die "install directory '$INSTALL_DIR' is not writable. Re-run with CHM_INSTALL_DIR pointing at a writable directory, or move the binary yourself (sudo may be required): sudo cp '$BIN_PATH' '$INSTALL_DIR/$BIN_NAME'"
+  die "install directory '$INSTALL_DIR' is not writable. This script never invokes sudo. Re-run with CHM_INSTALL_DIR pointing at a writable directory, or: cargo install ch-monitor-cli --force"
 fi
 
 mv "$BIN_PATH" "${INSTALL_DIR}/${BIN_NAME}"
@@ -154,6 +158,9 @@ esac
 log ""
 log "Run a zero-signup health check against a ClickHouse host:"
 log "  CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default ${INSTALL_DIR}/${BIN_NAME} diagnose"
+log ""
+log "Update later with:"
+log "  ${BIN_NAME} upgrade"
 
 # --- anonymous, opt-out install ping (best-effort, backgrounded) -----------
 # Records a single anonymous cli_install event (os/arch + version) to the same

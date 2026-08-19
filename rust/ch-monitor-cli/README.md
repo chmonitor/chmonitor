@@ -32,19 +32,24 @@ CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
 
 ## Update
 
-`chm` self-updates from GitHub Releases (downloads the matching binary, verifies
-its sha256, and atomically replaces itself — no sudo):
+`chm update` and `chm upgrade` are the same command (`upgrade` is a first-class
+alias). Both print current -> target version, download the matching GitHub
+Release binary, verify sha256, and atomically replace the running executable.
+They never invoke sudo: checksum, permission, and unsupported-target failures
+print a copy-pasteable fallback (`scripts/install.sh` or
+`cargo install ch-monitor-cli --force`).
 
 ```bash
-chm update                       # install the latest chm-v* release
+chm upgrade                      # alias of update — install the latest chm-v* release
+chm update                       # same behaviour
 chm update --check               # only report if a newer release exists (exit 1 if so)
-chm update --version chm-v0.2.0  # pin a specific release
+chm upgrade --version chm-v0.2.0 # pin a specific release
 ```
 
 After a `chm diagnose` run, a one-line "update available" hint is printed to
 stderr when a newer release exists (best-effort, sub-second timeout). Silence it
 with `CHM_NO_UPDATE_CHECK=1`. Installed via `cargo install`? Upgrade with
-`cargo install ch-monitor-cli` instead.
+`cargo install ch-monitor-cli --force` instead.
 
 See [docs.chmonitor.dev/guide/guides/diagnostics-cli](https://docs.chmonitor.dev/guide/guides/diagnostics-cli)
 for the full CLI reference.

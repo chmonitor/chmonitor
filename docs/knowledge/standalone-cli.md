@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-07-17
+updated: 2026-08-19
 tags:
   - rust
   - cli
@@ -108,6 +108,20 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 | `comfy-table` | Table rendering |
 | `ratatui` + `crossterm` | TUI stack |
 
+## Self-update (`chm update` / `chm upgrade`)
+
+`chm upgrade` is a first-class alias of `chm update` (same `--check` /
+`--version` flags, same `cli_run`/`update` telemetry). Both print
+current -> target version, download the matching `chm-<target>` GitHub Release
+asset, require a matching `.sha256`, and atomically replace the running
+binary. They never invoke sudo. Checksum, permission, and unsupported-target
+failures print a copy-pasteable fallback (`scripts/install.sh` or
+`cargo install ch-monitor-cli --force`). Implementation: `src/update.rs`.
+
+```bash
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- upgrade --check
+```
+
 ## CI & Release
 
 - **CI**: `cli-rust-ci.yml` — fmt, clippy, build, test
@@ -118,10 +132,6 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
   `chm-<target>` / `chm-<target>.sha256`. Only runs the upload step on an
   actual tag push (`github.ref_type == 'tag'`); `workflow_dispatch` builds but
   doesn't publish.
-- **No `chm-v*` tag has been pushed yet** (as of 2026-07-17) — the workflow is
-  wired correctly but has never produced a real release. A maintainer needs to
-  push a `chm-v0.1.0` tag to cut the first one before `scripts/install.sh`
-  (below) has anything to download.
 
 ## One-line install (`scripts/install.sh`)
 
@@ -136,16 +146,14 @@ curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/ins
   repo's overall "latest" release — that's dashboard/Helm releases); pin a
   specific one with `CHM_VERSION=chm-vX.Y.Z`.
 - Downloads the binary + its `.sha256` asset and verifies the checksum before
-  installing; fails loud (`set -euo pipefail`) on any download/verify/write
-  failure rather than degrading silently.
+  installing; a missing or mismatched checksum is fatal (never installs an
+  unverified binary). Fails loud (`set -euo pipefail`) on any
+  download/verify/write failure rather than degrading silently.
 - Installs to `$HOME/.local/bin` by default (override with
   `CHM_INSTALL_DIR`); never invokes `sudo` — if the target dir isn't
-  writable it errors with the manual `sudo cp` command instead of escalating
-  itself.
-- `rust/ch-monitor-cli/Cargo.toml` now carries `authors`/`repository`/
-  `readme`/`keywords`/`categories` (matching the sibling `ch-json`/`ch-pivot`
-  crates) so it's ready for a future `cargo publish` — **not yet published**;
-  `cargo-publish.yml`'s path filter still only watches `ch-json`/`ch-pivot`.
-  Publishing `ch-monitor-cli` to crates.io and/or a Homebrew tap needs a
-  maintainer with crates.io/Homebrew-org credentials (tracked as a follow-up
-  on issue #2699, not done here).
+  writable it errors with `CHM_INSTALL_DIR` / `cargo install` fallback
+  instead of escalating itself.
+- `rust/ch-monitor-cli/Cargo.toml` carries `authors`/`repository`/`readme`/
+  `keywords`/`categories`. `cargo-publish.yml` publishes the crate so
+  `cargo install ch-monitor-cli` works as a self-update fallback. Homebrew
+  is still out of scope.

@@ -1,19 +1,23 @@
-//! Self-update: `chm update`.
+//! Self-update: `chm update` / `chm upgrade`.
 //!
 //! Downloads the newest (or a pinned) `chm-v*` release from GitHub, verifies its
-//! sha256 checksum, and atomically replaces the running executable. No sudo — if
-//! the install directory is not writable we print the manual command instead.
+//! sha256 checksum, and atomically replaces the running executable. Never
+//! invokes sudo — checksum, permission, and unsupported-target failures print a
+//! copy-pasteable fallback (`scripts/install.sh` or `cargo install`).
 
 use std::{env, fs, path::Path, time::Duration};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use reqwest::Client;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases";
+const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases?per_page=100";
 const RELEASE_DOWNLOAD: &str = "https://github.com/chmonitor/chmonitor/releases/download";
 const USER_AGENT: &str = concat!("chm-cli/", env!("CARGO_PKG_VERSION"));
+const INSTALL_SH: &str =
+    "curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash";
+const CARGO_INSTALL: &str = "cargo install ch-monitor-cli --force";
 
 /// Compile-time target triple, injected by `build.rs`.
 const TARGET: &str = env!("CHM_TARGET");
@@ -66,6 +70,26 @@ fn newest_chm_tag(releases: &[Release]) -> Option<String> {
         .map(|(_, tag)| tag)
 }
 
+/// Copy-pasteable recovery when self-update cannot finish. Never includes a
+/// `sudo ` command — this path does not escalate privileges.
+fn fallback_block() -> String {
+    format!(
+        "This command never invokes sudo. Copy-paste a fallback:\n  {INSTALL_SH}\n\nor:\n  {CARGO_INSTALL}"
+    )
+}
+
+fn unsupported_target_error(target: &str) -> anyhow::Error {
+    anyhow!(
+        "unsupported platform for self-update ('{target}'). \
+         Prebuilt binaries ship for Linux and macOS (x86_64, aarch64) only.\n\
+         Build from source instead:\n  {CARGO_INSTALL}"
+    )
+}
+
+fn checksum_failure(detail: &str) -> anyhow::Error {
+    anyhow!("{detail}\n{}", fallback_block())
+}
+
 /// Fetch the newest published `chm-v*` release tag.
 async fn latest_tag(client: &Client) -> Result<String> {
     let releases: Vec<Release> = client
@@ -90,29 +114,24 @@ fn current_version() -> Version {
 
 fn ensure_supported_target() -> Result<()> {
     if !SUPPORTED_TARGETS.contains(&TARGET) {
-        bail!(
-            "unsupported platform for self-update ('{TARGET}'). \
-             Install from source instead: cargo install ch-monitor-cli"
-        );
+        return Err(unsupported_target_error(TARGET));
     }
     Ok(())
 }
 
-/// `chm update --check`: report whether a newer release exists.
+/// `chm update --check` / `chm upgrade --check`: report whether a newer release exists.
 /// Returns `true` when an update is available.
 pub async fn check(client: &Client) -> Result<bool> {
     let current = current_version();
     let latest_tag = latest_tag(client).await?;
     let latest = parse_version(&latest_tag)
         .ok_or_else(|| anyhow!("could not parse latest release tag '{latest_tag}'"))?;
+    println!("chm v{} -> {latest_tag}", env!("CARGO_PKG_VERSION"));
     if latest > current {
-        println!(
-            "update available: {} -> {latest_tag} (run `chm update`)",
-            env!("CARGO_PKG_VERSION")
-        );
+        println!("update available (run `chm update` or `chm upgrade`)");
         Ok(true)
     } else {
-        println!("chm is up to date (v{})", env!("CARGO_PKG_VERSION"));
+        println!("chm is up to date");
         Ok(false)
     }
 }
@@ -145,13 +164,13 @@ pub async fn hint(client: &Client) {
     };
     if let Ok(Some(tag)) = tokio::time::timeout(Duration::from_millis(900), fut).await {
         eprintln!(
-            "note: a newer chm is available ({} -> {tag}). Run `chm update`. (set CHM_NO_UPDATE_CHECK=1 to silence)",
+            "note: a newer chm is available (v{} -> {tag}). Run `chm update` or `chm upgrade`. (set CHM_NO_UPDATE_CHECK=1 to silence)",
             env!("CARGO_PKG_VERSION")
         );
     }
 }
 
-/// `chm update` (and `chm update --version <tag>`): download, verify, replace.
+/// `chm update` / `chm upgrade` (and `--version <tag>`): download, verify, replace.
 pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
     ensure_supported_target()?;
     let current = current_version();
@@ -169,8 +188,10 @@ pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
     let target_version = parse_version(&target_tag)
         .ok_or_else(|| anyhow!("could not parse target tag '{target_tag}'"))?;
 
-    if pinned_is_none_and_current(&target_version, &current) {
-        println!("chm is already up to date (v{})", env!("CARGO_PKG_VERSION"));
+    println!("chm v{} -> {target_tag}", env!("CARGO_PKG_VERSION"));
+
+    if target_version == current {
+        println!("chm is already up to date");
         return Ok(());
     }
 
@@ -178,7 +199,7 @@ pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
     let bin_url = format!("{RELEASE_DOWNLOAD}/{target_tag}/{asset}");
     let sha_url = format!("{bin_url}.sha256");
 
-    println!("Downloading {asset} ({target_tag})...");
+    println!("Downloading {asset}...");
     let bin_bytes = client
         .get(&bin_url)
         .header("User-Agent", USER_AGENT)
@@ -194,29 +215,36 @@ pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
         .context("failed to read downloaded binary")?;
 
     // Checksum verification is mandatory: abort on a missing or mismatched sum.
-    let sha_text = client
+    let sha_text = match client
         .get(&sha_url)
         .header("User-Agent", USER_AGENT)
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .with_context(|| {
-            format!("no checksum asset at {sha_url} — refusing to install unverified binary")
-        })?
-        .text()
-        .await
-        .context("failed to read checksum file")?;
+    {
+        Ok(resp) => resp.text().await.context("failed to read checksum file")?,
+        Err(_) => {
+            return Err(checksum_failure(&format!(
+                "no checksum asset at {sha_url} — refusing to install unverified binary"
+            )));
+        }
+    };
     let expected = sha_text
         .split_whitespace()
         .next()
         .unwrap_or("")
         .to_lowercase();
     if expected.is_empty() {
-        bail!("checksum file was empty — refusing to install unverified binary");
+        return Err(checksum_failure(
+            "checksum file was empty — refusing to install unverified binary",
+        ));
     }
     let actual = hex_sha256(&bin_bytes);
     if actual != expected {
-        bail!("checksum mismatch for {asset}: expected {expected}, got {actual}. Download may be corrupt or tampered with — aborting.");
+        return Err(checksum_failure(&format!(
+            "checksum mismatch for {asset}: expected {expected}, got {actual}. \
+             Download may be corrupt or tampered with — aborting."
+        )));
     }
 
     let exe = env::current_exe().context("could not locate the running executable")?;
@@ -224,18 +252,14 @@ pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
         .parent()
         .ok_or_else(|| anyhow!("executable has no parent directory"))?;
 
-    install_binary(dir, &exe, &bin_bytes).map_err(|e| manual_hint(&exe, &e))?;
+    install_binary(dir, &exe, &bin_bytes).map_err(|e| permission_hint(&exe, &e))?;
 
     println!(
-        "Updated chm {} -> {target_tag} ({})",
+        "Updated chm v{} -> {target_tag} ({})",
         env!("CARGO_PKG_VERSION"),
         exe.display()
     );
     Ok(())
-}
-
-fn pinned_is_none_and_current(target: &Version, current: &Version) -> bool {
-    target == current
 }
 
 fn hex_sha256(bytes: &[u8]) -> String {
@@ -292,15 +316,15 @@ fn set_executable(_path: &Path) -> Result<()> {
 }
 
 /// Turn an install failure into a clear, sudo-free manual instruction.
-fn manual_hint(exe: &Path, err: &anyhow::Error) -> anyhow::Error {
+fn permission_hint(exe: &Path, err: &anyhow::Error) -> anyhow::Error {
     anyhow!(
         "could not install the update automatically ({err}).\n\
          The install directory may not be writable ({}).\n\
-         Re-run the installer manually (no sudo needed if you own the dir):\n\
-             curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash\n\
-         or move a downloaded `chm-{TARGET}` binary over {} yourself.",
-        exe.parent().map(|p| p.display().to_string()).unwrap_or_default(),
-        exe.display(),
+         {}",
+        exe.parent()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default(),
+        fallback_block(),
     )
 }
 
@@ -315,6 +339,14 @@ mod tests {
         assert_eq!(parse_version("v2.0.0"), Some(Version(2, 0, 0)));
         assert_eq!(parse_version("0.3"), Some(Version(0, 3, 0)));
         assert_eq!(parse_version("chm-v1.2.3-rc1"), Some(Version(1, 2, 3)));
+    }
+
+    #[test]
+    fn parse_version_rejects_junk() {
+        assert_eq!(parse_version(""), None);
+        assert_eq!(parse_version("chm-v"), None);
+        assert_eq!(parse_version("not-a-version"), None);
+        assert_eq!(parse_version("chm-vlater"), None);
     }
 
     #[test]
@@ -341,6 +373,14 @@ mod tests {
     }
 
     #[test]
+    fn newest_tag_empty_or_unrelated_is_none() {
+        assert_eq!(newest_chm_tag(&[]), None);
+        let json = r#"[{"tag_name":"v9.9.9","prerelease":false,"draft":false}]"#;
+        let releases: Vec<Release> = serde_json::from_str(json).unwrap();
+        assert_eq!(newest_chm_tag(&releases), None);
+    }
+
+    #[test]
     fn checksum_matches_known_vector() {
         // sha256("abc")
         assert_eq!(
@@ -353,5 +393,50 @@ mod tests {
     fn supported_targets_cover_shipped_platforms() {
         assert!(SUPPORTED_TARGETS.contains(&"x86_64-unknown-linux-gnu"));
         assert!(SUPPORTED_TARGETS.contains(&"aarch64-apple-darwin"));
+    }
+
+    fn assert_copy_pasteable_fallback(msg: &str) {
+        assert!(msg.contains("scripts/install.sh"), "{msg}");
+        assert!(msg.contains("cargo install ch-monitor-cli"), "{msg}");
+        // Match `sudo ` as a command. The phrase "never invokes sudo" must not trip this.
+        assert!(
+            !msg.contains("sudo "),
+            "fallback must not suggest a sudo command: {msg}"
+        );
+    }
+
+    #[test]
+    fn fallback_is_copy_pasteable_and_sudo_free() {
+        assert_copy_pasteable_fallback(&fallback_block());
+    }
+
+    #[test]
+    fn checksum_failure_includes_fallback() {
+        let msg =
+            checksum_failure("checksum mismatch for chm-x: expected aaa, got bbb").to_string();
+        assert!(msg.contains("checksum mismatch"), "{msg}");
+        assert_copy_pasteable_fallback(&msg);
+    }
+
+    #[test]
+    fn permission_hint_includes_fallback() {
+        let err = permission_hint(
+            Path::new("/usr/local/bin/chm"),
+            &anyhow!("permission denied"),
+        );
+        let msg = err.to_string();
+        assert!(msg.contains("/usr/local/bin"), "{msg}");
+        assert_copy_pasteable_fallback(&msg);
+    }
+
+    #[test]
+    fn unsupported_target_points_at_cargo() {
+        let msg = unsupported_target_error("wasm32-unknown-unknown").to_string();
+        assert!(msg.contains("wasm32-unknown-unknown"), "{msg}");
+        assert!(msg.contains("cargo install ch-monitor-cli"), "{msg}");
+        assert!(
+            !msg.contains("sudo "),
+            "unsupported-target fallback must not suggest a sudo command: {msg}"
+        );
     }
 }
