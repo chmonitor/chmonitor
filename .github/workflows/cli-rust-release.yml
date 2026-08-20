@@ -24,35 +24,31 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cli-rust-release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            bin: chm
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            bin: chm
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            bin: chm
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            bin: chm
-    runs-on: ${{ matrix.os }}
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      channel: ${{ steps.meta.outputs.channel }}
+      should_publish: ${{ steps.meta.outputs.should_publish }}
+      make_latest: ${{ steps.meta.outputs.make_latest }}
+      checkout_ref: ${{ steps.meta.outputs.checkout_ref }}
     steps:
       - uses: actions/checkout@v7
         with:
-          # On tag push this is the tag itself; on dispatch, check out the
-          # requested tag so the built binary matches the release version.
-          # On main push this is refs/heads/main (beta prerelease build).
           ref: ${{ inputs.tag || github.ref }}
       - name: Release meta
         id: meta
         run: |
           set -euo pipefail
+          checkout_ref="${{ inputs.tag || github.ref }}"
+          echo "checkout_ref=${checkout_ref}" >> "$GITHUB_OUTPUT"
+
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
             version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' rust/ch-monitor-cli/Cargo.toml | head -n1)"
             if [ -z "$version" ]; then
@@ -69,12 +65,45 @@ jobs:
             echo "tag=chm-v${version}-beta.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
             echo "channel=beta" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
           else
             tag="${{ inputs.tag || github.ref_name }}"
+            if [ -z "$tag" ]; then
+              echo "stable release requires inputs.tag or a chm-v* tag push" >&2
+              exit 1
+            fi
             echo "tag=${tag}" >> "$GITHUB_OUTPUT"
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
             echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+            # Publish on tag push, workflow_dispatch with tag, or (above) main beta.
+            if [ "${{ github.ref_type }}" = "tag" ] || [ -n "${{ inputs.tag }}" ]; then
+              echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            fi
           fi
+
+  build:
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.meta.outputs.checkout_ref }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -83,6 +112,7 @@ jobs:
           # ch-monitor-cli is a member of the rust/ Cargo workspace, so it
           # builds into the shared rust/target dir.
           workspaces: rust -> target
+          key: ${{ matrix.target }}
       - name: Install Linux ARM64 linker
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
@@ -95,19 +125,113 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
       - name: Package
         run: |
+          set -euo pipefail
           mkdir -p dist
           # The crate's [[bin]] is named `chm` (so `cargo install` matches the docs).
-          cp rust/target/${{ matrix.target }}/release/chm dist/${{ matrix.bin }}-${{ matrix.target }}
+          cp "rust/target/${{ matrix.target }}/release/chm" "dist/chm-${{ matrix.target }}"
           cd dist
-          shasum -a 256 ${{ matrix.bin }}-${{ matrix.target }} > ${{ matrix.bin }}-${{ matrix.target }}.sha256
-      - uses: softprops/action-gh-release@v3
-        if: >-
-          github.ref_type == 'tag' ||
-          inputs.tag != '' ||
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          shasum -a 256 "chm-${{ matrix.target }}" > "chm-${{ matrix.target }}.sha256"
+          ls -la
+      - uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: ${{ steps.meta.outputs.tag }}
-          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          name: chm-${{ matrix.target }}
+          path: |
+            dist/chm-${{ matrix.target }}
+            dist/chm-${{ matrix.target }}.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [meta, build]
+    if: needs.meta.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: chm-*
+          merge-multiple: true
+      - name: Assert expected assets before upload
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          expected=(
+            chm-x86_64-unknown-linux-gnu
+            chm-x86_64-unknown-linux-gnu.sha256
+            chm-aarch64-unknown-linux-gnu
+            chm-aarch64-unknown-linux-gnu.sha256
+            chm-x86_64-apple-darwin
+            chm-x86_64-apple-darwin.sha256
+            chm-aarch64-apple-darwin
+            chm-aarch64-apple-darwin.sha256
+          )
+          echo "Artifacts present:"
+          ls -la
+          missing=0
+          for f in "${expected[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f" >&2
+              missing=1
+            else
+              echo "ok: $f ($(wc -c < "$f") bytes)"
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "expected 8 release assets (4 binaries + 4 sha256); aborting publish" >&2
+            exit 1
+          fi
+          count="$(find . -maxdepth 1 -type f | wc -l | tr -d ' ')"
+          if [ "$count" -ne 8 ]; then
+            echo "expected exactly 8 files in dist/, found $count" >&2
+            exit 1
+          fi
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.meta.outputs.tag }}
+          name: ${{ needs.meta.outputs.tag }}
+          prerelease: ${{ needs.meta.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.meta.outputs.make_latest }}
           files: dist/*
           generate_release_notes: true
+          fail_on_unmatched_files: true
+      - name: Verify release assets after upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          expected=(
+            chm-x86_64-unknown-linux-gnu
+            chm-x86_64-unknown-linux-gnu.sha256
+            chm-aarch64-unknown-linux-gnu
+            chm-aarch64-unknown-linux-gnu.sha256
+            chm-x86_64-apple-darwin
+            chm-x86_64-apple-darwin.sha256
+            chm-aarch64-apple-darwin
+            chm-aarch64-apple-darwin.sha256
+          )
+          # softprops may need a moment for the Assets API to settle.
+          assets=""
+          for attempt in 1 2 3 4 5; do
+            assets="$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '[.assets[].name] | join("\n")')"
+            missing=0
+            for f in "${expected[@]}"; do
+              if ! printf '%s\n' "$assets" | grep -Fxq "$f"; then
+                missing=1
+                break
+              fi
+            done
+            if [ "$missing" -eq 0 ]; then
+              echo "All 8 assets present on release ${TAG}:"
+              printf '%s\n' "$assets"
+              exit 0
+            fi
+            echo "attempt ${attempt}: assets incomplete, retrying in 5s…" >&2
+            sleep 5
+          done
+          echo "Release ${TAG} is missing expected assets after upload." >&2
+          echo "Found:" >&2
+          printf '%s\n' "$assets" >&2
+          exit 1

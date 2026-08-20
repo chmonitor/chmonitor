@@ -246,27 +246,52 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- upgrade --check
 ## CI & Release
 
 - **CI**: `cli-rust-ci.yml` — fmt, clippy, build, test
-- **Release**: Tag format `chm-v*` (e.g. `chm-v0.1.0`)
-- **Release workflow**: `cli-rust-release.yml` builds 4 targets
-  (`x86_64`/`aarch64` × `unknown-linux-gnu`/`apple-darwin`, no Windows) and
-  uploads each binary plus a `.sha256` checksum file to the GitHub Release as
-  `chm-<target>` / `chm-<target>.sha256`. Only runs the upload step on an
-  actual tag push (`github.ref_type == 'tag'`); `workflow_dispatch` builds but
-  doesn't publish.
+- **Platforms**: Linux + macOS × `x86_64` + `aarch64` only (no Windows yet).
+  Asset names: `chm-<target>` and `chm-<target>.sha256` for each of
+  `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`,
+  `x86_64-apple-darwin`, `aarch64-apple-darwin` (8 files per release).
+- **Release workflow** (`cli-rust-release.yml`): split into `meta` → `build`
+  (matrix, upload-artifact per target) → `publish` (download all artifacts,
+  softprops **once**, assert all 8 assets before and after upload).
+  Concurrency group `cli-rust-release-${{ inputs.tag || github.ref }}`
+  (`cancel-in-progress: false`).
+
+### Beta (prerelease from `main`)
+
+Every push to `main` that touches CLI paths
+(`rust/ch-monitor-cli/**`, `rust/Cargo.lock`, `rust/Cargo.toml`,
+`.github/workflows/cli-rust-release.yml`, `scripts/install.sh`) publishes a
+**prerelease** tag `chm-vX.Y.Z-beta.N` where `X.Y.Z` is
+`rust/ch-monitor-cli/Cargo.toml`’s version and `N` is `github.run_number`.
+`make_latest=false`. Versions outside `0.1.x` are refused.
+
+### Stable (release-please + dispatch)
+
+1. release-please opens `chore(main): release cli chm-vX.Y.Z` when CLI commits
+   warrant a stable bump.
+2. Merging that PR tags `chm-vX.Y.Z` and dispatches `cli-rust-release.yml`
+   with `tag=` (GITHUB_TOKEN-created tags do not fire `on: push: tags`).
+3. Direct `workflow_dispatch` with a tag, or a human-pushed stable
+   `chm-vX.Y.Z` tag, also publish. `prerelease=false`, `make_latest=true`.
 
 ## One-line install (`scripts/install.sh`)
 
 ```bash
+# Stable (default)
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+
+# Beta channel
+CHM_CHANNEL=beta curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 ```
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else
   (no silent wrong-arch installs).
-- Resolves the latest **published** `chm-v*` release via the GitHub releases
-  API, ranking by semver (not first-match / created_at) and skipping
-  drafts/prereleases. Dashboard/Helm tags share this API. Pin a specific
-  release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
+- Resolves the latest **published** `chm-v*` release via the GitHub Releases
+  API for `CHM_CHANNEL` (`stable` | `beta`). Stable skips drafts/prereleases;
+  beta prefers prereleases (falls back to stable if none). Ranking is by
+  semver, not first-match / created_at. Pin with
+  `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
 - Downloads the binary + its `.sha256` asset and verifies the checksum before
   installing; a missing or mismatched checksum is fatal (never installs an
   unverified binary). Fails loud (`set -euo pipefail`) on any
@@ -275,6 +300,9 @@ curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/ins
   `CHM_INSTALL_DIR`); never invokes `sudo` — if the target dir isn't
   writable it errors with `CHM_INSTALL_DIR` / `cargo install` fallback
   instead of escalating itself.
+- Also installs a `chmonitor` symlink/alias pointing at `chm`.
+- Self-update: `chm update` / `chm upgrade` (`--channel stable|beta`, or
+  `CHM_CHANNEL` / config `channel`) pull from the same GitHub Releases.
 - `rust/ch-monitor-cli/Cargo.toml` carries `authors`/`repository`/`readme`/
   `keywords`/`categories`. `cargo-publish.yml` publishes the crate so
   `cargo install ch-monitor-cli` works as a self-update fallback. Homebrew

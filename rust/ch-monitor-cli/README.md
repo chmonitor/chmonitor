@@ -16,11 +16,16 @@ Two ways to use it:
 ## Install
 
 ```bash
+# Stable (default)
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+
+# Beta channel
+CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
 ```
 
 Downloads and verifies the right prebuilt binary for your OS/arch from
-[GitHub Releases](https://github.com/chmonitor/chmonitor/releases) (tag format `chm-v*`).
+[GitHub Releases](https://github.com/chmonitor/chmonitor/releases) (tag format
+`chm-v*`). Stable skips prereleases; `CHM_CHANNEL=beta` prefers them.
 
 Or from crates.io / source:
 
@@ -48,9 +53,10 @@ print a copy-pasteable fallback (`scripts/install.sh` or
 `cargo install ch-monitor-cli --force`).
 
 ```bash
-chm upgrade                      # alias of update — install the latest chm-v* release
+chm upgrade                      # alias of update — latest stable chm-v* release
 chm update                       # same behaviour
 chm update --check               # only report if a newer release exists (exit 1 if so)
+chm update --channel beta        # prefer prereleases (or CHM_CHANNEL=beta)
 chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` also work)
 ```
 
