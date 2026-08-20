@@ -16,12 +16,12 @@ export const CLI_CARGO = 'cargo install chmonitor'
 export const CLI_DOCS =
   'https://docs.chmonitor.dev/guide/guides/diagnostics-cli'
 
-export const CLI_DIAGNOSE = 'chm diagnose --ch-host http://localhost:8123'
+export const CLI_DOCTOR = 'chm doctor --ch-host http://localhost:8123'
 
 export const commands = [
   {
-    name: 'chm diagnose',
-    body: 'Zero-signup health scan. Talks straight to ClickHouse HTTP, read-only, scored report.',
+    name: 'chm doctor',
+    body: 'Zero-signup health scan with --ch-host. Talks straight to ClickHouse HTTP, read-only, scored report. diagnose is an alias.',
     icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   },
   {
@@ -64,7 +64,7 @@ export const commands = [
 export const faqs = [
   {
     q: 'Do I need a chmonitor account?',
-    a: 'Not for <code>chm diagnose</code>. That command connects straight to a ClickHouse HTTP interface and prints a scored, read-only report. The other commands (<code>hosts</code>, <code>chart</code>, <code>table</code>, <code>tui</code>, <code>agent</code>) talk to a running dashboard API — Cloud at dash.chmonitor.dev by default, or your self-hosted instance via <code>--base-url</code>.',
+    a: 'Not for <code>chm doctor --ch-host</code> (alias <code>chm diagnose</code>). That command connects straight to a ClickHouse HTTP interface and prints a scored, read-only report. The other commands (<code>hosts</code>, <code>chart</code>, <code>table</code>, <code>tui</code>, <code>agent</code>) talk to a running dashboard API — Cloud at dash.chmonitor.dev by default, or your self-hosted instance via <code>--base-url</code>. Without a host, <code>chm doctor</code> checks CLI + dashboard connectivity.',
   },
   {
     q: 'Which platforms have prebuilt binaries?',

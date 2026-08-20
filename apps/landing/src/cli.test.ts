@@ -17,9 +17,11 @@ describe('/cli landing page', () => {
   test('page and copy exist', () => {
     expect(existsSync(join(landing, 'src/pages/cli.astro'))).toBe(true)
     expect(page).toContain("image=\"/og/og-cli.png\"")
-    expect(page).toContain('chm diagnose')
+    expect(page).toContain('chm doctor')
     expect(data).toContain('curl -sSf https://chmonitor.dev/install.sh | bash')
     expect(data).toContain('cargo install chmonitor')
+    expect(data).toContain('chm doctor --ch-host')
+    expect(data).toContain('chm diagnose')
   })
 
   test('install uses the landing installer, not a raw GitHub URL', () => {

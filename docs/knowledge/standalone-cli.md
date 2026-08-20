@@ -25,9 +25,9 @@ related:
 By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
 Self-hosted dashboards work the same way — point `--base-url` /
-`CHM_BASE_URL` at your instance. A separate `diagnose` subcommand connects
-**directly to a [REDACTED] host** with no chmonitor backend or account
-(see [Zero-signup diagnostics](#zero-signup-diagnostics-diagnose) below).
+`CHM_BASE_URL` at your instance. `chm doctor --ch-host` (alias `diagnose`)
+connects **directly to a ClickHouse host** with no chmonitor backend or account
+(see [Zero-signup cluster health](#zero-signup-cluster-health-doctor) below).
 
 ## Config Loading
 
@@ -66,8 +66,8 @@ chm
 ├── tui [chart]    # multi-pane TUI: 1=overview 2=chart 3=table (alt-screen)
 ├── chat [msg]     # stream AI agent reply (alt-screen when interactive)
 ├── agent [msg]    # alias of chat
-├── doctor         # local + API connectivity checks
-├── diagnose       # direct host health (no dashboard)
+├── doctor         # cluster scan with --ch-host; else CLI + API connectivity
+├── diagnose       # alias of doctor cluster scan (same flags)
 ├── update|upgrade # self-update from GitHub Releases
 └── completions    # shell completions
 ```
@@ -173,25 +173,28 @@ curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
 
 Response shape: `{ data: { apiKey, sub, scopes, expiresInDays } }`.
 
-## Zero-signup diagnostics (`diagnose`)
+## Zero-signup cluster health (`doctor`)
 
-`chm diagnose` is a **separate connection mode** from the rest of the CLI: it
-talks straight to the [REDACTED] HTTP interface (`reqwest` + basic auth), not
+`chm doctor --ch-host` is a **separate connection mode** from the rest of the CLI: it
+talks straight to the ClickHouse HTTP interface (`reqwest` + basic auth), not
 through the dashboard's `/api/v1/*` (no `base_url`/`api_key`/`host_id`, no
-account, no chmonitor backend required at all). Implementation:
-`rust/ch-monitor-cli/src/diagnose.rs`.
+account, no chmonitor backend required at all). `chm diagnose` is a first-class
+alias of this path (same flags). Without a host, `chm doctor` keeps the local
+CLI + dashboard connectivity check. Implementation:
+`rust/ch-monitor-cli/src/diagnose.rs` (scan) and `src/commands/doctor.rs`
+(connectivity).
 
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
-  cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose
+  cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 
-cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose \
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor \
   --ch-host http://localhost:8123 --ch-user default --ch-password secret --json
 ```
 
 - Reuses the `CLICKHOUSE_HOST`/`CLICKHOUSE_USER`/`CLICKHOUSE_PASSWORD`/
   `CLICKHOUSE_DATABASE` env var names the dashboard uses (or `--ch-*` flags).
-  A comma-separated multi-host `CLICKHOUSE_HOST` diagnoses only the first host
+  A comma-separated multi-host `CLICKHOUSE_HOST` scans only the first host
   (prints a note) — multi-host clusters belong in the full dashboard.
 - Every query forces `readonly=2` at the [REDACTED] settings level — this can
   never mutate the target cluster no matter what a future check adds.
@@ -278,10 +281,10 @@ Every push to `main` that touches CLI paths
 
 ```bash
 # Stable (default)
-curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+curl -sSf https://chmonitor.dev/install.sh | bash
 
 # Beta channel
-CHM_CHANNEL=beta curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
 ```
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the

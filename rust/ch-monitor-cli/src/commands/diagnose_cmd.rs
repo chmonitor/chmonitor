@@ -1,4 +1,4 @@
-//! `chm diagnose` wrapper.
+//! Cluster health scan used by `chm doctor --ch-host` and `chm diagnose`.
 
 use anyhow::{bail, Result};
 use reqwest::Client;
@@ -15,8 +15,8 @@ pub async fn run(
 ) -> Result<i32> {
     let Some(raw_host) = ch_host else {
         bail!(
-            "no host given — pass --ch-host or set the matching dashboard host env \
-             (e.g. http://localhost:8123 chm diagnose)"
+            "no host given — pass --ch-host or set CLICKHOUSE_HOST \
+             (e.g. chm doctor --ch-host http://localhost:8123)" // pragma: allowlist secret
         );
     };
     // Multi-host clusters use a comma-separated host list (same env var
@@ -61,5 +61,32 @@ pub async fn run(
         Ok(1)
     } else {
         Ok(0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn missing_host_errors_with_doctor_hint() {
+        let client = Client::builder()
+            .timeout(Duration::from_millis(50))
+            .build()
+            .unwrap();
+        let err = run(
+            &client,
+            None,
+            "default".into(),
+            String::new(),
+            "default".into(),
+            false,
+        )
+        .await
+        .expect_err("scan requires a host");
+        let msg = format!("{err:#}");
+        assert!(msg.contains("--ch-host"), "{msg}");
+        assert!(msg.contains("chm doctor"), "{msg}");
     }
 }

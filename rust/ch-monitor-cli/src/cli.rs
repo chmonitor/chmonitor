@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 #[command(
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
-    about = "chmonitor CLI (`chm` / `chmonitor`) — dashboard API, TUI, and zero-signup diagnostics"
+    about = "chmonitor CLI (`chm` / `chmonitor`) — dashboard API, TUI, and zero-signup cluster health (`chm doctor`)"
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)
@@ -139,32 +139,13 @@ pub enum Commands {
     Prompt(PromptArgs),
     /// Export or inspect audit events
     Audit(AuditArgs),
-    /// Check local CLI + dashboard connectivity
-    Doctor,
-    /// Zero-signup local diagnostics: connect directly to a [REDACTED] host // pragma: allowlist secret
-    /// (no chmonitor account/backend needed) and print a scored health report.
-    Diagnose {
-        /// [REDACTED] HTTP interface URL, e.g. http://localhost:8123 // pragma: allowlist secret
-        #[arg(long, env = "CLICKHOUSE_HOST")] // pragma: allowlist secret
-        ch_host: Option<String>,
-        #[arg(
-            long,
-            env = "CLICKHOUSE_USER", // pragma: allowlist secret
-            default_value = "default" // pragma: allowlist secret
-        )]
-        ch_user: String,
-        #[arg(long, env = "CLICKHOUSE_PASSWORD", default_value = "")] // pragma: allowlist secret
-        ch_password: String,
-        #[arg(
-            long,
-            env = "CLICKHOUSE_DATABASE", // pragma: allowlist secret
-            default_value = "default" // pragma: allowlist secret
-        )]
-        ch_database: String,
-        /// Print the report as JSON instead of a table.
-        #[arg(long)]
-        json: bool,
-    },
+    /// Cluster health scan (with --ch-host) or CLI + dashboard connectivity.
+    ///
+    /// With `--ch-host`, runs a zero-signup read-only cluster health report.
+    /// Without a host, checks local CLI + dashboard connectivity.
+    Doctor(DoctorArgs),
+    /// Alias of `doctor` cluster scan. Same flags; always the health report.
+    Diagnose(DoctorArgs),
     /// Update chm to the latest GitHub release (self-update).
     ///
     /// Prints current -> target version, verifies sha256, and atomically
@@ -180,6 +161,39 @@ pub enum Commands {
         #[arg(value_enum)]
         shell: clap_complete::Shell,
     },
+}
+
+/// Flags for `chm doctor` / `chm diagnose`.
+#[derive(Args, Debug, Clone)]
+pub struct DoctorArgs {
+    /// ClickHouse HTTP interface URL, e.g. http://localhost:8123.
+    /// When set, `chm doctor` runs the cluster health scan instead of connectivity.
+    #[arg(long, env = "CLICKHOUSE_HOST")] // pragma: allowlist secret
+    pub ch_host: Option<String>,
+    #[arg(
+        long,
+        env = "CLICKHOUSE_USER", // pragma: allowlist secret
+        default_value = "default" // pragma: allowlist secret
+    )]
+    pub ch_user: String,
+    #[arg(long, env = "CLICKHOUSE_PASSWORD", default_value = "")] // pragma: allowlist secret
+    pub ch_password: String,
+    #[arg(
+        long,
+        env = "CLICKHOUSE_DATABASE", // pragma: allowlist secret
+        default_value = "default" // pragma: allowlist secret
+    )]
+    pub ch_database: String,
+    /// Print the cluster-scan report as JSON instead of a table.
+    #[arg(long)]
+    pub json: bool,
+}
+
+impl DoctorArgs {
+    /// True when `--ch-host` (or the matching env) points at a cluster.
+    pub fn has_cluster_host(&self) -> bool {
+        self.ch_host.as_ref().is_some_and(|h| !h.trim().is_empty())
+    }
 }
 
 /// Shared flags for `chm update` and `chm upgrade`.

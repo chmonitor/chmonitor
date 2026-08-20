@@ -14,19 +14,21 @@ Windows). Other targets: `cargo install chmonitor`.
 
 Two ways to use it:
 
-- `chm hosts` / `chm chart` / `chm table` / `chm tui` — talk to a running chmonitor dashboard's API.
-- `chm diagnose` — **zero-signup** health scan that connects straight to a cluster
-  HTTP interface (no chmonitor account or backend needed) and prints a
-  scored, read-only report.
+- `chm doctor --ch-host …` — **zero-signup** health scan that connects straight
+  to a cluster HTTP interface (no chmonitor account or backend needed) and
+  prints a scored, read-only report. `chm diagnose` is an alias of this path.
+- `chm doctor` (no host) — local CLI + dashboard API connectivity check.
+- `chm hosts` / `chm chart` / `chm table` / `chm tui` — talk to a running
+  chmonitor dashboard's API.
 
 ## Install
 
 ```bash
 # Stable (default)
-curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+curl -sSf https://chmonitor.dev/install.sh | bash
 
 # Beta channel
-CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
+CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
 ```
 
 Downloads and verifies the right prebuilt binary for your OS/arch from
@@ -52,8 +54,19 @@ browser device flow when it says `device`.
 ## Usage
 
 ```bash
-CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose # pragma: allowlist secret
-# same as: chmonitor diagnose
+# Zero-signup cluster scan (marketed path)
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm doctor # pragma: allowlist secret
+chm doctor --ch-host http://localhost:8123
+# same scan: chm diagnose --ch-host http://localhost:8123
+# same binary: chmonitor doctor --ch-host http://localhost:8123
+
+# Connectivity / self-check (no ClickHouse host)
+chm doctor
+
+# Dashboard API + TUI
+chm auth login
+chm hosts
+chm tui query-count
 ```
 
 ## Update
@@ -73,9 +86,9 @@ chm update --channel beta        # prefer prereleases (or CHM_CHANNEL=beta)
 chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` also work)
 ```
 
-After a `chm diagnose` run, a one-line "update available" hint is printed to
-stderr when a newer release exists (best-effort, sub-second timeout). Silence it
-with `CHM_NO_UPDATE_CHECK=1`. Installed via `cargo install`? Upgrade with
+After a `chm doctor` cluster scan, a one-line "update available" hint is printed
+to stderr when a newer release exists (best-effort, sub-second timeout). Silence
+it with `CHM_NO_UPDATE_CHECK=1`. Installed via `cargo install`? Upgrade with
 `cargo install chmonitor --force` instead.
 
 See [docs.chmonitor.dev/guide/guides/diagnostics-cli](https://docs.chmonitor.dev/guide/guides/diagnostics-cli)

@@ -31,7 +31,9 @@ async fn main() -> Result<()> {
     // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
     // never blocks or fails the command; see src/telemetry.rs.
     let (tel_event, tel_command): (&'static str, &'static str) = match &cli.command {
-        Commands::Diagnose { .. } => ("cli_diagnose", "diagnose"),
+        Commands::Diagnose(_) => ("cli_diagnose", "diagnose"),
+        Commands::Doctor(args) if args.has_cluster_host() => ("cli_diagnose", "doctor"),
+        Commands::Doctor(_) => ("cli_run", "doctor"),
         Commands::Hosts => ("cli_run", "hosts"),
         Commands::Chart { .. } => ("cli_run", "chart"),
         Commands::Table { .. } => ("cli_run", "table"),
@@ -44,7 +46,6 @@ async fn main() -> Result<()> {
         Commands::Agent { .. } => ("cli_run", "agent"),
         Commands::Prompt(_) => ("cli_run", "prompt"),
         Commands::Audit(_) => ("cli_run", "audit"),
-        Commands::Doctor => ("cli_run", "doctor"),
         Commands::Completions { .. } => ("cli_run", "completions"),
     };
     let tel_handle = telemetry::spawn(tel_event, tel_command);
@@ -63,7 +64,14 @@ mod tests {
     use super::*;
     use clap::CommandFactory;
 
-    use crate::cli::UpdateArgs;
+    use crate::cli::{DoctorArgs, UpdateArgs};
+
+    fn doctor_args(cli: Cli) -> DoctorArgs {
+        match cli.command {
+            Commands::Doctor(args) | Commands::Diagnose(args) => args,
+            other => panic!("expected doctor/diagnose, got {other:?}"),
+        }
+    }
 
     fn update_args(cli: Cli) -> UpdateArgs {
         match cli.command {
@@ -152,7 +160,137 @@ mod tests {
         assert!(help.contains("named chart"), "{help}");
         assert!(help.contains("named table"), "{help}");
         assert!(help.contains("zero-signup"), "{help}");
+        assert!(help.contains("doctor"), "{help}");
+        assert!(help.contains("diagnose"), "{help}");
         assert!(help.contains("--base-url"), "{help}");
+    }
+
+    #[test]
+    fn doctor_without_host_is_connectivity() {
+        let cli = Cli::try_parse_from(["chm", "doctor"]).expect("parse");
+        assert!(
+            matches!(cli.command, Commands::Doctor(_)),
+            "expected Doctor, got {:?}",
+            cli.command
+        );
+    }
+
+    #[test]
+    fn diagnose_without_host_still_parses_as_alias() {
+        let cli = Cli::try_parse_from(["chm", "diagnose"]).expect("parse");
+        assert!(
+            matches!(cli.command, Commands::Diagnose(_)),
+            "expected Diagnose, got {:?}",
+            cli.command
+        );
+    }
+
+    #[test]
+    fn doctor_with_host_is_cluster_scan() {
+        let args = doctor_args(
+            Cli::try_parse_from([
+                "chm",
+                "doctor",
+                "--ch-host",
+                "http://localhost:8123",
+                "--ch-user",
+                "default",
+            ])
+            .expect("parse"),
+        );
+        assert!(matches!(
+            Cli::try_parse_from(["chm", "doctor", "--ch-host", "http://localhost:8123"])
+                .expect("parse")
+                .command,
+            Commands::Doctor(_)
+        ));
+        assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
+        assert!(args.has_cluster_host());
+        assert_eq!(args.ch_user, "default");
+    }
+
+    #[test]
+    fn diagnose_is_alias_of_doctor_cluster_scan() {
+        let args = doctor_args(
+            Cli::try_parse_from(["chm", "diagnose", "--ch-host", "http://127.0.0.1:8123"])
+                .expect("parse"),
+        );
+        assert!(matches!(
+            Cli::try_parse_from(["chm", "diagnose", "--ch-host", "http://127.0.0.1:8123"])
+                .expect("parse")
+                .command,
+            Commands::Diagnose(_)
+        ));
+        assert_eq!(args.ch_host.as_deref(), Some("http://127.0.0.1:8123"));
+        assert!(args.has_cluster_host());
+        assert!(!args.json);
+    }
+
+    #[test]
+    fn cluster_host_ignores_blank_values() {
+        let blank = DoctorArgs {
+            ch_host: Some("  ".into()),
+            ch_user: "default".into(),
+            ch_password: String::new(),
+            ch_database: "default".into(),
+            json: false,
+        };
+        assert!(!blank.has_cluster_host());
+        let missing = DoctorArgs {
+            ch_host: None,
+            ..blank.clone()
+        };
+        assert!(!missing.has_cluster_host());
+        let present = DoctorArgs {
+            ch_host: Some("http://localhost:8123".into()),
+            ..blank
+        };
+        assert!(present.has_cluster_host());
+    }
+
+    #[test]
+    fn diagnose_and_doctor_share_scan_flags() {
+        for argv in [
+            [
+                "chm",
+                "doctor",
+                "--ch-host",
+                "http://localhost:8123",
+                "--json",
+            ],
+            [
+                "chm",
+                "diagnose",
+                "--ch-host",
+                "http://localhost:8123",
+                "--json",
+            ],
+        ] {
+            let args = doctor_args(Cli::try_parse_from(argv).expect("parse"));
+            assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
+            assert!(args.json);
+        }
+    }
+
+    #[test]
+    fn doctor_and_diagnose_help_share_ch_host() {
+        let mut cmd = Cli::command();
+        let doctor_help = cmd
+            .find_subcommand_mut("doctor")
+            .expect("doctor subcommand")
+            .render_long_help()
+            .to_string();
+        let mut cmd = Cli::command();
+        let diagnose_help = cmd
+            .find_subcommand_mut("diagnose")
+            .expect("diagnose subcommand")
+            .render_long_help()
+            .to_string();
+        for help in [&doctor_help, &diagnose_help] {
+            assert!(help.contains("--ch-host"), "{help}");
+            assert!(help.contains("--ch-user"), "{help}");
+            assert!(help.contains("--json"), "{help}");
+        }
     }
 
     #[test]

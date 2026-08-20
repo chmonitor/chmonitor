@@ -8,7 +8,7 @@
 //! {
 //!   "install_id":  "<64-hex opaque random id>",  // persisted, not tied to identity
 //!   "event":       "cli_run" | "cli_diagnose",
-//!   "command":     "diagnose" | "hosts" | "chart" | ...,
+//!   "command":     "doctor" | "diagnose" | "hosts" | "chart" | ...,
 //!   "cli_version": "0.1.0",
 //!   "os":          "linux" | "macos" | "windows" | "unknown",
 //!   "arch":        "x86_64" | "aarch64" | "unknown",

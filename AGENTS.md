@@ -267,7 +267,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Specs | [cluster-topology.md](docs/knowledge/cluster-topology.md) | Cluster topology SVG: layout pipeline, constant contracts, OKLCH `hsl(var())` gotcha, shared component, verification harness |
 | Development | [component-ci-stability.md](docs/knowledge/component-ci-stability.md) | Cypress component test fragility and fixes |
 | Development | [conventions.md](docs/knowledge/conventions.md) | Coding conventions, file org, component patterns |
-| Tools | [standalone-cli.md](docs/knowledge/standalone-cli.md) | `chm`/`chmonitor` Rust CLI: dashboard API + TUI, diagnose, channels, auth/cli discovery |
+| Tools | [standalone-cli.md](docs/knowledge/standalone-cli.md) | `chm`/`chmonitor` Rust CLI: dashboard API + TUI, `chm doctor`, channels, auth/cli discovery |
 
 ### When to Write to Knowledge vs Memory
 
