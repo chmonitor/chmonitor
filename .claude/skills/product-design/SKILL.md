@@ -113,11 +113,11 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   right. A matching selection is **All matched** / **This table
   matches** (`MatchOk`), never EmptyState "no data" or "Select a
   table". Keep "No tables match" only for a name-filter miss.
-  Settings Diff (`/settings-diff`) uses the same toolbar; diffs-only
-  with zero deltas is **All matched** plus a green check and **Show
-  matching settings**. "Changed from default" is a pressable chip, not
-  a second switch. "No settings match" is only a name/changed-from-default
-  filter miss.
+  Settings Diff (`/settings-diff`) uses the same toolbar. Diffs-only
+  with zero deltas still lists matching settings, each with a green
+  `CheckCircle2` in a Match column (`--chart-green`). "Changed from
+  default" is a pressable chip, not a second switch. "No settings
+  match" is only a name/changed-from-default filter miss.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).
@@ -218,7 +218,7 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   as HostSwitcher) plus a faded `TableList` + `DdlPair` example. Settings Diff
   with one host keeps the live vs-default table and a banner (`AddHostButton`,
   `data-testid="add-host"`). Pair ids include user connections. Diffs-only
-  with zero deltas is **All matched** (green check) + Show matching settings.
+  with zero deltas still lists matching settings with a green Match check.
 - **Base UI primitives** (`components/ui/*` = shadcn Base UI, not Radix): style
   overlays off `data-open`/`data-closed`/`data-orientation` (needs the
   `@custom-variant data-horizontal|vertical` in `styles.css`) and Base UI CSS

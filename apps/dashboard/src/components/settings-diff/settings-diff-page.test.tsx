@@ -142,10 +142,51 @@ describe('Settings Diff one-host vs default', () => {
   })
 })
 
-describe('Settings Diff all-matched empty', () => {
-  test('shows a green All matched state when diffs-only has nothing to list', async () => {
+describe('Settings Diff matching rows', () => {
+  test('lists matching settings with a green check instead of an empty All matched card', async () => {
     const { SettingsDiffTable } = await import('./settings-diff-table')
-    let showedMatching = false
+    const rows = mergeSettingsDiff([
+      {
+        peerId: 0,
+        table: 'settings',
+        rows: [
+          {
+            name: 'max_threads',
+            value: '8',
+            changed: 0,
+            description: '',
+            defaultValue: '8',
+          },
+          {
+            name: 'max_memory_usage',
+            value: '0',
+            changed: 1,
+            description: '',
+            defaultValue: '0',
+          },
+        ],
+      },
+      {
+        peerId: 1,
+        table: 'settings',
+        rows: [
+          {
+            name: 'max_threads',
+            value: '8',
+            changed: 0,
+            description: '',
+            defaultValue: '8',
+          },
+          {
+            name: 'max_memory_usage',
+            value: '10G',
+            changed: 1,
+            description: '',
+            defaultValue: '0',
+          },
+        ],
+      },
+    ])
 
     const { cleanup } = await renderInto(
       <SettingsDiffTable
@@ -153,23 +194,81 @@ describe('Settings Diff all-matched empty', () => {
           { id: 0, name: 'clickhouse-0' },
           { id: 1, name: 'clickhouse-1' },
         ]}
-        rows={[]}
-        allMatched
-        onShowMatching={() => {
-          showedMatching = true
-        }}
+        rows={filterSettingsDiffRows(rows, {
+          showDiffsOnly: false,
+          showChangedOnly: false,
+          nameFilter: '',
+        })}
       />
     )
 
     try {
-      expect(document.body.textContent).toContain('All matched')
-      expect(document.body.textContent).not.toContain(
-        'No settings match the current filters'
-      )
-      const button = document.body.querySelector('button')
-      expect(button?.textContent).toContain('Show matching settings')
-      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-      expect(showedMatching).toBe(true)
+      expect(document.body.textContent).toContain('max_memory_usage')
+      expect(document.body.textContent).toContain('max_threads')
+      expect(
+        document.querySelectorAll('[data-testid="settings-diff-matched-icon"]')
+          .length
+      ).toBe(1)
+      expect(document.body.textContent).not.toContain('All matched')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('diffs-only with no deltas still lists every setting with a check', async () => {
+    const { SettingsDiffTable } = await import('./settings-diff-table')
+    const rows = mergeSettingsDiff([
+      {
+        peerId: 0,
+        table: 'settings',
+        rows: [
+          {
+            name: 'max_threads',
+            value: '8',
+            changed: 0,
+            description: '',
+            defaultValue: '8',
+          },
+        ],
+      },
+      {
+        peerId: 1,
+        table: 'settings',
+        rows: [
+          {
+            name: 'max_threads',
+            value: '8',
+            changed: 0,
+            description: '',
+            defaultValue: '8',
+          },
+        ],
+      },
+    ])
+
+    const { cleanup } = await renderInto(
+      <SettingsDiffTable
+        columns={[
+          { id: 0, name: 'clickhouse-0' },
+          { id: 1, name: 'clickhouse-1' },
+        ]}
+        rows={filterSettingsDiffRows(rows, {
+          showDiffsOnly: true,
+          showChangedOnly: false,
+          nameFilter: '',
+        })}
+      />
+    )
+
+    try {
+      expect(document.body.textContent).toContain('max_threads')
+      expect(
+        document.querySelectorAll('[data-testid="settings-diff-matched-icon"]')
+          .length
+      ).toBe(1)
+      expect(document.body.textContent).not.toContain('All matched')
+      expect(document.body.textContent).not.toContain('No settings match')
+      expect(document.body.textContent).not.toContain('Show matching settings')
     } finally {
       await cleanup()
     }
