@@ -202,5 +202,7 @@ per-user, and additive — self-hosted without D1 falls back to the browser
   (test), `routes/(dashboard)/mcp-servers.tsx` +
   `components/mcp/mcp-server-manager.tsx` (manager with template library:
   Firecrawl / Slack / GitHub / Datadog). The agent also auto-connects the
-  keyless Firecrawl MCP (`CHM_AGENT_FIRECRAWL_MCP`, default on). See
+  keyless Firecrawl MCP (`CHM_AGENT_FIRECRAWL_MCP`, default on;
+  `CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` optionally restricts scrape/crawl/map
+  hosts). See
   `docs/content/guide/ai-agent.mdx` §"Persistent MCP server registry".

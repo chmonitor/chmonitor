@@ -380,6 +380,7 @@ Provider-specific keys take priority over the generic `LLM_API_KEY` /
 | `AGENT_API_TOKEN` | — | Shared Bearer token for the agent API (`POST /api/v1/agent`). Accepted when `CHM_FEATURE_AGENT_ACCESS=authenticated`. |
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | Enable kill-query, optimize, and other write actions. Keep `false` unless users are trusted. |
 | `CHM_AGENT_FIRECRAWL_MCP` | `true` | Connect Firecrawl's hosted MCP (no API key) on every agent request. Set `false` to disable. |
+| `CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` | (empty) | Comma-separated hostnames Firecrawl may scrape/crawl/map. Empty / unset = unrestricted. Apex tokens also match subdomains; `*.example.com` is subdomain-only (not the apex). Search-only calls (no URL) stay allowed. |
 
 See [AI agent — configuration](/guide/ai-agent/configuration) for full details.
 
