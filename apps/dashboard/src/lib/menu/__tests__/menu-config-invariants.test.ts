@@ -22,6 +22,7 @@ import { describe, expect, test } from 'bun:test'
 import { readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { menuItemPaletteValue } from '@/components/controls/command-palette-utils'
 
 interface FlatItem {
   item: MenuItem
@@ -256,19 +257,28 @@ describe('command-palette aliases (⌘K)', () => {
     for (const [href, aliases] of Object.entries(required)) {
       const item = byHref[href]
       expect(item, href).toBeDefined()
-      const haystack = [
-        item.title,
-        item.href,
-        item.description,
-        ...(item.keywords ?? []),
-      ]
-        .join(' ')
-        .toLowerCase()
+      const haystack = menuItemPaletteValue(item).toLowerCase()
       for (const alias of aliases) {
         expect(haystack, `${href} should match ${alias}`).toContain(
           alias.toLowerCase()
         )
       }
+    }
+  })
+
+  test('Cmd+K matches the document <title> even when it differs from the sidebar label', () => {
+    const byHref = Object.fromEntries(leaves.map((item) => [item.href, item]))
+    const titles: Record<string, string> = {
+      '/ttl-partition-health': 'TTL & Partition Health',
+      '/schema-diff': 'Cross-Host Schema Compare',
+      '/settings-diff': 'Cross-Host Settings Diff',
+      '/explorer': 'Database Explorer',
+      '/overview': 'Cluster Overview',
+    }
+    for (const [href, title] of Object.entries(titles)) {
+      const item = byHref[href]
+      expect(item, href).toBeDefined()
+      expect(menuItemPaletteValue(item)).toContain(title)
     }
   })
 })

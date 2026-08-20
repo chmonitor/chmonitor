@@ -90,7 +90,7 @@ describe('parseTableName', () => {
 })
 
 describe('menuItemPaletteValue', () => {
-  test('includes title, href, description, group, and keywords', () => {
+  test('includes title, href, description, group, keywords, and page <title>', () => {
     const value = menuItemPaletteValue(
       {
         title: 'Schema Compare',
@@ -102,6 +102,7 @@ describe('menuItemPaletteValue', () => {
     )
     expect(value).toContain('Tools')
     expect(value).toContain('Schema Compare')
+    expect(value).toContain('Cross-Host Schema Compare')
     expect(value).toContain('/schema-diff')
     expect(value).toContain('Compare table schemas')
     expect(value).toContain('ddl')
@@ -109,8 +110,21 @@ describe('menuItemPaletteValue', () => {
   })
 
   test('omits empty optional fields', () => {
-    expect(menuItemPaletteValue({ title: 'Overview', href: '/overview' })).toBe(
-      'Overview /overview'
-    )
+    const value = menuItemPaletteValue({
+      title: 'Overview',
+      href: '/overview',
+    })
+    expect(value).toContain('Overview')
+    expect(value).toContain('Cluster Overview')
+    expect(value).toContain('/overview')
+  })
+
+  test('TTL menu label also matches the document title', () => {
+    const value = menuItemPaletteValue({
+      title: 'TTL & Partitions',
+      href: '/ttl-partition-health',
+    })
+    expect(value).toContain('TTL & Partitions')
+    expect(value).toContain('TTL & Partition Health')
   })
 })

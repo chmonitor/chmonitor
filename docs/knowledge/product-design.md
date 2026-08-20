@@ -752,10 +752,12 @@ System or Tools. AI Agent stays its own flagship group. Postgres-only
 items stay engine-gated and are not moved here.
 
 ⌘K (`components/controls/command-palette.tsx`) indexes every visible
-menu leaf by title, href, description, and optional `keywords` on
+menu leaf by sidebar title, document `<title>` (`lib/page-title.ts` +
+OG `headTitle`/`title`), href, description, and optional `keywords` on
 `MenuItem` (`menuItemPaletteValue`). DBA pages (Advisor, Schema Compare,
 Settings Diff, TTL & Partitions) declare aliases so searches like
-`ddl`, `schema diff`, `config diff`, or `ttl inventory` hit them.
+`ddl`, `schema diff`, `config diff`, `ttl inventory`, or the tab title
+`TTL & Partition Health` hit them.
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

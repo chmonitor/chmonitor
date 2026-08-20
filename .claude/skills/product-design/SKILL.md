@@ -393,6 +393,9 @@ module snapshot in `lib/format-settings.ts`; palette/density →
 1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
 2. Add a `QueryConfig` in `src/lib/query-config/` if it needs data.
 3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
+   Add the tab title in `lib/page-title.ts` (`ROUTE_TITLE_MAP`) when it
+   differs from title-casing the last URL segment — ⌘K searches that
+   `<title>` as well as the sidebar label.
    Interactive utilities (SQL, explorer, explain, compare, builder, advisor)
    go in `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
    Tables. TTL & Partitions (`/ttl-partition-health`) is a system-table
