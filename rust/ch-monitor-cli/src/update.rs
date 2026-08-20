@@ -275,11 +275,7 @@ pub fn is_brew_managed() -> bool {
 }
 
 /// Channel-aware self-update.
-pub async fn run_channel(
-    client: &Client,
-    pinned: Option<String>,
-    channel: Channel,
-) -> Result<()> {
+pub async fn run_channel(client: &Client, pinned: Option<String>, channel: Channel) -> Result<()> {
     if is_brew_managed() {
         return Err(anyhow!(
             "this chm binary appears to be managed by Homebrew.\n\

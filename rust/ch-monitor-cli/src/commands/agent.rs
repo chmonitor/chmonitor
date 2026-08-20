@@ -7,12 +7,7 @@ use futures_util::StreamExt;
 use reqwest::Client;
 use serde_json::Value;
 
-use crate::{
-    client::apply_auth,
-    config::AppConfig,
-    credentials,
-    output,
-};
+use crate::{client::apply_auth, config::AppConfig, credentials, output};
 
 pub async fn run(
     client: &Client,
@@ -121,7 +116,10 @@ fn extract_text_delta(v: &Value) -> Option<String> {
     if let Some(s) = v.get("delta").and_then(|d| d.as_str()) {
         return Some(s.to_string());
     }
-    if let Some(s) = v.pointer("/choices/0/delta/content").and_then(|d| d.as_str()) {
+    if let Some(s) = v
+        .pointer("/choices/0/delta/content")
+        .and_then(|d| d.as_str())
+    {
         return Some(s.to_string());
     }
     if let Some(s) = v.get("text").and_then(|d| d.as_str()) {

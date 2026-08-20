@@ -3,9 +3,7 @@
 use anyhow::Result;
 use reqwest::Client;
 
-use crate::{
-    client, config::AppConfig, credentials, output,
-};
+use crate::{client, config::AppConfig, credentials, output};
 
 pub async fn run(client: &Client, cfg: &AppConfig) -> Result<()> {
     let mut checks: Vec<(String, bool, String)> = Vec::new();

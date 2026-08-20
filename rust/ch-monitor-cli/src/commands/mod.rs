@@ -111,15 +111,17 @@ pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Re
             ch_password,
             ch_database,
             json,
-        } => diagnose_cmd::run(
-            client,
-            ch_host,
-            ch_user,
-            ch_password,
-            ch_database,
-            json || cfg.json,
-        )
-        .await,
+        } => {
+            diagnose_cmd::run(
+                client,
+                ch_host,
+                ch_user,
+                ch_password,
+                ch_database,
+                json || cfg.json,
+            )
+            .await
+        }
         Commands::Update(args) | Commands::Upgrade(args) => {
             update_cmd::run(client, cfg, args).await
         }

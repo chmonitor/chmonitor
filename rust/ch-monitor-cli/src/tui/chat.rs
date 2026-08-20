@@ -17,11 +17,7 @@ use ratatui::{
 use reqwest::Client;
 use serde_json::Value;
 
-use crate::{
-    client::apply_auth,
-    config::AppConfig,
-    credentials,
-};
+use crate::{client::apply_auth, config::AppConfig, credentials};
 
 struct ChatGuard;
 
@@ -205,25 +201,18 @@ async fn run_tui(client: &Client, cfg: &AppConfig, seed: Option<String>) -> Resu
     Ok(())
 }
 
-fn draw_chat(
-    f: &mut ratatui::Frame<'_>,
-    log: &[String],
-    input: &str,
-    busy: bool,
-) {
+fn draw_chat(f: &mut ratatui::Frame<'_>, log: &[String], input: &str, busy: bool) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(3), Constraint::Length(3)])
         .split(f.area());
     let body = log.join("\n\n");
     f.render_widget(
-        Paragraph::new(body)
-            .wrap(Wrap { trim: false })
-            .block(
-                Block::default()
-                    .title("chm chat (Esc quit)")
-                    .borders(Borders::ALL),
-            ),
+        Paragraph::new(body).wrap(Wrap { trim: false }).block(
+            Block::default()
+                .title("chm chat (Esc quit)")
+                .borders(Borders::ALL),
+        ),
         chunks[0],
     );
     let prompt = if busy {

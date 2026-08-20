@@ -43,9 +43,9 @@ pub struct AppConfig {
 }
 
 pub fn user_config_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("chm")).or_else(|| {
-        dirs::home_dir().map(|h| h.join(".config/chm"))
-    })
+    dirs::config_dir()
+        .map(|d| d.join("chm"))
+        .or_else(|| dirs::home_dir().map(|h| h.join(".config/chm")))
 }
 
 pub fn user_config_path() -> Option<PathBuf> {

@@ -177,9 +177,8 @@ async fn login(client: &Client, cfg: &AppConfig) -> Result<i32> {
                 {
                     if me.status().is_success() {
                         if let Ok(body) = me.json::<serde_json::Value>().await {
-                            if let Some(email) = body
-                                .pointer("/principal/email")
-                                .and_then(|v| v.as_str())
+                            if let Some(email) =
+                                body.pointer("/principal/email").and_then(|v| v.as_str())
                             {
                                 println!("signed in as {email}");
                             }

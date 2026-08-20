@@ -51,8 +51,7 @@ pub async fn run(client: &Client, cfg: &AppConfig, chart: &str, overview: bool) 
         let now = Instant::now();
         if now >= next_refresh_at {
             if overview {
-                let hosts_url =
-                    format!("{}/api/v1/hosts", cfg.base_url.trim_end_matches('/'));
+                let hosts_url = format!("{}/api/v1/hosts", cfg.base_url.trim_end_matches('/'));
                 match client::fetch_cfg(client, cfg, hosts_url).await {
                     Ok(data) => {
                         error_message = None;

@@ -5,7 +5,9 @@ use reqwest::Client;
 
 use crate::{
     cli::{AuditArgs, AuditCommand},
-    client, config::AppConfig, output,
+    client,
+    config::AppConfig,
+    output,
 };
 
 pub async fn run(client: &Client, cfg: &AppConfig, args: AuditArgs) -> Result<()> {

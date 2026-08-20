@@ -55,10 +55,7 @@ pub fn run(cfg: &AppConfig, args: ConfigArgs) -> Result<()> {
             let mut file = config::load_user_file_config(&cfg.user_config_path)?;
             apply_set(&mut file, &key, &value)?;
             config::save_user_config(&cfg.user_config_path, &file)?;
-            output::success(&format!(
-                "set {key} in {}",
-                cfg.user_config_path.display()
-            ));
+            output::success(&format!("set {key} in {}", cfg.user_config_path.display()));
             Ok(())
         }
     }
