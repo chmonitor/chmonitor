@@ -669,8 +669,10 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   Target comboboxes. Toolbar is compact `CompareToolbar` (`p-3` card):
   Connections / Replica nodes tabs (`size="sm"`), then Source / Target
   searchable comboboxes (`ComparePeerSelect`, sorted by name,
-  `ChmonitorLogo` + version/uptime/status like HostSwitcher), then
-  Differences / All. Scope toggle (only when both hostCount and
+  `ChmonitorLogo` + version/uptime/status like HostSwitcher).
+  Differences / All and table sort are icon-only controls on the
+  table sidebar (with the name search), not the host toolbar.
+  Scope toggle (only when both hostCount and
   nodeCount are ≥ 2) writes `?scope=hosts|nodes` and remounts the pair
   from that peer list.
   The table catalog is a collapsible left sidebar grouped

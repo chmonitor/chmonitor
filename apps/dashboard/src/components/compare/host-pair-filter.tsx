@@ -10,10 +10,10 @@ interface HostPairFilterProps {
   hosts: ComparePeer[]
   sourceHostId: number
   targetHostId: number
-  showDiffsOnly: boolean
+  showDiffsOnly?: boolean
   diffsOnlyLabel?: string
   onPairChange: (source: number, target: number) => void
-  onShowDiffsOnlyChange: (value: boolean) => void
+  onShowDiffsOnlyChange?: (value: boolean) => void
   extraFilters?: ReactNode
 }
 
@@ -26,6 +26,9 @@ export function HostPairFilter({
   onShowDiffsOnlyChange,
   extraFilters,
 }: HostPairFilterProps) {
+  const showDiffsToggle =
+    showDiffsOnly !== undefined && onShowDiffsOnlyChange !== undefined
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-2">
@@ -57,19 +60,23 @@ export function HostPairFilter({
           }}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <SegmentedControl
-          size="sm"
-          ariaLabel="Show differences or all rows"
-          value={showDiffsOnly ? 'diffs' : 'all'}
-          onChange={(next) => onShowDiffsOnlyChange(next === 'diffs')}
-          options={[
-            { label: 'Differences', value: 'diffs' },
-            { label: 'All', value: 'all' },
-          ]}
-        />
-        {extraFilters}
-      </div>
+      {showDiffsToggle || extraFilters ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {showDiffsToggle ? (
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Show differences or all rows"
+              value={showDiffsOnly ? 'diffs' : 'all'}
+              onChange={(next) => onShowDiffsOnlyChange(next === 'diffs')}
+              options={[
+                { label: 'Differences', value: 'diffs' },
+                { label: 'All', value: 'all' },
+              ]}
+            />
+          ) : null}
+          {extraFilters}
+        </div>
+      ) : null}
     </div>
   )
 }

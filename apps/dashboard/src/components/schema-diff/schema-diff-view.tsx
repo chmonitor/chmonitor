@@ -110,9 +110,7 @@ export function SchemaDiffView({
           hosts={peers}
           sourceHostId={sourceId}
           targetHostId={targetId}
-          showDiffsOnly={showDiffsOnly}
           onPairChange={onPairChange}
-          onShowDiffsOnlyChange={setShowDiffsOnly}
           extraFilters={
             <TooltipProvider>
               <Tooltip>
@@ -155,6 +153,8 @@ export function SchemaDiffView({
               nameFilter={nameFilter}
               onNameFilterChange={setNameFilter}
               nameFilterPlaceholder={nameFilterPlaceholder}
+              showDiffsOnly={showDiffsOnly}
+              onShowDiffsOnlyChange={setShowDiffsOnly}
               onCollapse={() => setSidebarOpen(false)}
             />
           </div>
