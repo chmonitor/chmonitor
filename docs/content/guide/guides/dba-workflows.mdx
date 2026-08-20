@@ -1,10 +1,10 @@
 ---
 title: DBA compare, TTL, and advisor workflows
-description: What chmonitor already does for settings compare, query/schema advice, TTL moves, and Explorer DDL — and which DBA workflows are not in the dashboard yet.
+description: Settings compare, schema compare, query/schema advice, TTL inventory, and Explorer DDL — recommend-only DBA workflows in the dashboard.
 icon: GitCompareArrows
 ---
 
-Operators coming from other DBA tools often look for schema compare, change plans, and TTL inventory. This page is the map of **what ships today** versus **what is not in the dashboard yet**.
+Operators coming from other DBA tools often look for schema compare, change plans, and TTL inventory. This page is the map of **what ships today**. All of it is recommend-only.
 
 <Callout type="warn" title="Recommend-only">
 chmonitor does **not** apply schema changes and does **not** edit `config.xml` (or any other ClickHouse server file). Advisor output is copyable SQL and settings you review and run yourself.
@@ -18,8 +18,9 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 | Schema compare | `/schema-diff` | Compares table DDL across saved hosts (including per-user connections), or node vs node on the current cluster. Recommend-only change plan (copy statements, never apply). One saved host shows an empty state (needs two connections, staging vs prod) plus a faded example of the table list and DDL pair. Add host uses the same dialog as the host switcher. |
 | Query advisor | `/advisor` (Query Advisor tab) | Ranked skip-index, projection, partition-key, and `PREWHERE` recommendations for a pasted query or a `query_id`. Recommend-only. |
 | Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for schema lint and settings findings. Recommend-only. |
-| TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. This is move history / current economics — not a full TTL and partition health inventory. |
-| Explorer DDL | `/explorer` | Shows the `CREATE TABLE` statement and schema for the **selected host** (`?host=`). Single-host, read-only. |
+| TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. Move history / current economics. |
+| TTL and partition health | `/ttl-partition-health` | Inventory of MergeTree TTL and `PARTITION BY`, with partition and part counts. Tables without TTL still appear. Recommend-only. |
+| Explorer DDL | `/explorer` | Shows the `CREATE TABLE` statement and schema for the **selected host** (`?host=`). Single-host, read-only. Schema lint on the table Overview tab. |
 
 ### Settings compare (`/settings-diff`)
 
@@ -51,26 +52,17 @@ Open **System → Storage Economics**. Three tables:
 - Storage policies
 - TTL storage moves (parts that already moved because of TTL)
 
-The inventory of *every* table's TTL expression, partition health, and "should this table have a TTL?" is **not** this page. See [Gaps](#gaps-not-shipped).
+The inventory of every table's TTL expression and partition health lives on
+**System → TTL & Partition Health** (`/ttl-partition-health`). This page stays
+move history and current economics.
 
 ### Explorer single-host DDL (`/explorer`)
 
-The [Data Explorer](/guide/features/explorer) shows `CREATE TABLE` for the table on the **current host**. Cross-host or node-vs-node DDL compare lives on `/schema-diff`.
+The [Data Explorer](/guide/features/explorer) shows `CREATE TABLE` for the table on the **current host**. Table Overview also runs the same recommend-only schema lint as Advisor. Cross-host or node-vs-node DDL compare lives on `/schema-diff`.
 
 <Callout type="info" title="Read-only explorer">
 The explorer cannot create, alter, or drop objects.
 </Callout>
-
-## Gaps (not shipped)
-
-These DBA workflows are **not** in the dashboard today. They are described here so evaluators do not look for them on the pages above. They are not scheduled work and have no open tracking issues.
-
-| Gap | What is missing |
-|---|---|
-| TTL and partition health inventory | `/storage-economics` is move history and current economics, not every table's TTL expression or partition health. |
-| Schema advisor on Explorer | Schema lint lives on `/advisor` (Schema & Settings tab), not inline on Explorer. |
-
-Until those exist, use `/schema-diff`, `/settings-diff`, `/advisor`, `/storage-economics`, and `/explorer` as listed above. This guide will point at new routes if they ship.
 
 ## Related
 
@@ -79,5 +71,5 @@ Until those exist, use `/schema-diff`, `/settings-diff`, `/advisor`, `/storage-e
   <Card title="Data explorer" href="/guide/features/explorer" description="Single-host DDL, columns, indexes, and projections." />
   <Card title="Tables & storage" href="/guide/features/tables" description="Table sizes, parts, and replication pages." />
   <Card title="ClickHouse query optimization" href="/guide/guides/clickhouse-query-optimization" description="The six areas the query advisor reasons about." />
-  <Card title="What's next in 0.3.x" href="https://blog.chmonitor.dev/whats-next-0-3-x/" description="Tools, workspace roles, Schema Compare, Settings Diff — on main, next tag." />
+  <Card title="chmonitor v0.3.4" href="https://blog.chmonitor.dev/v0.3.4/" description="Tools, workspace roles, Schema Compare, Settings Diff, TTL inventory." />
 </Cards>

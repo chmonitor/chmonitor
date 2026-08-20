@@ -1,13 +1,12 @@
 ---
 title: "What's next in 0.3.x: Tools, workspace roles, Schema Compare"
-description: "Already on main and Cloud — a Tools menu, per-browser workspace roles, Schema Compare, Settings Diff, and a What's new dialog. The next 0.3.x tag will include them."
+description: "These shipped in v0.3.4 — a Tools menu, per-browser workspace roles, Schema Compare, Settings Diff, and a What's new dialog."
 date: 2026-08-19
 tag: Update
 ---
 
-These are **not a tagged GitHub release yet**. They are on `main` and on
-[dash.chmonitor.dev](https://dash.chmonitor.dev). The next **0.3.x** tag will
-pick them up. Self-hosters on `:latest` built from `main` already have them.
+These shipped in **[chmonitor v0.3.4](/v0.3.4/)**. This post was the preview
+while they sat on `main` and [dash.chmonitor.dev](https://dash.chmonitor.dev).
 
 <div class="hl-grid">
   <div class="hl"><b>Tools menu</b><span>SQL Console, Explorer, Explain, Advisor, Chart Builder, Schema Compare, Settings Diff — last group in Main.</span></div>
@@ -59,18 +58,9 @@ after an upgrade.
   invoice, no key in the binary.
 - Advisor: copyable local vs `ON CLUSTER` DDL.
 
-## What this is not
-
-It is not v0.3.4 until [release-please](https://github.com/chmonitor/chmonitor/releases)
-cuts the tag. Do not treat this post as a changelog for a version number that
-does not exist yet.
-
-When that tag ships, we will scaffold a normal [release post](/v0.3.3/). Until
-then: Cloud has it, `main` has it, `:latest` has it if you build from `main`.
-
 ## Related
 
-- Recap: [What's new in chmonitor 0.3.x](/v0.3.3/)
+- Release: [chmonitor v0.3.4](/v0.3.4/)
 - [Customize the dashboard](/customize-dashboard/)
 - Docs: [DBA workflows](https://docs.chmonitor.dev/guide/guides/dba-workflows),
   [Settings](https://docs.chmonitor.dev/guide/features/settings)
