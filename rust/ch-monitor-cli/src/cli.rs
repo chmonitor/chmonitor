@@ -132,17 +132,25 @@ pub enum Commands {
     Audit(AuditArgs),
     /// Check local CLI + dashboard connectivity
     Doctor,
-    /// Zero-signup local diagnostics: connect directly to a [REDACTED] host
+    /// Zero-signup local diagnostics: connect directly to a [REDACTED] host // pragma: allowlist secret
     /// (no chmonitor account/backend needed) and print a scored health report.
     Diagnose {
-        /// [REDACTED] HTTP interface URL, e.g. http://localhost:8123
+        /// [REDACTED] HTTP interface URL, e.g. http://localhost:8123 // pragma: allowlist secret
         #[arg(long, env = "CLICKHOUSE_HOST")] // pragma: allowlist secret
         ch_host: Option<String>,
-        #[arg(long, env = "CLICKHOUSE_USER", default_value = "default")] // pragma: allowlist secret
+        #[arg(
+            long,
+            env = "CLICKHOUSE_USER", // pragma: allowlist secret
+            default_value = "default" // pragma: allowlist secret
+        )]
         ch_user: String,
         #[arg(long, env = "CLICKHOUSE_PASSWORD", default_value = "")] // pragma: allowlist secret
         ch_password: String,
-        #[arg(long, env = "CLICKHOUSE_DATABASE", default_value = "default")] // pragma: allowlist secret
+        #[arg(
+            long,
+            env = "CLICKHOUSE_DATABASE", // pragma: allowlist secret
+            default_value = "default" // pragma: allowlist secret
+        )]
         ch_database: String,
         /// Print the report as JSON instead of a table.
         #[arg(long)]
