@@ -24,7 +24,7 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 
 ### Settings compare (`/settings-diff`)
 
-Open **Tools → Settings Diff**. Compare saved hosts (env, per-user, and browser connections), or pick two cluster nodes when the current host has 2+ replicas. Filter to rows that differ, or to settings changed from default. One saved host compares against setting defaults; use **Add host** to diff another node. Two or more hosts keep an all-hosts matrix with an optional pair picker. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
+Open **Tools → Settings Diff**. Compare saved hosts (env, per-user, and browser connections), or pick two cluster nodes when the current host has 2+ replicas. Filter to rows that differ, or to settings changed from default. Search, column filters, sort, resize, reorder, and density live on the comparison table. One saved host compares against setting defaults; use **Add host** to diff another node. Two or more hosts keep an all-hosts matrix with an optional pair picker. The page is gated by the `settings` feature id — see [Settings](/guide/features/settings).
 
 Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTER TABLE … MODIFY SETTING`, or edit the server config yourself.
 

@@ -57,12 +57,24 @@ async function renderInto(
 ): Promise<{ container: HTMLDivElement; cleanup: () => Promise<void> }> {
   const { act } = await import('react')
   const { createRoot } = await import('react-dom/client')
+  const {
+    RouterContextProvider,
+    createMemoryHistory,
+    createRootRoute,
+    createRouter,
+  } = await import('@tanstack/react-router')
+  const router = createRouter({
+    routeTree: createRootRoute(),
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  })
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
 
   await act(async () => {
-    root.render(node)
+    root.render(
+      <RouterContextProvider router={router}>{node}</RouterContextProvider>
+    )
   })
 
   return {
@@ -74,6 +86,22 @@ async function renderInto(
       })
       container.remove()
     },
+  }
+}
+
+function tableToolbar() {
+  const table = document.querySelector('[data-testid="settings-diff-table"]')
+  return {
+    table,
+    search: table?.querySelector(
+      'input[placeholder="Search across all fields..."]'
+    ),
+    filters: Array.from(table?.querySelectorAll('button') ?? []).find((btn) =>
+      btn.textContent?.includes('Filters')
+    ),
+    display: Array.from(table?.querySelectorAll('button') ?? []).find((btn) =>
+      btn.textContent?.includes('Display options')
+    ),
   }
 }
 
@@ -127,15 +155,20 @@ describe('Settings Diff one-host vs default', () => {
     try {
       expect(document.body.textContent).toContain('Comparing against defaults')
       expect(document.body.textContent).toContain('max_threads')
-      expect(document.body.textContent).toContain('Default')
+      expect(document.body.textContent).toContain('default')
       expect(document.body.textContent).toContain('prod')
       expect(document.body.textContent).not.toContain('Host A')
-      const faded = document.querySelector('.opacity-40')
-      expect(faded).toBeNull()
+      expect(
+        document.querySelector('[data-testid="settings-diff-table"]')
+      ).not.toBeNull()
       expect(document.querySelector('[data-testid="add-host"]')).not.toBeNull()
       expect(
         document.querySelector('[data-testid="add-host"]')?.className
       ).toContain('min-h-11')
+      const { search, filters, display } = tableToolbar()
+      expect(search).not.toBeNull()
+      expect(filters).toBeDefined()
+      expect(display).toBeDefined()
     } finally {
       await cleanup()
     }
@@ -205,10 +238,11 @@ describe('Settings Diff matching rows', () => {
     try {
       expect(document.body.textContent).toContain('max_memory_usage')
       expect(document.body.textContent).toContain('max_threads')
-      expect(
-        document.querySelectorAll('[data-testid="settings-diff-matched-icon"]')
-          .length
-      ).toBe(1)
+      const grid = document.querySelector(
+        '[data-testid="settings-diff-table"] table'
+      )
+      expect(grid?.querySelectorAll('[aria-label="yes"]').length).toBe(1)
+      expect(grid?.querySelectorAll('[aria-label="no"]').length).toBe(1)
       expect(document.body.textContent).not.toContain('All matched')
     } finally {
       await cleanup()
@@ -262,12 +296,12 @@ describe('Settings Diff matching rows', () => {
 
     try {
       expect(document.body.textContent).toContain('max_threads')
-      expect(
-        document.querySelectorAll('[data-testid="settings-diff-matched-icon"]')
-          .length
-      ).toBe(1)
+      const grid = document.querySelector(
+        '[data-testid="settings-diff-table"] table'
+      )
+      expect(grid?.querySelectorAll('[aria-label="yes"]').length).toBe(1)
       expect(document.body.textContent).not.toContain('All matched')
-      expect(document.body.textContent).not.toContain('No settings match')
+      expect(document.body.textContent).not.toContain('No settings found')
       expect(document.body.textContent).not.toContain('Show matching settings')
     } finally {
       await cleanup()
@@ -278,22 +312,14 @@ describe('Settings Diff matching rows', () => {
     const { SettingsDiffTable } = await import('./settings-diff-table')
 
     const { cleanup } = await renderInto(
-      <SettingsDiffTable
-        columns={[{ id: 0, name: 'prod' }]}
-        rows={[]}
-        nameFilter="no-such"
-        onNameFilterChange={() => {}}
-      />
+      <SettingsDiffTable columns={[{ id: 0, name: 'prod' }]} rows={[]} />
     )
 
     try {
-      const table = document.querySelector(
-        '[data-testid="settings-diff-table"]'
-      )
-      expect(
-        table?.querySelector('[data-testid="settings-diff-table-filter"]')
-      ).not.toBeNull()
-      expect(document.body.textContent).toContain('No settings match')
+      const { table, search } = tableToolbar()
+      expect(table).not.toBeNull()
+      expect(search).not.toBeNull()
+      expect(document.body.textContent).toMatch(/No settings (match|found)/i)
       expect(document.body.textContent).not.toContain('All matched')
     } finally {
       await cleanup()

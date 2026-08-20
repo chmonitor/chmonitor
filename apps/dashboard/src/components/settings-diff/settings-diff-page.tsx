@@ -8,7 +8,7 @@ import type {
   SettingsDiffView,
 } from '@/lib/settings-diff/types'
 
-import { SettingsCsvButton, SettingsDiffTable } from './settings-diff-table'
+import { SettingsDiffTable } from './settings-diff-table'
 import { useState } from 'react'
 import { AddHostButton } from '@/components/compare/add-host-button'
 import { CompareScopeToggle } from '@/components/compare/compare-scope-toggle'
@@ -46,7 +46,6 @@ export function SettingsDiffPage() {
 
   const [showDiffsOnly, setShowDiffsOnly] = useState(true)
   const [showChangedOnly, setShowChangedOnly] = useState(false)
-  const [nameFilter, setNameFilter] = useState('')
 
   const sourceParam = Number.isFinite(search.source) ? search.source : undefined
   const targetParam = Number.isFinite(search.target) ? search.target : undefined
@@ -189,7 +188,7 @@ export function SettingsDiffPage() {
   const filteredRows = filterSettingsDiffRows(data.rows ?? [], {
     showDiffsOnly: diffsOnly,
     showChangedOnly,
-    nameFilter,
+    nameFilter: '',
   })
   const oneHostVsDefault = hostCount === 1 && scope === 'hosts'
 
@@ -202,7 +201,6 @@ export function SettingsDiffPage() {
             ? 'Comparing this host against setting defaults'
             : PAGE_DESCRIPTION
         }
-        actions={<SettingsCsvButton columns={columns} rows={filteredRows} />}
       />
 
       {oneHostVsDefault ? (
@@ -333,21 +331,7 @@ export function SettingsDiffPage() {
           />
         </div>
       ) : (
-        <>
-          <SettingsDiffTable
-            columns={columns}
-            rows={filteredRows}
-            nameFilter={nameFilter}
-            onNameFilterChange={setNameFilter}
-          />
-
-          <p className="text-xs text-muted-foreground">
-            {filteredRows.length.toLocaleString()} row
-            {filteredRows.length !== 1 ? 's' : ''}
-            {filteredRows.length !== (data?.rows?.length ?? 0) &&
-              ` (filtered from ${(data?.rows?.length ?? 0).toLocaleString()})`}
-          </p>
-        </>
+        <SettingsDiffTable columns={columns} rows={filteredRows} />
       )}
     </div>
   )
