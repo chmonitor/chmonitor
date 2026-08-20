@@ -1,13 +1,14 @@
 import { DashboardIcon, InfoCircledIcon } from '@radix-ui/react-icons'
 import {
   GitCompareArrowsIcon,
-  TableIcon,
   TerminalIcon,
   WandSparklesIcon,
   WrenchIcon,
 } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
+
+import { dataExplorerItem } from './data-explorer'
 
 export const toolsItems: MenuItem[] = [
   {
@@ -39,17 +40,7 @@ export const toolsItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/sql-reference/statements/select', // pragma: allowlist secret
         permission: { feature: 'tables' },
       },
-      {
-        title: 'Data Explorer',
-        href: '/explorer',
-        description: 'Interactive database schema browser with metadata',
-        countKey: 'tables-explorer',
-        countLabel: 'tables',
-        icon: TableIcon,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/databases', // pragma: allowlist secret
-        tableCheck: ['system.databases', 'system.tables'],
-        permission: { feature: 'tables' },
-      },
+      dataExplorerItem,
       {
         title: 'Explain',
         href: '/explain',

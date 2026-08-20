@@ -740,8 +740,10 @@ Logs in `menu/index.ts`, before the About footer and System / Cluster /
 Operations. Current leaves, most-used first: SQL Console (`/sql`), Data
 Explorer (`/explorer`), Explain (`/explain`), Advisor (`/advisor`,
 recommend-only), Chart Builder (`/dashboard`), Schema Compare
-(`/schema-diff`), Settings Diff (`/settings-diff`). AI Agent stays its own
-flagship group. Postgres-only items stay engine-gated and are not moved here.
+(`/schema-diff`), Settings Diff (`/settings-diff`). Data Explorer is
+**also** listed under Tables (`menu/data-explorer.ts` shared leaf).
+AI Agent stays its own flagship group. Postgres-only items stay
+engine-gated and are not moved here.
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

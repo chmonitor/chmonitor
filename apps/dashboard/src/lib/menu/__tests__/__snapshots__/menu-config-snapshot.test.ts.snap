@@ -202,6 +202,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/explorer",
+    "section": undefined,
+    "title": "Data Explorer",
+  },
+  {
+    "depth": 1,
     "href": "/tables-overview",
     "section": undefined,
     "title": "Tables Overview",

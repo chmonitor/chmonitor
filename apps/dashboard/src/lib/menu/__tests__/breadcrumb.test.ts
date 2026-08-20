@@ -72,6 +72,13 @@ describe('getBreadcrumbPath (Inbound Events under Health, #3134)', () => {
 })
 
 describe('getBreadcrumbPath (Tools regroup)', () => {
+  test('Data Explorer breadcrumbs go through Tables (first parent; also listed under Tools)', () => {
+    expect(getBreadcrumbPath('/explorer')).toEqual([
+      { title: 'Tables', href: '/tables' },
+      { title: 'Data Explorer', href: '/explorer' },
+    ])
+  })
+
   test('SQL Console breadcrumbs go through Tools, not Tables', () => {
     expect(getBreadcrumbPath('/sql')).toEqual([
       { title: 'Tools', href: '' },

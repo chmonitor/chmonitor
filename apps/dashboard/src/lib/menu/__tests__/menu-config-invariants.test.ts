@@ -5,11 +5,12 @@
  * href (its actual navigational destination) and a sibling group's titles
  * (what a user sees listed together in one dropdown).
  *
- * Known-legitimate exception, not a bug: a group parent may repeat its first
- * child's href (e.g. "Merges" both links directly to /merges AND lists
- * /merges again inside its own dropdown with a description) — that's a
- * container mirroring its own landing page. Only *leaf* items (no nested
- * `items`) are required to have a distinct href.
+ * Known-legitimate exceptions, not bugs:
+ * - A group parent may repeat its first child's href (e.g. "Merges" both
+ *   links directly to /merges AND lists /merges again inside its own
+ *   dropdown) — that's a container mirroring its own landing page. Only
+ *   *leaf* items (no nested `items`) are required to have a distinct href.
+ * - Data Explorer (`/explorer`) is listed under both Tools and Tables.
  */
 
 import { RssIcon } from 'lucide-react'
@@ -53,10 +54,20 @@ describe('menu.ts structural invariants', () => {
       titles.push(item.title)
       titlesByHref.set(item.href, titles)
     }
+    const allowedDupHrefs = new Set(['/explorer'])
     const duplicates = [...titlesByHref.entries()].filter(
-      ([, titles]) => titles.length > 1
+      ([href, titles]) => titles.length > 1 && !allowedDupHrefs.has(href)
     )
     expect(duplicates).toEqual([])
+  })
+
+  test('Data Explorer is listed under both Tools and Tables', () => {
+    const hrefsOf = (title: string) =>
+      menuItemsConfig
+        .find((item) => item.title === title)
+        ?.items?.map((item) => item.href) ?? []
+    expect(hrefsOf('Tools')).toContain('/explorer')
+    expect(hrefsOf('Tables')).toContain('/explorer')
   })
 
   test('sibling titles are unique within each dropdown / list', () => {
@@ -222,7 +233,7 @@ describe('Tools group (interactive utilities)', () => {
         ?.items?.map((item) => item.href) ?? []
 
     expect(hrefsOf('Tables')).not.toContain('/sql')
-    expect(hrefsOf('Tables')).not.toContain('/explorer')
+    expect(hrefsOf('Tables')).toContain('/explorer')
     expect(hrefsOf('Queries')).not.toContain('/explain')
     expect(hrefsOf('Queries')).not.toContain('/advisor')
     expect(hrefsOf('Operations')).not.toContain('/dashboard')
