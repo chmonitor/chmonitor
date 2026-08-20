@@ -2,15 +2,14 @@
  * POST /api/v1/auth/device/code
  *
  * RFC 8628 device authorization — public. Creates a pending device/user code
- * pair in D1. Returns 503 when CHM_CLOUD_D1 is unavailable.
+ * pair (D1 or in-memory). Returns 503 when device login is disabled or
+ * CHM_API_KEY_SECRET is missing.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import {
-  deviceLoginAvailable,
-  insertDeviceCode,
-} from '@/lib/auth/device-code-store'
+import { insertDeviceCode } from '@/lib/auth/device-code-store'
+import { resolveDeviceLogin } from '@/lib/auth/device-login-config'
 
 const DEFAULT_EXPIRES_IN = 900
 const DEFAULT_INTERVAL = 5
@@ -31,12 +30,25 @@ function randomDeviceCode(): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+function disabledResponse(reason: string | null): Response {
+  const message =
+    reason === 'missing_api_key_secret'
+      ? 'Device login requires CHM_API_KEY_SECRET'
+      : reason === 'disabled'
+        ? 'Device login is disabled (set CHM_DEVICE_LOGIN=true to enable on self-hosted)'
+        : 'Device login is unavailable'
+  return Response.json(
+    { error: message, reason: reason ?? 'unavailable' },
+    {
+      status: 503,
+    }
+  )
+}
+
 async function handlePost(request: Request): Promise<Response> {
-  if (!deviceLoginAvailable()) {
-    return Response.json(
-      { error: 'Device login is unavailable (D1 not configured)' },
-      { status: 503 }
-    )
+  const status = resolveDeviceLogin()
+  if (!status.enabled) {
+    return disabledResponse(status.reason)
   }
 
   let clientId = 'chm-cli'

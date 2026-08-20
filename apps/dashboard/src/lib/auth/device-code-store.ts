@@ -1,9 +1,12 @@
 /**
- * D1-backed store for OAuth device-code grants (`chm auth login`).
+ * Device-code grant store for `chm auth login` (RFC 8628).
  *
- * Pattern mirrors `lib/slack/install-store.ts`: `CHM_CLOUD_D1` binding via
- * `getPlatformBindings()`, fail-open (never throw to callers — return
- * null/false/error codes). `user_code` is always stored UPPERCASE.
+ * Prefers D1 (`CHM_CLOUD_D1`) when bound; otherwise an in-memory Map suitable
+ * for single-node self-hosted (Docker). Multi-replica OSS without D1 should
+ * keep `CHM_DEVICE_LOGIN=false` (default) or terminate SSL sticky to one pod.
+ *
+ * Pattern mirrors `lib/slack/install-store.ts`: fail-open (never throw to
+ * callers — return null/false/error codes). `user_code` is always UPPERCASE.
  */
 
 import { ErrorLogger } from '@chm/logger'
@@ -35,7 +38,7 @@ const ENSURE_TABLE_SQL = `
     ON ${TABLE} (expires_at);
 `
 
-export interface DeviceCodeRow {
+export interface DeviceCodeRecord {
   deviceCode: string
   userCode: string
   clientId: string
@@ -82,7 +85,6 @@ let ensured = false
 async function ensureTable(db: D1Database): Promise<boolean> {
   if (ensured) return true
   try {
-    // D1 prepare().run() accepts one statement; run each separately.
     for (const stmt of ENSURE_TABLE_SQL.split(';')
       .map((s) => s.trim())
       .filter(Boolean)) {
@@ -96,9 +98,38 @@ async function ensureTable(db: D1Database): Promise<boolean> {
   }
 }
 
-/** True when the cloud D1 binding is present (device login can persist codes). */
+// ── In-memory fallback (single-node self-hosted) ───────────────────────────
+
+const memoryByDevice = new Map<string, DeviceCodeRecord>()
+const memoryByUser = new Map<string, string>()
+
+function memoryPurgeExpired(now = Date.now()): void {
+  for (const [deviceCode, record] of memoryByDevice) {
+    if (record.expiresAt <= now) {
+      memoryByDevice.delete(deviceCode)
+      memoryByUser.delete(record.userCode)
+    }
+  }
+}
+
+/** Test-only: clear the in-memory map between cases. */
+export function __resetDeviceCodeMemoryForTests(): void {
+  memoryByDevice.clear()
+  memoryByUser.clear()
+  ensured = false
+}
+
+/**
+ * True when a backend can persist device codes (D1 or memory).
+ * Prefer {@link isDeviceLoginEnabled} from `device-login-config` for the
+ * product gate — this only answers "can we store?".
+ */
 export function deviceLoginAvailable(): boolean {
-  return getDb() != null
+  return true
+}
+
+export function deviceCodeStoreKind(): 'd1' | 'memory' {
+  return getDb() != null ? 'd1' : 'memory'
 }
 
 export async function insertDeviceCode(input: {
@@ -109,31 +140,49 @@ export async function insertDeviceCode(input: {
   expiresAt: number
   intervalSec?: number
 }): Promise<boolean> {
+  const userCode = input.userCode.trim().toUpperCase()
+  const record: DeviceCodeRecord = {
+    deviceCode: input.deviceCode,
+    userCode,
+    clientId: input.clientId,
+    createdAt: input.createdAt,
+    expiresAt: input.expiresAt,
+    intervalSec: input.intervalSec ?? 5,
+    approvedAt: null,
+    userId: null,
+    consumedAt: null,
+  }
+
   try {
     const db = getDb()
-    if (!db) {
-      warn('no CHM_CLOUD_D1 binding — cannot persist device code')
+    if (db) {
+      if (!(await ensureTable(db))) return false
+      await db
+        .prepare(
+          `INSERT INTO ${TABLE}
+             (device_code, user_code, client_id, created_at, expires_at, interval_sec,
+              approved_at, user_id, consumed_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL)`
+        )
+        .bind(
+          record.deviceCode,
+          record.userCode,
+          record.clientId,
+          record.createdAt,
+          record.expiresAt,
+          record.intervalSec
+        )
+        .run()
+      return true
+    }
+
+    memoryPurgeExpired()
+    if (memoryByUser.has(userCode)) {
+      warn('memory store: duplicate user_code')
       return false
     }
-    if (!(await ensureTable(db))) return false
-
-    const userCode = input.userCode.trim().toUpperCase()
-    await db
-      .prepare(
-        `INSERT INTO ${TABLE}
-           (device_code, user_code, client_id, created_at, expires_at, interval_sec,
-            approved_at, user_id, consumed_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL)`
-      )
-      .bind(
-        input.deviceCode,
-        userCode,
-        input.clientId,
-        input.createdAt,
-        input.expiresAt,
-        input.intervalSec ?? 5
-      )
-      .run()
+    memoryByDevice.set(record.deviceCode, record)
+    memoryByUser.set(userCode, record.deviceCode)
     return true
   } catch (err) {
     warn(`failed to insert device code: ${err}`)
@@ -146,13 +195,16 @@ export async function getByDeviceCode(
 ): Promise<DeviceCodeRecord | null> {
   try {
     const db = getDb()
-    if (!db) return null
-    if (!(await ensureTable(db))) return null
-    const row = await db
-      .prepare(`SELECT * FROM ${TABLE} WHERE device_code = ?1`)
-      .bind(deviceCode)
-      .first<D1DeviceCodeRow>()
-    return row ? rowToRecord(row) : null
+    if (db) {
+      if (!(await ensureTable(db))) return null
+      const row = await db
+        .prepare(`SELECT * FROM ${TABLE} WHERE device_code = ?1`)
+        .bind(deviceCode)
+        .first<D1DeviceCodeRow>()
+      return row ? rowToRecord(row) : null
+    }
+
+    return memoryByDevice.get(deviceCode) ?? null
   } catch (err) {
     warn(`failed to get by device_code: ${err}`)
     return null
@@ -163,15 +215,20 @@ export async function getByUserCode(
   userCode: string
 ): Promise<DeviceCodeRecord | null> {
   try {
-    const db = getDb()
-    if (!db) return null
-    if (!(await ensureTable(db))) return null
     const normalized = userCode.trim().toUpperCase()
-    const row = await db
-      .prepare(`SELECT * FROM ${TABLE} WHERE user_code = ?1`)
-      .bind(normalized)
-      .first<D1DeviceCodeRow>()
-    return row ? rowToRecord(row) : null
+    const db = getDb()
+    if (db) {
+      if (!(await ensureTable(db))) return null
+      const row = await db
+        .prepare(`SELECT * FROM ${TABLE} WHERE user_code = ?1`)
+        .bind(normalized)
+        .first<D1DeviceCodeRow>()
+      return row ? rowToRecord(row) : null
+    }
+
+    const deviceCode = memoryByUser.get(normalized)
+    if (!deviceCode) return null
+    return memoryByDevice.get(deviceCode) ?? null
   } catch (err) {
     warn(`failed to get by user_code: ${err}`)
     return null
@@ -191,17 +248,14 @@ export type ApproveUserCodeResult =
     }
 
 /**
- * Bind an authenticated user to a pending user_code. Never throws.
+ * Bind an authenticated (or device-only) user to a pending user_code.
+ * Never throws.
  */
 export async function approveUserCode(
   userCode: string,
   userId: string
 ): Promise<ApproveUserCodeResult> {
   try {
-    const db = getDb()
-    if (!db) return { ok: false, error: 'unavailable' }
-    if (!(await ensureTable(db))) return { ok: false, error: 'unavailable' }
-
     const record = await getByUserCode(userCode)
     if (!record) return { ok: false, error: 'not_found' }
     if (record.consumedAt != null) return { ok: false, error: 'consumed' }
@@ -210,14 +264,29 @@ export async function approveUserCode(
       return { ok: false, error: 'already_approved' }
 
     const now = Date.now()
-    await db
-      .prepare(
-        `UPDATE ${TABLE}
-         SET approved_at = ?1, user_id = ?2
-         WHERE user_code = ?3 AND approved_at IS NULL AND consumed_at IS NULL`
-      )
-      .bind(now, userId, record.userCode)
-      .run()
+    const db = getDb()
+    if (db) {
+      if (!(await ensureTable(db))) return { ok: false, error: 'unavailable' }
+      await db
+        .prepare(
+          `UPDATE ${TABLE}
+           SET approved_at = ?1, user_id = ?2
+           WHERE user_code = ?3 AND approved_at IS NULL AND consumed_at IS NULL`
+        )
+        .bind(now, userId, record.userCode)
+        .run()
+      return { ok: true }
+    }
+
+    const current = memoryByDevice.get(record.deviceCode)
+    if (!current) return { ok: false, error: 'not_found' }
+    if (current.approvedAt != null)
+      return { ok: false, error: 'already_approved' }
+    memoryByDevice.set(record.deviceCode, {
+      ...current,
+      approvedAt: now,
+      userId,
+    })
     return { ok: true }
   } catch (err) {
     warn(`failed to approve user_code: ${err}`)
@@ -228,18 +297,24 @@ export async function approveUserCode(
 /** Mark a device_code as consumed after minting the access token. */
 export async function markConsumed(deviceCode: string): Promise<boolean> {
   try {
-    const db = getDb()
-    if (!db) return false
-    if (!(await ensureTable(db))) return false
     const now = Date.now()
-    await db
-      .prepare(
-        `UPDATE ${TABLE}
-         SET consumed_at = ?1
-         WHERE device_code = ?2 AND consumed_at IS NULL`
-      )
-      .bind(now, deviceCode)
-      .run()
+    const db = getDb()
+    if (db) {
+      if (!(await ensureTable(db))) return false
+      await db
+        .prepare(
+          `UPDATE ${TABLE}
+           SET consumed_at = ?1
+           WHERE device_code = ?2 AND consumed_at IS NULL`
+        )
+        .bind(now, deviceCode)
+        .run()
+      return true
+    }
+
+    const current = memoryByDevice.get(deviceCode)
+    if (!current || current.consumedAt != null) return false
+    memoryByDevice.set(deviceCode, { ...current, consumedAt: now })
     return true
   } catch (err) {
     warn(`failed to mark consumed: ${err}`)

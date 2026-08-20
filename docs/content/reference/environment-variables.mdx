@@ -262,7 +262,9 @@ The active server-side auth provider is set by `CHM_AUTH_PROVIDER`. See
 |---|---|---|
 | `CHM_AUTH_PROVIDER` | `none` | Server auth provider: `none`, `clerk`, `proxy`, or `trusted`. **Canonical** — the client `VITE_AUTH_PROVIDER` is derived from it at build time. |
 | `VITE_AUTH_PROVIDER` | (from `CHM_AUTH_PROVIDER`) | Client-side build-time value. Auto-derived from `CHM_AUTH_PROVIDER`; only set explicitly to override. |
-| `CHM_API_KEY_SECRET` | — | Shared secret for `chm_` API keys. When set, API-key auth is always on alongside the active provider. Issue keys at `/api/v1/auth/api-key`. |
+| `CHM_API_KEY_SECRET` | — | Shared secret for `chm_` API keys. When set, API-key auth is always on alongside the active provider. Issue keys at `/api/v1/auth/api-key`. Required to enable CLI device login. |
+| `CHM_DEVICE_LOGIN` | `auto` | CLI device login (`chm auth login` / `/device`). `auto` = on in **cloud** when `CHM_API_KEY_SECRET` is set; **off** for self-hosted/OSS (typical internal network — mint a key once or leave the API open). `true` = force on (self-hosted opt-in; with `CHM_AUTH_PROVIDER=none` this is **device-only** approve — no Clerk, trust reachability of `/device`). `false` = force off. Persistence uses D1 when bound, otherwise an in-memory store (single-node). |
+| `CHM_DEVICE_LOGIN_SUBJECT` | `self-hosted` | Subject embedded in `chm_` tokens minted via device-only approve (`auth=none`). Ignored when Clerk/proxy supplies the user id. |
 
 <Callout type="danger" title="Keep secrets server-side">
 `CLERK_SECRET_KEY`, `CHM_API_KEY_SECRET`, and every trust-gate secret below are

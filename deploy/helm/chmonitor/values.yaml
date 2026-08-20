@@ -267,6 +267,12 @@ features:
   # "true" relaxes Clerk so anonymous GET /api/v1/* is allowed (writes still need
   # sign-in). App default: false.
   CHM_CLERK_PUBLIC_READ: ""
+  # CLI device login: auto | true | false. App default: auto (off for OSS;
+  # on for cloud when CHM_API_KEY_SECRET is set). Set "true" to opt in on
+  # self-hosted; with auth.provider=none this is device-only approve.
+  CHM_DEVICE_LOGIN: ""
+  # Subject for device-only tokens (auth=none). App default: self-hosted.
+  CHM_DEVICE_LOGIN_SUBJECT: ""
   # Default AI model (provider:model or anyrouter/...). Empty = app default.
   LLM_MODEL: ""
 

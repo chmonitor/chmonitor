@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-08-18
+updated: 2026-08-20
 tags:
   - saas
   - cloud
@@ -64,7 +64,7 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 | Env `CLICKHOUSE_HOST` | operator's real hosts, full access | public **read-only demo** (`source:'demo'`) |
 | Anonymous | sees env hosts | sees the demo (explore, no account) |
 | Signed-in | sees env hosts | demo hidden → own D1 connections only; zero → welcome/setup |
-| Auth | usually `none` | Clerk + `CHM_CLERK_PUBLIC_READ=true` |
+| Auth | usually `none`; CLI device login **off** (`CHM_DEVICE_LOGIN=auto`) — opt in with `true` for device-only tokens on a trusted LAN | Clerk + `CHM_CLERK_PUBLIC_READ=true`; CLI device login **on** when `CHM_API_KEY_SECRET` is set |
 | Per-user conns | optional | on (`VITE_FEATURE_USER_CONNECTIONS_DB=true`) |
 | Agent (anon) | IP rate limit only, no daily cap | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
 

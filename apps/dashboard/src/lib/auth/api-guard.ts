@@ -23,7 +23,9 @@
  *    the active provider's `authenticateRequest`. Anonymous requests get a 401
  *    JSON `{ error: 'Authentication required' }`. Exempt: `/api/v1/auth/api-key`
  *    (it owns its own secret-based auth in the handler),
- *    `/api/v1/auth/device/code` + `/api/v1/auth/token` (OAuth device flow),
+ *    `/api/v1/auth/device/code` + `/api/v1/auth/device/approve` +
+ *    `/api/v1/auth/device/status` + `/api/v1/auth/token` (OAuth device flow;
+ *    approve owns its own session / device-only checks),
  *    and `/api/v1/openapi.json` (public discovery document).
  *
  * Also reproduced from the Next middleware: the cloud→dash 301 redirect
@@ -46,8 +48,12 @@ import { resolveServerAuthProvider } from '@/lib/auth/providers'
 const API_V1_PREFIX = '/api/v1/'
 // Key issuance route has its own secret-based auth in its handler.
 const API_KEY_ISSUANCE_PATH = '/api/v1/auth/api-key'
-// OAuth device-code endpoints are public (RFC 8628); approve stays guarded.
+// OAuth device-code endpoints are public (RFC 8628). Approve is exempt so
+// self-hosted device-only (auth=none + CHM_DEVICE_LOGIN) can complete without
+// already holding a chm_ key; the handler enforces session vs device-only.
 const DEVICE_CODE_PATH = '/api/v1/auth/device/code'
+const DEVICE_APPROVE_PATH = '/api/v1/auth/device/approve'
+const DEVICE_STATUS_PATH = '/api/v1/auth/device/status'
 const DEVICE_TOKEN_PATH = '/api/v1/auth/token'
 // OpenAPI descriptor is a public discovery document (RFC 9727 service-desc).
 const OPENAPI_SPEC_PATH = '/api/v1/openapi.json'
@@ -161,13 +167,16 @@ export async function getApiKeyAuthFailure(
   if (getAuthProvider() === 'none' && !apiKeyAuthEnabled()) return null
 
   // Key issuance route has its own secret-based auth in the handler.
-  // Device-code + token are public (RFC 8628); approve stays authenticated.
+  // Device-code / approve / status / token are public (RFC 8628); approve
+  // enforces Clerk/proxy session or device-only subject in its handler.
   // OpenAPI is a public discovery document — agents read it before they have
   // a key. Never 401 (or 500 via the dashboard shell) this path.
   // `/api/v1/releases` is the public What's new changelog (GitHub notes).
   if (
     pathname === API_KEY_ISSUANCE_PATH ||
     pathname === DEVICE_CODE_PATH ||
+    pathname === DEVICE_APPROVE_PATH ||
+    pathname === DEVICE_STATUS_PATH ||
     pathname === DEVICE_TOKEN_PATH ||
     pathname === OPENAPI_SPEC_PATH ||
     pathname === RELEASES_PATH

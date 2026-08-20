@@ -2,23 +2,37 @@
  * Device authorization page for `chm auth login`.
  * Route: /device?user_code=ABCD-EFGH
  *
- * Signed-in users submit the code to POST /api/v1/auth/device/approve.
- * Anonymous visitors are pointed at /sign-in.
+ * Cloud / Clerk / proxy: signed-in users approve; anonymous visitors are
+ * pointed at /sign-in.
+ *
+ * Self-hosted device-only (`CHM_AUTH_PROVIDER=none` + `CHM_DEVICE_LOGIN=true`):
+ * anyone who can reach this page may approve (trusted network).
+ *
+ * When device login is disabled (OSS default), show how to opt in or mint a key.
  */
 
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { type FormEvent, useEffect, useState } from 'react'
 
 import {
   keepHostSearch,
   validateSearch as validateRootSearch,
 } from './-root-search'
-import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type DeviceSearch = {
   host: number
   user_code?: string
+}
+
+type DeviceStatus = {
+  enabled: boolean
+  mode: string
+  deviceOnly: boolean
+  reason: string | null
+  store?: string
+  subject?: string
 }
 
 function validateDeviceSearch(search: Record<string, unknown>): DeviceSearch {
@@ -45,6 +59,50 @@ function DeviceApprovePage() {
     'idle'
   )
   const [message, setMessage] = useState<string | null>(null)
+  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null)
+  const [statusLoading, setStatusLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v1/auth/device/status')
+        const body = (await res.json().catch(() => ({}))) as {
+          data?: DeviceStatus
+          enabled?: boolean
+          mode?: string
+          deviceOnly?: boolean
+          reason?: string | null
+          store?: string
+          subject?: string
+        }
+        if (cancelled) return
+        const data = body.data ?? body
+        setDeviceStatus({
+          enabled: Boolean(data.enabled),
+          mode: typeof data.mode === 'string' ? data.mode : 'auto',
+          deviceOnly: Boolean(data.deviceOnly),
+          reason: data.reason ?? null,
+          store: data.store,
+          subject: data.subject,
+        })
+      } catch {
+        if (!cancelled) {
+          setDeviceStatus({
+            enabled: false,
+            mode: 'auto',
+            deviceOnly: false,
+            reason: 'unavailable',
+          })
+        }
+      } finally {
+        if (!cancelled) setStatusLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -72,6 +130,11 @@ function DeviceApprovePage() {
         setStatus('error')
         if (res.status === 401) {
           setMessage('Sign in first, then approve this device.')
+        } else if (res.status === 503) {
+          setMessage(
+            body.error ??
+              'Device login is disabled on this deployment. See docs for CHM_DEVICE_LOGIN.'
+          )
         } else {
           setMessage(
             body.message ?? body.error ?? `Approve failed (${res.status})`
@@ -87,6 +150,48 @@ function DeviceApprovePage() {
     }
   }
 
+  if (statusLoading) {
+    return (
+      <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center gap-4 px-4 py-12">
+        <p className="text-sm text-muted-foreground">Checking device login…</p>
+      </main>
+    )
+  }
+
+  if (deviceStatus && !deviceStatus.enabled) {
+    const missingSecret = deviceStatus.reason === 'missing_api_key_secret'
+    return (
+      <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center gap-6 px-4 py-12">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Device login is off
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {missingSecret
+              ? 'Set CHM_API_KEY_SECRET on the server, then enable device login.'
+              : 'Self-hosted deployments leave CLI device login disabled by default (trusted internal networks usually mint an API key once).'}
+          </p>
+        </div>
+        <div className="space-y-2 rounded-md border border-border bg-muted/40 p-4 text-sm">
+          <p className="font-medium">Enable on self-hosted</p>
+          <pre className="overflow-x-auto text-xs leading-relaxed">
+            {`CHM_API_KEY_SECRET=…
+CHM_DEVICE_LOGIN=true
+# optional when CHM_AUTH_PROVIDER=none:
+# CHM_DEVICE_LOGIN_SUBJECT=self-hosted`}
+          </pre>
+          <p className="text-muted-foreground">
+            Or mint a key without device flow:{' '}
+            <code className="text-xs">POST /api/v1/auth/api-key</code> with the
+            signing secret as Bearer.
+          </p>
+        </div>
+      </main>
+    )
+  }
+
+  const deviceOnly = deviceStatus?.deviceOnly === true
+
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center gap-6 px-4 py-12">
       <div className="space-y-2">
@@ -95,7 +200,10 @@ function DeviceApprovePage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           Enter the code from <code className="text-xs">chm auth login</code> to
-          authorize this device. You must be signed in.
+          authorize this device.
+          {deviceOnly
+            ? ' This deployment uses device-only tokens (no sign-in) — anyone who can reach this page can approve.'
+            : ' You must be signed in.'}
         </p>
       </div>
 
@@ -130,16 +238,26 @@ function DeviceApprovePage() {
         </p>
       ) : null}
 
-      <p className="text-sm text-muted-foreground">
-        Not signed in?{' '}
-        <Link
-          to="/sign-in"
-          search={keepHostSearch}
-          className="underline underline-offset-4"
-        >
-          Sign in
-        </Link>
-      </p>
+      {!deviceOnly ? (
+        <p className="text-sm text-muted-foreground">
+          Not signed in?{' '}
+          <Link
+            to="/sign-in"
+            search={keepHostSearch}
+            className="underline underline-offset-4"
+          >
+            Sign in
+          </Link>
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Tokens are bound to subject{' '}
+          <code className="text-xs">
+            {deviceStatus?.subject ?? 'self-hosted'}
+          </code>
+          .
+        </p>
+      )}
     </main>
   )
 }

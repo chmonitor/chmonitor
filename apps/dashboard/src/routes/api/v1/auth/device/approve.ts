@@ -1,17 +1,37 @@
 /**
  * POST /api/v1/auth/device/approve
  *
- * Approves a pending device user_code for the signed-in Clerk/proxy principal.
+ * Approves a pending device user_code.
+ *
+ *  - Clerk / proxy / trusted: requires an authenticated session; subject comes
+ *    from the identity provider.
+ *  - `CHM_AUTH_PROVIDER=none` + device login enabled: **device-only** approve
+ *    (no sign-in). Subject is `CHM_DEVICE_LOGIN_SUBJECT` (default `self-hosted`).
+ *    Trust model: reachability of `/device` on the operator's network.
+ *
  * Body: `{ user_code: string }`.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
 import { approveUserCode } from '@/lib/auth/device-code-store'
+import { resolveDeviceLogin } from '@/lib/auth/device-login-config'
 import { getAuthProvider } from '@/lib/auth/provider'
 import { resolveServerAuthProvider } from '@/lib/auth/providers'
 
 async function handlePost(request: Request): Promise<Response> {
+  const deviceStatus = resolveDeviceLogin()
+  if (!deviceStatus.enabled) {
+    const message =
+      deviceStatus.reason === 'missing_api_key_secret'
+        ? 'Device login requires CHM_API_KEY_SECRET'
+        : 'Device login is disabled'
+    return Response.json(
+      { error: message, reason: deviceStatus.reason ?? 'disabled' },
+      { status: 503 }
+    )
+  }
+
   let provider: ReturnType<typeof getAuthProvider>
   try {
     provider = getAuthProvider()
@@ -22,18 +42,22 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
+  let userId: string
   if (provider === 'none') {
-    return Response.json(
-      { error: 'Device approval requires an authenticated session' },
-      { status: 401 }
-    )
-  }
-
-  const auth =
-    await resolveServerAuthProvider(provider).authenticateRequest(request)
-  const userId = auth.subject ?? auth.principal?.subject
-  if (!auth.authenticated || !userId) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    // Device-only: anyone who can hit this endpoint (and /device) can mint a
+    // token bound to the configured subject. Intended for trusted LAN / VPN.
+    userId = deviceStatus.subject
+  } else {
+    const auth =
+      await resolveServerAuthProvider(provider).authenticateRequest(request)
+    const subject = auth.subject ?? auth.principal?.subject
+    if (!auth.authenticated || !subject) {
+      return Response.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+    userId = subject
   }
 
   let userCode: string
@@ -64,7 +88,9 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  return Response.json({ data: { approved: true } })
+  return Response.json({
+    data: { approved: true, deviceOnly: provider === 'none', subject: userId },
+  })
 }
 
 export const Route = createFileRoute('/api/v1/auth/device/approve')({

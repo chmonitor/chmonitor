@@ -188,3 +188,41 @@ describe('GET /api/v1/releases is a public changelog document', () => {
     expect(result).toBeNull()
   })
 })
+
+describe('device-flow paths are public (handler owns auth)', () => {
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  it('allows anonymous approve when API-key auth is on (device-only self-hosted)', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(
+      new Request('https://dash.example.com/api/v1/auth/device/approve', {
+        method: 'POST',
+      })
+    )
+    expect(result).toBeNull()
+  })
+
+  it('allows anonymous device status discovery', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'clerk'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(
+      new Request('https://dash.example.com/api/v1/auth/device/status')
+    )
+    expect(result).toBeNull()
+  })
+})

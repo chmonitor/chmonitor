@@ -87,10 +87,25 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merge
 
 ## Auth (device flow + API keys)
 
-Dashboard auth endpoints (Phase 1A):
+Device login is gated by **`CHM_DEVICE_LOGIN`** (`auto` | `true` | `false`,
+default `auto`):
 
-1. `POST /api/v1/auth/device/code` — public; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). Requires D1 (`CHM_CLOUD_D1`); otherwise 503.
-2. Browser opens `/device?user_code=…` → signed-in user posts to `POST /api/v1/auth/device/approve`.
+| Deployment | `auto` behaviour |
+|------------|------------------|
+| Cloud (`CHM_CLOUD_MODE` / `CHM_DEPLOYMENT_MODE=cloud`) | On when `CHM_API_KEY_SECRET` is set; `/device` requires a signed-in session |
+| Self-hosted / OSS | **Off** — trusted LAN usually mints one key or leaves the API open |
+
+Opt in on self-hosted with `CHM_DEVICE_LOGIN=true`. With
+`CHM_AUTH_PROVIDER=none` that is **device-only** approve (no Clerk): anyone who
+can reach `/device` completes the flow; minted tokens use subject
+`CHM_DEVICE_LOGIN_SUBJECT` (default `self-hosted`). Codes persist in D1 when
+bound, otherwise an in-memory store (single-node). Force off with
+`CHM_DEVICE_LOGIN=false`. Status: `GET /api/v1/auth/device/status`.
+
+Dashboard auth endpoints:
+
+1. `POST /api/v1/auth/device/code` — public when enabled; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). 503 when disabled or missing `CHM_API_KEY_SECRET`.
+2. Browser opens `/device?user_code=…` → approve via `POST /api/v1/auth/device/approve` (Clerk/proxy session, or device-only when auth=`none`).
 3. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
 
 Programmatic requests may send **either** `Authorization: Bearer chm_…` **or**

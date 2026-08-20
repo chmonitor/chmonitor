@@ -9,12 +9,9 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import {
-  ALL_API_KEY_SCOPES,
-  apiKeyAuthEnabled,
-  issueApiKey,
-} from '@chm/mcp-server/auth'
+import { ALL_API_KEY_SCOPES, issueApiKey } from '@chm/mcp-server/auth'
 import { getByDeviceCode, markConsumed } from '@/lib/auth/device-code-store'
+import { resolveDeviceLogin } from '@/lib/auth/device-login-config'
 
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code'
 const DEVICE_GRANT_SHORT = 'device_code'
@@ -29,9 +26,14 @@ function oauthError(
 }
 
 async function handlePost(request: Request): Promise<Response> {
-  if (!apiKeyAuthEnabled()) {
+  const deviceStatus = resolveDeviceLogin()
+  if (!deviceStatus.enabled) {
+    const message =
+      deviceStatus.reason === 'missing_api_key_secret'
+        ? 'CHM_API_KEY_SECRET is not configured'
+        : 'Device login is disabled'
     return Response.json(
-      { error: 'CHM_API_KEY_SECRET is not configured' },
+      { error: message, reason: deviceStatus.reason ?? 'disabled' },
       { status: 503 }
     )
   }
