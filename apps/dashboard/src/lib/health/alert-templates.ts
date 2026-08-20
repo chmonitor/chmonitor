@@ -2,7 +2,7 @@
  * Quick-start alerting templates.
  *
  * Setting alerts up from scratch means answering three questions at once — which
- * severity floor, which channels, and 16 pairs of thresholds. A template answers
+ * severity floor, which channels, and every check's warning/critical pair. A template answers
  * all three in one click, and everything it writes stays fully editable
  * afterwards.
  *
@@ -86,6 +86,7 @@ export const ALERT_TEMPLATES: readonly AlertTemplate[] = [
     checkIds: [
       'max-parts',
       'parts-pressure',
+      'ttl-partition-health',
       'delayed-inserts',
       'stuck-merges',
       'failed-mutations',

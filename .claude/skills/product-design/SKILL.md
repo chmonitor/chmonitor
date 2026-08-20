@@ -399,7 +399,10 @@ module snapshot in `lib/format-settings.ts`; palette/density →
    Interactive utilities (SQL, explorer, explain, compare, builder, advisor)
    go in `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
    Tables. TTL & Partitions (`/ttl-partition-health`) is a system-table
-   inventory — it lives under Tables, not Tools or System. Other
+   inventory — it lives under Tables, not Tools or System. The same
+   recommend-only rules also power the **TTL & Partition Health** card
+   on `/health` (flagged-table count + detail dialog). Do not invent a
+   third TTL surface; wire new reporting through those two. Other
    system-table views stay in their domain file. Tools is the last Main group, composed
    after Logs and before the About footer in `menu/index.ts` — do not put
    it after Overview / before AI Agent. The Tools parent must not set

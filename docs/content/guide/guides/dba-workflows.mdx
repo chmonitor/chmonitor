@@ -20,6 +20,7 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 | Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for column lint **and** table-level advice: TTL, PARTITION BY bloat, MergeTree vs Replicated on a cluster, missing Distributed wrappers, UUID-leading ORDER BY. Recommend-only. |
 | TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. Move history / current economics. |
 | TTL and partition health | `/ttl-partition-health` | Inventory of MergeTree TTL and `PARTITION BY`, with partition and part counts plus a recommend-only next-step column (add TTL, coarsen partitions, check merges). Tables without TTL still appear. Recommend-only. |
+| Health: TTL & Partition Health | `/health` | Same recommend-only rules as a Health card: count of flagged tables (500+ partitions, time-based key with no TTL, or merge backlog). Click the card for the per-table breakdown. Does not apply DDL. |
 | Explorer DDL | `/explorer` | Shows the `CREATE TABLE` statement and schema for the **selected host** (`?host=`). Single-host, read-only. Schema lint on the table Overview tab. |
 
 ### Settings compare (`/settings-diff`)
@@ -54,8 +55,19 @@ Open **System → Storage Economics**. Three tables:
 - TTL storage moves (parts that already moved because of TTL)
 
 The inventory of every table's TTL expression and partition health lives on
-**Tables → TTL & Partitions** (`/ttl-partition-health`). This page stays
-move history and current economics.
+**Tables → TTL & Partitions** (`/ttl-partition-health`). The same rules
+surface as the **TTL & Partition Health** card on `/health` (count of flagged
+tables; click for the breakdown). This page stays move history and current
+economics.
+
+### Health: TTL & Partition Health (`/health`)
+
+Open **Health**. The **TTL & Partition Health** card counts MergeTree tables
+that need review: 500+ partitions (warning) / 1000+ (critical copy on the
+inventory page), a time-based `PARTITION BY` with no table TTL, or 10+ active
+parts per partition. Click the card for the flagged-table breakdown, then
+open **TTL & Partitions** for the full inventory. Recommend-only — there is
+no Apply button and nothing here runs `ALTER TTL` or `DROP PARTITION`.
 
 ### Explorer single-host DDL (`/explorer`)
 
@@ -70,7 +82,8 @@ The explorer cannot create, alter, or drop objects.
 <Cards>
   <Card title="Settings" href="/guide/features/settings" description="Server settings pages, including Settings Diff." />
   <Card title="Data explorer" href="/guide/features/explorer" description="Single-host DDL, columns, indexes, and projections." />
-  <Card title="Tables & storage" href="/guide/features/tables" description="Table sizes, parts, and replication pages." />
+  <Card title="Tables & storage" href="/guide/features/tables" description="Table sizes, parts, TTL inventory, and replication pages." />
+  <Card title="Health" href="/guide/features/health" description="TTL & Partition Health card — flagged tables at a glance." />
   <Card title="ClickHouse query optimization" href="/guide/guides/clickhouse-query-optimization" description="The six areas the query advisor reasons about." />
   <Card title="chmonitor v0.3.4" href="https://blog.chmonitor.dev/v0.3.4/" description="Tools, workspace roles, Schema Compare, Settings Diff, TTL inventory." />
 </Cards>

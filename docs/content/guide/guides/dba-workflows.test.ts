@@ -16,6 +16,8 @@ describe('dba-workflows guide', () => {
     expect(src).toContain('/explorer')
     expect(src).toContain('/ttl-partition-health')
     expect(src).toContain('Tables → TTL & Partitions')
+    expect(src).toContain('TTL & Partition Health')
+    expect(src).toContain('/health')
     expect(src).not.toContain('System → TTL')
   })
 

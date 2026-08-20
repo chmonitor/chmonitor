@@ -12,7 +12,7 @@ Get a single status grid of cluster health across replication, merges, errors, d
     "Feature id": { type: "health", description: "Used by permission env vars and config" },
     "Default access": { type: "public", description: "Set CHM_FEATURE_HEALTH_ACCESS=authenticated to gate" },
     "Requires auth": { type: "No", description: "Anonymous access allowed by default" },
-    "System tables": { type: "10 system tables", description: "metrics, asynchronous_metrics, replicas, merges, errors, disks, replication_queue, processes, query_log, parts" },
+    "System tables": { type: "system tables", description: "metrics, asynchronous_metrics, replicas, merges, errors, disks, replication_queue, processes, query_log, parts, tables" },
     "ClickHouse grants": { type: "SELECT", description: "SELECT on the system tables above" },
   }}
 />
@@ -29,6 +29,7 @@ Checks cover:
 - **Disk usage** — free space across all disks
 - **Query load** — running query count and memory pressure
 - **Part health** — excessive part counts
+- **TTL & Partition Health** — MergeTree tables with partition bloat, a time-based `PARTITION BY` and no table TTL, or a merge backlog (recommend-only; full inventory on `/ttl-partition-health`)
 
 In addition to the UI, chmonitor exposes a **headless health-sweep** endpoint (`GET /api/cron/health-sweep`) that runs the same checks and dispatches webhook alerts. This is designed to be called on a schedule (e.g., Cloudflare Cron every 5 minutes) without a browser.
 
@@ -36,7 +37,7 @@ In addition to the UI, chmonitor exposes a **headless health-sweep** endpoint (`
 
 | Page | Route | What it shows | System tables |
 |---|---|---|---|
-| Health | `/health` | Status grid with per-check severity and details | `system.metrics`, `system.asynchronous_metrics`, `system.replicas`, `system.merges`, `system.errors`, `system.disks`, `system.replication_queue`, `system.processes`, `system.query_log`, `system.parts` |
+| Health | `/health` | Status grid with per-check severity and details | `system.metrics`, `system.asynchronous_metrics`, `system.replicas`, `system.merges`, `system.errors`, `system.disks`, `system.replication_queue`, `system.processes`, `system.query_log`, `system.parts`, `system.tables` |
 
 ## Using it
 
@@ -255,6 +256,8 @@ Subscriptions live in the `report_subscriptions` D1 table (owner-scoped, like al
 
 <Cards>
   <Card title="Metrics" href="/guide/features/metrics" description="Live counters, async metrics, and CPU profiling." />
+  <Card title="Tables" href="/guide/features/tables" description="TTL & Partitions inventory and storage pages." />
+  <Card title="DBA workflows" href="/guide/guides/dba-workflows" description="TTL inventory, schema compare, and recommend-only advisor." />
   <Card title="Cluster" href="/guide/features/cluster" description="Topology and Keeper/ZooKeeper coordination." />
   <Card title="Feature permissions" href="/operate/advanced/feature-permissions" description="Gate or disable features per section." />
   <Card title="Authentication" href="/operate/authentication" description="Configure sign-in and access control." />

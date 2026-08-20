@@ -29,6 +29,7 @@ export type AlertRuleType =
   | 'mv-refresh-failures'
   | 'slow-query-regression'
   | 'parts-pressure'
+  | 'ttl-partition-health'
   | 'custom'
 
 /**

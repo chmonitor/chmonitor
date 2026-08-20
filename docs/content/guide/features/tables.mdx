@@ -8,7 +8,7 @@ The Tables feature answers storage and replication questions across every databa
 
 | | |
 |---|---|
-| **Routes** | `/tables`, `/tables-overview`, `/replicas`, `/replication-queue`, `/replicated-fetches`, `/readonly-tables`, `/dropped-tables`, `/dictionaries`, `/kafka-consumers`, `/distributed-ddl-queue` |
+| **Routes** | `/tables`, `/tables-overview`, `/ttl-partition-health`, `/replicas`, `/replication-queue`, `/replicated-fetches`, `/readonly-tables`, `/dropped-tables`, `/dictionaries`, `/kafka-consumers`, `/distributed-ddl-queue` |
 | **Feature id** | `tables` |
 | **Default access** | `public` |
 | **Requires auth** | No (set `CHM_FEATURE_TABLES_ACCESS=authenticated` to gate) |
@@ -35,6 +35,7 @@ Each question maps to a dedicated page.
 |---|---|---|---|
 | Tables | `/tables` | Table list with engine, row count, size; OPTIMIZE action | `system.tables`, `system.parts` |
 | Tables Overview | `/tables-overview` | Storage statistics per table: part counts, compressed/uncompressed sizes | `system.parts` |
+| TTL & Partitions | `/ttl-partition-health` | MergeTree TTL, `PARTITION BY`, partition/part counts, recommend-only next step. Same rules as the Health **TTL & Partition Health** card | `system.tables`, `system.parts` |
 | Table Replicas | `/replicas` | Replicated table health: is\_leader, queue depth, absolute\_delay, last fetch | `system.replicas` |
 | Replication Queue | `/replication-queue` | Pending and in-progress replication tasks from Keeper/ZooKeeper | `system.replication_queue` |
 | Replicated Fetches | `/replicated-fetches` | Currently executing background part downloads between replicas | `system.replicated_fetches` |
@@ -92,6 +93,7 @@ CLICKHOUSE_MAX_EXECUTION_TIME=60
 ## Related
 
 <Cards>
+  <Card title="Health" href="/guide/features/health" description="TTL & Partition Health card — flagged tables at a glance." />
   <Card title="Data explorer" href="/guide/features/explorer" description="Browse the schema of any table shown in the tables list." />
   <Card title="Merges & operations" href="/guide/features/operations" description="Merges and mutations behind table part counts." />
   <Card title="Authentication" href="/operate/authentication" description="Who can sign in and what each visitor may access." />

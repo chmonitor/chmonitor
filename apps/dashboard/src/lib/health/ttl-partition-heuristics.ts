@@ -1,9 +1,10 @@
 /**
  * Pure TTL / partition inventory health checks.
  *
- * No I/O. Used by the /ttl-partition-health page (row styling) and the
- * optional Insights collector. Thresholds match the schema-design skill
- * (~500–1000 partitions/table) and issue #3074 acceptance.
+ * No I/O. Used by the /ttl-partition-health page (row styling), the
+ * /health TTL & Partition Health card, and the optional Insights collector.
+ * Thresholds match the schema-design skill (~500–1000 partitions/table)
+ * and issue #3074 acceptance.
  */
 
 export const PARTITION_COUNT_WARNING = 500

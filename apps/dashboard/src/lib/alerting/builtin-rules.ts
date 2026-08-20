@@ -18,6 +18,7 @@ import {
   PARTS_PRESSURE_PERCENT_CRITICAL,
   PARTS_PRESSURE_PERCENT_WARNING,
 } from '../health/parts-pressure'
+import { buildTtlPartitionFlaggedCountSql } from '../health/ttl-partition-sql'
 import { atLeast, compoundRuleRegistry } from './compound-rules'
 import { ruleRegistry } from './rule-registry'
 
@@ -282,6 +283,46 @@ FROM system.parts
 WHERE active
 GROUP BY database, table, partition
 ORDER BY parts DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'ttl-partition-health',
+    type: 'ttl-partition-health',
+    title: 'TTL & Partition Health',
+    description:
+      'MergeTree tables with partition bloat, a time-based PARTITION BY and no table TTL, or a merge backlog. Recommend-only — never applies ALTER TTL or DROP PARTITION.',
+    sql: buildTtlPartitionFlaggedCountSql(),
+    valueKey: 'flagged_count',
+    defaults: { warning: 1, critical: 5 },
+    formatLabel: fmtCount('table to review', 'tables to review'),
+    optional: true,
+    tableCheck: 'system.parts',
+    remediationActions: [
+      {
+        id: 'ttl-partition-health-runbook',
+        label: 'TTL & partition workflow',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/dba-workflows',
+      },
+      {
+        id: 'ttl-partition-health-detail',
+        label: 'Get tables with 500+ partitions',
+        kind: 'diagnostic',
+        description:
+          'MergeTree-family tables with the most active partitions, worst first.',
+        sql: `SELECT
+  concat(database, '.', table) AS full_table,
+  uniqExact(partition) AS partitions,
+  count() AS active_parts
+FROM system.parts
+WHERE active
+  AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
+GROUP BY database, table
+HAVING partitions >= 500
+ORDER BY partitions DESC
 LIMIT 20`,
       },
     ],
