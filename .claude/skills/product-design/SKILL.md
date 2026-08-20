@@ -212,7 +212,10 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.
   Wrap the list in `scrollbar-hide overflow-x-auto` + `w-max min-w-full` so
-  labels like "Memory & CPU" scroll instead of clipping.
+  labels like "Memory & CPU" scroll instead of clipping. Selected styles use
+  Base UI `data-active:` (trigger `border-b-2`, not Radix
+  `data-[state=active]:`). Do not use `TabsList variant="line"` on an
+  `overflow-x-auto` strip — the hanging `after` underline is clipped.
 - **Responsive chrome:** overview KPIs wrap from `sm` (truncate is `max-sm:`
   only). App sidebar overlays below `lg` (not a docked rail at 768). Mobile
   sidebar sheet is opaque — no heatmap-through-frost.   Phone time chips /
