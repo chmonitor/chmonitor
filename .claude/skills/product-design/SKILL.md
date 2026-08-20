@@ -106,9 +106,13 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   nodes**, `SegmentedControl size="default"`), then stacked Source /
   Target selects (peer **name**, never a raw id) with a Filter field,
   then **Differences** / **All**. Copy recommended SQL sits on that
-  filter row. When Differences is on, zero diffs, and no name filter,
-  the table list is `EmptyState variant="no-data"` titled **Schemas
-  match** — keep "No tables match" only for a name-filter miss.
+  filter row. The table catalog is a collapsible left sidebar
+  (`PanelLeftClose` / `PanelLeft`). When Differences is on and there
+  are no diffs, still list identical tables with a green
+  `CheckCircle2` (`--chart-green`) — click a row to select it on the
+  right. A matching selection is **All matched** / **This table
+  matches** (`MatchOk`), never EmptyState "no data" or "Select a
+  table". Keep "No tables match" only for a name-filter miss.
   Settings Diff (`/settings-diff`) uses the same toolbar; diffs-only
   with zero deltas is **All matched** plus a green check and **Show
   matching settings**. "Changed from default" is a pressable chip, not
