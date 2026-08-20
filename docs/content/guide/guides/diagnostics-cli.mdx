@@ -6,8 +6,9 @@ icon: Terminal
 
 `chm` is the standalone terminal CLI for chmonitor (crate `chmonitor`). The
 full alias `chmonitor` is the same binary. Run **`chm` with no subcommand** to
-open the live TUI (`chm tui` is the same UI). `chm --help` / `chm help` /
-`chm -h` still print help. By default it talks to **chmonitor Cloud** at
+open the live TUI (`chm tui` is the same UI) on the Overview dashboard charts.
+`chm --help` / `chm help` / `chm -h` still print help. By default it talks to
+**chmonitor Cloud** at
 `https://dash.chmonitor.dev` (hosts, charts, tables, TUI, agent). Point
 `--base-url` / `CHM_BASE_URL` / `chm config set base_url` at your self-hosted
 dashboard when needed.
@@ -105,8 +106,12 @@ available. Silence it with `CHM_NO_UPDATE_CHECK=1`.
 ## Common dashboard commands
 
 ```bash
-chm                        # live TUI (default)
+chm                        # live TUI (default) — Overview charts
 chm tui                    # same UI
+chm dashboard list         # pick Overview or a saved dashboard
+chm dashboard open Overview
+chm config                 # interactive config dialog
+chm config show            # files + inherit order + resolved
 chm hosts
 chm chart query-count --limit 50
 chm table running-queries --limit 30
@@ -115,9 +120,17 @@ chm agent "why are merges slow?"
 # same binary: chmonitor hosts
 ```
 
+The default TUI fetches Overview charts (`query-count`, counts, disk size) from
+`GET /api/v1/charts/{name}?hostId=` and skips 404s. `chm dashboard list` always
+includes built-in Overview; saved dashboards come from `GET /api/dashboards/list`
+when signed in (401/501 still list Overview). Piped stdout or `--json` prints
+names without a picker.
+
 Config priority: CLI flags → env (`CHM_BASE_URL`, `CHM_HOST_ID`, `CHM_API_KEY`,
-`CHM_TOKEN`, `CHM_CHANNEL`, …) → `./chm.toml` / `~/.config/chm/config.toml` →
-defaults.
+`CHM_TOKEN`, `CHM_CHANNEL`, …) → project `./chm.toml` / `./.chm/config.toml` →
+user `~/.config/chm/config.toml` → defaults (`base_url = https://dash.chmonitor.dev`).
+`chm config show` prints each layer's path, whether it exists, redacted file
+contents, env/flag overrides, and the resolved values.
 
 ## Zero-signup cluster health (`chm doctor`)
 
