@@ -29,6 +29,8 @@ interface MirrorRowProps {
   /** Fetch live metrics even when collapsed (eager for small lists). */
   loadMetrics?: boolean
   onMetrics?: (name: string, summary: MirrorMetricsSummary) => void
+  /** Last-known numbers while the live probe is still in flight. */
+  cachedMetrics?: MirrorMetricsSummary
 }
 
 export function MirrorRow({
@@ -37,21 +39,45 @@ export function MirrorRow({
   onToggle,
   loadMetrics = false,
   onMetrics,
+  cachedMetrics,
 }: MirrorRowProps) {
   // Treat undefined `isCdc` as CDC consistently so labels and metrics agree.
   const isCdc = mirror.isCdc !== false
   const type = isCdc ? 'CDC' : 'QRep'
   const meta = DESIGN_STATUS_META[toDesignStatus(mirror.status)]
   const metrics = useMirrorMetrics(mirror.name, isCdc, loadMetrics || expanded)
-  const { trend, rowsPerSec, rowsSynced, lagSec, partitions } = metrics
+  const waiting = metrics.loading && metrics.source !== 'live'
+  const trend = waiting && cachedMetrics ? cachedMetrics.trend : metrics.trend
+  const rowsPerSec =
+    waiting && cachedMetrics ? cachedMetrics.rowsPerSec : metrics.rowsPerSec
+  const rowsSynced =
+    waiting && cachedMetrics ? cachedMetrics.rowsSynced : metrics.rowsSynced
+  const lagSec =
+    waiting && cachedMetrics ? cachedMetrics.lagSec : metrics.lagSec
+  const partitions = metrics.partitions
   const panelId = useId()
 
-  const trendKey = trend.join(',')
+  const trendKey = metrics.trend.join(',')
   // Report metrics up so the page can aggregate KPI totals + lag triage (deduped fetch).
   // biome-ignore lint/correctness/useExhaustiveDependencies: trend tracked via trendKey
   useEffect(() => {
-    onMetrics?.(mirror.name, { rowsPerSec, rowsSynced, trend, lagSec })
-  }, [mirror.name, rowsPerSec, rowsSynced, trendKey, lagSec, onMetrics])
+    if (waiting || metrics.source !== 'live') return
+    onMetrics?.(mirror.name, {
+      rowsPerSec: metrics.rowsPerSec,
+      rowsSynced: metrics.rowsSynced,
+      trend: metrics.trend,
+      lagSec: metrics.lagSec,
+      source: 'live',
+    })
+  }, [
+    mirror.name,
+    metrics.rowsPerSec,
+    metrics.rowsSynced,
+    trendKey,
+    metrics.lagSec,
+    waiting,
+    onMetrics,
+  ])
 
   const lagAccent =
     lagSec == null
@@ -136,7 +162,12 @@ export function MirrorRow({
         </td>
 
         <td className="hidden px-3 py-2.5 text-right lg:table-cell">
-          <div className="font-mono text-[12px] tabular-nums">
+          <div
+            className={cn(
+              'font-mono text-[12px] tabular-nums',
+              waiting && 'motion-safe:animate-pulse motion-reduce:animate-none'
+            )}
+          >
             {rowsPerSec > 0 ? (
               pdbFmtNum(rowsPerSec)
             ) : (
@@ -151,7 +182,13 @@ export function MirrorRow({
         <td className="px-3 py-2.5">
           <div className="flex items-center justify-end gap-3">
             <div className="text-right">
-              <div className="font-mono text-[12.5px] font-semibold leading-tight tabular-nums">
+              <div
+                className={cn(
+                  'font-mono text-[12.5px] font-semibold leading-tight tabular-nums',
+                  waiting &&
+                    'motion-safe:animate-pulse motion-reduce:animate-none'
+                )}
+              >
                 {pdbFmtNum(rowsSynced)}
               </div>
               <div className="text-[10px] leading-tight tabular-nums text-muted-foreground">

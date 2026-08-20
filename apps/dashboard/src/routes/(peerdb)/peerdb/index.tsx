@@ -2,6 +2,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   ExternalLinkIcon,
+  LayersIcon,
   NetworkIcon,
   RefreshCwIcon,
   SearchIcon,
@@ -10,19 +11,31 @@ import {
 import { toast } from 'sonner'
 import { createFileRoute } from '@tanstack/react-router'
 
+import type { ReactNode } from 'react'
+import type { PrefixGroup } from '@/components/peerdb/group-by-prefix'
 import type { MirrorMetricsSummary } from '@/components/peerdb/mirror-row'
-import type { ListMirrorsResponse, ListPeersResponse } from '@/lib/peerdb/types'
+import type {
+  ListMirrorsResponse,
+  ListPeersResponse,
+  MirrorListItem,
+} from '@/lib/peerdb/types'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CountingNumber } from '@/components/peerdb/counting-number'
 import { FleetLagTriage } from '@/components/peerdb/fleet-lag-triage'
 import { FleetLogsFeed } from '@/components/peerdb/fleet-logs-feed'
+import { groupBySmartPrefix } from '@/components/peerdb/group-by-prefix'
 import { KpiCard } from '@/components/peerdb/kpi-card'
+import {
+  metricsFromSnapshot,
+  readMetricsCache,
+  writeMetricsCache,
+} from '@/components/peerdb/metrics-cache'
+import { MirrorGroupHeader } from '@/components/peerdb/mirror-group-header'
+import { MirrorMetricsProbe } from '@/components/peerdb/mirror-metrics-probe'
 import { MirrorRow } from '@/components/peerdb/mirror-row'
 import { PeerGraph } from '@/components/peerdb/peer-graph'
-import {
-  EAGER_METRICS_LIMIT,
-  shouldEagerLoadMetrics,
-} from '@/components/peerdb/peerdb-derive'
+import { EAGER_METRICS_LIMIT } from '@/components/peerdb/peerdb-derive'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
 import {
   DESIGN_STATUS_META,
@@ -32,6 +45,8 @@ import {
   toDesignStatus,
 } from '@/components/peerdb/peerdb-utils'
 import { usePeerDBStatus } from '@/components/peerdb/use-peerdb-status'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 import { usePeerDB } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
@@ -49,8 +64,42 @@ const FILTERS: { k: DesignStatus | 'all'; label: string }[] = [
 
 /** Rows rendered before "Show more" — windows huge fleets so the DOM stays light. */
 const PAGE_SIZE = 60
+const GROUP_ON_KEY = 'chm-peerdb-group-by-prefix'
+const GROUP_COLLAPSE_KEY = 'chm-peerdb-group-collapsed'
+/** Groups this large start collapsed unless the user has toggled them. */
+const DEFAULT_COLLAPSE_AT = 4
+
+type CollapseMap = Record<string, boolean>
+
+function readCollapseMap(): CollapseMap {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(GROUP_COLLAPSE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as CollapseMap
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function isGroupCollapsed(
+  wildcard: string,
+  size: number,
+  map: CollapseMap
+): boolean {
+  if (wildcard in map) return map[wildcard]
+  return size >= DEFAULT_COLLAPSE_AT
+}
+
+type ListEntry =
+  | { kind: 'group'; group: PrefixGroup<MirrorListItem> }
+  | { kind: 'mirror'; mirror: MirrorListItem }
 
 function PeerDBMirrorsPage() {
+  const searchParams = useUrlSearchParams()
+  const connection = searchParams.get(PEERDB_CONNECTION_PARAM) ?? ''
+
   const {
     data,
     error,
@@ -90,7 +139,6 @@ function PeerDBMirrorsPage() {
     }
   }
 
-  // Trigger sonner toast notifications on fetching errors
   useEffect(() => {
     if (error) {
       toast.error(`Mirrors API Error: ${error.message}`)
@@ -118,8 +166,41 @@ function PeerDBMirrorsPage() {
   const [metrics, setMetrics] = useState<Record<string, MirrorMetricsSummary>>(
     {}
   )
+  const [groupOn, setGroupOn] = useState(true)
+  const [collapseMap, setCollapseMap] = useState<CollapseMap>({})
 
-  const onMetrics = (name: string, m: MirrorMetricsSummary) => {
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(GROUP_ON_KEY) === '0') setGroupOn(false)
+    } catch {
+      // private mode
+    }
+    setCollapseMap(readCollapseMap())
+  }, [])
+
+  useEffect(() => {
+    const snap = readMetricsCache(connection)
+    if (!snap) return
+    setMetrics((prev) => {
+      const seeded = metricsFromSnapshot(snap)
+      const next = { ...seeded }
+      for (const [name, cur] of Object.entries(prev)) {
+        if (cur.source === 'live') next[name] = cur
+      }
+      return next
+    })
+  }, [connection])
+
+  useEffect(() => {
+    if (Object.keys(metrics).length === 0) return
+    const t = window.setTimeout(
+      () => writeMetricsCache(connection, metrics),
+      400
+    )
+    return () => window.clearTimeout(t)
+  }, [connection, metrics])
+
+  const onMetrics = useCallback((name: string, m: MirrorMetricsSummary) => {
     setMetrics((prev) => {
       const cur = prev[name]
       const sameTrend =
@@ -131,13 +212,14 @@ function PeerDBMirrorsPage() {
         cur.rowsPerSec === m.rowsPerSec &&
         cur.rowsSynced === m.rowsSynced &&
         cur.lagSec === m.lagSec &&
+        cur.source === m.source &&
         sameTrend
       ) {
         return prev
       }
       return { ...prev, [name]: m }
     })
-  }
+  }, [])
 
   const mirrors = data?.mirrors ?? []
   const peers = (() => {
@@ -171,10 +253,12 @@ function PeerDBMirrorsPage() {
     let rowsSynced = 0
     let trendLen = 0
     let measured = 0
+    let cached = 0
     for (const m of mirrors) {
       const v = metrics[m.name]
       if (!v) continue
       measured++
+      if (v.source === 'cache') cached++
       rowsPerSec += v.rowsPerSec
       rowsSynced += v.rowsSynced
       trendLen = Math.max(trendLen, v.trend.length)
@@ -182,7 +266,7 @@ function PeerDBMirrorsPage() {
     const aggTrend = Array.from({ length: trendLen }, (_, i) =>
       mirrors.reduce((a, m) => a + (metrics[m.name]?.trend[i] ?? 0), 0)
     )
-    return { rowsPerSec, rowsSynced, aggTrend, measured }
+    return { rowsPerSec, rowsSynced, aggTrend, measured, cached }
   })()
 
   const filtered = mirrors.filter((m) => {
@@ -198,24 +282,66 @@ function PeerDBMirrorsPage() {
     return true
   })
 
+  const grouping = useMemo(
+    () =>
+      groupOn
+        ? groupBySmartPrefix(filtered, (m) => m.name)
+        : { groups: [], ungrouped: filtered },
+    [filtered, groupOn]
+  )
+
+  const entries: ListEntry[] = useMemo(() => {
+    if (!groupOn) {
+      return filtered.map((mirror) => ({ kind: 'mirror' as const, mirror }))
+    }
+    return [
+      ...grouping.groups.map((group) => ({ kind: 'group' as const, group })),
+      ...grouping.ungrouped.map((mirror) => ({
+        kind: 'mirror' as const,
+        mirror,
+      })),
+    ]
+  }, [filtered, groupOn, grouping])
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate reset triggers
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [statusFilter, search])
+  }, [statusFilter, search, groupOn])
 
-  const visible = filtered.slice(0, visibleCount)
+  const visibleEntries = entries.slice(0, visibleCount)
 
   if (isPeerDBNotConfigured(error)) {
     return <PeerDBNotConfigured />
   }
 
-  // The first EAGER_METRICS_LIMIT rows always load metrics on mount so the
-  // header KPIs, sparklines, and lag triage are populated before any row is
-  // expanded; the rest load lazily on expand to cap the PeerDB API fan-out.
-  // `eagerMetrics` here means "the whole fleet fits the eager budget" and only
-  // drives the KPI sub-label (all vs partial), not the per-row gating.
+  const eagerSlice = mirrors.slice(0, EAGER_METRICS_LIMIT)
+  const liveCount = eagerSlice.filter(
+    (m) => metrics[m.name]?.source === 'live'
+  ).length
+  const counting = eagerSlice.length > 0 && liveCount < eagerSlice.length
+  const usingCache = totals.cached > 0
   const eagerMetrics =
     mirrors.length > 0 && mirrors.length <= EAGER_METRICS_LIMIT
+
+  const throughputSub = counting
+    ? usingCache
+      ? `counting ${liveCount}/${eagerSlice.length} · cached`
+      : `counting ${liveCount}/${eagerSlice.length}`
+    : eagerMetrics
+      ? usingCache
+        ? 'rows/s · cached'
+        : 'rows/s · all mirrors'
+      : `rows/s · ${totals.measured}/${mirrors.length} loaded`
+
+  const syncedSub = counting
+    ? usingCache
+      ? `counting ${liveCount}/${eagerSlice.length} · cached`
+      : `counting ${liveCount}/${eagerSlice.length}`
+    : eagerMetrics
+      ? usingCache
+        ? 'cumulative · cached'
+        : 'cumulative all-time'
+      : `cumulative · ${totals.measured}/${mirrors.length} loaded`
 
   const toggleRow = (id: string) =>
     setExpanded((prev) => {
@@ -223,6 +349,28 @@ function PeerDBMirrorsPage() {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+
+  const toggleGroup = (wildcard: string, size: number) => {
+    setCollapseMap((prev) => {
+      const currently = isGroupCollapsed(wildcard, size, prev)
+      const next = { ...prev, [wildcard]: !currently }
+      try {
+        window.localStorage.setItem(GROUP_COLLAPSE_KEY, JSON.stringify(next))
+      } catch {
+        // private mode
+      }
+      return next
+    })
+  }
+
+  const setGrouping = (on: boolean) => {
+    setGroupOn(on)
+    try {
+      window.localStorage.setItem(GROUP_ON_KEY, on ? '1' : '0')
+    } catch {
+      // private mode
+    }
+  }
 
   const connected = status?.state === 'connected'
   const chipTone = connected
@@ -236,8 +384,31 @@ function PeerDBMirrorsPage() {
       ? '#f59e0b'
       : '#94a3b8'
 
+  const renderMirror = (m: MirrorListItem) => (
+    <MirrorRow
+      key={m.name}
+      mirror={m}
+      expanded={expanded.has(m.name)}
+      onToggle={() => toggleRow(m.name)}
+      loadMetrics={expanded.has(m.name)}
+      onMetrics={onMetrics}
+      cachedMetrics={
+        metrics[m.name]?.source === 'cache' ? metrics[m.name] : undefined
+      }
+    />
+  )
+
   return (
     <div className="max-w-[1640px] px-3 py-4 sm:px-4 sm:py-5 md:px-6">
+      {eagerSlice.map((m) => (
+        <MirrorMetricsProbe
+          key={m.name}
+          name={m.name}
+          isCdc={m.isCdc !== false}
+          onMetrics={onMetrics}
+        />
+      ))}
+
       {/* header */}
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3 sm:items-center">
         <div className="flex min-w-0 items-center gap-2">
@@ -247,6 +418,11 @@ function PeerDBMirrorsPage() {
           <span className="ml-1 inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] font-medium text-muted-foreground">
             {mirrors.length} mirrors
           </span>
+          {groupOn && grouping.groups.length > 0 && (
+            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] font-medium text-muted-foreground">
+              {grouping.groups.length} groups
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <span
@@ -273,10 +449,12 @@ function PeerDBMirrorsPage() {
               {status?.host ?? '—'}
             </span>
           </span>
-          {isRefreshing && (
+          {(isRefreshing || counting) && (
             <span className="mr-1 inline-flex animate-pulse items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="size-1.5 rounded-full bg-primary" />
-              Syncing in background...
+              {counting
+                ? `Counting ${liveCount}/${eagerSlice.length} jobs…`
+                : 'Syncing in background...'}
             </span>
           )}
           <button
@@ -314,7 +492,6 @@ function PeerDBMirrorsPage() {
         <span className="font-mono">/v1/mirrors/list</span>.
       </p>
 
-      {/* API connection error warning banner */}
       {(error || peersError || statusError) && (
         <div className="mb-4 animate-in fade-in slide-in-from-top-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-[12.5px] text-destructive shadow-sm duration-300">
           <div className="flex items-center gap-2">
@@ -369,31 +546,36 @@ function PeerDBMirrorsPage() {
         />
         <KpiCard
           label="Throughput"
-          value={pdbFmtNum(totals.rowsPerSec)}
-          sub={
-            eagerMetrics
-              ? 'rows/s · all mirrors'
-              : `rows/s · ${totals.measured}/${mirrors.length} loaded`
+          value={
+            <CountingNumber
+              value={totals.rowsPerSec}
+              counting={counting}
+              cached={usingCache && counting}
+            />
           }
+          sub={throughputSub}
+          counting={counting}
           dotColor="#6366f1"
           sparkData={totals.aggTrend}
           sparkColor="#6366f1"
         />
         <KpiCard
           label="Rows synced"
-          value={pdbFmtNum(totals.rowsSynced)}
-          sub={
-            eagerMetrics
-              ? 'cumulative all-time'
-              : `cumulative · ${totals.measured}/${mirrors.length} loaded`
+          value={
+            <CountingNumber
+              value={totals.rowsSynced}
+              counting={counting}
+              cached={usingCache && counting}
+              format={pdbFmtNum}
+            />
           }
+          sub={syncedSub}
+          counting={counting}
         />
       </div>
 
-      {/* lag triage strip — worst-lag mirrors (quiet when the fleet is healthy) */}
       <FleetLagTriage mirrors={mirrors} metrics={metrics} />
 
-      {/* topology card — expand button centered on bottom border */}
       <div className="relative mb-6">
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
@@ -432,9 +614,7 @@ function PeerDBMirrorsPage() {
         </div>
       </div>
 
-      {/* mirror table card */}
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        {/* toolbar */}
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
           <div className="flex h-8 min-w-[200px] max-w-[360px] flex-1 items-center gap-1.5 rounded-md border border-border bg-card px-2.5">
             <SearchIcon className="size-3 text-muted-foreground" />
@@ -479,6 +659,21 @@ function PeerDBMirrorsPage() {
               )
             })}
           </div>
+          <button
+            type="button"
+            onClick={() => setGrouping(!groupOn)}
+            aria-pressed={groupOn}
+            className={cn(
+              'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium',
+              groupOn
+                ? 'border-border bg-card text-foreground shadow-sm'
+                : 'border-transparent text-muted-foreground hover:bg-muted'
+            )}
+            title="Group jobs that share a name prefix (qrep_sg_fleetreporting1_*)"
+          >
+            <LayersIcon className="size-3.5" />
+            <span className="hidden sm:inline">Group by prefix</span>
+          </button>
           <div className="flex-1" />
         </div>
 
@@ -522,16 +717,30 @@ function PeerDBMirrorsPage() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((m, i) => (
-                <MirrorRow
-                  key={m.name}
-                  mirror={m}
-                  expanded={expanded.has(m.name)}
-                  onToggle={() => toggleRow(m.name)}
-                  loadMetrics={shouldEagerLoadMetrics(i)}
-                  onMetrics={onMetrics}
-                />
-              ))}
+              {visibleEntries.map((entry) => {
+                if (entry.kind === 'mirror') {
+                  return renderMirror(entry.mirror)
+                }
+                const { group } = entry
+                const collapsed = isGroupCollapsed(
+                  group.wildcard,
+                  group.items.length,
+                  collapseMap
+                )
+                return (
+                  <FragmentGroup
+                    key={group.wildcard}
+                    group={group}
+                    collapsed={collapsed}
+                    onToggle={() =>
+                      toggleGroup(group.wildcard, group.items.length)
+                    }
+                    metrics={metrics}
+                    counting={counting}
+                    renderMirror={renderMirror}
+                  />
+                )
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td
@@ -546,15 +755,15 @@ function PeerDBMirrorsPage() {
           </table>
         </div>
 
-        {visible.length < filtered.length && (
+        {visibleEntries.length < entries.length && (
           <div className="border-t border-border px-3 py-2 text-center">
             <button
               type="button"
               onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
               className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
             >
-              Show {Math.min(PAGE_SIZE, filtered.length - visible.length)} more
-              mirrors
+              Show {Math.min(PAGE_SIZE, entries.length - visibleEntries.length)}{' '}
+              more {groupOn ? 'groups' : 'mirrors'}
             </button>
           </div>
         )}
@@ -563,13 +772,15 @@ function PeerDBMirrorsPage() {
           <div>
             Showing{' '}
             <span className="font-medium tabular-nums text-foreground">
-              {visible.length}
-            </span>{' '}
-            of {filtered.length}
+              {filtered.length}
+            </span>
             {filtered.length !== mirrors.length
-              ? ` (filtered from ${mirrors.length})`
+              ? ` of ${mirrors.length} filtered`
               : ''}{' '}
             mirrors
+            {groupOn && grouping.groups.length > 0
+              ? ` · ${grouping.groups.length} prefix groups`
+              : ''}
           </div>
           <div className="flex items-center gap-2">
             <RefreshCwIcon className="size-3" />
@@ -578,8 +789,6 @@ function PeerDBMirrorsPage() {
         </div>
       </div>
 
-      {/* fleet logs & alerts — collapsed by default; mounted only when open so
-          the per-mirror log fetchers don't poll in the background. */}
       {mirrors.length > 0 && (
         <div className="mt-4">
           <button
@@ -598,5 +807,34 @@ function PeerDBMirrorsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function FragmentGroup({
+  group,
+  collapsed,
+  onToggle,
+  metrics,
+  counting,
+  renderMirror,
+}: {
+  group: PrefixGroup<MirrorListItem>
+  collapsed: boolean
+  onToggle: () => void
+  metrics: Record<string, MirrorMetricsSummary>
+  counting: boolean
+  renderMirror: (m: MirrorListItem) => ReactNode
+}) {
+  return (
+    <>
+      <MirrorGroupHeader
+        group={group}
+        expanded={!collapsed}
+        onToggle={onToggle}
+        metrics={metrics}
+        counting={counting}
+      />
+      {!collapsed && group.items.map((m) => renderMirror(m))}
+    </>
   )
 }

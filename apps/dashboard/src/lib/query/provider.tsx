@@ -69,6 +69,28 @@ const NEVER_PERSIST_QUERY_KEYS = new Set<string>([
  * Decide whether a query may be written to the persisted cache. Exported so the
  * exclusions can be tested without rendering the provider.
  */
+/**
+ * PeerDB `/mirrors/status`, batches, logs, and per-table counts are large
+ * (hundreds of QRep partitions). Persisting them blows the ~5 MB localStorage
+ * budget and slows first paint. Compact KPI numbers live in
+ * `chm-peerdb-metrics-v1` instead; list/peers/graph still persist here.
+ */
+const BULKY_PEERDB_PATHS = new Set([
+  '/mirrors/status',
+  '/mirrors/cdc/batches',
+  '/mirrors/logs',
+])
+
+function isBulkyPeerDBQuery(queryKey: readonly unknown[]): boolean {
+  if (queryKey[0] !== 'peerdb') return false
+  const path = String(queryKey[1] ?? '')
+  if (BULKY_PEERDB_PATHS.has(path)) return true
+  return (
+    path.startsWith('/mirrors/cdc/table_total_counts/') ||
+    path.startsWith('/mirrors/cdc/initial_load/')
+  )
+}
+
 export function shouldDehydrateQuery(query: {
   state: { status: string }
   queryKey: readonly unknown[]
@@ -80,6 +102,7 @@ export function shouldDehydrateQuery(query: {
   // Never persist per-user server connections — would leak across accounts.
   if (query.queryKey[0] === USER_CONNECTIONS_QUERY_PREFIX) return false
   if (NEVER_PERSIST_QUERY_KEYS.has(String(query.queryKey[0]))) return false
+  if (isBulkyPeerDBQuery(query.queryKey)) return false
   return true
 }
 

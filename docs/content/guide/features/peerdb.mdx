@@ -23,8 +23,8 @@ Monitor PeerDB replication mirrors and peers without leaving chmonitor — an op
 
 When you set `PEERDB_API_URL`, chmonitor adds a PeerDB section to the navigation. It proxies read-only calls to the PeerDB API so you can monitor replication without leaving the chmonitor UI.
 
-- **Mirrors** (`/peerdb`) shows all configured replication mirrors with status, throughput, and per-table sync state, plus a fleet **lag-triage strip** (worst-lag mirrors) and a collapsible **logs & alerts feed** aggregated across every mirror.
-- **Mirror detail** (`/peerdb/mirror?name=…`) adds **snapshot / initial-load progress** (per-table partition completion, fetch/consolidate phase, avg time per partition), **CDC batch history** (rows per batch, LSN range, duration), a per-table **operation mix** (insert/update/delete), and an authoritative rows-synced total.
+- **Mirrors** (`/peerdb`) shows all configured replication mirrors with status, throughput, and per-table sync state, plus a fleet **lag-triage strip** (worst-lag mirrors) and a collapsible **logs & alerts feed** aggregated across every mirror. Jobs that share a name prefix (date/version suffixes such as `qrep_sg_fleetreporting1_202608`) **group under a `prefix_*` wildcard** you can collapse; each group shows aggregated lag, rows/s, and rows synced. Header totals **count up** while per-job metrics are still loading, and last-known numbers are **cached** so the page paints immediately on revisit.
+- **Mirror detail** (`/peerdb/mirror?name=…`) adds **snapshot / initial-load progress** (per-table partition completion, fetch/consolidate phase, avg time per partition), **CDC batch history** (rows per batch, LSN range, duration), a per-table **operation mix** (insert/update/delete), an authoritative rows-synced total, and for QRep jobs a searchable, paged **partition progress** table (UUID, duration, start/end, rows in partition vs synced) plus partition-sync history.
 - **Peers** (`/peerdb/peers`) lists source and destination peers, a **replication slot health** table (lag, active state, WAL status classified ok / warn / critical), and a mirror connectivity graph.
 - **Peer detail** (`/peerdb/peer?name=…`) shows the peer's redacted config and server version, its replication slots, slot-lag history, and active queries.
 
@@ -36,8 +36,8 @@ The PeerDB section does not appear in the navigation when `PEERDB_API_URL` is un
 
 | Page | Route | What it shows | System tables |
 |---|---|---|---|
-| Mirrors | `/peerdb` | Mirror status, throughput, lag triage, fleet logs feed | — (PeerDB API) |
-| Mirror detail | `/peerdb/mirror` | Snapshot progress, CDC batch history, operation mix, rows-synced total | — (PeerDB API) |
+| Mirrors | `/peerdb` | Mirror status, prefix groups, throughput, lag triage, fleet logs feed | — (PeerDB API) |
+| Mirror detail | `/peerdb/mirror` | Snapshot progress, CDC batch history, QRep partition search/pager, operation mix, rows-synced total | — (PeerDB API) |
 | Peers | `/peerdb/peers` | Peer list, slot health, mirror graph | — (PeerDB API) |
 | Peer detail | `/peerdb/peer` | Peer info + version, slots, slot-lag history, active queries | — (PeerDB API) |
 
@@ -132,7 +132,7 @@ access = "authenticated"
     PEERDB_API_URL: { type: "string", description: "PeerDB API base URL. Include the /api suffix for the UI API (e.g. https://peerdb.example.com/api). When unset, the PeerDB section is hidden entirely. Default: unset." },
     PEERDB_PASSWORD: { type: "string", description: "Auth secret. Used as the HTTP Basic password (empty username) by default, or as the Bearer token when PEERDB_AUTH_SCHEME=bearer. Default: unset." },
     PEERDB_AUTH_SCHEME: { type: "string", description: "Auth scheme for PEERDB_PASSWORD: 'basic' (empty-user HTTP Basic, the default) or 'bearer' (Authorization: Bearer <token>) for deployments behind an auth proxy (PeerDB Enterprise / BYOC). Default: basic." },
-    PEERDB_CACHE_TTL_MS: { type: "number", description: "Response cache TTL in milliseconds. Default: 10000." },
+    PEERDB_CACHE_TTL_MS: { type: "number", description: "Server-side response cache TTL in milliseconds. Default: 10000. The browser also persists mirror list/peers queries and a compact KPI snapshot (`chm-peerdb-metrics-v1`) so the fleet page paints last-known numbers immediately." },
     PEERDB_CACHE_MAX_ENTRIES: { type: "number", description: "Maximum number of cached responses. Default: 500." },
     PEERDB_FETCH_TIMEOUT_MS: { type: "number", description: "Timeout for proxied PeerDB API requests. Default: 10000." },
   }}

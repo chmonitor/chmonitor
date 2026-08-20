@@ -9,17 +9,25 @@ import type {
   TotalRowsSyncedResponse,
 } from '@/lib/peerdb/types'
 
-import { Suspense } from 'react'
+import { type ReactNode, Suspense } from 'react'
 import { CdcBatchHistory } from '@/components/peerdb/cdc-batch-history'
+import { CountingNumber } from '@/components/peerdb/counting-number'
+import { jobPartitionAnalytics } from '@/components/peerdb/job-analytics'
 import { MirrorStatusBadge } from '@/components/peerdb/mirror-status-badge'
 import { OperationMixChart } from '@/components/peerdb/operation-mix-chart'
-import { PartitionTable } from '@/components/peerdb/partition-table'
+import { PdbBarChart } from '@/components/peerdb/pdb-charts'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
 import {
   formatDateTime,
   isPeerDBNotConfigured,
+  pdbFmtDuration,
+  pdbFmtNum,
   toNumber,
 } from '@/components/peerdb/peerdb-utils'
+import {
+  buildSyncHistory,
+  QRepPartitions,
+} from '@/components/peerdb/qrep-partitions'
 import { RowsSyncedChart } from '@/components/peerdb/rows-synced-chart'
 import { SnapshotProgress } from '@/components/peerdb/snapshot-progress'
 import { AppLink } from '@/components/ui/app-link'
@@ -39,12 +47,28 @@ export const Route = createFileRoute('/(peerdb)/peerdb/mirror')({
   component: PeerDBMirrorDetailPage,
 })
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  counting,
+}: {
+  label: string
+  value: ReactNode
+  counting?: boolean
+}) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-1 p-4">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-xl font-semibold tabular-nums">{value}</span>
+        <span
+          className={`text-xl font-semibold tabular-nums ${
+            counting
+              ? 'motion-safe:animate-pulse motion-reduce:animate-none'
+              : ''
+          }`}
+        >
+          {value}
+        </span>
       </CardContent>
     </Card>
   )
@@ -105,6 +129,7 @@ function MirrorDetailContent() {
   const qrep = data?.qrepStatus
   const isCdc = !qrep
   const partitions = qrep?.partitions ?? []
+  const partStats = jobPartitionAnalytics(partitions)
   const tables = tableCounts.data?.tablesData ?? []
   const errors = logs.data?.errors ?? []
   const batches = batchesReq.data?.cdcBatches ?? cdc?.cdcBatches ?? []
@@ -115,8 +140,17 @@ function MirrorDetailContent() {
   const rowsSynced =
     authoritativeTotal != null
       ? toNumber(authoritativeTotal)
-      : toNumber(cdc?.rowsSynced)
-  const hasRowsSynced = authoritativeTotal != null || cdc?.rowsSynced != null
+      : qrep
+        ? partStats.rowsSynced
+        : toNumber(cdc?.rowsSynced)
+  const hasRowsSynced =
+    authoritativeTotal != null ||
+    cdc?.rowsSynced != null ||
+    (qrep != null && partitions.length > 0)
+  const counting =
+    status.isLoading ||
+    totalSynced.isLoading ||
+    (qrep != null && status.isLoading)
 
   return (
     <div className="flex flex-col gap-4">
@@ -140,22 +174,72 @@ function MirrorDetailContent() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard
           label="Rows synced (total)"
-          value={hasRowsSynced ? formatReadableQuantity(rowsSynced) : '—'}
-        />
-        <StatCard
-          label="Tables"
-          value={String(tables.length || partitions.length || 0)}
-        />
-        <StatCard
-          label="Total (graph)"
+          counting={counting}
           value={
-            graph.data
-              ? formatReadableQuantity(toNumber(graph.data.totalRows))
-              : '—'
+            hasRowsSynced ? (
+              <CountingNumber
+                value={rowsSynced}
+                counting={counting}
+                format={(n) => formatReadableQuantity(n)}
+              />
+            ) : (
+              '—'
+            )
           }
+        />
+        {qrep ? (
+          <>
+            <StatCard
+              label="Partitions"
+              counting={counting}
+              value={`${partStats.done} / ${partStats.total}`}
+            />
+            <StatCard
+              label="Rows in partitions"
+              counting={counting}
+              value={
+                <CountingNumber
+                  value={partStats.rowsIn}
+                  counting={counting}
+                  format={pdbFmtNum}
+                />
+              }
+            />
+            <StatCard
+              label="Avg partition"
+              value={
+                partStats.avgDurationSec != null
+                  ? pdbFmtDuration(partStats.avgDurationSec)
+                  : '—'
+              }
+            />
+          </>
+        ) : (
+          <>
+            <StatCard label="Tables" value={String(tables.length || 0)} />
+            <StatCard
+              label="Total (graph)"
+              counting={graph.isLoading}
+              value={
+                graph.data ? (
+                  <CountingNumber
+                    value={toNumber(graph.data.totalRows)}
+                    counting={graph.isLoading}
+                    format={(n) => formatReadableQuantity(n)}
+                  />
+                ) : (
+                  '—'
+                )
+              }
+            />
+          </>
+        )}
+        <StatCard
+          label="Created"
+          value={data?.createdAt ? formatDateTime(data.createdAt) : '—'}
         />
       </div>
 
@@ -178,10 +262,26 @@ function MirrorDetailContent() {
         </section>
       ) : null}
 
+      {qrep && partitions.length > 0 ? (
+        <section className="flex flex-col gap-2 rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Partition sync history</h2>
+            <span className="text-[11px] text-muted-foreground">
+              Rows synced at a point in time
+            </span>
+          </div>
+          <PdbBarChart
+            data={buildSyncHistory(partitions)}
+            color="#3b82f6"
+            height={200}
+            valueFormatter={pdbFmtNum}
+          />
+        </section>
+      ) : null}
+
       {partitions.length > 0 ? (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Partitions</h2>
-          <PartitionTable partitions={partitions} />
+          <QRepPartitions partitions={partitions} pageSize={50} />
         </section>
       ) : null}
 
