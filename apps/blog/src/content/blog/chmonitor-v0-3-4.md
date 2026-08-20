@@ -91,7 +91,7 @@ map.
 Self-hosters: pull the image you already run.
 
 ```bash
-docker pull ghcr.io/chmonitor/chmonitor:latest
+docker pull ghcr.io/chmonitor/chmonitor:v0.3.4
 ```
 
 Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev)) already has this.
