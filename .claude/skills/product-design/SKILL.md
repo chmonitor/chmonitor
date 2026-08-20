@@ -12,7 +12,8 @@ description: >-
   "empty state", "loading", "consistent", "follow-up feature", "match the design",
   "what's new", "changelog", "dialog scroll", "settings gear",
   "schema compare", "settings diff", "add host", "pick a query",
-  "query picker", "select labels", "ON CLUSTER", "advisor DDL".
+  "query picker", "select labels", "ON CLUSTER", "advisor DDL",
+  "command palette", "cmd k", "ttl partitions".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -392,9 +393,11 @@ module snapshot in `lib/format-settings.ts`; palette/density →
 1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
 2. Add a `QueryConfig` in `src/lib/query-config/` if it needs data.
 3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
-   Interactive utilities (SQL, explorer, explain, compare, builder) go in
-   `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
-   Tables. Other system-table views stay in their domain file. Tools is the last Main group, composed
+   Interactive utilities (SQL, explorer, explain, compare, builder, advisor)
+   go in `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
+   Tables. TTL & Partitions (`/ttl-partition-health`) is a system-table
+   inventory — it lives under Tables, not Tools or System. Other
+   system-table views stay in their domain file. Tools is the last Main group, composed
    after Logs and before the About footer in `menu/index.ts` — do not put
    it after Overview / before AI Agent. The Tools parent must not set
    `permission`; copy the child's existing feature onto the leaf. Leave

@@ -15,6 +15,8 @@ describe('dba-workflows guide', () => {
     expect(src).toContain('/storage-economics')
     expect(src).toContain('/explorer')
     expect(src).toContain('/ttl-partition-health')
+    expect(src).toContain('Tables → TTL & Partitions')
+    expect(src).not.toContain('System → TTL')
   })
 
   test('does not cite closed issues as planned work', () => {

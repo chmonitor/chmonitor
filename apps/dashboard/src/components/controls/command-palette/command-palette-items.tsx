@@ -21,6 +21,7 @@ import type { MenuItem } from '@/components/menu/types'
 import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
 import type { ExplorerTableRow } from './use-palette-groups'
 
+import { menuItemPaletteValue } from '../command-palette-utils'
 import {
   CommandEmpty,
   CommandGroup,
@@ -186,9 +187,7 @@ export function CommandPaletteResults({
               <CommandItem
                 key={`favorite-${item.href}`}
                 onSelect={() => onSelectFavorite(item)}
-                value={`favorite ${[item.title, item.description]
-                  .filter(Boolean)
-                  .join(' ')}`}
+                value={`favorite ${menuItemPaletteValue(item)}`}
                 className="group"
               >
                 <Pin className="size-4 shrink-0 fill-current text-muted-foreground" />
@@ -270,7 +269,7 @@ export function CommandPaletteResults({
             <CommandItem
               key={group.href}
               onSelect={() => onSelectMenuItem(group)}
-              value={[group.title, group.description].filter(Boolean).join(' ')}
+              value={menuItemPaletteValue(group)}
               className="group"
             >
               {group.icon && <group.icon className="size-4 shrink-0" />}
@@ -287,9 +286,7 @@ export function CommandPaletteResults({
             <CommandItem
               key={item.href}
               onSelect={() => onSelectMenuItem(item)}
-              value={[group.title, item.title, item.description]
-                .filter(Boolean)
-                .join(' ')}
+              value={menuItemPaletteValue(item, group.title)}
               className="group flex-col items-start gap-0.5"
             >
               <div className="flex w-full items-center gap-2">

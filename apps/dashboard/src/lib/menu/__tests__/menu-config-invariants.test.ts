@@ -234,10 +234,41 @@ describe('Tools group (interactive utilities)', () => {
 
     expect(hrefsOf('Tables')).not.toContain('/sql')
     expect(hrefsOf('Tables')).toContain('/explorer')
+    expect(hrefsOf('Tables')).toContain('/ttl-partition-health')
     expect(hrefsOf('Queries')).not.toContain('/explain')
     expect(hrefsOf('Queries')).not.toContain('/advisor')
     expect(hrefsOf('Operations')).not.toContain('/dashboard')
     expect(hrefsOf('System')).not.toContain('/schema-diff')
     expect(hrefsOf('System')).not.toContain('/settings-diff')
+    expect(hrefsOf('System')).not.toContain('/ttl-partition-health')
+  })
+})
+
+describe('command-palette aliases (⌘K)', () => {
+  test('DBA pages carry keywords so Cmd+K matches nicknames and routes', () => {
+    const byHref = Object.fromEntries(leaves.map((item) => [item.href, item]))
+    const required: Record<string, string[]> = {
+      '/schema-diff': ['schema diff', 'ddl', 'schema-diff'],
+      '/settings-diff': ['config diff', 'settings-diff'],
+      '/advisor': ['query advisor', 'schema advisor', 'ttl'],
+      '/ttl-partition-health': ['ttl-partition-health', 'partition health'],
+    }
+    for (const [href, aliases] of Object.entries(required)) {
+      const item = byHref[href]
+      expect(item, href).toBeDefined()
+      const haystack = [
+        item.title,
+        item.href,
+        item.description,
+        ...(item.keywords ?? []),
+      ]
+        .join(' ')
+        .toLowerCase()
+      for (const alias of aliases) {
+        expect(haystack, `${href} should match ${alias}`).toContain(
+          alias.toLowerCase()
+        )
+      }
+    }
   })
 })

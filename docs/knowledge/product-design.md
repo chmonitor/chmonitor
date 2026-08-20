@@ -746,8 +746,16 @@ Explorer (`/explorer`), Explain (`/explain`), Advisor (`/advisor`,
 recommend-only), Chart Builder (`/dashboard`), Schema Compare
 (`/schema-diff`), Settings Diff (`/settings-diff`). Data Explorer is
 **also** listed under Tables (`menu/data-explorer.ts` shared leaf).
-AI Agent stays its own flagship group. Postgres-only items stay
-engine-gated and are not moved here.
+TTL & Partitions (`/ttl-partition-health`) is a system-table inventory
+of MergeTree TTL / `PARTITION BY` — it lives under **Tables**, not
+System or Tools. AI Agent stays its own flagship group. Postgres-only
+items stay engine-gated and are not moved here.
+
+⌘K (`components/controls/command-palette.tsx`) indexes every visible
+menu leaf by title, href, description, and optional `keywords` on
+`MenuItem` (`menuItemPaletteValue`). DBA pages (Advisor, Schema Compare,
+Settings Diff, TTL & Partitions) declare aliases so searches like
+`ddl`, `schema diff`, `config diff`, or `ttl inventory` hit them.
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

@@ -37,6 +37,32 @@ export function detectQuickNav(raw: string): QuickNavMatch {
 }
 
 /**
+ * cmdk `CommandItem.value` for a menu leaf. Includes the group title, page
+ * title, href, description, and optional aliases so ⌘K can find pages by
+ * route (`schema-diff`) or nickname (`ddl`, `ttl inventory`) as well as the
+ * visible label.
+ */
+export function menuItemPaletteValue(
+  item: {
+    title: string
+    href?: string
+    description?: string
+    keywords?: readonly string[]
+  },
+  groupTitle?: string
+): string {
+  return [
+    groupTitle,
+    item.title,
+    item.href,
+    item.description,
+    ...(item.keywords ?? []),
+  ]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join(' ')
+}
+
+/**
  * Split a `database.table` reference into its parts. Only the first dot is
  * treated as the separator so table names containing dots are preserved.
  */
