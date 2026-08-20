@@ -84,6 +84,16 @@ Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
 `api/v1/hosts.ts` (the shown list) and `lib/api/clickhouse-config.ts`
 (`getClickHouseConfigsFromEnv` → live status / health / notifications).
 
+## CLI auth discovery
+
+`chm auth login` probes public `GET /api/v1/auth/cli` (exempt from the
+`/api/v1` auth gate). Response `method` is `none` | `device` | `api_key` —
+no `auth_mode` in CLI config. Resolver:
+`apps/dashboard/src/lib/auth/cli-auth-discovery.ts` (route
+`routes/api/v1/auth/cli.ts`). Device-login enablement still comes from
+`CHM_DEVICE_LOGIN` + `CHM_API_KEY_SECRET` as in the matrix above. See
+[standalone-cli.md](standalone-cli.md).
+
 ## Files
 
 - `apps/dashboard/src/lib/cloud/cloud-mode.ts` — resolvers + `parseCloudMode` + `detectCloudModeMismatch` (build-time-vs-runtime split-brain guard, #2515). Tested.

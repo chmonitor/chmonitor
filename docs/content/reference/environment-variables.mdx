@@ -528,6 +528,42 @@ Set the canonical `CHM_*` names. Client `VITE_*` is derived at build time.
 Build-time branding overrides (optional; do not set unless you custom-build):
 `VITE_TITLE_SHORT`, `VITE_LOGO`, `VITE_AUTOCOMPLETE_LIMIT`, `VITE_MEASUREMENT_ID`.
 
+## CLI client
+
+Env vars for the standalone [`chm` / `chmonitor` CLI](/guide/guides/diagnostics-cli)
+(crate `ch-monitor-cli`). These are read by the binary and `scripts/install.sh`,
+not by the dashboard server. Flags override env; env overrides
+`./chm.toml` / `~/.config/chm/config.toml`. Default API base is
+`https://dash.chmonitor.dev`.
+
+`chm auth login` discovers how to authenticate by probing public
+`GET /api/v1/auth/cli` (`method`: `none` | `api_key` | `device`) — there is no
+`auth_mode` in config. See [API keys — device login](/operate/authentication/api-keys#device-login-chm-auth-login).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_BASE_URL` | `https://dash.chmonitor.dev` | Dashboard API origin for `hosts` / `chart` / `table` / `tui` / `auth` / … |
+| `CHM_CHANNEL` | `stable` | Release channel for `install.sh` and `chm update`/`upgrade`: `stable` or `beta`. Also `--channel` / config `channel`. |
+| `CHM_API_KEY` | — | `chm_` API key (also `--api-key`). Used when discovery returns `api_key`, or alongside device login. |
+| `CHM_TOKEN` | — | Bearer token from device login (also `--token`). Usually stored in the OS keyring. |
+| `CHM_HOST_ID` | `0` | Host index for dashboard API calls (`?host=`). |
+| `CHM_CONFIG` | — | Path to a config TOML (overrides the default search paths). |
+| `CHM_NO_UPDATE_CHECK` | — | Set to `1` to silence the post-command “update available” hint. |
+| `CHM_TELEMETRY` | on | Same as dashboard: `off` / `0` / `false` / `no` disables CLI telemetry. |
+| `CHM_TELEMETRY_ENDPOINT` | `https://telemetry.chmonitor.dev/v1/ping` | Empty string = hard kill-switch. |
+| `DO_NOT_TRACK` | — | Cross-tool hard override (`1`) disables CLI telemetry. |
+
+### Installer (`scripts/install.sh`)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_CHANNEL` | `stable` | `stable` skips prereleases; `beta` prefers `chm-v*-beta.N`. |
+| `CHM_VERSION` | latest for channel | Pin a release tag (`chm-vX.Y.Z`, `vX.Y.Z`, or `X.Y.Z`). |
+| `CHM_INSTALL_DIR` | `$HOME/.local/bin` | Install directory (never uses `sudo`). |
+
+Server-side device login gates (`CHM_DEVICE_LOGIN`, `CHM_API_KEY_SECRET`, …)
+live under [Authentication](#authentication).
+
 ## Product telemetry
 
 Anonymous product telemetry is **on by default**. See [Product telemetry](/operate/advanced/telemetry).

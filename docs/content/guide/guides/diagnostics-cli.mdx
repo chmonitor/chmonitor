@@ -1,103 +1,173 @@
 ---
-title: Zero-signup diagnostics CLI
-description: Run a local, read-only ClickHouse health scan with no chmonitor account — chm diagnose connects straight to your cluster and prints a scored report.
-icon: Stethoscope
+title: chm CLI
+description: Install and use the chm / chmonitor CLI — dashboard API client, TUI, self-update, and zero-signup diagnose against a cluster.
+icon: Terminal
 ---
 
-`chm diagnose` is a one-shot health check for a ClickHouse cluster that needs **no chmonitor account and no backend** — the binary talks directly to ClickHouse's HTTP interface, runs a fixed set of read-only checks, and prints a scored report to your terminal.
+`chm` is the standalone terminal CLI for chmonitor (crate `ch-monitor-cli`). The
+full alias `chmonitor` is the same binary. By default it talks to **chmonitor
+Cloud** at `https://dash.chmonitor.dev` (hosts, charts, tables, TUI, agent).
+Point `--base-url` / `CHM_BASE_URL` at your self-hosted dashboard when needed.
 
-<Callout type="info" title="Different from the rest of the CLI">
-The other `chm` subcommands (`hosts`, `chart`, `table`, `tui`) talk to a running chmonitor dashboard's API. `chm diagnose` is standalone — point it at a ClickHouse host and it works with nothing else installed or configured.
+`chm diagnose` is a separate mode: it connects **straight to a [REDACTED]
+host** with no dashboard account or backend.
+
+<Callout type="info" title="Binary names and platforms">
+Shipped release assets are Linux and macOS only (`x86_64` / `aarch64`). There
+is no Windows binary — use `cargo install ch-monitor-cli` on unsupported
+targets. Release tags use `chm-v*`; assets are named `chm-<target>` (+
+`.sha256`).
 </Callout>
 
-## Install / run
+## Install
 
-Install with one line — no Rust toolchain, no repo clone, no account. The
-script detects your OS/arch, downloads the matching binary from
-[GitHub Releases](https://github.com/chmonitor/chmonitor/releases) (tag format
-`chm-v*`), and verifies its checksum:
+One line — no Rust toolchain, no account. The script detects OS/arch, downloads
+the matching binary from
+[GitHub Releases](https://github.com/chmonitor/chmonitor/releases), verifies the
+checksum, installs `chm`, and symlinks `chmonitor` → `chm`:
 
 ```bash
+# Stable channel (default)
 curl -sSf https://chmonitor.dev/install.sh | bash
+
+# Beta channel (prereleases)
+CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
 ```
 
-Already have a Rust toolchain? `cargo install` works too and builds the same
-binaries (`chm` and `chmonitor`) from
-[crates.io](https://crates.io/crates/ch-monitor-cli):
+Pin a release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
+Override the install directory with `CHM_INSTALL_DIR` (default
+`$HOME/.local/bin`). The installer never invokes `sudo`.
+
+Already have a Rust toolchain?
 
 ```bash
 cargo install ch-monitor-cli
 # both `chm` and `chmonitor` land in ~/.cargo/bin
 ```
 
+### Channels
+
+| Channel | How to select | What you get |
+|---|---|---|
+| `stable` (default) | omit, or `CHM_CHANNEL=stable` / `--channel stable` | Latest non-prerelease `chm-v*` |
+| `beta` | `CHM_CHANNEL=beta` / `--channel beta` / config `channel = "beta"` | Prefer prereleases (`chm-vX.Y.Z-beta.N`) |
+
+`install.sh`, `chm update`, and `chm upgrade` all honour the same channel.
+
+## Auth (`chm auth login`)
+
+Most subcommands call the dashboard `/api/v1/*` API. Default base URL:
+`https://dash.chmonitor.dev`.
+
+`chm auth login` probes **`GET /api/v1/auth/cli`** (public) once and branches —
+there is **no** `auth_mode` in `chm.toml` / config:
+
+| Discovery `method` | Meaning | CLI action |
+|---|---|---|
+| `none` | Open API (`auth=none`, no `CHM_API_KEY_SECRET`) | No credentials needed |
+| `device` | Device login enabled | Browser device-code flow |
+| `api_key` | Key required, device off | Prompt / `--api-key` / `CHM_API_KEY` |
+
 ```bash
-CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
+chm auth login
+chm auth status
+chm auth logout
+```
+
+See [API keys](/operate/authentication/api-keys#device-login-chm-auth-login)
+and [Environment variables — CLI client](/reference/environment-variables#cli-client).
+
+## Update
+
+`chm update` and `chm upgrade` are the same command (`upgrade` is a first-class
+alias). Both print current → target version and update in place from GitHub
+Releases — no re-running the install script, and they never invoke `sudo`:
+
+```bash
+chm upgrade                    # alias of update
+chm update --check             # report only (exit 1 if newer exists)
+chm update --channel beta      # prefer prereleases
+chm upgrade --version chm-v0.2.0
+```
+
+Checksum verification is mandatory. Failures print a copy-pasteable fallback
+(`scripts/install.sh` or `cargo install ch-monitor-cli --force`).
+
+<Callout type="info" title="Update reminder">
+After some commands (including `chm diagnose`), `chm` does a fast, best-effort
+check for a newer release and prints a one-line hint to stderr if one is
+available. Silence it with `CHM_NO_UPDATE_CHECK=1`.
+</Callout>
+
+## Common dashboard commands
+
+```bash
+chm hosts
+chm chart query-count --limit 50
+chm table running-queries --limit 30
+chm tui query-count
+chm doctor
+chm agent "why are merges slow?"
+# same binary: chmonitor hosts
+```
+
+Config priority: CLI flags → env (`CHM_BASE_URL`, `CHM_HOST_ID`, `CHM_API_KEY`,
+`CHM_TOKEN`, `CHM_CHANNEL`, …) → `./chm.toml` / `~/.config/chm/config.toml` →
+defaults.
+
+## Zero-signup diagnostics (`diagnose`)
+
+`chm diagnose` is a one-shot health check for a [REDACTED] cluster that needs
+**no chmonitor account and no backend** — the binary talks directly to
+[REDACTED]'s HTTP interface, runs a fixed set of read-only checks, and prints a
+scored report to your terminal.
+
+<Callout type="info" title="Different from the rest of the CLI">
+The other `chm` subcommands (`hosts`, `chart`, `table`, `tui`, …) talk to a
+running chmonitor dashboard's API. `chm diagnose` is standalone — point it at a
+[REDACTED] host and it works with nothing else installed or configured.
+</Callout>
+
+```bash
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose # pragma: allowlist secret
 # same as: chmonitor diagnose
 ```
 
 <Callout type="info" title="No release yet? Build from source">
 If the installer reports no `chm-v*` release is available yet, build and run
-straight from the monorepo instead — either run-in-place or build a reusable
-release binary:
+straight from the monorepo:
 
 ```bash
-CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \ # pragma: allowlist secret
   cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose
 
-# or build once and reuse:
 cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
-CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \ # pragma: allowlist secret
   ./rust/target/release/chm diagnose
 ```
 </Callout>
 
-## Update
+### Diagnose configuration
 
-`chm update` and `chm upgrade` are the same command (`upgrade` is a first-class
-alias). Both print current -> target version and update in place from GitHub
-Releases — no re-running the install script, and they never invoke `sudo`:
-
-```bash
-chm upgrade           # alias of update — download + verify + replace
-chm update            # same behaviour
-chm update --check    # only report whether a newer release exists (exit 1 if so)
-chm upgrade --version chm-v0.2.0   # pin a specific release (`0.2.0` / `v0.2.0` also work)
-```
-
-The command downloads the binary for your platform plus its `.sha256`, verifies
-the checksum (mandatory — it aborts on a mismatch or missing checksum), then
-atomically replaces the running executable. Checksum, permission, and
-unsupported-target failures print a copy-pasteable fallback
-(`scripts/install.sh` or `cargo install ch-monitor-cli --force`) instead of
-failing silently or asking for `sudo`. Installed via `cargo install`? Use
-`cargo install ch-monitor-cli --force` to upgrade instead.
-
-<Callout type="info" title="Update reminder">
-After a `chm diagnose` run, `chm` does a fast, best-effort check for a newer
-release and prints a one-line hint to stderr if one is available. Silence it
-with `CHM_NO_UPDATE_CHECK=1`. The check has a sub-second timeout and never
-affects the diagnose exit code.
-</Callout>
-
-## Configuration
-
-Same env var names the dashboard uses, so if you already have `CLICKHOUSE_HOST`/`CLICKHOUSE_USER`/`CLICKHOUSE_PASSWORD` set for a self-hosted deploy, `diagnose` picks them up as-is. Flags override env vars.
+Same env var names the dashboard uses, so if you already have
+`CLICKHOUSE_HOST` / `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` set for a <!-- pragma: allowlist secret -->
+self-hosted deploy, `diagnose` picks them up as-is. Flags override env vars.
 
 | Env var | Flag | Default | Notes |
 |---|---|---|---|
-| `CLICKHOUSE_HOST` | `--ch-host` | — (required) | e.g. `http://localhost:8123`. A bare `host:port` is assumed `http://`. |
-| `CLICKHOUSE_USER` | `--ch-user` | `default` | |
+| `CLICKHOUSE_HOST` | `--ch-host` | — (required) | e.g. `http://localhost:8123`. A bare `host:port` is assumed `http://`. | <!-- pragma: allowlist secret -->
+| `CLICKHOUSE_USER` | `--ch-user` | `default` | <!-- pragma: allowlist secret --> |
 | `CLICKHOUSE_PASSWORD` | `--ch-password` | *(empty)* | |
-| `CLICKHOUSE_DATABASE` | `--ch-database` | `default` | |
+| `CLICKHOUSE_DATABASE` | `--ch-database` | `default` | <!-- pragma: allowlist secret --> |
 | — | `--json` | off | Machine-readable report instead of a table (useful in CI). |
 
 <Callout type="warn" title="One host at a time">
-A comma-separated multi-host `CLICKHOUSE_HOST` (the format the dashboard uses for clusters) diagnoses only the **first** host — `diagnose` prints a note and moves on. For multi-host/multi-replica clusters, run the full dashboard instead.
+A comma-separated multi-host `CLICKHOUSE_HOST` (the format the dashboard uses for clusters) diagnoses only the **first** host — `diagnose` prints a note and moves on. For multi-host/multi-replica clusters, run the full dashboard instead. <!-- pragma: allowlist secret -->
 </Callout>
 
-## What it checks
+### What it checks
 
-Twelve independent, read-only checks across the system tables that matter most for day-to-day ClickHouse health:
+Twelve independent, read-only checks across the system tables that matter most for day-to-day [REDACTED] health:
 
 | Category | Checks |
 |---|---|
@@ -106,20 +176,20 @@ Twelve independent, read-only checks across the system tables that matter most f
 | Reliability | Read-only replicas, replication lag, stuck mutations, failed dictionaries |
 | Capacity | Fullest disk |
 
-Every query forces ClickHouse's `readonly` setting — **`chm diagnose` never mutates the target cluster.** Each check is independent and best-effort: a missing table or a permission error just skips that one finding rather than failing the whole run, so it degrades gracefully against minimal or locked-down deployments.
+Every query forces [REDACTED]'s `readonly` setting — **`chm diagnose` never mutates the target cluster.** Each check is independent and best-effort: a missing table or a permission error just skips that one finding rather than failing the whole run, so it degrades gracefully against minimal or locked-down deployments.
 
-## Reading the report
+### Reading the report
 
 ```text
 chmonitor diagnostics — http://localhost:8123
-ClickHouse 24.8.1.1 · uptime 3.2h
+[REDACTED] 24.8.1.1 · uptime 3.2h
 
 Score: 82/100 (B) · 12 checks run · 2 findings
 
 ┌──────────┬─────────────┬─────────────────────────────┬──────────────────────────────┐
 │ Severity │ Category    │ Finding                      │ Detail                        │
 ├──────────┼─────────────┼───────────────────────────────────────────────────────────────┤
-│ WARNING  │ storage     │ default.events is fragmented │ 412 active parts (2.1 GiB)... │
+│ WARNING  │ storage     │ default.events is fragmented │ 412 active parts (2.1 GiB)... │ <!-- pragma: allowlist secret -->
 │ NOTICE   │ reliability │ Replication is lagging       │ Most-delayed replica is 90s...│
 └──────────┴─────────────┴─────────────────────────────┴──────────────────────────────┘
 
@@ -130,19 +200,21 @@ Deep dive, live charts, and the AI advisor: https://dash.chmonitor.dev (hosted) 
 - **Exit code** is `1` if any finding is critical, `0` otherwise — safe to wire into a CI step or cron job.
 - Each finding's detail line names the exact next step (e.g. `OPTIMIZE`, review a partition key, check `system.mutations.latest_fail_reason`).
 
-For live charts, alerting, the AI advisor, and multi-host clusters, point the same ClickHouse credentials at the full dashboard — [self-host it](/operate/deploy) or use the hosted [dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=docs).
+For live charts, alerting, the AI advisor, and multi-host clusters, point the same [REDACTED] credentials at the full dashboard — [self-host it](/operate/deploy) or use the hosted [dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=docs).
 
 ## Anonymous telemetry
 
 The CLI sends an anonymous, opt-out usage ping (CLI version, command name,
 OS/arch, and a random install id) — a separate stream from the dashboard's
-telemetry, with no ClickHouse host, query text, or arguments. Disable it with
+telemetry, with no [REDACTED] host, query text, or arguments. Disable it with
 `CHM_TELEMETRY=off` or `DO_NOT_TRACK=1`. See
 [Product Telemetry](/operate/advanced/telemetry#cli-telemetry-a-separate-stream)
 for the full field list and every opt-out.
 
 <Cards>
 <Card title="Product Telemetry" href="/operate/advanced/telemetry" description="What the CLI and dashboard collect, and how to opt out." />
+<Card title="API keys & device login" href="/operate/authentication/api-keys" description="chm_ keys, GET /api/v1/auth/cli discovery, and chm auth login." />
+<Card title="Environment variables" href="/reference/environment-variables#cli-client" description="CHM_BASE_URL, CHM_CHANNEL, credentials, and install vars." />
 <Card title="Troubleshooting" href="/guide/guides/troubleshooting" description="Diagnose connection, auth, performance, and Kubernetes probe failures." />
 <Card title="Self-host chmonitor" href="/operate/deploy" description="Docker, Kubernetes, or Cloudflare Workers." />
 </Cards>

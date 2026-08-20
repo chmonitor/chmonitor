@@ -59,6 +59,23 @@ Set `CHM_AUTH_PROVIDER=clerk` and configure Clerk keys, then set `CHM_AUTH_REQUI
 
 </Accordion>
 
+<Accordion title="How do I install the chm CLI?">
+
+```bash
+curl -sSf https://chmonitor.dev/install.sh | bash
+# beta: CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
+```
+
+That installs `chm` and a `chmonitor` alias (Linux/macOS × x86_64/aarch64). Full guide: [chm CLI](/guide/guides/diagnostics-cli).
+
+</Accordion>
+
+<Accordion title="How does `chm auth login` know which auth to use?">
+
+It probes public `GET /api/v1/auth/cli` and follows `method` (`none` | `device` | `api_key`). There is no `auth_mode` in CLI config. See [API keys](/operate/authentication/api-keys#device-login-chm-auth-login).
+
+</Accordion>
+
 <Accordion title="I want to protect specific features but not the whole dashboard.">
 
 Use per-feature env vars:

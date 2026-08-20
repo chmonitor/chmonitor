@@ -146,10 +146,11 @@ and is a hard no-op when telemetry is disabled or no endpoint resolves.
 
 ## CLI telemetry (a separate stream)
 
-The standalone [`chm` CLI](/guide/guides/diagnostics-cli) and its `install.sh` installer emit their
-own anonymous telemetry — tracked as a **separate stream** (`source=cli`) from
-the dashboard telemetry above, in its own `cli_daily` table. Same privacy
-posture: anonymous, opt-out, no PII.
+The standalone [`chm` / `chmonitor` CLI](/guide/guides/diagnostics-cli) (Linux /
+macOS release binaries; other platforms via `cargo install`) and its
+`install.sh` installer emit their own anonymous telemetry — tracked as a
+**separate stream** (`source=cli`) from the dashboard telemetry above, in its
+own `cli_daily` table. Same privacy posture: anonymous, opt-out, no PII.
 
 It is best-effort and non-blocking: the CLI fires the ping on a background thread
 with a sub-second timeout and never delays a command's exit by more than ~300ms,
@@ -173,9 +174,9 @@ The `install.sh` install ping additionally **skips automatically when `CI=true`*
 |---|---|---|
 | `install_id` | 64-char opaque hex | Random id persisted at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/chmonitor/cli-id`). Counts distinct installs only; maps to no identity. |
 | `event` | `cli_install`, `cli_run`, `cli_diagnose` | Install ping vs. a command run vs. a `diagnose` run. |
-| `command` | `hosts`, `chart`, `table`, `tui`, `diagnose`, `install` | The subcommand name. |
+| `command` | `hosts`, `chart`, `table`, `tui`, `diagnose`, `update`, `auth`, `config`, `link`, `chat`, `agent`, `doctor`, `completions`, `install`, … | Subcommand name (`chm` and `chmonitor` report the same names). |
 | `cli_version` | semver (e.g. `0.1.0`) | The `chm` version. |
-| `os` | `linux`, `macos`, `windows`, `unknown` | |
+| `os` | `linux`, `macos`, `windows`, `unknown` | Shipped prebuilts are Linux/macOS only; `windows` appears for source builds. |
 | `arch` | `x86_64`, `aarch64`, `unknown` | |
 | `license_key` | Polar checkout id | Only when `CHM_LICENSE_KEY` is already in that process env. Same id as the dashboard ping. |
 

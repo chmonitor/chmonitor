@@ -27,13 +27,25 @@ You are reading the docs for **v0.3**. The version badge in the top navigation l
 
 ## Release cadence
 
-Three channels track chmonitor at different speeds — pick the one that matches how fast you want changes.
+Three channels track the **dashboard** at different speeds — pick the one that matches how fast you want changes.
 
 | Channel | What it is | Where to find it |
 |---|---|---|
 | Stable images | Published to `chmonitor/chmonitor:latest` on every push to `main` | Docker registry |
 | Tagged releases | `vX.Y.Z` cut periodically, mirrored to the Helm chart and Docker tags | Docker tags + Helm |
 | Full changelog | The complete per-tag history | [GitHub Releases](https://github.com/chmonitor/chmonitor/releases) |
+
+### CLI channels (`chm` / `chmonitor`)
+
+The Rust CLI has its own `chm-v*` tags and channels (independent of the
+dashboard `vX.Y.Z` line):
+
+| Channel | How it ships | Install / update |
+|---|---|---|
+| `stable` (default) | release-please → tag + dispatch `cli-rust-release.yml` | `install.sh` / `chm update` |
+| `beta` | CLI path pushes on `main` → prerelease `chm-vX.Y.Z-beta.N` | `CHM_CHANNEL=beta` / `chm update --channel beta` |
+
+See the [chm CLI guide](/guide/guides/diagnostics-cli).
 
 ## Related
 
