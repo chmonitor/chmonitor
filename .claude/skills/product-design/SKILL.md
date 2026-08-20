@@ -95,24 +95,27 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `Select` (the Root) so `SelectValue` shows the label, not the raw value.
   `placeholder` only appears when nothing is selected — a selected `24` /
   `__all__` otherwise renders as those strings. Same map on compare
-  Source/Target (`HostPairFilter` — id → `h.name`, never a raw `0`). See
+  Source/Target (`ComparePeerSelect` — id → `h.name`, never a raw `0`). See
   `components/agents/advisor-query-picker.tsx` and
-  `components/compare/host-pair-filter.tsx`.
+  `components/compare/compare-peer-select.tsx`.
 - **Schema Compare (`/schema-diff`):** one static `PageHeader` ("Schema
   Compare" + recommend-only description). Pair identity lives in the
-  Source/Target selects — no second "Comparing X → Y — N tables differ"
-  line. Compare tools wrap filters in `CompareToolbar` (`rounded-xl
-  border bg-card p-4`): tabs on top (**Connections** / **Replica
-  nodes**, `SegmentedControl size="default"`), then stacked Source /
-  Target selects (peer **name**, never a raw id) with a Filter field,
-  then **Differences** / **All**. Copy recommended SQL sits on that
-  filter row. The table catalog is a collapsible left sidebar
-  (`PanelLeftClose` / `PanelLeft`). When Differences is on and there
-  are no diffs, still list identical tables with a green
-  `CheckCircle2` (`--chart-green`) — click a row to select it on the
-  right. A matching selection is **All matched** / **This table
-  matches** (`MatchOk`), never EmptyState "no data" or "Select a
-  table". Keep "No tables match" only for a name-filter miss.
+  Source/Target comboboxes — no second "Comparing X → Y — N tables differ"
+  line. Compare tools wrap filters in compact `CompareToolbar`
+  (`rounded-xl border bg-card p-3`): tabs on top (**Connections** /
+  **Replica nodes**, `SegmentedControl size="sm"`), then Source /
+  Target searchable comboboxes (`ComparePeerSelect`: Command +
+  Popover, sorted by name, `ChmonitorLogo` plus version/uptime/status
+  like HostSwitcher — never a native Select), then **Differences** /
+  **All**. Copy recommended SQL sits on that row. The table catalog
+  is a collapsible left sidebar grouped **database → table** (folder
+  row + nested table name, search in the sidebar). When Differences
+  is on and there are no diffs, still list identical tables with a
+  green `CheckCircle2` (`--chart-green`) — click a row to select it
+  on the right. A matching selection is **All matched** / **This
+  table matches** (`MatchOk`), never EmptyState "no data" or
+  "Select a table". Keep "No tables match" only for a name-filter
+  miss.
   Settings Diff (`/settings-diff`) uses the same toolbar. Diffs-only
   with zero deltas still lists matching settings, each with a green
   `CheckCircle2` in a Match column (`--chart-green`). "Changed from

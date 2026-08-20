@@ -26,6 +26,28 @@ mock.module('@/components/connections', () => ({
     open ? <div data-testid="add-host-dialog">Add host dialog</div> : null,
 }))
 
+mock.module('@/lib/swr/use-merged-hosts', () => ({
+  useMergedHosts: () => ({
+    hosts: [],
+    error: null,
+    isUnauthorized: false,
+    isLoading: false,
+    getConnectionByHostId: () => undefined,
+    cloudMode: false,
+    isSignedIn: false,
+  }),
+  isServerHost: (source: string) => source === 'env' || source === 'demo',
+}))
+
+mock.module('@/lib/swr/use-host-status', () => ({
+  useHostStatus: () => ({
+    data: null,
+    error: null,
+    isLoading: false,
+    isOnline: false,
+  }),
+}))
+
 beforeAll(() => {
   GlobalRegistrator.register()
   ;(
@@ -265,7 +287,13 @@ describe('Schema Compare one-host empty state', () => {
       expect(document.body.textContent).toContain('Need two saved connections')
       expect(document.body.textContent).toContain('staging vs prod')
       expect(document.body.textContent).toContain('Example')
-      expect(document.body.textContent).toContain('analytics.events')
+      expect(
+        document.querySelector(
+          '[data-testid="schema-diff-table-analytics.events"]'
+        )
+      ).not.toBeNull()
+      expect(document.body.textContent).toContain('analytics')
+      expect(document.body.textContent).toContain('events')
       expect(document.body.textContent).toContain('Source DDL')
       const faded = document.querySelector(
         '[data-testid="compare-example-preview"]'
@@ -347,7 +375,11 @@ describe('Schema Compare two-host path', () => {
     try {
       expect(document.body.textContent).toContain('staging')
       expect(document.body.textContent).toContain('production')
-      expect(document.body.textContent).toContain('app.events')
+      expect(document.body.textContent).toContain('app')
+      expect(document.body.textContent).toContain('events')
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.events"]')
+      ).not.toBeNull()
       expect(document.body.textContent).not.toContain('Host A')
       expect(document.body.textContent).not.toMatch(
         /Comparing .+ tables differ/
@@ -396,15 +428,15 @@ describe('Schema Compare two-host path', () => {
 
     try {
       const sourceValue = document.querySelector(
-        '[data-testid="compare-source"] [data-slot="select-value"]'
+        '[data-testid="compare-source"]'
       )
       const targetValue = document.querySelector(
-        '[data-testid="compare-target"] [data-slot="select-value"]'
+        '[data-testid="compare-target"]'
       )
-      expect(sourceValue?.textContent).toBe('staging')
-      expect(targetValue?.textContent).toBe('production')
-      expect(sourceValue?.textContent).not.toBe('0')
-      expect(targetValue?.textContent).not.toBe('1')
+      expect(sourceValue?.textContent).toContain('staging')
+      expect(targetValue?.textContent).toContain('production')
+      expect(sourceValue?.textContent).not.toMatch(/^0/)
+      expect(targetValue?.textContent).not.toMatch(/^1/)
     } finally {
       await cleanup()
     }
@@ -428,8 +460,17 @@ describe('Schema Compare two-host path', () => {
     )
 
     try {
-      expect(document.body.textContent).toContain('app.events')
-      expect(document.body.textContent).toContain('app.users')
+      expect(
+        document.querySelector('[data-testid="schema-diff-db-app"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.events"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.users"]')
+      ).not.toBeNull()
+      expect(document.body.textContent).toContain('events')
+      expect(document.body.textContent).toContain('users')
       expect(document.body.textContent).toContain('All matched')
       expect(document.body.textContent).toContain('Source DDL')
       expect(
@@ -450,8 +491,8 @@ describe('Schema Compare two-host path', () => {
       )
 
       const { act } = await import('react')
-      const users = [...document.querySelectorAll('button')].find((el) =>
-        el.textContent?.includes('app.users')
+      const users = document.querySelector(
+        '[data-testid="schema-diff-table-app.users"]'
       ) as HTMLButtonElement
       expect(users).not.toBeNull()
       await act(async () => {

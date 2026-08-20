@@ -666,13 +666,16 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   `DdlPair` with placeholder names. Two or more peers keep a **static**
   PageHeader (title + recommend-only description) — do not add a dynamic
   "Comparing X → Y — N tables differ" sentence; the pair is the Source /
-  Target selects. Toolbar is `CompareToolbar` (`p-4` card): Connections /
-  Replica nodes tabs, then stacked Source / Target (peer name) + Filter,
-  then Differences / All. Scope toggle (only when both hostCount and
+  Target comboboxes. Toolbar is compact `CompareToolbar` (`p-3` card):
+  Connections / Replica nodes tabs (`size="sm"`), then Source / Target
+  searchable comboboxes (`ComparePeerSelect`, sorted by name,
+  `ChmonitorLogo` + version/uptime/status like HostSwitcher), then
+  Differences / All. Scope toggle (only when both hostCount and
   nodeCount are ≥ 2) writes `?scope=hosts|nodes` and remounts the pair
   from that peer list.
-  The table catalog is a collapsible left sidebar (`TableList` +
-  `PanelLeftClose` / `PanelLeft`). Differences-only with zero diffs
+  The table catalog is a collapsible left sidebar grouped
+  database → table (`TableList` + `PanelLeftClose` / `PanelLeft`,
+  search in the sidebar). Differences-only with zero diffs
   still lists identical tables with a green `CheckCircle2`
   (`--chart-green`); clicking a row selects it on the right. A
   matching table's detail is **All matched** / **This table matches**
