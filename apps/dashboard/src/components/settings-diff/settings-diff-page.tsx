@@ -20,7 +20,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Input } from '@/components/ui/input'
 import {
   collectBrowserDiffSessions,
   fetchCompareDiff,
@@ -267,8 +266,6 @@ export function SettingsDiffPage() {
             hosts={peers}
             sourceHostId={pair.sourceId}
             targetHostId={pair.targetId}
-            nameFilter={nameFilter}
-            nameFilterPlaceholder="Filter by name…"
             showDiffsOnly={showDiffsOnly}
             onPairChange={(source, target) =>
               setSearch({
@@ -278,7 +275,6 @@ export function SettingsDiffPage() {
                 view: scope === 'hosts' ? 'pair' : undefined,
               })
             }
-            onNameFilterChange={setNameFilter}
             onShowDiffsOnlyChange={setShowDiffsOnly}
             extraFilters={
               <ChangedFromDefaultChip
@@ -288,41 +284,33 @@ export function SettingsDiffPage() {
             }
           />
         ) : (
-          <div className="flex flex-col gap-4">
-            <label className="flex min-w-48 max-w-72 flex-col gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
-                Filter
-              </span>
-              <Input
-                placeholder="Filter by name…"
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-                className="h-9"
+          <div className="flex flex-wrap items-center gap-2">
+            {hostCount > 1 ? (
+              <SegmentedControl
+                size="sm"
+                ariaLabel="Show differences or all rows"
+                value={showDiffsOnly ? 'diffs' : 'all'}
+                onChange={(next) => setShowDiffsOnly(next === 'diffs')}
+                options={[
+                  { label: 'Differences', value: 'diffs' },
+                  { label: 'All', value: 'all' },
+                ]}
               />
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              {hostCount > 1 ? (
-                <SegmentedControl
-                  size="default"
-                  ariaLabel="Show differences or all rows"
-                  value={showDiffsOnly ? 'diffs' : 'all'}
-                  onChange={(next) => setShowDiffsOnly(next === 'diffs')}
-                  options={[
-                    { label: 'Differences', value: 'diffs' },
-                    { label: 'All', value: 'all' },
-                  ]}
-                />
-              ) : null}
-              <ChangedFromDefaultChip
-                pressed={showChangedOnly}
-                onPressedChange={setShowChangedOnly}
-              />
-            </div>
+            ) : null}
+            <ChangedFromDefaultChip
+              pressed={showChangedOnly}
+              onPressedChange={setShowChangedOnly}
+            />
           </div>
         )}
       </CompareToolbar>
 
-      <SettingsDiffTable columns={columns} rows={filteredRows} />
+      <SettingsDiffTable
+        columns={columns}
+        rows={filteredRows}
+        nameFilter={nameFilter}
+        onNameFilterChange={setNameFilter}
+      />
 
       <p className="text-xs text-muted-foreground">
         {filteredRows.length.toLocaleString()} row

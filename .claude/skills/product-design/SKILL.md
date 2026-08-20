@@ -116,7 +116,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   table matches** (`MatchOk`), never EmptyState "no data" or
   "Select a table". Keep "No tables match" only for a name-filter
   miss.
-  Settings Diff (`/settings-diff`) uses the same toolbar. Diffs-only
+  Settings Diff (`/settings-diff`) uses the same toolbar. The name
+  filter sits on the listing panel (schema-diff table sidebar,
+  settings-diff table card) — not next to Source/Target. Diffs-only
   with zero deltas still lists matching settings, each with a green
   `CheckCircle2` in a Match column (`--chart-green`). "Changed from
   default" is a pressable chip, not a second switch. "No settings
