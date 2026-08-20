@@ -18,6 +18,7 @@ export interface DerivedMetrics {
   batches: CDCBatch[]
   errorMessage?: string
   loading: boolean
+  source?: 'live' | 'cache'
 }
 
 /** Summary surfaced to the page so it can aggregate KPI totals + lag triage. */
@@ -26,6 +27,8 @@ export interface MirrorMetricsSummary {
   rowsSynced: number
   trend: number[]
   lagSec: number | null
+  /** `cache` = last snapshot; `live` = this session's PeerDB fetch. */
+  source?: 'live' | 'cache'
 }
 
 /**
@@ -86,6 +89,10 @@ export function useMirrorMetrics(
     if (end != null) lagSec = Math.max(0, (Date.now() - end) / 1000)
   }
 
+  const loading = enabled && (status.isLoading || graph.isLoading)
+  const live =
+    enabled && !loading && (status.data != null || graph.data != null)
+
   return {
     trend,
     rowsPerSec,
@@ -94,6 +101,7 @@ export function useMirrorMetrics(
     partitions,
     batches,
     errorMessage: status.data?.errorMessage,
-    loading: status.isLoading || graph.isLoading,
+    loading,
+    source: live ? 'live' : undefined,
   }
 }

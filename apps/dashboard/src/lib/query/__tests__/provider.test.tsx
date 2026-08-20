@@ -53,9 +53,7 @@ describe('invalidateActiveQueriesInBatches', () => {
     })
 
     type InvalidateArg = { type?: string; queryKey?: readonly unknown[] }
-    const calls = invalidateSpy.mock.calls.map(
-      (c) => (c as [InvalidateArg])[0]
-    )
+    const calls = invalidateSpy.mock.calls.map((c) => (c as [InvalidateArg])[0])
     expect(calls.some((arg) => arg && arg.type === 'active')).toBe(false)
     expect(invalidateSpy).toHaveBeenCalledTimes(20)
 
@@ -137,5 +135,33 @@ describe('shouldDehydrateQuery persistence exclusions', () => {
   // it out of the persisted cache is what preserves the single source of truth.
   it('never persists user-settings, so localStorage stays authoritative', () => {
     expect(shouldDehydrateQuery(q(USER_SETTINGS_QUERY_KEY))).toBe(false)
+  })
+
+  it('persists compact PeerDB list/peers queries for a fast first paint', () => {
+    expect(
+      shouldDehydrateQuery(q(['peerdb', '/mirrors/list', 'GET', '', '']))
+    ).toBe(true)
+    expect(
+      shouldDehydrateQuery(q(['peerdb', '/peers/list', 'GET', '', '']))
+    ).toBe(true)
+  })
+
+  it('skips bulky per-mirror PeerDB payloads (status/batches/logs)', () => {
+    expect(
+      shouldDehydrateQuery(q(['peerdb', '/mirrors/status', 'POST', '{}', '']))
+    ).toBe(false)
+    expect(
+      shouldDehydrateQuery(
+        q(['peerdb', '/mirrors/cdc/batches', 'POST', '{}', ''])
+      )
+    ).toBe(false)
+    expect(
+      shouldDehydrateQuery(q(['peerdb', '/mirrors/logs', 'POST', '{}', '']))
+    ).toBe(false)
+    expect(
+      shouldDehydrateQuery(
+        q(['peerdb', '/mirrors/cdc/table_total_counts/orders', 'GET', '', ''])
+      )
+    ).toBe(false)
   })
 })

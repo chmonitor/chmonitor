@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react'
 
 import { PdbSparkline } from './pdb-charts'
+import { cn } from '@/lib/utils'
 
 interface KpiCardProps {
   label: string
@@ -14,6 +15,8 @@ interface KpiCardProps {
   pulse?: boolean
   sparkData?: number[]
   sparkColor?: string
+  /** Totals still aggregating — keep the card visually "in progress". */
+  counting?: boolean
 }
 
 /** KPI stat card with a status dot and optional inline sparkline (PdbKpi). */
@@ -26,6 +29,7 @@ export function KpiCard({
   pulse,
   sparkData,
   sparkColor,
+  counting,
 }: KpiCardProps) {
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-foreground/20">
@@ -67,7 +71,12 @@ export function KpiCard({
           {value}
         </span>
         {sub && (
-          <span className="ml-auto text-[11px] leading-tight text-muted-foreground">
+          <span
+            className={cn(
+              'ml-auto text-[11px] leading-tight text-muted-foreground',
+              counting && 'motion-safe:animate-pulse motion-reduce:animate-none'
+            )}
+          >
             {sub}
           </span>
         )}

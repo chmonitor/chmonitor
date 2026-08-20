@@ -24,8 +24,8 @@ Open it at `/peerdb` once configured. The section is hidden until
 
 | View | Where | Highlights |
 |---|---|---|
-| Mirrors fleet | `/peerdb` | Status KPIs, per-mirror throughput, a **lag-triage strip** (worst-lag mirrors), and a collapsible **logs & alerts feed** aggregated across every mirror with error/warn/info filters. |
-| Snapshot progress | mirror detail | Per-table initial-load progress from `initial_load` — partitions completed, rows synced, avg time per partition, and fetch/consolidate phase badges. Fills the gap for snapshotting mirrors. |
+| Mirrors fleet | `/peerdb` | Status KPIs (count-up while still aggregating, last-known numbers cached), per-mirror throughput, **prefix groups** (`qrep_sg_fleetreporting1_*`) you can collapse, a **lag-triage strip** (worst-lag mirrors), and a collapsible **logs & alerts feed** aggregated across every mirror with error/warn/info filters. |
+| Snapshot / QRep progress | mirror detail | Per-table initial-load progress from `initial_load` — partitions completed, rows synced, avg time per partition, and fetch/consolidate phase badges. QRep jobs add searchable, paged partition progress (UUID, duration, start/end, rows in partition vs synced) and a partition-sync history chart. |
 | CDC batch history | mirror detail | Recent CDC batches (id, LSN range, rows, duration) plus a rows-per-batch chart. |
 | Operation mix | mirror detail | Per-table insert / update / delete split from `table_total_counts`. |
 | Slot health | `/peerdb/peers` | Replication slots across Postgres peers classified **ok / warn / critical** by lag, active state, and WAL status; worst-first. |

@@ -1,5 +1,8 @@
+import { SearchIcon, XIcon } from 'lucide-react'
+
 import type { QRepPartition } from '@/lib/peerdb/types'
 
+import { jobPartitionAnalytics, partitionState } from './job-analytics'
 import {
   durationMs,
   pdbFmtClock,
@@ -7,22 +10,9 @@ import {
   pdbFmtNum,
   toNumber,
 } from './peerdb-utils'
+import { useMemo, useState } from 'react'
 
-export function partitionState(
-  p: QRepPartition
-): 'done' | 'running' | 'queued' | 'error' {
-  if (p.endTime) {
-    const synced = toNumber(p.rowsSynced)
-    const total = toNumber(p.rowsInPartition ?? p.numRows)
-    // If endTime is set but rowsSynced < rowsInPartition, the partition failed.
-    if (total > 0 && synced > 0 && synced < total) return 'error'
-    return 'done'
-  }
-  // A partition that has started (has a startTime) or already synced rows is
-  // in flight; only un-started partitions are queued.
-  if (p.startTime || toNumber(p.rowsSynced) > 0) return 'running'
-  return 'queued'
-}
+export { partitionState } from './job-analytics'
 
 const PART_TONE: Record<string, string> = {
   done: '#10b981',
@@ -56,50 +46,102 @@ export function buildSyncHistory(
     }))
 }
 
-/** QRep partition sync-progress table (first 12 partitions). */
+const DEFAULT_PAGE_SIZE = 25
+
+/** QRep partition sync-progress table with search, paging, and totals. */
 export function QRepPartitions({
   partitions,
+  pageSize = DEFAULT_PAGE_SIZE,
 }: {
   partitions: QRepPartition[]
+  pageSize?: number
 }) {
-  const done = partitions.filter((p) => partitionState(p) === 'done').length
-  const errored = partitions.filter((p) => partitionState(p) === 'error').length
-  const running = partitions.filter(
-    (p) => partitionState(p) === 'running'
-  ).length
-  const queued = partitions.filter((p) => partitionState(p) === 'queued').length
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(0)
+  const stats = jobPartitionAnalytics(partitions)
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const list = q
+      ? partitions.filter((p) =>
+          (p.partitionId ?? '').toLowerCase().includes(q)
+        )
+      : partitions
+    return [...list].sort((a, b) => {
+      const at = Date.parse(a.startTime ?? '') || 0
+      const bt = Date.parse(b.startTime ?? '') || 0
+      return bt - at
+    })
+  }, [partitions, query])
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const safePage = Math.min(page, pageCount - 1)
+  const slice = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize)
+  const from = filtered.length === 0 ? 0 : safePage * pageSize + 1
+  const to = Math.min(filtered.length, (safePage + 1) * pageSize)
+
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            QRep partitions
+            Progress
           </span>
           <span className="text-[11px] tabular-nums">
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {done}
+              {stats.done}
             </span>
             <span className="text-muted-foreground"> done</span>
             <span className="mx-1.5 text-muted-foreground">·</span>
             <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {running}
+              {stats.running}
             </span>
             <span className="text-muted-foreground"> in flight</span>
             <span className="mx-1.5 text-muted-foreground">·</span>
             <span className="font-semibold text-muted-foreground">
-              {queued}
+              {stats.queued}
             </span>
             <span className="text-muted-foreground"> queued</span>
-            {errored > 0 && (
+            {stats.error > 0 && (
               <>
                 <span className="mx-1.5 text-muted-foreground">·</span>
                 <span className="font-semibold text-rose-600 dark:text-rose-400">
-                  {errored}
+                  {stats.error}
                 </span>
                 <span className="text-muted-foreground"> error</span>
               </>
             )}
           </span>
+          <span className="text-[11px] tabular-nums text-muted-foreground">
+            · {pdbFmtNum(stats.rowsSynced)} / {pdbFmtNum(stats.rowsIn)} rows
+            {stats.avgDurationSec != null && (
+              <> · avg {pdbFmtDuration(stats.avgDurationSec)}</>
+            )}
+          </span>
+        </div>
+        <div className="flex h-7 w-[220px] items-center gap-1.5 rounded-md border border-border bg-card px-2">
+          <SearchIcon className="size-3 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setPage(0)
+            }}
+            placeholder="Search by partition"
+            className="min-w-0 flex-1 bg-transparent text-[11.5px] outline-none placeholder:text-muted-foreground"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('')
+                setPage(0)
+              }}
+              className="text-muted-foreground"
+            >
+              <XIcon className="size-3" />
+            </button>
+          )}
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -124,7 +166,7 @@ export function QRepPartitions({
             </tr>
           </thead>
           <tbody>
-            {partitions.slice(0, 12).map((p, i) => {
+            {slice.map((p, i) => {
               const st = partitionState(p)
               const tone = PART_TONE[st]
               const rowsIn = toNumber(p.rowsInPartition ?? p.numRows)
@@ -140,7 +182,7 @@ export function QRepPartitions({
                   className="border-b border-border last:border-b-0 hover:bg-muted/40"
                 >
                   <td className="px-2.5 py-1.5 font-mono tabular-nums text-muted-foreground">
-                    {i + 1}
+                    {from + i}
                   </td>
                   <td className="px-2.5 py-1.5">
                     <span className="font-mono text-[10.5px]" title={uuid}>
@@ -196,6 +238,35 @@ export function QRepPartitions({
             })}
           </tbody>
         </table>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
+        <span className="tabular-nums">
+          {from === 0 ? '0 of 0' : `${from}–${to} of ${filtered.length}`}
+          {filtered.length !== partitions.length
+            ? ` (filtered from ${partitions.length})`
+            : ''}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={safePage <= 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="rounded-md border border-border px-2 py-0.5 disabled:opacity-40"
+          >
+            Prev
+          </button>
+          <span className="tabular-nums">
+            {safePage + 1} / {pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= pageCount - 1}
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            className="rounded-md border border-border px-2 py-0.5 disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   )

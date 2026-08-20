@@ -155,6 +155,96 @@ const MIRRORS: MirrorFixture[] = [
     errorMessage:
       "replication slot 'pgmirror_slot_legacy' is approaching max_wal_size (98.4% · 4180 MiB) — destination consumer is not draining; check ch-archive ingestion rate",
   },
+  {
+    name: 'qrep_sg_fleetreporting1_202606',
+    isCdc: false,
+    source: 'pg-prod',
+    sourceType: 'POSTGRES',
+    destination: 'ch-analytics',
+    destinationType: 'CLICKHOUSE',
+    status: 'STATUS_RUNNING',
+    createdAgoHours: 720,
+    rowsSynced: 41_220_118,
+    rowsPerSec: 0,
+    lagSec: null,
+    tables: ['reporting.fleet_events'],
+    workflowId: 'qrep-fleetreporting1-202606',
+  },
+  {
+    name: 'qrep_sg_fleetreporting1_202607',
+    isCdc: false,
+    source: 'pg-prod',
+    sourceType: 'POSTGRES',
+    destination: 'ch-analytics',
+    destinationType: 'CLICKHOUSE',
+    status: 'STATUS_RUNNING',
+    createdAgoHours: 380,
+    rowsSynced: 38_104_902,
+    rowsPerSec: 0,
+    lagSec: null,
+    tables: ['reporting.fleet_events'],
+    workflowId: 'qrep-fleetreporting1-202607',
+  },
+  {
+    name: 'qrep_sg_fleetreporting1_202608',
+    isCdc: false,
+    source: 'pg-prod',
+    sourceType: 'POSTGRES',
+    destination: 'ch-analytics',
+    destinationType: 'CLICKHOUSE',
+    status: 'STATUS_SNAPSHOT',
+    createdAgoHours: 36,
+    rowsSynced: 12_408_551,
+    rowsPerSec: 18_400,
+    lagSec: null,
+    tables: ['reporting.fleet_events'],
+    workflowId: 'qrep-fleetreporting1-202608',
+  },
+  {
+    name: 'qrep_sg_orders_202607',
+    isCdc: false,
+    source: 'pg-staging',
+    sourceType: 'POSTGRES',
+    destination: 's3-datalake',
+    destinationType: 'S3',
+    status: 'STATUS_RUNNING',
+    createdAgoHours: 400,
+    rowsSynced: 9_104_220,
+    rowsPerSec: 0,
+    lagSec: null,
+    tables: ['public.orders'],
+    workflowId: 'qrep-orders-202607',
+  },
+  {
+    name: 'qrep_sg_orders_202608',
+    isCdc: false,
+    source: 'pg-staging',
+    sourceType: 'POSTGRES',
+    destination: 's3-datalake',
+    destinationType: 'S3',
+    status: 'STATUS_RUNNING',
+    createdAgoHours: 48,
+    rowsSynced: 2_880_412,
+    rowsPerSec: 6_200,
+    lagSec: null,
+    tables: ['public.orders'],
+    workflowId: 'qrep-orders-202608',
+  },
+  {
+    name: 'qrep_sg_orders_202609',
+    isCdc: false,
+    source: 'pg-staging',
+    sourceType: 'POSTGRES',
+    destination: 's3-datalake',
+    destinationType: 'S3',
+    status: 'STATUS_SETUP',
+    createdAgoHours: 2,
+    rowsSynced: 120_440,
+    rowsPerSec: 2_800,
+    lagSec: null,
+    tables: ['public.orders'],
+    workflowId: 'qrep-orders-202609',
+  },
 ]
 
 function mirror(name: string): MirrorFixture | undefined {
@@ -226,15 +316,17 @@ function cdcBatches(m: MirrorFixture) {
 
 function partitions(m: MirrorFixture) {
   const now = Date.now()
-  const total = 45
-  const doneN = 28
+  const total = m.name.startsWith('qrep_sg_fleetreporting1') ? 80 : 45
+  const doneN =
+    m.status === 'STATUS_SETUP' ? 4 : m.status === 'STATUS_SNAPSHOT' ? 42 : 62
+  const doneClamped = Math.min(doneN, total - 2)
   const start0 = now - m.createdAgoHours * HOUR
   return Array.from({ length: total }, (_, i) => {
     const dur = Math.round(18_000 + seeded(i + 10) * 64_000)
     const start = start0 + i * (dur + 1200)
     const rows = Math.round(9_400_000 + seeded(i + 20) * 2_400_000)
-    const done = i < doneN
-    const inFlight = i >= doneN && i < doneN + 2
+    const done = i < doneClamped
+    const inFlight = i >= doneClamped && i < doneClamped + 2
     return {
       partitionId: `0a${(0xb1c2d3e4 + i).toString(16).padStart(8, '0')}-${(0x4f50 + i).toString(16)}-9c2a-${(0x1100 + i).toString(16)}-${(0xa1b2c3d40000 + i).toString(16)}`,
       startTime: new Date(start).toISOString(),
