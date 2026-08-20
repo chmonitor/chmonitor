@@ -38,31 +38,45 @@ to skip an unaddressed finding. To avoid the gate entirely, prefer
 
 ## Manager session: stay on `main`, isolate work in Herdr
 
-The **manager** session (this checkout) stays on **`main`**. Do not implement
-features on `main`. `git pull --ff-only origin main` whenever a PR merges.
+The **manager** git checkout stays on **`main`**. Do not implement features
+on `main`. `git pull --ff-only origin main` whenever a PR merges.
 
-Requires `HERDR_ENV=1`. Name the manager pane so children can address it:
+Requires `HERDR_ENV=1`.
+
+**Isolated tasks go to Herdr worktrees — create one and stay there.** This
+session implements in that checkout. Do **not** `herdr agent start` a second
+coding agent in the worktree pane unless the user asks to parallelize.
+
+```bash
+herdr worktree create \
+  --cwd "$PWD" \
+  --branch feat/<name> \
+  --base origin/main \
+  --focus
+```
+
+Always pass `--cwd` as this repo. Without it, Herdr can create the worktree
+against another repo in the same session. `--focus` keeps you on the new
+worktree workspace. Do **not** use `--no-focus` and keep editing `main`.
+
+Then implement, commit, open a PR (`cpr`), `gh pr merge --auto --squash`,
+babysit required CI until merge, rebase onto `origin/main` if main moves.
+Close the worktree after the PR lands.
+
+Do not mix unrelated tasks in one worktree. After merge, update this `main`
+checkout and rebase any still-open worktrees onto `origin/main`.
+
+### Child agents (only when the user asks)
+
+Name the manager pane so children can address it:
 
 ```bash
 herdr agent rename "$HERDR_PANE_ID" manager
 ```
 
-**Isolated tasks go to Herdr worktrees** (`herdr worktree create --branch
-feat/<name> --base origin/main`). Start a named agent in the worktree pane
-(`herdr agent start <name> --kind grok --pane <id>`). Give each worktree a
-full spec that includes the manager target: implement, commit, open a PR
-(`cpr`), `gh pr merge --auto --squash`, babysit required CI until merge,
-rebase onto `origin/main` if main moves. Close the worktree after the PR
-lands.
-
-Do not mix unrelated tasks in one worktree. After merge, update this `main`
-checkout and tell remaining worktrees to rebase.
-
-### Child worktrees report back via Herdr (session-wide)
-
-Child workspaces (`wN`) share the same Herdr **session** as the manager.
-`herdr agent list` / `prompt` / `notification` work across worktrees. Every
-child spec must say: **report to `manager` (or `$HERDR_MANAGER_PANE`)**.
+Child workspaces (`wN`) share the same Herdr **session**. `herdr agent list`
+/ `prompt` / `notification` work across worktrees. Every child spec must
+say: **report to `manager` (or `$HERDR_MANAGER_PANE`)**.
 
 **Child → manager** (do this; do not only write STATUS.md):
 

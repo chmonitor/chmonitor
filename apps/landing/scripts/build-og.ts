@@ -432,6 +432,16 @@ async function render(theme: Theme, file: string, copy: Copy = HOME_COPY) {
 // dedicated dark + light pair; every other page gets one dark card.
 const PAGES: { file: string; copy: Copy }[] = [
   {
+    file: 'og-cli.png',
+    copy: {
+      eyebrow: 'CLI',
+      h1Line1: 'Diagnose ClickHouse',
+      h1Line2: 'from the terminal',
+      sub1: 'Zero-signup chm diagnose,',
+      sub2: 'plus a TUI for the dashboard API.',
+    },
+  },
+  {
     file: 'og-pricing.png',
     copy: {
       eyebrow: 'PRICING',

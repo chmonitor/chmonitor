@@ -250,6 +250,28 @@ try {
   failed = true
 }
 
+const distCli = join(process.cwd(), 'dist/cli/index.html')
+try {
+  const cliHtml = readFileSync(distCli, 'utf8')
+  const requiredCli = [
+    'chmonitor.dev/install.sh',
+    'chm diagnose',
+    'id="install"',
+    '/og/og-cli.png',
+  ] as const
+  for (const marker of requiredCli) {
+    if (!cliHtml.includes(marker)) {
+      console.error(`MISSING on /cli: ${marker}`)
+      failed = true
+    } else {
+      console.log(`OK: /cli has ${marker}`)
+    }
+  }
+} catch {
+  console.error('MISSING dist/cli/index.html — run build first')
+  failed = true
+}
+
 const distChangelog = join(process.cwd(), 'dist/changelog/index.html')
 try {
   const changelogHtml = readFileSync(distChangelog, 'utf8')
