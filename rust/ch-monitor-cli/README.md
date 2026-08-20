@@ -118,7 +118,7 @@ The CLI sends a best-effort, anonymous usage ping (a random install id, CLI
 version, command name, and OS/arch) to `telemetry.chmonitor.dev` — a separate
 stream from the dashboard's telemetry, with **no** cluster host, query text,
 arguments, paths, or IPs. It runs on a background thread with a sub-second
-timeout and never blocks or fails a command.
+timeout, is aborted if still running at exit, and never blocks or fails a command.
 
 Opt out with any of `CHM_TELEMETRY=off`, `DO_NOT_TRACK=1`, or
 `CHM_TELEMETRY_ENDPOINT=""`. See

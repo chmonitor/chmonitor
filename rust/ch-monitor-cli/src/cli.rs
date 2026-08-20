@@ -144,8 +144,9 @@ pub enum Commands {
     /// replaces this binary. Never invokes sudo: checksum, permission, and
     /// unsupported-target failures print a copy-pasteable fallback
     /// (`scripts/install.sh` or `cargo install chmonitor`).
+    /// `--beta` / `--stable` switch the saved channel and then update.
     Update(UpdateArgs),
-    /// Alias of `update`. Same flags (`--check`, `--version`), same behaviour.
+    /// Alias of `update`. Same flags (`--check`, `--version`, `--beta`, `--stable`).
     Upgrade(UpdateArgs),
     /// Generate shell completions
     Completions {
