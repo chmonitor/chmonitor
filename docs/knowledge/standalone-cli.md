@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-08-19
+updated: 2026-08-20
 tags:
   - rust
   - cli
@@ -24,26 +24,34 @@ related:
 
 ## Config Loading
 
-Priority order:
-1. `--config /path/to/config.toml`
-2. `CHM_CONFIG` env var
-3. Default `~/.config/chm/config.toml`
-4. Direct flags/env override file values
+Priority order (highest wins):
+1. CLI flags (`--base-url`, `--host-id`, `--api-key`, `--token`, `--channel`, …)
+2. Environment (`CHM_BASE_URL`, `CHM_HOST_ID`, `CHM_API_KEY`, `CHM_TOKEN`, `CHM_CHANNEL`, …)
+3. Project config: `./chm.toml` or `./.chm/config.toml`
+4. User config: `~/.config/chm/config.toml`
+5. Built-in defaults (`base_url = https://dash.chmonitor.dev`, `channel = stable`)
 
 ```toml
-base_url = "http://localhost:3000"
+base_url = "https://dash.chmonitor.dev"
 host_id = 0
 api_key = "chm_xxx"
 default_chart = "query-count"
+channel = "stable" # or "beta"
 ```
+
+Credentials (device-login token / API key) live in the OS keyring, with a
+`0600` plaintext fallback at `~/.config/chm/credentials`.
 
 ## Commands
 
 ```bash
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- auth login
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- hosts
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui query-count
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
 
 ## Zero-signup diagnostics (`diagnose`)
@@ -86,14 +94,16 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose \
   process exits `1` if any finding is `critical`, `0` otherwise.
 - Docs page: `docs/content/guide/guides/diagnostics-cli.mdx`.
 
-## API Key Support
+## API Key / Auth Support
 
-- CLI sends `x-api-key` header when `api_key` is configured
+- CLI sends **both** `Authorization: Bearer …` and `x-api-key` when configured
+- `chm auth login` uses the device-code flow:
+  `POST /api/v1/auth/device/code` → open browser → poll `POST /api/v1/auth/token`
 - Server-side API key protection enabled when `CHM_API_KEY_SECRET` is set
 - Generate key via API:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/api-key \
+curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
   -H 'content-type: application/json' \
   -H "authorization: Bearer $CHM_API_KEY_SECRET" \
   -d '{"label":"cli","days":30}'
@@ -103,9 +113,10 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 
 | Library | Purpose |
 |---------|---------|
-| `clap` | CLI parser with env support |
-| `reqwest` + `tokio` | Async HTTP |
-| `comfy-table` | Table rendering |
+| `clap` + `clap_complete` | CLI parser, env support, completions |
+| `reqwest` + `tokio` | Async HTTP (JSON + SSE stream) |
+| `keyring` | OS credential store |
+| `comfy-table` / `indicatif` / `owo-colors` | Table + progress + color |
 | `ratatui` + `crossterm` | TUI stack |
 
 ## Self-update (`chm update` / `chm upgrade`)
@@ -114,7 +125,10 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 `--version` flags, same `cli_run`/`update` telemetry). Both print
 current -> target version, download the matching `chm-<target>` GitHub Release
 asset, require a matching `.sha256`, and atomically replace the running
-binary. They never invoke sudo. Checksum, permission, download, and
+binary. They never invoke sudo. Homebrew-managed installs are refused
+(`is_brew_managed`). Channel (`--channel` / `CHM_CHANNEL` / config):
+`stable` skips prereleases; `beta` includes them and prefers a prerelease
+when semver cores tie. Checksum, permission, download, and
 unsupported-target failures print a copy-pasteable fallback (`scripts/install.sh`
 or `cargo install ch-monitor-cli --force`; unsupported targets point at cargo
 only). `--version` accepts `chm-v0.2.0`, `v0.2.0`, `0.2.0`, or `chm-0.2.0`.

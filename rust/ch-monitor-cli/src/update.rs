@@ -12,6 +12,8 @@ use reqwest::Client;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
+use crate::cli::Channel;
+
 const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases";
 const RELEASE_DOWNLOAD: &str = "https://github.com/chmonitor/chmonitor/releases/download";
 const USER_AGENT: &str = concat!("chm-cli/", env!("CARGO_PKG_VERSION"));
@@ -35,7 +37,7 @@ const SUPPORTED_TARGETS: &[&str] = &[
 ];
 
 #[derive(Debug, Deserialize)]
-struct Release {
+pub(crate) struct Release {
     tag_name: String,
     #[serde(default)]
     prerelease: bool,
@@ -66,12 +68,44 @@ fn parse_version(tag: &str) -> Option<Version> {
 
 /// Pick the newest `chm-v*` tag from a releases list (skips drafts/prereleases).
 fn newest_chm_tag(releases: &[Release]) -> Option<String> {
-    releases
-        .iter()
-        .filter(|r| !r.draft && !r.prerelease && r.tag_name.starts_with("chm-v"))
-        .filter_map(|r| parse_version(&r.tag_name).map(|v| (v, r.tag_name.clone())))
-        .max_by(|a, b| a.0.cmp(&b.0))
-        .map(|(_, tag)| tag)
+    newest_chm_tag_for_channel(releases, Channel::Stable)
+}
+
+/// Pick the newest `chm-v*` tag for a release channel.
+///
+/// - `stable`: published non-prerelease only (drafts skipped).
+/// - `beta`: includes prereleases; when semver cores tie, prefers the prerelease.
+pub fn newest_chm_tag_for_channel(releases: &[Release], channel: Channel) -> Option<String> {
+    let mut best: Option<(Version, bool, String)> = None;
+    for r in releases {
+        if r.draft || !r.tag_name.starts_with("chm-v") {
+            continue;
+        }
+        match channel {
+            Channel::Stable if r.prerelease => continue,
+            Channel::Stable | Channel::Beta => {}
+        }
+        let Some(ver) = parse_version(&r.tag_name) else {
+            continue;
+        };
+        let cand = (ver, r.prerelease, r.tag_name.clone());
+        let take = match &best {
+            None => true,
+            Some(cur) => match cand.0.cmp(&cur.0) {
+                std::cmp::Ordering::Greater => true,
+                std::cmp::Ordering::Less => false,
+                std::cmp::Ordering::Equal => match channel {
+                    // Beta prefers prerelease when versions match.
+                    Channel::Beta => cand.1 && !cur.1,
+                    Channel::Stable => false,
+                },
+            },
+        };
+        if take {
+            best = Some(cand);
+        }
+    }
+    best.map(|(_, _, tag)| tag)
 }
 
 /// Normalize a user-supplied pin (`chm-v0.2.0`, `v0.2.0`, `0.2.0`, `chm-0.2.0`)
@@ -140,13 +174,20 @@ async fn fetch_releases(client: &Client, max_pages: u32) -> Result<Vec<Release>>
 }
 
 /// Fetch the newest published `chm-v*` release tag.
+#[allow(dead_code)]
 async fn latest_tag(client: &Client) -> Result<String> {
+    latest_tag_for_channel(client, Channel::Stable).await
+}
+
+/// Fetch the newest `chm-v*` release tag for a channel.
+pub async fn latest_tag_for_channel(client: &Client, channel: Channel) -> Result<String> {
     let releases = fetch_releases(client, RELEASES_MAX_PAGES).await?;
-    newest_chm_tag(&releases).ok_or_else(|| {
-        with_fallback(
-            "no published chm-v* release found — pin one with --version chm-vX.Y.Z, \
+    newest_chm_tag_for_channel(&releases, channel).ok_or_else(|| {
+        with_fallback(format!(
+            "no published chm-v* release found for channel {} — pin one with --version chm-vX.Y.Z, \
              or has the CLI been released yet?",
-        )
+            channel.as_str()
+        ))
     })
 }
 
@@ -163,12 +204,22 @@ fn ensure_supported_target() -> Result<()> {
 
 /// `chm update --check` / `chm upgrade --check`: report whether a newer release exists.
 /// Returns `true` when an update is available.
+#[allow(dead_code)]
 pub async fn check(client: &Client) -> Result<bool> {
+    check_channel(client, Channel::Stable).await
+}
+
+/// Channel-aware update check.
+pub async fn check_channel(client: &Client, channel: Channel) -> Result<bool> {
     let current = current_version();
-    let latest_tag = latest_tag(client).await?;
+    let latest_tag = latest_tag_for_channel(client, channel).await?;
     let latest = parse_version(&latest_tag)
         .ok_or_else(|| anyhow!("could not parse latest release tag '{latest_tag}'"))?;
-    println!("chm v{} -> {latest_tag}", env!("CARGO_PKG_VERSION"));
+    println!(
+        "chm v{} ({}) -> {latest_tag}",
+        env!("CARGO_PKG_VERSION"),
+        channel.as_str()
+    );
     if latest > current {
         println!("update available (run `chm update` or `chm upgrade`)");
         Ok(true)
@@ -205,20 +256,64 @@ pub async fn hint(client: &Client) {
 }
 
 /// `chm update` / `chm upgrade` (and `--version <tag>`): download, verify, replace.
+#[allow(dead_code)]
 pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
+    run_channel(client, pinned, Channel::Stable).await
+}
+
+/// True when this binary lives under a Homebrew prefix (Cellar / Caskroom).
+/// Self-update refuses to replace brew-managed installs.
+pub fn is_brew_managed() -> bool {
+    let Ok(exe) = env::current_exe() else {
+        return false;
+    };
+    let path = exe.to_string_lossy().to_ascii_lowercase();
+    path.contains("/cellar/")
+        || path.contains("/caskroom/")
+        || path.contains("/homebrew/")
+        || path.contains("\\homebrew\\")
+}
+
+/// Channel-aware self-update.
+pub async fn run_channel(
+    client: &Client,
+    pinned: Option<String>,
+    channel: Channel,
+) -> Result<()> {
+    if is_brew_managed() {
+        return Err(anyhow!(
+            "this chm binary appears to be managed by Homebrew.\n\
+             Refuse to self-update — run `brew upgrade chm` (or reinstall) instead."
+        ));
+    }
     ensure_supported_target()?;
     let current = current_version();
 
-    let target_tag = match pinned {
-        Some(tag) => normalize_release_tag(&tag),
-        None => latest_tag(client).await?,
+    let target_tag = match &pinned {
+        Some(tag) => normalize_release_tag(tag),
+        None => latest_tag_for_channel(client, channel).await?,
     };
     let target_version = parse_version(&target_tag)
         .ok_or_else(|| anyhow!("could not parse target tag '{target_tag}'"))?;
 
-    println!("chm v{} -> {target_tag}", env!("CARGO_PKG_VERSION"));
+    println!(
+        "chm v{} ({}) -> {target_tag}",
+        env!("CARGO_PKG_VERSION"),
+        channel.as_str()
+    );
 
     if target_version == current {
+        let current_tag = format!("chm-v{}", env!("CARGO_PKG_VERSION"));
+        // On beta, a same-core prerelease tag may still be a different build.
+        let beta_prerelease_bump = matches!(channel, Channel::Beta)
+            && pinned.is_none()
+            && target_tag != current_tag
+            && target_tag.contains('-');
+        if !beta_prerelease_bump {
+            println!("chm is already up to date");
+            return Ok(());
+        }
+    } else if target_version < current && pinned.is_none() {
         println!("chm is already up to date");
         return Ok(());
     }
@@ -418,6 +513,27 @@ mod tests {
         let json = r#"[{"tag_name":"chm-v0.9.0","prerelease":true,"draft":false},{"tag_name":"chm-v0.8.0","prerelease":false,"draft":true},{"tag_name":"chm-v0.5.0","prerelease":false,"draft":false}]"#;
         let releases: Vec<Release> = serde_json::from_str(json).unwrap();
         assert_eq!(newest_chm_tag(&releases).as_deref(), Some("chm-v0.5.0"));
+    }
+
+    #[test]
+    fn beta_channel_prefers_prerelease() {
+        let json = r#"[{"tag_name":"chm-v0.1.2","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.2-beta.1","prerelease":true,"draft":false},{"tag_name":"chm-v0.1.1","prerelease":false,"draft":false}]"#;
+        let releases: Vec<Release> = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            newest_chm_tag_for_channel(&releases, Channel::Stable).as_deref(),
+            Some("chm-v0.1.2")
+        );
+        assert_eq!(
+            newest_chm_tag_for_channel(&releases, Channel::Beta).as_deref(),
+            Some("chm-v0.1.2-beta.1")
+        );
+        // Newer stable still wins on beta when semver core is higher.
+        let json2 = r#"[{"tag_name":"chm-v0.2.0","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.9-beta.9","prerelease":true,"draft":false}]"#;
+        let releases2: Vec<Release> = serde_json::from_str(json2).unwrap();
+        assert_eq!(
+            newest_chm_tag_for_channel(&releases2, Channel::Beta).as_deref(),
+            Some("chm-v0.2.0")
+        );
     }
 
     #[test]
