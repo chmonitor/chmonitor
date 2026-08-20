@@ -26,10 +26,7 @@ import {
   fetchCompareDiff,
 } from '@/lib/compare/fetch-diff-request'
 import { resolveCompareScope, resolvePair } from '@/lib/compare/scope'
-import {
-  filterSettingsDiffRows,
-  isSettingsDiffAllMatchedEmpty,
-} from '@/lib/settings-diff/filter'
+import { filterSettingsDiffRows } from '@/lib/settings-diff/filter'
 import { useHostId } from '@/lib/swr/use-host'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
@@ -187,21 +184,12 @@ export function SettingsDiffPage() {
       : hosts
 
   const diffsOnly = hostCount === 1 ? false : showDiffsOnly
-  const totalRows = data.rows?.length ?? 0
   const filteredRows = filterSettingsDiffRows(data.rows ?? [], {
     showDiffsOnly: diffsOnly,
     showChangedOnly,
     nameFilter,
   })
-  const diffCount = (data.rows ?? []).filter((r) => r.hasDiff).length
   const oneHostVsDefault = hostCount === 1 && scope === 'hosts'
-  const allMatched = isSettingsDiffAllMatchedEmpty({
-    totalRows,
-    diffCount,
-    showDiffsOnly: diffsOnly,
-    showChangedOnly,
-    nameFilter,
-  })
 
   return (
     <div className="flex flex-col gap-4">
@@ -334,12 +322,7 @@ export function SettingsDiffPage() {
         )}
       </CompareToolbar>
 
-      <SettingsDiffTable
-        columns={columns}
-        rows={filteredRows}
-        allMatched={allMatched}
-        onShowMatching={() => setShowDiffsOnly(false)}
-      />
+      <SettingsDiffTable columns={columns} rows={filteredRows} />
 
       <p className="text-xs text-muted-foreground">
         {filteredRows.length.toLocaleString()} row

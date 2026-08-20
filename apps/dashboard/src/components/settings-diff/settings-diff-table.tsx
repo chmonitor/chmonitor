@@ -65,16 +65,12 @@ export function exportSettingsCsv(
 interface SettingsDiffTableProps {
   columns: SettingsDiffHostInfo[]
   rows: SettingsDiffRow[]
-  allMatched?: boolean
-  onShowMatching?: () => void
 }
 
-export function SettingsDiffTable({
-  columns,
-  rows,
-  allMatched = false,
-  onShowMatching,
-}: SettingsDiffTableProps) {
+export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
+  const showMatchColumn = columns.length > 1
+  const colSpan = (showMatchColumn ? 4 : 3) + columns.length
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -82,6 +78,11 @@ export function SettingsDiffTable({
           <Table>
             <TableHeader>
               <TableRow>
+                {showMatchColumn ? (
+                  <TableHead className="w-8 px-2">
+                    <span className="sr-only">Match</span>
+                  </TableHead>
+                ) : null}
                 <TableHead className="w-64 min-w-48">Name</TableHead>
                 <TableHead className="w-40">Table</TableHead>
                 <TableHead className="w-36 text-muted-foreground">
@@ -97,35 +98,13 @@ export function SettingsDiffTable({
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3 + columns.length} className="py-10">
-                    {allMatched ? (
-                      <EmptyState
-                        variant="no-data"
-                        title="All matched"
-                        description="No setting differences between source and target. Switch to All to list every setting."
-                        icon={
-                          <CheckCircle2Icon
-                            className="size-6 text-[var(--chart-green)]"
-                            strokeWidth={1.5}
-                          />
-                        }
-                        action={
-                          onShowMatching
-                            ? {
-                                label: 'Show matching settings',
-                                onClick: onShowMatching,
-                              }
-                            : undefined
-                        }
-                      />
-                    ) : (
-                      <EmptyState
-                        variant="filtered-empty"
-                        compact
-                        title="No settings match"
-                        description="Try a different name filter or switch to All."
-                      />
-                    )}
+                  <TableCell colSpan={colSpan} className="py-10">
+                    <EmptyState
+                      variant="filtered-empty"
+                      compact
+                      title="No settings match"
+                      description="Try a different name filter or switch to All."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -143,6 +122,18 @@ export function SettingsDiffTable({
                           : undefined
                       }
                     >
+                      {showMatchColumn ? (
+                        <TableCell className="w-8 px-2">
+                          {row.hasDiff ? null : (
+                            <CheckCircle2Icon
+                              className="size-3.5 text-[var(--chart-green)]"
+                              strokeWidth={1.5}
+                              aria-label="matched"
+                              data-testid="settings-diff-matched-icon"
+                            />
+                          )}
+                        </TableCell>
+                      ) : null}
                       <TableCell className="font-mono text-xs">
                         <div className="flex items-center gap-2">
                           {row.name}

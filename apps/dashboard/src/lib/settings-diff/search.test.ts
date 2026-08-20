@@ -1,4 +1,4 @@
-import { filterSettingsDiffRows, isSettingsDiffAllMatchedEmpty } from './filter'
+import { filterSettingsDiffRows } from './filter'
 import { mergeSettingsDiff } from './merge'
 import { buildSettingsDiffRequest, validateSettingsDiffSearch } from './search'
 import { describe, expect, test } from 'bun:test'
@@ -133,55 +133,59 @@ describe('settings-diff node pair filter', () => {
   })
 })
 
-describe('settings-diff all-matched empty', () => {
-  test('is true when diffs-only hides a full matching catalog', () => {
-    expect(
-      isSettingsDiffAllMatchedEmpty({
-        totalRows: 40,
-        diffCount: 0,
-        showDiffsOnly: true,
-        showChangedOnly: false,
-        nameFilter: '',
-      })
-    ).toBe(true)
-  })
-
-  test('is false when there are diffs, a name filter, or diffs-only is off', () => {
-    expect(
-      isSettingsDiffAllMatchedEmpty({
-        totalRows: 40,
-        diffCount: 1,
-        showDiffsOnly: true,
-        showChangedOnly: false,
-        nameFilter: '',
-      })
-    ).toBe(false)
-    expect(
-      isSettingsDiffAllMatchedEmpty({
-        totalRows: 40,
-        diffCount: 0,
-        showDiffsOnly: false,
-        showChangedOnly: false,
-        nameFilter: '',
-      })
-    ).toBe(false)
-    expect(
-      isSettingsDiffAllMatchedEmpty({
-        totalRows: 40,
-        diffCount: 0,
-        showDiffsOnly: true,
-        showChangedOnly: false,
-        nameFilter: 'max_threads',
-      })
-    ).toBe(false)
-    expect(
-      isSettingsDiffAllMatchedEmpty({
-        totalRows: 0,
-        diffCount: 0,
-        showDiffsOnly: true,
-        showChangedOnly: false,
-        nameFilter: '',
-      })
-    ).toBe(false)
+describe('settings-diff matching catalog', () => {
+  test('diffs-only with no deltas still lists matching rows', () => {
+    const rows = mergeSettingsDiff([
+      {
+        peerId: 0,
+        table: 'settings',
+        rows: [
+          {
+            name: 'max_threads',
+            value: '8',
+            changed: 0,
+            description: '',
+            defaultValue: '8',
+          },
+          {
+            name: 'use_uncompressed_cache',
+            value: '0',
+            changed: 0,
+            description: '',
+            defaultValue: '0',
+          },
+        ],
+      },
+      {
+        peerId: 1,
+        table: 'settings',
+        rows: [
+          {
+            name: 'max_threads',
+            value: '8',
+            changed: 0,
+            description: '',
+            defaultValue: '8',
+          },
+          {
+            name: 'use_uncompressed_cache',
+            value: '0',
+            changed: 0,
+            description: '',
+            defaultValue: '0',
+          },
+        ],
+      },
+    ])
+    const filtered = filterSettingsDiffRows(rows, {
+      showDiffsOnly: true,
+      showChangedOnly: false,
+      nameFilter: '',
+    })
+    expect(filtered.map((r) => r.name).sort()).toEqual([
+      'max_threads',
+      'use_uncompressed_cache',
+    ])
+    expect(filtered.every((r) => r.hasDiff === false)).toBe(true)
   })
 })

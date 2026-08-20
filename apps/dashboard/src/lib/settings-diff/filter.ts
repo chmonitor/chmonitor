@@ -5,27 +5,14 @@ export function filterSettingsDiffRows(
   opts: { showDiffsOnly: boolean; showChangedOnly: boolean; nameFilter: string }
 ): SettingsDiffRow[] {
   const q = opts.nameFilter.toLowerCase()
+  // Differences with zero deltas still lists matching rows so the table
+  // is a real catalog, not an empty "All matched" card.
+  const hasAnyDiff = rows.some((row) => row.hasDiff)
+  const hideMatched = opts.showDiffsOnly && hasAnyDiff
   return rows.filter((row) => {
-    if (opts.showDiffsOnly && !row.hasDiff) return false
+    if (hideMatched && !row.hasDiff) return false
     if (opts.showChangedOnly && !row.changedFromDefault) return false
     if (q && !row.name.toLowerCase().includes(q)) return false
     return true
   })
-}
-
-/** Diffs-only with zero deltas and no other filter — show "All matched", not a filter miss. */
-export function isSettingsDiffAllMatchedEmpty(opts: {
-  totalRows: number
-  diffCount: number
-  showDiffsOnly: boolean
-  showChangedOnly: boolean
-  nameFilter: string
-}): boolean {
-  return (
-    opts.showDiffsOnly &&
-    opts.diffCount === 0 &&
-    opts.totalRows > 0 &&
-    !opts.showChangedOnly &&
-    opts.nameFilter.trim() === ''
-  )
 }

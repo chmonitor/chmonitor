@@ -683,9 +683,9 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   another host; two or more merged hosts (env + database + browser,
   including negative ids) keep an All-hosts matrix with an optional pair
   mode (`HostPairFilter` + URL `source`/`target`). Diffs-only with zero
-  deltas is **All matched** (green check, `--chart-green`) plus **Show
-  matching settings** to turn the toggle off; "No settings match" is
-  only a name/changed-from-default filter miss. Compare APIs resolve
+  deltas still lists matching settings with a green `CheckCircle2` in
+  a Match column (`--chart-green`); "No settings match" is only a
+  name/changed-from-default filter miss. Compare APIs resolve
   merged hosts the same way charts do (`resolve-host-fetch.ts` /
   `use-merged-hosts.ts`).
 - Overflow strip: for a single-row scroller that must not wrap, use
