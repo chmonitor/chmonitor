@@ -4,6 +4,7 @@
 
 ### Features
 
+* **cli:** `chm update --beta` installs the latest beta and saves `channel = "beta"` (`--stable` switches back)
 * **cli:** default TUI shows Overview dashboard charts (KPI/sparkline grid)
 * **cli:** `chm dashboard list` / `open` (Overview + saved dashboards)
 * **cli:** interactive `chm config`; `chm config show` prints file layers

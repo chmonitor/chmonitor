@@ -107,6 +107,20 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn update_beta_and_stable_flags() {
+        for argv in [["chm", "update", "--beta"], ["chm", "upgrade", "--beta"]] {
+            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
+            assert!(args.beta);
+            assert!(!args.stable);
+        }
+        let stable = update_args(Cli::try_parse_from(["chm", "update", "--stable"]).expect("parse"));
+        assert!(stable.stable);
+        assert!(!stable.beta);
+        assert!(Cli::try_parse_from(["chm", "update", "--beta", "--stable"]).is_err());
+    }
+
+    #[test]
     fn upgrade_and_update_share_version_flag() {
         for argv in [
             ["chm", "update", "--version", "chm-v0.2.0"],

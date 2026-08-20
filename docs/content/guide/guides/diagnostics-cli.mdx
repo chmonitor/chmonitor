@@ -90,7 +90,9 @@ Releases — no re-running the install script, and they never invoke `sudo`:
 ```bash
 chm upgrade                    # alias of update
 chm update --check             # report only (exit 1 if newer exists)
-chm update --channel beta      # prefer prereleases
+chm update --beta              # install latest beta and save channel=beta
+chm update --stable            # install latest stable and save channel=stable
+chm update --channel beta      # this run only
 chm upgrade --version chm-v0.2.0
 ```
 
