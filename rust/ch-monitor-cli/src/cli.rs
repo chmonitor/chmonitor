@@ -104,14 +104,23 @@ pub enum Commands {
         /// Max rows to print
         #[arg(long, default_value_t = 20)]
         limit: usize,
+        /// Print column names / query-config metadata (SQL hint when available)
+        #[arg(long)]
+        explain: bool,
     },
-    /// Live terminal UI for a dashboard chart (or overview)
+    /// Live multi-pane terminal UI (overview / chart / table). Enters alt-screen.
     Tui {
         /// Chart name (default: config `default_chart`, else query-count)
         chart: Option<String>,
-        /// Show overview metrics instead of a single chart
+        /// Start in overview mode (hosts summary + default chart sparkline)
         #[arg(long)]
         overview: bool,
+        /// Table name for pane 3 (default: running-queries)
+        #[arg(long, default_value = "running-queries")]
+        table: String,
+        /// Page size when fetching the TUI table pane
+        #[arg(long, default_value_t = 15)]
+        page_size: usize,
     },
     /// Stream a chat reply from the dashboard AI agent
     Chat {

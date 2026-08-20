@@ -183,4 +183,58 @@ mod tests {
             "https://dash.chmonitor.dev"
         );
     }
+
+    #[test]
+    fn table_explain_flag_parses() {
+        let cli = Cli::try_parse_from([
+            "chm",
+            "table",
+            "running-queries",
+            "--explain",
+            "--limit",
+            "5",
+        ])
+        .expect("parse");
+        match cli.command {
+            Commands::Table {
+                name,
+                limit,
+                explain,
+            } => {
+                assert_eq!(name, "running-queries");
+                assert_eq!(limit, 5);
+                assert!(explain);
+            }
+            other => panic!("expected Table, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn tui_table_and_page_size_flags_parse() {
+        let cli = Cli::try_parse_from([
+            "chm",
+            "tui",
+            "query-count",
+            "--overview",
+            "--table",
+            "merges",
+            "--page-size",
+            "10",
+        ])
+        .expect("parse");
+        match cli.command {
+            Commands::Tui {
+                chart,
+                overview,
+                table,
+                page_size,
+            } => {
+                assert_eq!(chart.as_deref(), Some("query-count"));
+                assert!(overview);
+                assert_eq!(table, "merges");
+                assert_eq!(page_size, 10);
+            }
+            other => panic!("expected Tui, got {other:?}"),
+        }
+    }
 }

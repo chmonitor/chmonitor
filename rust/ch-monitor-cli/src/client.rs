@@ -12,6 +12,36 @@ struct ApiResponse {
     data: Value,
 }
 
+/// Full `{ success, data, metadata|meta }` envelope from the dashboard API.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ApiEnvelope {
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub success: Option<bool>,
+    pub data: Value,
+    #[serde(default)]
+    pub metadata: Option<Value>,
+    /// Some older/alternate responses nest metadata under `meta`.
+    #[serde(default)]
+    pub meta: Option<Value>,
+}
+
+impl ApiEnvelope {
+    /// Prefer `metadata`, fall back to `meta`.
+    pub fn meta_object(&self) -> Option<&Value> {
+        self.metadata.as_ref().or(self.meta.as_ref())
+    }
+
+    /// SQL / query hint from the response envelope when present.
+    pub fn query_hint(&self) -> Option<&str> {
+        let meta = self.meta_object()?;
+        meta.get("sql")
+            .or_else(|| meta.get("query"))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.trim().is_empty())
+    }
+}
+
 pub fn api_error_hint(status: u16) -> &'static str {
     match status {
         401 | 403 => {
@@ -54,13 +84,13 @@ pub fn apply_auth(
     req
 }
 
-pub async fn fetch(
+async fn send_get(
     client: &Client,
-    url: String,
+    url: &str,
     token: Option<&str>,
     api_key: Option<&str>,
-) -> Result<Value> {
-    let req = apply_auth(client.get(&url), token, api_key);
+) -> Result<(u16, String)> {
+    let req = apply_auth(client.get(url), token, api_key);
     let resp = match req.send().await {
         Ok(resp) => resp,
         Err(err) => {
@@ -72,26 +102,64 @@ pub async fn fetch(
             );
         }
     };
-    let status = resp.status();
+    let status = resp.status().as_u16();
     let text = resp.text().await.unwrap_or_default();
-    if !status.is_success() {
-        let hint = api_error_hint(status.as_u16());
+    Ok((status, text))
+}
+
+fn ensure_success(url: &str, status: u16, text: &str) -> Result<()> {
+    if !(200..300).contains(&status) {
+        let hint = api_error_hint(status);
         let extra = match truncate_body(text.trim(), 200) {
             None => String::new(),
             Some(body) => format!(" {body}"),
         };
         bail!("chmonitor API returned HTTP {status} for {url}.{hint}{extra}");
     }
+    Ok(())
+}
+
+pub async fn fetch(
+    client: &Client,
+    url: String,
+    token: Option<&str>,
+    api_key: Option<&str>,
+) -> Result<Value> {
+    let (status, text) = send_get(client, &url, token, api_key).await?;
+    ensure_success(&url, status, &text)?;
     let parsed: ApiResponse = serde_json::from_str(&text).with_context(|| {
         format!("chmonitor API at {url} returned a non-JSON body (HTTP {status})")
     })?;
     Ok(parsed.data)
 }
 
+/// Fetch the full API envelope (`data` + optional `metadata`/`meta`).
+pub async fn fetch_envelope(
+    client: &Client,
+    url: String,
+    token: Option<&str>,
+    api_key: Option<&str>,
+) -> Result<ApiEnvelope> {
+    let (status, text) = send_get(client, &url, token, api_key).await?;
+    ensure_success(&url, status, &text)?;
+    serde_json::from_str(&text)
+        .with_context(|| format!("chmonitor API at {url} returned a non-JSON body (HTTP {status})"))
+}
+
 pub async fn fetch_cfg(client: &Client, cfg: &AppConfig, url: String) -> Result<Value> {
     let token = crate::credentials::resolve_token(cfg.token.as_deref())?;
     let api_key = crate::credentials::resolve_api_key(cfg.api_key.as_deref())?;
     fetch(client, url, token.as_deref(), api_key.as_deref()).await
+}
+
+pub async fn fetch_envelope_cfg(
+    client: &Client,
+    cfg: &AppConfig,
+    url: String,
+) -> Result<ApiEnvelope> {
+    let token = crate::credentials::resolve_token(cfg.token.as_deref())?;
+    let api_key = crate::credentials::resolve_api_key(cfg.api_key.as_deref())?;
+    fetch_envelope(client, url, token.as_deref(), api_key.as_deref()).await
 }
 
 pub fn rows_from_chart_data(data: Value) -> Result<Vec<Value>> {
@@ -133,5 +201,20 @@ mod tests {
         assert_eq!(truncate_body("", 8), None);
         assert_eq!(truncate_body("hello", 8).as_deref(), Some("hello"));
         assert_eq!(truncate_body("éééé", 2).as_deref(), Some("éé…"));
+    }
+
+    #[test]
+    fn envelope_prefers_metadata_sql_then_meta_query() {
+        let with_meta: ApiEnvelope =
+            serde_json::from_str(r#"{"success":true,"data":[],"metadata":{"sql":"SELECT 1"}}"#)
+                .unwrap();
+        assert_eq!(with_meta.query_hint(), Some("SELECT 1"));
+
+        let with_meta_query: ApiEnvelope =
+            serde_json::from_str(r#"{"data":[],"meta":{"query":"SELECT 2"}}"#).unwrap();
+        assert_eq!(with_meta_query.query_hint(), Some("SELECT 2"));
+
+        let bare: ApiEnvelope = serde_json::from_str(r#"{"data":[]}"#).unwrap();
+        assert!(bare.query_hint().is_none());
     }
 }
