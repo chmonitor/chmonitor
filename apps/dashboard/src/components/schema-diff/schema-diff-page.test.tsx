@@ -756,4 +756,43 @@ describe('Schema Compare two-host path', () => {
       await cleanup()
     }
   })
+
+  test('scope switch keeps the toolbar and shows listing loading', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = twoHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={{
+          ...data,
+          nodes: [
+            { id: 10, name: 'clickhouse-0' },
+            { id: 11, name: 'clickhouse-1' },
+          ],
+        }}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={2}
+        listingLoading
+        onPairChange={() => {}}
+        onScopeChange={() => {}}
+      />
+    )
+
+    try {
+      expect(document.body.textContent).toContain('Replica nodes')
+      expect(document.body.textContent).toContain('staging')
+      expect(
+        document.querySelector('[data-testid="schema-diff-listing-loading"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-list"]')
+      ).toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
 })

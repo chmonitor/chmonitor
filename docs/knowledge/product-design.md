@@ -672,7 +672,8 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   `ChmonitorLogo` + version/uptime/status like HostSwitcher).
   Differences / All and table sort are icon-only controls on the
   table sidebar (with the name search), not the host toolbar.
-  Scope toggle (only when both hostCount and
+  Switching Connections / Replica nodes keeps the toolbar and shows a
+  listing loading state. Scope toggle (only when both hostCount and
   nodeCount are ≥ 2) writes `?scope=hosts|nodes` and remounts the pair
   from that peer list.
   The table catalog is a collapsible left sidebar grouped

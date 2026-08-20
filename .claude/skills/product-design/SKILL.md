@@ -114,7 +114,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   differences first) live on that sidebar — not the host toolbar.
   When Differences is on and there are no diffs, still list identical
   tables with a green `CheckCircle2` (`--chart-green`) — click a row
-  to select it on the right. A matching selection is **All matched** / **This
+  to select it on the right. Switching Connections / Replica nodes
+  keeps the toolbar and shows a listing loading state (not a full-page
+  empty load). A matching selection is **All matched** / **This
   table matches** (`MatchOk`), never EmptyState "no data" or
   "Select a table". Keep "No tables match" only for a name-filter
   miss.

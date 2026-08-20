@@ -1,4 +1,4 @@
-import { CopyIcon, PanelLeftIcon } from 'lucide-react'
+import { CopyIcon, Loader2Icon, PanelLeftIcon } from 'lucide-react'
 
 import type { ComparePeer, CompareScope } from '@/lib/compare/scope'
 import type { SchemaDiffResponse, TableDiff } from '@/lib/schema-diff'
@@ -33,6 +33,7 @@ export interface SchemaDiffViewProps {
   onScopeChange?: (scope: CompareScope) => void
   nameFilterPlaceholder?: string
   example?: boolean
+  listingLoading?: boolean
 }
 
 export function SchemaDiffView({
@@ -47,6 +48,7 @@ export function SchemaDiffView({
   onScopeChange,
   nameFilterPlaceholder,
   example = false,
+  listingLoading = false,
 }: SchemaDiffViewProps) {
   const [showDiffsOnly, setShowDiffsOnly] = useState(true)
   const [nameFilter, setNameFilter] = useState('')
@@ -97,12 +99,21 @@ export function SchemaDiffView({
       <CompareToolbar
         tabs={
           onScopeChange ? (
-            <CompareScopeToggle
-              value={scope}
-              onChange={onScopeChange}
-              hostCount={hostCount}
-              nodeCount={nodeCount}
-            />
+            <div className="flex items-center gap-2">
+              <CompareScopeToggle
+                value={scope}
+                onChange={onScopeChange}
+                hostCount={hostCount}
+                nodeCount={nodeCount}
+              />
+              {listingLoading ? (
+                <Loader2Icon
+                  className="size-3.5 animate-spin text-muted-foreground motion-reduce:animate-none"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+              ) : null}
+            </div>
           ) : null
         }
       >
@@ -121,7 +132,7 @@ export function SchemaDiffView({
                         variant="outline"
                         size="sm"
                         onClick={copySafe}
-                        disabled={!hasSafeStatements}
+                        disabled={!hasSafeStatements || listingLoading}
                         aria-label="Copy recommended SQL"
                         className="h-8 text-[13px]"
                       >
@@ -142,70 +153,87 @@ export function SchemaDiffView({
         />
       </CompareToolbar>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        {sidebarOpen ? (
-          <div className="w-full shrink-0 lg:w-[22rem]">
-            <TableList
-              rows={rows}
-              selectedKey={selected?.key ?? null}
-              onSelect={setSelectedKey}
-              example={example}
-              nameFilter={nameFilter}
-              onNameFilterChange={setNameFilter}
-              nameFilterPlaceholder={nameFilterPlaceholder}
-              showDiffsOnly={showDiffsOnly}
-              onShowDiffsOnlyChange={setShowDiffsOnly}
-              onCollapse={() => setSidebarOpen(false)}
-            />
-          </div>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            onClick={() => setSidebarOpen(true)}
-            className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label="Show table list"
-            data-testid="schema-diff-sidebar-expand"
-          >
-            <PanelLeftIcon className="size-3.5" strokeWidth={1.5} />
-          </Button>
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          {selected ? (
-            <>
-              {selectedMatches ? (
-                <MatchOk
-                  title={allMatched ? 'All matched' : 'This table matches'}
-                  description={
-                    allMatched
-                      ? 'Every table schema is identical on source and target.'
-                      : 'Source and target DDL are identical. No recommended statements.'
-                  }
-                />
-              ) : null}
-              <DdlPair selected={selected} />
-              {selectedMatches ? null : <PlanList items={selectedPlan} />}
-            </>
-          ) : allMatched && !hasNameFilter ? (
-            <MatchOk
-              title="All matched"
-              description="Every table schema is identical on source and target."
-            />
-          ) : (
-            <EmptyState
-              variant={hasNameFilter ? 'filtered-empty' : 'no-data'}
-              title={hasNameFilter ? 'No tables match' : 'Select a table'}
-              description={
-                hasNameFilter
-                  ? 'Try a different filter or switch to All.'
-                  : 'Pick a table on the left to see side-by-side DDL and a copyable plan.'
-              }
-            />
-          )}
+      {listingLoading ? (
+        <div
+          className="flex min-h-64 items-center justify-center rounded-xl border bg-card shadow-sm"
+          data-testid="schema-diff-listing-loading"
+          role="status"
+          aria-busy="true"
+          aria-label="Loading comparison"
+        >
+          <EmptyState
+            variant="loading"
+            compact
+            title="Loading comparison"
+            description="Fetching schemas for the selected pair."
+          />
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          {sidebarOpen ? (
+            <div className="w-full shrink-0 lg:w-[22rem]">
+              <TableList
+                rows={rows}
+                selectedKey={selected?.key ?? null}
+                onSelect={setSelectedKey}
+                example={example}
+                nameFilter={nameFilter}
+                onNameFilterChange={setNameFilter}
+                nameFilterPlaceholder={nameFilterPlaceholder}
+                showDiffsOnly={showDiffsOnly}
+                onShowDiffsOnlyChange={setShowDiffsOnly}
+                onCollapse={() => setSidebarOpen(false)}
+              />
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              onClick={() => setSidebarOpen(true)}
+              className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Show table list"
+              data-testid="schema-diff-sidebar-expand"
+            >
+              <PanelLeftIcon className="size-3.5" strokeWidth={1.5} />
+            </Button>
+          )}
+
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {selected ? (
+              <>
+                {selectedMatches ? (
+                  <MatchOk
+                    title={allMatched ? 'All matched' : 'This table matches'}
+                    description={
+                      allMatched
+                        ? 'Every table schema is identical on source and target.'
+                        : 'Source and target DDL are identical. No recommended statements.'
+                    }
+                  />
+                ) : null}
+                <DdlPair selected={selected} />
+                {selectedMatches ? null : <PlanList items={selectedPlan} />}
+              </>
+            ) : allMatched && !hasNameFilter ? (
+              <MatchOk
+                title="All matched"
+                description="Every table schema is identical on source and target."
+              />
+            ) : (
+              <EmptyState
+                variant={hasNameFilter ? 'filtered-empty' : 'no-data'}
+                title={hasNameFilter ? 'No tables match' : 'Select a table'}
+                description={
+                  hasNameFilter
+                    ? 'Try a different filter or switch to All.'
+                    : 'Pick a table on the left to see side-by-side DDL and a copyable plan.'
+                }
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
