@@ -39,9 +39,11 @@ const TUI_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const TUI_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(250);
 const COMBINED_MIN_WIDTH: u16 = 72;
 const COMBINED_MIN_HEIGHT: u16 = 24;
+const ORANGE: Color = Color::Rgb(249, 115, 22);
+const EMERALD: Color = Color::Rgb(16, 185, 129);
 const AUTH_HINT: &str = "Dashboard needs login — run `chm auth login`, then press r";
 const HELP_TEXT: &str = "\
-chm keys
+chmonitor keys
 
   q / Esc     quit
   r           refresh now
@@ -469,7 +471,7 @@ fn draw_header(f: &mut Frame<'_>, area: Rect, cfg: &AppConfig, app: &App, combin
     let age = refresh_age_label(app.last_ok_refresh, Instant::now());
     let age_style = if age == "live" {
         Style::default()
-            .fg(Color::Green)
+            .fg(EMERALD)
             .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
@@ -481,9 +483,9 @@ fn draw_header(f: &mut Frame<'_>, area: Rect, cfg: &AppConfig, app: &App, combin
     };
     let line = Line::from(vec![
         Span::styled(
-            " chm ",
+            " chmonitor ",
             Style::default()
-                .fg(Color::Cyan)
+                .fg(ORANGE)
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(" "),
@@ -529,12 +531,17 @@ fn draw_switcher(f: &mut Frame<'_>, area: Rect, focused: Pane) {
 }
 
 fn draw_combined(f: &mut Frame<'_>, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(9), Constraint::Min(6)])
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(24), Constraint::Min(40)])
         .split(area);
-    draw_overview(f, chunks[0], app);
-    draw_table_pane(f, chunks[1], app);
+    draw_hosts(f, cols[0], app);
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(7), Constraint::Min(6)])
+        .split(cols[1]);
+    draw_chart(f, rows[0], app);
+    draw_table_pane(f, rows[1], app);
 }
 
 fn draw_overview(f: &mut Frame<'_>, area: Rect, app: &App) {
@@ -580,7 +587,7 @@ fn draw_hosts(f: &mut Frame<'_>, area: Rect, app: &App) {
         .highlight_symbol("● ")
         .highlight_style(
             Style::default()
-                .fg(Color::Cyan)
+                .fg(ORANGE)
                 .add_modifier(Modifier::BOLD),
         );
     f.render_stateful_widget(list, area, &mut state);
@@ -604,7 +611,7 @@ fn draw_chart(f: &mut Frame<'_>, area: Rect, app: &App) {
     let spark = Sparkline::default()
         .block(Block::bordered().title(title))
         .data(&app.points)
-        .style(Style::default().fg(Color::Cyan));
+        .style(Style::default().fg(ORANGE));
     f.render_widget(spark, area);
 }
 
@@ -645,7 +652,7 @@ fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
 
     let header = Row::new(cols.iter().cloned().map(Cell::from)).style(
         Style::default()
-            .fg(Color::Yellow)
+            .fg(ORANGE)
             .add_modifier(Modifier::BOLD),
     );
     let widths = column_constraints(cols.len());
@@ -688,14 +695,14 @@ fn pane_switcher_line(focused: Pane) -> Line<'static> {
     let (ov_style, tb_style) = match focused {
         Pane::Overview => (
             Style::default()
-                .fg(Color::Cyan)
+                .fg(ORANGE)
                 .add_modifier(Modifier::BOLD | Modifier::REVERSED),
             Style::default().fg(Color::DarkGray),
         ),
         Pane::Table => (
             Style::default().fg(Color::DarkGray),
             Style::default()
-                .fg(Color::Cyan)
+                .fg(ORANGE)
                 .add_modifier(Modifier::BOLD | Modifier::REVERSED),
         ),
     };
