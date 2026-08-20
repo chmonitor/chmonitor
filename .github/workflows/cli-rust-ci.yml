@@ -34,3 +34,5 @@ jobs:
       - run: cargo clippy -- -D warnings
       - run: cargo build --release
       - run: cargo test
+      - name: crates.io metadata dry-run
+        run: cargo publish --dry-run --allow-dirty

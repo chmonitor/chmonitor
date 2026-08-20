@@ -146,6 +146,11 @@ jobs:
     if: needs.meta.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.meta.outputs.checkout_ref }}
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.meta.outputs.channel == 'stable'
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -235,3 +240,20 @@ jobs:
           echo "Found:" >&2
           printf '%s\n' "$assets" >&2
           exit 1
+      - name: Publish chmonitor crate to crates.io
+        if: needs.meta.outputs.channel == 'stable'
+        working-directory: rust
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' ch-monitor-cli/Cargo.toml | head -n1)"
+          STATUS_CODE="$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "User-Agent: chmonitor-ci (https://github.com/chmonitor/chmonitor)" \
+            "https://crates.io/api/v1/crates/chmonitor/${VERSION}" || true)"
+          if [ "$STATUS_CODE" != "404" ]; then
+            echo "chmonitor v${VERSION} already published or check inconclusive (HTTP ${STATUS_CODE}). Skipping crates.io."
+            exit 0
+          fi
+          echo "Publishing chmonitor v${VERSION} to crates.io..."
+          cargo publish -p chmonitor --locked

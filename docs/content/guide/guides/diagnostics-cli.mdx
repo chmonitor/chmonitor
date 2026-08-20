@@ -4,7 +4,7 @@ description: Install and use the chm / chmonitor CLI — dashboard API client, T
 icon: Terminal
 ---
 
-`chm` is the standalone terminal CLI for chmonitor (crate `ch-monitor-cli`). The
+`chm` is the standalone terminal CLI for chmonitor (crate `chmonitor`). The
 full alias `chmonitor` is the same binary. By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts, charts, tables, TUI, agent).
 Point `--base-url` / `CHM_BASE_URL` at your self-hosted dashboard when needed.
@@ -14,7 +14,7 @@ host** with no dashboard account or backend.
 
 <Callout type="info" title="Binary names and platforms">
 Shipped release assets are Linux and macOS only (`x86_64` / `aarch64`). There
-is no Windows binary — use `cargo install ch-monitor-cli` on unsupported
+is no Windows binary — use `cargo install chmonitor` on unsupported
 targets. Release tags use `chm-v*`; assets are named `chm-<target>` (+
 `.sha256`).
 </Callout>
@@ -41,7 +41,7 @@ Override the install directory with `CHM_INSTALL_DIR` (default
 Already have a Rust toolchain?
 
 ```bash
-cargo install ch-monitor-cli
+cargo install chmonitor
 # both `chm` and `chmonitor` land in ~/.cargo/bin
 ```
 
@@ -91,7 +91,7 @@ chm upgrade --version chm-v0.2.0
 ```
 
 Checksum verification is mandatory. Failures print a copy-pasteable fallback
-(`scripts/install.sh` or `cargo install ch-monitor-cli --force`).
+(`scripts/install.sh` or `cargo install chmonitor --force`).
 
 <Callout type="info" title="Update reminder">
 After some commands (including `chm diagnose`), `chm` does a fast, best-effort

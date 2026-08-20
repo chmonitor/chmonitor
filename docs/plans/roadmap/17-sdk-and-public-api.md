@@ -166,7 +166,7 @@ bun test packages/sdk/src/__tests__/client.test.ts
 bun run depcruise
 
 # reference consumer still builds against the stable routes
-cargo build -p ch-monitor-cli --manifest-path rust/Cargo.toml
+cargo build -p chmonitor --manifest-path rust/Cargo.toml
 
 # nothing regressed
 bun run lint && bun run build && bun run test:unit

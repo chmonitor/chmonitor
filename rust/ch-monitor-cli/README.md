@@ -3,14 +3,14 @@
 Standalone terminal/TUI CLI for [chmonitor](https://github.com/chmonitor/chmonitor).
 
 **Command names:** `chm` (short, preferred) and `chmonitor` (full alias). Same binary;
-`cargo install ch-monitor-cli` installs both; `scripts/install.sh` installs `chm`
+`cargo install chmonitor` installs both; `scripts/install.sh` installs `chm`
 and symlinks `chmonitor` → `chm`.
 
 **Default API base:** `https://dash.chmonitor.dev` (`--base-url` / `CHM_BASE_URL`
 for self-hosted).
 
 **Platforms:** prebuilt binaries for Linux/macOS × `x86_64`/`aarch64` only (no
-Windows). Other targets: `cargo install ch-monitor-cli`.
+Windows). Other targets: `cargo install chmonitor`.
 
 Two ways to use it:
 
@@ -36,7 +36,7 @@ Downloads and verifies the right prebuilt binary for your OS/arch from
 Or from crates.io / source:
 
 ```bash
-cargo install ch-monitor-cli --force
+cargo install chmonitor --force
 # installs both `chm` and `chmonitor` into ~/.cargo/bin
 
 cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
@@ -63,7 +63,7 @@ alias). Both print current -> target version, download the matching GitHub
 Release binary, verify sha256, and atomically replace the running executable.
 They never invoke sudo: checksum, permission, and unsupported-target failures
 print a copy-pasteable fallback (`scripts/install.sh` or
-`cargo install ch-monitor-cli --force`).
+`cargo install chmonitor --force`).
 
 ```bash
 chm upgrade                      # alias of update — latest stable chm-v* release
@@ -76,7 +76,7 @@ chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` al
 After a `chm diagnose` run, a one-line "update available" hint is printed to
 stderr when a newer release exists (best-effort, sub-second timeout). Silence it
 with `CHM_NO_UPDATE_CHECK=1`. Installed via `cargo install`? Upgrade with
-`cargo install ch-monitor-cli --force` instead.
+`cargo install chmonitor --force` instead.
 
 See [docs.chmonitor.dev/guide/guides/diagnostics-cli](https://docs.chmonitor.dev/guide/guides/diagnostics-cli)
 for the full CLI reference.

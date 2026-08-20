@@ -73,7 +73,7 @@
     },
     "rust/ch-monitor-cli": {
       "release-type": "rust",
-      "package-name": "ch-monitor-cli",
+      "package-name": "chmonitor",
       "component": "chm",
       "include-component-in-tag": true,
       "include-v-in-tag": true,

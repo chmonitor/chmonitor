@@ -20,7 +20,7 @@ related:
 `rust/ch-monitor-cli` ships two command names for the same binary: **`chm`**
 (short, preferred) and **`chmonitor`** (full alias). Release assets stay
 `chm-<target>`; `scripts/install.sh` installs `chm` and symlinks `chmonitor`.
-`cargo install ch-monitor-cli` installs both binaries.
+`cargo install chmonitor` installs both binaries.
 
 By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
@@ -234,7 +234,7 @@ binary. They never invoke sudo. Homebrew-managed installs are refused
 `stable` skips prereleases; `beta` includes them and prefers a prerelease
 when semver cores tie. Checksum, permission, download, and
 unsupported-target failures print a copy-pasteable fallback (`scripts/install.sh`
-or `cargo install ch-monitor-cli --force`; unsupported targets point at cargo
+or `cargo install chmonitor --force`; unsupported targets point at cargo
 only). `--version` accepts `chm-v0.2.0`, `v0.2.0`, `0.2.0`, or `chm-0.2.0`.
 Implementation: `src/update.rs`. Latest-tag lookup pages past dashboard/Helm
 releases and ranks published `chm-v*` tags by semver.
@@ -305,5 +305,5 @@ CHM_CHANNEL=beta curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor
   `CHM_CHANNEL` / config `channel`) pull from the same GitHub Releases.
 - `rust/ch-monitor-cli/Cargo.toml` carries `authors`/`repository`/`readme`/
   `keywords`/`categories`. `cargo-publish.yml` publishes the crate so
-  `cargo install ch-monitor-cli` works as a self-update fallback. Homebrew
+  `cargo install chmonitor` works as a self-update fallback. Homebrew
   is still out of scope.
