@@ -30,7 +30,7 @@ Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTE
 
 ### Schema compare (`/schema-diff`)
 
-Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster). With one saved host the page explains it needs two connections (staging vs prod) and offers **Add host**. The page lists tables that differ and shows side-by-side `CREATE TABLE` plus a copyable recommend-only plan. It never applies DDL.
+Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster) from the compact pair picker. With one saved host the page explains it needs two connections (staging vs prod) and offers **Add host**. Tables are grouped by database (collapse them into folders). Selecting a table pretty-prints side-by-side `CREATE TABLE` with line numbers and diff highlights, plus a copyable recommend-only plan. Copy recommended SQL from the plan card. It never applies DDL.
 
 ### Advisor (`/advisor`)
 

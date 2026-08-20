@@ -5,10 +5,12 @@ import {
   CheckCircle2Icon,
   ChevronRightIcon,
   DatabaseIcon,
+  FoldVerticalIcon,
   GitCompareArrowsIcon,
   ListIcon,
   PanelLeftCloseIcon,
   SearchIcon,
+  UnfoldVerticalIcon,
 } from 'lucide-react'
 
 import type { ReactNode } from 'react'
@@ -137,6 +139,16 @@ export function TableList({
   const groups = useMemo(() => groupDiffsByDatabase(rows, sort), [rows, sort])
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const filtering = nameFilter.trim().length > 0
+  const allCollapsed =
+    groups.length > 0 && groups.every((group) => collapsed.has(group.database))
+  const toggleDatabases = () => {
+    setCollapsed((prev) => {
+      if (groups.every((group) => prev.has(group.database))) {
+        return new Set()
+      }
+      return new Set(groups.map((group) => group.database))
+    })
+  }
   const SortIcon =
     sort === 'name-desc'
       ? ArrowUpZAIcon
@@ -146,7 +158,7 @@ export function TableList({
 
   return (
     <Card
-      className="gap-0 rounded-xl border bg-card py-0 shadow-sm"
+      className="flex h-full min-h-[32rem] flex-col gap-0 overflow-hidden rounded-xl border bg-card py-0 shadow-sm"
       data-testid="schema-diff-table-list"
     >
       <TooltipProvider>
@@ -183,6 +195,27 @@ export function TableList({
                     <ListIcon className="size-3.5" strokeWidth={1.5} />
                   </IconToolButton>
                 </div>
+              ) : null}
+              {groups.length > 0 ? (
+                <IconToolButton
+                  label={
+                    allCollapsed
+                      ? 'Expand databases'
+                      : 'Collapse tables into databases'
+                  }
+                  pressed={allCollapsed}
+                  testId="schema-diff-collapse-databases"
+                  onClick={toggleDatabases}
+                >
+                  {allCollapsed ? (
+                    <UnfoldVerticalIcon
+                      className="size-3.5"
+                      strokeWidth={1.5}
+                    />
+                  ) : (
+                    <FoldVerticalIcon className="size-3.5" strokeWidth={1.5} />
+                  )}
+                </IconToolButton>
               ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -252,7 +285,7 @@ export function TableList({
           ) : null}
         </div>
       </TooltipProvider>
-      <CardContent className="p-0">
+      <CardContent className="flex min-h-0 flex-1 flex-col p-0">
         {rows.length === 0 ? (
           <div className="p-4">
             <EmptyState
@@ -264,7 +297,7 @@ export function TableList({
           </div>
         ) : (
           <div
-            className="max-h-[min(36rem,70vh)] overflow-y-auto py-1"
+            className="min-h-0 flex-1 overflow-y-auto py-1"
             role="tree"
             aria-label="Tables by database"
           >

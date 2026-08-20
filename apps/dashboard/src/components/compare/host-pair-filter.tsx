@@ -5,6 +5,7 @@ import type { ComparePeer } from '@/lib/compare/scope'
 
 import { ComparePeerSelect } from './compare-peer-select'
 import { SegmentedControl } from '@/components/filters/segmented-control'
+import { cn } from '@/lib/utils'
 
 interface HostPairFilterProps {
   hosts: ComparePeer[]
@@ -15,6 +16,8 @@ interface HostPairFilterProps {
   onPairChange: (source: number, target: number) => void
   onShowDiffsOnlyChange?: (value: boolean) => void
   extraFilters?: ReactNode
+  compact?: boolean
+  className?: string
 }
 
 export function HostPairFilter({
@@ -25,18 +28,32 @@ export function HostPairFilter({
   onPairChange,
   onShowDiffsOnlyChange,
   extraFilters,
+  compact = false,
+  className,
 }: HostPairFilterProps) {
   const showDiffsToggle =
     showDiffsOnly !== undefined && onShowDiffsOnlyChange !== undefined
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end gap-2">
+    <div
+      className={cn(
+        compact ? 'flex min-w-0 flex-1 flex-col gap-2' : 'flex flex-col gap-3',
+        className
+      )}
+    >
+      <div
+        className={
+          compact
+            ? 'flex min-w-0 flex-wrap items-center gap-2'
+            : 'flex flex-wrap items-end gap-2'
+        }
+      >
         <ComparePeerSelect
           label="Source"
           testId="compare-source"
           value={sourceHostId}
           hosts={hosts}
+          compact={compact}
           onChange={(next) => {
             const nextTarget =
               next === targetHostId ? sourceHostId : targetHostId
@@ -44,7 +61,11 @@ export function HostPairFilter({
           }}
         />
         <ArrowRightIcon
-          className="mb-3 hidden size-4 shrink-0 text-muted-foreground sm:block"
+          className={
+            compact
+              ? 'hidden size-3.5 shrink-0 text-muted-foreground sm:block'
+              : 'mb-3 hidden size-4 shrink-0 text-muted-foreground sm:block'
+          }
           strokeWidth={1.5}
           aria-hidden
         />
@@ -53,6 +74,7 @@ export function HostPairFilter({
           testId="compare-target"
           value={targetHostId}
           hosts={hosts}
+          compact={compact}
           onChange={(next) => {
             const nextSource =
               next === sourceHostId ? targetHostId : sourceHostId

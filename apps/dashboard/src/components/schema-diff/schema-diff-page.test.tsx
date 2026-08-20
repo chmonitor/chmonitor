@@ -283,13 +283,15 @@ describe('Schema Compare one-host empty state', () => {
           }}
         />
         <ExamplePreviewChrome>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-            <TableList
-              rows={rows}
-              selectedKey={rows[0]?.key ?? null}
-              onSelect={() => {}}
-              example
-            />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+            <div className="w-full shrink-0 lg:w-[22rem]">
+              <TableList
+                rows={rows}
+                selectedKey={rows[0]?.key ?? null}
+                onSelect={() => {}}
+                example
+              />
+            </div>
             {rows[0] ? <DdlPair selected={rows[0]} /> : null}
           </div>
         </ExamplePreviewChrome>
@@ -413,6 +415,18 @@ describe('Schema Compare two-host path', () => {
       expect(copy).not.toBeNull()
       expect(copy.disabled).toBe(true)
       expect(copy.textContent).toContain('Copy recommended SQL')
+      expect(copy.closest('[data-testid="schema-diff-ddl-pair"]')).toBeNull()
+      expect(document.body.textContent).toContain('  id UInt64')
+      expect(document.body.textContent).toContain('  id UInt32')
+      const replaced = document.querySelectorAll('[data-diff="replace"]')
+      expect(replaced.length).toBeGreaterThan(0)
+      expect(
+        document.querySelector('[data-testid="schema-diff-pretty"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelectorAll('[data-testid="schema-diff-line-gutter"]')
+          .length
+      ).toBeGreaterThan(1)
       const exampleBadges = [...document.querySelectorAll('span')].filter(
         (el) => el.textContent === 'Example'
       )
@@ -512,9 +526,12 @@ describe('Schema Compare two-host path', () => {
         users.click()
       })
       expect(users.getAttribute('aria-current')).toBe('true')
-      expect(document.body.textContent).toContain(
-        'CREATE TABLE app.users (id UInt64)'
-      )
+      expect(document.body.textContent).toContain('CREATE TABLE app.users')
+      expect(document.body.textContent).toContain('id UInt64')
+      expect(
+        document.querySelectorAll('[data-testid="schema-diff-line-gutter"]')
+          .length
+      ).toBeGreaterThan(1)
     } finally {
       await cleanup()
     }
@@ -560,6 +577,54 @@ describe('Schema Compare two-host path', () => {
       })
       expect(
         document.querySelector('[data-testid="schema-diff-table-list"]')
+      ).not.toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('collapse databases hides nested tables until expanded', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = matchingHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.events"]')
+      ).not.toBeNull()
+      const { act } = await import('react')
+      const collapse = document.querySelector(
+        '[data-testid="schema-diff-collapse-databases"]'
+      ) as HTMLButtonElement
+      expect(collapse).not.toBeNull()
+      expect(collapse.getAttribute('aria-label')).toBe(
+        'Collapse tables into databases'
+      )
+      await act(async () => {
+        collapse.click()
+      })
+      expect(collapse.getAttribute('aria-pressed')).toBe('true')
+      expect(collapse.getAttribute('aria-label')).toBe('Expand databases')
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.events"]')
+      ).toBeNull()
+      await act(async () => {
+        collapse.click()
+      })
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.events"]')
       ).not.toBeNull()
     } finally {
       await cleanup()
