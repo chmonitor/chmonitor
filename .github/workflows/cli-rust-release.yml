@@ -132,7 +132,7 @@ jobs:
           cd dist
           shasum -a 256 "chm-${{ matrix.target }}" > "chm-${{ matrix.target }}.sha256"
           ls -la
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chm-${{ matrix.target }}
           path: |
@@ -152,7 +152,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         if: needs.meta.outputs.channel == 'stable'
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: chm-*
