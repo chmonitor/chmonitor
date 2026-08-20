@@ -157,11 +157,28 @@ function matchingHostPayload(): SchemaDiffResponse {
         create_table_query:
           'CREATE TABLE app.events (id UInt64) ENGINE = MergeTree ORDER BY id',
       },
+      {
+        database: 'app',
+        table: 'users',
+        engine: 'MergeTree',
+        sorting_key: 'id',
+        partition_key: '',
+        primary_key: 'id',
+        create_table_query:
+          'CREATE TABLE app.users (id UInt64) ENGINE = MergeTree ORDER BY id',
+      },
     ],
     [
       {
         database: 'app',
         table: 'events',
+        name: 'id',
+        type: 'UInt64',
+        codec: '',
+      },
+      {
+        database: 'app',
+        table: 'users',
         name: 'id',
         type: 'UInt64',
         codec: '',
@@ -393,7 +410,7 @@ describe('Schema Compare two-host path', () => {
     }
   })
 
-  test('matching schemas with Differences only says Schemas match', async () => {
+  test('matching schemas list tables with checks and a green All matched pane', async () => {
     const { SchemaDiffView } = await import('./schema-diff-view')
     const data = matchingHostPayload()
 
@@ -411,14 +428,85 @@ describe('Schema Compare two-host path', () => {
     )
 
     try {
-      expect(document.body.textContent).toContain('Schemas match')
-      expect(document.body.textContent).toContain(
-        'Switch to All to list every table.'
-      )
+      expect(document.body.textContent).toContain('app.events')
+      expect(document.body.textContent).toContain('app.users')
+      expect(document.body.textContent).toContain('All matched')
+      expect(document.body.textContent).toContain('Source DDL')
+      expect(
+        document.querySelector('[data-testid="schema-diff-match-ok"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelectorAll('[data-testid="schema-diff-matched-icon"]')
+          .length
+      ).toBe(2)
+      expect(document.body.textContent).not.toContain('Schemas match')
+      expect(document.body.textContent).not.toContain('Select a table')
       expect(document.body.textContent).not.toContain('No tables match')
+      expect(document.body.textContent).not.toContain(
+        'No recommended statements'
+      )
       expect(document.body.textContent).not.toMatch(
         /Comparing .+ tables differ/
       )
+
+      const { act } = await import('react')
+      const users = [...document.querySelectorAll('button')].find((el) =>
+        el.textContent?.includes('app.users')
+      ) as HTMLButtonElement
+      expect(users).not.toBeNull()
+      await act(async () => {
+        users.click()
+      })
+      expect(users.getAttribute('aria-current')).toBe('true')
+      expect(document.body.textContent).toContain(
+        'CREATE TABLE app.users (id UInt64)'
+      )
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('table list sidebar can collapse and expand', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = matchingHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-list"]')
+      ).not.toBeNull()
+      const { act } = await import('react')
+      const collapse = document.querySelector(
+        '[data-testid="schema-diff-sidebar-collapse"]'
+      ) as HTMLButtonElement
+      await act(async () => {
+        collapse.click()
+      })
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-list"]')
+      ).toBeNull()
+      const expand = document.querySelector(
+        '[data-testid="schema-diff-sidebar-expand"]'
+      ) as HTMLButtonElement
+      expect(expand).not.toBeNull()
+      await act(async () => {
+        expand.click()
+      })
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-list"]')
+      ).not.toBeNull()
     } finally {
       await cleanup()
     }

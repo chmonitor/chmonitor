@@ -671,9 +671,14 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   then Differences / All. Scope toggle (only when both hostCount and
   nodeCount are ≥ 2) writes `?scope=hosts|nodes` and remounts the pair
   from that peer list.
-  Differences-only with zero diffs and no name filter is
-  `EmptyState variant="no-data"` titled **Schemas match**; "No tables
-  match" is only for a name-filter miss. Settings Diff (`/settings-diff`)
+  The table catalog is a collapsible left sidebar (`TableList` +
+  `PanelLeftClose` / `PanelLeft`). Differences-only with zero diffs
+  still lists identical tables with a green `CheckCircle2`
+  (`--chart-green`); clicking a row selects it on the right. A
+  matching table's detail is **All matched** / **This table matches**
+  (`MatchOk`) plus side-by-side DDL — never EmptyState "no data" /
+  "Select a table" / "No recommended statements". "No tables match"
+  is only for a name-filter miss. Settings Diff (`/settings-diff`)
   with one host keeps the live vs-default matrix and a banner to add
   another host; two or more merged hosts (env + database + browser,
   including negative ids) keep an All-hosts matrix with an optional pair

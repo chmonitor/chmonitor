@@ -1,9 +1,10 @@
-import { CopyIcon } from 'lucide-react'
+import { CopyIcon, PanelLeftIcon } from 'lucide-react'
 
 import type { ComparePeer, CompareScope } from '@/lib/compare/scope'
 import type { SchemaDiffResponse, TableDiff } from '@/lib/schema-diff'
 
 import { DdlPair } from './ddl-pair'
+import { MatchOk } from './match-ok'
 import { PlanList } from './plan-list'
 import { TableList } from './table-list'
 import { useMemo, useState } from 'react'
@@ -51,14 +52,24 @@ export function SchemaDiffView({
   const [nameFilter, setNameFilter] = useState('')
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [copiedSafe, setCopiedSafe] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const diffCount =
+    data.diff.onlySource.length +
+    data.diff.onlyTarget.length +
+    data.diff.changed.length
+  const allMatched = diffCount === 0 && data.diff.identical.length > 0
 
   const rows: TableDiff[] = useMemo(() => {
-    const all = [
+    const diffs = [
       ...data.diff.onlySource,
       ...data.diff.onlyTarget,
       ...data.diff.changed,
-      ...(showDiffsOnly ? [] : data.diff.identical),
     ]
+    // Differences with zero deltas still lists matching tables so the
+    // sidebar is a real catalog, not an empty "no data" card.
+    const includeIdentical = !showDiffsOnly || diffs.length === 0
+    const all = includeIdentical ? [...diffs, ...data.diff.identical] : diffs
     if (!nameFilter) return all
     const q = nameFilter.toLowerCase()
     return all.filter((row) => row.key.toLowerCase().includes(q))
@@ -68,14 +79,9 @@ export function SchemaDiffView({
   const selectedPlan = (data.plan.items ?? []).filter(
     (item) => item.tableKey === selected?.key
   )
+  const selectedMatches = selected?.kind === 'identical'
 
-  const diffCount =
-    data.diff.onlySource.length +
-    data.diff.onlyTarget.length +
-    data.diff.changed.length
   const hasNameFilter = nameFilter.trim().length > 0
-  const schemasMatchEmpty =
-    rows.length === 0 && showDiffsOnly && diffCount === 0 && !hasNameFilter
   const hasSafeStatements = data.plan.safeStatements.length > 0
 
   const copySafe = async () => {
@@ -141,33 +147,61 @@ export function SchemaDiffView({
         />
       </CompareToolbar>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <TableList
-          rows={rows}
-          selectedKey={selected?.key ?? null}
-          onSelect={setSelectedKey}
-          example={example}
-          emptyTitle={schemasMatchEmpty ? 'Schemas match' : undefined}
-          emptyDescription={
-            schemasMatchEmpty
-              ? 'No table differences between source and target. Switch to All to list every table.'
-              : undefined
-          }
-          emptyVariant={schemasMatchEmpty ? 'no-data' : undefined}
-          emptyCompact={!schemasMatchEmpty}
-        />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        {sidebarOpen ? (
+          <div className="w-full shrink-0 lg:w-[22rem]">
+            <TableList
+              rows={rows}
+              selectedKey={selected?.key ?? null}
+              onSelect={setSelectedKey}
+              example={example}
+              onCollapse={() => setSidebarOpen(false)}
+            />
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setSidebarOpen(true)}
+            className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Show table list"
+            data-testid="schema-diff-sidebar-expand"
+          >
+            <PanelLeftIcon className="size-3.5" strokeWidth={1.5} />
+          </Button>
+        )}
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           {selected ? (
             <>
+              {selectedMatches ? (
+                <MatchOk
+                  title={allMatched ? 'All matched' : 'This table matches'}
+                  description={
+                    allMatched
+                      ? 'Every table schema is identical on source and target.'
+                      : 'Source and target DDL are identical. No recommended statements.'
+                  }
+                />
+              ) : null}
               <DdlPair selected={selected} />
-              <PlanList items={selectedPlan} />
+              {selectedMatches ? null : <PlanList items={selectedPlan} />}
             </>
+          ) : allMatched && !hasNameFilter ? (
+            <MatchOk
+              title="All matched"
+              description="Every table schema is identical on source and target."
+            />
           ) : (
             <EmptyState
-              variant="no-data"
-              title="Select a table"
-              description="Pick a table on the left to see side-by-side DDL and a copyable plan."
+              variant={hasNameFilter ? 'filtered-empty' : 'no-data'}
+              title={hasNameFilter ? 'No tables match' : 'Select a table'}
+              description={
+                hasNameFilter
+                  ? 'Try a different filter or switch to All.'
+                  : 'Pick a table on the left to see side-by-side DDL and a copyable plan.'
+              }
             />
           )}
         </div>
