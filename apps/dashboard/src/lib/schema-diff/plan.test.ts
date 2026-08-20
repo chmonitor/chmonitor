@@ -282,9 +282,11 @@ describe('safeStatementsForTables', () => {
     expect(safeStatementsForTables(plan, new Set())).toEqual(
       plan.safeStatements
     )
-    expect(safeStatementsForTables(plan, new Set(['app.new_tbl']))).toEqual([
-      plan.items.find((i) => i.tableKey === 'app.new_tbl')?.statement,
-    ])
+    expect(safeStatementsForTables(plan, new Set(['app.new_tbl']))).toEqual(
+      plan.items
+        .filter((i) => i.tableKey === 'app.new_tbl' && i.safe && i.statement)
+        .map((i) => i.statement)
+    )
     expect(safeStatementsForTables(plan, new Set(['app.events']))).toEqual(
       plan.items
         .filter((i) => i.tableKey === 'app.events' && i.safe && i.statement)
