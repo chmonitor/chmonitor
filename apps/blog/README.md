@@ -50,6 +50,23 @@ Markdown (Astro renders raw HTML in `.md`):
 Launch films live in `chmonitor/launch/<version>/` and are copied into
 `public/posts/<version>/` for the release post.
 
+### Image row (multi-column, wider than the text)
+
+A lone `<img>` already breaks out past the 720px prose measure (up to the
+1080px site width). For **several screenshots in one row**, wrap them in
+`.img-row` — same breakout width, equal columns:
+
+```html
+<div class="img-row">
+  <img src="/posts/v0.3/overview-light.png" alt="Overview" width="1024" height="727" loading="lazy" />
+  <img src="/posts/v0.3/storage-light.png" alt="Storage" width="1024" height="727" loading="lazy" />
+</div>
+```
+
+Optional captions via `<figure>` / `<figcaption>`. Pin 2–4 columns with
+`data-cols="3"`; below 700px a 3/4-col row drops to two, below 520px to one.
+Theme-aware `data-src-light` / `data-src-dark` still works on each `<img>`.
+
 ## Content engine
 
 - **Calendar**: `CONTENT-CALENDAR.md` is the plan-of-record for cadence (12

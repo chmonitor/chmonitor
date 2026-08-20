@@ -38,6 +38,20 @@ describe('blog chrome matches landing shadcn tokens', () => {
     expect(footer).toContain('border-border')
   })
 
+  test('prose screenshots and img-row break out past the 720px text measure', () => {
+    const base = read('src/layouts/Base.astro')
+    expect(base).toContain('--maxw-prose:720px')
+    expect(base).toContain('--maxw:1080px')
+    expect(base).toContain('.prose img{')
+    expect(base).toContain('max-width:min(var(--maxw), calc(100vw - 48px))')
+    expect(base).toContain('.img-row{')
+    expect(base).toContain('grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))')
+    expect(base).toContain('.prose .img-row img{')
+    expect(base).toContain('transform:none')
+    expect(base).toContain('.img-row[data-cols="3"]')
+    expect(read('README.md')).toContain('class="img-row"')
+  })
+
   test('featured card is not the old #fff8f1 hardcode', () => {
     const home = read('src/pages/index.astro')
     const base = read('src/layouts/Base.astro')
