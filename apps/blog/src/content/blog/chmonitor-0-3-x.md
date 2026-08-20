@@ -52,7 +52,7 @@ the page is not empty.
 Self-hosters: pull the image you already run.
 
 ```bash
-docker pull ghcr.io/chmonitor/chmonitor:latest
+docker pull ghcr.io/chmonitor/chmonitor:v0.3.3
 ```
 
 Cloud (`dash.chmonitor.dev`) already tracks this tag. Nothing to migrate.
