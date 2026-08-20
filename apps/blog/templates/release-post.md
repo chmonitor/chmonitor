@@ -25,6 +25,14 @@ headline change — the thing a returning user would notice first.>
   <!-- repeat one .hl block per headline feature -->
 </div>
 
+<!-- Optional: a row of screenshots, wider than the text column.
+
+<div class="img-row">
+  <img src="/posts/vX.Y/a.png" alt="…" width="1024" height="727" loading="lazy" />
+  <img src="/posts/vX.Y/b.png" alt="…" width="1024" height="727" loading="lazy" />
+</div>
+-->
+
 ## <Headline feature, expanded>
 
 <2-4 paragraphs. Link the docs page that covers the feature in depth — this is
