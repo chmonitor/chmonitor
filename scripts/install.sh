@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# chmonitor CLI (`chm`) installer.
+# chmonitor CLI installer - installs `chm` (short name) and a `chmonitor` alias.
 #
 # Downloads the right prebuilt `chm` binary for your OS/arch from GitHub
 # Releases (tag format `chm-v*`), verifies its sha256 checksum, and installs
@@ -25,6 +25,7 @@ set -euo pipefail
 
 REPO="chmonitor/chmonitor"
 BIN_NAME="chm"
+ALIAS_NAME="chmonitor"
 INSTALL_DIR="${CHM_INSTALL_DIR:-$HOME/.local/bin}"
 
 log() { printf '%s\n' "$*" >&2; }
@@ -311,9 +312,12 @@ if [ ! -w "$INSTALL_DIR" ]; then
 fi
 
 mv "$BIN_PATH" "${INSTALL_DIR}/${BIN_NAME}"
+# Full product name as a sibling symlink so both `chm` and `chmonitor` work.
+ln -sfn "${BIN_NAME}" "${INSTALL_DIR}/${ALIAS_NAME}"
 
 log ""
 log "chmonitor CLI installed to ${INSTALL_DIR}/${BIN_NAME}"
+log "alias: ${INSTALL_DIR}/${ALIAS_NAME} -> ${BIN_NAME}"
 
 case ":$PATH:" in
   *":${INSTALL_DIR}:"*) : ;;
@@ -326,7 +330,8 @@ esac
 
 log ""
 log "Run a zero-signup health check against a ClickHouse host:"
-log "  CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default ${INSTALL_DIR}/${BIN_NAME} diagnose"
+log "  CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default ${BIN_NAME} diagnose" # pragma: allowlist secret
+log "  # or: ${ALIAS_NAME} diagnose"
 log ""
 log "Update later with:"
 log "  ${BIN_NAME} upgrade"

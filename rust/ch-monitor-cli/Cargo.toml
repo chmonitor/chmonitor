@@ -18,6 +18,10 @@ exclude = ["/.github"]
 name = "chm"
 path = "src/main.rs"
 
+[[bin]]
+name = "chmonitor"
+path = "src/main.rs"
+
 [features]
 default = []
 mermaid = []

@@ -17,7 +17,12 @@ related:
 
 # Standalone chmonitor CLI (Rust)
 
-`rust/ch-monitor-cli` is the `chm` binary. By default it talks to **chmonitor
+`rust/ch-monitor-cli` ships two command names for the same binary: **`chm`**
+(short, preferred) and **`chmonitor`** (full alias). Release assets stay
+`chm-<target>`; `scripts/install.sh` installs `chm` and symlinks `chmonitor`.
+`cargo install ch-monitor-cli` installs both binaries.
+
+By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
 Self-hosted dashboards work the same way — point `--base-url` /
 `CHM_BASE_URL` at your instance. A separate `diagnose` subcommand connects

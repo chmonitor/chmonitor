@@ -1,4 +1,4 @@
-//! Clap definitions for `chm`.
+//! Clap definitions for `chm` / `chmonitor`.
 
 use std::path::PathBuf;
 
@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 #[command(
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
-    about = "chmonitor CLI — dashboard API, TUI, and zero-signup diagnostics"
+    about = "chmonitor CLI (`chm` / `chmonitor`) — dashboard API, TUI, and zero-signup diagnostics"
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)

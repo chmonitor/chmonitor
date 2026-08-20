@@ -6,6 +6,7 @@
 ### Features
 
 * **cli:** modular rewrite — auth device login, layered config, TUI chat, agent/prompt/audit/doctor, channel-aware self-update (stable|beta), default base URL `https://dash.chmonitor.dev`
+* **cli:** ship `chmonitor` as an alias of `chm` (second cargo bin + install.sh symlink)
 
 
 ## [0.1.1](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.0...chm-v0.1.1) (2026-08-06)
