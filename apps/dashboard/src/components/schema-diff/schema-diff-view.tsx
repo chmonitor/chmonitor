@@ -1,10 +1,9 @@
-import { CopyIcon, Loader2Icon, PanelLeftIcon } from 'lucide-react'
+import { Loader2Icon, PanelLeftIcon } from 'lucide-react'
 
 import type { ComparePeer, CompareScope } from '@/lib/compare/scope'
 import type { SchemaDiffResponse, TableDiff } from '@/lib/schema-diff'
 
 import { DdlPair } from './ddl-pair'
-import { MatchOk } from './match-ok'
 import { PlanList } from './plan-list'
 import { TableList } from './table-list'
 import { useMemo, useState } from 'react'
@@ -13,12 +12,6 @@ import { CompareToolbar } from '@/components/compare/compare-toolbar'
 import { HostPairFilter } from '@/components/compare/host-pair-filter'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
 export interface SchemaDiffViewProps {
@@ -85,6 +78,8 @@ export function SchemaDiffView({
 
   const hasNameFilter = nameFilter.trim().length > 0
   const hasSafeStatements = data.plan.safeStatements.length > 0
+  const sourceName = peers.find((peer) => peer.id === sourceId)?.name
+  const targetName = peers.find((peer) => peer.id === targetId)?.name
 
   const copySafe = async () => {
     const text = data.plan.safeStatements.join(';\n\n')
@@ -95,61 +90,32 @@ export function SchemaDiffView({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <CompareToolbar
-        tabs={
-          onScopeChange ? (
-            <div className="flex items-center gap-2">
-              <CompareScopeToggle
-                value={scope}
-                onChange={onScopeChange}
-                hostCount={hostCount}
-                nodeCount={nodeCount}
+    <div className="flex flex-col gap-3">
+      <CompareToolbar className="gap-2 p-2 sm:flex-row sm:items-center sm:justify-between">
+        {onScopeChange ? (
+          <div className="flex items-center gap-2">
+            <CompareScopeToggle
+              value={scope}
+              onChange={onScopeChange}
+              hostCount={hostCount}
+              nodeCount={nodeCount}
+            />
+            {listingLoading ? (
+              <Loader2Icon
+                className="size-3.5 animate-spin text-muted-foreground motion-reduce:animate-none"
+                strokeWidth={1.5}
+                aria-hidden
               />
-              {listingLoading ? (
-                <Loader2Icon
-                  className="size-3.5 animate-spin text-muted-foreground motion-reduce:animate-none"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-              ) : null}
-            </div>
-          ) : null
-        }
-      >
+            ) : null}
+          </div>
+        ) : null}
         <HostPairFilter
+          compact
+          className="min-w-0"
           hosts={peers}
           sourceHostId={sourceId}
           targetHostId={targetId}
           onPairChange={onPairChange}
-          extraFilters={
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <span className="inline-flex">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={copySafe}
-                        disabled={!hasSafeStatements || listingLoading}
-                        aria-label="Copy recommended SQL"
-                        className="h-8 text-[13px]"
-                      >
-                        <CopyIcon className="mr-2 size-3.5" strokeWidth={1.5} />
-                        {copiedSafe ? 'Copied' : 'Copy recommended SQL'}
-                      </Button>
-                    </span>
-                  }
-                />
-                <TooltipContent side="top" className="max-w-xs">
-                  {hasSafeStatements
-                    ? 'Copy recommended ALTER/CREATE statements. Nothing is applied.'
-                    : 'No recommended SQL — schemas match or every change is a manual rewrite.'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          }
         />
       </CompareToolbar>
 
@@ -169,9 +135,9 @@ export function SchemaDiffView({
           />
         </div>
       ) : (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
           {sidebarOpen ? (
-            <div className="w-full shrink-0 lg:w-[22rem]">
+            <div className="flex w-full shrink-0 flex-col lg:w-[22rem]">
               <TableList
                 rows={rows}
                 selectedKey={selected?.key ?? null}
@@ -191,7 +157,7 @@ export function SchemaDiffView({
               variant="outline"
               size="icon-sm"
               onClick={() => setSidebarOpen(true)}
-              className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+              className="size-8 shrink-0 self-start text-muted-foreground hover:text-foreground"
               aria-label="Show table list"
               data-testid="schema-diff-sidebar-expand"
             >
@@ -199,26 +165,36 @@ export function SchemaDiffView({
             </Button>
           )}
 
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="flex min-h-[32rem] min-w-0 flex-1 flex-col gap-3">
             {selected ? (
               <>
-                {selectedMatches ? (
-                  <MatchOk
-                    title={allMatched ? 'All matched' : 'This table matches'}
-                    description={
-                      allMatched
-                        ? 'Every table schema is identical on source and target.'
-                        : 'Source and target DDL are identical. No recommended statements.'
+                <DdlPair
+                  selected={selected}
+                  sourceLabel={sourceName}
+                  targetLabel={targetName}
+                  allMatched={allMatched && selectedMatches}
+                />
+                {selectedMatches ? null : (
+                  <PlanList
+                    items={selectedPlan}
+                    onCopyRecommended={() => void copySafe()}
+                    copyRecommendedLabel={
+                      copiedSafe ? 'Copied' : 'Copy recommended SQL'
                     }
+                    copyRecommendedDisabled={!hasSafeStatements}
                   />
-                ) : null}
-                <DdlPair selected={selected} />
-                {selectedMatches ? null : <PlanList items={selectedPlan} />}
+                )}
               </>
             ) : allMatched && !hasNameFilter ? (
-              <MatchOk
-                title="All matched"
-                description="Every table schema is identical on source and target."
+              <DdlPair
+                selected={{
+                  key: '',
+                  kind: 'identical',
+                  changes: [],
+                }}
+                sourceLabel={sourceName}
+                targetLabel={targetName}
+                allMatched
               />
             ) : (
               <EmptyState

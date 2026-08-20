@@ -29,6 +29,7 @@ interface ComparePeerSelectProps {
   value: number
   hosts: ComparePeer[]
   onChange: (next: number) => void
+  compact?: boolean
 }
 
 export function ComparePeerSelect({
@@ -37,6 +38,7 @@ export function ComparePeerSelect({
   value,
   hosts,
   onChange,
+  compact = false,
 }: ComparePeerSelectProps) {
   const [open, setOpen] = useState(false)
   const { hosts: merged } = useMergedHosts()
@@ -52,8 +54,18 @@ export function ComparePeerSelect({
   )
 
   return (
-    <label className="flex min-w-56 flex-1 flex-col gap-1">
-      <span className="text-[11px] font-medium text-muted-foreground">
+    <label
+      className={cn(
+        'flex min-w-0 flex-1',
+        compact ? 'items-center gap-1.5' : 'min-w-56 flex-col gap-1'
+      )}
+    >
+      <span
+        className={cn(
+          'font-medium text-muted-foreground',
+          compact ? 'shrink-0 text-[11px]' : 'text-[11px]'
+        )}
+      >
         {label}
       </span>
       <Popover open={open} onOpenChange={setOpen}>
@@ -65,27 +77,40 @@ export function ComparePeerSelect({
               role="combobox"
               aria-expanded={open}
               data-testid={testId}
-              className="h-auto min-h-11 w-full justify-start gap-2 px-2.5 py-1.5 font-normal"
+              className={cn(
+                'w-full justify-start gap-2 px-2.5 font-normal',
+                compact ? 'h-8 min-h-8 py-0' : 'h-auto min-h-11 py-1.5'
+              )}
             />
           }
         >
-          <ChmonitorLogo width={20} height={20} className="size-5 shrink-0" />
-          <span className="grid min-w-0 flex-1 text-left leading-tight">
-            <span className="truncate text-[13px] font-medium">
+          <ChmonitorLogo
+            width={compact ? 16 : 20}
+            height={compact ? 16 : 20}
+            className={cn('shrink-0', compact ? 'size-4' : 'size-5')}
+          />
+          {compact ? (
+            <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium">
               {selected?.name ?? ''}
             </span>
-            {showLiveStatus && selected ? (
-              <HostVersionWithStatus hostId={selected.id} />
-            ) : (
-              <span className="truncate text-xs text-muted-foreground">
-                {mergedSelected?.source === 'database'
-                  ? 'Saved to server'
-                  : mergedSelected?.source === 'browser'
-                    ? 'Saved in browser'
-                    : 'Connection'}
+          ) : (
+            <span className="grid min-w-0 flex-1 text-left leading-tight">
+              <span className="truncate text-[13px] font-medium">
+                {selected?.name ?? ''}
               </span>
-            )}
-          </span>
+              {showLiveStatus && selected ? (
+                <HostVersionWithStatus hostId={selected.id} />
+              ) : (
+                <span className="truncate text-xs text-muted-foreground">
+                  {mergedSelected?.source === 'database'
+                    ? 'Saved to server'
+                    : mergedSelected?.source === 'browser'
+                      ? 'Saved in browser'
+                      : 'Connection'}
+                </span>
+              )}
+            </span>
+          )}
           <ChevronsUpDown className="ml-auto size-3.5 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent

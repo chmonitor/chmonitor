@@ -149,14 +149,22 @@ export function SchemaDiffPage() {
           }}
         />
         <ExamplePreviewChrome>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-            <TableList
-              rows={exampleRows}
-              selectedKey={exampleSelected?.key ?? null}
-              onSelect={() => {}}
-              example
-            />
-            {exampleSelected ? <DdlPair selected={exampleSelected} /> : null}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+            <div className="w-full shrink-0 lg:w-[22rem]">
+              <TableList
+                rows={exampleRows}
+                selectedKey={exampleSelected?.key ?? null}
+                onSelect={() => {}}
+                example
+              />
+            </div>
+            {exampleSelected ? (
+              <DdlPair
+                selected={exampleSelected}
+                sourceLabel="Host A"
+                targetLabel="Host B"
+              />
+            ) : null}
           </div>
         </ExamplePreviewChrome>
         <AddHostDialog open={addOpen} onOpenChange={setAddOpen} />

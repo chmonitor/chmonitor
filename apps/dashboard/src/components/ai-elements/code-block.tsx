@@ -58,22 +58,23 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
+export function highlightInline(code: string, language: string): string {
+  try {
+    return hljs.highlight(code, {
+      language,
+      ignoreIllegals: true,
+    }).value
+  } catch {
+    return escapeHtml(code)
+  }
+}
+
 export function highlightCode(
   code: string,
   language: string,
   showLineNumbers = false
 ): string {
-  let highlighted: string
-  try {
-    const result = hljs.highlight(code, {
-      language,
-      ignoreIllegals: true,
-    })
-    highlighted = result.value
-  } catch {
-    // Fallback for unregistered languages
-    highlighted = escapeHtml(code)
-  }
+  let highlighted = highlightInline(code, language)
 
   if (showLineNumbers) {
     const lines = highlighted.split('\n')

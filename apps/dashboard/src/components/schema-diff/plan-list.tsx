@@ -1,11 +1,17 @@
+import { CheckIcon, CopyIcon } from 'lucide-react'
+
 import type { PlanItem } from '@/lib/schema-diff'
 
 import { RecommendDdlBlocks } from '@/components/ddl/recommend-ddl-blocks'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 
 interface PlanListProps {
   items: PlanItem[]
+  onCopyRecommended?: () => void
+  copyRecommendedLabel?: string
+  copyRecommendedDisabled?: boolean
 }
 
 function riskLabel(risk: PlanItem['risk']): string {
@@ -14,13 +20,38 @@ function riskLabel(risk: PlanItem['risk']): string {
   return 'Manual rewrite'
 }
 
-export function PlanList({ items }: PlanListProps) {
+export function PlanList({
+  items,
+  onCopyRecommended,
+  copyRecommendedLabel = 'Copy recommended SQL',
+  copyRecommendedDisabled = false,
+}: PlanListProps) {
   return (
-    <Card className="rounded-xl border bg-card shadow-sm">
+    <Card className="rounded-xl border bg-card py-0 shadow-sm">
       <CardContent className="p-4">
-        <h2 className="mb-3 text-sm font-medium text-foreground">
-          Recommended change plan
-        </h2>
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h2 className="text-sm font-medium text-foreground">
+            Recommended change plan
+          </h2>
+          {onCopyRecommended ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onCopyRecommended}
+              disabled={copyRecommendedDisabled}
+              aria-label="Copy recommended SQL"
+              className="h-7 shrink-0 text-[13px]"
+            >
+              {copyRecommendedLabel === 'Copied' ? (
+                <CheckIcon className="size-3.5" strokeWidth={1.5} />
+              ) : (
+                <CopyIcon className="size-3.5" strokeWidth={1.5} />
+              )}
+              {copyRecommendedLabel}
+            </Button>
+          ) : null}
+        </div>
         {items.length === 0 ? (
           <EmptyState
             variant="no-data"
