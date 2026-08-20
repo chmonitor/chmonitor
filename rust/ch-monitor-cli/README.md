@@ -6,6 +6,12 @@ Standalone terminal/TUI CLI for [chmonitor](https://github.com/chmonitor/chmonit
 `cargo install ch-monitor-cli` installs both; `scripts/install.sh` installs `chm`
 and symlinks `chmonitor` → `chm`.
 
+**Default API base:** `https://dash.chmonitor.dev` (`--base-url` / `CHM_BASE_URL`
+for self-hosted).
+
+**Platforms:** prebuilt binaries for Linux/macOS × `x86_64`/`aarch64` only (no
+Windows). Other targets: `cargo install ch-monitor-cli`.
+
 Two ways to use it:
 
 - `chm hosts` / `chm chart` / `chm table` / `chm tui` — talk to a running chmonitor dashboard's API.
@@ -36,10 +42,17 @@ cargo install ch-monitor-cli --force
 cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 ```
 
+## Auth
+
+`chm auth login` probes public `GET /api/v1/auth/cli` and follows `method`
+(`none` | `device` | `api_key`). There is **no** `auth_mode` in config — pass
+`--api-key` / `CHM_API_KEY` when discovery says `api_key`, or complete the
+browser device flow when it says `device`.
+
 ## Usage
 
 ```bash
-CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
+CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose # pragma: allowlist secret
 # same as: chmonitor diagnose
 ```
 

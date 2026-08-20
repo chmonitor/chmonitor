@@ -61,6 +61,7 @@ The OpenAPI document is the machine-readable list. These are the endpoints most 
 | `POST` | `/api/v1/agent` | Streaming AI agent. Authenticated on cloud. |
 | `POST` | `/api/mcp` | Model Context Protocol server — see [MCP server](/reference/mcp-server). |
 | `POST` | `/api/v1/auth/api-key` | Mint a `chm_` key. Bearer must be `CHM_API_KEY_SECRET`. |
+| `GET` | `/api/v1/auth/cli` | Public CLI auth discovery. Returns `method` `none` \| `api_key` \| `device` (plus `api`, `authProvider`, `deviceLogin`, `hint`). No secrets. Used by `chm auth login`. |
 
 Most data routes take `hostId` (query param, default `0`) to select a host from the configured host list.
 

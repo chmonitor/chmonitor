@@ -11,7 +11,7 @@ description: >-
   "add host error", "connection error", "read-only host", "hide hosts when
   signed in", "sample cluster", "sample ClickHouse", "try sample",
   "guest AI", "anonymous agent", "guest credits", "guest quota",
-  "sign-in", "sign-up", "/auth.md".
+  "sign-in", "sign-up", "/auth.md", "chm auth", "auth/cli", "CLI login", "device login".
 metadata:
   tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors, sample-cluster, guest-ai
 ---
@@ -73,6 +73,10 @@ on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 
 Resolver: `lib/auth/device-login-config.ts`. Store: D1 or in-memory
 (`lib/auth/device-code-store.ts`). See `docs/knowledge/standalone-cli.md`.
+
+**CLI auth discovery:** `GET /api/v1/auth/cli` (public) returns
+`method` `none`|`device`|`api_key` for `chm auth login` — no `auth_mode` in
+CLI config. Code: `lib/auth/cli-auth-discovery.ts`.
 
 ## Welcome / setup page
 

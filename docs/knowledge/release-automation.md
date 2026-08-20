@@ -3,16 +3,18 @@ id: release-automation
 title: Release Automation Pipeline
 type: workflow
 status: active
-updated: 2026-08-19
+updated: 2026-08-20
 tags:
   - release
   - ci
   - release-please
   - changelog
   - versioning
+  - cli
 related:
   - deployment
   - conventions
+  - standalone-cli
 ---
 
 # Release Automation Pipeline
@@ -151,3 +153,20 @@ together when the migration rules change.
 
 `.changeset/` + `@changesets/cli` were removed 2026-06-13 — release-please fully
 replaced changesets. Do not reintroduce changesets.
+
+## CLI Rust release (`cli-rust-release.yml`)
+
+Independent of the dashboard `vX.Y.Z` line. Assets use tag format `chm-v*`
+and filenames `chm-<target>` / `chm-<target>.sha256`.
+
+**Pipeline:** `meta` → matrix `build` (4 targets) → single `publish` that
+asserts exactly **8** assets before upload (and re-checks the Release API).
+
+| Channel | Trigger | Tag shape | Notes |
+|---------|---------|-----------|-------|
+| **beta** | Push to `main` touching `rust/ch-monitor-cli/**` (and lockfile / `install.sh` / the workflow) | `chm-vX.Y.Z-beta.<run_number>` from `Cargo.toml` version | `prerelease=true`, `make_latest=false` |
+| **stable** | release-please / `workflow_dispatch` with `tag=chm-v…`, or push of a stable `chm-vX.Y.Z` tag | `chm-vX.Y.Z` | `prerelease=false`, `make_latest=true` |
+
+Installers and `chm update`/`upgrade` select channel via `CHM_CHANNEL` /
+`--channel` / config (`stable` default). See
+[standalone-cli.md](standalone-cli.md).

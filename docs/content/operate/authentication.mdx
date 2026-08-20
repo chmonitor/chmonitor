@@ -38,13 +38,20 @@ chmonitor has two independent auth layers that work together on every `/api/v1/*
 For each `/api/v1/*` request, in order:
 
 1. If `CHM_AUTH_PROVIDER=none` and `CHM_API_KEY_SECRET` is not set → **allow** (public).
-2. The key-issuance route `/api/v1/auth/api-key` is exempt (it has its own auth).
+2. Exempt public paths (own auth or discovery-only): `/api/v1/auth/api-key`, `/api/v1/auth/cli` (CLI auth-method discovery — no secrets), `/api/v1/auth/device/*` + `/api/v1/auth/token` (device flow), and `/api/v1/openapi.json`.
 3. A valid `chm_` Bearer token → **allow**.
 4. The active provider's check runs; if it authenticates → **allow**.
 5. Otherwise → `401 { "error": "Authentication required" }`.
 
 All paths fail closed: a missing config or verification error resolves to "not authenticated".
 </Callout>
+
+## CLI auth auto-detect
+
+The [`chm` CLI](/guide/guides/diagnostics-cli) does **not** store an `auth_mode`
+in config. `chm auth login` probes `GET /api/v1/auth/cli` and follows
+`method` (`none` | `device` | `api_key`). Details:
+[API keys — device login](/operate/authentication/api-keys#device-login-chm-auth-login).
 
 ## Choose a provider
 

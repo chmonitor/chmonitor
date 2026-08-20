@@ -105,6 +105,11 @@ export const PUBLIC_API_ROUTES = [
     methods: ['post'],
   },
   {
+    openapiPath: '/api/v1/auth/cli',
+    tanstackPath: '/api/v1/auth/cli',
+    methods: ['get'],
+  },
+  {
     openapiPath: '/api/v1/auth/device/code',
     tanstackPath: '/api/v1/auth/device/code',
     methods: ['post'],
