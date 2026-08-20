@@ -106,13 +106,15 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   **Replica nodes**, `SegmentedControl size="sm"`), then Source /
   Target searchable comboboxes (`ComparePeerSelect`: Command +
   Popover, sorted by name, `ChmonitorLogo` plus version/uptime/status
-  like HostSwitcher — never a native Select), then **Differences** /
-  **All**. Copy recommended SQL sits on that row. The table catalog
-  is a collapsible left sidebar grouped **database → table** (folder
-  row + nested table name, search in the sidebar). When Differences
-  is on and there are no diffs, still list identical tables with a
-  green `CheckCircle2` (`--chart-green`) — click a row to select it
-  on the right. A matching selection is **All matched** / **This
+  like HostSwitcher — never a native Select). Copy recommended SQL
+  sits on that row. The table catalog is a collapsible left sidebar
+  grouped **database → table** (folder row + nested table name).
+  Search, **Differences / All** (icon-only `GitCompareArrows` /
+  `List`), and sort (icon-only `ArrowDownAZ` menu: A–Z, Z–A,
+  differences first) live on that sidebar — not the host toolbar.
+  When Differences is on and there are no diffs, still list identical
+  tables with a green `CheckCircle2` (`--chart-green`) — click a row
+  to select it on the right. A matching selection is **All matched** / **This
   table matches** (`MatchOk`), never EmptyState "no data" or
   "Select a table". Keep "No tables match" only for a name-filter
   miss.

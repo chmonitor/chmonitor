@@ -223,6 +223,19 @@ function matchingHostPayload(): SchemaDiffResponse {
   }
 }
 
+function mixedHostPayload(): SchemaDiffResponse {
+  const changed = twoHostPayload()
+  const matching = matchingHostPayload()
+  const users = matching.diff.identical.find((row) => row.key === 'app.users')
+  return {
+    ...changed,
+    diff: {
+      ...changed.diff,
+      identical: users ? [users] : [],
+    },
+  }
+}
+
 async function setInputValue(input: HTMLInputElement, value: string) {
   const { act } = await import('react')
   await act(async () => {
@@ -583,6 +596,116 @@ describe('Schema Compare two-host path', () => {
       await setInputValue(input, 'no-such-table')
       expect(document.body.textContent).toContain('No tables match')
       expect(document.body.textContent).not.toContain('Schemas match')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('sidebar icon switches Differences and All, and sorts Z to A', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = matchingHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      const list = document.querySelector(
+        '[data-testid="schema-diff-table-list"]'
+      )
+      expect(
+        list?.querySelector('[data-testid="schema-diff-filter-diffs"]')
+      ).not.toBeNull()
+      expect(
+        list?.querySelector('[data-testid="schema-diff-filter-all"]')
+      ).not.toBeNull()
+      expect(document.body.textContent).not.toContain('Differences')
+
+      const names = () =>
+        [
+          ...document.querySelectorAll(
+            '[data-testid^="schema-diff-table-app."]'
+          ),
+        ].map((el) => el.getAttribute('data-testid'))
+      expect(names()).toEqual([
+        'schema-diff-table-app.events',
+        'schema-diff-table-app.users',
+      ])
+
+      const { act } = await import('react')
+      const sort = document.querySelector(
+        '[data-testid="schema-diff-sort"]'
+      ) as HTMLButtonElement
+      await act(async () => {
+        sort.click()
+      })
+      const za = document.querySelector(
+        '[data-testid="schema-diff-sort-za"]'
+      ) as HTMLElement
+      expect(za).not.toBeNull()
+      await act(async () => {
+        za.click()
+      })
+      expect(names()).toEqual([
+        'schema-diff-table-app.users',
+        'schema-diff-table-app.events',
+      ])
+
+      const all = document.querySelector(
+        '[data-testid="schema-diff-filter-all"]'
+      ) as HTMLButtonElement
+      await act(async () => {
+        all.click()
+      })
+      expect(all.getAttribute('aria-pressed')).toBe('true')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('Differences icon hides matching tables when there are diffs', async () => {
+    const { SchemaDiffView } = await import('./schema-diff-view')
+    const data = mixedHostPayload()
+
+    const { cleanup } = await renderInto(
+      <SchemaDiffView
+        data={data}
+        sourceId={0}
+        targetId={1}
+        scope="hosts"
+        peers={data.hosts}
+        hostCount={2}
+        nodeCount={0}
+        onPairChange={() => {}}
+      />
+    )
+
+    try {
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.events"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.users"]')
+      ).toBeNull()
+      const { act } = await import('react')
+      const all = document.querySelector(
+        '[data-testid="schema-diff-filter-all"]'
+      ) as HTMLButtonElement
+      await act(async () => {
+        all.click()
+      })
+      expect(
+        document.querySelector('[data-testid="schema-diff-table-app.users"]')
+      ).not.toBeNull()
     } finally {
       await cleanup()
     }
