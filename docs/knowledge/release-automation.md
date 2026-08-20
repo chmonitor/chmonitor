@@ -164,8 +164,8 @@ asserts exactly **8** assets before upload (and re-checks the Release API).
 
 | Channel | Trigger | Tag shape | Notes |
 |---------|---------|-----------|-------|
-| **beta** | Push to `main` touching `rust/ch-monitor-cli/**` (and lockfile / `install.sh` / the workflow) | `chm-vX.Y.Z-beta.<run_number>` from `Cargo.toml` version | `prerelease=true`, `make_latest=false` |
-| **stable** | release-please / `workflow_dispatch` with `tag=chm-v…`, or push of a stable `chm-vX.Y.Z` tag | `chm-vX.Y.Z` | `prerelease=false`, `make_latest=true` |
+| **beta** | Push to `main` touching `rust/ch-monitor-cli/**` (and lockfile / `install.sh` / the workflow) | `chm-vX.Y.Z-beta.<run_number>` from `Cargo.toml` version | GitHub prerelease only (`prerelease=true`, `make_latest=false`). Does **not** publish to crates.io. |
+| **stable** | release-please / `workflow_dispatch` with `tag=chm-v…`, or push of a stable `chm-vX.Y.Z` tag | `chm-vX.Y.Z` | GitHub latest + `cargo publish -p chmonitor` (`prerelease=false`, `make_latest=true`) |
 
 Installers and `chm update`/`upgrade` select channel via `CHM_CHANNEL` /
 `--channel` / config (`stable` default). See

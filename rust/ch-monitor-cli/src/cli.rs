@@ -170,7 +170,7 @@ pub enum Commands {
     /// Prints current -> target version, verifies sha256, and atomically
     /// replaces this binary. Never invokes sudo: checksum, permission, and
     /// unsupported-target failures print a copy-pasteable fallback
-    /// (`scripts/install.sh` or `cargo install ch-monitor-cli`).
+    /// (`scripts/install.sh` or `cargo install chmonitor`).
     Update(UpdateArgs),
     /// Alias of `update`. Same flags (`--check`, `--version`), same behaviour.
     Upgrade(UpdateArgs),

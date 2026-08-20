@@ -249,12 +249,12 @@ resolve_version() {
   log "Looking up latest ${CHANNEL} chm-v* release..."
   releases_json="$(curl -fsSL -H "User-Agent: chmonitor-installer" \
     "https://api.github.com/repos/${REPO}/releases?per_page=100" 2>/dev/null)" \
-    || die "failed to query GitHub releases API for ${REPO}. Fallback: cargo install ch-monitor-cli --force"
+    || die "failed to query GitHub releases API for ${REPO}. Fallback: cargo install chmonitor --force"
 
   tag="$(pick_newest_chm_tag "$releases_json" "$CHANNEL")"
 
   if [ -z "$tag" ]; then
-    die "no published chm-v* release found for ${REPO} (channel=${CHANNEL}) yet. Pin one with CHM_VERSION=chm-vX.Y.Z, or: cargo install ch-monitor-cli --force"
+    die "no published chm-v* release found for ${REPO} (channel=${CHANNEL}) yet. Pin one with CHM_VERSION=chm-vX.Y.Z, or: cargo install chmonitor --force"
   fi
 
   printf '%s\n' "$tag"
@@ -274,7 +274,7 @@ BIN_PATH="${TMP_DIR}/${ASSET_NAME}"
 SHA_PATH="${TMP_DIR}/${ASSET_NAME}.sha256"
 
 if ! curl -fsSL -o "$BIN_PATH" "$BIN_URL"; then
-  die "failed to download ${BIN_URL} — the release may not include a binary for ${TARGET}, or the tag doesn't exist. Set CHM_VERSION=chm-vX.Y.Z to pin a different release, or: cargo install ch-monitor-cli --force"
+  die "failed to download ${BIN_URL} — the release may not include a binary for ${TARGET}, or the tag doesn't exist. Set CHM_VERSION=chm-vX.Y.Z to pin a different release, or: cargo install chmonitor --force"
 fi
 
 if [ ! -s "$BIN_PATH" ]; then
@@ -283,12 +283,12 @@ fi
 
 # --- verify checksum (mandatory; never install an unverified binary) ---
 if ! curl -fsSL -o "$SHA_PATH" "$SHA_URL"; then
-  die "no checksum asset at ${SHA_URL} — refusing to install unverified binary. Fallback: cargo install ch-monitor-cli --force"
+  die "no checksum asset at ${SHA_URL} — refusing to install unverified binary. Fallback: cargo install chmonitor --force"
 fi
 
 expected="$(awk '{print $1}' "$SHA_PATH")"
 if [ -z "$expected" ]; then
-  die "checksum file was empty — refusing to install unverified binary. Fallback: cargo install ch-monitor-cli --force"
+  die "checksum file was empty — refusing to install unverified binary. Fallback: cargo install chmonitor --force"
 fi
 
 if command -v sha256sum >/dev/null 2>&1; then
@@ -296,11 +296,11 @@ if command -v sha256sum >/dev/null 2>&1; then
 elif command -v shasum >/dev/null 2>&1; then
   actual="$(shasum -a 256 "$BIN_PATH" | awk '{print $1}')"
 else
-  die "neither sha256sum nor shasum found — cannot verify checksum, refusing to install unverified binary. Fallback: cargo install ch-monitor-cli --force"
+  die "neither sha256sum nor shasum found — cannot verify checksum, refusing to install unverified binary. Fallback: cargo install chmonitor --force"
 fi
 
 if [ "$expected" != "$actual" ]; then
-  die "checksum mismatch for ${ASSET_NAME}: expected ${expected}, got ${actual}. Download may be corrupt or tampered with — aborting. Fallback: cargo install ch-monitor-cli --force"
+  die "checksum mismatch for ${ASSET_NAME}: expected ${expected}, got ${actual}. Download may be corrupt or tampered with — aborting. Fallback: cargo install chmonitor --force"
 fi
 log "Checksum verified."
 
@@ -308,7 +308,7 @@ chmod +x "$BIN_PATH"
 
 mkdir -p "$INSTALL_DIR" 2>/dev/null || die "could not create install directory '$INSTALL_DIR'"
 if [ ! -w "$INSTALL_DIR" ]; then
-  die "install directory '$INSTALL_DIR' is not writable. This script never invokes sudo. Re-run with CHM_INSTALL_DIR pointing at a writable directory, or: cargo install ch-monitor-cli --force"
+  die "install directory '$INSTALL_DIR' is not writable. This script never invokes sudo. Re-run with CHM_INSTALL_DIR pointing at a writable directory, or: cargo install chmonitor --force"
 fi
 
 mv "$BIN_PATH" "${INSTALL_DIR}/${BIN_NAME}"
