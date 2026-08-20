@@ -64,6 +64,25 @@ curl https://dash.example.com/api/mcp \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
+## Device login (`chm auth login`)
+
+RFC 8628 device flow for the Rust CLI. Controlled by `CHM_DEVICE_LOGIN`:
+
+| Value | Behaviour |
+|-------|-----------|
+| `auto` (default) | **Cloud**: on when `CHM_API_KEY_SECRET` is set (approve requires a signed-in session at `/device`). **Self-hosted / OSS**: off — typical internal networks mint a key once or leave the API open. |
+| `true` | Force on. With `CHM_AUTH_PROVIDER=none` this is **device-only** approve (no Clerk): anyone who can open `/device` can mint a token bound to `CHM_DEVICE_LOGIN_SUBJECT` (default `self-hosted`). Codes persist in D1 when bound, otherwise in memory (single-node). |
+| `false` | Force off everywhere (`/api/v1/auth/device/*` → 503). |
+
+```bash
+# Self-hosted opt-in on a trusted LAN
+CHM_AUTH_PROVIDER=none
+CHM_API_KEY_SECRET=a-long-random-string
+CHM_DEVICE_LOGIN=true
+```
+
+Discovery: `GET /api/v1/auth/device/status` returns `{ enabled, mode, deviceOnly, reason, store }`.
+
 ## Troubleshooting
 
 <Accordions>
@@ -72,6 +91,9 @@ The `/api/mcp` endpoint also accepts Clerk OAuth bearer tokens. If you are using
 </Accordion>
 <Accordion title="A valid token still gets 403 on some features">
 Feature-level permissions apply on top of the key auth. Even an authenticated caller may be denied a specific feature. See [Feature Permissions](/operate/advanced/feature-permissions).
+</Accordion>
+<Accordion title="chm auth login gets 503 on my self-hosted dashboard">
+Device login defaults to off for OSS (`CHM_DEVICE_LOGIN=auto`). Set `CHM_DEVICE_LOGIN=true` and `CHM_API_KEY_SECRET`, or mint a key with `POST /api/v1/auth/api-key` and pass it as `--api-key` / `CHM_API_KEY`.
 </Accordion>
 </Accordions>
 

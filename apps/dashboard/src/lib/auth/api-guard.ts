@@ -13,16 +13,20 @@
  *  - `proxy` — a trusted reverse proxy (Cloudflare Access JWT, or a trusted
  *              identity header gated by a shared secret).
  *
- * On top of the provider, API-key auth (`chm_` Bearer tokens) is ALWAYS on
- * whenever `CHM_API_KEY_SECRET` is set, for programmatic/MCP clients.
+ * On top of the provider, API-key auth (`chm_` tokens via Bearer or `x-api-key`)
+ * is ALWAYS on whenever `CHM_API_KEY_SECRET` is set, for programmatic/MCP/CLI
+ * clients.
  *
  * Enforcement on `/api/v1/*` (`getApiKeyAuthFailure`):
  *  - PUBLIC passthrough only when provider is `none` AND API-key auth is off.
- *  - Otherwise a request must present EITHER a valid `chm_` Bearer token OR pass
+ *  - Otherwise a request must present EITHER a valid `chm_` key OR pass
  *    the active provider's `authenticateRequest`. Anonymous requests get a 401
  *    JSON `{ error: 'Authentication required' }`. Exempt: `/api/v1/auth/api-key`
- *    (it owns its own secret-based auth in the handler) and
- *    `/api/v1/openapi.json` (public discovery document).
+ *    (it owns its own secret-based auth in the handler),
+ *    `/api/v1/auth/device/code` + `/api/v1/auth/device/approve` +
+ *    `/api/v1/auth/device/status` + `/api/v1/auth/token` (OAuth device flow;
+ *    approve owns its own session / device-only checks),
+ *    and `/api/v1/openapi.json` (public discovery document).
  *
  * Also reproduced from the Next middleware: the cloud→dash 301 redirect
  * (`getLegacyHostRedirect`).
@@ -30,12 +34,12 @@
  * `apiKeyAuthEnabled()` and `verifyApiKey()` read `process.env.CHM_API_KEY_SECRET`
  * directly. On Cloudflare Workers the canonical source is the `env` binding, so
  * `bridgeApiKeyEnv(env)` copies the secret onto `process.env` before the check
- * (same bridge pattern as `bridgeClickHouseEnv`).
+ * (same bridge pattern as `bridge[REDACTED]Env`).
  */
 
 import {
   apiKeyAuthEnabled,
-  getBearerToken,
+  apiKeyCandidates,
   verifyApiKey,
 } from '@chm/mcp-server/auth'
 import { getAuthProvider, isAuthProviderConfigError } from '@/lib/auth/provider'
@@ -44,6 +48,13 @@ import { resolveServerAuthProvider } from '@/lib/auth/providers'
 const API_V1_PREFIX = '/api/v1/'
 // Key issuance route has its own secret-based auth in its handler.
 const API_KEY_ISSUANCE_PATH = '/api/v1/auth/api-key'
+// OAuth device-code endpoints are public (RFC 8628). Approve is exempt so
+// self-hosted device-only (auth=none + CHM_DEVICE_LOGIN) can complete without
+// already holding a chm_ key; the handler enforces session vs device-only.
+const DEVICE_CODE_PATH = '/api/v1/auth/device/code'
+const DEVICE_APPROVE_PATH = '/api/v1/auth/device/approve'
+const DEVICE_STATUS_PATH = '/api/v1/auth/device/status'
+const DEVICE_TOKEN_PATH = '/api/v1/auth/token'
 // OpenAPI descriptor is a public discovery document (RFC 9727 service-desc).
 const OPENAPI_SPEC_PATH = '/api/v1/openapi.json'
 // Product changelog for the What's new dialog — public GitHub notes, no secrets.
@@ -104,6 +115,20 @@ function jsonError(message: string, status: number): Response {
 }
 
 /**
+ * Whether the request carries a valid `chm_` API key (Bearer or `x-api-key`).
+ * Returns false when API-key auth is disabled or no candidate verifies.
+ */
+export async function hasValidChmApiKey(request: Request): Promise<boolean> {
+  if (!apiKeyAuthEnabled()) return false
+  for (const candidate of apiKeyCandidates(request)) {
+    if (!candidate.startsWith('chm_')) continue
+    const result = await verifyApiKey(candidate)
+    if (result.valid) return true
+  }
+  return false
+}
+
+/**
  * cloud.chmonitor.dev is a legacy alias of the dashboard. Permanently redirect
  * it to the canonical dash.chmonitor.dev host, preserving path and query.
  *
@@ -142,25 +167,26 @@ export async function getApiKeyAuthFailure(
   if (getAuthProvider() === 'none' && !apiKeyAuthEnabled()) return null
 
   // Key issuance route has its own secret-based auth in the handler.
+  // Device-code / approve / status / token are public (RFC 8628); approve
+  // enforces Clerk/proxy session or device-only subject in its handler.
   // OpenAPI is a public discovery document — agents read it before they have
   // a key. Never 401 (or 500 via the dashboard shell) this path.
   // `/api/v1/releases` is the public What's new changelog (GitHub notes).
   if (
     pathname === API_KEY_ISSUANCE_PATH ||
+    pathname === DEVICE_CODE_PATH ||
+    pathname === DEVICE_APPROVE_PATH ||
+    pathname === DEVICE_STATUS_PATH ||
+    pathname === DEVICE_TOKEN_PATH ||
     pathname === OPENAPI_SPEC_PATH ||
     pathname === RELEASES_PATH
   ) {
     return null
   }
 
-  // 1. Programmatic clients (MCP, scripts): a valid `chm_` Bearer token.
-  const headerToken = getBearerToken(request.headers.get('authorization'))
-  if (headerToken) {
-    const result = await verifyApiKey(headerToken)
-    if (result.valid) return null
-    // Not a valid chm_ key — fall through to the provider check; the
-    // Authorization header may carry a Clerk/proxy token rather than a chm_ key.
-  }
+  // 1. Programmatic clients (MCP, CLI, scripts): a valid `chm_` key via
+  //    Authorization Bearer or x-api-key.
+  if (await hasValidChmApiKey(request)) return null
 
   // 2. Opt-in public read-only mode (clerk only): let ALL /api/v1/* requests
   //    through without ever invoking the Clerk provider, and defer to each
@@ -217,12 +243,8 @@ export async function enforceAuth(request: Request): Promise<Response | null> {
   // Public passthrough when the dashboard is fully open.
   if (getAuthProvider() === 'none' && !apiKeyAuthEnabled()) return null
 
-  // 1. Programmatic clients: a valid `chm_` Bearer token.
-  const headerToken = getBearerToken(request.headers.get('authorization'))
-  if (headerToken) {
-    const result = await verifyApiKey(headerToken)
-    if (result.valid) return null
-  }
+  // 1. Programmatic clients: a valid `chm_` key (Bearer or x-api-key).
+  if (await hasValidChmApiKey(request)) return null
 
   // 2. Opt-in public read-only mode (clerk only) — checked BEFORE the provider
   //    call below so an anonymous-read config never pays for a Clerk verify
@@ -265,12 +287,8 @@ export async function isAuthenticatedRequest(
   // Fully-open deployment (no provider, no API key): nothing to protect.
   if (getAuthProvider() === 'none' && !apiKeyAuthEnabled()) return true
 
-  // 1. Programmatic clients: a valid `chm_` Bearer token.
-  const headerToken = getBearerToken(request.headers.get('authorization'))
-  if (headerToken) {
-    const result = await verifyApiKey(headerToken)
-    if (result.valid) return true
-  }
+  // 1. Programmatic clients: a valid `chm_` key (Bearer or x-api-key).
+  if (await hasValidChmApiKey(request)) return true
 
   // 2. An authenticated provider session (clerk cookie, proxy identity, …).
   const provider = getAuthProvider()

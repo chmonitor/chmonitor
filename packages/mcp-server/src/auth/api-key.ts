@@ -1,7 +1,18 @@
+export const ALL_API_KEY_SCOPES = [
+  'read:metrics',
+  'read:insights',
+  'agent:run',
+  'mcp:access',
+] as const
+
+export type ApiKeyScope = (typeof ALL_API_KEY_SCOPES)[number]
+
 interface Payload {
   sub: string
   exp: number
   iat: number
+  /** Optional scopes; missing/empty means all scopes (back-compat). */
+  scopes?: string[]
 }
 
 function getSecret(): string | null {
@@ -57,12 +68,27 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0
 }
 
-export async function issueApiKey(sub: string, days = 30): Promise<string> {
+function normalizeScopes(scopes?: string[] | null): string[] | undefined {
+  if (!scopes || scopes.length === 0) return undefined
+  const allowed = new Set<string>(ALL_API_KEY_SCOPES)
+  const filtered = [
+    ...new Set(scopes.map((s) => s.trim()).filter(Boolean)),
+  ].filter((s) => allowed.has(s))
+  return filtered.length > 0 ? filtered : undefined
+}
+
+export async function issueApiKey(
+  sub: string,
+  days = 30,
+  scopes?: string[]
+): Promise<string> {
   const secret = getSecret()
   if (!secret) throw new Error('CHM_API_KEY_SECRET is not configured')
 
   const now = Math.floor(Date.now() / 1000)
   const payload: Payload = { sub, iat: now, exp: now + days * 86400 }
+  const normalized = normalizeScopes(scopes)
+  if (normalized) payload.scopes = normalized
   const payloadEnc = textToB64url(JSON.stringify(payload))
   const sig = await sign(payloadEnc, secret)
   return `chm_${payloadEnc}.${bytesToB64url(sig)}`
@@ -72,6 +98,8 @@ export type ApiKeyVerificationResult = {
   valid: boolean
   reason?: string
   sub?: string
+  /** Present when the token stamped scopes; undefined means all scopes. */
+  scopes?: string[]
 }
 
 /**
@@ -108,7 +136,11 @@ export async function verifyApiKey(
     const now = Math.floor(Date.now() / 1000)
     if (payload.exp < now) return { valid: false, reason: 'expired' }
 
-    return { valid: true, sub: payload.sub }
+    return {
+      valid: true,
+      sub: payload.sub,
+      scopes: payload.scopes,
+    }
   } catch {
     return { valid: false, reason: 'malformed token' }
   }
@@ -116,4 +148,14 @@ export async function verifyApiKey(
 
 export function apiKeyAuthEnabled() {
   return Boolean(getSecret())
+}
+
+/** Whether a verified key grants `scope` (missing scopes = all). */
+export function apiKeyHasScope(
+  result: ApiKeyVerificationResult,
+  scope: ApiKeyScope
+): boolean {
+  if (!result.valid) return false
+  if (!result.scopes || result.scopes.length === 0) return true
+  return result.scopes.includes(scope)
 }

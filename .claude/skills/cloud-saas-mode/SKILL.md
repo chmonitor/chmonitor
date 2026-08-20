@@ -69,10 +69,10 @@ on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 | Anonymous | env hosts | the demo |
 | Signed-in | env hosts | demo HIDDEN → own D1 connections; zero → welcome/setup |
 | Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY` + `anyrouter:auto` |
+| CLI device login (`CHM_DEVICE_LOGIN`) | **off** by default (`auto`); set `true` for device-only tokens when `auth=none` (trusted LAN) | **on** when `CHM_API_KEY_SECRET` is set; `/device` needs Clerk session |
 
-Implemented in `lib/swr/use-merged-hosts.ts` (tag demo, hide-when-signed-in;
-returns `cloudMode`/`isSignedIn`). Switcher badges + `demo`-as-`env` status in
-`components/host/host-switcher.tsx`.
+Resolver: `lib/auth/device-login-config.ts`. Store: D1 or in-memory
+(`lib/auth/device-code-store.ts`). See `docs/knowledge/standalone-cli.md`.
 
 ## Welcome / setup page
 

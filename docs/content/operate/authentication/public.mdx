@@ -20,7 +20,20 @@ No configuration needed — this is the default when `CHM_AUTH_PROVIDER` is unse
 CHM_AUTH_PROVIDER=none   # or omit entirely
 ```
 
-If you also set `CHM_API_KEY_SECRET`, the API key layer activates for non-browser callers — `/api/v1/*` will require a `chm_` token from scripts and MCP clients even though the browser dashboard remains open. See [API keys](/operate/authentication/api-keys).
+If you also set `CHM_API_KEY_SECRET`, the API key layer activates — `/api/v1/*`
+requires a `chm_` token (or an exempt public path). See
+[API keys](/operate/authentication/api-keys).
+
+**CLI device login** defaults to **off** in self-hosted (`CHM_DEVICE_LOGIN=auto`).
+That matches an internal-network design: mint one key with the signing secret,
+or leave the API open without a secret. To opt into browser device flow for
+`chm auth login` on a trusted LAN:
+
+```bash
+CHM_API_KEY_SECRET=a-long-random-string
+CHM_DEVICE_LOGIN=true
+# approve at /device without Clerk; tokens use subject self-hosted
+```
 
 ## When to use
 

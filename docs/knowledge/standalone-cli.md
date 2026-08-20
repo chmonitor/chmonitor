@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-08-19
+updated: 2026-08-20
 tags:
   - rust
   - cli
@@ -17,39 +17,124 @@ related:
 
 # Standalone chmonitor CLI (Rust)
 
-`rust/ch-monitor-cli` provides a standalone CLI that talks to the existing API
-(`hosts`/`chart`/`table`/`tui`), plus a `diagnose` subcommand that connects
-**directly to a ClickHouse host** with no chmonitor backend or account
+`rust/ch-monitor-cli` is the `chm` binary. By default it talks to **chmonitor
+Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
+Self-hosted dashboards work the same way — point `--base-url` /
+`CHM_BASE_URL` at your instance. A separate `diagnose` subcommand connects
+**directly to a [REDACTED] host** with no chmonitor backend or account
 (see [Zero-signup diagnostics](#zero-signup-diagnostics-diagnose) below).
 
 ## Config Loading
 
-Priority order:
-1. `--config /path/to/config.toml`
-2. `CHM_CONFIG` env var
-3. Default `~/.config/chm/config.toml`
-4. Direct flags/env override file values
+Priority order (highest wins):
+1. CLI flags (`--base-url`, `--host-id`, `--api-key`, `--token`, `--channel`, …)
+2. Environment (`CHM_BASE_URL`, `CHM_HOST_ID`, `CHM_API_KEY`, `CHM_TOKEN`, `CHM_CHANNEL`, …)
+3. Project config: `./chm.toml` or `./.chm/config.toml`
+4. User config: `~/.config/chm/config.toml`
+5. Built-in defaults (`base_url = https://dash.chmonitor.dev`, `channel = stable`)
 
 ```toml
-base_url = "http://localhost:3000"
+base_url = "https://dash.chmonitor.dev"
 host_id = 0
 api_key = "chm_xxx"
 default_chart = "query-count"
+channel = "stable" # or "beta"
 ```
 
-## Commands
+Credentials (device-login token / API key) live in the OS keyring, with a
+`0600` plaintext fallback at `~/.config/chm/credentials`.
+
+## Command tree
+
+```text
+chm
+├── auth
+│   ├── login      # device-code flow → store Bearer token
+│   ├── logout     # clear keyring credentials
+│   └── status     # whether a token / API key is present
+├── config         # show / edit local config
+├── hosts          # GET /api/v1/hosts
+├── link [path]    # open dashboard in browser
+├── chart <name>   # GET /api/v1/charts/{name}
+├── table <name>   # GET /api/v1/tables/{name}
+├── tui [chart]    # live terminal UI (--overview for metrics)
+├── chat [msg]     # stream AI agent reply
+├── agent [msg]    # alias of chat
+├── doctor         # local + API connectivity checks
+├── diagnose       # direct host health (no dashboard)
+├── update|upgrade # self-update from GitHub Releases
+└── completions    # shell completions
+```
 
 ```bash
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- auth login
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- hosts
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui query-count
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
+
+## Channels
+
+`--channel` / `CHM_CHANNEL` / config `channel`:
+
+| Value | Self-update behaviour |
+|-------|------------------------|
+| `stable` (default) | Skip prereleases; prefer the latest stable `chm-v*` tag |
+| `beta` | Include prereleases; prefer a prerelease when semver cores tie |
+
+## Auth (device flow + API keys)
+
+Device login is gated by **`CHM_DEVICE_LOGIN`** (`auto` | `true` | `false`,
+default `auto`):
+
+| Deployment | `auto` behaviour |
+|------------|------------------|
+| Cloud (`CHM_CLOUD_MODE` / `CHM_DEPLOYMENT_MODE=cloud`) | On when `CHM_API_KEY_SECRET` is set; `/device` requires a signed-in session |
+| Self-hosted / OSS | **Off** — trusted LAN usually mints one key or leaves the API open |
+
+Opt in on self-hosted with `CHM_DEVICE_LOGIN=true`. With
+`CHM_AUTH_PROVIDER=none` that is **device-only** approve (no Clerk): anyone who
+can reach `/device` completes the flow; minted tokens use subject
+`CHM_DEVICE_LOGIN_SUBJECT` (default `self-hosted`). Codes persist in D1 when
+bound, otherwise an in-memory store (single-node). Force off with
+`CHM_DEVICE_LOGIN=false`. Status: `GET /api/v1/auth/device/status`.
+
+Dashboard auth endpoints:
+
+1. `POST /api/v1/auth/device/code` — public when enabled; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). 503 when disabled or missing `CHM_API_KEY_SECRET`.
+2. Browser opens `/device?user_code=…` → approve via `POST /api/v1/auth/device/approve` (Clerk/proxy session, or device-only when auth=`none`).
+3. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
+
+Programmatic requests may send **either** `Authorization: Bearer chm_…` **or**
+`x-api-key: chm_…` (the CLI sends both when configured). The dashboard
+`api-guard` and feature-permission layer accept both.
+
+Server-side API-key protection is enabled when `CHM_API_KEY_SECRET` is set.
+Mint a key:
+
+```bash
+# Admin issuance (secret as Bearer)
+curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
+  -H 'content-type: application/json' \
+  -H "authorization: Bearer $CHM_API_KEY_SECRET" \
+  -d '{"label":"cli","days":30}'
+
+# Or while signed in (session cookie / proxy identity) — user-scoped sub
+curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
+  -H 'content-type: application/json' \
+  --cookie '__session=…' \
+  -d '{"days":30,"scopes":["read:metrics","mcp:access"]}'
+```
+
+Response shape: `{ data: { apiKey, sub, scopes, expiresInDays } }`.
 
 ## Zero-signup diagnostics (`diagnose`)
 
 `chm diagnose` is a **separate connection mode** from the rest of the CLI: it
-talks straight to the ClickHouse HTTP interface (`reqwest` + basic auth), not
+talks straight to the [REDACTED] HTTP interface (`reqwest` + basic auth), not
 through the dashboard's `/api/v1/*` (no `base_url`/`api_key`/`host_id`, no
 account, no chmonitor backend required at all). Implementation:
 `rust/ch-monitor-cli/src/diagnose.rs`.
@@ -66,7 +151,7 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose \
   `CLICKHOUSE_DATABASE` env var names the dashboard uses (or `--ch-*` flags).
   A comma-separated multi-host `CLICKHOUSE_HOST` diagnoses only the first host
   (prints a note) — multi-host clusters belong in the full dashboard.
-- Every query forces `readonly=2` at the ClickHouse settings level — this can
+- Every query forces `readonly=2` at the [REDACTED] settings level — this can
   never mutate the target cluster no matter what a future check adds.
 - Runs 12 independent read-only checks against `system.query_log`,
   `system.parts`, `system.replicas`, `system.mutations`, `system.processes`,
@@ -86,26 +171,14 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose \
   process exits `1` if any finding is `critical`, `0` otherwise.
 - Docs page: `docs/content/guide/guides/diagnostics-cli.mdx`.
 
-## API Key Support
-
-- CLI sends `x-api-key` header when `api_key` is configured
-- Server-side API key protection enabled when `CHM_API_KEY_SECRET` is set
-- Generate key via API:
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/api-key \
-  -H 'content-type: application/json' \
-  -H "authorization: Bearer $CHM_API_KEY_SECRET" \
-  -d '{"label":"cli","days":30}'
-```
-
 ## Dependencies
 
 | Library | Purpose |
 |---------|---------|
-| `clap` | CLI parser with env support |
-| `reqwest` + `tokio` | Async HTTP |
-| `comfy-table` | Table rendering |
+| `clap` + `clap_complete` | CLI parser, env support, completions |
+| `reqwest` + `tokio` | Async HTTP (JSON + SSE stream) |
+| `keyring` | OS credential store |
+| `comfy-table` / `indicatif` / `owo-colors` | Table + progress + color |
 | `ratatui` + `crossterm` | TUI stack |
 
 ## Self-update (`chm update` / `chm upgrade`)
@@ -114,7 +187,10 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 `--version` flags, same `cli_run`/`update` telemetry). Both print
 current -> target version, download the matching `chm-<target>` GitHub Release
 asset, require a matching `.sha256`, and atomically replace the running
-binary. They never invoke sudo. Checksum, permission, download, and
+binary. They never invoke sudo. Homebrew-managed installs are refused
+(`is_brew_managed`). Channel (`--channel` / `CHM_CHANNEL` / config):
+`stable` skips prereleases; `beta` includes them and prefers a prerelease
+when semver cores tie. Checksum, permission, download, and
 unsupported-target failures print a copy-pasteable fallback (`scripts/install.sh`
 or `cargo install ch-monitor-cli --force`; unsupported targets point at cargo
 only). `--version` accepts `chm-v0.2.0`, `v0.2.0`, `0.2.0`, or `chm-0.2.0`.

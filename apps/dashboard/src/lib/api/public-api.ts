@@ -104,6 +104,16 @@ export const PUBLIC_API_ROUTES = [
     tanstackPath: '/api/v1/auth/api-key',
     methods: ['post'],
   },
+  {
+    openapiPath: '/api/v1/auth/device/code',
+    tanstackPath: '/api/v1/auth/device/code',
+    methods: ['post'],
+  },
+  {
+    openapiPath: '/api/v1/auth/token',
+    tanstackPath: '/api/v1/auth/token',
+    methods: ['post'],
+  },
 ] as const satisfies readonly PublicApiRoute[]
 
 /** Hard floor so GET /api/v1/openapi.json cannot silently become a 2-path stub. */

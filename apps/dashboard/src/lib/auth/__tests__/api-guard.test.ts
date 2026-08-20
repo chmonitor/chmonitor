@@ -58,6 +58,16 @@ describe('isAuthenticatedRequest', () => {
     expect(await isAuthenticatedRequest(anonReq())).toBe(false)
   })
 
+  it('returns true for a valid chm_ key sent as x-api-key', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const key = await issueApiKey('test-x-api-key')
+    const req = new Request('https://dash.example.com/api/health', {
+      headers: { 'x-api-key': key },
+    })
+    expect(await isAuthenticatedRequest(req)).toBe(true)
+  })
+
   // The core #1768 regression: public read-only mode lets anonymous users read
   // dashboard DATA, but must NOT expose deployment metadata. isAuthenticatedRequest
   // deliberately ignores publicReadEnabled(), unlike enforceAuth.
@@ -113,6 +123,44 @@ describe('GET /api/v1/openapi.json is a public discovery document', () => {
   })
 })
 
+describe('x-api-key parity on /api/v1/*', () => {
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  function hostsReq(headers?: HeadersInit): Request {
+    return new Request('https://dash.example.com/api/v1/hosts', { headers })
+  }
+
+  it('accepts a valid chm_ key via x-api-key when API-key auth is on', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const key = await issueApiKey('cli')
+    const result = await getApiKeyAuthFailure(hostsReq({ 'x-api-key': key }))
+    expect(result).toBeNull()
+  })
+
+  it('returns 401 when API-key auth is on and no key is sent', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(hostsReq())
+    expect(result).not.toBeNull()
+    expect(result!.status).toBe(401)
+  })
+})
+
 describe('GET /api/v1/releases is a public changelog document', () => {
   const saved: Record<string, string | undefined> = {}
 
@@ -137,6 +185,44 @@ describe('GET /api/v1/releases is a public changelog document', () => {
   it('passes anonymous callers when clerk requires a session', async () => {
     process.env.CHM_AUTH_PROVIDER = 'clerk'
     const result = await getApiKeyAuthFailure(releasesReq())
+    expect(result).toBeNull()
+  })
+})
+
+describe('device-flow paths are public (handler owns auth)', () => {
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  it('allows anonymous approve when API-key auth is on (device-only self-hosted)', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(
+      new Request('https://dash.example.com/api/v1/auth/device/approve', {
+        method: 'POST',
+      })
+    )
+    expect(result).toBeNull()
+  })
+
+  it('allows anonymous device status discovery', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'clerk'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(
+      new Request('https://dash.example.com/api/v1/auth/device/status')
+    )
     expect(result).toBeNull()
   })
 })

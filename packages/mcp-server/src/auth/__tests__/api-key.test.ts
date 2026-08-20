@@ -72,6 +72,25 @@ describe('api-key', () => {
       expect(result.valid).toBe(true)
       expect(result.sub).toBe('user1')
     })
+
+    it('stamps scopes onto the issued token when provided', async () => {
+      process.env.CHM_API_KEY_SECRET = TEST_SECRET
+      const token = await issueApiKey('user1', 30, [
+        'read:metrics',
+        'mcp:access',
+      ])
+      const result = await verifyApiKey(token)
+      expect(result.valid).toBe(true)
+      expect(result.scopes).toEqual(['read:metrics', 'mcp:access'])
+    })
+
+    it('omits scopes from the payload when none are provided (all scopes)', async () => {
+      process.env.CHM_API_KEY_SECRET = TEST_SECRET
+      const token = await issueApiKey('user1')
+      const result = await verifyApiKey(token)
+      expect(result.valid).toBe(true)
+      expect(result.scopes).toBeUndefined()
+    })
   })
 
   describe('verifyApiKey', () => {

@@ -1,10 +1,17 @@
 export {
   type ApiKeyVerificationResult,
+  type ApiKeyScope,
+  ALL_API_KEY_SCOPES,
   apiKeyAuthEnabled,
+  apiKeyHasScope,
   issueApiKey,
   verifyApiKey,
 } from './api-key'
 export { getBearerToken } from './bearer-token'
+export {
+  apiKeyCandidates,
+  getRequestApiKeyCandidates,
+} from './request-api-key'
 export {
   type ClerkOAuthResult,
   clerkOAuthEnabled,
