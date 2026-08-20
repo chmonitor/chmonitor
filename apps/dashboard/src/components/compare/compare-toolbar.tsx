@@ -17,7 +17,7 @@ export function CompareToolbar({
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm',
+        'flex flex-col gap-3 rounded-xl border bg-card p-3 shadow-sm',
         className
       )}
     >
