@@ -1,6 +1,7 @@
-// Copy scripts/install.sh into the landing public dir so
-// `curl -sSf https://chmonitor.dev/install.sh | bash` hits a 200 body, not
-// a 302 to GitHub (curl -sSf does not follow redirects, so the pipe was empty).
+// Copy scripts/install.sh into the landing public dir so browsers can open
+// https://chmonitor.dev/install.sh (200 body, not a 302). The documented curl
+// installer uses GitHub raw because Cloudflare Bot Fight Mode challenges curl
+// on the apex; see scripts/cloudflare-allow-install-sh.ts.
 import { copyFileSync, existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
