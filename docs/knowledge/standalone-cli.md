@@ -22,10 +22,13 @@ related:
 `chm-<target>`; `scripts/install.sh` installs `chm` and symlinks `chmonitor`.
 `cargo install chmonitor` installs both binaries.
 
+**`chm` with no subcommand opens the live TUI** (`chm tui` is an explicit alias
+of the same UI). `chm --help` / `chm help` / `chm -h` still print help.
+
 By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
 Self-hosted dashboards work the same way — point `--base-url` /
-`CHM_BASE_URL` at your instance. `chm doctor --ch-host` (alias `diagnose`)
+`CHM_BASE_URL` / `chm config set base_url` at your instance. `chm doctor --ch-host` (alias `diagnose`)
 connects **directly to a ClickHouse host** with no chmonitor backend or account
 (see [Zero-signup cluster health](#zero-signup-cluster-health-doctor) below).
 
@@ -52,7 +55,8 @@ Credentials (device-login token / API key) live in the OS keyring, with a
 ## Command tree
 
 ```text
-chm
+chm                # live TUI (default; same as `chm tui`)
+├── tui [chart]    # explicit TUI alias (alt-screen)
 ├── auth
 │   ├── login [--api-key]  # auto-detect none|device|api_key
 │   ├── logout     # clear keyring credentials
@@ -63,7 +67,6 @@ chm
 ├── link [path]    # open dashboard in browser
 ├── chart <name>   # GET /api/v1/charts/{name} (+ braille sparkline + min/max/avg)
 ├── table <name>   # GET /api/v1/tables/{name} (--explain for columns / SQL)
-├── tui [chart]    # multi-pane TUI: 1=overview 2=chart 3=table (alt-screen)
 ├── chat [msg]     # stream AI agent reply (alt-screen when interactive)
 ├── agent [msg]    # alias of chat
 ├── doctor         # cluster scan with --ch-host; else CLI + API connectivity
@@ -73,33 +76,45 @@ chm
 ```
 
 ```bash
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- auth login
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- hosts
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --explain
-cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui query-count
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
 
-## TUI (`chm tui`)
+## TUI (`chm` / `chm tui`)
 
-Multi-pane live UI (ratatui + crossterm). **Only** `chm tui` and interactive
-`chm chat` enter the terminal alternate screen; other commands stay on the
-normal screen.
+Live UI (ratatui + crossterm). Bare `chm` and `chm tui` are the same command
+(telemetry `cli_run` / `tui`). Default chart is config `default_chart` else
+`query-count`; default table is `running-queries`. **Only** this TUI and
+interactive `chm chat` enter the terminal alternate screen; other commands stay
+on the normal screen.
+
+One screen: hosts + sparkline **and** the table together when the terminal is
+tall/wide enough (`≥72×24`). Smaller terminals collapse to a focused pane with
+a visible `overview | table` switcher.
 
 | Key | Action |
 |-----|--------|
-| `1` | Overview — hosts summary + default chart sparkline |
-| `2` | Chart — current chart sparkline + recent rows |
-| `3` | Table — `/api/v1/tables/{name}` (default `running-queries`, `--table` / `--page-size`) |
-| `h` / `l` or `[` / `]` | Decrement / increment session `host_id` (clamped ≥ 0) |
-| `j` / `k` or ↑ / ↓ | Scroll table pane |
+| `q` / `Esc` | Quit (`Esc` first clears an active table filter) |
 | `r` | Refresh now |
-| `q` | Quit |
+| `?` | Help overlay |
+| `a` | Open interactive agent chat (returns to the TUI on exit) |
+| `h` / `l` or ← / → or `[` / `]` | Previous / next host (cycles the `/api/v1/hosts` list) |
+| `j` / `k` or ↑ / ↓ | Scroll table |
+| `Tab` | Switch pane (small terminals) |
+| `1` | Overview pane |
+| `2` / `3` | Table pane |
+| `/` | Filter table rows |
 
-Header shows mode, host, channel, chart, and table name. Start in overview with
+Header shows host name, short base URL, channel, and live/refresh age. Footer
+lists the keys above. Auth failures (HTTP 401/403) show `chm auth login` in the
+TUI instead of panicking. Start focused on overview (small terminals) with
 `--overview`.
 
 ## Channels

@@ -5,9 +5,12 @@ icon: Terminal
 ---
 
 `chm` is the standalone terminal CLI for chmonitor (crate `chmonitor`). The
-full alias `chmonitor` is the same binary. By default it talks to **chmonitor
-Cloud** at `https://dash.chmonitor.dev` (hosts, charts, tables, TUI, agent).
-Point `--base-url` / `CHM_BASE_URL` at your self-hosted dashboard when needed.
+full alias `chmonitor` is the same binary. Run **`chm` with no subcommand** to
+open the live TUI (`chm tui` is the same UI). `chm --help` / `chm help` /
+`chm -h` still print help. By default it talks to **chmonitor Cloud** at
+`https://dash.chmonitor.dev` (hosts, charts, tables, TUI, agent). Point
+`--base-url` / `CHM_BASE_URL` / `chm config set base_url` at your self-hosted
+dashboard when needed.
 
 `chm doctor --ch-host` (alias `chm diagnose`) is a separate mode: it connects
 **straight to a ClickHouse host** with no dashboard account or backend.
@@ -102,10 +105,11 @@ available. Silence it with `CHM_NO_UPDATE_CHECK=1`.
 ## Common dashboard commands
 
 ```bash
+chm                        # live TUI (default)
+chm tui                    # same UI
 chm hosts
 chm chart query-count --limit 50
 chm table running-queries --limit 30
-chm tui query-count
 chm doctor                 # CLI + dashboard connectivity (no ClickHouse host)
 chm agent "why are merges slow?"
 # same binary: chmonitor hosts

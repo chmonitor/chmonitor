@@ -82,24 +82,30 @@ pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Re
             table::run(client, cfg, &name, limit, explain).await?;
             Ok(0)
         }
-        Commands::Tui {
-            chart,
-            overview,
-            table,
-            page_size,
-        } => {
-            let c = chart.unwrap_or_else(|| cfg.default_chart.clone());
-            crate::tui::run(
-                client,
-                cfg,
-                crate::tui::TuiOptions {
-                    chart: &c,
-                    table: &table,
-                    page_size,
-                    start_overview: overview,
-                },
-            )
-            .await?;
+        Commands::Tui(args) => {
+            let c = args.chart.unwrap_or_else(|| cfg.default_chart.clone());
+            let mut host_id = cfg.host_id;
+            loop {
+                match crate::tui::run(
+                    client,
+                    cfg,
+                    crate::tui::TuiOptions {
+                        chart: &c,
+                        table: &args.table,
+                        page_size: args.page_size,
+                        start_overview: args.overview,
+                        host_id,
+                    },
+                )
+                .await?
+                {
+                    crate::tui::TuiExit::Quit => break,
+                    crate::tui::TuiExit::Chat { host_id: hid } => {
+                        host_id = hid;
+                        crate::tui::chat::run(client, cfg, None).await?;
+                    }
+                }
+            }
             Ok(0)
         }
         Commands::Chat { message } => {
