@@ -31,6 +31,11 @@ import {
   type FeatureOverrides,
 } from './types'
 import { env } from 'cloudflare:workers'
+import {
+  apiKeyAuthEnabled,
+  apiKeyCandidates,
+  verifyApiKey,
+} from '@chm/mcp-server/auth'
 import { isValidAgentApiBearerToken } from '@/lib/auth/agent-api-token'
 import { parseAuthProvider } from '@/lib/auth/provider'
 import { parseDeploymentMode } from '@/lib/config/deployment-mode'
@@ -193,6 +198,16 @@ async function isAuthenticatedRequest(
     (await isValidAgentApiBearerToken(request))
   ) {
     return true
+  }
+
+  // CLI / MCP `chm_` keys (Bearer or x-api-key) count as authenticated so
+  // agent/actions work with device-login tokens when CHM_API_KEY_SECRET is set.
+  if (apiKeyAuthEnabled()) {
+    for (const candidate of apiKeyCandidates(request)) {
+      if (!candidate.startsWith('chm_')) continue
+      const result = await verifyApiKey(candidate)
+      if (result.valid) return true
+    }
   }
 
   // Reverse-proxy providers authenticate by re-running their own header/JWT

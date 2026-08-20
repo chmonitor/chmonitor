@@ -100,7 +100,10 @@ async fn login(client: &Client, cfg: &AppConfig) -> Result<i32> {
         );
     }
 
-    let device: DeviceCodeResponse = serde_json::from_str(&text)
+    let value: serde_json::Value = serde_json::from_str(&text)
+        .with_context(|| format!("unexpected device-code response: {text}"))?;
+    let payload = value.get("data").cloned().unwrap_or(value);
+    let device: DeviceCodeResponse = serde_json::from_value(payload)
         .with_context(|| format!("unexpected device-code response: {text}"))?;
 
     let open_url = device

@@ -17,9 +17,11 @@ related:
 
 # Standalone chmonitor CLI (Rust)
 
-`rust/ch-monitor-cli` provides a standalone CLI that talks to the existing API
-(`hosts`/`chart`/`table`/`tui`), plus a `diagnose` subcommand that connects
-**directly to a ClickHouse host** with no chmonitor backend or account
+`rust/ch-monitor-cli` is the `chm` binary. By default it talks to **chmonitor
+Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
+Self-hosted dashboards work the same way — point `--base-url` /
+`CHM_BASE_URL` at your instance. A separate `diagnose` subcommand connects
+**directly to a [REDACTED] host** with no chmonitor backend or account
 (see [Zero-signup diagnostics](#zero-signup-diagnostics-diagnose) below).
 
 ## Config Loading
@@ -42,7 +44,27 @@ channel = "stable" # or "beta"
 Credentials (device-login token / API key) live in the OS keyring, with a
 `0600` plaintext fallback at `~/.config/chm/credentials`.
 
-## Commands
+## Command tree
+
+```text
+chm
+├── auth
+│   ├── login      # device-code flow → store Bearer token
+│   ├── logout     # clear keyring credentials
+│   └── status     # whether a token / API key is present
+├── config         # show / edit local config
+├── hosts          # GET /api/v1/hosts
+├── link [path]    # open dashboard in browser
+├── chart <name>   # GET /api/v1/charts/{name}
+├── table <name>   # GET /api/v1/tables/{name}
+├── tui [chart]    # live terminal UI (--overview for metrics)
+├── chat [msg]     # stream AI agent reply
+├── agent [msg]    # alias of chat
+├── doctor         # local + API connectivity checks
+├── diagnose       # direct host health (no dashboard)
+├── update|upgrade # self-update from GitHub Releases
+└── completions    # shell completions
+```
 
 ```bash
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- auth login
@@ -54,10 +76,50 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
 
+## Channels
+
+`--channel` / `CHM_CHANNEL` / config `channel`:
+
+| Value | Self-update behaviour |
+|-------|------------------------|
+| `stable` (default) | Skip prereleases; prefer the latest stable `chm-v*` tag |
+| `beta` | Include prereleases; prefer a prerelease when semver cores tie |
+
+## Auth (device flow + API keys)
+
+Dashboard auth endpoints (Phase 1A):
+
+1. `POST /api/v1/auth/device/code` — public; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). Requires D1 (`CHM_CLOUD_D1`); otherwise 503.
+2. Browser opens `/device?user_code=…` → signed-in user posts to `POST /api/v1/auth/device/approve`.
+3. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
+
+Programmatic requests may send **either** `Authorization: Bearer chm_…` **or**
+`x-api-key: chm_…` (the CLI sends both when configured). The dashboard
+`api-guard` and feature-permission layer accept both.
+
+Server-side API-key protection is enabled when `CHM_API_KEY_SECRET` is set.
+Mint a key:
+
+```bash
+# Admin issuance (secret as Bearer)
+curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
+  -H 'content-type: application/json' \
+  -H "authorization: Bearer $CHM_API_KEY_SECRET" \
+  -d '{"label":"cli","days":30}'
+
+# Or while signed in (session cookie / proxy identity) — user-scoped sub
+curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
+  -H 'content-type: application/json' \
+  --cookie '__session=…' \
+  -d '{"days":30,"scopes":["read:metrics","mcp:access"]}'
+```
+
+Response shape: `{ data: { apiKey, sub, scopes, expiresInDays } }`.
+
 ## Zero-signup diagnostics (`diagnose`)
 
 `chm diagnose` is a **separate connection mode** from the rest of the CLI: it
-talks straight to the ClickHouse HTTP interface (`reqwest` + basic auth), not
+talks straight to the [REDACTED] HTTP interface (`reqwest` + basic auth), not
 through the dashboard's `/api/v1/*` (no `base_url`/`api_key`/`host_id`, no
 account, no chmonitor backend required at all). Implementation:
 `rust/ch-monitor-cli/src/diagnose.rs`.
@@ -74,7 +136,7 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose \
   `CLICKHOUSE_DATABASE` env var names the dashboard uses (or `--ch-*` flags).
   A comma-separated multi-host `CLICKHOUSE_HOST` diagnoses only the first host
   (prints a note) — multi-host clusters belong in the full dashboard.
-- Every query forces `readonly=2` at the ClickHouse settings level — this can
+- Every query forces `readonly=2` at the [REDACTED] settings level — this can
   never mutate the target cluster no matter what a future check adds.
 - Runs 12 independent read-only checks against `system.query_log`,
   `system.parts`, `system.replicas`, `system.mutations`, `system.processes`,
@@ -93,21 +155,6 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- diagnose \
 - `--json` prints the machine-readable `Report` (also useful in CI); the
   process exits `1` if any finding is `critical`, `0` otherwise.
 - Docs page: `docs/content/guide/guides/diagnostics-cli.mdx`.
-
-## API Key / Auth Support
-
-- CLI sends **both** `Authorization: Bearer …` and `x-api-key` when configured
-- `chm auth login` uses the device-code flow:
-  `POST /api/v1/auth/device/code` → open browser → poll `POST /api/v1/auth/token`
-- Server-side API key protection enabled when `CHM_API_KEY_SECRET` is set
-- Generate key via API:
-
-```bash
-curl -X POST https://dash.chmonitor.dev/api/v1/auth/api-key \
-  -H 'content-type: application/json' \
-  -H "authorization: Bearer $CHM_API_KEY_SECRET" \
-  -d '{"label":"cli","days":30}'
-```
 
 ## Dependencies
 
@@ -142,37 +189,27 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- upgrade --check
 ## CI & Release
 
 - **CI**: `cli-rust-ci.yml` — fmt, clippy, build, test
-- **Release tags**:
-  - **stable**: `chm-vX.Y.Z` (e.g. `chm-v0.1.2`) — `prerelease=false`
-  - **beta**: `chm-vX.Y.Z-beta.<run_number>` from Cargo.toml `0.1.x` on
-    `main` path pushes — `prerelease=true`
+- **Release**: Tag format `chm-v*` (e.g. `chm-v0.1.0`)
 - **Release workflow**: `cli-rust-release.yml` builds 4 targets
   (`x86_64`/`aarch64` × `unknown-linux-gnu`/`apple-darwin`, no Windows) and
   uploads each binary plus a `.sha256` checksum file to the GitHub Release as
-  `chm-<target>` / `chm-<target>.sha256`.
-  - Tag push / `workflow_dispatch` with `tag` → stable release
-  - Push to `main` when `rust/ch-monitor-cli/**`, `rust/Cargo.{toml,lock}`,
-    the workflow, or `scripts/install.sh` change → beta prerelease
-  - Beta tag pattern is excluded from the tag trigger so creating the beta
-    release does not re-fire a stable build
+  `chm-<target>` / `chm-<target>.sha256`. Only runs the upload step on an
+  actual tag push (`github.ref_type == 'tag'`); `workflow_dispatch` builds but
+  doesn't publish.
 
 ## One-line install (`scripts/install.sh`)
 
 ```bash
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
-# Beta channel:
-CHM_CHANNEL=beta curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 ```
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else
   (no silent wrong-arch installs).
-- Resolves the latest `chm-v*` release via the GitHub releases API for
-  `CHM_CHANNEL` (`stable` default, or `beta`), ranking by semver (not
-  first-match / created_at). `stable` skips drafts/prereleases; `beta`
-  prefers prereleases (falls back to stable if none). Dashboard/Helm tags
-  share this API. Pin a specific release with `CHM_VERSION=chm-vX.Y.Z`
-  (`vX.Y.Z` / `X.Y.Z` also work). Logs the channel on install.
+- Resolves the latest **published** `chm-v*` release via the GitHub releases
+  API, ranking by semver (not first-match / created_at) and skipping
+  drafts/prereleases. Dashboard/Helm tags share this API. Pin a specific
+  release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
 - Downloads the binary + its `.sha256` asset and verifies the checksum before
   installing; a missing or mismatched checksum is fatal (never installs an
   unverified binary). Fails loud (`set -euo pipefail`) on any

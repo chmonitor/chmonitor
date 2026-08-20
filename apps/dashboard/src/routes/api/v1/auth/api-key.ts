@@ -2,21 +2,27 @@
  * API Key Issuance Endpoint
  * POST /api/v1/auth/api-key
  *
- * Mints a signed API key for use with the MCP server.
- * Requires CHM_API_KEY_SECRET as a Bearer token to authorize issuance.
+ * Mints a signed API key for MCP / CLI use. Authorize with EITHER:
+ *  - `Authorization: Bearer $CHM_API_KEY_SECRET` (admin issuance; sub from body label)
+ *  - an authenticated Clerk/proxy session (user-scoped; sub = userId)
  *
- * Ported from apps/dashboard/app/api/v1/auth/api-key/route.ts.
- * - next/server NextResponse.json(x, init) -> Response.json(x, init).
- * - Depends on @chm/mcp-server/auth (getBearerToken, issueApiKey). That subpath
- *   needs a vite alias in dashboard (the generic @chm/mcp-server entry is
- *   NOT aliased — only /http and /data are). See reported neededConfig.
+ * Optional body: `{ label?, days?, scopes? }`.
+ * Returns `{ data: { apiKey, sub, scopes, expiresInDays } }`.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import { getBearerToken, issueApiKey } from '@chm/mcp-server/auth'
+import {
+  ALL_API_KEY_SCOPES,
+  type ApiKeyScope,
+  getBearerToken,
+  issueApiKey,
+} from '@chm/mcp-server/auth'
+import { getAuthProvider } from '@/lib/auth/provider'
+import { resolveServerAuthProvider } from '@/lib/auth/providers'
 
 const MAX_API_KEY_DAYS = 365
+const ALLOWED_SCOPES = new Set<string>(ALL_API_KEY_SCOPES)
 
 function getSecret(): string | null {
   return process.env.CHM_API_KEY_SECRET ?? null
@@ -35,6 +41,64 @@ function timingSafeEqualString(a: string, b: string): boolean {
   return diff === 0
 }
 
+function normalizeScopes(raw: unknown): ApiKeyScope[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const filtered = [
+    ...new Set(
+      raw
+        .filter((s): s is string => typeof s === 'string')
+        .map((s) => s.trim())
+        .filter((s) => ALLOWED_SCOPES.has(s))
+    ),
+  ] as ApiKeyScope[]
+  return filtered.length > 0 ? filtered : undefined
+}
+
+async function resolveIssuerSub(
+  request: Request,
+  secret: string
+): Promise<{ sub: string; via: 'secret' | 'session' } | Response> {
+  const token = getBearerToken(request.headers.get('authorization'))
+  if (token && timingSafeEqualString(token, secret)) {
+    return { sub: 'cli', via: 'secret' }
+  }
+
+  let provider: ReturnType<typeof getAuthProvider>
+  try {
+    provider = getAuthProvider()
+  } catch {
+    return Response.json(
+      { error: 'Invalid auth provider configuration' },
+      { status: 500 }
+    )
+  }
+
+  if (provider === 'none') {
+    return Response.json(
+      {
+        error:
+          'Unauthorized: provide CHM_API_KEY_SECRET as Bearer token or sign in',
+      },
+      { status: 401 }
+    )
+  }
+
+  const auth =
+    await resolveServerAuthProvider(provider).authenticateRequest(request)
+  const userId = auth.subject ?? auth.principal?.subject
+  if (!auth.authenticated || !userId) {
+    return Response.json(
+      {
+        error:
+          'Unauthorized: provide CHM_API_KEY_SECRET as Bearer token or sign in',
+      },
+      { status: 401 }
+    )
+  }
+
+  return { sub: userId, via: 'session' }
+}
+
 async function handlePost(request: Request): Promise<Response> {
   const secret = getSecret()
   if (!secret) {
@@ -44,14 +108,8 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  // Require the CHM_API_KEY_SECRET itself to mint keys
-  const token = getBearerToken(request.headers.get('authorization'))
-  if (!token || !timingSafeEqualString(token, secret)) {
-    return Response.json(
-      { error: 'Unauthorized: provide CHM_API_KEY_SECRET as Bearer token' },
-      { status: 401 }
-    )
-  }
+  const issuer = await resolveIssuerSub(request, secret)
+  if (issuer instanceof Response) return issuer
 
   try {
     const rawBody = await request.text()
@@ -80,8 +138,19 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    const apiKey = await issueApiKey(label, days)
-    return Response.json({ data: { apiKey } })
+    const scopes = normalizeScopes(payload.scopes)
+    const sub = issuer.via === 'secret' ? label : issuer.sub
+    const apiKey = await issueApiKey(sub, days, scopes)
+    const stampedScopes = scopes ?? [...ALL_API_KEY_SCOPES]
+
+    return Response.json({
+      data: {
+        apiKey,
+        sub,
+        scopes: stampedScopes,
+        expiresInDays: days,
+      },
+    })
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : 'Failed to issue key' },

@@ -593,7 +593,7 @@ function buildOperations(
         tags: ['Auth'],
         summary: 'Issue an API key',
         description:
-          'Mints a signed `chm_` API key. Authorize with `Authorization: Bearer` set to `CHM_API_KEY_SECRET` (the issuance secret, not an existing key). Returns 503 when the secret is unset.',
+          'Mints a signed `chm_` API key. Authorize with `Authorization: Bearer` set to `CHM_API_KEY_SECRET`, or with an authenticated Clerk/proxy session (user-scoped). Optional `scopes` in the body. Returns 503 when the secret is unset.',
         operationId: 'issueApiKey',
         security: REQUIRED_AUTH,
         requestBody: {
@@ -610,8 +610,56 @@ function buildOperations(
             content: jsonContent(ref('ErrorBody')),
           },
           '401': {
-            description: 'Bearer token is not CHM_API_KEY_SECRET',
+            description: 'Missing secret Bearer or signed-in session',
             content: jsonContent(ref('ErrorBody')),
+          },
+          '503': {
+            description: 'CHM_API_KEY_SECRET is not configured',
+            content: jsonContent(ref('ErrorBody')),
+          },
+        },
+      },
+    },
+    '/api/v1/auth/device/code': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Start device-code login',
+        description:
+          'RFC 8628 device authorization. Public. Creates a pending device/user code pair for `chm auth login`. Returns 503 when D1 is unavailable.',
+        operationId: 'deviceCode',
+        security: [{}],
+        responses: {
+          '200': {
+            description: 'Device and user codes',
+            content: jsonContent(ref('DeviceCodeResponse')),
+          },
+          '503': {
+            description: 'D1 / device login unavailable',
+            content: jsonContent(ref('ErrorBody')),
+          },
+        },
+      },
+    },
+    '/api/v1/auth/token': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Exchange device code for access token',
+        description:
+          'Polls a pending device_code. Returns `authorization_pending` (400) until the user approves at `/device`, then mints a `chm_` API key.',
+        operationId: 'deviceToken',
+        security: [{}],
+        requestBody: {
+          required: true,
+          content: jsonContent(ref('DeviceTokenRequest')),
+        },
+        responses: {
+          '200': {
+            description: 'Access token issued',
+            content: jsonContent(ref('DeviceTokenResponse')),
+          },
+          '400': {
+            description: 'authorization_pending or other OAuth error',
+            content: jsonContent(ref('OAuthError')),
           },
           '503': {
             description: 'CHM_API_KEY_SECRET is not configured',
@@ -825,6 +873,12 @@ const SCHEMAS: Record<string, JsonSchema> = {
         default: 30,
         description: 'Key lifetime in days.',
       },
+      scopes: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Optional scopes. Empty/omitted stamps all scopes (back-compat).',
+      },
     },
   },
   IssueApiKeyResponse: {
@@ -833,11 +887,67 @@ const SCHEMAS: Record<string, JsonSchema> = {
     properties: {
       data: {
         type: 'object',
-        required: ['apiKey'],
+        required: ['apiKey', 'sub', 'scopes', 'expiresInDays'],
         properties: {
           apiKey: { type: 'string' },
+          sub: { type: 'string' },
+          scopes: { type: 'array', items: { type: 'string' } },
+          expiresInDays: { type: 'integer' },
         },
       },
+    },
+  },
+  DeviceCodeResponse: {
+    type: 'object',
+    required: ['data'],
+    properties: {
+      data: {
+        type: 'object',
+        required: [
+          'device_code',
+          'user_code',
+          'verification_uri',
+          'expires_in',
+          'interval',
+        ],
+        properties: {
+          device_code: { type: 'string' },
+          user_code: { type: 'string' },
+          verification_uri: { type: 'string' },
+          verification_uri_complete: { type: 'string' },
+          expires_in: { type: 'integer' },
+          interval: { type: 'integer' },
+        },
+      },
+    },
+  },
+  DeviceTokenRequest: {
+    type: 'object',
+    required: ['grant_type', 'device_code'],
+    properties: {
+      grant_type: {
+        type: 'string',
+        description: '`device_code` or the URN form',
+      },
+      device_code: { type: 'string' },
+      client_id: { type: 'string' },
+    },
+  },
+  DeviceTokenResponse: {
+    type: 'object',
+    required: ['access_token', 'token_type'],
+    properties: {
+      access_token: { type: 'string' },
+      token_type: { type: 'string', enum: ['Bearer'] },
+      expires_in: { type: 'integer' },
+    },
+  },
+  OAuthError: {
+    type: 'object',
+    required: ['error'],
+    properties: {
+      error: { type: 'string' },
+      error_description: { type: 'string' },
     },
   },
 }
@@ -911,7 +1021,7 @@ export function buildOpenApiDocument(): OpenApiDocument {
       { name: 'Insights', description: 'Persisted findings' },
       { name: 'Agent', description: 'Streaming AI agent' },
       { name: 'MCP', description: 'Model Context Protocol' },
-      { name: 'Auth', description: 'API-key issuance' },
+      { name: 'Auth', description: 'API-key issuance and device-code login' },
     ],
     paths,
     components: {
