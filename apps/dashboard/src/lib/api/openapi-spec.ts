@@ -620,6 +620,22 @@ function buildOperations(
         },
       },
     },
+    '/api/v1/auth/cli': {
+      get: {
+        tags: ['Auth'],
+        summary: 'CLI auth discovery',
+        description:
+          'Public discovery for `chm auth login`. Returns which login path the CLI should use (`none` | `api_key` | `device`) plus enablement hints. No secrets. Exempt from the `/api/v1` auth gate.',
+        operationId: 'cliAuthDiscovery',
+        security: [{}],
+        responses: {
+          '200': {
+            description: 'Auth method recommendation',
+            content: jsonContent(ref('CliAuthDiscoveryResponse')),
+          },
+        },
+      },
+    },
     '/api/v1/auth/device/code': {
       post: {
         tags: ['Auth'],
@@ -897,6 +913,53 @@ const SCHEMAS: Record<string, JsonSchema> = {
       },
     },
   },
+  CliAuthDiscoveryResponse: {
+    type: 'object',
+    required: ['data'],
+    properties: {
+      data: {
+        type: 'object',
+        required: ['method', 'api', 'authProvider', 'deviceLogin', 'hint'],
+        properties: {
+          method: {
+            type: 'string',
+            enum: ['none', 'api_key', 'device'],
+            description: 'Recommended path for `chm auth login`.',
+          },
+          api: {
+            type: 'string',
+            enum: ['open', 'key_required'],
+            description:
+              'Whether anonymous `/api/v1/*` calls need a `chm_` key.',
+          },
+          authProvider: {
+            type: 'string',
+            enum: ['none', 'clerk', 'proxy', 'trusted'],
+          },
+          deviceLogin: {
+            type: 'object',
+            properties: {
+              enabled: { type: 'boolean' },
+              mode: { type: 'string' },
+              deviceOnly: { type: 'boolean' },
+              reason: { type: 'string' },
+              store: { type: 'string' },
+              subject: { type: 'string' },
+            },
+          },
+          hint: {
+            type: 'string',
+            description: 'One-line operator / CLI hint.',
+          },
+        },
+      },
+      method: { type: 'string', enum: ['none', 'api_key', 'device'] },
+      api: { type: 'string', enum: ['open', 'key_required'] },
+      authProvider: { type: 'string' },
+      deviceLogin: { type: 'object', additionalProperties: true },
+      hint: { type: 'string' },
+    },
+  },
   DeviceCodeResponse: {
     type: 'object',
     required: ['data'],
@@ -992,7 +1055,7 @@ export function buildOpenApiDocument(): OpenApiDocument {
       title: 'chmonitor API',
       version: '1.0.0',
       description:
-        'Public HTTP API for the chmonitor dashboard. This document is the RFC 9727 service-desc at GET /api/v1/openapi.json.\n\nIt lists the stable public contract assembled from the live TanStack Start routes: liveness, host list and status, chart series, table pages, overview, findings, the streaming agent, MCP, and API-key issuance. Internal surfaces (explorer, conversations, billing, webhooks, cron, menu-counts, Slack, health-alert admin, per-user connections) are omitted on purpose.',
+        'Public HTTP API for the chmonitor dashboard. This document is the RFC 9727 service-desc at GET /api/v1/openapi.json.\n\nIt lists the stable public contract assembled from the live TanStack Start routes: liveness, host list and status, chart series, table pages, overview, findings, the streaming agent, MCP, API-key issuance, and CLI auth discovery (`GET /api/v1/auth/cli`). Internal surfaces (explorer, conversations, billing, webhooks, cron, menu-counts, Slack, health-alert admin, per-user connections) are omitted on purpose.',
     },
     externalDocs: {
       description: 'HTTP API reference',
