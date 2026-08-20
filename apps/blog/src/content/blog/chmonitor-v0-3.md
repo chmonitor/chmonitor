@@ -195,8 +195,8 @@ All configuration variables are now unified under the standard `CHM_` prefix (e.
 | Performance | 13 perf wins — pooling, memoization, cache limits, hidden-chart unmounting |
 
 See the full commit-level history in the
-[GitHub releases](https://github.com/chmonitor/chmonitor/releases). Patch
-releases since this post: [What's new in chmonitor 0.3.x](/v0.3.3/).
+[GitHub releases](https://github.com/chmonitor/chmonitor/releases). Later tags:
+[v0.3.3](/v0.3.3/), [v0.3.4](/v0.3.4/).
 
 ---
 

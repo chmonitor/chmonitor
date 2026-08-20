@@ -14,6 +14,7 @@ describe('dba-workflows guide', () => {
     expect(src).toContain('/advisor')
     expect(src).toContain('/storage-economics')
     expect(src).toContain('/explorer')
+    expect(src).toContain('/ttl-partition-health')
   })
 
   test('does not cite closed issues as planned work', () => {
@@ -22,7 +23,7 @@ describe('dba-workflows guide', () => {
       expect(src).not.toContain(`/issues/${n}`)
     }
     expect(src).not.toMatch(/not implemented yet/i)
-    expect(src).toContain('## Gaps (not shipped)')
+    expect(src).not.toContain('## Gaps (not shipped)')
   })
 
   test('does not list Settings role presets as a gap after they shipped', () => {
