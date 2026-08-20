@@ -46,7 +46,7 @@ export function SchemaDiffPage() {
   const scopeParam = search.scope
   const hostKey = mergedHosts.map((h) => `${h.source}:${h.id}`).join('|')
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery({
     queryKey: [
       'schema-diff',
       hostId,
@@ -73,7 +73,9 @@ export function SchemaDiffPage() {
     },
     enabled: !hostsLoading,
     staleTime: 60_000,
+    placeholderData: (previous) => previous,
   })
+  const listingLoading = isFetching && isPlaceholderData
 
   const example = useMemo(() => buildExampleSchemaDiff(), [])
   const exampleRows = useMemo(
@@ -97,7 +99,7 @@ export function SchemaDiffPage() {
     })
   }
 
-  if (hostsLoading || isLoading) {
+  if ((hostsLoading || isLoading) && !data) {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Schema Compare" description={PAGE_DESCRIPTION} />
@@ -208,6 +210,7 @@ export function SchemaDiffPage() {
         hostCount={hostCount}
         nodeCount={nodeCount}
         nameFilterPlaceholder={scope === 'nodes' ? 'Filter tables…' : undefined}
+        listingLoading={listingLoading}
         onPairChange={(source, target) => setPair(source, target, scope)}
         onScopeChange={(next) => {
           const nextPeers = next === 'nodes' ? nodes : hosts

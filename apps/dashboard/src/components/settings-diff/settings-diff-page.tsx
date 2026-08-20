@@ -1,3 +1,4 @@
+import { Loader2Icon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 
@@ -53,7 +54,7 @@ export function SettingsDiffPage() {
   const viewParam = search.view
   const hostKey = mergedHosts.map((h) => `${h.source}:${h.id}`).join('|')
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery({
     queryKey: [
       'settings-diff',
       hostId,
@@ -82,7 +83,9 @@ export function SettingsDiffPage() {
     },
     enabled: !hostsLoading,
     staleTime: 60_000,
+    placeholderData: (previous) => previous,
   })
+  const listingLoading = isFetching && isPlaceholderData
 
   const setSearch = (next: {
     source?: number
@@ -106,7 +109,7 @@ export function SettingsDiffPage() {
     })
   }
 
-  if (hostsLoading || isLoading) {
+  if ((hostsLoading || isLoading) && !data) {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Settings Diff" description={PAGE_DESCRIPTION} />
@@ -218,22 +221,31 @@ export function SettingsDiffPage() {
       <CompareToolbar
         tabs={
           <>
-            <CompareScopeToggle
-              value={scope}
-              onChange={(next) => {
-                const nextPeers = next === 'nodes' ? nodes : hosts
-                const nextPair = resolvePair(nextPeers)
-                if (!nextPair) return
-                setSearch({
-                  source: nextPair.sourceId,
-                  target: nextPair.targetId,
-                  scope: next,
-                  view: next === 'hosts' ? view : undefined,
-                })
-              }}
-              hostCount={hostCount}
-              nodeCount={nodeCount}
-            />
+            <div className="flex items-center gap-2">
+              <CompareScopeToggle
+                value={scope}
+                onChange={(next) => {
+                  const nextPeers = next === 'nodes' ? nodes : hosts
+                  const nextPair = resolvePair(nextPeers)
+                  if (!nextPair) return
+                  setSearch({
+                    source: nextPair.sourceId,
+                    target: nextPair.targetId,
+                    scope: next,
+                    view: next === 'hosts' ? view : undefined,
+                  })
+                }}
+                hostCount={hostCount}
+                nodeCount={nodeCount}
+              />
+              {listingLoading ? (
+                <Loader2Icon
+                  className="size-3.5 animate-spin text-muted-foreground motion-reduce:animate-none"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+              ) : null}
+            </div>
             {scope === 'hosts' ? (
               <SettingsViewToggle
                 value={view}
@@ -305,19 +317,38 @@ export function SettingsDiffPage() {
         )}
       </CompareToolbar>
 
-      <SettingsDiffTable
-        columns={columns}
-        rows={filteredRows}
-        nameFilter={nameFilter}
-        onNameFilterChange={setNameFilter}
-      />
+      {listingLoading ? (
+        <div
+          className="flex min-h-64 items-center justify-center rounded-xl border bg-card shadow-sm"
+          data-testid="settings-diff-listing-loading"
+          role="status"
+          aria-busy="true"
+          aria-label="Loading comparison"
+        >
+          <EmptyState
+            variant="loading"
+            compact
+            title="Loading comparison"
+            description="Fetching settings for the selected pair."
+          />
+        </div>
+      ) : (
+        <>
+          <SettingsDiffTable
+            columns={columns}
+            rows={filteredRows}
+            nameFilter={nameFilter}
+            onNameFilterChange={setNameFilter}
+          />
 
-      <p className="text-xs text-muted-foreground">
-        {filteredRows.length.toLocaleString()} row
-        {filteredRows.length !== 1 ? 's' : ''}
-        {filteredRows.length !== (data?.rows?.length ?? 0) &&
-          ` (filtered from ${(data?.rows?.length ?? 0).toLocaleString()})`}
-      </p>
+          <p className="text-xs text-muted-foreground">
+            {filteredRows.length.toLocaleString()} row
+            {filteredRows.length !== 1 ? 's' : ''}
+            {filteredRows.length !== (data?.rows?.length ?? 0) &&
+              ` (filtered from ${(data?.rows?.length ?? 0).toLocaleString()})`}
+          </p>
+        </>
+      )}
     </div>
   )
 }
