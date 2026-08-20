@@ -16,8 +16,10 @@
  */
 
 import type {
+  ClusterContext,
   ColumnProfile,
   SettingRow,
+  TableProfile,
   TuningFinding,
   TuningReport,
 } from './types'
@@ -25,8 +27,15 @@ import type {
 import { fetchTableTopology } from '../query-context'
 import { runSchemaRules } from './schema-rules'
 import { runSettingsRules } from './settings-rules'
+import {
+  firstSortingIdent,
+  isDistributedEngine,
+  runTableRules,
+  ttlFromEngineFull,
+} from './table-rules'
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 import { annotateDdlForTopology } from '@/lib/ddl/on-cluster'
+import { parseDistributedEngine } from '@/lib/explorer/engine-kind'
 
 /** System databases never worth linting. */
 const SYSTEM_DATABASES = new Set([
@@ -37,6 +46,9 @@ const SYSTEM_DATABASES = new Set([
 
 /** Hard cap on columns scanned, so a huge schema stays a cheap query. */
 const COLUMN_SCAN_LIMIT = 2000
+
+/** Hard cap on tables scanned for TTL / engine / Distributed rules. */
+const TABLE_SCAN_LIMIT = 200
 
 const SEVERITY_ORDER: Record<TuningFinding['severity'], number> = {
   high: 0,
@@ -112,6 +124,170 @@ async function fetchColumnProfiles(
     uncompressedBytes: Number(c.uncompressed_bytes),
     rows: rowsByTable.get(c.table) ?? 0,
   }))
+}
+
+type TableRow = {
+  name: string
+  engine: string
+  engine_full: string
+  sorting_key: string
+  partition_key: string
+  primary_key: string
+}
+
+type TablePartRow = {
+  table: string
+  partitions: number | string
+  active_parts: number | string
+  bytes_on_disk: number | string
+  rows: number | string
+}
+
+function leadingSortTypeFor(
+  table: string,
+  sortingKey: string,
+  columns: ColumnProfile[]
+): string {
+  const ident = firstSortingIdent(sortingKey)
+  if (!ident) return ''
+  const col = columns.find((c) => c.table === table && c.name === ident)
+  return col?.type ?? ''
+}
+
+/**
+ * Gather MergeTree (and Distributed) table metadata for table-level rules.
+ * Uses `engine_full` rather than `create_table_query`. Returns `[]` (never
+ * throws) if `system.tables` is unreadable.
+ */
+async function fetchTableProfiles(
+  hostId: number,
+  database: string,
+  table: string | undefined,
+  columns: ColumnProfile[]
+): Promise<TableProfile[]> {
+  const tableFilter = table ? 'AND name = {table:String}' : ''
+  try {
+    const [tableRows, partRows] = await Promise.all([
+      readOnlyQuery({
+        query: `
+          SELECT
+            name, engine, engine_full,
+            sorting_key, partition_key, primary_key
+          FROM system.tables
+          WHERE is_temporary = 0
+            AND database = {database:String}
+            ${tableFilter}
+          ORDER BY name
+          LIMIT {limit:UInt32}
+        `,
+        query_params: { database, table, limit: TABLE_SCAN_LIMIT },
+        hostId,
+      }) as Promise<TableRow[]>,
+      readOnlyQuery({
+        query: `
+          SELECT
+            table,
+            uniqExact(partition) AS partitions,
+            count() AS active_parts,
+            sum(bytes_on_disk) AS bytes_on_disk,
+            sum(rows) AS rows
+          FROM system.parts
+          WHERE active = 1 AND database = {database:String} ${
+            table ? 'AND table = {table:String}' : ''
+          }
+          GROUP BY table
+        `,
+        query_params: { database, table },
+        hostId,
+      }) as Promise<TablePartRow[]>,
+    ])
+
+    const partsByTable = new Map<string, TablePartRow>()
+    for (const row of partRows) partsByTable.set(row.table, row)
+
+    return tableRows.map((row) => {
+      const parts = partsByTable.get(row.name)
+      return {
+        database,
+        table: row.name,
+        engine: row.engine ?? '',
+        engineFull: row.engine_full ?? '',
+        sortingKey: row.sorting_key ?? '',
+        partitionKey: row.partition_key ?? '',
+        primaryKey: row.primary_key ?? '',
+        ttlExpression: ttlFromEngineFull(row.engine_full ?? ''),
+        partitions: Number(parts?.partitions) || 0,
+        activeParts: Number(parts?.active_parts) || 0,
+        bytesOnDisk: Number(parts?.bytes_on_disk) || 0,
+        rows: Number(parts?.rows) || 0,
+        leadingSortType: leadingSortTypeFor(
+          row.name,
+          row.sorting_key ?? '',
+          columns
+        ),
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Local cluster + Distributed wrappers in this database. `null` when
+ * `system.clusters` is empty or unreadable (single-node / no permission).
+ */
+async function fetchClusterContext(
+  hostId: number,
+  database: string
+): Promise<ClusterContext> {
+  try {
+    const clusterRows = (await readOnlyQuery({
+      query: `
+        SELECT cluster, count() AS replica_count
+        FROM system.clusters
+        WHERE cluster IN (
+          SELECT cluster FROM system.clusters WHERE is_local = 1
+        )
+        GROUP BY cluster
+        ORDER BY replica_count DESC, cluster
+        LIMIT 1
+      `,
+      hostId,
+    })) as Array<{ cluster: string; replica_count: number | string }>
+    const cluster = clusterRows[0]?.cluster?.trim()
+    const replicaCount = Number(clusterRows[0]?.replica_count) || 0
+    if (!cluster || replicaCount < 1) return null
+
+    const distRows = (await readOnlyQuery({
+      query: `
+        SELECT name, engine, engine_full
+        FROM system.tables
+        WHERE is_temporary = 0 AND database = {database:String}
+      `,
+      query_params: { database },
+      hostId,
+    })) as Array<{ name: string; engine: string; engine_full: string }>
+
+    const distributedTargets = new Set<string>()
+    const existingTables = new Set<string>()
+    for (const row of distRows) {
+      existingTables.add(`${database}.${row.name}`)
+      if (!isDistributedEngine(row.engine)) continue
+      const parsed = parseDistributedEngine(row.engine_full)
+      if (parsed) {
+        distributedTargets.add(`${parsed.database}.${parsed.table}`)
+      }
+    }
+
+    return {
+      cluster,
+      replicaCount,
+      distributedTargets,
+      existingTables,
+    }
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -239,8 +415,17 @@ export async function analyzeTuning(
     )
   }
 
+  const tables = await fetchTableProfiles(hostId, database, table, columns)
+  if (tables.length >= TABLE_SCAN_LIMIT) {
+    notes.push(
+      `Table scan capped at ${TABLE_SCAN_LIMIT} tables; remaining tables were not analyzed for TTL, partitions, or engines.`
+    )
+  }
+  const cluster = await fetchClusterContext(hostId, database)
+
   const findings = rankFindings([
     ...runSchemaRules(columns),
+    ...runTableRules(tables, cluster),
     ...runSettingsRules(settings),
   ])
 

@@ -85,9 +85,11 @@ export function AdvisorTuningTab() {
         <CardContent className="space-y-4 pt-6">
           <p className="text-sm text-muted-foreground">
             Scan a database for schema lint (needless Nullable, oversized
-            integers, compression, LowCardinality) and settings that differ from
+            integers, compression, LowCardinality), table-level TTL / PARTITION
+            BY / engine / Distributed advice, and settings that differ from
             defaults in risky ways. Recommend-only — copy and run the
-            suggestions yourself.
+            suggestions yourself. When the cluster has replicas, findings
+            include copyable local and ON CLUSTER / Distributed DDL.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -156,7 +158,7 @@ export function AdvisorTuningTab() {
               <EmptyState
                 variant="no-data"
                 title="No tuning opportunities"
-                description="The scanned columns and changed settings look well-tuned — no schema lint or settings findings were raised."
+                description="The scanned columns, tables, and changed settings look well-tuned — no schema lint or settings findings were raised."
               />
             </CardContent>
           </Card>

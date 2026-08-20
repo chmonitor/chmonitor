@@ -53,7 +53,7 @@ export const toolsItems: MenuItem[] = [
         title: 'Advisor',
         href: '/advisor',
         description:
-          'Ranked skip-index, projection, partition-key, and PREWHERE recommendations for a slow query (recommend-only)',
+          'Ranked query, schema, TTL/partition, engine, and Distributed recommendations (recommend-only)',
         icon: WandSparklesIcon,
         isNew: true,
         permission: { feature: 'queries' },
