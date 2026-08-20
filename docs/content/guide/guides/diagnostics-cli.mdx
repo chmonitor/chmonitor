@@ -150,19 +150,19 @@ CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \ # pragma: allowl
 ### Diagnose configuration
 
 Same env var names the dashboard uses, so if you already have
-`CLICKHOUSE_HOST` / `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` set for a <!-- pragma: allowlist secret -->
+`CLICKHOUSE_HOST` / `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` set for a {/* pragma: allowlist secret */}
 self-hosted deploy, `diagnose` picks them up as-is. Flags override env vars.
 
 | Env var | Flag | Default | Notes |
 |---|---|---|---|
-| `CLICKHOUSE_HOST` | `--ch-host` | — (required) | e.g. `http://localhost:8123`. A bare `host:port` is assumed `http://`. | <!-- pragma: allowlist secret -->
-| `CLICKHOUSE_USER` | `--ch-user` | `default` | <!-- pragma: allowlist secret --> |
+| `CLICKHOUSE_HOST` | `--ch-host` | — (required) | e.g. `http://localhost:8123`. A bare `host:port` is assumed `http://`. | {/* pragma: allowlist secret */}
+| `CLICKHOUSE_USER` | `--ch-user` | `default` | {/* pragma: allowlist secret */} |
 | `CLICKHOUSE_PASSWORD` | `--ch-password` | *(empty)* | |
-| `CLICKHOUSE_DATABASE` | `--ch-database` | `default` | <!-- pragma: allowlist secret --> |
+| `CLICKHOUSE_DATABASE` | `--ch-database` | `default` | {/* pragma: allowlist secret */} |
 | — | `--json` | off | Machine-readable report instead of a table (useful in CI). |
 
 <Callout type="warn" title="One host at a time">
-A comma-separated multi-host `CLICKHOUSE_HOST` (the format the dashboard uses for clusters) diagnoses only the **first** host — `diagnose` prints a note and moves on. For multi-host/multi-replica clusters, run the full dashboard instead. <!-- pragma: allowlist secret -->
+A comma-separated multi-host `CLICKHOUSE_HOST` (the format the dashboard uses for clusters) diagnoses only the **first** host — `diagnose` prints a note and moves on. For multi-host/multi-replica clusters, run the full dashboard instead. {/* pragma: allowlist secret */}
 </Callout>
 
 ### What it checks
