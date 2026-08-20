@@ -435,10 +435,10 @@ const PAGES: { file: string; copy: Copy }[] = [
     file: 'og-cli.png',
     copy: {
       eyebrow: 'CLI',
-      h1Line1: 'Diagnose ClickHouse',
-      h1Line2: 'from the terminal',
-      sub1: 'Zero-signup chm doctor,',
-      sub2: 'plus a TUI for the dashboard API.',
+      h1Line1: 'chmonitor from',
+      h1Line2: 'the terminal',
+      sub1: 'Talks to your dashboard.',
+      sub2: 'Ready for AI Agents.',
     },
   },
   {

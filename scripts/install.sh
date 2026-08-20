@@ -7,7 +7,8 @@
 #
 # Usage:
 #   curl -sSf https://chmonitor.dev/install.sh | bash
-# (chmonitor.dev/install.sh redirects to this file on the main branch)
+# (landing copies this file to /install.sh at build — no redirect; curl -sSf
+# does not follow 302s, so a GitHub redirect would pipe an empty body.)
 #
 # Env overrides:
 #   CHM_VERSION       Install a specific release tag (e.g. "chm-v0.1.0").

@@ -4,15 +4,7 @@ import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
 import FinalCta from '../components/FinalCta.astro'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
-import {
-  CLI_CARGO,
-  CLI_DOCTOR,
-  CLI_DOCS,
-  CLI_INSTALL,
-  CLI_INSTALL_BETA,
-  commands,
-  faqs,
-} from '../data/cli'
+import { CLI_DOCS, CLI_INSTALL, features } from '../data/cli'
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 
@@ -37,44 +29,29 @@ const softwareJsonLd = {
   url: canonical,
   downloadUrl: 'https://chmonitor.dev/install.sh',
   description:
-    'Standalone chmonitor CLI: zero-signup ClickHouse doctor, plus a TUI and API client for the dashboard.',
-  featureList: commands.map((c) => c.name),
+    'chmonitor from the terminal. Talks straight to your chmonitor dashboard. Ready for AI Agents.',
+  featureList: features.map((f) => f.title),
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-}
-
-const faqJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a.replace(/<[^>]+>/g, '') },
-  })),
 }
 
 const ico = (d: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`
 ---
 <Base
-  title="chm CLI — Doctor a ClickHouse cluster from the terminal"
-  description="Install chm (alias chmonitor): zero-signup chm doctor against ClickHouse, plus a TUI and API client for the chmonitor dashboard. Linux and macOS."
+  title="chmonitor from the terminal"
+  description="chmonitor talks straight to your chmonitor dashboard. Ready for AI Agents."
   image="/og/og-cli.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} is:inline />
-  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
   <Nav />
   <main id="top">
     <section class="band cli-intro" style="padding-bottom:0">
       <div class="wrap">
         <div class="sec-head price-head reveal" style="text-align:center">
           <span class="eyebrow">CLI</span>
-          <h1>Doctor a cluster from the terminal</h1>
-          <p>
-            One binary: <code>chm</code> (alias <code>chmonitor</code>).
-            <code>chm doctor</code> talks straight to ClickHouse — no account.
-            The rest talks to a dashboard API, Cloud or self-hosted.
-          </p>
+          <h1>chmonitor from the terminal</h1>
+          <p>chmonitor talks straight to your chmonitor dashboard. Ready for AI Agents.</p>
         </div>
         <div class="hero-actions reveal" style="margin-top:22px">
           <a class={btnPrimary} href="#install" data-cta="cli-install">
@@ -88,16 +65,26 @@ const ico = (d: string) =>
       </div>
     </section>
 
-    <section id="install" class="band">
+    <section class="band">
+      <div class="wrap">
+        <div class="cap-grid">
+          {features.map((f) => (
+            <div class="cap reveal">
+              <span class="cap-ico" set:html={ico(f.icon)} />
+              <h4>{f.title}</h4>
+              <p>{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="band band-soft">
       <div class="wrap cli-install">
         <div class="sec-head reveal">
           <span class="eyebrow">Install</span>
-          <h2>One line, no Rust toolchain</h2>
-          <p>
-            Detects OS/arch, verifies the checksum, installs <code>chm</code>,
-            and symlinks <code>chmonitor</code>. Never sudo. Linux and macOS,
-            x86_64 and aarch64.
-          </p>
+          <h2>One command</h2>
+          <p>Linux and macOS.</p>
         </div>
         <div class="terminal cli-term reveal">
           <div class="term-bar">
@@ -106,120 +93,8 @@ const ico = (d: string) =>
             <button class="copy" type="button">Copy</button>
           </div>
           <div class="term-body">
-            <div><span class="c"># Stable (default)</span></div>
             <div><span class="p">$</span> {CLI_INSTALL}</div>
-            <div>&nbsp;</div>
-            <div><span class="c"># Beta channel</span></div>
-            <div><span class="p">$</span> {CLI_INSTALL_BETA}</div>
           </div>
-        </div>
-        <div class="terminal cli-term reveal">
-          <div class="term-bar">
-            <span class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>
-            <span class="ttl">cargo</span>
-            <button class="copy" type="button">Copy</button>
-          </div>
-          <div class="term-body">
-            <div><span class="c"># crates.io — both binaries land in ~/.cargo/bin</span></div>
-            <div><span class="p">$</span> {CLI_CARGO}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="band band-soft">
-      <div class="wrap">
-        <div class="sec-head reveal" style="text-align:center">
-          <span class="eyebrow">Two modes</span>
-          <h2>Straight to ClickHouse, or through the dashboard</h2>
-        </div>
-        <div class="cli-modes">
-          <article class="cli-mode reveal">
-            <h3>Zero-signup doctor</h3>
-            <p>
-              Point <code>chm doctor --ch-host</code> at a ClickHouse HTTP interface.
-              Twelve read-only checks, a scored report, no backend.
-              <code>chm diagnose</code> is an alias.
-            </p>
-            <div class="terminal cli-term">
-              <div class="term-bar">
-                <span class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>
-                <span class="ttl">doctor</span>
-                <button class="copy" type="button">Copy</button>
-              </div>
-              <div class="term-body">
-                <div><span class="p">$</span> {CLI_DOCTOR}</div>
-                <div class="out">chmonitor diagnostics — http://localhost:8123</div>
-                <div class="out">ClickHouse 24.8 · uptime 3.2h</div>
-                <div class="out">&nbsp;</div>
-                <div class="out">Score: 82/100 (B) · 12 checks · 2 findings</div>
-                <div class="out">WARNING  storage      events is fragmented</div>
-                <div class="out">NOTICE   reliability  replication lag 90s</div>
-              </div>
-            </div>
-          </article>
-          <article class="cli-mode reveal">
-            <h3>Dashboard API + TUI</h3>
-            <p>
-              Default base is dash.chmonitor.dev. Pass
-              <code>--base-url</code> for self-hosted.
-              <code>chm auth login</code> auto-detects open API, device login, or a key.
-            </p>
-            <div class="terminal cli-term">
-              <div class="term-bar">
-                <span class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>
-                <span class="ttl">tui</span>
-                <button class="copy" type="button">Copy</button>
-              </div>
-              <div class="term-body">
-                <div><span class="p">$</span> chm auth login</div>
-                <div><span class="p">$</span> chm hosts</div>
-                <div><span class="p">$</span> chm tui query-count</div>
-                <div><span class="p">$</span> chm agent "why are merges slow?"</div>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="band">
-      <div class="wrap">
-        <div class="sec-head reveal" style="text-align:center">
-          <span class="eyebrow">Commands</span>
-          <h2>What ships in the binary</h2>
-        </div>
-        <div class="cap-grid">
-          {commands.map((c) => (
-            <div class="cap reveal">
-              <span class="cap-ico" set:html={ico(c.icon)} />
-              <h4><code>{c.name}</code></h4>
-              <p>{c.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <section id="faq" class="py-14 sm:py-18">
-      <div class="mx-auto max-w-[1080px] px-4 sm:px-6">
-        <div class="reveal mx-auto max-w-2xl text-center">
-          <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">FAQ</p>
-          <h2 class="mt-3 text-balance font-normal text-[clamp(1.75rem,4vw,2.25rem)] leading-[1.2] tracking-[-0.02em]">
-            CLI questions
-          </h2>
-        </div>
-        <div class="reveal mx-auto mt-8 sm:mt-12 max-w-3xl">
-          {faqs.map((f) => (
-            <details class="changelog-faq group border-b border-border first:border-t">
-              <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
-                <span class="min-w-0 flex-1 text-pretty">{f.q}</span>
-                <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
-                <span class="shrink-0 text-xl font-normal text-[var(--brand-ink)] hidden group-open:inline" aria-hidden="true">&minus;</span>
-              </summary>
-              <div class="faq-ans pb-5 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary/80 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]" set:html={f.a} />
-            </details>
-          ))}
         </div>
       </div>
     </section>
@@ -230,20 +105,10 @@ const ico = (d: string) =>
   <style>
     .price-head h1{font-size:clamp(1.75rem,6vw,2.5rem);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px}
     .price-head p{margin-inline:auto;font-size:clamp(14px,3.5vw,17px)}
-    .price-head code,.cli-install .sec-head code,.cli-mode code,.cap h4 code{
-      font-family:'Geist Mono',ui-monospace,monospace;font-size:.92em;
-      background:var(--muted);padding:1px 6px;border-radius:5px
-    }
     .cli-intro.band{padding-top:48px}
     .cli-install{max-width:820px;margin-inline:auto}
-    .cli-install .terminal + .terminal{margin-top:14px}
     .cli-term .term-body > div{white-space:pre-wrap}
-    .cli-modes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:40px}
-    .cli-mode{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:22px}
-    .cli-mode h3{font-size:17px;font-weight:600;letter-spacing:-.015em}
-    .cli-mode p{margin:8px 0 16px;font-size:14px;color:var(--muted-fg);text-wrap:pretty}
     @media (max-width:880px){
-      .cli-modes{grid-template-columns:1fr}
       .cli-intro.band{padding-top:36px}
     }
   </style>

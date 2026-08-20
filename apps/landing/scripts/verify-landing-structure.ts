@@ -254,11 +254,42 @@ const distCli = join(process.cwd(), 'dist/cli/index.html')
 try {
   const cliHtml = readFileSync(distCli, 'utf8')
   const requiredCli = [
+    'chmonitor from the terminal',
     'chmonitor.dev/install.sh',
-    'chm doctor',
     'id="install"',
     '/og/og-cli.png',
   ] as const
+  if (cliHtml.includes('CHM_CHANNEL=beta') || cliHtml.includes('cargo install chmonitor')) {
+    console.error('FORBIDDEN beta/cargo install on /cli')
+    failed = true
+  } else {
+    console.log('OK: /cli has no beta or cargo install')
+  }
+  const distInstall = join(process.cwd(), 'dist/install.sh')
+  try {
+    const installSh = readFileSync(distInstall, 'utf8')
+    if (!installSh.startsWith('#!/usr/bin/env bash')) {
+      console.error('MISSING shebang in dist/install.sh')
+      failed = true
+    } else {
+      console.log('OK: dist/install.sh is the CLI installer')
+    }
+  } catch {
+    console.error('MISSING dist/install.sh — landing must copy scripts/install.sh')
+    failed = true
+  }
+  const distRedirects = join(process.cwd(), 'dist/_redirects')
+  try {
+    const redir = readFileSync(distRedirects, 'utf8')
+    if (/^\/install\.sh\b/m.test(redir)) {
+      console.error('FORBIDDEN /install.sh redirect — curl -sSf cannot follow 302')
+      failed = true
+    } else {
+      console.log('OK: no /install.sh redirect')
+    }
+  } catch {
+    console.log('OK: no dist/_redirects (or missing is fine)')
+  }
   for (const marker of requiredCli) {
     if (!cliHtml.includes(marker)) {
       console.error(`MISSING on /cli: ${marker}`)
