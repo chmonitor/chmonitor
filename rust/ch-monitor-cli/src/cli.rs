@@ -78,7 +78,7 @@ impl std::fmt::Display for Channel {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Sign in / out of chmonitor Cloud (device-code flow)
+    /// Sign in / out — auto-detects open API, device login, or API key
     Auth(AuthArgs),
     /// Show or edit local CLI config
     Config(ConfigArgs),
@@ -192,12 +192,21 @@ pub struct AuthArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum AuthCommand {
-    /// Sign in via browser device-code flow
-    Login,
+    /// Sign in (auto-detects none / device / api_key)
+    Login(AuthLoginArgs),
     /// Clear stored credentials
     Logout,
     /// Show whether a token/api-key is configured
     Status,
+    /// Print the stored bearer token to stdout (for CI)
+    Token,
+}
+
+#[derive(Args, Debug)]
+pub struct AuthLoginArgs {
+    /// API key to store when the dashboard requires key auth (skips prompt)
+    #[arg(long, env = "CHM_API_KEY")]
+    pub api_key: Option<String>,
 }
 
 #[derive(Args, Debug)]

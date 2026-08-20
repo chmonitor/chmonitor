@@ -66,7 +66,16 @@ curl https://dash.example.com/api/mcp \
 
 ## Device login (`chm auth login`)
 
-RFC 8628 device flow for the Rust CLI. Controlled by `CHM_DEVICE_LOGIN`:
+`chm auth login` **auto-detects** the dashboard auth mode via
+`GET /api/v1/auth/cli` (public; no `auth_mode` in `chm.toml`):
+
+| Discovery `method` | Meaning | CLI action |
+|--------------------|---------|------------|
+| `none` | Open API (`auth=none`, no `CHM_API_KEY_SECRET`) | No credentials needed |
+| `device` | Device login enabled | RFC 8628 browser flow |
+| `api_key` | Key required, device off | Prompt / `--api-key` / `CHM_API_KEY` |
+
+Device login itself is controlled by `CHM_DEVICE_LOGIN`:
 
 | Value | Behaviour |
 |-------|-----------|
@@ -81,7 +90,8 @@ CHM_API_KEY_SECRET=a-long-random-string
 CHM_DEVICE_LOGIN=true
 ```
 
-Discovery: `GET /api/v1/auth/device/status` returns `{ enabled, mode, deviceOnly, reason, store }`.
+Discovery: `GET /api/v1/auth/cli` returns `{ method, api, authProvider, deviceLogin, hint }`.
+Legacy: `GET /api/v1/auth/device/status` returns `{ enabled, mode, deviceOnly, reason, store }`.
 
 ## Troubleshooting
 
@@ -93,7 +103,7 @@ The `/api/mcp` endpoint also accepts Clerk OAuth bearer tokens. If you are using
 Feature-level permissions apply on top of the key auth. Even an authenticated caller may be denied a specific feature. See [Feature Permissions](/operate/advanced/feature-permissions).
 </Accordion>
 <Accordion title="chm auth login gets 503 on my self-hosted dashboard">
-Device login defaults to off for OSS (`CHM_DEVICE_LOGIN=auto`). Set `CHM_DEVICE_LOGIN=true` and `CHM_API_KEY_SECRET`, or mint a key with `POST /api/v1/auth/api-key` and pass it as `--api-key` / `CHM_API_KEY`.
+`chm auth login` auto-detects via `/api/v1/auth/cli`. Device login defaults to off for OSS (`CHM_DEVICE_LOGIN=auto`), so discovery usually returns `method=api_key`. Set `CHM_DEVICE_LOGIN=true` and `CHM_API_KEY_SECRET` for the browser flow, or mint a key with `POST /api/v1/auth/api-key` and pass `--api-key` / `CHM_API_KEY`.
 </Accordion>
 </Accordions>
 

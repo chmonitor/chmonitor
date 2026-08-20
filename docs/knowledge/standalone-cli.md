@@ -49,16 +49,17 @@ Credentials (device-login token / API key) live in the OS keyring, with a
 ```text
 chm
 ├── auth
-│   ├── login      # device-code flow → store Bearer token
+│   ├── login [--api-key]  # auto-detect none|device|api_key
 │   ├── logout     # clear keyring credentials
-│   └── status     # whether a token / API key is present
+│   ├── status     # whether a token / API key is present
+│   └── token      # print stored bearer token (CI)
 ├── config         # show / edit local config
 ├── hosts          # GET /api/v1/hosts
 ├── link [path]    # open dashboard in browser
-├── chart <name>   # GET /api/v1/charts/{name}
-├── table <name>   # GET /api/v1/tables/{name}
-├── tui [chart]    # live terminal UI (--overview for metrics)
-├── chat [msg]     # stream AI agent reply
+├── chart <name>   # GET /api/v1/charts/{name} (+ braille sparkline + min/max/avg)
+├── table <name>   # GET /api/v1/tables/{name} (--explain for columns / SQL)
+├── tui [chart]    # multi-pane TUI: 1=overview 2=chart 3=table (alt-screen)
+├── chat [msg]     # stream AI agent reply (alt-screen when interactive)
 ├── agent [msg]    # alias of chat
 ├── doctor         # local + API connectivity checks
 ├── diagnose       # direct host health (no dashboard)
@@ -71,10 +72,30 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- auth login
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- hosts
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --explain
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui query-count
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
+
+## TUI (`chm tui`)
+
+Multi-pane live UI (ratatui + crossterm). **Only** `chm tui` and interactive
+`chm chat` enter the terminal alternate screen; other commands stay on the
+normal screen.
+
+| Key | Action |
+|-----|--------|
+| `1` | Overview — hosts summary + default chart sparkline |
+| `2` | Chart — current chart sparkline + recent rows |
+| `3` | Table — `/api/v1/tables/{name}` (default `running-queries`, `--table` / `--page-size`) |
+| `h` / `l` or `[` / `]` | Decrement / increment session `host_id` (clamped ≥ 0) |
+| `j` / `k` or ↑ / ↓ | Scroll table pane |
+| `r` | Refresh now |
+| `q` | Quit |
+
+Header shows mode, host, channel, chart, and table name. Start in overview with
+`--overview`.
 
 ## Channels
 
@@ -85,9 +106,23 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merge
 | `stable` (default) | Skip prereleases; prefer the latest stable `chm-v*` tag |
 | `beta` | Include prereleases; prefer a prerelease when semver cores tie |
 
-## Auth (device flow + API keys)
+## Auth (auto-detect: none / device / API key)
 
-Device login is gated by **`CHM_DEVICE_LOGIN`** (`auto` | `true` | `false`,
+`chm auth login` probes **`GET /api/v1/auth/cli`** (public) and branches on
+`method` — there is **no** `auth_mode` in `chm.toml`:
+
+| `method` | When | CLI behaviour |
+|----------|------|----------------|
+| `none` | `CHM_AUTH_PROVIDER=none` and no `CHM_API_KEY_SECRET` | Prints that the API is open; no credentials stored |
+| `device` | Device login enabled (`resolveDeviceLogin`) | Existing RFC 8628 browser flow → store Bearer token |
+| `api_key` | Secret set, device off (typical OSS without meta DB) | Prompt for a `chm_` key, or `--api-key` / `CHM_API_KEY` |
+
+Older dashboards without `/auth/cli` fall back to `GET /api/v1/auth/device/status`
+plus an anonymous `GET /api/v1/hosts` probe. `chm doctor` shows `auth_method`
+from the same discovery; credentials are OK when `method=none`.
+`chm auth token` prints the stored bearer token to stdout (CI).
+
+Device login is still gated by **`CHM_DEVICE_LOGIN`** (`auto` | `true` | `false`,
 default `auto`):
 
 | Deployment | `auto` behaviour |
@@ -100,13 +135,15 @@ Opt in on self-hosted with `CHM_DEVICE_LOGIN=true`. With
 can reach `/device` completes the flow; minted tokens use subject
 `CHM_DEVICE_LOGIN_SUBJECT` (default `self-hosted`). Codes persist in D1 when
 bound, otherwise an in-memory store (single-node). Force off with
-`CHM_DEVICE_LOGIN=false`. Status: `GET /api/v1/auth/device/status`.
+`CHM_DEVICE_LOGIN=false`.
 
 Dashboard auth endpoints:
 
-1. `POST /api/v1/auth/device/code` — public when enabled; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). 503 when disabled or missing `CHM_API_KEY_SECRET`.
-2. Browser opens `/device?user_code=…` → approve via `POST /api/v1/auth/device/approve` (Clerk/proxy session, or device-only when auth=`none`).
-3. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
+1. `GET /api/v1/auth/cli` — public discovery: `{ method, api, authProvider, deviceLogin, hint }`.
+2. `GET /api/v1/auth/device/status` — device enablement only (legacy / UI).
+3. `POST /api/v1/auth/device/code` — public when enabled; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). 503 when disabled or missing `CHM_API_KEY_SECRET`.
+4. Browser opens `/device?user_code=…` → approve via `POST /api/v1/auth/device/approve` (Clerk/proxy session, or device-only when auth=`none`).
+5. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
 
 Programmatic requests may send **either** `Authorization: Bearer chm_…` **or**
 `x-api-key: chm_…` (the CLI sends both when configured). The dashboard

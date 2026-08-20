@@ -14,7 +14,9 @@ struct ApiResponse {
 
 pub fn api_error_hint(status: u16) -> &'static str {
     match status {
-        401 | 403 => " Check --api-key / CHM_API_KEY or `chm auth login`.",
+        401 | 403 => {
+            " Check --api-key / CHM_API_KEY, or run `chm auth login` (auto-detects device vs API key)."
+        }
         404 => " Check the chart/table name and --host-id.",
         _ => "",
     }
