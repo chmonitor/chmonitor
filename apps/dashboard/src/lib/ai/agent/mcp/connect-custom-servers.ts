@@ -15,6 +15,11 @@
  */
 
 import {
+  getFirecrawlAllowlistFromEnv,
+  isFirecrawlMcpServer,
+  wrapFirecrawlToolExecute,
+} from './firecrawl-allowlist'
+import {
   isMcpRegistryEnabled,
   type McpAuth,
   type McpConnectInput,
@@ -230,6 +235,9 @@ export async function connectCustomMcpServers(
   opts?: ConnectOptions
 ): Promise<McpConnectionResult> {
   const createClient = opts?.createClient ?? defaultCreateMcpClient
+  // Parse once at the edge. Empty → no wrap (OSS unrestricted). Non-empty wraps
+  // Firecrawl execute so scrape/crawl/map URLs cannot bypass the allowlist.
+  const firecrawlAllowlist = getFirecrawlAllowlistFromEnv()
   const clients: Array<{ close: () => Promise<void> }> = []
   const allTools: Record<string, unknown> = {}
   const statuses: McpConnectionResult['statuses'] = []
@@ -252,9 +260,19 @@ export async function connectCustomMcpServers(
       const { client, tools } = await connectWithTimeout(server, createClient)
       clients.push(client)
 
-      const prefix = `mcp_${sanitizeServerName(server.name)}_`
+      const sanitizedName = sanitizeServerName(server.name)
+      const prefix = `mcp_${sanitizedName}_`
+      const wrapFirecrawl =
+        firecrawlAllowlist.length > 0 &&
+        isFirecrawlMcpServer({
+          id: server.id,
+          sanitizedName,
+          endpoint: server.endpoint,
+        })
       for (const [toolName, tool] of Object.entries(tools)) {
-        allTools[`${prefix}${toolName}`] = tool
+        allTools[`${prefix}${toolName}`] = wrapFirecrawl
+          ? wrapFirecrawlToolExecute(tool, firecrawlAllowlist)
+          : tool
       }
 
       statuses.push({

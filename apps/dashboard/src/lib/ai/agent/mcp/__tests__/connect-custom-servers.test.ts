@@ -17,7 +17,8 @@ import {
   sanitizeServerName,
   validateServer,
 } from '../connect-custom-servers'
-import { describe, expect, mock, test } from 'bun:test'
+import { firecrawlBlockedMessage } from '../firecrawl-allowlist'
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 
 // ---------------------------------------------------------------------------
 // isAllowedMcpUrl
@@ -360,6 +361,144 @@ describe('connectCustomMcpServers', () => {
     )
     expect(result.statuses[0]?.status).toBe('error')
     expect(createClient).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Firecrawl domain allowlist — wrap at connect so built-in AND registered
+// Firecrawl servers are covered (a renamed registration cannot bypass).
+// ---------------------------------------------------------------------------
+
+const FIRECRAWL_ENDPOINT = 'https://mcp.firecrawl.dev/v2/mcp'
+const ALLOW_ENV = 'CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS'
+
+describe('connectCustomMcpServers — Firecrawl allowlist wrap', () => {
+  afterEach(() => {
+    delete process.env[ALLOW_ENV]
+  })
+
+  test('wraps Firecrawl tools when the env is set so a blocked host never executes', async () => {
+    process.env[ALLOW_ENV] = 'clickhouse.com,chmonitor.dev'
+    const scrape = mock(async () => 'scraped')
+    const search = mock(async () => 'hits')
+    const createClient: McpClientFactory = async () => ({
+      tools: async () => ({
+        scrape: { execute: scrape },
+        search: { execute: search },
+      }),
+      close: async () => {},
+    })
+
+    const result = await connectCustomMcpServers(
+      [
+        {
+          id: 'builtin-firecrawl',
+          name: 'firecrawl',
+          endpoint: FIRECRAWL_ENDPOINT,
+        },
+      ],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+
+    const scrapeTool = result.tools.mcp_firecrawl_scrape as {
+      execute: (input: unknown) => Promise<unknown>
+    }
+    const searchTool = result.tools.mcp_firecrawl_search as {
+      execute: (input: unknown) => Promise<unknown>
+    }
+
+    await expect(
+      scrapeTool.execute({ url: 'https://docs.clickhouse.com/sql' })
+    ).resolves.toBe('scraped')
+    expect(scrape).toHaveBeenCalledTimes(1)
+
+    await expect(
+      scrapeTool.execute({ url: 'https://evil.example/secret' })
+    ).resolves.toBe(firecrawlBlockedMessage('evil.example'))
+    expect(scrape).toHaveBeenCalledTimes(1)
+
+    await expect(searchTool.execute({ query: 'clickhouse' })).resolves.toBe(
+      'hits'
+    )
+    expect(search).toHaveBeenCalledTimes(1)
+  })
+
+  test('wraps a user-registered Firecrawl URL even when the name is not firecrawl', async () => {
+    process.env[ALLOW_ENV] = 'clickhouse.com'
+    const scrape = mock(async () => 'scraped')
+    const createClient: McpClientFactory = async () => ({
+      tools: async () => ({ scrape: { execute: scrape } }),
+      close: async () => {},
+    })
+
+    const result = await connectCustomMcpServers(
+      [
+        {
+          id: 'user-fc',
+          name: 'docs crawler',
+          endpoint: FIRECRAWL_ENDPOINT,
+        },
+      ],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+
+    const tool = result.tools.mcp_docs_crawler_scrape as {
+      execute: (input: unknown) => Promise<unknown>
+    }
+    await expect(tool.execute({ url: 'https://evil.example/' })).resolves.toBe(
+      firecrawlBlockedMessage('evil.example')
+    )
+    expect(scrape).not.toHaveBeenCalled()
+  })
+
+  test('does not wrap a non-Firecrawl server when the env is set', async () => {
+    process.env[ALLOW_ENV] = 'clickhouse.com'
+    const fetchTool = mock(async () => 'ok')
+    const createClient: McpClientFactory = async () => ({
+      tools: async () => ({ fetch: { execute: fetchTool } }),
+      close: async () => {},
+    })
+
+    const result = await connectCustomMcpServers(
+      [{ id: 's', name: 'slack', endpoint: PUBLIC_ENDPOINT }],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+
+    const tool = result.tools.mcp_slack_fetch as {
+      execute: (input: unknown) => Promise<unknown>
+    }
+    await expect(tool.execute({ url: 'https://evil.example/' })).resolves.toBe(
+      'ok'
+    )
+    expect(fetchTool).toHaveBeenCalledTimes(1)
+  })
+
+  test('unset allowlist does not wrap: Firecrawl execute is called through', async () => {
+    delete process.env[ALLOW_ENV]
+    const scrape = mock(async () => 'scraped')
+    const createClient: McpClientFactory = async () => ({
+      tools: async () => ({ scrape: { execute: scrape } }),
+      close: async () => {},
+    })
+
+    const result = await connectCustomMcpServers(
+      [
+        {
+          id: 'builtin-firecrawl',
+          name: 'firecrawl',
+          endpoint: FIRECRAWL_ENDPOINT,
+        },
+      ],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+
+    const tool = result.tools.mcp_firecrawl_scrape as {
+      execute: (input: unknown) => Promise<unknown>
+    }
+    await expect(
+      tool.execute({ url: 'https://evil.example/secret' })
+    ).resolves.toBe('scraped')
+    expect(scrape).toHaveBeenCalledTimes(1)
   })
 })
 

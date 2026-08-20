@@ -121,6 +121,7 @@ Extra models are appended after the built-in registry. If an extra entry shares 
 | `AGENT_API_TOKEN` | — | Shared Bearer token accepted by `POST /api/v1/agent`. |
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | When `true`, enables `optimize_table`, `kill_query`, and `kill_mutation`. Keep off unless the ClickHouse user is trusted. |
 | `CHM_AGENT_FIRECRAWL_MCP` | `true` | Connect Firecrawl's hosted MCP (no API key) on every agent request. Set `false` to disable. |
+| `CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` | (empty) | Comma-separated hostnames Firecrawl may scrape/crawl/map. Empty / unset = unrestricted. Apex tokens also match subdomains; `*.example.com` is subdomain-only (not the apex). Search-only calls (no URL) stay allowed. |
 | `RATE_LIMIT_AGENT_PER_MIN` | `10` | Max `POST /api/v1/agent` requests per minute, applied per signed-in identity and per IP. |
 | `RATE_LIMIT_AGENT_GUEST_PER_MIN` | `5` | Cloud-only tighter per-guest identity limit (key `agent:guest:guest:<hash>`). OSS anonymous callers stay IP-only. |
 | `CHM_GUEST_AI_REQUESTS_PER_DAY` | `3` | Cloud-only daily AI messages for anonymous visitors. Tracked in D1 `ai_usage_daily` per `guest:<ip-hash>`. Signed-in users keep their plan cap (Free 5 / Pro 100 / …). OSS is not gated. |
@@ -224,6 +225,18 @@ The agent connects Firecrawl's hosted MCP (`https://mcp.firecrawl.dev/v2/mcp`)
 on every request. No API key is required for scrape, search, and parse (rate-
 limited). Set `CHM_AGENT_FIRECRAWL_MCP=false` to disable. Register the same
 URL with a bearer token to override the built-in server.
+
+To restrict which sites Firecrawl may fetch, set
+`CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` to a comma-separated list of hostnames
+(`clickhouse.com,chmonitor.dev,github.com`). Unset or empty leaves scrape/crawl/map
+unrestricted (the OSS default). When set, any `url` / `urls` argument whose host
+is not on the list is blocked before the MCP call; tools with no URL (for
+example `search` with only a query) stay allowed. An apex token matches that
+host and its subdomains (`clickhouse.com` covers `docs.clickhouse.com`). A
+leading `*.` is subdomain-only (`*.example.com` matches `foo.example.com` but
+not `example.com`). The same allowlist applies to a user-registered Firecrawl
+server (`mcp.firecrawl.dev` or a sanitized name of `firecrawl`), so renaming
+the server cannot bypass it.
 
 ## Conversation persistence
 
