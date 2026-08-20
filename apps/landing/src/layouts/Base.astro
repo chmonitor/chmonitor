@@ -696,22 +696,26 @@ const ogImage = new URL(image, Astro.site).toString()
     (function(){
       var root = document.getElementById('deployTabs');
       var section = document.getElementById('open-source');
-      if(!root || !section) return;
-      var tabs = [].slice.call(root.querySelectorAll('.deploy-tab'));
-      var panes = [].slice.call(section.querySelectorAll('.deploy-pane'));
-      function select(name){
-        tabs.forEach(function(t){ t.setAttribute('data-on', t.getAttribute('data-tab') === name ? 'true':'false'); });
-        panes.forEach(function(p){ p.setAttribute('data-on', p.getAttribute('data-pane') === name ? 'true':'false'); });
+      if(root && section) {
+        var tabs = [].slice.call(root.querySelectorAll('.deploy-tab'));
+        var panes = [].slice.call(section.querySelectorAll('.deploy-pane'));
+        function select(name){
+          tabs.forEach(function(t){ t.setAttribute('data-on', t.getAttribute('data-tab') === name ? 'true':'false'); });
+          panes.forEach(function(p){ p.setAttribute('data-on', p.getAttribute('data-pane') === name ? 'true':'false'); });
+        }
+        tabs.forEach(function(t){ t.addEventListener('click', function(){ select(t.getAttribute('data-tab')); }); });
       }
-      tabs.forEach(function(t){ t.addEventListener('click', function(){ select(t.getAttribute('data-tab')); }); });
-      // per-terminal copy: read its own command lines (strip "$ " prompts, drop output)
-      section.querySelectorAll('.terminal .copy').forEach(function(btn){
+      // Any .terminal Copy button (homepage deploy panes and /cli).
+      document.querySelectorAll('.terminal .copy').forEach(function(btn){
         btn.addEventListener('click', function(){
           var term = btn.closest('.terminal');
           var body = term && term.querySelector('.term-body');
           if(!body || !navigator.clipboard) return;
-          var lines = [].slice.call(body.children).map(function(d){ return d.innerText; })
-            .filter(function(l){ return l.indexOf('▸') === -1; })
+          var lines = [].slice.call(body.children).map(function(d){
+            if(d.classList && d.classList.contains('out')) return '';
+            return d.innerText;
+          })
+            .filter(function(l){ return l && l.indexOf('▸') === -1; })
             .map(function(l){ return l.replace(/^\s*\$\s/, ''); });
           var text = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
           navigator.clipboard.writeText(text).then(function(){
@@ -734,6 +738,7 @@ const ogImage = new URL(image, Astro.site).toString()
       var path = location.pathname.replace(/\/+$/, '') || '/'
       if (path === '/') trackEvent('landing_view')
       else if (path === '/pricing') trackEvent('pricing_view')
+      else if (path === '/cli') trackEvent('cli_view')
     })
 
     // Delegated CTA tracking: add data-cta="<short-id>" to any link/button to

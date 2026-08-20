@@ -12,6 +12,7 @@
 export type LandingAnalyticsEvent =
   | 'landing_view'
   | 'pricing_view'
+  | 'cli_view'
   | 'cta_click'
 
 type LandingAnalyticsProps = Record<string, string>
