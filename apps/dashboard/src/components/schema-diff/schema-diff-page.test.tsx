@@ -571,10 +571,15 @@ describe('Schema Compare two-host path', () => {
     )
 
     try {
-      const input = document.querySelector(
-        'input[placeholder="Filter tables…"]'
+      const list = document.querySelector(
+        '[data-testid="schema-diff-table-list"]'
+      )
+      expect(list).not.toBeNull()
+      const input = list?.querySelector(
+        '[data-testid="schema-diff-table-filter"]'
       ) as HTMLInputElement
       expect(input).not.toBeNull()
+      expect(input.placeholder).toBe('Filter tables…')
       await setInputValue(input, 'no-such-table')
       expect(document.body.textContent).toContain('No tables match')
       expect(document.body.textContent).not.toContain('Schemas match')

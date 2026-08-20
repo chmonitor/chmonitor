@@ -5,18 +5,14 @@ import type { ComparePeer } from '@/lib/compare/scope'
 
 import { ComparePeerSelect } from './compare-peer-select'
 import { SegmentedControl } from '@/components/filters/segmented-control'
-import { Input } from '@/components/ui/input'
 
 interface HostPairFilterProps {
   hosts: ComparePeer[]
   sourceHostId: number
   targetHostId: number
-  nameFilter?: string
-  nameFilterPlaceholder?: string
   showDiffsOnly: boolean
   diffsOnlyLabel?: string
   onPairChange: (source: number, target: number) => void
-  onNameFilterChange?: (value: string) => void
   onShowDiffsOnlyChange: (value: boolean) => void
   extraFilters?: ReactNode
 }
@@ -25,11 +21,8 @@ export function HostPairFilter({
   hosts,
   sourceHostId,
   targetHostId,
-  nameFilter,
-  nameFilterPlaceholder = 'Filter tables…',
   showDiffsOnly,
   onPairChange,
-  onNameFilterChange,
   onShowDiffsOnlyChange,
   extraFilters,
 }: HostPairFilterProps) {
@@ -63,19 +56,6 @@ export function HostPairFilter({
             onPairChange(nextSource, next)
           }}
         />
-        {onNameFilterChange ? (
-          <label className="flex min-w-48 flex-1 flex-col gap-1 sm:max-w-72">
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Filter
-            </span>
-            <Input
-              placeholder={nameFilterPlaceholder}
-              value={nameFilter ?? ''}
-              onChange={(e) => onNameFilterChange(e.target.value)}
-              className="h-11"
-            />
-          </label>
-        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <SegmentedControl

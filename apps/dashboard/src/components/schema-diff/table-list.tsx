@@ -115,6 +115,7 @@ export function TableList({
               onChange={(e) => onNameFilterChange(e.target.value)}
               placeholder={nameFilterPlaceholder}
               className="h-8 pl-7 text-[13px]"
+              data-testid="schema-diff-table-filter"
             />
           </div>
         ) : null}

@@ -278,10 +278,21 @@ describe('Settings Diff matching rows', () => {
     const { SettingsDiffTable } = await import('./settings-diff-table')
 
     const { cleanup } = await renderInto(
-      <SettingsDiffTable columns={[{ id: 0, name: 'prod' }]} rows={[]} />
+      <SettingsDiffTable
+        columns={[{ id: 0, name: 'prod' }]}
+        rows={[]}
+        nameFilter="no-such"
+        onNameFilterChange={() => {}}
+      />
     )
 
     try {
+      const table = document.querySelector(
+        '[data-testid="settings-diff-table"]'
+      )
+      expect(
+        table?.querySelector('[data-testid="settings-diff-table-filter"]')
+      ).not.toBeNull()
       expect(document.body.textContent).toContain('No settings match')
       expect(document.body.textContent).not.toContain('All matched')
     } finally {

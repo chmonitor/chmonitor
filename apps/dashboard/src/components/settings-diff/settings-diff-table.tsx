@@ -1,5 +1,5 @@
 import { DownloadIcon } from '@radix-ui/react-icons'
-import { CheckCircle2Icon } from 'lucide-react'
+import { CheckCircle2Icon, SearchIcon } from 'lucide-react'
 
 import type {
   SettingsDiffHostInfo,
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -65,14 +66,37 @@ export function exportSettingsCsv(
 interface SettingsDiffTableProps {
   columns: SettingsDiffHostInfo[]
   rows: SettingsDiffRow[]
+  nameFilter?: string
+  onNameFilterChange?: (value: string) => void
+  nameFilterPlaceholder?: string
 }
 
-export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
+export function SettingsDiffTable({
+  columns,
+  rows,
+  nameFilter,
+  onNameFilterChange,
+  nameFilterPlaceholder = 'Filter by name…',
+}: SettingsDiffTableProps) {
   const showMatchColumn = columns.length > 1
   const colSpan = (showMatchColumn ? 4 : 3) + columns.length
 
   return (
-    <Card>
+    <Card data-testid="settings-diff-table">
+      {onNameFilterChange ? (
+        <div className="border-b border-border px-3 py-2">
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={nameFilter ?? ''}
+              onChange={(e) => onNameFilterChange(e.target.value)}
+              placeholder={nameFilterPlaceholder}
+              className="h-8 pl-7 text-[13px]"
+              data-testid="settings-diff-table-filter"
+            />
+          </div>
+        </div>
+      ) : null}
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>

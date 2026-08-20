@@ -685,7 +685,9 @@ wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
   with one host keeps the live vs-default matrix and a banner to add
   another host; two or more merged hosts (env + database + browser,
   including negative ids) keep an All-hosts matrix with an optional pair
-  mode (`HostPairFilter` + URL `source`/`target`). Diffs-only with zero
+  mode (`HostPairFilter` + URL `source`/`target`). Name filter lives
+  on the listing panel (schema-diff sidebar, settings-diff table),
+  not the host toolbar. Diffs-only with zero
   deltas still lists matching settings with a green `CheckCircle2` in
   a Match column (`--chart-green`); "No settings match" is only a
   name/changed-from-default filter miss. Compare APIs resolve
