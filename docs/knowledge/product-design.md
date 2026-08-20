@@ -306,7 +306,9 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   known, show the local table name and a copyable `ON CLUSTER` variant of
   the same statement (`components/ddl/recommend-ddl-blocks.tsx`, transform
   in `lib/ddl/on-cluster.ts`). Single-node stays one statement. Never
-  execute or add a Run button.
+  execute or add a Run button. Schema Compare copy-all lives
+  on the source/target toolbar; catalog checkboxes pick tables for
+  the sync script; the plan card copies the open table only.
 - **Interactive tool pages** (Explain, Advisor): before the first run, a
   dashed-border `EmptyState variant="no-data"` ("Nothing to analyze/explain
   yet"). User-input issues — table-less SQL like `SELECT 1`, a missing
@@ -744,8 +746,21 @@ Explorer (`/explorer`), Explain (`/explain`), Advisor (`/advisor`,
 recommend-only), Chart Builder (`/dashboard`), Schema Compare
 (`/schema-diff`), Settings Diff (`/settings-diff`). Data Explorer is
 **also** listed under Tables (`menu/data-explorer.ts` shared leaf).
-AI Agent stays its own flagship group. Postgres-only items stay
-engine-gated and are not moved here.
+TTL & Partitions (`/ttl-partition-health`) is a system-table inventory
+of MergeTree TTL / `PARTITION BY` — it lives under **Tables**, not
+System or Tools. The same recommend-only heuristics back the
+**TTL & Partition Health** card on `/health` (`HEALTH_CHECKS` id
+`ttl-partition-health`): a flagged-table count plus a detail-dialog
+breakdown. Do not add a third TTL reporting surface. AI Agent stays its own flagship group. Postgres-only
+items stay engine-gated and are not moved here.
+
+⌘K (`components/controls/command-palette.tsx`) indexes every visible
+menu leaf by sidebar title, document `<title>` (`lib/page-title.ts` +
+OG `headTitle`/`title`), href, description, and optional `keywords` on
+`MenuItem` (`menuItemPaletteValue`). DBA pages (Advisor, Schema Compare,
+Settings Diff, TTL & Partitions) declare aliases so searches like
+`ddl`, `schema diff`, `config diff`, `ttl inventory`, or the tab title
+`TTL & Partition Health` hit them.
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

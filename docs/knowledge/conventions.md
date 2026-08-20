@@ -3,7 +3,7 @@ id: conventions
 title: Development Conventions
 type: workflow
 status: active
-updated: 2026-08-18
+updated: 2026-08-20
 tags:
   - conventions
   - patterns
@@ -28,7 +28,10 @@ related:
 - API routes: Server-side API endpoints under `src/routes/api/`
 - Navigation config: Per-section files under `src/menu/` composed by
   `src/menu/index.ts` (re-exported from `src/menu.ts`). Interactive utilities
-  live in `menu/tools.ts`; system-table views stay in their domain file.
+  live in `menu/tools.ts`; system-table views stay in their domain file
+  (TTL & Partitions is under Tables). ⌘K matches sidebar title, document
+  `<title>` (`lib/page-title.ts`), href, description, and optional
+  `MenuItem.keywords`.
   Leave `engines` absent on Tools so Postgres hosts hide the whole group
   (`filterMenuItemsByEngine`); do not add `engines: ['postgres']`.
 - Styles: Main Tailwind v4 stylesheet at `src/styles.css`

@@ -3,10 +3,12 @@
  *
  * A *schema-scoped* companion to the query-scoped `recommendation-engine.ts`:
  * instead of analyzing one SQL statement, it scans a database's columns
- * (`system.columns` + `system.parts`) and server/merge-tree settings
+ * (`system.columns` + `system.parts`), MergeTree tables (engine, ORDER BY,
+ * PARTITION BY, TTL, partition counts), and server/merge-tree settings
  * (`system.settings` / `system.merge_tree_settings`) and emits ranked,
- * recommend-only tuning findings — schema lint rules ranked by on-disk bytes,
- * plus settings tuning vs defaults with rationale. See issue #2764.
+ * recommend-only tuning findings — column lint ranked by on-disk bytes,
+ * table-level TTL/partition/engine/Distributed advice, plus settings
+ * tuning vs defaults with rationale. See issue #2764.
  *
  * ABSOLUTE INVARIANT: recommend-only. Nothing under `tuning/` executes,
  * applies, or mutates anything — the engine issues read-only metadata queries
@@ -22,6 +24,12 @@ export type TuningRuleId =
   | 'oversized_integer'
   | 'compression_codec'
   | 'low_cardinality'
+  | 'missing_ttl'
+  | 'too_many_partitions'
+  | 'high_partition_count'
+  | 'non_replicated_on_cluster'
+  | 'missing_distributed'
+  | 'uuid_leading_sort_key'
   | 'setting_tuning'
 
 export type TuningSeverity = 'high' | 'medium' | 'low'
@@ -45,6 +53,40 @@ export interface ColumnProfile {
   /** Active rows in the owning table (0 when unknown). */
   rows: number
 }
+
+/**
+ * One MergeTree-family (or Distributed) table for table-level advisor rules.
+ * Partition/TTL/engine findings need this; column lint uses `ColumnProfile`.
+ */
+export interface TableProfile {
+  database: string
+  table: string
+  engine: string
+  engineFull: string
+  sortingKey: string
+  partitionKey: string
+  primaryKey: string
+  ttlExpression: string
+  partitions: number
+  activeParts: number
+  bytesOnDisk: number
+  rows: number
+  /** Type of the first ORDER BY identifier, when that identifier is a real column. */
+  leadingSortType: string
+}
+
+/**
+ * Cluster topology for recommend-only local + Distributed DDL.
+ * `null` when `system.clusters` is empty or unreadable (single-node).
+ */
+export type ClusterContext = {
+  cluster: string
+  replicaCount: number
+  /** `db.table` keys that a Distributed engine already points at. */
+  distributedTargets: Set<string>
+  /** `db.table` keys that already exist in the scanned database. */
+  existingTables: Set<string>
+} | null
 
 /**
  * One setting row from `system.settings` or `system.merge_tree_settings`,

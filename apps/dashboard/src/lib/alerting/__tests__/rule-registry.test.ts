@@ -326,6 +326,26 @@ describe('mv-refresh-failures rule', () => {
   })
 })
 
+describe('ttl-partition-health rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'ttl-partition-health')!
+
+  test('ok when no tables are flagged', () => {
+    expect(classifyValue(0, rule.defaults)).toBe('ok')
+  })
+
+  test('warning at 1 flagged table', () => {
+    expect(classifyValue(1, rule.defaults)).toBe('warning')
+  })
+
+  test('critical at 5 flagged tables', () => {
+    expect(classifyValue(5, rule.defaults)).toBe('critical')
+  })
+
+  test('clears on null (table absent)', () => {
+    expect(classifyValue(null, rule.defaults)).toBe('ok')
+  })
+})
+
 // ---------------------------------------------------------------------------
 // assertReadOnlyAction — the invariant that remediation actions never
 // auto-execute DDL or any destructive statement (plans/33-remediation-action-links.md)

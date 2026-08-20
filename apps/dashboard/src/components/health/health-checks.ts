@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  CalendarClock,
   Clock,
   HardDrive,
   Layers,
@@ -19,6 +20,7 @@ import {
   PARTS_PRESSURE_PERCENT_CRITICAL,
   PARTS_PRESSURE_PERCENT_WARNING,
 } from '@/lib/health/parts-pressure'
+import { buildTtlPartitionFlaggedCountSql } from '@/lib/health/ttl-partition-sql'
 
 export interface RelatedLink {
   label: string
@@ -255,6 +257,48 @@ LIMIT 1`,
       },
     ],
     sql: buildPartsPressurePercentSql(),
+  },
+  {
+    id: 'ttl-partition-health',
+    title: 'TTL & Partition Health',
+    icon: CalendarClock,
+    chartName: 'health-ttl-partition-health',
+    detailChartName: 'health-ttl-partition-health-detail',
+    detailTitle: 'Tables flagged for TTL or PARTITION BY review',
+    detailDescription:
+      'MergeTree tables whose partition count, missing table TTL on a time-based PARTITION BY, or parts-per-partition ratio needs review. Same recommend-only rules as Tables → TTL & Partitions. Never applies ALTER TTL or DROP PARTITION.',
+    detailEmptyMessage:
+      'No MergeTree table is flagged — partition counts are under 500, time-based keys have table TTL, and parts-per-partition is under 10.',
+    valueKey: 'flagged_count',
+    defaults: { warning: 1, critical: 5 },
+    formatLabel: (v) => {
+      const n = v ?? 0
+      return `${n.toLocaleString()} ${n === 1 ? 'table' : 'tables'} to review`
+    },
+    description:
+      'Count of MergeTree tables with partition bloat (500+ / 1000+ partitions), a time-based PARTITION BY and no table TTL, or a merge backlog (10+ parts per partition). Recommend-only — copy advice from the inventory page; this check never applies DDL.',
+    systemTables: ['system.tables', 'system.parts'],
+    commonCauses: [
+      'PARTITION BY too granular (hourly or high-cardinality keys)',
+      'Time-series table with no table-level TTL, so old partitions never drop',
+      'Inserts producing parts faster than background merges consume them',
+    ],
+    relatedLinks: [
+      { label: 'TTL & Partitions', href: '/ttl-partition-health' },
+      { label: 'Advisor', href: '/advisor' },
+      { label: 'Tables Overview', href: '/tables-overview' },
+    ],
+    docsLinks: [
+      {
+        label: 'MergeTree TTL',
+        url: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#table_engine-mergetree-ttl', // pragma: allowlist secret
+      },
+      {
+        label: 'Custom Partitioning Key',
+        url: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/custom-partitioning-key', // pragma: allowlist secret
+      },
+    ],
+    sql: buildTtlPartitionFlaggedCountSql(),
   },
   {
     id: 'long-running-queries',

@@ -43,16 +43,26 @@ describe('ttlPartitionHealthConfig', () => {
     expect(sql).toContain('SETTINGS max_execution_time = 25')
   })
 
-  test('keeps inventory columns used by row highlighting', () => {
+  test('keeps inventory columns used by row highlighting and recommendations', () => {
     for (const col of [
       'full_table',
       'partition_key',
       'ttl_expression',
+      'recommendation',
       'partitions',
       'active_parts',
     ]) {
       expect(ttlPartitionHealthConfig.columns).toContain(col)
     }
     expect(ttlPartitionHealthConfig.rowClassName).toBeDefined()
+  })
+
+  test('recommendation SQL uses the same partition thresholds as the heuristics', () => {
+    const sql = getAllSqlStrings(ttlPartitionHealthConfig.sql)[0]
+    expect(sql).toContain('recommendation')
+    expect(sql).toContain('Rebuild with coarser PARTITION BY')
+    expect(sql).toContain('Add table TTL')
+    expect(sql).toContain(String(500))
+    expect(sql).toContain(String(1000))
   })
 })

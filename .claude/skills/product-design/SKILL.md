@@ -12,7 +12,8 @@ description: >-
   "empty state", "loading", "consistent", "follow-up feature", "match the design",
   "what's new", "changelog", "dialog scroll", "settings gear",
   "schema compare", "settings diff", "add host", "pick a query",
-  "query picker", "select labels", "ON CLUSTER", "advisor DDL".
+  "query picker", "select labels", "ON CLUSTER", "advisor DDL",
+  "command palette", "cmd k", "ttl partitions".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -107,7 +108,10 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   Target searchable comboboxes (`ComparePeerSelect`: Command +
   Popover, sorted by name, `ChmonitorLogo` plus version/uptime/status
   like HostSwitcher — never a native Select). Copy recommended SQL
-  sits on that row. The table catalog is a collapsible left sidebar
+  sits on that row (all safe statements, or only tables checked in
+  the catalog). Differing tables can be checked to build a sync
+  script — recommend-only, never applied. Each table's plan card
+  copies that table only. The table catalog is a collapsible left sidebar
   grouped **database → table** (folder row + nested table name).
   Search, **Differences / All** (icon-only `GitCompareArrows` /
   `List`), and sort (icon-only `ArrowDownAZ` menu: A–Z, Z–A,
@@ -389,9 +393,17 @@ module snapshot in `lib/format-settings.ts`; palette/density →
 1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
 2. Add a `QueryConfig` in `src/lib/query-config/` if it needs data.
 3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
-   Interactive utilities (SQL, explorer, explain, compare, builder) go in
-   `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
-   Tables. Other system-table views stay in their domain file. Tools is the last Main group, composed
+   Add the tab title in `lib/page-title.ts` (`ROUTE_TITLE_MAP`) when it
+   differs from title-casing the last URL segment — ⌘K searches that
+   `<title>` as well as the sidebar label.
+   Interactive utilities (SQL, explorer, explain, compare, builder, advisor)
+   go in `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
+   Tables. TTL & Partitions (`/ttl-partition-health`) is a system-table
+   inventory — it lives under Tables, not Tools or System. The same
+   recommend-only rules also power the **TTL & Partition Health** card
+   on `/health` (flagged-table count + detail dialog). Do not invent a
+   third TTL surface; wire new reporting through those two. Other
+   system-table views stay in their domain file. Tools is the last Main group, composed
    after Logs and before the About footer in `menu/index.ts` — do not put
    it after Overview / before AI Agent. The Tools parent must not set
    `permission`; copy the child's existing feature onto the leaf. Leave

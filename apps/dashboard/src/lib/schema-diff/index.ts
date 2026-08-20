@@ -28,7 +28,7 @@ export { alignDdlLines } from './ddl-diff'
 export { buildExampleSchemaDiff } from './example'
 export { namedDelta } from './named-delta'
 export { emptySchemaDiffPayload } from './payload'
-export { buildChangePlan } from './plan'
+export { buildChangePlan, safeStatementsForTables } from './plan'
 export { prettySchemaSql } from './pretty-sql'
 export {
   buildSchemaDiffRequest,

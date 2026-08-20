@@ -5,6 +5,8 @@
  * isolation (bun:test) without rendering the dialog or mocking the router.
  */
 
+import { pageTitlesForHref } from '@/lib/page-title'
+
 const UUID_PATTERN =
   /^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i
 // At least 8 hex/dash chars AND at least one hex digit, so a string of only
@@ -34,6 +36,32 @@ export function detectQuickNav(raw: string): QuickNavMatch {
   // misread as one (UUIDs contain no dot, so this is naturally exclusive).
   const isTableName = TABLE_PATTERN.test(value)
   return { isQueryId, isTableName, hasMatch: isQueryId || isTableName }
+}
+
+/**
+ * cmdk `CommandItem.value` for a menu leaf. Includes the group title, sidebar
+ * label, document `<title>` / OG headline, href, description, and optional
+ * aliases so ⌘K can find pages by the tab title as well as the nav label.
+ */
+export function menuItemPaletteValue(
+  item: {
+    title: string
+    href?: string
+    description?: string
+    keywords?: readonly string[]
+  },
+  groupTitle?: string
+): string {
+  return [
+    groupTitle,
+    item.title,
+    ...(item.href ? pageTitlesForHref(item.href) : []),
+    item.href,
+    item.description,
+    ...(item.keywords ?? []),
+  ]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join(' ')
 }
 
 /**

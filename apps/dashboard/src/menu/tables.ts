@@ -7,6 +7,7 @@ import {
 } from '@radix-ui/react-icons'
 import {
   BookOpenIcon,
+  CalendarClockIcon,
   DownloadIcon,
   Grid2x2CheckIcon,
   LayersIcon,
@@ -36,6 +37,24 @@ export const tablesItems: MenuItem[] = [
         description: 'Table storage statistics with part counts and sizes',
         icon: Grid2x2CheckIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/parts',
+        tableCheck: 'system.parts',
+      },
+      {
+        title: 'TTL & Partitions',
+        href: '/ttl-partition-health',
+        description:
+          'TTL expression, PARTITION BY, partition counts, and recommend-only next steps per table',
+        icon: CalendarClockIcon,
+        isNew: true,
+        keywords: [
+          'ttl-partition-health',
+          'partition health',
+          'partition by',
+          'expire',
+          'merge tree ttl',
+          'ttl inventory',
+        ],
+        docs: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#table_engine-mergetree-ttl', // pragma: allowlist secret
         tableCheck: 'system.parts',
       },
       {

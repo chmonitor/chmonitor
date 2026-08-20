@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Collapsible,
   CollapsibleContent,
@@ -54,6 +55,8 @@ interface TableListProps {
   showDiffsOnly?: boolean
   onShowDiffsOnlyChange?: (value: boolean) => void
   onCollapse?: () => void
+  syncKeys?: Set<string>
+  onSyncKeysChange?: (next: Set<string>) => void
 }
 
 function kindLabel(kind: TableDiff['kind']): string {
@@ -134,6 +137,8 @@ export function TableList({
   showDiffsOnly,
   onShowDiffsOnlyChange,
   onCollapse,
+  syncKeys,
+  onSyncKeysChange,
 }: TableListProps) {
   const [sort, setSort] = useState<TableSort>('name-asc')
   const groups = useMemo(() => groupDiffsByDatabase(rows, sort), [rows, sort])
@@ -156,6 +161,33 @@ export function TableList({
         ? ArrowDownWideNarrowIcon
         : ArrowDownAZIcon
 
+  const diffRows = rows.filter((row) => row.kind !== 'identical')
+  const canSync = Boolean(onSyncKeysChange) && !example && diffRows.length > 0
+  const selectedDiffCount = diffRows.filter((row) =>
+    syncKeys?.has(row.key)
+  ).length
+  const allDiffsSelected =
+    canSync && diffRows.length > 0 && selectedDiffCount === diffRows.length
+  const someDiffsSelected =
+    canSync && selectedDiffCount > 0 && selectedDiffCount < diffRows.length
+
+  const toggleSyncKey = (key: string, checked: boolean) => {
+    if (!onSyncKeysChange || !syncKeys) return
+    const next = new Set(syncKeys)
+    if (checked) next.add(key)
+    else next.delete(key)
+    onSyncKeysChange(next)
+  }
+
+  const toggleAllDiffs = (checked: boolean) => {
+    if (!onSyncKeysChange) return
+    if (!checked) {
+      onSyncKeysChange(new Set())
+      return
+    }
+    onSyncKeysChange(new Set(diffRows.map((row) => row.key)))
+  }
+
   return (
     <Card
       className="flex h-full min-h-[32rem] flex-col gap-0 overflow-hidden rounded-xl border bg-card py-0 shadow-sm"
@@ -164,11 +196,27 @@ export function TableList({
       <TooltipProvider>
         <div className="flex flex-col gap-2 border-b border-border px-3 py-2">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-medium text-foreground">
+            <h2 className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-foreground">
+              {canSync ? (
+                <Checkbox
+                  checked={allDiffsSelected}
+                  indeterminate={someDiffsSelected}
+                  onCheckedChange={(checked) =>
+                    toggleAllDiffs(checked === true)
+                  }
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Select differing tables to sync"
+                  data-testid="schema-diff-select-diffs"
+                  className="size-3.5"
+                />
+              ) : null}
               Tables
               {rows.length > 0 ? (
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                <span className="ml-0.5 text-xs font-normal text-muted-foreground">
                   {rows.length}
+                  {selectedDiffCount > 0
+                    ? ` · ${selectedDiffCount} selected`
+                    : ''}
                 </span>
               ) : null}
             </h2>
@@ -347,24 +395,42 @@ export function TableList({
                         const table = tableNameOf(row)
                         return (
                           <li key={row.key}>
-                            <button
-                              type="button"
+                            <div
                               className={cn(
-                                'flex w-full items-center justify-between gap-2 py-1 pr-2 pl-7 text-left text-[13px] hover:bg-muted',
+                                'flex w-full items-center gap-1.5 py-1 pr-2 pl-7 text-[13px] hover:bg-muted',
                                 selectedKey === row.key && 'bg-muted'
                               )}
-                              aria-current={
-                                selectedKey === row.key ? 'true' : undefined
-                              }
-                              aria-label={row.key}
-                              data-testid={`schema-diff-table-${row.key}`}
-                              onClick={() => onSelect(row.key)}
                             >
-                              <span className="truncate font-mono">
-                                {table}
-                              </span>
-                              <KindMark row={row} example={example} />
-                            </button>
+                              {canSync && row.kind !== 'identical' ? (
+                                <Checkbox
+                                  checked={syncKeys?.has(row.key) === true}
+                                  onCheckedChange={(checked) =>
+                                    toggleSyncKey(row.key, checked === true)
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  aria-label={`Include ${row.key} in sync SQL`}
+                                  data-testid={`schema-diff-sync-${row.key}`}
+                                  className="size-3.5"
+                                />
+                              ) : canSync ? (
+                                <span className="size-3.5 shrink-0" />
+                              ) : null}
+                              <button
+                                type="button"
+                                className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
+                                aria-current={
+                                  selectedKey === row.key ? 'true' : undefined
+                                }
+                                aria-label={row.key}
+                                data-testid={`schema-diff-table-${row.key}`}
+                                onClick={() => onSelect(row.key)}
+                              >
+                                <span className="truncate font-mono">
+                                  {table}
+                                </span>
+                                <KindMark row={row} example={example} />
+                              </button>
+                            </div>
                           </li>
                         )
                       })}

@@ -57,6 +57,7 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
   'health-delayed-inserts': healthCharts['health-delayed-inserts'],
   'health-max-part-count': healthCharts['health-max-part-count'],
   'health-parts-pressure': healthCharts['health-parts-pressure'],
+  'health-ttl-partition-health': healthCharts['health-ttl-partition-health'],
   'health-long-running-queries': healthCharts['health-long-running-queries'],
   'health-oom-killed-recent': healthCharts['health-oom-killed-recent'],
   'health-failed-queries-recent': healthCharts['health-failed-queries-recent'],
@@ -76,6 +77,8 @@ export const systemCharts: Record<string, ChartQueryBuilder> = {
     healthDetailACharts['health-max-part-count-detail'],
   'health-parts-pressure-detail':
     healthDetailACharts['health-parts-pressure-detail'],
+  'health-ttl-partition-health-detail':
+    healthDetailACharts['health-ttl-partition-health-detail'],
   'health-long-running-queries-detail':
     healthDetailACharts['health-long-running-queries-detail'],
   'health-oom-killed-recent-detail':

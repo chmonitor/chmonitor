@@ -1,4 +1,4 @@
-import { Loader2Icon, PanelLeftIcon } from 'lucide-react'
+import { CheckIcon, CopyIcon, Loader2Icon, PanelLeftIcon } from 'lucide-react'
 
 import type { ComparePeer, CompareScope } from '@/lib/compare/scope'
 import type { SchemaDiffResponse, TableDiff } from '@/lib/schema-diff'
@@ -12,6 +12,7 @@ import { CompareToolbar } from '@/components/compare/compare-toolbar'
 import { HostPairFilter } from '@/components/compare/host-pair-filter'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { safeStatementsForTables } from '@/lib/schema-diff'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
 export interface SchemaDiffViewProps {
@@ -46,7 +47,9 @@ export function SchemaDiffView({
   const [showDiffsOnly, setShowDiffsOnly] = useState(true)
   const [nameFilter, setNameFilter] = useState('')
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [syncKeys, setSyncKeys] = useState<Set<string>>(() => new Set())
   const [copiedSafe, setCopiedSafe] = useState(false)
+  const [copiedTable, setCopiedTable] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const diffCount =
@@ -77,17 +80,35 @@ export function SchemaDiffView({
   const selectedMatches = selected?.kind === 'identical'
 
   const hasNameFilter = nameFilter.trim().length > 0
-  const hasSafeStatements = data.plan.safeStatements.length > 0
+  const syncStatements = safeStatementsForTables(data.plan, syncKeys)
+  const tableStatements = selected
+    ? safeStatementsForTables(data.plan, new Set([selected.key]))
+    : []
+  const hasSafeStatements = syncStatements.length > 0
   const sourceName = peers.find((peer) => peer.id === sourceId)?.name
   const targetName = peers.find((peer) => peer.id === targetId)?.name
 
-  const copySafe = async () => {
-    const text = data.plan.safeStatements.join(';\n\n')
+  const copyText = async (statements: string[], mark: 'sync' | 'table') => {
+    const text = statements.join(';\n\n')
     if (!text) return
     await copyToClipboard(text)
-    setCopiedSafe(true)
-    window.setTimeout(() => setCopiedSafe(false), 1500)
+    if (mark === 'sync') {
+      setCopiedSafe(true)
+      window.setTimeout(() => setCopiedSafe(false), 1500)
+    } else {
+      setCopiedTable(true)
+      window.setTimeout(() => setCopiedTable(false), 1500)
+    }
   }
+
+  const copySafe = () => void copyText(syncStatements, 'sync')
+  const copyTable = () => void copyText(tableStatements, 'table')
+
+  const syncLabel = copiedSafe
+    ? 'Copied'
+    : syncKeys.size > 0
+      ? `Copy sync SQL (${syncKeys.size})`
+      : 'Copy recommended SQL'
 
   return (
     <div className="flex flex-col gap-3">
@@ -117,6 +138,23 @@ export function SchemaDiffView({
           targetHostId={targetId}
           onPairChange={onPairChange}
         />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={copySafe}
+          disabled={!hasSafeStatements}
+          aria-label="Copy recommended SQL"
+          data-testid="schema-diff-copy-sync"
+          className="h-7 shrink-0 text-[13px]"
+        >
+          {copiedSafe ? (
+            <CheckIcon className="size-3.5" strokeWidth={1.5} />
+          ) : (
+            <CopyIcon className="size-3.5" strokeWidth={1.5} />
+          )}
+          {syncLabel}
+        </Button>
       </CompareToolbar>
 
       {listingLoading ? (
@@ -149,6 +187,8 @@ export function SchemaDiffView({
                 showDiffsOnly={showDiffsOnly}
                 onShowDiffsOnlyChange={setShowDiffsOnly}
                 onCollapse={() => setSidebarOpen(false)}
+                syncKeys={syncKeys}
+                onSyncKeysChange={setSyncKeys}
               />
             </div>
           ) : (
@@ -177,11 +217,11 @@ export function SchemaDiffView({
                 {selectedMatches ? null : (
                   <PlanList
                     items={selectedPlan}
-                    onCopyRecommended={() => void copySafe()}
+                    onCopyRecommended={copyTable}
                     copyRecommendedLabel={
-                      copiedSafe ? 'Copied' : 'Copy recommended SQL'
+                      copiedTable ? 'Copied' : 'Copy this table'
                     }
-                    copyRecommendedDisabled={!hasSafeStatements}
+                    copyRecommendedDisabled={tableStatements.length === 0}
                   />
                 )}
               </>

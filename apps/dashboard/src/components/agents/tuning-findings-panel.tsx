@@ -12,9 +12,14 @@
  */
 
 import {
+  ClockIcon,
   DatabaseZapIcon,
   GaugeIcon,
+  GitForkIcon,
   HashIcon,
+  KeyRoundIcon,
+  LayersIcon,
+  Share2Icon,
   ShrinkIcon,
   SlidersHorizontalIcon,
   WandSparklesIcon,
@@ -45,6 +50,12 @@ const RULE_ICON: Record<TuningFinding['ruleId'], typeof HashIcon> = {
   oversized_integer: HashIcon,
   compression_codec: ShrinkIcon,
   low_cardinality: GaugeIcon,
+  missing_ttl: ClockIcon,
+  too_many_partitions: LayersIcon,
+  high_partition_count: LayersIcon,
+  non_replicated_on_cluster: GitForkIcon,
+  missing_distributed: Share2Icon,
+  uuid_leading_sort_key: KeyRoundIcon,
   setting_tuning: SlidersHorizontalIcon,
 }
 
@@ -53,6 +64,12 @@ const RULE_LABEL: Record<TuningFinding['ruleId'], string> = {
   oversized_integer: 'Oversized int',
   compression_codec: 'Codec',
   low_cardinality: 'LowCardinality',
+  missing_ttl: 'TTL',
+  too_many_partitions: 'Partitions',
+  high_partition_count: 'Partitions',
+  non_replicated_on_cluster: 'Engine',
+  missing_distributed: 'Distributed',
+  uuid_leading_sort_key: 'ORDER BY',
   setting_tuning: 'Setting',
 }
 

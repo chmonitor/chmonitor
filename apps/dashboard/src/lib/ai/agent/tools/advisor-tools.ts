@@ -70,7 +70,7 @@ export function createAdvisorTools(hostId: number) {
 
     get_tuning_suggestions: dynamicTool({
       description:
-        'Scan a database (or one `table`) for RANKED, recommend-only schema + settings tuning findings: needless Nullable columns, oversized integers, compression-codec opportunities, and LowCardinality candidates (schema lint ranked by on-disk bytes), plus server/merge-tree settings that differ from defaults in risky ways. Each finding carries evidence (bytes/rows/ratios), an estimated benefit, a ready-to-review DDL/settings statement, and (for heuristic rules) a verification query. Read-only and recommend-only: it never executes or applies any DDL or settings change. Always present the DDL/verification text for the user to review and run themselves.',
+        'Scan a database (or one `table`) for RANKED, recommend-only schema + settings tuning findings: needless Nullable columns, oversized integers, compression-codec opportunities, LowCardinality candidates (column lint ranked by on-disk bytes), table-level TTL / PARTITION BY bloat / non-replicated MergeTree / missing Distributed wrappers / UUID-leading ORDER BY, plus server/merge-tree settings that differ from defaults in risky ways. Each finding carries evidence (bytes/rows/ratios or partition counts), an estimated benefit, a ready-to-review DDL/settings statement (including local + Distributed / ON CLUSTER variants when topology is known), and (for heuristic rules) a verification query. Read-only and recommend-only: it never executes or applies any DDL or settings change. Always present the DDL/verification text for the user to review and run themselves.',
       inputSchema: z.object({
         database: z
           .string()

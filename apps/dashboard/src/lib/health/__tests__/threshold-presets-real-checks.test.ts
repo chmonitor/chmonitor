@@ -1,7 +1,7 @@
 /**
  * Preset invariants against the REAL `HEALTH_CHECKS`, not synthetic pairs.
  *
- * The Thresholds tab applies a preset to all 16 checks at once and then hands
+ * The Thresholds tab applies a preset to every health check at once and then hands
  * the result to `handleSave`, which rejects any check whose warning exceeds its
  * critical. If a preset can produce that pair for any real check, the UI writes
  * a state its own save button refuses — so this sweeps the whole matrix rather

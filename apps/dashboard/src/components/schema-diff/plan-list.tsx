@@ -23,7 +23,7 @@ function riskLabel(risk: PlanItem['risk']): string {
 export function PlanList({
   items,
   onCopyRecommended,
-  copyRecommendedLabel = 'Copy recommended SQL',
+  copyRecommendedLabel = 'Copy this table',
   copyRecommendedDisabled = false,
 }: PlanListProps) {
   return (
@@ -40,7 +40,8 @@ export function PlanList({
               size="sm"
               onClick={onCopyRecommended}
               disabled={copyRecommendedDisabled}
-              aria-label="Copy recommended SQL"
+              aria-label={copyRecommendedLabel}
+              data-testid="schema-diff-copy-table"
               className="h-7 shrink-0 text-[13px]"
             >
               {copyRecommendedLabel === 'Copied' ? (

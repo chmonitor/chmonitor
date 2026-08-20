@@ -22,6 +22,11 @@ export interface MenuItem {
    * in the sidebar footer (AppSidebar), above the Docs link and user button.
    */
   section?: MenuSection
+  /**
+   * Extra Cmd+K aliases. The live palette matches `title`, `href`,
+   * `description`, and these keywords (see `menuItemPaletteValue`).
+   */
+  keywords?: readonly string[]
   /** Show "New" badge - hidden after user visits the page */
   isNew?: boolean
   /** Link to ClickHouse documentation for this feature */

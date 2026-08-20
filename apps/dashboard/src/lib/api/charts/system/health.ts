@@ -8,6 +8,7 @@
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressurePercentSql } from '@/lib/health/parts-pressure'
+import { buildTtlPartitionFlaggedCountSql } from '@/lib/health/ttl-partition-sql'
 
 export const healthCharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas': () => ({
@@ -48,6 +49,14 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
   // dependency — always available.
   'health-parts-pressure': () => ({
     query: buildPartsPressurePercentSql(),
+    optional: true,
+    tableCheck: 'system.parts',
+  }),
+
+  // TTL / PARTITION BY inventory: count of MergeTree tables with a
+  // recommend-only next step (bloat, missing TTL, merge backlog).
+  'health-ttl-partition-health': () => ({
+    query: buildTtlPartitionFlaggedCountSql(),
     optional: true,
     tableCheck: 'system.parts',
   }),

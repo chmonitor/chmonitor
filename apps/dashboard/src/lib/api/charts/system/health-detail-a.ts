@@ -8,6 +8,7 @@
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressureProjectionSql } from '@/lib/health/parts-pressure'
+import { buildTtlPartitionHealthDetailSql } from '@/lib/health/ttl-partition-sql'
 
 export const healthDetailACharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas-detail': () => ({
@@ -64,6 +65,12 @@ export const healthDetailACharts: Record<string, ChartQueryBuilder> = {
   `,
     optional: true,
     tableCheck: 'system.part_log',
+  }),
+
+  'health-ttl-partition-health-detail': () => ({
+    query: buildTtlPartitionHealthDetailSql({ limit: 20 }),
+    optional: true,
+    tableCheck: 'system.parts',
   }),
 
   'health-long-running-queries-detail': () => ({

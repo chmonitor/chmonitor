@@ -99,4 +99,11 @@ describe('getBreadcrumbPath (Tools regroup)', () => {
       { title: 'Chart Builder', href: '/dashboard' },
     ])
   })
+
+  test('TTL & Partitions breadcrumbs go through Tables, not System', () => {
+    expect(getBreadcrumbPath('/ttl-partition-health')).toEqual([
+      { title: 'Tables', href: '/tables' },
+      { title: 'TTL & Partitions', href: '/ttl-partition-health' },
+    ])
+  })
 })

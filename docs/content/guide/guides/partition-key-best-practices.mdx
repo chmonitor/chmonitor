@@ -112,11 +112,18 @@ The **Tables Overview** page (`/tables-overview`) surfaces `active_parts` and
 **Partitions** drill-down lists every partition with row count, size, and
 compression ratio so you can spot the skew visually instead of writing SQL.
 
+The **TTL & Partition Health** card on `/health` counts tables that already
+look bloated or are missing table TTL on a time-based key; click it for the
+flagged-table breakdown. **Tables → TTL & Partitions** (`/ttl-partition-health`)
+is the full inventory, including a recommend-only next-step column. Neither
+surface applies `ALTER TTL` or `DROP PARTITION`.
+
 ## Related
 
 <Cards>
 <Card title="ClickHouse query optimization (pillar)" href="/guide/guides/clickhouse-query-optimization" description="The full map of six optimization areas." />
 <Card title="Partition granularity: day vs month" href="/guide/guides/partition-granularity" description="How to size the partition expression itself." />
 <Card title="Skip indices guide" href="/guide/guides/skip-indices-guide" description="What actually accelerates queries once the partition key is fixed." />
-<Card title="Tables" href="/guide/features/tables" description="Storage, parts, and partitions across every database." />
+<Card title="Health" href="/guide/features/health" description="TTL & Partition Health card plus merge-backlog and parts-pressure checks." />
+<Card title="Tables" href="/guide/features/tables" description="Storage, parts, partitions, and TTL inventory across every database." />
 </Cards>
