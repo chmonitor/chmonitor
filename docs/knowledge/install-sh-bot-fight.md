@@ -56,8 +56,8 @@ browsers can open `https://chmonitor.dev/install.sh`.
    security_level for `/install.sh`, then verifies curl with a curl User-Agent).
 3. Switch `CLI_INSTALL` / docs back to `https://chmonitor.dev/install.sh`.
 
-Workflow: `.github/workflows/cloudflare-allow-install-sh.yml`
-(`workflow_dispatch`).
+Workflow: run locally or in CI with a token that has Bot Management edit —
+`pnpm run cf:allow-install-sh`.
 
 ## Token note
 
