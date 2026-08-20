@@ -16,7 +16,7 @@ use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
 
-/// Direct ClickHouse connection settings for `chm diagnose`. Distinct from
+/// Direct ClickHouse connection settings for `chm doctor --ch-host`. Distinct from
 /// the dashboard-API `AppConfig` used by `hosts`/`chart`/`table`/`tui` — this
 /// talks straight to ClickHouse's HTTP interface, no chmonitor backend.
 #[derive(Debug, Clone)]

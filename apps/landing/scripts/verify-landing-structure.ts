@@ -255,7 +255,7 @@ try {
   const cliHtml = readFileSync(distCli, 'utf8')
   const requiredCli = [
     'chmonitor.dev/install.sh',
-    'chm diagnose',
+    'chm doctor',
     'id="install"',
     '/og/og-cli.png',
   ] as const

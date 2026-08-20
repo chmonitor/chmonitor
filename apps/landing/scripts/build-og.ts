@@ -437,7 +437,7 @@ const PAGES: { file: string; copy: Copy }[] = [
       eyebrow: 'CLI',
       h1Line1: 'Diagnose ClickHouse',
       h1Line2: 'from the terminal',
-      sub1: 'Zero-signup chm diagnose,',
+      sub1: 'Zero-signup chm doctor,',
       sub2: 'plus a TUI for the dashboard API.',
     },
   },

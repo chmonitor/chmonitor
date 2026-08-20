@@ -6,7 +6,7 @@ import FinalCta from '../components/FinalCta.astro'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
 import {
   CLI_CARGO,
-  CLI_DIAGNOSE,
+  CLI_DOCTOR,
   CLI_DOCS,
   CLI_INSTALL,
   CLI_INSTALL_BETA,
@@ -37,7 +37,7 @@ const softwareJsonLd = {
   url: canonical,
   downloadUrl: 'https://chmonitor.dev/install.sh',
   description:
-    'Standalone chmonitor CLI: zero-signup ClickHouse diagnose, plus a TUI and API client for the dashboard.',
+    'Standalone chmonitor CLI: zero-signup ClickHouse doctor, plus a TUI and API client for the dashboard.',
   featureList: commands.map((c) => c.name),
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 }
@@ -56,8 +56,8 @@ const ico = (d: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`
 ---
 <Base
-  title="chm CLI — Diagnose ClickHouse from the terminal"
-  description="Install chm (alias chmonitor): zero-signup diagnose against ClickHouse, plus a TUI and API client for the chmonitor dashboard. Linux and macOS."
+  title="chm CLI — Doctor a ClickHouse cluster from the terminal"
+  description="Install chm (alias chmonitor): zero-signup chm doctor against ClickHouse, plus a TUI and API client for the chmonitor dashboard. Linux and macOS."
   image="/og/og-cli.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
@@ -69,10 +69,10 @@ const ico = (d: string) =>
       <div class="wrap">
         <div class="sec-head price-head reveal" style="text-align:center">
           <span class="eyebrow">CLI</span>
-          <h1>Diagnose a cluster from the terminal</h1>
+          <h1>Doctor a cluster from the terminal</h1>
           <p>
             One binary: <code>chm</code> (alias <code>chmonitor</code>).
-            <code>chm diagnose</code> talks straight to ClickHouse — no account.
+            <code>chm doctor</code> talks straight to ClickHouse — no account.
             The rest talks to a dashboard API, Cloud or self-hosted.
           </p>
         </div>
@@ -135,19 +135,20 @@ const ico = (d: string) =>
         </div>
         <div class="cli-modes">
           <article class="cli-mode reveal">
-            <h3>Zero-signup diagnose</h3>
+            <h3>Zero-signup doctor</h3>
             <p>
-              Point <code>chm diagnose</code> at a ClickHouse HTTP interface.
+              Point <code>chm doctor --ch-host</code> at a ClickHouse HTTP interface.
               Twelve read-only checks, a scored report, no backend.
+              <code>chm diagnose</code> is an alias.
             </p>
             <div class="terminal cli-term">
               <div class="term-bar">
                 <span class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>
-                <span class="ttl">diagnose</span>
+                <span class="ttl">doctor</span>
                 <button class="copy" type="button">Copy</button>
               </div>
               <div class="term-body">
-                <div><span class="p">$</span> {CLI_DIAGNOSE}</div>
+                <div><span class="p">$</span> {CLI_DOCTOR}</div>
                 <div class="out">chmonitor diagnostics — http://localhost:8123</div>
                 <div class="out">ClickHouse 24.8 · uptime 3.2h</div>
                 <div class="out">&nbsp;</div>

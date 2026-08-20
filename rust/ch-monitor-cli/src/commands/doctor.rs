@@ -110,6 +110,12 @@ pub async fn run(client: &Client, cfg: &AppConfig) -> Result<()> {
         }
     }
 
+    if !cfg.quiet {
+        output::info(
+            "pass --ch-host or set CLICKHOUSE_HOST to run a cluster health scan (alias: chm diagnose)", // pragma: allowlist secret
+        );
+    }
+
     if checks.iter().any(|(_, ok, _)| !*ok) {
         anyhow::bail!("doctor found failing checks");
     }

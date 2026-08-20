@@ -229,7 +229,7 @@ pub async fn check_channel(client: &Client, channel: Channel) -> Result<bool> {
     }
 }
 
-/// Best-effort background hint for `chm diagnose`: prints a one-line notice to
+/// Best-effort background hint after `chm doctor` cluster scan: prints a one-line notice to
 /// stderr if a newer release exists. Never fails the caller; opt out with
 /// `CHM_NO_UPDATE_CHECK=1`.
 pub async fn hint(client: &Client) {

@@ -16,10 +16,22 @@ use clap::CommandFactory;
 use reqwest::Client;
 
 use crate::{
-    cli::{Commands, PromptCommand},
+    cli::{Commands, DoctorArgs, PromptCommand},
     config::AppConfig,
     prompts,
 };
+
+async fn run_cluster_scan(client: &Client, cfg: &AppConfig, args: DoctorArgs) -> Result<i32> {
+    diagnose_cmd::run(
+        client,
+        args.ch_host,
+        args.ch_user,
+        args.ch_password,
+        args.ch_database,
+        args.json || cfg.json,
+    )
+    .await
+}
 
 pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Result<i32> {
     if cfg.debug {
@@ -120,27 +132,14 @@ pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Re
             audit::run(client, cfg, args).await?;
             Ok(0)
         }
-        Commands::Doctor => {
+        Commands::Doctor(args) if args.has_cluster_host() => {
+            run_cluster_scan(client, cfg, args).await
+        }
+        Commands::Doctor(_) => {
             doctor::run(client, cfg).await?;
             Ok(0)
         }
-        Commands::Diagnose {
-            ch_host,
-            ch_user,
-            ch_password,
-            ch_database,
-            json,
-        } => {
-            diagnose_cmd::run(
-                client,
-                ch_host,
-                ch_user,
-                ch_password,
-                ch_database,
-                json || cfg.json,
-            )
-            .await
-        }
+        Commands::Diagnose(args) => run_cluster_scan(client, cfg, args).await,
         Commands::Update(args) | Commands::Upgrade(args) => {
             update_cmd::run(client, cfg, args).await
         }
