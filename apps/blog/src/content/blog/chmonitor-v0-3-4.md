@@ -97,4 +97,5 @@ docker pull ghcr.io/chmonitor/chmonitor:v0.3.4
 Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev)) already has this.
 Nothing to migrate.
 
-The full commit list is in [PR #3035](https://github.com/chmonitor/chmonitor/pull/3035).
+The full changelog is in the
+[GitHub release](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.4).
