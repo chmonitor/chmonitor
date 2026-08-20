@@ -21,7 +21,9 @@ describe('/cli landing page', () => {
     )
     expect(page).toContain('id="install"')
     expect(page).toContain('{CLI_INSTALL}')
-    expect(data).toContain('curl -sSf https://chmonitor.dev/install.sh | bash')
+    expect(data).toContain(
+      'curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash'
+    )
     expect(data).toContain("title: 'Your dashboard'")
     expect(data).toContain("title: 'Ready for AI agents'")
     expect(data).toContain("title: 'Interactive TUI'")
@@ -39,20 +41,19 @@ describe('/cli landing page', () => {
     expect(demo).toContain('Sample')
   })
 
-  test('does not advertise beta, cargo, or a GitHub raw installer', () => {
+  test('does not advertise beta or cargo install on /cli', () => {
     expect(page).not.toContain('CLI_INSTALL_BETA')
     expect(page).not.toContain('CLI_CARGO')
     expect(data).not.toContain('CHM_CHANNEL=beta')
     expect(data).not.toContain('cargo install')
-    expect(data).not.toContain('raw.githubusercontent.com')
     expect(redirects).not.toContain('/install.sh')
   })
 
-  test('build copies scripts/install.sh so curl -sSf gets a 200 body', () => {
+  test('build copies scripts/install.sh for browser /install.sh', () => {
     expect(pkg).toContain('sync-landing-install.mjs')
-    expect(existsSync(join(landing, '../../scripts/sync-landing-install.mjs'))).toBe(
-      true
-    )
+    expect(
+      existsSync(join(landing, '../../scripts/sync-landing-install.mjs'))
+    ).toBe(true)
     expect(existsSync(join(landing, '../../scripts/install.sh'))).toBe(true)
   })
 
@@ -62,7 +63,7 @@ describe('/cli landing page', () => {
   })
 
   test('OG card is wired', () => {
-    expect(page).toContain("image=\"/og/og-cli.png\"")
+    expect(page).toContain('image="/og/og-cli.png"')
     expect(og).toContain("file: 'og-cli.png'")
     expect(og).toContain('chmonitor from')
   })

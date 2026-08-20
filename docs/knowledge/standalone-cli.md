@@ -337,12 +337,16 @@ Every push to `main` that touches CLI paths
 ## One-line install (`scripts/install.sh`)
 
 ```bash
-# Stable (default)
-curl -sSf https://chmonitor.dev/install.sh | bash
+# Stable (default) — GitHub raw (Cloudflare Bot Fight Mode 403s curl on the apex)
+curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 
 # Beta channel
-CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
+CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
 ```
+
+Browsers can still open `https://chmonitor.dev/install.sh`. To restore the
+branded `curl … chmonitor.dev/install.sh` path, turn **Bot Fight Mode** off
+for the zone and run `pnpm run cf:allow-install-sh`.
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else

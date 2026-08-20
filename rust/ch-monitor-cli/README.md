@@ -31,10 +31,10 @@ Two ways to use it:
 
 ```bash
 # Stable (default)
-curl -sSf https://chmonitor.dev/install.sh | bash
+curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 
 # Beta channel
-CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
+CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
 ```
 
 Downloads and verifies the right prebuilt binary for your OS/arch from

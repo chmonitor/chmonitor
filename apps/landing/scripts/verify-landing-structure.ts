@@ -255,12 +255,15 @@ try {
   const cliHtml = readFileSync(distCli, 'utf8')
   const requiredCli = [
     'chmonitor from the terminal',
-    'chmonitor.dev/install.sh',
+    'raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh',
     'id="install"',
     '/og/og-cli.png',
     'data-cli-demo',
   ] as const
-  if (cliHtml.includes('CHM_CHANNEL=beta') || cliHtml.includes('cargo install chmonitor')) {
+  if (
+    cliHtml.includes('CHM_CHANNEL=beta') ||
+    cliHtml.includes('cargo install chmonitor')
+  ) {
     console.error('FORBIDDEN beta/cargo install on /cli')
     failed = true
   } else {
@@ -276,14 +279,18 @@ try {
       console.log('OK: dist/install.sh is the CLI installer')
     }
   } catch {
-    console.error('MISSING dist/install.sh — landing must copy scripts/install.sh')
+    console.error(
+      'MISSING dist/install.sh — landing must copy scripts/install.sh'
+    )
     failed = true
   }
   const distRedirects = join(process.cwd(), 'dist/_redirects')
   try {
     const redir = readFileSync(distRedirects, 'utf8')
     if (/^\/install\.sh\b/m.test(redir)) {
-      console.error('FORBIDDEN /install.sh redirect — curl -sSf cannot follow 302')
+      console.error(
+        'FORBIDDEN /install.sh redirect — curl -sSf cannot follow 302'
+      )
       failed = true
     } else {
       console.log('OK: no /install.sh redirect')
