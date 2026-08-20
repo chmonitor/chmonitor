@@ -129,6 +129,21 @@ describe('derivePaletteGroups', () => {
     expect(tableResult.quickNav.isTableName).toBe(true)
   })
 
+  test('Data Explorer is listed under both Tools and Tables', () => {
+    const result = derivePaletteGroups({
+      menuItems: menuItemsConfig,
+      favoriteMenuItems: [],
+      tableRows: [],
+      hosts: [],
+      currentHostId: 0,
+      query: '',
+    })
+    const tools = result.sectionedItems.find((item) => item.title === 'Tools')
+    const tables = result.sectionedItems.find((item) => item.title === 'Tables')
+    expect(tools?.items?.map((item) => item.href)).toContain('/explorer')
+    expect(tables?.items?.map((item) => item.href)).toContain('/explorer')
+  })
+
   test('Inbound Events is under Health, not a top-level Go-to leaf (#3134)', () => {
     const result = derivePaletteGroups({
       menuItems: menuItemsConfig,

@@ -17,6 +17,8 @@ import {
 
 import type { MenuItem } from '@/components/menu/types'
 
+import { dataExplorerItem } from './data-explorer'
+
 export const tablesItems: MenuItem[] = [
   {
     title: 'Tables',
@@ -25,6 +27,7 @@ export const tablesItems: MenuItem[] = [
     section: 'main',
     permission: { feature: 'tables' },
     items: [
+      dataExplorerItem,
       {
         title: 'Tables Overview',
         href: '/tables-overview',
