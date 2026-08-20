@@ -15,11 +15,11 @@ chmonitor does **not** apply schema changes and does **not** edit `config.xml` (
 | Workflow | Route | What it does |
 |---|---|---|
 | Settings compare | `/settings-diff` | Compares `system.settings` and `system.merge_tree_settings` across saved hosts (including per-user connections), or node vs node on the current cluster. Highlights values that differ and values changed from default. Export as CSV. One saved host compares against defaults; add a host to diff another node. Two or more hosts keep an all-hosts matrix with optional pair mode. |
-| Schema compare | `/schema-diff` | Compares table DDL across saved hosts (including per-user connections), or node vs node on the current cluster. Recommend-only change plan (copy statements, never apply). One saved host shows an empty state (needs two connections, staging vs prod) plus a faded example of the table list and DDL pair. Add host uses the same dialog as the host switcher. |
+| Schema compare | `/schema-diff` | Compares table DDL across saved hosts (including per-user connections), or node vs node on the current cluster. Recommend-only change plan (copy statements, never apply). Check differing tables to build a sync SQL script (or copy one table). One saved host shows an empty state (needs two connections, staging vs prod) plus a faded example of the table list and DDL pair. Add host uses the same dialog as the host switcher. |
 | Query advisor | `/advisor` (Query Advisor tab) | Ranked skip-index, projection, partition-key, and `PREWHERE` recommendations for a pasted query or a `query_id`. Recommend-only. |
-| Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for schema lint and settings findings. Recommend-only. |
+| Schema & settings lint | `/advisor` (Schema & Settings tab) | Scans a database (or one table) for column lint **and** table-level advice: TTL, PARTITION BY bloat, MergeTree vs Replicated on a cluster, missing Distributed wrappers, UUID-leading ORDER BY. Recommend-only. |
 | TTL moves vs inventory | `/storage-economics` | Per-table compression, storage policies, and **TTL storage move activity**. Move history / current economics. |
-| TTL and partition health | `/ttl-partition-health` | Inventory of MergeTree TTL and `PARTITION BY`, with partition and part counts. Tables without TTL still appear. Recommend-only. |
+| TTL and partition health | `/ttl-partition-health` | Inventory of MergeTree TTL and `PARTITION BY`, with partition and part counts plus a recommend-only next-step column (add TTL, coarsen partitions, check merges). Tables without TTL still appear. Recommend-only. |
 | Explorer DDL | `/explorer` | Shows the `CREATE TABLE` statement and schema for the **selected host** (`?host=`). Single-host, read-only. Schema lint on the table Overview tab. |
 
 ### Settings compare (`/settings-diff`)
@@ -30,7 +30,7 @@ Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTE
 
 ### Schema compare (`/schema-diff`)
 
-Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster) from the compact pair picker. With one saved host the page explains it needs two connections (staging vs prod) and offers **Add host**. Tables are grouped by database (collapse them into folders). Selecting a table pretty-prints side-by-side `CREATE TABLE` with line numbers and diff highlights, plus a copyable recommend-only plan. Copy recommended SQL from the plan card. It never applies DDL.
+Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster) from the compact pair picker. With one saved host the page explains it needs two connections (staging vs prod) and offers **Add host**. Tables are grouped by database (collapse them into folders). Selecting a table pretty-prints side-by-side `CREATE TABLE` with line numbers and diff highlights, plus a copyable recommend-only plan. **Copy recommended SQL** lives on the source/target toolbar (all safe statements, or only tables you check). Each table's plan card can copy that table only. It never applies DDL.
 
 ### Advisor (`/advisor`)
 
@@ -40,7 +40,8 @@ Open **Tools → Advisor**. Two tabs:
   (loads it and runs analysis), or look up a `query_id` from `system.query_log`.
   Table-less SQL such as `SELECT 1` is explained as "needs a table", not treated
   as a failed analysis.
-- **Schema & Settings** — scan a database or table for lint findings.
+- **Schema & Settings** — scan a database or table for column lint, TTL /
+  partition health, engine / Distributed pairing, and settings findings.
 
 The same recommend-only engine is available from the [AI agent](/guide/ai-agent) and the MCP server. There is no Apply button.
 

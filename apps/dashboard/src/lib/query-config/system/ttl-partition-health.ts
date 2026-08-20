@@ -1,6 +1,11 @@
 import type { QueryConfig } from '@/types/query-config'
 
-import { ttlPartitionRowClassName } from '@/lib/health/ttl-partition-heuristics'
+import {
+  PARTITION_COUNT_CRITICAL,
+  PARTITION_COUNT_WARNING,
+  PARTS_PER_PARTITION_WARNING,
+  ttlPartitionRowClassName,
+} from '@/lib/health/ttl-partition-heuristics'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
@@ -33,12 +38,30 @@ const TTL_FROM_ENGINE_FULL = `
         ''
       )`
 
-/**
- * Filter MergeTree tables first (cheap columns + engine_full), aggregate
- * parts separately, then join. Avoids scanning create_table_query and
- * avoids a missing `t.ttl` identifier that 500'd the table API as a
- * silent hourglass (#3121).
- */
+const TIME_BASED_PARTITION_SQL = `(
+        positionCaseInsensitive(t.partition_key, 'toYYYYMM') > 0
+        OR positionCaseInsensitive(t.partition_key, 'toStartOf') > 0
+        OR positionCaseInsensitive(t.partition_key, 'toDate') > 0
+        OR positionCaseInsensitive(t.partition_key, 'toMonday') > 0
+        OR positionCaseInsensitive(t.partition_key, 'toYearWeek') > 0
+        OR positionCaseInsensitive(t.partition_key, 'toISOWeek') > 0
+      )`
+
+const RECOMMENDATION_SQL = `
+      multiIf(
+        ifNull(p.partitions, 0) >= ${PARTITION_COUNT_CRITICAL},
+          'Rebuild with coarser PARTITION BY',
+        ifNull(p.partitions, 0) >= ${PARTITION_COUNT_WARNING},
+          'Consider monthly partitions',
+        ${TIME_BASED_PARTITION_SQL}
+          AND positionCaseInsensitive(t.engine_full, ' TTL ') = 0,
+          'Add table TTL',
+        ifNull(p.partitions, 0) > 0
+          AND ifNull(p.active_parts, 0) / ifNull(p.partitions, 1)
+            >= ${PARTS_PER_PARTITION_WARNING},
+          'Check merge backlog',
+        ''
+      )`
 export const ttlPartitionInventorySql = `
     WITH mergetree_tables AS (
       SELECT
@@ -78,6 +101,7 @@ export const ttlPartitionInventorySql = `
       t.engine,
       t.partition_key,
       ${TTL_FROM_ENGINE_FULL} AS ttl_expression,
+      ${RECOMMENDATION_SQL} AS recommendation,
       ifNull(p.partitions, 0) AS partitions,
       ifNull(p.active_parts, 0) AS active_parts,
       ifNull(p.parts_per_partition, 0) AS parts_per_partition,
@@ -123,6 +147,7 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     'engine',
     'partition_key',
     'ttl_expression',
+    'recommendation',
     'partitions',
     'active_parts',
     'parts_per_partition',
@@ -131,6 +156,8 @@ export const ttlPartitionHealthConfig: QueryConfig = {
   columnDescriptions: {
     ttl_expression:
       'Table-level TTL from engine_full. Empty means no table TTL.',
+    recommendation:
+      'Recommend-only next step: add TTL, coarsen PARTITION BY, or check merges. Never applied from this page.',
     partition_key: 'PARTITION BY expression.',
     partitions:
       'Active partition count. Highlighted rows have 500+ partitions or a time-based key with no TTL.',
@@ -147,6 +174,7 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     engine: ColumnFormat.ColoredBadge,
     partition_key: ColumnFormat.Code,
     ttl_expression: ColumnFormat.Code,
+    recommendation: ColumnFormat.Text,
     partitions: ColumnFormat.BackgroundBar,
     active_parts: ColumnFormat.BackgroundBar,
     readable_bytes_on_disk: ColumnFormat.BackgroundBar,
