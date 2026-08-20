@@ -11,7 +11,10 @@
 #
 # Env overrides:
 #   CHM_VERSION       Install a specific release tag (e.g. "chm-v0.1.0").
-#                      Defaults to the latest "chm-v*" release.
+#                      Defaults to the latest "chm-v*" release for CHM_CHANNEL.
+#   CHM_CHANNEL        Release channel: "stable" (default) or "beta".
+#                      stable skips drafts/prereleases; beta prefers
+#                      prereleases and falls back to stable if none exist.
 #   CHM_INSTALL_DIR    Directory to install the binary into.
 #                      Defaults to "$HOME/.local/bin".
 #
@@ -29,6 +32,12 @@ die() {
   log "error: $*"
   exit 1
 }
+
+CHANNEL="$(printf '%s' "${CHM_CHANNEL:-stable}" | tr '[:upper:]' '[:lower:]')"
+case "$CHANNEL" in
+  stable | beta) ;;
+  *) die "CHM_CHANNEL must be stable|beta, got '$CHANNEL'" ;;
+esac
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -69,15 +78,29 @@ EOF
   [ "$a3" -gt "$b3" ]
 }
 
-# Newest published chm-v* tag from GitHub releases JSON (skip drafts/prereleases).
+# Newest published chm-v* tag from GitHub releases JSON for a channel.
+# Args: $1 = releases JSON, $2 = channel (stable|beta, default stable).
+# stable: skip drafts/prereleases; rank by semver core.
+# beta: include prereleases; when semver cores tie, prefer prerelease;
+#       falls back to stable picks when no prereleases exist.
 # Ranks by semver, not list order — dashboard/Helm releases share this API.
 pick_newest_chm_tag() {
   json="$1"
+  channel="${2:-stable}"
   best_tag=""
   best_ver="0.0.0"
+  best_pre="false"
   cur_tag=""
   cur_draft=""
   cur_pre=""
+
+  # Core semver from a chm-v tag (drops -beta.N / +build).
+  tag_core_ver() {
+    v="${1#chm-v}"
+    v="${v%%-*}"
+    v="${v%%+*}"
+    printf '%s\n' "$v"
+  }
 
   consider_tag() {
     tag="$1"
@@ -87,16 +110,43 @@ pick_newest_chm_tag() {
       chm-v*) ;;
       *) return 0 ;;
     esac
-    if [ "$draft" = "true" ] || [ "$pre" = "true" ]; then
+    if [ "$draft" = "true" ]; then
       return 0
     fi
-    ver="${tag#chm-v}"
+    if [ "$channel" = "stable" ] && [ "$pre" = "true" ]; then
+      return 0
+    fi
+    ver="$(tag_core_ver "$tag")"
     case "$ver" in
-      *-*) return 0 ;;
+      '' | *[!0-9.]* | .* | *..) return 0 ;;
     esac
-    if [ -z "$best_tag" ] || semver_gt "$ver" "$best_ver"; then
+    # Stable also rejects tags whose name still carries pre-release metadata
+    # even if the API flag were wrong.
+    if [ "$channel" = "stable" ]; then
+      case "${tag#chm-v}" in
+        *-*) return 0 ;;
+      esac
+    fi
+    if [ -z "$best_tag" ]; then
       best_tag="$tag"
       best_ver="$ver"
+      best_pre="$pre"
+      return 0
+    fi
+    if semver_gt "$ver" "$best_ver"; then
+      best_tag="$tag"
+      best_ver="$ver"
+      best_pre="$pre"
+      return 0
+    fi
+    if semver_gt "$best_ver" "$ver"; then
+      return 0
+    fi
+    # Equal core: beta prefers the prerelease when versions match.
+    if [ "$channel" = "beta" ] && [ "$pre" = "true" ] && [ "$best_pre" != "true" ]; then
+      best_tag="$tag"
+      best_ver="$ver"
+      best_pre="$pre"
     fi
     return 0
   }
@@ -155,11 +205,31 @@ if [ "${CHM_INSTALL_SELF_TEST:-}" = "1" ]; then
   [ "$(normalize_chm_tag 'v0.2.0')" = "chm-v0.2.0" ]
   [ "$(normalize_chm_tag 'chm-v0.2.0')" = "chm-v0.2.0" ]
   json='[{"tag_name":"chm-v0.1.0","prerelease":false,"draft":true},{"tag_name":"v0.3.3","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.0","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.1","prerelease":false,"draft":false},{"tag_name":"chm-v0.2.0","prerelease":true,"draft":false}]'
-  got="$(pick_newest_chm_tag "$json")"
+  got="$(pick_newest_chm_tag "$json" stable)"
   if [ "$got" != "chm-v0.1.1" ]; then
-    die "pick_newest_chm_tag: expected chm-v0.1.1, got '$got'"
+    die "pick_newest_chm_tag stable: expected chm-v0.1.1, got '$got'"
   fi
-  empty="$(pick_newest_chm_tag '[]')"
+  # Default channel is stable when omitted.
+  got_default="$(pick_newest_chm_tag "$json")"
+  if [ "$got_default" != "chm-v0.1.1" ]; then
+    die "pick_newest_chm_tag default: expected chm-v0.1.1, got '$got_default'"
+  fi
+  got_beta="$(pick_newest_chm_tag "$json" beta)"
+  if [ "$got_beta" != "chm-v0.2.0" ]; then
+    die "pick_newest_chm_tag beta: expected prerelease chm-v0.2.0, got '$got_beta'"
+  fi
+  # Beta prefers prerelease when semver cores tie; newer stable still wins.
+  json_tie='[{"tag_name":"chm-v0.1.2","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.2-beta.1","prerelease":true,"draft":false},{"tag_name":"chm-v0.1.1","prerelease":false,"draft":false}]'
+  got_tie="$(pick_newest_chm_tag "$json_tie" beta)"
+  if [ "$got_tie" != "chm-v0.1.2-beta.1" ]; then
+    die "pick_newest_chm_tag beta tie: expected chm-v0.1.2-beta.1, got '$got_tie'"
+  fi
+  json_fallback='[{"tag_name":"chm-v0.1.0","prerelease":false,"draft":false},{"tag_name":"chm-v0.1.1","prerelease":false,"draft":false}]'
+  got_fb="$(pick_newest_chm_tag "$json_fallback" beta)"
+  if [ "$got_fb" != "chm-v0.1.1" ]; then
+    die "pick_newest_chm_tag beta fallback: expected chm-v0.1.1, got '$got_fb'"
+  fi
+  empty="$(pick_newest_chm_tag '[]' stable)"
   [ -z "$empty" ]
   log "install.sh self-test ok"
   exit 0
@@ -175,15 +245,15 @@ resolve_version() {
     return
   fi
 
-  log "Looking up latest published chm-v* release..."
+  log "Looking up latest ${CHANNEL} chm-v* release..."
   releases_json="$(curl -fsSL -H "User-Agent: chmonitor-installer" \
     "https://api.github.com/repos/${REPO}/releases?per_page=100" 2>/dev/null)" \
     || die "failed to query GitHub releases API for ${REPO}. Fallback: cargo install ch-monitor-cli --force"
 
-  tag="$(pick_newest_chm_tag "$releases_json")"
+  tag="$(pick_newest_chm_tag "$releases_json" "$CHANNEL")"
 
   if [ -z "$tag" ]; then
-    die "no published chm-v* release found for ${REPO} yet. Pin one with CHM_VERSION=chm-vX.Y.Z, or: cargo install ch-monitor-cli --force"
+    die "no published chm-v* release found for ${REPO} (channel=${CHANNEL}) yet. Pin one with CHM_VERSION=chm-vX.Y.Z, or: cargo install ch-monitor-cli --force"
   fi
 
   printf '%s\n' "$tag"
@@ -194,7 +264,7 @@ BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
 BIN_URL="${BASE_URL}/${ASSET_NAME}"
 SHA_URL="${BASE_URL}/${ASSET_NAME}.sha256"
 
-log "Installing chmonitor CLI ${VERSION} (${TARGET})..."
+log "Installing chmonitor CLI ${VERSION} (${TARGET}, channel=${CHANNEL})..."
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT INT TERM
