@@ -4,6 +4,9 @@
 
 ### Features
 
+* **cli:** default TUI shows Overview dashboard charts (KPI/sparkline grid)
+* **cli:** `chm dashboard list` / `open` (Overview + saved dashboards)
+* **cli:** interactive `chm config`; `chm config show` prints file layers
 * **cli:** launch interactive TUI by default (`chm` with no subcommand; `chm tui` stays an alias)
 * **cli:** make `chm doctor` the cluster health command (`diagnose` stays as an alias)
 

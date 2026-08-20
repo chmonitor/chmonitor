@@ -5,6 +5,7 @@ mod client;
 mod commands;
 mod config;
 mod credentials;
+mod dashboards;
 mod diagnose;
 mod mermaid;
 mod metrics;
@@ -24,13 +25,14 @@ use crate::cli::{Cli, Commands, TuiArgs};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let mut cli = Cli::parse();
     let cfg = config::resolve_config(&cli)?;
     let client = Client::builder().timeout(Duration::from_secs(60)).build()?;
 
     // Bare `chm` (no subcommand) is the live TUI — same as `chm tui`.
     let command = cli
         .command
+        .take()
         .unwrap_or_else(|| Commands::Tui(TuiArgs::default()));
 
     // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
@@ -46,6 +48,7 @@ async fn main() -> Result<()> {
         Commands::Update(_) | Commands::Upgrade(_) => ("cli_run", "update"),
         Commands::Auth(_) => ("cli_run", "auth"),
         Commands::Config(_) => ("cli_run", "config"),
+        Commands::Dashboard(_) => ("cli_run", "dashboard"),
         Commands::Link { .. } => ("cli_run", "link"),
         Commands::Chat { .. } => ("cli_run", "chat"),
         Commands::Agent { .. } => ("cli_run", "agent"),
@@ -55,7 +58,7 @@ async fn main() -> Result<()> {
     };
     let tel_handle = telemetry::spawn(tel_event, tel_command);
 
-    let exit = commands::dispatch(&client, &cfg, command).await?;
+    let exit = commands::dispatch(&client, &cfg, &cli, command).await?;
 
     telemetry::finish(tel_handle).await;
     if exit != 0 {
@@ -439,5 +442,70 @@ mod tests {
         let help = cmd.render_long_help().to_string();
         assert!(help.contains("live TUI"), "{help}");
         assert!(help.contains("no subcommand"), "{help}");
+    }
+
+    #[test]
+    fn dashboard_list_parses() {
+        let cli = Cli::try_parse_from(["chm", "dashboard", "list"]).expect("parse");
+        match cli.command {
+            Some(Commands::Dashboard(args)) => {
+                assert!(matches!(args.command, crate::cli::DashboardCommand::List));
+            }
+            other => panic!("expected Dashboard list, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn dashboard_open_parses_name() {
+        let cli = Cli::try_parse_from(["chm", "dashboard", "open", "Overview"]).expect("parse");
+        match cli.command {
+            Some(Commands::Dashboard(args)) => match args.command {
+                crate::cli::DashboardCommand::Open { name } => {
+                    assert_eq!(name, "Overview");
+                }
+                other => panic!("expected Open, got {other:?}"),
+            },
+            other => panic!("expected Dashboard, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn json_before_dashboard_list_is_global() {
+        let cli = Cli::try_parse_from(["chm", "--json", "dashboard", "list"]).expect("parse");
+        assert!(cli.json);
+        assert!(matches!(cli.command, Some(Commands::Dashboard(_))));
+    }
+
+    #[test]
+    fn config_without_subcommand_is_interactive() {
+        let cli = Cli::try_parse_from(["chm", "config"]).expect("parse");
+        match cli.command {
+            Some(Commands::Config(args)) => {
+                assert!(args.command.is_none(), "expected no subcommand");
+            }
+            other => panic!("expected Config, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn config_show_still_parses() {
+        let cli = Cli::try_parse_from(["chm", "config", "show"]).expect("parse");
+        match cli.command {
+            Some(Commands::Config(args)) => {
+                assert!(matches!(
+                    args.command,
+                    Some(crate::cli::ConfigCommand::Show)
+                ));
+            }
+            other => panic!("expected Config show, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn help_lists_dashboard_and_config() {
+        let mut cmd = Cli::command();
+        let help = cmd.render_long_help().to_string();
+        assert!(help.contains("dashboard"), "{help}");
+        assert!(help.contains("config"), "{help}");
     }
 }

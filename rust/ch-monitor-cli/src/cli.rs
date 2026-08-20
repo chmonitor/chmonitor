@@ -82,8 +82,10 @@ impl std::fmt::Display for Channel {
 pub enum Commands {
     /// Sign in / out — auto-detects open API, device login, or API key
     Auth(AuthArgs),
-    /// Show or edit local CLI config
+    /// Show or edit local CLI config (no subcommand: interactive dialog)
     Config(ConfigArgs),
+    /// List or open Overview / saved dashboards
+    Dashboard(DashboardArgs),
     /// List hosts from a running chmonitor dashboard
     Hosts,
     /// Open the dashboard (or a path) in the browser
@@ -156,7 +158,7 @@ pub enum Commands {
 /// Flags for `chm` / `chm tui`.
 #[derive(Args, Debug, Clone)]
 pub struct TuiArgs {
-    /// Chart name (default: config `default_chart`, else query-count)
+    /// Extra chart to include on the Overview grid
     pub chart: Option<String>,
     /// On a small terminal, start focused on the overview pane
     #[arg(long)]
@@ -251,13 +253,31 @@ pub struct AuthLoginArgs {
 
 #[derive(Args, Debug)]
 pub struct ConfigArgs {
+    /// Omit to open the interactive config dialog.
     #[command(subcommand)]
-    pub command: ConfigCommand,
+    pub command: Option<ConfigCommand>,
+}
+
+#[derive(Args, Debug)]
+pub struct DashboardArgs {
+    #[command(subcommand)]
+    pub command: DashboardCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum DashboardCommand {
+    /// List dashboards; Enter opens the TUI (or print names when piped / --json)
+    List,
+    /// Open a dashboard by name in the TUI
+    Open {
+        /// Dashboard name (`Overview` or a saved name)
+        name: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigCommand {
-    /// Print the resolved config
+    /// Print config files, inherit order, and resolved values
     Show,
     /// Print the user config file path
     Path,

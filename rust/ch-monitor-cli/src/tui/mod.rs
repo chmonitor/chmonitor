@@ -4,6 +4,7 @@
 //! `chm chat` (`tui/chat.rs`). Other commands must never call EnterAlternateScreen.
 
 pub mod chat;
+pub mod config_form;
 
 use std::{
     io,
@@ -32,7 +33,7 @@ use serde_json::Value;
 use crate::{
     client,
     config::{AppConfig, DEFAULT_TABLE},
-    metrics, output,
+    dashboards, metrics, output,
 };
 
 const TUI_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
@@ -54,13 +55,14 @@ chmonitor keys
   j / ↓       scroll table down
   k / ↑       scroll table up
   Tab         switch pane (small terminals)
-  1           overview pane
+  1           overview charts
   2 / 3       table pane
   /           filter table
 
-Default chart is config `default_chart` (else query-count).
-Default table is running-queries. Point --base-url / CHM_BASE_URL
-at a self-hosted dashboard when not using dash.chmonitor.dev.";
+Default TUI is the Overview dashboard (query-count, counts, disk).
+A 404 chart is skipped. Table pane stays secondary (running-queries).
+Point --base-url / CHM_BASE_URL at a self-hosted dashboard when not
+using dash.chmonitor.dev.";
 
 const PREFERRED_TABLE_COLUMNS: &[&str] = &[
     "query_id",
@@ -109,12 +111,22 @@ struct HostEntry {
     host: String,
 }
 
-pub struct TuiOptions<'a> {
-    pub chart: &'a str,
-    pub table: &'a str,
+#[derive(Clone)]
+pub struct TuiOptions {
+    pub dashboard: String,
+    pub charts: Vec<String>,
+    pub table: String,
     pub page_size: usize,
     pub start_overview: bool,
     pub host_id: u32,
+}
+
+#[derive(Debug, Clone)]
+struct ChartPane {
+    name: String,
+    points: Vec<u64>,
+    rows: Vec<Value>,
+    missing: bool,
 }
 
 pub enum TuiExit {
@@ -132,13 +144,12 @@ impl Drop for TuiGuard {
 }
 
 struct App {
-    chart: String,
+    dashboard: String,
     table: String,
     page_size: usize,
     host_id: u32,
     hosts: Vec<HostEntry>,
-    points: Vec<u64>,
-    chart_rows: Vec<Value>,
+    charts: Vec<ChartPane>,
     table_rows: Vec<Value>,
     table_scroll: usize,
     table_filter: String,
@@ -150,32 +161,62 @@ struct App {
 }
 
 impl App {
-    fn new(opts: &TuiOptions<'_>) -> Self {
+    fn new(opts: &TuiOptions) -> Self {
+        let charts = if opts.charts.is_empty() {
+            dashboards::overview_chart_names()
+        } else {
+            opts.charts.clone()
+        };
+        let _ = opts.start_overview;
         Self {
-            chart: opts.chart.to_string(),
+            dashboard: if opts.dashboard.trim().is_empty() {
+                dashboards::OVERVIEW_NAME.to_string()
+            } else {
+                opts.dashboard.clone()
+            },
             table: if opts.table.is_empty() {
                 DEFAULT_TABLE.to_string()
             } else {
-                opts.table.to_string()
+                opts.table.clone()
             },
             page_size: opts.page_size,
             host_id: opts.host_id,
             hosts: Vec::new(),
-            points: Vec::new(),
-            chart_rows: Vec::new(),
+            charts: charts
+                .into_iter()
+                .map(|name| ChartPane {
+                    name,
+                    points: Vec::new(),
+                    rows: Vec::new(),
+                    missing: false,
+                })
+                .collect(),
             table_rows: Vec::new(),
             table_scroll: 0,
             table_filter: String::new(),
-            focused: if opts.start_overview {
-                Pane::Overview
-            } else {
-                Pane::Table
-            },
+            focused: Pane::Overview,
             overlay: Overlay::None,
             error: None,
             auth_required: false,
             last_ok_refresh: None,
         }
+    }
+
+    fn visible_charts(&self) -> Vec<&ChartPane> {
+        let single_has_data = self
+            .charts
+            .iter()
+            .any(|c| c.name == "disk-size-single" && !c.missing && !c.rows.is_empty());
+        self.charts
+            .iter()
+            .filter(|c| {
+                dashboards::should_show_chart(
+                    &c.name,
+                    !c.missing && !c.rows.is_empty(),
+                    single_has_data,
+                )
+            })
+            .collect()
     }
 
     fn host_label(&self) -> String {
@@ -194,7 +235,7 @@ impl App {
     }
 }
 
-pub async fn run(client: &Client, cfg: &AppConfig, opts: TuiOptions<'_>) -> Result<TuiExit> {
+pub async fn run(client: &Client, cfg: &AppConfig, opts: TuiOptions) -> Result<TuiExit> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
@@ -347,16 +388,25 @@ fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
 async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App) {
     let base = cfg.base_url.trim_end_matches('/');
     let hosts_url = format!("{base}/api/v1/hosts");
-    let chart_url = format!("{base}/api/v1/charts/{}?hostId={}", app.chart, app.host_id);
     let table_url = format!(
         "{base}/api/v1/tables/{}?hostId={}&pageSize={}",
         app.table, app.host_id, app.page_size
     );
+    let chart_urls: Vec<String> = app
+        .charts
+        .iter()
+        .map(|c| format!("{base}/api/v1/charts/{}?hostId={}", c.name, app.host_id))
+        .collect();
 
-    let (hosts_res, chart_res, table_res) = tokio::join!(
+    let charts_fut = futures_util::future::join_all(
+        chart_urls
+            .into_iter()
+            .map(|url| client::fetch_optional_cfg(client, cfg, url)),
+    );
+    let (hosts_res, table_res, chart_results) = tokio::join!(
         client::fetch_cfg(client, cfg, hosts_url),
-        client::fetch_cfg(client, cfg, chart_url),
         client::fetch_cfg(client, cfg, table_url),
+        charts_fut,
     );
 
     let mut auth = false;
@@ -370,17 +420,33 @@ async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App) {
         }
     }
 
-    match chart_res {
-        Ok(data) => match client::rows_from_chart_data(data) {
-            Ok(rows) => {
-                app.points = rows.iter().take(80).map(metrics::row_metric).collect();
-                app.chart_rows = rows;
+    for (pane, result) in app.charts.iter_mut().zip(chart_results) {
+        match result {
+            Ok(None) => {
+                pane.missing = true;
+                pane.points.clear();
+                pane.rows.clear();
             }
-            Err(err) => errors.push(short_error("chart", &err)),
-        },
-        Err(err) => {
-            auth |= is_auth_error(&err);
-            errors.push(short_error("chart", &err));
+            Ok(Some(data)) => match client::rows_from_chart_data(data) {
+                Ok(rows) => {
+                    pane.missing = rows.is_empty();
+                    pane.points = rows.iter().take(80).map(metrics::row_metric).collect();
+                    pane.rows = rows;
+                }
+                Err(err) => {
+                    pane.missing = true;
+                    errors.push(short_error(&pane.name, &err));
+                }
+            },
+            Err(err) => {
+                auth |= is_auth_error(&err);
+                pane.missing = true;
+                pane.points.clear();
+                pane.rows.clear();
+                if !is_auth_error(&err) {
+                    errors.push(short_error(&pane.name, &err));
+                }
+            }
         }
     }
 
@@ -470,9 +536,7 @@ fn draw(f: &mut Frame<'_>, cfg: &AppConfig, app: &App) {
 fn draw_header(f: &mut Frame<'_>, area: Rect, cfg: &AppConfig, app: &App, combined: bool) {
     let age = refresh_age_label(app.last_ok_refresh, Instant::now());
     let age_style = if age == "live" {
-        Style::default()
-            .fg(EMERALD)
-            .add_modifier(Modifier::BOLD)
+        Style::default().fg(EMERALD).add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
     };
@@ -484,11 +548,11 @@ fn draw_header(f: &mut Frame<'_>, area: Rect, cfg: &AppConfig, app: &App, combin
     let line = Line::from(vec![
         Span::styled(
             " chmonitor ",
-            Style::default()
-                .fg(ORANGE)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(ORANGE).add_modifier(Modifier::BOLD),
         ),
         Span::raw(" "),
+        Span::styled(app.dashboard.clone(), Style::default().fg(ORANGE)),
+        Span::raw("  "),
         Span::styled(
             app.host_label(),
             Style::default()
@@ -533,24 +597,91 @@ fn draw_switcher(f: &mut Frame<'_>, area: Rect, focused: Pane) {
 fn draw_combined(f: &mut Frame<'_>, area: Rect, app: &App) {
     let cols = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(24), Constraint::Min(40)])
+        .constraints([Constraint::Length(22), Constraint::Min(40)])
         .split(area);
     draw_hosts(f, cols[0], app);
+    let table_h = (area.height / 3).clamp(5, 10);
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(7), Constraint::Min(6)])
+        .constraints([Constraint::Min(8), Constraint::Length(table_h)])
         .split(cols[1]);
-    draw_chart(f, rows[0], app);
+    draw_chart_grid(f, rows[0], app);
     draw_table_pane(f, rows[1], app);
 }
 
 fn draw_overview(f: &mut Frame<'_>, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(38), Constraint::Percentage(62)])
+    draw_chart_grid(f, area, app);
+}
+
+fn draw_chart_grid(f: &mut Frame<'_>, area: Rect, app: &App) {
+    let charts = app.visible_charts();
+    if charts.is_empty() {
+        let body = if app.auth_required {
+            "sign in to load charts — `chm auth login`"
+        } else {
+            "no overview charts (404s skipped)"
+        };
+        f.render_widget(
+            Paragraph::new(body).block(Block::bordered().title(app.dashboard.as_str())),
+            area,
+        );
+        return;
+    }
+    let cols = if area.width >= 90 {
+        3
+    } else if area.width >= 48 {
+        2
+    } else {
+        1
+    };
+    let cols = cols.min(charts.len()).max(1);
+    let rows_n = charts.len().div_ceil(cols);
+    let row_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Fill(1); rows_n])
         .split(area);
-    draw_hosts(f, chunks[0], app);
-    draw_chart(f, chunks[1], app);
+    for (r, row_area) in row_chunks.iter().enumerate() {
+        let start = r * cols;
+        let end = (start + cols).min(charts.len());
+        let n_in_row = end.saturating_sub(start);
+        if n_in_row == 0 {
+            continue;
+        }
+        let col_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Fill(1); n_in_row])
+            .split(*row_area);
+        for (c, cell) in col_chunks.iter().enumerate() {
+            draw_chart_cell(f, *cell, charts[start + c]);
+        }
+    }
+}
+
+fn draw_chart_cell(f: &mut Frame<'_>, area: Rect, pane: &ChartPane) {
+    let kpi = dashboards::chart_kpi(&pane.name, &pane.rows);
+    if pane.points.len() >= 2 && area.height >= 4 {
+        let stats = output::sparkline_stats(&pane.points).unwrap_or_default();
+        let title = if stats.is_empty() {
+            format!("{}  {kpi}", pane.name)
+        } else {
+            format!("{}  {kpi}  {stats}", pane.name)
+        };
+        let spark = Sparkline::default()
+            .block(Block::bordered().title(title))
+            .data(&pane.points)
+            .style(Style::default().fg(ORANGE));
+        f.render_widget(spark, area);
+        return;
+    }
+    f.render_widget(
+        Paragraph::new(if pane.rows.is_empty() {
+            "no data".to_string()
+        } else {
+            kpi
+        })
+        .block(Block::bordered().title(pane.name.as_str())),
+        area,
+    );
 }
 
 fn draw_hosts(f: &mut Frame<'_>, area: Rect, app: &App) {
@@ -585,34 +716,8 @@ fn draw_hosts(f: &mut Frame<'_>, area: Rect, app: &App) {
     let list = List::new(items)
         .block(Block::bordered().title(format!("hosts  {}", app.hosts.len())))
         .highlight_symbol("● ")
-        .highlight_style(
-            Style::default()
-                .fg(ORANGE)
-                .add_modifier(Modifier::BOLD),
-        );
+        .highlight_style(Style::default().fg(ORANGE).add_modifier(Modifier::BOLD));
     f.render_stateful_widget(list, area, &mut state);
-}
-
-fn draw_chart(f: &mut Frame<'_>, area: Rect, app: &App) {
-    let stats = output::sparkline_stats(&app.points).unwrap_or_else(|| "no data".into());
-    let title = format!("{}  {stats}", app.chart);
-    if app.points.is_empty() {
-        f.render_widget(
-            Paragraph::new(if app.auth_required {
-                "sign in to load chart"
-            } else {
-                "no chart data"
-            })
-            .block(Block::bordered().title(title)),
-            area,
-        );
-        return;
-    }
-    let spark = Sparkline::default()
-        .block(Block::bordered().title(title))
-        .data(&app.points)
-        .style(Style::default().fg(ORANGE));
-    f.render_widget(spark, area);
 }
 
 fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
@@ -650,11 +755,8 @@ fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
         return;
     }
 
-    let header = Row::new(cols.iter().cloned().map(Cell::from)).style(
-        Style::default()
-            .fg(ORANGE)
-            .add_modifier(Modifier::BOLD),
-    );
+    let header = Row::new(cols.iter().cloned().map(Cell::from))
+        .style(Style::default().fg(ORANGE).add_modifier(Modifier::BOLD));
     let widths = column_constraints(cols.len());
     let rows: Vec<Row> = filtered
         .iter()
@@ -1063,14 +1165,15 @@ mod tests {
     #[test]
     fn question_mark_opens_help_and_slash_opens_search() {
         let opts = TuiOptions {
-            chart: "query-count",
-            table: "running-queries",
+            dashboard: "Overview".into(),
+            charts: vec!["query-count".into()],
+            table: "running-queries".into(),
             page_size: 15,
             start_overview: false,
             host_id: 0,
         };
         let mut app = App::new(&opts);
-        assert_eq!(app.focused, Pane::Table);
+        assert_eq!(app.focused, Pane::Overview);
         assert_eq!(
             handle_key(&mut app, key(KeyCode::Char('?'))),
             KeyAction::None
@@ -1108,8 +1211,9 @@ mod tests {
     #[test]
     fn host_keys_request_refresh() {
         let opts = TuiOptions {
-            chart: "query-count",
-            table: "running-queries",
+            dashboard: "Overview".into(),
+            charts: vec!["query-count".into()],
+            table: "running-queries".into(),
             page_size: 15,
             start_overview: true,
             host_id: 0,
@@ -1135,5 +1239,59 @@ mod tests {
     fn default_table_matches_config() {
         assert_eq!(crate::config::DEFAULT_TABLE, "running-queries");
         assert_eq!(crate::config::DEFAULT_CHART, "query-count");
+    }
+
+    #[test]
+    fn default_tui_lists_overview_charts() {
+        let opts = TuiOptions {
+            dashboard: String::new(),
+            charts: Vec::new(),
+            table: String::new(),
+            page_size: 15,
+            start_overview: false,
+            host_id: 0,
+        };
+        let app = App::new(&opts);
+        assert_eq!(app.dashboard, "Overview");
+        assert!(app.charts.iter().any(|c| c.name == "query-count"));
+        assert!(app.charts.iter().any(|c| c.name == "database-count"));
+        assert!(app.charts.iter().any(|c| c.name == "disk-size-single"));
+        assert_eq!(app.table, "running-queries");
+        assert_eq!(app.focused, Pane::Overview);
+    }
+
+    #[test]
+    fn visible_charts_skip_missing_and_duplicate_disk() {
+        let opts = TuiOptions {
+            dashboard: "Overview".into(),
+            charts: vec![
+                "query-count".into(),
+                "disk-size-single".into(),
+                "disk-size-all".into(),
+            ],
+            table: "running-queries".into(),
+            page_size: 15,
+            start_overview: true,
+            host_id: 0,
+        };
+        let mut app = App::new(&opts);
+        app.charts[0].rows = vec![json!({"query_count": 1})];
+        app.charts[1].rows = vec![json!({"readable_used_space": "1 GiB"})];
+        app.charts[2].rows = vec![json!({"name": "default"})];
+        app.charts[0].missing = false;
+        let names: Vec<&str> = app
+            .visible_charts()
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+        assert_eq!(names, vec!["query-count", "disk-size-single"]);
+        app.charts[1].missing = true;
+        app.charts[1].rows.clear();
+        let names: Vec<&str> = app
+            .visible_charts()
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+        assert_eq!(names, vec!["query-count", "disk-size-all"]);
     }
 }

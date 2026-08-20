@@ -162,6 +162,39 @@ pub async fn fetch_envelope_cfg(
     fetch_envelope(client, url, token.as_deref(), api_key.as_deref()).await
 }
 
+fn auth_pair(cfg: &AppConfig) -> Result<(Option<String>, Option<String>)> {
+    let token = crate::credentials::resolve_token(cfg.token.as_deref())?;
+    let api_key = crate::credentials::resolve_api_key(cfg.api_key.as_deref())?;
+    Ok((token, api_key))
+}
+
+/// Raw GET (status + body). Caller decides how to treat 4xx/5xx.
+pub async fn fetch_status_cfg(
+    client: &Client,
+    cfg: &AppConfig,
+    url: String,
+) -> Result<(u16, String)> {
+    let (token, api_key) = auth_pair(cfg)?;
+    send_get(client, &url, token.as_deref(), api_key.as_deref()).await
+}
+
+/// Like [`fetch_cfg`], but HTTP 404 is `Ok(None)` so callers can skip missing charts.
+pub async fn fetch_optional_cfg(
+    client: &Client,
+    cfg: &AppConfig,
+    url: String,
+) -> Result<Option<Value>> {
+    let (status, text) = fetch_status_cfg(client, cfg, url.clone()).await?;
+    if status == 404 {
+        return Ok(None);
+    }
+    ensure_success(&url, status, &text)?;
+    let parsed: ApiResponse = serde_json::from_str(&text).with_context(|| {
+        format!("chmonitor API at {url} returned a non-JSON body (HTTP {status})")
+    })?;
+    Ok(Some(parsed.data))
+}
+
 pub fn rows_from_chart_data(data: Value) -> Result<Vec<Value>> {
     match data {
         Value::Array(rows) => Ok(rows),
