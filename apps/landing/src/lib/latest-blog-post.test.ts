@@ -1,6 +1,6 @@
 import { BLOG_ORIGIN, getLatestBlogPost } from './latest-blog-post'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -121,6 +121,18 @@ describe('getLatestBlogPost', () => {
     })
     expect(latest?.slug).toBe('v0.3')
     expect(latest?.href).toBe(`${BLOG_ORIGIN}/v0.3/`)
+  })
+
+  test('landing deploy filter includes blog markdown so the hero pill stays current', () => {
+    const yml = readFileSync(
+      join(import.meta.dir, '../../../../.github/workflows/cloudflare.yml'),
+      'utf8'
+    )
+    const landingPaths = yml.indexOf("- 'apps/landing/**'")
+    expect(landingPaths).toBeGreaterThan(-1)
+    expect(yml.slice(landingPaths, landingPaths + 500)).toContain(
+      "apps/blog/src/content/blog/**"
+    )
   })
 
   test('returns null when the directory has no published posts', () => {

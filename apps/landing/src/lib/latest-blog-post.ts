@@ -28,6 +28,9 @@ export type LatestBlogPostOptions = {
  * Published = not `draft` and `date <= now`, matching the blog app's
  * `isPublished` / `postSlug` (version frontmatter wins over filename id).
  * Parses YAML frontmatter locally — do not import `astro:content` from blog.
+ *
+ * This is build-time. The Cloudflare landing job must rebuild when blog
+ * markdown changes (see `.github/workflows/cloudflare.yml` landing filter).
  */
 export function getLatestBlogPost(
   options: LatestBlogPostOptions = {}

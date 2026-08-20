@@ -36,7 +36,9 @@ permissions:
 # `bug-handler`. Without filtering, every push to main and every PR rebuilt &
 # redeployed all 6. Each job now runs a `filter` step and gates its own
 # build/deploy steps so a worker is touched ONLY when its own app dir (or a
-# shared dep — packages/**, root lockfile, this workflow) changed.
+# shared dep — packages/**, root lockfile, this workflow) changed. Landing also
+# rebuilds when `apps/blog/src/content/blog/**` changes: the hero pill is the
+# newest published post, inlined at Astro build time.
 #
 # Conservative by design (never skip a needed deploy):
 #   • The filter only runs on pull_request and pushes to a branch (main).
@@ -601,6 +603,8 @@ jobs:
           filters: |
             landing:
               - 'apps/landing/**'
+              # Hero latest-post pill is baked at Astro build from blog markdown.
+              - 'apps/blog/src/content/blog/**'
               - 'scripts/**'
               - 'assets/**'
               - 'bun.lock'
