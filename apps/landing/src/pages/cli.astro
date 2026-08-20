@@ -4,6 +4,7 @@ import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
 import FinalCta from '../components/FinalCta.astro'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
+import CliDemo from '../components/CliDemo.astro'
 import { CLI_DOCS, CLI_INSTALL, features } from '../data/cli'
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
@@ -64,6 +65,8 @@ const ico = (d: string) =>
         </div>
       </div>
     </section>
+
+    <CliDemo />
 
     <section class="band">
       <div class="wrap">

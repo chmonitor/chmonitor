@@ -1,7 +1,8 @@
 //! Streaming chat TUI / non-interactive chat against `/api/v1/agent`.
 //!
 //! Interactive TTY sessions enter the alternate screen; piped / `--json`
-//! one-shots do not (TTY rule: only `chm tui` / interactive `chm chat`).
+//! one-shots do not (TTY rule: only the live TUI (`chm` / `chm tui`) and
+//! interactive `chm chat`).
 
 use std::io::{self, IsTerminal, Read, Write};
 
@@ -14,7 +15,7 @@ use crossterm::{
 use futures_util::StreamExt;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Paragraph, Wrap},
     Terminal,
 };
 use reqwest::Client;
@@ -211,11 +212,9 @@ fn draw_chat(f: &mut ratatui::Frame<'_>, log: &[String], input: &str, busy: bool
         .split(f.area());
     let body = log.join("\n\n");
     f.render_widget(
-        Paragraph::new(body).wrap(Wrap { trim: false }).block(
-            Block::default()
-                .title("chm chat (Esc quit)")
-                .borders(Borders::ALL),
-        ),
+        Paragraph::new(body)
+            .wrap(Wrap { trim: false })
+            .block(Block::bordered().title("chm chat (Esc back / quit)")),
         chunks[0],
     );
     let prompt = if busy {
@@ -224,7 +223,7 @@ fn draw_chat(f: &mut ratatui::Frame<'_>, log: &[String], input: &str, busy: bool
         format!("> {input}")
     };
     f.render_widget(
-        Paragraph::new(prompt).block(Block::default().title("input").borders(Borders::ALL)),
+        Paragraph::new(prompt).block(Block::bordered().title("input")),
         chunks[1],
     );
     let _ = io::stdout().flush();

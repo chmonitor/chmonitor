@@ -8,7 +8,8 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 #[command(
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
-    about = "chmonitor CLI (`chm` / `chmonitor`) — dashboard API, TUI, and zero-signup cluster health (`chm doctor`)"
+    about = "chmonitor CLI (`chm` / `chmonitor`) — live TUI by default; dashboard API and zero-signup cluster health (`chm doctor`)",
+    after_help = "Run `chm` with no subcommand to open the live TUI. `chm tui` is the same UI. `chm --help` / `chm help` / `chm -h` print this help."
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)
@@ -51,8 +52,9 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub debug: bool,
 
+    /// Omit to open the live TUI (same as `chm tui`).
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Option<Commands>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -80,8 +82,10 @@ impl std::fmt::Display for Channel {
 pub enum Commands {
     /// Sign in / out — auto-detects open API, device login, or API key
     Auth(AuthArgs),
-    /// Show or edit local CLI config
+    /// Show or edit local CLI config (no subcommand: interactive dialog)
     Config(ConfigArgs),
+    /// List or open Overview / saved dashboards
+    Dashboard(DashboardArgs),
     /// List hosts from a running chmonitor dashboard
     Hosts,
     /// Open the dashboard (or a path) in the browser
@@ -108,20 +112,8 @@ pub enum Commands {
         #[arg(long)]
         explain: bool,
     },
-    /// Live multi-pane terminal UI (overview / chart / table). Enters alt-screen.
-    Tui {
-        /// Chart name (default: config `default_chart`, else query-count)
-        chart: Option<String>,
-        /// Start in overview mode (hosts summary + default chart sparkline)
-        #[arg(long)]
-        overview: bool,
-        /// Table name for pane 3 (default: running-queries)
-        #[arg(long, default_value = "running-queries")]
-        table: String,
-        /// Page size when fetching the TUI table pane
-        #[arg(long, default_value_t = 15)]
-        page_size: usize,
-    },
+    /// Live terminal UI (same as running `chm` with no subcommand). Enters alt-screen.
+    Tui(TuiArgs),
     /// Stream a chat reply from the dashboard AI agent
     Chat {
         /// Prompt text (reads stdin when omitted)
@@ -161,6 +153,33 @@ pub enum Commands {
         #[arg(value_enum)]
         shell: clap_complete::Shell,
     },
+}
+
+/// Flags for `chm` / `chm tui`.
+#[derive(Args, Debug, Clone)]
+pub struct TuiArgs {
+    /// Extra chart to include on the Overview grid
+    pub chart: Option<String>,
+    /// On a small terminal, start focused on the overview pane
+    #[arg(long)]
+    pub overview: bool,
+    /// Table name (default: running-queries)
+    #[arg(long, default_value = "running-queries")]
+    pub table: String,
+    /// Page size when fetching the table pane
+    #[arg(long, default_value_t = 15)]
+    pub page_size: usize,
+}
+
+impl Default for TuiArgs {
+    fn default() -> Self {
+        Self {
+            chart: None,
+            overview: false,
+            table: "running-queries".to_string(),
+            page_size: 15,
+        }
+    }
 }
 
 /// Flags for `chm doctor` / `chm diagnose`.
@@ -205,6 +224,12 @@ pub struct UpdateArgs {
     /// Install a specific release tag, e.g. chm-v0.2.0.
     #[arg(long)]
     pub version: Option<String>,
+    /// Install from the beta channel and persist `channel = "beta"` in user config.
+    #[arg(long, conflicts_with = "stable")]
+    pub beta: bool,
+    /// Install from stable and persist `channel = "stable"` in user config.
+    #[arg(long, conflicts_with = "beta")]
+    pub stable: bool,
 }
 
 #[derive(Args, Debug)]
@@ -234,13 +259,31 @@ pub struct AuthLoginArgs {
 
 #[derive(Args, Debug)]
 pub struct ConfigArgs {
+    /// Omit to open the interactive config dialog.
     #[command(subcommand)]
-    pub command: ConfigCommand,
+    pub command: Option<ConfigCommand>,
+}
+
+#[derive(Args, Debug)]
+pub struct DashboardArgs {
+    #[command(subcommand)]
+    pub command: DashboardCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum DashboardCommand {
+    /// List dashboards; Enter opens the TUI (or print names when piped / --json)
+    List,
+    /// Open a dashboard by name in the TUI
+    Open {
+        /// Dashboard name (`Overview` or a saved name)
+        name: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigCommand {
-    /// Print the resolved config
+    /// Print config files, inherit order, and resolved values
     Show,
     /// Print the user config file path
     Path,

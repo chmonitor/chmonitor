@@ -6,20 +6,26 @@ Standalone terminal/TUI CLI for [chmonitor](https://github.com/chmonitor/chmonit
 `cargo install chmonitor` installs both; `scripts/install.sh` installs `chm`
 and symlinks `chmonitor` → `chm`.
 
+**Default:** `chm` with no subcommand opens the live TUI (`chm tui` is the same
+UI) on the Overview dashboard charts. `chm --help` / `chm help` / `chm -h`
+still print help.
+
 **Default API base:** `https://dash.chmonitor.dev` (`--base-url` / `CHM_BASE_URL`
-for self-hosted).
+/ `chm config set base_url` for self-hosted).
 
 **Platforms:** prebuilt binaries for Linux/macOS × `x86_64`/`aarch64` only (no
 Windows). Other targets: `cargo install chmonitor`.
 
 Two ways to use it:
 
+- `chm` — **interactive TUI** against a running dashboard (Overview chart grid +
+  secondary table). `chm tui` is an explicit alias. `chm dashboard list` picks
+  Overview or a saved dashboard.
 - `chm doctor --ch-host …` — **zero-signup** health scan that connects straight
   to a cluster HTTP interface (no chmonitor account or backend needed) and
   prints a scored, read-only report. `chm diagnose` is an alias of this path.
 - `chm doctor` (no host) — local CLI + dashboard API connectivity check.
-- `chm hosts` / `chm chart` / `chm table` / `chm tui` — talk to a running
-  chmonitor dashboard's API.
+- `chm hosts` / `chm chart` / `chm table` — one-shot dashboard API commands.
 
 ## Install
 
@@ -63,10 +69,20 @@ chm doctor --ch-host http://localhost:8123
 # Connectivity / self-check (no ClickHouse host)
 chm doctor
 
-# Dashboard API + TUI
+# Live TUI (default — Overview charts; same as `chm tui`)
+chm
+chm tui query-count --table running-queries
+chm dashboard list
+chm dashboard open Overview
+
+# Config
+chm config                 # interactive dialog
+chm config show            # files + inherit order + resolved
+chm config set host_id 0
+
+# One-shot dashboard API
 chm auth login
 chm hosts
-chm tui query-count
 ```
 
 ## Update
@@ -82,7 +98,9 @@ print a copy-pasteable fallback (`scripts/install.sh` or
 chm upgrade                      # alias of update — latest stable chm-v* release
 chm update                       # same behaviour
 chm update --check               # only report if a newer release exists (exit 1 if so)
-chm update --channel beta        # prefer prereleases (or CHM_CHANNEL=beta)
+chm update --beta                # install latest beta and save channel=beta
+chm update --stable              # install latest stable and save channel=stable
+chm update --channel beta        # this run only (or CHM_CHANNEL=beta)
 chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` also work)
 ```
 

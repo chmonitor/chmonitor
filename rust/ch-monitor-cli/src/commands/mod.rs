@@ -5,6 +5,7 @@ pub mod audit;
 pub mod auth;
 pub mod chart;
 pub mod config_cmd;
+pub mod dashboard;
 pub mod diagnose_cmd;
 pub mod doctor;
 pub mod hosts;
@@ -16,9 +17,10 @@ use clap::CommandFactory;
 use reqwest::Client;
 
 use crate::{
-    cli::{Commands, DoctorArgs, PromptCommand},
+    cli::{Cli, Commands, DoctorArgs, PromptCommand},
     config::AppConfig,
     prompts,
+    tui::TuiOptions,
 };
 
 async fn run_cluster_scan(client: &Client, cfg: &AppConfig, args: DoctorArgs) -> Result<i32> {
@@ -33,7 +35,29 @@ async fn run_cluster_scan(client: &Client, cfg: &AppConfig, args: DoctorArgs) ->
     .await
 }
 
-pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Result<i32> {
+pub(crate) async fn run_tui_session(
+    client: &Client,
+    cfg: &AppConfig,
+    mut opts: TuiOptions,
+) -> Result<()> {
+    loop {
+        match crate::tui::run(client, cfg, opts.clone()).await? {
+            crate::tui::TuiExit::Quit => break,
+            crate::tui::TuiExit::Chat { host_id: hid } => {
+                opts.host_id = hid;
+                crate::tui::chat::run(client, cfg, None).await?;
+            }
+        }
+    }
+    Ok(())
+}
+
+pub async fn dispatch(
+    client: &Client,
+    cfg: &AppConfig,
+    cli: &Cli,
+    command: Commands,
+) -> Result<i32> {
     if cfg.debug {
         eprintln!(
             "[debug] base_url={} host_id={} channel={} json={}",
@@ -43,9 +67,10 @@ pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Re
     match command {
         Commands::Auth(args) => auth::run(client, cfg, args).await,
         Commands::Config(args) => {
-            config_cmd::run(cfg, args)?;
+            config_cmd::run(cli, cfg, args)?;
             Ok(0)
         }
+        Commands::Dashboard(args) => dashboard::run(client, cfg, args.command).await,
         Commands::Hosts => {
             hosts::run(client, cfg).await?;
             Ok(0)
@@ -82,21 +107,17 @@ pub async fn dispatch(client: &Client, cfg: &AppConfig, command: Commands) -> Re
             table::run(client, cfg, &name, limit, explain).await?;
             Ok(0)
         }
-        Commands::Tui {
-            chart,
-            overview,
-            table,
-            page_size,
-        } => {
-            let c = chart.unwrap_or_else(|| cfg.default_chart.clone());
-            crate::tui::run(
+        Commands::Tui(args) => {
+            run_tui_session(
                 client,
                 cfg,
-                crate::tui::TuiOptions {
-                    chart: &c,
-                    table: &table,
-                    page_size,
-                    start_overview: overview,
+                TuiOptions {
+                    dashboard: crate::dashboards::OVERVIEW_NAME.to_string(),
+                    charts: crate::dashboards::tui_chart_names(args.chart.as_deref()),
+                    table: args.table,
+                    page_size: args.page_size,
+                    start_overview: args.overview,
+                    host_id: cfg.host_id,
                 },
             )
             .await?;

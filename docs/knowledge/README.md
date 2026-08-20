@@ -60,7 +60,7 @@ Agents discover knowledge in this order:
 | **Development** | [component-ci-stability.md](component-ci-stability.md) | incident | Cypress component test fragility findings and fix direction |
 | **Development** | [conventions.md](conventions.md) | workflow | Coding conventions, file organization, component patterns |
 | **Design** | [product-design.md](product-design.md) | reference | Design system + UX conventions: OKLCH tokens, dark mode, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
-| **Tools** | [standalone-cli.md](standalone-cli.md) | reference | `chm`/`chmonitor` Rust CLI: dashboard API + TUI, `chm doctor`, channels, auth/cli discovery |
+| **Tools** | [standalone-cli.md](standalone-cli.md) | reference | `chm`/`chmonitor` Rust CLI: live TUI by default, dashboard API, `chm doctor`, channels, auth/cli discovery |
 
 ## Graph Convention
 
