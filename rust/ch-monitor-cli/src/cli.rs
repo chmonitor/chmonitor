@@ -224,6 +224,12 @@ pub struct UpdateArgs {
     /// Install a specific release tag, e.g. chm-v0.2.0.
     #[arg(long)]
     pub version: Option<String>,
+    /// Install from the beta channel and persist `channel = "beta"` in user config.
+    #[arg(long, conflicts_with = "stable")]
+    pub beta: bool,
+    /// Install from stable and persist `channel = "stable"` in user config.
+    #[arg(long, conflicts_with = "beta")]
+    pub stable: bool,
 }
 
 #[derive(Args, Debug)]

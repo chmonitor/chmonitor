@@ -283,13 +283,14 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor \
 ## Self-update (`chm update` / `chm upgrade`)
 
 `chm upgrade` is a first-class alias of `chm update` (same `--check` /
-`--version` flags, same `cli_run`/`update` telemetry). Both print
+`--version` / `--beta` / `--stable` flags, same `cli_run`/`update` telemetry). Both print
 current -> target version, download the matching `chm-<target>` GitHub Release
 asset, require a matching `.sha256`, and atomically replace the running
 binary. They never invoke sudo. Homebrew-managed installs are refused
 (`is_brew_managed`). Channel (`--channel` / `CHM_CHANNEL` / config):
 `stable` skips prereleases; `beta` includes them and prefers a prerelease
-when semver cores tie. Checksum, permission, download, and
+when semver cores tie. `chm update --beta` installs from beta **and** writes
+`channel = "beta"` to the user config; `--stable` does the inverse. Checksum, permission, download, and
 unsupported-target failures print a copy-pasteable fallback (`scripts/install.sh`
 or `cargo install chmonitor --force`; unsupported targets point at cargo
 only). `--version` accepts `chm-v0.2.0`, `v0.2.0`, `0.2.0`, or `chm-0.2.0`.

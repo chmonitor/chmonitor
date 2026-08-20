@@ -98,7 +98,9 @@ print a copy-pasteable fallback (`scripts/install.sh` or
 chm upgrade                      # alias of update — latest stable chm-v* release
 chm update                       # same behaviour
 chm update --check               # only report if a newer release exists (exit 1 if so)
-chm update --channel beta        # prefer prereleases (or CHM_CHANNEL=beta)
+chm update --beta                # install latest beta and save channel=beta
+chm update --stable              # install latest stable and save channel=stable
+chm update --channel beta        # this run only (or CHM_CHANNEL=beta)
 chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` also work)
 ```
 

@@ -43,7 +43,7 @@ dashboard `vX.Y.Z` line):
 | Channel | How it ships | Install / update |
 |---|---|---|
 | `stable` (default) | release-please → tag + dispatch `cli-rust-release.yml` | `install.sh` / `chm update` |
-| `beta` | CLI path pushes on `main` → prerelease `chm-vX.Y.Z-beta.N` | `CHM_CHANNEL=beta` / `chm update --channel beta` |
+| `beta` | CLI path pushes on `main` → prerelease `chm-vX.Y.Z-beta.N` | `chm update --beta` (also saves the channel) / `CHM_CHANNEL=beta` |
 
 See the [chm CLI guide](/guide/guides/diagnostics-cli).
 
