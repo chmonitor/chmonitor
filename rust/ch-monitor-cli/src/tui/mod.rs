@@ -174,16 +174,12 @@ pub async fn run(client: &Client, cfg: &AppConfig, opts: TuiOptions<'_>) -> Resu
                         host_id = host_id.saturating_add(1);
                         next_refresh_at = Instant::now();
                     }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        if mode == TuiMode::Table {
-                            let max_scroll = table_rows.len().saturating_sub(1);
-                            table_scroll = (table_scroll + 1).min(max_scroll);
-                        }
+                    KeyCode::Down | KeyCode::Char('j') if mode == TuiMode::Table => {
+                        let max_scroll = table_rows.len().saturating_sub(1);
+                        table_scroll = (table_scroll + 1).min(max_scroll);
                     }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        if mode == TuiMode::Table {
-                            table_scroll = table_scroll.saturating_sub(1);
-                        }
+                    KeyCode::Up | KeyCode::Char('k') if mode == TuiMode::Table => {
+                        table_scroll = table_scroll.saturating_sub(1);
                     }
                     _ => {}
                 },
