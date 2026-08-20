@@ -3,7 +3,12 @@
 use anyhow::Result;
 use reqwest::Client;
 
-use crate::{client, config::AppConfig, credentials, output};
+use crate::{
+    client,
+    commands::auth::{self, CliAuthMethod},
+    config::AppConfig,
+    credentials, output,
+};
 
 pub async fn run(client: &Client, cfg: &AppConfig) -> Result<()> {
     let mut checks: Vec<(String, bool, String)> = Vec::new();
@@ -20,17 +25,46 @@ pub async fn run(client: &Client, cfg: &AppConfig) -> Result<()> {
         cfg.base_url.clone(),
     ));
 
+    let discovery = auth::discover_for_doctor(client, cfg).await.ok();
+    let auth_method = discovery
+        .as_ref()
+        .map(|d| d.method)
+        .unwrap_or(CliAuthMethod::ApiKey);
+    checks.push((
+        "auth_method".into(),
+        discovery.is_some(),
+        match &discovery {
+            Some(d) => {
+                let mut detail = d.method.as_str().to_string();
+                if d.device_enabled {
+                    detail.push_str(", device_enabled");
+                }
+                if !d.hint.is_empty() {
+                    detail.push_str(&format!(" ({})", d.hint));
+                }
+                detail
+            }
+            None => "unreachable".into(),
+        },
+    ));
+
     let token = credentials::resolve_token(cfg.token.as_deref())?;
     let api_key = credentials::resolve_api_key(cfg.api_key.as_deref())?;
+    let creds_ok = match auth_method {
+        CliAuthMethod::None => true,
+        CliAuthMethod::Device | CliAuthMethod::ApiKey => token.is_some() || api_key.is_some(),
+    };
     checks.push((
         "credentials".into(),
-        token.is_some() || api_key.is_some(),
+        creds_ok,
         if token.is_some() {
             "bearer token".into()
         } else if api_key.is_some() {
             "api key".into()
+        } else if auth_method == CliAuthMethod::None {
+            "none (open API)".into()
         } else {
-            "none (public endpoints only)".into()
+            "none — run `chm auth login`".into()
         },
     ));
 
