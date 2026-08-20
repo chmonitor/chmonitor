@@ -6,20 +6,24 @@ Standalone terminal/TUI CLI for [chmonitor](https://github.com/chmonitor/chmonit
 `cargo install chmonitor` installs both; `scripts/install.sh` installs `chm`
 and symlinks `chmonitor` → `chm`.
 
+**Default:** `chm` with no subcommand opens the live TUI (`chm tui` is the same
+UI). `chm --help` / `chm help` / `chm -h` still print help.
+
 **Default API base:** `https://dash.chmonitor.dev` (`--base-url` / `CHM_BASE_URL`
-for self-hosted).
+/ `chm config set base_url` for self-hosted).
 
 **Platforms:** prebuilt binaries for Linux/macOS × `x86_64`/`aarch64` only (no
 Windows). Other targets: `cargo install chmonitor`.
 
 Two ways to use it:
 
+- `chm` — **interactive TUI** against a running dashboard (hosts + sparkline +
+  table). `chm tui` is an explicit alias.
 - `chm doctor --ch-host …` — **zero-signup** health scan that connects straight
   to a cluster HTTP interface (no chmonitor account or backend needed) and
   prints a scored, read-only report. `chm diagnose` is an alias of this path.
 - `chm doctor` (no host) — local CLI + dashboard API connectivity check.
-- `chm hosts` / `chm chart` / `chm table` / `chm tui` — talk to a running
-  chmonitor dashboard's API.
+- `chm hosts` / `chm chart` / `chm table` — one-shot dashboard API commands.
 
 ## Install
 
@@ -63,10 +67,13 @@ chm doctor --ch-host http://localhost:8123
 # Connectivity / self-check (no ClickHouse host)
 chm doctor
 
-# Dashboard API + TUI
+# Live TUI (default — same as `chm tui`)
+chm
+chm tui query-count --table running-queries
+
+# One-shot dashboard API
 chm auth login
 chm hosts
-chm tui query-count
 ```
 
 ## Update

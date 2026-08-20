@@ -14,6 +14,7 @@ use crate::cli::{Channel, Cli};
 pub const DEFAULT_BASE_URL: &str = "https://dash.chmonitor.dev";
 pub const DEFAULT_HOST_ID: u32 = 0;
 pub const DEFAULT_CHART: &str = "query-count";
+pub const DEFAULT_TABLE: &str = "running-queries";
 pub const DEFAULT_CHANNEL: Channel = Channel::Stable;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -194,5 +195,11 @@ mod tests {
         assert_eq!(DEFAULT_BASE_URL, "https://dash.chmonitor.dev");
         assert!(DEFAULT_BASE_URL.starts_with("https://"));
         assert!(!DEFAULT_BASE_URL.contains("localhost"));
+    }
+
+    #[test]
+    fn default_chart_and_table() {
+        assert_eq!(DEFAULT_CHART, "query-count");
+        assert_eq!(DEFAULT_TABLE, "running-queries");
     }
 }

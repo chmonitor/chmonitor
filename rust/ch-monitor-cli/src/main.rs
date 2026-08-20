@@ -20,7 +20,7 @@ use anyhow::Result;
 use clap::Parser;
 use reqwest::Client;
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, TuiArgs};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -28,16 +28,21 @@ async fn main() -> Result<()> {
     let cfg = config::resolve_config(&cli)?;
     let client = Client::builder().timeout(Duration::from_secs(60)).build()?;
 
+    // Bare `chm` (no subcommand) is the live TUI — same as `chm tui`.
+    let command = cli
+        .command
+        .unwrap_or_else(|| Commands::Tui(TuiArgs::default()));
+
     // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
     // never blocks or fails the command; see src/telemetry.rs.
-    let (tel_event, tel_command): (&'static str, &'static str) = match &cli.command {
+    let (tel_event, tel_command): (&'static str, &'static str) = match &command {
         Commands::Diagnose(_) => ("cli_diagnose", "diagnose"),
         Commands::Doctor(args) if args.has_cluster_host() => ("cli_diagnose", "doctor"),
         Commands::Doctor(_) => ("cli_run", "doctor"),
         Commands::Hosts => ("cli_run", "hosts"),
         Commands::Chart { .. } => ("cli_run", "chart"),
         Commands::Table { .. } => ("cli_run", "table"),
-        Commands::Tui { .. } => ("cli_run", "tui"),
+        Commands::Tui(_) => ("cli_run", "tui"),
         Commands::Update(_) | Commands::Upgrade(_) => ("cli_run", "update"),
         Commands::Auth(_) => ("cli_run", "auth"),
         Commands::Config(_) => ("cli_run", "config"),
@@ -50,7 +55,7 @@ async fn main() -> Result<()> {
     };
     let tel_handle = telemetry::spawn(tel_event, tel_command);
 
-    let exit = commands::dispatch(&client, &cfg, cli.command).await?;
+    let exit = commands::dispatch(&client, &cfg, command).await?;
 
     telemetry::finish(tel_handle).await;
     if exit != 0 {
@@ -68,14 +73,14 @@ mod tests {
 
     fn doctor_args(cli: Cli) -> DoctorArgs {
         match cli.command {
-            Commands::Doctor(args) | Commands::Diagnose(args) => args,
+            Some(Commands::Doctor(args) | Commands::Diagnose(args)) => args,
             other => panic!("expected doctor/diagnose, got {other:?}"),
         }
     }
 
     fn update_args(cli: Cli) -> UpdateArgs {
         match cli.command {
-            Commands::Update(args) | Commands::Upgrade(args) => args,
+            Some(Commands::Update(args) | Commands::Upgrade(args)) => args,
             other => panic!("expected update/upgrade, got {other:?}"),
         }
     }
@@ -138,7 +143,7 @@ mod tests {
         .expect("global flags after subcommand");
         assert_eq!(cli.base_url.as_deref(), Some("http://127.0.0.1:3000"));
         assert_eq!(cli.host_id, Some(2));
-        assert!(matches!(cli.command, Commands::Hosts));
+        assert!(matches!(cli.command, Some(Commands::Hosts)));
     }
 
     #[test]
@@ -169,7 +174,7 @@ mod tests {
     fn doctor_without_host_is_connectivity() {
         let cli = Cli::try_parse_from(["chm", "doctor"]).expect("parse");
         assert!(
-            matches!(cli.command, Commands::Doctor(_)),
+            matches!(cli.command, Some(Commands::Doctor(_))),
             "expected Doctor, got {:?}",
             cli.command
         );
@@ -179,7 +184,7 @@ mod tests {
     fn diagnose_without_host_still_parses_as_alias() {
         let cli = Cli::try_parse_from(["chm", "diagnose"]).expect("parse");
         assert!(
-            matches!(cli.command, Commands::Diagnose(_)),
+            matches!(cli.command, Some(Commands::Diagnose(_))),
             "expected Diagnose, got {:?}",
             cli.command
         );
@@ -202,7 +207,7 @@ mod tests {
             Cli::try_parse_from(["chm", "doctor", "--ch-host", "http://localhost:8123"])
                 .expect("parse")
                 .command,
-            Commands::Doctor(_)
+            Some(Commands::Doctor(_))
         ));
         assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
         assert!(args.has_cluster_host());
@@ -219,7 +224,7 @@ mod tests {
             Cli::try_parse_from(["chm", "diagnose", "--ch-host", "http://127.0.0.1:8123"])
                 .expect("parse")
                 .command,
-            Commands::Diagnose(_)
+            Some(Commands::Diagnose(_))
         ));
         assert_eq!(args.ch_host.as_deref(), Some("http://127.0.0.1:8123"));
         assert!(args.has_cluster_host());
@@ -334,11 +339,11 @@ mod tests {
         ])
         .expect("parse");
         match cli.command {
-            Commands::Table {
+            Some(Commands::Table {
                 name,
                 limit,
                 explain,
-            } => {
+            }) => {
                 assert_eq!(name, "running-queries");
                 assert_eq!(limit, 5);
                 assert!(explain);
@@ -361,18 +366,78 @@ mod tests {
         ])
         .expect("parse");
         match cli.command {
-            Commands::Tui {
-                chart,
-                overview,
-                table,
-                page_size,
-            } => {
-                assert_eq!(chart.as_deref(), Some("query-count"));
-                assert!(overview);
-                assert_eq!(table, "merges");
-                assert_eq!(page_size, 10);
+            Some(Commands::Tui(args)) => {
+                assert_eq!(args.chart.as_deref(), Some("query-count"));
+                assert!(args.overview);
+                assert_eq!(args.table, "merges");
+                assert_eq!(args.page_size, 10);
             }
             other => panic!("expected Tui, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn bare_chm_parses_as_tui() {
+        let cli = Cli::try_parse_from(["chm"]).expect("parse");
+        assert!(
+            cli.command.is_none(),
+            "expected no subcommand, got {:?}",
+            cli.command
+        );
+    }
+
+    #[test]
+    fn bare_chm_keeps_global_flags() {
+        let cli = Cli::try_parse_from([
+            "chm",
+            "--base-url",
+            "http://127.0.0.1:3000",
+            "--host-id",
+            "2",
+        ])
+        .expect("parse");
+        assert!(cli.command.is_none());
+        assert_eq!(cli.base_url.as_deref(), Some("http://127.0.0.1:3000"));
+        assert_eq!(cli.host_id, Some(2));
+    }
+
+    #[test]
+    fn chm_tui_still_parses() {
+        let cli = Cli::try_parse_from(["chm", "tui"]).expect("parse");
+        match cli.command {
+            Some(Commands::Tui(args)) => {
+                assert!(args.chart.is_none());
+                assert_eq!(args.table, "running-queries");
+                assert_eq!(args.page_size, 15);
+                assert!(!args.overview);
+            }
+            other => panic!("expected Tui, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn chm_hosts_still_hosts() {
+        let cli = Cli::try_parse_from(["chm", "hosts"]).expect("parse");
+        assert!(matches!(cli.command, Some(Commands::Hosts)));
+    }
+
+    #[test]
+    fn help_flags_and_subcommand_still_work() {
+        for argv in [["chm", "--help"], ["chm", "-h"], ["chm", "help"]] {
+            let err = Cli::try_parse_from(argv).expect_err("help should not parse as a command");
+            assert_eq!(
+                err.kind(),
+                clap::error::ErrorKind::DisplayHelp,
+                "{argv:?}: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn help_says_bare_chm_opens_tui() {
+        let mut cmd = Cli::command();
+        let help = cmd.render_long_help().to_string();
+        assert!(help.contains("live TUI"), "{help}");
+        assert!(help.contains("no subcommand"), "{help}");
     }
 }
