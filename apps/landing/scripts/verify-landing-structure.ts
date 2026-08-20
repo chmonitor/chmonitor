@@ -258,6 +258,7 @@ try {
     'chmonitor.dev/install.sh',
     'id="install"',
     '/og/og-cli.png',
+    'data-cli-demo',
   ] as const
   if (cliHtml.includes('CHM_CHANNEL=beta') || cliHtml.includes('cargo install chmonitor')) {
     console.error('FORBIDDEN beta/cargo install on /cli')

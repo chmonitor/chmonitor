@@ -27,6 +27,18 @@ describe('/cli landing page', () => {
     expect(data).toContain("title: 'Interactive TUI'")
   })
 
+  test('embeds an interactive sample of the TUI', () => {
+    const demo = read('src/components/CliDemo.astro')
+    expect(page).toContain("from '../components/CliDemo.astro'")
+    expect(page).toContain('<CliDemo />')
+    expect(demo).toContain('data-cli-demo')
+    expect(demo).toContain('data-scene="tui"')
+    expect(demo).toContain('data-scene="dashboards"')
+    expect(demo).toContain('data-scene="config"')
+    expect(demo).toContain('data-scene="agent"')
+    expect(demo).toContain('Sample')
+  })
+
   test('does not advertise beta, cargo, or a GitHub raw installer', () => {
     expect(page).not.toContain('CLI_INSTALL_BETA')
     expect(page).not.toContain('CLI_CARGO')

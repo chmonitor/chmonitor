@@ -1,0 +1,325 @@
+---
+/**
+ * Interactive sample of the chm TUI. Deterministic mock data — labeled Sample.
+ * Click the frame or the keycaps; with focus, h/l/j/k/?/a work like the CLI.
+ */
+---
+
+<section class="band" id="demo">
+  <div class="wrap">
+    <div class="sec-head reveal" style="text-align:center">
+      <span class="eyebrow">Sample</span>
+      <h2>What <code>chm</code> looks like</h2>
+      <p>Click the terminal, then use the keys — or the buttons under it. This is a mock of the live TUI, not a connection to your cluster.</p>
+    </div>
+
+    <div class="cli-demo-shell reveal">
+      <div class="cli-demo-tabs" role="tablist" aria-label="CLI scenes">
+        <button type="button" class="cli-demo-tab" data-scene="tui" data-on="true" role="tab" aria-selected="true">chm</button>
+        <button type="button" class="cli-demo-tab" data-scene="dashboards" data-on="false" role="tab" aria-selected="false">dashboard list</button>
+        <button type="button" class="cli-demo-tab" data-scene="config" data-on="false" role="tab" aria-selected="false">config</button>
+        <button type="button" class="cli-demo-tab" data-scene="agent" data-on="false" role="tab" aria-selected="false">agent</button>
+      </div>
+
+      <div
+        class="cli-demo"
+        data-cli-demo
+        tabindex="0"
+        role="application"
+        aria-label="Interactive sample of the chmonitor CLI"
+      >
+        <div class="cli-demo-head">
+          <span class="cli-brand">chmonitor</span>
+          <span class="cli-host" data-demo-host>0 play</span>
+          <span class="cli-meta">dash.chmonitor.dev</span>
+          <span class="cli-meta">stable</span>
+          <span class="cli-live">live</span>
+          <span class="cli-cmd" data-demo-cmd>$ chm</span>
+        </div>
+
+        <div class="cli-demo-scene" data-pane="tui" data-on="true">
+          <div class="cli-tui">
+            <aside class="cli-hosts" aria-label="Hosts">
+              <div class="cli-pane-title">hosts  2</div>
+              <button type="button" class="cli-host-row" data-host="0" data-on="true">● 0  play</button>
+              <button type="button" class="cli-host-row" data-host="1" data-on="false">  1  prod</button>
+            </aside>
+            <div class="cli-main">
+              <div class="cli-chart">
+                <div class="cli-pane-title"><span data-demo-chart>query-count</span>  <span class="cli-stats" data-demo-stats>min 12  avg 48  max 91</span></div>
+                <div class="cli-spark" data-demo-spark aria-hidden="true"></div>
+              </div>
+              <div class="cli-table">
+                <div class="cli-pane-title">running-queries  <span data-demo-nrows>4</span></div>
+                <div class="cli-thead">
+                  <span>query_id</span><span>user</span><span>elapsed</span><span>query</span>
+                </div>
+                <div class="cli-tbody" data-demo-rows></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cli-demo-scene" data-pane="dashboards" data-on="false">
+          <div class="cli-list-head">chm dashboard list</div>
+          <div class="cli-pick" data-demo-dash>
+            <button type="button" class="cli-pick-row" data-on="true">Overview<small>query-count, disk, running queries</small></button>
+            <button type="button" class="cli-pick-row" data-on="false">Queries<small>running, slow, failed</small></button>
+            <button type="button" class="cli-pick-row" data-on="false">Merges<small>active merges and part sizes</small></button>
+          </div>
+          <div class="cli-hint">↑↓ pick  ·  Enter open in TUI</div>
+        </div>
+
+        <div class="cli-demo-scene" data-pane="config" data-on="false">
+          <div class="cli-list-head">chm config</div>
+          <dl class="cli-form" data-demo-form>
+            <div class="cli-field" data-on="true"><dt>base_url</dt><dd>https://dash.chmonitor.dev</dd></div>
+            <div class="cli-field" data-on="false"><dt>host_id</dt><dd>0</dd></div>
+            <div class="cli-field" data-on="false"><dt>channel</dt><dd>stable</dd></div>
+            <div class="cli-field" data-on="false"><dt>default_chart</dt><dd>query-count</dd></div>
+          </dl>
+          <div class="cli-hint">↑↓ field  ·  s save to ~/.config/chm/config.toml  ·  Esc cancel</div>
+        </div>
+
+        <div class="cli-demo-scene" data-pane="agent" data-on="false">
+          <div class="cli-list-head">chm agent</div>
+          <div class="cli-chat">
+            <div class="cli-chat-user">why are merges slow?</div>
+            <div class="cli-chat-bot">
+              <span class="cli-tool">▸ parts · events_local</span>
+              <p>events_local has 412 active parts (2.1 GiB). Inserts are writing many small parts; merges cannot keep up. Raise insert batch size, or stop the backlog with a one-off OPTIMIZE (copy-only — chmonitor does not run DDL).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="cli-help" data-demo-help hidden>
+          <strong>chmonitor keys</strong>
+          <pre>q quit   r refresh   h/l host   j/k scroll
+? help   a agent   / filter</pre>
+        </div>
+
+        <div class="cli-demo-foot" data-demo-foot>q quit  r refresh  h/l host  j/k scroll  a chat  / find  ? help</div>
+      </div>
+
+      <div class="cli-keys" aria-label="Demo keys">
+        <button type="button" class="cli-key" data-key="h"><kbd>h</kbd> prev host</button>
+        <button type="button" class="cli-key" data-key="l"><kbd>l</kbd> next host</button>
+        <button type="button" class="cli-key" data-key="j"><kbd>j</kbd> down</button>
+        <button type="button" class="cli-key" data-key="k"><kbd>k</kbd> up</button>
+        <button type="button" class="cli-key" data-key="?"><kbd>?</kbd> help</button>
+        <button type="button" class="cli-key" data-key="a"><kbd>a</kbd> agent</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cli-demo-shell{max-width:920px;margin:40px auto 0}
+  .cli-demo-tabs{display:flex;gap:2px;overflow-x:auto;padding:0 8px;background:#161619;border:1px solid var(--border);border-bottom:0;border-radius:var(--radius) var(--radius) 0 0}
+  .cli-demo-tab{height:42px;padding:0 14px;border:none;background:transparent;color:#8a8a93;font:500 13px inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .cli-demo-tab:hover{color:#d4d4d8}
+  .cli-demo-tab[data-on="true"]{color:#fff;border-bottom-color:var(--orange)}
+  .cli-demo{position:relative;outline:none;font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.45;color:#e4e4e7;background:#0c0c0f;border:1px solid var(--border);border-top:0;border-radius:0 0 var(--radius) var(--radius);min-height:320px;display:flex;flex-direction:column}
+  .cli-demo:focus{box-shadow:0 0 0 2px color-mix(in oklch, var(--orange) 55%, transparent)}
+  .cli-demo-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:8px 12px;border-bottom:1px solid #232327;color:#a1a1aa}
+  .cli-brand{color:#f97316;font-weight:700}
+  .cli-host{color:#fafafa;font-weight:600}
+  .cli-live{color:#10b981;font-weight:700}
+  .cli-cmd{margin-left:auto;color:#71717a}
+  .cli-demo-scene{display:none;flex:1;min-height:0}
+  .cli-demo-scene[data-on="true"]{display:flex;flex-direction:column}
+  .cli-tui{display:grid;grid-template-columns:168px 1fr;flex:1;min-height:240px}
+  .cli-hosts{border-right:1px solid #232327;padding:8px}
+  .cli-host-row{display:block;width:100%;text-align:left;border:0;background:transparent;color:#a1a1aa;font:inherit;padding:4px 6px;cursor:pointer;border-radius:4px}
+  .cli-host-row[data-on="true"]{color:#f97316;font-weight:700}
+  .cli-main{display:flex;flex-direction:column;min-width:0}
+  .cli-chart{padding:8px 10px;border-bottom:1px solid #232327}
+  .cli-pane-title{color:#8a8a93;margin-bottom:6px;font-size:11.5px}
+  .cli-stats{color:#71717a}
+  .cli-spark{display:flex;align-items:flex-end;gap:3px;height:44px}
+  .cli-spark i{display:block;width:6px;background:#f97316;border-radius:1px 1px 0 0;opacity:.85}
+  .cli-table{padding:8px 10px;flex:1}
+  .cli-thead,.cli-trow{display:grid;grid-template-columns:88px 72px 72px 1fr;gap:8px}
+  .cli-thead{color:#f97316;font-weight:700;margin-bottom:4px}
+  .cli-trow{color:#d4d4d8;padding:3px 4px;border-radius:4px}
+  .cli-trow[data-on="true"]{background:#1c1917;color:#fff}
+  .cli-trow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cli-demo-foot{padding:7px 12px;border-top:1px solid #232327;color:#71717a;font-size:11.5px}
+  .cli-list-head{padding:10px 12px 4px;color:#8a8a93}
+  .cli-pick{padding:4px 8px 12px}
+  .cli-pick-row{display:block;width:100%;text-align:left;border:0;background:transparent;color:#d4d4d8;font:inherit;padding:8px 10px 8px 28px;cursor:pointer;border-radius:6px;position:relative}
+  .cli-pick-row::before{content:' ';position:absolute;left:10px;color:#f97316}
+  .cli-pick-row[data-on="true"]::before{content:'▸'}
+  .cli-pick-row small{display:block;color:#71717a;margin-top:2px}
+  .cli-pick-row[data-on="true"]{background:#1c1917;color:#f97316;font-weight:600}
+  .cli-hint{padding:0 12px 12px;color:#71717a;font-size:11.5px}
+  .cli-form{margin:0;padding:4px 12px 8px}
+  .cli-field{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:7px 8px;border-radius:6px}
+  .cli-field[data-on="true"]{background:#1c1917}
+  .cli-field dt{color:#8a8a93}
+  .cli-field dd{margin:0;color:#fafafa}
+  .cli-field[data-on="true"] dd{color:#f97316}
+  .cli-chat{padding:8px 14px 16px;display:flex;flex-direction:column;gap:12px}
+  .cli-chat-user{color:#a5b4fc}
+  .cli-chat-bot{color:#e4e4e7;max-width:62ch}
+  .cli-chat-bot p{margin:8px 0 0;text-wrap:pretty;line-height:1.55}
+  .cli-tool{color:#71717a}
+  .cli-help{position:absolute;inset:18% 12%;background:#161619;border:1px solid #3a3a40;border-radius:8px;padding:16px 18px;box-shadow:0 16px 40px #0008;z-index:2}
+  .cli-help[hidden]{display:none}
+  .cli-help pre{margin:10px 0 0;color:#a1a1aa;font:inherit;white-space:pre-wrap}
+  .cli-keys{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+  .cli-key{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--muted-fg);font:500 13px inherit;cursor:pointer}
+  .cli-key kbd{font:600 12px 'Geist Mono',ui-monospace,monospace;color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;background:var(--muted)}
+  .cli-key:hover{border-color:var(--border-hover);color:var(--fg)}
+  @media (max-width:720px){
+    .cli-tui{grid-template-columns:1fr}
+    .cli-hosts{border-right:0;border-bottom:1px solid #232327;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+    .cli-hosts .cli-pane-title{width:100%}
+    .cli-thead,.cli-trow{grid-template-columns:72px 1fr}
+    .cli-thead span:nth-child(2),.cli-thead span:nth-child(3),
+    .cli-trow span:nth-child(2),.cli-trow span:nth-child(3){display:none}
+    .cli-cmd{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cli-spark i{transition:none}
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var root = document.querySelector('[data-cli-demo]')
+    if (!root) return
+    var hosts = [
+      { id: 0, name: 'play', stats: 'min 4  avg 11  max 22', spark: [8, 12, 9, 14, 11, 18, 10, 16, 13, 22, 15, 12, 9, 14, 11, 8, 12, 19, 14, 10] },
+      { id: 1, name: 'prod', stats: 'min 12  avg 48  max 91', spark: [20, 28, 24, 40, 36, 55, 48, 62, 44, 71, 58, 49, 38, 66, 91, 54, 42, 60, 47, 33] },
+    ]
+    var queries = {
+      0: [
+        ['a1e0', 'default', '12ms', 'SELECT 1'],
+        ['b20c', 'default', '40ms', 'SELECT count() FROM hits'],
+        ['c9aa', 'play', '8ms', 'SHOW TABLES'],
+        ['d014', 'play', '110ms', 'SELECT * FROM system.parts LIMIT 20'],
+      ],
+      1: [
+        ['4a2c', 'etl', '1.2s', 'SELECT count() FROM events'],
+        ['9f1e', 'etl', '420ms', 'INSERT INTO metrics SELECT …'],
+        ['b33d', 'admin', '8.1s', 'ALTER TABLE events_local ADD COLUMN'],
+        ['c019', 'default', '12ms', 'SYSTEM FLUSH LOGS'],
+      ],
+    }
+    var host = 0
+    var row = 0
+    var help = false
+    var scene = 'tui'
+    var dash = 0
+    var field = 0
+
+    function bars(vals) {
+      return vals.map(function (v) {
+        var max = Math.max.apply(null, vals) || 1
+        return '<i style="height:' + Math.max(6, Math.round((v / max) * 44)) + 'px"></i>'
+      }).join('')
+    }
+    function rowsHtml() {
+      return queries[host].map(function (q, i) {
+        return '<div class="cli-trow" data-on="' + (i === row ? 'true' : 'false') + '"><span>' + q[0] + '</span><span>' + q[1] + '</span><span>' + q[2] + '</span><span>' + q[3] + '</span></div>'
+      }).join('')
+    }
+    function setScene(name) {
+      scene = name
+      help = false
+      root.querySelectorAll('.cli-demo-scene').forEach(function (p) {
+        p.setAttribute('data-on', p.getAttribute('data-pane') === name ? 'true' : 'false')
+      })
+      document.querySelectorAll('.cli-demo-tab').forEach(function (t) {
+        var on = t.getAttribute('data-scene') === name
+        t.setAttribute('data-on', on ? 'true' : 'false')
+        t.setAttribute('aria-selected', on ? 'true' : 'false')
+      })
+      var cmd = { tui: '$ chm', dashboards: '$ chm dashboard list', config: '$ chm config', agent: '$ chm agent' }[name]
+      root.querySelector('[data-demo-cmd]').textContent = cmd
+      var foot = root.querySelector('[data-demo-foot]')
+      if (name === 'tui') foot.textContent = 'q quit  r refresh  h/l host  j/k scroll  a chat  / find  ? help'
+      else if (name === 'dashboards') foot.textContent = '↑↓ pick  Enter open  q quit'
+      else if (name === 'config') foot.textContent = '↑↓ field  s save  Esc cancel'
+      else foot.textContent = 'q quit  (sample — not a live agent)'
+      paint()
+    }
+    function paint() {
+      var h = hosts[host]
+      root.querySelector('[data-demo-host]').textContent = h.id + ' ' + h.name
+      root.querySelector('[data-demo-stats]').textContent = h.stats
+      root.querySelector('[data-demo-spark]').innerHTML = bars(h.spark)
+      root.querySelector('[data-demo-nrows]').textContent = String(queries[host].length)
+      root.querySelector('[data-demo-rows]').innerHTML = rowsHtml()
+      root.querySelectorAll('.cli-host-row').forEach(function (el) {
+        el.setAttribute('data-on', Number(el.getAttribute('data-host')) === host ? 'true' : 'false')
+        el.textContent = (Number(el.getAttribute('data-host')) === host ? '● ' : '  ') + el.getAttribute('data-host') + '  ' + (el.getAttribute('data-host') === '0' ? 'play' : 'prod')
+      })
+      var helpEl = root.querySelector('[data-demo-help]')
+      if (help) helpEl.removeAttribute('hidden')
+      else helpEl.setAttribute('hidden', '')
+      root.querySelectorAll('.cli-pick-row').forEach(function (el, i) {
+        el.setAttribute('data-on', i === dash ? 'true' : 'false')
+      })
+      root.querySelectorAll('.cli-field').forEach(function (el, i) {
+        el.setAttribute('data-on', i === field ? 'true' : 'false')
+      })
+    }
+    function maxRow() { return queries[host].length - 1 }
+    function act(k) {
+      if (k === '?' ) { help = !help; paint(); return }
+      if (k === 'a') { setScene('agent'); return }
+      if (scene === 'tui') {
+        if (k === 'h') { host = 0; row = 0 }
+        if (k === 'l') { host = 1; row = 0 }
+        if (k === 'j') row = Math.min(maxRow(), row + 1)
+        if (k === 'k') row = Math.max(0, row - 1)
+      }
+      if (scene === 'dashboards') {
+        var n = root.querySelectorAll('.cli-pick-row').length
+        if (k === 'j' || k === 'l') dash = (dash + 1) % n
+        if (k === 'k' || k === 'h') dash = (dash + n - 1) % n
+        if (k === 'Enter' && dash === 0) setScene('tui')
+      }
+      if (scene === 'config') {
+        var f = root.querySelectorAll('.cli-field').length
+        if (k === 'j' || k === 'l') field = (field + 1) % f
+        if (k === 'k' || k === 'h') field = (field + f - 1) % f
+      }
+      paint()
+    }
+    document.querySelectorAll('.cli-demo-tab').forEach(function (t) {
+      t.addEventListener('click', function () { setScene(t.getAttribute('data-scene')) })
+    })
+    document.querySelectorAll('.cli-key').forEach(function (b) {
+      b.addEventListener('click', function () {
+        root.focus()
+        act(b.getAttribute('data-key'))
+      })
+    })
+    root.querySelectorAll('.cli-host-row').forEach(function (el) {
+      el.addEventListener('click', function () {
+        host = Number(el.getAttribute('data-host'))
+        row = 0
+        paint()
+      })
+    })
+    root.querySelectorAll('.cli-pick-row').forEach(function (el, i) {
+      el.addEventListener('click', function () {
+        dash = i
+        paint()
+        if (i === 0) setScene('tui')
+      })
+    })
+    root.addEventListener('keydown', function (e) {
+      var map = { KeyH: 'h', KeyL: 'l', KeyJ: 'j', KeyK: 'k', KeyA: 'a', Slash: '?', ArrowLeft: 'h', ArrowRight: 'l', ArrowDown: 'j', ArrowUp: 'k', Enter: 'Enter' }
+      if (e.key === '?' || e.shiftKey && e.code === 'Slash') { e.preventDefault(); act('?'); return }
+      var k = map[e.code] || map[e.key]
+      if (!k) return
+      e.preventDefault()
+      act(k)
+    })
+    paint()
+  })()
+</script>
