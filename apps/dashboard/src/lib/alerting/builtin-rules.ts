@@ -319,7 +319,6 @@ LIMIT 20`,
   count() AS active_parts
 FROM system.parts
 WHERE active
-  AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
 GROUP BY database, table
 HAVING partitions >= 500
 ORDER BY partitions DESC
