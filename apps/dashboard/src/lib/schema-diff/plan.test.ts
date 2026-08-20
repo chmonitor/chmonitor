@@ -1,7 +1,7 @@
 import type { TableSchema } from './types'
 
 import { compareCatalogs } from './compare'
-import { buildChangePlan } from './plan'
+import { buildChangePlan, safeStatementsForTables } from './plan'
 import { describe, expect, test } from 'bun:test'
 
 function table(
@@ -251,5 +251,44 @@ describe('buildChangePlan', () => {
     expect(add?.onClusterStatement ?? null).toBeNull()
     expect(add?.statement).toMatch(/^ALTER TABLE /)
     expect(add?.statement).not.toMatch(/ON CLUSTER/i)
+  })
+})
+
+describe('safeStatementsForTables', () => {
+  test('empty selection returns every safe statement; a key filters the plan', () => {
+    const source = {
+      tables: [
+        table({
+          database: 'app',
+          table: 'new_tbl',
+          createTableQuery:
+            'CREATE TABLE app.new_tbl (`id` UInt64) ENGINE = MergeTree ORDER BY id',
+        }),
+        table({
+          database: 'app',
+          table: 'events',
+          columns: [
+            { name: 'id', type: 'UInt64', codec: '' },
+            { name: 'note', type: 'String', codec: '' },
+          ],
+        }),
+      ],
+    }
+    const target = {
+      tables: [table({ database: 'app', table: 'events' })],
+    }
+    const plan = buildChangePlan(compareCatalogs(source, target))
+    expect(safeStatementsForTables(plan, null)).toEqual(plan.safeStatements)
+    expect(safeStatementsForTables(plan, new Set())).toEqual(
+      plan.safeStatements
+    )
+    expect(safeStatementsForTables(plan, new Set(['app.new_tbl']))).toEqual([
+      plan.items.find((i) => i.tableKey === 'app.new_tbl')?.statement,
+    ])
+    expect(safeStatementsForTables(plan, new Set(['app.events']))).toEqual(
+      plan.items
+        .filter((i) => i.tableKey === 'app.events' && i.safe && i.statement)
+        .map((i) => i.statement)
+    )
   })
 })

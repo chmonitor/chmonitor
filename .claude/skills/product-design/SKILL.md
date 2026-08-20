@@ -107,7 +107,10 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   Target searchable comboboxes (`ComparePeerSelect`: Command +
   Popover, sorted by name, `ChmonitorLogo` plus version/uptime/status
   like HostSwitcher — never a native Select). Copy recommended SQL
-  sits on that row. The table catalog is a collapsible left sidebar
+  sits on that row (all safe statements, or only tables checked in
+  the catalog). Differing tables can be checked to build a sync
+  script — recommend-only, never applied. Each table's plan card
+  copies that table only. The table catalog is a collapsible left sidebar
   grouped **database → table** (folder row + nested table name).
   Search, **Differences / All** (icon-only `GitCompareArrows` /
   `List`), and sort (icon-only `ArrowDownAZ` menu: A–Z, Z–A,

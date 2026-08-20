@@ -416,6 +416,15 @@ describe('Schema Compare two-host path', () => {
       expect(copy.disabled).toBe(true)
       expect(copy.textContent).toContain('Copy recommended SQL')
       expect(copy.closest('[data-testid="schema-diff-ddl-pair"]')).toBeNull()
+      expect(
+        document.querySelector('[data-testid="schema-diff-copy-sync"]')
+      ).toBe(copy)
+      expect(
+        document.querySelector('[data-testid="schema-diff-select-diffs"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="schema-diff-sync-app.events"]')
+      ).not.toBeNull()
       expect(document.body.textContent).toContain('  id UInt64')
       expect(document.body.textContent).toContain('  id UInt32')
       const replaced = document.querySelectorAll('[data-diff="replace"]')

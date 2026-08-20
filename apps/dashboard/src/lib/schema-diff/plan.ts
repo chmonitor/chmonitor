@@ -291,3 +291,19 @@ export function buildChangePlan(
 
   return { items: annotated, safeStatements }
 }
+
+/**
+ * Recommend-only statements for a sync selection.
+ * Empty / omitted keys → every safe statement (copy-all).
+ */
+export function safeStatementsForTables(
+  plan: SchemaChangePlan,
+  tableKeys?: ReadonlySet<string> | null
+): string[] {
+  if (!tableKeys || tableKeys.size === 0) return plan.safeStatements
+  return plan.items
+    .filter(
+      (item) => item.safe && item.statement && tableKeys.has(item.tableKey)
+    )
+    .map((item) => item.statement)
+}

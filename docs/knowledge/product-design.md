@@ -306,7 +306,9 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   known, show the local table name and a copyable `ON CLUSTER` variant of
   the same statement (`components/ddl/recommend-ddl-blocks.tsx`, transform
   in `lib/ddl/on-cluster.ts`). Single-node stays one statement. Never
-  execute or add a Run button.
+  execute or add a Run button. Schema Compare copy-all lives
+  on the source/target toolbar; catalog checkboxes pick tables for
+  the sync script; the plan card copies the open table only.
 - **Interactive tool pages** (Explain, Advisor): before the first run, a
   dashed-border `EmptyState variant="no-data"` ("Nothing to analyze/explain
   yet"). User-input issues — table-less SQL like `SELECT 1`, a missing

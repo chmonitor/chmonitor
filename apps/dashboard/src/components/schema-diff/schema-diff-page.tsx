@@ -28,7 +28,7 @@ import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl } from '@/lib/url/url-builder'
 
 const PAGE_DESCRIPTION =
-  'Compare table schemas across hosts or cluster nodes. Recommend only — copy statements, never apply.'
+  'Compare table schemas across hosts or cluster nodes. Recommend only — copy a sync script, never apply.'
 
 export function SchemaDiffPage() {
   const hostId = useHostId()
