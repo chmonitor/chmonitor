@@ -71,6 +71,42 @@ pub fn braille_sparkline(values: &[u64], width: usize) -> String {
     out
 }
 
+/// One-line min / max / avg summary for sparkline values.
+pub fn sparkline_stats(values: &[u64]) -> Option<String> {
+    if values.is_empty() {
+        return None;
+    }
+    let min = values.iter().copied().min()?;
+    let max = values.iter().copied().max()?;
+    let sum: u128 = values.iter().map(|&v| u128::from(v)).sum();
+    let avg = sum / values.len() as u128;
+    Some(format!("min={min}  max={max}  avg={avg}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sparkline_stats_empty_is_none() {
+        assert!(sparkline_stats(&[]).is_none());
+    }
+
+    #[test]
+    fn sparkline_stats_reports_min_max_avg() {
+        let s = sparkline_stats(&[1, 2, 3, 4]).unwrap();
+        assert!(s.contains("min=1"), "{s}");
+        assert!(s.contains("max=4"), "{s}");
+        assert!(s.contains("avg=2"), "{s}");
+    }
+
+    #[test]
+    fn braille_sparkline_nonempty() {
+        let line = braille_sparkline(&[0, 5, 10, 5, 0], 5);
+        assert_eq!(line.chars().count(), 5);
+    }
+}
+
 pub fn success(msg: &str) {
     if wants_color() {
         eprintln!("{} {msg}", "✔".green());

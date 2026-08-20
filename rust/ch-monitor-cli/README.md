@@ -1,26 +1,38 @@
-# ch-monitor-cli
+# chm / chmonitor
 
-Standalone terminal/TUI CLI (`chm`) for [chmonitor](https://github.com/chmonitor/chmonitor).
+Standalone terminal/TUI CLI for [chmonitor](https://github.com/chmonitor/chmonitor).
+
+**Command names:** `chm` (short, preferred) and `chmonitor` (full alias). Same binary;
+`cargo install ch-monitor-cli` installs both; `scripts/install.sh` installs `chm`
+and symlinks `chmonitor` → `chm`.
 
 Two ways to use it:
 
 - `chm hosts` / `chm chart` / `chm table` / `chm tui` — talk to a running chmonitor dashboard's API.
-- `chm diagnose` — **zero-signup** health scan that connects straight to a ClickHouse
-  host's HTTP interface (no chmonitor account or backend needed) and prints a
+- `chm diagnose` — **zero-signup** health scan that connects straight to a cluster
+  HTTP interface (no chmonitor account or backend needed) and prints a
   scored, read-only report.
 
 ## Install
 
 ```bash
+# Stable (default)
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+
+# Beta channel
+CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
 ```
 
 Downloads and verifies the right prebuilt binary for your OS/arch from
-[GitHub Releases](https://github.com/chmonitor/chmonitor/releases) (tag format `chm-v*`).
+[GitHub Releases](https://github.com/chmonitor/chmonitor/releases) (tag format
+`chm-v*`). Stable skips prereleases; `CHM_CHANNEL=beta` prefers them.
 
-Or build from source:
+Or from crates.io / source:
 
 ```bash
+cargo install ch-monitor-cli --force
+# installs both `chm` and `chmonitor` into ~/.cargo/bin
+
 cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 ```
 
@@ -28,6 +40,7 @@ cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
+# same as: chmonitor diagnose
 ```
 
 ## Update
@@ -40,9 +53,10 @@ print a copy-pasteable fallback (`scripts/install.sh` or
 `cargo install ch-monitor-cli --force`).
 
 ```bash
-chm upgrade                      # alias of update — install the latest chm-v* release
+chm upgrade                      # alias of update — latest stable chm-v* release
 chm update                       # same behaviour
 chm update --check               # only report if a newer release exists (exit 1 if so)
+chm update --channel beta        # prefer prereleases (or CHM_CHANNEL=beta)
 chm upgrade --version chm-v0.2.0 # pin a specific release (`0.2.0` / `v0.2.0` also work)
 ```
 
@@ -58,7 +72,7 @@ for the full CLI reference.
 
 The CLI sends a best-effort, anonymous usage ping (a random install id, CLI
 version, command name, and OS/arch) to `telemetry.chmonitor.dev` — a separate
-stream from the dashboard's telemetry, with **no** ClickHouse host, query text,
+stream from the dashboard's telemetry, with **no** cluster host, query text,
 arguments, paths, or IPs. It runs on a background thread with a sub-second
 timeout and never blocks or fails a command.
 

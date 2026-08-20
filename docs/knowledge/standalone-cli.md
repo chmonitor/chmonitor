@@ -17,7 +17,12 @@ related:
 
 # Standalone chmonitor CLI (Rust)
 
-`rust/ch-monitor-cli` is the `chm` binary. By default it talks to **chmonitor
+`rust/ch-monitor-cli` ships two command names for the same binary: **`chm`**
+(short, preferred) and **`chmonitor`** (full alias). Release assets stay
+`chm-<target>`; `scripts/install.sh` installs `chm` and symlinks `chmonitor`.
+`cargo install ch-monitor-cli` installs both binaries.
+
+By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
 Self-hosted dashboards work the same way — point `--base-url` /
 `CHM_BASE_URL` at your instance. A separate `diagnose` subcommand connects
@@ -49,16 +54,17 @@ Credentials (device-login token / API key) live in the OS keyring, with a
 ```text
 chm
 ├── auth
-│   ├── login      # device-code flow → store Bearer token
+│   ├── login [--api-key]  # auto-detect none|device|api_key
 │   ├── logout     # clear keyring credentials
-│   └── status     # whether a token / API key is present
+│   ├── status     # whether a token / API key is present
+│   └── token      # print stored bearer token (CI)
 ├── config         # show / edit local config
 ├── hosts          # GET /api/v1/hosts
 ├── link [path]    # open dashboard in browser
-├── chart <name>   # GET /api/v1/charts/{name}
-├── table <name>   # GET /api/v1/tables/{name}
-├── tui [chart]    # live terminal UI (--overview for metrics)
-├── chat [msg]     # stream AI agent reply
+├── chart <name>   # GET /api/v1/charts/{name} (+ braille sparkline + min/max/avg)
+├── table <name>   # GET /api/v1/tables/{name} (--explain for columns / SQL)
+├── tui [chart]    # multi-pane TUI: 1=overview 2=chart 3=table (alt-screen)
+├── chat [msg]     # stream AI agent reply (alt-screen when interactive)
 ├── agent [msg]    # alias of chat
 ├── doctor         # local + API connectivity checks
 ├── diagnose       # direct host health (no dashboard)
@@ -71,10 +77,30 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- auth login
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- hosts
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --limit 50
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --explain
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- tui query-count
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
+
+## TUI (`chm tui`)
+
+Multi-pane live UI (ratatui + crossterm). **Only** `chm tui` and interactive
+`chm chat` enter the terminal alternate screen; other commands stay on the
+normal screen.
+
+| Key | Action |
+|-----|--------|
+| `1` | Overview — hosts summary + default chart sparkline |
+| `2` | Chart — current chart sparkline + recent rows |
+| `3` | Table — `/api/v1/tables/{name}` (default `running-queries`, `--table` / `--page-size`) |
+| `h` / `l` or `[` / `]` | Decrement / increment session `host_id` (clamped ≥ 0) |
+| `j` / `k` or ↑ / ↓ | Scroll table pane |
+| `r` | Refresh now |
+| `q` | Quit |
+
+Header shows mode, host, channel, chart, and table name. Start in overview with
+`--overview`.
 
 ## Channels
 
@@ -85,9 +111,23 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merge
 | `stable` (default) | Skip prereleases; prefer the latest stable `chm-v*` tag |
 | `beta` | Include prereleases; prefer a prerelease when semver cores tie |
 
-## Auth (device flow + API keys)
+## Auth (auto-detect: none / device / API key)
 
-Device login is gated by **`CHM_DEVICE_LOGIN`** (`auto` | `true` | `false`,
+`chm auth login` probes **`GET /api/v1/auth/cli`** (public) and branches on
+`method` — there is **no** `auth_mode` in `chm.toml`:
+
+| `method` | When | CLI behaviour |
+|----------|------|----------------|
+| `none` | `CHM_AUTH_PROVIDER=none` and no `CHM_API_KEY_SECRET` | Prints that the API is open; no credentials stored |
+| `device` | Device login enabled (`resolveDeviceLogin`) | Existing RFC 8628 browser flow → store Bearer token |
+| `api_key` | Secret set, device off (typical OSS without meta DB) | Prompt for a `chm_` key, or `--api-key` / `CHM_API_KEY` |
+
+Older dashboards without `/auth/cli` fall back to `GET /api/v1/auth/device/status`
+plus an anonymous `GET /api/v1/hosts` probe. `chm doctor` shows `auth_method`
+from the same discovery; credentials are OK when `method=none`.
+`chm auth token` prints the stored bearer token to stdout (CI).
+
+Device login is still gated by **`CHM_DEVICE_LOGIN`** (`auto` | `true` | `false`,
 default `auto`):
 
 | Deployment | `auto` behaviour |
@@ -100,13 +140,15 @@ Opt in on self-hosted with `CHM_DEVICE_LOGIN=true`. With
 can reach `/device` completes the flow; minted tokens use subject
 `CHM_DEVICE_LOGIN_SUBJECT` (default `self-hosted`). Codes persist in D1 when
 bound, otherwise an in-memory store (single-node). Force off with
-`CHM_DEVICE_LOGIN=false`. Status: `GET /api/v1/auth/device/status`.
+`CHM_DEVICE_LOGIN=false`.
 
 Dashboard auth endpoints:
 
-1. `POST /api/v1/auth/device/code` — public when enabled; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). 503 when disabled or missing `CHM_API_KEY_SECRET`.
-2. Browser opens `/device?user_code=…` → approve via `POST /api/v1/auth/device/approve` (Clerk/proxy session, or device-only when auth=`none`).
-3. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
+1. `GET /api/v1/auth/cli` — public discovery: `{ method, api, authProvider, deviceLogin, hint }`.
+2. `GET /api/v1/auth/device/status` — device enablement only (legacy / UI).
+3. `POST /api/v1/auth/device/code` — public when enabled; returns `{ data: { device_code, user_code, verification_uri, … } }` (also flattened for OAuth clients). 503 when disabled or missing `CHM_API_KEY_SECRET`.
+4. Browser opens `/device?user_code=…` → approve via `POST /api/v1/auth/device/approve` (Clerk/proxy session, or device-only when auth=`none`).
+5. CLI polls `POST /api/v1/auth/token` with `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Pending → `{ error: "authorization_pending" }` (400). Success → `{ access_token }` (`chm_` key, 30 days, all scopes).
 
 Programmatic requests may send **either** `Authorization: Bearer chm_…` **or**
 `x-api-key: chm_…` (the CLI sends both when configured). The dashboard
@@ -204,27 +246,52 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- upgrade --check
 ## CI & Release
 
 - **CI**: `cli-rust-ci.yml` — fmt, clippy, build, test
-- **Release**: Tag format `chm-v*` (e.g. `chm-v0.1.0`)
-- **Release workflow**: `cli-rust-release.yml` builds 4 targets
-  (`x86_64`/`aarch64` × `unknown-linux-gnu`/`apple-darwin`, no Windows) and
-  uploads each binary plus a `.sha256` checksum file to the GitHub Release as
-  `chm-<target>` / `chm-<target>.sha256`. Only runs the upload step on an
-  actual tag push (`github.ref_type == 'tag'`); `workflow_dispatch` builds but
-  doesn't publish.
+- **Platforms**: Linux + macOS × `x86_64` + `aarch64` only (no Windows yet).
+  Asset names: `chm-<target>` and `chm-<target>.sha256` for each of
+  `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`,
+  `x86_64-apple-darwin`, `aarch64-apple-darwin` (8 files per release).
+- **Release workflow** (`cli-rust-release.yml`): split into `meta` → `build`
+  (matrix, upload-artifact per target) → `publish` (download all artifacts,
+  softprops **once**, assert all 8 assets before and after upload).
+  Concurrency group `cli-rust-release-${{ inputs.tag || github.ref }}`
+  (`cancel-in-progress: false`).
+
+### Beta (prerelease from `main`)
+
+Every push to `main` that touches CLI paths
+(`rust/ch-monitor-cli/**`, `rust/Cargo.lock`, `rust/Cargo.toml`,
+`.github/workflows/cli-rust-release.yml`, `scripts/install.sh`) publishes a
+**prerelease** tag `chm-vX.Y.Z-beta.N` where `X.Y.Z` is
+`rust/ch-monitor-cli/Cargo.toml`’s version and `N` is `github.run_number`.
+`make_latest=false`. Versions outside `0.1.x` are refused.
+
+### Stable (release-please + dispatch)
+
+1. release-please opens `chore(main): release cli chm-vX.Y.Z` when CLI commits
+   warrant a stable bump.
+2. Merging that PR tags `chm-vX.Y.Z` and dispatches `cli-rust-release.yml`
+   with `tag=` (GITHUB_TOKEN-created tags do not fire `on: push: tags`).
+3. Direct `workflow_dispatch` with a tag, or a human-pushed stable
+   `chm-vX.Y.Z` tag, also publish. `prerelease=false`, `make_latest=true`.
 
 ## One-line install (`scripts/install.sh`)
 
 ```bash
+# Stable (default)
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+
+# Beta channel
+CHM_CHANNEL=beta curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 ```
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else
   (no silent wrong-arch installs).
-- Resolves the latest **published** `chm-v*` release via the GitHub releases
-  API, ranking by semver (not first-match / created_at) and skipping
-  drafts/prereleases. Dashboard/Helm tags share this API. Pin a specific
-  release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
+- Resolves the latest **published** `chm-v*` release via the GitHub Releases
+  API for `CHM_CHANNEL` (`stable` | `beta`). Stable skips drafts/prereleases;
+  beta prefers prereleases (falls back to stable if none). Ranking is by
+  semver, not first-match / created_at. Pin with
+  `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
 - Downloads the binary + its `.sha256` asset and verifies the checksum before
   installing; a missing or mismatched checksum is fatal (never installs an
   unverified binary). Fails loud (`set -euo pipefail`) on any
@@ -233,6 +300,9 @@ curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/ins
   `CHM_INSTALL_DIR`); never invokes `sudo` — if the target dir isn't
   writable it errors with `CHM_INSTALL_DIR` / `cargo install` fallback
   instead of escalating itself.
+- Also installs a `chmonitor` symlink/alias pointing at `chm`.
+- Self-update: `chm update` / `chm upgrade` (`--channel stable|beta`, or
+  `CHM_CHANNEL` / config `channel`) pull from the same GitHub Releases.
 - `rust/ch-monitor-cli/Cargo.toml` carries `authors`/`repository`/`readme`/
   `keywords`/`categories`. `cargo-publish.yml` publishes the crate so
   `cargo install ch-monitor-cli` works as a self-update fallback. Homebrew

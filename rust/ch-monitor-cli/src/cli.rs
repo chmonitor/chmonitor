@@ -1,4 +1,4 @@
-//! Clap definitions for `chm`.
+//! Clap definitions for `chm` / `chmonitor`.
 
 use std::path::PathBuf;
 
@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 #[command(
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
-    about = "chmonitor CLI — dashboard API, TUI, and zero-signup diagnostics"
+    about = "chmonitor CLI (`chm` / `chmonitor`) — dashboard API, TUI, and zero-signup diagnostics"
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)
@@ -78,7 +78,7 @@ impl std::fmt::Display for Channel {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Sign in / out of chmonitor Cloud (device-code flow)
+    /// Sign in / out — auto-detects open API, device login, or API key
     Auth(AuthArgs),
     /// Show or edit local CLI config
     Config(ConfigArgs),
@@ -104,14 +104,23 @@ pub enum Commands {
         /// Max rows to print
         #[arg(long, default_value_t = 20)]
         limit: usize,
+        /// Print column names / query-config metadata (SQL hint when available)
+        #[arg(long)]
+        explain: bool,
     },
-    /// Live terminal UI for a dashboard chart (or overview)
+    /// Live multi-pane terminal UI (overview / chart / table). Enters alt-screen.
     Tui {
         /// Chart name (default: config `default_chart`, else query-count)
         chart: Option<String>,
-        /// Show overview metrics instead of a single chart
+        /// Start in overview mode (hosts summary + default chart sparkline)
         #[arg(long)]
         overview: bool,
+        /// Table name for pane 3 (default: running-queries)
+        #[arg(long, default_value = "running-queries")]
+        table: String,
+        /// Page size when fetching the TUI table pane
+        #[arg(long, default_value_t = 15)]
+        page_size: usize,
     },
     /// Stream a chat reply from the dashboard AI agent
     Chat {
@@ -192,12 +201,21 @@ pub struct AuthArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum AuthCommand {
-    /// Sign in via browser device-code flow
-    Login,
+    /// Sign in (auto-detects none / device / api_key)
+    Login(AuthLoginArgs),
     /// Clear stored credentials
     Logout,
     /// Show whether a token/api-key is configured
     Status,
+    /// Print the stored bearer token to stdout (for CI)
+    Token,
+}
+
+#[derive(Args, Debug)]
+pub struct AuthLoginArgs {
+    /// API key to store when the dashboard requires key auth (skips prompt)
+    #[arg(long, env = "CHM_API_KEY")]
+    pub api_key: Option<String>,
 }
 
 #[derive(Args, Debug)]

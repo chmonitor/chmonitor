@@ -22,14 +22,17 @@ curl -sSf https://chmonitor.dev/install.sh | bash
 ```
 
 Already have a Rust toolchain? `cargo install` works too and builds the same
-binary from [crates.io](https://crates.io/crates/ch-monitor-cli):
+binaries (`chm` and `chmonitor`) from
+[crates.io](https://crates.io/crates/ch-monitor-cli):
 
 ```bash
 cargo install ch-monitor-cli
+# both `chm` and `chmonitor` land in ~/.cargo/bin
 ```
 
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm diagnose
+# same as: chmonitor diagnose
 ```
 
 <Callout type="info" title="No release yet? Build from source">

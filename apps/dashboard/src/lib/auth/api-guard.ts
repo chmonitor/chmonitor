@@ -26,6 +26,7 @@
  *    `/api/v1/auth/device/code` + `/api/v1/auth/device/approve` +
  *    `/api/v1/auth/device/status` + `/api/v1/auth/token` (OAuth device flow;
  *    approve owns its own session / device-only checks),
+ *    `/api/v1/auth/cli` (CLI auth-method discovery — no secrets),
  *    and `/api/v1/openapi.json` (public discovery document).
  *
  * Also reproduced from the Next middleware: the cloud→dash 301 redirect
@@ -55,6 +56,8 @@ const DEVICE_CODE_PATH = '/api/v1/auth/device/code'
 const DEVICE_APPROVE_PATH = '/api/v1/auth/device/approve'
 const DEVICE_STATUS_PATH = '/api/v1/auth/device/status'
 const DEVICE_TOKEN_PATH = '/api/v1/auth/token'
+// CLI probes this before login — must stay public when API-key auth is on.
+const CLI_AUTH_DISCOVERY_PATH = '/api/v1/auth/cli'
 // OpenAPI descriptor is a public discovery document (RFC 9727 service-desc).
 const OPENAPI_SPEC_PATH = '/api/v1/openapi.json'
 // Product changelog for the What's new dialog — public GitHub notes, no secrets.
@@ -178,6 +181,7 @@ export async function getApiKeyAuthFailure(
     pathname === DEVICE_APPROVE_PATH ||
     pathname === DEVICE_STATUS_PATH ||
     pathname === DEVICE_TOKEN_PATH ||
+    pathname === CLI_AUTH_DISCOVERY_PATH ||
     pathname === OPENAPI_SPEC_PATH ||
     pathname === RELEASES_PATH
   ) {

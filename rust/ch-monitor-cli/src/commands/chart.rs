@@ -30,6 +30,9 @@ pub async fn run(client: &Client, cfg: &AppConfig, name: &str, limit: usize) -> 
         let points: Vec<u64> = rows_raw.iter().map(metrics::row_metric).collect();
         if !cfg.quiet && !points.is_empty() {
             println!("{}", output::braille_sparkline(&points, 40));
+            if let Some(stats) = output::sparkline_stats(&points) {
+                println!("{stats}");
+            }
         }
         output::print_records(&rows, limit);
     }

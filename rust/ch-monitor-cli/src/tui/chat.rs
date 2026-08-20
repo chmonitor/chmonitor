@@ -1,4 +1,7 @@
 //! Streaming chat TUI / non-interactive chat against `/api/v1/agent`.
+//!
+//! Interactive TTY sessions enter the alternate screen; piped / `--json`
+//! one-shots do not (TTY rule: only `chm tui` / interactive `chm chat`).
 
 use std::io::{self, IsTerminal, Read, Write};
 

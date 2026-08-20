@@ -374,6 +374,7 @@ pub async fn run_channel(client: &Client, pinned: Option<String>, channel: Chann
         .ok_or_else(|| anyhow!("executable has no parent directory"))?;
 
     install_binary(dir, &exe, &bin_bytes).map_err(|e| permission_hint(&exe, &e))?;
+    ensure_chmonitor_alias(dir, &exe);
 
     println!(
         "Updated chm v{} -> {target_tag} ({})",
@@ -391,6 +392,51 @@ fn hex_sha256(bytes: &[u8]) -> String {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()
+}
+
+/// Keep a `chmonitor` sibling pointing at `chm` after self-update (install.sh
+/// does the same). If the user ran update via the full `chmonitor` cargo bin,
+/// sync bytes onto `chm` first so the alias never points at a stale primary.
+/// Best-effort: never fails the update if the alias cannot be created.
+fn ensure_chmonitor_alias(dir: &Path, exe: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+
+        let chm = dir.join("chm");
+        let name = exe.file_name().and_then(|s| s.to_str()).unwrap_or("");
+
+        if name != "chm" {
+            match exe.symlink_metadata() {
+                Ok(meta) if meta.file_type().is_symlink() => {}
+                Ok(_) => {
+                    let same = exe
+                        .canonicalize()
+                        .ok()
+                        .zip(chm.canonicalize().ok())
+                        .is_some_and(|(a, b)| a == b);
+                    if !same {
+                        let _ = fs::copy(exe, &chm);
+                        let _ = set_executable(&chm);
+                    }
+                }
+                Err(_) => return,
+            }
+        }
+
+        if !chm.exists() {
+            return;
+        }
+        let alias = dir.join("chmonitor");
+        if alias.symlink_metadata().is_ok() {
+            let _ = fs::remove_file(&alias);
+        }
+        let _ = symlink("chm", &alias);
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (dir, exe);
+    }
 }
 
 /// Write the new binary to a temp file in the same directory, chmod 0755, then
@@ -609,5 +655,41 @@ mod tests {
             !msg.contains("sudo "),
             "unsupported-target fallback must not suggest a sudo command: {msg}"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ensure_chmonitor_alias_links_to_chm() {
+        let dir = std::env::temp_dir().join(format!("chm-alias-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let chm = dir.join("chm");
+        fs::write(&chm, b"fake").unwrap();
+        ensure_chmonitor_alias(&dir, &chm);
+        let alias = dir.join("chmonitor");
+        assert!(alias.symlink_metadata().unwrap().file_type().is_symlink());
+        assert_eq!(fs::read_link(&alias).unwrap(), Path::new("chm"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ensure_chmonitor_alias_syncs_from_full_chmonitor_bin() {
+        let dir = std::env::temp_dir().join(format!("chm-alias-sync-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let chm = dir.join("chm");
+        let full = dir.join("chmonitor");
+        fs::write(&chm, b"old").unwrap();
+        fs::write(&full, b"new").unwrap();
+        ensure_chmonitor_alias(&dir, &full);
+        assert_eq!(fs::read(&chm).unwrap(), b"new");
+        assert!(dir
+            .join("chmonitor")
+            .symlink_metadata()
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        let _ = fs::remove_dir_all(&dir);
     }
 }
