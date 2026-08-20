@@ -26,6 +26,11 @@ pub async fn run(client: &Client, cfg: &AppConfig, args: UpdateArgs) -> Result<i
         cfg.channel
     };
     let persist = args.beta || args.stable;
+    // Persist first so `--beta` / `--stable` still switch channel when GitHub
+    // is unreachable or the binary is already current.
+    if persist && !args.check {
+        persist_channel(cfg, channel)?;
+    }
 
     if args.check {
         let available = update::check_channel(client, channel).await?;
@@ -36,9 +41,6 @@ pub async fn run(client: &Client, cfg: &AppConfig, args: UpdateArgs) -> Result<i
         }
     } else {
         update::run_channel(client, args.version, channel).await?;
-        if persist {
-            persist_channel(cfg, channel)?;
-        }
         Ok(0)
     }
 }
