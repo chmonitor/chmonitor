@@ -11,7 +11,6 @@ pub const OVERVIEW_NAME: &str = "Overview";
 /// `disk-size-all` is only shown when `disk-size-single` is missing.
 pub const OVERVIEW_CHARTS: &[&str] = &[
     "query-count",
-    "query-count-today",
     "running-queries-count",
     "database-count",
     "table-count",
@@ -222,6 +221,7 @@ mod tests {
         assert_eq!(d.name, "Overview");
         assert_eq!(d.source, "builtin");
         assert!(d.charts.contains(&"query-count".into()));
+        assert!(!d.charts.contains(&"query-count-today".into()));
         assert!(d.charts.contains(&"database-count".into()));
         assert!(d.charts.contains(&"table-count".into()));
         assert!(d.charts.contains(&"disk-size-single".into()));
