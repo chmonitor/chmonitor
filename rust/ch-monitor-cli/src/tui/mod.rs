@@ -1,10 +1,12 @@
 //! Live dashboard TUI — the default `chm` product path.
 //!
-//! Alt-screen is entered only by this TUI (`chm` / `chm tui`) and interactive
-//! `chm chat` (`tui/chat.rs`). Other commands must never call EnterAlternateScreen.
+//! Alt-screen: live TUI (`chm` / `chm tui`), interactive `chm chat`,
+//! `chm config`, and `chm dashboard list`. One-shot commands stay on the
+//! normal screen.
 
 pub mod chat;
 pub mod config_form;
+pub mod picker;
 
 use std::{
     io,
@@ -36,8 +38,14 @@ use crate::{
     dashboards, metrics, output,
 };
 
-const TUI_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
+const TUI_REFRESH_INTERVAL: Duration = Duration::from_secs(15);
+const TUI_HISTORICAL_REFRESH_INTERVAL: Duration = Duration::from_secs(120);
 const TUI_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(250);
+const MAX_CHART_POINTS: usize = 80;
+const MAX_DISK_ROWS: usize = 8;
+const MAX_ROW_STRING_CHARS: usize = 512;
+const TUI_CHART_LAST_HOURS: u32 = 24;
+const TUI_CHART_INTERVAL: &str = "toStartOfHour";
 const COMBINED_MIN_WIDTH: u16 = 72;
 const COMBINED_MIN_HEIGHT: u16 = 24;
 const ORANGE: Color = Color::Rgb(249, 115, 22);
@@ -158,6 +166,7 @@ struct App {
     error: Option<String>,
     auth_required: bool,
     last_ok_refresh: Option<Instant>,
+    last_historical_refresh: Option<Instant>,
 }
 
 impl App {
@@ -199,6 +208,7 @@ impl App {
             error: None,
             auth_required: false,
             last_ok_refresh: None,
+            last_historical_refresh: None,
         }
     }
 
@@ -246,10 +256,12 @@ pub async fn run(client: &Client, cfg: &AppConfig, opts: TuiOptions) -> Result<T
 
     let mut app = App::new(&opts);
     let mut next_refresh_at = Instant::now();
+    let mut force_refresh = true;
 
     loop {
-        if Instant::now() >= next_refresh_at {
-            refresh(client, cfg, &mut app).await;
+        if force_refresh || Instant::now() >= next_refresh_at {
+            refresh(client, cfg, &mut app, force_refresh).await;
+            force_refresh = false;
             next_refresh_at = Instant::now() + TUI_REFRESH_INTERVAL;
         }
 
@@ -265,7 +277,7 @@ pub async fn run(client: &Client, cfg: &AppConfig, opts: TuiOptions) -> Result<T
             event::Event::Resize(_, _) => continue,
             event::Event::Key(key) => match handle_key(&mut app, key) {
                 KeyAction::None => {}
-                KeyAction::Refresh => next_refresh_at = Instant::now(),
+                KeyAction::Refresh => force_refresh = true,
                 KeyAction::Quit => return Ok(TuiExit::Quit),
                 KeyAction::Chat => {
                     return Ok(TuiExit::Chat {
@@ -385,24 +397,108 @@ fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
     }
 }
 
-async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App) {
+/// Cheap tiles that are safe to poll with the live cadence.
+fn is_live_chart(name: &str) -> bool {
+    matches!(
+        name,
+        "running-queries-count"
+            | "database-count"
+            | "table-count"
+            | "disk-size-single"
+            | "disk-size-all"
+            | "merge-active-count"
+    )
+}
+
+fn chart_fetch_url(base: &str, name: &str, host_id: u32) -> String {
+    format!(
+        "{base}/api/v1/charts/{name}?hostId={host_id}&lastHours={TUI_CHART_LAST_HOURS}&interval={TUI_CHART_INTERVAL}"
+    )
+}
+
+fn should_fetch_chart(name: &str, force: bool, last_historical: Option<Instant>) -> bool {
+    if force || is_live_chart(name) {
+        return true;
+    }
+    match last_historical {
+        None => true,
+        Some(t) => t.elapsed() >= TUI_HISTORICAL_REFRESH_INTERVAL,
+    }
+}
+
+enum ChartFetch {
+    Skip,
+    Done(Result<Option<Value>>),
+}
+
+fn compact_chart_rows(name: &str, mut rows: Vec<Value>) -> (Vec<u64>, Vec<Value>) {
+    if rows.len() > MAX_CHART_POINTS {
+        rows = rows[rows.len() - MAX_CHART_POINTS..].to_vec();
+    }
+    truncate_row_strings(&mut rows);
+    let points: Vec<u64> = rows.iter().map(metrics::row_metric).collect();
+    let kept = if name.starts_with("disk-size") {
+        rows.truncate(MAX_DISK_ROWS);
+        rows
+    } else if let Some(last) = rows.pop() {
+        vec![last]
+    } else {
+        Vec::new()
+    };
+    (points, kept)
+}
+
+fn truncate_row_strings(rows: &mut [Value]) {
+    for row in rows {
+        let Value::Object(map) = row else {
+            continue;
+        };
+        for value in map.values_mut() {
+            if let Value::String(s) = value {
+                if s.chars().count() > MAX_ROW_STRING_CHARS {
+                    *s = truncate_chars(s, MAX_ROW_STRING_CHARS);
+                }
+            }
+        }
+    }
+}
+
+fn bound_table_rows(mut rows: Vec<Value>, page_size: usize) -> Vec<Value> {
+    let cap = page_size.max(1).min(100);
+    if rows.len() > cap {
+        rows.truncate(cap);
+    }
+    truncate_row_strings(&mut rows);
+    rows
+}
+
+async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App, force: bool) {
     let base = cfg.base_url.trim_end_matches('/');
     let hosts_url = format!("{base}/api/v1/hosts");
     let table_url = format!(
         "{base}/api/v1/tables/{}?hostId={}&pageSize={}",
         app.table, app.host_id, app.page_size
     );
-    let chart_urls: Vec<String> = app
+    let last_historical = app.last_historical_refresh;
+    let chart_jobs: Vec<(bool, String)> = app
         .charts
         .iter()
-        .map(|c| format!("{base}/api/v1/charts/{}?hostId={}", c.name, app.host_id))
+        .map(|c| {
+            (
+                should_fetch_chart(&c.name, force, last_historical),
+                chart_fetch_url(base, &c.name, app.host_id),
+            )
+        })
         .collect();
 
-    let charts_fut = futures_util::future::join_all(
-        chart_urls
-            .into_iter()
-            .map(|url| client::fetch_optional_cfg(client, cfg, url)),
-    );
+    let charts_fut =
+        futures_util::future::join_all(chart_jobs.into_iter().map(|(fetch, url)| async move {
+            if !fetch {
+                ChartFetch::Skip
+            } else {
+                ChartFetch::Done(client::fetch_optional_cfg(client, cfg, url).await)
+            }
+        }));
     let (hosts_res, table_res, chart_results) = tokio::join!(
         client::fetch_cfg(client, cfg, hosts_url),
         client::fetch_cfg(client, cfg, table_url),
@@ -411,6 +507,7 @@ async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App) {
 
     let mut auth = false;
     let mut errors: Vec<String> = Vec::new();
+    let mut fetched_historical = false;
 
     match hosts_res {
         Ok(data) => app.hosts = parse_hosts(&data),
@@ -422,23 +519,36 @@ async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App) {
 
     for (pane, result) in app.charts.iter_mut().zip(chart_results) {
         match result {
-            Ok(None) => {
+            ChartFetch::Skip => {}
+            ChartFetch::Done(Ok(None)) => {
+                if !is_live_chart(&pane.name) {
+                    fetched_historical = true;
+                }
                 pane.missing = true;
                 pane.points.clear();
                 pane.rows.clear();
             }
-            Ok(Some(data)) => match client::rows_from_chart_data(data) {
-                Ok(rows) => {
-                    pane.missing = rows.is_empty();
-                    pane.points = rows.iter().take(80).map(metrics::row_metric).collect();
-                    pane.rows = rows;
+            ChartFetch::Done(Ok(Some(data))) => {
+                if !is_live_chart(&pane.name) {
+                    fetched_historical = true;
                 }
-                Err(err) => {
-                    pane.missing = true;
-                    errors.push(short_error(&pane.name, &err));
+                match client::rows_from_chart_data(data) {
+                    Ok(rows) => {
+                        pane.missing = rows.is_empty();
+                        let (points, kept) = compact_chart_rows(&pane.name, rows);
+                        pane.points = points;
+                        pane.rows = kept;
+                    }
+                    Err(err) => {
+                        pane.missing = true;
+                        errors.push(short_error(&pane.name, &err));
+                    }
                 }
-            },
-            Err(err) => {
+            }
+            ChartFetch::Done(Err(err)) => {
+                if !is_live_chart(&pane.name) {
+                    fetched_historical = true;
+                }
                 auth |= is_auth_error(&err);
                 pane.missing = true;
                 pane.points.clear();
@@ -450,12 +560,17 @@ async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App) {
         }
     }
 
+    if fetched_historical {
+        app.last_historical_refresh = Some(Instant::now());
+    }
+
     match table_res {
         Ok(data) => {
-            app.table_rows = match data {
+            let rows = match data {
                 Value::Array(rows) => rows,
                 other => vec![other],
             };
+            app.table_rows = bound_table_rows(rows, app.page_size);
             app.clamp_scroll();
         }
         Err(err) => {
@@ -758,7 +873,13 @@ fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
     let header = Row::new(cols.iter().cloned().map(Cell::from))
         .style(Style::default().fg(ORANGE).add_modifier(Modifier::BOLD));
     let widths = column_constraints(cols.len());
-    let rows: Vec<Row> = filtered
+    let vis = (area.height.saturating_sub(4) as usize).max(1);
+    let start = app
+        .table_scroll
+        .saturating_sub(vis.saturating_sub(1))
+        .min(filtered.len().saturating_sub(1));
+    let end = (start + vis).min(filtered.len());
+    let rows: Vec<Row> = filtered[start..end]
         .iter()
         .map(|row| {
             let obj = row.as_object();
@@ -773,7 +894,7 @@ fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
         .collect();
 
     let mut state = TableState::default();
-    state.select(Some(app.table_scroll));
+    state.select(Some(app.table_scroll.saturating_sub(start)));
     let table = TuiTable::new(rows, widths)
         .header(header)
         .block(Block::bordered().title(title))
@@ -1256,6 +1377,7 @@ mod tests {
         assert!(app.charts.iter().any(|c| c.name == "query-count"));
         assert!(app.charts.iter().any(|c| c.name == "database-count"));
         assert!(app.charts.iter().any(|c| c.name == "disk-size-single"));
+        assert!(!app.charts.iter().any(|c| c.name == "query-count-today"));
         assert_eq!(app.table, "running-queries");
         assert_eq!(app.focused, Pane::Overview);
     }
@@ -1293,5 +1415,51 @@ mod tests {
             .map(|c| c.name.as_str())
             .collect();
         assert_eq!(names, vec!["query-count", "disk-size-all"]);
+    }
+
+    #[test]
+    fn chart_urls_cap_the_query_window() {
+        let url = chart_fetch_url("https://dash.example", "query-count", 2);
+        assert_eq!(
+            url,
+            "https://dash.example/api/v1/charts/query-count?hostId=2&lastHours=24&interval=toStartOfHour"
+        );
+        assert!(is_live_chart("running-queries-count"));
+        assert!(!is_live_chart("query-count"));
+        assert!(should_fetch_chart("query-count", true, None));
+        assert!(!should_fetch_chart(
+            "query-count",
+            false,
+            Some(Instant::now())
+        ));
+    }
+
+    #[test]
+    fn compact_chart_rows_drops_history_json() {
+        let rows: Vec<Value> = (0..120)
+            .map(|i| json!({"query_count": i, "query": "x".repeat(800)}))
+            .collect();
+        let (points, kept) = compact_chart_rows("query-count", rows);
+        assert_eq!(points.len(), MAX_CHART_POINTS);
+        assert_eq!(kept.len(), 1);
+        assert_eq!(kept[0]["query_count"], 119);
+        let query_len = kept[0]["query"].as_str().unwrap().chars().count();
+        assert!(query_len <= MAX_ROW_STRING_CHARS + 1);
+        let disk = compact_chart_rows(
+            "disk-size-all",
+            vec![
+                json!({"name": "a"}),
+                json!({"name": "b"}),
+                json!({"name": "c"}),
+            ],
+        );
+        assert_eq!(disk.1.len(), 3);
+        let table = bound_table_rows(
+            (0..40)
+                .map(|i| json!({"i": i, "query": "SELECT 1"}))
+                .collect(),
+            15,
+        );
+        assert_eq!(table.len(), 15);
     }
 }

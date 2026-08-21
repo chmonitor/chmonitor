@@ -8,8 +8,8 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 #[command(
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
-    about = "chmonitor CLI (`chm` / `chmonitor`) — live TUI by default; dashboard API and zero-signup cluster health (`chm doctor`)",
-    after_help = "Run `chm` with no subcommand to open the live TUI. `chm tui` is the same UI. `chm --help` / `chm help` / `chm -h` print this help."
+    about = "chmonitor CLI (`chm` / `chmonitor`) — live TUI by default",
+    after_help = "Run `chm` with no subcommand to open the live TUI. `chm --help` / `chm help` / `chm -h` print this help. Sign in with `chm auth`; set base URL and host with `chm config`."
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)
@@ -136,8 +136,6 @@ pub enum Commands {
     /// With `--ch-host`, runs a zero-signup read-only cluster health report.
     /// Without a host, checks local CLI + dashboard connectivity.
     Doctor(DoctorArgs),
-    /// Alias of `doctor` cluster scan. Same flags; always the health report.
-    Diagnose(DoctorArgs),
     /// Update chm to the latest GitHub release (self-update).
     ///
     /// Prints current -> target version, verifies sha256, and atomically
@@ -146,14 +144,6 @@ pub enum Commands {
     /// (`scripts/install.sh` or `cargo install chmonitor`).
     /// `--beta` / `--stable` switch the saved channel and then update.
     Update(UpdateArgs),
-    /// Alias of `update`. Same flags (`--check`, `--version`, `--beta`, `--stable`).
-    Upgrade(UpdateArgs),
-    /// Generate shell completions
-    Completions {
-        /// Shell to emit completions for
-        #[arg(value_enum)]
-        shell: clap_complete::Shell,
-    },
 }
 
 /// Flags for `chm` / `chm tui`.
@@ -183,7 +173,7 @@ impl Default for TuiArgs {
     }
 }
 
-/// Flags for `chm doctor` / `chm diagnose`.
+/// Flags for `chm doctor`.
 #[derive(Args, Debug, Clone)]
 pub struct DoctorArgs {
     /// ClickHouse HTTP interface URL, e.g. http://localhost:8123.
@@ -216,7 +206,7 @@ impl DoctorArgs {
     }
 }
 
-/// Shared flags for `chm update` and `chm upgrade`.
+/// Flags for `chm update`.
 #[derive(Args, Debug)]
 pub struct UpdateArgs {
     /// Only check whether an update is available; exit 1 if one exists.

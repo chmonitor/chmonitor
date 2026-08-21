@@ -543,7 +543,7 @@ not by the dashboard server. Flags override env; env overrides
 | Variable | Default | Purpose |
 |---|---|---|
 | `CHM_BASE_URL` | `https://dash.chmonitor.dev` | Dashboard API origin for `hosts` / `chart` / `table` / `tui` / `auth` / … |
-| `CHM_CHANNEL` | `stable` | Release channel for `install.sh` and `chm update`/`upgrade`: `stable` or `beta`. Also `--channel` / config `channel`. `chm update --beta` installs from beta and writes `channel = "beta"` to the user config (`--stable` writes `stable`). |
+| `CHM_CHANNEL` | `stable` | Release channel for `install.sh` and `chm update`: `stable` or `beta`. Also `--channel` / config `channel`. `chm update --beta` installs from beta and writes `channel = "beta"` to the user config (`--stable` writes `stable`). |
 | `CHM_API_KEY` | — | `chm_` API key (also `--api-key`). Used when discovery returns `api_key`, or alongside device login. |
 | `CHM_TOKEN` | — | Bearer token from device login (also `--token`). Usually stored in the OS keyring. |
 | `CHM_HOST_ID` | `0` | Host index for dashboard API calls (`?host=`). |

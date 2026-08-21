@@ -5,11 +5,10 @@
 # Releases (tag format `chm-v*`), verifies its sha256 checksum, and installs
 # it to a user-writable directory. No account, no Rust toolchain required.
 #
-# Usage (curl-safe — GitHub raw; Cloudflare Bot Fight Mode 403s curl on the apex):
-#   curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
-# Browsers can still open https://chmonitor.dev/install.sh (landing copies this
-# file at build). After Bot Fight Mode is off, `pnpm run cf:allow-install-sh`
-# verifies the branded curl URL again.
+# Usage:
+#   curl -sSf https://chmonitor.dev/install.sh | bash
+# Landing build copies this file to public/install.sh. If curl gets a Cloudflare
+# Bot Fight Mode 403, see docs/knowledge/install-sh-bot-fight.md.
 #
 # Env overrides:
 #   CHM_VERSION       Install a specific release tag (e.g. "chm-v0.1.0").

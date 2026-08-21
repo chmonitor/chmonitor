@@ -166,6 +166,11 @@ async fn run_tui(client: &Client, cfg: &AppConfig, seed: Option<String>) -> Resu
                 Ok(reply) => log.push(format!("agent> {reply}")),
                 Err(err) => log.push(format!("error> {err}")),
             }
+            const MAX_CHAT_LOG: usize = 40;
+            if log.len() > MAX_CHAT_LOG {
+                let drop_n = log.len() - MAX_CHAT_LOG;
+                log.drain(0..drop_n);
+            }
             busy = false;
         }
 

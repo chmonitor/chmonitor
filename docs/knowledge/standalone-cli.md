@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-08-20
+updated: 2026-08-21
 tags:
   - rust
   - cli
@@ -29,7 +29,7 @@ of the same UI) showing the **Overview dashboard** charts. `chm --help` /
 By default it talks to **chmonitor
 Cloud** at `https://dash.chmonitor.dev` (hosts / charts / tables / TUI / agent).
 Self-hosted dashboards work the same way — point `--base-url` /
-`CHM_BASE_URL` / `chm config set base_url` at your instance. `chm doctor --ch-host` (alias `diagnose`)
+`CHM_BASE_URL` / `chm config set base_url` at your instance. `chm doctor --ch-host`
 connects **directly to a ClickHouse host** with no chmonitor backend or account
 (see [Zero-signup cluster health](#zero-signup-cluster-health-doctor) below).
 
@@ -56,30 +56,28 @@ Credentials (device-login token / API key) live in the OS keyring, with a
 ## Command tree
 
 ```text
-chm                # live TUI (default; Overview charts; same as `chm tui`)
+chm                # live TUI (default; same as `chm tui`)
 ├── tui [chart]    # explicit TUI alias (alt-screen)
-├── dashboard
-│   ├── list       # pick a dashboard (Overview + saved); Enter opens TUI
-│   └── open <name>
 ├── auth
-│   ├── login [--api-key]  # auto-detect none|device|api_key
-│   ├── logout     # clear keyring credentials
-│   ├── status     # whether a token / API key is present
-│   └── token      # print stored bearer token (CI)
+│   ├── login [--api-key]
+│   ├── logout
+│   ├── status
+│   └── token
 ├── config         # interactive dialog (no subcommand)
-│   ├── show       # files + contents + inherit order + resolved
+│   ├── show
 │   ├── path
 │   └── set KEY VALUE
-├── hosts          # GET /api/v1/hosts
-├── link [path]    # open dashboard in browser
-├── chart <name>   # GET /api/v1/charts/{name} (+ braille sparkline + min/max/avg)
-├── table <name>   # GET /api/v1/tables/{name} (--explain for columns / SQL)
-├── chat [msg]     # stream AI agent reply (alt-screen when interactive)
-├── agent [msg]    # alias of chat
-├── doctor         # cluster scan with --ch-host; else CLI + API connectivity
-├── diagnose       # alias of doctor cluster scan (same flags)
-├── update|upgrade # self-update from GitHub Releases
-└── completions    # shell completions
+├── dashboard
+│   ├── list
+│   └── open <name>
+├── hosts
+├── link [path]
+├── chart <name>
+├── table <name>
+├── chat [msg]
+├── agent [msg]
+├── doctor         # cluster scan with --ch-host; else connectivity
+└── update         # self-update from GitHub Releases
 ```
 
 ```bash
@@ -93,21 +91,24 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --explain
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
-cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merges slow?"
 ```
 
 ## TUI (`chm` / `chm tui`)
 
 Live UI (ratatui + crossterm). Bare `chm` and `chm tui` are the same command
 (telemetry `cli_run` / `tui`). The default view is the **Overview dashboard**:
-`query-count`, `query-count-today`, `running-queries-count`, `database-count`,
-`table-count`, and `disk-size-single` (or `disk-size-all`) via
-`GET /api/v1/charts/{name}?hostId=`. Each chart is a KPI and/or sparkline in a
-grid; HTTP 404 charts are skipped. The running-queries table stays a secondary
-pane. `chm dashboard list` (and `chm dashboard open <name>`) open the same TUI
-bound to Overview or a saved dashboard's `layout.widgets[].chartName`. **Only**
-this TUI, interactive `chm chat`, and `chm config` (dialog) enter the terminal
-alternate screen; `dashboard list`'s picker stays on the normal screen.
+`query-count`, `running-queries-count`, `database-count`, `table-count`, and
+`disk-size-single` (or `disk-size-all`) via
+`GET /api/v1/charts/{name}` with `hostId`, a one-day `lastHours` window, and
+hourly `interval`.
+Live tiles refresh every fifteen seconds; query-log charts refresh every two
+minutes so the TUI cannot hammer the cluster. Chart JSON is capped (sparkline
+points plus the latest row). HTTP 404 charts are skipped. The running-queries
+table stays a secondary pane (page size plus string truncation). `chm dashboard
+list` (and `chm dashboard open <name>`) open the same TUI bound to Overview or a
+saved dashboard's `layout.widgets[].chartName`. All interactive surfaces use
+ratatui on the alternate screen: live TUI, `chm chat`, `chm config`, and the
+`dashboard list` picker. One-shot commands stay on the normal screen.
 
 One screen: hosts + chart grid **and** the table together when the terminal is
 tall/wide enough (`≥72×24`). Smaller terminals collapse to a focused pane with
@@ -136,8 +137,9 @@ chart grid (`--overview` still accepted).
 Always lists built-in **Overview** first. When signed in, also fetches
 `GET /api/dashboards/list` and uses each `layout.widgets[].chartName` where
 `type=chart`. HTTP 401/403/501 still lists Overview plus a one-line reason.
-Interactive TTY: j/k/arrows pick, Enter opens the TUI. `--json` or piped stdout
-prints names (no picker). `chm dashboard open <name>` opens by name.
+Interactive TTY: ratatui picker (j/k/arrows, Enter opens the TUI, q/Esc
+cancels). `--json` or piped stdout prints names (no picker).
+`chm dashboard open <name>` opens by name.
 
 ## Config (`chm config` / `chm config show`)
 
@@ -232,8 +234,7 @@ Response shape: `{ data: { apiKey, sub, scopes, expiresInDays } }`.
 `chm doctor --ch-host` is a **separate connection mode** from the rest of the CLI: it
 talks straight to the ClickHouse HTTP interface (`reqwest` + basic auth), not
 through the dashboard's `/api/v1/*` (no `base_url`/`api_key`/`host_id`, no
-account, no chmonitor backend required at all). `chm diagnose` is a first-class
-alias of this path (same flags). Without a host, `chm doctor` keeps the local
+account, no chmonitor backend required at all). Without a host, `chm doctor` keeps the local
 CLI + dashboard connectivity check. Implementation:
 `rust/ch-monitor-cli/src/diagnose.rs` (scan) and `src/commands/doctor.rs`
 (connectivity).
@@ -274,19 +275,17 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor \
 
 | Library | Purpose |
 |---------|---------|
-| `clap` + `clap_complete` | CLI parser, env support, completions |
+| `clap` | CLI parser, env support |
 | `reqwest` + `tokio` | Async HTTP (JSON + SSE stream) |
 | `keyring` | OS credential store |
 | `comfy-table` / `indicatif` / `owo-colors` | Table + progress + color |
 | `ratatui` + `crossterm` | TUI stack |
 
-## Self-update (`chm update` / `chm upgrade`)
+## Self-update (`chm update`)
 
-`chm upgrade` is a first-class alias of `chm update` (same `--check` /
-`--version` / `--beta` / `--stable` flags, same `cli_run`/`update` telemetry). Both print
-current -> target version, download the matching `chm-<target>` GitHub Release
-asset, require a matching `.sha256`, and atomically replace the running
-binary. They never invoke sudo. Homebrew-managed installs are refused
+`chm update` prints current -> target version, downloads the matching `chm-<target>` GitHub Release
+asset, requires a matching `.sha256`, and atomically replaces the running
+binary. It never invokes sudo. Homebrew-managed installs are refused
 (`is_brew_managed`). Channel (`--channel` / `CHM_CHANNEL` / config):
 `stable` skips prereleases; `beta` includes them and prefers a prerelease
 when semver cores tie. `chm update --beta` writes `channel = "beta"` to the
@@ -300,7 +299,7 @@ Implementation: `src/update.rs`. Latest-tag lookup pages past dashboard/Helm
 releases and ranks published `chm-v*` tags by semver.
 
 ```bash
-cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- upgrade --check
+cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- update --check
 ```
 
 ## CI & Release
@@ -337,16 +336,15 @@ Every push to `main` that touches CLI paths
 ## One-line install (`scripts/install.sh`)
 
 ```bash
-# Stable (default) — GitHub raw (Cloudflare Bot Fight Mode 403s curl on the apex)
-curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+# Stable (default)
+curl -sSf https://chmonitor.dev/install.sh | bash
 
 # Beta channel
-CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
+CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
 ```
 
-Browsers can still open `https://chmonitor.dev/install.sh`. To restore the
-branded `curl … chmonitor.dev/install.sh` path, turn **Bot Fight Mode** off
-for the zone and run `pnpm run cf:allow-install-sh`.
+If curl gets a Cloudflare Bot Fight Mode 403, see
+[install-sh-bot-fight.md](install-sh-bot-fight.md).
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else
@@ -365,7 +363,7 @@ for the zone and run `pnpm run cf:allow-install-sh`.
   writable it errors with `CHM_INSTALL_DIR` / `cargo install` fallback
   instead of escalating itself.
 - Also installs a `chmonitor` symlink/alias pointing at `chm`.
-- Self-update: `chm update` / `chm upgrade` (`--channel stable|beta`, or
+- Self-update: `chm update` (`--channel stable|beta`, or
   `CHM_CHANNEL` / config `channel`) pull from the same GitHub Releases.
 - `rust/ch-monitor-cli/Cargo.toml` carries `authors`/`repository`/`readme`/
   `keywords`/`categories`. `cargo-publish.yml` publishes the crate so

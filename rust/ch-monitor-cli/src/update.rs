@@ -1,4 +1,4 @@
-//! Self-update: `chm update` / `chm upgrade`.
+//! Self-update: `chm update`.
 //!
 //! Downloads the newest (or a pinned) `chm-v*` release from GitHub, verifies its
 //! sha256 checksum, and atomically replaces the running executable. Never
@@ -17,8 +17,7 @@ use crate::cli::Channel;
 const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases";
 const RELEASE_DOWNLOAD: &str = "https://github.com/chmonitor/chmonitor/releases/download";
 const USER_AGENT: &str = concat!("chm-cli/", env!("CARGO_PKG_VERSION"));
-const INSTALL_SH: &str =
-    "curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash";
+const INSTALL_SH: &str = "curl -sSf https://chmonitor.dev/install.sh | bash";
 const CARGO_INSTALL: &str = "cargo install chmonitor --force";
 /// GitHub's default page size is 30; this repo also ships dashboard/Helm releases.
 const RELEASES_PER_PAGE: u32 = 100;
@@ -202,7 +201,7 @@ fn ensure_supported_target() -> Result<()> {
     Ok(())
 }
 
-/// `chm update --check` / `chm upgrade --check`: report whether a newer release exists.
+/// `chm update --check`: report whether a newer release exists.
 /// Returns `true` when an update is available.
 #[allow(dead_code)]
 pub async fn check(client: &Client) -> Result<bool> {
@@ -221,7 +220,7 @@ pub async fn check_channel(client: &Client, channel: Channel) -> Result<bool> {
         channel.as_str()
     );
     if latest > current {
-        println!("update available (run `chm update` or `chm upgrade`)");
+        println!("update available (run `chm update`)");
         Ok(true)
     } else {
         println!("chm is up to date");
@@ -249,13 +248,13 @@ pub async fn hint(client: &Client) {
     };
     if let Ok(Some(tag)) = tokio::time::timeout(Duration::from_millis(900), fut).await {
         eprintln!(
-            "note: a newer chm is available (v{} -> {tag}). Run `chm update` or `chm upgrade`. (set CHM_NO_UPDATE_CHECK=1 to silence)",
+            "note: a newer chm is available (v{} -> {tag}). Run `chm update`. (set CHM_NO_UPDATE_CHECK=1 to silence)",
             env!("CARGO_PKG_VERSION")
         );
     }
 }
 
-/// `chm update` / `chm upgrade` (and `--version <tag>`): download, verify, replace.
+/// `chm update` (and `--version <tag>`): download, verify, replace.
 #[allow(dead_code)]
 pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
     run_channel(client, pinned, Channel::Stable).await
@@ -602,7 +601,7 @@ mod tests {
     }
 
     fn assert_copy_pasteable_fallback(msg: &str) {
-        assert!(msg.contains("scripts/install.sh"), "{msg}");
+        assert!(msg.contains("chmonitor.dev/install.sh"), "{msg}");
         assert!(msg.contains("cargo install chmonitor"), "{msg}");
         // Match `sudo ` as a command. The phrase "never invokes sudo" must not trip this.
         assert!(

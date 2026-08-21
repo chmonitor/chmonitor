@@ -3,7 +3,7 @@ name = "chmonitor"
 version = "0.1.2"
 edition = "2021"
 authors = ["duyet <bot@duyet.net>"]
-description = "Standalone terminal/TUI CLI for chmonitor (`chm` / `chmonitor`). Run `chm` for the live TUI; includes a zero-signup `chm doctor` health scan."
+description = "Standalone terminal/TUI CLI for chmonitor (`chm` / `chmonitor`). Run `chm` for the live TUI."
 license = "MIT"
 repository = "https://github.com/chmonitor/chmonitor"
 readme = "README.md"
@@ -29,7 +29,6 @@ mermaid = []
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
-clap_complete = "4"
 comfy-table = "7"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serde = { version = "1", features = ["derive"] }

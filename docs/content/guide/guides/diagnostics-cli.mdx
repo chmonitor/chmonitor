@@ -13,7 +13,7 @@ open the live TUI (`chm tui` is the same UI) on the Overview dashboard charts.
 `--base-url` / `CHM_BASE_URL` / `chm config set base_url` at your self-hosted
 dashboard when needed.
 
-`chm doctor --ch-host` (alias `chm diagnose`) is a separate mode: it connects
+`chm doctor --ch-host` (no dashboard account or backend) is a separate mode: it connects
 **straight to a ClickHouse host** with no dashboard account or backend.
 
 <Callout type="info" title="Binary names and platforms">
@@ -32,10 +32,10 @@ checksum, installs `chm`, and symlinks `chmonitor` → `chm`:
 
 ```bash
 # Stable channel (default)
-curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
+curl -sSf https://chmonitor.dev/install.sh | bash
 
 # Beta channel (prereleases)
-CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
+CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
 ```
 
 Pin a release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
@@ -56,7 +56,7 @@ cargo install chmonitor
 | `stable` (default) | omit, or `CHM_CHANNEL=stable` / `--channel stable` | Latest non-prerelease `chm-v*` |
 | `beta` | `CHM_CHANNEL=beta` / `--channel beta` / config `channel = "beta"` | Prefer prereleases (`chm-vX.Y.Z-beta.N`) |
 
-`install.sh`, `chm update`, and `chm upgrade` all honour the same channel.
+`install.sh` and `chm update` honour the same channel.
 
 ## Auth (`chm auth login`)
 
@@ -83,17 +83,16 @@ and [Environment variables — CLI client](/reference/environment-variables#cli-
 
 ## Update
 
-`chm update` and `chm upgrade` are the same command (`upgrade` is a first-class
-alias). Both print current → target version and update in place from GitHub
-Releases — no re-running the install script, and they never invoke `sudo`:
+`chm update` prints current → target version and updates in place from GitHub
+Releases — no re-running the install script, and it never invokes `sudo`:
 
 ```bash
-chm upgrade                    # alias of update
+chm update                     # latest stable
 chm update --check             # report only (exit 1 if newer exists)
 chm update --beta              # install latest beta and save channel=beta
 chm update --stable            # install latest stable and save channel=stable
 chm update --channel beta      # this run only
-chm upgrade --version chm-v0.2.0
+chm update --version chm-v0.2.0
 ```
 
 Checksum verification is mandatory. Failures print a copy-pasteable fallback
@@ -125,8 +124,8 @@ chm agent "why are merges slow?"
 The default TUI fetches Overview charts (`query-count`, counts, disk size) from
 `GET /api/v1/charts/{name}?hostId=` and skips 404s. `chm dashboard list` always
 includes built-in Overview; saved dashboards come from `GET /api/dashboards/list`
-when signed in (401/501 still list Overview). Piped stdout or `--json` prints
-names without a picker.
+when signed in (401/501 still list Overview). On a TTY the list is a ratatui
+picker (j/k, Enter, q). Piped stdout or `--json` prints names without a picker.
 
 Config priority: CLI flags → env (`CHM_BASE_URL`, `CHM_HOST_ID`, `CHM_API_KEY`,
 `CHM_TOKEN`, `CHM_CHANNEL`, …) → project `./chm.toml` / `./.chm/config.toml` →
@@ -139,8 +138,7 @@ contents, env/flag overrides, and the resolved values.
 `chm doctor --ch-host` is a one-shot health check for a ClickHouse cluster that
 needs **no chmonitor account and no backend** — the binary talks directly to
 ClickHouse's HTTP interface, runs a fixed set of read-only checks, and prints a
-scored report to your terminal. `chm diagnose` is a first-class alias of this
-path (same flags).
+scored report to your terminal.
 
 Without `--ch-host` / `CLICKHOUSE_HOST`, `chm doctor` stays a local CLI +
 dashboard connectivity check and prints a one-line hint for the cluster scan.
@@ -154,7 +152,6 @@ it at a ClickHouse host and it works with nothing else installed or configured.
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default chm doctor # pragma: allowlist secret
 chm doctor --ch-host http://localhost:8123
-# alias: chm diagnose --ch-host http://localhost:8123
 # same binary: chmonitor doctor --ch-host http://localhost:8123
 ```
 
@@ -177,7 +174,7 @@ CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_USER=default \ # pragma: allowl
 Same env var names the dashboard uses, so if you already have
 `CLICKHOUSE_HOST` / `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` set for a {/* pragma: allowlist secret */}
 self-hosted deploy, `chm doctor` picks them up as-is and runs the cluster scan.
-Flags override env vars. `chm diagnose` accepts the same flags.
+Flags override env vars.
 
 | Env var | Flag | Default | Notes |
 |---|---|---|---|

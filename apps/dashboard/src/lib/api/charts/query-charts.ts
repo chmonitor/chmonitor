@@ -13,7 +13,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
       SELECT COUNT() AS count
       FROM merge('system', '^query_log')
       WHERE type = 'QueryFinish'
-        AND toDate(event_time) = today()
+        AND event_time >= toStartOfDay(now())
       SETTINGS max_execution_time = 25
     `,
   }),

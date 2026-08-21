@@ -91,7 +91,11 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   vanish inside a blank scrollbar box. Reset `DialogFooter`'s default
   `-mx-4 -mb-4` to `mx-0 mb-0` when the dialog is `p-0`. Same list-scroll
   pattern without a footer: `components/agents/advisor-query-picker.tsx`.
-  See `components/whats-new/whats-new-dialog.tsx`.
+  See `components/whats-new/whats-new-dialog.tsx`. For What's new, also set
+  `initialFocus` on the title (`tabIndex={-1}`) and reset the body
+  `scrollTop` on open — default focus would otherwise land on the first
+  markdown link deep in an older note and `scrollIntoView` the list to the
+  middle.
 - **Base UI Select labels:** pass `items={{ value: 'Human label' }}` on
   `Select` (the Root) so `SelectValue` shows the label, not the raw value.
   `placeholder` only appears when nothing is selected — a selected `24` /

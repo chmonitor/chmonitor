@@ -1,6 +1,8 @@
 /**
  * What's new dialog: header/footer stay put; the notes body is the
  * scroll container so a tall list cannot paint under the footer.
+ * Initial focus stays on the title so markdown links deep in older
+ * notes cannot scrollIntoView the body to the middle on open.
  */
 
 import type { ReactElement } from 'react'
@@ -143,6 +145,12 @@ describe("What's new dialog layout", () => {
       expect(gotIt).not.toBeNull()
       expect(versions.length).toBe(TALL_RELEASES.length)
 
+      const title = document.querySelector('[data-slot="dialog-title"]')
+      expect(title).not.toBeNull()
+      expect(title?.getAttribute('tabindex')).toBe('-1')
+      expect(body?.scrollTop).toBe(0)
+      expect(body?.contains(title as Node)).toBe(false)
+
       expect(dialog?.className).toContain('flex-col')
       expect(dialog?.className).toContain('overflow-hidden')
       expect(body?.className).toContain('min-h-0')
@@ -179,6 +187,46 @@ describe("What's new dialog layout", () => {
         ;(gotIt as HTMLButtonElement).click()
       })
       expect(onGotIt).toHaveBeenCalledTimes(1)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('opens scrolled to the top even when older notes contain deep links', async () => {
+    const { WhatsNewDialog } = await import('./whats-new-dialog')
+    const deepLinkNote = tallNote('0.2.16', [
+      'intro without a link',
+      'see [GitHub](https://github.com/chmonitor/chmonitor) for the rest',
+      'and another [docs](https://docs.chmonitor.dev) link',
+    ])
+
+    const { cleanup } = await renderInto(
+      <WhatsNewDialog
+        open
+        onOpenChange={() => {}}
+        onGotIt={() => {}}
+        releases={[...TALL_RELEASES, deepLinkNote]}
+        isLoading={false}
+      />
+    )
+
+    try {
+      const body = document.querySelector(
+        '[data-testid="whats-new-dialog-body"]'
+      ) as HTMLDivElement | null
+      const title = document.querySelector(
+        '[data-slot="dialog-title"]'
+      ) as HTMLElement | null
+      const deepLink = [...(body?.querySelectorAll('a') ?? [])].find((anchor) =>
+        anchor.getAttribute('href')?.includes('github.com/chmonitor')
+      )
+
+      expect(body).not.toBeNull()
+      expect(title).not.toBeNull()
+      expect(deepLink).not.toBeNull()
+      expect(body?.scrollTop).toBe(0)
+      expect(title?.tabIndex).toBe(-1)
+      expect(document.activeElement === deepLink).toBe(false)
     } finally {
       await cleanup()
     }
