@@ -243,7 +243,7 @@ function getStaticModels(): ModelDisplayInfo[] {
       id,
       modelId,
       provider,
-      name: entry?.name ?? modelId,
+      name: modelId,
       description: entry?.description ?? modelId,
       contextLength: entry?.contextLength ?? 131_072,
       formattedContextLength: formatTokenCount(entry?.contextLength ?? 131_072),

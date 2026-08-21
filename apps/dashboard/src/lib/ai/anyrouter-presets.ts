@@ -100,7 +100,7 @@ export function presetToAgentModelEntry(
     id: `anyrouter:${modelId}`,
     modelId,
     provider: 'anyrouter',
-    name: `${label} (preset)`,
+    name: modelId,
     description,
     contextLength: 0,
     formattedContextLength: '—',
