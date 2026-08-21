@@ -9,7 +9,8 @@
 * **cli:** `chm dashboard list` / `open` (Overview + saved dashboards)
 * **cli:** interactive `chm config`; `chm config show` prints file layers
 * **cli:** launch interactive TUI by default (`chm` with no subcommand; `chm tui` stays an alias)
-* **cli:** make `chm doctor` the cluster health command (`diagnose` stays as an alias)
+* **cli:** drop `diagnose`, `upgrade`, and `completions` aliases; keep `chm` TUI, `auth`, `config`, and `update`
+* **cli:** make `chm doctor` the cluster health command
 
 ## [0.1.2](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.1...chm-v0.1.2) (2026-08-20)
 

@@ -1,4 +1,4 @@
-//! `chm update` / `chm upgrade` wrapper with release-channel support.
+//! `chm update` wrapper with release-channel support.
 
 use anyhow::Result;
 use reqwest::Client;

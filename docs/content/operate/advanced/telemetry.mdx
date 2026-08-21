@@ -173,8 +173,8 @@ The `install.sh` install ping additionally **skips automatically when `CI=true`*
 | Field | Values | Notes |
 |---|---|---|
 | `install_id` | 64-char opaque hex | Random id persisted at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/chmonitor/cli-id`). Counts distinct installs only; maps to no identity. |
-| `event` | `cli_install`, `cli_run`, `cli_diagnose` | Install ping vs. a command run vs. a `diagnose` run. |
-| `command` | `hosts`, `chart`, `table`, `tui`, `diagnose`, `update`, `auth`, `config`, `link`, `chat`, `agent`, `doctor`, `completions`, `install`, … | Subcommand name (`chm` and `chmonitor` report the same names). |
+| `event` | `cli_install`, `cli_run`, `cli_diagnose` | Install ping vs. a command run vs. a `doctor --ch-host` scan. |
+| `command` | `hosts`, `chart`, `table`, `tui`, `update`, `auth`, `config`, `link`, `chat`, `agent`, `doctor`, `install`, … | Subcommand name (`chm` and `chmonitor` report the same names). |
 | `cli_version` | semver (e.g. `0.1.0`) | The `chm` version. |
 | `os` | `linux`, `macos`, `windows`, `unknown` | Shipped prebuilts are Linux/macOS only; `windows` appears for source builds. |
 | `arch` | `x86_64`, `aarch64`, `unknown` | |

@@ -1,4 +1,4 @@
-//! Cluster health scan used by `chm doctor --ch-host` and `chm diagnose`.
+//! Cluster health scan used by `chm doctor --ch-host`.
 
 use anyhow::{bail, Result};
 use reqwest::Client;
