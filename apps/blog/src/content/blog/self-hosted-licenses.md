@@ -1,30 +1,29 @@
 ---
-title: "We trust you to self-host. SaaS is the exception."
-description: "Most chmonitor users are engineers who already run ClickHouse. Enterprises cannot send cluster metadata to a hosted dashboard. So the paid product is an honor-system license, not a SaaS seat with a license key."
+title: "We're selling a commercial license — and we trust you"
+description: "chmonitor started as a hosted dashboard. Users told us that does not fit how they work. So we sell a self-hosted license on the honor system, and spend the time on the core product."
 date: 2026-08-17
 updated: 2026-08-21
 tag: Product
 ---
 
-We started by thinking like a typical SaaS: host the dashboard, sell seats, meter usage.
+chmonitor started as a **SaaS cloud**: we ran the dashboard for you, no setup, sold seats, and metered usage.
 
-That is the wrong product for ClickHouse operators.
+We changed our mind. Users kept telling us why.
 
-Most people who would use chmonitor already work at a company with DevOps. They already run ClickHouse. They can `docker run` or Helm-install a dashboard next to the cluster in an afternoon. Paying us monthly to operate a UI they can run themselves is a hard sell — and for a lot of teams it is not even allowed.
+Most people who would use chmonitor already work at a company with DevOps. They already run ClickHouse. They can deploy on their own infra — Docker, Helm, whatever they already operate. Paying us monthly to host a UI they can run next to the cluster is a hard sell.
 
-So the paid product is not “cloud seats.” It is a **commercial license for software you self-host**, on the honor system. The hosted app at [dash.chmonitor.dev](https://dash.chmonitor.dev) stays up as a convenience. It is not the path we expect enterprises to take.
+The data is also company property. Query text, table names, cluster topology — that is production signal. People who reach out ask for security proof, IP allowlists, an isolated environment, a binary they can inspect — so the security team can approve it. A hosted dashboard sitting on our cloud has to win all of that before the first login. Self-hosting skips the argument.
 
 ## Why SaaS does not fit
 
-**You already have the people.** Typical readers are engineers, SREs, or ClickHouse DBAs. Standing up a container or a Helm chart is not a project. It is Tuesday.
+- You already have people who can deploy it.
+- You already run ClickHouse. The dashboard should sit next to it.
+- Security teams want allowlists, isolation, and a trusted source. Hosted SaaS rarely passes that bar.
+- Monitoring reads `system.query_log`. That is not data you send to a vendor without a fight.
 
-**Security review kills hosted monitoring.** Enterprises need IP allowlists, private networks, and a trusted binary they can inspect. They will not open ClickHouse to an unknown vendor’s cloud, and they will not send query text, schema, and cluster topology off-network because a dashboard asked them to.
+So we stopped trying to be “the cloud that runs your dashboard.”
 
-**Policy is not a checkbox.** Data residency, vendor questionnaires, SOC reviews, “no third-party processors for production metadata” — a hosted SaaS has to win all of those before the first login. Self-hosting skips the argument: the dashboard stays in *your* VPC.
-
-**Leakage risk is real.** A monitoring tool that can `SELECT` from `system.query_log` sees table names, query shapes, sometimes literals. That is production signal. Trusting a SaaS with it is a procurement fight we do not want to force.
-
-**We cannot DRM a GPL dashboard anyway.** The binary is open. A license key in `CHM_*` would be theater. We would rather be honest.
+That is why we changed it today: **spend the time on the core** — the pages, the advisor, the agent — and sell a commercial license for teams that need an invoice. The software stays GPL-3.0. No license key. We trust you.
 
 ## The offer
 
