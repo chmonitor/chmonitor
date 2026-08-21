@@ -35,7 +35,7 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
 ---
 <Base
   title="Buy a chmonitor license"
-  description="Pick Team or Unlimited, yearly or lifetime. Polar adds tax after you choose your country. Honor system — no license key."
+  description="Buy a Team or Unlimited license. Yearly or lifetime. Polar adds tax after you pick your country. No license key."
 >
   <Nav />
   <main id="top">
@@ -46,8 +46,8 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
           <h1>{paid ? 'Register your company' : 'Pick a license'}</h1>
           <p>
             {paid
-              ? 'Polar received payment and emailed the receipt. Register the company, then set CHM_LICENSE_KEY to the Polar checkout id.'
-              : 'GPL-3.0 stays free. A paid license is an invoice, support, and a commercial agreement — not a feature unlock. Polar is merchant of record: listed prices are USD before tax.'}
+              ? 'Payment went through. Polar emailed the receipt. Register the company, then set CHM_LICENSE_KEY to the Polar checkout id.'
+              : 'The app stays GPL-3.0 and free. A paid license is an invoice and support, not extra features. Prices are USD before tax; Polar adds VAT/GST after you pick a country.'}
           </p>
         </div>
 
@@ -109,15 +109,14 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
             </div>
 
             <p class="tax-note">
-              <strong>Tax.</strong> Prices above are USD, exclusive of VAT/GST/sales tax.
-              Polar (merchant of record) adds the tax for your country after you pick it on checkout — we do not collect it here.
+              <strong>Tax.</strong> USD before VAT/GST/sales tax. Polar adds it on checkout after you pick a country. We do not collect tax on this page.
             </p>
           </>
         )}
 
         <div id="done" class="summary" hidden>
           <strong>Registered</strong>
-          <span>We’ll keep this on file. Honor system — set CHM_LICENSE_KEY to the Polar checkout id. Email {LICENSE_HELP_EMAIL} if anything looks wrong.</span>
+          <span>Saved. Set CHM_LICENSE_KEY to the Polar checkout id. Email {LICENSE_HELP_EMAIL} if something is wrong.</span>
         </div>
 
         <form class="reg" method="get" action={`mailto:${LICENSE_HELP_EMAIL}`} id="reg-form">
@@ -126,7 +125,7 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
           <input type="hidden" name="sku" id="sku" value={skuId} />
           <input type="hidden" name="term" id="term" value={term} />
 
-          <h2 class="form-h">{paid ? 'Company' : 'Company, then Polar checkout'}</h2>
+          <h2 class="form-h">{paid ? 'Company' : 'Company details'}</h2>
           <label>
             Company name
             <input type="text" name="company" required maxlength="120" placeholder="Acme Analytics" autocomplete="organization" />
@@ -159,8 +158,8 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
           <a class={btnOutline} href={LICENSE_HELP_DOCS_HREF}>Help: commercial license</a>
         </p>
         <p class="trust">
-          Honor system: no DRM, no feature unlock. Polar emails the receipt and adds tax after country.
-          Questions or a feature request? Email <a href={`mailto:${LICENSE_HELP_EMAIL}`}>{LICENSE_HELP_EMAIL}</a>.
+          No DRM. Polar emails the receipt and adds tax after you pick a country.
+          Questions or feature requests: <a href={`mailto:${LICENSE_HELP_EMAIL}`}>{LICENSE_HELP_EMAIL}</a>.
         </p>
       </div>
     </section>

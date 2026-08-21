@@ -1,13 +1,13 @@
 ---
 title: "Deploy chmonitor on Kubernetes with Helm"
-description: "Install the vendored chmonitor Helm chart, point it at ClickHouse, and confirm the pod is ready — no SaaS, the dashboard stays in your cluster."
+description: "Install the chmonitor Helm chart, point it at ClickHouse, port-forward or add an ingress."
 date: 2026-08-21
 tag: How-to
 ---
 
-This is for teams that already run ClickHouse on Kubernetes and want the dashboard in the same cluster. The Helm chart is vendored with the app: same image as Docker, non-root uid `1001`, port `3000`. By the end you can `port-forward` to it (or hit an ingress) and see your cluster.
+Same Docker image, in-cluster. Chart ships with the repo. Non-root uid `1001`, port `3000`.
 
-If you only have a single node, start with [Docker](/clickhouse-self-hosting-docker/) instead.
+Single node? Use [Docker](/clickhouse-self-hosting-docker/) instead.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ helm install my-chm chmonitor/chmonitor \
   --set clickhouse.password="change-me"
 ```
 
-`--set` is fine for a smoke test. For anything that lives, use a values file and a Secret (steps 2–3).
+`--set` is fine to try it. For real installs use a values file and a Secret (steps 2 and 3).
 
 OCI instead of the Helm repo:
 
@@ -92,7 +92,7 @@ clickhouse:
   existingSecret: chmonitor-clickhouse   # key: CLICKHOUSE_PASSWORD
 ```
 
-GitOps: External Secrets, SOPS, or Sealed Secrets — not a password in git.
+Do not put the password in git. External Secrets, SOPS, or Sealed Secrets if you already use them.
 
 ### 4. Expose it (optional)
 
@@ -111,7 +111,7 @@ Until then, port-forward is enough.
 
 ## Verifying it worked
 
-The chart wires two probes. Mix them up and you get CrashLoopBackOff when ClickHouse blips:
+Two probes. If liveness hits ClickHouse, a CH blip CrashLoopBackOffs the pod:
 
 | Probe | Path | Meaning |
 |---|---|---|
@@ -137,7 +137,7 @@ helm uninstall my-chm
 - Docs: [Kubernetes](https://docs.chmonitor.dev/operate/deploy/k8s) — full values, autoscaling, kustomize.
 - [Self-hosting on Docker](/clickhouse-self-hosting-docker/) — the single-container path.
 - [Self-hosting on Kubernetes](/clickhouse-monitoring-kubernetes/) — Helm plus kustomize, same probes.
-- [We're selling a commercial license](/self-hosted-licenses/) — invoice if procurement needs one; the chart stays GPL-3.0.
+- [chmonitor selling commercial license](/self-hosted-licenses/) if you need an invoice. The chart is still GPL-3.0.
 
 <!--
 CLAIM-VERIFICATION CHECKLIST
