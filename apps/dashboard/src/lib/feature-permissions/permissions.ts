@@ -10,6 +10,16 @@ export const AGENT_FEATURE_PERMISSION = {
   operation: 'write',
 } satisfies FeaturePermission
 
+export const INSIGHTS_GENERATE_FEATURE_PERMISSION = {
+  feature: 'insights',
+  // Insights generation runs the collect → LLM enrich → persist pipeline — a
+  // write. defaultAccess keeps the write gate; anonymous cloud visitors get a
+  // carve-out (see lib/auth/insights-api-auth.ts) so the public demo host can
+  // generate insights without sign-in, mirroring the agent guest path.
+  defaultAccess: 'authenticated',
+  operation: 'write',
+} satisfies FeaturePermission
+
 export const ACTIONS_FEATURE_PERMISSION = {
   feature: 'actions',
   // Mutating control actions (KILL QUERY, OPTIMIZE TABLE) — a write.

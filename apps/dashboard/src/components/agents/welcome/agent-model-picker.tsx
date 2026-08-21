@@ -40,20 +40,10 @@ interface AgentModelPickerProps {
   className?: string
 }
 
-const PROVIDER_TEXT_CLASS: Record<string, string> = {
-  openrouter: 'text-[var(--chart-blue)]',
-  anyrouter: 'text-[var(--chart-1)]',
-  nvidia: 'text-[var(--chart-green)]',
-}
-
 const PROVIDER_DOT_CLASS: Record<string, string> = {
   openrouter: 'bg-[var(--chart-blue)]',
   anyrouter: 'bg-[var(--chart-1)]',
   nvidia: 'bg-[var(--chart-green)]',
-}
-
-export function providerColorClass(provider: string): string {
-  return PROVIDER_TEXT_CLASS[provider] ?? 'text-muted-foreground'
 }
 
 export function providerDotClass(provider: string): string {
@@ -122,14 +112,14 @@ export function ModelOptionRow({
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="truncate font-mono text-[12px]">
-          <span className={providerColorClass(model.provider)}>
-            {model.provider}
-          </span>
-          <span className="text-muted-foreground">:</span>
+        <div className="truncate text-[12px]">
           <span className="text-foreground">{model.name}</span>
         </div>
         <div className="text-muted-foreground truncate text-[10px] tabular-nums">
+          <span className="font-mono">
+            {model.provider}:{model.modelId}
+          </span>
+          {' · '}
           {modelMetaLine(model)}
         </div>
       </div>
@@ -293,12 +283,14 @@ export function AgentModelPicker({
                   providerDotClass(selected.provider)
                 )}
               />
-              <span className="font-mono">
-                <span className={providerColorClass(selected.provider)}>
-                  {selected.provider}
-                </span>
-                <span className="text-muted-foreground">:</span>
+              <span className="truncate">
                 <span className="text-foreground">{selected.name}</span>
+                <span className="text-muted-foreground">
+                  {' '}
+                  <span className="font-mono">
+                    {selected.provider}:{selected.modelId}
+                  </span>
+                </span>
               </span>
             </Button>
           ) : (
@@ -316,14 +308,14 @@ export function AgentModelPicker({
                 )}
               />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-mono text-[12px]">
-                  <span className={providerColorClass(selected.provider)}>
-                    {selected.provider}
-                  </span>
-                  <span className="text-muted-foreground">:</span>
+                <div className="truncate text-[12px]">
                   <span className="text-foreground">{selected.name}</span>
                 </div>
-                <div className="text-muted-foreground text-[10px] tabular-nums">
+                <div className="text-muted-foreground truncate text-[10px] tabular-nums">
+                  <span className="font-mono">
+                    {selected.provider}:{selected.modelId}
+                  </span>
+                  {' · '}
                   {selected.formattedContextLength} ctx
                   {selected.pricing
                     ? ` · $${selected.pricing.inputPerMillion.toFixed(2)}/M in`

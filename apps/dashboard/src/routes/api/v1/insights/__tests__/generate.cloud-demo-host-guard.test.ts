@@ -24,11 +24,11 @@ mock.module('@/lib/api/server-env', () => ({
   bridgeClickHouseEnv: mock(() => undefined),
 }))
 
-import * as realFeaturePermissions from '@/lib/feature-permissions/server'
+import * as realInsightsApiAuth from '@/lib/auth/insights-api-auth'
 
-mock.module('@/lib/feature-permissions/server', () => ({
-  ...realFeaturePermissions,
-  authorizeFeatureRequest: mock(async () => null),
+mock.module('@/lib/auth/insights-api-auth', () => ({
+  ...realInsightsApiAuth,
+  authorizeInsightsGenerateRequest: mock(async () => null),
 }))
 
 import * as realProvider from '@/lib/auth/provider'
