@@ -27,7 +27,12 @@ use crate::cli::{Cli, Commands, TuiArgs};
 async fn main() -> Result<()> {
     let mut cli = Cli::parse();
     let cfg = config::resolve_config(&cli)?;
-    let client = Client::builder().timeout(Duration::from_secs(60)).build()?;
+    let client = Client::builder()
+        .timeout(Duration::from_secs(60))
+        // CLI is one-shot: idle keep-alives would leave hyper pool tasks
+        // running after `chm update` prints "already up to date".
+        .pool_max_idle_per_host(0)
+        .build()?;
 
     // Bare `chm` (no subcommand) is the live TUI — same as `chm tui`.
     let command = cli
@@ -61,10 +66,9 @@ async fn main() -> Result<()> {
     let exit = commands::dispatch(&client, &cfg, &cli, command).await?;
 
     telemetry::finish(tel_handle).await;
-    if exit != 0 {
-        std::process::exit(exit);
-    }
-    Ok(())
+    // Always exit the process: returning from `#[tokio::main]` waits for every
+    // leftover background task (reqwest pool, detached telemetry).
+    std::process::exit(exit);
 }
 
 #[cfg(test)]
@@ -107,14 +111,14 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn update_beta_and_stable_flags() {
         for argv in [["chm", "update", "--beta"], ["chm", "upgrade", "--beta"]] {
             let args = update_args(Cli::try_parse_from(argv).expect("parse"));
             assert!(args.beta);
             assert!(!args.stable);
         }
-        let stable = update_args(Cli::try_parse_from(["chm", "update", "--stable"]).expect("parse"));
+        let stable =
+            update_args(Cli::try_parse_from(["chm", "update", "--stable"]).expect("parse"));
         assert!(stable.stable);
         assert!(!stable.beta);
         assert!(Cli::try_parse_from(["chm", "update", "--beta", "--stable"]).is_err());
@@ -333,6 +337,8 @@ mod tests {
         for help in [&update_help, &upgrade_help] {
             assert!(help.contains("--check"), "{help}");
             assert!(help.contains("--version"), "{help}");
+            assert!(help.contains("--beta"), "{help}");
+            assert!(help.contains("--stable"), "{help}");
         }
     }
 

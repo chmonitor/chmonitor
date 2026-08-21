@@ -12,6 +12,9 @@
 
 name = "chmonitor-landing"
 compatibility_date = "2026-05-28"
+# Keep workers.dev enabled as a curl-friendly fallback for /install.sh when
+# the apex is behind Bot Fight Mode (see docs/knowledge/install-sh-bot-fight.md).
+workers_dev = true
 
 # Workers Cache (launched 2026-07-06): Cloudflare's tiered cache in front of this
 # Worker. This is a static-assets-only Worker (Astro → Workers Assets), and the

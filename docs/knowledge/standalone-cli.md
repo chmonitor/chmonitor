@@ -289,8 +289,10 @@ asset, require a matching `.sha256`, and atomically replace the running
 binary. They never invoke sudo. Homebrew-managed installs are refused
 (`is_brew_managed`). Channel (`--channel` / `CHM_CHANNEL` / config):
 `stable` skips prereleases; `beta` includes them and prefers a prerelease
-when semver cores tie. `chm update --beta` installs from beta **and** writes
-`channel = "beta"` to the user config; `--stable` does the inverse. Checksum, permission, download, and
+when semver cores tie. `chm update --beta` writes `channel = "beta"` to the
+user config **then** installs from beta; `--stable` does the inverse. The
+process always `exit`s after the command (reqwest keep-alives must not stall
+after “already up to date”). Checksum, permission, download, and
 unsupported-target failures print a copy-pasteable fallback (`scripts/install.sh`
 or `cargo install chmonitor --force`; unsupported targets point at cargo
 only). `--version` accepts `chm-v0.2.0`, `v0.2.0`, `0.2.0`, or `chm-0.2.0`.
@@ -335,12 +337,16 @@ Every push to `main` that touches CLI paths
 ## One-line install (`scripts/install.sh`)
 
 ```bash
-# Stable (default)
-curl -sSf https://chmonitor.dev/install.sh | bash
+# Stable (default) — GitHub raw (Cloudflare Bot Fight Mode 403s curl on the apex)
+curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 
 # Beta channel
-CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
+CHM_CHANNEL=beta bash <(curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh)
 ```
+
+Browsers can still open `https://chmonitor.dev/install.sh`. To restore the
+branded `curl … chmonitor.dev/install.sh` path, turn **Bot Fight Mode** off
+for the zone and run `pnpm run cf:allow-install-sh`.
 
 - Detects OS (`Linux`/`Darwin`) + arch (`x86_64`/`aarch64`), maps to the
   release workflow's target triples, and refuses to run on anything else

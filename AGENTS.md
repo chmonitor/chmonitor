@@ -268,6 +268,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Development | [component-ci-stability.md](docs/knowledge/component-ci-stability.md) | Cypress component test fragility and fixes |
 | Development | [conventions.md](docs/knowledge/conventions.md) | Coding conventions, file org, component patterns |
 | Tools | [standalone-cli.md](docs/knowledge/standalone-cli.md) | `chm`/`chmonitor` Rust CLI: live TUI by default, dashboard API, `chm doctor`, channels, auth/cli discovery |
+| Operations | [install-sh-bot-fight.md](docs/knowledge/install-sh-bot-fight.md) | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 
 ### When to Write to Knowledge vs Memory
 

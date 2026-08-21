@@ -3,7 +3,7 @@ id: knowledge-index
 title: Knowledge Graph Index
 type: index
 status: active
-updated: 2026-05-13
+updated: 2026-08-20
 tags:
   - knowledge-graph
   - index
@@ -30,6 +30,7 @@ Agents discover knowledge in this order:
 | **Architecture** | [memory-optimization.md](memory-optimization.md) | reference | Memory optimization: pooling, memoization, cache limits, monitoring |
 | **Architecture** | [frontend-perf-baseline.md](frontend-perf-baseline.md) | reference | Measured runtime baseline + profiling method; no memory leak (heap flat 55-57MB); cost is request fan-out, payload size and lazy boundaries that never defer; hook/caching/bundle rules and a known-good list |
 | **Operations** | [deployment.md](deployment.md) | reference | Docker and Cloudflare Workers dual deployment guide |
+| **Operations** | [install-sh-bot-fight.md](install-sh-bot-fight.md) | reference | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 | **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip 1.82 MiB (under limit); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
 | **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | operations | Bun-workspaces + Turborepo migration: status, workflow, gotchas, Phase 5 TODO |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |

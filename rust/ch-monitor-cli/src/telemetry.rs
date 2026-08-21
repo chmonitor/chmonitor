@@ -208,7 +208,13 @@ pub fn spawn(event: &'static str, command: &'static str) -> Option<JoinHandle<()
             arch: arch(),
             license_key: license_key_from_env(),
         };
-        let Ok(client) = Client::builder().timeout(REQUEST_TIMEOUT).build() else {
+        let Ok(client) = Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            // Do not keep idle connections: they spawn pool tasks that outlive
+            // the request and can stall process exit.
+            .pool_max_idle_per_host(0)
+            .build()
+        else {
             return;
         };
         // Errors are intentionally ignored — telemetry must never surface.
@@ -217,16 +223,42 @@ pub fn spawn(event: &'static str, command: &'static str) -> Option<JoinHandle<()
 }
 
 /// Await the spawned ping, but never block exit longer than `EXIT_BUDGET`.
+///
+/// Dropping a [`JoinHandle`] *detaches* the task (it keeps running). A
+/// timed-out ping must be [`abort`](JoinHandle::abort)ed so reqwest's
+/// connection-pool workers cannot keep the Tokio runtime alive after the
+/// command has already printed its result.
 pub async fn finish(handle: Option<JoinHandle<()>>) {
-    if let Some(handle) = handle {
-        let _ = tokio::time::timeout(EXIT_BUDGET, handle).await;
+    let Some(mut handle) = handle else {
+        return;
+    };
+    tokio::select! {
+        _ = &mut handle => {}
+        () = tokio::time::sleep(EXIT_BUDGET) => {
+            handle.abort();
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_license_key, CliPing};
+    use super::{finish, parse_license_key, CliPing, EXIT_BUDGET};
     use serde_json::{json, Value};
+    use std::time::{Duration, Instant};
+
+    #[tokio::test]
+    async fn finish_aborts_slow_task_instead_of_waiting() {
+        let handle = tokio::spawn(async {
+            tokio::time::sleep(Duration::from_secs(30)).await;
+        });
+        let started = Instant::now();
+        finish(Some(handle)).await;
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < EXIT_BUDGET + Duration::from_millis(400),
+            "finish waited {elapsed:?} (budget {EXIT_BUDGET:?})"
+        );
+    }
 
     #[test]
     fn parse_license_key_accepts_polar_checkout_uuid() {
