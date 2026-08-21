@@ -106,9 +106,9 @@ minutes so the TUI cannot hammer the cluster. Chart JSON is capped (sparkline
 points plus the latest row). HTTP 404 charts are skipped. The running-queries
 table stays a secondary pane (page size plus string truncation). `chm dashboard
 list` (and `chm dashboard open <name>`) open the same TUI bound to Overview or a
-saved dashboard's `layout.widgets[].chartName`. **Only** this TUI, interactive
-`chm chat`, and `chm config` (dialog) enter the terminal alternate screen;
-`dashboard list`'s picker stays on the normal screen.
+saved dashboard's `layout.widgets[].chartName`. All interactive surfaces use
+ratatui on the alternate screen: live TUI, `chm chat`, `chm config`, and the
+`dashboard list` picker. One-shot commands stay on the normal screen.
 
 One screen: hosts + chart grid **and** the table together when the terminal is
 tall/wide enough (`≥72×24`). Smaller terminals collapse to a focused pane with
@@ -137,8 +137,9 @@ chart grid (`--overview` still accepted).
 Always lists built-in **Overview** first. When signed in, also fetches
 `GET /api/dashboards/list` and uses each `layout.widgets[].chartName` where
 `type=chart`. HTTP 401/403/501 still lists Overview plus a one-line reason.
-Interactive TTY: j/k/arrows pick, Enter opens the TUI. `--json` or piped stdout
-prints names (no picker). `chm dashboard open <name>` opens by name.
+Interactive TTY: ratatui picker (j/k/arrows, Enter opens the TUI, q/Esc
+cancels). `--json` or piped stdout prints names (no picker).
+`chm dashboard open <name>` opens by name.
 
 ## Config (`chm config` / `chm config show`)
 

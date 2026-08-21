@@ -1,10 +1,12 @@
 //! Live dashboard TUI — the default `chm` product path.
 //!
-//! Alt-screen is entered only by this TUI (`chm` / `chm tui`) and interactive
-//! `chm chat` (`tui/chat.rs`). Other commands must never call EnterAlternateScreen.
+//! Alt-screen: live TUI (`chm` / `chm tui`), interactive `chm chat`,
+//! `chm config`, and `chm dashboard list`. One-shot commands stay on the
+//! normal screen.
 
 pub mod chat;
 pub mod config_form;
+pub mod picker;
 
 use std::{
     io,
