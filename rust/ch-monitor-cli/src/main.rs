@@ -116,8 +116,9 @@ mod tests {
         );
         assert!(!args.check);
         assert_eq!(args.version.as_deref(), Some("chm-v0.2.0"));
-        let short =
-            update_args(Cli::try_parse_from(["chm", "update", "--version", "0.2.0"]).expect("parse"));
+        let short = update_args(
+            Cli::try_parse_from(["chm", "update", "--version", "0.2.0"]).expect("parse"),
+        );
         assert_eq!(short.version.as_deref(), Some("0.2.0"));
     }
 
@@ -218,7 +219,10 @@ mod tests {
         assert_eq!(upgrade.kind(), clap::error::ErrorKind::InvalidSubcommand);
         let completions =
             Cli::try_parse_from(["chm", "completions", "bash"]).expect_err("completions removed");
-        assert_eq!(completions.kind(), clap::error::ErrorKind::InvalidSubcommand);
+        assert_eq!(
+            completions.kind(),
+            clap::error::ErrorKind::InvalidSubcommand
+        );
     }
 
     #[test]
