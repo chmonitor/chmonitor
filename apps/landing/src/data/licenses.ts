@@ -125,7 +125,7 @@ export const licenseFaqs = [
   },
   {
     q: 'What is a host?',
-    a: 'A host is one monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. A detected replica in the same shard counts as 0.5 host.',
+    a: 'A host is one monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. Replicas in the same shard are not counted.',
   },
   {
     q: 'Yearly vs lifetime?',

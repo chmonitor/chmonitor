@@ -8,8 +8,7 @@ export interface OwnerHostUsage {
   /**
    * Weighted host count — the value fed to `checkHostLimit`. A detected
    * replica (same cluster shard as an already-counted host, see
-   * `replica-detection.ts`) counts as 0.5; every other host counts as 1, so
-   * this can be fractional.
+   * `replica-detection.ts`) does not count; every other host counts as 1.
    */
   count: number
   /**
@@ -74,7 +73,7 @@ export async function countOwnerHosts(
 /**
  * Sum the billable host weight across every connection owned by
  * `memberUserIds` (see `replica-detection.ts`: a detected replica of an
- * already-counted host bills at 0.5). Fails safe to the plain connection
+ * already-counted host does not count). Fails safe to the plain connection
  * count — untouched by weighting — if anything in the weighting step throws,
  * so a probe/credentials hiccup can only forfeit the discount, never break
  * host counting itself.

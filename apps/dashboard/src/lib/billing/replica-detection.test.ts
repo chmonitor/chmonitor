@@ -27,7 +27,7 @@ describe('computeHostWeights', () => {
     expect(weights).toEqual([1, 1, 1])
   })
 
-  test('the first host in a shard is full, later ones in the same shard are replicas', () => {
+  test('the first host in a shard is full, later ones in the same shard do not count', () => {
     const weights = computeHostWeights([
       { cluster: 'prod', shardNum: 1 },
       { cluster: 'prod', shardNum: 1 },

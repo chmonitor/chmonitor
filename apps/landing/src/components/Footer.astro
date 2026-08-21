@@ -3,13 +3,21 @@ import { loadLatestChangelogVersion } from '../data/changelog-features'
 import { useCases } from '../data/use-cases'
 import ThemeToggle from './ThemeToggle.astro'
 
+interface Props {
+  /** Prefix for on-site paths. Empty on landing; blog passes https://chmonitor.dev. */
+  origin?: string
+}
+
+const { origin = '' } = Astro.props
+const to = (path: string) => `${origin}${path}`
 const latestVersion = loadLatestChangelogVersion()
+const foot = 'text-sm text-muted-foreground transition-colors hover:text-foreground'
 ---
   <footer class="border-t border-border">
     <div class="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
       <div class="flex flex-col gap-10 sm:gap-12 lg:flex-row lg:justify-between">
         <div class="max-w-xs">
-          <a class="brand flex items-center gap-2.5 text-base font-semibold tracking-tight" href="/">
+          <a class="brand flex items-center gap-2.5 text-base font-semibold tracking-tight" href={to('/')}>
             <span class="mark" aria-hidden="true">
               <img src="/brand/logo-chmonitor.svg" alt="chmonitor" />
             </span>
@@ -21,34 +29,35 @@ const latestVersion = loadLatestChangelogVersion()
           <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Product</h5>
             <div class="mt-3 flex flex-col gap-2.5">
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/#top">Overview</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/#features">Features</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/pricing">Pricing</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/customers">Customers</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/license/register">Buy a license</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/license/lookup">Look up a license</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/cli">CLI</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://dash.chmonitor.dev" target="_blank" rel="noopener">Dashboard</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog</a>
+              <a class={foot} href={to('/#top')}>Overview</a>
+              <a class={foot} href={to('/#features')}>Features</a>
+              <a class={foot} href={to('/pricing')}>Pricing</a>
+              <a class={foot} href={to('/customers')}>Customers</a>
+              <a class={foot} href={to('/license/register')}>Buy a license</a>
+              <a class={foot} href={to('/license/lookup')}>Look up a license</a>
+              <a class={foot} href={to('/cli')}>CLI</a>
+              <a class={foot} href="https://dash.chmonitor.dev" target="_blank" rel="noopener">Dashboard</a>
+              <a class={foot} href="https://blog.chmonitor.dev">Blog</a>
+              <a class={foot} href="https://blog.chmonitor.dev/rss.xml">RSS</a>
             </div>
           </div>
           <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Use cases</h5>
             <div class="mt-3 flex flex-col gap-2.5">
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/features/ai-agent">AI Agent</a>
+              <a class={foot} href={to('/features/ai-agent')}>AI Agent</a>
               {useCases.map((u) => (
-                <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href={`/${u.slug}`}>{u.eyebrow}</a>
+                <a class={foot} href={to(`/${u.slug}`)}>{u.eyebrow}</a>
               ))}
             </div>
           </div>
           <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Open source</h5>
             <div class="mt-3 flex flex-col gap-2.5">
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">GitHub</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Documentation</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor/issues" target="_blank" rel="noopener">Issues</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor/releases" target="_blank" rel="noopener">Releases</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href={latestVersion ? `/changelog#v${latestVersion}` : '/changelog'}>
+              <a class={foot} href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">GitHub</a>
+              <a class={foot} href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Documentation</a>
+              <a class={foot} href="https://github.com/chmonitor/chmonitor/issues" target="_blank" rel="noopener">Issues</a>
+              <a class={foot} href="https://github.com/chmonitor/chmonitor/releases" target="_blank" rel="noopener">Releases</a>
+              <a class={foot} href={latestVersion ? to(`/changelog#v${latestVersion}`) : to('/changelog')}>
                 Changelog{latestVersion && <span class="font-mono text-xs"> · v{latestVersion}</span>}
               </a>
             </div>
@@ -56,10 +65,10 @@ const latestVersion = loadLatestChangelogVersion()
           <div class="min-w-0 sm:min-w-36">
             <h5 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Legal &amp; trust</h5>
             <div class="mt-3 flex flex-col gap-2.5">
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor/blob/main/LICENSE" target="_blank" rel="noopener">License (GPL-3.0)</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://docs.chmonitor.dev/operate/advanced/commercial-license">Commercial license</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="https://github.com/chmonitor/chmonitor/security" target="_blank" rel="noopener">Security policy</a>
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/brand">Brand</a>
+              <a class={foot} href="https://github.com/chmonitor/chmonitor/blob/main/LICENSE" target="_blank" rel="noopener">License (GPL-3.0)</a>
+              <a class={foot} href="https://docs.chmonitor.dev/operate/advanced/commercial-license">Commercial license</a>
+              <a class={foot} href="https://github.com/chmonitor/chmonitor/security" target="_blank" rel="noopener">Security policy</a>
+              <a class={foot} href={to('/brand')}>Brand</a>
             </div>
           </div>
         </div>
