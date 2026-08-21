@@ -31,11 +31,7 @@
  *  - `/about` is a static version-info page with no host dependency.
  * These render as footer rows (About) — see AppSidebar.
  */
-export const FIRST_RUN_EXEMPT_PATHS = [
-  '/setup',
-  '/billing',
-  '/about',
-] as const
+export const FIRST_RUN_EXEMPT_PATHS = ['/setup', '/billing', '/about'] as const
 
 /** Whether `pathname` is exempt from the first-run `/setup` redirect. */
 export function isFirstRunExemptPath(pathname: string): boolean {

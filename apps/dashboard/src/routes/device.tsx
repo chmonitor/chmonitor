@@ -12,12 +12,12 @@
  */
 
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { type FormEvent, useEffect, useState } from 'react'
 
 import {
   keepHostSearch,
   validateSearch as validateRootSearch,
 } from './-root-search'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 

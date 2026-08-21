@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-
 import {
   parseDeviceLoginMode,
   resolveDeviceLogin,
 } from '../device-login-config'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 const ENV_KEYS = [
   'CHM_DEVICE_LOGIN',

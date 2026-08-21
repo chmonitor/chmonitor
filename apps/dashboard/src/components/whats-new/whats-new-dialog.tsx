@@ -1,9 +1,9 @@
 import { ExternalLink } from 'lucide-react'
-import { useLayoutEffect, useRef } from 'react'
 
 import type { ReleaseNote } from '@/lib/whats-new/types'
 
 import { WhatsNewMarkdown } from './whats-new-markdown'
+import { useLayoutEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -74,6 +74,9 @@ export function WhatsNewDialog({
   const titleRef = useRef<HTMLHeadingElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
 
+  // isLoading/releases are content-settle triggers: re-run the scroll reset
+  // when notes finish loading or the list changes, not just on open.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset scroll when content settles
   useLayoutEffect(() => {
     if (!open) return
     bodyRef.current?.scrollTo(0, 0)

@@ -1,17 +1,13 @@
 export {
-  type ApiKeyVerificationResult,
-  type ApiKeyScope,
   ALL_API_KEY_SCOPES,
+  type ApiKeyScope,
+  type ApiKeyVerificationResult,
   apiKeyAuthEnabled,
   apiKeyHasScope,
   issueApiKey,
   verifyApiKey,
 } from './api-key'
 export { getBearerToken } from './bearer-token'
-export {
-  apiKeyCandidates,
-  getRequestApiKeyCandidates,
-} from './request-api-key'
 export {
   type ClerkOAuthResult,
   clerkOAuthEnabled,
@@ -28,3 +24,7 @@ export {
   type ProtectedResourceMetadata,
   wwwAuthenticateHeader,
 } from './oauth-metadata'
+export {
+  apiKeyCandidates,
+  getRequestApiKeyCandidates,
+} from './request-api-key'

@@ -1,7 +1,4 @@
-import {
-  ALERT_CHANNELS_FULL,
-  ALERT_CHANNELS_SHORT,
-} from './alert-channels'
+import { ALERT_CHANNELS_FULL, ALERT_CHANNELS_SHORT } from './alert-channels'
 
 /**
  * Detailed per-feature landing pages (/features/<slug>), rendered by
@@ -391,8 +388,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
   {
     slug: 'alerting',
     title: 'ClickHouse Alerting & Health Checks — chmonitor',
-    description:
-      `Built-in ClickHouse health checks with tunable thresholds: replication lag, disk, memory and failed queries. Native adapters for ${ALERT_CHANNELS_FULL} — plus per-rule routing.`,
+    description: `Built-in ClickHouse health checks with tunable thresholds: replication lag, disk, memory and failed queries. Native adapters for ${ALERT_CHANNELS_FULL} — plus per-rule routing.`,
     eyebrow: 'Alerting',
     h1: 'Know before your users do',
     subhead:
@@ -827,7 +823,10 @@ export const FEATURE_PAGES: FeaturePage[] = [
       { title: 'Live activity', body: 'pg_stat_activity every 5 seconds.' },
       { title: 'Read-only', body: 'Pinned at the connection, always.' },
       { title: 'SSRF guard', body: 'Connection URLs validated server-side.' },
-      { title: 'Agent tools', body: 'Four env-gated Postgres tools for the AI agent.' },
+      {
+        title: 'Agent tools',
+        body: 'Four env-gated Postgres tools for the AI agent.',
+      },
       { title: 'One dashboard', body: 'Postgres next to ClickHouse, same UX.' },
     ],
     faq: [

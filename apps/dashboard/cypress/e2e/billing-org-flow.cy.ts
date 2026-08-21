@@ -74,7 +74,6 @@ describe('Billing + Org flow', () => {
       // self-hosted setup heading.
       cy.get('h1').should('exist')
     })
-
   })
 
   // ── Suite B: Authenticated (requires Clerk test mode) ────────────────────
@@ -109,6 +108,5 @@ describe('Billing + Org flow', () => {
         }
       })
     })
-
   })
 })
