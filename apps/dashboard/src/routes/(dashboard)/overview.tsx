@@ -27,18 +27,23 @@ const TopologyView = lazy(() =>
 const VALID_TABS = new Set(OVERVIEW_TABS.map((tab) => tab.value))
 const DEFAULT_TAB = 'overview'
 
-/** Underline-active tab styling, overriding the shadcn pill defaults. */
+/** Underline-active tab styling, overriding the shadcn pill defaults.
+ *  Tabs are Base UI: selected is `data-active`, not the Radix state=active attr. */
 const TAB_TRIGGER_CLASS = cn(
   // layout
   'h-auto shrink-0 whitespace-nowrap px-3 py-2',
-  // borders — bottom-only underline
+  // borders — bottom-only underline (on the trigger so overflow-x-auto
+  // on the strip does not clip a hanging `after` bar)
   'rounded-none border-0 border-b-2 border-transparent bg-transparent shadow-none',
+  // kill the default pill: light `data-active:bg-background` is the same as
+  // the page surface so the selected tab vanished; dark still showed
+  // `bg-input/30`.
+  'data-active:border-foreground data-active:bg-transparent data-active:shadow-none',
+  'dark:data-active:border-foreground dark:data-active:bg-transparent',
   // typography
   'text-[13px] font-medium text-muted-foreground',
   // states
-  'transition-colors hover:text-foreground',
-  'data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none',
-  'dark:data-[state=active]:border-foreground dark:data-[state=active]:bg-transparent',
+  'transition-colors hover:text-foreground data-active:text-foreground',
   // keyboard focus — inset ring stays inside the bottom-border strip
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
 )

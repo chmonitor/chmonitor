@@ -578,6 +578,13 @@ utility — `TabsTrigger` already provides `items-center gap-1.5`; a stacked
 `mr-*` is what makes icons look off-baseline. Keep the strip in the
 `scrollbar-hide overflow-x-auto` + `TabsList w-max min-w-full flex-nowrap`
 wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
+Selected state is Base UI `data-active:` (underline via trigger
+`border-b-2` + `data-active:border-foreground`), never Radix
+`data-[state=active]:` — those selectors never match, so light-mode overview
+tabs looked unselected (`data-active:bg-background` on the page surface) while
+dark mode still showed the `bg-input/30` pill. Do not rely on `TabsList
+variant="line"`'s hanging `after` bar here: the strip is `overflow-x-auto` and
+would clip it.
 
 ### Responsive chrome (phones + tablets)
 
