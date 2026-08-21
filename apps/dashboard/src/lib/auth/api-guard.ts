@@ -62,6 +62,9 @@ const CLI_AUTH_DISCOVERY_PATH = '/api/v1/auth/cli'
 const OPENAPI_SPEC_PATH = '/api/v1/openapi.json'
 // Product changelog for the What's new dialog — public GitHub notes, no secrets.
 const RELEASES_PATH = '/api/v1/releases'
+// MCP server info for the agents sidebar — static tools/resources metadata
+// (names only, no secrets), matching the `mcp` feature's public access.
+const MCP_INFO_PATH = '/api/v1/mcp/info'
 
 const LEGACY_HOST = 'cloud.chmonitor.dev'
 const CANONICAL_HOST = 'dash.chmonitor.dev'
@@ -175,6 +178,7 @@ export async function getApiKeyAuthFailure(
   // OpenAPI is a public discovery document — agents read it before they have
   // a key. Never 401 (or 500 via the dashboard shell) this path.
   // `/api/v1/releases` is the public What's new changelog (GitHub notes).
+  // `/api/v1/mcp/info` is static MCP tools/resources metadata (no secrets).
   if (
     pathname === API_KEY_ISSUANCE_PATH ||
     pathname === DEVICE_CODE_PATH ||
@@ -183,7 +187,8 @@ export async function getApiKeyAuthFailure(
     pathname === DEVICE_TOKEN_PATH ||
     pathname === CLI_AUTH_DISCOVERY_PATH ||
     pathname === OPENAPI_SPEC_PATH ||
-    pathname === RELEASES_PATH
+    pathname === RELEASES_PATH ||
+    pathname === MCP_INFO_PATH
   ) {
     return null
   }

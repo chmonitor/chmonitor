@@ -189,6 +189,41 @@ describe('GET /api/v1/releases is a public changelog document', () => {
   })
 })
 
+describe('GET /api/v1/mcp/info is public MCP metadata', () => {
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  function mcpInfoReq(): Request {
+    return new Request('https://dash.example.com/api/v1/mcp/info')
+  }
+
+  it('passes anonymous callers when clerk requires a session', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'clerk'
+    const result = await getApiKeyAuthFailure(mcpInfoReq())
+    expect(result).toBeNull()
+  })
+
+  it('passes anonymous callers when API-key auth is on', async () => {
+    process.env.CHM_AUTH_PROVIDER = 'none'
+    process.env.CHM_API_KEY_SECRET = TEST_SECRET
+    const result = await getApiKeyAuthFailure(mcpInfoReq())
+    expect(result).toBeNull()
+  })
+})
+
 describe('device-flow paths are public (handler owns auth)', () => {
   const saved: Record<string, string | undefined> = {}
 

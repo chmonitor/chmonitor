@@ -98,6 +98,7 @@ describe('parseExtraModels', () => {
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
       id: 'meta/llama-3.3-70b',
+      name: 'Llama 3.3 70B',
       description: 'Llama 3.3 70B',
       contextLength: 131072,
       providers: ['nvidia'],
