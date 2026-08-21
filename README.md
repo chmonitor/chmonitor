@@ -14,7 +14,7 @@
 [![Docker image](https://img.shields.io/badge/ghcr.io-chmonitor%2Fchmonitor-2496ED?logo=docker&logoColor=white)](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor)
 [![License](https://img.shields.io/github/license/chmonitor/chmonitor)](LICENSE)
 
-**chmonitor is an operational advisor for ClickHouse** — not just a metrics viewer. It reads `system.*` and recommends projections, skip indexes, partition keys, PREWHERE rewrites, and materialized views (it *recommends*, and never auto-applies DDL), on top of the real-time query/cluster/replication monitoring you'd expect. Managed-ClickHouse AI tools stay locked to their own Cloud; chmonitor works the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud — self-host it free (GPL-3.0) or use the hosted [Cloud](#self-hosted-oss-vs-cloud-saas), same codebase either way.
+**chmonitor is an operational advisor for ClickHouse** — not just a metrics viewer. It reads `system.*` and recommends projections, skip indexes, partition keys, PREWHERE rewrites, and materialized views (it *recommends*, and never auto-applies DDL), on top of the real-time query/cluster/replication monitoring you'd expect. Managed-ClickHouse AI tools stay locked to their own Cloud; chmonitor works the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud — self-host it free (GPL-3.0).
 
 <p align="center">
   <a href="https://dash.chmonitor.dev/?ref=github"><strong>Live demo</strong></a> ·
@@ -50,18 +50,19 @@
 | **Merge & Replication** — merge operations, merge performance, replication queue, replicas | **Developer Tools** — Zookeeper explorer, query EXPLAIN, query kill, distributed DDL queue, mutations |
 | **Multi-Host Support** — monitor multiple ClickHouse instances from a single dashboard | |
 
-## Self-hosted (OSS) vs Cloud (SaaS)
+## Self-hosted (OSS) vs Enterprise license
 
-Same codebase, same features — the only difference is who runs it. See
+chmonitor is a single self-hosted codebase. The community edition is free
+forever (GPL-3.0); an optional license unlocks enterprise features. See
 [Editions](docs/content/operate/advanced/editions.mdx) for the open-core feature gates.
 
-| | Self-hosted (OSS) | Optional license | Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github)) |
-|---|---|---|---|
-| Cost | Free forever, GPL-3.0 | Yearly or lifetime, priced by host count ([pricing](https://chmonitor.dev/pricing/)) | Hosted convenience — Free / Pro / Max |
-| Runs on | Your infra — Docker, Kubernetes, bare metal, Cloudflare Workers | Same binary, no license key | Hosted by us on Cloudflare's global edge |
-| ClickHouse hosts | Unlimited | Personal (free) · Team 3 · Unlimited | No host or seat cap |
-| Setup | `docker run` one-liner below | Register company + website after invoice | Sign up — no install |
-| Try without an account | — | — | Public read-only demo cluster |
+| | Community (OSS) | Enterprise license |
+|---|---|---|
+| Cost | Free forever, GPL-3.0 | Yearly or lifetime, priced by host count ([pricing](https://chmonitor.dev/pricing/)) |
+| Runs on | Your infra — Docker, Kubernetes, bare metal, Cloudflare Workers | Same binary, no license key |
+| ClickHouse hosts | Unlimited | Personal (free) · Team 3 · Unlimited |
+| Setup | `docker run` one-liner below | Register company + website after invoice |
+| AI features | AI Advisor + AI Agent + MCP Server included | Same, plus priority support and enterprise gates |
 
 ## Quick start
 
