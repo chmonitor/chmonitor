@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.3](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.2...chm-v0.1.3) (2026-08-21)
+
+
+### Features
+
+* **cli:** brand the default TUI as chmonitor ([#3194](https://github.com/chmonitor/chmonitor/issues/3194)) ([55716b7](https://github.com/chmonitor/chmonitor/commit/55716b7d68656b9679a7d6eaafb761d6b7551c80))
+* **cli:** chm update --beta switches channel and upgrades ([#3198](https://github.com/chmonitor/chmonitor/issues/3198)) ([4625b69](https://github.com/chmonitor/chmonitor/commit/4625b697a25a1fd40c29fdda0225bf9419b8c927))
+* **cli:** launch interactive TUI by default ([#3193](https://github.com/chmonitor/chmonitor/issues/3193)) ([8e7d9b6](https://github.com/chmonitor/chmonitor/commit/8e7d9b6d263956c8b1809fcc83093085ce0248c8))
+* **cli:** make chm doctor the cluster health command ([#3190](https://github.com/chmonitor/chmonitor/issues/3190)) ([8a26be8](https://github.com/chmonitor/chmonitor/commit/8a26be8b73df86cac7e7e69cca3feec96b324b7c))
+* **cli:** migrate dashboard list picker to ratatui ([#3207](https://github.com/chmonitor/chmonitor/issues/3207)) ([cd8d2f8](https://github.com/chmonitor/chmonitor/commit/cd8d2f8eb98af2fc9881faa150964ddbe39719a3))
+* **cli:** overview chart TUI, dashboard list, interactive config ([#3197](https://github.com/chmonitor/chmonitor/issues/3197)) ([b47b0c7](https://github.com/chmonitor/chmonitor/commit/b47b0c7786f4f1b4be136f54e536e8923dd218f2))
+
+
+### Bug Fixes
+
+* **cli:** cap live dashboard refresh and prune today query count ([#3204](https://github.com/chmonitor/chmonitor/issues/3204)) ([971ab33](https://github.com/chmonitor/chmonitor/commit/971ab33023f7a36509874be2c84cbee1ca121d35))
+* **cli:** drop diagnose, upgrade, and completions ([#3205](https://github.com/chmonitor/chmonitor/issues/3205)) ([0f72b94](https://github.com/chmonitor/chmonitor/commit/0f72b946382266f2de9fa4ae80c9e6afb45e04a1))
+* **cli:** exit after chm update and persist --beta/--stable ([#3201](https://github.com/chmonitor/chmonitor/issues/3201)) ([60b4833](https://github.com/chmonitor/chmonitor/commit/60b483388e5a085c728513e531fd406d8c590cb9))
+* **cli:** route curl install.sh around Bot Fight Mode 403 ([7d97cf1](https://github.com/chmonitor/chmonitor/commit/7d97cf1546b1a43fc4142ad8bed1560763ce463c))
+* **cli:** use clamp for TUI table page size ([#3209](https://github.com/chmonitor/chmonitor/issues/3209)) ([e85a027](https://github.com/chmonitor/chmonitor/commit/e85a027fb784afcc550d553c7418df031abf2cd2))
+* **landing:** brand CLI install, beta badge, and What's new scroll ([#3203](https://github.com/chmonitor/chmonitor/issues/3203)) ([43ba12f](https://github.com/chmonitor/chmonitor/commit/43ba12f6868463d11974ee80fcf5de31b2384d4c))
+
 ## [Unreleased]
 
 ### Features
