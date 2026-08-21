@@ -8,8 +8,6 @@
 export interface ModelEntry {
   /** Provider-agnostic model ID (e.g., 'qwen/qwen3.5-397b-a17b') */
   id: string
-  /** Human-friendly display name (e.g. 'Qwen 3.5 397B MoE') */
-  name: string
   /** Human-readable description */
   description: string
   /** Context window in tokens */
@@ -66,7 +64,6 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── Presets (auto-routing via AnyRouter) ──
   {
     id: '@preset/chmonitor',
-    name: 'chmonitor preset',
     description: 'Preset: chmonitor agent routing',
     contextLength: 200_000,
     providers: ['anyrouter'],
@@ -75,14 +72,12 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── OpenRouter auto-routers ──
   {
     id: 'openrouter/free',
-    name: 'OpenRouter free (auto)',
     description: 'Auto-router: free tool-capable model',
     contextLength: 200_000,
     providers: ['openrouter'],
   },
   {
     id: 'openrouter/auto',
-    name: 'OpenRouter auto (best)',
     description: 'Auto-router: best available (paid)',
     contextLength: 2_000_000,
     providers: ['openrouter'],
@@ -91,21 +86,18 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── Free-tier (OpenRouter only) ──
   {
     id: 'qwen/qwen3-coder:free',
-    name: 'Qwen3 Coder',
     description: 'Qwen3 Coder, 1M context',
     contextLength: 1_048_576,
     providers: ['openrouter'],
   },
   {
     id: 'z-ai/glm-4.5-air:free',
-    name: 'GLM 4.5 Air',
     description: 'GLM 4.5 Air',
     contextLength: 131_072,
     providers: ['openrouter'],
   },
   {
     id: 'google/gemma-4-31b-it:free',
-    name: 'Gemma 4 31B IT',
     description: 'Gemma 4 31B IT',
     contextLength: 262_144,
     providers: ['openrouter'],
@@ -114,7 +106,6 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── Paid: multi-provider ──
   {
     id: 'qwen/qwen3.5-397b-a17b',
-    name: 'Qwen 3.5 397B MoE',
     description: 'Qwen 3.5 397B MoE',
     contextLength: 131_072,
     pricing: { inputPerMillion: 0.35, outputPerMillion: 0.4 },
@@ -122,14 +113,12 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   },
   {
     id: 'z-ai/glm-4.7-flash',
-    name: 'GLM 4.7 Flash',
     description: 'GLM 4.7 Flash',
     contextLength: 131_072,
     providers: ['openrouter', 'nvidia', 'anyrouter'],
   },
   {
     id: 'google/gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash Lite',
     description: 'Gemini 3.1 Flash Lite',
     contextLength: 1_000_000,
     pricing: { inputPerMillion: 0.25, outputPerMillion: 1.5 },
@@ -137,14 +126,12 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   },
   {
     id: 'google/gemma-4-26b-a4b-it',
-    name: 'Gemma 4 26B IT',
     description: 'Gemma 4 26B IT',
     contextLength: 262_144,
     providers: ['openrouter', 'anyrouter'],
   },
   {
     id: 'x-ai/grok-4.5',
-    name: 'Grok 4.5',
     description: 'Grok 4.5',
     contextLength: 262_144,
     pricing: { inputPerMillion: 2.0, outputPerMillion: 10.0 },
@@ -154,7 +141,6 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── NVIDIA-only ──
   {
     id: 'nvidia/llama-3.1-nemotron-70b-instruct',
-    name: 'Nemotron 70B Instruct',
     description: 'Nemotron 70B Instruct',
     contextLength: 131_072,
     providers: ['nvidia'],
@@ -213,7 +199,6 @@ export function parseExtraModels(): ModelEntry[] {
 
     entries.push({
       id: modelId,
-      name: description,
       description,
       contextLength,
       providers: [provider],

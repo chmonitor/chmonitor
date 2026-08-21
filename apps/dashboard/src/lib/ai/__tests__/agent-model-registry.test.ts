@@ -61,8 +61,6 @@ describe('MODEL_REGISTRY', () => {
     for (const entry of MODEL_REGISTRY) {
       expect(typeof entry.id).toBe('string')
       expect(entry.id.length).toBeGreaterThan(0)
-      expect(typeof entry.name).toBe('string')
-      expect(entry.name.length).toBeGreaterThan(0)
       expect(typeof entry.description).toBe('string')
       expect(typeof entry.contextLength).toBe('number')
       expect(entry.contextLength).toBeGreaterThan(0)
@@ -174,7 +172,6 @@ describe('parseExtraModels', () => {
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
       id: 'meta/llama-3.3-70b',
-      name: 'Llama 3.3 70B',
       description: 'Llama 3.3 70B',
       contextLength: 131072,
       providers: ['nvidia'],

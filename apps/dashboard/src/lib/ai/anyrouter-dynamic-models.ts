@@ -326,7 +326,7 @@ function listItemToRanked(
   return {
     modelId: model.id,
     id: `anyrouter:${model.id}`,
-    name: model.name || model.id,
+    name: model.id,
     description:
       model.description?.trim() ||
       (opts.isRouterAlias
@@ -380,7 +380,7 @@ export function buildAnyRouterAutoEntry(
   return {
     modelId: 'auto',
     id: ANYROUTER_AUTO_MODEL_ID,
-    name: 'Auto (top by usage)',
+    name: 'auto',
     description: `Auto-pick top AnyRouter model by usage. ${tip}`,
     contextLength: 200_000,
     isFree: true,
