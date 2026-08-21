@@ -601,7 +601,7 @@ mod tests {
     }
 
     fn assert_copy_pasteable_fallback(msg: &str) {
-        assert!(msg.contains("scripts/install.sh"), "{msg}");
+        assert!(msg.contains("chmonitor.dev/install.sh"), "{msg}");
         assert!(msg.contains("cargo install chmonitor"), "{msg}");
         // Match `sudo ` as a command. The phrase "never invokes sudo" must not trip this.
         assert!(
