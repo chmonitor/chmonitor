@@ -51,8 +51,15 @@ export default {
         if (request.method !== 'GET') {
           return withCors(new Response('Method Not Allowed', { status: 405 }))
         }
+        // Static tools/resources metadata (names only, no secrets, no
+        // ClickHouse access) — public, matching the dashboard's own public
+        // `/api/v1/mcp/info` route (which calls buildServerInfo() with no
+        // auth gate) and the `mcp` feature's `public` access in
+        // `/api/v1/config`. Only the actual MCP protocol endpoint
+        // (`/api/mcp`) stays authenticated.
         return await handleMcpInfo(request, {
           rateLimitCheck: checkMcpRateLimit,
+          authenticate: async () => null,
         })
       }
       // OAuth discovery (RFC 9728). In production dash.chmonitor.dev/.well-known/*
