@@ -108,9 +108,7 @@ async fn send_get(
     let status = resp.status().as_u16();
     if let Some(len) = resp.content_length() {
         if len as usize > MAX_RESPONSE_BYTES {
-            bail!(
-                "chmonitor API at {url} returned {len} bytes (limit {MAX_RESPONSE_BYTES})"
-            );
+            bail!("chmonitor API at {url} returned {len} bytes (limit {MAX_RESPONSE_BYTES})");
         }
     }
     let bytes = resp.bytes().await.unwrap_or_default();

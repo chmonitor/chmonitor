@@ -489,15 +489,14 @@ async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App, force: bool) {
         })
         .collect();
 
-    let charts_fut = futures_util::future::join_all(chart_jobs.into_iter().map(
-        |(fetch, url)| async move {
+    let charts_fut =
+        futures_util::future::join_all(chart_jobs.into_iter().map(|(fetch, url)| async move {
             if !fetch {
                 ChartFetch::Skip
             } else {
                 ChartFetch::Done(client::fetch_optional_cfg(client, cfg, url).await)
             }
-        },
-    ));
+        }));
     let (hosts_res, table_res, chart_results) = tokio::join!(
         client::fetch_cfg(client, cfg, hosts_url),
         client::fetch_cfg(client, cfg, table_url),
@@ -1454,7 +1453,9 @@ mod tests {
         );
         assert_eq!(disk.1.len(), 3);
         let table = bound_table_rows(
-            (0..40).map(|i| json!({"i": i, "query": "SELECT 1"})).collect(),
+            (0..40)
+                .map(|i| json!({"i": i, "query": "SELECT 1"}))
+                .collect(),
             15,
         );
         assert_eq!(table.len(), 15);
