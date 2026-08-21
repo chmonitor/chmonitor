@@ -19,6 +19,10 @@ export const paidLicenseSkus = LICENSE_SKU_LIST.filter((s) =>
   isPaidLicense(s.id)
 )
 export const salesEmail = LICENSE_SALES_EMAIL
+/** Product questions, tax, feature requests — not Polar receipts. */
+export const LICENSE_HELP_EMAIL = 'duyet@chmonitor.dev'
+export const LICENSE_HELP_DOCS_HREF =
+  'https://docs.chmonitor.dev/operate/advanced/commercial-license'
 
 export const LICENSE_HOOKS_ORIGIN =
   (typeof import.meta !== 'undefined' &&

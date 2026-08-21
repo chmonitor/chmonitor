@@ -31,6 +31,8 @@ export type NotifyKind =
   | 'user_created'
   | 'session_created'
   | 'org_created'
+  // Someone opened Polar checkout for a self-host license (before they pay).
+  | 'checkout_started'
 
 /** Minimum milliseconds between two messages of the SAME kind. */
 export const THROTTLE_MS: Record<NotifyKind, number> = {
@@ -70,6 +72,9 @@ export const THROTTLE_MS: Record<NotifyKind, number> = {
   user_created: 2_000,
   session_created: 2_000,
   org_created: 2_000,
+  // Each checkout start is a distinct intent; light throttle only collapses
+  // Polar+our-handler double delivery, not two different customers.
+  checkout_started: 2_000,
 }
 
 export interface TelegramConfig {

@@ -163,11 +163,44 @@ describe('handled subscription events', () => {
     const applyDeps = stubDeps()
     const res = await handlePolarWebhook(req(), env, {
       notify: (k, t) => notify(k, t),
-      validateEvent: event('checkout.created', subData),
+      validateEvent: event('order.updated', subData),
       applyDeps,
     })
     expect(res.status).toBe(202)
     expect(applyDeps.upsertSubscription).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  test('checkout.created for a self-host license pings checkout_started', async () => {
+    const applyDeps = stubDeps()
+    const res = await handlePolarWebhook(req(), env, {
+      notify: (k, t) => notify(k, t),
+      validateEvent: event('checkout.created', {
+        id: 'chk_1',
+        url: 'https://sandbox.polar.sh/checkout/chk_1',
+        customer_email: 'ops@acme.example',
+        metadata: {
+          kind: 'selfhost-license',
+          sku: 'team',
+          term: 'yearly',
+          company: 'Acme',
+        },
+      }),
+      applyDeps,
+    })
+    expect(res.status).toBe(202)
+    expect(applyDeps.upsertSubscription).not.toHaveBeenCalled()
+    expect(notify.mock.calls[0]?.[0]).toBe('checkout_started')
+    expect(notify.mock.calls[0]?.[1]).toContain('team')
+    expect(notify.mock.calls[0]?.[1]).toContain('Acme')
+  })
+
+  test('checkout.created without license metadata does not ping', async () => {
+    await handlePolarWebhook(req(), env, {
+      notify: (k, t) => notify(k, t),
+      validateEvent: event('checkout.created', { id: 'chk_saas' }),
+      applyDeps: stubDeps(),
+    })
     expect(notify).not.toHaveBeenCalled()
   })
 })

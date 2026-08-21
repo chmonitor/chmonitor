@@ -60,4 +60,7 @@ It stays up if you do not want to operate the app — demos, side projects, team
 
 For everyone already running ClickHouse behind a firewall, **self-host + license** is the product that matches how you work.
 
-See [Self-hosting on Docker](https://blog.chmonitor.dev/clickhouse-self-hosting-docker) if you have not deployed yet.
+Deploy it next to the cluster:
+
+- [Docker, in five minutes](/clickhouse-self-hosting-docker/)
+- [Kubernetes with Helm](/self-hosting-chmonitor-helm/)

@@ -27,6 +27,14 @@ describe('landing license offer', () => {
     expect(invoiceMailto(personal, 'yearly')).toBe(PERSONAL_SELFHOST_HREF)
   })
 
+  test('help email is duyet@ for product questions', async () => {
+    const { LICENSE_HELP_EMAIL, LICENSE_HELP_DOCS_HREF } = await import(
+      './licenses'
+    )
+    expect(LICENSE_HELP_EMAIL).toBe('duyet@chmonitor.dev')
+    expect(LICENSE_HELP_DOCS_HREF).toContain('commercial-license')
+  })
+
   test('paid CTA goes to the company form before Polar', () => {
     const team = getLicense('team')
     expect(buyHref(team, 'yearly')).toBe(
@@ -144,9 +152,14 @@ describe('static pages exist', () => {
     expect(src).toContain('name="website" required')
     expect(src).toContain('name="list_public"')
     expect(src).not.toMatch(/name="list_public"[^>]*checked/)
-    expect(src).toContain('paidLicenseSkus')
+    expect(src).toContain('licenseSkus')
     expect(src).toContain('Honor system')
     expect(src).toContain('licenseRegisterApiHref')
     expect(src).toContain('fetch(registerApi')
+    expect(src).toContain('plan-grid')
+    expect(src).toContain('Tax.')
+    expect(src).toContain('duyet@chmonitor.dev')
+    expect(src).toContain('LICENSE_HELP_DOCS_HREF')
+    expect(src).toContain('Polar (merchant of record)')
   })
 })
