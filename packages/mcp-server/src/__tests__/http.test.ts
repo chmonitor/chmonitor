@@ -264,5 +264,16 @@ describe('mcp http', () => {
       )
       expect(res.status).toBe(401)
     })
+
+    it('serves info publicly when a no-op authenticator is injected', async () => {
+      process.env.CHM_API_KEY_SECRET = TEST_SECRET
+      const res = await handleMcpInfo(
+        new Request('https://example.com/api/v1/mcp/info'),
+        { authenticate: async () => null }
+      )
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as { name: string }
+      expect(body.name).toBe('chmonitor')
+    })
   })
 })

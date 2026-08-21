@@ -305,7 +305,10 @@ export function buildServerInfo(): McpServerInfoResponse {
  *
  * Used by the standalone Worker, which has no middleware. The dashboard gates
  * /api/v1/* in middleware.ts instead, so its route uses buildServerInfo()
- * directly — same auth posture, different layer.
+ * directly — same auth posture, different layer. The payload is static
+ * tools/resources metadata (names only, no secrets, no ClickHouse access), so
+ * deployments may serve it publicly by passing a no-op `authenticate` — the
+ * production MCP worker does exactly that (the `mcp` feature is `public`).
  */
 export async function handleMcpInfo(
   req: Request,
