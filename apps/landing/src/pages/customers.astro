@@ -4,7 +4,6 @@ import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
 import FinalCta from '../components/FinalCta.astro'
 import { publicLicensedCompanies } from '../data/licensed-companies'
-import { btnPrimary, btnOutline } from '../lib/button-classes'
 
 function hostLabel(hosts: number | null): string {
   if (hosts === null) return 'Unlimited hosts'
@@ -22,7 +21,6 @@ function hostLabel(hosts: number | null): string {
         <div class="sec-head price-head" style="text-align:center">
           <span class="eyebrow">Customers</span>
           <h1>Companies that licensed chmonitor</h1>
-          <p>A public list of teams that bought a commercial license and opted in. Listing is never required. Self-host stays free either way.</p>
         </div>
       </div>
     </section>
@@ -30,13 +28,22 @@ function hostLabel(hosts: number | null): string {
     <section class="band">
       <div class="wrap">
         {publicLicensedCompanies().length === 0 ? (
-          <div class="empty">
-            <p>No public listings yet. If you already bought a license, register your company and tick “list us”.</p>
-            <div class="empty-cta">
-              <a class={btnPrimary} href="/license/register">Register a license</a>
-              <a class={btnOutline} href="/license/lookup">Look up an order</a>
-              <a class={btnOutline} href="/pricing">See licenses</a>
-            </div>
+          <div class="action-cards">
+            <a class="action-card" href="/license/register">
+              <span class="action-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg></span>
+              <strong>Register a license</strong>
+              <small>Add your company to the public licensed list after purchase.</small>
+            </a>
+            <a class="action-card" href="/license/lookup">
+              <span class="action-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+              <strong>Look up an order</strong>
+              <small>Confirm an order or check a license you already bought.</small>
+            </a>
+            <a class="action-card" href="/pricing">
+              <span class="action-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg></span>
+              <strong>See licenses</strong>
+              <small>Compare yearly, lifetime and hosted cloud options.</small>
+            </a>
           </div>
         ) : (
           <ul class="co-grid">
@@ -59,9 +66,14 @@ function hostLabel(hosts: number | null): string {
   <style>
     .price-head h1{font-size:clamp(1.75rem,6vw,2.5rem);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px}
     .price-head p{margin-inline:auto;font-size:clamp(14px,3.5vw,17px)}
-    .empty{max-width:560px;margin:0 auto;text-align:center;padding:48px 16px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--card)}
-    .empty p{color:var(--muted-fg);line-height:1.6}
-    .empty-cta{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}
+    .action-cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:860px;margin:0 auto}
+    .action-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);text-decoration:none;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+    .action-card:hover{border-color:var(--border-hover);box-shadow:var(--shadow-card);transform:translateY(-2px)}
+    .action-card:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+    .action-ico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--muted, rgba(127,127,127,.1));color:var(--brand)}
+    .action-ico svg{width:18px;height:18px}
+    .action-card strong{font-size:15px;color:var(--fg)}
+    .action-card small{color:var(--muted-fg);line-height:1.5}
     .co-grid{list-style:none;padding:0;margin:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
     .co{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:18px}
     .co strong{font-size:16px}

@@ -129,6 +129,13 @@ const DEFAULT_COLOR = 'bg-[var(--canvas-soft)] border-border'
     .billing-toggle-btn:not(.active) .save {
       color: var(--semantic-success);
     }
+    /* Keyboard focus: the base rule above bolds `outline: none` to strip the
+       UA outline, so a focus-visible ring needs its own `!important` to win.
+       Brand ring keeps it visible against the active tab's card fill. */
+    .billing-toggle-btn:focus-visible {
+      outline: 2px solid var(--brand) !important;
+      outline-offset: 2px;
+    }
     :global([data-theme='dark']) .billing-toggle-btn.active {
       background: var(--surface-strong);
       color: var(--foreground);
