@@ -464,7 +464,7 @@ fn truncate_row_strings(rows: &mut [Value]) {
 }
 
 fn bound_table_rows(mut rows: Vec<Value>, page_size: usize) -> Vec<Value> {
-    let cap = page_size.max(1).min(100);
+    let cap = page_size.clamp(1, 100);
     if rows.len() > cap {
         rows.truncate(cap);
     }
