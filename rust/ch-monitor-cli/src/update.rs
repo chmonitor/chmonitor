@@ -17,8 +17,7 @@ use crate::cli::Channel;
 const RELEASES_API: &str = "https://api.github.com/repos/chmonitor/chmonitor/releases";
 const RELEASE_DOWNLOAD: &str = "https://github.com/chmonitor/chmonitor/releases/download";
 const USER_AGENT: &str = concat!("chm-cli/", env!("CARGO_PKG_VERSION"));
-const INSTALL_SH: &str =
-    "curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash";
+const INSTALL_SH: &str = "curl -sSf https://chmonitor.dev/install.sh | bash";
 const CARGO_INSTALL: &str = "cargo install chmonitor --force";
 /// GitHub's default page size is 30; this repo also ships dashboard/Helm releases.
 const RELEASES_PER_PAGE: u32 = 100;
@@ -602,7 +601,7 @@ mod tests {
     }
 
     fn assert_copy_pasteable_fallback(msg: &str) {
-        assert!(msg.contains("scripts/install.sh"), "{msg}");
+        assert!(msg.contains("chmonitor.dev/install.sh"), "{msg}");
         assert!(msg.contains("cargo install chmonitor"), "{msg}");
         // Match `sudo ` as a command. The phrase "never invokes sudo" must not trip this.
         assert!(

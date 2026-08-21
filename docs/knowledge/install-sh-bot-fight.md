@@ -3,7 +3,7 @@ id: install-sh-bot-fight
 title: CLI install.sh and Cloudflare Bot Fight Mode
 type: reference
 status: active
-updated: 2026-08-20
+updated: 2026-08-21
 tags:
   - cli
   - cloudflare
@@ -16,7 +16,17 @@ related:
 
 # CLI `install.sh` and Cloudflare Bot Fight Mode
 
-## Symptom
+## Current installer URL
+
+```bash
+curl -sSf https://chmonitor.dev/install.sh | bash
+```
+
+The landing Worker copies `scripts/install.sh` → `public/install.sh` so that
+path serves the script body (200, not a 302). Verify with
+`pnpm run cf:allow-install-sh` after Cloudflare bot settings change.
+
+## Symptom (when Bot Fight Mode is on)
 
 ```bash
 curl -sSf https://chmonitor.dev/install.sh | bash
@@ -34,16 +44,13 @@ WAF custom rules, Configuration Rules, and Page Rules **cannot** skip it for
 `/install.sh` alone. Official docs: turn BFM off, or upgrade to Super Bot Fight
 Mode / Bot Management and write Skip rules.
 
-## Current installer URL
+## Temporary workaround
 
-Documented curl install uses **GitHub raw** (no Cloudflare challenge):
+While BFM is on, document GitHub raw instead:
 
 ```bash
 curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash
 ```
-
-The landing Worker still copies `scripts/install.sh` → `public/install.sh` so
-browsers can open `https://chmonitor.dev/install.sh`.
 
 ## Restore the branded curl URL
 
@@ -54,7 +61,7 @@ browsers can open `https://chmonitor.dev/install.sh`.
    Zone → Bot Management → Edit on the API token).
 2. Run `pnpm run cf:allow-install-sh` (upserts a Config Rule that softens BIC /
    security_level for `/install.sh`, then verifies curl with a curl User-Agent).
-3. Switch `CLI_INSTALL` / docs back to `https://chmonitor.dev/install.sh`.
+3. Keep `CLI_INSTALL` / docs on `https://chmonitor.dev/install.sh`.
 
 Workflow: run locally or in CI with a token that has Bot Management edit —
 `pnpm run cf:allow-install-sh`.

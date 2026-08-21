@@ -1,7 +1,7 @@
-// Copy scripts/install.sh into the landing public dir so browsers can open
-// https://chmonitor.dev/install.sh (200 body, not a 302). The documented curl
-// installer uses GitHub raw because Cloudflare Bot Fight Mode challenges curl
-// on the apex; see scripts/cloudflare-allow-install-sh.ts.
+// Copy scripts/install.sh into the landing public dir so
+// https://chmonitor.dev/install.sh serves the script body (200, not a 302).
+// Documented curl install uses that URL; see scripts/cloudflare-allow-install-sh.ts
+// if Bot Fight Mode starts challenging curl again.
 import { copyFileSync, existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'

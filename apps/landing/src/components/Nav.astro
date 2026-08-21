@@ -53,7 +53,7 @@ const featureIco = (d: string) =>
           </button>
           <div class="nav-menu nav-menu-grid">
             <a href={to('/features/ai-agent')}><span class="nav-ico" set:html={featureIco(featureIcons.aiAgent)} /><span class="nav-txt">AI Agent<small>Schema-aware recommendations &amp; MCP</small></span></a>
-            <a href={to('/cli')}><span class="nav-ico" set:html={featureIco(featureIcons.cli)} /><span class="nav-txt">CLI<small>chm doctor, TUI and dashboard API</small></span></a>
+            <a href={to('/cli')}><span class="nav-ico" set:html={featureIco(featureIcons.cli)} /><span class="nav-txt"><span class="nav-item-label">CLI<span class="nav-badge">Beta</span></span><small>chm doctor, TUI and dashboard API</small></span></a>
             <a href={to('/features/overview')}><span class="nav-ico" set:html={featureIco(featureIcons.overview)} /><span class="nav-txt">Cluster overview<small>Live charts the moment you connect</small></span></a>
             <a href={to('/features/queries')}><span class="nav-ico" set:html={featureIco(featureIcons.queries)} /><span class="nav-txt">Query monitoring<small>Running, slow, failed &amp; expensive</small></span></a>
             <a href={to('/features/topology')}><span class="nav-ico" set:html={featureIco(featureIcons.topology)} /><span class="nav-txt">Cluster topology<small>Nodes, shards, replicas &amp; Keeper</small></span></a>
@@ -124,7 +124,7 @@ const featureIco = (d: string) =>
           </summary>
           <div class="nav-drawer-group-body">
             <a href={to('/features/ai-agent')}>AI Agent</a>
-            <a href={to('/cli')}>CLI</a>
+            <a href={to('/cli')}>CLI<span class="nav-badge">Beta</span></a>
             <a href={to('/features/overview')}>Cluster overview</a>
             <a href={to('/features/queries')}>Query monitoring</a>
             <a href={to('/features/topology')}>Cluster topology</a>

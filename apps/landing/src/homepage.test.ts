@@ -46,7 +46,9 @@ describe('header nav does not advertise Pricing', () => {
   test('CLI is listed under Features, not as a top-level item', () => {
     expect(nav).toContain("to('/cli')")
     expect(nav).toContain('featureIcons.cli')
-    expect(nav).toContain('nav-txt">CLI<small>')
+    expect(nav).toContain(
+      'nav-item-label">CLI<span class="nav-badge">Beta</span>'
+    )
     expect(nav).not.toMatch(
       /to\('\/customers'\)\}>Customers<\/a>\s*<a href=\{to\('\/cli'\)\}>CLI<\/a>/
     )
@@ -55,7 +57,7 @@ describe('header nav does not advertise Pricing', () => {
 
   test('Nav can prefix on-site paths for the blog', () => {
     expect(nav).toContain('origin?: string')
-    expect(nav).toContain("const to = (path: string) => `${origin}${path}`")
+    expect(nav).toContain('const to = (path: string) => `${origin}${path}`')
     expect(baseLayout).toContain("import '../styles/nav.css'")
   })
 
@@ -70,9 +72,7 @@ describe('hero pill links to the latest published blog post', () => {
   test('helper resolves a published post on blog.chmonitor.dev', () => {
     expect(latest).not.toBeNull()
     expect(latest!.href).toContain('blog.chmonitor.dev')
-    expect(latest!.href).toBe(
-      `https://blog.chmonitor.dev/${latest!.slug}/`
-    )
+    expect(latest!.href).toBe(`https://blog.chmonitor.dev/${latest!.slug}/`)
     expect(latest!.title.length).toBeGreaterThan(0)
   })
 

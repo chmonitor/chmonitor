@@ -255,7 +255,7 @@ try {
   const cliHtml = readFileSync(distCli, 'utf8')
   const requiredCli = [
     'chmonitor from the terminal',
-    'raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh',
+    'chmonitor.dev/install.sh',
     'id="install"',
     '/og/og-cli.png',
     'data-cli-demo',

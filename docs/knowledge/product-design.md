@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-20
+updated: 2026-08-21
 tags:
   - design-system
   - ui
@@ -95,7 +95,9 @@ header and footer are `shrink-0`; only the notes list
 scrolls. Native overflow on that body — not `ScrollArea` + `flex-1` — so a
 tall list cannot paint under GitHub Releases / Changelog / Got it. Footer
 resets the primitive's `-mx-4 -mb-4` (`mx-0 mb-0`) because the dialog is
-`p-0`. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
+`p-0`. Initial focus is the title (`tabIndex={-1}` + `initialFocus`), and the
+body `scrollTop` resets on open, so markdown links in older notes cannot
+`scrollIntoView` the list to the middle. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
 `docs/whats-new` friendly copy first). Airgap fallback is a **build-time
 snapshot** of latest `v*` notes, not the full CHANGELOG.md. Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
 `aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
