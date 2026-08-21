@@ -216,7 +216,7 @@ export const pricingFaqs: PricingFaq[] = [
   },
   {
     q: "What's a “host”?",
-    a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. A license is sized by how many hosts you monitor. Self-hosting the OSS build has no technical host limit. A detected replica (a redundant copy in the same cluster shard) counts as 0.5 host.',
+    a: 'A host is a single monitored connection — one ClickHouse cluster endpoint, or (beta) one Postgres database. A license is sized by how many hosts you monitor. Self-hosting the OSS build has no technical host limit. Replicas in the same shard are not counted.',
   },
   {
     q: 'Does a self-host license meter AI usage?',

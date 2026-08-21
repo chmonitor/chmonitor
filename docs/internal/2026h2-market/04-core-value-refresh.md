@@ -36,7 +36,7 @@
 
 | Area | Existing vision | Sharpened by research |
 |---|---|---|
-| Pricing | "$29/$99 validated" | Confirmed + **add explicit included-host counts** and **replica = 0.5 host** to kill multi-node sticker shock; consider a **$199 Fleet** mid-anchor |
+| Pricing | "$29/$99 validated" | Confirmed + **add explicit included-host counts** and **replicas not counted** to kill multi-node sticker shock; consider a **$199 Fleet** mid-anchor |
 | Billing focus | "turn on the money" | Reframed: **collection is near-zero today** (overage unbilled, 402→JSON, no billing UI). This is *found money* — highest ROI in the roadmap |
 | BYOK | "offer on Free/Pro" | Confirmed as a **2026 expectation** (JetBrains, Copilot Jan 2026) — lead with it on the AI advisor |
 | Competitive threat | "Cloud AI is analytics-first" | Confirmed, but **Cloud native advisor is the #1 threat to watch** — our moat is the self-hosted/Altinity/BYOC surface + fleet view |

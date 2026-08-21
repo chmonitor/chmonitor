@@ -1,13 +1,13 @@
 /**
- * Replica detection — bills a detected ClickHouse replica host at 0.5 of a
- * full host, mirroring pganalyze's standby-replica discount (issue #2379).
+ * Replica detection — extra replicas in the same shard do not count toward
+ * the host limit. Only the first host per `(cluster, shard_num)` is billed.
  *
  * A host's role is read from its own cluster topology (`system.clusters`):
  * hosts that share the same `(cluster, shard_num)` pair are replicas of each
  * other — redundant copies of the same shard's data. The first host counted
  * for a given shard is billed as a full host; every additional host in that
- * same shard is a replica, billed at {@link REPLICA_HOST_WEIGHT}. Hosts with
- * no cluster (standalone) or a different shard are always full hosts.
+ * same shard is a replica, billed at {@link REPLICA_HOST_WEIGHT} (zero).
+ * Hosts with no cluster (standalone) or a different shard are always full hosts.
  *
  * Detection is best-effort and fails safe: any error probing a host (network,
  * auth, older ClickHouse versions without `system.clusters`, timeout) resolves
@@ -20,7 +20,7 @@ import type { ConnectionCredentials } from '@/lib/connection-store/types'
 import { queryConnection } from '@/lib/connection-query/connection-client'
 
 /** Billing weight of a host confirmed to be a replica of an already-counted host. */
-export const REPLICA_HOST_WEIGHT = 0.5
+export const REPLICA_HOST_WEIGHT = 0
 /** Billing weight of a standalone host, or the first host counted in a shard. */
 export const PRIMARY_HOST_WEIGHT = 1
 

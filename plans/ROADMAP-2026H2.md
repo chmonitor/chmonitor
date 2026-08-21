@@ -25,7 +25,7 @@ users write queries and build visualizations on *managed* ClickHouse. None is an
 > integrations that work on **every** deployment (self-host, Docker, K8s, Cloud).
 
 **Pricing is validated.** pganalyze charges **$149/mo for one server**, +$100/extra
-server (replica ×0.5). chmonitor's **$29 Pro / $99 Max + $15–19 per-host overage**
+server (replicas not counted). chmonitor's **$29 Pro / $99 Max + $15–19 per-host overage**
 undercuts it decisively while the OSS core stays free — the open-core flywheel pganalyze
 never had.
 

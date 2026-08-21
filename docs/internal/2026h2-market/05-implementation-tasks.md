@@ -16,9 +16,9 @@ Add an explicit `includedHosts` per tier (Pro=1, Max=3) so multi-node clusters d
 surprise overage. Surface on landing pricing cards (`apps/landing/src/data/pricing.ts`)
 and the in-app billing card. *Kills the #1 pricing sticker-shock risk from the research.*
 
-**B2 · Replica = 0.5 billable host (P2/M).** `packages/pricing/src/plans.ts` +
+**B2 · Replica = not counted (P2/M).** `packages/pricing/src/plans.ts` +
 `apps/dashboard/src/lib/billing/entitlements.ts` (host counting). Bill a detected replica
-as 0.5 host (copy pganalyze). Requires replica detection from `system.replicas`.
+as 0 (not counted). Requires replica detection from `system.replicas`.
 
 **B3 · BYOK on Free/Pro for the AI advisor (P1/M).** AI agent config in `apps/dashboard`.
 Allow user-supplied model API key; skip included-credit metering when BYOK is active.

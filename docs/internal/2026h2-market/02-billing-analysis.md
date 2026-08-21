@@ -88,7 +88,7 @@ cohort on Max. Measure conversion of BYOK vs included-credit — this answers "d
 cannibalize or expand?" (open question #4 in the vision doc).
 
 **D. Replica discount (copy pganalyze).** ClickHouse replicas are common; bill a replica
-as 0.5 host. Cheap goodwill, matches the analog, reduces multi-node sticker shock.
+as 0 (not counted). Cheap goodwill, reduces multi-node sticker shock.
 
 **E. Annual plans with ~2 months free.** Standard SaaS lever; improves cash + retention.
 Add once monthly billing is proven end-to-end (Plan 17 e2e tests first).

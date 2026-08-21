@@ -8,7 +8,7 @@ export default defineConfig({
   integrations: [sitemap()],
   vite: {
     plugins: [tailwindcss()],
-    // Nav reuses landing's GitHub stars helper (one fetch, fail-open).
+    // Nav/Footer reuse landing chrome (GitHub stars, changelog, use-cases).
     server: { fs: { allow: [fileURLToPath(new URL('../..', import.meta.url))] } },
   },
 })

@@ -58,7 +58,7 @@ describe('/cli landing page', () => {
   test('nav Features menu and footer link to /cli', () => {
     expect(nav).toContain("to('/cli')")
     expect(nav).toContain('CLI<span class="nav-badge">Beta</span>')
-    expect(footer).toContain('href="/cli"')
+    expect(footer).toContain("to('/cli')")
   })
 
   test('OG card is wired', () => {

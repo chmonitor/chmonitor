@@ -29,13 +29,15 @@ describe('blog chrome matches landing shadcn tokens', () => {
     const base = read('src/layouts/Base.astro')
     expect(nav).toContain("from '../../../landing/src/components/Nav.astro'")
     expect(nav).toContain('origin="https://chmonitor.dev"')
-    expect(base).toContain("landing/src/styles/nav.css")
+    expect(base).toContain('landing/src/styles/nav.css')
   })
 
-  test('Footer uses semantic token classes', () => {
+  test('Footer reuses the landing footer pointed at chmonitor.dev', () => {
     const footer = read('src/components/Footer.astro')
-    expect(footer).toContain('text-muted-foreground')
-    expect(footer).toContain('border-border')
+    expect(footer).toContain(
+      "from '../../../landing/src/components/Footer.astro'"
+    )
+    expect(footer).toContain('origin="https://chmonitor.dev"')
   })
 
   test('prose screenshots and img-row break out past the 720px text measure', () => {
@@ -45,7 +47,9 @@ describe('blog chrome matches landing shadcn tokens', () => {
     expect(base).toContain('.prose img{')
     expect(base).toContain('max-width:min(var(--maxw), calc(100vw - 48px))')
     expect(base).toContain('.img-row{')
-    expect(base).toContain('grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))')
+    expect(base).toContain(
+      'grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))'
+    )
     expect(base).toContain('.prose .img-row img{')
     expect(base).toContain('transform:none')
     expect(base).toContain('.img-row[data-cols="3"]')

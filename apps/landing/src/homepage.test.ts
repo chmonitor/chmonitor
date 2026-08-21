@@ -33,10 +33,10 @@ describe('homepage hides Pricing and the Always shipping band', () => {
   })
 })
 
-describe('header nav does not advertise Pricing', () => {
-  test('desktop and mobile chrome have no /pricing item', () => {
-    expect(nav).not.toContain('href="/pricing"')
-    expect(nav).not.toMatch(/>Pricing</)
+describe('header nav advertises Pricing', () => {
+  test('desktop and mobile chrome link to /pricing', () => {
+    expect(nav).toContain("to('/pricing')")
+    expect(nav).toMatch(/>Pricing</)
   })
 
   test('Changelog still links to /changelog', () => {
@@ -52,17 +52,22 @@ describe('header nav does not advertise Pricing', () => {
     expect(nav).not.toMatch(
       /to\('\/customers'\)\}>Customers<\/a>\s*<a href=\{to\('\/cli'\)\}>CLI<\/a>/
     )
-    expect(footer).toContain('href="/cli"')
+    expect(footer).toContain("to('/cli')")
   })
 
   test('Nav can prefix on-site paths for the blog', () => {
     expect(nav).toContain('origin?: string')
-    expect(nav).toContain('const to = (path: string) => `${origin}${path}`')
+    expect(nav).toContain('const to = (path: string) =>')
     expect(baseLayout).toContain("import '../styles/nav.css'")
   })
 
   test('footer still links to /pricing', () => {
-    expect(footer).toContain('href="/pricing"')
+    expect(footer).toContain("to('/pricing')")
+  })
+
+  test('Footer can prefix on-site paths for the blog', () => {
+    expect(footer).toContain('origin?: string')
+    expect(footer).toContain('const to = (path: string) =>')
   })
 })
 

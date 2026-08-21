@@ -24,7 +24,7 @@ Prices are USD. Personal is free self-host. Team and Unlimited are paid, yearly 
 | Team | 3 | $499 | $1,349 |
 | Unlimited | unlimited | $999 | $2,999 |
 
-A **host** is one monitored connection (one [REDACTED] endpoint, or one Postgres source). A replica in the same shard counts as 0.5 host.
+A **host** is one monitored connection (one [REDACTED] endpoint, or one Postgres source). Replicas in the same shard are not counted.
 
 Source of truth: `@chm/pricing` (`packages/pricing/src/licenses.ts`) and [chmonitor.dev/pricing](https://chmonitor.dev/pricing/).
 

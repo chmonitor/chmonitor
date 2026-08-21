@@ -110,7 +110,7 @@ describe('countOwnerHosts', () => {
     expect(usage.memberUserIds).toEqual(['user_a'])
   })
 
-  test('a detected replica in the same cluster shard bills at 0.5 host', async () => {
+  test('a detected replica in the same cluster shard does not count as a host', async () => {
     const topologyByHost: Record<
       string,
       { cluster: string; shard_num: number }
@@ -134,7 +134,7 @@ describe('countOwnerHosts', () => {
       store,
       'user_a'
     )
-    expect(usage.count).toBe(1.5)
+    expect(usage.count).toBe(1)
   })
 
   test('standalone hosts (no cluster) each bill as a full host', async () => {
