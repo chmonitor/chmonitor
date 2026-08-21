@@ -254,7 +254,7 @@ function toRanked(
     modelId: model.id,
     id: `openrouter:${model.id}`,
     name: model.id,
-    description: model.description?.trim() || `OpenRouter: ${model.id}`,
+    description: model.description?.trim() ?? '',
     contextLength:
       model.context_length ?? model.top_provider?.context_length ?? 128_000,
     ...(typeof maxOut === 'number' && maxOut > 0
