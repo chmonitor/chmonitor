@@ -43,14 +43,13 @@ async fn main() -> Result<()> {
     // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
     // never blocks or fails the command; see src/telemetry.rs.
     let (tel_event, tel_command): (&'static str, &'static str) = match &command {
-        Commands::Diagnose(_) => ("cli_diagnose", "diagnose"),
         Commands::Doctor(args) if args.has_cluster_host() => ("cli_diagnose", "doctor"),
         Commands::Doctor(_) => ("cli_run", "doctor"),
         Commands::Hosts => ("cli_run", "hosts"),
         Commands::Chart { .. } => ("cli_run", "chart"),
         Commands::Table { .. } => ("cli_run", "table"),
         Commands::Tui(_) => ("cli_run", "tui"),
-        Commands::Update(_) | Commands::Upgrade(_) => ("cli_run", "update"),
+        Commands::Update(_) => ("cli_run", "update"),
         Commands::Auth(_) => ("cli_run", "auth"),
         Commands::Config(_) => ("cli_run", "config"),
         Commands::Dashboard(_) => ("cli_run", "dashboard"),
@@ -59,7 +58,6 @@ async fn main() -> Result<()> {
         Commands::Agent { .. } => ("cli_run", "agent"),
         Commands::Prompt(_) => ("cli_run", "prompt"),
         Commands::Audit(_) => ("cli_run", "audit"),
-        Commands::Completions { .. } => ("cli_run", "completions"),
     };
     let tel_handle = telemetry::spawn(tel_event, tel_command);
 
@@ -80,43 +78,30 @@ mod tests {
 
     fn doctor_args(cli: Cli) -> DoctorArgs {
         match cli.command {
-            Some(Commands::Doctor(args) | Commands::Diagnose(args)) => args,
-            other => panic!("expected doctor/diagnose, got {other:?}"),
+            Some(Commands::Doctor(args)) => args,
+            other => panic!("expected doctor, got {other:?}"),
         }
     }
 
     fn update_args(cli: Cli) -> UpdateArgs {
         match cli.command {
-            Some(Commands::Update(args) | Commands::Upgrade(args)) => args,
-            other => panic!("expected update/upgrade, got {other:?}"),
+            Some(Commands::Update(args)) => args,
+            other => panic!("expected update, got {other:?}"),
         }
     }
 
     #[test]
-    fn upgrade_is_first_class_alias_of_update() {
-        for argv in [["chm", "update"], ["chm", "upgrade"]] {
-            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
-            assert!(!args.check);
-            assert!(args.version.is_none());
-        }
-    }
-
-    #[test]
-    fn upgrade_and_update_share_check_flag() {
-        for argv in [["chm", "update", "--check"], ["chm", "upgrade", "--check"]] {
-            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
-            assert!(args.check);
-            assert!(args.version.is_none());
-        }
+    fn update_parses_check_flag() {
+        let args = update_args(Cli::try_parse_from(["chm", "update", "--check"]).expect("parse"));
+        assert!(args.check);
+        assert!(args.version.is_none());
     }
 
     #[test]
     fn update_beta_and_stable_flags() {
-        for argv in [["chm", "update", "--beta"], ["chm", "upgrade", "--beta"]] {
-            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
-            assert!(args.beta);
-            assert!(!args.stable);
-        }
+        let beta = update_args(Cli::try_parse_from(["chm", "update", "--beta"]).expect("parse"));
+        assert!(beta.beta);
+        assert!(!beta.stable);
         let stable =
             update_args(Cli::try_parse_from(["chm", "update", "--stable"]).expect("parse"));
         assert!(stable.stable);
@@ -125,30 +110,25 @@ mod tests {
     }
 
     #[test]
-    fn upgrade_and_update_share_version_flag() {
-        for argv in [
-            ["chm", "update", "--version", "chm-v0.2.0"],
-            ["chm", "upgrade", "--version", "chm-v0.2.0"],
-        ] {
-            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
-            assert!(!args.check);
-            assert_eq!(args.version.as_deref(), Some("chm-v0.2.0"));
-        }
-        for argv in [
-            ["chm", "update", "--version", "0.2.0"],
-            ["chm", "upgrade", "--version", "0.2.0"],
-        ] {
-            let args = update_args(Cli::try_parse_from(argv).expect("parse"));
-            assert_eq!(args.version.as_deref(), Some("0.2.0"));
-        }
+    fn update_version_flag() {
+        let args = update_args(
+            Cli::try_parse_from(["chm", "update", "--version", "chm-v0.2.0"]).expect("parse"),
+        );
+        assert!(!args.check);
+        assert_eq!(args.version.as_deref(), Some("chm-v0.2.0"));
+        let short =
+            update_args(Cli::try_parse_from(["chm", "update", "--version", "0.2.0"]).expect("parse"));
+        assert_eq!(short.version.as_deref(), Some("0.2.0"));
     }
 
     #[test]
-    fn help_lists_update_and_upgrade() {
+    fn help_lists_update_not_upgrade() {
         let mut cmd = Cli::command();
         let help = cmd.render_long_help().to_string();
         assert!(help.contains("update"), "{help}");
-        assert!(help.contains("upgrade"), "{help}");
+        assert!(!help.contains("upgrade"), "{help}");
+        assert!(!help.contains("diagnose"), "{help}");
+        assert!(!help.contains("completions"), "{help}");
     }
 
     #[test]
@@ -185,10 +165,11 @@ mod tests {
         assert!(help.contains("List hosts"), "{help}");
         assert!(help.contains("named chart"), "{help}");
         assert!(help.contains("named table"), "{help}");
-        assert!(help.contains("zero-signup"), "{help}");
         assert!(help.contains("doctor"), "{help}");
-        assert!(help.contains("diagnose"), "{help}");
+        assert!(help.contains("auth"), "{help}");
+        assert!(help.contains("config"), "{help}");
         assert!(help.contains("--base-url"), "{help}");
+        assert!(!help.contains("diagnose"), "{help}");
     }
 
     #[test]
@@ -202,13 +183,9 @@ mod tests {
     }
 
     #[test]
-    fn diagnose_without_host_still_parses_as_alias() {
-        let cli = Cli::try_parse_from(["chm", "diagnose"]).expect("parse");
-        assert!(
-            matches!(cli.command, Some(Commands::Diagnose(_))),
-            "expected Diagnose, got {:?}",
-            cli.command
-        );
+    fn diagnose_is_removed() {
+        let err = Cli::try_parse_from(["chm", "diagnose"]).expect_err("diagnose removed");
+        assert_eq!(err.kind(), clap::error::ErrorKind::InvalidSubcommand);
     }
 
     #[test]
@@ -236,20 +213,12 @@ mod tests {
     }
 
     #[test]
-    fn diagnose_is_alias_of_doctor_cluster_scan() {
-        let args = doctor_args(
-            Cli::try_parse_from(["chm", "diagnose", "--ch-host", "http://127.0.0.1:8123"])
-                .expect("parse"),
-        );
-        assert!(matches!(
-            Cli::try_parse_from(["chm", "diagnose", "--ch-host", "http://127.0.0.1:8123"])
-                .expect("parse")
-                .command,
-            Some(Commands::Diagnose(_))
-        ));
-        assert_eq!(args.ch_host.as_deref(), Some("http://127.0.0.1:8123"));
-        assert!(args.has_cluster_host());
-        assert!(!args.json);
+    fn upgrade_and_completions_are_removed() {
+        let upgrade = Cli::try_parse_from(["chm", "upgrade"]).expect_err("upgrade removed");
+        assert_eq!(upgrade.kind(), clap::error::ErrorKind::InvalidSubcommand);
+        let completions =
+            Cli::try_parse_from(["chm", "completions", "bash"]).expect_err("completions removed");
+        assert_eq!(completions.kind(), clap::error::ErrorKind::InvalidSubcommand);
     }
 
     #[test]
@@ -275,71 +244,49 @@ mod tests {
     }
 
     #[test]
-    fn diagnose_and_doctor_share_scan_flags() {
-        for argv in [
-            [
+    fn doctor_scan_flags() {
+        let args = doctor_args(
+            Cli::try_parse_from([
                 "chm",
                 "doctor",
                 "--ch-host",
                 "http://localhost:8123",
                 "--json",
-            ],
-            [
-                "chm",
-                "diagnose",
-                "--ch-host",
-                "http://localhost:8123",
-                "--json",
-            ],
-        ] {
-            let args = doctor_args(Cli::try_parse_from(argv).expect("parse"));
-            assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
-            assert!(args.json);
-        }
+            ])
+            .expect("parse"),
+        );
+        assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
+        assert!(args.json);
     }
 
     #[test]
-    fn doctor_and_diagnose_help_share_ch_host() {
+    fn doctor_help_has_ch_host() {
         let mut cmd = Cli::command();
         let doctor_help = cmd
             .find_subcommand_mut("doctor")
             .expect("doctor subcommand")
             .render_long_help()
             .to_string();
-        let mut cmd = Cli::command();
-        let diagnose_help = cmd
-            .find_subcommand_mut("diagnose")
-            .expect("diagnose subcommand")
-            .render_long_help()
-            .to_string();
-        for help in [&doctor_help, &diagnose_help] {
-            assert!(help.contains("--ch-host"), "{help}");
-            assert!(help.contains("--ch-user"), "{help}");
-            assert!(help.contains("--json"), "{help}");
-        }
+        assert!(doctor_help.contains("--ch-host"), "{doctor_help}");
+        assert!(doctor_help.contains("--ch-user"), "{doctor_help}");
+        assert!(doctor_help.contains("--json"), "{doctor_help}");
+        assert!(cmd.find_subcommand_mut("diagnose").is_none());
     }
 
     #[test]
-    fn update_and_upgrade_help_share_flags() {
-        // clap 4's render_long_help takes &mut self.
+    fn update_help_has_flags() {
         let mut cmd = Cli::command();
         let update_help = cmd
             .find_subcommand_mut("update")
             .expect("update subcommand")
             .render_long_help()
             .to_string();
-        let mut cmd = Cli::command();
-        let upgrade_help = cmd
-            .find_subcommand_mut("upgrade")
-            .expect("upgrade subcommand")
-            .render_long_help()
-            .to_string();
-        for help in [&update_help, &upgrade_help] {
-            assert!(help.contains("--check"), "{help}");
-            assert!(help.contains("--version"), "{help}");
-            assert!(help.contains("--beta"), "{help}");
-            assert!(help.contains("--stable"), "{help}");
-        }
+        assert!(update_help.contains("--check"), "{update_help}");
+        assert!(update_help.contains("--version"), "{update_help}");
+        assert!(update_help.contains("--beta"), "{update_help}");
+        assert!(update_help.contains("--stable"), "{update_help}");
+        assert!(cmd.find_subcommand_mut("upgrade").is_none());
+        assert!(cmd.find_subcommand_mut("completions").is_none());
     }
 
     #[test]

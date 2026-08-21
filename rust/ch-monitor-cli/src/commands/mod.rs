@@ -13,7 +13,6 @@ pub mod table;
 pub mod update_cmd;
 
 use anyhow::Result;
-use clap::CommandFactory;
 use reqwest::Client;
 
 use crate::{
@@ -160,14 +159,6 @@ pub async fn dispatch(
             doctor::run(client, cfg).await?;
             Ok(0)
         }
-        Commands::Diagnose(args) => run_cluster_scan(client, cfg, args).await,
-        Commands::Update(args) | Commands::Upgrade(args) => {
-            update_cmd::run(client, cfg, args).await
-        }
-        Commands::Completions { shell } => {
-            let mut cmd = crate::cli::Cli::command();
-            clap_complete::generate(shell, &mut cmd, "chm", &mut std::io::stdout());
-            Ok(0)
-        }
+        Commands::Update(args) => update_cmd::run(client, cfg, args).await,
     }
 }

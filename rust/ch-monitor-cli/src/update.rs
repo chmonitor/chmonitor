@@ -1,4 +1,4 @@
-//! Self-update: `chm update` / `chm upgrade`.
+//! Self-update: `chm update`.
 //!
 //! Downloads the newest (or a pinned) `chm-v*` release from GitHub, verifies its
 //! sha256 checksum, and atomically replaces the running executable. Never
@@ -201,7 +201,7 @@ fn ensure_supported_target() -> Result<()> {
     Ok(())
 }
 
-/// `chm update --check` / `chm upgrade --check`: report whether a newer release exists.
+/// `chm update --check`: report whether a newer release exists.
 /// Returns `true` when an update is available.
 #[allow(dead_code)]
 pub async fn check(client: &Client) -> Result<bool> {
@@ -220,7 +220,7 @@ pub async fn check_channel(client: &Client, channel: Channel) -> Result<bool> {
         channel.as_str()
     );
     if latest > current {
-        println!("update available (run `chm update` or `chm upgrade`)");
+        println!("update available (run `chm update`)");
         Ok(true)
     } else {
         println!("chm is up to date");
@@ -248,13 +248,13 @@ pub async fn hint(client: &Client) {
     };
     if let Ok(Some(tag)) = tokio::time::timeout(Duration::from_millis(900), fut).await {
         eprintln!(
-            "note: a newer chm is available (v{} -> {tag}). Run `chm update` or `chm upgrade`. (set CHM_NO_UPDATE_CHECK=1 to silence)",
+            "note: a newer chm is available (v{} -> {tag}). Run `chm update`. (set CHM_NO_UPDATE_CHECK=1 to silence)",
             env!("CARGO_PKG_VERSION")
         );
     }
 }
 
-/// `chm update` / `chm upgrade` (and `--version <tag>`): download, verify, replace.
+/// `chm update` (and `--version <tag>`): download, verify, replace.
 #[allow(dead_code)]
 pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
     run_channel(client, pinned, Channel::Stable).await
