@@ -1,6 +1,6 @@
 [package]
 name = "chmonitor"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["duyet <bot@duyet.net>"]
 description = "Standalone terminal/TUI CLI for chmonitor (`chm` / `chmonitor`). Run `chm` for the live TUI."
