@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react'
+import { useLayoutEffect, useRef } from 'react'
 
 import type { ReleaseNote } from '@/lib/whats-new/types'
 
@@ -66,20 +67,36 @@ export function WhatsNewDialog({
   error,
   onRetry,
 }: WhatsNewDialogProps) {
+  // Default dialog focus picks the first tabbable in the popup. Older release
+  // notes can contain many markdown links deep in the scroll body, so that
+  // scrollIntoView lands mid-list. Pin initial focus to the title (outside the
+  // scroll container) and reset scroll whenever content settles.
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (!open) return
+    bodyRef.current?.scrollTo(0, 0)
+  }, [open, isLoading, releases])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="flex max-h-[min(36rem,85vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 sm:max-w-lg"
         data-testid="whats-new-dialog"
+        initialFocus={titleRef}
       >
         <DialogHeader className="shrink-0 border-b border-border px-4 py-3">
-          <DialogTitle>What's new</DialogTitle>
+          <DialogTitle ref={titleRef} tabIndex={-1}>
+            What's new
+          </DialogTitle>
           <DialogDescription>
             Product changes since your last visit.
           </DialogDescription>
         </DialogHeader>
 
         <div
+          ref={bodyRef}
           className="min-h-0 flex-1 overflow-y-auto"
           data-testid="whats-new-dialog-body"
         >

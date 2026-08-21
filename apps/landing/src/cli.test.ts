@@ -21,9 +21,7 @@ describe('/cli landing page', () => {
     )
     expect(page).toContain('id="install"')
     expect(page).toContain('{CLI_INSTALL}')
-    expect(data).toContain(
-      'curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash'
-    )
+    expect(data).toContain('curl -sSf https://chmonitor.dev/install.sh | bash')
     expect(data).toContain("title: 'Your dashboard'")
     expect(data).toContain("title: 'Ready for AI agents'")
     expect(data).toContain("title: 'Interactive TUI'")
@@ -59,6 +57,7 @@ describe('/cli landing page', () => {
 
   test('nav Features menu and footer link to /cli', () => {
     expect(nav).toContain("to('/cli')")
+    expect(nav).toContain('CLI<span class="nav-badge">Beta</span>')
     expect(footer).toContain('href="/cli"')
   })
 

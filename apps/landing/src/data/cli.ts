@@ -3,12 +3,7 @@
  * Command reference lives at docs.chmonitor.dev/guide/guides/diagnostics-cli.
  */
 
-// Fetch from GitHub raw — Cloudflare Bot Fight Mode on the Free plan challenges
-// curl against chmonitor.dev with a managed 403 (cannot be path-skipped). The
-// landing still copies this script to /install.sh for browsers. After BFM is
-// off, restore the branded URL via `pnpm run cf:allow-install-sh`.
-export const CLI_INSTALL =
-  'curl -sSf https://raw.githubusercontent.com/chmonitor/chmonitor/main/scripts/install.sh | bash'
+export const CLI_INSTALL = 'curl -sSf https://chmonitor.dev/install.sh | bash'
 
 export const CLI_DOCS =
   'https://docs.chmonitor.dev/guide/guides/diagnostics-cli'
