@@ -33,14 +33,8 @@ describe('getLatestBlogPost', () => {
 
   test('sorts by date and picks the newest published post', () => {
     tmpDir()
-    writePost(
-      'old.md',
-      'title: "Old post"\ndescription: "d"\ndate: 2026-01-01'
-    )
-    writePost(
-      'mid.md',
-      'title: "Mid post"\ndescription: "d"\ndate: 2026-06-01'
-    )
+    writePost('old.md', 'title: "Old post"\ndescription: "d"\ndate: 2026-01-01')
+    writePost('mid.md', 'title: "Mid post"\ndescription: "d"\ndate: 2026-06-01')
     writePost(
       'new.md',
       'title: "Newest post"\ndescription: "fresh"\ndate: 2026-08-01'
@@ -57,10 +51,7 @@ describe('getLatestBlogPost', () => {
 
   test('excludes drafts even when they are the newest', () => {
     tmpDir()
-    writePost(
-      'live.md',
-      'title: "Live"\ndescription: "d"\ndate: 2026-08-01'
-    )
+    writePost('live.md', 'title: "Live"\ndescription: "d"\ndate: 2026-08-01')
     writePost(
       'draft.md',
       'title: "Draft"\ndescription: "d"\ndate: 2026-08-19\ndraft: true'
@@ -75,10 +66,7 @@ describe('getLatestBlogPost', () => {
 
   test('treats a YYYY-MM-DD date as that local calendar day', () => {
     tmpDir()
-    writePost(
-      'today.md',
-      'title: "Today"\ndescription: "d"\ndate: 2026-08-20'
-    )
+    writePost('today.md', 'title: "Today"\ndescription: "d"\ndate: 2026-08-20')
     writePost(
       'yesterday.md',
       'title: "Yesterday"\ndescription: "d"\ndate: 2026-08-19'
@@ -93,10 +81,7 @@ describe('getLatestBlogPost', () => {
 
   test('excludes future-dated posts (#2697)', () => {
     tmpDir()
-    writePost(
-      'live.md',
-      'title: "Live"\ndescription: "d"\ndate: 2026-08-01'
-    )
+    writePost('live.md', 'title: "Live"\ndescription: "d"\ndate: 2026-08-01')
     writePost(
       'scheduled.md',
       'title: "Scheduled"\ndescription: "d"\ndate: 2026-12-01'
@@ -131,16 +116,13 @@ describe('getLatestBlogPost', () => {
     const landingPaths = yml.indexOf("- 'apps/landing/**'")
     expect(landingPaths).toBeGreaterThan(-1)
     expect(yml.slice(landingPaths, landingPaths + 500)).toContain(
-      "apps/blog/src/content/blog/**"
+      'apps/blog/src/content/blog/**'
     )
   })
 
   test('returns null when the directory has no published posts', () => {
     tmpDir()
-    writePost(
-      'soon.md',
-      'title: "Soon"\ndescription: "d"\ndate: 2099-01-01'
-    )
+    writePost('soon.md', 'title: "Soon"\ndescription: "d"\ndate: 2099-01-01')
     expect(
       getLatestBlogPost({ dir, now: new Date('2026-08-20T12:00:00Z') })
     ).toBeNull()

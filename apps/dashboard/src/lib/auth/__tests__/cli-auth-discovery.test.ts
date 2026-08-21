@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'bun:test'
-
 import { resolveCliAuthDiscovery } from '../cli-auth-discovery'
+import { describe, expect, it } from 'bun:test'
 
 describe('resolveCliAuthDiscovery', () => {
   it('method=none when auth=none and no API key secret (open API)', () => {

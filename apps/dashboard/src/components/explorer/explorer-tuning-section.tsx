@@ -75,6 +75,8 @@ export function ExplorerTuningSection({
   const [scanKey, setScanKey] = useState<string | null>(null)
   const tableKey = `${database}.${table}`
 
+  // tableKey is the reset trigger; scanKey itself isn't read here.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset when the table changes
   useEffect(() => {
     setScanKey(null)
   }, [tableKey])

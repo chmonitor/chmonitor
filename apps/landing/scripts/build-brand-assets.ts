@@ -13,6 +13,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Resvg } from '@resvg/resvg-js'
 import sharp from 'sharp'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -193,6 +194,25 @@ function buildIco(entries: { size: number; png: Buffer }[]) {
   return Buffer.concat([header, dir, ...entries.map((e) => e.png)])
 }
 
+// Horizontal lockups contain text, so rasterize with resvg + the vendored
+// TTFs (deterministic, no system fontconfig) — same approach as build-og.ts.
+const lockupFonts = ['inter-600', 'inter-700'].map((f) =>
+  join(here, 'og-fonts', `${f}.ttf`)
+)
+
+function rasterLockup(svg: string, scale: number) {
+  return new Resvg(svg, {
+    fitTo: { mode: 'width', value: 208 * scale },
+    font: {
+      fontFiles: lockupFonts,
+      loadSystemFonts: false,
+      defaultFontFamily: 'Inter',
+    },
+  })
+    .render()
+    .asPng()
+}
+
 // 1200×630 social card: warm wash, centered lockup + tagline.
 async function buildOg() {
   const w = 1200
@@ -232,15 +252,50 @@ async function run() {
     '<svg width="32" height="32" '
   )
   const logoMonoSvg = markMono.replace('<svg ', '<svg width="32" height="32" ')
+  const logoMonoWhiteSvg = markMono
+    .replace('<svg ', '<svg width="32" height="32" ')
+    .replace(/currentColor/g, PAPER)
+  const logoMonoInkSvg = markMono
+    .replace('<svg ', '<svg width="32" height="32" ')
+    .replace(/currentColor/g, INK)
   const logoLockupLight = lockup(INK)
   const logoLockupDark = lockup(PAPER)
 
   for (const dir of [landing, blog, docs]) {
     await writeFile(join(dir, 'brand', 'logo-chmonitor.svg'), logoColorSvg)
     await writeFile(join(dir, 'brand', 'logo-chmonitor-mono.svg'), logoMonoSvg)
+    await writeFile(
+      join(dir, 'brand', 'logo-chmonitor-mono-white.svg'),
+      logoMonoWhiteSvg
+    )
+    await writeFile(
+      join(dir, 'brand', 'logo-chmonitor-mono-ink.svg'),
+      logoMonoInkSvg
+    )
     await writeFile(join(dir, 'brand', 'logo.svg'), logoLockupLight)
     await writeFile(join(dir, 'brand', 'logo-dark.svg'), logoLockupDark)
   }
+
+  // Lockup PNGs (1×/2×/4×) for places SVG can't go (docs uploads, socials).
+  const lockups = [
+    { name: 'logo', svg: logoLockupLight },
+    { name: 'logo-dark', svg: logoLockupDark },
+  ]
+  await Promise.all(
+    lockups.flatMap(async ({ name, svg }) => {
+      const png1x = await rasterLockup(svg, 1)
+      await writeFile(join(landing, 'brand', `${name}-208.png`), png1x)
+      await writeFile(join(blog, 'brand', `${name}-208.png`), png1x)
+      await writeFile(
+        join(landing, 'brand', `${name}-416.png`),
+        await rasterLockup(svg, 2)
+      )
+      await writeFile(
+        join(landing, 'brand', `${name}-832.png`),
+        await rasterLockup(svg, 4)
+      )
+    })
+  )
 
   // Landing rasters.
   await sharp(await rasterTransparent(16)).toFile(

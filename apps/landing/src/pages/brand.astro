@@ -12,62 +12,124 @@ const swatches = [
   { name: 'Paper', role: 'Mono mark on dark · surfaces', hex: '#fafafa', token: '--bg-soft' },
 ]
 
+const MARK_SIZES = [16, 32, 64, 128, 256, 512, 1024]
+const LOCKUP_SIZES = [208, 416, 832]
+
+const pngFiles = (base: string, sizes: number[]) =>
+  sizes.map((s) => ({ fmt: `PNG ${s}`, href: base.replace('{s}', String(s)) }))
+
+// Every logo version exposes its SVG + PNG rasters; each file row is
+// click-to-download with a copy-link button (see the downloads section).
 const downloads = [
   {
     group: 'Mark',
-    items: [
-      { label: 'Mark — color SVG', href: '/brand/logo-chmonitor.svg' },
-      { label: 'Mark — mono SVG', href: '/brand/logo-chmonitor-mono.svg' },
-      { label: 'Mark — color PNG 16', href: '/brand/logo-chmonitor-16.png' },
-      { label: 'Mark — color PNG 32', href: '/brand/logo-chmonitor-32.png' },
-      { label: 'Mark — color PNG 64', href: '/brand/logo-chmonitor-64.png' },
-      { label: 'Mark — color PNG 128', href: '/brand/logo-chmonitor-128.png' },
-      { label: 'Mark — color PNG 256', href: '/brand/logo-chmonitor-256.png' },
-      { label: 'Mark — color PNG 512', href: '/brand/logo-chmonitor-512.png' },
-      { label: 'Mark — color PNG 1024', href: '/brand/logo-chmonitor-1024.png' },
-      { label: 'Mark — mono PNG 256', href: '/brand/logo-chmonitor-mono-256.png' },
-      { label: 'Mark — mono PNG 512', href: '/brand/logo-chmonitor-mono-512.png' },
-      { label: 'Mark — mono-white PNG 256', href: '/brand/logo-chmonitor-mono-white-256.png' },
-      { label: 'Mark — mono-white PNG 512', href: '/brand/logo-chmonitor-mono-white-512.png' },
+    versions: [
+      {
+        name: 'Color',
+        desc: 'Orange bars · emerald cap',
+        preview: '/brand/logo-chmonitor.svg',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor.svg' },
+          ...pngFiles('/brand/logo-chmonitor-{s}.png', MARK_SIZES),
+        ],
+      },
+      {
+        name: 'Mono · ink',
+        desc: 'Single ink (#09090b)',
+        preview: 'mono-ink',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-mono-ink.svg' },
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-mono.svg' },
+          ...pngFiles('/brand/logo-chmonitor-mono-{s}.png', MARK_SIZES),
+        ],
+      },
+      {
+        name: 'Mono · white',
+        desc: 'Paper ink (#fafafa)',
+        preview: 'mono-paper',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-mono-white.svg' },
+          ...pngFiles('/brand/logo-chmonitor-mono-white-{s}.png', MARK_SIZES),
+        ],
+      },
     ],
   },
   {
     group: 'Lockup',
-    items: [
-      { label: 'Lockup — light SVG', href: '/brand/logo.svg' },
-      { label: 'Lockup — dark SVG', href: '/brand/logo-dark.svg' },
+    versions: [
+      {
+        name: 'Light',
+        desc: 'Ink wordmark · light surfaces',
+        preview: '/brand/logo.svg',
+        wide: true,
+        files: [
+          { fmt: 'SVG', href: '/brand/logo.svg' },
+          ...pngFiles('/brand/logo-{s}.png', LOCKUP_SIZES),
+        ],
+      },
+      {
+        name: 'Dark',
+        desc: 'Paper wordmark · dark surfaces',
+        preview: '/brand/logo-dark.svg',
+        wide: true,
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-dark.svg' },
+          ...pngFiles('/brand/logo-dark-{s}.png', LOCKUP_SIZES),
+        ],
+      },
     ],
   },
   {
     group: 'Avatar (circle)',
-    items: [
-      { label: 'Avatar — color SVG', href: '/brand/logo-chmonitor-avatar.svg' },
-      { label: 'Avatar — solid SVG', href: '/brand/logo-chmonitor-avatar-solid.svg' },
-      { label: 'Avatar — mono SVG', href: '/brand/logo-chmonitor-avatar-mono.svg' },
-      { label: 'Avatar — white SVG', href: '/brand/logo-chmonitor-avatar-white.svg' },
-      { label: 'Avatar — color PNG 256', href: '/brand/logo-chmonitor-avatar-256.png' },
-      { label: 'Avatar — solid PNG 256', href: '/brand/logo-chmonitor-avatar-solid-256.png' },
-      { label: 'Avatar — mono PNG 256', href: '/brand/logo-chmonitor-avatar-mono-256.png' },
-      { label: 'Avatar — white PNG 256', href: '/brand/logo-chmonitor-avatar-white-256.png' },
-      { label: 'Avatar — color PNG 512', href: '/brand/logo-chmonitor-avatar-512.png' },
-      { label: 'Avatar — solid PNG 512', href: '/brand/logo-chmonitor-avatar-solid-512.png' },
-      { label: 'Avatar — mono PNG 512', href: '/brand/logo-chmonitor-avatar-mono-512.png' },
-      { label: 'Avatar — white PNG 512', href: '/brand/logo-chmonitor-avatar-white-512.png' },
+    versions: [
+      {
+        name: 'Color',
+        desc: 'White circle · color mark',
+        preview: '/brand/logo-chmonitor-avatar.svg',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-avatar.svg' },
+          ...pngFiles('/brand/logo-chmonitor-avatar-{s}.png', MARK_SIZES),
+        ],
+      },
+      {
+        name: 'Solid',
+        desc: 'Orange circle · paper mark',
+        preview: '/brand/logo-chmonitor-avatar-solid.svg',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-avatar-solid.svg' },
+          ...pngFiles('/brand/logo-chmonitor-avatar-solid-{s}.png', MARK_SIZES),
+        ],
+      },
+      {
+        name: 'Mono',
+        desc: 'Transparent · ink mark',
+        preview: '/brand/logo-chmonitor-avatar-mono.svg',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-avatar-mono.svg' },
+          ...pngFiles('/brand/logo-chmonitor-avatar-mono-{s}.png', MARK_SIZES),
+        ],
+      },
+      {
+        name: 'White',
+        desc: 'Transparent · paper mark',
+        preview: '/brand/logo-chmonitor-avatar-white.svg',
+        files: [
+          { fmt: 'SVG', href: '/brand/logo-chmonitor-avatar-white.svg' },
+          ...pngFiles('/brand/logo-chmonitor-avatar-white-{s}.png', MARK_SIZES),
+        ],
+      },
     ],
   },
-  {
-    group: 'Favicon & app icons',
-    items: [
-      { label: 'favicon.svg', href: '/favicon.svg' },
-      { label: 'favicon.ico', href: '/favicon.ico' },
-      { label: 'apple-touch 180', href: '/apple-touch-icon.png' },
-      { label: 'icon 512', href: '/icon-512.png' },
-    ],
-  },
-  {
-    group: 'Social',
-    items: [{ label: 'OG image 1200×630', href: '/brand/og-brand.png' }],
-  },
+]
+
+const miscDownloads = [
+  { group: 'Favicon & app icons', files: [
+    { fmt: 'SVG', href: '/favicon.svg' },
+    { fmt: 'ICO', href: '/favicon.ico' },
+    { fmt: 'PNG 180', href: '/apple-touch-icon.png' },
+    { fmt: 'PNG 512', href: '/icon-512.png' },
+  ] },
+  { group: 'Social', files: [{ fmt: 'PNG 1200×630', href: '/brand/og-brand.png' }] },
 ]
 
 // Mono mark inlined so CSS `color` drives the ink/paper finish deterministically
@@ -208,23 +270,122 @@ const breadcrumbJsonLd = {
         <div class="sec-head">
           <p class="eyebrow">Downloads</p>
           <h2>Grab the files</h2>
-          <p>Everything is generated from one script (<span class="mono">scripts/build-brand-assets.ts</span>) so the kit never drifts from the mark.</p>
+          <p>Every version ships as SVG plus PNG rasters — click a file to download it, or the link icon to copy its URL. Everything is generated from one script (<span class="mono">scripts/build-brand-assets.ts</span>) so the kit never drifts from the mark.</p>
         </div>
-        <div class="dl-grid">
-          {downloads.map((d) => (
-            <div class="dl-col">
-              <h5>{d.group}</h5>
-              {d.items.map((i) => (
-                <a href={i.href} download>{i.label}</a>
+        {downloads.map((d) => (
+          <div class="dl-group">
+            <h4>{d.group}</h4>
+            <div class:list={['dl-cards', { two: d.versions.length === 2 }]}>
+              {d.versions.map((v) => (
+                <div class="dl-card">
+                  <div class:list={['dl-art', { 'art-dark': v.preview === 'mono-paper' }]}>
+                    {typeof v.preview === 'string' && v.preview.startsWith('/') ? (
+                      v.wide ? (
+                        <img src={v.preview} alt={`chmonitor ${d.group.toLowerCase()} — ${v.name}`} width="168" height="36" />
+                      ) : (
+                        <img src={v.preview} alt={`chmonitor ${d.group.toLowerCase()} — ${v.name}`} width="68" height="68" />
+                      )
+                    ) : (
+                      <div class:list={['dl-mono', v.preview === 'mono-paper' ? 'mono-paper' : 'mono-ink']} set:html={monoMark} />
+                    )}
+                  </div>
+                  <div class="dl-meta">
+                    <strong>{v.name}</strong>
+                    <span>{v.desc}</span>
+                  </div>
+                  <ul class="dl-files">
+                    {v.files.map((f) => (
+                      <li>
+                        <a class="file-dl" href={f.href} download>
+                          <span class="fmt">{f.fmt}</span>
+                          <span class="fname">{f.href.split('/').pop()}</span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        </a>
+                        <button
+                          class="copy-btn"
+                          type="button"
+                          data-copy={f.href}
+                          aria-label={`Copy link to ${f.href.split('/').pop()}`}
+                          title="Copy link"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
             </div>
-          ))}
+          </div>
+        ))}
+        <div class="dl-group">
+          <h4>Favicons &amp; social</h4>
+          <div class="dl-cards two">
+            {miscDownloads.map((d) => (
+              <div class="dl-card">
+                <div class="dl-meta"><strong>{d.group}</strong></div>
+                <ul class="dl-files">
+                  {d.files.map((f) => (
+                    <li>
+                      <a class="file-dl" href={f.href} download>
+                        <span class="fmt">{f.fmt}</span>
+                        <span class="fname">{f.href.split('/').pop()}</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                      </a>
+                      <button
+                        class="copy-btn"
+                        type="button"
+                        data-copy={f.href}
+                        aria-label={`Copy link to ${f.href.split('/').pop()}`}
+                        title="Copy link"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
   </main>
   <Footer />
 </Base>
+
+<script>
+  const toast = document.createElement('div')
+  toast.className = 'copy-toast'
+  toast.setAttribute('role', 'status')
+  document.body.appendChild(toast)
+
+  const absoluteUrl = (path: string) => new URL(path, location.origin).href
+  let toastTimer: ReturnType<typeof setTimeout> | undefined
+
+  const showToast = (msg: string) => {
+    toast.textContent = msg
+    toast.classList.add('show')
+    if (toastTimer) clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800)
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const path = btn.dataset.copy
+      if (!path) return
+      const url = absoluteUrl(path)
+      try {
+        await navigator.clipboard.writeText(url)
+        showToast(`Copied ${url}`)
+      } catch {
+        // Clipboard unavailable (permissions/insecure context) — surface the
+        // URL so it can be copied manually.
+        showToast(url)
+      }
+    })
+  })
+</script>
 
 <style>
   .band-brand { padding: 64px 0 40px; }
@@ -271,15 +432,48 @@ const breadcrumbJsonLd = {
   .rules .do li::before { content: "✓"; color: var(--emerald); }
   .rules .dont li::before { content: "✕"; color: #ef4444; }
 
-  .dl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 30px; }
-  .dl-col h5 { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); margin-bottom: 12px; }
-  .dl-col a { display: block; font-size: 14px; color: var(--fg-soft); padding: 7px 0; border-top: 1px solid var(--border-soft); transition: color .15s; }
-  .dl-col a:hover { color: var(--orange); }
+  .dl-group { margin-top: 34px; }
+  .dl-group h4 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); margin-bottom: 14px; }
+  .dl-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .dl-cards.two { grid-template-columns: repeat(2, 1fr); }
+  .dl-card { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #fff; box-shadow: var(--shadow-card); }
+  .dl-art { display: flex; align-items: center; justify-content: center; height: 120px; border-bottom: 1px solid var(--border-soft); background:
+    repeating-conic-gradient(#f4f4f5 0% 25%, #fff 0% 50%) 50% / 16px 16px; }
+  .dl-art.art-dark { background: #09090b; border-bottom-color: #1f1f23; }
+  .dl-art img { max-width: 80%; height: auto; }
+  .dl-mono { width: 68px; height: 68px; }
+  .dl-mono :global(svg) { width: 100%; height: 100%; }
+  .mono-ink { color: #09090b; }
+  .mono-paper { color: #fafafa; }
+  .dl-meta { display: flex; flex-direction: column; gap: 1px; padding: 12px 16px 10px; }
+  .dl-meta strong { font-size: 14px; font-weight: 600; }
+  .dl-meta span { font-size: 12.5px; color: var(--muted-fg); }
+
+  .dl-files { list-style: none; padding: 0 8px 8px; margin-top: auto; }
+  .dl-files li { position: relative; display: flex; align-items: stretch; border-top: 1px solid var(--border-soft); }
+  .file-dl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 7px 6px 7px 10px; font-size: 13px; color: var(--fg-soft); transition: color .15s, background .15s; }
+  .file-dl:hover { color: var(--orange); background: color-mix(in oklab, var(--orange) 5%, transparent); }
+  .file-dl .fmt { flex-shrink: 0; width: 64px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-fg); background: var(--muted); padding: 2px 6px; border-radius: 6px; }
+  .file-dl:hover .fmt { color: var(--orange); background: color-mix(in oklab, var(--orange) 10%, transparent); }
+  .file-dl .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-dl svg { flex-shrink: 0; width: 13px; height: 13px; margin-left: auto; opacity: .45; }
+  .file-dl:hover svg { opacity: 1; }
+  .copy-btn { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 30px; margin: 4px 4px 4px 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted-fg); cursor: pointer; transition: color .15s, background .15s; }
+  .copy-btn:hover { color: var(--fg); background: var(--muted); }
+  .copy-btn svg { width: 13px; height: 13px; }
+
+  .copy-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px); z-index: 60;
+    pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s;
+    background: #09090b; color: #fafafa; font-size: 13px; padding: 9px 14px; border-radius: 9px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / .18); max-width: min(92vw, 560px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   @media (max-width: 860px) {
-    .tiles, .swatches, .rules, .dl-grid { grid-template-columns: 1fr 1fr; }
+    .tiles, .swatches, .rules { grid-template-columns: 1fr 1fr; }
+    .dl-cards, .dl-cards.two { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 560px) {
-    .tiles, .swatches, .rules, .dl-grid { grid-template-columns: 1fr; }
+    .tiles, .swatches, .rules { grid-template-columns: 1fr; }
+    .dl-cards, .dl-cards.two { grid-template-columns: 1fr; }
   }
 </style>
