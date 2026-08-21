@@ -89,7 +89,7 @@ export const Route = createFileRoute('/api/v1/overview')({
               -- Today's query count
               SELECT 'today_queries' as metric, COUNT() as value, COUNT() as value_num
               FROM merge('system', '^query_log')
-              WHERE type = 'QueryFinish' AND toDate(event_time) = today()
+              WHERE type = 'QueryFinish' AND event_time >= toStartOfDay(now())
 
               UNION ALL
 

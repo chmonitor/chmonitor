@@ -7,6 +7,9 @@ use serde_json::Value;
 
 use crate::config::AppConfig;
 
+/// Hard cap on dashboard API bodies so a huge chart/table payload cannot OOM `chm`.
+pub const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
+
 #[derive(Debug, Deserialize)]
 struct ApiResponse {
     data: Value,
@@ -103,7 +106,21 @@ async fn send_get(
         }
     };
     let status = resp.status().as_u16();
-    let text = resp.text().await.unwrap_or_default();
+    if let Some(len) = resp.content_length() {
+        if len as usize > MAX_RESPONSE_BYTES {
+            bail!(
+                "chmonitor API at {url} returned {len} bytes (limit {MAX_RESPONSE_BYTES})"
+            );
+        }
+    }
+    let bytes = resp.bytes().await.unwrap_or_default();
+    if bytes.len() > MAX_RESPONSE_BYTES {
+        bail!(
+            "chmonitor API at {url} returned {} bytes (limit {MAX_RESPONSE_BYTES})",
+            bytes.len()
+        );
+    }
+    let text = String::from_utf8_lossy(&bytes).into_owned();
     Ok((status, text))
 }
 
@@ -249,5 +266,10 @@ mod tests {
 
         let bare: ApiEnvelope = serde_json::from_str(r#"{"data":[]}"#).unwrap();
         assert!(bare.query_hint().is_none());
+    }
+
+    #[test]
+    fn response_body_cap_is_two_mib() {
+        assert_eq!(MAX_RESPONSE_BYTES, 2 * 1024 * 1024);
     }
 }

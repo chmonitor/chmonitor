@@ -24,6 +24,16 @@ describe('queryCharts', () => {
       }
     })
 
+    if (name === 'query-count-today') {
+      test('filters today with event_time so query_log can prune partitions', () => {
+        const result = builder({})
+        if ('query' in result) {
+          expect(result.query).toContain('event_time >= toStartOfDay(now())')
+          expect(result.query).not.toContain('toDate(event_time)')
+        }
+      })
+    }
+
     if (name === 'query-cache-usage') {
       test('has VersionedSql array in sql property', () => {
         const result = builder({})

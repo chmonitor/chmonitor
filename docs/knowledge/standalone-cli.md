@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-08-20
+updated: 2026-08-21
 tags:
   - rust
   - cli
@@ -100,14 +100,18 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- agent "why are merge
 
 Live UI (ratatui + crossterm). Bare `chm` and `chm tui` are the same command
 (telemetry `cli_run` / `tui`). The default view is the **Overview dashboard**:
-`query-count`, `query-count-today`, `running-queries-count`, `database-count`,
-`table-count`, and `disk-size-single` (or `disk-size-all`) via
-`GET /api/v1/charts/{name}?hostId=`. Each chart is a KPI and/or sparkline in a
-grid; HTTP 404 charts are skipped. The running-queries table stays a secondary
-pane. `chm dashboard list` (and `chm dashboard open <name>`) open the same TUI
-bound to Overview or a saved dashboard's `layout.widgets[].chartName`. **Only**
-this TUI, interactive `chm chat`, and `chm config` (dialog) enter the terminal
-alternate screen; `dashboard list`'s picker stays on the normal screen.
+`query-count`, `running-queries-count`, `database-count`, `table-count`, and
+`disk-size-single` (or `disk-size-all`) via
+`GET /api/v1/charts/{name}` with `hostId`, a one-day `lastHours` window, and
+hourly `interval`.
+Live tiles refresh every fifteen seconds; query-log charts refresh every two
+minutes so the TUI cannot hammer the cluster. Chart JSON is capped (sparkline
+points plus the latest row). HTTP 404 charts are skipped. The running-queries
+table stays a secondary pane (page size plus string truncation). `chm dashboard
+list` (and `chm dashboard open <name>`) open the same TUI bound to Overview or a
+saved dashboard's `layout.widgets[].chartName`. **Only** this TUI, interactive
+`chm chat`, and `chm config` (dialog) enter the terminal alternate screen;
+`dashboard list`'s picker stays on the normal screen.
 
 One screen: hosts + chart grid **and** the table together when the terminal is
 tall/wide enough (`≥72×24`). Smaller terminals collapse to a focused pane with
