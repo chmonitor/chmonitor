@@ -124,8 +124,8 @@ chm agent "why are merges slow?"
 The default TUI fetches Overview charts (`query-count`, counts, disk size) from
 `GET /api/v1/charts/{name}?hostId=` and skips 404s. `chm dashboard list` always
 includes built-in Overview; saved dashboards come from `GET /api/dashboards/list`
-when signed in (401/501 still list Overview). Piped stdout or `--json` prints
-names without a picker.
+when signed in (401/501 still list Overview). On a TTY the list is a ratatui
+picker (j/k, Enter, q). Piped stdout or `--json` prints names without a picker.
 
 Config priority: CLI flags → env (`CHM_BASE_URL`, `CHM_HOST_ID`, `CHM_API_KEY`,
 `CHM_TOKEN`, `CHM_CHANNEL`, …) → project `./chm.toml` / `./.chm/config.toml` →

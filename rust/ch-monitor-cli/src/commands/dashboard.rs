@@ -1,14 +1,8 @@
 //! `chm dashboard list` / `chm dashboard open`.
 
-use std::io::{self, IsTerminal, Write};
+use std::io::{self, IsTerminal};
 
 use anyhow::{bail, Result};
-use crossterm::{
-    cursor,
-    event::{self, KeyCode, KeyEventKind, KeyModifiers},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
-};
 use reqwest::Client;
 use serde_json::json;
 
@@ -60,10 +54,12 @@ async fn list(client: &Client, cfg: &AppConfig) -> Result<i32> {
     if cfg.json || !wants_picker() {
         return print_list(&entries, reason.as_deref(), cfg.json);
     }
-    if let Some(reason) = &reason {
-        output::warn(reason);
-    }
-    match pick(&entries)? {
+    match crate::tui::picker::run(
+        "dashboard list",
+        entries.iter().map(|e| e.label()).collect(),
+        " j/k select  Enter open  q quit",
+        reason,
+    )? {
         Some(idx) => open_entry(client, cfg, &entries[idx]).await,
         None => Ok(0),
     }
@@ -134,90 +130,6 @@ fn print_list(entries: &[DashboardEntry], reason: Option<&str>, json_out: bool) 
         eprintln!("{reason}");
     }
     Ok(0)
-}
-
-struct PickerGuard;
-
-impl Drop for PickerGuard {
-    fn drop(&mut self) {
-        let _ = disable_raw_mode();
-        let _ = execute!(io::stdout(), cursor::Show);
-    }
-}
-
-/// Inline picker (no alt-screen). Alt-screen is reserved for the live TUI and chat.
-fn pick(entries: &[DashboardEntry]) -> Result<Option<usize>> {
-    if entries.is_empty() {
-        bail!("no dashboards to list");
-    }
-    enable_raw_mode()?;
-    let _guard = PickerGuard;
-    let mut stdout = io::stdout();
-    execute!(stdout, cursor::Hide)?;
-    let mut selected = 0usize;
-    let n = entries.len();
-    loop {
-        for (i, entry) in entries.iter().enumerate() {
-            let mark = if i == selected { '>' } else { ' ' };
-            write!(stdout, "{mark} {}\r\n", entry.label())?;
-        }
-        write!(stdout, " j/k select  Enter open  q quit\r\n")?;
-        stdout.flush()?;
-
-        let rows = (n + 1) as u16;
-        execute!(stdout, cursor::MoveToPreviousLine(rows))?;
-
-        loop {
-            if !event::poll(std::time::Duration::from_millis(250))? {
-                continue;
-            }
-            match event::read()? {
-                event::Event::Resize(_, _) => break,
-                event::Event::Key(key)
-                    if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) =>
-                {
-                    if key.modifiers.contains(KeyModifiers::CONTROL)
-                        && key.code == KeyCode::Char('c')
-                    {
-                        finish_picker(&mut stdout, rows)?;
-                        return Ok(None);
-                    }
-                    match key.code {
-                        KeyCode::Enter => {
-                            finish_picker(&mut stdout, rows)?;
-                            return Ok(Some(selected));
-                        }
-                        KeyCode::Esc | KeyCode::Char('q') => {
-                            finish_picker(&mut stdout, rows)?;
-                            return Ok(None);
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            selected = (selected + 1) % n;
-                            break;
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            selected = selected.checked_sub(1).unwrap_or(n - 1);
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-                _ => {}
-            }
-        }
-        execute!(stdout, Clear(ClearType::FromCursorDown))?;
-    }
-}
-
-fn finish_picker(stdout: &mut io::Stdout, rows: u16) -> Result<()> {
-    execute!(
-        stdout,
-        Clear(ClearType::FromCursorDown),
-        cursor::MoveToNextLine(rows),
-        cursor::Show
-    )?;
-    let _ = disable_raw_mode();
-    Ok(())
 }
 
 #[cfg(test)]

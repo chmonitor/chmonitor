@@ -7,6 +7,7 @@
 * **cli:** `chm update --beta` installs the latest beta and saves `channel = "beta"` (`--stable` switches back)
 * **cli:** default TUI shows Overview dashboard charts (KPI/sparkline grid)
 * **cli:** `chm dashboard list` / `open` (Overview + saved dashboards)
+* **cli:** `chm dashboard list` picker uses ratatui (same alt-screen chrome as TUI/config)
 * **cli:** interactive `chm config`; `chm config show` prints file layers
 * **cli:** launch interactive TUI by default (`chm` with no subcommand; `chm tui` stays an alias)
 * **cli:** drop `diagnose`, `upgrade`, and `completions` aliases; keep `chm` TUI, `auth`, `config`, and `update`

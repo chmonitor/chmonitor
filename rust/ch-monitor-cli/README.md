@@ -46,7 +46,8 @@ chm config show
 chm config set host_id 0
 ```
 
-`chm tui` is an explicit alias of the default TUI. Dashboard API helpers
+`chm tui` is an explicit alias of the default TUI. `chm dashboard list` opens a
+ratatui picker for Overview or a saved dashboard. Dashboard API helpers
 (`hosts`, `chart`, `table`, `dashboard`) and `chm doctor` / `chm update` remain
 available; see `--help`.
 
