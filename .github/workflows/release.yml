@@ -375,7 +375,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Download release notes
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: release-assets-${{ needs.assets.outputs.tag }}
           path: /tmp/release-assets
@@ -397,7 +397,7 @@ jobs:
       - name: Friendly notes (GitHub Copilot)
         id: ai_copilot
         continue-on-error: true
-        uses: actions/ai-inference@v2
+        uses: actions/ai-inference@v3
         with:
           provider: copilot
           model: openai/gpt-4o
@@ -407,7 +407,7 @@ jobs:
         id: ai_models
         if: ${{ steps.ai_copilot.outputs.response == '' }}
         continue-on-error: true
-        uses: actions/ai-inference@v2
+        uses: actions/ai-inference@v3
         with:
           provider: github-models
           model: openai/gpt-4o
