@@ -47,6 +47,11 @@ describe('responsive chrome', () => {
     expect(overview).toContain('scrollbar-hide overflow-x-auto')
     expect(overview).toContain('w-max min-w-full')
     expect(overview).toContain('shrink-0 whitespace-nowrap')
+    // Base UI selected attr — Radix `data-[state=active]` never matches, so
+    // light mode had no underline (pill `bg-background` on the page surface).
+    expect(overview).toContain('data-active:border-foreground')
+    expect(overview).toContain('data-active:text-foreground')
+    expect(overview).not.toContain('data-[state=active]')
   })
 
   test('phone chrome uses a 44px tap target', () => {
