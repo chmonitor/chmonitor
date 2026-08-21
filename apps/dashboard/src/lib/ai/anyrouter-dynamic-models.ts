@@ -327,11 +327,7 @@ function listItemToRanked(
     modelId: model.id,
     id: `anyrouter:${model.id}`,
     name: model.id,
-    description:
-      model.description?.trim() ||
-      (opts.isRouterAlias
-        ? `AnyRouter router: ${model.id}`
-        : `AnyRouter: ${model.id}`),
+    description: model.description?.trim() ?? '',
     contextLength: model.context_length ?? 128_000,
     ...(typeof maxOut === 'number' && maxOut > 0
       ? { maxOutputTokens: maxOut }
