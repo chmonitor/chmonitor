@@ -23,11 +23,12 @@ The repo is a **pnpm workspace** (`pnpm-workspace.yaml`,
 workspace members; they share the root lockfile, including the load-bearing
 `zod@^4` override that the MCP tools depend on.
 
-Every other app is a **standalone install** with its own `pnpm-lock.yaml` and
-its own install step (`cd apps/<app> && pnpm install`). They are excluded from
-the root workspace so the root `pnpm.overrides` do not leak into their
-dependency trees — each app's tree stays isolated and its deploys hermetic.
-See each app's README for details.
+Every other app is a **standalone install**: each carries its own
+`pnpm-lock.yaml` **and its own `pnpm-workspace.yaml`** — pnpm resolves the
+nearest workspace file, so running `pnpm install` inside those apps scopes to
+the app itself instead of walking up to the repo root (which keeps the root
+`pnpm.overrides`, notably `zod@^4.3.6`, out of their trees). See each app's
+README for details.
 
 Turbo (`pnpm run dev` / `build` / `test` from the repo root) fans out to
 workspace members only, so it effectively covers `apps/mcp` + `packages/*`.
