@@ -195,8 +195,8 @@ without first discussing it in an issue.
 ## Docs
 
 User-facing docs live in `docs/content/` and are published via `apps/docs`
-(Astro Starlight). Edit only `docs/content/**` — `apps/docs/src/content/docs/`
-is gitignored and regenerated at build time.
+(Fumadocs + TanStack Start). Edit only `docs/content/**` —
+`apps/docs/content/docs/` is gitignored and regenerated at build time.
 
 If you add, rename, or remove an agent tool, a skill, or an agent env var,
 update `docs/content/ai-agent.mdx` in the same PR.

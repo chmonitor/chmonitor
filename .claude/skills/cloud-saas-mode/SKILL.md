@@ -155,8 +155,8 @@ only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
 
 ## Build/test gotchas
 
-- `apps/dashboard` is NOT a root bun workspace → `cd apps/dashboard && bun install`.
-- Build inside `apps/dashboard`: `bun run build` (vite + tsc --noEmit).
+- `apps/dashboard` is NOT a root pnpm workspace member → `cd apps/dashboard && pnpm install`.
+- Build inside `apps/dashboard`: `pnpm run build` (vite + tsc --noEmit).
 - Tests: `bun test src/lib/cloud src/lib/connection-errors.test.ts`.
 - Full reference: `docs/knowledge/cloud-saas-mode.md`.
 
