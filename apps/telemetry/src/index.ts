@@ -785,7 +785,7 @@ export default {
         // Solid fill for the top row (or chronological charts).
         return '--fill-solid: transparent;';
       }
-      const opacities = [1, 0.55, 0.3, 0.16, 0.08, 0.04, 0.02, 0.01];
+      const opacities = [0.55, 0.3, 0.16, 0.08, 0.04, 0.02, 0.01];
       const o = opacities[Math.min(rank - 1, opacities.length - 1)];
       if (o >= 1) return '--fill-solid: transparent;';
       return \`--fill-solid: color-mix(in srgb, var(--accent) \${Math.round(o * 100)}%, transparent);\`;
