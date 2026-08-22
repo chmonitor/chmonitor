@@ -1,6 +1,6 @@
+import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, test } from 'bun:test'
 
 const landing = join(import.meta.dir, '../..')
 const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
@@ -63,9 +63,7 @@ describe('mobile nav: open menu shows X + dim, tap targets ≥44px', () => {
   test('hamburger swaps .i-open / .i-close on aria-expanded', () => {
     expect(nav).toContain('class="i-open"')
     expect(nav).toContain('class="i-close"')
-    expect(navCss).toContain(
-      ".nav-toggle[aria-expanded='true'] .i-close"
-    )
+    expect(navCss).toContain(".nav-toggle[aria-expanded='true'] .i-close")
     expect(nav).toContain('class="nav-drawer-backdrop"')
   })
 

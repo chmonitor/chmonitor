@@ -70,7 +70,8 @@ function lastFetchArg(): FetchArg {
   return arg
 }
 
-mock.module('@chm/clickhouse-client', () => ({ // pragma: allowlist secret
+mock.module('@chm/clickhouse-client', () => ({
+  // pragma: allowlist secret
   // pragma: allowlist secret
   fetchData: mockFetchData,
 }))

@@ -1,9 +1,9 @@
 import { ExternalLink } from 'lucide-react'
-import { useLayoutEffect, useRef } from 'react'
 
 import type { ReleaseNote } from '@/lib/whats-new/types'
 
 import { WhatsNewMarkdown } from './whats-new-markdown'
+import { useLayoutEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
