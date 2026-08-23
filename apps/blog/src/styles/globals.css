@@ -8,6 +8,12 @@
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import 'tw-animate-css';
 
+/* Footer (and ThemeToggle) live in apps/landing. Tailwind only scans this
+   app unless we say otherwise — without this the footer is an unstyled
+   column dump. */
+@source '../../../landing/src/components/Footer.astro';
+@source '../../../landing/src/components/ThemeToggle.astro';
+
 /* The blog flips theme via <html data-theme="dark">, not the `.dark` class,
    so the shadcn `dark:` variant must key off that attribute. */
 @custom-variant dark (&:is([data-theme='dark'] *));

@@ -143,3 +143,28 @@ export function formatPolarNotify(input: FormatInput): string {
   ]
   return lines.join('\n')
 }
+
+export interface CheckoutStartedInput {
+  sku: string
+  term: string
+  email?: string
+  company?: string
+  website?: string
+  checkoutId?: string
+  checkoutUrl?: string
+}
+
+/** Telegram HTML for a Polar license checkout that just opened (not paid yet). */
+export function formatCheckoutStarted(input: CheckoutStartedInput): string {
+  const lines = [
+    '\u{1F6D2} <b>License checkout started</b>',
+    `sku: <b>${input.sku}</b> · ${input.term}`,
+  ]
+  if (input.company) lines.push(`company: ${input.company}`)
+  if (input.email) lines.push(`email: <code>${input.email}</code>`)
+  if (input.website) lines.push(`site: ${input.website}`)
+  if (input.checkoutId) lines.push(`checkout: <code>${input.checkoutId}</code>`)
+  if (input.checkoutUrl) lines.push(input.checkoutUrl)
+  lines.push('not paid yet — Polar will add tax after country')
+  return lines.join('\n')
+}

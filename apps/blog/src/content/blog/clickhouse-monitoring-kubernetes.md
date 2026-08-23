@@ -99,6 +99,7 @@ The pod runs as the non-root `app` user (uid/gid `1001`) on port `3000` regardle
 
 ## Related
 
+- [Deploy chmonitor on Kubernetes with Helm](/self-hosting-chmonitor-helm/) — Helm-only walkthrough (repo, values, Secret, probes).
 - Docs: [Kubernetes deployment](https://docs.chmonitor.dev/operate/deploy/k8s) — full chart values reference, autoscaling, and secrets management.
 - Docs: [Docker deployment](https://docs.chmonitor.dev/operate/deploy/docker) — the single-container path, if you don't need Kubernetes yet.
 - Docs: [Production checklist](https://docs.chmonitor.dev/operate/deploy/production-checklist) — before exposing a self-hosted instance publicly.

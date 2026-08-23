@@ -38,6 +38,9 @@ describe('blog chrome matches landing shadcn tokens', () => {
       "from '../../../landing/src/components/Footer.astro'"
     )
     expect(footer).toContain('origin="https://chmonitor.dev"')
+    expect(read('src/styles/globals.css')).toContain(
+      'landing/src/components/Footer.astro'
+    )
   })
 
   test('prose screenshots and img-row break out past the 720px text measure', () => {
