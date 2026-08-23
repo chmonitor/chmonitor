@@ -32,30 +32,33 @@ export type LatestBlogPostOptions = {
  * This is build-time. The Cloudflare landing job must rebuild when blog
  * markdown changes (see `.github/workflows/cloudflare.yml` landing filter).
  */
-export function getLatestBlogPost(
+export function getPublishedBlogPosts(
   options: LatestBlogPostOptions = {}
-): LatestBlogPost | null {
+): LatestBlogPost[] {
   const dir = options.dir ?? resolveBlogContentDir()
-  if (!dir) return null
+  if (!dir) return []
   const now = options.now?.valueOf() ?? Date.now()
-
-  let latest: LatestBlogPost | null = null
+  const posts: LatestBlogPost[] = []
   for (const name of readdirSync(dir)) {
     if (!name.endsWith('.md')) continue
     const parsed = parseBlogPostFile(join(dir, name), name)
     if (!parsed) continue
     if (!isPublished(parsed, now)) continue
-    if (!latest || parsed.date.valueOf() > latest.date.valueOf()) {
-      latest = {
-        title: parsed.title,
-        description: parsed.description,
-        date: parsed.date,
-        slug: parsed.slug,
-        href: parsed.href,
-      }
-    }
+    posts.push({
+      title: parsed.title,
+      description: parsed.description,
+      date: parsed.date,
+      slug: parsed.slug,
+      href: parsed.href,
+    })
   }
-  return latest
+  return posts.sort((a, b) => b.date.valueOf() - a.date.valueOf())
+}
+
+export function getLatestBlogPost(
+  options: LatestBlogPostOptions = {}
+): LatestBlogPost | null {
+  return getPublishedBlogPosts(options)[0] ?? null
 }
 
 export function resolveBlogContentDir(): string | null {

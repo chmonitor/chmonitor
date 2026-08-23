@@ -1,4 +1,5 @@
 import { FEATURE_PAGES } from '../data/feature-pages'
+import { getPublishedBlogPosts } from './latest-blog-post'
 
 export type ListedPage = {
   path: string
@@ -154,11 +155,19 @@ export function buildLlmsTxt(
       return `- [${p.title}](${href}): ${p.description}`
     }),
     '',
-    '## Documentation, blog, product',
+    '## Blog',
+    '',
+    `Index: https://blog.chmonitor.dev/llms.txt`,
+    `Sitemap: https://blog.chmonitor.dev/sitemap.xml`,
+    '',
+    ...getPublishedBlogPosts().map(
+      (post) => `- [${post.title}](${post.href}): ${post.description}`
+    ),
+    '',
+    '## Documentation and product',
     '',
     '- [Docs (every page)](https://docs.chmonitor.dev/llms.txt)',
     '- [Docs full markdown](https://docs.chmonitor.dev/llms-full.txt)',
-    '- [Blog (every post)](https://blog.chmonitor.dev/llms.txt)',
     '- [Hosted dashboard](https://dash.chmonitor.dev)',
     '- [GitHub](https://github.com/chmonitor/chmonitor)',
     '',

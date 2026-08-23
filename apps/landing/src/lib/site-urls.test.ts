@@ -23,11 +23,13 @@ describe('landing crawler index', () => {
     expect(xml).toContain('</urlset>')
   })
 
-  test('llms.txt lists every page and sister sites', () => {
+  test('llms.txt lists every page, sister sites, and published blog posts', () => {
     const txt = buildLlmsTxt()
     expect(txt).toContain('# chmonitor')
     expect(txt).toContain('https://docs.chmonitor.dev/llms.txt')
     expect(txt).toContain('https://blog.chmonitor.dev/llms.txt')
+    expect(txt).toContain('https://blog.chmonitor.dev/sitemap.xml')
     expect(txt).toContain('/features/postgres')
+    expect(txt).toContain('https://blog.chmonitor.dev/')
   })
 })
