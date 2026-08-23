@@ -88,6 +88,7 @@ describe('GET / analytics page', () => {
     expect(html).toContain('ANDROID_SVG')
     expect(html).toContain("s === 'ios'")
     expect(html).toContain('UNKNOWN_SVG')
+    expect(html).toContain("['oss', 'altinity', 'cloud']")
     expect(html).not.toContain('dithered-bar')
   })
 })
@@ -176,6 +177,44 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
     expect(body.scoped_to_deploy_target).toBeNull()
     expect(body.total_installs).toBe(3)
     expect(body.total_places).toBe(2)
+  })
+
+  it('omits empty and unknown from by_ch_flavor (only oss/altinity/cloud)', async () => {
+    seed()
+    const insert = db.query(
+      `INSERT INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    insert.run('2026-07-02', hex64('d'), 'docker', '24.8', '', 'us', 'linux', '0.3.1', null)
+    insert.run(
+      '2026-07-02',
+      hex64('e'),
+      'docker',
+      '24.8',
+      'unknown',
+      'us',
+      'linux',
+      '0.3.1',
+      null
+    )
+    const env: Env = { CHM_TELEMETRY_DB: makeMockD1(db) }
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/v1/summary'),
+      env,
+      makeCtx()
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      by_ch_flavor: { ch_flavor: string; installs: number }[]
+    }
+    expect(body.by_ch_flavor.map((r) => r.ch_flavor).sort()).toEqual([
+      'altinity',
+      'oss',
+    ])
+    expect(body.by_ch_flavor.find((r) => r.ch_flavor === 'oss')?.installs).toBe(2)
+    expect(body.by_ch_flavor.some((r) => r.ch_flavor === '' || r.ch_flavor === 'unknown')).toBe(
+      false
+    )
   })
 
   it('returns 200 (not 500) for ?deploy_target=docker and scopes total_places', async () => {

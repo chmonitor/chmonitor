@@ -353,7 +353,7 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
         `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
       ).all<{ v: string; n: number }>(),
       stmt(
-        `SELECT COALESCE(ch_flavor, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+        `SELECT COALESCE(NULLIF(TRIM(ch_flavor), ''), 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
       ).all<{ v: string; n: number }>(),
       stmt(
         `SELECT COALESCE(country, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC LIMIT 10`
@@ -386,10 +386,14 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
           ch_version: r.v,
           installs: Number(r.n),
         })),
-        byChFlavor: (byFlavor.results ?? []).map((r) => ({
-          ch_flavor: r.v,
-          installs: Number(r.n),
-        })),
+        byChFlavor: (byFlavor.results ?? [])
+          .map((r) => ({
+            ch_flavor: r.v,
+            installs: Number(r.n),
+          }))
+          // Empty / unknown mean "not reported" — not a flavor. The chart
+          // should only list oss / altinity / cloud.
+          .filter((r) => CH_FLAVORS.has(r.ch_flavor) && r.ch_flavor !== 'unknown'),
         byCountry: (byCountry.results ?? []).map((r) => ({
           country: r.v,
           installs: Number(r.n),
