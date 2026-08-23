@@ -417,7 +417,7 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
           document.getElementById('top-version').textContent = topVersion.ch_version
           document.getElementById('top-version-sub').textContent = topVersion.installs.toLocaleString() + ' installs'
         }
-        renderBarChart('chm-versions', data.by_chm_version || [])
+        renderBarChart('chm-versions', collapseBlankUnknown(data.by_chm_version || [], 'chm_version'))
         renderBarChart('countries', data.by_country)
         renderBarChart('platforms', data.by_platform)
         const flavors = (data.by_ch_flavor || []).filter((f) =>
