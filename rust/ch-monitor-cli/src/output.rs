@@ -56,9 +56,7 @@ pub fn braille_sparkline(values: &[u64], width: usize) -> String {
     let mut out = String::with_capacity(width);
     for i in 0..width {
         let start = (i as f64 * step) as usize;
-        let end = (((i + 1) as f64 * step) as usize)
-            .min(values.len())
-            .max(start + 1);
+        let end = (((i + 1) as f64 * step) as usize).min(values.len()).max(start + 1);
         let window = &values[start..end.min(values.len())];
         let avg = if window.is_empty() {
             0
@@ -83,30 +81,6 @@ pub fn sparkline_stats(values: &[u64]) -> Option<String> {
     Some(format!("min={min}  max={max}  avg={avg}"))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sparkline_stats_empty_is_none() {
-        assert!(sparkline_stats(&[]).is_none());
-    }
-
-    #[test]
-    fn sparkline_stats_reports_min_max_avg() {
-        let s = sparkline_stats(&[1, 2, 3, 4]).unwrap();
-        assert!(s.contains("min=1"), "{s}");
-        assert!(s.contains("max=4"), "{s}");
-        assert!(s.contains("avg=2"), "{s}");
-    }
-
-    #[test]
-    fn braille_sparkline_nonempty() {
-        let line = braille_sparkline(&[0, 5, 10, 5, 0], 5);
-        assert_eq!(line.chars().count(), 5);
-    }
-}
-
 pub fn success(msg: &str) {
     if wants_color() {
         eprintln!("{} {msg}", "✔".green());
@@ -128,5 +102,29 @@ pub fn info(msg: &str) {
         eprintln!("{} {msg}", "→".cyan());
     } else {
         eprintln!("info: {msg}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sparkline_stats_empty_is_none() {
+        assert!(sparkline_stats(&[]).is_none());
+    }
+
+    #[test]
+    fn sparkline_stats_reports_min_max_avg() {
+        let s = sparkline_stats(&[1, 2, 3, 4]).unwrap();
+        assert!(s.contains("min=1"), "{s}");
+        assert!(s.contains("max=4"), "{s}");
+        assert!(s.contains("avg=2"), "{s}");
+    }
+
+    #[test]
+    fn braille_sparkline_nonempty() {
+        let line = braille_sparkline(&[0, 5, 10, 5, 0], 5);
+        assert_eq!(line.chars().count(), 5);
     }
 }
