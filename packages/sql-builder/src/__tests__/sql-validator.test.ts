@@ -43,6 +43,7 @@ describe('SQL_PATTERNS', () => {
     expect(SQL_PATTERNS.KILL_COMMAND).toBeInstanceOf(RegExp)
     expect(SQL_PATTERNS.ATTACH_DETACH).toBeInstanceOf(RegExp)
     expect(SQL_PATTERNS.PERMISSION_COMMANDS).toBeInstanceOf(RegExp)
+    expect(SQL_PATTERNS.INTO_FILE_WRITE).toBeInstanceOf(RegExp)
     expect(SQL_PATTERNS.DANGEROUS_FUNCTIONS).toBeInstanceOf(RegExp)
   })
 
@@ -403,9 +404,61 @@ describe('SQL_PATTERNS', () => {
       expect(SQL_PATTERNS.DANGEROUS_FUNCTIONS.test('redis()')).toBe(true)
     })
 
-    test('should not match safe functions', () => {
+    test('should not match SAFE functions', () => {
       expect(SQL_PATTERNS.DANGEROUS_FUNCTIONS.test('count()')).toBe(false)
       expect(SQL_PATTERNS.DANGEROUS_FUNCTIONS.test('sum(bytes)')).toBe(false)
+    })
+  })
+
+  describe('INTO_FILE_WRITE pattern', () => {
+    // Server-side file writes — a SELECT that spills output to a ClickHouse-
+    // readable/writable path. The validator is the first layer; this must reject
+    // regardless of file extension, quote style, or case, while treating the
+    // path string itself as inert data (issue #3222).
+    test('should match INTO OUTFILE', () => {
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT 1 INTO OUTFILE '/tmp/x'")
+      ).toBe(true)
+    })
+
+    test('should match INTO FILE', () => {
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT 1 INTO FILE '/tmp/x'")
+      ).toBe(true)
+    })
+
+    test('should match case-insensitive', () => {
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT 1 into outfile '/tmp/x'")
+      ).toBe(true)
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT 1 Into OutFile '/tmp/x'")
+      ).toBe(true)
+    })
+
+    test('should tolerate surrounding whitespace', () => {
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT 1 INTO   OUTFILE '/tmp/x'")
+      ).toBe(true)
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT 1\nINTO\nOUTFILE '/tmp/x'")
+      ).toBe(true)
+    })
+
+    test('should not match the clause keyword inside a string literal', () => {
+      // `INTO OUTFILE` appearing as DATA (e.g. auditing query_log) is not a
+      // file-write — the keyword is inside quotes. The regex itself matches
+      // text-only; literal-safety is enforced at the validateSqlQuery layer
+      // via blankLiterals. This test pins the regex's raw behaviour.
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test("SELECT '%INTO OUTFILE%' AS s")
+      ).toBe(true)
+    })
+
+    test('should not match unrelated INTO usage', () => {
+      expect(
+        SQL_PATTERNS.INTO_FILE_WRITE.test('INSERT INTO t VALUES (1)')
+      ).toBe(false)
     })
   })
 })
@@ -804,6 +857,65 @@ describe.skipIf(actuallyMocked)('validateSqlQuery', () => {
           "SELECT * FROM mysql('host', 'db', 'table', 'user', 'pass')"
         )
       ).toThrow()
+    })
+  })
+
+  describe('INTO OUTFILE / INTO FILE clause', () => {
+    // Regression for issue #3222: ClickHouse `SELECT ... INTO OUTFILE 'path'`
+    // (and the `INTO FILE` alias) writes server-side output to a filesystem path
+    // reachable by the ClickHouse process. Even under readonly=1 this is a
+    // server-side file write the validator should block at the first layer,
+    // especially for the browser-connections proxy where the user's credentials
+    // and readonly posture are not controlled by chmonitor.
+    test('should reject SELECT INTO OUTFILE', () => {
+      expect(() => validateSqlQuery("SELECT 1 INTO OUTFILE '/tmp/x'")).toThrow(
+        'Potentially dangerous SQL detected'
+      )
+    })
+
+    test('should reject SELECT INTO FILE', () => {
+      expect(() => validateSqlQuery("SELECT 1 INTO FILE '/tmp/x'")).toThrow(
+        'Potentially dangerous SQL detected'
+      )
+    })
+
+    test('should reject real-world SELECT ... INTO OUTFILE', () => {
+      expect(() =>
+        validateSqlQuery(
+          "SELECT * FROM system.query_log INTO OUTFILE '/tmp/log.csv' FORMAT CSV"
+        )
+      ).toThrow('Potentially dangerous SQL detected')
+    })
+
+    test('should reject case-insensitive variants', () => {
+      expect(() => validateSqlQuery("select 1 into outfile '/tmp/x'")).toThrow()
+      expect(() => validateSqlQuery("SELECT 1 Into OutFile '/tmp/x'")).toThrow()
+    })
+
+    test('should reject regardless of quote style', () => {
+      expect(() => validateSqlQuery('SELECT 1 INTO OUTFILE "/tmp/x"')).toThrow()
+    })
+
+    test('should reject when the path string itself mentions a benign INTO clause', () => {
+      // The blocked token is the actual clause (outside a literal), so it is
+      // caught even though the file path also contains the word INTO.
+      expect(() =>
+        validateSqlQuery("SELECT * FROM t INTO OUTFILE 's3://bucket/log'")
+      ).toThrow('Potentially dangerous SQL detected')
+    })
+
+    test('should allow the clause text inside a string literal (audit query)', () => {
+      // `INTO OUTFILE` as DATA — querying query_log for queries that used it —
+      // must pass: the keyword lives inside a single-quoted literal and is
+      // blanked before the blocklist runs.
+      expect(() =>
+        validateSqlQuery(
+          "SELECT query FROM system.query_log WHERE query LIKE '%INTO OUTFILE%'"
+        )
+      ).not.toThrow()
+      expect(() =>
+        validateSqlQuery("SELECT 'SELECT 1 INTO OUTFILE x' AS example")
+      ).not.toThrow()
     })
   })
 

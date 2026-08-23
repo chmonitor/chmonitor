@@ -6,6 +6,7 @@
  */
 
 import type { Env } from './env'
+import type { NotifyKind } from './telegram'
 
 import {
   isLicenseTerm,
@@ -18,10 +19,12 @@ import {
   polarFetch,
   successOrigin,
 } from './license-http'
+import { formatCheckoutStarted } from './polar-notify'
 
 export interface LicenseCheckoutDeps {
   fetchImpl?: typeof fetch
   uuid?: () => string
+  notify?: (kind: NotifyKind, text: string) => Promise<boolean>
 }
 
 export async function handleLicenseCheckout(
@@ -80,8 +83,13 @@ export async function handleLicenseCheckout(
       external_customer_id: externalId,
       success_url: successUrl,
       metadata,
+      // Polar is merchant of record: checkout asks country, then adds VAT/GST.
+      // Business + full billing address is required so tax can be calculated.
+      is_business_customer: true,
+      require_billing_address: true,
     }
     if (email.includes('@')) body.customer_email = email
+    if (company) body.customer_name = company
     const polar = await polarFetch(
       env,
       '/v1/checkouts/',
@@ -110,6 +118,30 @@ export async function handleLicenseCheckout(
         { error: 'polar_error', status: polar.status || 502 },
         502
       )
+    }
+    const checkoutId =
+      polar.json &&
+      typeof polar.json === 'object' &&
+      typeof (polar.json as { id?: unknown }).id === 'string'
+        ? (polar.json as { id: string }).id
+        : ''
+    if (deps.notify) {
+      try {
+        await deps.notify(
+          'checkout_started',
+          formatCheckoutStarted({
+            sku: skuRaw,
+            term: termRaw,
+            email: email.includes('@') ? email : undefined,
+            company: company || undefined,
+            website: website || undefined,
+            checkoutId: checkoutId || undefined,
+            checkoutUrl,
+          })
+        )
+      } catch (notifyErr) {
+        console.error('[cloud-hooks] checkout-started notify failed', notifyErr)
+      }
     }
     return Response.redirect(checkoutUrl, 302)
   } catch (err) {

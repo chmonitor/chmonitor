@@ -38,8 +38,9 @@ describe('per-kind throttle', () => {
     const n = new Notifier(cfg, { fetch: fetchImpl, now: () => now })
 
     expect(await n.notify('subscription', 'a')).toBe(true)
+    expect(await n.notify('checkout_started', 'intent')).toBe(true)
     expect(await n.notify('cancel', 'b')).toBe(true)
-    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
   })
 
   test('the same kind is allowed again once the window elapses', async () => {

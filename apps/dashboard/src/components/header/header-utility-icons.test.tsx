@@ -1,7 +1,7 @@
 /**
  * Persistent header utility icons (refresh, search, theme) must be 44×44
  * below lg. Glyph stays 16–20px. Time chips and the sidebar toggle are
- * covered by time-range-picker.test.tsx / responsive-chrome.test.ts.
+ * covered by time-range-picker.test.tsx.
  */
 
 import type { ReactElement } from 'react'

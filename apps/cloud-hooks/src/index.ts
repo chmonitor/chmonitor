@@ -343,7 +343,10 @@ export default {
     }
 
     if (url.pathname === '/checkout/license') {
-      return handleLicenseCheckout(request, env)
+      const notifier = notifierFor(env)
+      return handleLicenseCheckout(request, env, {
+        notify: (kind, text) => notifier.notify(kind, text),
+      })
     }
 
     if (url.pathname === '/licenses/lookup') {

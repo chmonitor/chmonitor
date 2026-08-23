@@ -84,7 +84,8 @@ curl -sf http://localhost:3000/api/healthz && echo OK
 
 - Docs: [Docker deployment](https://docs.chmonitor.dev/operate/deploy/docker) — the full reference for this walkthrough, including feature-flag configuration via env vars or a mounted TOML file.
 - Docs: [Production checklist](https://docs.chmonitor.dev/operate/deploy/production-checklist) — before putting a self-hosted instance in front of real users.
-- Docs: [Kubernetes deployment](https://docs.chmonitor.dev/operate/deploy/k8s) — if you outgrow a single container.
+- [Deploy chmonitor on Kubernetes with Helm](/self-hosting-chmonitor-helm/) — if you outgrow a single container.
+- Docs: [Kubernetes deployment](https://docs.chmonitor.dev/operate/deploy/k8s) — chart values, probes, kustomize.
 
 <!--
 CLAIM-VERIFICATION CHECKLIST
