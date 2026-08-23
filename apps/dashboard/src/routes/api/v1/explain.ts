@@ -132,7 +132,7 @@ async function fetchExplainAsText(
     const resultSet = await client.query({
       query: QUERY_COMMENT + explainQuery,
       format: 'TabSeparatedRaw',
-      clickhouse_settings: { readonly: 1 },
+      clickhouse_settings: { readonly: '1' },
     })
     const text = await resultSet.text()
     const lines = text.split('\n').filter((line) => line.length > 0)
@@ -346,7 +346,7 @@ async function runExplain(
     query: explainQuery,
     hostId,
     format: 'JSONEachRow',
-    clickhouse_settings: { readonly: 1 },
+    clickhouse_settings: { readonly: '1' },
   })
 
   if (result.error) {

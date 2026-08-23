@@ -239,7 +239,7 @@ describe('explain route — authz + readonly', () => {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings).toBeDefined()
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
 
     test('AST mode passes readonly: 1 to client.query (text path)', async () => {
@@ -254,7 +254,7 @@ describe('explain route — authz + readonly', () => {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings).toBeDefined()
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
 
     test('SYNTAX mode passes readonly: 1 to client.query (text path)', async () => {
@@ -265,7 +265,7 @@ describe('explain route — authz + readonly', () => {
       const callArgs = mockClientQuery.mock.calls[0][0] as {
         clickhouse_settings?: Record<string, unknown>
       }
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
 
     test('PIPELINE mode passes readonly: 1 to fetchData', async () => {
@@ -276,7 +276,7 @@ describe('explain route — authz + readonly', () => {
       const callArgs = mockFetchData.mock.calls[0][0] as {
         clickhouse_settings?: Record<string, unknown>
       }
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
 
     test('ESTIMATE mode passes readonly: 1 to fetchData', async () => {
@@ -287,7 +287,7 @@ describe('explain route — authz + readonly', () => {
       const callArgs = mockFetchData.mock.calls[0][0] as {
         clickhouse_settings?: Record<string, unknown>
       }
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
   })
 
@@ -304,7 +304,7 @@ describe('explain route — authz + readonly', () => {
       const callArgs = mockFetchData.mock.calls[0][0] as {
         clickhouse_settings?: Record<string, unknown>
       }
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
 
     test('AST mode passes readonly: 1 to client.query (text path)', async () => {
@@ -315,7 +315,7 @@ describe('explain route — authz + readonly', () => {
       const callArgs = mockClientQuery.mock.calls[0][0] as {
         clickhouse_settings?: Record<string, unknown>
       }
-      expect(callArgs.clickhouse_settings?.readonly).toBe(1)
+      expect(callArgs.clickhouse_settings?.readonly).toBe('1')
     })
   })
 })
