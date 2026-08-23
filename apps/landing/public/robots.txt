@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://chmonitor.dev/sitemap.xml
 Sitemap: https://chmonitor.dev/sitemap-index.xml
