@@ -55,7 +55,7 @@ Agents discover knowledge in this order:
 | **Specs** | [agentstate-conversation-store.md](agentstate-conversation-store.md) | spec | AgentState backend: resolveStore priority, external_id/tag isolation, append-only upsert, AI enrichment, backend/follow-ups routes |
 | **Specs** | [query-config-format.md](query-config-format.md) | spec | QueryConfig type format, versioned SQL, BackgroundBar columns |
 | **Specs** | [declarative-config-catalog.md](declarative-config-catalog.md) | spec | Serializable query-config catalog: CHM_CONFIG_SOURCE flag, schema→loader→catalog pipeline, rowStyle/permission/clickhouseSettings, what stays TS-only (expandable) and why |
-| **Specs** | [og-images.md](og-images.md) | spec | OG/social images: Satori+resvg generator, vendored fonts, auto-regenerated on Cloudflare deploy, meta wiring |
+| **Specs** | [og-images.md](og-images.md) | spec | OG/social images: dune-plate compositor (`scripts/og-builder.ts`), centered title, logo top-left or bottom-right |
 | **Specs** | [cluster-topology.md](cluster-topology.md) | spec | Cluster topology SVG: layout pipeline, constant contracts, OKLCH gotcha, shared component, verification harness |
 | **Specs** | [table-availability.md](table-availability.md) | spec | Sidebar muting (table availability), permission GRANT + version-mismatch errors, `toEmptyStateVariant` gotcha |
 | **Development** | [component-ci-stability.md](component-ci-stability.md) | incident | Cypress component test fragility findings and fix direction |
