@@ -3,6 +3,8 @@
 /docs    https://docs.chmonitor.dev  301
 /v0.3/*  https://blog.chmonitor.dev/v0.3/:splat  301
 /v0.3    https://blog.chmonitor.dev/v0.3  301
+/watch/v0.3  /watch/v0-3  301
+/watch/v0.3/  /watch/v0-3  301
 
 # Pre-cutover dashboard lived on the apex. Google still crawls /explorer?host=
 # and /table?… here (500+ GSC 404s). The seo-worker 301s these too; keep the

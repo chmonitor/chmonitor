@@ -45,8 +45,11 @@ describe('landing SEO routing', () => {
       landingRedirectUrl(new URL('https://chmonitor.dev/install.sh'))
     ).toBeNull()
     expect(
-      landingRedirectUrl(new URL('https://chmonitor.dev/watch/v0.3'))
+      landingRedirectUrl(new URL('https://chmonitor.dev/watch/v0-3'))
     ).toBeNull()
+    expect(
+      landingRedirectUrl(new URL('https://chmonitor.dev/watch/v0.3'))
+    ).toBe('https://chmonitor.dev/watch/v0-3')
   })
 
   test('legacy /docs goes to the docs host', () => {

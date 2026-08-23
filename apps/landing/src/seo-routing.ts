@@ -133,6 +133,9 @@ export function landingRedirectUrl(url: URL): string | null {
   const first = firstSegment(path)
   const search = url.search
 
+  if (path === '/watch/v0.3' || path.startsWith('/watch/v0.3/')) {
+    return `${url.origin}/watch/v0-3${search}`
+  }
   if (first === 'docs') {
     const rest = path.replace(/^\/docs\/?/, '/')
     const dest = rest === '/' ? DOCS_ORIGIN : `${DOCS_ORIGIN}${rest}`
