@@ -34,8 +34,8 @@ export const MenuGroup = function MenuGroup({
   const label = SECTION_LABELS[section]
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
+    <SidebarGroup className="p-1">
+      <SidebarGroupLabel className="h-7 px-2 py-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </SidebarGroupLabel>
       <SidebarMenu>

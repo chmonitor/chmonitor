@@ -358,7 +358,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         </SidebarMenuBadge>
       )}
       <CollapsibleContent>
-        <SidebarMenuSub>
+        <SidebarMenuSub className="ml-2.5 gap-0 py-0 pl-1.5">
           {item.items?.map((subItem) => (
             <SubMenuItem
               key={subItem.href}

@@ -15,15 +15,8 @@ const markdownComponents: Components = {
       {children}
     </a>
   ),
-  img: ({ src, alt }) =>
-    src ? (
-      <img
-        src={src}
-        alt={alt ?? ''}
-        className="my-2 max-h-64 w-full rounded-md border border-border object-contain"
-        loading="lazy"
-      />
-    ) : null,
+  // Images render as clickable thumbs in WhatsNewScreenshotGallery.
+  img: () => null,
 }
 
 interface WhatsNewMarkdownProps {

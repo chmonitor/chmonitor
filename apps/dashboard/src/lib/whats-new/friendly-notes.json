@@ -12,7 +12,16 @@
         "Drag to reorder pinned favorites in the sidebar.",
         "Open Settings from the icon next to Sign in."
       ],
-      "screenshots": []
+      "screenshots": [
+        {
+          "src": "/assets/screenshots/overview-insights-dark.webp",
+          "alt": "Overview insights"
+        },
+        {
+          "src": "/assets/screenshots/query-heatmap-dark.webp",
+          "alt": "Query activity heatmap"
+        }
+      ]
     },
     {
       "version": "0.3.2",
@@ -25,7 +34,16 @@
         "Fleet summary strip with richer host metrics and sparklines.",
         "MCP Playground talks to a live client and covers the 2026-07-28 spec gaps."
       ],
-      "screenshots": []
+      "screenshots": [
+        {
+          "src": "/assets/screenshots/mcp-server-dark.png",
+          "alt": "MCP playground"
+        },
+        {
+          "src": "/assets/screenshots/data-explorer-new-dark.webp",
+          "alt": "Data Explorer table overview"
+        }
+      ]
     },
     {
       "version": "0.3.1",

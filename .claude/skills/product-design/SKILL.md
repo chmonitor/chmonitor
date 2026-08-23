@@ -95,7 +95,8 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `initialFocus` on the title (`tabIndex={-1}`) and reset the body
   `scrollTop` on open — default focus would otherwise land on the first
   markdown link deep in an older note and `scrollIntoView` the list to the
-  middle.
+  middle. Screenshot thumbs (`WhatsNewScreenshotGallery`) open a full-size
+  overlay in the same dialog; Escape closes the overlay before the dialog.
 - **Base UI Select labels:** pass `items={{ value: 'Human label' }}` on
   `Select` (the Root) so `SelectValue` shows the label, not the raw value.
   `placeholder` only appears when nothing is selected — a selected `24` /
@@ -213,8 +214,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `denied` disable the switch and explain the unblock — never write `false` into
   storage. Gate "Send test" on the live permission.
 - **⌘K command palette:** category tabs All / Pages / Databases / Tables /
-  Actions under the search input (`CommandPaletteTabs`). Pages nest under
-  sidebar group headings with a left border (tree, not a flat list). Query
+  Actions under the search input (`CommandPaletteTabs`: `h-9 px-3`, strip
+  `px-3 pt-1.5`). Pages nest under sidebar group headings with a continuous
+  left rail on `cmdk-group-items` (not a per-row `border-l`). Query
   tokens highlight in the visible title/description (`HighlightText`). All
   still caps explorer rows; the Databases and Tables tabs show the full
   fetch. Reset tab + query on close.
@@ -367,7 +369,7 @@ The Settings dialog (`components/settings/settings-form.tsx`) exposes units
 (`tableDensity`), default time range, and workspace preset
 (`workspacePreset`, `hiddenMenuHrefs`) on `UserSettings`. Header is Settings
 icon + title + one-line "Local to this browser"; surface is
-`rounded-xl border bg-card p-0` with a **stable height** (`h-[min(36rem,85vh)]`)
+`rounded-xl border bg-card p-0` with a **stable height** (`h-[min(42rem,90vh)]`, `sm:max-w-4xl`)
 and `select-text` so labels copy. Left rail is a flat column (no boxed
 tab well): section labels + icon rows, selected = muted pill, `border-r`
 divider. Content pane shows the active tab title. Theme (Light / Dark /

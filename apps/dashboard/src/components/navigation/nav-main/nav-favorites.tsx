@@ -153,8 +153,8 @@ export function NavFavorites({ items, pathname }: NavFavoritesProps) {
   const itemIds = favoriteItems.map((item) => item.href)
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
+    <SidebarGroup className="p-1">
+      <SidebarGroupLabel className="h-7 px-2 py-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Favorites
       </SidebarGroupLabel>
       <DndContext

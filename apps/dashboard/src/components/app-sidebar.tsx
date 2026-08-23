@@ -44,7 +44,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader>
+      <SidebarHeader className="gap-1 p-1.5">
         <HostSwitcher />
         <SampleClusterBanner />
       </SidebarHeader>
@@ -53,7 +53,7 @@ export function AppSidebar() {
         <NavMain items={menuItems} />
       </SidebarContent>
 
-      <SidebarFooter className="pt-0">
+      <SidebarFooter className="p-1.5 pt-0">
         {/* App-level links (Billing / Organization / About) and the external
             Docs link share ONE menu so every footer row has the same rhythm —
             separate SidebarMenu blocks would pick up the footer's gap-2 and

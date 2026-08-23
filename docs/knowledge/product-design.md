@@ -97,7 +97,10 @@ tall list cannot paint under GitHub Releases / Changelog / Got it. Footer
 resets the primitive's `-mx-4 -mb-4` (`mx-0 mb-0`) because the dialog is
 `p-0`. Initial focus is the title (`tabIndex={-1}` + `initialFocus`), and the
 body `scrollTop` resets on open, so markdown links in older notes cannot
-`scrollIntoView` the list to the middle. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
+`scrollIntoView` the list to the middle. Each version can show a row of
+screenshot **thumbnails** (`WhatsNewScreenshotGallery`); click one to
+open a full-size overlay inside the same dialog (`WhatsNewScreenshotLightbox`).
+Escape / close dismisses the overlay first, then the dialog. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
 `docs/whats-new` friendly copy first). Airgap fallback is a **build-time
 snapshot** of latest `v*` notes, not the full CHANGELOG.md. Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
 `aria-label="Open settings"`, `data-testid="nav-settings-button"`, tooltip
@@ -117,7 +120,7 @@ timezone/theme plus **units** (`byteUnit`, `numberFormat`), **colors**
 Settings dialog (`components/settings/settings-dialog.tsx` +
 `settings-form.tsx`) uses `rounded-xl border bg-card`, a Settings icon + title
 + "Local to this browser" header, a **stable height**
-(`h-[min(36rem,85vh)]`) so tabs do not resize the panel, and `select-text`
+(`h-[min(42rem,90vh)]`, `sm:max-w-4xl`) so tabs do not resize the panel, and `select-text`
 so labels copy. Layout is `p-0`: a flat left rail (section labels
 Preferences / Display / Workspace, icon + label rows, selected as a muted
 pill, `border-r`) and a content pane whose heading is the active tab.
@@ -593,7 +596,10 @@ would clip it.
   typical values in full.
 - **App sidebar overlays below `lg` (1024)**, not `md`. A docked 16rem rail at
   768 / landscape crushes the card grid. `SidebarProvider` uses `useIsLgDown()`;
-  the desktop rail + resize handle are `lg:flex` / `lg:block`.
+  the desktop rail + resize handle are `lg:flex` / `lg:block`. The mobile
+  sheet is the same 16rem as the desktop rail (`SIDEBAR_WIDTH_MOBILE`), with
+  `gap-0` / `p-0` so the default Sheet `gap-4` and `sm:max-w-sm` do not pad
+  the drawer. Menu groups use `p-1` (not `px-3 py-2` labels).
 - **Mobile sidebar sheet is opaque.** Drawer `bg-sidebar` + `isolate`; overlay
   is a solid dim (`oklch(0 0 0 / 0.55)`), no `backdrop-blur`, so the overview
   heatmap cannot frost through the menu (`styles.css` + sheet classes).
@@ -770,11 +776,12 @@ OG `headTitle`/`title`), href, description, and optional `keywords` on
 Settings Diff, TTL & Partitions) declare aliases so searches like
 `ddl`, `schema diff`, `config diff`, `ttl inventory`, or the tab title
 `TTL & Partition Health` hit them. The dialog has category tabs
-(**All / Pages / Databases / Tables / Actions**): Pages is a sidebar-like
-tree (group heading + left-border nested leaves); Databases and Tables
-tabs list the full fetched explorer set (All still caps at
-`EXPLORER_GROUP_MAX`). Query tokens highlight in titles and descriptions
-(`HighlightText` + `matchRanges`).
+(**All / Pages / Databases / Tables / Actions**, `h-9 px-3` with strip
+`px-3 pt-1.5`): Pages is a sidebar-like tree (group heading + one
+continuous left rail on the group's item list, not a broken per-row
+border); Databases and Tables tabs list the full fetched explorer set
+(All still caps at `EXPLORER_GROUP_MAX`). Query tokens highlight in
+titles and descriptions (`HighlightText` + `matchRanges`).
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

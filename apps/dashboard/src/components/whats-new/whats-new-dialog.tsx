@@ -1,9 +1,14 @@
 import { ExternalLink } from 'lucide-react'
 
-import type { ReleaseNote } from '@/lib/whats-new/types'
+import type { ReleaseNote, ReleaseNoteScreenshot } from '@/lib/whats-new/types'
 
 import { WhatsNewMarkdown } from './whats-new-markdown'
-import { useLayoutEffect, useRef } from 'react'
+import {
+  WhatsNewScreenshotGallery,
+  WhatsNewScreenshotLightbox,
+} from './whats-new-screenshots'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { collectReleaseScreenshots } from '@/lib/whats-new/images'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -73,19 +78,32 @@ export function WhatsNewDialog({
   // scroll container) and reset scroll whenever content settles.
   const titleRef = useRef<HTMLHeadingElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const [lightbox, setLightbox] = useState<ReleaseNoteScreenshot | null>(null)
 
   // isLoading/releases are content-settle triggers: re-run the scroll reset
   // when notes finish loading or the list changes, not just on open.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset scroll when content settles
   useLayoutEffect(() => {
-    if (!open) return
+    if (!open) {
+      setLightbox(null)
+      return
+    }
     bodyRef.current?.scrollTo(0, 0)
   }, [open, isLoading, releases])
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next && lightbox) {
+      setLightbox(null)
+      return
+    }
+    if (!next) setLightbox(null)
+    onOpenChange(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex max-h-[min(36rem,85vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 sm:max-w-lg"
+        className="relative flex max-h-[min(40rem,90vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 sm:max-w-xl"
         data-testid="whats-new-dialog"
         initialFocus={titleRef}
       >
@@ -135,16 +153,23 @@ export function WhatsNewDialog({
               />
             ) : null}
 
-            {releases.map((note) => (
-              <section
-                key={note.tag}
-                className="flex flex-col gap-2"
-                data-testid="whats-new-version"
-              >
-                <VersionHeading note={note} />
-                <WhatsNewMarkdown markdown={note.markdown} />
-              </section>
-            ))}
+            {releases.map((note) => {
+              const shots = collectReleaseScreenshots(note)
+              return (
+                <section
+                  key={note.tag}
+                  className="flex flex-col gap-2"
+                  data-testid="whats-new-version"
+                >
+                  <VersionHeading note={note} />
+                  <WhatsNewMarkdown markdown={note.markdown} />
+                  <WhatsNewScreenshotGallery
+                    shots={shots}
+                    onOpen={setLightbox}
+                  />
+                </section>
+              )
+            })}
           </div>
         </div>
 
@@ -183,6 +208,11 @@ export function WhatsNewDialog({
             Got it
           </Button>
         </DialogFooter>
+
+        <WhatsNewScreenshotLightbox
+          shot={lightbox}
+          onClose={() => setLightbox(null)}
+        />
       </DialogContent>
     </Dialog>
   )

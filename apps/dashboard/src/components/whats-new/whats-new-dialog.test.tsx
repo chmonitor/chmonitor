@@ -182,6 +182,10 @@ describe("What's new dialog layout", () => {
       expect(body?.contains(github as Node)).toBe(false)
       expect(body?.contains(changelog as Node)).toBe(false)
 
+      expect(
+        document.querySelector('[data-testid="whats-new-screenshots"]')
+      ).toBeNull()
+
       const { act } = await import('react')
       await act(async () => {
         ;(gotIt as HTMLButtonElement).click()
@@ -227,6 +231,65 @@ describe("What's new dialog layout", () => {
       expect(body?.scrollTop).toBe(0)
       expect(title?.tabIndex).toBe(-1)
       expect(document.activeElement === deepLink).toBe(false)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('screenshot thumbs open a full-size overlay inside the dialog', async () => {
+    const { WhatsNewDialog } = await import('./whats-new-dialog')
+    const withShots: ReleaseNote = {
+      ...tallNote('0.3.3', ['guest AI caps']),
+      screenshots: [
+        {
+          src: '/assets/screenshots/overview-dark.png',
+          alt: 'Overview',
+        },
+      ],
+    }
+
+    const { cleanup } = await renderInto(
+      <WhatsNewDialog
+        open
+        onOpenChange={() => {}}
+        onGotIt={() => {}}
+        releases={[withShots]}
+        isLoading={false}
+      />
+    )
+
+    try {
+      const thumb = document.querySelector(
+        '[data-testid="whats-new-screenshot-thumb"]'
+      ) as HTMLButtonElement | null
+      expect(thumb).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="whats-new-lightbox"]')
+      ).toBeNull()
+
+      const { act } = await import('react')
+      await act(async () => {
+        thumb?.click()
+      })
+
+      const lightbox = document.querySelector(
+        '[data-testid="whats-new-lightbox"]'
+      )
+      expect(lightbox).not.toBeNull()
+      expect(lightbox?.querySelector('img')?.getAttribute('src')).toBe(
+        '/assets/screenshots/overview-dark.png'
+      )
+
+      await act(async () => {
+        ;(
+          document.querySelector(
+            '[data-testid="whats-new-lightbox-close"]'
+          ) as HTMLButtonElement
+        ).click()
+      })
+      expect(
+        document.querySelector('[data-testid="whats-new-lightbox"]')
+      ).toBeNull()
     } finally {
       await cleanup()
     }
