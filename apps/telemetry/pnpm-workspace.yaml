@@ -2,7 +2,3 @@
 # pnpm-lock.yaml and is NOT a member of the repo-root workspace. pnpm resolves
 # the nearest pnpm-workspace.yaml, so `pnpm install` here scopes to this app
 # only instead of walking up to the repo root.
-
-allowBuilds:
-  esbuild: set this to true or false
-  workerd: set this to true or false

@@ -170,7 +170,7 @@ async function executeQuery(params: {
     timezone,
   })
 
-  const clickhouse_settings: Record<string, string | number> = { readonly: 1 }
+  const clickhouse_settings: Record<string, string | number> = { readonly: '1' }
   if (timezone) clickhouse_settings.session_timezone = timezone
 
   const result = await fetchData({

@@ -5,7 +5,8 @@ Protocol](https://modelcontextprotocol.io) endpoint. Deployed as
 `chmonitor-mcp` and routed to **`dash.chmonitor.dev/api/mcp*`** (plus
 `/api/v1/mcp/info*`).
 
-It is a member of the root bun workspace and consumes the shared
+It is the only app that is a member of the root pnpm workspace (together with
+[`packages/*`](../../packages)) and consumes the shared
 [`@chm/mcp-server`](../../packages/mcp-server) package, which defines the MCP
 tools (`MCP_TOOLS`), the server factory, and API-key auth helpers.
 

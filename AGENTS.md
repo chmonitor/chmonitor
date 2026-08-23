@@ -389,11 +389,11 @@ of local files.
 - Cloudflare worker size dry-run: `pnpm exec wrangler deploy --minify --dry-run`
 - Code-smell automation workflow now records findings in `docs/knowledge/core-memory.md`, then validates `gh run list --branch main --limit 10 ...` and keeps a dedicated memory note under `/Users/duet/.codex/automations/code-smell-detector/memory.md`.
 
-**Docs content workflow**: `docs/content/**` is the committed source of truth for the docs. The standalone Astro **Starlight** site at `apps/docs` (→ docs.chmonitor.dev) generates its content collection from it via `scripts/sync-docs.mjs` on every build. There is no per-release versioning.
+**Docs content workflow**: `docs/content/**` is the committed source of truth for the docs. The **Fumadocs + TanStack Start** site at `apps/docs` (→ docs.chmonitor.dev) generates its content collection from it via `scripts/sync-docs.mjs` on every build. There is no per-release versioning.
 
-- `cd apps/docs && pnpm run dev` - Preview the docs site locally (http://localhost:4321)
-- `cd apps/docs && pnpm run build` - Full static build (sync-docs → astro build incl. Pagefind)
-- Edit only `docs/content/**`; `apps/docs/src/content/docs/**` is regenerated and gitignored.
+- `cd apps/docs && pnpm run dev` - Preview the docs site locally (http://localhost:3001)
+- `cd apps/docs && pnpm run build` - Full build (sync-docs → generate-og → vite build incl. prerender)
+- Edit only `docs/content/**`; `apps/docs/content/docs/**` is regenerated and gitignored.
 
 **IMPORTANT — keep the AI Agent docs in sync**: `docs/content/ai-agent.mdx` is
 the user-facing reference for the agent's tools, skills, and configuration.
