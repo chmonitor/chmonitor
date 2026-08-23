@@ -3,3 +3,18 @@
 /docs    https://docs.chmonitor.dev  301
 /v0.3/*  https://blog.chmonitor.dev/v0.3/:splat  301
 /v0.3    https://blog.chmonitor.dev/v0.3  301
+
+# Pre-cutover dashboard lived on the apex. Google still crawls /explorer?host=
+# and /table?… here (500+ GSC 404s). The seo-worker 301s these too; keep the
+# static rules as a fallback if the Worker is skipped.
+/explorer  https://dash.chmonitor.dev/explorer  301
+/explorer/*  https://dash.chmonitor.dev/explorer/:splat  301
+/table  https://dash.chmonitor.dev/table  301
+/table/*  https://dash.chmonitor.dev/table/:splat  301
+/tables  https://dash.chmonitor.dev/tables  301
+/overview  https://dash.chmonitor.dev/overview  301
+/queries  https://dash.chmonitor.dev/queries  301
+/running-queries  https://dash.chmonitor.dev/running-queries  301
+/health  https://dash.chmonitor.dev/health  301
+/dashboard  https://dash.chmonitor.dev/dashboard  301
+/sql  https://dash.chmonitor.dev/sql  301

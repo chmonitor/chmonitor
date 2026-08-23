@@ -55,6 +55,7 @@ export const Route = createFileRoute('/$')({
               { name: 'twitter:description', content: description },
             ]
           : []),
+        { name: 'robots', content: 'index, follow' },
       ],
       links: [{ rel: 'canonical', href: canonicalUrl }],
     }
