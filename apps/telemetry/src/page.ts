@@ -465,26 +465,29 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
     }
 
     function logoFor(key, label) {
-      const s = String(label).toLowerCase()
-      if (key === 'country') return wrapLogo(flagFor(s))
+      const s = String(label).toLowerCase().trim()
+      const unknown = !s || s === 'unknown'
+      if (key === 'country') return wrapLogo(unknown ? UNKNOWN_SVG : flagFor(s) || UNKNOWN_SVG)
+      if (unknown) return wrapLogo(UNKNOWN_SVG)
       if (key === 'deploy_target') {
         if (s === 'docker') return wrapLogo(DOCKER_SVG)
         if (s === 'helm') return wrapLogo(HELM_SVG)
         if (s === 'cf' || s === 'cloudflare') return wrapLogo(CF_SVG)
         if (s === 'dev') return wrapLogo(DEV_SVG)
-        return wrapLogo('')
+        return wrapLogo(UNKNOWN_SVG)
       }
       if (key === 'platform' || key === 'os') {
+        if (s === 'android' || s.includes('android')) return wrapLogo(ANDROID_SVG)
+        if (s === 'ios' || s === 'iphone' || s === 'ipad') return wrapLogo(APPLE_SVG)
+        if (s === 'linux' || s.includes('linux')) return wrapLogo(LINUX_SVG)
         if (s.includes('win')) return wrapLogo(WINDOWS_SVG)
         if (s.includes('darwin') || s.includes('mac')) return wrapLogo(APPLE_SVG)
-        if (s.includes('linux')) return wrapLogo(LINUX_SVG)
-        if (s.includes('android')) return wrapLogo(LINUX_SVG)
-        return wrapLogo('')
+        return wrapLogo(UNKNOWN_SVG)
       }
       if (key === 'arch') {
         if (s.includes('arm') || s === 'aarch64') return wrapLogo(ARM_SVG)
         if (s.includes('86') || s === 'x86_64' || s === 'amd64') return wrapLogo(X86_SVG)
-        return wrapLogo('')
+        return wrapLogo(UNKNOWN_SVG)
       }
       if (key === 'ch_flavor') {
         if (s === 'altinity') return wrapLogo(ALTINITY_SVG)
@@ -492,7 +495,7 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
       }
       if (key === 'ch_version') return wrapLogo(CLICKHOUSE_SVG)
       if (key === 'chm_version' || key === 'cli_version') return wrapLogo(CHMONITOR_SVG)
-      return wrapLogo('')
+      return wrapLogo(UNKNOWN_SVG)
     }
 
     function flagFor(code) {
@@ -510,7 +513,9 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
     const HELM_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#0f1689" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>'
     const CF_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#f6821f" d="M8.2 16.8h11.1c.5 0 .9-.3 1.1-.7.6-1.3.4-2.5-.6-3.3-.5-.4-1.2-.6-1.9-.5l-.3-1.2c-.3-1.2-1.4-2-2.6-2-1.1 0-2.1.7-2.5 1.7-.3-.1-.6-.2-.9-.2-1.2 0-2.2.9-2.4 2.1H8.6c-1.2 0-2.2 1-2.2 2.2 0 1.1.8 2.1 1.8 2Z"/><path fill="#fbad41" d="M6.6 16.8h12.1a2.2 2.2 0 0 0 .4-4.3c-.2 1.3-1.3 2.3-2.7 2.3H6.6c-.6 0-1.1.5-1.1 1.1s.5.9 1.1.9Z"/></svg>'
     const DEV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>'
-    const LINUX_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M12.2 2.2c-1.3 0-2.4 1.1-2.5 2.6-.2 1.6.4 2.8 1 4.1.2.5.3 1.1.2 1.6-.6 0-1.3-.4-1.8-.8.2 1.2.9 2.2 1.9 2.8-.4.8-.6 1.7-.5 2.6.4-.1.8-.3 1.1-.6-.1.8.1 1.6.5 2.3 1.4 0 2.7-.6 3.6-1.6.9-1 1.4-2.4 1.3-3.8-.1-1.3-.7-2.5-1.4-3.6-.6-1-1.2-2-1.3-3.2-.2-1.4-1-2.4-2.1-2.4Z"/></svg>'
+    const UNKNOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.2-3 4"/><circle cx="12" cy="17.2" r="1" fill="currentColor" stroke="none"/></svg>'
+    const LINUX_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><ellipse cx="12" cy="15.6" rx="6" ry="6.4" fill="currentColor"/><ellipse cx="12" cy="16.4" rx="3.4" ry="4.2" fill="#fafafa"/><circle cx="12" cy="8" r="4.1" fill="currentColor"/><circle cx="10.5" cy="7.6" r="1" fill="#fafafa"/><circle cx="13.5" cy="7.6" r="1" fill="#fafafa"/><circle cx="10.6" cy="7.7" r=".4" fill="#18181b"/><circle cx="13.6" cy="7.7" r=".4" fill="#18181b"/><path d="M11.2 8.8h1.6L12 10.4Z" fill="#f97316"/><ellipse cx="9.7" cy="21.8" rx="2.1" ry=".7" fill="#f97316"/><ellipse cx="14.3" cy="21.8" rx="2.1" ry=".7" fill="#f97316"/></svg>'
+    const ANDROID_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#3DDC84" d="M17.6 9.48 19.44 6.3a.6.6 0 0 0-.26-.85.62.62 0 0 0-.83.22l-1.88 3.24a11.4 11.4 0 0 0-8.94 0L5.65 5.67a.62.62 0 0 0-.83-.22.6.6 0 0 0-.26.85L6.4 9.48C2.86 11.31 0 15.02 0 19.4h24c0-4.38-2.86-8.09-6.4-9.92ZM7 16.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm10 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/></svg>'
     const APPLE_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M16.7 20c-.8.8-1.7.7-2.6.4-.9-.4-1.7-.4-2.7 0-1.2.5-1.8.4-2.5-.4C4.6 15.7 5.2 9.2 9.8 9c1.1.1 1.9.6 2.6.7 1-.2 1.9-.8 3-.7 1.3.1 2.2.6 2.8 1.5-2.6 1.6-2 5 .4 6-.5 1.2-1.1 2.5-2 3.4ZM12.5 8.9c-.1-1.9 1.4-3.4 3.1-3.5.3 2.2-2 3.8-3.1 3.5Z"/></svg>'
     const WINDOWS_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#0078d4" d="M3 5.4 11.2 4.3v7.2H3V5.4Zm0 13.2 8.2 1.1v-7.1H3v6Zm9.2 1.3L21 21.2v-9.4h-8.8v7.1Zm0-15.8v7.2H21V2.2l-8.8 1.6Z"/></svg>'
     const ARM_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><text x="12" y="16" text-anchor="middle" font-size="8" font-weight="700" fill="currentColor" font-family="ui-sans-serif,system-ui">ARM</text></svg>'
@@ -524,6 +529,7 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
         android: 'Android', ios: 'iOS', oss: 'ClickHouse OSS', altinity: 'Altinity',
         cloud: 'ClickHouse Cloud', x86_64: 'x86_64', aarch64: 'aarch64', amd64: 'x86_64'
       }
+      if (label == null || String(label).trim() === '') return 'Unknown'
       if (typeof label === 'string' && /^[a-z]{2}$/.test(label)) return label.toUpperCase()
       return names[label] || label
     }
