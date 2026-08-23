@@ -100,12 +100,13 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 ## CI report (size / time)
 
 `.github/workflows/cli-report.yml` builds **only** `-p chmonitor` on rust
-PRs (including the rolling release-please CLI PR). It posts one sticky
-comment (`header: cli-build-report`) and recreates it on each push so only
-the latest numbers stay. Local:
+PRs (including the rolling release-please CLI PR) for the four release
+targets: linux gnu x86_64/aarch64 and macOS x86_64/aarch64. It posts one
+sticky comment (`header: cli-build-report`) and recreates it on each push
+so only the latest numbers stay. Local:
 
 ```bash
-bash scripts/cli-build-report.sh
+bash scripts/cli-build-report.sh --target x86_64-unknown-linux-gnu
 ```
 
 ## TUI (`chm` / `chm tui`)
