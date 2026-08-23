@@ -61,7 +61,9 @@ jobs:
           set -euo pipefail
           SERVER_PID=""
           trap '[ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null' EXIT
-          pnpm run preview -- --host 127.0.0.1 --port 4322 &
+          # pnpm forwards args after the script name; do not insert an extra `--`
+          # or Astro receives a literal `--` and ignores --host/--port (stays on :4321).
+          pnpm run preview --host 127.0.0.1 --port 4322 &
           SERVER_PID=$!
           npx --yes wait-on http://127.0.0.1:4322 --timeout 30000
           curl -fsS http://127.0.0.1:4322/ >/dev/null
