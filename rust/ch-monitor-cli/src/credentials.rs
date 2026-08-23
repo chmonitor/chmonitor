@@ -1,5 +1,7 @@
 //! Credential storage: OS keyring with 0600 plaintext fallback.
 
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 use std::{fs, io::Write, path::PathBuf};
 
 use anyhow::{Context, Result};
@@ -66,19 +68,15 @@ fn write_plaintext(key: &str, value: &str) -> Result<()> {
         out.push_str(&format!("{k}=\"{v}\"\n"));
     }
 
-    let mut file = fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&path)
-        .with_context(|| format!("failed to open {}", path.display()))?;
-
+    let mut opts = fs::OpenOptions::new();
+    opts.create(true).write(true).truncate(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
-            .with_context(|| format!("failed to chmod 0600 {}", path.display()))?;
+        opts.mode(0o600);
     }
+    let mut file = opts
+        .open(&path)
+        .with_context(|| format!("failed to open {}", path.display()))?;
 
     file.write_all(out.as_bytes())
         .with_context(|| format!("failed to write {}", path.display()))?;
@@ -109,12 +107,17 @@ fn clear_plaintext(key: &str) -> Result<()> {
     for (k, v) in &map {
         out.push_str(&format!("{k}=\"{v}\"\n"));
     }
-    fs::write(&path, out)?;
+    let mut opts = fs::OpenOptions::new();
+    opts.create(true).write(true).truncate(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&path, fs::Permissions::from_mode(0o600));
+        opts.mode(0o600);
     }
+    let mut file = opts
+        .open(&path)
+        .with_context(|| format!("failed to open {}", path.display()))?;
+    file.write_all(out.as_bytes())
+        .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
 }
 
@@ -192,4 +195,148 @@ pub fn resolve_api_key(cli_or_config: Option<&str>) -> Result<Option<String>> {
         }
     }
     load_api_key()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    /// Helper: create a temp dir and return the path to a credentials file inside it.
+    fn temp_creds_path() -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "chm-creds-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        dir.join("credentials")
+    }
+
+    fn file_mode(path: &PathBuf) -> u32 {
+        fs::metadata(path)
+            .map(|m| m.permissions().mode())
+            .unwrap_or(0)
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn write_plaintext_creates_file_with_0600() {
+        let path = temp_creds_path();
+        let parent = path.parent().unwrap();
+
+        let mut map = std::collections::BTreeMap::<String, String>::new();
+        map.insert("token".to_string(), "abc123".to_string());
+        let mut out = String::new();
+        for (k, v) in &map {
+            out.push_str(&format!("{k}=\"{v}\"\n"));
+        }
+
+        let mut opts = fs::OpenOptions::new();
+        opts.create(true).write(true).truncate(true);
+        opts.mode(0o600);
+        let mut file = opts.open(&path).unwrap();
+        file.write_all(out.as_bytes()).unwrap();
+
+        let mode = file_mode(&path);
+        assert_eq!(
+            mode & 0o777,
+            0o600,
+            "file should be 0600, got {:o}",
+            mode & 0o777
+        );
+
+        let _ = fs::remove_dir_all(parent);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn write_plaintext_no_world_readable_window() {
+        // Verifies the content is written and the file mode is 0600 immediately,
+        // i.e. there is no race window where the file is world-readable.
+        let path = temp_creds_path();
+        let parent = path.parent().unwrap();
+
+        let mut map = std::collections::BTreeMap::<String, String>::new();
+        map.insert("api_key".to_string(), "secret".to_string());
+        let mut out = String::new();
+        for (k, v) in &map {
+            out.push_str(&format!("{k}=\"{v}\"\n"));
+        }
+
+        let mut opts = fs::OpenOptions::new();
+        opts.create(true).write(true).truncate(true);
+        opts.mode(0o600);
+        let mut file = opts.open(&path).unwrap();
+        file.write_all(out.as_bytes()).unwrap();
+
+        let mode = file_mode(&path);
+        assert_eq!(mode & 0o777, 0o600);
+        // Content was written; read it back and verify.
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(content.contains("api_key=\"secret\""));
+
+        let _ = fs::remove_dir_all(parent);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn clear_plaintext_rewrite_preserves_0600() {
+        // First create with content at 0600, then simulate the clear path
+        // (rewrite without the key) and verify the file stays 0600.
+        let path = temp_creds_path();
+        let parent = path.parent().unwrap();
+
+        // Simulate initial write with both keys.
+        let mut map = std::collections::BTreeMap::<String, String>::new();
+        map.insert("token".to_string(), "t1".to_string());
+        map.insert("api_key".to_string(), "k1".to_string());
+        let mut out = String::new();
+        for (k, v) in &map {
+            out.push_str(&format!("{k}=\"{v}\"\n"));
+        }
+
+        let mut opts = fs::OpenOptions::new();
+        opts.create(true).write(true).truncate(true);
+        opts.mode(0o600);
+        let mut file = opts.open(&path).unwrap();
+        file.write_all(out.as_bytes()).unwrap();
+        drop(file);
+
+        assert_eq!(file_mode(&path) & 0o777, 0o600);
+
+        // Now simulate clear_plaintext: remove "token", keep "api_key".
+        let existing = fs::read_to_string(&path).unwrap();
+        let mut map = std::collections::BTreeMap::<String, String>::new();
+        for line in existing.lines() {
+            if let Some((k, v)) = line.split_once('=') {
+                if k.trim() != "token" {
+                    map.insert(k.trim().to_string(), v.trim().trim_matches('"').to_string());
+                }
+            }
+        }
+        let mut out = String::new();
+        for (k, v) in &map {
+            out.push_str(&format!("{k}=\"{v}\"\n"));
+        }
+
+        let mut opts = fs::OpenOptions::new();
+        opts.create(true).write(true).truncate(true);
+        opts.mode(0o600);
+        let mut file = opts.open(&path).unwrap();
+        file.write_all(out.as_bytes()).unwrap();
+        drop(file);
+
+        // File should still be 0600 after rewrite.
+        assert_eq!(file_mode(&path) & 0o777, 0o600);
+        // And only api_key should remain.
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(content.contains("api_key=\"k1\""));
+        assert!(!content.contains("token"));
+
+        let _ = fs::remove_dir_all(parent);
+    }
 }

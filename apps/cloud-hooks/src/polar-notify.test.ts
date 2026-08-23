@@ -4,6 +4,7 @@
 
 import {
   classifyTransition,
+  formatCheckoutStarted,
   formatPolarNotify,
   type Transition,
 } from './polar-notify'
@@ -139,5 +140,24 @@ describe('formatPolarNotify', () => {
     expect(msg).toContain('Upgrade')
     expect(msg).toContain('Pro')
     expect(msg).toContain('Max')
+  })
+})
+
+describe('formatCheckoutStarted', () => {
+  test('includes sku, company, email, and unpaid warning', () => {
+    const msg = formatCheckoutStarted({
+      sku: 'team',
+      term: 'yearly',
+      email: 'ops@acme.example',
+      company: 'Acme',
+      checkoutId: 'chk_1',
+      checkoutUrl: 'https://sandbox.polar.sh/checkout/chk_1',
+    })
+    expect(msg).toContain('License checkout started')
+    expect(msg).toContain('team')
+    expect(msg).toContain('Acme')
+    expect(msg).toContain('ops@acme.example')
+    expect(msg).toContain('chk_1')
+    expect(msg).toMatch(/not paid yet/i)
   })
 })

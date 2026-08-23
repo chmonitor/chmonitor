@@ -33,13 +33,18 @@ describe('GET /checkout/license', () => {
         'https://chmonitor.dev/license/register?sku=team&term=yearly&paid=1&checkout_id={CHECKOUT_ID}'
       )
       expect(body.success_url).toContain('{CHECKOUT_ID}')
+      expect(body.is_business_customer).toBe(true)
+      expect(body.require_billing_address).toBe(true)
       expect(body.metadata).toEqual({
         kind: 'selfhost-license',
         sku: 'team',
         term: 'yearly',
       })
       return new Response(
-        JSON.stringify({ url: 'https://polar.sh/checkout/lic' }),
+        JSON.stringify({
+          id: 'chk_lic',
+          url: 'https://polar.sh/checkout/lic',
+        }),
         { status: 201 }
       )
     })
@@ -54,6 +59,47 @@ describe('GET /checkout/license', () => {
     expect(called).toBe('https://sandbox-api.polar.sh/v1/checkouts/')
   })
 
+  test('pings checkout_started with company and Polar checkout id', async () => {
+    const notify = mock(async () => true)
+    const fetchImpl = mock(async () => {
+      return new Response(
+        JSON.stringify({
+          id: 'chk_42',
+          url: 'https://sandbox.polar.sh/checkout/chk_42',
+        }),
+        { status: 201 }
+      )
+    })
+    const res = await handleLicenseCheckout(
+      req('sku=team&term=yearly&email=ops@acme.example&company=Acme'),
+      env,
+      { fetchImpl, notify }
+    )
+    expect(res.status).toBe(302)
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify.mock.calls[0]?.[0]).toBe('checkout_started')
+    const text = String(notify.mock.calls[0]?.[1])
+    expect(text).toContain('Acme')
+    expect(text).toContain('chk_42')
+    expect(text).toContain('ops@acme.example')
+  })
+
+  test('still redirects if notify throws', async () => {
+    const fetchImpl = mock(async () => {
+      return new Response(
+        JSON.stringify({ url: 'https://sandbox.polar.sh/c' }),
+        { status: 201 }
+      )
+    })
+    const res = await handleLicenseCheckout(req('sku=team&term=yearly'), env, {
+      fetchImpl,
+      notify: async () => {
+        throw new Error('telegram down')
+      },
+    })
+    expect(res.status).toBe(302)
+  })
+
   test('forwards email and company into Polar checkout', async () => {
     const fetchImpl = mock(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? '{}')) as Record<
@@ -61,6 +107,9 @@ describe('GET /checkout/license', () => {
         unknown
       >
       expect(body.customer_email).toBe('ops@acme.example')
+      expect(body.customer_name).toBe('Acme')
+      expect(body.is_business_customer).toBe(true)
+      expect(body.require_billing_address).toBe(true)
       expect(body.metadata).toMatchObject({
         company: 'Acme',
         website: 'https://acme.example',
