@@ -232,7 +232,7 @@ describe('explain route — authz + readonly', () => {
       expect(res.status).toBe(200)
       expect(mockFetchData).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockFetchData.mock.calls[0][0] as {
+      const callArgs = mockFetchData.mock.calls[0][0] as unknown as {
         query: string
         hostId: number
         format: string
@@ -248,7 +248,7 @@ describe('explain route — authz + readonly', () => {
       expect(mockGetClient).toHaveBeenCalledTimes(1)
       expect(mockClientQuery).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockClientQuery.mock.calls[0][0] as {
+      const callArgs = mockClientQuery.mock.calls[0][0] as unknown as {
         query: string
         format: string
         clickhouse_settings?: Record<string, unknown>
@@ -262,7 +262,7 @@ describe('explain route — authz + readonly', () => {
       expect(res.status).toBe(200)
       expect(mockClientQuery).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockClientQuery.mock.calls[0][0] as {
+      const callArgs = mockClientQuery.mock.calls[0][0] as unknown as {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings?.readonly).toBe('1')
@@ -273,7 +273,7 @@ describe('explain route — authz + readonly', () => {
       expect(res.status).toBe(200)
       expect(mockFetchData).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockFetchData.mock.calls[0][0] as {
+      const callArgs = mockFetchData.mock.calls[0][0] as unknown as {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings?.readonly).toBe('1')
@@ -284,7 +284,7 @@ describe('explain route — authz + readonly', () => {
       expect(res.status).toBe(200)
       expect(mockFetchData).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockFetchData.mock.calls[0][0] as {
+      const callArgs = mockFetchData.mock.calls[0][0] as unknown as {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings?.readonly).toBe('1')
@@ -301,7 +301,7 @@ describe('explain route — authz + readonly', () => {
       expect(res.status).toBe(200)
       expect(mockFetchData).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockFetchData.mock.calls[0][0] as {
+      const callArgs = mockFetchData.mock.calls[0][0] as unknown as {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings?.readonly).toBe('1')
@@ -312,7 +312,7 @@ describe('explain route — authz + readonly', () => {
       expect(res.status).toBe(200)
       expect(mockClientQuery).toHaveBeenCalledTimes(1)
 
-      const callArgs = mockClientQuery.mock.calls[0][0] as {
+      const callArgs = mockClientQuery.mock.calls[0][0] as unknown as {
         clickhouse_settings?: Record<string, unknown>
       }
       expect(callArgs.clickhouse_settings?.readonly).toBe('1')
