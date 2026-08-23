@@ -567,6 +567,40 @@ describe('POST /v1/ping — optional license_key', () => {
     expect(row.license_key).toBe(POLAR_CHECKOUT_ID)
   })
 
+  it('upgrades an empty same-day ping when a later ping has version and flavor', async () => {
+    seed()
+    await post({
+      instance_hash: hex64('f'),
+      deploy_target: 'unknown',
+    })
+    await post({
+      instance_hash: hex64('f'),
+      deploy_target: 'docker',
+      ch_version: '24.8',
+      ch_flavor: 'oss',
+      chm_version: '0.3.3',
+      platform: 'linux',
+      country: 'us',
+    })
+    const row = db.query('SELECT * FROM ping_daily').get() as {
+      deploy_target: string
+      ch_version: string | null
+      ch_flavor: string | null
+      chm_version: string | null
+      platform: string | null
+      country: string | null
+    }
+    expect(db.query('SELECT COUNT(*) AS n FROM ping_daily').get()).toEqual({
+      n: 1,
+    })
+    expect(row.deploy_target).toBe('docker')
+    expect(row.ch_version).toBe('24.8')
+    expect(row.ch_flavor).toBe('oss')
+    expect(row.chm_version).toBe('0.3.3')
+    expect(row.platform).toBe('linux')
+    expect(row.country).toBe('us')
+  })
+
   it('stores null license_key when unset', async () => {
     seed()
     const res = await post({

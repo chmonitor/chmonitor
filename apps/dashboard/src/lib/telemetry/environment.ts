@@ -28,9 +28,11 @@ export function getDeployTarget(): DeployTarget {
     if (VALID.includes(injected)) return injected
   }
 
-  // 2. Build-time env variable override
+  // 2. Build-time env variable override. 'unknown' is treated as unset so a
+  // defaulted vite `?? 'unknown'` does not skip hostname heuristics (that
+  // was tagging almost every ping as unknown).
   const raw = import.meta.env.VITE_DEPLOY_TARGET?.trim().toLowerCase()
-  const VALID: DeployTarget[] = ['docker', 'helm', 'cf', 'dev', 'unknown']
+  const VALID: DeployTarget[] = ['docker', 'helm', 'cf', 'dev']
   if (raw && (VALID as string[]).includes(raw)) return raw as DeployTarget
 
   // 3. Fallback: server-side process env inspection (SSR)
@@ -89,7 +91,7 @@ export function parseMajorMinor(
   version: string | null | undefined
 ): string | undefined {
   if (!version) return undefined
-  const match = version.match(/^(\d+)\.(\d+)/)
+  const match = version.match(/(\d+)\.(\d+)/)
   if (!match) return undefined
   return `${match[1]}.${match[2]}`
 }
@@ -106,11 +108,24 @@ export function parseMajorMinor(
  * normal 4-part versions). We do NOT guess 'cloud' here to avoid false
  * positives — if a reliable cloud marker is found in the future, add it then.
  */
-export function detectChFlavor(version: string | null | undefined): ChFlavor {
+export function detectChFlavor(
+  version: string | null | undefined,
+  hostname?: string | null
+): ChFlavor {
+  const host = hostname?.toLowerCase() ?? ''
+  if (
+    host.includes('clickhouse.cloud') ||
+    host.includes('.aws.clickhouse.') ||
+    host.includes('.gcp.clickhouse.') ||
+    host.includes('.azure.clickhouse.')
+  ) {
+    return 'cloud'
+  }
   if (!version) return 'unknown'
   if (version.toLowerCase().includes('altinity')) return 'altinity'
-  // Accept any string that starts with digits (a version number)
-  if (/^\d/.test(version.trim())) return 'oss'
+  if (version.toLowerCase().includes('cloud')) return 'cloud'
+  // Accept any string that contains a leading version number
+  if (/\d+\.\d+/.test(version)) return 'oss'
   return 'unknown'
 }
 

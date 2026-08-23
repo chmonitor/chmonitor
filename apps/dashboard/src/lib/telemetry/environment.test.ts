@@ -30,6 +30,10 @@ describe('parseMajorMinor', () => {
   test('returns undefined for non-version strings', () => {
     expect(parseMajorMinor('not-a-version')).toBeUndefined()
   })
+
+  test('extracts major.minor when a prefix is present', () => {
+    expect(parseMajorMinor('ClickHouse 24.8.1.2')).toBe('24.8')
+  })
 })
 
 describe('detectChFlavor', () => {
@@ -54,6 +58,12 @@ describe('detectChFlavor', () => {
 
   test('returns unknown for undefined', () => {
     expect(detectChFlavor(undefined)).toBe('unknown')
+  })
+
+  test('returns cloud when hostname is ClickHouse Cloud', () => {
+    expect(detectChFlavor('24.8.1.2', 'abc.us-east-1.aws.clickhouse.cloud')).toBe(
+      'cloud'
+    )
   })
 })
 
