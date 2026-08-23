@@ -350,7 +350,7 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
         )
         .all<{ deploy_target: string; n: number }>(),
       stmt(
-        `SELECT COALESCE(ch_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+        `SELECT COALESCE(NULLIF(TRIM(ch_version), ''), 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
       ).all<{ v: string; n: number }>(),
       stmt(
         `SELECT COALESCE(NULLIF(TRIM(ch_flavor), ''), 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
