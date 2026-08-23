@@ -22,13 +22,18 @@ use crate::{
     tui::TuiOptions,
 };
 
-async fn run_cluster_scan(client: &Client, cfg: &AppConfig, args: DoctorArgs) -> Result<i32> {
+async fn run_cluster_scan(
+    client: &Client,
+    cfg: &AppConfig,
+    cli: &Cli,
+    args: DoctorArgs,
+) -> Result<i32> {
     diagnose_cmd::run(
         client,
-        args.ch_host,
-        args.ch_user,
-        args.ch_password,
-        args.ch_database,
+        cli.clickhouse.ch_host.clone(),
+        cli.clickhouse.ch_user.clone(),
+        cli.clickhouse.ch_password.clone(),
+        cli.clickhouse.ch_database.clone(),
         args.json || cfg.json,
     )
     .await
@@ -37,8 +42,12 @@ async fn run_cluster_scan(client: &Client, cfg: &AppConfig, args: DoctorArgs) ->
 pub(crate) async fn run_tui_session(
     client: &Client,
     cfg: &AppConfig,
+    interactive: bool,
     mut opts: TuiOptions,
 ) -> Result<()> {
+    if !interactive {
+        return crate::tui::snapshot(client, cfg, &opts).await;
+    }
     loop {
         match crate::tui::run(client, cfg, opts.clone()).await? {
             crate::tui::TuiExit::Quit => break,
@@ -110,6 +119,7 @@ pub async fn dispatch(
             run_tui_session(
                 client,
                 cfg,
+                crate::output::wants_tui(cfg.json, cli.no_tui),
                 TuiOptions {
                     dashboard: crate::dashboards::OVERVIEW_NAME.to_string(),
                     charts: crate::dashboards::tui_chart_names(args.chart.as_deref()),
@@ -117,6 +127,7 @@ pub async fn dispatch(
                     page_size: args.page_size,
                     start_overview: args.overview,
                     host_id: cfg.host_id,
+                    ch: cli.clickhouse.to_ch_config(),
                 },
             )
             .await?;
@@ -152,8 +163,8 @@ pub async fn dispatch(
             audit::run(client, cfg, args).await?;
             Ok(0)
         }
-        Commands::Doctor(args) if args.has_cluster_host() => {
-            run_cluster_scan(client, cfg, args).await
+        Commands::Doctor(args) if cli.clickhouse.has_cluster_host() => {
+            run_cluster_scan(client, cfg, cli, args).await
         }
         Commands::Doctor(_) => {
             doctor::run(client, cfg).await?;

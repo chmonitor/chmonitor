@@ -1,6 +1,6 @@
 //! Interactive `chm config` dialog (alt-screen). Secrets stay out of the form body.
 
-use std::io::{self, IsTerminal};
+use std::io;
 
 use anyhow::{bail, Result};
 use crossterm::{
@@ -230,7 +230,7 @@ impl Drop for FormGuard {
 }
 
 pub fn run(cfg: &AppConfig) -> Result<()> {
-    if !io::stdout().is_terminal() || cfg.json {
+    if !crate::output::wants_tui(cfg.json, false) {
         bail!(
             "interactive config needs a terminal (or use `chm config show` / `chm config set KEY VALUE`)"
         );

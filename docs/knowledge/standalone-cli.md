@@ -23,7 +23,11 @@ related:
 `cargo install chmonitor` installs both binaries.
 
 **`chm` with no subcommand opens the live TUI** (`chm tui` is an explicit alias
-of the same UI) showing the **Overview dashboard** charts. `chm --help` /
+of the same UI) showing the **ops cockpit** (health strip, charts, running
+queries). `chm --ch-host` talks **directly to ClickHouse** (read-only) instead
+of the dashboard API. When stdout/stdin is not a TTY, or `CI` / `CHM_NO_TUI` /
+`--no-tui` / `--json` / `TERM=dumb` is set, it prints a one-shot snapshot
+(agents and CI) instead of entering the alt-screen. `chm --help` /
 `chm help` / `chm -h` still print help.
 
 By default it talks to **chmonitor

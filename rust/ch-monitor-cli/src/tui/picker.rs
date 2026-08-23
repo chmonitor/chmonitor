@@ -1,6 +1,6 @@
 //! Ratatui list picker (alt-screen). Used by `chm dashboard list`.
 
-use std::io::{self, IsTerminal};
+use std::io;
 
 use anyhow::{bail, Result};
 use crossterm::{
@@ -92,7 +92,7 @@ pub fn run(
     hints: &str,
     note: Option<String>,
 ) -> Result<Option<usize>> {
-    if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
+    if !crate::output::wants_tui(false, false) {
         bail!("interactive picker needs a terminal");
     }
     let mut picker = Picker::new(title, items, hints, note)?;

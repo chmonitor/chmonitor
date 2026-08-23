@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
     // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
     // never blocks or fails the command; see src/telemetry.rs.
     let (tel_event, tel_command): (&'static str, &'static str) = match &command {
-        Commands::Doctor(args) if args.has_cluster_host() => ("cli_diagnose", "doctor"),
+        Commands::Doctor(_) if cli.clickhouse.has_cluster_host() => ("cli_diagnose", "doctor"),
         Commands::Doctor(_) => ("cli_run", "doctor"),
         Commands::Hosts => ("cli_run", "hosts"),
         Commands::Chart { .. } => ("cli_run", "chart"),
@@ -74,7 +74,7 @@ mod tests {
     use super::*;
     use clap::CommandFactory;
 
-    use crate::cli::{DoctorArgs, UpdateArgs};
+    use crate::cli::{ClickHouseArgs, DoctorArgs, UpdateArgs};
 
     fn doctor_args(cli: Cli) -> DoctorArgs {
         match cli.command {
@@ -191,26 +191,22 @@ mod tests {
 
     #[test]
     fn doctor_with_host_is_cluster_scan() {
-        let args = doctor_args(
-            Cli::try_parse_from([
-                "chm",
-                "doctor",
-                "--ch-host",
-                "http://localhost:8123",
-                "--ch-user",
-                "default",
-            ])
-            .expect("parse"),
+        let parsed = Cli::try_parse_from([
+            "chm",
+            "doctor",
+            "--ch-host",
+            "http://localhost:8123",
+            "--ch-user",
+            "default",
+        ])
+        .expect("parse");
+        assert!(matches!(parsed.command, Some(Commands::Doctor(_))));
+        assert!(parsed.clickhouse.has_cluster_host());
+        assert_eq!(
+            parsed.clickhouse.ch_host.as_deref(),
+            Some("http://localhost:8123")
         );
-        assert!(matches!(
-            Cli::try_parse_from(["chm", "doctor", "--ch-host", "http://localhost:8123"])
-                .expect("parse")
-                .command,
-            Some(Commands::Doctor(_))
-        ));
-        assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
-        assert!(args.has_cluster_host());
-        assert_eq!(args.ch_user, "default");
+        assert_eq!(parsed.clickhouse.ch_user, "default");
     }
 
     #[test]
@@ -227,20 +223,19 @@ mod tests {
 
     #[test]
     fn cluster_host_ignores_blank_values() {
-        let blank = DoctorArgs {
+        let blank = ClickHouseArgs {
             ch_host: Some("  ".into()),
             ch_user: "default".into(),
             ch_password: String::new(),
             ch_database: "default".into(),
-            json: false,
         };
         assert!(!blank.has_cluster_host());
-        let missing = DoctorArgs {
+        let missing = ClickHouseArgs {
             ch_host: None,
             ..blank.clone()
         };
         assert!(!missing.has_cluster_host());
-        let present = DoctorArgs {
+        let present = ClickHouseArgs {
             ch_host: Some("http://localhost:8123".into()),
             ..blank
         };
@@ -249,30 +244,34 @@ mod tests {
 
     #[test]
     fn doctor_scan_flags() {
-        let args = doctor_args(
-            Cli::try_parse_from([
-                "chm",
-                "doctor",
-                "--ch-host",
-                "http://localhost:8123",
-                "--json",
-            ])
-            .expect("parse"),
+        let parsed = Cli::try_parse_from([
+            "chm",
+            "doctor",
+            "--ch-host",
+            "http://localhost:8123",
+            "--json",
+        ])
+        .expect("parse");
+        let args = doctor_args(parsed.clone());
+        assert_eq!(
+            parsed.clickhouse.ch_host.as_deref(),
+            Some("http://localhost:8123")
         );
-        assert_eq!(args.ch_host.as_deref(), Some("http://localhost:8123"));
         assert!(args.json);
+        assert!(parsed.clickhouse.has_cluster_host());
     }
 
     #[test]
     fn doctor_help_has_ch_host() {
         let mut cmd = Cli::command();
+        let root_help = cmd.render_long_help().to_string();
+        assert!(root_help.contains("--ch-host"), "{root_help}");
+        assert!(root_help.contains("--ch-user"), "{root_help}");
         let doctor_help = cmd
             .find_subcommand_mut("doctor")
             .expect("doctor subcommand")
             .render_long_help()
             .to_string();
-        assert!(doctor_help.contains("--ch-host"), "{doctor_help}");
-        assert!(doctor_help.contains("--ch-user"), "{doctor_help}");
         assert!(doctor_help.contains("--json"), "{doctor_help}");
         assert!(cmd.find_subcommand_mut("diagnose").is_none());
     }
