@@ -362,7 +362,7 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
         `SELECT COALESCE(platform, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
       ).all<{ v: string; n: number }>(),
       stmt(
-        `SELECT COALESCE(chm_version, 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
+        `SELECT COALESCE(NULLIF(TRIM(chm_version), ''), 'unknown') AS v, COUNT(DISTINCT instance_hash) AS n FROM ping_daily ${where} GROUP BY v ORDER BY n DESC`
       ).all<{ v: string; n: number }>(),
       stmt(
         `SELECT COUNT(DISTINCT install_place) AS n FROM ping_daily ${installPlacesWhere}`
