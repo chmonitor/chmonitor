@@ -44,7 +44,8 @@ describe('user-facing license copy', () => {
       expect(text).toContain('$1,349')
       expect(text).toContain('$999')
       expect(text).toContain('$2,999')
-      expect(text.toLowerCase()).toContain('honor')
+      // honor system, or its plainer wording ("we trust you on host count")
+      expect(text.toLowerCase()).toMatch(/honor|trust you/)
       expect(text.toLowerCase()).toContain('opt')
     }
   })

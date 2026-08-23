@@ -19,7 +19,11 @@ import {
   makeApplyDeps,
   makePlanForProductId,
 } from './billing-deps'
-import { classifyTransition, formatPolarNotify } from './polar-notify'
+import {
+  classifyTransition,
+  formatCheckoutStarted,
+  formatPolarNotify,
+} from './polar-notify'
 import {
   type ApplySubscriptionDeps,
   applySubscription as coreApplySubscription,
@@ -124,6 +128,15 @@ export async function handlePolarWebhook(
     return Response.json({ error: 'Bad request' }, { status: 400 })
   }
 
+  if (event.type === 'checkout.created') {
+    try {
+      await notifyCheckoutCreated(event.data, deps)
+    } catch (err) {
+      console.error('[cloud-hooks] checkout.created notify failed', err)
+    }
+    return Response.json({ received: true }, { status: 202 })
+  }
+
   if (HANDLED_EVENTS.has(event.type)) {
     const data = event.data as PolarSubscriptionData
     if (data.productId && licenseForProductId(env, data.productId)) {
@@ -171,6 +184,44 @@ export async function handlePolarWebhook(
   }
 
   return Response.json({ received: true }, { status: 202 })
+}
+
+async function notifyCheckoutCreated(
+  raw: unknown,
+  deps: WebhookDeps
+): Promise<void> {
+  if (!raw || typeof raw !== 'object') return
+  const data = raw as {
+    id?: unknown
+    url?: unknown
+    customer_email?: unknown
+    customerEmail?: unknown
+    metadata?: Record<string, unknown>
+  }
+  const meta = data.metadata ?? {}
+  const kind = typeof meta.kind === 'string' ? meta.kind : ''
+  const sku = typeof meta.sku === 'string' ? meta.sku : 'unknown'
+  const term = typeof meta.term === 'string' ? meta.term : 'unknown'
+  const company = typeof meta.company === 'string' ? meta.company : undefined
+  const website = typeof meta.website === 'string' ? meta.website : undefined
+  const email =
+    (typeof data.customer_email === 'string' && data.customer_email) ||
+    (typeof data.customerEmail === 'string' && data.customerEmail) ||
+    undefined
+  // Only self-host license checkouts. Cloud SaaS Polar sessions skip this ping.
+  if (kind !== 'selfhost-license') return
+  await deps.notify(
+    'checkout_started',
+    formatCheckoutStarted({
+      sku,
+      term,
+      email,
+      company,
+      website,
+      checkoutId: typeof data.id === 'string' ? data.id : undefined,
+      checkoutUrl: typeof data.url === 'string' ? data.url : undefined,
+    })
+  )
 }
 
 async function notifyEvent(

@@ -1,20 +1,20 @@
 ---
 import {
-  LICENSE_SALES_EMAIL,
   LICENSE_SKUS,
   type LicenseId,
   type LicenseTerm,
   isPaidLicense,
-  licensePriceUsd,
 } from '@chm/pricing'
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/Nav.astro'
 import Footer from '../../components/Footer.astro'
 import {
   invoiceMailto,
+  LICENSE_HELP_DOCS_HREF,
+  LICENSE_HELP_EMAIL,
   LICENSE_HOOKS_ORIGIN,
   licenseRegisterApiHref,
-  paidLicenseSkus,
+  licenseSkus,
 } from '../../data/licenses'
 import { btnPrimaryBlock, btnOutline } from '../../lib/button-classes'
 
@@ -26,69 +26,117 @@ const parsed: LicenseId =
 const skuId: LicenseId = isPaidLicense(parsed) ? parsed : 'team'
 const term: LicenseTerm = rawTerm === 'lifetime' ? 'lifetime' : 'yearly'
 const sku = LICENSE_SKUS[skuId]
-const price = licensePriceUsd(sku, term)
 const mailto = invoiceMailto(sku, term)
 const paid = params.get('paid') === '1'
 const checkoutId = params.get('checkout_id') ?? ''
 const registerApi = licenseRegisterApiHref()
+
+const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`
 ---
 <Base
-  title="Register a chmonitor license"
-  description="Buy or register a self-hosted chmonitor license. Enter your company name and website. Then set CHM_LICENSE_KEY to the Polar checkout id."
+  title="Buy a chmonitor license"
+  description="Buy a Team or Unlimited license. Yearly or lifetime. Polar adds tax after you pick your country. No license key."
 >
   <Nav />
   <main id="top">
     <section class="band">
-      <div class="wrap form-wrap">
+      <div class="wrap buy-wrap">
         <div class="sec-head">
           <span class="eyebrow">License</span>
-          <h1>Buy &amp; register</h1>
+          <h1>{paid ? 'Register your company' : 'Pick a license'}</h1>
           <p>
             {paid
-              ? 'Polar received payment and emailed you a receipt. Register your company here, then set CHM_LICENSE_KEY to the Polar checkout id.'
-              : 'Enter company details, then pay on Polar. Polar emails the receipt. Set CHM_LICENSE_KEY to the Polar checkout id — it does not unlock features.'}
+              ? 'Payment went through. Polar emailed the receipt. Register the company, then set CHM_LICENSE_KEY to the Polar checkout id.'
+              : 'The app stays GPL-3.0 and free. A paid license is an invoice and support, not extra features. Prices are USD before tax; Polar adds VAT/GST after you pick a country.'}
           </p>
         </div>
 
-        <div class="summary">
-          <strong>{sku.name}</strong>
-          <span>{term === 'lifetime' ? 'Lifetime' : 'Yearly'} · ${price} USD · {sku.hosts === null ? 'unlimited hosts' : `${sku.hosts} hosts`}</span>
-        </div>
+        {!paid && (
+          <>
+            <div class="bill-toggle" role="tablist" aria-label="License term">
+              <button type="button" class="term-btn active" data-term="yearly" role="tab" aria-selected="true">Yearly</button>
+              <button type="button" class="term-btn" data-term="lifetime" role="tab" aria-selected="false">Lifetime <span class="save">pay once</span></button>
+            </div>
+
+            <div class="plan-grid" data-term={term} data-sku={skuId}>
+              {licenseSkus.map((s) => {
+                const paidSku = isPaidLicense(s.id)
+                const selected = paidSku && s.id === skuId
+                const Tag = paidSku ? 'button' : 'div'
+                return (
+                  <Tag
+                    type={paidSku ? 'button' : undefined}
+                    class:list={['plan-card', selected && 'is-on', s.highlight && 'is-featured']}
+                    data-sku={s.id}
+                    data-paid={paidSku ? '1' : '0'}
+                    aria-pressed={paidSku ? selected : undefined}
+                  >
+                    <div class="plan-top">
+                      <span class="plan-name">{s.displayName}</span>
+                      {s.id === 'personal' && <span class="plan-badge">Free · GPL-3.0</span>}
+                      {s.highlight && <span class="plan-badge">Most teams</span>}
+                    </div>
+                    <div class="plan-price">
+                      {s.yearlyUsd === 0 ? (
+                        <span class="amt">$0</span>
+                      ) : (
+                        <>
+                          <span class="amt amt-yearly">${s.yearlyUsd} <small>/ yr</small></span>
+                          <span class="amt amt-lifetime">${s.lifetimeUsd} <small>once</small></span>
+                        </>
+                      )}
+                    </div>
+                    <p class="plan-hosts">
+                      {s.yearlyUsd === 0
+                        ? 'unlimited hosts · self-host'
+                        : (s.hosts === null ? 'unlimited hosts' : `${s.hosts} hosts`)}
+                    </p>
+                    <p class="plan-tag">{s.tagline}</p>
+                    <ul>
+                      {s.highlights.map((h) => (
+                        <li>
+                          <span set:html={checkSvg} />
+                          {h}
+                        </li>
+                      ))}
+                    </ul>
+                    {!paidSku && (
+                      <a class={btnOutline} href="https://docs.chmonitor.dev/operate/deploy/self-host" data-selfhost>Self-host docs</a>
+                    )}
+                  </Tag>
+                )
+              })}
+            </div>
+
+            <p class="tax-note">
+              <strong>Tax.</strong> USD before VAT/GST/sales tax. Polar adds it on checkout after you pick a country. We do not collect tax on this page.
+            </p>
+          </>
+        )}
 
         <div id="done" class="summary" hidden>
           <strong>Registered</strong>
-          <span>We’ll keep this on file. Honor system — set CHM_LICENSE_KEY to the Polar checkout id. Email hello@chmonitor.dev if anything looks wrong.</span>
+          <span>Saved. Set CHM_LICENSE_KEY to the Polar checkout id. Email {LICENSE_HELP_EMAIL} if something is wrong.</span>
         </div>
 
-        <form class="reg" method="get" action={`mailto:${LICENSE_SALES_EMAIL}`} id="reg-form">
+        <form class="reg" method="get" action={`mailto:${LICENSE_HELP_EMAIL}`} id="reg-form">
           <input type="hidden" name="subject" value={`chmonitor ${sku.name} ${term} license`} />
           <input type="hidden" name="checkout_id" value={checkoutId} />
+          <input type="hidden" name="sku" id="sku" value={skuId} />
+          <input type="hidden" name="term" id="term" value={term} />
+
+          <h2 class="form-h">{paid ? 'Company' : 'Company details'}</h2>
           <label>
             Company name
-            <input type="text" name="company" required maxlength="120" placeholder="Acme Analytics" />
+            <input type="text" name="company" required maxlength="120" placeholder="Acme Analytics" autocomplete="organization" />
           </label>
           <label>
             Website
-            <input type="url" name="website" required placeholder="https://acme.example" />
+            <input type="url" name="website" required placeholder="https://acme.example" autocomplete="url" />
           </label>
           <label>
             Billing email
-            <input type="email" name="email" required placeholder="ops@acme.example" />
-          </label>
-          <label>
-            License
-            <select id="sku" name="sku">
-              {paidLicenseSkus.map((s) => (
-                <option value={s.id} selected={s.id === sku.id}>{s.name} — {s.hosts === null ? 'unlimited' : `${s.hosts} hosts`}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Term
-            <select id="term" name="term">
-              <option value="yearly" selected={term === 'yearly'}>Yearly</option>
-              <option value="lifetime" selected={term === 'lifetime'}>Lifetime</option>
-            </select>
+            <input type="email" name="email" required placeholder="ops@acme.example" autocomplete="email" />
           </label>
           <label class="check">
             <input type="checkbox" name="list_public" value="yes" />
@@ -96,8 +144,8 @@ const registerApi = licenseRegisterApiHref()
           </label>
           <p class="hint">Unchecked = private. We only publish names that opt in.</p>
           <label>
-            Notes (PO number, VAT, host count if you already know)
-            <textarea name="notes" rows="4" maxlength="2000"></textarea>
+            Notes (PO number, VAT ID, host count)
+            <textarea name="notes" rows="3" maxlength="2000"></textarea>
           </label>
           <button class={btnPrimaryBlock} type="submit" id="send">
             {paid ? 'Register company' : 'Continue to Polar to pay'}
@@ -105,32 +153,94 @@ const registerApi = licenseRegisterApiHref()
         </form>
 
         <p class="alt">
-          Prefer a pre-filled message? <a class={btnOutline} href={mailto}>Open invoice email</a>
+          <a class={btnOutline} href={mailto}>Invoice / PO email</a>
           <a class={btnOutline} href="/license/lookup">Look up an order</a>
+          <a class={btnOutline} href={LICENSE_HELP_DOCS_HREF}>Help: commercial license</a>
         </p>
-        <p class="trust">Honor system: we do not ship a license key or phone home. Use the host count you paid for. Community OSS remains unlimited and free.</p>
+        <p class="trust">
+          No DRM. Polar emails the receipt and adds tax after you pick a country.
+          Questions or feature requests: <a href={`mailto:${LICENSE_HELP_EMAIL}`}>{LICENSE_HELP_EMAIL}</a>.
+        </p>
       </div>
     </section>
   </main>
   <Footer />
   <style>
-    .form-wrap{max-width:560px;margin:0 auto}
-    .form-wrap h1{font-size:clamp(1.75rem,6vw,2.25rem);font-weight:700;letter-spacing:-.03em;margin-top:12px}
+    .buy-wrap{max-width:1080px;margin:0 auto}
+    .buy-wrap h1{font-size:clamp(1.75rem,5vw,2.4rem);font-weight:700;letter-spacing:-.03em;margin-top:12px}
+    .bill-toggle{display:inline-flex;gap:4px;border-radius:999px;background:var(--muted);padding:4px;margin:28px 0 16px}
+    .term-btn{border:0;background:transparent;border-radius:999px;padding:8px 16px;font:inherit;font-size:14px;font-weight:500;color:var(--muted-foreground);cursor:pointer}
+    .term-btn.active{background:var(--card);color:var(--foreground);box-shadow:0 0 0 1px var(--border)}
+    .term-btn .save{font-size:12px;font-weight:600;color:var(--semantic-success, #15803d)}
+    .plan-grid{display:grid;gap:12px;grid-template-columns:1fr}
+    @media (min-width:800px){.plan-grid{grid-template-columns:repeat(3,1fr)}}
+    .plan-card{text-align:left;display:flex;flex-direction:column;gap:8px;padding:20px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:inherit;cursor:pointer;font:inherit}
+    .plan-card:disabled{cursor:default;opacity:1}
+    .plan-card.is-featured{border-color:color-mix(in oklch, var(--brand) 40%, var(--border));box-shadow:0 0 0 1px color-mix(in oklch, var(--brand) 20%, transparent)}
+    .plan-card.is-on{outline:2px solid var(--brand);outline-offset:2px}
+    .plan-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    .plan-name{font-weight:700;font-size:18px;letter-spacing:-.02em}
+    .plan-badge{font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:2px 8px;background:var(--muted)}
+    .plan-price .amt{font-size:32px;font-weight:800;letter-spacing:-.04em}
+    .plan-price .amt small{font-size:14px;font-weight:400;color:var(--muted-foreground)}
+    .plan-grid .amt{display:none}
+    .plan-grid[data-term='yearly'] .amt-yearly,.plan-grid[data-term='lifetime'] .amt-lifetime{display:inline}
+    .plan-grid .amt:not(.amt-yearly):not(.amt-lifetime){display:inline}
+    .plan-hosts,.plan-tag,.hint,.trust,.alt,.tax-note{font-size:13px;color:var(--muted-foreground);line-height:1.5}
+    .plan-tag{min-height:2.4em}
+    .plan-card ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+    .plan-card li{display:flex;align-items:flex-start;gap:8px;font-size:14px}
+    .tax-note{margin:20px 0 8px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--muted)}
+    .tax-note strong{color:var(--foreground)}
+    .form-h{font-size:16px;font-weight:600;margin:28px 0 12px}
     .summary{margin:24px 0;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);display:flex;flex-direction:column;gap:4px}
-    .summary span{font-size:13px;color:var(--muted-fg)}
-    .reg{display:flex;flex-direction:column;gap:14px}
+    .summary[hidden]{display:none !important}
+    .reg{display:flex;flex-direction:column;gap:14px;max-width:560px}
     .reg label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}
-    .reg input,.reg select,.reg textarea{font:inherit;font-weight:400;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}
+    .reg input,.reg textarea{font:inherit;font-weight:400;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--foreground)}
     .reg .check{flex-direction:row;align-items:center;gap:10px;font-weight:500}
     .reg .check input{width:auto}
-    .hint,.trust,.alt{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-top:12px}
-    .alt{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    .alt{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+    .trust{margin-top:16px}
   </style>
   <script is:inline define:vars={{ paid, registerApi, hooksOrigin: LICENSE_HOOKS_ORIGIN }}>
     (function () {
       var form = document.getElementById('reg-form')
       var done = document.getElementById('done')
+      var grid = document.querySelector('.plan-grid')
+      var skuInput = document.getElementById('sku')
+      var termInput = document.getElementById('term')
       if (!form) return
+
+      document.querySelectorAll('.term-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var t = btn.getAttribute('data-term')
+          if (!t || !termInput) return
+          termInput.value = t
+          document.querySelectorAll('.term-btn').forEach(function (b) {
+            var on = b === btn
+            b.classList.toggle('active', on)
+            b.setAttribute('aria-selected', on ? 'true' : 'false')
+          })
+          if (grid) grid.setAttribute('data-term', t)
+        })
+      })
+
+      document.querySelectorAll('.plan-card[data-paid="1"]').forEach(function (card) {
+        card.addEventListener('click', function (e) {
+          if (e.target.closest('a')) return
+          var id = card.getAttribute('data-sku')
+          if (!id || !skuInput) return
+          skuInput.value = id
+          if (grid) grid.setAttribute('data-sku', id)
+          document.querySelectorAll('.plan-card[data-paid="1"]').forEach(function (c) {
+            var on = c === card
+            c.classList.toggle('is-on', on)
+            c.setAttribute('aria-pressed', on ? 'true' : 'false')
+          })
+        })
+      })
+
       function mailtoFallback(company, website, email, sku, term, list, notes) {
         var lines = [
           'New chmonitor license registration (honor system).',
@@ -147,14 +257,14 @@ const registerApi = licenseRegisterApiHref()
         }
         if (notes) lines.push('Notes: ' + notes)
         var subject = encodeURIComponent('chmonitor license — ' + company + ' (' + sku + ' ' + term + ')')
-        window.location.href = 'mailto:hello@chmonitor.dev?subject=' + subject + '&body=' + encodeURIComponent(lines.join('\n'))
+        window.location.href = 'mailto:duyet@chmonitor.dev?subject=' + subject + '&body=' + encodeURIComponent(lines.join('\n'))
       }
       form.addEventListener('submit', function (e) {
         e.preventDefault()
         var company = form.company.value.trim()
         var website = form.website.value.trim()
         var email = form.email.value.trim()
-        if (!company || !website) return
+        if (!company || !website || !email) return
         var sku = form.sku.value
         var term = form.term.value
         var list = form.list_public.checked ? 'yes' : 'no'
