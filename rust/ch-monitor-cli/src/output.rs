@@ -2,6 +2,7 @@
 
 use std::{
     collections::HashMap,
+    env,
     io::{self, IsTerminal, Write},
 };
 
@@ -10,13 +11,43 @@ use owo_colors::OwoColorize;
 use serde_json::Value;
 
 pub fn wants_color() -> bool {
-    if std::env::var_os("NO_COLOR").is_some() {
+    if env::var_os("NO_COLOR").is_some() {
         return false;
     }
-    if std::env::var_os("FORCE_COLOR").is_some() {
+    if env::var_os("FORCE_COLOR").is_some() {
         return true;
     }
     io::stdout().is_terminal()
+}
+
+/// True when an alt-screen TUI is allowed.
+///
+/// Agents, CI, pipes, `chm --json`, `chm --no-tui`, `CHM_NO_TUI=1`, `CI=1`,
+/// and `TERM=dumb` all force a one-shot snapshot instead of ratatui.
+pub fn wants_tui(force_json: bool, no_tui_flag: bool) -> bool {
+    if force_json || no_tui_flag {
+        return false;
+    }
+    if env_flag("CHM_NO_TUI") || env_flag("CI") || env_flag("GITHUB_ACTIONS") {
+        return false;
+    }
+    if env::var("TERM").ok().as_deref() == Some("dumb") {
+        return false;
+    }
+    io::stdin().is_terminal() && io::stdout().is_terminal()
+}
+
+fn env_flag(name: &str) -> bool {
+    match env::var(name) {
+        Ok(v) => {
+            let v = v.trim();
+            !v.is_empty()
+                && v != "0"
+                && !v.eq_ignore_ascii_case("false")
+                && !v.eq_ignore_ascii_case("no")
+        }
+        Err(_) => false,
+    }
 }
 
 pub fn print_json(value: &Value) -> anyhow::Result<()> {
@@ -128,5 +159,11 @@ mod tests {
     fn braille_sparkline_nonempty() {
         let line = braille_sparkline(&[0, 5, 10, 5, 0], 5);
         assert_eq!(line.chars().count(), 5);
+    }
+
+    #[test]
+    fn json_or_no_tui_flag_skips_alt_screen() {
+        assert!(!wants_tui(true, false));
+        assert!(!wants_tui(false, true));
     }
 }

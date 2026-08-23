@@ -1,7 +1,5 @@
 //! `chm dashboard list` / `chm dashboard open`.
 
-use std::io::{self, IsTerminal};
-
 use anyhow::{bail, Result};
 use reqwest::Client;
 use serde_json::json;
@@ -94,6 +92,7 @@ async fn open_entry(client: &Client, cfg: &AppConfig, entry: &DashboardEntry) ->
     crate::commands::run_tui_session(
         client,
         cfg,
+        crate::output::wants_tui(cfg.json, false),
         crate::tui::TuiOptions {
             dashboard: entry.name.clone(),
             charts,
@@ -101,6 +100,7 @@ async fn open_entry(client: &Client, cfg: &AppConfig, entry: &DashboardEntry) ->
             page_size: 15,
             start_overview: true,
             host_id: cfg.host_id,
+            ch: None,
         },
     )
     .await?;
@@ -108,7 +108,7 @@ async fn open_entry(client: &Client, cfg: &AppConfig, entry: &DashboardEntry) ->
 }
 
 fn wants_picker() -> bool {
-    io::stdin().is_terminal() && io::stdout().is_terminal()
+    crate::output::wants_tui(false, false)
 }
 
 fn print_list(entries: &[DashboardEntry], reason: Option<&str>, json_out: bool) -> Result<i32> {

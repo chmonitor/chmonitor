@@ -35,7 +35,9 @@ use serde_json::Value;
 use crate::{
     client,
     config::{AppConfig, DEFAULT_TABLE},
-    dashboards, metrics, output,
+    dashboards,
+    diagnose::{self, ChConfig, Finding, Report},
+    metrics, output,
 };
 
 const TUI_REFRESH_INTERVAL: Duration = Duration::from_secs(15);
@@ -51,26 +53,28 @@ const COMBINED_MIN_HEIGHT: u16 = 24;
 const ORANGE: Color = Color::Rgb(249, 115, 22);
 const EMERALD: Color = Color::Rgb(16, 185, 129);
 const AUTH_HINT: &str = "Dashboard needs login — run `chm auth login`, then press r";
+const CH_AGENT_HINT: &str =
+    "Agent chat needs a chmonitor dashboard — drop --ch-host or set CHM_BASE_URL";
 const HELP_TEXT: &str = "\
-chmonitor keys
+chmonitor keys (ops cockpit)
 
   q / Esc     quit
   r           refresh now
   ?           toggle this help
-  a           open agent chat
+  a           open agent chat (dashboard API)
   h / ←       previous host
   l / →       next host
   j / ↓       scroll table down
   k / ↑       scroll table up
   Tab         switch pane (small terminals)
-  1           overview charts
-  2 / 3       table pane
+  1           charts
+  2           queries table
+  3           doctor findings
   /           filter table
+  c           (connection is --ch-host vs --base-url)
 
-Default TUI is the Overview dashboard (query-count, counts, disk).
-A 404 chart is skipped. Table pane stays secondary (running-queries).
-Point --base-url / CHM_BASE_URL at a self-hosted dashboard when not
-using dash.chmonitor.dev.";
+Connect with dashboard API (default) or `chm --ch-host http://host:8123`.
+Non-TTY / CI / --json / --no-tui prints a snapshot instead of alt-screen.";
 
 const PREFERRED_TABLE_COLUMNS: &[&str] = &[
     "query_id",
@@ -109,6 +113,7 @@ impl Pane {
 enum Overlay {
     None,
     Help,
+    Findings,
     Search { draft: String },
 }
 
@@ -127,6 +132,7 @@ pub struct TuiOptions {
     pub page_size: usize,
     pub start_overview: bool,
     pub host_id: u32,
+    pub ch: Option<ChConfig>,
 }
 
 #[derive(Debug, Clone)]
@@ -167,6 +173,9 @@ struct App {
     auth_required: bool,
     last_ok_refresh: Option<Instant>,
     last_historical_refresh: Option<Instant>,
+    ch: Option<ChConfig>,
+    report: Option<Report>,
+    agent_hint: Option<String>,
 }
 
 impl App {
@@ -209,6 +218,17 @@ impl App {
             auth_required: false,
             last_ok_refresh: None,
             last_historical_refresh: None,
+            ch: opts.ch.clone(),
+            report: None,
+            agent_hint: None,
+        }
+    }
+
+    fn backend_label(&self, cfg: &AppConfig) -> String {
+        if let Some(ch) = &self.ch {
+            format!("CH {}", short_base_url(&ch.url))
+        } else {
+            format!("API {}", short_base_url(&cfg.base_url))
         }
     }
 
@@ -307,9 +327,9 @@ fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
     }
 
     match &app.overlay {
-        Overlay::Help => match key.code {
+        Overlay::Help | Overlay::Findings => match key.code {
             KeyCode::Char('q') => KeyAction::Quit,
-            KeyCode::Esc | KeyCode::Char('?') => {
+            KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('3') => {
                 app.overlay = Overlay::None;
                 KeyAction::None
             }
@@ -356,7 +376,14 @@ fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
                 KeyAction::None
             }
             KeyCode::Char('r') => KeyAction::Refresh,
-            KeyCode::Char('a') => KeyAction::Chat,
+            KeyCode::Char('a') => {
+                if app.ch.is_some() {
+                    app.agent_hint = Some(CH_AGENT_HINT.to_string());
+                    KeyAction::None
+                } else {
+                    KeyAction::Chat
+                }
+            }
             KeyCode::Char('/') => {
                 app.overlay = Overlay::Search {
                     draft: app.table_filter.clone(),
@@ -367,8 +394,12 @@ fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
                 app.focused = Pane::Overview;
                 KeyAction::None
             }
-            KeyCode::Char('2') | KeyCode::Char('3') => {
+            KeyCode::Char('2') => {
                 app.focused = Pane::Table;
+                KeyAction::None
+            }
+            KeyCode::Char('3') => {
+                app.overlay = Overlay::Findings;
                 KeyAction::None
             }
             KeyCode::Tab => {
@@ -473,6 +504,11 @@ fn bound_table_rows(mut rows: Vec<Value>, page_size: usize) -> Vec<Value> {
 }
 
 async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App, force: bool) {
+    app.agent_hint = None;
+    if app.ch.is_some() {
+        refresh_clickhouse(client, app, force).await;
+        return;
+    }
     let base = cfg.base_url.trim_end_matches('/');
     let hosts_url = format!("{base}/api/v1/hosts");
     let table_url = format!(
@@ -592,10 +628,123 @@ async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App, force: bool) {
     }
 }
 
+async fn refresh_clickhouse(client: &Client, app: &mut App, force: bool) {
+    let Some(ch) = app.ch.clone() else {
+        return;
+    };
+    let need_diag = force
+        || match app.last_historical_refresh {
+            None => true,
+            Some(t) => t.elapsed() >= TUI_HISTORICAL_REFRESH_INTERVAL,
+        };
+
+    let diag_fut = async {
+        if need_diag {
+            Some(diagnose::run_diagnostics(client, &ch).await)
+        } else {
+            None
+        }
+    };
+    let spark_sql = "SELECT toUnixTimestamp(toStartOfHour(event_time)) AS t, count() AS value \
+         FROM system.query_log WHERE event_time > now() - INTERVAL 24 HOUR \
+         AND type = 'QueryFinish' GROUP BY t ORDER BY t";
+    let running_sql = "SELECT count() AS value FROM system.processes";
+    let disk_sql =
+        "SELECT name, round((1 - free_space / nullIf(total_space, 0)) * 100, 1) AS value \
+         FROM system.disks ORDER BY value DESC LIMIT 8";
+    let table_sql = format!(
+        "SELECT query_id, user, elapsed, formatReadableSize(memory_usage) AS memory_usage, query \
+         FROM system.processes ORDER BY elapsed DESC LIMIT {}",
+        app.page_size.clamp(1, 100)
+    );
+
+    let (diag, spark, running, disk, table) = tokio::join!(
+        diag_fut,
+        diagnose::ch_query(client, &ch, spark_sql),
+        diagnose::ch_query(client, &ch, running_sql),
+        diagnose::ch_query(client, &ch, disk_sql),
+        diagnose::ch_query(client, &ch, table_sql.as_str()),
+    );
+
+    let mut errors: Vec<String> = Vec::new();
+    if let Some(res) = diag {
+        match res {
+            Ok(report) => {
+                app.report = Some(report);
+                app.last_historical_refresh = Some(Instant::now());
+            }
+            Err(err) => errors.push(short_error("doctor", &err)),
+        }
+    }
+
+    for pane in &mut app.charts {
+        match pane.name.as_str() {
+            "query-count" => match &spark {
+                Ok(rows) => {
+                    pane.missing = rows.is_empty();
+                    let (points, kept) = compact_chart_rows(&pane.name, rows.clone());
+                    pane.points = points;
+                    pane.rows = kept;
+                }
+                Err(err) => {
+                    pane.missing = true;
+                    errors.push(short_error("query-count", err));
+                }
+            },
+            "running-queries-count" => match &running {
+                Ok(rows) => {
+                    pane.missing = rows.is_empty();
+                    pane.points = rows.iter().map(metrics::row_metric).collect();
+                    pane.rows = rows.clone();
+                }
+                Err(err) => {
+                    pane.missing = true;
+                    errors.push(short_error("running", err));
+                }
+            },
+            name if name.starts_with("disk-size") => match &disk {
+                Ok(rows) => {
+                    pane.missing = rows.is_empty();
+                    let (points, kept) = compact_chart_rows(&pane.name, rows.clone());
+                    pane.points = points;
+                    pane.rows = kept;
+                }
+                Err(err) => {
+                    pane.missing = true;
+                    errors.push(short_error("disk", err));
+                }
+            },
+            _ => {}
+        }
+    }
+
+    match table {
+        Ok(rows) => {
+            app.table_rows = bound_table_rows(rows, app.page_size);
+            app.clamp_scroll();
+        }
+        Err(err) => errors.push(short_error("processes", &err)),
+    }
+
+    app.hosts = vec![HostEntry {
+        id: 0,
+        name: ch.url.clone(),
+        host: ch.url,
+    }];
+    app.host_id = 0;
+
+    if let Some(message) = errors.into_iter().next() {
+        app.error = Some(message);
+    } else {
+        app.error = None;
+        app.last_ok_refresh = Some(Instant::now());
+    }
+}
+
 fn draw(f: &mut Frame<'_>, cfg: &AppConfig, app: &App) {
     let area = f.area();
     let combined = use_combined_layout(area.width, area.height);
-    let show_banner = app.error.is_some();
+    let show_banner = app.error.is_some() || app.agent_hint.is_some();
     let show_switcher = !combined;
 
     let mut constraints = vec![Constraint::Length(3)];
@@ -644,6 +793,7 @@ fn draw(f: &mut Frame<'_>, cfg: &AppConfig, app: &App) {
 
     match &app.overlay {
         Overlay::Help => draw_help(f, area),
+        Overlay::Findings => draw_findings(f, area, app),
         Overlay::Search { .. } | Overlay::None => {}
     }
 }
@@ -655,18 +805,39 @@ fn draw_header(f: &mut Frame<'_>, area: Rect, cfg: &AppConfig, app: &App, combin
     } else {
         Style::default().fg(Color::DarkGray)
     };
+    let (score_text, score_style) = match &app.report {
+        Some(r) => {
+            let g = diagnose::grade(r.score);
+            let style = if r.score >= 80 {
+                Style::default().fg(EMERALD).add_modifier(Modifier::BOLD)
+            } else if r.score >= 60 {
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
+            };
+            (format!("score {} {}", r.score, g), style)
+        }
+        None => ("score —".into(), Style::default().fg(Color::DarkGray)),
+    };
+    let findings_n = app.report.as_ref().map(|r| r.findings.len()).unwrap_or(0);
     let layout = if combined {
-        "live"
+        "cockpit"
     } else {
         app.focused.label()
     };
     let line = Line::from(vec![
         Span::styled(
-            " chmonitor ",
+            " chm ",
             Style::default().fg(ORANGE).add_modifier(Modifier::BOLD),
         ),
-        Span::raw(" "),
-        Span::styled(app.dashboard.clone(), Style::default().fg(ORANGE)),
+        Span::styled(score_text, score_style),
+        Span::raw("  "),
+        Span::styled(
+            format!("{findings_n} findings"),
+            Style::default().fg(Color::DarkGray),
+        ),
         Span::raw("  "),
         Span::styled(
             app.host_label(),
@@ -675,12 +846,7 @@ fn draw_header(f: &mut Frame<'_>, area: Rect, cfg: &AppConfig, app: &App, combin
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw("  "),
-        Span::styled(
-            short_base_url(&cfg.base_url),
-            Style::default().fg(Color::DarkGray),
-        ),
-        Span::raw("  "),
-        Span::raw(cfg.channel.as_str().to_string()),
+        Span::styled(app.backend_label(cfg), Style::default().fg(Color::DarkGray)),
         Span::raw("  "),
         Span::styled(age, age_style),
         Span::raw("  "),
@@ -695,7 +861,11 @@ fn draw_banner(f: &mut Frame<'_>, area: Rect, app: &App) {
     } else {
         Style::default().fg(Color::Red)
     };
-    let text = app.error.as_deref().unwrap_or("");
+    let text = app
+        .error
+        .as_deref()
+        .or(app.agent_hint.as_deref())
+        .unwrap_or("");
     f.render_widget(
         Paragraph::new(text)
             .style(style)
@@ -710,16 +880,11 @@ fn draw_switcher(f: &mut Frame<'_>, area: Rect, focused: Pane) {
 }
 
 fn draw_combined(f: &mut Frame<'_>, area: Rect, app: &App) {
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(22), Constraint::Min(40)])
-        .split(area);
-    draw_hosts(f, cols[0], app);
-    let table_h = (area.height / 3).clamp(5, 10);
+    let table_h = (area.height / 3).clamp(6, 14);
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(8), Constraint::Length(table_h)])
-        .split(cols[1]);
+        .split(area);
     draw_chart_grid(f, rows[0], app);
     draw_table_pane(f, rows[1], app);
 }
@@ -799,6 +964,7 @@ fn draw_chart_cell(f: &mut Frame<'_>, area: Rect, pane: &ChartPane) {
     );
 }
 
+#[allow(dead_code)]
 fn draw_hosts(f: &mut Frame<'_>, area: Rect, app: &App) {
     if app.hosts.is_empty() {
         let body = if app.auth_required {
@@ -903,6 +1069,36 @@ fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
     f.render_stateful_widget(table, area, &mut state);
 }
 
+fn draw_findings(f: &mut Frame<'_>, area: Rect, app: &App) {
+    let popup = centered_rect(80, 70, area);
+    f.render_widget(Clear, popup);
+    let lines: Vec<Line> = match &app.report {
+        None => vec![Line::from("no doctor scan yet — press r")],
+        Some(r) if r.findings.is_empty() => vec![Line::from("no findings")],
+        Some(r) => r
+            .findings
+            .iter()
+            .map(|finding: &Finding| {
+                let (tag, style) = match finding.severity {
+                    diagnose::Severity::Critical => ("!!", Style::default().fg(Color::Red)),
+                    diagnose::Severity::Warning => ("!", Style::default().fg(Color::Yellow)),
+                    diagnose::Severity::Notice => ("·", Style::default().fg(Color::DarkGray)),
+                };
+                Line::from(Span::styled(
+                    format!("{tag}  {}  {}", finding.title, finding.detail),
+                    style,
+                ))
+            })
+            .collect(),
+    };
+    f.render_widget(
+        Paragraph::new(lines)
+            .wrap(Wrap { trim: true })
+            .block(Block::bordered().title("doctor  3/Esc close")),
+        popup,
+    );
+}
+
 fn draw_help(f: &mut Frame<'_>, area: Rect) {
     let popup = centered_rect(70, 70, area);
     f.render_widget(Clear, popup);
@@ -941,15 +1137,16 @@ fn pane_switcher_line(focused: Pane) -> Line<'static> {
 fn footer_hints(combined: bool, overlay: &Overlay, filter: &str) -> String {
     match overlay {
         Overlay::Help => " ?/Esc close help   q quit".into(),
+        Overlay::Findings => " 3/Esc close findings   q quit".into(),
         Overlay::Search { draft } => format!(" /{draft}   Enter apply   Esc cancel"),
         Overlay::None if !filter.is_empty() => {
-            format!(" filter={filter}  Esc clear  │  q quit  r refresh  h/l host  j/k scroll  a chat  ? help")
+            format!(" filter={filter}  Esc clear  │  q quit  r refresh  3 doctor  h/l host  j/k  a chat  ? help")
         }
         Overlay::None if combined => {
-            " q quit  r refresh  h/l host  j/k scroll  a chat  / find  ? help".into()
+            " q quit  r refresh  1 charts  2 queries  3 doctor  h/l host  j/k  a chat  / find  ? help".into()
         }
         Overlay::None => {
-            " q quit  r refresh  tab pane  h/l host  j/k scroll  a chat  / find  ? help".into()
+            " q quit  r refresh  tab pane  3 doctor  h/l host  j/k  a chat  / find  ? help".into()
         }
     }
 }
@@ -1149,6 +1346,79 @@ fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
         .split(popup[1])[1]
 }
 
+/// One-shot dashboard for agents, CI, pipes, `--json`, and `--no-tui`.
+pub async fn snapshot(client: &Client, cfg: &AppConfig, opts: &TuiOptions) -> Result<()> {
+    let mut app = App::new(opts);
+    refresh(client, cfg, &mut app, true).await;
+
+    if cfg.json {
+        let charts: Vec<Value> = app
+            .visible_charts()
+            .iter()
+            .map(|c| {
+                serde_json::json!({
+                    "name": c.name,
+                    "kpi": dashboards::chart_kpi(&c.name, &c.rows),
+                    "points": c.points,
+                    "missing": c.missing,
+                })
+            })
+            .collect();
+        let report = app.report.as_ref().map(|r| {
+            serde_json::json!({
+                "score": r.score,
+                "grade": diagnose::grade(r.score),
+                "findings": r.findings,
+                "version": r.version,
+            })
+        });
+        output::print_json(&serde_json::json!({
+            "backend": if app.ch.is_some() { "clickhouse" } else { "dashboard" },
+            "host": app.host_label(),
+            "dashboard": app.dashboard,
+            "error": app.error,
+            "report": report,
+            "charts": charts,
+            "table": app.table,
+            "rows": app.table_rows,
+        }))?;
+        return Ok(());
+    }
+
+    println!("chm  {}  {}", app.backend_label(cfg), app.host_label());
+    if let Some(r) = &app.report {
+        println!(
+            "score {} {}  {} findings  {}",
+            r.score,
+            diagnose::grade(r.score),
+            r.findings.len(),
+            r.version
+        );
+        for f in r.findings.iter().take(8) {
+            println!("  {}  {}", f.title, f.detail);
+        }
+    }
+    if let Some(err) = &app.error {
+        eprintln!("{err}");
+    }
+    for pane in app.visible_charts() {
+        let kpi = dashboards::chart_kpi(&pane.name, &pane.rows);
+        let spark = if pane.points.is_empty() {
+            String::new()
+        } else {
+            output::braille_sparkline(&pane.points, 40)
+        };
+        println!("{}  {kpi}  {spark}", pane.name);
+    }
+    if !app.table_rows.is_empty() {
+        println!("{}  {} rows", app.table, app.table_rows.len());
+        let maps: Vec<std::collections::HashMap<String, Value>> =
+            serde_json::from_value(Value::Array(app.table_rows.clone())).unwrap_or_default();
+        output::print_records(&maps, app.page_size);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1292,6 +1562,7 @@ mod tests {
             page_size: 15,
             start_overview: false,
             host_id: 0,
+            ch: None,
         };
         let mut app = App::new(&opts);
         assert_eq!(app.focused, Pane::Overview);
@@ -1320,6 +1591,12 @@ mod tests {
         assert_eq!(handle_key(&mut app, key(KeyCode::Enter)), KeyAction::None);
         assert_eq!(app.table_filter, "a");
         assert_eq!(
+            handle_key(&mut app, key(KeyCode::Char('3'))),
+            KeyAction::None
+        );
+        assert!(matches!(app.overlay, Overlay::Findings));
+        assert_eq!(handle_key(&mut app, key(KeyCode::Esc)), KeyAction::None);
+        assert_eq!(
             handle_key(&mut app, key(KeyCode::Char('a'))),
             KeyAction::Chat
         );
@@ -1338,6 +1615,7 @@ mod tests {
             page_size: 15,
             start_overview: true,
             host_id: 0,
+            ch: None,
         };
         let mut app = App::new(&opts);
         app.hosts = parse_hosts(&json!([{"id":0,"name":"a"},{"id":1,"name":"b"}]));
@@ -1357,6 +1635,30 @@ mod tests {
     }
 
     #[test]
+    fn direct_clickhouse_blocks_agent_chat() {
+        let opts = TuiOptions {
+            dashboard: "Overview".into(),
+            charts: vec!["query-count".into()],
+            table: "running-queries".into(),
+            page_size: 15,
+            start_overview: true,
+            host_id: 0,
+            ch: Some(ChConfig {
+                url: "http://localhost:8123".into(),
+                user: "default".into(),
+                password: String::new(),
+                database: "default".into(),
+            }),
+        };
+        let mut app = App::new(&opts);
+        assert_eq!(
+            handle_key(&mut app, key(KeyCode::Char('a'))),
+            KeyAction::None
+        );
+        assert_eq!(app.agent_hint.as_deref(), Some(CH_AGENT_HINT));
+    }
+
+    #[test]
     fn default_table_matches_config() {
         assert_eq!(crate::config::DEFAULT_TABLE, "running-queries");
         assert_eq!(crate::config::DEFAULT_CHART, "query-count");
@@ -1371,6 +1673,7 @@ mod tests {
             page_size: 15,
             start_overview: false,
             host_id: 0,
+            ch: None,
         };
         let app = App::new(&opts);
         assert_eq!(app.dashboard, "Overview");
@@ -1395,6 +1698,7 @@ mod tests {
             page_size: 15,
             start_overview: true,
             host_id: 0,
+            ch: None,
         };
         let mut app = App::new(&opts);
         app.charts[0].rows = vec![json!({"query_count": 1})];

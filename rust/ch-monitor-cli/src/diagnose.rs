@@ -94,7 +94,7 @@ pub struct Report {
 /// live against ClickHouse's public playground for both `readonly` and
 /// `max_execution_time`. On that error, retry once with no settings
 /// overrides at all rather than failing every check.
-async fn ch_query(client: &Client, cfg: &ChConfig, sql: &str) -> Result<Vec<Value>> {
+pub(crate) async fn ch_query(client: &Client, cfg: &ChConfig, sql: &str) -> Result<Vec<Value>> {
     match ch_query_once(client, cfg, sql, true).await {
         Ok(rows) => Ok(rows),
         Err(err) if err.to_string().contains("Cannot modify") => {

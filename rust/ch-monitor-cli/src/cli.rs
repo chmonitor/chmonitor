@@ -4,12 +4,12 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
     about = "chmonitor CLI (`chm` / `chmonitor`) — live TUI by default",
-    after_help = "Run `chm` with no subcommand to open the live TUI. `chm --help` / `chm help` / `chm -h` print this help. Sign in with `chm auth`; set base URL and host with `chm config`."
+    after_help = "Run `chm` with no subcommand to open the live TUI. Pipes, CI, agents, `--json`, and `--no-tui` print a snapshot instead. Direct cluster: `chm --ch-host http://localhost:8123`. `chm --help` / `chm help` / `chm -h` print this help."
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)
@@ -52,9 +52,67 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub debug: bool,
 
+    /// Never open the alt-screen TUI; print a one-shot snapshot (agents/CI).
+    #[arg(long, env = "CHM_NO_TUI", global = true)]
+    pub no_tui: bool,
+
+    #[command(flatten)]
+    pub clickhouse: ClickHouseArgs,
+
     /// Omit to open the live TUI (same as `chm tui`).
     #[command(subcommand)]
     pub command: Option<Commands>,
+}
+
+/// Direct ClickHouse HTTP connection (`chm --ch-host` / `chm doctor --ch-host`).
+#[derive(Args, Debug, Clone, Default)]
+pub struct ClickHouseArgs {
+    /// ClickHouse HTTP interface URL, e.g. http://localhost:8123.
+    /// Opens the TUI (and doctor scan) without a chmonitor dashboard.
+    #[arg(long, env = "CLICKHOUSE_HOST", global = true)] // pragma: allowlist secret
+    pub ch_host: Option<String>,
+    #[arg(
+        long,
+        env = "CLICKHOUSE_USER", // pragma: allowlist secret
+        global = true,
+        default_value = "default" // pragma: allowlist secret
+    )]
+    pub ch_user: String,
+    #[arg(long, env = "CLICKHOUSE_PASSWORD", global = true, default_value = "")]
+    // pragma: allowlist secret
+    pub ch_password: String,
+    #[arg(
+        long,
+        env = "CLICKHOUSE_DATABASE", // pragma: allowlist secret
+        global = true,
+        default_value = "default" // pragma: allowlist secret
+    )]
+    pub ch_database: String,
+}
+
+impl ClickHouseArgs {
+    pub fn has_cluster_host(&self) -> bool {
+        self.ch_host.as_ref().is_some_and(|h| !h.trim().is_empty())
+    }
+
+    pub fn to_ch_config(&self) -> Option<crate::diagnose::ChConfig> {
+        let host = self.ch_host.as_ref()?.trim();
+        if host.is_empty() {
+            return None;
+        }
+        let first = host.split(',').next().map(str::trim).unwrap_or(host);
+        let url = if first.starts_with("http://") || first.starts_with("https://") {
+            first.to_string()
+        } else {
+            format!("http://{first}")
+        };
+        Some(crate::diagnose::ChConfig {
+            url,
+            user: self.ch_user.clone(),
+            password: self.ch_password.clone(),
+            database: self.ch_database.clone(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -78,7 +136,7 @@ impl std::fmt::Display for Channel {
     }
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum Commands {
     /// Sign in / out — auto-detects open API, device login, or API key
     Auth(AuthArgs),
@@ -176,38 +234,13 @@ impl Default for TuiArgs {
 /// Flags for `chm doctor`.
 #[derive(Args, Debug, Clone)]
 pub struct DoctorArgs {
-    /// ClickHouse HTTP interface URL, e.g. http://localhost:8123.
-    /// When set, `chm doctor` runs the cluster health scan instead of connectivity.
-    #[arg(long, env = "CLICKHOUSE_HOST")] // pragma: allowlist secret
-    pub ch_host: Option<String>,
-    #[arg(
-        long,
-        env = "CLICKHOUSE_USER", // pragma: allowlist secret
-        default_value = "default" // pragma: allowlist secret
-    )]
-    pub ch_user: String,
-    #[arg(long, env = "CLICKHOUSE_PASSWORD", default_value = "")] // pragma: allowlist secret
-    pub ch_password: String,
-    #[arg(
-        long,
-        env = "CLICKHOUSE_DATABASE", // pragma: allowlist secret
-        default_value = "default" // pragma: allowlist secret
-    )]
-    pub ch_database: String,
     /// Print the cluster-scan report as JSON instead of a table.
     #[arg(long)]
     pub json: bool,
 }
 
-impl DoctorArgs {
-    /// True when `--ch-host` (or the matching env) points at a cluster.
-    pub fn has_cluster_host(&self) -> bool {
-        self.ch_host.as_ref().is_some_and(|h| !h.trim().is_empty())
-    }
-}
-
 /// Flags for `chm update`.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct UpdateArgs {
     /// Only check whether an update is available; exit 1 if one exists.
     #[arg(long)]
@@ -223,13 +256,13 @@ pub struct UpdateArgs {
     pub stable: bool,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct AuthArgs {
     #[command(subcommand)]
     pub command: AuthCommand,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum AuthCommand {
     /// Sign in (auto-detects none / device / api_key)
     Login(AuthLoginArgs),
@@ -241,27 +274,27 @@ pub enum AuthCommand {
     Token,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct AuthLoginArgs {
     /// API key to store when the dashboard requires key auth (skips prompt)
     #[arg(long, env = "CHM_API_KEY")]
     pub api_key: Option<String>,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct ConfigArgs {
     /// Omit to open the interactive config dialog.
     #[command(subcommand)]
     pub command: Option<ConfigCommand>,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct DashboardArgs {
     #[command(subcommand)]
     pub command: DashboardCommand,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum DashboardCommand {
     /// List dashboards; Enter opens the TUI (or print names when piped / --json)
     List,
@@ -272,7 +305,7 @@ pub enum DashboardCommand {
     },
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum ConfigCommand {
     /// Print config files, inherit order, and resolved values
     Show,
@@ -287,13 +320,13 @@ pub enum ConfigCommand {
     },
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct PromptArgs {
     #[command(subcommand)]
     pub command: PromptCommand,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum PromptCommand {
     /// List built-in prompt packs
     List,
@@ -304,13 +337,13 @@ pub enum PromptCommand {
     },
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct AuditArgs {
     #[command(subcommand)]
     pub command: AuditCommand,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum AuditCommand {
     /// Export audit events (JSON)
     Export {

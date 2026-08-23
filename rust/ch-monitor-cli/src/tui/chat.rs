@@ -50,7 +50,7 @@ pub async fn run(client: &Client, cfg: &AppConfig, message: Option<String>) -> R
 
     // Non-interactive one-shot when a message is provided and stdout isn't a TTY chat.
     if let Some(msg) = initial {
-        if !io::stdout().is_terminal() || cfg.json {
+        if !crate::output::wants_tui(cfg.json, false) {
             return stream_once(client, cfg, &msg).await;
         }
         return run_tui(client, cfg, Some(msg)).await;
