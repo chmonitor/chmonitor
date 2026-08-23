@@ -56,7 +56,9 @@ pub fn braille_sparkline(values: &[u64], width: usize) -> String {
     let mut out = String::with_capacity(width);
     for i in 0..width {
         let start = (i as f64 * step) as usize;
-        let end = (((i + 1) as f64 * step) as usize).min(values.len()).max(start + 1);
+        let end = (((i + 1) as f64 * step) as usize)
+            .min(values.len())
+            .max(start + 1);
         let window = &values[start..end.min(values.len())];
         let avg = if window.is_empty() {
             0
