@@ -147,8 +147,7 @@ export function landingRedirectUrl(url: URL): string | null {
   if (DASHBOARD_PREFIXES.has(first)) {
     return `${DASH_ORIGIN}${path}${search}`
   }
-  if (path !== url.pathname) {
-    return `${url.origin}${path}${search}`
-  }
+  // Do not 301-strip trailing slashes here: Workers Assets often 307 *to* a
+  // slash, and fighting that loops (/watch/v0-3 ⇄ /watch/v0-3/).
   return null
 }
