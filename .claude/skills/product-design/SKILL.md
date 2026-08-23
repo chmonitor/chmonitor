@@ -13,7 +13,7 @@ description: >-
   "what's new", "changelog", "dialog scroll", "settings gear",
   "schema compare", "settings diff", "add host", "pick a query",
   "query picker", "select labels", "ON CLUSTER", "advisor DDL",
-  "command palette", "cmd k", "ttl partitions".
+  "command palette", "cmd k", "search dialog", "ttl partitions".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -212,6 +212,12 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   fallback). Four states: unsupported / needs-grant / granted / blocked. On
   `denied` disable the switch and explain the unblock — never write `false` into
   storage. Gate "Send test" on the live permission.
+- **⌘K command palette:** category tabs All / Pages / Databases / Tables /
+  Actions under the search input (`CommandPaletteTabs`). Pages nest under
+  sidebar group headings with a left border (tree, not a flat list). Query
+  tokens highlight in the visible title/description (`HighlightText`). All
+  still caps explorer rows; the Databases and Tables tabs show the full
+  fetch. Reset tab + query on close.
 - **Tab strips:** define the tabs as one array and map it — an icon per tab with
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.

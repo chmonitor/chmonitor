@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import {
   CommandPaletteFooter,
   CommandPaletteResults,
+  CommandPaletteTabs,
   CommandPaletteTrigger,
 } from './command-palette/command-palette-items'
 import { useCommandPaletteState } from './command-palette/use-command-palette-state'
@@ -59,6 +60,8 @@ export const CommandPalette = function CommandPalette({
     setOpen,
     inputValue,
     setInputValue,
+    tab,
+    setTab,
     recentItems,
     mounted,
     closeAndReset,
@@ -181,7 +184,10 @@ export const CommandPalette = function CommandPalette({
         open={open}
         onOpenChange={(value) => {
           setOpen(value)
-          if (!value) setInputValue('')
+          if (!value) {
+            setInputValue('')
+            setTab('all')
+          }
         }}
         aria-label="Command palette"
         showCloseButton={false}
@@ -193,8 +199,10 @@ export const CommandPalette = function CommandPalette({
           value={inputValue}
           onValueChange={setInputValue}
         />
+        <CommandPaletteTabs value={tab} onChange={setTab} />
         <CommandPaletteResults
           inputValue={inputValue}
+          tab={tab}
           favoriteMenuItems={favoriteMenuItems}
           onSelectFavorite={(item) =>
             navigate(item.href, {
