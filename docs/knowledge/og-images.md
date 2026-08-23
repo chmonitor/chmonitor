@@ -7,16 +7,22 @@ tags: [seo, og, social, satori, static]
 
 # Open Graph (OG) Images
 
-Social-share preview images (1200×630) for the three public-facing apps.
+Social-share preview images (1200×630) for landing, docs, blog, and dashboard.
 
 ## How it works
 
-The pipeline is **Satori** (HTML/CSS object tree → SVG) + **@resvg/resvg-js**
-(SVG → PNG), both root `devDependencies`. Generation is **hermetic**: Inter
-TTFs are vendored under `assets/og-fonts/`, so no network access is needed.
+One compositor — [`scripts/og-builder.ts`](../../scripts/og-builder.ts) — paints
+the Bayer-dune plate (`assets/og/dunes-*.jpg`) and overlays type with **resvg**.
+The **title is always centered**. The wordmark sits **top-left** (product pages)
+or **bottom-right** (blog / release / version) so the title stays the hero.
 
-- Generator: [`scripts/generate-og-images.ts`](../../scripts/generate-og-images.ts)
-- Run: `pnpm run og:generate`
+Canonical plate is **08 Master dunes** (`assets/og/dunes-landing.jpg`) for
+landing, docs, blog, and dashboard. White type on the zinc sky; logo top-left
+(product) or bottom-right (blog/release).
+
+- Landing + features: `cd apps/landing && pnpm run build:og`
+- Blog + releases: `cd apps/blog && pnpm run build:og`
+- Docs home + dashboard pages: `pnpm run og:generate`
 
 The PNGs are **regenerated automatically on every Cloudflare deploy** and also
 committed to each app's `public/` dir:

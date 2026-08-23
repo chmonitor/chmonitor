@@ -62,7 +62,7 @@ const faqJsonLd = {
   })),
 }
 ---
-<Base title={title} description={description}>
+<Base title={title} description={description} image={`/og/og-features-${slug}.png`}>
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
   <Nav />

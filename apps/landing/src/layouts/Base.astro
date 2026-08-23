@@ -5,7 +5,7 @@
 import '../styles/globals.css'
 import '../styles/nav.css'
 
-const { title = 'chmonitor — A simple UI to monitor ClickHouse', description = 'An open-source dashboard to monitor ClickHouse: queries, merges, parts, replication, health and an AI agent. Self-host it or use the cloud.', image = '/og/og.png', noindex = false } = Astro.props
+const { title = 'chmonitor — The ops dashboard for ClickHouse', description = 'Monitor queries, merges, parts, replication, and health. An AI advisor on top — open source, self-host free.', image = '/og/og.png', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 const ogImage = new URL(image, Astro.site).toString()
 ---
@@ -59,7 +59,7 @@ const ogImage = new URL(image, Astro.site).toString()
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "url": "https://chmonitor.dev",
         "downloadUrl": "https://github.com/chmonitor/chmonitor",
-        "description": "An open-source dashboard to monitor ClickHouse clusters. Reads system tables directly — queries, merges, parts, replication, health and an AI agent.",
+        "description": "The ops dashboard for ClickHouse. Monitor queries, merges, parts, replication, and health. An AI advisor on top — open source, self-host free.",
         "screenshot": "https://chmonitor.dev/og/og.png"
       }
     ]
