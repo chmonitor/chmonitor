@@ -419,9 +419,12 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
         renderBarChart('chm-versions', data.by_chm_version || [])
         renderBarChart('countries', data.by_country)
         renderBarChart('platforms', data.by_platform)
-        if (data.by_ch_flavor && data.by_ch_flavor.length > 0) {
+        const flavors = (data.by_ch_flavor || []).filter((f) =>
+          ['oss', 'altinity', 'cloud'].includes(String(f.ch_flavor))
+        )
+        if (flavors.length > 0) {
           document.getElementById('ch-flavor-section').style.display = 'block'
-          renderBarChart('ch-flavors', data.by_ch_flavor)
+          renderBarChart('ch-flavors', flavors)
         }
 
         const cli = data.cli || {}
