@@ -1,26 +1,25 @@
-name: CLI Rust CI
+name: Rust CI
 
 on:
   pull_request:
     paths:
-      - 'rust/ch-monitor-cli/**'
-      - 'rust/Cargo.toml'
-      - 'rust/Cargo.lock'
+      - 'rust/**'
       - '.github/workflows/cli-rust-ci.yml'
   push:
     branches: [main]
     paths:
-      - 'rust/ch-monitor-cli/**'
-      - 'rust/Cargo.toml'
-      - 'rust/Cargo.lock'
+      - 'rust/**'
       - '.github/workflows/cli-rust-ci.yml'
 
 jobs:
-  rust-cli:
+  rust:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: rust/ch-monitor-cli
+        # All 5 workspace members live under rust/, so run workspace-wide
+        # checks from the workspace root to lint/test every crate (not just
+        # ch-monitor-cli, which was the only one previously covered).
+        working-directory: rust
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -28,11 +27,14 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
-          # ch-monitor-cli is a member of the rust/ Cargo workspace (shared target).
+          # Workspace members build into the shared rust/target dir.
           workspaces: rust -> target
       - run: cargo fmt --all -- --check
-      - run: cargo clippy -- -D warnings
-      - run: cargo build --release
-      - run: cargo test
-      - name: crates.io metadata dry-run
-        run: cargo publish --dry-run --allow-dirty
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo build --release --workspace
+      - run: cargo test --workspace
+      - name: crates.io metadata dry-run (ch-monitor-cli)
+        # The CLI crate (`chmonitor`) is the only workspace member published
+        # to crates.io from main (see cli-rust-release.yml / cargo-publish.yml).
+        # Gate its metadata validity ahead of any release.
+        run: cargo publish --dry-run --allow-dirty -p chmonitor
