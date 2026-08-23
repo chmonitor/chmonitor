@@ -107,6 +107,12 @@ describe('feature sections have no 01 / 08 index labels', () => {
 })
 
 describe('hero video', () => {
+  test('links to the dedicated watch page', () => {
+    expect(hero).toContain('data-hero-watch-page')
+    expect(hero).toContain('href="/watch/v0.3"')
+    expect(existsSync(join(landing, 'src/pages/watch/v0.3.astro'))).toBe(true)
+  })
+
   test('autoplays muted and loops', () => {
     const idx = hero.indexOf('data-hero-intro')
     expect(idx).toBeGreaterThan(-1)

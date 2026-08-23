@@ -44,6 +44,7 @@ describe('blog crawler index', () => {
     const xml = buildSitemapXml(posts)
     expect(xml).toContain('https://blog.chmonitor.dev/')
     expect(xml).toContain('https://blog.chmonitor.dev/v0.3/')
+    expect(xml).toContain('https://blog.chmonitor.dev/watch/v0.3/')
     expect(xml).toContain('https://blog.chmonitor.dev/too-many-parts/')
     expect(xml).toContain(
       'https://blog.chmonitor.dev/category/5-min-of-clickhouse/'

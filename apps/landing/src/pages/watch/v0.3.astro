@@ -1,0 +1,84 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import { btnOutline, btnPrimary } from '../../lib/button-classes'
+
+const VIDEO = '/assets/videos/chmonitor-v0.3.mp4'
+const POSTER = '/assets/videos/chmonitor-v0.3-poster.jpg'
+const canonical = new URL(Astro.url.pathname.replace(/\/+$/, '') || '/', Astro.site).toString()
+const contentUrl = new URL(VIDEO, Astro.site).toString()
+const thumbnailUrl = new URL(POSTER, Astro.site).toString()
+
+const title = 'chmonitor v0.3 launch film'
+const description =
+  '36-second walkthrough of the chmonitor v0.3 dashboard: overview heatmap, AI agent, query monitoring, data explorer, cluster topology, and health.'
+
+const videoJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'VideoObject',
+  name: title,
+  description,
+  thumbnailUrl,
+  uploadDate: '2026-06-29T00:00:00Z',
+  duration: 'PT36S',
+  contentUrl,
+  embedUrl: canonical,
+  url: canonical,
+  isFamilyFriendly: true,
+  inLanguage: 'en',
+}
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: title, item: canonical },
+  ],
+}
+---
+<Base title={`${title} — chmonitor`} description={description} image={POSTER}>
+  <script type="application/ld+json" set:html={JSON.stringify(videoJsonLd)} is:inline />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <article class="mx-auto max-w-[960px] px-4 sm:px-6 pb-16 pt-14 sm:pt-16">
+      <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Watch</p>
+      <h1 class="mt-3 text-balance font-normal text-[clamp(1.5rem,4.4vw,2.75rem)] leading-[1.06] tracking-tight text-foreground">
+        {title}
+      </h1>
+      <p class="mt-4 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
+        {description}
+      </p>
+      <div class="mt-8 overflow-hidden rounded-xl border border-border bg-card">
+        <video
+          class="block h-auto w-full bg-black"
+          controls
+          playsinline
+          preload="metadata"
+          poster={POSTER}
+          width="1920"
+          height="1126"
+          aria-label={title}
+        >
+          <source src={VIDEO} type="video/mp4" />
+        </video>
+      </div>
+      <p class="mt-4 text-sm text-muted-foreground">
+        36 seconds · uploaded 29 June 2026 ·
+        <a class="underline underline-offset-4 hover:text-foreground" href={VIDEO}>Download MP4</a>
+      </p>
+      <ul class="mt-8 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+        <li>Overview with query heatmap, charts, and cluster health</li>
+        <li>AI agent answering from system tables over MCP</li>
+        <li>Running and slow queries, data explorer, topology</li>
+      </ul>
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a class={btnPrimary} href="https://dash.chmonitor.dev">Open dashboard</a>
+        <a class={btnOutline} href="https://blog.chmonitor.dev/v0.3/">v0.3 release notes</a>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Base>

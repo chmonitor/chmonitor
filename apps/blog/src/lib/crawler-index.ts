@@ -22,6 +22,7 @@ export function buildSitemapXml(
 ): string {
   const locs = [
     `${origin}/`,
+    `${origin}/watch/v0.3/`,
     ...publishedPosts(posts).map((p) => `${origin}/${postSlug(p)}/`),
     ...categoryPaths(posts).map((path) => `${origin}${path}`),
   ]
@@ -50,6 +51,10 @@ export function buildLlmsTxt(
     `> Latest: ${published[0]?.data.title ?? 'n/a'}`,
     '',
     `HTML sitemap: ${origin}/sitemap.xml`,
+    '',
+    '## Watch',
+    '',
+    `- [chmonitor v0.3 launch film](${origin}/watch/v0.3/): 28-second launch film for the v0.3 rebuild.`,
     '',
     '## Posts',
     '',

@@ -33,6 +33,12 @@ export const STATIC_PAGES: ListedPage[] = [
     description: 'chm / chmonitor terminal client.',
   },
   {
+    path: '/watch/v0.3',
+    title: 'chmonitor v0.3 launch film',
+    description:
+      '36-second walkthrough of the v0.3 dashboard, AI agent, and cluster health.',
+  },
+  {
     path: '/customers',
     title: 'Customers',
     description: 'Who runs ClickHouse with chmonitor.',
