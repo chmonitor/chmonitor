@@ -1,0 +1,47 @@
+name: CLI report
+
+on:
+  pull_request:
+    paths:
+      - 'rust/**'
+      - 'scripts/cli-build-report.sh'
+      - '.github/workflows/cli-report.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'rust/**'
+      - 'scripts/cli-build-report.sh'
+      - '.github/workflows/cli-report.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: cli-report-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  report:
+    name: cli-report
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          prefix-key: cli-report
+      - name: Build CLI only and measure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/cli-build-report.sh
+      - name: Keep a single sticky PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: cli-build-report
+          recreate: true
+          path: cli-report.md
