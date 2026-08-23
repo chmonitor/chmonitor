@@ -86,7 +86,7 @@ describe('derivePaletteGroups', () => {
     expect(result.favoriteMenuItems.map((i) => i.href)).toEqual(['/b', '/a'])
   })
 
-  test('EXPLORER_GROUP_MAX truncates databases and tables', () => {
+  test('derivation keeps the full explorer listing (All tab slices later)', () => {
     const tableRows = Array.from(
       { length: EXPLORER_GROUP_MAX + 5 },
       (_, i) => ({
@@ -103,8 +103,8 @@ describe('derivePaletteGroups', () => {
       currentHostId: 0,
       query: '',
     })
-    expect(result.databases.length).toBe(EXPLORER_GROUP_MAX)
-    expect(result.tables.length).toBe(EXPLORER_GROUP_MAX)
+    expect(result.databases.length).toBe(EXPLORER_GROUP_MAX + 5)
+    expect(result.tables.length).toBe(EXPLORER_GROUP_MAX + 5)
   })
 
   test('detects query-id and table-name quick-nav from the query string', () => {

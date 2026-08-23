@@ -1,5 +1,6 @@
 import {
   detectQuickNav,
+  matchRanges,
   menuItemPaletteValue,
   parseTableName,
 } from './command-palette-utils'
@@ -86,6 +87,28 @@ describe('parseTableName', () => {
       database: 'system',
       table: 'tables',
     })
+  })
+})
+
+describe('matchRanges', () => {
+  test('empty query yields no ranges', () => {
+    expect(matchRanges('Overview', '')).toEqual([])
+    expect(matchRanges('Overview', '   ')).toEqual([])
+  })
+
+  test('highlights a case-insensitive substring', () => {
+    expect(matchRanges('Insights Settings', 'set')).toEqual([[9, 12]])
+  })
+
+  test('merges overlapping tokens', () => {
+    expect(matchRanges('query_log', 'query query_log')).toEqual([[0, 9]])
+  })
+
+  test('matches every token independently', () => {
+    expect(matchRanges('Agent Settings', 'agent set')).toEqual([
+      [0, 5],
+      [6, 9],
+    ])
   })
 })
 

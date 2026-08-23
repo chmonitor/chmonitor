@@ -1,3 +1,4 @@
+import type { PaletteTab } from '../command-palette-utils'
 import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
 
 import * as React from 'react'
@@ -22,6 +23,7 @@ export function useCommandPaletteState({
 }) {
   const [internalOpen, setInternalOpen] = React.useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [tab, setTab] = useState<PaletteTab>('all')
   const [recentItems, setRecentItems] = useState<
     ReturnType<typeof getRecentItems>
   >([])
@@ -57,6 +59,7 @@ export function useCommandPaletteState({
   const closeAndReset = () => {
     setOpen(false)
     setInputValue('')
+    setTab('all')
   }
 
   const rememberSelection = (
@@ -74,6 +77,8 @@ export function useCommandPaletteState({
     setOpen,
     inputValue,
     setInputValue,
+    tab,
+    setTab,
     recentItems,
     mounted,
     closeAndReset,

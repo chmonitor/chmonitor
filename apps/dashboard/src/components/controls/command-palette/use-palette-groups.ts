@@ -66,9 +66,10 @@ export function derivePaletteGroups({
 
   const seenDatabases = new Set<string>()
   for (const row of tableRows ?? []) seenDatabases.add(row.database)
-  const databases = [...seenDatabases].slice(0, EXPLORER_GROUP_MAX)
-
-  const tables = (tableRows ?? []).slice(0, EXPLORER_GROUP_MAX)
+  // Full lists — the All tab slices to EXPLORER_GROUP_MAX; dedicated
+  // Databases / Tables tabs show everything fetched.
+  const databases = [...seenDatabases]
+  const tables = [...(tableRows ?? [])]
 
   const otherHosts = hosts.filter((h) => h.id !== currentHostId)
 

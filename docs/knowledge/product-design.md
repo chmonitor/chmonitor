@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-21
+updated: 2026-08-23
 tags:
   - design-system
   - ui
@@ -769,7 +769,12 @@ OG `headTitle`/`title`), href, description, and optional `keywords` on
 `MenuItem` (`menuItemPaletteValue`). DBA pages (Advisor, Schema Compare,
 Settings Diff, TTL & Partitions) declare aliases so searches like
 `ddl`, `schema diff`, `config diff`, `ttl inventory`, or the tab title
-`TTL & Partition Health` hit them.
+`TTL & Partition Health` hit them. The dialog has category tabs
+(**All / Pages / Databases / Tables / Actions**): Pages is a sidebar-like
+tree (group heading + left-border nested leaves); Databases and Tables
+tabs list the full fetched explorer set (All still caps at
+`EXPLORER_GROUP_MAX`). Query tokens highlight in titles and descriptions
+(`HighlightText` + `matchRanges`).
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

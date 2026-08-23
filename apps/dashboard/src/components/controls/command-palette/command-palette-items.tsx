@@ -3,8 +3,10 @@
 import {
   CornerDownLeft,
   Database,
+  FileText,
   GlobeIcon,
   History,
+  LayoutList,
   Moon,
   Pin,
   Search,
@@ -14,14 +16,19 @@ import {
   Sun,
   Table,
   TextSearch,
+  Zap,
 } from 'lucide-react'
 
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { MenuItem } from '@/components/menu/types'
+import type { PaletteTab } from '../command-palette-utils'
 import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
 import type { ExplorerTableRow } from './use-palette-groups'
 
+import { HighlightText } from './highlight-text'
 import { menuItemPaletteValue } from '../command-palette-utils'
+import { EXPLORER_GROUP_MAX } from './use-palette-groups'
 import {
   CommandEmpty,
   CommandGroup,
@@ -96,6 +103,57 @@ export function EnterHint() {
   )
 }
 
+export const PALETTE_TABS: {
+  value: PaletteTab
+  label: string
+  icon: LucideIcon
+}[] = [
+  { value: 'all', label: 'All', icon: LayoutList },
+  { value: 'pages', label: 'Pages', icon: FileText },
+  { value: 'databases', label: 'Databases', icon: Database },
+  { value: 'tables', label: 'Tables', icon: Table },
+  { value: 'actions', label: 'Actions', icon: Zap },
+]
+
+export function CommandPaletteTabs({
+  value,
+  onChange,
+}: {
+  value: PaletteTab
+  onChange: (tab: PaletteTab) => void
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Search category"
+      className="scrollbar-hide flex w-full min-w-0 overflow-x-auto border-b px-2"
+    >
+      {PALETTE_TABS.map((tab) => {
+        const Icon = tab.icon
+        const active = value === tab.value
+        return (
+          <button
+            key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.value)}
+            className={cn(
+              'inline-flex h-8 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+              active
+                ? 'border-foreground text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Icon className="size-3.5" strokeWidth={1.5} />
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 interface RecentItem {
   id: string
   title: string
@@ -112,13 +170,12 @@ interface MergedHostLike {
 
 /**
  * The full palette result list: favorites, recent items, quick-navigation,
- * "Go to" (leaf menu entries), sectioned menu groups, databases, tables, and
- * the trailing Actions group (AI chat, theme toggle, host switch, settings).
- * All selection handlers are owned by the caller (`CommandPalette`) — this
- * component is purely presentational per-group row rendering.
+ * pages (tree), databases, tables, and the trailing Actions group.
+ * Category tabs hide whole groups so keyboard nav only walks the active tab.
  */
 export function CommandPaletteResults({
   inputValue,
+  tab,
   favoriteMenuItems,
   onSelectFavorite,
   recentItems,
@@ -142,6 +199,7 @@ export function CommandPaletteResults({
   onOpenSettings,
 }: {
   inputValue: string
+  tab: PaletteTab
   favoriteMenuItems: readonly MenuItem[]
   onSelectFavorite: (item: MenuItem) => void
   recentItems: readonly RecentItem[]
@@ -164,6 +222,17 @@ export function CommandPaletteResults({
   onSwitchHost: (id: number) => void
   onOpenSettings?: () => void
 }) {
+  const showAll = tab === 'all'
+  const showPages = showAll || tab === 'pages'
+  const showDatabases = showAll || tab === 'databases'
+  const showTables = showAll || tab === 'tables'
+  const showActions = showAll || tab === 'actions'
+  const showChrome = showAll
+  const listedDatabases = showAll
+    ? databases.slice(0, EXPLORER_GROUP_MAX)
+    : databases
+  const listedTables = showAll ? tables.slice(0, EXPLORER_GROUP_MAX) : tables
+
   return (
     <CommandList className="max-h-[60vh] scroll-py-2">
       <CommandEmpty>
@@ -180,7 +249,7 @@ export function CommandPaletteResults({
       {/* Pinned favorites (issue #2769) surface first, above Recent —
           cmdk's own value-based filter still narrows this group when the
           user types, so it isn't gated to the empty-query state. */}
-      {favoriteMenuItems.length > 0 && (
+      {showChrome && favoriteMenuItems.length > 0 && (
         <>
           <CommandGroup heading="Favorites">
             {favoriteMenuItems.map((item) => (
@@ -191,7 +260,11 @@ export function CommandPaletteResults({
                 className="group"
               >
                 <Pin className="size-4 shrink-0 fill-current text-muted-foreground" />
-                <span className="font-medium">{item.title}</span>
+                <HighlightText
+                  text={item.title}
+                  query={inputValue}
+                  className="font-medium"
+                />
                 <EnterHint />
               </CommandItem>
             ))}
@@ -202,7 +275,7 @@ export function CommandPaletteResults({
 
       {/* Recent items only make sense as a starting point — once the user
           is actively searching, cmdk's own filter takes over. */}
-      {inputValue.length === 0 && recentItems.length > 0 && (
+      {showChrome && inputValue.length === 0 && recentItems.length > 0 && (
         <>
           <CommandGroup heading="Recent">
             {recentItems.map((recent) => (
@@ -213,11 +286,17 @@ export function CommandPaletteResults({
                 className="group"
               >
                 <History className="size-4 shrink-0" />
-                <span className="font-medium">{recent.title}</span>
+                <HighlightText
+                  text={recent.title}
+                  query={inputValue}
+                  className="font-medium"
+                />
                 {recent.description && (
-                  <span className="ml-1 truncate text-xs text-muted-foreground">
-                    {recent.description}
-                  </span>
+                  <HighlightText
+                    text={recent.description}
+                    query={inputValue}
+                    className="ml-1 truncate text-xs text-muted-foreground"
+                  />
                 )}
                 <EnterHint />
               </CommandItem>
@@ -227,7 +306,7 @@ export function CommandPaletteResults({
         </>
       )}
 
-      {quickNav.hasMatch && (
+      {showChrome && quickNav.hasMatch && (
         <>
           <CommandGroup heading="Quick Navigation">
             {quickNav.isQueryId && (
@@ -263,7 +342,7 @@ export function CommandPaletteResults({
         </>
       )}
 
-      {leafItems.length > 0 && (
+      {showPages && leafItems.length > 0 && (
         <CommandGroup heading="Go to">
           {leafItems.map((group) => (
             <CommandItem
@@ -273,40 +352,51 @@ export function CommandPaletteResults({
               className="group"
             >
               {group.icon && <group.icon className="size-4 shrink-0" />}
-              <span className="font-medium">{group.title}</span>
+              <HighlightText
+                text={group.title}
+                query={inputValue}
+                className="font-medium"
+              />
               <EnterHint />
             </CommandItem>
           ))}
         </CommandGroup>
       )}
 
-      {sectionedItems.map((group) => (
-        <CommandGroup key={group.title} heading={group.title}>
-          {group.items?.map((item) => (
-            <CommandItem
-              key={item.href}
-              onSelect={() => onSelectMenuItem(item)}
-              value={menuItemPaletteValue(item, group.title)}
-              className="group flex-col items-start gap-0.5"
-            >
-              <div className="flex w-full items-center gap-2">
-                {item.icon && <item.icon className="size-4 shrink-0" />}
-                <span className="font-medium">{item.title}</span>
-                <EnterHint />
-              </div>
-              {item.description && (
-                <span className="w-full truncate pl-6 text-xs text-muted-foreground">
-                  {item.description}
-                </span>
-              )}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-      ))}
+      {showPages &&
+        sectionedItems.map((group) => (
+          <CommandGroup key={group.title} heading={group.title}>
+            {group.items?.map((item) => (
+              <CommandItem
+                key={item.href}
+                onSelect={() => onSelectMenuItem(item)}
+                value={menuItemPaletteValue(item, group.title)}
+                className="group ml-1 flex-col items-start gap-0.5 border-l border-border py-2 pl-3"
+              >
+                <div className="flex w-full items-center gap-2">
+                  {item.icon && <item.icon className="size-4 shrink-0" />}
+                  <HighlightText
+                    text={item.title}
+                    query={inputValue}
+                    className="font-medium"
+                  />
+                  <EnterHint />
+                </div>
+                {item.description && (
+                  <HighlightText
+                    text={item.description}
+                    query={inputValue}
+                    className="w-full truncate pl-6 text-xs text-muted-foreground"
+                  />
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ))}
 
-      {databases.length > 0 && (
+      {showDatabases && listedDatabases.length > 0 && (
         <CommandGroup heading="Databases">
-          {databases.map((database) => (
+          {listedDatabases.map((database) => (
             <CommandItem
               key={`db-${database}`}
               onSelect={() => onSelectDatabase(database)}
@@ -314,16 +404,20 @@ export function CommandPaletteResults({
               className="group"
             >
               <Database className="size-4 shrink-0" />
-              <span className="font-medium">{database}</span>
+              <HighlightText
+                text={database}
+                query={inputValue}
+                className="font-medium"
+              />
               <EnterHint />
             </CommandItem>
           ))}
         </CommandGroup>
       )}
 
-      {tables.length > 0 && (
+      {showTables && listedTables.length > 0 && (
         <CommandGroup heading="Tables">
-          {tables.map((row) => (
+          {listedTables.map((row) => (
             <CommandItem
               key={`table-${row.database}-${row.name}`}
               onSelect={() => onSelectTable(row)}
@@ -331,9 +425,11 @@ export function CommandPaletteResults({
               className="group"
             >
               <Table className="size-4 shrink-0" />
-              <span className="font-medium">
-                {row.database}.{row.name}
-              </span>
+              <HighlightText
+                text={`${row.database}.${row.name}`}
+                query={inputValue}
+                className="font-medium"
+              />
               <span className="ml-1 truncate text-xs text-muted-foreground">
                 {row.engine}
               </span>
@@ -343,8 +439,9 @@ export function CommandPaletteResults({
         </CommandGroup>
       )}
 
-      <CommandSeparator />
-      <CommandGroup heading="Actions">
+      {showActions && <CommandSeparator />}
+      {showActions && (
+        <CommandGroup heading="Actions">
         <CommandItem
           onSelect={onOpenAiChat}
           value="Open AI Agent chat assistant"
@@ -398,6 +495,7 @@ export function CommandPaletteResults({
           </CommandItem>
         )}
       </CommandGroup>
+      )}
     </CommandList>
   )
 }
