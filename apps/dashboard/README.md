@@ -126,7 +126,7 @@ served from the edge and bypass the worker).
 
 ## Isolation (own lockfile, not a root workspace)
 
-This app carries its **own `bun.lock`** and installs in isolation (run
+This app carries its **own `pnpm-lock.yaml`** and installs in isolation (run
 `pnpm install` from inside `apps/dashboard`) — the same pattern as `apps/landing`
 and `apps/docs`. Its vite bundling resolves the shared `@chm/*` packages' npm
 deps from THIS app's own `node_modules`, so it cannot be a root workspace member
