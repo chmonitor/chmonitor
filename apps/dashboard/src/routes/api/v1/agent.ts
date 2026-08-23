@@ -70,7 +70,10 @@ async function handlePost(request: Request): Promise<Response> {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
   // Rate-limit by IP first, then tighten per identity after auth resolves.
-  const ip = clientIpKey(request)
+  // Pass the Worker `env` binding so clientIpKey trusts CF-Connecting-IP only on
+  // the edge (where the platform overwrites it) and never trusts client-supplied
+  // X-Real-IP / X-Forwarded-For there without CHM_TRUST_PROXY_HEADERS — see #3225.
+  const ip = clientIpKey(request, env as Record<string, string | undefined>)
   const rlResult = await checkRateLimitDurable(
     `agent:ip:${ip}`,
     getAgentRateLimitPerMin(),
