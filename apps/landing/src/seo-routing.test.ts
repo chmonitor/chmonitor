@@ -27,10 +27,10 @@ describe('landing SEO routing', () => {
     )
   })
 
-  test('trailing slash on a marketing page canonicalizes on-origin', () => {
-    expect(landingRedirectUrl(new URL('https://chmonitor.dev/pricing/'))).toBe(
-      'https://chmonitor.dev/pricing'
-    )
+  test('does not 301-strip marketing trailing slashes', () => {
+    expect(
+      landingRedirectUrl(new URL('https://chmonitor.dev/pricing/'))
+    ).toBeNull()
   })
 
   test('does not redirect real marketing paths', () => {
