@@ -95,6 +95,15 @@ export const SQL_PATTERNS = {
   /** GRANT/REVOKE permission operations */
   PERMISSION_COMMANDS: /\b(GRANT|REVOKE)\b/i,
 
+  /**
+   * Server-side file-write clauses: `INTO OUTFILE '...'` and `INTO FILE '...'`.
+   * ClickHouse `SELECT ... INTO OUTFILE 'path'` writes server-side output to a
+   * filesystem path reachable by the ClickHouse process; `INTO FILE` is an
+   * equivalent alias. Blocked regardless of file extension, quote style, or
+   * surrounding whitespace.
+   */
+  INTO_FILE_WRITE: /\bINTO\s+(OUTFILE|FILE)\b/i,
+
   /** Dangerous ClickHouse table functions that access external resources */
   DANGEROUS_FUNCTIONS:
     /\b(remote|remoteSecure|url|urlCluster|s3|s3Cluster|hdfs|input|jdbc|odbc|mysql|postgresql|file|fileCluster|executable|mongodb|redis|azureBlobStorage|gcs)\s*\(/i,
@@ -120,6 +129,11 @@ const SQL_INJECTION_PATTERNS = [
   SQL_PATTERNS.KILL_COMMAND,
   SQL_PATTERNS.ATTACH_DETACH,
   SQL_PATTERNS.PERMISSION_COMMANDS,
+  // Server-side file-write clauses (INTO OUTFILE / INTO FILE) are blocked even
+  // when blankLiterals is NOT applied, because the clause tokens themselves
+  // (not a literal) carry the intent. blankLiterals still keeps the file path
+  // string inert so a LIKE '%INTO OUTFILE%' audit query is not mis-flagged.
+  SQL_PATTERNS.INTO_FILE_WRITE,
   SQL_PATTERNS.DANGEROUS_FUNCTIONS,
 ]
 
