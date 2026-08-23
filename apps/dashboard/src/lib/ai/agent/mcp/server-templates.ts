@@ -27,6 +27,14 @@ export const MCP_SERVER_TEMPLATES: readonly McpServerTemplate[] = [
     hint: 'Keyless scrape, search, and parse (rate-limited). Optional bearer API key unlocks crawl/map/agent and higher limits.',
   },
   {
+    id: 'parallel',
+    label: 'Parallel Search',
+    url: 'https://search.parallel.ai/mcp',
+    transport: 'http',
+    authKind: 'none',
+    hint: 'Free web search and content fetching without an API key. Chosen queries and URLs are sent to Parallel.',
+  },
+  {
     id: 'github',
     label: 'GitHub',
     url: 'https://api.githubcopilot.com/mcp/',

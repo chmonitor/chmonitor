@@ -54,4 +54,18 @@ describe('MCP_SERVER_TEMPLATES', () => {
     expect(firecrawl?.url).toBe(FIRECRAWL_MCP_URL)
     expect(MCP_SERVER_TEMPLATES[0]?.id).toBe('firecrawl')
   })
+
+  test('lists Parallel Search as an opt-in HTTP template with no auth', () => {
+    const parallel = MCP_SERVER_TEMPLATES.find((t) => t.id === 'parallel')
+    expect(parallel).toEqual({
+      id: 'parallel',
+      label: 'Parallel Search',
+      url: 'https://search.parallel.ai/mcp',
+      transport: 'http',
+      authKind: 'none',
+      hint: 'Free web search and content fetching without an API key. Chosen queries and URLs are sent to Parallel.',
+    })
+    expect(MCP_SERVER_TEMPLATES[0]?.id).toBe('firecrawl')
+    expect(MCP_SERVER_TEMPLATES[1]?.id).toBe('parallel')
+  })
 })
