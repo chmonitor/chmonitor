@@ -10,6 +10,8 @@
  *  - Bucket store stays bounded and evicts old entries under high cardinality
  */
 
+import type { RateLimitBinding } from '../rate-limiter'
+
 import {
   _bucketCountForTest,
   _MAX_BUCKETS_FOR_TEST,
@@ -18,10 +20,10 @@ import {
   checkRateLimitDurable,
   clientIpKey,
   getRateLimitBinding,
-  type RateLimitBinding,
   rateLimitResponse,
+  trustProxyHeaders,
 } from '../rate-limiter'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 afterEach(() => {
   _resetBucketsForTest()
@@ -119,21 +121,144 @@ describe('clientIpKey', () => {
     expect(clientIpKey(req)).toBe('1.2.3.4')
   })
 
-  test('falls back to X-Real-IP when CF header absent', () => {
-    const req = makeRequest({ 'x-real-ip': '9.10.11.12' })
-    expect(clientIpKey(req)).toBe('9.10.11.12')
-  })
-
-  test('falls back to first X-Forwarded-For entry', () => {
-    const req = makeRequest({
-      'x-forwarded-for': '13.14.15.16, 17.18.19.20',
-    })
-    expect(clientIpKey(req)).toBe('13.14.15.16')
+  test('CF-Connecting-IP is always trusted even when proxy headers are not', () => {
+    // CF-Connecting-IP is set/stripped by the Workers edge itself, so it is never
+    // spoofable — it must win even with the default (untrusted) proxy policy.
+    const req = makeRequest({ 'cf-connecting-ip': '1.2.3.4' })
+    expect(clientIpKey(req)).toBe('1.2.3.4')
   })
 
   test('returns "unknown" when no IP headers present', () => {
     const req = makeRequest({})
     expect(clientIpKey(req)).toBe('unknown')
+  })
+
+  // WHY: on self-hosted (Node/Docker/K8s) X-Real-IP and X-Forwarded-For are
+  // client-supplied unless the operator's ingress rewrites them. Trusting them
+  // lets a caller rotate headers per request to bypass IP-keyed limiters and,
+  // for Cloud guests, to mint a fresh `guest:<hash>` daily-quota identity each
+  // time — defeating the guest AI quota (the core of issue #3225). Off by
+  // default on non-Cloudflare runtimes so the OSS build is never weakened.
+  describe('untrusted proxy headers (self-hosted default)', () => {
+    const NODE_ENV: Record<string, string | undefined> = {} // no Cloudflare markers
+
+    test('ignores spoofed X-Real-IP', () => {
+      const req = makeRequest({ 'x-real-ip': '9.10.11.12' })
+      expect(clientIpKey(req, NODE_ENV)).toBe('unknown')
+    })
+
+    test('ignores spoofed X-Forwarded-For', () => {
+      const req = makeRequest({
+        'x-forwarded-for': '13.14.15.16, 17.18.19.20',
+      })
+      expect(clientIpKey(req, NODE_ENV)).toBe('unknown')
+    })
+
+    test('spoofed headers cannot reset the guest quota identity', () => {
+      // Same key the agent route keys its bucket on — rotation must NOT change it.
+      const req = makeRequest({ 'x-forwarded-for': '8.8.8.8' })
+      expect(clientIpKey(req, NODE_ENV)).toBe('unknown')
+      const req2 = makeRequest({ 'x-forwarded-for': '8.8.4.4' })
+      expect(clientIpKey(req2, NODE_ENV)).toBe('unknown')
+    })
+  })
+
+  // WHY: on the Cloudflare Workers runtime the edge sets and sanitises
+  // CF-Connecting-IP and strips inbound proxy headers for us, so the spoof
+  // vector is closed at the platform — those headers may be trusted there.
+  describe('trusted proxy headers (Cloudflare runtime / CHM_TRUST_PROXY_HEADERS)', () => {
+    test('honours CHM_TRUST_PROXY_HEADERS=true on a Node runtime', () => {
+      const req = makeRequest({ 'x-real-ip': '9.10.11.12' })
+      expect(clientIpKey(req, { CHM_TRUST_PROXY_HEADERS: 'true' })).toBe(
+        '9.10.11.12'
+      )
+    })
+
+    test('honours CHM_TRUST_PROXY_HEADERS=true for X-Forwarded-For', () => {
+      const req = makeRequest({
+        'x-forwarded-for': '13.14.15.16, 17.18.19.20',
+      })
+      expect(clientIpKey(req, { CHM_TRUST_PROXY_HEADERS: 'true' })).toBe(
+        '13.14.15.16'
+      )
+    })
+
+    test('defaults to trusting proxy headers when CLOUDFLARE_WORKERS=1 (edge)', () => {
+      const req = makeRequest({
+        'x-real-ip': '9.10.11.12',
+        'x-forwarded-for': '13.14.15.16, 17.18.19.20',
+      })
+      expect(clientIpKey(req, { CLOUDFLARE_WORKERS: '1' })).toBe('9.10.11.12')
+    })
+
+    test('defaults to trusting proxy headers when CF_PAGES is set (edge)', () => {
+      const req = makeRequest({ 'x-forwarded-for': '13.14.15.16' })
+      expect(clientIpKey(req, { CF_PAGES: '1' })).toBe('13.14.15.16')
+    })
+
+    test('CF-Connecting-IP still wins over a trusted X-Forwarded-For', () => {
+      const req = makeRequest({
+        'cf-connecting-ip': '1.2.3.4',
+        'x-forwarded-for': '9.9.9.9',
+      })
+      expect(clientIpKey(req, { CHM_TRUST_PROXY_HEADERS: 'true' })).toBe(
+        '1.2.3.4'
+      )
+    })
+
+    test('explicit CHM_TRUST_PROXY_HEADERS=false disables trusting on edge', () => {
+      const req = makeRequest({ 'x-real-ip': '9.10.11.12' })
+      expect(clientIpKey(req, { CHM_TRUST_PROXY_HEADERS: 'false' })).toBe(
+        'unknown'
+      )
+    })
+  })
+})
+
+describe('trustProxyHeaders', () => {
+  const MANAGED_KEYS = [
+    'CHM_TRUST_PROXY_HEADERS',
+    'CF_PAGES',
+    'CLOUDFLARE_WORKERS',
+  ]
+  const saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const k of MANAGED_KEYS) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+
+  afterEach(() => {
+    for (const k of MANAGED_KEYS) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  test('defaults to false on a plain Node runtime', () => {
+    expect(trustProxyHeaders({})).toBe(false)
+  })
+
+  test('is true when CHM_TRUST_PROXY_HEADERS=true', () => {
+    expect(trustProxyHeaders({ CHM_TRUST_PROXY_HEADERS: 'true' })).toBe(true)
+  })
+
+  test('is true when CHM_TRUST_PROXY_HEADERS=1', () => {
+    expect(trustProxyHeaders({ CHM_TRUST_PROXY_HEADERS: '1' })).toBe(true)
+  })
+
+  test('is false when CHM_TRUST_PROXY_HEADERS=false (explicit opt-out)', () => {
+    expect(trustProxyHeaders({ CHM_TRUST_PROXY_HEADERS: 'false' })).toBe(false)
+  })
+
+  test('is true on the Cloudflare runtime via CLOUDFLARE_WORKERS', () => {
+    expect(trustProxyHeaders({ CLOUDFLARE_WORKERS: '1' })).toBe(true)
+  })
+
+  test('is true on the Cloudflare runtime via CF_PAGES', () => {
+    expect(trustProxyHeaders({ CF_PAGES: '1' })).toBe(true)
   })
 })
 
