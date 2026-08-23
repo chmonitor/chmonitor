@@ -6,7 +6,8 @@ import '../styles/globals.css'
 import '../styles/nav.css'
 
 const { title = 'chmonitor — The ops dashboard for ClickHouse', description = 'Monitor queries, merges, parts, replication, and health. An AI advisor on top — open source, self-host free.', image = '/og/og.png', noindex = false } = Astro.props
-const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+const canonical = new URL(path, Astro.site).toString()
 const ogImage = new URL(image, Astro.site).toString()
 ---
 <!doctype html>

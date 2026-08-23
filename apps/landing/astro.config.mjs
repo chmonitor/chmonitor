@@ -6,6 +6,7 @@ import { defineConfig } from 'astro/config'
 
 export default defineConfig({
   site: 'https://chmonitor.dev',
+  trailingSlash: 'never',
   // Fully static HTML at build time. Interactivity (billing toggle, screenshot
   // zoom, hero slogans, changelog filter) uses small inline scripts in Astro.
   integrations: [sitemap(), react()],

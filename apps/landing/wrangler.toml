@@ -11,6 +11,7 @@
 # here claims it (custom domains are exclusive).
 
 name = "chmonitor-landing"
+main = "src/seo-worker.ts"
 compatibility_date = "2026-05-28"
 # Keep workers.dev enabled as a curl-friendly fallback for /install.sh when
 # the apex is behind Bot Fight Mode (see docs/knowledge/install-sh-bot-fight.md).
@@ -27,6 +28,10 @@ enabled = true
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+# Worker runs first so preview hosts get X-Robots-Tag / robots Disallow, and
+# old dashboard URLs on the apex 301 to dash.chmonitor.dev before a 404 HTML.
+run_worker_first = true
 
 [[routes]]
 pattern = "chmonitor.dev"
@@ -45,6 +50,8 @@ name = "preview-chmonitor-landing"
 
 [env.preview.assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = true
 
 [[env.preview.routes]]
 pattern = "preview.chmonitor.dev"

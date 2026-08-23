@@ -53,6 +53,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      // App UI (host= / database= query URLs) is not a marketing page. Canonical
+      // lives on chmonitor.dev; indexing parameterized explorer URLs created
+      // hundreds of GSC 404s when those paths still resolved on the apex.
+      { name: 'robots', content: 'noindex, follow' },
       { title: 'chmonitor — ClickHouse Monitoring Dashboard & UI' },
       {
         name: 'description',

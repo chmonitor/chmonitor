@@ -5,6 +5,11 @@ import {
   createStart,
 } from '@tanstack/react-start'
 
+import {
+  isPreviewHost,
+  previewRobotsTxt,
+  stripTrailingSlash,
+} from './lib/canonical-path'
 import { slugsToMarkdownPath } from './lib/source'
 import { isMarkdownPreferred } from 'fumadocs-core/negotiation'
 
@@ -49,6 +54,37 @@ const llmMiddleware = createMiddleware().server(({ next, request }) => {
 // Cache itself. See docs/knowledge/workers-cache.md.
 const PUBLIC_CACHE_CONTROL = 'public, max-age=300, stale-while-revalidate=86400'
 
+const canonicalUrlMiddleware = createMiddleware().server(
+  async ({ next, request }) => {
+    const url = new URL(request.url)
+
+    if (isPreviewHost(url.hostname) && url.pathname === '/robots.txt') {
+      return {
+        response: new Response(previewRobotsTxt(), {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex, nofollow',
+          },
+        }),
+      }
+    }
+
+    // Never strip a file extension path (`/llms.txt`).
+    const stripped =
+      url.pathname.includes('.') && !url.pathname.endsWith('/')
+        ? url.pathname
+        : stripTrailingSlash(url.pathname)
+    if (stripped !== url.pathname) {
+      throw redirect({
+        href: `${stripped}${url.search}`,
+        statusCode: 301,
+      })
+    }
+
+    return next()
+  }
+)
+
 const cacheHeadersMiddleware = createMiddleware().server(
   async ({ next, request }) => {
     const result = await next()
@@ -66,6 +102,10 @@ const cacheHeadersMiddleware = createMiddleware().server(
       response.headers.set('Cache-Control', PUBLIC_CACHE_CONTROL)
     }
 
+    if (response && isPreviewHost(url.hostname)) {
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+    }
+
     return result
   }
 )
@@ -73,5 +113,10 @@ const cacheHeadersMiddleware = createMiddleware().server(
 export const startInstance = createStart(() => ({
   // cacheHeadersMiddleware runs outermost so it can stamp Cache-Control on the
   // final response returned by the inner middlewares/handlers.
-  requestMiddleware: [cacheHeadersMiddleware, csrfMiddleware, llmMiddleware],
+  requestMiddleware: [
+    cacheHeadersMiddleware,
+    canonicalUrlMiddleware,
+    csrfMiddleware,
+    llmMiddleware,
+  ],
 }))
