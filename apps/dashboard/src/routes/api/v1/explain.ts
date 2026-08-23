@@ -25,6 +25,8 @@ import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
 } from '@/lib/cloud/reject-demo-host'
+import { EXPLORER_QUERY_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
+import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 const ROUTE_CONTEXT = { route: '/api/v1/explain' }
 
@@ -125,9 +127,12 @@ async function fetchExplainAsText(
 
   try {
     const client = await getClient({ clientConfig })
+    // SECURITY: enforce readonly mode to prevent DML/DDL even if SQL validation
+    // is bypassed. Matches /api/v1/explorer/query and /api/v1/data. (#3220)
     const resultSet = await client.query({
       query: QUERY_COMMENT + explainQuery,
       format: 'TabSeparatedRaw',
+      clickhouse_settings: { readonly: '1' },
     })
     const text = await resultSet.text()
     const lines = text.split('\n').filter((line) => line.length > 0)
@@ -335,10 +340,13 @@ async function runExplain(
   }
 
   // PLAN, PIPELINE, ESTIMATE modes return valid JSONEachRow
+  // SECURITY: enforce readonly mode to prevent DML/DDL even if SQL validation
+  // is bypassed. Matches /api/v1/explorer/query and /api/v1/data. (#3220)
   const result = await fetchData({
     query: explainQuery,
     hostId,
     format: 'JSONEachRow',
+    clickhouse_settings: { readonly: '1' },
   })
 
   if (result.error) {
@@ -409,6 +417,16 @@ export const Route = createFileRoute('/api/v1/explain')({
       GET: async ({ request }) => {
         bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
+        // Arbitrary SQL execution is a WRITE capability: anonymous read-only
+        // callers (CHM_CLERK_PUBLIC_READ) are blocked; authenticated callers and
+        // API keys pass. Matches /api/v1/explorer/query gating. (#3221)
+        const authError = await authorizeFeatureRequest(
+          EXPLORER_QUERY_FEATURE_PERMISSION,
+          request,
+          { allowAgentBearerToken: true }
+        )
+        if (authError) return authError
+
         const { searchParams } = new URL(request.url)
 
         const validationError = validateSearchParams(searchParams)
@@ -445,6 +463,15 @@ export const Route = createFileRoute('/api/v1/explain')({
 
       POST: async ({ request }) => {
         bridgeClickHouseEnv(env as Record<string, string | undefined>)
+
+        // Arbitrary SQL execution is a WRITE capability (see GET handler).
+        // Matches /api/v1/explorer/query gating. (#3221)
+        const authError = await authorizeFeatureRequest(
+          EXPLORER_QUERY_FEATURE_PERMISSION,
+          request,
+          { allowAgentBearerToken: true }
+        )
+        if (authError) return authError
 
         let body: unknown
         try {

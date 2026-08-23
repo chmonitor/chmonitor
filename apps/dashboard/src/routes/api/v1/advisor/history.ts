@@ -137,7 +137,7 @@ export const Route = createFileRoute('/api/v1/advisor/history')({
 
         try {
           const clickhouse_settings: Record<string, string | number> = {
-            readonly: 1,
+            readonly: '1',
           }
           const result = await fetchData<Record<string, unknown>[]>({
             query: sql,

@@ -120,7 +120,7 @@ export const Route = createFileRoute('/api/v1/explorer/query-log')({
 
         try {
           const clickhouse_settings: Record<string, string | number> = {
-            readonly: 1,
+            readonly: '1',
           }
           const result = await fetchData<Record<string, unknown>[]>({
             query: QUERY_LOG_SQL,
