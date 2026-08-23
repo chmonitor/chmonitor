@@ -3,7 +3,7 @@ id: deployment
 title: Deployment Guide
 type: reference
 status: active
-updated: 2026-08-17
+updated: 2026-08-23
 tags:
   - deployment
   - docker
@@ -308,13 +308,14 @@ in `.env.example` for self-hosters. The `[env.preview]` worker declares no
 `[triggers]`, so preview never runs these crons. See
 `docs/content/guide/features/health.mdx` for the full alerting setup.
 
-## Edge Routing & Host Redirects (4-worker topology)
+## Edge Routing & Host Redirects (5-worker topology)
 
-Production runs four workers on the `chmonitor.dev` zone:
+Production runs five workers on the `chmonitor.dev` zone:
 
 | Worker | Host / route |
 |--------|--------------|
 | `chmonitor-landing` | `chmonitor.dev` (apex marketing) |
+| `chmonitor-blog` | `blog.chmonitor.dev` |
 | `chmonitor-dash` | `dash.chmonitor.dev` + `cloud.chmonitor.dev` (custom domains) |
 | `chmonitor-mcp` | `dash.chmonitor.dev/api/mcp*` + `/api/v1/mcp/info*` (Workers Routes) |
 | `chmonitor-docs` | `docs.chmonitor.dev` |
@@ -331,6 +332,7 @@ under `preview.*` subdomains that mirror production exactly:
 | Worker (preview) | Host / route |
 |------------------|--------------|
 | `preview-chmonitor-landing` | `preview.chmonitor.dev` (apex-preview) |
+| `preview-chmonitor-blog` | `preview.blog.chmonitor.dev` |
 | `preview-chmonitor-dash` | `preview.dash.chmonitor.dev` (custom domain) |
 | `preview-chmonitor-mcp` | `preview.dash.chmonitor.dev/api/mcp*` + `/api/v1/mcp/info*` (Workers Routes) |
 | `preview-chmonitor-docs` | `preview.docs.chmonitor.dev` |
