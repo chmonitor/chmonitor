@@ -139,8 +139,9 @@ export default {
     }
 
     if (req.method === 'GET' && pathname === '/') {
-      // Serve the analytics dashboard HTML (simple two-tab page:
-      // Dashboard (OSS) installs vs CLI usage — separate streams).
+      // Serve the analytics dashboard HTML (two-tab page: Dashboard (OSS)
+      // installs vs CLI usage — separate streams). Design: dark-first
+      // dithered-bar aesthetic with per-item logos.
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -151,41 +152,59 @@ export default {
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #ffffff;
-      --fg: #18181b;
-      --fg-muted: #71717a;
-      --border: #e4e4e7;
-      --card: #fafafa;
+      --bg: #0b0b0e;
+      --bg-soft: #101014;
+      --fg: #f4f4f5;
+      --fg-muted: #8a8a93;
+      --border: #26262c;
+      --card: #131316;
+      --card-hover: #17171c;
+      --code-bg: #1e1e24;
       --accent: #f97316;
-      --code-bg: #f4f4f5;
+      --accent-dim: #f9731622;
     }
 
-    @media (prefers-color-scheme: dark) {
+    @media (prefers-color-scheme: light) {
       :root {
-        --bg: #0b0b0e;
-        --fg: #f4f4f5;
-        --fg-muted: #8a8a93;
-        --border: #26262c;
-        --card: #131316;
-        --code-bg: #1e1e24;
+        --bg: #ffffff;
+        --bg-soft: #fafafa;
+        --fg: #18181b;
+        --fg-muted: #71717a;
+        --border: #e4e4e7;
+        --card: #ffffff;
+        --card-hover: #fafafa;
+        --code-bg: #f4f4f5;
+        --accent: #ea580c;
+        --accent-dim: #ea580c18;
       }
     }
 
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: var(--bg);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background:
+        radial-gradient(1200px 500px at 50% -200px, var(--accent-dim), transparent),
+        var(--bg);
       color: var(--fg);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
     }
 
     .nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: color-mix(in srgb, var(--bg) 78%, transparent);
       border-bottom: 1px solid var(--border);
       padding: 14px 24px;
     }
 
     .nav-container {
-      max-width: 720px;
+      max-width: 960px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -215,15 +234,15 @@ export default {
     .nav-links a:hover { color: var(--fg); }
 
     .container {
-      max-width: 720px;
-      margin: 44px auto 0;
-      padding: 0 24px 64px;
+      max-width: 960px;
+      margin: 48px auto 0;
+      padding: 0 24px 72px;
     }
 
     header { margin-bottom: 28px; }
 
     h1 {
-      font-size: 1.9rem;
+      font-size: clamp(1.7rem, 4vw, 2.3rem);
       font-weight: 800;
       letter-spacing: -0.03em;
       margin-bottom: 6px;
@@ -231,22 +250,27 @@ export default {
 
     .subtitle {
       color: var(--fg-muted);
-      font-size: 0.95rem;
-      max-width: 560px;
+      font-size: 0.98rem;
+      max-width: 620px;
     }
 
-    .privacy-note {
-      font-size: 0.85rem;
-      color: var(--fg-muted);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 20px;
+    .subtitle code {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 600;
     }
 
-    .privacy-note strong { color: var(--fg); font-weight: 650; }
+    .notice-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
 
-    .opt-out {
+    .privacy-note, .opt-out {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
@@ -254,10 +278,12 @@ export default {
       font-size: 0.85rem;
       color: var(--fg-muted);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 32px;
+      border-radius: 12px;
+      padding: 13px 16px;
+      background: var(--card);
     }
+
+    .privacy-note strong, .opt-out strong { color: var(--fg); font-weight: 650; }
 
     .opt-out code {
       font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -270,38 +296,43 @@ export default {
       white-space: nowrap;
     }
 
-    .opt-out a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+    .opt-out a, .privacy-note a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
 
     .tabs {
       display: flex;
       gap: 4px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 28px;
+      border: 1px solid var(--border);
+      width: fit-content;
+      padding: 4px;
+      border-radius: 12px;
+      background: var(--card);
+      margin-bottom: 32px;
     }
 
     .tab {
       appearance: none;
       background: none;
       border: none;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      padding: 10px 14px;
+      border-radius: 9px;
+      padding: 8px 18px;
       font: inherit;
-      font-size: 0.9rem;
-      font-weight: 600;
+      font-size: 0.88rem;
+      font-weight: 620;
       color: var(--fg-muted);
       cursor: pointer;
+      transition: all 0.15s ease;
     }
 
     .tab:hover { color: var(--fg); }
 
     .tab.active {
       color: var(--fg);
-      border-bottom-color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
     }
 
     .loading, .empty {
-      padding: 60px 0;
+      padding: 64px 0;
       color: var(--fg-muted);
       font-size: 0.9rem;
       text-align: center;
@@ -312,88 +343,157 @@ export default {
       margin: 32px 0;
       color: #dc2626;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 0.9rem;
     }
 
+    /* ── Hero stats ─────────────────────────────────────────────── */
     .stats-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(4, 1fr);
       gap: 14px;
-      margin-bottom: 36px;
+      margin-bottom: 40px;
     }
+
+    #panel-cli .stats-grid { grid-template-columns: repeat(2, 1fr); }
 
     .stat-card {
+      position: relative;
+      overflow: hidden;
       border: 1px solid var(--border);
-      background: var(--card);
+      background:
+        radial-gradient(140px 90px at 100% 0%, var(--accent-dim), transparent),
+        var(--card);
       padding: 20px;
-      border-radius: 12px;
+      border-radius: 14px;
+      transition: border-color 0.15s ease;
     }
 
+    .stat-card:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+
     .stat-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--fg-muted);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 6px;
-      font-weight: 650;
+      letter-spacing: 0.07em;
+      margin-bottom: 8px;
+      font-weight: 700;
     }
 
     .stat-value {
-      font-size: 2.2rem;
+      font-size: 2.4rem;
       font-weight: 800;
-      line-height: 1.1;
+      line-height: 1.05;
       letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
     }
 
-    .section { margin-bottom: 36px; }
+    .stat-sub { font-size: 0.75rem; color: var(--fg-muted); margin-top: 6px; }
+
+    /* ── Sections in a responsive card grid ─────────────────────── */
+    .sections-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .section {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px;
+      min-width: 0;
+    }
+
+    .section.wide { grid-column: 1 / -1; }
 
     .section h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 14px;
-      letter-spacing: -0.01em;
+      font-size: 0.82rem;
+      font-weight: 720;
+      margin-bottom: 16px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    /* ── Dithered bar charts ────────────────────────────────────── */
+    .bar-chart { display: flex; flex-direction: column; gap: 11px; }
 
-    .bar-item { display: flex; align-items: center; font-size: 0.875rem; }
+    .bar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.86rem;
+      min-width: 0;
+    }
 
     .bar-label {
-      width: 140px;
+      width: 150px;
       flex-shrink: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-weight: 550;
+      font-weight: 570;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
+    .bar-logo {
+      flex-shrink: 0;
+      width: 17px;
+      height: 17px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bar-logo svg { width: 100%; height: 100%; display: block; }
+    .bar-logo .flag { font-size: 15px; line-height: 1; }
 
     .bar-track {
       flex-grow: 1;
-      height: 7px;
-      background: var(--code-bg);
-      margin: 0 16px;
+      height: 18px;
+      margin-right: 4px;
       border-radius: 4px;
+      position: relative;
       overflow: hidden;
+      min-width: 0;
+      background: repeating-conic-gradient(var(--code-bg) 0% 25%, transparent 0% 50%) 0 0 / 6px 6px;
     }
 
     .bar-fill {
-      height: 100%;
-      background: var(--accent);
+      position: absolute;
+      inset: 0 auto 0 0;
       border-radius: 4px;
-      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Bayer-dither fade: solid accent near the label, dissolving into
+       checkerboard dots as the value edge approaches. */
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1.5px 1.5px, transparent 1.1px, var(--fill-solid) 1.2px);
+      background-size: 3px 3px;
+      opacity: 0.9;
     }
 
     .bar-value {
       width: 64px;
       text-align: right;
-      font-weight: 700;
+      font-weight: 720;
       flex-shrink: 0;
       font-variant-numeric: tabular-nums;
+      font-size: 0.82rem;
     }
 
     .footer {
-      margin-top: 48px;
+      margin-top: 52px;
       padding-top: 24px;
       border-top: 1px solid var(--border);
       font-size: 0.8rem;
@@ -402,12 +502,18 @@ export default {
 
     .footer a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
 
-    @media (max-width: 600px) {
-      .container { margin-top: 28px; }
-      h1 { font-size: 1.55rem; }
+    @media (max-width: 760px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .sections-grid { grid-template-columns: 1fr; }
+      .notice-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .container { margin-top: 30px; }
       .stats-grid { grid-template-columns: 1fr; }
+      .stat-value { font-size: 2rem; }
       .bar-item { flex-wrap: wrap; }
-      .bar-track { width: 100%; margin: 8px 0 2px; order: 3; }
+      .bar-track { width: 100%; order: 3; height: 14px; }
       .bar-value { margin-left: auto; }
       .nav-links { display: none; }
     }
@@ -462,41 +568,55 @@ export default {
         <div class="stat-card">
           <div class="stat-label">Total Installs</div>
           <div class="stat-value" id="total">0</div>
+          <div class="stat-sub">distinct instances</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Environments</div>
           <div class="stat-value" id="total-places">0</div>
+          <div class="stat-sub">install locations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Top Target</div>
+          <div class="stat-value" id="top-target">—</div>
+          <div class="stat-sub" id="top-target-sub">&nbsp;</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Latest CH</div>
+          <div class="stat-value" id="top-version">—</div>
+          <div class="stat-sub" id="top-version-sub">&nbsp;</div>
         </div>
       </div>
 
-      <div class="section">
-        <h2>Deployment Targets</h2>
-        <div id="deploy-targets" class="bar-chart"></div>
-      </div>
+      <div class="sections-grid">
+        <div class="section wide">
+          <h2>Deployment Targets</h2>
+          <div id="deploy-targets" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>ClickHouse Versions</h2>
-        <div id="ch-versions" class="bar-chart"></div>
-      </div>
+        <div class="section">
+          <h2>ClickHouse Versions</h2>
+          <div id="ch-versions" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>chmonitor Versions</h2>
-        <div id="chm-versions" class="bar-chart"></div>
-      </div>
+        <div class="section">
+          <h2>chmonitor Versions</h2>
+          <div id="chm-versions" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>Countries</h2>
-        <div id="countries" class="bar-chart"></div>
-      </div>
+        <div class="section" id="ch-flavor-section" style="display: none;">
+          <h2>ClickHouse Flavors</h2>
+          <div id="ch-flavors" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>Platforms</h2>
-        <div id="platforms" class="bar-chart"></div>
-      </div>
+        <div class="section">
+          <h2>Countries</h2>
+          <div id="countries" class="bar-chart"></div>
+        </div>
 
-      <div class="section" id="ch-flavor-section" style="display: none;">
-        <h2>ClickHouse Flavors</h2>
-        <div id="ch-flavors" class="bar-chart"></div>
+        <div class="section">
+          <h2>Platforms</h2>
+          <div id="platforms" class="bar-chart"></div>
+        </div>
       </div>
     </div>
 
@@ -505,36 +625,40 @@ export default {
         <div class="stat-card">
           <div class="stat-label">CLI Installs</div>
           <div class="stat-value" id="cli-installs">0</div>
+          <div class="stat-sub">all time</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Active CLI Users</div>
           <div class="stat-value" id="cli-active">0</div>
+          <div class="stat-sub">last 30 days</div>
         </div>
       </div>
 
-      <div class="section">
-        <h2>Installs Over Time (30d)</h2>
-        <div id="cli-installs-time" class="bar-chart"></div>
-      </div>
+      <div class="sections-grid">
+        <div class="section wide">
+          <h2>Installs Over Time (30d)</h2>
+          <div id="cli-installs-time" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>Runs by Command</h2>
-        <div id="cli-commands" class="bar-chart"></div>
-      </div>
+        <div class="section">
+          <h2>Runs by Command</h2>
+          <div id="cli-commands" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>CLI Versions</h2>
-        <div id="cli-versions" class="bar-chart"></div>
-      </div>
+        <div class="section">
+          <h2>CLI Versions</h2>
+          <div id="cli-versions" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>Operating System</h2>
-        <div id="cli-os" class="bar-chart"></div>
-      </div>
+        <div class="section">
+          <h2>Operating System</h2>
+          <div id="cli-os" class="bar-chart"></div>
+        </div>
 
-      <div class="section">
-        <h2>Architecture</h2>
-        <div id="cli-arch" class="bar-chart"></div>
+        <div class="section">
+          <h2>Architecture</h2>
+          <div id="cli-arch" class="bar-chart"></div>
+        </div>
       </div>
     </div>
 
@@ -577,11 +701,23 @@ export default {
         if (data.total_places !== undefined) {
           document.getElementById('total-places').textContent = data.total_places.toLocaleString();
         }
-        renderBarChart('deploy-targets', Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
+        const targets = Object.entries(data.by_deploy_target || {}).map(([target, installs]) => ({
           deploy_target: target,
           installs: installs
-        })));
+        }));
+        renderBarChart('deploy-targets', targets);
+        const topTarget = [...targets].sort((a, b) => b.installs - a.installs)[0];
+        if (topTarget && topTarget.installs > 0) {
+          document.getElementById('top-target').textContent = formatLabel(topTarget.deploy_target);
+          const share = data.total_installs > 0 ? Math.round((topTarget.installs / data.total_installs) * 100) : 0;
+          document.getElementById('top-target-sub').textContent = share + '% of installs';
+        }
         renderBarChart('ch-versions', data.by_ch_version);
+        const topVersion = [...(data.by_ch_version || [])].filter(v => v.ch_version !== 'unknown').sort((a, b) => b.installs - a.installs)[0];
+        if (topVersion) {
+          document.getElementById('top-version').textContent = topVersion.ch_version;
+          document.getElementById('top-version-sub').textContent = topVersion.installs.toLocaleString() + ' installs';
+        }
         renderBarChart('chm-versions', data.by_chm_version || []);
         renderBarChart('countries', data.by_country);
         renderBarChart('platforms', data.by_platform);
@@ -623,16 +759,19 @@ export default {
         : data;
 
       container.innerHTML = rows
-        .map(item => {
+        .map((item, i) => {
           const percentage = (item.installs / maxValue) * 100;
           const key = Object.keys(item).find(k => k !== 'installs');
           const label = item[key];
+          // Dither density ramps down with rank: #1 is fully solid, later
+          // rows dissolve into sparser dot patterns.
+          const rank = sortByValue ? i : null;
 
           return \`
             <div class="bar-item">
-              <div class="bar-label">\${formatLabel(label)}</div>
+              <div class="bar-label">\${logoFor(key, label)}<span>\${formatLabel(label)}</span></div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: \${percentage}%;"></div>
+                <div class="bar-fill" style="width: \${percentage}%; \${ditherStyle(rank)}"></div>
               </div>
               <div class="bar-value">\${item.installs.toLocaleString()}</div>
             </div>
@@ -640,6 +779,71 @@ export default {
         })
         .join('');
     }
+
+    function ditherStyle(rank) {
+      if (rank === null || rank === 0) {
+        // Solid fill for the top row (or chronological charts).
+        return '--fill-solid: transparent;';
+      }
+      const opacities = [0.55, 0.3, 0.16, 0.08, 0.04, 0.02, 0.01];
+      const o = opacities[Math.min(rank - 1, opacities.length - 1)];
+      if (o >= 1) return '--fill-solid: transparent;';
+      return \`--fill-solid: color-mix(in srgb, var(--accent) \${Math.round(o * 100)}%, transparent);\`;
+    }
+
+    function logoFor(key, label) {
+      const s = String(label).toLowerCase();
+      if (key === 'country') {
+        const flags = { 'united states': '🇺🇸', usa: '🇺🇸', us: '🇺🇸', germany: '🇩🇪', de: '🇩🇪', china: '🇨🇳', cn: '🇨🇳', japan: '🇯🇵', jp: '🇯🇵', france: '🇫🇷', fr: '🇫🇷', 'united kingdom': '🇬🇧', uk: '🇬🇧', gb: '🇬🇧', india: '🇮🇳', in: '🇮🇳', brazil: '🇧🇷', br: '🇧🇷', canada: '🇨🇦', ca: '🇨🇦', russia: '🇷🇺', ru: '🇷🇺', netherlands: '🇳🇱', nl: '🇳🇱', australia: '🇦🇺', au: '🇦🇺', singapore: '🇸🇬', sg: '🇸🇬', korea: '🇰🇷', kr: '🇰🇷', spain: '🇪🇸', es: '🇪🇸', italy: '🇮🇹', it: '🇮🇹', poland: '🇵🇱', pl: '🇵🇱', ukraine: '🇺🇦', ua: '🇺🇦', vietnam: '🇻🇳', vn: '🇻🇳', turkey: '🇹🇷', tr: '🇹🇷', sweden: '🇸🇪', se: '🇸🇪', switzerland: '🇨🇭', ch: '🇨🇭' };
+        for (const [name, flag] of Object.entries(flags)) {
+          if (s === name) return '<span class="flag">' + flag + '</span>';
+        }
+        return '';
+      }
+      if (key === 'deploy_target') {
+        if (s === 'docker') return DOCKER_SVG;
+        if (s === 'helm') return HELM_SVG;
+        if (s === 'cf' || s === 'cloudflare') return CF_SVG;
+        if (s === 'dev') return DEV_SVG;
+        return '';
+      }
+      if (key === 'platform') {
+        if (s === 'linux') return LINUX_SVG;
+        if (s === 'macos') return APPLE_SVG;
+        if (s === 'windows') return WINDOWS_SVG;
+        return '';
+      }
+      if (key === 'os') {
+        if (s.includes('win')) return WINDOWS_SVG;
+        if (s.includes('darwin') || s.includes('mac')) return APPLE_SVG;
+        if (s.includes('linux')) return LINUX_SVG;
+        return '';
+      }
+      if (key === 'arch') {
+        if (s.includes('arm') || s === 'aarch64') return ARM_SVG;
+        if (s.includes('86')) return INTEL_SVG;
+        return '';
+      }
+      if (key === 'ch_flavor') {
+        if (s === 'altinity') return ALTINITY_SVG;
+        if (s === 'cloud') return CF_SVG;
+        if (s === 'oss') return CLICKHOUSE_SVG;
+        return '';
+      }
+      return '';
+    }
+
+    const CLICKHOUSE_SVG = '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="13" width="3.6" height="15" fill="#f97316"/><rect x="9" y="3" width="3.6" height="25" fill="#f97316"/><rect x="14" y="13" width="3.6" height="15" fill="#f97316"/><rect x="19" y="6" width="3.6" height="22" fill="#f97316"/><rect x="24" y="17" width="3.6" height="11" fill="#f97316"/><rect x="4" y="9.7" width="3.6" height="3.3" fill="#10b981"/></svg>';
+    const DOCKER_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#2496ed"><path d="M13.98 11.08h2.12a.19.19 0 0 0 .19-.19V9.01a.19.19 0 0 0-.19-.19h-2.12a.18.18 0 0 0-.18.18v1.9c0 .1.08.18.18.18m-2.95-5.43h2.12a.19.19 0 0 0 .19-.19V3.57a.19.19 0 0 0-.19-.19h-2.12a.18.18 0 0 0-.19.18V5.46c0 .1.09.19.19.19m0 2.71h2.12a.19.19 0 0 0 .19-.19V6.28a.19.19 0 0 0-.19-.18h-2.12a.18.18 0 0 0-.19.18v1.89c0 .11.09.19.19.19m-2.93 0h2.12a.19.19 0 0 0 .19-.19V6.28A.18.18 0 0 0 10.22 6.1H8.1a.18.18 0 0 0-.19.18v1.89c0 .11.08.19.19.19m-2.96 0h2.11a.19.19 0 0 0 .19-.19V6.28A.18.18 0 0 0 7.26 6.1H5.14a.18.18 0 0 0-.19.18v1.89c0 .11.08.19.19.19m5.89 2.72h2.12a.19.19 0 0 0 .19-.19V9a.18.18 0 0 0-.19-.18h-2.12a.18.18 0 0 0-.19.18v1.9c0 .1.09.18.19.18m-2.93 0h2.12a.19.19 0 0 0 .19-.19V9a.18.18 0 0 0-.19-.18H8.1A.18.18 0 0 0 7.91 9v1.9c0 .1.08.18.19.18m-2.96 0h2.12a.19.19 0 0 0 .19-.19V9A.18.18 0 0 0 7.26 8.82H5.14A.18.18 0 0 0 4.95 9v1.9c0 .1.08.18.19.18m-2.92 0h2.12a.18.18 0 0 0 .18-.19V9a.18.18 0 0 0-.18-.18H2.03A.17.17 0 0 0 1.85 9v1.9c0 .1.07.18.18.18m21.54-1.19c-.06-.05-.67-.51-1.95-.51-.34 0-.68.03-1.01.09-.25-1.69-1.66-2.51-1.73-2.55l-.35-.2-.23.34a4.6 4.6 0 0 0-.59 1.43c-.22.94-.09 1.82.38 2.58-.56.31-1.47.39-1.67.4H.76a.76.76 0 0 0-.76.75 11.37 11.37 0 0 0 .7 4.06 6.03 6.03 0 0 0 2.49 3.12c1.23.75 3.22 1.19 5.48 1.19 1.02 0 2.04-.09 3.04-.29 1.4-.26 2.74-.75 3.96-1.45a10.85 10.85 0 0 0 2.7-2.22c1.3-1.47 2.08-3.11 2.65-4.56h.23c1.37 0 2.21-.55 2.68-1 .3-.3.55-.66.71-1.07l.1-.28Z"/></svg>';
+    const HELM_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#277a9e" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2.6" fill="#277a9e" stroke="none"/><path d="M4.5 9.5C6.2 7 9 5.5 12 5.5s5.8 1.5 7.5 4"/><path d="M4.5 14.5C6.2 17 9 18.5 12 18.5s5.8-1.5 7.5-4"/></svg>';
+    const CF_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#f6821f" d="M16.51 17.42a1.4 1.4 0 0 0-.4-1.94 1.36 1.36 0 0 0-.83-.23l-6.95.1a.63.63 0 0 1-.52-.29.64.64 0 0 1-.1-.35.66.66 0 0 1 .61-.62l7-.1a8.28 8.28 0 0 0 6.55-4.77l.4-.93a.4.4 0 0 0 .02-.22 9.19 9.19 0 0 0-16.53-2.7A5.19 5.19 0 0 0 .44 9.87a7.07 7.07 0 0 0 .08 1.2.62.62 0 0 0 .61.53l15.02-.02a.33.33 0 0 1 .36.36Z"/><path fill="#fbad41" d="M20.9 9.63h-.32a.2.2 0 0 0-.19.26 6.14 6.14 0 0 1 .2 2.36 5.9 5.9 0 0 1-5.9 5.9H4.4a.6.6 0 0 0-.61.61.61.61 0 0 0 .61.62h10.3A7.12 7.12 0 0 0 21.8 12.3a7.3 7.3 0 0 0-.9-2.67Z"/></svg>';
+    const DEV_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>';
+    const LINUX_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#f4b60b"><path d="M12.7 2c-2 0-3.3 1.3-3.6 3.2-.1.8-.1 1.6-.3 2.3-.4 1.5-1.4 2.7-2.3 4-.9 1.2-1.7 2.5-1.9 4-.1 1 .1 2 .7 2.8.2-.9.7-1.6 1.3-2.2.1.7.3 1.4.8 2 .1-2.4 1.6-4.3 3-6.2.8-1 1.5-2.1 1.8-3.4.1.5 0 1-.1 1.5 1-.6 1.7-1.6 2-2.7.4.9.4 2 0 2.9.9-.5 1.6-1.4 1.9-2.4.4 1.5.1 3.1-.8 4.3-1 1.4-2.4 2.5-3.2 4-.5 1-.7 2.1-.5 3.2.5-.6 1.2-1 2-1.1-.2.6-.5 1.2-1 1.7 1.9.4 3.9-.2 5.3-1.5 1.6-1.5 2.3-3.8 1.9-5.9-.3-1.7-1.3-3.2-2.2-4.7-.8-1.3-1.6-2.7-1.8-4.2-.2-1.6-1.3-2.7-3-2.7Z"/></svg>';
+    const APPLE_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#a1a1aa"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.46-1.09-.44-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.46C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.08ZM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25Z"/></svg>';
+    const WINDOWS_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#0078d4"><path d="M3 5.55 10.6 4.5v7.2H3V5.55Zm0 12.9L10.6 19.5v-7.13H3v6.08Zm8.6 6.16L21 21.75v-9.38h-9.4v7.24Zm0-15.78v7.24H21V2.25l-9.4 1.58Z" transform="scale(0.85) translate(2 1)"/></svg>';
+    const ARM_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#0091bd"><circle cx="12" cy="12" r="9" opacity="0.25"/><circle cx="12" cy="12" r="5.5" opacity="0.5"/><circle cx="12" cy="12" r="2.5"/></svg>';
+    const INTEL_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#0068b5"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/><rect x="17" y="17" width="4" height="4" rx="1"/></svg>';
+    const ALTINITY_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e63946" d="M12 2 2 20h4.5L12 9.5 17.5 20H22L12 2Z"/></svg>';
 
     function formatLabel(label) {
       const names = {
