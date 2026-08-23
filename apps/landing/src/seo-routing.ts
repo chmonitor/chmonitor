@@ -127,6 +127,21 @@ Disallow: /
 `
 }
 
+/** Assets often 307 `/foo` → `/foo/`. Treat that as the same URL, not a hop. */
+export function isSamePathSlashRedirect(from: URL, location: string): boolean {
+  let to: URL
+  try {
+    to = new URL(location, from)
+  } catch {
+    return false
+  }
+  if (to.origin !== from.origin || to.search !== from.search) return false
+  return (
+    stripTrailingSlash(to.pathname) === stripTrailingSlash(from.pathname) &&
+    to.pathname !== from.pathname
+  )
+}
+
 /** Absolute 301 target, or null to serve the landing asset. */
 export function landingRedirectUrl(url: URL): string | null {
   const path = stripTrailingSlash(url.pathname)

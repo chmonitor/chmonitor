@@ -1,5 +1,6 @@
 import {
   DASHBOARD_PREFIXES,
+  isSamePathSlashRedirect,
   landingRedirectUrl,
   shouldNoindexHost,
   stripTrailingSlash,
@@ -64,6 +65,21 @@ describe('landing SEO routing', () => {
     expect(DASHBOARD_PREFIXES.has('explorer')).toBe(true)
     expect(DASHBOARD_PREFIXES.has('table')).toBe(true)
     expect(DASHBOARD_PREFIXES.has('pricing')).toBe(false)
+  })
+
+  test('slash-only asset redirects are the same path', () => {
+    expect(
+      isSamePathSlashRedirect(
+        new URL('https://chmonitor.dev/features/storage'),
+        '/features/storage/'
+      )
+    ).toBe(true)
+    expect(
+      isSamePathSlashRedirect(
+        new URL('https://chmonitor.dev/features/storage'),
+        '/features/postgres/'
+      )
+    ).toBe(false)
   })
 
   test('preview hosts are noindexed', () => {

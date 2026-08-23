@@ -6,9 +6,9 @@ import {
 } from '@tanstack/react-start'
 
 import {
+  docsCanonicalRedirect,
   isPreviewHost,
   previewRobotsTxt,
-  stripTrailingSlash,
 } from './lib/canonical-path'
 import { slugsToMarkdownPath } from './lib/source'
 import { isMarkdownPreferred } from 'fumadocs-core/negotiation'
@@ -69,14 +69,10 @@ const canonicalUrlMiddleware = createMiddleware().server(
       }
     }
 
-    // Never strip a file extension path (`/llms.txt`).
-    const stripped =
-      url.pathname.includes('.') && !url.pathname.endsWith('/')
-        ? url.pathname
-        : stripTrailingSlash(url.pathname)
-    if (stripped !== url.pathname) {
+    const dest = docsCanonicalRedirect(url.pathname)
+    if (dest) {
       throw redirect({
-        href: `${stripped}${url.search}`,
+        href: `${dest}${url.search}`,
         statusCode: 301,
       })
     }

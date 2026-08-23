@@ -1,4 +1,5 @@
 import {
+  isSamePathSlashRedirect,
   landingRedirectUrl,
   previewRobotsTxt,
   shouldNoindexHost,
@@ -26,7 +27,17 @@ export default {
       return Response.redirect(dest, 301)
     }
 
-    const asset = await env.ASSETS.fetch(request)
+    let asset = await env.ASSETS.fetch(request)
+    const loc = asset.headers.get('Location')
+    if (
+      loc &&
+      [301, 302, 307, 308].includes(asset.status) &&
+      isSamePathSlashRedirect(url, loc)
+    ) {
+      asset = await env.ASSETS.fetch(
+        new Request(new URL(loc, url).toString(), request)
+      )
+    }
     if (!shouldNoindexHost(url.hostname)) return asset
 
     const headers = new Headers(asset.headers)
