@@ -181,7 +181,7 @@ documents — keep them accurate as the codebase evolves, without being asked:
 
 Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Each note has frontmatter (`id`, `type`, `related`, `tags`) and cross-links to connected notes.
 
-**Discovery order**: CLAUDE.md → [docs/knowledge/README.md](docs/knowledge/README.md) → `grep -r "keyword" docs/knowledge/`
+**Discovery order**: AGENTS.md → [docs/knowledge/README.md](docs/knowledge/README.md) → `grep -r "keyword" docs/knowledge/`
 
 | Category | Document | Summary |
 |----------|----------|---------|
@@ -339,7 +339,7 @@ skill (`.agents/skills/*/SKILL.md`), or an agent env var, update
 
 ## Architecture
 
-> **NOTE:** `apps/dashboard` is now the TanStack Start app (v0.3+). The Next.js migration is complete. For the app internals, see `apps/dashboard/CLAUDE.md` or `docs/PRD.md` §10.2. The Next.js-era subsections below are kept as historical reference and no longer apply.
+> **NOTE:** `apps/dashboard` is now the TanStack Start app (v0.3+). The Next.js migration is complete. For the app internals, see `apps/dashboard/AGENTS.md` or `docs/PRD.md` §10.2. The Next.js-era subsections below are kept as historical reference and no longer apply.
 
 ### Core Technologies (TanStack Start, current)
 

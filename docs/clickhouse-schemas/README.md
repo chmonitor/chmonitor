@@ -16,7 +16,7 @@ ClickHouse system tables (`system.query_log`, `system.processes`, etc.) change t
 docs/clickhouse-schemas/
 ├── README.md           # This file
 ├── AGENTS.md           # Instructions for AI agents
-├── CLAUDE.md           # Claude Code specific guidance
+├── CLAUDE.md           # Stub that includes AGENTS.md
 ├── index.md            # Version matrix overview
 ├── v23.1.md            # Changes in version 23.1
 ├── v23.8.md            # Changes in version 23.8 (LTS)

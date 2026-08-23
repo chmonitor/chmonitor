@@ -1,6 +1,8 @@
 # Agent Instructions: ClickHouse Schema Maintenance
 
-This document provides instructions for AI agents working on ClickHouse query configurations.
+Canonical instructions for every coding agent working on ClickHouse query
+configurations. `CLAUDE.md` in this folder is a stub that includes this file —
+edit **this** file only.
 
 ## When to Read This
 
@@ -9,6 +11,22 @@ Read this document when you are:
 - Debugging query failures on specific ClickHouse versions
 - Adding version-specific query variants
 - Working with system tables (`system.*`)
+
+## Context loading
+
+When adding or modifying a query config:
+
+1. Identify every `system.*` table in the SQL (`FROM`, `JOIN`, subqueries).
+2. Read `tables/{table}.md` for each of those tables.
+3. Check the **Version Compatibility Matrix** in each table file.
+4. If a column is not available on all versions from 23.8+, add a `variants`
+   array (or a versioned `sql: [{ since, sql }]` list) for each version
+   boundary.
+
+Then: follow existing patterns in `lib/query-config/`, write the config, add
+variants if needed, and verify with `pnpm run type-check`.
+
+For fuller query-config patterns, use the `clickhouse-query-config` skill.
 
 ## Pre-Modification Checklist
 

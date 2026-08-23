@@ -48,8 +48,7 @@ Key system-table deltas that affect chmonitor monitoring queries. LTS rows match
 
 ## Quick Links
 
-- [Agent Instructions](AGENTS.md) - For AI agents
-- [Claude Code Guide](CLAUDE.md) - For Claude Code
+- [Agent Instructions](AGENTS.md) - For every coding agent (`CLAUDE.md` includes this)
 - [README](README.md) - Overview
 - Per-version notes: [v24.1](v24.1.md), [v25.12](v25.12.md), [v26.1](v26.1.md), [v26.2](v26.2.md), [v26.6](v26.6.md)
 
