@@ -69,6 +69,26 @@ function hex64(seed: string): string {
   return seed.repeat(64).slice(0, 64)
 }
 
+describe('GET / analytics page', () => {
+  it('serves landing-matched chrome with a small brand mark', async () => {
+    const env = { CHM_TELEMETRY_DB: {} as D1Database }
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/'),
+      env,
+      makeCtx()
+    )
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/html')
+    const html = await res.text()
+    expect(html).toContain('https://chmonitor.dev/brand/logo-chmonitor.svg')
+    expect(html).toContain('width="22" height="22"')
+    expect(html).toContain('class="site"')
+    expect(html).toContain('Not affiliated with ClickHouse, Inc.')
+    expect(html).toContain('CLICKHOUSE_SVG')
+    expect(html).not.toContain('dithered-bar')
+  })
+})
+
 describe('GET /v1/summary — double WHERE regression (#2466)', () => {
   let db: Database
 
