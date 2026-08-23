@@ -410,8 +410,9 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
           const share = data.total_installs > 0 ? Math.round((topTarget.installs / data.total_installs) * 100) : 0
           document.getElementById('top-target-sub').textContent = share + '% of installs'
         }
-        renderBarChart('ch-versions', data.by_ch_version)
-        const topVersion = [...(data.by_ch_version || [])].filter(v => v.ch_version !== 'unknown').sort((a, b) => b.installs - a.installs)[0]
+        const chVersions = collapseBlankUnknown(data.by_ch_version || [], 'ch_version')
+        renderBarChart('ch-versions', chVersions)
+        const topVersion = [...chVersions].filter(v => v.ch_version !== 'unknown').sort((a, b) => b.installs - a.installs)[0]
         if (topVersion) {
           document.getElementById('top-version').textContent = topVersion.ch_version
           document.getElementById('top-version-sub').textContent = topVersion.installs.toLocaleString() + ' installs'
@@ -441,6 +442,18 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
         error.style.display = 'block'
         error.textContent = 'Failed to load analytics: ' + err.message
       }
+    }
+
+    function collapseBlankUnknown(rows, key) {
+      const merged = new Map()
+      for (const row of rows) {
+        const raw = String(row[key] ?? '').trim()
+        const k = !raw || raw.toLowerCase() === 'unknown' ? 'unknown' : raw
+        const prev = merged.get(k) || { ...row, [key]: k, installs: 0 }
+        prev.installs += Number(row.installs) || 0
+        merged.set(k, prev)
+      }
+      return [...merged.values()]
     }
 
     function renderBarChart(containerId, data, sortByValue = true) {

@@ -217,6 +217,41 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
     )
   })
 
+  it('merges empty and unknown ClickHouse versions into one unknown bucket', async () => {
+    seed()
+    const insert = db.query(
+      `INSERT INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    insert.run('2026-07-02', hex64('d'), 'docker', '', 'oss', 'us', 'linux', '0.3.1', null)
+    insert.run(
+      '2026-07-02',
+      hex64('e'),
+      'docker',
+      'unknown',
+      'oss',
+      'us',
+      'linux',
+      '0.3.1',
+      null
+    )
+    const env: Env = { CHM_TELEMETRY_DB: makeMockD1(db) }
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/v1/summary'),
+      env,
+      makeCtx()
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      by_ch_version: { ch_version: string; installs: number }[]
+    }
+    const versions = body.by_ch_version.map((r) => r.ch_version)
+    expect(versions).not.toContain('')
+    expect(versions.filter((v) => v === 'unknown')).toHaveLength(1)
+    expect(body.by_ch_version.find((r) => r.ch_version === 'unknown')?.installs).toBe(2)
+    expect(body.by_ch_version.find((r) => r.ch_version === '24.8')?.installs).toBe(2)
+  })
+
   it('returns 200 (not 500) for ?deploy_target=docker and scopes total_places', async () => {
     seed()
     const env: Env = { CHM_TELEMETRY_DB: makeMockD1(db) }
