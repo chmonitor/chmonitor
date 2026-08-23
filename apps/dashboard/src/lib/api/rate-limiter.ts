@@ -238,16 +238,107 @@ export function rateLimitResponse(retryAfterSec: number): Response {
 }
 
 /**
- * Extract a stable client identity key from a request.
- * Prefers Cloudflare's CF-Connecting-IP, falls back to X-Real-IP,
- * X-Forwarded-For, then "unknown".
+ * Whether the request's `X-Real-IP` / `X-Forwarded-For` headers may be trusted
+ * as the real client address.
+ *
+ * - Cloudflare's `CF-Connecting-IP` is ALWAYS trusted: it is set by the
+ *   Workers platform itself and is overwritten (stripped of inbound values) by
+ *   the edge, so it cannot be spoofed by a caller.
+ * - `X-Real-IP` / `X-Forwarded-For` are client-supplied unless the operator's
+ *   ingress proxy overwrites them (nginx "real_ip", Caddy `remote_ip`, etc.).
+ *   On self-hosted deploys these headers are therefore spoofable, so trusting
+ *   them lets a caller rotate headers per request to bypass IP-keyed limiters
+ *   and, for Cloud guests, to mint a fresh `guest:<hash>` quota identity per
+ *   request — the quota-bypass vector in issue #3225.
+ *
+ * Opt-in via `CHM_TRUST_PROXY_HEADERS=true` (or `=1`/`=cloud`). An explicit
+ * `false`/`0` opts OUT (disables trusting even on the edge). When unset it
+ * defaults to true ONLY when running on the Cloudflare Workers runtime, where
+ * the edge sanitises those headers for us, and false otherwise
+ * (Node/Docker/K8s self-host), so the OSS build is never weakened by trusting
+ * client-supplied headers.
+ *
+ * Pass `runtimeEnv` (the Cloudflare `env` binding) to override the runtime
+ * detection in tests; it defaults to `process.env` on Node.
  */
-export function clientIpKey(request: Request): string {
+export function trustProxyHeaders(
+  runtimeEnv?: Record<string, string | undefined>
+): boolean {
+  const source =
+    runtimeEnv ?? (typeof process !== 'undefined' ? process.env : {})
+  const explicit = parseBoolOrUndefined(source.CHM_TRUST_PROXY_HEADERS)
+  if (explicit !== null) return explicit
+
+  // Default: only trust proxy headers where the runtime is the Cloudflare
+  // edge, which sets/strips them for us. Fail-closed to "don't trust" on every
+  // other runtime (Node/Docker/K8s) so an unset header never weakens OSS.
+  if (
+    typeof source.CF_PAGES !== 'undefined' ||
+    source.CLOUDFLARE_WORKERS === '1'
+  ) {
+    return true
+  }
+  return isCloudflareWorkersRuntime()
+}
+
+/**
+ * Parse a boolean-like env value, returning null when unset/empty/junk so the
+ * caller can apply a runtime-dependent default. Only the exact strings
+ * 'true'/'1'/'cloud' (case-insensitive) are truthy; everything else ('false',
+ * '0', 'no', junk) is false.
+ */
+function parseBoolOrUndefined(
+  value: string | null | undefined
+): boolean | null {
+  if (value === undefined || value === null || value.trim() === '') return null
+  const normalized = value.trim().toLowerCase()
+  return normalized === 'true' || normalized === '1' || normalized === 'cloud'
+}
+
+/**
+ * Detect the Cloudflare Workers runtime without importing server-only modules.
+ * Mirrors `isCloudflareWorkers()` from `@chm/clickhouse-client` (we avoid that
+ * import here to keep the rate-limiter dependency-free and SSR-safe): workerd
+ * exposes the global `caches` API and lacks `process`.
+ */
+function isCloudflareWorkersRuntime(): boolean {
+  if (typeof globalThis === 'undefined' || typeof process !== 'undefined') {
+    return false
+  }
+  const g = globalThis as Record<string, unknown>
+  return (
+    typeof g.caches !== 'undefined' ||
+    typeof g.DurableObject !== 'undefined' ||
+    typeof g.WebSocketPair !== 'undefined'
+  )
+}
+
+/**
+ * Extract a stable client identity key from a request.
+ *
+ * `CF-Connecting-IP` (set by the Cloudflare Workers platform) is always
+ * trusted. `X-Real-IP` / `X-Forwarded-For` are only consulted when
+ * `trustProxyHeaders()` is true — otherwise a client can rotate them per request
+ * to bypass IP-keyed limiters and (for Cloud guests) reset the daily quota
+ * identity. See `trustProxyHeaders` for the default policy.
+ *
+ * @param request  The incoming request.
+ * @param runtimeEnv Optional env override (the Cloudflare `env` binding) for
+ * runtime detection / `CHM_TRUST_PROXY_HEADERS`. Pass only in tests.
+ */
+export function clientIpKey(
+  request: Request,
+  runtimeEnv?: Record<string, string | undefined>
+): string {
+  const trusted = trustProxyHeaders(runtimeEnv)
   return (
     request.headers.get('cf-connecting-ip') ??
-    request.headers.get('x-real-ip') ??
-    ((request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ||
-      'unknown')
+    (trusted ? request.headers.get('x-real-ip') : null) ??
+    (trusted
+      ? (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ||
+        null
+      : null) ??
+    'unknown'
   )
 }
 
