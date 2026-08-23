@@ -1,15 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { llms } from 'fumadocs-core/source'
+import { buildLlmsTxt } from '@/lib/crawler-index'
 import { source } from '@/lib/source'
 
-// /llms.txt — structured index of all documentation pages for AI crawlers.
+// /llms.txt — every documentation page (title, URL, description, .md twin).
 // Follows the llms.txt convention: https://llmstxt.org
 export const Route = createFileRoute('/llms.txt')({
   server: {
     handlers: {
       GET() {
-        return new Response(llms(source).index(), {
+        const pages = source.getPages().map((page) => ({
+          url: page.url,
+          title: page.data.title,
+          description: page.data.description,
+        }))
+        return new Response(buildLlmsTxt(pages), {
           headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         })
       },
