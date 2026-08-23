@@ -525,6 +525,7 @@ jobs:
               '| **MCP** | https://preview.dash.chmonitor.dev/api/mcp |',
               '| **Landing** | https://preview.chmonitor.dev |',
               '| **Docs** | https://preview.docs.chmonitor.dev |',
+              '| **Telemetry** | https://preview.telemetry.chmonitor.dev |',
               '',
               `| Property | Value |`,
               `|----------|-------|`,
