@@ -1,0 +1,73 @@
+---
+title: "ch-ui vs chmonitor: ClickHouse UI vs monitoring"
+description: ch-ui is a ClickHouse workspace (SQL editor, pipelines). chmonitor is an operational monitoring dashboard over system tables. How they differ — and why search mixes the names.
+icon: AppWindow
+---
+
+If you searched **ch-ui**, **ch ui**, **chouse ui**, or **ch-ui docker**, you might have meant three different projects:
+
+- **[chmonitor](https://chmonitor.dev)** — this docs site. Read-only ClickHouse **monitoring** (queries, parts, merges, replication, AI agent).
+- **[ch-ui](https://ch-ui.com/)** ([caioricciuti/ch-ui](https://github.com/caioricciuti/ch-ui)) — a ClickHouse **workspace**: SQL editor, pipelines, models, optional Pro cluster-health modules.
+- **CHouse UI** ([chouse-ui.com](https://chouse-ui.com/)) — another GUI, not related to either.
+
+Short names, different jobs. This page compares ch-ui and chmonitor honestly.
+
+## What ch-ui is
+
+Public positioning: a self-hosted ClickHouse control plane / workbench. SQL tabs and results, dashboards, pipelines, dbt-style models, an AI copilot aimed at writing queries. Docker or a single binary is the usual install story (people searching `ch-ui docker` are in the right neighborhood for *that* repo).
+
+Query insights and cluster health exist as product modules (often in Pro). Category: **management and data work**, with ops features attached.
+
+## What chmonitor is
+
+A client-rendered dashboard that reads ClickHouse `system.*` tables: overview, running/slow queries, table size and parts, merges, replication, metrics, health, a customizable [dashboard](/guide/features/dashboard) canvas, plus an [AI agent](/guide/ai-agent) and [MCP](/guide/features/mcp) for the same tools.
+
+Default posture is **read-only**. Optional kill-query / optimize grants. Deploy Docker, Kubernetes, or Cloudflare Workers. Category: **operational monitoring**.
+
+The SQL console and Data Explorer exist so you can inspect — they are not a full pipeline/IDE product.
+
+## Side by side
+
+| | ch-ui | chmonitor |
+|---|---|---|
+| Category | Workspace / control plane | Ops monitoring dashboard |
+| Core loop | Write SQL, ship pipelines | Watch `system.*` continuously |
+| Pipelines, models, governance | Yes | No |
+| Query / cluster health | Strong in Pro modules | Core OSS pages |
+| AI | Copilot for SQL / schema | Agent + MCP for diagnostics |
+| Default grants | Interactive work + admin | `SELECT` on `system.*` |
+| Typical deploy | Go binary + Docker | Dashboard app (Docker / Helm / Workers) |
+
+Overlap is real: both can look at `query_log`. The product bet is different. ch-ui is where analysts live in a tab. chmonitor is the wall you leave up for parts, merges, and lag.
+
+## When to choose ch-ui
+
+You want one binary for **authoring**: multi-tab SQL, pipelines, models, governance. Cluster health is a module, not the reason you opened the app.
+
+Follow their install docs for Docker — this site will not re-host their compose file.
+
+## When to choose chmonitor
+
+You want continuous CH health: slow and running queries, part pressure, merge storms, replication lag, storage growth, multi-host `?host=` switching, MCP for coding agents. You do not want a second data catalog.
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e CLICKHOUSE_HOST=http://clickhouse:8123 \
+  ghcr.io/chmonitor/chmonitor
+```
+
+Getting started: [local / Docker](/guide/getting-started), [Docker deploy](/operate/deploy/docker).
+
+## Can you run both?
+
+Yes. Two clients, one ClickHouse. Give each a [least-privilege user](/guide/getting-started/clickhouse-requirements). Use ch-ui to write the pipeline; use chmonitor when on-call asks why inserts stalled.
+
+If you landed here because Google mixed **chmonitor** with **ch-ui** / **chouse ui**, pick the row in the table that matches the job — not the one that matches the typo.
+
+## Related
+
+<Cards>
+<Card title="Grafana vs Datadog vs dedicated dashboard" href="/guide/guides/clickhouse-monitoring-grafana-vs-datadog" description="Where a ClickHouse ops UI sits next to Grafana and Datadog." />
+<Card title="Features" href="/guide/features" description="What each chmonitor page actually shows." />
+<Card title="MCP server" href="/guide/features/mcp" description="Same monitoring tools for external AI clients." />
+</Cards>

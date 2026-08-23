@@ -25,7 +25,9 @@ run yourself — it never applies anything on its own. See [AI Agent capabilitie
 <Card title="Partition key best practices" href="/guide/guides/partition-key-best-practices" description="What PARTITION BY is actually for, and why a high-cardinality partition key causes a too-many-parts spiral." />
 <Card title="Partition granularity: day vs month" href="/guide/guides/partition-granularity" description="Trade-offs between fine and coarse partitioning, and how to size partitions correctly." />
 <Card title="PREWHERE vs WHERE" href="/guide/guides/prewhere-vs-where" description="How column-level filter pushdown cuts I/O, and when the optimizer needs help." />
+<Card title="VIEW vs materialized view vs projection" href="/guide/guides/view-vs-materialized-view" description="Ordinary views do not speed anything up — then pick MV vs projection." />
 <Card title="Projections vs materialized views" href="/guide/guides/projections-vs-materialized-views" description="A decision guide for which acceleration mechanism fits your query shape." />
+<Card title="ClickHouse cost optimization" href="/guide/guides/clickhouse-cost-optimization" description="Storage, scanned bytes, and when not to run OPTIMIZE TABLE." />
 <Card title="Skip indices (secondary index guide)" href="/guide/guides/skip-indices-guide" description="minmax, set, bloom_filter, and tokenbf_v1 — what each is for and how to verify it fires." />
 <Card title="External GROUP BY (reduce query memory)" href="/guide/guides/external-group-by" description="Spill aggregation to disk instead of hitting MEMORY_LIMIT_EXCEEDED, and cheaper alternatives to try first." />
 </Cards>
