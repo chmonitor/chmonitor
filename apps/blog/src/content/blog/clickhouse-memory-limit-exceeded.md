@@ -139,7 +139,7 @@ docker run -d --name chmonitor -p 3000:3000 \
   ghcr.io/chmonitor/chmonitor:latest
 ```
 
-Or skip setup and try the [live demo](https://dash.chmonitor.dev/?ref=blog).
+Or skip setup and try the [live demo](https://dash.chmonitor.dev/overview?host=0).
 That's all 8 launch posts in the **5 min of ClickHouse** series — back next
 week with more.
 

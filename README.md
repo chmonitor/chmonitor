@@ -15,8 +15,8 @@
 [![License](https://img.shields.io/github/license/chmonitor/chmonitor)](LICENSE)
 
 <p align="center">
-  <a href="https://dash.chmonitor.dev/?ref=github"><strong>Live demo</strong></a>
-  · <a href="https://chmonitor.dev/?ref=github">Website</a>
+  <a href="https://dash.chmonitor.dev/overview?host=0"><strong>Live demo</strong></a>
+  · <a href="https://chmonitor.dev/">Website</a>
   · <a href="https://docs.chmonitor.dev">Docs</a>
   · <a href="https://docs.chmonitor.dev/guide/getting-started">Getting started</a>
   · <a href="#quick-start">Quick start</a>
@@ -34,7 +34,7 @@ storage, health — then recommends what to change next.
 It does **not** apply DDL for you. Recommendations stay recommendations.
 
 Runs the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud.
-Self-host it free (GPL-3.0), or use the [hosted demo](https://dash.chmonitor.dev/?ref=github).
+Self-host it free (GPL-3.0), or use the [hosted demo](https://dash.chmonitor.dev/overview?host=0).
 
 Current release: **[v0.3.0](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.0)**.
 Upgrading from v0.2? See [Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3).
@@ -73,7 +73,7 @@ docker run -d --name chmonitor -p 3000:3000 \
 
 Open **http://localhost:3000**. Pin a version tag in production; use `:latest` only if you want the rolling tip.
 
-Want a look first? **[dash.chmonitor.dev](https://dash.chmonitor.dev/?ref=github)** — no setup.
+Want a look first? **[dash.chmonitor.dev](https://dash.chmonitor.dev/overview?host=0)** — no setup.
 
 Install the CLI:
 

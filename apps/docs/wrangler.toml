@@ -28,6 +28,9 @@ enabled = true
 # "alternate with proper canonical" for slash variants).
 [assets]
 html_handling = "drop-trailing-slash"
+# Worker first so /deploy/k8s/ is one 301 to /operate/deploy/k8s, not
+# asset slash-drop then a second IA redirect.
+run_worker_first = true
 
 [[routes]]
 pattern = "docs.chmonitor.dev"
