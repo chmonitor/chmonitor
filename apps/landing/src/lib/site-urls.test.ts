@@ -10,7 +10,7 @@ describe('landing crawler index', () => {
     expect(paths).toContain('/pricing')
     expect(paths).toContain('/vs-datadog')
     expect(paths).toContain('/clickhouse-vs-druid-pinot')
-    expect(paths).toContain('/watch/v0.3')
+    expect(paths).toContain('/watch/v0-3')
     for (const feature of FEATURE_PAGES) {
       expect(paths).toContain(`/features/${feature.slug}`)
     }

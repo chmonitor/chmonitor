@@ -12,11 +12,11 @@ that answers questions about your cluster, live query monitoring, a data
 explorer, cluster topology, AI insights, and self-hosting that's a single command
 on Cloudflare Workers, Docker or Kubernetes.
 
-Here's the ~28-second launch film — every scene is the real product. The dedicated watch page is [/watch/v0.3/](/watch/v0.3/).
+Here's the ~28-second launch film — every scene is the real product. The dedicated watch page is [/watch/v0-3/](/watch/v0-3/).
 
 <figure class="video">
   <video src="/posts/v0.3/launch.mp4" poster="/posts/v0.3/launch-poster.png" controls preload="metadata" playsinline></video>
-  <figcaption>chmonitor v0.3 — launch film. Dashboard, AI agent, query monitoring, data explorer, topology, health & self-host. <a href="/watch/v0.3/">Open the watch page</a>.</figcaption>
+  <figcaption>chmonitor v0.3 — launch film. Dashboard, AI agent, query monitoring, data explorer, topology, health & self-host. <a href="/watch/v0-3/">Open the watch page</a>.</figcaption>
 </figure>
 
 v0.3 lands 8 new features, more than 70 fixes, 13 performance wins, and 71 charts.
