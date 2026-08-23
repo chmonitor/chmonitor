@@ -1,0 +1,124 @@
+---
+title: ClickHouse cost optimization checklist
+description: Cut ClickHouse Cloud and self-hosted spend — storage, scanned bytes, query memory, and when not to run OPTIMIZE TABLE. Diagnostic SQL on system.parts and query_log.
+icon: CircleDollarSign
+---
+
+ClickHouse query optimization is about latency. **Cost optimization** is about the bill: bytes you keep, bytes you scan, CPU you burn on merges, and memory you force the server to hold. Those are the same `system.parts` and `system.query_log` rows you already have — you just look at them as money.
+
+This is a checklist, not a second copy of the [query optimization pillar](/guide/guides/clickhouse-query-optimization). When a row says "fix the schema," follow that link.
+
+## What actually drives the bill
+
+| Lever | Cloud-shaped cost | Self-hosted-shaped cost |
+|---|---|---|
+| Compressed bytes on disk | Storage $ | Disk / object-store $ |
+| Bytes and rows read per query | Compute / CUs | CPU + cache eviction |
+| Peak query memory, spills to disk | Bigger nodes, longer queries | OOM risk + extra I/O |
+| Background merges and `OPTIMIZE FINAL` | Hidden CPU | Merge backlog, insert stalls |
+
+If you only watch wall-clock latency, a cheap-looking dashboard query that scans 400 GB every minute still wins the invoice.
+
+## Storage checklist
+
+Largest tables, compression, and tiny-part tax:
+
+```sql
+SELECT
+    database,
+    table,
+    formatReadableSize(sum(bytes_on_disk)) AS on_disk,
+    round(sum(data_uncompressed_bytes) / nullIf(sum(data_compressed_bytes), 0), 2) AS uncomp_to_comp,
+    count() AS active_parts,
+    uniq(partition) AS partitions
+FROM system.parts
+WHERE active
+GROUP BY database, table
+ORDER BY sum(bytes_on_disk) DESC
+LIMIT 30;
+```
+
+- **Huge on-disk + terrible compression** — wrong codecs, nested JSON as String, or you never drop old partitions (TTL).
+- **Hundreds of tiny active parts** — merge CPU forever. That is not fixed by a nightly `OPTIMIZE TABLE … FINAL`. See [too many parts](/guide/guides/too-many-parts).
+- **Projections, materialized views, skip indices you never query** — they still write and store. Inventory them before you add another.
+
+Table size in the UI: [Tables](/guide/features/tables).
+
+## Query CPU and memory checklist
+
+Last-day cost by normalized query:
+
+```sql
+SELECT
+    normalizedQueryHash(query) AS qh,
+    any(query) AS sample,
+    count() AS runs,
+    formatReadableSize(sum(read_bytes)) AS bytes_read,
+    formatReadableQuantity(sum(read_rows)) AS rows_read,
+    round(avg(query_duration_ms)) AS avg_ms,
+    formatReadableSize(max(memory_usage)) AS peak_mem
+FROM system.query_log
+WHERE type = 'QueryFinish'
+  AND event_time > now() - INTERVAL 1 DAY
+  AND query_kind = 'Select'
+GROUP BY qh
+ORDER BY sum(read_bytes) DESC
+LIMIT 20;
+```
+
+Spill is a **cost smell**, not a feature to celebrate. If `ProfileEvents['ExternalAggregationWrittenRows']` is nonzero, you paid disk I/O to survive a hash table that didn't fit. Fix cardinality / `GROUP BY` first; then see [external GROUP BY](/guide/guides/external-group-by) and [MEMORY_LIMIT_EXCEEDED](/guide/guides/memory-limit-exceeded).
+
+## OPTIMIZE TABLE: when not to run it
+
+`OPTIMIZE TABLE t` asks ClickHouse to merge parts it would merge anyway. `OPTIMIZE TABLE t FINAL` forces a full rewrite of the selected scope.
+
+**Do not:**
+
+- Cron `OPTIMIZE TABLE … FINAL` on large MergeTree tables "to keep things tidy."
+- Use `FINAL` as the fix for too many parts or slow inserts — that is partition and insert-batch design.
+- Run unscoped `FINAL` on terabyte tables during business hours.
+
+**Sometimes yes:**
+
+- One frozen partition after a one-off cleanup on `ReplacingMergeTree`.
+- A small dimension table where a single part is actually the point.
+
+Forced merges steal CPU from queries and inserts. That *is* cost optimization, even if storage barely moves.
+
+## Weekly review order
+
+<Steps>
+<Step>
+### Rank tables by `bytes_on_disk` and part count
+
+Drop or TTL the dead ones before you buy disk.
+</Step>
+<Step>
+### Rank SELECT shapes by `sum(read_bytes)` in `query_log`
+
+A skip index, PREWHERE, or projection on the top two shapes usually beats shrinking a node. Map: [query optimization](/guide/guides/clickhouse-query-optimization).
+</Step>
+<Step>
+### Check merge backlog and OOM (code 241)
+
+Merge storms and memory kills are compute you already paid for. [Merges slower than inserts](/guide/guides/merges-slower-than-inserts), [Health](/guide/features/health).
+</Step>
+<Step>
+### Only then talk about bigger hardware or more Cloud CUs
+
+If the top queries still have to scan raw history, hardware is the expensive way to postpone a projection or MV.
+</Step>
+</Steps>
+
+<Callout type="info" title="chmonitor is the weekly review">
+Tables (size, parts), Queries (bytes, duration, memory), Health (OOM, merge backlog), and the AI agent ("what is costing us CPU?") run the same SQL. It recommends DDL; it never applies it.
+</Callout>
+
+## Related
+
+<Cards>
+<Card title="ClickHouse query optimization" href="/guide/guides/clickhouse-query-optimization" description="The six performance root causes this checklist defers to." />
+<Card title="Too many parts" href="/guide/guides/too-many-parts" description="Tiny parts are a merge-CPU tax, not an OPTIMIZE FINAL job." />
+<Card title="External GROUP BY" href="/guide/guides/external-group-by" description="Spill-to-disk as a last resort after you cut cardinality." />
+<Card title="Tables" href="/guide/features/tables" description="Storage, parts, and table size without writing the inventory SQL." />
+</Cards>

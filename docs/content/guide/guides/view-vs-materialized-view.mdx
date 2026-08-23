@@ -1,0 +1,112 @@
+---
+title: "ClickHouse VIEW vs materialized view vs projection"
+description: Ordinary VIEW vs MATERIALIZED VIEW vs projections — storage, when data is computed, query rewrite, JOINs, and which to pick. CH-specific answer to "view vs materialized view."
+icon: Layers
+---
+
+"View vs materialized view" is a SQL-engine question. In ClickHouse you have a **third** option — a **projection** — and mixing the three is how people ship a "view" that either does nothing for performance or doubles write amplification.
+
+Deep MV vs projection trade-offs live in [projections vs materialized views](/guide/guides/projections-vs-materialized-views). This page is the vocabulary and the picker.
+
+## Three different things people call "views"
+
+| | Ordinary `VIEW` | `MATERIALIZED VIEW` | Projection |
+|---|---|---|---|
+| What it is | Saved `SELECT` (alias) | Insert trigger (or refreshable job) into a **target table** | Alternate physical layout **inside the same table** |
+| Storage | None | Full extra table | Extra data in the source table's parts |
+| When computed | Every read | On insert (incremental) or on refresh | On insert / part merge; backfill with `MATERIALIZE PROJECTION` |
+| Who you query | The view name | Usually the **target**, not the MV object | The **source table** — optimizer may pick the projection |
+| JOINs in the definition | Yes | Yes | No (single-table) |
+| Speeds queries up? | **No** | Yes, if you query the target | Yes, if EXPLAIN shows it fired |
+
+## Ordinary VIEW: when it's enough
+
+Use a `VIEW` to stabilize an API, hide columns, or reuse a join you are happy to pay for on every read.
+
+```sql
+CREATE VIEW analytics.events_public AS
+SELECT event_time, user_id, event_type
+FROM analytics.events
+WHERE event_type != 'debug';
+```
+
+`EXPLAIN` on a query through the view should look like the same granules as querying the base table. If you created a view *because the dashboard was slow*, you have not optimized anything — see [skip indices](/guide/guides/skip-indices-guide) or the MV/projection path.
+
+## MATERIALIZED VIEW: stored results
+
+A classic MV is not a cache sitting on the view. It is a trigger: each insert into the source also inserts into a destination table (often `SummingMergeTree` / `AggregatingMergeTree`).
+
+```sql
+CREATE TABLE analytics.events_by_day
+(
+    d Date,
+    event_type LowCardinality(String),
+    c UInt64
+)
+ENGINE = SummingMergeTree
+ORDER BY (event_type, d);
+
+CREATE MATERIALIZED VIEW analytics.events_by_day_mv
+TO analytics.events_by_day
+AS
+SELECT toDate(event_time) AS d, event_type, count() AS c
+FROM analytics.events
+GROUP BY d, event_type;
+```
+
+You query `events_by_day`, not the MV name. JOINs and WHERE in the MV SQL are allowed. Lifecycle is decoupled: you can TTL the rollup harder than the raw log.
+
+Refreshable materialized views (newer ClickHouse) recompute on a schedule instead of piggybacking every insert — useful when the source is not an append-only MergeTree stream.
+
+## Projection: transparent acceleration
+
+A projection is another sort / aggregate stored next to the table. You keep querying `analytics.events`. If the query matches, ClickHouse reads the projection.
+
+No JOIN in the projection. You cannot point a BI tool at a separate rollup table unless you also query that table. Empty projections (defined, never materialized) waste hope, not disk — check `system.projection_parts`.
+
+Full decision matrix, write amplification, and EXPLAIN proof: [projections vs materialized views](/guide/guides/projections-vs-materialized-views).
+
+## Quick picker
+
+<Steps>
+<Step>
+### Just an alias or a permission boundary?
+
+Ordinary `VIEW`. Stop here.
+</Step>
+<Step>
+### Need a JOIN, a different TTL, or a table other tools already query by name?
+
+Materialized view (incremental or refreshable) into an explicit target.
+</Step>
+<Step>
+### Same table, same filters, want the optimizer to pick a better layout?
+
+Projection — then verify with `EXPLAIN`.
+</Step>
+</Steps>
+
+## Inventory SQL
+
+```sql
+SELECT database, name, engine
+FROM system.tables
+WHERE engine IN ('View', 'MaterializedView')
+ORDER BY engine, database, name;
+
+SELECT database, table, name
+FROM system.projections
+ORDER BY database, table, name;
+```
+
+<Callout type="info" title="See them in chmonitor">
+The Tables pages list projections and storage; the query-optimization agent will recommend a projection or MV from slow `query_log` shapes. It never runs the DDL for you.
+</Callout>
+
+## Related
+
+<Cards>
+<Card title="Projections vs materialized views" href="/guide/guides/projections-vs-materialized-views" description="Storage, query rewrite, JOINs, and write amplification — the deep dive." />
+<Card title="ClickHouse query optimization" href="/guide/guides/clickhouse-query-optimization" description="Where views sit among the six slow-query causes." />
+<Card title="Skip indices" href="/guide/guides/skip-indices-guide" description="Pruning granules is not a view — use it when you filter, not when you roll up." />
+</Cards>

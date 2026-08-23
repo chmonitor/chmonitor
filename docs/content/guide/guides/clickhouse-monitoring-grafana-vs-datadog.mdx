@@ -1,0 +1,73 @@
+---
+title: "ClickHouse monitoring: Grafana vs Datadog vs a dedicated dashboard"
+description: How Grafana, Datadog, and a ClickHouse-native dashboard differ for query, storage, and cluster monitoring — and when to use each (or all three).
+icon: ChartLine
+---
+
+"ClickHouse vs Datadog" and "ClickHouse vs Grafana" are slightly the wrong questions. Datadog is a full-stack observability platform. Grafana is a visualization layer. ClickHouse is the database. The useful comparison is **how you monitor ClickHouse**: agent metrics, DIY SQL panels, or a dashboard that already speaks `system.query_log`, `system.parts`, and `system.replicas`.
+
+## Three different jobs
+
+| | Datadog | Grafana | chmonitor |
+|---|---|---|---|
+| Primary job | APM, infra, logs, incidents | Multi-source dashboards | ClickHouse operational monitoring |
+| How it sees CH | Agent (and DBM Preview) | ClickHouse plugin and/or Prometheus | Direct `SELECT` on `system.*` |
+| Agents on CH nodes | Typical | Optional | No |
+| Merges / parts / replicas UI | Integration / DBM metrics | You write the panels | Built-in pages |
+| Multi-datasource wall | Strong | Strongest | ClickHouse-only by design |
+
+## Does Datadog use ClickHouse?
+
+Two separate facts get mixed in search:
+
+1. **Datadog monitors ClickHouse** — the Agent integration plus Database Monitoring (Preview) for query samples, explain-ish views, parts and merges.
+2. **Datadog can send observability data into ClickHouse** — for example routing logs through Observability Pipelines. That is Datadog *as a producer* into CH, not "Datadog is built on ClickHouse."
+
+Neither replaces a native ops UI if your on-call is "why is this MergeTree exploding."
+
+## What each is good at
+
+**Datadog** — ClickHouse is one service among Kubernetes, Kafka, and app traces. You want correlation, org-wide SLOs, and an incident product. You already pay for Datadog.
+
+**Grafana** — You already have Prometheus, Loki, and a wall of panels. The [official ClickHouse data source](https://grafana.com/docs/plugins/grafana-clickhouse-datasource/) (or Altinity's) can chart the same system tables. Great for custom boards; you own the SQL and the refresh load.
+
+**chmonitor** — Running and slow queries, table size and parts, merge backlog, replication lag, storage, health, plus an [AI agent](/guide/ai-agent) and [MCP server](/guide/features/mcp) over those tables. Five-minute Docker/Helm, no per-node agent.
+
+## Performance and storage monitoring, concretely
+
+| Workflow | Grafana | Datadog | chmonitor |
+|---|---|---|---|
+| Slow queries from `query_log` | SQL panel | DBM / query metrics | Queries pages |
+| Too many parts / table size | SQL panel | Integration metrics | Tables |
+| Merge backlog | SQL panel | Integration / DBM | Operations / Health |
+| Replication lag | SQL panel | Host/replica metrics | Cluster / replicas |
+| "What should I change?" | You | You + platform AI | Ranked recommendations, you apply DDL |
+
+Copy-paste Grafana SQL that matches chmonitor's queries: [Grafana bridge](/reference/grafana-bridge).
+
+## When Grafana still makes sense
+
+You standardized on Grafana. You need one glass for Prom + logs + ClickHouse **application** data, not only `system.*`. You like building panels. **Run Grafana and chmonitor together** — same cluster, separate read-only users (`GRANT SELECT ON system.*`). Grafana is not "vs ClickHouse"; it visualizes it.
+
+## When Datadog still makes sense
+
+ClickHouse is not the only thing that pages you. You need traces, log search, and escalation in one vendor. Keep Datadog for the fleet; put a dedicated dashboard on the cluster if merge/part/query drills are where the CH on-call actually lives.
+
+## When a dedicated ClickHouse dashboard wins
+
+CH-heavy, self-hosted or cost-sensitive teams. You want version-aware system-table SQL without maintaining a JSON dashboard pack. You want MCP so another agent can ask "what's the replication lag" without scraping Prometheus.
+
+<Callout type="info" title="Suggested stacks">
+**Grafana + chmonitor** — wall + CH ops. **Datadog + chmonitor** — APM + CH ops. **chmonitor alone** — ClickHouse is the product you run. None of these require ripping the other out.
+</Callout>
+
+Marketing-length matrices: [chmonitor vs Datadog](https://chmonitor.dev/vs-datadog), [vs Grafana](https://chmonitor.dev/vs-grafana). Demo: [dash.chmonitor.dev](https://dash.chmonitor.dev).
+
+## Related
+
+<Cards>
+<Card title="Grafana bridge" href="/reference/grafana-bridge" description="ClickHouse plugin setup and copy-paste system-table panels." />
+<Card title="ch-ui vs chmonitor" href="/guide/guides/ch-ui-vs-chmonitor" description="SQL workspace vs ops dashboard — different from Grafana too." />
+<Card title="Queries" href="/guide/features/queries" description="Live, slow, and failed queries without writing a panel." />
+<Card title="Deploy with Docker" href="/operate/deploy/docker" description="Dedicated dashboard in one compose file." />
+</Cards>

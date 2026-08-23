@@ -1,0 +1,110 @@
+---
+title: "ClickHouse GRANT syntax: CREATE vs CREATE TABLE"
+description: The GRANT CREATE ON my_db.* vs GRANT CREATE TABLE form, ON CLUSTER, SHOW GRANTS, and least-privilege recipes for app vs monitoring users.
+icon: KeyRound
+---
+
+People paste `"GRANT CREATE ON my_db.* TO"` into a search box because ClickHouse privilege names look like SQL keywords and they are *not* interchangeable. This page is the cheat sheet: correct syntax, what `CREATE` actually includes, how `ON CLUSTER` works, and why a monitoring dashboard should almost never get `CREATE` at all.
+
+## Correct GRANT syntax
+
+The current form is:
+
+```sql
+GRANT [ON CLUSTER cluster_name]
+  privilege [,...]
+  ON {db.table | db.* | *.*}
+  TO {user | role} [,...]
+  [WITH GRANT OPTION];
+```
+
+`SHOW GRANTS FOR some_user;` is the verification step. Add `WITH IMPLICIT` if you want grants ClickHouse infers (for example `system.one`). Add `FINAL` if the user inherits roles and you want the merged set.
+
+```sql
+SHOW GRANTS FOR app_writer;
+SHOW GRANTS FOR monitoring WITH IMPLICIT;
+SHOW GRANTS FOR monitoring FINAL;
+```
+
+## CREATE vs CREATE TABLE vs CREATE TEMPORARY TABLE
+
+| Privilege | Scope you should use | What it actually allows |
+|---|---|---|
+| `CREATE` | `my_db.*` or `*.*` | **Group** privilege: `CREATE DATABASE`, `CREATE TABLE`, `CREATE VIEW`, `CREATE DICTIONARY`, and related create rights |
+| `CREATE TABLE` | `my_db.*` | Persistent tables (and attach) in that database. Dropping still needs `DROP` / `DROP TABLE` |
+| `CREATE TEMPORARY TABLE` | **`*.*` only** (global) | Session temp tables. Not the same as creating a real table in `my_db` |
+
+So both of these are *valid* ClickHouse:
+
+```sql
+GRANT CREATE ON my_db.* TO app_writer;
+GRANT CREATE TABLE ON my_db.* TO app_writer;
+```
+
+The first is the one people copy from blogs. It is broader than most apps need. Prefer `CREATE TABLE` (and `INSERT` / `SELECT` on the tables the app actually owns) unless the service must create databases, views, and dictionaries too.
+
+`CREATE TEMPORARY TABLE` does **not** belong on `my_db.*`:
+
+```sql
+-- Right
+GRANT CREATE TEMPORARY TABLE ON *.* TO monitoring;
+
+-- Wrong shape for this privilege
+-- GRANT CREATE TEMPORARY TABLE ON my_db.* TO monitoring;
+```
+
+## Common mistakes behind those quoted searches
+
+- **You wanted SELECT.** `GRANT CREATE ON my_db.*` does not let a dashboard read `system.query_log`. It lets someone create objects. Monitoring starts with `GRANT SELECT ON system.*`.
+- **You wanted a temp table for a query plan**, not DDL. That's `CREATE TEMPORARY TABLE ON *.*`.
+- **You expected DROP to come free.** It doesn't. Grant `DROP TABLE` separately, and only if the app should be allowed to destroy tables.
+- **You granted `CREATE` to the same user the UI uses.** Anyone who can open the dashboard then has DDL. Don't.
+
+## ON CLUSTER — two different meanings
+
+**1. Fan the GRANT itself out to every replica** (SQL access storage that is *not* replicated through Keeper):
+
+```sql
+GRANT ON CLUSTER '{cluster}' SELECT ON system.* TO monitoring;
+GRANT ON CLUSTER '{cluster}' CREATE TEMPORARY TABLE ON *.* TO monitoring;
+```
+
+**2. Let a user run DDL with `ON CLUSTER`** — a separate `CLUSTER` privilege:
+
+```sql
+GRANT CLUSTER ON *.* TO ddl_admin;
+```
+
+If `on_cluster_queries_require_cluster_grant` is on, missing `CLUSTER` fails even when the user can `CREATE TABLE` on one node.
+
+If access entities are already replicated via Keeper, prefer granting once *without* `ON CLUSTER`. Double-applying replicated RBAC is a common "user already exists" / duplicate grant mess.
+
+## Least privilege: app writer vs monitoring user
+
+**App writer** (owns `my_db`):
+
+```sql
+GRANT SELECT, INSERT, CREATE TABLE ON my_db.* TO app_writer;
+-- add ALTER / DROP TABLE only if the app must migrate or drop
+```
+
+**Monitoring user** (chmonitor, Grafana ClickHouse plugin, any ops UI):
+
+```sql
+GRANT SELECT ON system.* TO monitoring;
+GRANT CREATE TEMPORARY TABLE ON *.* TO monitoring; -- optional, some merge-aware queries
+```
+
+Never hand the dashboard `CREATE`, `INSERT`, `ALTER`, `DROP`, or `SYSTEM` on application databases. Optional action grants (`KILL QUERY`, `OPTIMIZE`) are a separate, explicit choice — see [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements).
+
+<Callout type="info" title="chmonitor is read-only by default">
+The official recipes grant `SELECT ON system.*` plus optional `CREATE TEMPORARY TABLE`. They do not grant `CREATE` or `CREATE TABLE` on `my_db.*`. Copy the GrantBuilder on the requirements page instead of widening privileges "just in case."
+</Callout>
+
+## Related
+
+<Cards>
+<Card title="ClickHouse user & grants" href="/guide/getting-started/clickhouse-requirements" description="Copy-paste SQL/XML for read-only, Explorer, and action users." />
+<Card title="Least-privilege connection presets" href="/reference/connection-presets" description="Profiles and SHOW GRANTS checks for the dashboard user." />
+<Card title="Grafana bridge" href="/reference/grafana-bridge" description="Same SELECT ON system.* pattern if Grafana panels share the cluster." />
+</Cards>

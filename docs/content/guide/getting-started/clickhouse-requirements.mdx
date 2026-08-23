@@ -4,7 +4,7 @@ description: Create a minimal read-only ClickHouse user for chmonitor, with opti
 icon: ListChecks
 ---
 
-chmonitor needs a ClickHouse user with at minimum `SELECT` on `system.*`. Do not use an admin account for a shared dashboard.
+chmonitor needs a ClickHouse user with at minimum `SELECT` on `system.*`. Do not use an admin account for a shared dashboard. For `GRANT CREATE ON my_db.*` vs `GRANT CREATE TABLE`, `ON CLUSTER`, and `SHOW GRANTS`, see [ClickHouse GRANT syntax](/guide/guides/clickhouse-grant-syntax).
 
 <Callout type="info" title="Connecting a firewalled ClickHouse to Cloud?">
 If your ClickHouse is behind a firewall and you use the hosted Cloud, see

@@ -1,0 +1,66 @@
+---
+title: ClickHouse vs Apache Druid vs Apache Pinot
+description: Honest OLAP comparison — query model, ingestion, ops complexity, and when each wins. If you already run ClickHouse, you still need query, storage, and replication monitoring.
+icon: GitCompare
+---
+
+Apache Pinot vs Druid vs ClickHouse is a real-time OLAP shortlist, not a monitoring-tool shortlist. chmonitor does not sell you a database. This page is the engine comparison people search, then the part that actually belongs here: **if you already picked ClickHouse, you still have to watch it.**
+
+## Three engines, three bets
+
+Same rough job — sub-second analytics on large event streams — different assumptions.
+
+| | ClickHouse | Apache Druid | Apache Pinot |
+|---|---|---|---|
+| Query model | Full SQL (JOINs, CTEs, windows); vectorized scans | Druid SQL; filter × time × dimensions | Pinot SQL; denormalized tables + rich indexes / star-tree |
+| Ingestion | Batch INSERT; Kafka engine / pipes ≈ seconds | Native Kafka/Kinesis; real-time tasks → segments | Native stream + offline hybrid; strong freshness, upserts |
+| Ops | One binary to start; Keeper + parts/replication when clustered | Many roles + metadata DB + deep storage | Controller / broker / server / minion + ZooKeeper |
+| Typical win | Ad-hoc SQL, logs, internal BI, scan throughput | Known-dimension time-series dashboards, ingest rollup | User-facing product analytics, high QPS p99 |
+
+Origins, for orientation: Druid (Metamarkets, Java), Pinot (LinkedIn, Java), ClickHouse (Yandex, C++, open-sourced 2016). All columnar, all scale out, all have a Kafka-era path. The difference is architecture and workload fit.
+
+## Ingestion and freshness
+
+Pinot and Druid grew up pulling streams into segments with a real-time story as a first-class path. ClickHouse is still **batch-honest**: you insert, parts merge in the background. Kafka table engine and managed pipes get you near-real-time (often a few seconds), which is enough for most internal analytics and a lot of product analytics.
+
+If the product requirement is "the UI never shows an event older than 1–2 seconds at 100k QPS," Pinot's hybrid segments are the design center. If the requirement is "rollup at ingest so yesterday's dashboards stay cheap," Druid's ingest-time rollup is the design center.
+
+## Query latency and concurrency
+
+- **Pinot** — inverted / sorted / range / text / JSON indexes and star-tree indexes. Built for many concurrent, similar queries (user-facing). Public LinkedIn-scale numbers are impressive; your cluster will not match them without that shape of query and ops investment.
+- **Druid** — pre-aggregation and bitmaps make fixed dashboard queries cheap. Raw-event drill-down and late schema changes are weaker unless you keep a raw store.
+- **ClickHouse** — broadest SQL of the three. Excellent at heavy scans and compression. The concurrency model prefers fewer heavier queries over thousands of tiny pointy lookups unless you add projections, MVs, and careful `ORDER BY`.
+
+ClickBench-style suites often favor ClickHouse on diverse ad-hoc scans. That does not mean Pinot or Druid "lose" on the workload they were built for. Benchmark the shape you ship.
+
+**Joins:** ClickHouse is the practical choice for multi-table ad-hoc joins. Druid is mostly lookups. Pinot joins are limited — denormalize first.
+
+## Operational complexity
+
+ClickHouse is the simplest to stand up. You then pay in **parts, merges, and replication** — the classic production failure modes.
+
+Pinot adds multi-role JVM services and ZooKeeper. Druid typically has the most moving parts (coordinator, overlord, broker, historical, middle manager, plus external metadata and deep storage).
+
+Hybrids are normal: Pinot or Druid on the user-facing path, ClickHouse (or a warehouse) for ad-hoc and dumps.
+
+## When each wins
+
+- **User-facing SLA, high QPS, denormalized events** → Pinot.
+- **Fixed-dimension time-series, storage-efficient ingest rollup** → Druid.
+- **Ad-hoc SQL, logs/observability, internal BI, fewer moving parts** → ClickHouse.
+
+## If you already run ClickHouse, you still need monitoring
+
+Picking the engine was half the job. Production ClickHouse fails on slow queries, part storms, merge backlog, disk pressure, and replication lag — not on "we should have used Druid."
+
+**chmonitor** is a ClickHouse monitoring dashboard over `system.*` (queries, tables, merges, cluster health) with an AI agent that recommends fixes and does not apply DDL. It is not a Pinot or Druid console.
+
+[Getting started](/guide/getting-started) · [Query optimization](/guide/guides/clickhouse-query-optimization) · [Cost optimization](/guide/guides/clickhouse-cost-optimization)
+
+## Related
+
+<Cards>
+<Card title="ClickHouse monitoring vs Grafana / Datadog" href="/guide/guides/clickhouse-monitoring-grafana-vs-datadog" description="Ops tooling once you have already chosen ClickHouse." />
+<Card title="Too many parts" href="/guide/guides/too-many-parts" description="The ops tax ClickHouse charges if inserts and partitions are wrong." />
+<Card title="Upgrading ClickHouse" href="/guide/guides/upgrade-clickhouse" description="Version path after you commit to the engine." />
+</Cards>
