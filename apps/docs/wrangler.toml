@@ -23,6 +23,12 @@ enabled = true
 [cache]
 enabled = true
 
+# Prerendered HTML is served from Workers Assets before Start middleware.
+# Drop trailing slashes at the asset layer so /guide/ 301s to /guide (GSC
+# "alternate with proper canonical" for slash variants).
+[assets]
+html_handling = "drop-trailing-slash"
+
 [[routes]]
 pattern = "docs.chmonitor.dev"
 custom_domain = true
