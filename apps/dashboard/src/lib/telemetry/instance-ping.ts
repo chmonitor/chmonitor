@@ -11,6 +11,7 @@
 //   - ClickHouse version is truncated to MAJOR.MINOR (e.g. '24.8') so it cannot
 //     be mistaken for an IPv4 address and cannot fingerprint a specific patch release.
 
+import { APP_VERSION } from '@/lib/whats-new/app-version'
 import { isTelemetryEnabled } from './config'
 import {
   detectChFlavor,
@@ -164,7 +165,10 @@ export interface PingDeps {
   /** Deploy target string */
   deployTarget: string
   /** Detect ClickHouse flavor (oss/altinity/cloud/unknown) */
-  detectFlavor: (version: string | null | undefined) => string
+  detectFlavor: (
+    version: string | null | undefined,
+    hostname?: string | null
+  ) => string
   /** Detect country from timezone (privacy-safe) */
   detectCountry: () => string
   /** Detect platform/OS from userAgent (generic categories only) */
@@ -245,7 +249,7 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   }
 
   const instanceHash = await hash(instanceId)
-  const chFlavor = version ? detectFlavor(version) : undefined
+  const chFlavor = detectFlavor(version, deps.chHostname)
   const country = detectCountry()
   const platform = detectPlatform()
   const installPlace = await computeInstallPlace()
@@ -384,8 +388,9 @@ export function maybePingInstance(
     detectFlavor: detectChFlavor,
     detectCountry: detectCountry,
     detectPlatform: detectPlatform,
-    // CHM product version from the build-time env var
-    chmVersion: import.meta.env.VITE_GIT_REF?.replace(/^v/, '') || undefined,
+    // Product version from package.json (semver). Git refs are not accepted
+    // by the collector and were stored as empty chm_version.
+    chmVersion: APP_VERSION.replace(/^v/, '') || undefined,
     licenseKey: getLicenseKey(runtimeEnv),
     resolveLicenseKey: fetchRuntimeLicenseKey,
     computeInstallPlace: async () => {

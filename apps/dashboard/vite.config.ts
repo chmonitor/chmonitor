@@ -186,7 +186,7 @@ const CLIENT_ENV = {
   VITE_DO_NOT_TRACK: e.VITE_DO_NOT_TRACK ?? e.DO_NOT_TRACK ?? '',
   // Deployment target (docker | helm | cf | dev | unknown). Set in CI build
   // steps so telemetry can distinguish deployment environments.
-  VITE_DEPLOY_TARGET: e.VITE_DEPLOY_TARGET ?? 'unknown',
+  VITE_DEPLOY_TARGET: e.VITE_DEPLOY_TARGET ?? e.CHM_DEPLOY_TARGET ?? '',
   // Collection endpoint for the daily instance ping. Defaults to the project
   // collector (must match DEFAULT_TELEMETRY_ENDPOINT in lib/telemetry/instance-ping.ts);
   // set to a different URL to self-host, or to '' as a hard no-network kill-switch.

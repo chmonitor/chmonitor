@@ -190,7 +190,28 @@ export default {
       const day = new Date().toISOString().slice(0, 10)
       ctx.waitUntil(
         env.CHM_TELEMETRY_DB.prepare(
-          'INSERT OR IGNORE INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place, license_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          `INSERT INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place, license_key)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(day, instance_hash) DO UPDATE SET
+             deploy_target = CASE
+               WHEN ping_daily.deploy_target IN ('unknown', '')
+                 AND excluded.deploy_target NOT IN ('unknown', '')
+               THEN excluded.deploy_target ELSE ping_daily.deploy_target END,
+             ch_version = COALESCE(NULLIF(ping_daily.ch_version, ''), excluded.ch_version),
+             ch_flavor = CASE
+               WHEN COALESCE(ping_daily.ch_flavor, 'unknown') IN ('unknown', '')
+                 AND COALESCE(excluded.ch_flavor, 'unknown') NOT IN ('unknown', '')
+               THEN excluded.ch_flavor
+               ELSE COALESCE(NULLIF(ping_daily.ch_flavor, ''), excluded.ch_flavor) END,
+             country = CASE
+               WHEN COALESCE(ping_daily.country, 'unknown') IN ('unknown', '')
+               THEN excluded.country ELSE ping_daily.country END,
+             platform = CASE
+               WHEN COALESCE(ping_daily.platform, 'unknown') IN ('unknown', '')
+               THEN excluded.platform ELSE ping_daily.platform END,
+             chm_version = COALESCE(NULLIF(ping_daily.chm_version, ''), excluded.chm_version),
+             install_place = COALESCE(NULLIF(ping_daily.install_place, ''), excluded.install_place),
+             license_key = COALESCE(NULLIF(ping_daily.license_key, ''), excluded.license_key)`
         )
           .bind(
             day,
