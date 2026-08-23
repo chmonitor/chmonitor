@@ -114,8 +114,10 @@ pnpm run deploy            # production → telemetry.chmonitor.dev
 pnpm run deploy:preview    # preview    → preview.telemetry.chmonitor.dev
 ```
 
-No secrets required. The D1 database is created on first deploy.
-CI deploys this automatically on push to `main` (see `.github/workflows/cloudflare.yml`).
+No secrets required. Production and `wrangler deploy --env preview` both bind
+the same D1 database (`chm_telemetry`) so preview.telemetry.chmonitor.dev
+reads live aggregate stats. CI deploys this automatically on push to `main`
+(see `.github/workflows/cloudflare.yml`).
 
 ## Querying (active installs, by version / deploy target)
 

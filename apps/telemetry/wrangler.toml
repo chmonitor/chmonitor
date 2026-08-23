@@ -48,6 +48,16 @@ custom_domain = true
 [env.preview]
 name = "preview-chmonitor-telemetry"
 
+# Same D1 as production — preview is a Worker deploy of the page/API, not a
+# separate empty database. Without this binding GET /v1/summary returns 503
+# (`enabled: false`) because env-specific configs do not inherit top-level
+# [[d1_databases]].
+[[env.preview.d1_databases]]
+binding = "CHM_TELEMETRY_DB"
+database_name = "chm_telemetry"
+database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
+migrations_dir = "migrations"
+
 [[env.preview.routes]]
 pattern = "preview.telemetry.chmonitor.dev"
 custom_domain = true
