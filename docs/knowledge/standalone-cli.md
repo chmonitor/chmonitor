@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-08-21
+updated: 2026-08-23
 tags:
   - rust
   - cli
@@ -95,6 +95,17 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- chart query-count --
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --limit 30
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- table running-queries --explain
 cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
+```
+
+## CI report (size / time)
+
+`.github/workflows/cli-report.yml` builds **only** `-p chmonitor` on rust
+PRs (including the rolling release-please CLI PR). It posts one sticky
+comment (`header: cli-build-report`) and recreates it on each push so only
+the latest numbers stay. Local:
+
+```bash
+bash scripts/cli-build-report.sh
 ```
 
 ## TUI (`chm` / `chm tui`)
