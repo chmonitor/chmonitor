@@ -47,7 +47,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <AppSidebar />
           <SidebarInset className="min-w-0 overflow-hidden">
             <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
-              <div className="flex min-w-0 flex-1 items-center gap-2 px-4 pt-3 sm:pt-0">
+              <div className="flex min-w-0 flex-1 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0">
                 <SidebarTrigger className="-ml-1 size-11 lg:size-7" />
                 <Separator orientation="vertical" className="h-4" />
                 <Suspense fallback={<Skeleton className="h-4 w-32" />}>
@@ -56,7 +56,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
               {/* scrollbar-hide: stays swipe-scrollable on narrow viewports
                 without a visible scrollbar under the header controls. */}
-              <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-4 pb-3 sm:ml-auto sm:w-auto sm:overflow-visible sm:pb-0">
+              <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-3 pb-2 sm:ml-auto sm:w-auto sm:overflow-visible sm:px-4 sm:pb-0">
                 <HeaderActions />
               </div>
             </header>

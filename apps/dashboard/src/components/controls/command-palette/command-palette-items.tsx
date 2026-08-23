@@ -126,7 +126,7 @@ export function CommandPaletteTabs({
     <div
       role="tablist"
       aria-label="Search category"
-      className="scrollbar-hide flex w-full min-w-0 overflow-x-auto border-b px-2"
+      className="scrollbar-hide flex w-full min-w-0 gap-1 overflow-x-auto border-b px-3 pt-1.5"
     >
       {PALETTE_TABS.map((tab) => {
         const Icon = tab.icon
@@ -139,7 +139,7 @@ export function CommandPaletteTabs({
             aria-selected={active}
             onClick={() => onChange(tab.value)}
             className={cn(
-              'inline-flex h-8 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+              'inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-3 text-[13px] font-medium whitespace-nowrap transition-colors',
               active
                 ? 'border-foreground text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -365,13 +365,17 @@ export function CommandPaletteResults({
 
       {showPages &&
         sectionedItems.map((group) => (
-          <CommandGroup key={group.title} heading={group.title}>
+          <CommandGroup
+            key={group.title}
+            heading={group.title}
+            className="[&_[cmdk-group-items]]:ml-3 [&_[cmdk-group-items]]:border-l [&_[cmdk-group-items]]:border-border [&_[cmdk-group-items]]:pl-2.5"
+          >
             {group.items?.map((item) => (
               <CommandItem
                 key={item.href}
                 onSelect={() => onSelectMenuItem(item)}
                 value={menuItemPaletteValue(item, group.title)}
-                className="group ml-1 flex-col items-start gap-0.5 border-l border-border py-2 pl-3"
+                className="group flex-col items-start gap-0.5 rounded-md"
               >
                 <div className="flex w-full items-center gap-2">
                   {item.icon && <item.icon className="size-4 shrink-0" />}

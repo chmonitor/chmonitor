@@ -52,7 +52,7 @@ export function SettingsDialog({
         />
       )}
       <DialogContent
-        className="flex h-[min(36rem,85vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 select-text sm:max-w-3xl"
+        className="flex h-[min(42rem,90vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 select-text sm:max-w-4xl"
         data-testid="settings-dialog"
       >
         <DialogHeader className="sr-only">

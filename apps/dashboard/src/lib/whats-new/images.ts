@@ -1,3 +1,5 @@
+import type { ReleaseNote, ReleaseNoteScreenshot } from './types'
+
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(([^)]+)\)/g
 
 export const IMAGE_RE = /!\[[^\]]*\]\([^)]+\)/
@@ -13,4 +15,28 @@ export function extractMarkdownImages(
     match = re.exec(markdown)
   }
   return images
+}
+
+/**
+ * Unique screenshots for a release: frontmatter list first, then markdown
+ * images not already listed. Empty `src` is dropped.
+ */
+export function collectReleaseScreenshots(
+  note: Pick<ReleaseNote, 'markdown' | 'screenshots'>
+): ReleaseNoteScreenshot[] {
+  const seen = new Set<string>()
+  const shots: ReleaseNoteScreenshot[] = []
+  const push = (src: string, alt: string) => {
+    const trimmed = src.trim()
+    if (!trimmed || seen.has(trimmed)) return
+    seen.add(trimmed)
+    shots.push({ src: trimmed, alt: alt.trim() })
+  }
+  for (const shot of note.screenshots ?? []) {
+    push(shot.src, shot.alt)
+  }
+  for (const image of extractMarkdownImages(note.markdown)) {
+    push(image.url, image.alt)
+  }
+  return shots
 }
