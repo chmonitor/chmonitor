@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>chm TUI — layout options</title>
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --bg2: #121215;
+    --card: #17171b;
+    --card2: #1c1c21;
+    --border: #2a2a31;
+    --border2: #36363f;
+    --fg: #ececef;
+    --muted: #8b8b96;
+    --muted2: #6a6a75;
+    --orange: #f97316;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --blue: #7aa2c0;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --term-bg: #0b0c0f;
+    --term-fg: #d4d4d8;
+    --term-dim: #71717a;
+    --term-border: #3f3f46;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); }
+  button, select { font: inherit; color: inherit; }
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .topbar h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  .topbar h1 span { color: var(--muted); font-weight: 500; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 53px); }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+  .sidebar { border-right: 1px solid var(--border); background: var(--bg2); padding: 16px; }
+  .sidebar h2 {
+    margin: 0 0 8px; font-size: 10.5px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .sidebar section { margin-bottom: 20px; }
+  .opt {
+    display: block; width: 100%; text-align: left;
+    border: 1px solid var(--border); background: var(--card);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+  }
+  .opt:hover { border-color: var(--border2); }
+  .opt.selected {
+    border-color: color-mix(in oklab, var(--orange) 55%, var(--border));
+    background: color-mix(in oklab, var(--orange) 10%, var(--card));
+  }
+  .opt .name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .opt .desc { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+  .opt .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tag {
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--muted2);
+  }
+  .tag.good { color: var(--emerald); }
+  .tag.warn { color: var(--amber); }
+  .seg {
+    display: grid; gap: 4px; padding: 3px; border-radius: 9px;
+    border: 1px solid var(--border); background: var(--bg);
+  }
+  .seg.n2 { grid-template-columns: 1fr 1fr; }
+  .seg.n3 { grid-template-columns: 1fr 1fr 1fr; }
+  .seg button {
+    border: 0; background: transparent; border-radius: 6px;
+    height: 28px; font-size: 11.5px; color: var(--muted); cursor: pointer;
+  }
+  .seg button.on { background: var(--card2); color: var(--fg); box-shadow: 0 0 0 1px var(--border); }
+  .pick-box {
+    border: 1px dashed var(--border2); border-radius: 10px; padding: 12px;
+    background: color-mix(in oklab, var(--orange) 6%, var(--card));
+  }
+  .pick-box strong { display: block; font-size: 12.5px; margin-bottom: 4px; }
+  .pick-box p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .btn {
+    margin-top: 10px; border: 1px solid var(--border); background: var(--fg);
+    color: var(--bg); border-radius: 8px; height: 32px; padding: 0 12px;
+    font-size: 12px; font-weight: 600; cursor: pointer; width: 100%;
+  }
+  .main { padding: 18px 20px 64px; overflow: auto; }
+  .hero h2 { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+  .hero p { margin: 0 0 16px; font-size: 13px; color: var(--muted); max-width: 68ch; line-height: 1.5; }
+  .term-wrap { margin: 0 auto; }
+  .term {
+    background: var(--term-bg);
+    border: 1px solid var(--term-border);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--term-fg);
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 8px;
+    height: 32px; padding: 0 12px; border-bottom: 1px solid #27272a;
+    background: #111114; font-size: 11px; color: var(--term-dim);
+  }
+  .dots { display: flex; gap: 5px; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; display: block; background: #333; }
+  .dots i:nth-child(1) { background: #ff5f57; }
+  .dots i:nth-child(2) { background: #febc2e; }
+  .dots i:nth-child(3) { background: #28c840; }
+  .term-body { padding: 8px 10px 10px; white-space: pre; overflow: auto; }
+  .o { color: var(--orange); }
+  .e { color: var(--emerald); }
+  .a { color: var(--amber); }
+  .r { color: var(--rose); }
+  .d { color: var(--term-dim); }
+  .b { color: var(--blue); }
+  .w { color: #fafafa; }
+  .keys {
+    margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;
+  }
+  .key {
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--card);
+    font-size: 12px;
+  }
+  .key kbd {
+    font-family: var(--mono); font-size: 11px; padding: 1px 5px;
+    border: 1px solid var(--border2); border-radius: 4px; color: var(--fg);
+  }
+  .key span { color: var(--muted); }
+  .compare {
+    margin-top: 28px; width: 100%; border-collapse: collapse; font-size: 12.5px;
+  }
+  .compare th, .compare td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top;
+  }
+  .compare th { color: var(--muted); font-weight: 500; font-size: 11px; }
+  .note { margin-top: 18px; font-size: 12.5px; color: var(--muted); max-width: 72ch; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>chm TUI <span>layout options · ratatui · API or ClickHouse</span></h1>
+    <div id="pick-chip" style="font-size:12px;color:var(--muted)">No pick yet</div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <section>
+        <h2>Layout</h2>
+        <button class="opt selected" data-opt="A">
+          <div class="name">A · Overview wall</div>
+          <div class="desc">Evolve today’s TUI. KPI sparks + table. Smallest change.</div>
+          <div class="tags"><span class="tag good">parity</span><span class="tag">low risk</span></div>
+        </button>
+        <button class="opt" data-opt="B">
+          <div class="name">B · k9s navigator</div>
+          <div class="desc">Left rail of hosts and dashboards. Vim-first.</div>
+          <div class="tags"><span class="tag good">many hosts</span><span class="tag warn">needs width</span></div>
+        </button>
+        <button class="opt" data-opt="C">
+          <div class="name">C · Ops cockpit</div>
+          <div class="desc">Health strip + chart splits + queries. Dual-mode default.</div>
+          <div class="tags"><span class="tag good">recommend</span><span class="tag">API + CH</span></div>
+        </button>
+        <button class="opt" data-opt="D">
+          <div class="name">D · Incident first</div>
+          <div class="desc">htop density. Score and findings dominate. SSH-friendly.</div>
+          <div class="tags"><span class="tag good">80×24</span><span class="tag warn">few charts</span></div>
+        </button>
+      </section>
+      <section>
+        <h2>Size</h2>
+        <div class="seg n3" id="size">
+          <button data-v="80x24">80×24</button>
+          <button class="on" data-v="120x40">120×40</button>
+          <button data-v="200x50">200×50</button>
+        </div>
+      </section>
+      <section>
+        <h2>Backend</h2>
+        <div class="seg n2" id="backend">
+          <button class="on" data-v="api">Dashboard API</button>
+          <button data-v="ch">Direct ClickHouse</button>
+        </div>
+      </section>
+      <section>
+        <h2>Cluster</h2>
+        <div class="seg n2" id="health">
+          <button class="on" data-v="ok">Healthy</button>
+          <button data-v="bad">Incident</button>
+        </div>
+      </section>
+      <div class="pick-box">
+        <strong id="pick-title">Option C recommended</strong>
+        <p id="pick-copy">Health strip always on. Charts + queries below. Works for API and --ch-host.</p>
+        <button class="btn" id="choose">Pick this layout</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="hero">
+        <h2 id="hero-title">C · Ops cockpit</h2>
+        <p id="hero-desc">Top health from doctor collectors, mid spark grid, bottom running queries. Connection badge shows API vs CH. Agent (`a`) only when talking to a chmonitor instance.</p>
+      </div>
+      <div class="term-wrap">
+        <div class="term" id="term">
+          <div class="term-bar">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span id="term-title">chm · 120×40 · dashboard API</span>
+          </div>
+          <div class="term-body" id="term-body"></div>
+        </div>
+      </div>
+      <div class="keys" id="keys"></div>
+      <table class="compare">
+        <thead>
+          <tr><th></th><th>A Wall</th><th>B Navigator</th><th>C Cockpit</th><th>D Incident</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Library</td><td colspan="4">ratatui 0.30 + crossterm (keep). No Cursive / iocraft.</td></tr>
+          <tr><td>API mode</td><td>charts + table</td><td>+ saved dashboards rail</td><td>insights strip + charts</td><td>findings from insights API</td></tr>
+          <tr><td>Direct CH</td><td>spark SQL pack</td><td>hosts = CH URLs</td><td>doctor strip + processes</td><td>native (doctor live)</td></tr>
+          <tr><td>80×24</td><td>collapse table</td><td>hide rail</td><td>strip + one chart</td><td>designed for this</td></tr>
+          <tr><td>Change cost</td><td>small</td><td>medium</td><td>medium</td><td>medium</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        After you pick, implementation is: Backend enum (dashboard vs ClickHouse HTTP readonly=2),
+        then the chosen draw layout in <code>rust/ch-monitor-cli/src/tui</code>. Direct mode never mutates.
+        Agent chat stays dashboard-API only.
+      </p>
+    </main>
+  </div>
+<script>
+const COPY = {
+  A: { title: "A · Overview wall", desc: "Closest to today’s chm TUI: header, four spark tiles, running-queries table. Add a connection badge and `c` to switch API vs ClickHouse." },
+  B: { title: "B · k9s navigator", desc: "Left tree: hosts, dashboards, doctor, config. Right pane is the selected view. Rail collapses under 100 columns." },
+  C: { title: "C · Ops cockpit", desc: "Health strip always on (score, replicas, disk, merges). Chart splits in the middle. Queries at the bottom. Best dual-mode default." },
+  D: { title: "D · Incident first", desc: "Score and findings take the screen. One spark row. Built for SSH and `chm --ch-host` with no account." }
+};
+const KEYS = {
+  A: [["q / Esc","quit"],["r","refresh"],["c","connect / backend"],["h l","prev/next host"],["j k","table"],["/","filter"],["a","agent (API)"],["?","help"]],
+  B: [["g","goto palette"],["1-9","rail items"],["h l","collapse rail"],["Enter","open"],["c","connect"],["a","agent (API)"],["q","quit"],["?","help"]],
+  C: [["Tab","cycle panes"],["c","connect"],["1 2 3","charts / queries / doctor"],["j k","rows"],["a","agent (API)"],["r","refresh"],["q","quit"],["?","help"]],
+  D: [["f","findings"],["t","table"],["c","connect"],["n p","next/prev finding"],["r","refresh"],["q","quit"],["?","help"],["a","agent (API only)"]]
+};
+
+const state = {
+  opt: localStorage.getItem("chm-tui-opt") || "C",
+  size: "120x40",
+  backend: "api",
+  health: "ok"
+};
+
+function spark(ok) {
+  return ok ? "▁▂▃▅▇▅▆▄▅▇▆▃▂▄▅" : "▃▅▇█▇▅▃▂▁▂▃▅▇██";
+}
+
+function conn() {
+  if (state.backend === "api") return { badge: "API", where: "dash.chmonitor.dev", host: "prod-0" };
+  return { badge: "CH", where: "http://10.0.1.4:8123", host: "clickhouse" };
+}
+
+function score() {
+  return state.health === "ok"
+    ? { n: 92, g: "A", disk: "61%", running: 4, merges: 1, mut: 0 }
+    : { n: 64, g: "C", disk: "89%", running: 18, merges: 7, mut: 3 };
+}
+
+function findings() {
+  if (state.health === "ok") {
+    return [
+      "·  disk 61%  default",
+      "·  1 merge running"
+    ];
+  }
+  return [
+    "!! replica lag shard2  12m",
+    "!  parts > 300  events.hits",
+    "!  delayed mutations  3",
+    "·  long query  41s  default"
+  ];
+}
+
+function frame(lines, cols) {
+  const w = cols;
+  return lines.map(line => {
+    const plain = line.replace(/<[^>]+>/g, "");
+    if (plain.length >= w) return line;
+    return line + " ".repeat(w - plain.length);
+  }).join("\n");
+}
+
+function drawA(cols) {
+  const c = conn(); const s = score();
+  const live = `<span class="e">●</span> ${c.badge}`;
+  const head = `<span class="o">chm</span>  Overview  ${live}  ${c.where}  host:${c.host}   12s`;
+  const tiles = [
+    `┌ query-count ─────────┐  ┌ running ─────┐  ┌ disk ──────────┐`,
+    `│ <span class="o">${spark(state.health==="ok")}</span>   │  │ <span class="${state.health==="ok"?"e":"r"}">${String(s.running).padStart(3)}</span> queries │  │ ${s.disk} ${state.health==="ok"?"███░░":"████▓"}   │`,
+    `└──────────────────────┘  └──────────────┘  └────────────────┘`
+  ];
+  const table = [
+    `running queries`,
+    `query_id            user      elapsed   memory     query`,
+    `7a2c…               default   1.2s      82 MiB     SELECT count() FROM events`,
+    `b91e…               app       0.4s      12 MiB     INSERT INTO hits`,
+    state.health==="bad" ? `<span class="r">e44f…               etl       41s       1.1 GiB    OPTIMIZE TABLE hits</span>` : `c03a…               monitor   0.1s      4 MiB      SELECT * FROM system.metrics`
+  ];
+  const foot = `<span class="d">q quit  r refresh  c connect  1 overview  2 queries  a agent  ? help</span>`;
+  return [head, "", ...tiles, "", ...table, "", foot];
+}
+
+function drawB(cols) {
+  const c = conn(); const s = score();
+  const rail = state.size === "80x24" ? null : true;
+  if (!rail) return drawA(cols).map((l,i) => i===0 ? l + "  <span class='d'>[rail hidden]</span>" : l);
+  const left = [
+    `┌ hosts ────────┐`,
+    `│<span class="o">▸ ${c.host.padEnd(12)}</span>│`,
+    `│  staging      │`,
+    `│ dashboards    │`,
+    `│  Overview     │`,
+    `│  Queries      │`,
+    `│  Doctor       │`,
+    `│ config        │`,
+    `└───────────────┘`
+  ];
+  const right = [
+    `Overview · ${c.host}  ${c.badge}  score <span class="${s.g==="A"?"e":"a"}">${s.n} ${s.g}</span>`,
+    `┌ charts ─────────────────────────────────┐`,
+    `│ query  ${spark(true)}                     │`,
+    `│ disk   ${s.disk}  running ${s.running}            │`,
+    `└─────────────────────────────────────────┘`,
+    `query_id   user     elapsed  query`,
+    `7a2c…      default  1.2s     SELECT count()`,
+    `<span class="d">g goto  j/k rail  Enter open  c connect  q quit</span>`
+  ];
+  const rows = Math.max(left.length, right.length);
+  const out = [];
+  for (let i = 0; i < rows; i++) {
+    const L = (left[i] || "                 ").padEnd(17);
+    const R = right[i] || "";
+    out.push(L + "  " + R);
+  }
+  return out;
+}
+
+function drawC(cols) {
+  const c = conn(); const s = score();
+  const sc = `<span class="${s.g==="A"?"e":"a"}">score ${s.n} ${s.g}</span>`;
+  const disk = state.health==="ok" ? `<span class="e">disk ${s.disk}</span>` : `<span class="r">disk ${s.disk}</span>`;
+  const strip = `<span class="o">chm</span>  ${sc}  replicas ${state.health==="ok"?"<span class='e'>OK</span>":"<span class='r'>LAG</span>"}  ${disk}  merges ${s.merges}  mut ${s.mut}   [${c.badge} ${c.where}]`;
+  const charts = [
+    `┌ queries/h ────────────┐ ┌ running ────────┐ ┌ disk ─────────────┐`,
+    `│ ${spark(state.health==="ok")}           │ │ ${String(s.running).padStart(2)} processes    │ │ ${s.disk} ${"█".repeat(state.health==="ok"?3:5)}${"░".repeat(state.health==="ok"?2:0)}        │`,
+    `│ last 24h  hourly      │ │ peak 22         │ │ default 1.2 TiB   │`,
+    `└───────────────────────┘ └─────────────────┘ └──────────────────┘`
+  ];
+  const table = [
+    `running queries`,
+    `query_id   user      elapsed  read_rows   query`,
+    `7a2c11aa   default   1.21s    8.2M        SELECT count() FROM events`,
+    `b91e02ff   app       0.40s    120k        INSERT INTO hits`
+  ];
+  if (state.health==="bad") table.push(`<span class="r">e44f9901   etl       41.0s    2.1B        OPTIMIZE TABLE hits FINAL</span>`);
+  const foot = `<span class="d">Tab panes  1 charts  2 queries  3 doctor  c connect  a agent  r refresh  q quit</span>`;
+  return [strip, "", ...charts, "", ...table, "", foot];
+}
+
+function drawD(cols) {
+  const c = conn(); const s = score();
+  const lines = [
+    `<span class="o">chm</span>  ${c.badge} ${c.where}  score <span class="${s.g==="A"?"e":"r"}">${s.n} ${s.g}</span>  ${findings().length} findings`,
+    "",
+    ...findings().map(f => f.startsWith("!!") ? `<span class="r">${f}</span>` : f.startsWith("!") ? `<span class="a">${f}</span>` : `<span class="d">${f}</span>`),
+    "",
+    `query ${spark(state.health==="ok")}   running ${s.running}   disk ${s.disk}`,
+    "",
+    `<span class="d">f findings  t table  c connect  r refresh  q quit  ? help</span>`
+  ];
+  return lines;
+}
+
+function cols() {
+  return Number(state.size.split("x")[0]);
+}
+
+function render() {
+  document.querySelectorAll(".opt").forEach(el => {
+    el.classList.toggle("selected", el.dataset.opt === state.opt);
+  });
+  document.querySelectorAll("#size button").forEach(b => b.classList.toggle("on", b.dataset.v === state.size));
+  document.querySelectorAll("#backend button").forEach(b => b.classList.toggle("on", b.dataset.v === state.backend));
+  document.querySelectorAll("#health button").forEach(b => b.classList.toggle("on", b.dataset.v === state.health));
+  const meta = COPY[state.opt];
+  document.getElementById("hero-title").textContent = meta.title;
+  document.getElementById("hero-desc").textContent = meta.desc;
+  document.getElementById("pick-title").textContent = "Option " + state.opt;
+  document.getElementById("pick-copy").textContent = meta.desc;
+  const c = conn();
+  document.getElementById("term-title").textContent = `chm · ${state.size} · ${c.badge} ${c.where}`;
+  const drawers = { A: drawA, B: drawB, C: drawC, D: drawD };
+  document.getElementById("term-body").innerHTML = drawers[state.opt](cols()).join("\n");
+  document.getElementById("keys").innerHTML = KEYS[state.opt].map(([k,v]) =>
+    `<div class="key"><kbd>${k}</kbd> <span>${v}</span></div>`
+  ).join("");
+  const stored = localStorage.getItem("chm-tui-opt");
+  document.getElementById("pick-chip").textContent = stored ? `Picked ${stored}` : "No pick saved";
+}
+
+document.querySelectorAll(".opt").forEach(el => {
+  el.addEventListener("click", () => { state.opt = el.dataset.opt; render(); });
+});
+document.querySelectorAll("#size button").forEach(b => b.addEventListener("click", () => { state.size = b.dataset.v; render(); }));
+document.querySelectorAll("#backend button").forEach(b => b.addEventListener("click", () => { state.backend = b.dataset.v; render(); }));
+document.querySelectorAll("#health button").forEach(b => b.addEventListener("click", () => { state.health = b.dataset.v; render(); }));
+document.getElementById("choose").addEventListener("click", () => {
+  localStorage.setItem("chm-tui-opt", state.opt);
+  render();
+  document.getElementById("choose").textContent = "Saved " + state.opt;
+});
+render();
+</script>
+</body>
+</html>
