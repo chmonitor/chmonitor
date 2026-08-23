@@ -49,7 +49,7 @@ import json, os, sys
 from pathlib import Path
 
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
-files = sorted(src.glob("*.json"))
+files = sorted(src.rglob("*.json"))
 if not files:
     raise SystemExit(f"no metrics json in {src}")
 rows = [json.loads(p.read_text()) for p in files]
