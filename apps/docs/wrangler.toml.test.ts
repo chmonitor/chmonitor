@@ -11,6 +11,7 @@ const toml = readFileSync(
 describe('docs wrangler assets', () => {
   test('does not run the Worker before hashed CSS/JS under /assets', () => {
     expect(toml).not.toMatch(/^\s*run_worker_first\s*=\s*true\s*$/m)
+    expect(toml).toContain('"/api/*"')
     expect(toml).toContain('!/assets/*')
     expect(toml).toContain('!/brand/*')
   })
