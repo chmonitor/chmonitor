@@ -77,6 +77,8 @@ export interface DataTableContentProps<
   onResetColumnOrder?: () => void
   /** Compact mode: removes borders, background, and margin */
   compact?: boolean
+  /** Parent already draws the card; skip the inner listing border. */
+  embedded?: boolean
   /** When set, rows render an expand chevron and clicking a row toggles a detail panel below it. */
   expandable?: true | ExpandableConfig
   /**
@@ -138,6 +140,7 @@ export const DataTableContent = memo(function DataTableContent<
   onColumnOrderChange,
   onResetColumnOrder: _onResetColumnOrder,
   compact = false,
+  embedded = false,
   expandable,
   onRowClick,
   view = 'auto',
@@ -246,7 +249,8 @@ export const DataTableContent = memo(function DataTableContent<
             isVirtualized ? 'flex-1 overflow-auto' : 'w-full overflow-x-auto',
             {
               'max-h-[50vh]': compact && !isVirtualized,
-              'mb-5 border border-border/50 bg-card/30': !compact && !cardsOnly,
+              'mb-5 border border-border/50 bg-card/30':
+                !compact && !embedded && !cardsOnly,
             }
           )}
           role="region"

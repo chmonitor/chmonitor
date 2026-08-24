@@ -130,17 +130,20 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   table matches** (`MatchOk`), never EmptyState "no data" or
   "Select a table". Keep "No tables match" only for a name-filter
   miss.
-  Settings Diff (`/settings-diff`) uses the same host toolbar. The
-  listing is the shared `DataTable` (search, Filters, sort, resize,
-  drag-to-reorder, density, column visibility, CSV) — name search
-  lives there, not next to Source/Target. Diffs-only with zero
-  deltas still lists matching settings. The Match column uses the
-  shared boolean check (green) / cross (rose); column headers carry
-  lucide icons (`CheckCircle2`, `SlidersHorizontal`, `Table2`,
-  `Pencil`, `Undo2`, `Server`). "Changed from default" is a
-  pressable chip, not a second switch. Empty catalog copy is
-  DataTable's "No settings found" / "No settings match your
-  filters" — only a name or changed-from-default miss.
+  Settings Diff (`/settings-diff`) uses the same host toolbar
+  (Connections / Replica nodes + Source/Target only). The listing is
+  the shared `DataTable` in **embedded** mode — one `rounded-xl
+  border bg-card` like Running Queries, no second page title. Search,
+  Differences / All, Changed from default, Filters, Display options,
+  density, column visibility, and CSV live on that table toolbar.
+  Diffs-only with zero deltas still lists matching settings. The
+  Match column uses the shared boolean check (green) / cross (rose);
+  column headers carry lucide icons (`CheckCircle2`,
+  `SlidersHorizontal`, `Table2`, `Pencil`, `Undo2`, `Server`).
+  "Changed from default" is a pressable chip, not a second switch.
+  Empty catalog copy is DataTable's "No settings found" / "No
+  settings match your filters" — only a name or changed-from-default
+  miss.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
   reorder (`nav-favorites.tsx`).

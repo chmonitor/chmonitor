@@ -80,6 +80,12 @@ export interface DataTableProps<TData extends RowData> {
   /** Compact mode: hides header/toolbar, removes borders, forces dense density (default: false) */
   compact?: boolean
   /**
+   * Nested listing (page already has a title). Skips the table h1, puts
+   * `toolbarExtras` on the search/filter row, and leaves card chrome to the
+   * parent — same strip as Running Queries.
+   */
+  embedded?: boolean
+  /**
    * Inline row expansion. When set, each row renders a chevron and a click on
    * the row (outside interactive children) toggles a full-width detail panel.
    * Overrides `queryConfig.expandable`.

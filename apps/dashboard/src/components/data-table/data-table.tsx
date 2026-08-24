@@ -75,6 +75,7 @@ export function DataTable<
   enableColumnReordering: enableColumnReorderingProp,
   columnOrderStorageKey,
   compact = false,
+  embedded = false,
   expandable: expandableProp,
   onRowClick,
   showFilterBar = true,
@@ -219,6 +220,7 @@ export function DataTable<
             metadata={metadata}
             enableColumnReordering={resolvedEnableColumnReordering}
             onResetColumnOrder={handleResetColumnOrder}
+            embedded={embedded}
             density={density}
             onDensityChange={setDensity}
             globalSearch={globalSearch}
@@ -254,6 +256,7 @@ export function DataTable<
           onColumnOrderChange={handleDragEndColumnReorder}
           onResetColumnOrder={handleResetColumnOrder}
           compact={compact}
+          embedded={embedded}
           expandable={expandable}
           onRowClick={onRowClick}
           view={view}
