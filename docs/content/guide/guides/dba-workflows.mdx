@@ -59,10 +59,11 @@ Open **System → Storage Economics**. Three tables:
 - TTL storage moves (parts that already moved because of TTL)
 
 The inventory of every table's TTL expression and partition health lives on
-**Tables → TTL & Partitions** (`/ttl-partition-health`). The same rules
-surface as the **TTL & Partition Health** card on `/health` (count of flagged
-tables; click for the breakdown). This page stays move history and current
-economics.
+**Tables → TTL & Partitions** (`/ttl-partition-health`). That page also estimates
+bytes still in the TTL window versus parts whose `max_date` is already past it
+(recommend-only; it never `DROP PARTITION`). The same flags surface as the
+**TTL & Partition Health** card on `/health` (count of flagged tables; click
+for the breakdown). This page stays move history and current economics.
 
 ### Health: TTL & Partition Health (`/health`)
 

@@ -6,10 +6,12 @@ import type { ColoredBadgeOptions } from '@/components/data-table/cells/colored-
 import type { HoverCardOptions } from '@/components/data-table/cells/hover-card-format'
 import type { LinkFormatOptions } from '@/components/data-table/cells/link-format'
 import type { MarkdownFormatOptions } from '@/components/data-table/cells/markdown-format'
+import type { StackedShareOptions } from '@/components/data-table/cells/stacked-share-format'
 import type { TextFormatOptions } from '@/components/data-table/cells/text-format'
 
 export enum ColumnFormat {
   BackgroundBar = 'background-bar',
+  StackedShare = 'stacked-share',
   ColoredBadge = 'colored-badge',
   RelatedTime = 'related-time',
   NumberShort = 'number-short',
@@ -42,6 +44,7 @@ export type ColumnFormatWithArgs =
   | [ColumnFormat.CodeDialog, CodeDialogOptions]
   | [ColumnFormat.CodeToggle, CodeToggleOptions]
   | [ColumnFormat.BackgroundBar, BackgroundBarOptions]
+  | [ColumnFormat.StackedShare, StackedShareOptions]
 
 // Union of all possible format options
 export type ColumnFormatOptions = ColumnFormatWithArgs[1]

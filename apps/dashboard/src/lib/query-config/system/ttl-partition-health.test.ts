@@ -2,6 +2,7 @@ import { ttlPartitionHealthConfig } from './ttl-partition-health'
 import { describe, expect, test } from 'bun:test'
 import { getAllSqlStrings } from '@chm/sql-builder'
 import { getQueryConfigByName } from '@/lib/query-config'
+import { ColumnFormat } from '@/types/column-format'
 
 describe('ttlPartitionHealthConfig', () => {
   test('is registered by name', () => {
@@ -51,10 +52,15 @@ describe('ttlPartitionHealthConfig', () => {
       'recommendation',
       'partitions',
       'active_parts',
+      'ttl_retention',
+      'readable_bytes_past_ttl',
     ]) {
       expect(ttlPartitionHealthConfig.columns).toContain(col)
     }
     expect(ttlPartitionHealthConfig.rowClassName).toBeDefined()
+    expect(ttlPartitionHealthConfig.columnFormats?.ttl_retention).toBe(
+      ColumnFormat.StackedShare
+    )
   })
 
   test('recommendation SQL uses the same partition thresholds as the heuristics', () => {

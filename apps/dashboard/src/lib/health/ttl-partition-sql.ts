@@ -38,6 +38,33 @@ const TTL_FROM_ENGINE_FULL = `
         ''
       )`
 
+/**
+ * Approximate TTL window in days from a table TTL expression.
+ * Covers `INTERVAL n UNIT` and `toIntervalX(n)`. Unparseable → 0.
+ */
+export const TTL_DAYS_SQL = `
+      multiIf(
+        match(ttl_expression, '(?i)toIntervalYear\\\\s*\\\\(\\\\s*\\\\d+')
+          OR match(ttl_expression, '(?i)INTERVAL\\\\s+\\\\d+\\\\s+YEAR'),
+          toUInt32OrZero(extract(ttl_expression, '(\\\\d+)')) * 365,
+        match(ttl_expression, '(?i)toIntervalQuarter\\\\s*\\\\(\\\\s*\\\\d+')
+          OR match(ttl_expression, '(?i)INTERVAL\\\\s+\\\\d+\\\\s+QUARTER'),
+          toUInt32OrZero(extract(ttl_expression, '(\\\\d+)')) * 90,
+        match(ttl_expression, '(?i)toIntervalMonth\\\\s*\\\\(\\\\s*\\\\d+')
+          OR match(ttl_expression, '(?i)INTERVAL\\\\s+\\\\d+\\\\s+MONTH'),
+          toUInt32OrZero(extract(ttl_expression, '(\\\\d+)')) * 30,
+        match(ttl_expression, '(?i)toIntervalWeek\\\\s*\\\\(\\\\s*\\\\d+')
+          OR match(ttl_expression, '(?i)INTERVAL\\\\s+\\\\d+\\\\s+WEEK'),
+          toUInt32OrZero(extract(ttl_expression, '(\\\\d+)')) * 7,
+        match(ttl_expression, '(?i)toIntervalDay\\\\s*\\\\(\\\\s*\\\\d+')
+          OR match(ttl_expression, '(?i)INTERVAL\\\\s+\\\\d+\\\\s+DAY'),
+          toUInt32OrZero(extract(ttl_expression, '(\\\\d+)')),
+        match(ttl_expression, '(?i)toIntervalHour\\\\s*\\\\(\\\\s*\\\\d+')
+          OR match(ttl_expression, '(?i)INTERVAL\\\\s+\\\\d+\\\\s+HOUR'),
+          1,
+        0
+      )`
+
 const TIME_BASED_PARTITION_SQL = `(
         positionCaseInsensitive(t.partition_key, 'toYYYYMM') > 0
         OR positionCaseInsensitive(t.partition_key, 'toStartOf') > 0
@@ -101,7 +128,8 @@ function ttlPartitionInventoryCtes(): string {
           0,
           round(count() / uniqExact(partition), 2)
         ) AS parts_per_partition,
-        sum(bytes_on_disk) AS bytes_on_disk
+        sum(bytes_on_disk) AS bytes_on_disk,
+        sum(rows) AS rows
       FROM system.parts
       WHERE active
         AND database NOT IN (${SYSTEM_DATABASES})
@@ -121,7 +149,8 @@ function ttlPartitionInventoryCtes(): string {
         ifNull(p.partitions, 0) AS partitions,
         ifNull(p.active_parts, 0) AS active_parts,
         ifNull(p.parts_per_partition, 0) AS parts_per_partition,
-        ifNull(p.bytes_on_disk, 0) AS bytes_on_disk
+        ifNull(p.bytes_on_disk, 0) AS bytes_on_disk,
+        ifNull(p.rows, 0) AS rows
       FROM mergetree_tables AS t
       LEFT JOIN part_stats AS p
         ON p.database = t.database AND p.table = t.name
@@ -140,7 +169,39 @@ export function buildTtlPartitionInventorySql(opts?: {
     TTL_PARTITION_INVENTORY_MAX_EXECUTION_TIME
   )
   return withMaxExecutionTime(
-    `WITH ${ttlPartitionInventoryCtes()}
+    `WITH ${ttlPartitionInventoryCtes()},
+    retention_keys AS (
+      SELECT
+        database,
+        table,
+        ${TTL_DAYS_SQL} AS ttl_days,
+        ${TIME_BASED_PARTITION_SQL.replaceAll('t.partition_key', 'partition_key')} AS is_time_partition
+      FROM inventory
+    ),
+    part_retention AS (
+      SELECT
+        p.database,
+        p.table,
+        any(k.ttl_days) AS ttl_days,
+        sumIf(
+          p.bytes_on_disk,
+          k.ttl_days > 0
+            AND k.is_time_partition
+            AND p.max_date < today() - k.ttl_days
+        ) AS bytes_past_ttl,
+        sumIf(
+          p.rows,
+          k.ttl_days > 0
+            AND k.is_time_partition
+            AND p.max_date < today() - k.ttl_days
+        ) AS rows_past_ttl
+      FROM system.parts AS p
+      INNER JOIN retention_keys AS k
+        ON k.database = p.database AND k.table = p.table
+      WHERE p.active
+        AND p.database NOT IN (${SYSTEM_DATABASES})
+      GROUP BY p.database, p.table
+    )
     SELECT
       database,
       table,
@@ -167,8 +228,24 @@ export function buildTtlPartitionInventorySql(opts?: {
       round(
         active_parts * 100.0 / nullIf(max(active_parts) OVER (), 0),
         2
-      ) AS pct_active_parts
+      ) AS pct_active_parts,
+      ifNull(r.ttl_days, 0) AS ttl_days,
+      ifNull(r.bytes_past_ttl, 0) AS bytes_past_ttl,
+      ifNull(r.rows_past_ttl, 0) AS rows_past_ttl,
+      greatest(bytes_on_disk - ifNull(r.bytes_past_ttl, 0), 0) AS bytes_in_range,
+      greatest(rows - ifNull(r.rows_past_ttl, 0), 0) AS rows_in_range,
+      formatReadableSize(ifNull(r.bytes_past_ttl, 0)) AS readable_bytes_past_ttl,
+      formatReadableSize(
+        greatest(bytes_on_disk - ifNull(r.bytes_past_ttl, 0), 0)
+      ) AS readable_bytes_in_range,
+      formatReadableQuantity(ifNull(r.rows_past_ttl, 0)) AS readable_rows_past_ttl,
+      formatReadableQuantity(
+        greatest(rows - ifNull(r.rows_past_ttl, 0), 0)
+      ) AS readable_rows_in_range,
+      '' AS ttl_retention
     FROM inventory
+    LEFT JOIN part_retention AS r
+      ON r.database = inventory.database AND r.table = inventory.table
     ORDER BY partitions DESC, bytes_on_disk DESC`,
     maxExecutionTime
   )

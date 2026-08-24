@@ -15,6 +15,10 @@ import {
 } from '../cells/hover-card-format'
 import { LinkFormat, type LinkFormatOptions } from '../cells/link-format'
 import { RunningQuerySummaryFormat } from '@/components/data-table/cells/running-query-summary-format'
+import {
+  StackedShareFormat,
+  type StackedShareOptions,
+} from '@/components/data-table/cells/stacked-share-format'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
@@ -179,10 +183,26 @@ export const runningQuerySummaryFormatter: RowContextFormatter = <
  * Registry of context formatters
  * These formatters need access to row, table, and context data
  */
+export const stackedShareFormatter: RowContextFormatter = <
+  TData extends RowData,
+  TValue,
+>(
+  props: FormatterProps<TData, TValue>
+): React.ReactNode => {
+  const { row, options } = props
+  return (
+    <StackedShareFormat
+      row={row}
+      options={options as StackedShareOptions | undefined}
+    />
+  )
+}
+
 export const CONTEXT_FORMATTERS: Record<
   | ColumnFormat.Action
   | ColumnFormat.InlineAction
   | ColumnFormat.BackgroundBar
+  | ColumnFormat.StackedShare
   | ColumnFormat.HoverCard
   | ColumnFormat.Link
   | ColumnFormat.RunningQuerySummary,
@@ -191,6 +211,7 @@ export const CONTEXT_FORMATTERS: Record<
   [ColumnFormat.Action]: actionFormatter,
   [ColumnFormat.InlineAction]: inlineActionFormatter,
   [ColumnFormat.BackgroundBar]: backgroundBarFormatter,
+  [ColumnFormat.StackedShare]: stackedShareFormatter,
   [ColumnFormat.HoverCard]: hoverCardFormatter,
   [ColumnFormat.Link]: linkFormatter,
   [ColumnFormat.RunningQuerySummary]: runningQuerySummaryFormatter,

@@ -771,10 +771,13 @@ recommend-only), Chart Builder (`/dashboard`), Schema Compare
 **also** listed under Tables (`menu/data-explorer.ts` shared leaf).
 TTL & Partitions (`/ttl-partition-health`) is a system-table inventory
 of MergeTree TTL / `PARTITION BY` — it lives under **Tables**, not
-System or Tools. The same recommend-only heuristics back the
-**TTL & Partition Health** card on `/health` (`HEALTH_CHECKS` id
+System or Tools. The listing includes a stacked **in-range vs past TTL**
+bar (bytes still inside the parsed `INTERVAL` window versus parts whose
+`max_date` is older than that window). Same recommend-only heuristics
+back the **TTL & Partition Health** card on `/health` (`HEALTH_CHECKS` id
 `ttl-partition-health`): a flagged-table count plus a detail-dialog
-breakdown. Do not add a third TTL reporting surface. AI Agent stays its own flagship group. Postgres-only
+breakdown. Do not add a third TTL reporting surface. Never `ALTER TTL`
+or `DROP PARTITION` from this page. AI Agent stays its own flagship group. Postgres-only
 items stay engine-gated and are not moved here.
 
 ⌘K (`components/controls/command-palette.tsx`) indexes every visible
