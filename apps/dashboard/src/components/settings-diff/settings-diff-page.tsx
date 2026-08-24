@@ -276,7 +276,6 @@ export function SettingsDiffPage() {
             hosts={peers}
             sourceHostId={pair.sourceId}
             targetHostId={pair.targetId}
-            showDiffsOnly={showDiffsOnly}
             onPairChange={(source, target) =>
               setSearch({
                 source,
@@ -285,34 +284,8 @@ export function SettingsDiffPage() {
                 view: scope === 'hosts' ? 'pair' : undefined,
               })
             }
-            onShowDiffsOnlyChange={setShowDiffsOnly}
-            extraFilters={
-              <ChangedFromDefaultChip
-                pressed={showChangedOnly}
-                onPressedChange={setShowChangedOnly}
-              />
-            }
           />
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            {hostCount > 1 ? (
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Show differences or all rows"
-                value={showDiffsOnly ? 'diffs' : 'all'}
-                onChange={(next) => setShowDiffsOnly(next === 'diffs')}
-                options={[
-                  { label: 'Differences', value: 'diffs' },
-                  { label: 'All', value: 'all' },
-                ]}
-              />
-            ) : null}
-            <ChangedFromDefaultChip
-              pressed={showChangedOnly}
-              onPressedChange={setShowChangedOnly}
-            />
-          </div>
-        )}
+        ) : null}
       </CompareToolbar>
 
       {listingLoading ? (
@@ -331,7 +304,30 @@ export function SettingsDiffPage() {
           />
         </div>
       ) : (
-        <SettingsDiffTable columns={columns} rows={filteredRows} />
+        <SettingsDiffTable
+          columns={columns}
+          rows={filteredRows}
+          toolbarExtras={
+            <>
+              {hostCount > 1 ? (
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="Show differences or all rows"
+                  value={showDiffsOnly ? 'diffs' : 'all'}
+                  onChange={(next) => setShowDiffsOnly(next === 'diffs')}
+                  options={[
+                    { label: 'Differences', value: 'diffs' },
+                    { label: 'All', value: 'all' },
+                  ]}
+                />
+              ) : null}
+              <ChangedFromDefaultChip
+                pressed={showChangedOnly}
+                onPressedChange={setShowChangedOnly}
+              />
+            </>
+          }
+        />
       )}
     </div>
   )
@@ -351,6 +347,7 @@ function ChangedFromDefaultChip({
       variant={pressed ? 'secondary' : 'outline'}
       aria-pressed={pressed}
       className="h-8 rounded-md text-[13px]"
+      data-testid="settings-diff-changed-from-default"
       onClick={() => onPressedChange(!pressed)}
     >
       Changed from default

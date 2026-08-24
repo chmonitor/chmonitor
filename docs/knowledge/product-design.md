@@ -711,14 +711,16 @@ would clip it.
   with one host keeps the live vs-default matrix and a banner to add
   another host; two or more merged hosts (env + database + browser,
   including negative ids) keep an All-hosts matrix with an optional pair
-  mode (`HostPairFilter` + URL `source`/`target`). The listing is the
-  shared `DataTable` (search, Filters, sort, resize, drag-to-reorder,
-  density, column visibility, CSV). Name search lives on that table,
-  not the host toolbar. Diffs-only with zero deltas still lists
-  matching settings; the Match column uses the shared boolean check
-  (green) / cross (rose). Empty catalog copy is DataTable's "No
-  settings found" / "No settings match your filters" (a name or
-  changed-from-default miss). Compare APIs resolve
+  mode (`HostPairFilter` + URL `source`/`target`). Host toolbar is
+  Connections / Replica nodes + Source/Target only. The listing is the
+  shared `DataTable` in embedded mode (one `rounded-xl border bg-card`
+  like Running Queries, no second page title). Search, Differences /
+  All, Changed from default, Filters, Display options, density, column
+  visibility, and CSV live on that table toolbar. Diffs-only with zero
+  deltas still lists matching settings; the Match column uses the
+  shared boolean check (green) / cross (rose). Empty catalog copy is
+  DataTable's "No settings found" / "No settings match your filters"
+  (a name or changed-from-default miss). Compare APIs resolve
   merged hosts the same way charts do (`resolve-host-fetch.ts` /
   `use-merged-hosts.ts`).
 - Overflow strip: for a single-row scroller that must not wrap, use

@@ -173,6 +173,6 @@ export function buildSettingsDiffQueryConfig(
       enableColumnReordering: true,
     },
     rowClassName: (row) =>
-      row._hasDiff ? 'bg-amber-50 dark:bg-amber-950/20' : undefined,
+      row._hasDiff ? 'bg-[var(--chart-yellow)]/10' : undefined,
   }
 }

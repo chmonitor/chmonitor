@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type {
   SettingsDiffHostInfo,
   SettingsDiffRow,
@@ -16,9 +17,14 @@ const EMPTY_TABLE_CONTEXT: Record<string, string> = {}
 interface SettingsDiffTableProps {
   columns: SettingsDiffHostInfo[]
   rows: SettingsDiffRow[]
+  toolbarExtras?: ReactNode
 }
 
-export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
+export function SettingsDiffTable({
+  columns,
+  rows,
+  toolbarExtras,
+}: SettingsDiffTableProps) {
   const showMatchColumn = columns.length > 1
   const hostColumns = useMemo(() => uniqueHostColumnKeys(columns), [columns])
   const data = useMemo(
@@ -31,7 +37,10 @@ export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
   )
 
   return (
-    <div data-testid="settings-diff-table">
+    <div
+      className="overflow-hidden rounded-xl border border-border bg-card"
+      data-testid="settings-diff-table"
+    >
       <DataTable
         title="Settings"
         data={data}
@@ -39,6 +48,8 @@ export function SettingsDiffTable({ columns, rows }: SettingsDiffTableProps) {
         context={EMPTY_TABLE_CONTEXT}
         defaultPageSize={100}
         showSQL={false}
+        embedded
+        toolbarExtras={toolbarExtras}
         enableColumnReordering
         columnOrderStorageKey="settings-diff"
         enableColumnFilters

@@ -148,6 +148,7 @@ describe('Settings Diff one-host vs default', () => {
             showChangedOnly: false,
             nameFilter: '',
           })}
+          toolbarExtras={<button type="button">Changed from default</button>}
         />
       </div>
     )
@@ -165,10 +166,13 @@ describe('Settings Diff one-host vs default', () => {
       expect(
         document.querySelector('[data-testid="add-host"]')?.className
       ).toContain('min-h-11')
-      const { search, filters, display } = tableToolbar()
+      const { table, search, filters, display } = tableToolbar()
       expect(search).not.toBeNull()
       expect(filters).toBeDefined()
       expect(display).toBeDefined()
+      expect(table?.querySelector('h1')).toBeNull()
+      expect(table?.className).toContain('rounded-xl')
+      expect(table?.textContent).toContain('Changed from default')
     } finally {
       await cleanup()
     }

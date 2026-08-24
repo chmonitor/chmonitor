@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { getSqlForDisplay } from '@/types/query-config'
 
 export interface DataTableHeaderProps<TData extends RowData> {
@@ -66,6 +67,8 @@ export interface DataTableHeaderProps<TData extends RowData> {
   enableColumnReordering?: boolean
   /** Callback to reset column order to default */
   onResetColumnOrder?: () => void
+  /** Skip the title row and sit extras on the search toolbar. */
+  embedded?: boolean
   /** Current row density mode */
   density?: TableDensity
   /** Callback to change row density mode */
@@ -110,6 +113,7 @@ export const DataTableHeader = memo(function DataTableHeader<
   metadata,
   enableColumnReordering = false,
   onResetColumnOrder,
+  embedded = false,
   density = 'comfortable',
   onDensityChange,
   globalSearch,
@@ -219,48 +223,64 @@ export const DataTableHeader = memo(function DataTableHeader<
     onAdvancedFiltersChange([])
   }
 
+  const toolbarClassName = embedded
+    ? 'flex flex-col gap-2 sm:flex-row sm:items-center border-b border-border px-2.5 py-2 sm:px-3'
+    : 'flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-card/65 dark:bg-card/40 border border-border/60 p-2 rounded-xl shadow-xs'
+
   return (
-    <div className="flex flex-col gap-2.5 pb-2.5">
+    <div
+      className={cn(
+        embedded ? 'flex flex-col' : 'flex flex-col gap-2.5 pb-2.5'
+      )}
+    >
       {/* Row 1: Title and Description */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-foreground flex-none">
-              {title}
-            </h1>
-            {isRefreshing && (
-              <Loader2Icon
-                className="text-muted-foreground size-4 animate-spin shrink-0"
-                aria-label="Loading data"
-              />
-            )}
-            {toolbarExtras && (
-              <div className="flex items-center gap-1">{toolbarExtras}</div>
-            )}
-            {queryConfig.bulkActions && queryConfig.bulkActions.length > 0 && (
-              <BulkActions
-                table={table}
-                bulkActions={queryConfig.bulkActions}
-                bulkActionKey={queryConfig.bulkActionKey || 'query_id'}
-              />
+      {!embedded ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-foreground flex-none">
+                {title}
+              </h1>
+              {isRefreshing && (
+                <Loader2Icon
+                  className="text-muted-foreground size-4 animate-spin shrink-0"
+                  aria-label="Loading data"
+                />
+              )}
+              {toolbarExtras && (
+                <div className="flex items-center gap-1">{toolbarExtras}</div>
+              )}
+              {queryConfig.bulkActions &&
+                queryConfig.bulkActions.length > 0 && (
+                  <BulkActions
+                    table={table}
+                    bulkActions={queryConfig.bulkActions}
+                    bulkActionKey={queryConfig.bulkActionKey || 'query_id'}
+                  />
+                )}
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
+              {description || queryConfig.description}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {topRightToolbarExtras}
+            {showSQL && (
+              <CardToolbar sql={displaySql} metadata={metadata} alwaysVisible />
             )}
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
-            {description || queryConfig.description}
-          </p>
         </div>
-        <div className="flex items-center gap-2">
-          {topRightToolbarExtras}
-          {showSQL && (
-            <CardToolbar sql={displaySql} metadata={metadata} alwaysVisible />
-          )}
-        </div>
-      </div>
+      ) : null}
 
       {/* Row 2: Unified toolbar — single row for all modes */}
       {filterBarSlot ? (
         /* Schema-driven mode: FilterBar slot (left) + action buttons (right) */
-        <div className="flex flex-wrap items-center gap-2 bg-card/65 dark:bg-card/40 border border-border/60 p-2 rounded-xl shadow-xs">
+        <div className={toolbarClassName}>
+          {embedded && toolbarExtras ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {toolbarExtras}
+            </div>
+          ) : null}
           {filterBarSlot}
           <div className="flex flex-wrap items-center gap-2 ml-auto">
             {/* Sort control for card view — moved from separate row into unified toolbar */}
@@ -285,7 +305,12 @@ export const DataTableHeader = memo(function DataTableHeader<
           </div>
         </div>
       ) : (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-card/65 dark:bg-card/40 border border-border/60 p-2 rounded-xl shadow-xs">
+        <div className={toolbarClassName}>
+          {embedded && toolbarExtras ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {toolbarExtras}
+            </div>
+          ) : null}
           {/* Search TextBox on left */}
           <div className="relative flex-1 min-w-[200px]">
             <SearchIcon
