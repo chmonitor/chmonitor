@@ -4,6 +4,7 @@ description: "After four days of agents working day and night — 106 PRs, 267 c
 date: 2026-08-20
 tag: Release
 version: v0.3.4
+cover: /assets/screenshots/tools-advisor-dark.jpeg
 ---
 
 After **four days** of agents working day and night — **106 pull requests** and
@@ -21,6 +22,8 @@ Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonito
   <div class="hl"><b>TTL inventory</b><span>Every MergeTree table's TTL and PARTITION BY, plus part-health charts.</span></div>
   <div class="hl"><b>Licenses</b><span>Self-hosted host-count licenses. Invoice, not a key in the binary.</span></div>
 </div>
+
+<img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="eager" />
 
 ## What shipped
 
