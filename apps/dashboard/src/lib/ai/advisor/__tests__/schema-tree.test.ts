@@ -15,7 +15,7 @@ import {
 } from '../schema-tree'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const TREE = [
   {
@@ -233,9 +233,11 @@ describe('selected table detail', () => {
 describe('schema tab reuses Explorer DatabaseTree', () => {
   test('advisor schema UI imports DatabaseTree, not a forked tree', () => {
     const src = readFileSync(
-      join(
-        import.meta.dir,
-        '../../../../components/agents/advisor-schema-tab.tsx'
+      fileURLToPath(
+        new URL(
+          '../../../../components/agents/advisor-schema-tab.tsx',
+          import.meta.url
+        )
       ),
       'utf-8'
     )

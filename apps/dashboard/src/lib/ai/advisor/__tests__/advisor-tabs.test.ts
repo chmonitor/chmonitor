@@ -7,7 +7,7 @@ import {
 } from '../advisor-tabs'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 describe('advisor page tabs', () => {
   test('Schema & Settings is first and the default tab', () => {
@@ -40,7 +40,9 @@ describe('advisor page tabs', () => {
 describe('advisor page source', () => {
   test('page uses Schema as first tab and defaultValue from helpers', () => {
     const src = readFileSync(
-      join(import.meta.dir, '../../../../routes/(dashboard)/advisor.tsx'),
+      fileURLToPath(
+        new URL('../../../../routes/(dashboard)/advisor.tsx', import.meta.url)
+      ),
       'utf-8'
     )
     expect(src).toContain('ADVISOR_TABS')
