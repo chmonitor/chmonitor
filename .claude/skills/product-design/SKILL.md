@@ -13,6 +13,7 @@ description: >-
   "what's new", "changelog", "dialog scroll", "settings gear",
   "schema compare", "settings diff", "add host", "pick a query",
   "query picker", "select labels", "ON CLUSTER", "advisor DDL",
+  "advisor schema", "schema advisor",
   "command palette", "cmd k", "search dialog", "ttl partitions".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
@@ -310,6 +311,15 @@ chart in `components/charts/` as the template — don't reinvent the wiring.
   `query_id` — use the same EmptyState with next steps, never `ErrorAlert`
   titled "Analysis failed". `ErrorAlert` is for host/schema/fetch failures.
   Picking a query from the picker auto-runs, same as `/explain`.
+  **Advisor (`/advisor`)** defaults to **Schema & Settings** (Query Advisor is
+  the second tab; `?query=` / `?queryId=` still open it). The schema surface
+  reuses Explorer `DatabaseTree` in a left sidebar (search + icon-only All /
+  Needs attention / Hide suggested, group, sort — same catalog chrome as
+  Schema Compare). Care tables get a single amber `chart-yellow` dot, not a
+  second border or pill. Selecting a table shows findings + copyable
+  recommend-only DDL (`TuningFindingsPanel` / `RecommendDdlBlocks`) and MV
+  relations; never an Apply/Run control. When nothing needs fixing, a healthy
+  empty state includes **tips for creating new tables**.
 - **Recommend-only DDL pairs:** when cluster topology is known (Distributed
   engine or cluster metadata), Advisor findings and schema-diff plan items
   show the local table name plus a copyable `ON CLUSTER` variant of the same
