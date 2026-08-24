@@ -85,14 +85,10 @@ map.
 - Chat messages, tool cards, and markdown rendering are tighter. The tool loop
   stops at 16 steps.
 
-### Licenses and CLI
+### Licenses
 
-- Paid product is a **self-hosted commercial license** sized by host count, not
-  a Cloud seat. No key in the binary. Details:
-  [We're selling self-hosted licenses](/self-hosted-licenses/).
-- Checkout asks for company details before Polar charges.
-- Instance ping can send `CHM_LICENSE_KEY`.
-- CLI: `chm upgrade` (ranks `chm-v*` tags by semver).
+Paid product is a **self-hosted host-count license**, not a Cloud seat. No key
+in the binary. [We're selling self-hosted licenses](/self-hosted-licenses/).
 
 ## Upgrade
 
