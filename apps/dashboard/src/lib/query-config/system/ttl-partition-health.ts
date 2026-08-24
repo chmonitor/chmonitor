@@ -23,10 +23,15 @@ export const ttlPartitionHealthConfig: QueryConfig = {
   card: {
     primary: 'full_table',
     badges: ['engine'],
-    metrics: ['partitions', 'active_parts', 'readable_bytes_on_disk'],
+    metrics: [
+      'partitions',
+      'active_parts',
+      'readable_bytes_on_disk',
+      'readable_bytes_past_ttl',
+    ],
   },
   description:
-    'TTL expression, PARTITION BY, and partition/part counts per MergeTree table. Does not apply ALTER TTL or DROP PARTITION.',
+    'TTL expression, PARTITION BY, partition/part counts, and in-range vs past-TTL bytes per MergeTree table. Does not apply ALTER TTL or DROP PARTITION.',
   docs: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#table_engine-mergetree-ttl', // pragma: allowlist secret
   tableCheck: 'system.parts',
   sql: ttlPartitionInventorySql,
@@ -40,6 +45,9 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     'active_parts',
     'parts_per_partition',
     'readable_bytes_on_disk',
+    'ttl_retention',
+    'readable_bytes_past_ttl',
+    'readable_rows_past_ttl',
   ],
   columnDescriptions: {
     ttl_expression:
@@ -51,6 +59,11 @@ export const ttlPartitionHealthConfig: QueryConfig = {
       'Active partition count. Highlighted rows have 500+ partitions or a time-based key with no TTL.',
     parts_per_partition:
       'Active parts divided by partitions. High values mean merge backlog.',
+    ttl_retention:
+      'Bytes still inside the parsed TTL window vs parts whose max_date is already past it. Estimate from system.parts — recommend-only, never DROP PARTITION.',
+    readable_bytes_past_ttl:
+      'On-disk bytes in parts whose newest row date is older than the TTL window.',
+    readable_rows_past_ttl: 'Rows in those past-TTL parts.',
   },
   columnFormats: {
     full_table: [
@@ -66,6 +79,7 @@ export const ttlPartitionHealthConfig: QueryConfig = {
     partitions: ColumnFormat.BackgroundBar,
     active_parts: ColumnFormat.BackgroundBar,
     readable_bytes_on_disk: ColumnFormat.BackgroundBar,
+    ttl_retention: ColumnFormat.StackedShare,
   },
   relatedCharts: [
     ['partition-part-health', { title: 'Part health' }],

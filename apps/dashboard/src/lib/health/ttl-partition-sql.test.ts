@@ -43,6 +43,11 @@ describe('buildTtlPartitionInventorySql', () => {
     expect(sql).toContain(
       `SETTINGS max_execution_time = ${TTL_PARTITION_INVENTORY_MAX_EXECUTION_TIME}`
     )
+    expect(sql).toContain('bytes_past_ttl')
+    expect(sql).toContain('bytes_in_range')
+    expect(sql).toContain('ttl_retention')
+    expect(sql).toContain('max_date')
+    expect(sql).toContain('INTERVAL')
   })
 })
 

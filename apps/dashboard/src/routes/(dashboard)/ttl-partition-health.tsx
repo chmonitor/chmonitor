@@ -11,7 +11,7 @@ function TtlPartitionHealthPageContent() {
     <PageLayout
       queryConfig={ttlPartitionHealthConfig}
       title="TTL & Partition Health"
-      description="Inventory of MergeTree TTL and PARTITION BY, with partition and part counts and a recommend-only next-step column. Tables without TTL still appear. Highlighted rows have too many partitions or a time-based partition key with no TTL. Recommend-only — this page does not run ALTER TTL or DROP PARTITION. Related: Storage Economics, Advisor Schema & Settings, and the disk-capacity forecast in the agent."
+      description="Inventory of MergeTree TTL and PARTITION BY, with partition/part counts and a bar of bytes still in range vs parts whose date is already past TTL. Tables without TTL still appear. Highlighted rows have too many partitions or a time-based partition key with no TTL. Recommend-only — this page does not run ALTER TTL or DROP PARTITION. Related: Storage Economics, Advisor Schema & Settings, and the disk-capacity forecast in the agent."
     />
   )
 }
