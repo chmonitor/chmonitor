@@ -21,6 +21,10 @@
         {
           "src": "/assets/screenshots/settings-navigation-dark.jpeg",
           "alt": "Settings Navigation with Full, DBA, Engineer, SRE, and Custom workspace roles"
+        },
+        {
+          "src": "/assets/screenshots/chm-schema-compare.png",
+          "alt": "Schema Compare empty state with a sample DDL pair — two saved connections, example tables vs Host B"
         }
       ]
     },

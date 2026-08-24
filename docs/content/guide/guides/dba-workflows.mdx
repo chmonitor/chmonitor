@@ -31,6 +31,8 @@ Nothing on this page writes to ClickHouse. To change a setting, use `SET`, `ALTE
 
 ### Schema compare (`/schema-diff`)
 
+![Schema Compare empty state with a sample DDL pair](/assets/screenshots/chm-schema-compare.png)
+
 Open **Tools → Schema Compare**. Pick a source and target host (or two nodes of the current cluster) from the compact pair picker. With one saved host the page explains it needs two connections (staging vs prod) and offers **Add host**. Tables are grouped by database (collapse them into folders). Selecting a table pretty-prints side-by-side `CREATE TABLE` with line numbers and diff highlights, plus a copyable recommend-only plan. **Copy recommended SQL** lives on the source/target toolbar (all safe statements, or only tables you check). Each table's plan card can copy that table only. It never applies DDL.
 
 ### Advisor (`/advisor`)
