@@ -7,12 +7,16 @@ export const BLOG_ORIGIN = 'https://blog.chmonitor.dev'
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/
 
+/** Hero pill only links to product news, not how-tos or guides. */
+export const LATEST_POST_TAGS = ['release', 'update'] as const
+
 export type LatestBlogPost = {
   title: string
   description: string
   date: Date
   slug: string
   href: string
+  tag: string
 }
 
 export type LatestBlogPostOptions = {
@@ -50,6 +54,7 @@ export function getPublishedBlogPosts(
       date: parsed.date,
       slug: parsed.slug,
       href: parsed.href,
+      tag: parsed.tag,
     })
   }
   return posts.sort((a, b) => b.date.valueOf() - a.date.valueOf())
@@ -58,7 +63,14 @@ export function getPublishedBlogPosts(
 export function getLatestBlogPost(
   options: LatestBlogPostOptions = {}
 ): LatestBlogPost | null {
-  return getPublishedBlogPosts(options)[0] ?? null
+  return (
+    getPublishedBlogPosts(options).find((post) => isLatestPostTag(post.tag)) ??
+    null
+  )
+}
+
+function isLatestPostTag(tag: string): boolean {
+  return (LATEST_POST_TAGS as readonly string[]).includes(tag.toLowerCase())
 }
 
 export function resolveBlogContentDir(): string | null {
@@ -101,6 +113,7 @@ function parseBlogPostFile(
     date,
     slug,
     href: `${BLOG_ORIGIN}/${slug}/`,
+    tag: fields.tag || 'Release',
     draft: fields.draft === 'true',
   }
 }

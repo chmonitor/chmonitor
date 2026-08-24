@@ -29,6 +29,7 @@ describe('getLatestBlogPost', () => {
     expect(latest!.href.endsWith('/')).toBe(true)
     expect(latest!.slug.length).toBeGreaterThan(0)
     expect(latest!.date.valueOf()).toBeLessThanOrEqual(Date.now())
+    expect(['release', 'update']).toContain(latest!.tag.toLowerCase())
   })
 
   test('sorts by date and picks the newest published post', () => {
@@ -118,6 +119,28 @@ describe('getLatestBlogPost', () => {
     expect(yml.slice(landingPaths, landingPaths + 500)).toContain(
       'apps/blog/src/content/blog/**'
     )
+  })
+
+  test('skips how-tos and guides even when they are newer', () => {
+    tmpDir()
+    writePost(
+      'guide.md',
+      'title: "Fresh guide"\ndescription: "d"\ndate: 2026-08-19\ntag: How-to'
+    )
+    writePost(
+      'release.md',
+      'title: "Release"\ndescription: "d"\ndate: 2026-08-01\ntag: Release'
+    )
+    writePost(
+      'update.md',
+      'title: "Update"\ndescription: "d"\ndate: 2026-08-10\ntag: Update'
+    )
+    const latest = getLatestBlogPost({
+      dir,
+      now: new Date('2026-08-20T12:00:00Z'),
+    })
+    expect(latest?.title).toBe('Update')
+    expect(latest?.tag).toBe('Update')
   })
 
   test('returns null when the directory has no published posts', () => {
