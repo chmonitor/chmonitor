@@ -93,14 +93,26 @@ host-count license**. No key in the binary.
 
 ## Upgrade
 
-Self-hosters: pull the image you already run.
+Self-hosters: pin this tag.
 
 ```bash
 docker pull ghcr.io/chmonitor/chmonitor:v0.3.4
 ```
 
+Then follow the deploy guide for your platform:
+
+- [Docker](https://docs.chmonitor.dev/operate/deploy/docker)
+- [Kubernetes](https://docs.chmonitor.dev/operate/deploy/k8s)
+- [Cloudflare Workers](https://docs.chmonitor.dev/operate/deploy/cloudflare)
+- [Vercel](https://docs.chmonitor.dev/operate/deploy/vercel)
+- [Node / standalone](https://docs.chmonitor.dev/operate/deploy/self-host)
+- [Traefik](https://docs.chmonitor.dev/operate/deploy/traefik)
+- [One-click](https://docs.chmonitor.dev/operate/deploy/one-click)
+- [Production checklist](https://docs.chmonitor.dev/operate/deploy/production-checklist)
+
+All platforms: [Deploy](https://docs.chmonitor.dev/operate/deploy).
+
 Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev)) already has this.
-Nothing to migrate.
 
 The full changelog is in the
 [GitHub release](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.4).
