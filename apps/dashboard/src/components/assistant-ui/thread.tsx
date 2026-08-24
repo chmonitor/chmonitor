@@ -43,6 +43,8 @@ import {
   RefreshCwIcon,
 } from 'lucide-react'
 
+import type { ComponentProps, FC } from 'react'
+
 import {
   groupByChainOfThought,
   renderGroupedPart,
@@ -60,11 +62,11 @@ import {
   useAui,
   useAuiState,
 } from '@assistant-ui/react'
-import { type ComponentProps, type FC, useCallback } from 'react'
 import { AgentWelcomeScreen } from '@/components/agents/welcome/agent-welcome-screen'
 import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { JsonRenderMessage } from '@/components/assistant-ui/json-render-message'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
+import { useStartAgentPrompt } from '@/components/assistant-ui/use-start-agent-prompt'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Marker, MarkerIcon } from '@/components/ui/marker'
 import { Message, MessageContent } from '@/components/ui/message'
@@ -93,12 +95,15 @@ interface ThreadProps {
   clusterName?: string | null
   /** When true, the greeting switches to its alert variant. */
   hasClusterIssue?: boolean
+  /** Send a suggested question. Parent may collapse chrome first. */
+  onPickPrompt?: (prompt: string) => void
 }
 
 export function Thread({
   firstName,
   clusterName,
   hasClusterIssue,
+  onPickPrompt,
 }: ThreadProps = {}) {
   return (
     <ThreadPrimitive.Root
@@ -119,6 +124,7 @@ export function Thread({
             firstName={firstName}
             clusterName={clusterName}
             hasClusterIssue={hasClusterIssue}
+            onPickPrompt={onPickPrompt}
           />
         </div>
       </ThreadPrimitive.If>
@@ -163,30 +169,18 @@ interface ThreadWelcomeProps {
   firstName?: string | null
   clusterName?: string | null
   hasClusterIssue?: boolean
+  onPickPrompt?: (prompt: string) => void
 }
 
 function ThreadWelcome({
   firstName,
   clusterName,
   hasClusterIssue,
+  onPickPrompt,
 }: ThreadWelcomeProps) {
   const { activeToolCount } = useAgentSkills()
-  const aui = useAui()
-  const { ensureAuthed } = useAgentAuthGate()
-
-  const handlePickPrompt = useCallback(
-    (prompt: string) => {
-      const trimmed = prompt.trim()
-      if (!trimmed) return
-      if (!ensureAuthed()) return
-      aui.thread.append({
-        role: 'user',
-        content: [{ type: 'text', text: trimmed }],
-      })
-      track('ai_query_sent')
-    },
-    [aui, ensureAuthed]
-  )
+  const startPrompt = useStartAgentPrompt()
+  const handlePickPrompt = onPickPrompt ?? startPrompt
 
   return (
     <ThreadPrimitive.Empty>
