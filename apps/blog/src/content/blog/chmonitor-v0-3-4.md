@@ -22,7 +22,7 @@ Every path below opens the live demo on
   <div class="hl"><b>Schema Compare</b><span>Diff table DDL across hosts or replica nodes. Copy the plan; nothing is applied.</span></div>
   <div class="hl"><b>Settings Diff</b><span>Compare system.settings and merge_tree_settings. All matched when nothing differs.</span></div>
   <div class="hl"><b>TTL inventory</b><span>Every MergeTree table's TTL and PARTITION BY, including tables with no TTL yet.</span></div>
-  <div class="hl"><b>Licenses</b><span>We switched from Cloud seats to a self-hosted host-count license.</span></div>
+  <div class="hl"><b>Licenses</b><span>We transformed the SaaS Cloud seat model to a self-hosted host-count license.</span></div>
 </div>
 
 ## What shipped
@@ -93,9 +93,8 @@ cards, and markdown are tighter, and the tool loop stops at 16 steps.
 
 ### Licenses
 
-We dropped the SaaS Cloud seat model. If you need an invoice, you buy a
-**self-hosted host-count license** — not a hosted dashboard seat. There is no
-key in the binary. The full argument is
+We transformed our SaaS Cloud seat model to a **self-hosted host-count
+license**. The full argument is
 [We're selling self-hosted licenses](/self-hosted-licenses/).
 
 ## Upgrade
