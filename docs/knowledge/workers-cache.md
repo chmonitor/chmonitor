@@ -3,7 +3,7 @@ id: workers-cache
 title: Cloudflare Workers Cache
 type: reference
 status: active
-updated: 2026-07-06
+updated: 2026-08-24
 tags:
   - cloudflare-workers
   - cache
@@ -79,6 +79,12 @@ the final response, and it skips:
 - any response that already declares `Cache-Control`,
 - non-`GET` / non-200 responses,
 - requests carrying `Authorization` (also auto-bypassed by Workers Cache itself).
+
+Do **not** set docs `assets.run_worker_first = true`. That sent `/assets/*.css`
+(and favicons, `/brand/*`) through the TanStack `$` catch-all, which returned
+**HTML 404** — the docs site looked unstyled. HTML still hits the Worker first
+(canonical 301s). Static prefixes are excluded (`!/assets/*`, `!/brand/*`,
+favicons). See `apps/docs/wrangler.toml`.
 
 `max-age=300` (5 min fresh) keeps content reasonably current; the 1-day
 `stale-while-revalidate` window means edits still serve instantly from cache and
