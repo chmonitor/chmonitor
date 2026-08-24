@@ -16,7 +16,7 @@
 import { PanelRightOpenIcon } from 'lucide-react'
 import { ErrorBoundary } from 'react-error-boundary'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AgentSettingsSidebar } from '@/components/agents/welcome/agent-settings-sidebar'
 import { AgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { AgentRuntimeProvider } from '@/components/assistant-ui/agent-runtime-provider'
@@ -27,6 +27,7 @@ import {
 } from '@/components/assistant-ui/conversation-rail'
 import { Thread } from '@/components/assistant-ui/thread'
 import { useClerkFirstName as useClerkFirstNameImpl } from '@/components/assistant-ui/use-clerk-first-name'
+import { useStartAgentPrompt } from '@/components/assistant-ui/use-start-agent-prompt'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -35,6 +36,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { useSidebar } from '@/components/ui/sidebar'
 import { useIsLgDown, useIsMobile } from '@/hooks/use-mobile'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { useHostId } from '@/lib/swr/use-host'
@@ -66,6 +68,18 @@ function AgentThreadPageError() {
 }
 
 export function AgentThreadPage() {
+  return (
+    <ErrorBoundary FallbackComponent={AgentThreadPageError}>
+      <AgentAuthGate>
+        <AgentRuntimeProvider>
+          <AgentChatLayout />
+        </AgentRuntimeProvider>
+      </AgentAuthGate>
+    </ErrorBoundary>
+  )
+}
+
+function AgentChatLayout() {
   const isMobile = useIsMobile()
   // Conversation rail: persistent inline column on desktop (open by default so
   // its width is reserved on first paint, no CLS); a Drawer on mobile. It also
@@ -89,6 +103,15 @@ export function AgentThreadPage() {
   useEffect(() => {
     setRightSidebarOpen(!isMobile)
   }, [isMobile])
+  const { setOpen: setNavOpen, setOpenMobile: setNavOpenMobile } = useSidebar()
+  const collapseChrome = useCallback(() => {
+    setRailOpen(false)
+    setRightSidebarOpen(false)
+    setMobileConvOpen(false)
+    setNavOpen(false)
+    setNavOpenMobile(false)
+  }, [setNavOpen, setNavOpenMobile])
+  const pickPrompt = useStartAgentPrompt(collapseChrome)
   const firstName = useClerkFirstName()
   const hostId = useHostId()
   const { hosts } = useHosts()
@@ -96,73 +119,72 @@ export function AgentThreadPage() {
   const clusterName = currentHost?.name ?? null
 
   return (
-    <ErrorBoundary FallbackComponent={AgentThreadPageError}>
-      <AgentAuthGate>
-        <AgentRuntimeProvider>
-          <div className="bg-background flex h-[calc(100dvh-6rem)] min-h-0 overflow-hidden rounded-xl border">
-            {/* Conversation rail — persistent left column (desktop). */}
-            {!isMobile && (
-              <ConversationRail
-                open={effectiveRailOpen}
-                animate={railOpen !== null}
-                onCollapse={() => setRailOpen(false)}
+    <div className="bg-background flex h-[calc(100dvh-6rem)] min-h-0 overflow-hidden rounded-xl border">
+      {/* Conversation rail — persistent left column (desktop). */}
+      {!isMobile && (
+        <ConversationRail
+          open={effectiveRailOpen}
+          animate={railOpen !== null}
+          onCollapse={() => setRailOpen(false)}
+        />
+      )}
+
+      {/* Conversation history — mobile Drawer. */}
+      {isMobile && (
+        <Drawer open={mobileConvOpen} onOpenChange={setMobileConvOpen}>
+          <DrawerContent className="max-h-[85dvh]">
+            <DrawerHeader className="sr-only">
+              <DrawerTitle>Conversations</DrawerTitle>
+              <DrawerDescription>
+                Pick up a previous chat or start a new one.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="h-[70dvh] min-h-0">
+              <ConversationRailBody
+                showCollapse={false}
+                onNavigate={() => setMobileConvOpen(false)}
               />
-            )}
-
-            {/* Conversation history — mobile Drawer. */}
-            {isMobile && (
-              <Drawer open={mobileConvOpen} onOpenChange={setMobileConvOpen}>
-                <DrawerContent className="max-h-[85dvh]">
-                  <DrawerHeader className="sr-only">
-                    <DrawerTitle>Conversations</DrawerTitle>
-                    <DrawerDescription>
-                      Pick up a previous chat or start a new one.
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <div className="h-[70dvh] min-h-0">
-                    <ConversationRailBody
-                      showCollapse={false}
-                      onNavigate={() => setMobileConvOpen(false)}
-                    />
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            )}
-
-            {/* Main column */}
-            <div className="relative flex min-w-0 flex-1 flex-col">
-              {(isMobile || !effectiveRailOpen) && (
-                <ConversationRailOpenButton
-                  onClick={() =>
-                    isMobile ? setMobileConvOpen(true) : setRailOpen(true)
-                  }
-                  className="absolute top-3 left-3 z-10"
-                />
-              )}
-              {!rightSidebarOpen ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRightSidebarOpen(true)}
-                  className="absolute top-3 right-3 z-10 h-8 gap-1.5 bg-background px-2.5 text-[11.5px] whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted"
-                >
-                  <PanelRightOpenIcon className="size-3.5" />
-                  Agent settings
-                </Button>
-              ) : null}
-              <Thread firstName={firstName} clusterName={clusterName} />
             </div>
+          </DrawerContent>
+        </Drawer>
+      )}
 
-            {/* Settings sidebar */}
-            <AgentSettingsSidebar
-              open={rightSidebarOpen}
-              onClose={() => setRightSidebarOpen(false)}
-              hostName={clusterName ?? 'default'}
-            />
-          </div>
-        </AgentRuntimeProvider>
-      </AgentAuthGate>
-    </ErrorBoundary>
+      {/* Main column */}
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        {(isMobile || !effectiveRailOpen) && (
+          <ConversationRailOpenButton
+            onClick={() =>
+              isMobile ? setMobileConvOpen(true) : setRailOpen(true)
+            }
+            className="absolute top-3 left-3 z-10"
+          />
+        )}
+        {!rightSidebarOpen ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setRightSidebarOpen(true)}
+            className="absolute top-3 right-3 z-10 h-8 gap-1.5 bg-background px-2.5 text-[11.5px] whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted"
+          >
+            <PanelRightOpenIcon className="size-3.5" />
+            Agent settings
+          </Button>
+        ) : null}
+        <Thread
+          firstName={firstName}
+          clusterName={clusterName}
+          onPickPrompt={pickPrompt}
+        />
+      </div>
+
+      {/* Settings sidebar */}
+      <AgentSettingsSidebar
+        open={rightSidebarOpen}
+        onClose={() => setRightSidebarOpen(false)}
+        hostName={clusterName ?? 'default'}
+        onPickPrompt={pickPrompt}
+      />
+    </div>
   )
 }
