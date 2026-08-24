@@ -792,7 +792,10 @@ Settings Diff, TTL & Partitions) declare aliases so searches like
 continuous left rail on the group's item list, not a broken per-row
 border); Databases and Tables tabs list the full fetched explorer set
 (All still caps at `EXPLORER_GROUP_MAX`). Query tokens highlight in
-titles and descriptions (`HighlightText` + `matchRanges`).
+titles and descriptions (`HighlightText` + `matchRanges`). Row
+titles stay one line (`whitespace-nowrap`) so names like
+`TTL & Partitions` do not wrap on `&`; descriptions
+`truncate` on the same row.
 
 Leave `engines` **absent** on the Tools parent and children. Absent already
 means the default source-engine family, so `filterMenuItemsByEngine` drops

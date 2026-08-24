@@ -221,9 +221,10 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   Actions under the search input (`CommandPaletteTabs`: `h-9 px-3`, strip
   `px-3 pt-1.5`). Pages nest under sidebar group headings with a continuous
   left rail on `cmdk-group-items` (not a per-row `border-l`). Query
-  tokens highlight in the visible title/description (`HighlightText`). All
-  still caps explorer rows; the Databases and Tables tabs show the full
-  fetch. Reset tab + query on close.
+  tokens highlight in the visible title/description (`HighlightText`). Titles
+  stay one line (`whitespace-nowrap`) so `TTL & Partitions` does not wrap
+  on `&`. All still caps explorer rows; the Databases and Tables tabs show
+  the full fetch. Reset tab + query on close.
 - **Tab strips:** define the tabs as one array and map it — an icon per tab with
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.

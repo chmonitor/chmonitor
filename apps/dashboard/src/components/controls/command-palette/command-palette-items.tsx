@@ -1,5 +1,6 @@
 'use client'
 
+import type { LucideIcon } from 'lucide-react'
 import {
   CornerDownLeft,
   Database,
@@ -19,15 +20,14 @@ import {
   Zap,
 } from 'lucide-react'
 
-import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { MenuItem } from '@/components/menu/types'
-import type { PaletteTab } from '../command-palette-utils'
 import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
+import type { PaletteTab } from '../command-palette-utils'
 import type { ExplorerTableRow } from './use-palette-groups'
 
-import { HighlightText } from './highlight-text'
 import { menuItemPaletteValue } from '../command-palette-utils'
+import { HighlightText } from './highlight-text'
 import { EXPLORER_GROUP_MAX } from './use-palette-groups'
 import {
   CommandEmpty,
@@ -102,6 +102,11 @@ export function EnterHint() {
     </span>
   )
 }
+
+/** Titles stay one line (`TTL & Partitions` must not wrap on `&`). */
+const TITLE_CLASS = 'font-medium whitespace-nowrap shrink-0'
+/** Trailing meta on the same row: ellipsis instead of wrapping the title. */
+const META_CLASS = 'ml-1 min-w-0 flex-1 truncate text-xs text-muted-foreground'
 
 export const PALETTE_TABS: {
   value: PaletteTab
@@ -257,13 +262,13 @@ export function CommandPaletteResults({
                 key={`favorite-${item.href}`}
                 onSelect={() => onSelectFavorite(item)}
                 value={`favorite ${menuItemPaletteValue(item)}`}
-                className="group"
+                className="group min-w-0"
               >
                 <Pin className="size-4 shrink-0 fill-current text-muted-foreground" />
                 <HighlightText
                   text={item.title}
                   query={inputValue}
-                  className="font-medium"
+                  className={TITLE_CLASS}
                 />
                 <EnterHint />
               </CommandItem>
@@ -283,19 +288,19 @@ export function CommandPaletteResults({
                 key={recent.id}
                 onSelect={() => onSelectRecent(recent)}
                 value={`recent-${recent.id}`}
-                className="group"
+                className="group min-w-0"
               >
                 <History className="size-4 shrink-0" />
                 <HighlightText
                   text={recent.title}
                   query={inputValue}
-                  className="font-medium"
+                  className={TITLE_CLASS}
                 />
                 {recent.description && (
                   <HighlightText
                     text={recent.description}
                     query={inputValue}
-                    className="ml-1 truncate text-xs text-muted-foreground"
+                    className={META_CLASS}
                   />
                 )}
                 <EnterHint />
@@ -349,13 +354,13 @@ export function CommandPaletteResults({
               key={group.href}
               onSelect={() => onSelectMenuItem(group)}
               value={menuItemPaletteValue(group)}
-              className="group"
+              className="group min-w-0"
             >
               {group.icon && <group.icon className="size-4 shrink-0" />}
               <HighlightText
                 text={group.title}
                 query={inputValue}
-                className="font-medium"
+                className={TITLE_CLASS}
               />
               <EnterHint />
             </CommandItem>
@@ -377,12 +382,12 @@ export function CommandPaletteResults({
                 value={menuItemPaletteValue(item, group.title)}
                 className="group flex-col items-start gap-0.5 rounded-md"
               >
-                <div className="flex w-full items-center gap-2">
+                <div className="flex w-full min-w-0 items-center gap-2">
                   {item.icon && <item.icon className="size-4 shrink-0" />}
                   <HighlightText
                     text={item.title}
                     query={inputValue}
-                    className="font-medium"
+                    className={TITLE_CLASS}
                   />
                   <EnterHint />
                 </div>
@@ -405,13 +410,13 @@ export function CommandPaletteResults({
               key={`db-${database}`}
               onSelect={() => onSelectDatabase(database)}
               value={`database ${database}`}
-              className="group"
+              className="group min-w-0"
             >
               <Database className="size-4 shrink-0" />
               <HighlightText
                 text={database}
                 query={inputValue}
-                className="font-medium"
+                className={TITLE_CLASS}
               />
               <EnterHint />
             </CommandItem>
@@ -426,17 +431,15 @@ export function CommandPaletteResults({
               key={`table-${row.database}-${row.name}`}
               onSelect={() => onSelectTable(row)}
               value={`table ${row.database}.${row.name} ${row.engine}`}
-              className="group"
+              className="group min-w-0"
             >
               <Table className="size-4 shrink-0" />
               <HighlightText
                 text={`${row.database}.${row.name}`}
                 query={inputValue}
-                className="font-medium"
+                className={TITLE_CLASS}
               />
-              <span className="ml-1 truncate text-xs text-muted-foreground">
-                {row.engine}
-              </span>
+              <span className={META_CLASS}>{row.engine}</span>
               <EnterHint />
             </CommandItem>
           ))}
@@ -446,59 +449,59 @@ export function CommandPaletteResults({
       {showActions && <CommandSeparator />}
       {showActions && (
         <CommandGroup heading="Actions">
-        <CommandItem
-          onSelect={onOpenAiChat}
-          value="Open AI Agent chat assistant"
-          className="group"
-        >
-          <Sparkles className="size-4 shrink-0" />
-          <span>Open AI Agent chat</span>
-          <EnterHint />
-        </CommandItem>
-
-        {mounted && (
           <CommandItem
-            onSelect={onToggleTheme}
-            value="Toggle dark light theme appearance"
+            onSelect={onOpenAiChat}
+            value="Open AI Agent chat assistant"
             className="group"
           >
-            {resolvedTheme === 'dark' ? (
-              <Sun className="size-4 shrink-0" />
-            ) : (
-              <Moon className="size-4 shrink-0" />
-            )}
-            <span>
-              Switch to {resolvedTheme === 'dark' ? 'light' : 'dark'} mode
-            </span>
+            <Sparkles className="size-4 shrink-0" />
+            <span>Open AI Agent chat</span>
             <EnterHint />
           </CommandItem>
-        )}
 
-        {otherHosts.map((host) => (
-          <CommandItem
-            key={`switch-host-${host.id}`}
-            onSelect={() => onSwitchHost(host.id)}
-            value={`switch host ${host.name || getHost(host.host)}`}
-            className="group"
-          >
-            <GlobeIcon className="size-4 shrink-0" />
-            <span>Switch to {host.name || getHost(host.host)}</span>
-            <EnterHint />
-          </CommandItem>
-        ))}
+          {mounted && (
+            <CommandItem
+              onSelect={onToggleTheme}
+              value="Toggle dark light theme appearance"
+              className="group"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="size-4 shrink-0" />
+              ) : (
+                <Moon className="size-4 shrink-0" />
+              )}
+              <span>
+                Switch to {resolvedTheme === 'dark' ? 'light' : 'dark'} mode
+              </span>
+              <EnterHint />
+            </CommandItem>
+          )}
 
-        {onOpenSettings && (
-          <CommandItem
-            onSelect={onOpenSettings}
-            value="Settings preferences"
-            className="group"
-          >
-            <Settings className="size-4 shrink-0" />
-            <span>Settings</span>
-            <Kbd className="ml-auto">⌘,</Kbd>
-          </CommandItem>
-        )}
-      </CommandGroup>
+          {otherHosts.map((host) => (
+            <CommandItem
+              key={`switch-host-${host.id}`}
+              onSelect={() => onSwitchHost(host.id)}
+              value={`switch host ${host.name || getHost(host.host)}`}
+              className="group"
+            >
+              <GlobeIcon className="size-4 shrink-0" />
+              <span>Switch to {host.name || getHost(host.host)}</span>
+              <EnterHint />
+            </CommandItem>
+          ))}
+
+          {onOpenSettings && (
+            <CommandItem
+              onSelect={onOpenSettings}
+              value="Settings preferences"
+              className="group"
+            >
+              <Settings className="size-4 shrink-0" />
+              <span>Settings</span>
+              <Kbd className="ml-auto">⌘,</Kbd>
+            </CommandItem>
+          )}
+        </CommandGroup>
       )}
     </CommandList>
   )
