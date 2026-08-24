@@ -71,7 +71,7 @@ describe('header nav advertises Pricing', () => {
   })
 })
 
-describe('hero pill links to the latest published blog post', () => {
+describe('hero pill links to the latest Release or Update post', () => {
   const latest = getLatestBlogPost()
 
   test('helper resolves a published post on blog.chmonitor.dev', () => {
