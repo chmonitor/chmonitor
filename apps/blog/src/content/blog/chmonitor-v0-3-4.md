@@ -23,7 +23,10 @@ Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonito
   <div class="hl"><b>Licenses</b><span>Self-hosted host-count licenses. Invoice, not a key in the binary.</span></div>
 </div>
 
-<img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="eager" />
+<div class="img-row" data-cols="2">
+  <img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="eager" />
+  <img src="/assets/screenshots/settings-navigation-dark.jpeg" alt="Settings Navigation: Full, DBA, Engineer, SRE, or Custom workspace roles" width="1600" height="1228" loading="eager" />
+</div>
 
 ## What shipped
 

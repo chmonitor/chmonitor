@@ -9,6 +9,8 @@ chmonitor has more pages than any one person opens. A DBA lives in tables, merge
 
 **Settings → Workspace → Navigation** is the switch. The header says it: local to this browser. It slims the sidebar and the command palette for you. It does not change the server, and it does not change anyone else.
 
+<img src="/assets/screenshots/settings-navigation-dark.jpeg" alt="Settings Navigation with Full, DBA, Engineer, SRE, and Custom role presets" width="1600" height="1228" loading="lazy" />
+
 ## Pick a role
 
 Five presets. Named roles keep a stable set of top-level groups. **Full** is the only one that auto-expands: new pages stay visible.

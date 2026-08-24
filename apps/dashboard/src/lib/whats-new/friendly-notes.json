@@ -17,6 +17,10 @@
         {
           "src": "/assets/screenshots/tools-advisor-dark.jpeg",
           "alt": "Tools menu open on Advisor, with Schema & Settings and recommend-only TTL advice"
+        },
+        {
+          "src": "/assets/screenshots/settings-navigation-dark.jpeg",
+          "alt": "Settings Navigation with Full, DBA, Engineer, SRE, and Custom workspace roles"
         }
       ]
     },
