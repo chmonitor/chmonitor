@@ -182,11 +182,38 @@ const ogImage = new URL(image, Astro.site).toString()
        centred on the prose column. `height:auto` is load-bearing: posts ship
        intrinsic width/height attributes, so without it the attribute height is
        kept while CSS shrinks the width — squashing the image. `width:auto`
-       keeps a small image at its natural size instead of upscaling it. */
+       keeps a small image at its natural size instead of upscaling it.
+       JS wraps each shot in `.shot-frame` and adds a top-right zoom control. */
     .prose img{display:block;width:auto;height:auto;
       max-width:min(var(--maxw), calc(100vw - 48px));
       margin:32px 0;margin-left:50%;transform:translateX(-50%);
       border:1px solid var(--border);border-radius:calc(var(--radius) + 4px)}
+    .prose .shot-frame{position:relative;display:block;width:fit-content;
+      max-width:min(var(--maxw), calc(100vw - 48px));
+      margin:32px 0;margin-left:50%;transform:translateX(-50%);
+      border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);
+      overflow:hidden;background:var(--card)}
+    .prose .shot-frame img{margin:0;margin-left:0;transform:none;max-width:100%;
+      border:0;border-radius:0}
+    .shot-zoom{position:absolute;top:8px;right:8px;z-index:1;display:inline-flex;
+      align-items:center;justify-content:center;width:32px;height:32px;padding:0;
+      border-radius:8px;border:1px solid var(--border);background:var(--card);
+      color:var(--foreground);cursor:zoom-in;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+    .shot-zoom svg{width:16px;height:16px;display:block}
+    @media (max-width:520px){
+      .shot-zoom{width:44px;height:44px}}
+    .screenshot-zoom-dialog{position:fixed;inset:0;border:none;padding:0;background:transparent;
+      max-width:min(96vw,1400px);width:100%;height:100%;margin:auto;outline:none}
+    .screenshot-zoom-dialog[open]{display:flex;align-items:center;justify-content:center}
+    .screenshot-zoom-dialog::backdrop{background:rgba(0,0,0,.72)}
+    .screenshot-zoom-dialog .screenshot-zoom-close{position:fixed;top:16px;right:16px;z-index:2;
+      width:40px;height:40px;border-radius:999px;border:1px solid var(--border);
+      background:var(--card);color:var(--foreground);font-size:24px;line-height:1;cursor:pointer}
+    .screenshot-zoom-body{max-height:90vh;max-width:100%;overflow:auto;border:0;
+      border-radius:var(--radius);background:transparent}
+    .screenshot-zoom-body img{display:block;max-width:min(96vw,1400px);max-height:90vh;
+      width:auto;height:auto;margin:auto;border:0;border-radius:var(--radius);transform:none}
+    html:has(.screenshot-zoom-dialog[open]){overflow:hidden}
 
     /* ── image row (multi-col, wider than the 720px text measure) ──
        Same breakout as a lone screenshot (up to --maxw / viewport-48px).
@@ -200,8 +227,9 @@ const ogImage = new URL(image, Astro.site).toString()
     .img-row[data-cols="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
     .img-row[data-cols="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
     .img-row[data-cols="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .prose .img-row .shot-frame,.prose .img-row img{
+      margin:0;margin-left:0;transform:none;width:100%;max-width:none}
     .prose .img-row img{
-      margin:0;margin-left:0;transform:none;width:100%;max-width:none;
       height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top}
     .img-row figure{margin:0;min-width:0}
     .img-row figcaption{font-size:13px;color:var(--muted-foreground);padding:8px 2px 0;
@@ -238,8 +266,63 @@ const ogImage = new URL(image, Astro.site).toString()
 </head>
 <body>
   <slot />
+  <dialog id="screenshot-zoom-dialog" class="screenshot-zoom-dialog" aria-label="Full size screenshot">
+    <form method="dialog">
+      <button type="submit" class="screenshot-zoom-close" aria-label="Close">×</button>
+    </form>
+    <div class="screenshot-zoom-body"></div>
+  </dialog>
   <script is:inline>
     if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages()
+    ;(function () {
+      var ZOOM_ICON =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>'
+      var shots = document.querySelectorAll('.prose img')
+      for (var i = 0; i < shots.length; i++) {
+        var img = shots[i]
+        if (img.closest('.shot-frame') || img.closest('figure.video') || img.closest('.mark')) continue
+        var src = img.getAttribute('src')
+        if (!src) continue
+        var frame = document.createElement('span')
+        frame.className = 'shot-frame'
+        img.parentNode.insertBefore(frame, img)
+        frame.appendChild(img)
+        var btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'shot-zoom'
+        btn.setAttribute('data-screenshot-zoom', '')
+        btn.setAttribute('data-zoom-src', img.getAttribute('data-src-light') || src)
+        var dark = img.getAttribute('data-src-dark')
+        if (dark) btn.setAttribute('data-zoom-src-dark', dark)
+        var alt = img.getAttribute('alt') || ''
+        btn.setAttribute('data-zoom-alt', alt)
+        btn.setAttribute('aria-label', alt ? 'Zoom: ' + alt : 'Zoom screenshot')
+        btn.innerHTML = ZOOM_ICON
+        frame.appendChild(btn)
+      }
+      var dlg = document.getElementById('screenshot-zoom-dialog')
+      if (!dlg) return
+      var body = dlg.querySelector('.screenshot-zoom-body')
+      if (!body) return
+      document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('[data-screenshot-zoom]') : null
+        if (!btn) return
+        var src = btn.getAttribute('data-zoom-src')
+        if (!src) return
+        var theme = document.documentElement.getAttribute('data-theme')
+        var dark = btn.getAttribute('data-zoom-src-dark')
+        var wanted = theme === 'dark' && dark ? dark : src
+        body.innerHTML = ''
+        var zoomed = document.createElement('img')
+        zoomed.src = wanted
+        zoomed.alt = btn.getAttribute('data-zoom-alt') || ''
+        body.appendChild(zoomed)
+        if (typeof dlg.showModal === 'function') dlg.showModal()
+      })
+      dlg.addEventListener('click', function (e) {
+        if (e.target === dlg) dlg.close()
+      })
+    })()
   </script>
   <script>
     // Opt-in, off-by-default product analytics (PostHog) — see

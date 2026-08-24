@@ -64,10 +64,11 @@ A lone `<img>` already breaks out past the 720px prose measure (up to the
 ```
 
 Images in a row share one height (`aspect-ratio: 16/10`, `object-fit: cover`,
-top-aligned) so mixed captures line up. Optional captions via `<figure>` /
-`<figcaption>`. Pin 2–4 columns with `data-cols="3"`; below 700px a 3/4-col
-row drops to two, below 520px to one. Theme-aware `data-src-light` /
-`data-src-dark` still works on each `<img>`.
+top-aligned) so mixed captures line up. A top-right zoom control on each
+screenshot opens a lightbox (Escape / backdrop / × to close). Optional
+captions via `<figure>` / `<figcaption>`. Pin 2–4 columns with
+`data-cols="3"`; below 700px a 3/4-col row drops to two, below 520px to one.
+Theme-aware `data-src-light` / `data-src-dark` still works on each `<img>`.
 
 ## Content engine
 
