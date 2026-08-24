@@ -58,7 +58,11 @@ describe('blog chrome matches landing shadcn tokens', () => {
     expect(base).toContain('aspect-ratio:16/10')
     expect(base).toContain('object-fit:cover')
     expect(base).toContain('.img-row[data-cols="3"]')
+    expect(base).toContain('screenshot-zoom-dialog')
+    expect(base).toContain('shot-zoom')
+    expect(base).toContain('data-screenshot-zoom')
     expect(read('README.md')).toContain('class="img-row"')
+    expect(read('README.md')).toContain('top-right zoom')
   })
 
   test('featured card is not the old #fff8f1 hardcode', () => {
