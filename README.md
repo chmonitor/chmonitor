@@ -22,10 +22,16 @@
   · <a href="#quick-start">Quick start</a>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/overview-dark-with-bg.jpeg">
-  <img alt="chmonitor overview: cluster status, storage, uptime, and a year of query activity" src=".github/screenshots/overview-dark-with-bg.jpeg">
-</picture>
+<p align="center">
+  <a href="https://chmonitor.dev/watch/v0-3">
+    <img alt="Watch the chmonitor v0.3 launch film" src=".github/videos/hero.jpg">
+  </a>
+</p>
+<p align="center">
+  <a href="https://chmonitor.dev/watch/v0-3"><strong>Watch the v0.3 launch film</strong></a>
+  · 36 seconds ·
+  <a href="https://chmonitor.dev/assets/videos/chmonitor-v0.3.mp4">MP4</a>
+</p>
 
 **chmonitor** is a dashboard and advisor for ClickHouse. It reads `system.*`
 tables and shows what the cluster is doing — queries, merges, replication,
