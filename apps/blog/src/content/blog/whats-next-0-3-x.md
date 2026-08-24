@@ -15,12 +15,12 @@ while they sat on `main` and [dash.chmonitor.dev](https://dash.chmonitor.dev).
   <div class="hl"><b>Settings Diff</b><span>system.settings and merge_tree_settings, pair or matrix. All matched when nothing differs.</span></div>
 </div>
 
+## Tools, at the end of Main
+
 <div class="img-row" data-cols="2">
   <img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="lazy" />
   <img src="/assets/screenshots/settings-navigation-dark.jpeg" alt="Settings Navigation: Full, DBA, Engineer, SRE, or Custom workspace roles" width="1600" height="1228" loading="lazy" />
 </div>
-
-## Tools, at the end of Main
 
 Interactive work used to live under Queries, Tables, and Operations. It now
 lives in **Tools** — last group in Main, after Logs.
@@ -33,6 +33,8 @@ The longer write-up is [A DBA, an SRE, and an engineer should not share a
 sidebar](/customize-dashboard/).
 
 ## Schema Compare and Settings Diff
+
+<img src="/assets/screenshots/chm-schema-compare.png" alt="Schema Compare empty state with a sample DDL pair — Need two saved connections, plus example tables analytics.sessions vs Host B" width="1600" height="1000" loading="lazy" />
 
 [DBA workflows](https://docs.chmonitor.dev/guide/guides/dba-workflows) is the
 map.

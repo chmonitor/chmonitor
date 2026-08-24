@@ -23,14 +23,14 @@ Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonito
   <div class="hl"><b>Licenses</b><span>Self-hosted host-count licenses. Invoice, not a key in the binary.</span></div>
 </div>
 
+## What shipped
+
+### Tools and workspace
+
 <div class="img-row" data-cols="2">
   <img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="eager" />
   <img src="/assets/screenshots/settings-navigation-dark.jpeg" alt="Settings Navigation: Full, DBA, Engineer, SRE, or Custom workspace roles" width="1600" height="1228" loading="eager" />
 </div>
-
-## What shipped
-
-### Tools and workspace
 
 - **Tools** sidebar group: [SQL Console](https://dash.chmonitor.dev/sql),
   [Data Explorer](https://dash.chmonitor.dev/explorer),
@@ -49,6 +49,8 @@ Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonito
   sidebar](/customize-dashboard/).
 
 ### Schema Compare and Settings Diff
+
+<img src="/assets/screenshots/chm-schema-compare.png" alt="Schema Compare empty state with a sample DDL pair — Need two saved connections, plus example tables analytics.sessions vs Host B" width="1600" height="1000" loading="lazy" />
 
 [DBA workflows](https://docs.chmonitor.dev/guide/guides/dba-workflows) is the
 map.

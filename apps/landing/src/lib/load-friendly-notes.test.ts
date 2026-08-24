@@ -14,6 +14,7 @@ describe('loadLandingFriendlyNotes', () => {
     expect(v034?.screenshots.map((s) => s.src)).toEqual([
       '/assets/screenshots/tools-advisor-dark.jpeg',
       '/assets/screenshots/settings-navigation-dark.jpeg',
+      '/assets/screenshots/chm-schema-compare.png',
     ])
     const html = friendlyNoteToHtml(v033!)
     expect(html).toContain('<p>')
