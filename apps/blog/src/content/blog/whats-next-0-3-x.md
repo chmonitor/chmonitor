@@ -15,6 +15,8 @@ while they sat on `main` and [dash.chmonitor.dev](https://dash.chmonitor.dev).
   <div class="hl"><b>Settings Diff</b><span>system.settings and merge_tree_settings, pair or matrix. All matched when nothing differs.</span></div>
 </div>
 
+<img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="lazy" />
+
 ## Tools, at the end of Main
 
 Interactive work used to live under Queries, Tables, and Operations. It now

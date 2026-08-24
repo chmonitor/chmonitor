@@ -146,7 +146,7 @@ describe('docs/whats-new catalog', () => {
   test('seeded 0.3.x files parse as friendly notes', () => {
     const notes = loadFriendlyNotesFromDir()
     const versions = notes.map((note) => note.version).sort()
-    expect(versions).toEqual(['0.3.0', '0.3.1', '0.3.2', '0.3.3'])
+    expect(versions).toEqual(['0.3.0', '0.3.1', '0.3.2', '0.3.3', '0.3.4'])
     for (const note of notes) {
       expect(note.summary.length).toBeGreaterThan(10)
       expect(note.bullets.length).toBeGreaterThanOrEqual(4)
