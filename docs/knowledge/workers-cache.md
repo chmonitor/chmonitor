@@ -83,8 +83,8 @@ the final response, and it skips:
 Do **not** set docs `assets.run_worker_first = true`. That sent `/assets/*.css`
 (and favicons, `/brand/*`) through the TanStack `$` catch-all, which returned
 **HTML 404** — the docs site looked unstyled. HTML still hits the Worker first
-(canonical 301s). Static prefixes are excluded (`!/assets/*`, `!/brand/*`,
-favicons). See `apps/docs/wrangler.toml`.
+(canonical 301s). Static prefixes are excluded (`/api/*` plus `!/assets/*`, `!/brand/*`, favicons — Wrangler requires at
+least one non-negative rule). See `apps/docs/wrangler.toml`.
 
 `max-age=300` (5 min fresh) keeps content reasonably current; the 1-day
 `stale-while-revalidate` window means edits still serve instantly from cache and

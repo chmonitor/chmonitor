@@ -28,18 +28,19 @@ enabled = true
 # "alternate with proper canonical" for slash variants).
 [assets]
 html_handling = "drop-trailing-slash"
-# HTML/API still hit the Worker first (canonical 301s, markdown Accept,
-# Cache-Control). Static files must NOT — `run_worker_first = true` sent
-# /assets/*.css through the `$` docs route, which returned HTML 404 and
-# the site rendered unstyled.
+# Worker first only for API/OG. Static files (`!/assets/*`, brand, favicons)
+# go to the assets binding — `run_worker_first = true` sent /assets/*.css
+# through the `$` docs route (HTML 404, unstyled site). Wrangler requires
+# at least one non-negative rule in this list.
 run_worker_first = [
+  "/api/*",
+  "/og/docs/*",
   "!/assets/*",
   "!/brand/*",
   "!/favicon.svg",
   "!/favicon-16.png",
   "!/favicon-32.png",
   "!/apple-touch-icon.png",
-  "!/og/og.png",
   "!/robots.txt",
 ]
 
