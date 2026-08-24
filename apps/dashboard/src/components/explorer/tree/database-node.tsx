@@ -3,10 +3,17 @@ import { useQuery } from '@tanstack/react-query'
 
 import { TableNode } from './table-node'
 import { TreeNode } from './tree-node'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
+
+export type TreeTable = {
+  database: string
+  name: string
+  engine: string
+  totalRows?: number
+}
 
 interface Table {
   name: string
@@ -33,6 +40,8 @@ interface DatabaseNodeProps {
   /** Roving-tabindex fallback anchor — see `TreeNode`. */
   isDefaultTabbable?: boolean
   searchFilter: string
+  careKeys?: ReadonlySet<string>
+  transformTables?: (tables: TreeTable[], searchFilter: string) => TreeTable[]
   onToggleDatabase: (database: string) => void
   onToggleTable: (key: string) => void
   onSelectDatabase: (database: string) => void
@@ -58,6 +67,8 @@ export const DatabaseNode = function DatabaseNode({
   setSize,
   isDefaultTabbable = false,
   searchFilter,
+  careKeys,
+  transformTables,
   onToggleDatabase,
   onToggleTable,
   onSelectDatabase,
@@ -85,15 +96,23 @@ export const DatabaseNode = function DatabaseNode({
 
   const tables = response?.data
 
-  const filteredTables = (() => {
+  const filteredTables = useMemo(() => {
     if (!tables) return []
-    if (!searchFilter) return tables
-
+    const mapped = tables.map((table) => ({
+      database,
+      name: table.name,
+      engine: table.engine,
+      totalRows: table.total_rows,
+    }))
+    if (transformTables) {
+      return transformTables(mapped, searchFilter)
+    }
+    if (!searchFilter) return mapped
     const lowerFilter = searchFilter.toLowerCase()
-    return tables.filter((table) =>
+    return mapped.filter((table) =>
       table.name.toLowerCase().includes(lowerFilter)
     )
-  })()
+  }, [tables, database, searchFilter, transformTables])
 
   const handleToggle = () => {
     if (!shouldFetch) {
@@ -150,22 +169,23 @@ export const DatabaseNode = function DatabaseNode({
         </div>
       ) : (
         filteredTables.map((table, index) => {
-          const tableKey = `${database}.${table.name}`
+          const key = `${database}.${table.name}`
           return (
             <TableNode
-              key={tableKey}
+              key={key}
               database={database}
               table={table.name}
               engine={table.engine}
-              totalRows={table.total_rows}
-              isExpanded={isTableExpanded(tableKey)}
+              totalRows={table.totalRows}
+              needsCare={careKeys?.has(key) ?? false}
+              isExpanded={isTableExpanded(key)}
               isSelected={
                 selectedDatabase === database && selectedTable === table.name
               }
               level={level + 1}
               posInSet={index + 1}
               setSize={filteredTables.length}
-              onToggle={() => onToggleTable(tableKey)}
+              onToggle={() => onToggleTable(key)}
               onSelect={() => handleSelectTable(table.name, table.engine)}
             />
           )

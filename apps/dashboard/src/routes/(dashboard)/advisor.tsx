@@ -14,7 +14,7 @@ import {
 import { lazy, Suspense, useState } from 'react'
 import { AdvisorQueryPicker } from '@/components/agents/advisor-query-picker'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
-import { AdvisorTuningTab } from '@/components/agents/advisor-tuning-tab'
+import { AdvisorSchemaTab } from '@/components/agents/advisor-schema-tab'
 import { ErrorAlert } from '@/components/feedback'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { ADVISOR_TABS, resolveAdvisorTab } from '@/lib/ai/advisor/advisor-tabs'
 import {
   advisorUserInputCopy,
   isAdvisorUserInputError,
@@ -303,18 +304,39 @@ function AdvisorContent() {
 }
 
 function AdvisorPage() {
+  const navigate = useNavigate()
+  const pathname = useLocation({ select: (l) => l.pathname })
+  const searchParams = useUrlSearchParams()
+  const tab = resolveAdvisorTab({
+    view: searchParams.get('view'),
+    query: searchParams.get('query'),
+    queryId: searchParams.get('queryId'),
+  })
+
+  const setTab = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', value)
+    navigate({
+      ...splitHref(`${pathname}?${params.toString()}`),
+      replace: true,
+    })
+  }
+
   return (
     <Suspense fallback={<TableSkeleton rows={3} />}>
-      <Tabs defaultValue="query" className="flex flex-col gap-4">
+      <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-4">
         <TabsList>
-          <TabsTrigger value="query">Query Advisor</TabsTrigger>
-          <TabsTrigger value="tuning">Schema &amp; Settings</TabsTrigger>
+          {ADVISOR_TABS.map((item) => (
+            <TabsTrigger key={item.value} value={item.value}>
+              {item.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
+        <TabsContent value="schema" className="mt-0">
+          <AdvisorSchemaTab />
+        </TabsContent>
         <TabsContent value="query" className="mt-0">
           <AdvisorContent />
-        </TabsContent>
-        <TabsContent value="tuning" className="mt-0">
-          <AdvisorTuningTab />
         </TabsContent>
       </Tabs>
     </Suspense>

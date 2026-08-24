@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 
+import type { ReactNode } from 'react'
+import type { TreeTable } from './database-node'
+
 import { useExplorerState } from '../hooks/use-explorer-state'
 import { useTreeKeyboardNav } from '../hooks/use-tree-keyboard-nav'
 import { useTreeState } from '../hooks/use-tree-state'
 import { DatabaseNode } from './database-node'
 import { TreeSearch } from './tree-search'
 import { TreeSkeleton } from './tree-skeleton'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SidebarMenu } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useHostId } from '@/lib/swr'
@@ -29,7 +32,23 @@ const fetcher = async (url: string): Promise<ApiResponse<Database[]>> => {
   return res.json()
 }
 
-export function DatabaseTree() {
+export interface DatabaseTreeProps {
+  /** Extra controls rendered between search and the tree (Advisor schema). */
+  toolbar?: ReactNode
+  /** `db.table` keys that need attention. */
+  careKeys?: ReadonlySet<string>
+  /** Optional table list transform (filter / sort / hide). Search is passed in. */
+  transformTables?: (tables: TreeTable[], searchFilter: string) => TreeTable[]
+  /** Optional database reorder (e.g. care databases first). */
+  sortDatabases?: <T extends { name: string }>(rows: T[]) => T[]
+}
+
+export function DatabaseTree({
+  toolbar,
+  careKeys,
+  transformTables,
+  sortDatabases,
+}: DatabaseTreeProps = {}) {
   const hostId = useHostId()
   const [searchFilter, setSearchFilter] = useState('')
   const { database, table, setDatabase, setDatabaseAndTable } =
@@ -50,7 +69,11 @@ export function DatabaseTree() {
     staleTime: 5 * 60_000,
   })
 
-  const databases = response?.data
+  const databases = useMemo(() => {
+    const rows = response?.data
+    if (!rows) return rows
+    return sortDatabases ? sortDatabases(rows) : rows
+  }, [response?.data, sortDatabases])
 
   const handleSelectDatabase = (db: string) => {
     setDatabase(db)
@@ -92,6 +115,7 @@ export function DatabaseTree() {
     <TooltipProvider>
       <div className="flex flex-col gap-2">
         <TreeSearch value={searchFilter} onChange={setSearchFilter} />
+        {toolbar}
         <SidebarMenu
           role="tree"
           aria-label="Database explorer"
@@ -111,6 +135,8 @@ export function DatabaseTree() {
               setSize={databases.length}
               isDefaultTabbable={!hasSelection && index === 0}
               searchFilter={searchFilter}
+              careKeys={careKeys}
+              transformTables={transformTables}
               onToggleDatabase={toggleDatabase}
               onToggleTable={toggleTable}
               onSelectDatabase={handleSelectDatabase}

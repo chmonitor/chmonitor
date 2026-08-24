@@ -26,6 +26,8 @@ interface TableNodeProps {
   table: string
   engine: string
   totalRows?: number
+  /** Amber dot — this table has advisor findings that need review. */
+  needsCare?: boolean
   isExpanded: boolean
   isSelected: boolean
   level: number
@@ -109,6 +111,7 @@ export const TableNode = function TableNode({
   table,
   engine,
   totalRows,
+  needsCare = false,
   isExpanded,
   isSelected,
   level,
@@ -162,8 +165,20 @@ export const TableNode = function TableNode({
       posInSet={posInSet}
       setSize={setSize}
       badge={
-        totalRows !== undefined && totalRows !== null ? (
-          <RowCountBadge totalRows={totalRows} />
+        needsCare || (totalRows !== undefined && totalRows !== null) ? (
+          <span className="ml-auto flex items-center gap-1.5">
+            {needsCare ? (
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-[var(--chart-yellow)]"
+                title="Needs attention"
+                aria-label="Needs attention"
+                data-testid="table-care-indicator"
+              />
+            ) : null}
+            {totalRows !== undefined && totalRows !== null ? (
+              <RowCountBadge totalRows={totalRows} />
+            ) : null}
+          </span>
         ) : undefined
       }
       onToggle={handleToggle}

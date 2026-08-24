@@ -1,3 +1,5 @@
+export type { TreeTable } from './database-node'
+export type { DatabaseTreeProps } from './database-tree'
 export type {
   TreeArrowVerticalKey,
   TreeHorizontalAction,

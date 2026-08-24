@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-23
+updated: 2026-08-24
 tags:
   - design-system
   - ui
@@ -320,6 +320,12 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   `query_id` — use the same EmptyState with next steps, never `ErrorAlert`
   titled "Analysis failed". `ErrorAlert` is for host/schema/fetch failures.
   Picking a query from the picker auto-runs, same as `/explain`.
+  Advisor (`/advisor`) defaults to Schema & Settings; Query Advisor is the
+  second tab (`?query=` / `?queryId=` still open it). The schema surface
+  reuses Explorer `DatabaseTree` (search plus All / Needs attention / Hide
+  suggested, group, and sort). Care tables use one amber `chart-yellow` dot.
+  Detail is recommend-only (`TuningFindingsPanel`); the all-good empty state
+  includes tips for creating new tables. Never Apply/Run DDL.
 - **Illustrations:** bespoke, theme-aware, token-driven, motion-safe inline SVGs
   in `components/illustrations/` — prefer over a lone lucide glyph for
   high-impact moments. `WelcomeIllustration` (first-run hero),
