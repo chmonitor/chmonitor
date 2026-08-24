@@ -20,7 +20,7 @@ Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonito
   <div class="hl"><b>Schema Compare</b><span>Table DDL across hosts or replica nodes. Copy-only plan — never applied.</span></div>
   <div class="hl"><b>Settings Diff</b><span>system.settings and merge_tree_settings, pair or matrix. All matched when nothing differs.</span></div>
   <div class="hl"><b>TTL inventory</b><span>Every MergeTree table's TTL and PARTITION BY, plus part-health charts.</span></div>
-  <div class="hl"><b>Licenses</b><span>Self-hosted host-count licenses. Invoice, not a key in the binary.</span></div>
+  <div class="hl"><b>Licenses</b><span>Switched from Cloud seats to a self-hosted host-count license.</span></div>
 </div>
 
 ## What shipped
@@ -87,8 +87,9 @@ map.
 
 ### Licenses
 
-Paid product is a **self-hosted host-count license**, not a Cloud seat. No key
-in the binary. [We're selling self-hosted licenses](/self-hosted-licenses/).
+We dropped the SaaS Cloud seat model. Paid product is now a **self-hosted
+host-count license**. No key in the binary.
+[We're selling self-hosted licenses](/self-hosted-licenses/).
 
 ## Upgrade
 
