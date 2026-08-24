@@ -54,13 +54,20 @@ function findColumnList(
   }
 }
 
-/** First `(` that opens the column/index list, not a type argument. */
+/**
+ * First `(` that opens the column/index list, not a type argument.
+ *
+ * `skipQuoted` returns the closing quote index. This scan uses a while-loop
+ * (no auto-increment), so we must step past that closer. Otherwise a UUID,
+ * ON CLUSTER '...', or `` `db`.`table` `` before the column list is treated
+ * as a new opener and the real `(` is skipped — Pretty becomes a no-op.
+ */
 function findColumnListOpen(sql: string): number {
   let i = 0
   while (i < sql.length) {
     const ch = sql[i]
     if (ch === "'" || ch === '"' || ch === '`') {
-      i = skipQuoted(sql, i)
+      i = skipQuoted(sql, i) + 1
       continue
     }
     if (ch === '(') return i

@@ -40,4 +40,31 @@ describe('prettySchemaSql', () => {
       'CREATE TABLE broken (id UInt64'
     )
   })
+
+  test('still pretty-prints when UUID / ON CLUSTER / quoted names precede columns', () => {
+    const uuid =
+      "CREATE TABLE default.foo UUID '01234567-89ab-cdef-0123-456789abcdef' (`id` Int64, `name` String) ENGINE = MergeTree ORDER BY id"
+    const clustered =
+      "CREATE TABLE default.foo ON CLUSTER '{cluster}' (`id` UInt64) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{uuid}/{shard}', '{replica}') ORDER BY id"
+    const quoted =
+      'CREATE TABLE `default`.`events` (`id` UInt64, `payload` String CODEC(ZSTD(1))) ENGINE = MergeTree PARTITION BY toYYYYMM(d) ORDER BY id SETTINGS index_granularity = 8192'
+
+    const uuidPretty = prettySchemaSql(uuid)
+    expect(uuidPretty).toContain('\n(\n  `id` Int64,\n  `name` String\n)')
+    expect(uuidPretty).toContain('ENGINE = MergeTree')
+
+    const clusteredPretty = prettySchemaSql(clustered)
+    expect(clusteredPretty.split('\n')[0]).toBe(
+      "CREATE TABLE default.foo ON CLUSTER '{cluster}'"
+    )
+    expect(clusteredPretty).toContain('  `id` UInt64')
+    expect(clusteredPretty).toContain('ENGINE = ReplicatedMergeTree')
+
+    const quotedPretty = prettySchemaSql(quoted)
+    expect(quotedPretty.split('\n')[0]).toBe('CREATE TABLE `default`.`events`')
+    expect(quotedPretty).toContain('  `id` UInt64,')
+    expect(quotedPretty).toContain('  `payload` String CODEC(ZSTD(1))')
+    expect(quotedPretty).toContain('PARTITION BY toYYYYMM(d)')
+    expect(quotedPretty).toContain('SETTINGS index_granularity = 8192')
+  })
 })
