@@ -1,6 +1,6 @@
 ---
 title: "chmonitor v0.3.4 — Tools, Schema Compare, workspace roles"
-description: "After four days of agents working day and night — 106 PRs, 267 comments — v0.3.4 ships a Tools menu, workspace roles, Schema Compare, Settings Diff, TTL inventory, What's new, and self-hosted licenses."
+description: "After four days of agents working day and night — 106 PRs, 267 comments — v0.3.4 is the tag for Tools, workspace roles, Schema Compare, and the shift to self-hosted licenses."
 date: 2026-08-20
 tag: Release
 version: v0.3.4
@@ -8,19 +8,21 @@ cover: /assets/screenshots/tools-advisor-dark.jpeg
 ---
 
 After **four days** of agents working day and night — **106 pull requests** and
-**267 comments** on GitHub — chmonitor **v0.3.4** is the tag for everything that
-landed on `main` after v0.3.3. Tools, workspace roles, Schema Compare, Settings
-Diff, TTL inventory, and self-hosted licenses are in this release.
+**267 comments** on GitHub — **v0.3.4** is the tag for everything that landed
+on `main` after v0.3.3. The dashboard got a Tools menu, per-browser workspace
+roles, Schema Compare, Settings Diff, a TTL inventory, and a What's new
+dialog. We also dropped Cloud seats for a self-hosted license.
 
-Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonitor.dev).
+Every path below opens the live demo on
+[dash.chmonitor.dev](https://dash.chmonitor.dev).
 
 <div class="hl-grid">
-  <div class="hl"><b>Tools menu</b><span>SQL Console, Explorer, Explain, Advisor, Chart Builder, Schema Compare, Settings Diff — last group in Main.</span></div>
-  <div class="hl"><b>Workspace roles</b><span>Full / DBA / Engineer / SRE. Hide and pin pages in this browser.</span></div>
-  <div class="hl"><b>Schema Compare</b><span>Table DDL across hosts or replica nodes. Copy-only plan — never applied.</span></div>
-  <div class="hl"><b>Settings Diff</b><span>system.settings and merge_tree_settings, pair or matrix. All matched when nothing differs.</span></div>
-  <div class="hl"><b>TTL inventory</b><span>Every MergeTree table's TTL and PARTITION BY, plus part-health charts.</span></div>
-  <div class="hl"><b>Licenses</b><span>Switched from Cloud seats to a self-hosted host-count license.</span></div>
+  <div class="hl"><b>Tools menu</b><span>Interactive work — SQL, Explorer, Explain, Advisor, compare — now lives at the end of Main.</span></div>
+  <div class="hl"><b>Workspace roles</b><span>Full, DBA, Engineer, or SRE. Hide and pin pages in this browser only.</span></div>
+  <div class="hl"><b>Schema Compare</b><span>Diff table DDL across hosts or replica nodes. Copy the plan; nothing is applied.</span></div>
+  <div class="hl"><b>Settings Diff</b><span>Compare system.settings and merge_tree_settings. All matched when nothing differs.</span></div>
+  <div class="hl"><b>TTL inventory</b><span>Every MergeTree table's TTL and PARTITION BY, including tables with no TTL yet.</span></div>
+  <div class="hl"><b>Licenses</b><span>We switched from Cloud seats to a self-hosted host-count license.</span></div>
 </div>
 
 ## What shipped
@@ -32,87 +34,93 @@ Every path below opens the live demo: [dash.chmonitor.dev](https://dash.chmonito
   <img src="/assets/screenshots/settings-navigation-dark.jpeg" alt="Settings Navigation: Full, DBA, Engineer, SRE, or Custom workspace roles" width="1600" height="1228" loading="eager" />
 </div>
 
-- **Tools** sidebar group: [SQL Console](https://dash.chmonitor.dev/sql),
-  [Data Explorer](https://dash.chmonitor.dev/explorer),
-  [Explain](https://dash.chmonitor.dev/explain),
-  [Advisor](https://dash.chmonitor.dev/advisor),
-  [Chart Builder](https://dash.chmonitor.dev/dashboard),
-  [Schema Compare](https://dash.chmonitor.dev/schema-diff),
-  [Settings Diff](https://dash.chmonitor.dev/settings-diff). Last group in Main.
-  Postgres hosts do not see it.
-- **Workspace roles** in Settings: Full, DBA, Engineer, SRE. Pick a role and
-  the Navigation tree remounts collapsed.
-- Customize the sidebar from the Settings menu tree.
-- Hover **Hide** next to Pin on a leaf. Undo toast. Restore in Settings →
-  Workspace → Navigation.
-- Longer write-up: [A DBA, an SRE, and an engineer should not share a
-  sidebar](/customize-dashboard/).
+SQL Console, Explorer, and Explain used to sit under Queries, Tables, and
+Operations. They now live together in **Tools**, the last group in Main:
+[SQL Console](https://dash.chmonitor.dev/sql),
+[Data Explorer](https://dash.chmonitor.dev/explorer),
+[Explain](https://dash.chmonitor.dev/explain),
+[Advisor](https://dash.chmonitor.dev/advisor),
+[Chart Builder](https://dash.chmonitor.dev/dashboard),
+[Schema Compare](https://dash.chmonitor.dev/schema-diff), and
+[Settings Diff](https://dash.chmonitor.dev/settings-diff). AI Agent stays its
+own group. Postgres hosts do not see Tools at all.
+
+The sidebar can follow the job, not the whole product. In Settings, pick
+**Full**, **DBA**, **Engineer**, or **SRE** and the Navigation tree remounts
+collapsed so you can scan groups instead of a wall of checkboxes. Hover
+**Hide** next to Pin on a leaf; an undo toast appears, and restore always
+lives in Settings → Workspace → Navigation. The longer argument is
+[A DBA, an SRE, and an engineer should not share a sidebar](/customize-dashboard/).
 
 ### Schema Compare and Settings Diff
 
 <img src="/assets/screenshots/chm-schema-compare.png" alt="Schema Compare empty state with a sample DDL pair — Need two saved connections, plus example tables analytics.sessions vs Host B" width="1600" height="1000" loading="lazy" />
 
 [DBA workflows](https://docs.chmonitor.dev/guide/guides/dba-workflows) is the
-map.
+map of what these pages do today.
 
-- **[Schema Compare](https://dash.chmonitor.dev/schema-diff)** diffs `CREATE TABLE`
-  across saved connections or replica nodes. One host is not enough — add a
-  second, or compare nodes on this cluster. The plan is copy-only.
-- **[Settings Diff](https://dash.chmonitor.dev/settings-diff)** diffs
-  `system.settings` and `system.merge_tree_settings`. Filter to differences, or
-  to values changed from default. When every setting matches: **All matched**.
-- Advisor findings can emit a **local** statement plus an `ON CLUSTER` variant
-  when topology is known. Try [Advisor](https://dash.chmonitor.dev/advisor).
+[Schema Compare](https://dash.chmonitor.dev/schema-diff) diffs `CREATE TABLE`
+across saved connections, or node vs node on this cluster. One host is not
+enough — add a second, or compare replicas. The change plan is copy-only; it
+never applies DDL. [Settings Diff](https://dash.chmonitor.dev/settings-diff)
+does the same for `system.settings` and `system.merge_tree_settings`. Filter
+to rows that differ, or to values changed from default. When every setting
+matches, the page says **All matched**.
+
+[Advisor](https://dash.chmonitor.dev/advisor) can emit a local statement plus
+an `ON CLUSTER` variant when it knows the topology. Same rule: recommend
+only.
 
 ### Cluster ops
 
-- **[TTL and partition health](https://dash.chmonitor.dev/ttl-partition-health)**
-  — inventory of MergeTree TTL and `PARTITION BY`, with partition and part
-  counts. Tables without TTL still appear. Recommend-only: this page does not
-  run `ALTER TTL` or `DROP PARTITION`.
-- Schema lint on [Explorer](https://dash.chmonitor.dev/explorer) table Overview
-  (same recommend-only engine as Advisor).
-- **What's new** dialog next to Settings — notes from `docs/whats-new/` for
-  each tagged version. Auto-opens once after an upgrade.
+[TTL and partition health](https://dash.chmonitor.dev/ttl-partition-health)
+lists every MergeTree table's TTL and `PARTITION BY`, with partition and part
+counts. Tables without TTL still appear. The page does not run `ALTER TTL` or
+`DROP PARTITION`. Explorer table Overview now runs the same recommend-only
+schema lint as Advisor.
+
+Next to Settings, a newspaper icon opens **What's new** — notes from
+`docs/whats-new/` for each tagged version, newest first. It auto-opens once
+after an upgrade.
 
 ### Agent
 
-- Cloud demo **[guests can chat](https://dash.chmonitor.dev/agents)** (still
-  under the v0.3.3 guest cap).
-- Keyless **Firecrawl MCP** is connected by default (`CHM_AGENT_FIRECRAWL_MCP`,
-  opt-out).
-- Follow-up suggestions are tool-aware and sit on the composer.
-- Chat messages, tool cards, and markdown rendering are tighter. The tool loop
-  stops at 16 steps.
+On Cloud, [guests can chat](https://dash.chmonitor.dev/agents) with the agent
+(still under the v0.3.3 guest cap). Keyless Firecrawl MCP is connected by
+default (`CHM_AGENT_FIRECRAWL_MCP`; opt out if you do not want it). Follow-up
+suggestions sit on the composer and know which tools just ran. Messages, tool
+cards, and markdown are tighter, and the tool loop stops at 16 steps.
 
 ### Licenses
 
-We dropped the SaaS Cloud seat model. Paid product is now a **self-hosted
-host-count license**. No key in the binary.
+We dropped the SaaS Cloud seat model. If you need an invoice, you buy a
+**self-hosted host-count license** — not a hosted dashboard seat. There is no
+key in the binary. The full argument is
 [We're selling self-hosted licenses](/self-hosted-licenses/).
 
 ## Upgrade
 
-Self-hosters: pin this tag.
+Self-hosters: pin this tag and follow the guide you already use.
 
 ```bash
 docker pull ghcr.io/chmonitor/chmonitor:v0.3.4
 ```
 
-Then follow the deploy guide for your platform:
+[Docker](https://docs.chmonitor.dev/operate/deploy/docker) is the fastest
+path. On a cluster, use the [Kubernetes](https://docs.chmonitor.dev/operate/deploy/k8s)
+chart. Edge deploys go through
+[Cloudflare Workers](https://docs.chmonitor.dev/operate/deploy/cloudflare) or
+[Vercel](https://docs.chmonitor.dev/operate/deploy/vercel). A bare VM can run
+the [Node / standalone](https://docs.chmonitor.dev/operate/deploy/self-host)
+build, optionally behind [Traefik](https://docs.chmonitor.dev/operate/deploy/traefik).
+There is a [one-click](https://docs.chmonitor.dev/operate/deploy/one-click)
+starting point, and a
+[production checklist](https://docs.chmonitor.dev/operate/deploy/production-checklist)
+before you expose the instance. The index for all of that is
+[Deploy](https://docs.chmonitor.dev/operate/deploy).
 
-- [Docker](https://docs.chmonitor.dev/operate/deploy/docker)
-- [Kubernetes](https://docs.chmonitor.dev/operate/deploy/k8s)
-- [Cloudflare Workers](https://docs.chmonitor.dev/operate/deploy/cloudflare)
-- [Vercel](https://docs.chmonitor.dev/operate/deploy/vercel)
-- [Node / standalone](https://docs.chmonitor.dev/operate/deploy/self-host)
-- [Traefik](https://docs.chmonitor.dev/operate/deploy/traefik)
-- [One-click](https://docs.chmonitor.dev/operate/deploy/one-click)
-- [Production checklist](https://docs.chmonitor.dev/operate/deploy/production-checklist)
-
-All platforms: [Deploy](https://docs.chmonitor.dev/operate/deploy).
-
-Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev)) already has this.
+Cloud ([dash.chmonitor.dev](https://dash.chmonitor.dev)) already has this
+release. Nothing to migrate.
 
 The full changelog is in the
 [GitHub release](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.4).
