@@ -201,7 +201,8 @@ const ogImage = new URL(image, Astro.site).toString()
     .img-row[data-cols="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
     .img-row[data-cols="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
     .prose .img-row img{
-      margin:0;margin-left:0;transform:none;width:100%;max-width:none;height:auto}
+      margin:0;margin-left:0;transform:none;width:100%;max-width:none;
+      height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top}
     .img-row figure{margin:0;min-width:0}
     .img-row figcaption{font-size:13px;color:var(--muted-foreground);padding:8px 2px 0;
       text-wrap:pretty;line-height:1.45}
@@ -209,7 +210,8 @@ const ogImage = new URL(image, Astro.site).toString()
       .img-row[data-cols="3"],.img-row[data-cols="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media (max-width:520px){
       .img-row,.img-row[data-cols="2"],.img-row[data-cols="3"],.img-row[data-cols="4"]{
-        grid-template-columns:1fr}}
+        grid-template-columns:1fr}
+      .prose .img-row img{aspect-ratio:auto;object-fit:unset}}
     .prose table{width:100%;border-collapse:collapse;font-size:14.5px;display:block;overflow-x:auto}
     .prose th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-foreground);
       font-weight:600;padding:10px 14px;background:var(--canvas-soft);border-bottom:1px solid var(--border)}

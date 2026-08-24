@@ -55,6 +55,8 @@ describe('blog chrome matches landing shadcn tokens', () => {
     )
     expect(base).toContain('.prose .img-row img{')
     expect(base).toContain('transform:none')
+    expect(base).toContain('aspect-ratio:16/10')
+    expect(base).toContain('object-fit:cover')
     expect(base).toContain('.img-row[data-cols="3"]')
     expect(read('README.md')).toContain('class="img-row"')
   })
