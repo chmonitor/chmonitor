@@ -28,9 +28,20 @@ enabled = true
 # "alternate with proper canonical" for slash variants).
 [assets]
 html_handling = "drop-trailing-slash"
-# Worker first so /deploy/k8s/ is one 301 to /operate/deploy/k8s, not
-# asset slash-drop then a second IA redirect.
-run_worker_first = true
+# HTML/API still hit the Worker first (canonical 301s, markdown Accept,
+# Cache-Control). Static files must NOT — `run_worker_first = true` sent
+# /assets/*.css through the `$` docs route, which returned HTML 404 and
+# the site rendered unstyled.
+run_worker_first = [
+  "!/assets/*",
+  "!/brand/*",
+  "!/favicon.svg",
+  "!/favicon-16.png",
+  "!/favicon-32.png",
+  "!/apple-touch-icon.png",
+  "!/og/og.png",
+  "!/robots.txt",
+]
 
 [[routes]]
 pattern = "docs.chmonitor.dev"
