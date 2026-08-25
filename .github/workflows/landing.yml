@@ -8,11 +8,15 @@ on:
   pull_request:
     paths:
       - 'apps/landing/**'
+      - 'CHANGELOG.md'
+      - 'docs/whats-new/**'
       - '.github/workflows/landing.yml'
   push:
     branches: [main]
     paths:
       - 'apps/landing/**'
+      - 'CHANGELOG.md'
+      - 'docs/whats-new/**'
       - '.github/workflows/landing.yml'
 
 permissions:
@@ -39,11 +43,24 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/landing/pnpm-lock.yaml
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Test
+        run: pnpm test
+
       - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm run build
+
+      - name: Verify structure
+        run: pnpm run verify:structure
 
       # Informational only (never blocks the PR): GitHub-hosted runners have no
       # GPU, so headless Chrome falls back to software WebGL. The hero's

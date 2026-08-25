@@ -1,3 +1,4 @@
+import { loadLatestChangelogVersion } from '../data/changelog-features'
 import {
   countFeatureBulletsInMarkdown,
   groupChangelogFeatures,
@@ -11,10 +12,9 @@ import { fileURLToPath } from 'node:url'
 const CHANGELOG_PATH = fileURLToPath(
   new URL('../../../../CHANGELOG.md', import.meta.url)
 )
+const markdown = readFileSync(CHANGELOG_PATH, 'utf8')
 
 describe('parseChangelogFeatures', () => {
-  const markdown = readFileSync(CHANGELOG_PATH, 'utf8')
-
   test('parsed count matches regex count over root CHANGELOG.md', () => {
     const parsed = parseChangelogFeatures(markdown)
     const regexCount = countFeatureBulletsInMarkdown(markdown)
@@ -40,5 +40,13 @@ describe('parseChangelogFeatures', () => {
       expect(group.scope.length).toBeGreaterThan(0)
       expect(group.features.length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('loadLatestChangelogVersion', () => {
+  test('matches the first versioned CHANGELOG heading', () => {
+    const first = markdown.match(/^## \[(\d+\.\d+\.\d+)\]/m)?.[1] ?? null
+    expect(loadLatestChangelogVersion()).toBe(first)
+    expect(first).toMatch(/^\d+\.\d+\.\d+$/)
   })
 })

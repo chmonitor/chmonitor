@@ -2,6 +2,8 @@
  * Post-build structural assertions for the redesigned homepage.
  * Run: cd apps/landing && pnpm run build && bun scripts/verify-landing-structure.ts
  */
+
+import { loadLatestChangelogVersion } from '../src/data/changelog-features'
 import { getLatestBlogPost } from '../src/lib/latest-blog-post'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -314,11 +316,49 @@ try {
 const distChangelog = join(process.cwd(), 'dist/changelog/index.html')
 try {
   const changelogHtml = readFileSync(distChangelog, 'utf8')
-  if (!changelogHtml.toLowerCase().includes('changelog')) {
-    console.error('MISSING changelog content in dist/changelog/index.html')
+  const latestVersion = loadLatestChangelogVersion()
+  if (changelogHtml.includes('could not be loaded at build time')) {
+    console.error(
+      'EMPTY changelog SSG fallback shipped in dist/changelog/index.html'
+    )
     failed = true
-  } else {
-    console.log('OK: dist/changelog/index.html built')
+  }
+  if (!changelogHtml.includes('data-changelog-releases')) {
+    console.error(
+      'MISSING data-changelog-releases in dist/changelog/index.html'
+    )
+    failed = true
+  }
+  if (!changelogHtml.includes('cl-entry')) {
+    console.error(
+      'MISSING release cards (cl-entry) in dist/changelog/index.html'
+    )
+    failed = true
+  }
+  if (
+    latestVersion &&
+    !changelogHtml.includes(`/changelog#v${latestVersion}`)
+  ) {
+    console.error(
+      `MISSING latest changelog version v${latestVersion} in dist/changelog/index.html`
+    )
+    failed = true
+  }
+  if (latestVersion && !html.includes(`/changelog#v${latestVersion}`)) {
+    console.error(
+      `MISSING footer changelog version v${latestVersion} in dist/index.html`
+    )
+    failed = true
+  }
+  if (
+    changelogHtml.includes('data-changelog-releases') &&
+    changelogHtml.includes('cl-entry') &&
+    !changelogHtml.includes('could not be loaded at build time') &&
+    (!latestVersion || changelogHtml.includes(`/changelog#v${latestVersion}`))
+  ) {
+    console.log(
+      `OK: dist/changelog/index.html has release cards${latestVersion ? ` (v${latestVersion})` : ''}`
+    )
   }
 } catch {
   console.error('MISSING dist/changelog/index.html — run build first')

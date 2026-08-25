@@ -2,11 +2,11 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
+import { extractImages, mdToHtml } from '../lib/parse-github-release-notes'
 import {
-  extractImages,
-  isProductReleaseTag,
-  mdToHtml,
-} from '../lib/parse-github-release-notes'
+  type LandingRelease,
+  loadLandingReleases,
+} from '../lib/load-landing-releases'
 import {
   friendlyNoteImages,
   friendlyNoteToHtml,
@@ -14,36 +14,22 @@ import {
   stripVersionPrefix,
 } from '../lib/load-friendly-notes'
 
-interface Release {
-  tag_name: string
-  name: string
-  published_at: string
-  html_url: string
-  body: string
-  prerelease: boolean
-}
-
-let releases: Release[] = []
-try {
-  const res = await fetch(
-    'https://api.github.com/repos/chmonitor/chmonitor/releases?per_page=20',
-    { headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
-  )
-  if (res.ok) {
-    const data = await res.json()
-    releases = (data as Release[])
-      .filter((r) => !r.prerelease && isProductReleaseTag(r.tag_name))
-      .slice(0, 12)
-  }
-} catch (_) { /* build-time fetch unavailable */ }
+const releases = await loadLandingReleases()
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.valueOf())) return ''
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 const friendlyNotes = loadLandingFriendlyNotes()
 
-function notesForRelease(release: Release) {
+function notesForRelease(release: LandingRelease) {
   const friendly =
     friendlyNotes.get(release.tag_name) ??
     friendlyNotes.get(stripVersionPrefix(release.tag_name))
@@ -85,48 +71,39 @@ const breadcrumbJsonLd = {
           <p>Release notes for chmonitor. Full history on <a href="https://github.com/chmonitor/chmonitor/releases" target="_blank" rel="noopener" style="color:var(--orange)">GitHub Releases</a>.</p>
         </div>
 
-        {releases.length > 0 ? (
-          <div class="cl-list">
-            {releases.map((r) => {
-              const notes = notesForRelease(r)
-              return (
-              <div class="cl-entry" id={r.tag_name}>
-                <div class="cl-meta">
-                  <a class="cl-tag" href={r.html_url} target="_blank" rel="noopener">{r.tag_name}</a>
-                  <span class="cl-date">{fmtDate(r.published_at)}</span>
-                </div>
-                <div class="cl-body">
-                  <h4>{r.name || r.tag_name}</h4>
-                  {notes.html && (
-                    <div class="cl-notes" set:html={notes.html} />
-                  )}
-                  {notes.images.length > 0 && (
-                    <div class="cl-shots">
-                      {notes.images.map((img) => (
-                        <a href={img.src} target="_blank" rel="noopener" title={img.alt}>
-                          <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <a href={r.html_url} target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:13px;color:var(--orange);text-decoration:underline;text-underline-offset:3px">
-                    Full release notes
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                  </a>
-                </div>
+        <div class="cl-list" data-changelog-releases>
+          {releases.map((r) => {
+            const notes = notesForRelease(r)
+            const published = fmtDate(r.published_at)
+            return (
+            <article class="cl-entry" id={r.tag_name}>
+              <div class="cl-meta">
+                <a class="cl-tag" href={r.html_url} target="_blank" rel="noopener">{r.tag_name}</a>
+                {published && <span class="cl-date">{published}</span>}
               </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div style="margin-top:52px;text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius)">
-            <p style="color:var(--muted-fg)">Release list could not be loaded at build time.</p>
-            <a class="btn btn-ghost" style="margin-top:16px;display:inline-flex" href="https://github.com/chmonitor/chmonitor/releases" target="_blank" rel="noopener">
-              View all releases on GitHub
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:13px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </a>
-          </div>
-        )}
+              <div class="cl-body">
+                <h4>{r.name || r.tag_name}</h4>
+                {notes.html && (
+                  <div class="cl-notes" set:html={notes.html} />
+                )}
+                {notes.images.length > 0 && (
+                  <div class="cl-shots">
+                    {notes.images.map((img) => (
+                      <a href={img.src} target="_blank" rel="noopener" title={img.alt}>
+                        <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <a href={r.html_url} target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:13px;color:var(--orange);text-decoration:underline;text-underline-offset:3px">
+                  Full release notes
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </a>
+              </div>
+            </article>
+            )
+          })}
+        </div>
       </div>
     </section>
   </main>

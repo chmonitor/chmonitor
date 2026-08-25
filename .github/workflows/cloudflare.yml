@@ -47,6 +47,11 @@ permissions:
 #     fallback in each `if:` forces the deploy.
 #   • Jobs always run (only their steps are gated), so the required
 #     `dashboard` / `landing` / `docs` / `bug-handler` status checks still post.
+#   • Landing also rebuilds on CHANGELOG.md and docs/whats-new/**: /changelog
+#     cards and the footer version are baked at Astro build. GitHub Releases
+#     alone are not enough — CLI `chm-v*` tags crowd out product `vX.Y.Z`
+#     (see #3286). Release-please tag pushes using GITHUB_TOKEN do not trigger
+#     this workflow, so the CHANGELOG path filter is what ships the new version.
 #
 # Reconciliation with the build-only workflows (docs.yml / landing.yml /
 # blog.yml): those are separate PR *build* checks (they never deploy) and are
@@ -607,6 +612,10 @@ jobs:
               - 'apps/landing/**'
               # Hero latest-post pill is baked at Astro build from blog markdown.
               - 'apps/blog/src/content/blog/**'
+              # Footer version + /changelog cards bake CHANGELOG.md and
+              # docs/whats-new at Astro build (#3286).
+              - 'CHANGELOG.md'
+              - 'docs/whats-new/**'
               - 'scripts/**'
               - 'assets/**'
               - 'bun.lock'
@@ -642,7 +651,11 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'release' ||
           github.ref_type == 'tag'
-        run: pnpm run build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm run build
+          pnpm run verify:structure
 
       - name: Deploy preview
         if: >-
