@@ -218,11 +218,11 @@ const header =
   headerStart === -1 || headerEnd === -1
     ? ''
     : html.slice(headerStart, headerEnd)
-if (/href="\/pricing"/.test(header)) {
-  console.error('FORBIDDEN Pricing link in homepage header nav')
+if (!/href="\/pricing"/.test(header)) {
+  console.error('MISSING Pricing link in homepage header nav')
   failed = true
 } else {
-  console.log('OK: homepage header nav has no Pricing link')
+  console.log('OK: homepage header nav links to /pricing')
 }
 
 const drawerStart = html.indexOf('id="mobile-menu"')
@@ -231,11 +231,11 @@ const drawer =
   drawerStart === -1 || drawerFoot === -1
     ? ''
     : html.slice(drawerStart, drawerFoot)
-if (/href="\/pricing"/.test(drawer)) {
-  console.error('FORBIDDEN Pricing link in homepage mobile nav')
+if (!/href="\/pricing"/.test(drawer)) {
+  console.error('MISSING Pricing link in homepage mobile nav')
   failed = true
 } else {
-  console.log('OK: homepage mobile nav has no Pricing link')
+  console.log('OK: homepage mobile nav links to /pricing')
 }
 
 const distPricing = join(process.cwd(), 'dist/pricing/index.html')
