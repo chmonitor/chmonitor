@@ -43,6 +43,13 @@ describe('header nav advertises Pricing', () => {
     expect(nav).toContain("to('/changelog')")
   })
 
+  test('changelog page loads releases at build time instead of shipping the empty fallback', () => {
+    const page = read('src/pages/changelog.astro')
+    expect(page).toContain('loadLandingReleases')
+    expect(page).toContain('data-changelog-releases')
+    expect(page).not.toContain('could not be loaded at build time')
+  })
+
   test('CLI is listed under Features, not as a top-level item', () => {
     expect(nav).toContain("to('/cli')")
     expect(nav).toContain('featureIcons.cli')

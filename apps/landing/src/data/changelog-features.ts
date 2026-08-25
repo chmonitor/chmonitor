@@ -1,23 +1,10 @@
+import { readChangelogMarkdown } from '../lib/changelog-file'
 import {
   type ChangelogFeature,
   type ChangelogFeatureGroup,
   groupChangelogFeatures,
   parseChangelogFeatures,
 } from '../lib/parse-changelog-features'
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-function resolveChangelogPath(): string {
-  const candidates = [
-    join(process.cwd(), '../../CHANGELOG.md'),
-    fileURLToPath(new URL('../../../../CHANGELOG.md', import.meta.url)),
-  ]
-  for (const path of candidates) {
-    if (existsSync(path)) return path
-  }
-  throw new Error('CHANGELOG.md not found')
-}
 
 let cached: {
   features: ChangelogFeature[]
@@ -28,7 +15,7 @@ let cached: {
 export function loadChangelogFeatures() {
   if (cached) return cached
 
-  const markdown = readFileSync(resolveChangelogPath(), 'utf8')
+  const markdown = readChangelogMarkdown()
   const features = parseChangelogFeatures(markdown)
   const groups = groupChangelogFeatures(features)
 
@@ -50,7 +37,7 @@ let cachedLatestVersion: string | null | undefined
 export function loadLatestChangelogVersion(): string | null {
   if (cachedLatestVersion !== undefined) return cachedLatestVersion
 
-  const markdown = readFileSync(resolveChangelogPath(), 'utf8')
+  const markdown = readChangelogMarkdown()
   const match = markdown.match(/^## \[(\d+\.\d+\.\d+)\]/m)
   cachedLatestVersion = match ? match[1] : null
   return cachedLatestVersion
