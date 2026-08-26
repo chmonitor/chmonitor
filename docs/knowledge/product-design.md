@@ -124,6 +124,8 @@ Settings dialog (`components/settings/settings-dialog.tsx` +
 so labels copy. Layout is `p-0`: a flat left rail (section labels
 Preferences / Display / Workspace, icon + label rows, selected as a muted
 pill, `border-r`) and a content pane whose heading is the active tab.
+Below `sm` the rail stacks above the pane so Navigation presets and
+Show all fit a 375 dialog.
 Theme (Light / Dark / System, next-themes) is a
 label-left / thumbnails-right row on Appearance only. Navigation
 leads with a workspace **preset** (`Full` / `DBA` / `Engineer` / `SRE` /
