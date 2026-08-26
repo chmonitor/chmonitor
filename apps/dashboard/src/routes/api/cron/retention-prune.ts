@@ -32,7 +32,6 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import { env } from 'cloudflare:workers'
 import { error, log, warn } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
 import { retentionCutoffMs } from '@/lib/billing/entitlements'
