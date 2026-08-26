@@ -235,7 +235,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   styles use Base UI `data-active:` (trigger `border-b-2`, not Radix
   `data-[state=active]:`). Do not use `TabsList variant="line"` on an
   `overflow-x-auto` strip — the hanging `after` underline is clipped.
-- **Responsive chrome:** overview KPIs wrap from `sm` (truncate is `max-sm:`
+- **Responsive chrome:** overview KPI strip is 1-col → 2×2 from `sm` → 4-col
+  from `xl` (never four-across at `md`/`lg`: at `lg` the sidebar docks and the
+  content pane is still ~768px). Titles wrap from `sm` (truncate is `max-sm:`
   only). App sidebar overlays below `lg` (not a docked rail at 768). Mobile
   sidebar sheet is opaque — no heatmap-through-frost. Phone sidebar rows /
   toggle / header utility icons (refresh, search, theme) are `min 44×44`.

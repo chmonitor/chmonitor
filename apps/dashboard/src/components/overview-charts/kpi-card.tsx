@@ -118,8 +118,9 @@ export const KpiCard = function KpiCard({
       )}
     >
       {/* Row 1 — icon + label + optional sparkline.
-          Truncate only on genuine phone widths; at sm+ the label wraps so
-          "Active Queries" stays fully readable in the four-up laptop strip. */}
+          The strip is 1-col / 2×2 / 4-col from xl, so titles usually fit one
+          line. Truncate only on genuine phone widths; at sm+ the label may
+          wrap so "Active Queries" stays fully readable in the four-up strip. */}
       <div className="flex items-start gap-1.5">
         <Icon className={cn('mt-0.5 size-3.5 shrink-0', TONE_ICON[tone])} />
         <span className="min-w-0 flex-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground max-sm:truncate sm:whitespace-normal sm:leading-snug">
@@ -148,7 +149,7 @@ export const KpiCard = function KpiCard({
           <span className={cn(VALUE_CLASS, 'font-mono')}>{value}</span>
         )}
         {unit && (
-          <span className="text-[13px] font-medium text-muted-foreground">
+          <span className="shrink-0 whitespace-nowrap text-[13px] font-medium text-muted-foreground">
             {unit}
           </span>
         )}
@@ -175,7 +176,7 @@ export const KpiCard = function KpiCard({
 
   if (href) {
     return (
-      <Link href={href} className="group block h-full">
+      <Link href={href} className="group block h-full min-h-11">
         {content}
       </Link>
     )
