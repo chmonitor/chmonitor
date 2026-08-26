@@ -547,14 +547,14 @@ export function SettingsForm({
       .find((item) => item.value === activeTab)?.label ?? 'Settings'
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
       <Tabs
         value={activeTab}
         onValueChange={(value) => value && setActiveTab(value)}
         orientation="vertical"
-        className="flex min-h-0 flex-1 gap-0"
+        className="flex min-h-0 min-w-0 flex-1 gap-0 max-sm:flex-col"
       >
-        <aside className="flex w-44 shrink-0 flex-col border-r border-border px-3 py-4 sm:w-48">
+        <aside className="flex w-44 shrink-0 flex-col border-r border-border px-3 py-4 max-sm:max-h-40 max-sm:w-full max-sm:overflow-auto max-sm:border-r-0 max-sm:border-b max-sm:py-2 sm:w-48">
           <div className="mb-4 px-2.5">
             <p className="flex items-center gap-2 text-sm font-semibold">
               <Settings
@@ -608,7 +608,7 @@ export function SettingsForm({
           <div className="flex items-center px-5 pt-4 pr-12">
             <h2 className="text-sm font-semibold">{activeLabel}</h2>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4">
             {/* General */}
             <TabsContent value="general" className="space-y-4 px-1 pb-2">
               <Field

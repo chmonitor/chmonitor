@@ -18,9 +18,10 @@ interface SegmentedControlProps<T extends string> {
 }
 
 /**
- * A compact segmented button group for 2–3 mutually exclusive choices, styled
- * to match the theme picker's card look. Used across the Settings dialog for
- * unit / palette / density toggles.
+ * A compact segmented button group for mutually exclusive choices, styled
+ * to match the theme picker's card look. Two or three options stay on one
+ * row; four or more wrap (2 / 3 / 5 columns) so Navigation's five workspace
+ * presets fit a narrow Settings pane.
  */
 export function SegmentedControl<T extends string>({
   value,
@@ -28,14 +29,18 @@ export function SegmentedControl<T extends string>({
   options,
   ariaLabel,
 }: SegmentedControlProps<T>) {
+  const columnsClass =
+    options.length <= 2
+      ? 'grid-cols-2'
+      : options.length === 3
+        ? 'grid-cols-3'
+        : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className="grid gap-2"
-      style={{
-        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
-      }}
+      className={cn('grid gap-2', columnsClass)}
     >
       {options.map((option) => {
         const Icon = option.icon
