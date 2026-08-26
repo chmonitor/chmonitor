@@ -108,8 +108,8 @@ export function WorkspacePresetPicker({
       <p className="text-xs text-muted-foreground">{PRESET_HINT[preset]}</p>
 
       {preset !== 'full' && (
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="min-w-0 text-xs text-muted-foreground">
             {extraHiddenCount > 0
               ? `${extraHiddenCount} extra page${extraHiddenCount === 1 ? '' : 's'} hidden. Click Show on a row, or Show all.`
               : 'Hidden pages stay in this tree. Click Show on a row, or Show all.'}
@@ -117,7 +117,7 @@ export function WorkspacePresetPicker({
           <button
             type="button"
             data-testid="workspace-show-all"
-            className="inline-flex h-8 shrink-0 items-center rounded-md border border-border px-3 text-[13px] font-medium hover:bg-muted"
+            className="inline-flex h-8 w-fit shrink-0 items-center rounded-md border border-border px-3 text-[13px] font-medium hover:bg-muted"
             onClick={() => applyPreset('full')}
           >
             Show all
