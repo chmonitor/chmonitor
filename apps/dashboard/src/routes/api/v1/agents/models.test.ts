@@ -4,7 +4,9 @@
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-let authorizeAgentApiRequest = mock(async () => null as Response | null)
+let authorizeAgentApiRequest = mock(
+  async (_request: Request) => null as Response | null
+)
 mock.module('@/lib/auth/agent-api-auth', () => ({
   authorizeAgentApiRequest: (request: Request) =>
     authorizeAgentApiRequest(request),
@@ -99,7 +101,7 @@ globalThis.fetch = mock(async () => {
 const { __handleGetForTests: handleGet } = await import('./models')
 
 beforeEach(() => {
-  authorizeAgentApiRequest = mock(async () => null)
+  authorizeAgentApiRequest = mock(async (_request: Request) => null)
   configuredProviders = ['openrouter', 'anyrouter']
   openRouterThrows = false
   dynamicAnyRouter = [
@@ -133,7 +135,7 @@ beforeEach(() => {
 
 describe('GET /api/v1/agents/models', () => {
   test('401 before loaders when auth rejects', async () => {
-    authorizeAgentApiRequest = mock(async () =>
+    authorizeAgentApiRequest = mock(async (_request: Request) =>
       Response.json({ error: 'Unauthorized' }, { status: 401 })
     )
     const res = await handleGet(

@@ -78,7 +78,9 @@ describe('GET /api/v1/health/routes', () => {
   test('returns 200 with empty list when store has no routes', async () => {
     const res = await handleGet()
     expect(res.status).toBe(200)
-    expect((await res.json()) as { routes: unknown[] }).toEqual({
+    expect(
+      (await res.json()) as { success: boolean; routes: unknown[] }
+    ).toEqual({
       success: true,
       routes: [],
     })
