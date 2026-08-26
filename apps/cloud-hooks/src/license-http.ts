@@ -97,6 +97,57 @@ export function corsPreflight(request: Request): Response {
   return new Response(null, { status: 204, headers: corsHeaders(request) })
 }
 
+export interface LicenseKV {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string): Promise<void>
+}
+
+export function metaSkuTerm(meta: unknown): { sku?: string; term?: string } {
+  const rec =
+    meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : null
+  const sku =
+    typeof rec?.sku === 'string' && isPaidSku(rec.sku) ? rec.sku : undefined
+  const term =
+    typeof rec?.term === 'string' && isLicenseTerm(rec.term)
+      ? rec.term
+      : undefined
+  return { sku, term }
+}
+
+export function checkoutPaid(status: string): boolean {
+  return status === 'succeeded' || status === 'confirmed'
+}
+
+/** Fixed-window limiter backed by CHM_HOOKS_KV. Returns false when over limit. */
+export async function kvRateLimit(
+  kv: LicenseKV | null,
+  bucket: string,
+  ip: string,
+  limit: number,
+  windowSeconds: number,
+  nowMs: number = Date.now()
+): Promise<boolean> {
+  if (!kv) return true
+  const window = Math.floor(nowMs / (windowSeconds * 1000))
+  const key = `rate:${bucket}:${ip}:${window}`
+  try {
+    const raw = await kv.get(key)
+    const n =
+      raw && typeof raw === 'string'
+        ? ((JSON.parse(raw) as { n?: number }).n ?? 0)
+        : 0
+    if (n >= limit) return false
+    await kv.put(key, JSON.stringify({ n: n + 1 }))
+    return true
+  } catch {
+    return true
+  }
+}
+
+export function clientIp(request: Request): string {
+  return request.headers.get('cf-connecting-ip') ?? 'unknown'
+}
+
 export function methodNotAllowed(request: Request): Response {
   return jsonResponse(request, { error: 'method_not_allowed' }, 405)
 }

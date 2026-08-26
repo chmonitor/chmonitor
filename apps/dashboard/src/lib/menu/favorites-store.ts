@@ -7,7 +7,7 @@
  * (`lib/menu/derive-favorites.ts`), not here — this module only persists the
  * raw href list.
  *
- * Same external-store shape as `lib/billing/paywall-store.ts`: a module-level
+ * Same external-store shape as other module-level snapshot stores: a module-level
  * snapshot + listener set, read reactively via `useSyncExternalStore`
  * (`hooks/use-favorites.ts`). Mirrors the localStorage-guard style of
  * `lib/insights/dismissed-insights.ts`.

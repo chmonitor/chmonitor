@@ -76,6 +76,20 @@ jobs:
       - name: Agent eval SSE parser
         run: bun test tests/agent --isolate
 
+      - name: Install cloud-hooks dependencies
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: apps/cloud-hooks
+        run: pnpm install --frozen-lockfile
+
+      - name: Run cloud-hooks tests
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: apps/cloud-hooks
+        run: bun test src/ --isolate
+
       - name: Upload Bun coverage to Codecov
         uses: codecov/codecov-action@v7
         with:

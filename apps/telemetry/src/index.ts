@@ -23,6 +23,7 @@
 // queryable only from the project's Cloudflare account (D1 + Analytics Engine).
 
 import { TELEMETRY_PAGE } from './page'
+import { CH_FLAVORS, DEPLOY_TARGETS } from '@chm/types/telemetry'
 
 export interface Env {
   CHM_TELEMETRY_DB: D1Database
@@ -30,12 +31,8 @@ export interface Env {
 
 const MAX_BODY_BYTES = 2048
 
-// These enums intentionally mirror the dashboard's canonical definitions
-// (apps/dashboard/src/lib/telemetry/environment.ts → DeployTarget/ChFlavor,
-// events.ts → TELEMETRY_EVENTS). They are duplicated rather than imported to
-// keep this worker a zero-dependency standalone deploy unit; keep them in sync.
-const DEPLOY_TARGETS = new Set(['docker', 'helm', 'cf', 'dev', 'unknown'])
-const CH_FLAVORS = new Set(['oss', 'altinity', 'cloud', 'unknown'])
+const DEPLOY_TARGET_SET = new Set<string>(DEPLOY_TARGETS)
+const CH_FLAVOR_SET = new Set<string>(CH_FLAVORS)
 const PLATFORMS = new Set([
   'windows',
   'macos',
@@ -151,7 +148,6 @@ export default {
       })
     }
 
-
     if (req.method === 'GET' && pathname === '/v1/summary') {
       return handleSummary(env, req)
     }
@@ -169,9 +165,13 @@ export default {
       if (typeof instanceHash !== 'string' || !HEX64.test(instanceHash)) {
         return bad(400, 'invalid instance_hash')
       }
-      const deployTarget = asEnum(data.deploy_target, DEPLOY_TARGETS, 'unknown')
+      const deployTarget = asEnum(
+        data.deploy_target,
+        DEPLOY_TARGET_SET,
+        'unknown'
+      )
       const chVersion = asVersion(data.ch_version)
-      const chFlavor = asEnum(data.ch_flavor, CH_FLAVORS, 'unknown')
+      const chFlavor = asEnum(data.ch_flavor, CH_FLAVOR_SET, 'unknown')
       const country =
         typeof data.country === 'string' && COUNTRY_CODE.test(data.country)
           ? data.country.toLowerCase()
@@ -240,11 +240,11 @@ export default {
       const props = (data.props ?? {}) as Record<string, unknown>
       const deployTarget = asEnum(
         props.deploy_target,
-        DEPLOY_TARGETS,
+        DEPLOY_TARGET_SET,
         'unknown'
       )
       const chVersion = asVersion(props.ch_version)
-      const chFlavor = asEnum(props.ch_flavor, CH_FLAVORS, 'unknown')
+      const chFlavor = asEnum(props.ch_flavor, CH_FLAVOR_SET, 'unknown')
 
       // Dedupe per (day, event, deploy_target, ch_version, ch_flavor): no
       // instance_hash is sent here (unlike /v1/ping), so this coarser tuple
@@ -336,7 +336,7 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url)
   const targetParam = searchParams.get('deploy_target')
   const scoped =
-    targetParam && DEPLOY_TARGETS.has(targetParam) ? targetParam : null
+    targetParam && DEPLOY_TARGET_SET.has(targetParam) ? targetParam : null
 
   // Same WHERE clause for total + by-version when scoped; by_deploy_target
   // stays global so the breakdown is always visible.
@@ -414,7 +414,9 @@ async function handleSummary(env: Env, req: Request): Promise<Response> {
           }))
           // Empty / unknown mean "not reported" — not a flavor. The chart
           // should only list oss / altinity / cloud.
-          .filter((r) => CH_FLAVORS.has(r.ch_flavor) && r.ch_flavor !== 'unknown'),
+          .filter(
+            (r) => CH_FLAVOR_SET.has(r.ch_flavor) && r.ch_flavor !== 'unknown'
+          ),
         byCountry: (byCountry.results ?? []).map((r) => ({
           country: r.v,
           installs: Number(r.n),

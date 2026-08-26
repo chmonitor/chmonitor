@@ -7,6 +7,7 @@
 
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
+import { logError, logInfo } from './log'
 
 import {
   isLicenseTerm,
@@ -140,12 +141,12 @@ export async function handleLicenseCheckout(
           })
         )
       } catch (notifyErr) {
-        console.error('[cloud-hooks] checkout-started notify failed', notifyErr)
+        logError('[cloud-hooks] checkout-started notify failed', notifyErr)
       }
     }
     return Response.redirect(checkoutUrl, 302)
   } catch (err) {
-    console.error('[cloud-hooks] license checkout failed', err)
+    logError('[cloud-hooks] license checkout failed', err)
     return jsonResponse(request, { error: 'polar_error', status: 502 }, 502)
   }
 }

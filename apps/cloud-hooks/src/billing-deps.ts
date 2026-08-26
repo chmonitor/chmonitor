@@ -15,12 +15,14 @@ import {
   type ApplySubscriptionDeps,
   upsertSubscription as coreUpsertSubscription,
 } from '@chm/billing-webhook-core'
-import { licensePolarProductEnvKey, PAID_LICENSE_IDS } from '@chm/pricing'
+import {
+  licensePolarProductEnvKey,
+  PAID_LICENSE_IDS,
+  planForProductIdFromLookup,
+} from '@chm/pricing'
+import { logError, logInfo, type LogMeta } from './log'
 
 type BillingPeriod = 'monthly' | 'yearly'
-
-/** Self-serve subscribable plans, mirroring the dashboard's polar-config. */
-const SUBSCRIBABLE_PLAN_IDS = ['free', 'pro', 'max'] as const
 
 function readEnv(env: Env, key: string): string | undefined {
   const v = env[key]
@@ -31,17 +33,8 @@ function readEnv(env: Env, key: string): string | undefined {
 export function makePlanForProductId(
   env: Env
 ): (productId: string) => { planId: PlanId; period: BillingPeriod } | null {
-  return (productId: string) => {
-    for (const planId of SUBSCRIBABLE_PLAN_IDS) {
-      for (const period of ['monthly', 'yearly'] as const) {
-        // Free is monthly-only (no yearly product), matching polar-config.
-        if (planId === 'free' && period === 'yearly') continue
-        const key = `CHM_POLAR_PRODUCT_${planId.toUpperCase()}_${period.toUpperCase()}`
-        if (readEnv(env, key) === productId) return { planId, period }
-      }
-    }
-    return null
-  }
+  return (productId: string) =>
+    planForProductIdFromLookup((key) => readEnv(env, key), productId)
 }
 
 export function licenseForProductId(
@@ -73,7 +66,7 @@ export function makeEnsureOrgForUser(
   return async (userId: string) => {
     const key = env.CLERK_SECRET_KEY
     if (!key) {
-      console.error('[cloud-hooks] CLERK_SECRET_KEY unset; cannot create org', {
+      logError('[cloud-hooks] CLERK_SECRET_KEY unset; cannot create org', {
         userId,
       })
       return null
@@ -101,7 +94,7 @@ export function makeEnsureOrgForUser(
         }),
       })
       if (!createRes.ok) {
-        console.error('[cloud-hooks] Clerk org creation non-2xx', {
+        logError('[cloud-hooks] Clerk org creation non-2xx', {
           userId,
           status: createRes.status,
         })
@@ -110,7 +103,7 @@ export function makeEnsureOrgForUser(
       const org = (await createRes.json()) as { id?: string }
       return org.id ?? null
     } catch (err) {
-      console.error('[cloud-hooks] Clerk org creation failed', { userId, err })
+      logError('[cloud-hooks] Clerk org creation failed', { userId, err })
       return null
     }
   }
@@ -123,7 +116,7 @@ export function makeRekeyCustomerToOrg(
   return async (customerId: string, orgId: string) => {
     const accessToken = env.POLAR_ACCESS_TOKEN
     if (!accessToken) {
-      console.error('[cloud-hooks] POLAR_ACCESS_TOKEN unset; cannot re-key', {
+      logError('[cloud-hooks] POLAR_ACCESS_TOKEN unset; cannot re-key', {
         customerId,
         orgId,
       })
@@ -139,7 +132,7 @@ export function makeRekeyCustomerToOrg(
         customerUpdate: { externalId: orgId },
       })
     } catch (err) {
-      console.error('[cloud-hooks] Polar customer re-key failed', {
+      logError('[cloud-hooks] Polar customer re-key failed', {
         customerId,
         orgId,
         err,
@@ -156,7 +149,7 @@ function makeUpsertWithRetry(
     try {
       await coreUpsertSubscription(db, input)
     } catch (firstErr) {
-      console.error('[cloud-hooks] D1 write failed; retrying once', {
+      logError('[cloud-hooks] D1 write failed; retrying once', {
         ownerId: input.userId,
         err: firstErr,
       })
@@ -183,7 +176,7 @@ export function makeApplyDeps(
     invalidateNegativeCache: () => {},
     onUpgradeCompleted: async () => {},
     logBillingAudit: async () => {},
-    logInfo: (m, meta) => console.log(m, meta),
-    logError: (m, meta) => console.error(m, meta),
+    logInfo: (m, meta) => logInfo(m, meta as LogMeta | undefined),
+    logError: (m, meta) => logError(m, meta),
   }
 }

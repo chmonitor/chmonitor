@@ -13,6 +13,7 @@ import {
   reconcileOutages,
   writeOutageState,
 } from './outage'
+import { logError as emitLogError } from './log'
 
 export type ProbeState = 'up' | 'down'
 
@@ -221,7 +222,7 @@ export async function readProbeSnapshot(
     if (!raw) return null
     return JSON.parse(raw) as Record<string, ProbeState>
   } catch (err) {
-    console.error('[cloud-hooks] failed to read probe snapshot from KV', err)
+    emitLogError('[cloud-hooks] failed to read probe snapshot from KV', err)
     return null
   }
 }
@@ -245,7 +246,7 @@ export interface RunProbesDeps {
 export async function runProbes(deps: RunProbesDeps): Promise<Transition[]> {
   const fetchImpl = deps.fetch ?? fetch
   const targets = deps.targets ?? DEFAULT_TARGETS
-  const logError = deps.logError ?? ((m, meta) => console.error(m, meta))
+  const logError = deps.logError ?? ((m, meta) => emitLogError(m, meta))
 
   let prev: Record<string, ProbeState> = {}
   if (deps.kv) {

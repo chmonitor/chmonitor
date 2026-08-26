@@ -1,9 +1,7 @@
 /**
- * Shared owner usage resolution — the internal resolvers behind both
- * GET /api/v1/billing/usage and POST /api/v1/billing/can-downgrade, factored
- * out so the two routes read hosts/seats/AI usage through ONE code path
- * instead of drifting apart (what the usage card shows vs. what
- * can-downgrade compares against).
+ * Shared owner usage resolution — the internal resolvers behind
+ * GET /api/v1/billing/usage, factored out so hosts/seats/AI usage read through
+ * ONE code path instead of drifting apart.
  *
  * Every resolver is defensive — a store/Clerk hiccup degrades that one meter
  * to 0 (or 1 seat) rather than throwing, so a transient failure can only
@@ -51,16 +49,15 @@ async function resolveHostsUsed(
  * owner counts its current Clerk members. Fail-safe to 1 so a Clerk hiccup can
  * only under-count (never wrongly show an over-limit meter).
  *
- * Reads Clerk's server-provided `totalCount` rather than the length of the
- * returned page: the membership list is paginated, so counting `data` capped
- * the meter at the page size (100) for every larger org. `totalCount` is the
- * remote total, so this stays ONE API call regardless of org size. The page
- * length remains as a fallback for the (typed-impossible, but cheap to guard)
- * case of a missing `totalCount`, which degrades to today's behaviour instead
- * of to the 1-seat fail-safe.
+ * When `plan.seats` is null (all current plans), skip the Clerk round-trip —
+ * the meter is unlimited and no plan can bind on seats until GA seat caps land.
  */
-async function resolveSeatsUsed(owner: BillingOwner): Promise<number> {
+async function resolveSeatsUsed(
+  owner: BillingOwner,
+  plan: Plan
+): Promise<number> {
   if (owner.type !== 'org') return 1
+  if (plan.seats === null) return 1
   try {
     const { clerkClient } = await import('@clerk/tanstack-react-start/server')
     const memberships =
@@ -115,17 +112,16 @@ export async function resolveOwnerUsage(
   owner: BillingOwner,
   userId: string
 ): Promise<OwnerUsage> {
+  const plan = await getPlanForOwner(owner.id)
   const [
-    plan,
     hostsUsed,
     seatsUsed,
     aiUsedToday,
     aiSpentThisMonth,
     hostOverageThisMonth,
   ] = await Promise.all([
-    getPlanForOwner(owner.id),
     resolveHostsUsed(owner, userId),
-    resolveSeatsUsed(owner),
+    resolveSeatsUsed(owner, plan),
     resolveAiUsedToday(owner.id),
     resolveAiSpentThisMonth(owner.id),
     resolveHostOverageThisMonth(owner.id),

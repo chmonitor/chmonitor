@@ -160,4 +160,21 @@ describe('formatCheckoutStarted', () => {
     expect(msg).toContain('chk_1')
     expect(msg).toMatch(/not paid yet/i)
   })
+
+  test('escapes user-controlled HTML in checkout fields', () => {
+    const msg = formatCheckoutStarted({
+      sku: 'team',
+      term: 'yearly',
+      company: '<b>x</b>',
+      email: 'a&b@example.com',
+      website: '<script>alert(1)</script>',
+      checkoutId: '<chk>',
+      checkoutUrl: 'https://pay.example?a=1&b=2',
+    })
+    expect(msg).toContain('company: &lt;b&gt;x&lt;/b&gt;')
+    expect(msg).toContain('email: <code>a&amp;b@example.com</code>')
+    expect(msg).toContain('site: &lt;script&gt;alert(1)&lt;/script&gt;')
+    expect(msg).toContain('checkout: <code>&lt;chk&gt;</code>')
+    expect(msg).toContain('https://pay.example?a=1&amp;b=2')
+  })
 })

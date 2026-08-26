@@ -10,6 +10,7 @@
  */
 
 import type { ClerkMetrics } from './summary'
+import { logError, logInfo } from './log'
 
 const CLERK_API = 'https://api.clerk.com/v1'
 
@@ -22,7 +23,7 @@ async function countUsers(
     headers: auth,
   })
   if (!res.ok) {
-    console.error('[cloud-hooks] Clerk users/count non-2xx', {
+    logError('[cloud-hooks] Clerk users/count non-2xx', {
       status: res.status,
       query,
     })
@@ -52,7 +53,7 @@ export async function fetchClerkMetrics(
   windowSeconds: number = DAY_SECONDS
 ): Promise<ClerkMetrics | null> {
   if (!secretKey) {
-    console.log(
+    logInfo(
       '[cloud-hooks] CLERK_SECRET_KEY unset; digest omits user counts'
     )
     return null
@@ -69,7 +70,7 @@ export async function fetchClerkMetrics(
     )
     return { totalUsers: total, newUsers: recent ?? 0, windowSeconds }
   } catch (err) {
-    console.error('[cloud-hooks] Clerk metrics fetch failed', err)
+    logError('[cloud-hooks] Clerk metrics fetch failed', err)
     return null
   }
 }

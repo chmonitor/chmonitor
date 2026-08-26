@@ -22,9 +22,13 @@
 // ============================================================================
 
 const isDevelopment =
-  typeof process !== 'undefined' && process.env?.NODE_ENV === 'development'
+  typeof globalThis !== 'undefined' &&
+  (globalThis as { process?: { env?: Record<string, string | undefined> } })
+    .process?.env?.NODE_ENV === 'development'
 const debugEnabled =
-  typeof process !== 'undefined' && process.env?.DEBUG === 'true'
+  typeof globalThis !== 'undefined' &&
+  (globalThis as { process?: { env?: Record<string, string | undefined> } })
+    .process?.env?.DEBUG === 'true'
 
 /**
  * Whether debug/info logging is active (development or DEBUG=true).

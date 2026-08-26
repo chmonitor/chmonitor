@@ -23,6 +23,7 @@
 
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
+import { logError, logInfo } from './log'
 
 import { timingSafeEqualString } from '@chm/mcp-server/auth/timing'
 
@@ -174,7 +175,7 @@ export async function handleClerkWebhook(
     if ((err as Error)?.name === 'SvixVerificationError') {
       return Response.json({ error: 'Invalid signature' }, { status: 403 })
     }
-    console.error('[cloud-hooks] failed to parse Clerk event', err)
+    logError('[cloud-hooks] failed to parse Clerk event', err)
     return Response.json({ error: 'Bad request' }, { status: 400 })
   }
 
@@ -182,7 +183,7 @@ export async function handleClerkWebhook(
   try {
     await notifyClerkEvent(event, deps)
   } catch (err) {
-    console.error('[cloud-hooks] clerk notify error', err)
+    logError('[cloud-hooks] clerk notify error', err)
   }
 
   return Response.json({ received: true }, { status: 202 })
@@ -250,7 +251,7 @@ async function allowSignInNotify(
     return true
   } catch (err) {
     // KV hiccup must not swallow the notification.
-    console.error('[cloud-hooks] sign-in throttle KV error', err)
+    logError('[cloud-hooks] sign-in throttle KV error', err)
     return true
   }
 }

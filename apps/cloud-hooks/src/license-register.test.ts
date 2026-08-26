@@ -45,15 +45,29 @@ const valid = {
 }
 
 describe('POST /licenses/register', () => {
-  test('stores the row and appends opt-in names to the public index', async () => {
+  test('stores the row and appends opt-in names to the public index after Polar proof', async () => {
     const kv = makeKV()
+    const fetchImpl = async (url: string) => {
+      if (url.includes('/v1/checkouts/chk_1')) {
+        return new Response(
+          JSON.stringify({
+            id: 'chk_1',
+            status: 'succeeded',
+            metadata: { sku: 'team', term: 'yearly' },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      }
+      return new Response('{}', { status: 404 })
+    }
     const res = await handleLicenseRegister(
       post(valid),
-      {},
+      { POLAR_ACCESS_TOKEN: 'polar_test' },
       {
         kv,
         uuid: () => 'reg-1',
         now: () => new Date('2026-08-17T00:00:00.000Z'),
+        fetchImpl,
       }
     )
     expect(res.status).toBe(201)
@@ -88,6 +102,65 @@ describe('POST /licenses/register', () => {
         },
       ],
     })
+  })
+
+  test('unpaid or mismatched checkout stays off the public wall', async () => {
+    const kv = makeKV()
+    const fetchImpl = async () =>
+      new Response(
+        JSON.stringify({
+          id: 'chk_1',
+          status: 'open',
+          metadata: { sku: 'team', term: 'yearly' },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
+    const res = await handleLicenseRegister(
+      post(valid),
+      { POLAR_ACCESS_TOKEN: 'polar_test' },
+      { kv, uuid: () => 'reg-2', fetchImpl }
+    )
+    expect(res.status).toBe(201)
+    const pub = await handleLicensePublic(
+      new Request('https://hooks.chmonitor.dev/licenses/public'),
+      {},
+      { kv }
+    )
+    expect(await pub.json()).toEqual({ licenses: [] })
+  })
+
+  test('rate limit blocks the 11th registration in an hour', async () => {
+    const kv = makeKV()
+    const nowMs = 1_700_000_000_000
+    for (let i = 0; i < 10; i++) {
+      const req = new Request('https://hooks.chmonitor.dev/licenses/register', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'cf-connecting-ip': '203.0.113.1',
+        },
+        body: JSON.stringify({ ...valid, company: `Co ${i}` }),
+      })
+      const res = await handleLicenseRegister(
+        req,
+        {},
+        { kv, uuid: () => `reg-${i}`, nowMs }
+      )
+      expect(res.status).toBe(201)
+    }
+    const blocked = await handleLicenseRegister(
+      new Request('https://hooks.chmonitor.dev/licenses/register', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'cf-connecting-ip': '203.0.113.1',
+        },
+        body: JSON.stringify(valid),
+      }),
+      {},
+      { kv, uuid: () => 'reg-blocked', nowMs }
+    )
+    expect(blocked.status).toBe(429)
   })
 
   test('intent without checkout_id is stored but stays off the public wall', async () => {
