@@ -1,7 +1,7 @@
 //! Credential storage: OS keyring with 0600 plaintext fallback.
 
 #[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::{fs, io::Write, path::PathBuf};
 
 use anyhow::{Context, Result};
@@ -10,6 +10,20 @@ use keyring::Entry;
 const SERVICE: &str = "chmonitor-chm";
 const TOKEN_USER: &str = "token";
 const API_KEY_USER: &str = "api-key";
+
+fn ensure_private_dir(path: &std::path::Path) -> Result<()> {
+    if path.exists() {
+        return Ok(());
+    }
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    builder.mode(0o700);
+    builder
+        .create(path)
+        .with_context(|| format!("failed to create {}", path.display()))?;
+    Ok(())
+}
 
 fn credentials_path() -> Option<PathBuf> {
     crate::config::user_config_dir().map(|d| d.join("credentials"))
@@ -48,8 +62,7 @@ fn read_plaintext(key: &str) -> Result<Option<String>> {
 fn write_plaintext(key: &str, value: &str) -> Result<()> {
     let path = credentials_path().context("could not resolve credentials path")?;
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create {}", parent.display()))?;
+        ensure_private_dir(parent)?;
     }
 
     let mut map = std::collections::BTreeMap::<String, String>::new();
@@ -83,14 +96,11 @@ fn write_plaintext(key: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-fn clear_plaintext(key: &str) -> Result<()> {
-    let Some(path) = credentials_path() else {
-        return Ok(());
-    };
+fn clear_plaintext_at(path: &std::path::Path, key: &str) -> Result<()> {
     if !path.exists() {
         return Ok(());
     }
-    let existing = fs::read_to_string(&path).unwrap_or_default();
+    let existing = fs::read_to_string(path).unwrap_or_default();
     let mut map = std::collections::BTreeMap::<String, String>::new();
     for line in existing.lines() {
         if let Some((k, v)) = line.split_once('=') {
@@ -100,7 +110,7 @@ fn clear_plaintext(key: &str) -> Result<()> {
         }
     }
     if map.is_empty() {
-        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(path);
         return Ok(());
     }
     let mut out = String::new();
@@ -114,11 +124,42 @@ fn clear_plaintext(key: &str) -> Result<()> {
         opts.mode(0o600);
     }
     let mut file = opts
-        .open(&path)
+        .open(path)
         .with_context(|| format!("failed to open {}", path.display()))?;
     file.write_all(out.as_bytes())
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
+}
+
+fn clear_plaintext(key: &str) -> Result<()> {
+    let Some(path) = credentials_path() else {
+        return Ok(());
+    };
+    clear_plaintext_at(&path, key)
+}
+
+fn purge_stale_plaintext_at(path: &std::path::Path, plaintext_key: &str) -> Result<bool> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    let content = fs::read_to_string(path)
+        .with_context(|| format!("failed to read credentials at {}", path.display()))?;
+    let had_key = content.lines().any(|line| {
+        line.split_once('=')
+            .is_some_and(|(k, v)| k.trim() == plaintext_key && !v.trim().trim_matches('"').is_empty())
+    });
+    if !had_key {
+        return Ok(false);
+    }
+    clear_plaintext_at(path, plaintext_key)?;
+    Ok(true)
+}
+
+fn purge_stale_plaintext(plaintext_key: &str) -> Result<bool> {
+    let Some(path) = credentials_path() else {
+        return Ok(false);
+    };
+    purge_stale_plaintext_at(&path, plaintext_key)
 }
 
 fn store(user: &str, plaintext_key: &str, value: &str) -> Result<()> {
@@ -126,7 +167,18 @@ fn store(user: &str, plaintext_key: &str, value: &str) -> Result<()> {
         e.set_password(value)
             .context("failed to store secret in OS keyring")
     }) {
-        Ok(()) => Ok(()),
+        Ok(()) => {
+            match purge_stale_plaintext(plaintext_key) {
+                Ok(true) => {
+                    eprintln!("note: removed stale plaintext credentials after keyring store");
+                }
+                Ok(false) => {}
+                Err(err) => {
+                    eprintln!("note: failed to remove stale plaintext credentials ({err})");
+                }
+            }
+            Ok(())
+        }
         Err(err) => {
             eprintln!("note: keyring unavailable ({err}); storing credentials in plaintext (0600)");
             write_plaintext(plaintext_key, value)
@@ -336,6 +388,37 @@ mod tests {
         let content = fs::read_to_string(&path).unwrap();
         assert!(content.contains("api_key=\"k1\""));
         assert!(!content.contains("token"));
+
+        let _ = fs::remove_dir_all(parent);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn purge_stale_plaintext_removes_token_after_keyring_recovery() {
+        let path = temp_creds_path();
+        let parent = path.parent().unwrap();
+
+        let mut map = std::collections::BTreeMap::<String, String>::new();
+        map.insert("token".to_string(), "stale-token".to_string());
+        map.insert("api_key".to_string(), "keep-me".to_string());
+        let mut out = String::new();
+        for (k, v) in &map {
+            out.push_str(&format!("{k}=\"{v}\"\n"));
+        }
+
+        let mut opts = fs::OpenOptions::new();
+        opts.create(true).write(true).truncate(true);
+        opts.mode(0o600);
+        let mut file = opts.open(&path).unwrap();
+        file.write_all(out.as_bytes()).unwrap();
+        drop(file);
+
+        assert!(purge_stale_plaintext_at(&path, "token").unwrap());
+
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(!content.contains("token"));
+        assert!(content.contains("api_key=\"keep-me\""));
+        assert_eq!(file_mode(&path) & 0o777, 0o600);
 
         let _ = fs::remove_dir_all(parent);
     }

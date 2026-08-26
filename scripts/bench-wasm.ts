@@ -1,6 +1,3 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { transformClickHouseData } from '@/lib/api/transform-data'
 import {
@@ -9,10 +6,6 @@ import {
 } from '@/lib/wasm/monitor-core'
 
 const PROMOTION_THRESHOLD = 1.2
-const monitorCoreBinary = resolve(
-  import.meta.dir,
-  '../rust/monitor-core/target/release/monitor-core'
-)
 
 type BenchResult = {
   name: string
@@ -65,22 +58,6 @@ function parseAndTransformClickHouseJsonEachRow(input: string) {
       .filter((line) => line.trim().length > 0)
       .map((line) => JSON.parse(line))
   )
-}
-
-function transformClickHouseJsonEachRowRustCli(inputPath: string) {
-  const result = Bun.spawnSync(
-    [monitorCoreBinary, 'normalize-json-each-row', inputPath],
-    {
-      stdout: 'pipe',
-      stderr: 'pipe',
-    }
-  )
-
-  if (!result.success) {
-    throw new Error(result.stderr.toString())
-  }
-
-  return result.stdout.toString()
 }
 
 async function benchClickHouseJsonEachRowTransform(
@@ -145,35 +122,6 @@ async function benchChartApiResponseEnvelope(
   return result('chart-api-response-envelope', sizeLabel, tsMs, wasmMs)
 }
 
-function benchClickHouseJsonEachRowNativeCliTransform(
-  sizeLabel: string,
-  size: number,
-  iterations: number
-): BenchResult {
-  const data = makeClickHouseJsonEachRow(size)
-  const tempDir = mkdtempSync(resolve(tmpdir(), 'monitor-core-bench-'))
-  const inputPath = resolve(tempDir, 'input.jsonl')
-  writeFileSync(inputPath, data)
-
-  try {
-    const tsMs = timeSync(iterations, () => {
-      JSON.stringify(parseAndTransformClickHouseJsonEachRow(data))
-    })
-    const candidateMs = timeSync(iterations, () => {
-      transformClickHouseJsonEachRowRustCli(inputPath)
-    })
-
-    return result(
-      'clickhouse-jsoneachrow-native-cli',
-      sizeLabel,
-      tsMs,
-      candidateMs
-    )
-  } finally {
-    rmSync(tempDir, { recursive: true, force: true })
-  }
-}
-
 function result(
   name: string,
   size: string,
@@ -202,9 +150,6 @@ const results = [
   await benchChartApiResponseEnvelope('small', 100, 100),
   await benchChartApiResponseEnvelope('medium', 2_500, 25),
   await benchChartApiResponseEnvelope('large', 25_000, 5),
-  benchClickHouseJsonEachRowNativeCliTransform('small', 100, 100),
-  benchClickHouseJsonEachRowNativeCliTransform('medium', 2_500, 25),
-  benchClickHouseJsonEachRowNativeCliTransform('large', 25_000, 5),
 ]
 
 console.table(
