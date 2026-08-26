@@ -44,6 +44,26 @@ mock.module('@/lib/ai/advisor/capacity-forecaster', () => ({
   forecastDiskFull: async () => FIXTURE_FORECAST,
 }))
 
+mock.module('../report-metrics', () => ({
+  collectQueryActivity: async () => undefined,
+  collectIngestion: async () => undefined,
+  collectStorage: async () => undefined,
+}))
+
+mock.module('../collectors', () => ({
+  collectAdvisorRecommendations: async () => [
+    {
+      severity: 'info',
+      category: 'optimization',
+      title: 'Add a skip index on `user_id` on default.events',
+      detail: 'Estimated ~100 granules saved.',
+      metric:
+        'schema_opt:skip_index:default.events:add_a_skip_index_on_user_id',
+      value: 100,
+    },
+  ],
+}))
+
 // Stub the baseline store so baselinesFitted is deterministic.
 mock.module('../baseline-store', () => ({
   listBaselines: async () => [{ metric: 'error_rate' }, { metric: 'qps' }],
@@ -159,6 +179,8 @@ describe('buildWeeklyReport', () => {
     expect(summary.capacity).toMatchObject({ available: true, daysToFull: 42 })
 
     expect(markdown).toContain('Weekly Health Report — prod-eu')
+    expect(markdown).toContain('### Query advisor')
+    expect(summary.advisorRecommendations).toHaveLength(1)
     expect(html).toContain('<!doctype html>')
   })
 })

@@ -337,7 +337,6 @@ async function queryTableCurrentBytes(
   return Number(rows[0]?.bytes ?? 0)
 }
 
-/** Best-effort detection of the date/DateTime column a TTL suggestion should anchor to. */
 async function detectTtlDateColumn(
   hostId: number,
   database: string,
@@ -370,6 +369,37 @@ async function detectTtlDateColumn(
 
   const anyDateCol = rows.find((r) => isDateType(r.type))
   return anyDateCol ? anyDateCol.name : null
+}
+
+async function queryEngineFull(
+  hostId: number,
+  database: string,
+  table: string
+): Promise<string | null> {
+  const rows = (await readOnlyQuery({
+    query:
+      'SELECT engine_full FROM system.tables WHERE database = {database:String} AND name = {table:String} LIMIT 1',
+    query_params: { database, table },
+    hostId,
+  })) as Array<{ engine_full: string }>
+
+  const engineFull = rows[0]?.engine_full?.trim()
+  return engineFull || null
+}
+
+/** Detect an existing TTL clause in a table's `engine_full` DDL snippet. */
+export function detectExistingTtlPolicy(engineFull: string | null): {
+  hasTtl: boolean
+  expression: string | null
+} {
+  if (!engineFull) return { hasTtl: false, expression: null }
+  const ttlIndex = engineFull.search(/\bTTL\b/i)
+  if (ttlIndex < 0) return { hasTtl: false, expression: null }
+
+  const tail = engineFull.slice(ttlIndex)
+  const match = tail.match(/\bTTL\b\s+([\s\S]+?)(?:,\s*SETTINGS\b|$)/i)
+  const expression = (match?.[1] ?? tail.replace(/^\s*TTL\s+/i, '')).trim()
+  return { hasTtl: true, expression: expression || null }
 }
 
 /**
@@ -520,9 +550,12 @@ export async function suggestTtl(params: {
     hostId,
     database,
     table,
-    retentionDays,
+    retentionDays: rawRetentionDays,
     retentionAssumedDefault = false,
   } = params
+
+  const retentionClamped = rawRetentionDays <= 0
+  const retentionDays = Math.max(1, rawRetentionDays)
 
   if (!(await isPartLogAvailable(hostId))) {
     return {
@@ -532,12 +565,14 @@ export async function suggestTtl(params: {
     }
   }
 
-  const [currentBytes, dailyRows, diskTotals, dateColumn] = await Promise.all([
-    queryTableCurrentBytes(hostId, database, table),
-    queryDailyNewPartBytes(hostId, FORECAST_WINDOW_DAYS, { database, table }),
-    queryDiskTotals(hostId),
-    detectTtlDateColumn(hostId, database, table),
-  ])
+  const [currentBytes, dailyRows, diskTotals, dateColumn, engineFull] =
+    await Promise.all([
+      queryTableCurrentBytes(hostId, database, table),
+      queryDailyNewPartBytes(hostId, FORECAST_WINDOW_DAYS, { database, table }),
+      queryDiskTotals(hostId),
+      detectTtlDateColumn(hostId, database, table),
+      queryEngineFull(hostId, database, table),
+    ])
 
   const dailySeries = buildDailySeries(dailyRows, FORECAST_WINDOW_DAYS)
   const { slope } = fitLinearGrowth(dailySeries)
@@ -554,15 +589,39 @@ export async function suggestTtl(params: {
     })
 
   const fullTable = `\`${database}\`.\`${table}\``
-  const sql = dateColumn
+  const baseSql = dateColumn
     ? `ALTER TABLE ${fullTable} MODIFY TTL ${dateColumn} + INTERVAL ${suggestedTtlDays} DAY`
     : `-- No Date/DateTime column found in ${database}.${table}'s partition or sorting key — replace <date_column> with the correct column before running:\nALTER TABLE ${fullTable} MODIFY TTL <date_column> + INTERVAL ${suggestedTtlDays} DAY`
+
+  const { hasTtl, expression: existingTtl } =
+    detectExistingTtlPolicy(engineFull)
+  let sql = baseSql
+  let ttlReplaceWarning = ''
+  if (hasTtl && existingTtl && dateColumn) {
+    ttlReplaceWarning =
+      `Table already has a TTL — MODIFY TTL REPLACES the whole policy. Merge instead: ` +
+      `ALTER TABLE ${fullTable} MODIFY TTL ${existingTtl}, ${dateColumn} + INTERVAL ${suggestedTtlDays} DAY`
+    sql =
+      `-- WARNING: Table already has a TTL policy. MODIFY TTL REPLACES the entire expression.\n` +
+      `-- Existing TTL: ${existingTtl}\n` +
+      `-- Merge form (preserves existing policy):\n` +
+      `ALTER TABLE ${fullTable} MODIFY TTL ${existingTtl}, ${dateColumn} + INTERVAL ${suggestedTtlDays} DAY\n\n` +
+      `-- Original suggestion (REPLACES existing TTL — prefer merge form above):\n` +
+      baseSql
+  }
 
   const retentionNote = retentionAssumedDefault
     ? `Assuming a ${retentionDays}-day minimum retention (no retentionRequirementDays was given — pass one to override this default).`
     : `Using your stated ${retentionDays}-day minimum retention.`
+  const clampNote = retentionClamped
+    ? `Retention was clamped from ${rawRetentionDays} to ${retentionDays} day(s) — INTERVAL 0 DAY is not emitted.`
+    : ''
 
-  const explanation = `${retentionNote} ${database}.${table} is currently ${formatBytes(currentBytes)} and growing ~${formatBytes(dailyGrowthBytes)}/day (${confidence} confidence, ${dailySeries.length} days of history). ${nSafeDays !== null ? `The largest TTL that keeps projected disk utilization at/under 80% is ~${nSafeDays} day(s). ` : ''}Suggested TTL: ${suggestedTtlDays} day(s) — this is a suggestion only, never applied automatically.`
+  const explanation = `${retentionNote}${clampNote ? ` ${clampNote}` : ''} ${database}.${table} is currently ${formatBytes(currentBytes)} and growing ~${formatBytes(dailyGrowthBytes)}/day (${confidence} confidence, ${dailySeries.length} days of history). ${nSafeDays !== null ? `The largest TTL that keeps projected disk utilization at/under 80% is ~${nSafeDays} day(s). ` : ''}Suggested TTL: ${suggestedTtlDays} day(s) — this is a suggestion only, never applied automatically.${ttlReplaceWarning ? ` ${ttlReplaceWarning}` : ''}`
+
+  const combinedRiskNote = ttlReplaceWarning
+    ? `${riskNote} ${ttlReplaceWarning}`
+    : riskNote
 
   return {
     available: true,
@@ -577,7 +636,7 @@ export async function suggestTtl(params: {
     meetsUtilizationTarget,
     dateColumn,
     sql,
-    riskNote,
+    riskNote: combinedRiskNote,
     explanation,
   }
 }

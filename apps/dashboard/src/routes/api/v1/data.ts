@@ -44,6 +44,7 @@ import {
 } from '@/lib/api/shared/validators'
 import { getTableConfig } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
@@ -136,7 +137,7 @@ function handleQueryError(
   return createApiErrorResponse(
     {
       type: apiErrorType,
-      message: queryError.message,
+      message: sanitizeDbQueryError(queryError.message),
       details: queryError.details as Record<
         string,
         string | number | boolean | undefined

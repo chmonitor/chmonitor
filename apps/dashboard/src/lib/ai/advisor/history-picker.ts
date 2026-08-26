@@ -119,8 +119,9 @@ function isHistoryPickerKind(value: string): value is HistoryPickerKind {
  * Build the parameterized `system.query_log` picker query.
  *
  * Results are ordered by `query_duration_ms DESC` so the slowest (most
- * advisor-worthy) queries surface first, then de-duplicated by normalized
- * query text so a hot query issued thousands of times shows once.
+ * advisor-worthy) queries surface first. Rows are grouped by `query_id` (one
+ * row per finished request) — ORMs and clients that reuse ids are not
+ * collapsed by normalized text; that would be a separate product decision.
  */
 export function buildHistoryPickerQuery(
   filters: HistoryPickerFilters = {}

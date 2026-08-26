@@ -25,6 +25,7 @@ import { error } from '@chm/logger'
 import { sortPatternRows } from '@/lib/api/insights/query-patterns'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { getTableQuery } from '@/lib/api/table-registry'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 const CONFIG_NAME = 'slow-query-patterns'
 
@@ -95,7 +96,7 @@ export async function handler(request: Request): Promise<Response> {
           success: false,
           error: {
             type: 'query_error',
-            message: result.error.message,
+            message: sanitizeDbQueryError(result.error.message),
             details: result.error.details,
           },
         },

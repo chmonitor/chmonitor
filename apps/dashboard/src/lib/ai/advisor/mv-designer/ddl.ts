@@ -13,6 +13,7 @@ import {
   formatQualifiedTable,
   quoteIdentifier,
 } from '@/lib/ai/agent/tools/sql-analysis'
+import { formatGroupByListForSql } from './sql-parsing'
 
 function normalizeForAlias(s: string): string {
   return s
@@ -61,7 +62,7 @@ export function buildDdl(input: {
 }): string {
   const { design, database, table, groupByKeys, aggregateCalls } = input
   const fullTable = formatQualifiedTable(database, table)
-  const groupByList = groupByKeys.join(', ')
+  const groupByList = formatGroupByListForSql(groupByKeys)
 
   if (design.kind === 'projection') {
     const projName = quoteIdentifier(ddlObjectName(table, groupByKeys, 'proj'))

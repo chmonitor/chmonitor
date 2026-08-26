@@ -19,6 +19,7 @@ import { error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { getTableConfig } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 interface FilterOption {
   value: string
@@ -116,7 +117,7 @@ export const Route = createFileRoute('/api/v1/tables/$name/filter-options')({
               },
               error: {
                 type: result.error.type as ApiErrorType,
-                message: result.error.message,
+                message: sanitizeDbQueryError(result.error.message),
               },
             },
             { status: 500 }

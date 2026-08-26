@@ -14,6 +14,7 @@ import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-h
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { fetchDataWithHost } from '@/lib/clickhouse-helpers'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   assertReadOnlySql,
   METRIC_CATALOG,
@@ -60,7 +61,7 @@ export const Route = createFileRoute('/api/v1/health/custom-rules/test')({
 
         if (result.error) {
           return createApiErrorResponse(
-            { type: ApiErrorType.QueryError, message: result.error.message },
+            { type: ApiErrorType.QueryError, message: sanitizeDbQueryError(result.error.message) },
             502,
             ROUTE
           )

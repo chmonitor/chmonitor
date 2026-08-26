@@ -74,3 +74,8 @@ export function sanitizeClickHouseError(raw: string): SanitizedMessage {
 
   return SANITIZED_MESSAGES.GENERIC
 }
+
+/** Route-facing alias — import this instead of the error-handler barrel. */
+export function sanitizeDbQueryError(raw: string): SanitizedMessage {
+  return sanitizeClickHouseError(raw) // pragma: allowlist secret
+}

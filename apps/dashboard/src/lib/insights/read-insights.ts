@@ -13,7 +13,7 @@ import type { FindingRow } from '../findings/findings-store'
 import type { InsightAction, InsightCard, InsightSeverity } from './types'
 
 import { resolveInsightsStore } from './store/resolve-store'
-import { INSIGHT_SOURCES, insightKey } from './types'
+import { INSIGHT_SOURCES, advisorInsightKey, insightKey } from './types'
 
 /** Default lookback for the panel — recent enough that insights stay relevant. */
 const DEFAULT_SINCE = '6 HOUR'
@@ -73,6 +73,11 @@ function toCard(hostId: number, row: FindingRow): InsightCard {
     title: row.title,
   }
 
+  const key =
+    row.source === 'advisor'
+      ? advisorInsightKey(hostId, candidate)
+      : insightKey(hostId, candidate)
+
   return {
     severity,
     category: row.category,
@@ -81,7 +86,7 @@ function toCard(hostId: number, row: FindingRow): InsightCard {
     metric: row.metric || undefined,
     value: row.value,
     action: deriveAction(row.metric, row.category),
-    key: insightKey(hostId, candidate),
+    key,
     generatedAt: row.event_time,
   }
 }

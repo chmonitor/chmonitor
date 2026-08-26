@@ -33,6 +33,18 @@ describe('resolvePair', () => {
   test('returns null without a pair', () => {
     expect(resolvePair([{ id: 0, name: 'A' }], 0, 1)).toBeNull()
   })
+
+  test('falls back safely when duplicate peer ids would make find() miss', () => {
+    const duplicatePeers = [
+      { id: 1, name: 'A' },
+      { id: 1, name: 'B' },
+      { id: 2, name: 'C' },
+    ]
+    expect(resolvePair(duplicatePeers, 1, undefined)).toEqual({
+      sourceId: 1,
+      targetId: 2,
+    })
+  })
 })
 
 describe('canComparePair', () => {

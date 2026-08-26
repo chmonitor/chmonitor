@@ -13,6 +13,7 @@ import { debug, error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 // Validation regex for identifiers (database and table names)
 const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/
@@ -215,7 +216,7 @@ export const Route = createFileRoute('/api/v1/explorer/preview')({
               success: false,
               error: {
                 type: result.error.type,
-                message: result.error.message,
+                message: sanitizeDbQueryError(result.error.message),
                 details: result.error.details,
               },
             },

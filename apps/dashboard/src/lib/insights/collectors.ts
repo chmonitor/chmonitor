@@ -630,6 +630,9 @@ const HEAVY_QUERIES_SQL = `SELECT any(query) AS query
   ORDER BY max(read_bytes) DESC
   LIMIT ${SCHEMA_OPT_MAX_QUERIES}`
 
+/** Cap on advisor recommendations included in a weekly health report. */
+export const ADVISOR_WEEKLY_REPORT_MAX = 5
+
 async function collectSchemaOptimizations(
   hostId: number
 ): Promise<InsightCandidate[]> {
@@ -671,6 +674,19 @@ async function collectSchemaOptimizations(
   } catch {
     return []
   }
+}
+
+/**
+ * Ranked query-advisor recommendations for the weekly report. Runs the same
+ * read-only advisor pipeline as the insights collector but caps output for
+ * report delivery cost control.
+ */
+export async function collectAdvisorRecommendations(
+  hostId: number,
+  max = ADVISOR_WEEKLY_REPORT_MAX
+): Promise<InsightCandidate[]> {
+  const candidates = await collectSchemaOptimizations(hostId)
+  return candidates.slice(0, max)
 }
 
 /**

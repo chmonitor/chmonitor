@@ -32,14 +32,54 @@ const IDENTIFIER = '(?:`[^`]+`|"[^"]+"|[a-zA-Z_][\\w$]*)'
 const TABLE_REF = `${IDENTIFIER}(?:\\s*\\.\\s*${IDENTIFIER})?`
 
 /**
- * Matches `ALTER TABLE <table> [ON CLUSTER <name>] UPDATE ... WHERE ...` or
- * `ALTER TABLE <table> [ON CLUSTER <name>] DELETE WHERE ...`. Case-
- * insensitive, tolerant of surrounding whitespace/newlines.
+ * Matches `ALTER TABLE <table> [ON CLUSTER <name>] UPDATE ...` or
+ * `ALTER TABLE <table> [ON CLUSTER <name>] DELETE` (without WHERE — WHERE is
+ * located by a quote-aware scan). Case-insensitive.
  */
-const MUTATION_PATTERN = new RegExp(
-  `^ALTER\\s+TABLE\\s+(${TABLE_REF})\\s*(?:ON\\s+CLUSTER\\s+${IDENTIFIER}\\s*)?(UPDATE\\s+[\\s\\S]+?|DELETE)\\s+WHERE\\s+([\\s\\S]+)$`,
+const MUTATION_PREFIX_PATTERN = new RegExp(
+  `^ALTER\\s+TABLE\\s+(${TABLE_REF})\\s*(?:ON\\s+CLUSTER\\s+${IDENTIFIER}\\s*)?(UPDATE\\s+[\\s\\S]+|DELETE)\\s*$`,
   'i'
 )
+
+function skipQuotedSpan(sql: string, start: number): number {
+  const quote = sql[start]
+  let i = start + 1
+  while (i < sql.length) {
+    if (quote === "'" && sql[i] === '\\') {
+      i += 2
+      continue
+    }
+    if (sql[i] === quote) {
+      if (quote === "'" && sql[i + 1] === "'") {
+        i += 2
+        continue
+      }
+      return i
+    }
+    i += 1
+  }
+  return sql.length - 1
+}
+
+function isTopLevelWhereAt(sql: string, index: number): boolean {
+  if (sql.slice(index, index + 5).toUpperCase() !== 'WHERE') return false
+  const before = index === 0 || !/\w/.test(sql[index - 1]!)
+  const after = index + 5 >= sql.length || !/\w/.test(sql[index + 5]!)
+  return before && after
+}
+
+/** Locate the top-level WHERE keyword, skipping quoted spans. */
+export function findTopLevelWhereIndex(sql: string, searchFrom = 0): number {
+  for (let i = searchFrom; i < sql.length; i += 1) {
+    const ch = sql[i]
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i = skipQuotedSpan(sql, i)
+      continue
+    }
+    if (isTopLevelWhereAt(sql, i)) return i
+  }
+  return -1
+}
 
 function stripQuotedIdentifier(value: string): string {
   const trimmed = value.trim()
@@ -71,14 +111,24 @@ export function parseMutationSql(sql: string): ParsedMutation {
     )
   }
 
-  const match = trimmed.match(MUTATION_PATTERN)
-  if (!match) {
+  const whereIdx = findTopLevelWhereIndex(trimmed)
+  if (whereIdx < 0) {
     throw new Error(
       'Expected `ALTER TABLE <database>.<table> UPDATE <col> = <expr>, ... WHERE <condition>` or `ALTER TABLE <database>.<table> DELETE WHERE <condition>`.'
     )
   }
 
-  const [, rawTable, kindPart, whereClause] = match
+  const prefix = trimmed.slice(0, whereIdx).trim()
+  const whereClause = trimmed.slice(whereIdx + 5).trim()
+
+  const prefixMatch = prefix.match(MUTATION_PREFIX_PATTERN)
+  if (!prefixMatch) {
+    throw new Error(
+      'Expected `ALTER TABLE <database>.<table> UPDATE <col> = <expr>, ... WHERE <condition>` or `ALTER TABLE <database>.<table> DELETE WHERE <condition>`.'
+    )
+  }
+
+  const [, rawTable, kindPart] = prefixMatch
   const kind: 'UPDATE' | 'DELETE' = /^UPDATE\b/i.test(kindPart.trim())
     ? 'UPDATE'
     : 'DELETE'

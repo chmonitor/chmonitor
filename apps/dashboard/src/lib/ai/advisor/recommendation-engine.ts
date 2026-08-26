@@ -197,6 +197,8 @@ export async function analyzeQuery(
 
   let schema: TableSchema
   let parts: PartsStats
+  const explainP = fetchExplainIndexes(hostId, sql)
+  const topologyP = fetchTableTopology(hostId, target.database, target.table)
   try {
     ;[schema, parts] = await Promise.all([
       fetchTableSchema(hostId, target.database, target.table),
@@ -210,7 +212,7 @@ export async function analyzeQuery(
     }
   }
 
-  const explain = await fetchExplainIndexes(hostId, sql)
+  const explain = await explainP
   if (!explain) {
     notes.push(
       'EXPLAIN failed or was not permitted — impact estimates fall back to table-wide totals and are less precise.'
@@ -257,7 +259,7 @@ export async function analyzeQuery(
   const ranked = rankRecommendations(recommendations)
   let topology = null
   try {
-    topology = await fetchTableTopology(hostId, target.database, target.table)
+    topology = await topologyP
   } catch {
     topology = null
   }

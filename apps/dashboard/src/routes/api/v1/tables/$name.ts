@@ -8,7 +8,6 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
-import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { detectTableTruncation } from '@/lib/api/table-query-settings'
 import {
@@ -17,6 +16,7 @@ import {
   hasTable,
 } from '@/lib/api/table-registry'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 /**
  * GET handler for `/api/v1/tables/$name`, extracted as a named export so it
@@ -153,7 +153,7 @@ export async function handler(
             clickhouseVersion,
             timezone,
             unavailable: true,
-            unavailableReason: result.error.message,
+            unavailableReason: sanitizeDbQueryError(result.error.message),
             missingTables,
           },
         })
@@ -163,7 +163,7 @@ export async function handler(
           success: false,
           error: {
             type: 'query_error',
-            message: result.error.message,
+            message: sanitizeDbQueryError(result.error.message),
             details: result.error.details,
           },
         },
@@ -203,7 +203,7 @@ export async function handler(
         success: false,
         error: {
           type: 'query_error',
-          message: sanitizeClickHouseError(
+          message: sanitizeDbQueryError(
             err instanceof Error ? err.message : 'Unknown error'
           ),
         },

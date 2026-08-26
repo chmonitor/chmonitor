@@ -40,9 +40,11 @@ describe('splitTopLevelCommas', () => {
     ])
   })
 
-  test('empty input yields no parts', () => {
-    expect(splitTopLevelCommas('')).toEqual([])
-    expect(splitTopLevelCommas('   ')).toEqual([])
+  test('does not split commas inside string literals', () => {
+    expect(splitTopLevelCommas("formatDateTime(x, '%Y,%m'), user_id")).toEqual([
+      "formatDateTime(x, '%Y,%m')",
+      'user_id',
+    ])
   })
 })
 
@@ -54,6 +56,14 @@ describe('extractGroupByKeys', () => {
   })
 
   test('extracts multiple keys and stops at ORDER BY', () => {
+    expect(
+      extractGroupByKeys(
+        "SELECT a, b, sum(c) FROM t GROUP BY formatDateTime(x, '%Y,%m'), b ORDER BY a DESC LIMIT 10"
+      )
+    ).toEqual(["formatDateTime(x, '%Y,%m')", 'b'])
+  })
+
+  test('extracts multiple keys and stops at ORDER BY (simple columns)', () => {
     expect(
       extractGroupByKeys(
         'SELECT a, b, sum(c) FROM t GROUP BY a, b ORDER BY a DESC LIMIT 10'

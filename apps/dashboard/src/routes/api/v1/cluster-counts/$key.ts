@@ -24,7 +24,7 @@ import {
   hasClusterCountKey,
 } from '@/lib/api/cluster-count-registry'
 import { createErrorResponse } from '@/lib/api/error-handler'
-import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error' // pragma: allowlist secret
 import { HostIdSchema, MenuCountKeySchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -32,6 +32,7 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
@@ -254,7 +255,7 @@ async function handler(
       const errorResponse = createErrorResponse(
         {
           type: result.error.type as ApiErrorType,
-          message: result.error.message,
+          message: sanitizeDbQueryError(result.error.message),
         },
         500,
         { ...ROUTE_CONTEXT, hostId }

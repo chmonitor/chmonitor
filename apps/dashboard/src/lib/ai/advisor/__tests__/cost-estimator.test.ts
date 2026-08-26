@@ -217,6 +217,32 @@ describe('parseExplainPlan', () => {
     expect(plan.reads).toHaveLength(1)
   })
 
+  test('returns null table for quoted descriptions that do not normalize to db.table', () => {
+    const plan = parseExplainPlan([
+      {
+        Plan: {
+          'Node Type': 'ReadFromMergeTree',
+          Description: '`secret_db`.`secret_table`',
+          Indexes: [],
+        },
+      },
+    ])
+    expect(plan.reads[0]?.table).toBe('secret_db.secret_table')
+  })
+
+  test('returns null when description cannot be parsed as a table ref', () => {
+    const plan = parseExplainPlan([
+      {
+        Plan: {
+          'Node Type': 'ReadFromMergeTree',
+          Description: 'not a valid table reference at all!!!',
+          Indexes: [],
+        },
+      },
+    ])
+    expect(plan.reads[0]?.table).toBeNull()
+  })
+
   test('detects a Filter node', () => {
     const plan = parseExplainPlan(FILTER_FIXTURE)
     expect(plan.hasFilter).toBe(true)

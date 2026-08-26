@@ -52,16 +52,62 @@ const AGGREGATE_CALL_PATTERN = new RegExp(
 const GROUP_BY_CLAUSE_PATTERN =
   /\bGROUP\s+BY\b([\s\S]*?)(?:\bORDER\s+BY\b|\bHAVING\b|\bLIMIT\b|\bSETTINGS\b|\bFORMAT\b|$)/i
 
+function skipQuotedSpan(input: string, start: number): number {
+  const quote = input[start]
+  let i = start + 1
+  while (i < input.length) {
+    if (quote === "'" && input[i] === '\\') {
+      i += 2
+      continue
+    }
+    if (input[i] === quote) {
+      if (quote === "'" && input[i + 1] === "'") {
+        i += 2
+        continue
+      }
+      return i
+    }
+    i += 1
+  }
+  return input.length - 1
+}
+
+/** True when a GROUP BY key is a single unquoted identifier (no expressions). */
+export function isBareIdentifier(key: string): boolean {
+  return /^[A-Za-z_][\w$]*$/.test(key.trim())
+}
+
+/**
+ * Format GROUP BY keys for safe interpolation into generated SQL. Bare
+ * identifiers pass through unchanged; complex expressions are kept verbatim.
+ */
+export function formatGroupByListForSql(keys: readonly string[]): string {
+  if (keys.every(isBareIdentifier)) return keys.join(', ')
+  return keys
+    .map((key) => {
+      const trimmed = key.trim()
+      if (isBareIdentifier(trimmed)) return trimmed
+      return trimmed
+    })
+    .join(', ')
+}
+
 /**
  * Split a comma-separated expression list at the top level only — commas
- * nested inside function-call parens (`toDate(event_time), user_id`) are not
- * split points.
+ * nested inside function-call parens or string literals are not split points.
  */
 export function splitTopLevelCommas(input: string): string[] {
   const parts: string[] = []
   let depth = 0
   let current = ''
-  for (const ch of input) {
+  for (let i = 0; i < input.length; i += 1) {
+    const ch = input[i]!
+    if (ch === "'" || ch === '"' || ch === '`') {
+      const end = skipQuotedSpan(input, i)
+      current += input.slice(i, end + 1)
+      i = end
+      continue
+    }
     if (ch === '(') depth++
     else if (ch === ')') depth = Math.max(0, depth - 1)
     if (ch === ',' && depth === 0) {
