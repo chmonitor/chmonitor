@@ -6,38 +6,14 @@ import type { ChartDataPoint } from '@/types/chart-data'
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartEmpty } from '@/components/charts/chart-empty'
 import { ChartError } from '@/components/charts/chart-error'
+import { StatTile } from '@/components/charts/primitives/stat-tile'
 import { ChartSkeleton } from '@/components/skeletons'
 import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
-import { cn } from '@/lib/utils'
 
 interface MutationMetrics extends ChartDataPoint {
   active: number
   stuck: number
   failed: number
-}
-
-interface StatItemProps {
-  value: number
-  label: string
-  activeClassName: string
-}
-
-function StatItem({ value, label, activeClassName }: StatItemProps) {
-  return (
-    <div className="flex flex-col items-center gap-1 min-w-0">
-      <span
-        className={cn(
-          'text-3xl font-bold tabular-nums leading-none',
-          value > 0 ? activeClassName : 'text-foreground'
-        )}
-      >
-        {value}
-      </span>
-      <span className="text-xs text-muted-foreground tracking-wide uppercase">
-        {label}
-      </span>
-    </div>
-  )
 }
 
 export const ChartSummaryStuckMutations = function ChartSummaryStuckMutations({
@@ -87,19 +63,19 @@ export const ChartSummaryStuckMutations = function ChartSummaryStuckMutations({
         </div>
       ) : (
         <div className="flex items-center justify-around gap-2 py-3">
-          <StatItem
+          <StatTile
             value={metrics.active}
             label="active"
             activeClassName="text-foreground"
           />
           <div className="h-8 w-px bg-border/50 shrink-0" aria-hidden />
-          <StatItem
+          <StatTile
             value={metrics.stuck}
             label="stuck"
             activeClassName="text-amber-500 dark:text-amber-400"
           />
           <div className="h-8 w-px bg-border/50 shrink-0" aria-hidden />
-          <StatItem
+          <StatTile
             value={metrics.failed}
             label="failed"
             activeClassName="text-destructive"

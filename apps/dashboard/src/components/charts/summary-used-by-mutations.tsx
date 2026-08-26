@@ -5,6 +5,7 @@ import type { ChartProps } from '@/components/charts/chart-props'
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartEmpty } from '@/components/charts/chart-empty'
 import { ChartError } from '@/components/charts/chart-error'
+import { StatTile } from '@/components/charts/primitives/stat-tile'
 import { ChartSkeleton } from '@/components/skeletons'
 import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
 
@@ -35,7 +36,6 @@ export const ChartSummaryUsedByMutations =
         />
       )
 
-    // Show empty state if no data
     if (!dataArray || dataArray.length === 0) {
       return <ChartEmpty title={title} className={className} />
     }
@@ -45,13 +45,7 @@ export const ChartSummaryUsedByMutations =
 
     return (
       <ChartCard title={title} sql={sql} data={dataArray} className={className}>
-        <div className="flex flex-col items-center justify-center gap-2 py-3">
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold tabular-nums leading-none text-foreground">
-              {count.running_count}
-            </span>
-            <span className="text-sm text-muted-foreground">running</span>
-          </div>
+        <StatTile value={count.running_count} label="running" layout="inline">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Activity
               className={
@@ -65,7 +59,7 @@ export const ChartSummaryUsedByMutations =
               {isIdle ? 'no active mutations' : 'mutations in progress'}
             </span>
           </div>
-        </div>
+        </StatTile>
       </ChartCard>
     )
   }
