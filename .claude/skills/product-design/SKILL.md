@@ -235,9 +235,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `data-[state=active]:`). Do not use `TabsList variant="line"` on an
   `overflow-x-auto` strip — the hanging `after` underline is clipped.
 - **Responsive chrome:** overview KPI strip is 1-col → 2×2 from `sm` → 4-col
-  from `lg` (never four-across below `lg`; same split as `/traffic`). Titles
-  wrap from `sm` (truncate is `max-sm:` only). App sidebar overlays below
-  `lg` (not a docked rail at 768). Mobile
+  from `xl` (never four-across at `md`/`lg`: at `lg` the sidebar docks and the
+  content pane is still ~768px). Titles wrap from `sm` (truncate is `max-sm:`
+  only). App sidebar overlays below `lg` (not a docked rail at 768). Mobile
   sidebar sheet is opaque — no heatmap-through-frost. Phone sidebar rows /
   toggle / header utility icons (refresh, search, theme) are `min 44×44`.
   The header day switcher (1h…30d) stays compact and `flex-1` below `sm` so

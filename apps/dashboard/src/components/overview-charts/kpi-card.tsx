@@ -118,7 +118,7 @@ export const KpiCard = function KpiCard({
       )}
     >
       {/* Row 1 — icon + label + optional sparkline.
-          The strip is 1-col / 2×2 / 4-col from lg, so titles usually fit one
+          The strip is 1-col / 2×2 / 4-col from xl, so titles usually fit one
           line. Truncate only on genuine phone widths; at sm+ the label may
           wrap so "Active Queries" stays fully readable in the four-up strip. */}
       <div className="flex items-start gap-1.5">
