@@ -22,6 +22,7 @@ import {
   classifyError,
   getStatusCodeForErrorType,
 } from '@/lib/api/error-handler'
+import { isValidInterval } from '@/lib/api/query-executor'
 import {
   checkRateLimitDurable,
   clientIpKey,
@@ -84,6 +85,7 @@ export async function handler(request: Request): Promise<Response> {
   const groupingIdRaw = record.groupingId ?? record.grouping
   const hostIdRaw = record.hostId
   const lastHoursRaw = record.lastHours
+  const intervalRaw = record.interval
   const rawParams = record.params
   const timezoneParam = record.timezone
 
@@ -148,6 +150,11 @@ export async function handler(request: Request): Promise<Response> {
       ? Math.min(lastHoursParsed, MAX_LAST_HOURS)
       : undefined
 
+  const interval =
+    typeof intervalRaw === 'string' && isValidInterval(intervalRaw)
+      ? intervalRaw
+      : undefined
+
   let chartParams: Record<string, unknown> | undefined
   if (rawParams !== undefined && rawParams !== null) {
     if (typeof rawParams !== 'object' || Array.isArray(rawParams)) {
@@ -192,6 +199,7 @@ export async function handler(request: Request): Promise<Response> {
   for (const name of names) {
     const queryDef = getChartQuery(name, {
       lastHours,
+      interval,
       params: chartParams,
       timezone,
     })
@@ -207,6 +215,7 @@ export async function handler(request: Request): Promise<Response> {
     const grouped = await executeChartGrouping(groupingId, hostId, {
       bindings,
       lastHours,
+      interval,
       params: chartParams,
       timezone,
     })

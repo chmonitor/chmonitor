@@ -11,6 +11,7 @@ interface TopUsersData {
 /** Tile 9 of the Query Insights overview: query volume by user. */
 export const ChartQueryInsightsTopUsers = createCustomChart({
   chartName: 'query-insights-top-users',
+  grouped: true,
   defaultTitle: 'Top Users',
   defaultLastHours: 24,
   dataTestId: 'query-insights-top-users-chart',

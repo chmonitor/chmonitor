@@ -14,6 +14,7 @@ interface CacheHitRatioData {
  */
 export const ChartQueryInsightsCacheHitRatio = createCustomChart({
   chartName: 'query-insights-cache-hit-ratio',
+  grouped: true,
   defaultTitle: 'Cache Hit Ratio',
   defaultLastHours: 24,
   dataTestId: 'query-insights-cache-hit-ratio-chart',

@@ -21,6 +21,7 @@ const queryKindColors: Record<string, string> = {
 /** Tile 3 of the Query Insights overview: operations breakdown by query_kind. */
 export const ChartQueryInsightsOperations = createCustomChart({
   chartName: 'query-insights-operations',
+  grouped: true,
   defaultTitle: 'Operations Breakdown',
   defaultLastHours: 24,
   dataTestId: 'query-insights-operations-chart',

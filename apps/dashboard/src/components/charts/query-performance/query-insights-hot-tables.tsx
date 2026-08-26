@@ -11,6 +11,7 @@ interface HotTablesData {
 /** Hot tables drill-down: query volume + avg latency per referenced table (arrayJoin(tables)). */
 export const ChartQueryInsightsHotTables = createCustomChart({
   chartName: 'query-insights-hot-tables',
+  grouped: true,
   defaultTitle: 'Hot Tables',
   defaultLastHours: 24,
   dataTestId: 'query-insights-hot-tables-chart',

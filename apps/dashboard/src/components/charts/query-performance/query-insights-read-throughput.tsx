@@ -4,6 +4,7 @@ import { chartTickFormatters } from '@/lib/utils'
 /** Tile 8 of the Query Insights overview: bytes read from storage vs returned. */
 export const ChartQueryInsightsReadThroughput = createAreaChart({
   chartName: 'query-insights-read-throughput',
+  grouped: true,
   index: 'event_time',
   categories: ['read_bytes', 'result_bytes'],
   defaultTitle: 'Read Throughput',

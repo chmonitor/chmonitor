@@ -12,6 +12,8 @@ export interface BaseChartFactoryConfig {
   defaultLastHours?: number
   refreshInterval?: number
   dataTestId?: string
+  /** When true, read chart data from a parent ChartGroupingProvider instead of fetching individually. */
+  grouped?: boolean
   /** Enable date range selector with preset or custom config (opt-in) */
   dateRangeConfig?: DateRangeConfig | DateRangePresetName
   /** Enable log scale toggle (default: true). Set to false for charts where log scale doesn't work well */

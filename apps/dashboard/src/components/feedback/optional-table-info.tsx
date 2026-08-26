@@ -2,8 +2,7 @@ import { ExternalLink, Info } from 'lucide-react'
 
 import type { TableGuidance } from '@/lib/table-guidance'
 
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { lazy, Suspense } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -18,22 +17,53 @@ export interface OptionalTableInfoProps {
   className?: string
 }
 
+const LazyGuidanceMarkdown = lazy(async () => {
+  const [{ default: ReactMarkdown }, { default: remarkGfm }] =
+    await Promise.all([import('react-markdown'), import('remark-gfm')])
+
+  function GuidanceMarkdown({ content }: { content: string }) {
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code: ({ className, children, ...props }) => {
+            const isInline = !className?.startsWith('language-')
+            if (isInline) {
+              return (
+                <code
+                  className="rounded bg-blue-100/60 px-1 py-0.5 font-mono text-[0.85em] text-blue-900 dark:bg-blue-900/40 dark:text-blue-100"
+                  {...props}
+                >
+                  {children}
+                </code>
+              )
+            }
+            return (
+              <code className={cn('font-mono', className)} {...props}>
+                {children}
+              </code>
+            )
+          },
+          pre: ({ children }) => (
+            <pre className="mt-2 mb-2 overflow-x-auto rounded border border-blue-300/60 bg-slate-900 p-3 text-xs text-slate-50 dark:border-blue-800/60 dark:bg-slate-950 dark:text-slate-100">
+              {children}
+            </pre>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    )
+  }
+
+  return { default: GuidanceMarkdown }
+})
+
 /**
  * OptionalTableInfo Component
  *
  * Displays helpful information when an optional ClickHouse system table is missing.
  * Shows configuration instructions and links to official documentation.
- *
- * @example
- * ```tsx
- * import { OptionalTableInfo } from '@/components/feedback/optional-table-info'
- * import { getTableGuidance } from '@/lib/table-guidance'
- *
- * const guidance = getTableGuidance('system.text_log')
- * if (guidance) {
- *   return <OptionalTableInfo tableName="system.text_log" guidance={guidance} />
- * }
- * ```
  */
 export function OptionalTableInfo({
   tableName,
@@ -52,12 +82,10 @@ export function OptionalTableInfo({
     >
       <CardContent className="p-6">
         <div className="flex gap-4">
-          {/* Icon */}
           <div className="flex-shrink-0">
             <Info className="size-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           </div>
 
-          {/* Content */}
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground mb-2">
               {title ||
@@ -68,42 +96,19 @@ export function OptionalTableInfo({
                     : 'Table Not Available')}
             </h3>
 
-            {/* Instructions */}
             <div className="text-sm text-muted-foreground space-y-3">
               <div className="leading-relaxed [&>p]:my-0 [&>p+p]:mt-2">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    code: ({ className, children, ...props }) => {
-                      const isInline = !className?.startsWith('language-')
-                      if (isInline) {
-                        return (
-                          <code
-                            className="rounded bg-blue-100/60 px-1 py-0.5 font-mono text-[0.85em] text-blue-900 dark:bg-blue-900/40 dark:text-blue-100"
-                            {...props}
-                          >
-                            {children}
-                          </code>
-                        )
-                      }
-                      return (
-                        <code className={cn('font-mono', className)} {...props}>
-                          {children}
-                        </code>
-                      )
-                    },
-                    pre: ({ children }) => (
-                      <pre className="mt-2 mb-2 overflow-x-auto rounded border border-blue-300/60 bg-slate-900 p-3 text-xs text-slate-50 dark:border-blue-800/60 dark:bg-slate-950 dark:text-slate-100">
-                        {children}
-                      </pre>
-                    ),
-                  }}
+                <Suspense
+                  fallback={
+                    <div className="whitespace-pre-wrap">
+                      {guidance.enableInstructions}
+                    </div>
+                  }
                 >
-                  {guidance.enableInstructions}
-                </ReactMarkdown>
+                  <LazyGuidanceMarkdown content={guidance.enableInstructions} />
+                </Suspense>
               </div>
 
-              {/* Documentation link */}
               {guidance.docsUrl && (
                 <div className="pt-2 border-t border-blue-200/50 dark:border-blue-900/50">
                   <a

@@ -7,6 +7,7 @@ import { formatBytes } from '@/lib/utils'
 /** Histogram tile: p10..p99 distribution of peak memory_usage. */
 export const ChartQueryInsightsMemoryDistribution = createCustomChart({
   chartName: 'query-insights-memory-distribution',
+  grouped: true,
   defaultTitle: 'Memory Distribution',
   defaultLastHours: 24,
   dataTestId: 'query-insights-memory-distribution-chart',

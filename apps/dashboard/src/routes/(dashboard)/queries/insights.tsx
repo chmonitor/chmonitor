@@ -15,8 +15,14 @@ import { ChartQueryInsightsReadRowsDistribution } from '@/components/charts/quer
 import { ChartQueryInsightsReadThroughput } from '@/components/charts/query-performance/query-insights-read-throughput'
 import { ChartQueryInsightsRows } from '@/components/charts/query-performance/query-insights-rows'
 import { ChartQueryInsightsTopUsers } from '@/components/charts/query-performance/query-insights-top-users'
+import { useTimeRange } from '@/lib/context/time-range-context'
+import { ChartGroupingProvider } from '@/lib/query/use-chart-grouping'
+import { useHostId } from '@/lib/swr'
 
 function QueryInsightsPage() {
+  const hostId = useHostId()
+  const { timeRange } = useTimeRange()
+
   return (
     <div className="flex flex-col gap-4 sm:gap-4">
       <div>
@@ -29,43 +35,52 @@ function QueryInsightsPage() {
         </p>
       </div>
 
-      <div className="grid auto-rows-[320px] grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
-        <ChartQueryInsightsQps />
-        <ChartQueryInsightsLatency />
-        <ChartQueryInsightsOperations />
-        <ChartQueryInsightsRows />
-        <ChartQueryInsightsCacheHitRatio />
-        <ChartQueryInsightsErrors />
-        <ChartQueryInsightsMemory />
-        <ChartQueryInsightsReadThroughput />
-        <ChartQueryInsightsTopUsers />
-      </div>
+      <ChartGroupingProvider
+        groupingId="query-insights"
+        hostId={hostId}
+        lastHours={timeRange.lastHours}
+        interval={timeRange.interval}
+      >
+        <div className="grid auto-rows-[320px] grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          <ChartQueryInsightsQps />
+          <ChartQueryInsightsLatency />
+          <ChartQueryInsightsOperations />
+          <ChartQueryInsightsRows />
+          <ChartQueryInsightsCacheHitRatio />
+          <ChartQueryInsightsErrors />
+          <ChartQueryInsightsMemory />
+          <ChartQueryInsightsReadThroughput />
+          <ChartQueryInsightsTopUsers />
+        </div>
 
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">Distributions</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          p10–p99 percentile curves, with p50/p95/p99 called out as chips
-        </p>
-      </div>
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">
+            Distributions
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            p10–p99 percentile curves, with p50/p95/p99 called out as chips
+          </p>
+        </div>
 
-      <div className="grid auto-rows-[320px] grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
-        <ChartQueryInsightsDurationDistribution />
-        <ChartQueryInsightsMemoryDistribution />
-        <ChartQueryInsightsReadRowsDistribution />
-        <ChartQueryInsightsReadBytesDistribution />
-      </div>
+        <div className="grid auto-rows-[320px] grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          <ChartQueryInsightsDurationDistribution />
+          <ChartQueryInsightsMemoryDistribution />
+          <ChartQueryInsightsReadRowsDistribution />
+          <ChartQueryInsightsReadBytesDistribution />
+        </div>
 
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">Drill-downs</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Errors by exception code, and hot tables by query volume
-        </p>
-      </div>
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Drill-downs</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Errors by exception code, and hot tables by query volume
+          </p>
+        </div>
 
-      <div className="grid auto-rows-[320px] grid-cols-1 gap-3 lg:grid-cols-2">
-        <ChartQueryInsightsErrorsByCode />
-        <ChartQueryInsightsHotTables />
-      </div>
+        <div className="grid auto-rows-[320px] grid-cols-1 gap-3 lg:grid-cols-2">
+          <ChartQueryInsightsErrorsByCode />
+          <ChartQueryInsightsHotTables />
+        </div>
+      </ChartGroupingProvider>
     </div>
   )
 }

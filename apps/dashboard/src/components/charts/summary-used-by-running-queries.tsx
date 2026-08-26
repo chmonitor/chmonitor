@@ -7,6 +7,7 @@ import { ChartCard } from '@/components/cards/chart-card'
 import { ChartEmpty } from '@/components/charts/chart-empty'
 import { ChartError } from '@/components/charts/chart-error'
 import { ChartSkeleton } from '@/components/skeletons'
+import { statValueClassName } from '@/components/charts/primitives/stat-tile'
 import { AppLink as Link } from '@/components/ui/app-link'
 import {
   extractNestedData,
@@ -113,9 +114,7 @@ export const ChartSummaryUsedByRunningQueries =
               href={`/running-queries?host=${hostId}`}
               className="flex items-baseline gap-2 hover:opacity-70 transition-opacity"
             >
-              <span className="text-3xl font-bold tabular-nums">
-                {queryCount}
-              </span>
+              <span className={statValueClassName}>{queryCount}</span>
               <span className="text-base text-muted-foreground">running</span>
               <span className="text-base font-medium">{currentMemory}</span>
               <span className="text-base text-muted-foreground">

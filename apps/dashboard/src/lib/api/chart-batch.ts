@@ -13,6 +13,7 @@ import type { ExecuteOptions } from '@/lib/api/query-executor'
 import {
   cachePolicyToQueryCacheTtlSeconds,
   getChartQuery,
+  type ChartQueryParams,
 } from '@/lib/api/chart-registry'
 import { executeChartQuery } from '@/lib/api/query-executor'
 import { chartCachePolicy } from '@/lib/swr/chart-freshness'
@@ -41,8 +42,28 @@ export const INSIGHTS_STATS_GROUPING = Object.freeze([
   'insight-error-rate',
 ] as const)
 
+/** Query Insights overview grid — 15 charts, one batch request. */
+export const QUERY_INSIGHTS_GROUPING = Object.freeze([
+  'query-insights-qps',
+  'query-insights-latency',
+  'query-insights-operations',
+  'query-insights-rows',
+  'query-insights-cache-hit-ratio',
+  'query-insights-errors',
+  'query-insights-memory',
+  'query-insights-read-throughput',
+  'query-insights-top-users',
+  'query-insights-duration-distribution',
+  'query-insights-memory-distribution',
+  'query-insights-read-rows-distribution',
+  'query-insights-read-bytes-distribution',
+  'query-insights-errors-by-code',
+  'query-insights-hot-tables',
+] as const)
+
 export const CHART_GROUPINGS = Object.freeze({
   'insights-stats': INSIGHTS_STATS_GROUPING,
+  'query-insights': QUERY_INSIGHTS_GROUPING,
 } as const)
 
 export type ChartGroupingId = keyof typeof CHART_GROUPINGS
@@ -92,6 +113,7 @@ export interface ChartGroupingEntry {
 
 export interface ExecuteChartGroupingOptions extends ExecuteOptions {
   lastHours?: number
+  interval?: ChartQueryParams['interval']
   params?: Record<string, unknown>
 }
 
@@ -107,11 +129,16 @@ export async function executeChartGrouping(
   const names = getChartGrouping(groupingId)
   if (!names) throw new UnknownChartGroupingError(groupingId)
 
-  const { lastHours, params, timezone, bindings } = opts
+  const { lastHours, interval, params, timezone, bindings } = opts
   const entries = await Promise.all(
     names.map(async (name): Promise<[string, ChartGroupingEntry]> => {
       try {
-        const queryDef = getChartQuery(name, { lastHours, params, timezone })
+        const queryDef = getChartQuery(name, {
+          lastHours,
+          interval,
+          params,
+          timezone,
+        })
         if (!queryDef) {
           return [
             name,

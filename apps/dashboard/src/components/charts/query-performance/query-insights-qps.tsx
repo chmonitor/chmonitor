@@ -4,6 +4,7 @@ import { chartTickFormatters } from '@/lib/utils'
 /** Tile 1 of the Query Insights overview: query volume as a rate (QPS). */
 export const ChartQueryInsightsQps = createAreaChart({
   chartName: 'query-insights-qps',
+  grouped: true,
   index: 'event_time',
   categories: ['qps'],
   defaultTitle: 'Queries / sec',

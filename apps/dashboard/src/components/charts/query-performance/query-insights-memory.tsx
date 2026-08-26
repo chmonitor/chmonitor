@@ -4,6 +4,7 @@ import { chartTickFormatters } from '@/lib/utils'
 /** Tile 7 of the Query Insights overview: avg + p95/p99 peak memory per query. */
 export const ChartQueryInsightsMemory = createAreaChart({
   chartName: 'query-insights-memory',
+  grouped: true,
   index: 'event_time',
   categories: ['avg_memory', 'p95_memory', 'p99_memory'],
   defaultTitle: 'Memory Usage',

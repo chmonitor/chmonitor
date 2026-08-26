@@ -4,6 +4,7 @@ import { chartTickFormatters } from '@/lib/utils'
 /** Tile 4 of the Query Insights overview: rows read vs. rows returned. */
 export const ChartQueryInsightsRows = createAreaChart({
   chartName: 'query-insights-rows',
+  grouped: true,
   index: 'event_time',
   categories: ['read_rows', 'result_rows'],
   defaultTitle: 'Rows Read / Returned',
