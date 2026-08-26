@@ -10,7 +10,7 @@ import { secretsMatch } from '@/lib/auth/providers/constant-time'
 
 export function authorizeCronRequest(
   request: Request,
-  routeLabel: string
+  _routeLabel: string
 ): Response | null {
   const bindings = env as Record<string, string | undefined>
   const secret = (bindings.CRON_SECRET ?? process.env.CRON_SECRET)?.trim()
