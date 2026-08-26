@@ -14,7 +14,8 @@ description: >-
   "schema compare", "settings diff", "add host", "pick a query",
   "query picker", "select labels", "ON CLUSTER", "advisor DDL",
   "advisor schema", "schema advisor",
-  "command palette", "cmd k", "search dialog", "ttl partitions".
+  "command palette", "cmd k", "search dialog", "ttl partitions",
+  "header title", "768", "truncate Overview".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -239,7 +240,11 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   sidebar sheet is opaque — no heatmap-through-frost. Phone sidebar rows /
   toggle / header utility icons (refresh, search, theme) are `min 44×44`.
   The header day switcher (1h…30d) stays compact and `flex-1` below `sm` so
-  chips + those utilities fit one 375 row. Docs article Copy Markdown / Open
+  chips + those utilities fit one 375 row. Header page title (breadcrumb
+  current page) stays fully readable at 768 — do not ellipsize it; the title
+  cluster is `shrink-0`, parent crumbs wait until `lg`, Search is icon-only
+  below `lg` (the Search… field is desktop), and the refresh countdown label
+  plus header action gap stay compact until `lg`. Docs article Copy Markdown / Open
   are 44px below `md` (not header search/menu). Agent FAB must not cover
   heatmap "Avg / active day" (`pb-16` + last-card `pr-16`; landscape FAB at
   `top-16`).

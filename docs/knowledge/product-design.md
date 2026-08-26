@@ -642,9 +642,14 @@ would clip it.
   below `sm`) so they fill the row beside those 44×44 utilities on 375
   without clipping the theme icon or leaving an empty band. Chart
   `DateRangeSelector` dropdown chips stay `min-h-11 min-w-11` until `sm`.
-  Docs article **Copy Markdown** / **Open** (`[data-article-actions]`, below
-  `md`) are the same 44px floor; docs header search/menu is a separate control
-  (`#nd-nav` / `#nd-subnav`).
+  **Header page title** (breadcrumb current page) stays fully readable at
+  768. Do not `truncate` it — the title cluster is `shrink-0` so sibling
+  chrome cannot squeeze "Overview" into "Over…". Parent crumbs hide until
+  `lg` (overlay-sidebar breakpoint). Header Search is icon-only below `lg`;
+  the 160px Search… field is desktop-only. Refresh countdown text and the
+  header action gap stay compact until `lg`. Docs article **Copy Markdown** /
+  **Open** (`[data-article-actions]`, below `md`) are the same 44px floor;
+  docs header search/menu is a separate control (`#nd-nav` / `#nd-subnav`).
 
 ## UX conventions
 
