@@ -41,6 +41,7 @@ import {
 import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 
 /**
  * GET handler for `/api/v1/charts/$name`, extracted as a named export so it can
@@ -327,7 +328,7 @@ export async function handler(
           sql: result.executedSql.trim(),
           unavailable: {
             reason: result.error.type,
-            message: result.error.message,
+            message: sanitizeDbQueryError(result.error.message),
             missingTables,
             missingColumns,
           },
@@ -357,7 +358,7 @@ export async function handler(
           success: false,
           error: {
             type: result.error.type,
-            message: result.error.message,
+            message: sanitizeDbQueryError(result.error.message),
             details: result.error.details,
           },
           metadata: {

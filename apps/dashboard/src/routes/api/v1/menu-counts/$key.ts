@@ -29,6 +29,7 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 
 const ROUTE_CONTEXT = { route: '/api/v1/menu-counts/$key', method: 'GET' }
 
@@ -213,7 +214,7 @@ async function handler(
       const errorResponse = createErrorResponse(
         {
           type: result.error.type as ApiErrorType,
-          message: result.error.message,
+          message: sanitizeDbQueryError(result.error.message),
         },
         500,
         { ...ROUTE_CONTEXT, hostId }

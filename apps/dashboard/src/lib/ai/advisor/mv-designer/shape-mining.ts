@@ -13,6 +13,7 @@ import { scaleCardinality } from './size-estimator'
 import {
   extractAggregateCalls,
   extractGroupByKeys,
+  formatGroupByListForSql,
   splitTopLevelCommas,
 } from './sql-parsing'
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
@@ -140,7 +141,7 @@ export async function estimateGroupCardinality(
   if (sampleSize <= 0) return 0
 
   const fullTable = formatQualifiedTable(database, table)
-  const cols = groupByKeys.join(', ')
+  const cols = formatGroupByListForSql(groupByKeys)
   const rows = (await readOnlyQuery({
     query:
       `SELECT uniqCombined(${cols}) AS distinct_combos FROM ` +

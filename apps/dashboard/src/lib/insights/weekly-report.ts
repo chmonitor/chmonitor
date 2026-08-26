@@ -245,12 +245,23 @@ export function buildMarkdown(summary: WeeklyReportSummary): string {
   lines.push(capacityLine(summary.capacity))
   lines.push('')
   lines.push('## Recommendations')
-  lines.push(
-    `This report is generated automatically from chmonitor's AI insights engine, ` +
-      `statistical baselines, and capacity forecasting. Recommendations are advisory ` +
-      `only — nothing above was applied automatically. Open the AI agent ` +
-      `(\`/agents?host=${summary.hostId}\`) to dig deeper into any finding above.`
-  )
+  if (
+    summary.advisorRecommendations &&
+    summary.advisorRecommendations.length > 0
+  ) {
+    lines.push('')
+    lines.push('### Query advisor')
+    summary.advisorRecommendations.forEach((rec, i) => {
+      lines.push(`${i + 1}. **${rec.title}** — ${rec.detail}`)
+    })
+  } else {
+    lines.push(
+      `This report is generated automatically from chmonitor's AI insights engine, ` +
+        `statistical baselines, and capacity forecasting. Recommendations are advisory ` +
+        `only — nothing above was applied automatically. Open the AI agent ` +
+        `(\`/agents?host=${summary.hostId}\`) to dig deeper into any finding above.`
+    )
+  }
 
   return lines.join('\n')
 }
@@ -369,11 +380,43 @@ export async function buildWeeklyReport(
   // Data-rich sections (query activity / ingestion / storage). Each collector
   // is independently fail-open and returns undefined on any error, so a host
   // without query_log access still gets a findings-only report.
-  const [queryActivity, ingestion, storage] = await Promise.all([
-    collectQueryActivity(hostId, windowDays),
-    collectIngestion(hostId, windowDays),
-    collectStorage(hostId, windowDays),
-  ])
+  const [queryActivity, ingestion, storage, advisorCandidates] =
+    await Promise.all([
+      collectQueryActivity(hostId, windowDays),
+      collectIngestion(hostId, windowDays),
+      collectStorage(hostId, windowDays),
+      import('./collectors').then(({ collectAdvisorRecommendations }) =>
+        collectAdvisorRecommendations(hostId).catch(() => [] as const)
+      ),
+    ])
+
+  const advisorRecommendations = advisorCandidates.map((c) => ({
+    title: c.title,
+    detail: c.detail,
+    metric: c.metric ?? '',
+  }))
+
+  if (advisorCandidates.length > 0) {
+    try {
+      const store = await resolveInsightsStore()
+      await store.record(
+        hostId,
+        advisorCandidates.map((c) => ({
+          severity: c.severity,
+          category: c.category,
+          source: 'advisor',
+          title: c.title,
+          detail: c.detail,
+          metric: c.metric,
+          value: c.value,
+        }))
+      )
+    } catch (err) {
+      debug(
+        `[weekly-report] failed to persist advisor recommendations for host ${hostId}: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
+  }
 
   let capacity: WeeklyReportCapacity
   try {
@@ -402,6 +445,7 @@ export async function buildWeeklyReport(
     ...(queryActivity ? { queryActivity } : {}),
     ...(ingestion ? { ingestion } : {}),
     ...(storage ? { storage } : {}),
+    ...(advisorRecommendations.length > 0 ? { advisorRecommendations } : {}),
   }
 
   return {

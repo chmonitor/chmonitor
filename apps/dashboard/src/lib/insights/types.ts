@@ -21,6 +21,13 @@ export interface WeeklyTopFinding {
   readonly generatedAt: string
 }
 
+/** A ranked query-advisor recommendation surfaced in the weekly report. */
+export interface WeeklyReportAdvisorRecommendation {
+  readonly title: string
+  readonly detail: string
+  readonly metric: string
+}
+
 /** Weekly report capacity section: the real forecast, or a degraded-but-honest fallback. */
 export type WeeklyReportCapacity =
   | ForecastResult
@@ -113,6 +120,8 @@ export interface WeeklyReportSummary {
   readonly queryActivity?: WeeklyReportQueryActivity
   readonly ingestion?: WeeklyReportIngestion
   readonly storage?: WeeklyReportStorage
+  /** Ranked query-advisor recommendations (source `advisor`), when collected. */
+  readonly advisorRecommendations?: readonly WeeklyReportAdvisorRecommendation[]
 }
 
 /** A recommended next step the operator can take for an insight. */
@@ -155,7 +164,7 @@ export interface InsightCard extends InsightCandidate {
 }
 
 /** Insight sources we treat as "AI insights" when reading the findings table. */
-export const INSIGHT_SOURCES = ['ai-insight'] as const
+export const INSIGHT_SOURCES = ['ai-insight', 'advisor'] as const
 
 /**
  * Engine an insight belongs to, threaded into {@link insightKey} so a Postgres
@@ -204,4 +213,15 @@ export function insightKey(
 ): string {
   const host = engine === 'postgres' ? `pg:${hostId}` : `${hostId}`
   return `${host}:${candidate.category}:${candidate.metric ?? ''}:${candidate.title}`
+}
+
+/**
+ * Stable dismissal key for advisor-source findings — namespaced so dismissals
+ * on the insights panel do not alias ai-insight rows with the same metric/title.
+ */
+export function advisorInsightKey(
+  hostId: number,
+  candidate: Pick<InsightCandidate, 'category' | 'metric' | 'title'>
+): string {
+  return `advisor:${insightKey(hostId, candidate)}`
 }

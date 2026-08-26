@@ -246,12 +246,6 @@ describe('analyzeQuery — orchestration', () => {
   })
 
   test('degrades gracefully (still ok) when EXPLAIN fails, with a note explaining reduced precision', async () => {
-    mockFetchData.mockImplementationOnce(async (params: { query: string }) => {
-      calls.push({ query: params.query })
-      return respond(params.query)
-    })
-    const originalRespond = respond
-    // Temporarily make EXPLAIN throw by intercepting one call.
     let explainHit = false
     mockFetchData.mockImplementation(async (params: { query: string }) => {
       calls.push({ query: params.query })
@@ -259,7 +253,7 @@ describe('analyzeQuery — orchestration', () => {
         explainHit = true
         throw new Error('permission denied')
       }
-      return originalRespond(params.query)
+      return respond(params.query)
     })
 
     const result = await analyzeQuery({

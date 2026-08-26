@@ -126,11 +126,28 @@ interface RawExplainNode {
   Keys?: string[]
 }
 
+function normalizeTableDescription(description: string): string {
+  return description
+    .split('.')
+    .map((segment) => {
+      const trimmed = segment.trim()
+      if (
+        (trimmed.startsWith('`') && trimmed.endsWith('`')) ||
+        (trimmed.startsWith('"') && trimmed.endsWith('"'))
+      ) {
+        return trimmed.slice(1, -1)
+      }
+      return trimmed
+    })
+    .join('.')
+}
+
 /** `Description` is typically `database.table` (e.g. `"default.events"`). */
 function extractTableName(description: string | undefined): string | null {
   if (!description) return null
-  const match = description.match(/^[\w$]+(?:\.[\w$]+)?/)
-  return match ? match[0] : description
+  const normalized = normalizeTableDescription(description)
+  const match = normalized.match(/^[\w$]+(?:\.[\w$]+)?$/)
+  return match ? match[0] : null
 }
 
 function walk(node: RawExplainNode, plan: ParsedExplainPlan): void {

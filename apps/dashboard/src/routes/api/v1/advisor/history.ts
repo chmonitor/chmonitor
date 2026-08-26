@@ -31,6 +31,7 @@ import {
 } from '@/lib/ai/advisor/history-picker'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
@@ -154,7 +155,7 @@ export const Route = createFileRoute('/api/v1/advisor/history')({
                 success: false,
                 error: {
                   type: result.error.type,
-                  message: result.error.message,
+                  message: sanitizeDbQueryError(result.error.message),
                   details: result.error.details,
                 },
                 ...ROUTE_CONTEXT,

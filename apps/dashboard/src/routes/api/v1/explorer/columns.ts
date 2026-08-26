@@ -17,6 +17,7 @@ import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { getTableQuery } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 
 const ROUTE = '/api/v1/explorer/columns'
 
@@ -132,7 +133,7 @@ export const Route = createFileRoute('/api/v1/explorer/columns')({
               success: false,
               error: {
                 type: result.error.type,
-                message: result.error.message,
+                message: sanitizeDbQueryError(result.error.message),
                 details: result.error.details,
               },
             },

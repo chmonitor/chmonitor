@@ -24,6 +24,7 @@ const {
   fitLinearGrowth,
   growthConfidence,
   computeTtlSuggestion,
+  detectExistingTtlPolicy,
   forecastDiskFull,
   identifyHotTables,
   suggestTtl,
@@ -334,6 +335,30 @@ describe('identifyHotTables', () => {
   })
 })
 
+describe('detectExistingTtlPolicy', () => {
+  test('detects TTL expression in engine_full', () => {
+    const result = detectExistingTtlPolicy(
+      "MergeTree() PARTITION BY toYYYYMM(d) ORDER BY d TTL d + INTERVAL 30 DAY TO DISK 'cold'"
+    )
+    expect(result.hasTtl).toBe(true)
+    expect(result.expression).toContain('INTERVAL 30 DAY')
+  })
+
+  test('returns false for engine_full without TTL keyword', () => {
+    expect(
+      detectExistingTtlPolicy(
+        'MergeTree() ORDER BY id SETTINGS index_granularity = 8192'
+      ).hasTtl
+    ).toBe(false)
+  })
+
+  test('does not false-positive on column names containing ttl substring', () => {
+    expect(
+      detectExistingTtlPolicy('MergeTree() ORDER BY battle_id').hasTtl
+    ).toBe(false)
+  })
+})
+
 describe('suggestTtl', () => {
   test('returns available: false with a clear message when part_log is disabled', async () => {
     mockCheckTableExists.mockResolvedValueOnce(false)
@@ -442,6 +467,100 @@ describe('suggestTtl', () => {
       expect(result.dateColumn).toBeNull()
       expect(result.sql).toContain('<date_column>')
       expect(result.sql).not.toContain('MODIFY TTL id')
+    }
+  })
+
+  test('clamps non-positive retentionDays to 1 and never emits INTERVAL 0 DAY', async () => {
+    mockCheckTableExists.mockResolvedValue(true)
+    mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+      if (query.includes('sum(bytes_on_disk)'))
+        return { data: [{ bytes: 1 * GB }], error: null }
+      if (query.includes('system.disks'))
+        return {
+          data: [{ free_bytes: 900 * GB, total_bytes: 1000 * GB }],
+          error: null,
+        }
+      if (query.includes('system.columns'))
+        return {
+          data: [
+            {
+              name: 'event_date',
+              type: 'Date',
+              is_in_partition_key: 1,
+              is_in_sorting_key: 0,
+            },
+          ],
+          error: null,
+        }
+      if (query.includes('system.part_log')) return { data: [], error: null }
+      if (query.includes('engine_full'))
+        return { data: [{ engine_full: '' }], error: null }
+      return { data: [], error: null }
+    })
+
+    const result = await suggestTtl({
+      hostId: 0,
+      database: 'analytics',
+      table: 'events',
+      retentionDays: 0,
+    })
+
+    expect(result.available).toBe(true)
+    if (result.available) {
+      expect(result.retentionRequirementDays).toBe(1)
+      expect(result.sql).not.toContain('INTERVAL 0 DAY')
+      expect(result.explanation).toContain('clamped')
+    }
+  })
+
+  test('warns when MODIFY TTL would replace an existing policy', async () => {
+    mockCheckTableExists.mockResolvedValue(true)
+    mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+      if (query.includes('sum(bytes_on_disk)'))
+        return { data: [{ bytes: 1 * GB }], error: null }
+      if (query.includes('system.disks'))
+        return {
+          data: [{ free_bytes: 900 * GB, total_bytes: 1000 * GB }],
+          error: null,
+        }
+      if (query.includes('system.columns'))
+        return {
+          data: [
+            {
+              name: 'event_date',
+              type: 'Date',
+              is_in_partition_key: 1,
+              is_in_sorting_key: 0,
+            },
+          ],
+          error: null,
+        }
+      if (query.includes('engine_full'))
+        return {
+          data: [
+            {
+              engine_full:
+                'MergeTree() ORDER BY event_date TTL event_date + INTERVAL 90 DAY',
+            },
+          ],
+          error: null,
+        }
+      if (query.includes('system.part_log')) return { data: [], error: null }
+      return { data: [], error: null }
+    })
+
+    const result = await suggestTtl({
+      hostId: 0,
+      database: 'analytics',
+      table: 'events',
+      retentionDays: 30,
+    })
+
+    expect(result.available).toBe(true)
+    if (result.available) {
+      expect(result.sql).toContain('WARNING')
+      expect(result.sql).toContain('MODIFY TTL event_date + INTERVAL 90 DAY')
+      expect(result.riskNote).toContain('REPLACES the whole policy')
     }
   })
 })

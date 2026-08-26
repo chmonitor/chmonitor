@@ -385,8 +385,12 @@ export async function analyzeTuning(
   }
 
   let columns: ColumnProfile[]
+  const columnsP = fetchColumnProfiles(hostId, database, table)
+  const settingsP = fetchSettings(hostId)
+  const clusterP = fetchClusterContext(hostId, database)
+
   try {
-    columns = await fetchColumnProfiles(hostId, database, table)
+    columns = await columnsP
   } catch (err) {
     return {
       ok: false,
@@ -408,24 +412,27 @@ export async function analyzeTuning(
     )
   }
 
-  const settings = await fetchSettings(hostId)
+  const [tables, settings, cluster] = await Promise.all([
+    fetchTableProfiles(hostId, database, table, columns),
+    settingsP,
+    clusterP,
+  ])
   if (settings.length === 0) {
     notes.push(
       'No changed server/merge-tree settings were readable — the settings section is empty (all defaults, or the tables are not permitted).'
     )
   }
 
-  const tables = await fetchTableProfiles(hostId, database, table, columns)
   if (tables.length >= TABLE_SCAN_LIMIT) {
     notes.push(
       `Table scan capped at ${TABLE_SCAN_LIMIT} tables; remaining tables were not analyzed for TTL, partitions, or engines.`
     )
   }
-  const cluster = await fetchClusterContext(hostId, database)
+  const clusterContext = cluster
 
   const findings = rankFindings([
     ...runSchemaRules(columns),
-    ...runTableRules(tables, cluster),
+    ...runTableRules(tables, clusterContext),
     ...runSettingsRules(settings),
   ])
 

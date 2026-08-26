@@ -16,6 +16,7 @@ import { debug, error } from '@chm/logger'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 
 const DEFAULT_LIMIT = 500
 const MAX_LIMIT = 1000
@@ -119,7 +120,7 @@ export const Route = createFileRoute('/api/v1/tables/')({
               },
               error: {
                 type: result.error.type as ApiErrorType,
-                message: result.error.message,
+                message: sanitizeDbQueryError(result.error.message),
               },
             },
             { status: 500 }

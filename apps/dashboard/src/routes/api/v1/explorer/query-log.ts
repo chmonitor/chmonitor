@@ -17,6 +17,7 @@ import { error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 
 // Columns available across supported ClickHouse versions (>= 22.8). Version
 // -specific columns (e.g. `projections`) are intentionally omitted; projection
@@ -137,7 +138,7 @@ export const Route = createFileRoute('/api/v1/explorer/query-log')({
                 success: false,
                 error: {
                   type: result.error.type,
-                  message: result.error.message,
+                  message: sanitizeDbQueryError(result.error.message),
                   details: result.error.details,
                 },
               },

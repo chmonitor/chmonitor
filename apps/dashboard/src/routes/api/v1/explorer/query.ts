@@ -19,6 +19,7 @@ import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { EXPLORER_QUERY_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler'
 
 const MAX_GET_QUERY_LENGTH = 8_000
 const MAX_POST_QUERY_LENGTH = 100_000
@@ -188,7 +189,7 @@ async function executeQuery(params: {
         success: false,
         error: {
           type: result.error.type,
-          message: result.error.message,
+          message: sanitizeDbQueryError(result.error.message),
           details: result.error.details,
         },
       },

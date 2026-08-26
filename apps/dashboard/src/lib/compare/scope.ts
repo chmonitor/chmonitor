@@ -42,7 +42,10 @@ export function resolvePair(
   const ids = new Set(peers.map((p) => p.id))
   const sourceId =
     source !== undefined && ids.has(source) ? source : peers[0].id
-  const fallback = peers.find((p) => p.id !== sourceId)!.id
+  const fallbackPeer =
+    peers.find((p) => p.id !== sourceId) ?? peers.find((_, i) => i !== 0)
+  if (!fallbackPeer) return null
+  const fallback = fallbackPeer.id
   const targetId =
     target !== undefined && ids.has(target) && target !== sourceId
       ? target

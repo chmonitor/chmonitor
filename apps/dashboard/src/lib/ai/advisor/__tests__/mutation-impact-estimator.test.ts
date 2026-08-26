@@ -95,6 +95,22 @@ describe('parseMutationSql', () => {
   test('rejects a mutation without a WHERE clause', () => {
     expect(() => parseMutationSql('ALTER TABLE events DELETE')).toThrow()
   })
+
+  test('finds WHERE outside string literals in UPDATE SET clause', () => {
+    const result = parseMutationSql(
+      "ALTER TABLE analytics.events UPDATE note = 'restore where deleted' WHERE id = 1"
+    )
+    expect(result.kind).toBe('UPDATE')
+    expect(result.whereClause).toBe('id = 1')
+  })
+
+  test('ignores WHERE keyword inside backtick identifiers', () => {
+    const result = parseMutationSql(
+      'ALTER TABLE analytics.`where_table` DELETE WHERE id = 1'
+    )
+    expect(result.table).toBe('where_table')
+    expect(result.whereClause).toBe('id = 1')
+  })
 })
 
 describe('quoteIdentifier', () => {

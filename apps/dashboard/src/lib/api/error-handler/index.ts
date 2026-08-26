@@ -42,6 +42,10 @@ export {
   createValidationError,
   getStatusCodeForErrorType,
 } from './error-response-builder'
+export {
+  SANITIZED_MESSAGES,
+  sanitizeClickHouseError as sanitizeDbQueryError, // pragma: allowlist secret
+} from './sanitize-error'
 
 import type { ApiHandler, RouteContext } from './types'
 
