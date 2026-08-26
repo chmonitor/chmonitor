@@ -1,7 +1,6 @@
 /**
  * React binding for the pinned-favorites store (issue #2769). Thin
- * `useSyncExternalStore` wrapper — mirrors `usePaywall()` in
- * `components/billing/paywall-host.tsx`.
+ * `useSyncExternalStore` wrapper over `lib/menu/favorites-store.ts`.
  */
 
 import { useCallback, useSyncExternalStore } from 'react'

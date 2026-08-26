@@ -9,19 +9,23 @@ import type { LicenseTerm, PaidLicenseId } from '@chm/pricing'
 import type { Env } from './env'
 
 import {
+  checkoutPaid,
+  clientIp,
   corsPreflight,
   isLicenseTerm,
   isPaidSku,
   jsonResponse,
+  kvRateLimit,
   LICENSE_PUBLIC_INDEX_KEY,
   LICENSE_REG_KEY_PREFIX,
+  metaSkuTerm,
   methodNotAllowed,
+  polarFetch,
+  type LicenseKV,
 } from './license-http'
+import { logError } from './log'
 
-export interface LicenseKV {
-  get(key: string): Promise<string | null>
-  put(key: string, value: string): Promise<void>
-}
+export type { LicenseKV } from './license-http'
 
 export interface LicenseRegistration {
   id: string
@@ -87,10 +91,50 @@ async function readPublicIndex(kv: LicenseKV): Promise<PublicLicense[]> {
   }
 }
 
+function asRecord(v: unknown): Record<string, unknown> | null {
+  return v && typeof v === 'object' ? (v as Record<string, unknown>) : null
+}
+
+async function verifyCheckoutForWall(
+  env: Env,
+  checkoutId: string,
+  sku: PaidLicenseId,
+  term: LicenseTerm,
+  fetchImpl: typeof fetch
+): Promise<boolean> {
+  if (!env.POLAR_ACCESS_TOKEN) return false
+  try {
+    const polar = await polarFetch(
+      env,
+      `/v1/checkouts/${encodeURIComponent(checkoutId)}`,
+      { method: 'GET' },
+      fetchImpl
+    )
+    if (!polar.ok) return false
+    const rec = asRecord(polar.json)
+    const status = typeof rec?.status === 'string' ? rec.status : ''
+    if (!checkoutPaid(status)) return false
+    const meta = metaSkuTerm(rec?.metadata)
+    return meta.sku === sku && meta.term === term
+  } catch (err) {
+    logError('[cloud-hooks] license wall checkout verification failed', {
+      checkoutId,
+      err,
+    })
+    return false
+  }
+}
+
 export async function handleLicenseRegister(
   request: Request,
   env: Env,
-  deps: { kv?: LicenseKV | null; uuid?: () => string; now?: () => Date } = {}
+  deps: {
+    kv?: LicenseKV | null
+    uuid?: () => string
+    now?: () => Date
+    fetchImpl?: typeof fetch
+    nowMs?: number
+  } = {}
 ): Promise<Response> {
   if (request.method === 'OPTIONS') return corsPreflight(request)
   if (request.method !== 'POST') return methodNotAllowed(request)
@@ -102,6 +146,18 @@ export async function handleLicenseRegister(
       { error: 'registration store not configured' },
       501
     )
+  }
+
+  const allowed = await kvRateLimit(
+    kv,
+    'lic-reg',
+    clientIp(request),
+    10,
+    3600,
+    deps.nowMs
+  )
+  if (!allowed) {
+    return jsonResponse(request, { error: 'rate_limited' }, 429)
   }
 
   let body: unknown
@@ -160,16 +216,24 @@ export async function handleLicenseRegister(
 
   try {
     await kv.put(`${LICENSE_REG_KEY_PREFIX}${row.id}`, JSON.stringify(row))
-    // Public wall only after Polar proof (checkout_id). Intent rows stay private.
     if (row.list_public && checkoutId) {
-      const index = await readPublicIndex(kv)
-      if (index.length < PUBLIC_CAP) {
-        index.push(toPublic(row))
-        await kv.put(LICENSE_PUBLIC_INDEX_KEY, JSON.stringify(index))
+      const verified = await verifyCheckoutForWall(
+        env,
+        checkoutId,
+        row.sku,
+        row.term,
+        deps.fetchImpl ?? fetch
+      )
+      if (verified) {
+        const index = await readPublicIndex(kv)
+        if (index.length < PUBLIC_CAP) {
+          index.push(toPublic(row))
+          await kv.put(LICENSE_PUBLIC_INDEX_KEY, JSON.stringify(index))
+        }
       }
     }
   } catch (err) {
-    console.error('[cloud-hooks] license register store failed', err)
+    logError('[cloud-hooks] license register store failed', { err })
     return jsonResponse(request, { error: 'store_error', status: 502 }, 502)
   }
 
@@ -191,7 +255,7 @@ export async function handleLicensePublic(
     const licenses = (await readPublicIndex(kv)).filter((row) => row.company)
     return jsonResponse(request, { licenses }, 200)
   } catch (err) {
-    console.error('[cloud-hooks] license public list failed', err)
+    logError('[cloud-hooks] license public list failed', { err })
     return jsonResponse(request, { error: 'store_error', status: 502 }, 502)
   }
 }

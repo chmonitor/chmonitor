@@ -20,6 +20,7 @@
 /**
  * Minimal KV subset (matches probes' / github-app's `KVLike`). Declared locally
  * rather than imported so this module has NO dependency on probes.ts — probes
+import { logError, logInfo } from './log'
  * imports this one, and a mutual import would be a cycle.
  */
 export interface KVLike {
@@ -210,7 +211,7 @@ export async function writeOutageState(
   kv: KVLike | null | undefined,
   state: OutageState,
   logError: (message: string, meta?: unknown) => void = (m, meta) =>
-    console.error(m, meta)
+    logError(m, meta)
 ): Promise<void> {
   if (!kv) return
   try {

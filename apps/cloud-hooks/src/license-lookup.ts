@@ -2,22 +2,27 @@
  * GET /licenses/lookup?q= — honor-system order check.
  *
  * If POLAR_ACCESS_TOKEN is set, look up a Polar checkout (by id) or customer
- * (by email / query). 404 JSON when nothing matches. No DRM, no OSS key.
+ * (by email / query). 404 JSON when nothing matches. Returns only paid state
+ * and sku/term — not customer email or raw Polar status.
  */
 
 import type { Env } from './env'
 
 import {
+  checkoutPaid,
+  clientIp,
   corsPreflight,
-  isLicenseTerm,
-  isPaidSku,
   jsonResponse,
+  kvRateLimit,
+  metaSkuTerm,
   methodNotAllowed,
   polarFetch,
 } from './license-http'
+import { logError } from './log'
 
 export interface LicenseLookupDeps {
   fetchImpl?: typeof fetch
+  nowMs?: number
 }
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -31,19 +36,19 @@ function firstItem(json: unknown): Record<string, unknown> | null {
   return asRecord(items[0])
 }
 
-function metaSkuTerm(meta: unknown): { sku?: string; term?: string } {
-  const rec = asRecord(meta)
-  const sku =
-    typeof rec?.sku === 'string' && isPaidSku(rec.sku) ? rec.sku : undefined
-  const term =
-    typeof rec?.term === 'string' && isLicenseTerm(rec.term)
-      ? rec.term
-      : undefined
-  return { sku, term }
-}
-
-function checkoutPaid(status: string): boolean {
-  return status === 'succeeded' || status === 'confirmed'
+function lookupPayload(input: {
+  source: 'customer' | 'checkout'
+  sku?: string | null
+  term?: string | null
+  paid?: boolean
+}) {
+  return {
+    found: true as const,
+    source: input.source,
+    sku: input.sku ?? null,
+    term: input.term ?? null,
+    paid: input.paid ?? false,
+  }
 }
 
 function sanitizeQuery(raw: string): string | null {
@@ -51,22 +56,6 @@ function sanitizeQuery(raw: string): string | null {
   if (!q || q.length > 200) return null
   if (q.includes('/') || q.includes('..') || q.includes('\\')) return null
   return q
-}
-
-function customerPayload(
-  customer: Record<string, unknown>,
-  extra: { sku?: string; term?: string; paid?: boolean; status?: string } = {}
-) {
-  const email = typeof customer.email === 'string' ? customer.email : null
-  return {
-    found: true as const,
-    source: 'customer' as const,
-    email,
-    status: extra.status,
-    sku: extra.sku ?? null,
-    term: extra.term ?? null,
-    paid: extra.paid ?? false,
-  }
 }
 
 export async function handleLicenseLookup(
@@ -84,6 +73,19 @@ export async function handleLicenseLookup(
   }
   if (!env.POLAR_ACCESS_TOKEN) {
     return jsonResponse(request, { error: 'billing is not enabled' }, 501)
+  }
+
+  const kv = env.CHM_HOOKS_KV ?? null
+  const allowed = await kvRateLimit(
+    kv,
+    'lic-lookup',
+    clientIp(request),
+    20,
+    3600,
+    deps.nowMs
+  )
+  if (!allowed) {
+    return jsonResponse(request, { error: 'rate_limited' }, 429)
   }
 
   const fetchImpl = deps.fetchImpl ?? fetch
@@ -105,7 +107,13 @@ export async function handleLicenseLookup(
         )
       }
       const customer = firstItem(polar.json)
-      if (customer) return jsonResponse(request, customerPayload(customer), 200)
+      if (customer) {
+        return jsonResponse(
+          request,
+          lookupPayload({ source: 'customer', paid: false }),
+          200
+        )
+      }
       return jsonResponse(request, { error: 'not_found' }, 404)
     }
 
@@ -119,23 +127,14 @@ export async function handleLicenseLookup(
       const rec = asRecord(checkout.json)
       const status = typeof rec?.status === 'string' ? rec.status : ''
       const { sku, term } = metaSkuTerm(rec?.metadata)
-      const email =
-        typeof rec?.customer_email === 'string'
-          ? rec.customer_email
-          : typeof asRecord(rec?.customer)?.email === 'string'
-            ? (asRecord(rec?.customer)?.email as string)
-            : null
       return jsonResponse(
         request,
-        {
-          found: true,
+        lookupPayload({
           source: 'checkout',
-          status,
-          email,
           sku: sku ?? null,
           term: term ?? null,
           paid: checkoutPaid(status),
-        },
+        }),
         200
       )
     }
@@ -155,7 +154,13 @@ export async function handleLicenseLookup(
     )
     if (byId.ok) {
       const customer = asRecord(byId.json)
-      if (customer) return jsonResponse(request, customerPayload(customer), 200)
+      if (customer) {
+        return jsonResponse(
+          request,
+          lookupPayload({ source: 'customer', paid: false }),
+          200
+        )
+      }
     }
 
     const byExternal = await polarFetch(
@@ -166,7 +171,13 @@ export async function handleLicenseLookup(
     )
     if (byExternal.ok) {
       const customer = asRecord(byExternal.json)
-      if (customer) return jsonResponse(request, customerPayload(customer), 200)
+      if (customer) {
+        return jsonResponse(
+          request,
+          lookupPayload({ source: 'customer', paid: false }),
+          200
+        )
+      }
     }
 
     const listed = await polarFetch(
@@ -183,11 +194,17 @@ export async function handleLicenseLookup(
       )
     }
     const customer = firstItem(listed.json)
-    if (customer) return jsonResponse(request, customerPayload(customer), 200)
+    if (customer) {
+      return jsonResponse(
+        request,
+        lookupPayload({ source: 'customer', paid: false }),
+        200
+      )
+    }
 
     return jsonResponse(request, { error: 'not_found' }, 404)
   } catch (err) {
-    console.error('[cloud-hooks] license lookup failed', err)
+    logError('[cloud-hooks] license lookup failed', { err })
     return jsonResponse(request, { error: 'polar_error', status: 502 }, 502)
   }
 }

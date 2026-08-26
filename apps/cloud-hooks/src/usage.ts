@@ -19,6 +19,8 @@
  * omits the Usage section.
  */
 
+import { logError as emitLogError, logInfo } from './log'
+
 /** Minimal D1 subset used here (mirrors `D1SummaryDb` in summary.ts). */
 export interface D1UsageDb {
   prepare(sql: string): {
@@ -137,11 +139,10 @@ async function safeQuery<T>(
 export async function collectUsage(
   db: D1UsageDb | null | undefined,
   now: number = Math.floor(Date.now() / 1000),
-  logError: (message: string, meta?: unknown) => void = (m, meta) =>
-    console.error(m, meta)
+  onLogError: (message: string, meta?: unknown) => void = emitLogError
 ): Promise<UsageMetrics | null> {
   if (!db) {
-    console.log('[cloud-hooks] CHM_TELEMETRY_DB unbound; digest omits usage')
+    logInfo('[cloud-hooks] CHM_TELEMETRY_DB unbound; digest omits usage')
     return null
   }
   // Yesterday — the last complete UTC day (see the module header).
@@ -151,7 +152,7 @@ export async function collectUsage(
     safeQuery(
       () => countWindows(db, 'ping_daily', 'instance_hash', referenceDay),
       'ping_daily',
-      logError
+      onLogError
     ),
     // `cli_install` rows can carry an ephemeral id (see migration 0005), so
     // they would inflate a distinct-install count. Active CLI usage is the
@@ -166,7 +167,7 @@ export async function collectUsage(
           " AND event <> 'cli_install'"
         ),
       'cli_daily',
-      logError
+      onLogError
     ),
     safeQuery(
       () =>
@@ -178,7 +179,7 @@ export async function collectUsage(
           .bind(referenceDay)
           .first<{ n: number }>(),
       'cli_installs',
-      logError
+      onLogError
     ),
   ])
 

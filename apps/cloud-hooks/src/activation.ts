@@ -16,6 +16,7 @@
 /**
  * Minimal D1 subset for the connection count. Declared locally rather than
  * imported from summary.ts, which imports `activationLines` from here — a mutual
+import { logError, logInfo } from './log'
  * import would be a cycle.
  */
 export interface D1ActivationDb {
@@ -68,7 +69,7 @@ export async function collectActivation(
   since: number,
   signups: number | null,
   logError: (message: string, meta?: unknown) => void = (m, meta) =>
-    console.error(m, meta)
+    logError(m, meta)
 ): Promise<ActivationData | null> {
   if (!db) return null
   try {

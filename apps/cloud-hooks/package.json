@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@chm/billing-webhook-core": "workspace:*",
+    "@chm/logger": "workspace:*",
     "@chm/mcp-server": "workspace:*",
     "@chm/pricing": "workspace:*",
     "@polar-sh/sdk": "^0.48.1"

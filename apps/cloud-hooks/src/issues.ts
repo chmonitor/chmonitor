@@ -26,6 +26,7 @@
 import type { GitHubRepo } from './exceptions'
 import type { GitHubAppAuth, KVLike } from './github-app'
 import type { NotifyKind } from './telegram'
+import { logError as emitLogError, logInfo } from './log'
 
 import { withTokenRefresh } from './github-app'
 
@@ -247,7 +248,7 @@ export async function runIssueWatch(
   const apiBase = deps.githubApiBase ?? 'https://api.github.com'
   const cap = deps.maxPerRun ?? DEFAULT_MAX_PER_RUN
   const now = deps.now ?? Date.now
-  const logError = deps.logError ?? ((m, meta) => console.error(m, meta))
+  const logError = deps.logError ?? ((m, meta) => emitLogError(m, meta))
   const nowIso = new Date(now()).toISOString()
 
   if (!deps.kv) {
@@ -272,7 +273,7 @@ export async function runIssueWatch(
     } catch (err) {
       logError('[cloud-hooks] issue cursor seed failed', err)
     }
-    console.log(`[cloud-hooks] issue watch seeded at ${nowIso}`)
+    logInfo(`[cloud-hooks] issue watch seeded at ${nowIso}`)
     return { notified: [], seeded: true }
   }
 

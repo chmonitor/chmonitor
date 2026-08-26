@@ -19,6 +19,8 @@ import type { WorkerException } from './observability'
 import type { NotifyKind } from './telegram'
 
 import { withTokenRefresh } from './github-app'
+import { escapeHtml } from './lib/html'
+import { logError as emitLogError } from './log'
 
 export const EXCEPTION_NOTIFY_KIND: NotifyKind = 'error'
 const KV_PREFIX = 'exc-fp:v1:'
@@ -72,9 +74,9 @@ export function formatSpike(
 ): string {
   const was = previous ? ` (was ${previous.count})` : ''
   return [
-    `\u{1F4C8} <b>Known error spiking</b> in <code>${exc.script}</code>`,
+    `\u{1F4C8} <b>Known error spiking</b> in <code>${escapeHtml(exc.script)}</code>`,
     `${exc.count} occurrences this window${was}`,
-    exc.message,
+    escapeHtml(exc.message),
   ].join('\n')
 }
 
@@ -329,7 +331,7 @@ export async function runExceptionScan(
   const apiBase = deps.githubApiBase ?? 'https://api.github.com'
   const labels = deps.labels ?? ['bug', 'cloudflare-exception']
   const cap = deps.maxIssuesPerRun ?? DEFAULT_MAX_ISSUES_PER_RUN
-  const logError = deps.logError ?? ((m, meta) => console.error(m, meta))
+  const logError = deps.logError ?? ((m, meta) => emitLogError(m, meta))
   const now = (deps.now ?? Date.now)()
 
   const filed: string[] = []
@@ -413,8 +415,8 @@ export async function runExceptionScan(
     }
     await deps.notify(
       EXCEPTION_NOTIFY_KIND,
-      `\u{1F41B} <b>New Worker exception</b> in <code>${exc.script}</code>\n${exc.message}${
-        result.url ? `\n${result.url}` : ''
+      `\u{1F41B} <b>New Worker exception</b> in <code>${escapeHtml(exc.script)}</code>\n${escapeHtml(exc.message)}${
+        result.url ? `\n${escapeHtml(result.url)}` : ''
       }`
     )
   }

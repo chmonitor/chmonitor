@@ -12,6 +12,8 @@
  * a delivery hiccup can never fail a webhook response or a cron job.
  */
 
+import { logError as emitLogError } from './log'
+
 export type NotifyKind =
   | 'subscription'
   | 'plan_change'
@@ -108,7 +110,7 @@ export class Notifier {
     this.fetchImpl = opts.fetch ?? fetch
     this.now = opts.now ?? Date.now
     this.throttle = { ...THROTTLE_MS, ...opts.throttleMs }
-    this.logError = opts.logError ?? ((m, meta) => console.error(m, meta))
+    this.logError = opts.logError ?? ((m, meta) => emitLogError(m, meta))
   }
 
   /**

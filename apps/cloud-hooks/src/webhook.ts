@@ -13,6 +13,7 @@
 import type { PlanId } from '@chm/pricing'
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
+import { logError, logInfo } from './log'
 
 import {
   licenseForProductId,
@@ -124,7 +125,7 @@ export async function handlePolarWebhook(
       )
       return Response.json({ error: 'Invalid signature' }, { status: 403 })
     }
-    console.error('[cloud-hooks] failed to parse Polar event', err)
+    logError('[cloud-hooks] failed to parse Polar event', err)
     return Response.json({ error: 'Bad request' }, { status: 400 })
   }
 
@@ -132,7 +133,7 @@ export async function handlePolarWebhook(
     try {
       await notifyCheckoutCreated(event.data, deps)
     } catch (err) {
-      console.error('[cloud-hooks] checkout.created notify failed', err)
+      logError('[cloud-hooks] checkout.created notify failed', err)
     }
     return Response.json({ received: true }, { status: 202 })
   }
@@ -140,7 +141,7 @@ export async function handlePolarWebhook(
   if (HANDLED_EVENTS.has(event.type)) {
     const data = event.data as PolarSubscriptionData
     if (data.productId && licenseForProductId(env, data.productId)) {
-      console.log(
+      logInfo(
         '[cloud-hooks] self-host license event; skipping cloud plan apply',
         data.productId,
         event.type
@@ -154,7 +155,7 @@ export async function handlePolarWebhook(
       let priorPlanId: PlanId | null = null
       if (env.CHM_CLOUD_D1 && ownerId) {
         const prior = await getSubscription(env.CHM_CLOUD_D1, ownerId, (err) =>
-          console.error('[cloud-hooks] prior-subscription read failed', err)
+          logError('[cloud-hooks] prior-subscription read failed', err)
         )
         priorPlanId = prior?.planId ?? null
       }
@@ -172,13 +173,13 @@ export async function handlePolarWebhook(
           applyDeps
         )
       } else {
-        console.error(
+        logError(
           '[cloud-hooks] CHM_CLOUD_D1 unbound; skipping persistence (Polar remains source of truth)'
         )
       }
       await notifyEvent(event.type, data, priorPlanId, env, deps)
     } catch (err) {
-      console.error('[cloud-hooks] handler error', err)
+      logError('[cloud-hooks] handler error', err)
       return Response.json({ error: 'Handler error' }, { status: 500 })
     }
   }

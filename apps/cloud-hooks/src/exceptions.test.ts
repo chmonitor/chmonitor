@@ -7,6 +7,7 @@ import type { WorkerException } from './observability'
 
 import {
   buildExceptionIssue,
+  formatSpike,
   isSpike,
   type KVLike,
   parseRepo,
@@ -74,6 +75,20 @@ describe('buildExceptionIssue', () => {
     ])
     expect(issue.title.length).toBeLessThanOrEqual(256)
     expect(issue.title.endsWith('…')).toBe(true)
+  })
+})
+
+describe('formatSpike', () => {
+  test('escapes script and message for Telegram HTML', () => {
+    const msg = formatSpike(
+      exc({
+        script: '<worker>',
+        message: 'a&b <tag>',
+      }),
+      { count: 1, alertedAt: 0 }
+    )
+    expect(msg).toContain('<code>&lt;worker&gt;</code>')
+    expect(msg).toContain('a&amp;b &lt;tag&gt;')
   })
 })
 

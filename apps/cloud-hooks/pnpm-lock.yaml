@@ -11,6 +11,9 @@ importers:
       '@chm/billing-webhook-core':
         specifier: workspace:*
         version: link:../../packages/billing-webhook-core
+      '@chm/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@chm/mcp-server':
         specifier: workspace:*
         version: link:../../packages/mcp-server

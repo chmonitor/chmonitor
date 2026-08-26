@@ -12,6 +12,7 @@
 import type { NotifyKind } from './telegram'
 
 import { BILLING_PLANS, monthlyEquivalentUsd, type PlanId } from '@chm/pricing'
+import { escapeHtml } from './lib/html'
 
 type Period = 'monthly' | 'yearly' | null
 
@@ -160,11 +161,12 @@ export function formatCheckoutStarted(input: CheckoutStartedInput): string {
     '\u{1F6D2} <b>License checkout started</b>',
     `sku: <b>${input.sku}</b> · ${input.term}`,
   ]
-  if (input.company) lines.push(`company: ${input.company}`)
-  if (input.email) lines.push(`email: <code>${input.email}</code>`)
-  if (input.website) lines.push(`site: ${input.website}`)
-  if (input.checkoutId) lines.push(`checkout: <code>${input.checkoutId}</code>`)
-  if (input.checkoutUrl) lines.push(input.checkoutUrl)
+  if (input.company) lines.push(`company: ${escapeHtml(input.company)}`)
+  if (input.email) lines.push(`email: <code>${escapeHtml(input.email)}</code>`)
+  if (input.website) lines.push(`site: ${escapeHtml(input.website)}`)
+  if (input.checkoutId)
+    lines.push(`checkout: <code>${escapeHtml(input.checkoutId)}</code>`)
+  if (input.checkoutUrl) lines.push(escapeHtml(input.checkoutUrl))
   lines.push('not paid yet — Polar will add tax after country')
   return lines.join('\n')
 }

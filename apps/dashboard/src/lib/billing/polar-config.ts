@@ -25,7 +25,14 @@ import type { LicenseTerm, PaidLicenseId } from '@chm/pricing'
 import type { PlanId } from './plans'
 
 import { createPolarHttpClient, type PolarHttpClient } from './polar-http'
-import { licensePolarProductEnvKey, PAID_LICENSE_IDS } from '@chm/pricing'
+import {
+  licensePolarProductEnvKey,
+  PAID_LICENSE_IDS,
+  planForProductIdFromLookup,
+  SUBSCRIBABLE_PLAN_IDS,
+  subscribablePlanProductEnvKey,
+  type SubscribablePlanId,
+} from '@chm/pricing'
 
 export type BillingPeriod = 'monthly' | 'yearly'
 
@@ -33,14 +40,7 @@ export type BillingPeriod = 'monthly' | 'yearly'
 export const PAID_PLAN_IDS = ['pro', 'max'] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number]
 
-/**
- * Plans a user can self-serve subscribe to via Polar checkout. Free is a real
- * $0 Polar subscription so an active-subscription gate (create-connection)
- * treats it uniformly with paid plans. Free is monthly-only — it has no yearly
- * product (see productIdFor). enterprise stays sales-led, not self-serve.
- */
-export const SUBSCRIBABLE_PLAN_IDS = ['free', 'pro', 'max'] as const
-export type SubscribablePlanId = (typeof SUBSCRIBABLE_PLAN_IDS)[number]
+export { SUBSCRIBABLE_PLAN_IDS, type SubscribablePlanId }
 
 function readEnv(key: string): string | undefined {
   const v = process.env[key]
@@ -80,12 +80,7 @@ export function getWebhookSecret(): string | undefined {
   return readEnv('POLAR_WEBHOOK_SECRET')
 }
 
-function productEnvKey(
-  planId: SubscribablePlanId,
-  period: BillingPeriod
-): string {
-  return `CHM_POLAR_PRODUCT_${planId.toUpperCase()}_${period.toUpperCase()}`
-}
+const productEnvKey = subscribablePlanProductEnvKey
 
 /**
  * Polar product id for a subscribable plan + period, or null when not
@@ -104,12 +99,7 @@ export function productIdFor(
 export function planForProductId(
   productId: string
 ): { planId: SubscribablePlanId; period: BillingPeriod } | null {
-  for (const planId of SUBSCRIBABLE_PLAN_IDS) {
-    for (const period of ['monthly', 'yearly'] as const) {
-      if (productIdFor(planId, period) === productId) return { planId, period }
-    }
-  }
-  return null
+  return planForProductIdFromLookup(readEnv, productId)
 }
 
 export function licenseProductIdFor(
@@ -145,10 +135,6 @@ export function isPaidPlanId(value: string): value is PaidPlanId {
  * Type guard for a self-serve subscribable plan id (free/pro/max). Used by the
  * checkout route, which now accepts Free ($0) alongside the paid plans.
  */
-export function isSubscribablePlanId(
-  value: string
-): value is SubscribablePlanId {
-  return (SUBSCRIBABLE_PLAN_IDS as readonly string[]).includes(value)
-}
+export { isSubscribablePlanId } from '@chm/pricing'
 
 export type { PlanId }

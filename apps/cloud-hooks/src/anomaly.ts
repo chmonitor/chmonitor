@@ -23,6 +23,7 @@
  */
 
 import { shiftDay } from './usage'
+import { logError, logInfo } from './log'
 
 /**
  * Minimal D1 subset for the day-series query. Declared here rather than reused
@@ -124,7 +125,7 @@ export async function fetchDailySeries(
   referenceDay: string,
   days: number = BASELINE_DAYS,
   logError: (message: string, meta?: unknown) => void = (m, meta) =>
-    console.error(m, meta)
+    logError(m, meta)
 ): Promise<DailyCount[]> {
   const from = shiftDay(referenceDay, -days)
   try {

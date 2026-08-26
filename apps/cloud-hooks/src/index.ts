@@ -22,6 +22,7 @@
 import type { Env } from './env'
 import type { GitHubRepo } from './exceptions'
 import type { GitHubAppAuth } from './github-app'
+import { logError, logInfo } from './log'
 
 import { collectActivation } from './activation'
 import { detectAnomaly, fetchDailySeries, formatAnomaly } from './anomaly'
@@ -90,12 +91,12 @@ async function resolveGitHub(
 } | null> {
   const hasAuth = (env.GH_APP_ID && env.GH_APP_PRIVATE_KEY) || env.GITHUB_TOKEN
   if (!hasAuth) {
-    console.log(`[cloud-hooks] ${label} disabled (no GitHub credentials)`)
+    logInfo(`[cloud-hooks] ${label} disabled (no GitHub credentials)`)
     return null
   }
   const repo = parseRepo(env.GITHUB_REPOSITORY || 'chmonitor/chmonitor')
   if (!repo) {
-    console.log(`[cloud-hooks] ${label} disabled (bad GITHUB_REPOSITORY)`)
+    logInfo(`[cloud-hooks] ${label} disabled (bad GITHUB_REPOSITORY)`)
     return null
   }
   const auth = resolveGitHubAuth(
@@ -105,7 +106,7 @@ async function resolveGitHub(
     env.CHM_HOOKS_KV ?? null
   )
   if (auth.mode === 'disabled') {
-    console.log(`[cloud-hooks] ${label} disabled (no GitHub credentials)`)
+    logInfo(`[cloud-hooks] ${label} disabled (no GitHub credentials)`)
     return null
   }
   try {
@@ -117,7 +118,7 @@ async function resolveGitHub(
       auth: auth.mode === 'app' ? (auth.app ?? null) : null,
     }
   } catch (err) {
-    console.error(
+    logError(
       `[cloud-hooks] ${label}: GitHub token acquisition failed`,
       err
     )
@@ -148,7 +149,7 @@ async function runUsageAnomaly(
 
 async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
   if (!env.CHM_CLOUD_D1) {
-    console.error('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping daily summary')
+    logError('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping daily summary')
     return
   }
   const nowSeconds = Math.floor(Date.now() / 1000)
@@ -173,7 +174,7 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
       formatDigest(data, { clerk, usage, activation, probes })
     )
   } catch (err) {
-    console.error('[cloud-hooks] daily summary failed', err)
+    logError('[cloud-hooks] daily summary failed', err)
   }
 
   // Separate from the digest's try/catch: a failed digest must not swallow the
@@ -181,7 +182,7 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
   try {
     await runUsageAnomaly(env, notifier, nowSeconds)
   } catch (err) {
-    console.error('[cloud-hooks] usage anomaly check failed', err)
+    logError('[cloud-hooks] usage anomaly check failed', err)
   }
 }
 
@@ -193,7 +194,7 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
  */
 async function runWeeklyReport(env: Env, notifier: Notifier): Promise<void> {
   if (!env.CHM_CLOUD_D1) {
-    console.error('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping weekly report')
+    logError('[cloud-hooks] CHM_CLOUD_D1 unbound; skipping weekly report')
     return
   }
   try {
@@ -216,7 +217,7 @@ async function runWeeklyReport(env: Env, notifier: Notifier): Promise<void> {
       formatWeekly(data, { clerk, usage, probes, issues })
     )
   } catch (err) {
-    console.error('[cloud-hooks] weekly report failed', err)
+    logError('[cloud-hooks] weekly report failed', err)
   }
 }
 
@@ -247,7 +248,7 @@ async function runIssues(env: Env, notifier: Notifier): Promise<void> {
       notify: (kind, text) => notifier.notify(kind, text),
     })
   } catch (err) {
-    console.error('[cloud-hooks] issue watch failed', err)
+    logError('[cloud-hooks] issue watch failed', err)
   }
 }
 
@@ -264,7 +265,7 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
     missing.push('CF_OBSERVABILITY_API_TOKEN')
   if (!env.CF_ACCOUNT_ID) missing.push('CF_ACCOUNT_ID')
   if (missing.length > 0) {
-    console.log(
+    logInfo(
       `[cloud-hooks] exception scan disabled (missing ${missing.join(', ')})`
     )
     return
@@ -306,7 +307,7 @@ async function runExceptions(env: Env, notifier: Notifier): Promise<void> {
       notify: (kind, text) => notifier.notify(kind, text),
     })
   } catch (err) {
-    console.error('[cloud-hooks] exception scan failed', err)
+    logError('[cloud-hooks] exception scan failed', err)
   }
 }
 

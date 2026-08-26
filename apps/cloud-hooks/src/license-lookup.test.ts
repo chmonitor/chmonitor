@@ -36,15 +36,16 @@ describe('GET /licenses/lookup', () => {
     })
     const res = await handleLicenseLookup(req('chk_1'), env, { fetchImpl })
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({
+    const body = await res.json()
+    expect(body).toEqual({
       found: true,
       source: 'checkout',
-      status: 'succeeded',
-      email: 'ops@acme.example',
       sku: 'team',
       term: 'yearly',
       paid: true,
     })
+    expect(body).not.toHaveProperty('email')
+    expect(body).not.toHaveProperty('status')
   })
 
   test('looks up a customer by email and 404s when Polar has none', async () => {
