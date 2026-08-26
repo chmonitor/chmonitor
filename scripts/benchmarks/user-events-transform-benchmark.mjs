@@ -1,8 +1,23 @@
 import { spawnSync } from 'node:child_process'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { performance } from 'node:perf_hooks'
 
 const SIZES = [50_000, 200_000, 500_000]
 const ITERATIONS = 8
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const RUST_DIR = resolve(__dirname, '../../rust')
+const USER_EVENTS_BIN = resolve(RUST_DIR, 'target/release/user-events-rs')
+const userEventsModule = await import(
+  pathToFileURL(
+    resolve(
+      __dirname,
+      '../../apps/dashboard/src/lib/chart-data-transforms/transforms/user-events.ts'
+    )
+  ).href
+)
+const { transformUserEventCounts } = userEventsModule
 
 function generateData(size = 200000, users = 120, times = 1440) {
   const rows = []
@@ -15,31 +30,6 @@ function generateData(size = 200000, users = 120, times = 1440) {
     })
   }
   return rows
-}
-
-// Inlined TypeScript transform (matches lib/chart-data-transforms/transforms/user-events.ts)
-function transformUserEventCounts(data, timeField = 'event_time') {
-  const userSet = new Set()
-  const nestedData = data.reduce((acc, item) => {
-    const event_time = String(item.event_time ?? '')
-    const rawUser = String(item.user ?? '')
-    const user = rawUser.trim() === '' ? '(empty)' : rawUser
-    const count = Number(item.count ?? 0)
-
-    userSet.add(user)
-    if (acc[event_time] === undefined) acc[event_time] = {}
-    acc[event_time][user] = (acc[event_time][user] ?? 0) + count
-    return acc
-  }, {})
-
-  const users = Array.from(userSet).sort()
-  const chartData = Object.entries(nestedData).map(([time, userCounts]) => {
-    const entry = { [timeField]: time }
-    Object.entries(userCounts).forEach(([user, count]) => { entry[user] = count })
-    return entry
-  })
-
-  return { data: nestedData, users, chartData }
 }
 
 function benchTs(data, iterations = ITERATIONS) {
@@ -58,8 +48,7 @@ function benchRustBinary(data, iterations = ITERATIONS) {
   const times = []
   for (let i = 0; i < iterations; i++) {
     const start = performance.now()
-    const proc = spawnSync('./target/release/user-events-rs', [], {
-      cwd: 'rust/user-events-rs',
+    const proc = spawnSync(USER_EVENTS_BIN, [], {
       input: payload,
       encoding: 'utf8',
       maxBuffer: 50 * 1024 * 1024,
@@ -82,7 +71,10 @@ function summarize(name, times) {
 
 // Build once
 console.log('Building Rust binary...')
-spawnSync('cargo', ['build', '--release', '--quiet'], { cwd: 'rust/user-events-rs', stdio: 'inherit' })
+spawnSync('cargo', ['build', '--release', '--quiet', '-p', 'user-events-rs'], {
+  cwd: RUST_DIR,
+  stdio: 'inherit',
+})
 
 console.log(`\nIterations per test: ${ITERATIONS}`)
 console.log('─'.repeat(90))
