@@ -17,25 +17,13 @@ import {
 } from '@/components/ui/sidebar'
 import { GUEST_USER } from '@/lib/clerk/guest-user'
 import { DOCS_SITE_URL } from '@/lib/docs-site'
-import { useFeaturePermissions } from '@/lib/feature-permissions/context'
-import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
-import { useUserSettings } from '@/lib/hooks/use-user-settings'
 import { isMenuItemActive } from '@/lib/menu/breadcrumb'
-import { getVisibleMenuItems } from '@/lib/menu/visible-items'
-import { workspaceFromSettings } from '@/lib/menu/workspace-presets'
+import { useVisibleMenuItems } from '@/lib/menu/use-visible-menu-items'
 
 export function AppSidebar() {
-  const { config } = useFeaturePermissions()
-  // Feature-permission + cloud-only (Billing/Organization) + engine gates
-  // resolved in one place — see lib/menu/visible-items.ts. The active engine
-  // swaps the menu to Postgres pages when a Postgres source is selected (#2450).
-  const engine = useActiveHostEngine()
-  const { settings } = useUserSettings()
-  const menuItems = getVisibleMenuItems(
-    config,
-    engine,
-    workspaceFromSettings(settings)
-  )
+  // Feature-permission + cloud-only + engine + workspace gates, plus Alerts
+  // when notifications are active — see useVisibleMenuItems.
+  const menuItems = useVisibleMenuItems()
   // Footer nav rows (Billing / Organization / About). Same visibility pipeline
   // as the body, so cloud-only + permission + engine gating still applies; they
   // render as compact rows in the footer instead of a labelled body group.

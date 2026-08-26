@@ -20,12 +20,8 @@ import { useTheme } from 'next-themes'
 import { CommandDialog, CommandInput } from '@/components/ui/command'
 import { useFavoriteHrefs } from '@/hooks/use-favorites'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
-import { useFeaturePermissions } from '@/lib/feature-permissions/context'
-import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
-import { useUserSettings } from '@/lib/hooks/use-user-settings'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
-import { getVisibleMenuItems } from '@/lib/menu/visible-items'
-import { workspaceFromSettings } from '@/lib/menu/workspace-presets'
+import { useVisibleMenuItems } from '@/lib/menu/use-visible-menu-items'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
@@ -68,14 +64,7 @@ export const CommandPalette = function CommandPalette({
     rememberSelection,
   } = useCommandPaletteState({ open: controlledOpen, onOpenChange })
 
-  const { config } = useFeaturePermissions()
-  const engine = useActiveHostEngine()
-  const { settings } = useUserSettings()
-  const menuItems = getVisibleMenuItems(
-    config,
-    engine,
-    workspaceFromSettings(settings)
-  )
+  const menuItems = useVisibleMenuItems()
   const favoriteHrefs = useFavoriteHrefs()
   const favoriteMenuItems = getFavoriteMenuItems(menuItems, favoriteHrefs)
   const { setTheme, resolvedTheme } = useTheme()

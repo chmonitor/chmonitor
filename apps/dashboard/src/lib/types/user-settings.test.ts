@@ -19,8 +19,10 @@ describe('mergeUserSettings', () => {
     expect(merged.chartPalette).toBe('default')
     expect(merged.tableDensity).toBe('comfortable')
     expect(merged.defaultTimeRange).toBe('24h')
-    expect(merged.workspacePreset).toBe('full')
-    expect(merged.hiddenMenuHrefs).toEqual([])
+    expect(merged.workspacePreset).toBe('custom')
+    expect(merged.hiddenMenuHrefs.length).toBeGreaterThan(0)
+    expect(merged.hiddenMenuHrefs).not.toContain('/overview')
+    expect(merged.hiddenMenuHrefs).toContain('/alert-settings')
     expect(merged.lastSeenChangelogVersion).toBe('')
   })
 
@@ -44,13 +46,28 @@ describe('mergeUserSettings', () => {
     expect(mergeUserSettings(null)).not.toBe(DEFAULT_USER_SETTINGS)
   })
 
-  test('junk workspace keys fall back to Full and an empty hide list', () => {
+  test('junk workspace keys fall back to Custom and parse a hide list', () => {
     const merged = mergeUserSettings({
       workspacePreset: 'intern',
       hiddenMenuHrefs: ['/health', 12, ''],
     })
-    expect(merged.workspacePreset).toBe('full')
+    expect(merged.workspacePreset).toBe('custom')
     expect(merged.hiddenMenuHrefs).toEqual(['/health'])
+  })
+
+  test('an explicit Full empty hide list is not replaced by the slim default', () => {
+    const merged = mergeUserSettings({
+      workspacePreset: 'full',
+      hiddenMenuHrefs: [],
+    })
+    expect(merged.workspacePreset).toBe('full')
+    expect(merged.hiddenMenuHrefs).toEqual([])
+  })
+
+  test('Full without a stored hide list stays empty, not the slim default', () => {
+    const merged = mergeUserSettings({ workspacePreset: 'full' })
+    expect(merged.workspacePreset).toBe('full')
+    expect(merged.hiddenMenuHrefs).toEqual([])
   })
 
   test('lastSeenChangelogVersion is kept when it is a product version', () => {

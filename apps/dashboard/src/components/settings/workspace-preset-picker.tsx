@@ -35,7 +35,7 @@ const PRESET_HINT: Record<WorkspacePreset, string> = {
     'Overview, SQL/explorer, queries, insights. Less keeper, security, and ops.',
   sre: 'Overview, health, insights, SQL tools, replication, disks, errors, running queries.',
   custom:
-    'Starts from a preset. Hide extra pages without a full checkbox wall.',
+    'Day-to-day pages by default. Hide or show more in the tree, or pick Full.',
 }
 
 interface WorkspacePresetPickerProps {
@@ -107,11 +107,22 @@ export function WorkspacePresetPicker({
       />
       <p className="text-xs text-muted-foreground">{PRESET_HINT[preset]}</p>
 
-      {extraHiddenCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {extraHiddenCount} extra page
-          {extraHiddenCount === 1 ? '' : 's'} hidden. Click Show to restore one.
-        </p>
+      {preset !== 'full' && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {extraHiddenCount > 0
+              ? `${extraHiddenCount} extra page${extraHiddenCount === 1 ? '' : 's'} hidden. Click Show on a row, or Show all.`
+              : 'Hidden pages stay in this tree. Click Show on a row, or Show all.'}
+          </p>
+          <button
+            type="button"
+            data-testid="workspace-show-all"
+            className="inline-flex h-8 shrink-0 items-center rounded-md border border-border px-3 text-[13px] font-medium hover:bg-muted"
+            onClick={() => applyPreset('full')}
+          >
+            Show all
+          </button>
+        </div>
       )}
 
       <div className="relative">

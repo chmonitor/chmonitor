@@ -1,3 +1,4 @@
+import { DEFAULT_HIDDEN_MENU_HREFS } from '@/lib/menu/slim-default'
 import { parseLastSeenChangelogVersion } from '@/lib/whats-new/version'
 
 export type ByteUnit = 'binary' | 'decimal'
@@ -27,9 +28,10 @@ export interface UserSettings {
    */
   dimUnavailablePages: boolean
   /**
-   * Role workspace preset. Full is the default and the only auto-expand
-   * preset (new menu pages stay visible). Named presets keep a stable group
-   * set. Custom uses `hiddenMenuHrefs` as a hide list.
+   * Role workspace preset. Full is the only auto-expand preset (new menu
+   * pages stay visible). Named presets keep a stable group set. Custom uses
+   * `hiddenMenuHrefs` as a hide list. First-run default is Custom + the slim
+   * day-to-day hide list (#3290); Full still restores every page.
    */
   workspacePreset: WorkspacePreset
   /**
@@ -55,8 +57,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   tableDensity: 'comfortable',
   defaultTimeRange: '24h',
   dimUnavailablePages: true,
-  workspacePreset: 'full',
-  hiddenMenuHrefs: [],
+  workspacePreset: 'custom',
+  hiddenMenuHrefs: [...DEFAULT_HIDDEN_MENU_HREFS],
   lastSeenChangelogVersion: '',
 }
 
@@ -74,8 +76,19 @@ export function mergeUserSettings(stored: unknown): UserSettings {
   }
   const partial = stored as Partial<UserSettings> & Record<string, unknown>
   const merged = { ...DEFAULT_USER_SETTINGS, ...partial }
-  merged.workspacePreset = parseWorkspacePreset(partial.workspacePreset)
-  merged.hiddenMenuHrefs = parseHiddenMenuHrefs(partial.hiddenMenuHrefs)
+  const preset = parseWorkspacePreset(partial.workspacePreset)
+  merged.workspacePreset = preset
+  // An omitted hide list picks up the slim first-run default only for Custom
+  // (and junk/missing preset, which falls back to Custom). Named presets and
+  // Full keep an empty hide list when the key was never stored. An explicit
+  // `[]` must stay empty.
+  if ('hiddenMenuHrefs' in partial) {
+    merged.hiddenMenuHrefs = parseHiddenMenuHrefs(partial.hiddenMenuHrefs)
+  } else if (preset === 'custom') {
+    merged.hiddenMenuHrefs = [...DEFAULT_USER_SETTINGS.hiddenMenuHrefs]
+  } else {
+    merged.hiddenMenuHrefs = []
+  }
   merged.lastSeenChangelogVersion = parseLastSeenChangelogVersion(
     partial.lastSeenChangelogVersion
   )

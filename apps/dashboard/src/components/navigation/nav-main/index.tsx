@@ -3,6 +3,7 @@ import { useLocation } from '@tanstack/react-router'
 import type { NavMainProps, NavRenderSection } from './types'
 
 import { MenuGroup } from './menu-group'
+import { MorePagesButton } from './more-pages-button'
 import { NavFavorites } from './nav-favorites'
 
 /**
@@ -36,6 +37,7 @@ export function NavMain({ items }: NavMainProps) {
           pathname={pathname}
         />
       ))}
+      <MorePagesButton />
     </>
   )
 }
