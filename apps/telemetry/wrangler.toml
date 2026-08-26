@@ -21,6 +21,12 @@ upload_source_maps = false
 
 compatibility_flags = ["global_fetch_strictly_public"]
 
+# CI deploys with `npx wrangler` (no pnpm install). Alias the telemetry subpath
+# so esbuild bundles shared enums from source without pulling the full @chm/types
+# package (which would drag in lucide-react etc.).
+[alias]
+"@chm/types/telemetry" = "../../packages/types/src/telemetry.ts"
+
 [observability]
 enabled = true
 

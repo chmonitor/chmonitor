@@ -23,7 +23,7 @@
 // queryable only from the project's Cloudflare account (D1 + Analytics Engine).
 
 import { TELEMETRY_PAGE } from './page'
-import { CH_FLAVORS, DEPLOY_TARGETS } from '@chm/types'
+import { CH_FLAVORS, DEPLOY_TARGETS } from '@chm/types/telemetry'
 
 export interface Env {
   CHM_TELEMETRY_DB: D1Database

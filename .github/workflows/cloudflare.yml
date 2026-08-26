@@ -136,6 +136,7 @@ jobs:
               - '.github/workflows/cloudflare.yml'
             telemetry:
               - 'apps/telemetry/**'
+              - 'packages/types/**'
               - '.github/workflows/cloudflare.yml'
 
       - name: Generate OG images
