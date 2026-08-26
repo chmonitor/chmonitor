@@ -145,8 +145,9 @@ fn purge_stale_plaintext_at(path: &std::path::Path, plaintext_key: &str) -> Resu
     let content = fs::read_to_string(path)
         .with_context(|| format!("failed to read credentials at {}", path.display()))?;
     let had_key = content.lines().any(|line| {
-        line.split_once('=')
-            .is_some_and(|(k, v)| k.trim() == plaintext_key && !v.trim().trim_matches('"').is_empty())
+        line.split_once('=').is_some_and(|(k, v)| {
+            k.trim() == plaintext_key && !v.trim().trim_matches('"').is_empty()
+        })
     });
     if !had_key {
         return Ok(false);
