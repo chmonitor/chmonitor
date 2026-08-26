@@ -92,6 +92,9 @@ describe('header utility icons', () => {
     expect(button).not.toBeNull()
     expectPhoneTapTarget(button as Element)
     expect(button?.innerHTML).toContain('h-3.5')
+    const countdown = button?.querySelector('span.font-mono')
+    expect(countdown?.className).toContain('lg:inline')
+    expect(countdown?.className.split(/\s+/)).not.toContain('sm:inline')
 
     await cleanup()
   })
@@ -109,9 +112,33 @@ describe('header utility icons', () => {
 
     const button = container.querySelector('button[aria-label="Search"]')
     expect(button).not.toBeNull()
-    expectPhoneTapTarget(button as Element)
-    expect(button?.className).toContain('md:hidden')
+    expect(button?.className).toContain('min-h-11')
+    expect(button?.className).toContain('min-w-11')
+    expect(button?.className).toContain('lg:hidden')
+    expect(button?.className.split(/\s+/)).not.toContain('md:hidden')
     expect(button?.innerHTML).toContain('size-4')
+
+    await cleanup()
+  })
+
+  test('Search… field stays desktop-only so 768 keeps the icon', async () => {
+    const { CommandPaletteTrigger } = await import(
+      '@/components/controls/command-palette/command-palette-items'
+    )
+    const { TooltipProvider } = await import('@/components/ui/tooltip')
+    const { container, cleanup } = await renderInto(
+      <TooltipProvider>
+        <CommandPaletteTrigger onOpen={() => {}} />
+      </TooltipProvider>
+    )
+
+    const searchBox = Array.from(container.querySelectorAll('button')).find(
+      (el) => el.textContent?.includes('Search…')
+    )
+    expect(searchBox).toBeDefined()
+    expect(searchBox?.className).toContain('lg:inline-flex')
+    expect(searchBox?.className.split(/\s+/)).not.toContain('md:inline-flex')
+    expect(searchBox?.className).toContain('w-40')
 
     await cleanup()
   })

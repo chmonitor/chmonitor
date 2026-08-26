@@ -47,16 +47,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <AppSidebar />
           <SidebarInset className="min-w-0 overflow-hidden">
             <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
-              <div className="flex min-w-0 flex-1 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0">
+              {/* shrink-0: the page title must not be the flex leftover that
+                ellipsizes to "Over…" when tablet chrome (day switcher + 44px
+                utilities) shares this nowrap row. Below sm the header wraps
+                and the title already has a full row. */}
+              <div className="flex shrink-0 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0">
                 <SidebarTrigger className="-ml-1 size-11 lg:size-7" />
                 <Separator orientation="vertical" className="h-4" />
                 <Suspense fallback={<Skeleton className="h-4 w-32" />}>
-                  <Breadcrumb className="min-w-0" />
+                  <Breadcrumb />
                 </Suspense>
               </div>
               {/* scrollbar-hide: stays swipe-scrollable on narrow viewports
-                without a visible scrollbar under the header controls. */}
-              <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-3 pb-2 sm:ml-auto sm:w-auto sm:overflow-visible sm:px-4 sm:pb-0">
+                without a visible scrollbar under the header controls.
+                min-w-0 flex-1 until lg lets extras scroll instead of
+                compressing the title; lg restores intrinsic width. */}
+              <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-3 pb-2 sm:ml-auto sm:min-w-0 sm:flex-1 sm:px-4 sm:pb-0 lg:flex-none lg:overflow-visible">
                 <HeaderActions />
               </div>
             </header>

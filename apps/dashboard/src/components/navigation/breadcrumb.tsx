@@ -12,6 +12,12 @@ interface BreadcrumbProps {
   className?: string
 }
 
+/**
+ * Header breadcrumb. The current page title is the header heading — it must
+ * stay fully readable at tablet (768). Parent crumbs (and their chevrons)
+ * hide until `lg`, matching the overlay-sidebar breakpoint, so nested pages
+ * like "TTL & Partition Health" are not squeezed into "Over…".
+ */
 export const Breadcrumb = function Breadcrumb({ className }: BreadcrumbProps) {
   const pathname = useLocation({ select: (l) => l.pathname })
   const { config } = useFeaturePermissions()
@@ -32,46 +38,43 @@ export const Breadcrumb = function Breadcrumb({ className }: BreadcrumbProps) {
   return (
     <nav
       aria-label={breadcrumbLabel}
-      className={cn('flex min-w-0 items-center overflow-hidden', className)}
+      className={cn('flex items-center', className)}
     >
-      <ol className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-sm text-muted-foreground">
+      <ol className="flex items-center gap-1.5 whitespace-nowrap text-sm text-muted-foreground">
         {breadcrumbs.map((crumb, index) => {
           const isLast = index === breadcrumbs.length - 1
 
           return (
             <li
               key={`${index}-${crumb.href}`}
-              className="flex min-w-0 items-center gap-1.5"
+              className={cn(
+                'flex items-center gap-1.5',
+                isLast ? 'shrink-0' : 'hidden lg:flex'
+              )}
             >
               {index > 0 && (
                 <ChevronRightIcon
-                  className="hidden size-3.5 shrink-0 sm:block"
+                  className="hidden size-3.5 shrink-0 lg:block"
                   strokeWidth={2.5}
                   aria-hidden="true"
                 />
               )}
               {isLast ? (
                 <span
-                  className="truncate font-medium text-foreground"
+                  className="shrink-0 font-medium text-foreground"
                   aria-current="page"
                 >
                   {crumb.title}
                 </span>
               ) : crumb.href ? (
-                <>
-                  <span className="sr-only sm:hidden">{crumb.title}</span>
-                  <HostPrefixedLink
-                    href={crumb.href}
-                    className="hidden truncate transition-colors hover:text-foreground hover:underline sm:inline"
-                  >
-                    {crumb.title}
-                  </HostPrefixedLink>
-                </>
+                <HostPrefixedLink
+                  href={crumb.href}
+                  className="truncate transition-colors hover:text-foreground hover:underline"
+                >
+                  {crumb.title}
+                </HostPrefixedLink>
               ) : (
-                <>
-                  <span className="sr-only sm:hidden">{crumb.title}</span>
-                  <span className="hidden sm:inline">{crumb.title}</span>
-                </>
+                <span>{crumb.title}</span>
               )}
             </li>
           )

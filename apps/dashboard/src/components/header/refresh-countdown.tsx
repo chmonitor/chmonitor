@@ -63,7 +63,7 @@ export const RefreshCountdown = function RefreshCountdown() {
           className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')}
           aria-hidden="true"
         />
-        <span className="hidden font-mono text-muted-foreground tabular-nums sm:inline">
+        <span className="hidden font-mono text-muted-foreground tabular-nums lg:inline">
           {reloadInterval ? formatReadableSecondDuration(remaining) : 'Off'}
         </span>
       </DropdownMenuTrigger>
