@@ -389,7 +389,8 @@ icon + title + one-line "Local to this browser"; surface is
 `rounded-xl border bg-card p-0` with a **stable height** (`h-[min(42rem,90vh)]`, `sm:max-w-4xl`)
 and `select-text` so labels copy. Left rail is a flat column (no boxed
 tab well): section labels + icon rows, selected = muted pill, `border-r`
-divider. Content pane shows the active tab title. Theme (Light / Dark /
+divider. Below `sm` the rail stacks above the pane so Navigation fits
+375. Content pane shows the active tab title. Theme (Light / Dark /
 System) is a settings row (label left, three window thumbnails right)
 on Appearance only. Navigation leads with a `SegmentedControl` workspace
 preset (Full / DBA / Engineer / SRE / Custom) plus an in-page sidebar-like
