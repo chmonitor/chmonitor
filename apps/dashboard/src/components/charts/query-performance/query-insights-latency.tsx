@@ -4,6 +4,7 @@ import { chartTickFormatters } from '@/lib/utils'
 /** Tile 2 of the Query Insights overview: mean + p50/p95/p99 duration. */
 export const ChartQueryInsightsLatency = createAreaChart({
   chartName: 'query-insights-latency',
+  grouped: true,
   index: 'event_time',
   categories: [
     'avg_duration_ms',

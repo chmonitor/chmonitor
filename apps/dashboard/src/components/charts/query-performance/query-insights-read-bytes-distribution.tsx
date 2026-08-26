@@ -7,6 +7,7 @@ import { formatBytes } from '@/lib/utils'
 /** Histogram tile: p10..p99 distribution of read_bytes per query. */
 export const ChartQueryInsightsReadBytesDistribution = createCustomChart({
   chartName: 'query-insights-read-bytes-distribution',
+  grouped: true,
   defaultTitle: 'Read Bytes Distribution',
   defaultLastHours: 24,
   dataTestId: 'query-insights-read-bytes-distribution-chart',

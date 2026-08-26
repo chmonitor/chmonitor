@@ -7,6 +7,7 @@ import { formatCount } from '@/lib/utils'
 /** Histogram tile: p10..p99 distribution of read_rows per query. */
 export const ChartQueryInsightsReadRowsDistribution = createCustomChart({
   chartName: 'query-insights-read-rows-distribution',
+  grouped: true,
   defaultTitle: 'Read Rows Distribution',
   defaultLastHours: 24,
   dataTestId: 'query-insights-read-rows-distribution-chart',

@@ -59,6 +59,7 @@ export function chartGroupingQueryKey({
   groupingId,
   hostId,
   lastHours,
+  interval,
   paramsKey,
   timezone,
   connectionKey,
@@ -66,6 +67,7 @@ export function chartGroupingQueryKey({
   groupingId: string
   hostId?: number | string
   lastHours?: number
+  interval?: string
   paramsKey: string
   timezone?: string
   connectionKey: string | undefined
@@ -75,6 +77,7 @@ export function chartGroupingQueryKey({
     groupingId,
     hostId,
     lastHours,
+    interval,
     paramsKey,
     timezone,
     connectionKey,

@@ -4,6 +4,7 @@ import { chartTickFormatters } from '@/lib/utils'
 /** Tile 6 of the Query Insights overview: errors (exception_code != 0) over time. */
 export const ChartQueryInsightsErrors = createAreaChart({
   chartName: 'query-insights-errors',
+  grouped: true,
   index: 'event_time',
   categories: ['errors'],
   defaultTitle: 'Errors Over Time',

@@ -43,6 +43,7 @@ interface ChartGroupingProviderProps {
   groupingId: ChartGroupingId
   hostId: number
   lastHours?: number
+  interval?: string
   params?: Record<string, unknown>
   timezone?: string
   children: ReactNode
@@ -57,6 +58,7 @@ export function ChartGroupingProvider({
   groupingId,
   hostId,
   lastHours,
+  interval,
   params,
   timezone,
   children,
@@ -80,6 +82,7 @@ export function ChartGroupingProvider({
       groupingId,
       hostId,
       lastHours,
+      interval,
       paramsKey,
       timezone,
       connectionKey,
@@ -93,6 +96,7 @@ export function ChartGroupingProvider({
               hostId,
               hosts,
               browserConnection,
+              interval,
               lastHours,
               params,
               timezone,
@@ -120,6 +124,7 @@ export function ChartGroupingProvider({
           groupingId,
           hostId,
           lastHours,
+          interval,
           params,
           timezone,
         }),

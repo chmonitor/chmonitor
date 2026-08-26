@@ -11,6 +11,7 @@ interface ErrorsByCodeData {
 /** Errors drill-down: failures grouped by exception code, with a sample message per code. */
 export const ChartQueryInsightsErrorsByCode = createCustomChart({
   chartName: 'query-insights-errors-by-code',
+  grouped: true,
   defaultTitle: 'Errors by Exception Code',
   defaultLastHours: 24,
   dataTestId: 'query-insights-errors-by-code-chart',

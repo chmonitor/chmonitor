@@ -45,6 +45,7 @@ const {
   executeChartGrouping,
   groupingCacheControl,
   INSIGHTS_STATS_GROUPING,
+  QUERY_INSIGHTS_GROUPING,
   isChartGroupingId,
   isKnownChartGrouping,
   UnknownChartGroupingError,
@@ -75,6 +76,20 @@ describe('executeChartGrouping', () => {
       expect(result[name]?.error).toBeUndefined()
     }
     expect(CHART_GROUPINGS['insights-stats']).toBe(INSIGHTS_STATS_GROUPING)
+  })
+
+  test('runs the frozen query-insights grouping and returns per-name keys', async () => {
+    const result = await executeChartGrouping('query-insights', 0, {
+      lastHours: 24,
+      interval: 'toStartOfHour',
+    })
+
+    expect(Object.keys(result).sort()).toEqual(
+      [...QUERY_INSIGHTS_GROUPING].slice().sort()
+    )
+    expect(QUERY_INSIGHTS_GROUPING).toHaveLength(15)
+    expect(chartGroupingIdForName('query-insights-qps')).toBe('query-insights')
+    expect(CHART_GROUPINGS['query-insights']).toBe(QUERY_INSIGHTS_GROUPING)
   })
 
   test('rejects an unknown grouping id', async () => {

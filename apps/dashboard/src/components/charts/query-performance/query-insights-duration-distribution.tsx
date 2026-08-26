@@ -7,6 +7,7 @@ import { formatDuration } from '@/lib/utils'
 /** Histogram tile: p10..p99 distribution of query_duration_ms. */
 export const ChartQueryInsightsDurationDistribution = createCustomChart({
   chartName: 'query-insights-duration-distribution',
+  grouped: true,
   defaultTitle: 'Duration Distribution',
   defaultLastHours: 24,
   dataTestId: 'query-insights-duration-distribution-chart',
