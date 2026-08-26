@@ -13,6 +13,7 @@ import type { ExecuteOptions } from '@/lib/api/query-executor'
 import {
   cachePolicyToQueryCacheTtlSeconds,
   getChartQuery,
+  type ChartQueryParams,
 } from '@/lib/api/chart-registry'
 import { executeChartQuery } from '@/lib/api/query-executor'
 import { chartCachePolicy } from '@/lib/swr/chart-freshness'
@@ -112,7 +113,7 @@ export interface ChartGroupingEntry {
 
 export interface ExecuteChartGroupingOptions extends ExecuteOptions {
   lastHours?: number
-  interval?: string
+  interval?: ChartQueryParams['interval']
   params?: Record<string, unknown>
 }
 
