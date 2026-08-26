@@ -21,6 +21,7 @@ describe('header breadcrumb title', () => {
 
   test('parent crumbs wait until lg so tablet shows only the page title', () => {
     expect(src).toContain("isLast ? 'shrink-0' : 'hidden lg:flex'")
+    expect(src).toContain('hidden size-3.5 shrink-0 lg:block')
     expect(src).not.toContain('hidden truncate')
     expect(src).not.toContain('sm:inline')
   })

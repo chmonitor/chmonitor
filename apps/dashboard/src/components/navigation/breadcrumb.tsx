@@ -54,7 +54,7 @@ export const Breadcrumb = function Breadcrumb({ className }: BreadcrumbProps) {
             >
               {index > 0 && (
                 <ChevronRightIcon
-                  className="size-3.5 shrink-0"
+                  className="hidden size-3.5 shrink-0 lg:block"
                   strokeWidth={2.5}
                   aria-hidden="true"
                 />
