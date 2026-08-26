@@ -32,7 +32,7 @@ describe('assembleCatalog', () => {
           name: 'idx_id',
           type: 'minmax',
           expr: 'id',
-          granularity: 4,
+          granularity: '4',
         },
       ],
       [
