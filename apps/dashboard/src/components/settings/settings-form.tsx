@@ -736,7 +736,7 @@ export function SettingsForm({
               <Field
                 label="Workspace"
                 icon={LayoutGrid}
-                description="Slim the sidebar and command palette to a role. Hidden pages stay reachable by URL."
+                description="Hide pages from the sidebar and command palette. Full restores every page. Hidden pages stay reachable by URL."
               >
                 <WorkspacePresetPicker
                   preset={settings.workspacePreset}

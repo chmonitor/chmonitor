@@ -401,19 +401,24 @@ stays `shrink-0` on the right. Click a leaf to hide or show it — hidden
 rows stay visible but muted, like Dim unavailable pages.
 Expand/collapse does not write settings. Hide of an already-hidden-by-
 preset leaf stays on the role; Custom only when the hide list leaves
-`hideListForPreset`. Search filters the tree. Never a 40-checkbox wall
+`hideListForPreset`. Search filters the tree. When the preset is not
+Full, a **Show all** control applies Full. The sidebar **More pages**
+row opens this pane when any pages are hidden. Never a 40-checkbox wall
 or a separate Hide-pages drawer. Then the Dim / Hide unavailable-page
 demos.
 Hidden pages stay routable. Filter through
-`getVisibleMenuItems` so sidebar, ⌘K, and the Settings > Navigation
+`getVisibleMenuItems` (sidebar + ⌘K wrap it in `useVisibleMenuItems`
+so Alerts appears only with an active notification count) so sidebar,
+⌘K, and the Settings > Navigation
 tree match the **active host engine** (`useActiveHostEngine` —
 default source engine, Postgres pages when `?pg=` is active).
 Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
-Every DEFAULT reproduces the prior look byte-for-byte (`workspacePreset:
-'full'`). Applied by
+First-run workspace is Custom + the slim hide list
+(`DEFAULT_HIDDEN_MENU_HREFS`); Full still restores every page. Other
+DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
 `data-chart-palette` / `data-density` on `<html>`. For 2–3 choices use
@@ -446,6 +451,9 @@ module snapshot in `lib/format-settings.ts`; palette/density →
    `Tools`. Webhook ingest (Inbound Events) lives under Health after
    Alert Settings — not as a top-level Others item; leave `engines`
    absent so Postgres hosts inherit Health (default source-engine family).
+   Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
+   (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
+   sidebar stays slim — they remain restorable from Settings → Navigation.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

@@ -465,4 +465,43 @@ describe('WorkspacePresetPicker', () => {
       await cleanup()
     }
   })
+
+  test('Show all restores Full from a hide list', async () => {
+    const { useState } = await import('react')
+    const { WorkspacePresetPicker } = await import('./workspace-preset-picker')
+    const { act } = await import('react')
+
+    function Harness() {
+      const [state, setState] = useState<{
+        workspacePreset: WorkspacePreset
+        hiddenMenuHrefs: string[]
+      }>({ workspacePreset: 'custom', hiddenMenuHrefs: ['/advisor'] })
+      return (
+        <WorkspacePresetPicker
+          preset={state.workspacePreset}
+          hiddenMenuHrefs={state.hiddenMenuHrefs}
+          onChange={setState}
+        />
+      )
+    }
+
+    const { container, cleanup } = await renderInto(<Harness />)
+
+    try {
+      expect(selectedPreset(container)).toContain('Custom')
+      const showAll = container.querySelector(
+        '[data-testid="workspace-show-all"]'
+      )
+      expect(showAll).toBeTruthy()
+      await act(async () => {
+        showAll?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      })
+      expect(selectedPreset(container)).toContain('Full')
+      expect(
+        container.querySelector('[data-testid="workspace-show-all"]')
+      ).toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
 })

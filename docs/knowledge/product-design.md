@@ -158,10 +158,17 @@ show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
 `segmented-control.tsx` (optional `description`). Dialog keeps
 `data-testid="settings-dialog"`.
 
-**Invariant: every default reproduces the prior behaviour byte-for-byte** —
+**Workspace default (#3290):** first-run / missing-workspace blobs use
+`workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
+(`lib/menu/slim-default.ts`) — day-to-day pages only (Overview, Chat,
+Insights, Health, Running Queries, Tables overview / explorer, Merges,
+Metrics, SQL / Explain / Advisor, Clusters). Full still means every
+page (`workspacePreset: 'full'`, `hiddenMenuHrefs: []`). An explicit
+stored Full empty hide list is never replaced by the slim list.
+Other appearance defaults stay byte-for-byte:
 `byteUnit: 'binary'`, `numberFormat: 'abbreviated'`, `chartPalette: 'default'`
 (attribute absent), `tableDensity: 'comfortable'` (attribute absent),
-`defaultTimeRange: '24h'`, `workspacePreset: 'full'`, `hiddenMenuHrefs: []`.
+`defaultTimeRange: '24h'`.
 
 How each applies (all wired by `AppearanceSettingsProvider`,
 `lib/context/appearance-settings.tsx`, mounted at `__root`):
@@ -350,6 +357,17 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   Leaf rows also reveal Hide (EyeOff) beside the pin; that writes
   `hiddenMenuHrefs` via `hideMenuHref` and toasts Undo + Open Navigation
   (Settings → Workspace → Navigation). Footer About is not hideable this way.
+  A **More pages** row (`more-pages-button.tsx`) appears at the bottom of
+  the sidebar when the hide list is non-empty and opens that same Navigation
+  pane. Settings → Navigation has **Show all** (applies Full) when the
+  preset is not Full.
+
+- **Alerts in the sidebar (#3291):** there is no standing Alerts catalog
+  item. `revealAlertsWhenActive` injects an Alerts leaf (href
+  `/alert-settings`, existing Active Alerts page) under Health — or after
+  Overview if Health is hidden — only while `useNotifications` reports a
+  count. Zero notifications → absent. Does not duplicate if Alert Settings
+  is already visible.
 
 - **Dashboard widget grid** (plan 57, `components/dashboard/`): `grid.tsx`
   lays out `DashboardWidget[]` (chart/table/stat/text, `@/types/dashboard-layout`)
@@ -766,6 +784,17 @@ Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 
 **Footer**: About (next to the Settings gear; never hidden by a workspace
 preset).
+
+**Slim first-run default (#3290):** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
+Visible groups: Overview, AI Agent (Chat), Insights, Health, Queries
+(Running Queries), Tables (Explorer + Overview), Merges, Metrics, Tools
+(SQL, Explorer, Explain, Advisor), Cluster (Clusters). Keeper, PeerDB,
+Security, Logs, System, Operations, and the extra children stay in the
+catalog — restore via Settings → Navigation (Show / Show all / Full) or
+the sidebar More pages row. Do not add a page to
+`DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
+pages are hidden by default because the hide list is the complement of
+that keep list. Postgres-only leaves are never auto-hidden.
 
 **Tools** is the interactive-utility group — pages where you *do* something
 (run SQL, explore schema, explain a query, compare hosts, build charts) rather
