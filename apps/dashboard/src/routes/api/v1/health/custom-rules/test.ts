@@ -14,7 +14,7 @@ import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-h
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { fetchDataWithHost } from '@/lib/clickhouse-helpers'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   assertReadOnlySql,
   METRIC_CATALOG,

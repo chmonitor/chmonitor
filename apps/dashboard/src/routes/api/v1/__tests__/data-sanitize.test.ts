@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   SANITIZED_MESSAGES,
   sanitizeDbQueryError,
-} from '@/lib/api/error-handler'
+} from '@/lib/api/error-handler/sanitize-error'
 
 describe('query route error sanitization contract', () => {
   test('upstream hostname and table names are not echoed to clients', () => {

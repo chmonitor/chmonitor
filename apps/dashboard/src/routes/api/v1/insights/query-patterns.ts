@@ -25,7 +25,7 @@ import { error } from '@chm/logger'
 import { sortPatternRows } from '@/lib/api/insights/query-patterns'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { getTableQuery } from '@/lib/api/table-registry'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 const CONFIG_NAME = 'slow-query-patterns'
 

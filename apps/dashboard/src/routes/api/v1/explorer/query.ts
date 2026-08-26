@@ -19,7 +19,7 @@ import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { EXPLORER_QUERY_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 const MAX_GET_QUERY_LENGTH = 8_000
 const MAX_POST_QUERY_LENGTH = 100_000

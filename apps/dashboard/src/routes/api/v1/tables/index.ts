@@ -16,7 +16,7 @@ import { debug, error } from '@chm/logger'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 const DEFAULT_LIMIT = 500
 const MAX_LIMIT = 1000

@@ -8,6 +8,8 @@
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import { SANITIZED_MESSAGES } from '@/lib/api/error-handler/sanitize-error'
+
 let cloudMode = false
 let signedIn = false
 
@@ -189,11 +191,15 @@ describe('GET /api/v1/advisor/history — picker filters (#3139)', () => {
     expect(arg.query).not.toContain('selfFingerprint')
   })
 
-  test('query errors become 503 with a message the UI can show', async () => {
+  test('query errors become 503 with a sanitized message the UI can show', async () => {
     mockFetchData.mockImplementationOnce(async () => ({
       data: null,
       metadata: {},
-      error: { type: 'query_error', message: 'query_log is empty' },
+      error: {
+        type: 'query_error',
+        message:
+          "Code: 60. DB::Exception: Table secret.internal_table doesn't exist (10.0.0.5:8123)",
+      },
     }))
     const res = await get('hostId=0')
     expect(res.status).toBe(503)
@@ -202,6 +208,8 @@ describe('GET /api/v1/advisor/history — picker filters (#3139)', () => {
       error: { message: string }
     }
     expect(body.success).toBe(false)
-    expect(body.error.message).toBe('query_log is empty')
+    expect(body.error.message).toBe(SANITIZED_MESSAGES.NOT_FOUND)
+    expect(body.error.message).not.toContain('secret')
+    expect(body.error.message).not.toContain('10.0.0.5')
   })
 })

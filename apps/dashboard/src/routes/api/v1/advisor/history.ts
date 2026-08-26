@@ -31,7 +31,7 @@ import {
 } from '@/lib/ai/advisor/history-picker'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,

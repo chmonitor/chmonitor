@@ -16,7 +16,7 @@ import { fetchData } from '@chm/clickhouse-client'
 import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
-import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
+import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error' // pragma: allowlist secret
 import {
   getMenuCountQuery,
   hasMenuCountKey,
@@ -29,7 +29,7 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 const ROUTE_CONTEXT = { route: '/api/v1/menu-counts/$key', method: 'GET' }
 

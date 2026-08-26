@@ -16,7 +16,7 @@ import {
   hasTable,
 } from '@/lib/api/table-registry'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 /**
  * GET handler for `/api/v1/tables/$name`, extracted as a named export so it
