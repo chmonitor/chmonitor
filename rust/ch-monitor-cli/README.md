@@ -58,6 +58,11 @@ available; see `--help`.
 `--api-key` / `CHM_API_KEY` when discovery says `api_key`, or complete the
 browser device flow when it says `device`.
 
+Credentials are stored in the OS keyring when available, with a `0600` plaintext
+fallback at `~/.config/chm/credentials` when the keyring is unavailable (for
+example headless SSH). When the keyring works again, a successful store removes
+any stale plaintext copy for that credential automatically.
+
 ## Update
 
 ```bash
