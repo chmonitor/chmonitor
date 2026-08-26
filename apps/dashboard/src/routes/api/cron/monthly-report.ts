@@ -20,36 +20,19 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error, warn } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
-import { secretsMatch } from '@/lib/auth/providers/constant-time'
+import { authorizeCronRequest } from '@/lib/cron/authorize-cron'
 import { runReportFanout } from '@/lib/insights/report-fanout'
 
-function authorizeCron(request: Request): Response | null {
-  const bindings = env as Record<string, string | undefined>
-  const secret = (bindings.CRON_SECRET ?? process.env.CRON_SECRET)?.trim()
-
-  if (!secret) {
-    warn(
-      '[GET /api/cron/monthly-report] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
-    )
-    return Response.json(
-      { error: 'CRON_SECRET not configured' },
-      { status: 503 }
-    )
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader && secretsMatch(authHeader, `Bearer ${secret}`)) return null
-
-  const url = new URL(request.url)
-  const querySecret = url.searchParams.get('secret')
-  if (querySecret && secretsMatch(querySecret, secret)) return null
-
-  return Response.json({ error: 'Unauthorized' }, { status: 401 })
-}
-
 async function handler(request: Request): Promise<Response> {
-  const denied = authorizeCron(request)
-  if (denied) return denied
+  const denied = authorizeCronRequest(request, 'monthly-report')
+  if (denied) {
+    if (denied.status === 503) {
+      warn(
+        '[GET /api/cron/monthly-report] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
+      )
+    }
+    return denied
+  }
 
   const bindings = env as Record<string, string | undefined>
   bridgeClickHouseEnv(bindings)

@@ -64,9 +64,10 @@ describe('issueApiKey + verifyApiKey round trip', () => {
     expect(issueApiKey('user-1')).rejects.toThrow(/not configured/)
   })
 
-  it('skips verification entirely when auth is disabled', async () => {
+  it('returns disabled when CHM_API_KEY_SECRET is unset', async () => {
     setSecret(undefined)
     const result = await verifyApiKey('anything')
-    expect(result.valid).toBe(true)
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('disabled')
   })
 })

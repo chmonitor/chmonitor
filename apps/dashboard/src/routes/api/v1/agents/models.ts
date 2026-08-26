@@ -313,3 +313,5 @@ export const Route = createFileRoute('/api/v1/agents/models')({
     },
   },
 })
+
+export { handleGet as __handleGetForTests }

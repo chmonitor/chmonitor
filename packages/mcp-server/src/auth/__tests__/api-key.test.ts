@@ -94,12 +94,11 @@ describe('api-key', () => {
   })
 
   describe('verifyApiKey', () => {
-    it('returns valid when secret is not configured (auth disabled)', async () => {
+    it('returns invalid/disabled when secret is not configured', async () => {
       delete process.env.CHM_API_KEY_SECRET
       const result = await verifyApiKey('anything')
-      expect(result.valid).toBe(true)
-      expect(result.sub).toBeUndefined()
-      expect(result.reason).toBeUndefined()
+      expect(result.valid).toBe(false)
+      expect(result.reason).toBe('disabled')
     })
 
     it('returns valid for a freshly issued token', async () => {

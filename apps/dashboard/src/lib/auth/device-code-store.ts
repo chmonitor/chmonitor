@@ -48,6 +48,8 @@ export interface DeviceCodeRecord {
   approvedAt: number | null
   userId: string | null
   consumedAt: number | null
+  /** Last RFC 8628 token poll timestamp (ms), for slow_down enforcement. */
+  lastPollAt: number | null
 }
 
 interface D1DeviceCodeRow {
@@ -60,6 +62,7 @@ interface D1DeviceCodeRow {
   approved_at: number | null
   user_id: string | null
   consumed_at: number | null
+  last_poll_at: number | null
 }
 
 function getDb(): D1Database | null {
@@ -77,10 +80,24 @@ function rowToRecord(row: D1DeviceCodeRow): DeviceCodeRecord {
     approvedAt: row.approved_at,
     userId: row.user_id,
     consumedAt: row.consumed_at,
+    lastPollAt: row.last_poll_at ?? null,
   }
 }
 
 let ensured = false
+let lastPollColumnEnsured = false
+
+async function ensureLastPollColumn(db: D1Database): Promise<void> {
+  if (lastPollColumnEnsured) return
+  try {
+    await db
+      .prepare(`ALTER TABLE ${TABLE} ADD COLUMN last_poll_at INTEGER`)
+      .run()
+  } catch {
+    // Column likely already exists on upgraded deployments.
+  }
+  lastPollColumnEnsured = true
+}
 
 async function ensureTable(db: D1Database): Promise<boolean> {
   if (ensured) return true
@@ -117,6 +134,7 @@ export function __resetDeviceCodeMemoryForTests(): void {
   memoryByDevice.clear()
   memoryByUser.clear()
   ensured = false
+  lastPollColumnEnsured = false
 }
 
 /**
@@ -151,18 +169,20 @@ export async function insertDeviceCode(input: {
     approvedAt: null,
     userId: null,
     consumedAt: null,
+    lastPollAt: null,
   }
 
   try {
     const db = getDb()
     if (db) {
       if (!(await ensureTable(db))) return false
+      await ensureLastPollColumn(db)
       await db
         .prepare(
           `INSERT INTO ${TABLE}
              (device_code, user_code, client_id, created_at, expires_at, interval_sec,
-              approved_at, user_id, consumed_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL)`
+              approved_at, user_id, consumed_at, last_poll_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL, NULL)`
         )
         .bind(
           record.deviceCode,
@@ -291,6 +311,44 @@ export async function approveUserCode(
   } catch (err) {
     warn(`failed to approve user_code: ${err}`)
     return { ok: false, error: 'unavailable' }
+  }
+}
+
+export type DeviceCodePollResult = 'ok' | 'slow_down'
+
+/**
+ * RFC 8628 poll-interval gate for pending device codes. Updates lastPollAt
+ * when the caller may proceed; returns `slow_down` when polled too soon.
+ */
+export async function enforceDeviceCodePollInterval(
+  record: DeviceCodeRecord
+): Promise<DeviceCodePollResult> {
+  const now = Date.now()
+  if (record.lastPollAt != null) {
+    const elapsedSec = (now - record.lastPollAt) / 1000
+    if (elapsedSec < record.intervalSec) return 'slow_down'
+  }
+
+  try {
+    const db = getDb()
+    if (db) {
+      if (!(await ensureTable(db))) return 'ok'
+      await ensureLastPollColumn(db)
+      await db
+        .prepare(`UPDATE ${TABLE} SET last_poll_at = ?1 WHERE device_code = ?2`)
+        .bind(now, record.deviceCode)
+        .run()
+      return 'ok'
+    }
+
+    const current = memoryByDevice.get(record.deviceCode)
+    if (current) {
+      memoryByDevice.set(record.deviceCode, { ...current, lastPollAt: now })
+    }
+    return 'ok'
+  } catch (err) {
+    warn(`failed to record device_code poll: ${err}`)
+    return 'ok'
   }
 }
 

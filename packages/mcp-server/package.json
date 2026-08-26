@@ -12,6 +12,7 @@
     "./rate-limit": "./src/rate-limit.ts",
     "./cors": "./src/cors.ts",
     "./auth": "./src/auth/index.ts",
+    "./auth/timing": "./src/auth/timing.ts",
     "./data": "./src/data/mcp-tools-data.ts"
   },
   "dependencies": {

@@ -293,8 +293,8 @@ pnpm run cf:health
 
 `wrangler.toml` `[triggers] crons` schedules the secret-gated GET routes under
 `src/routes/api/cron/`. The Cloudflare scheduled trigger is routed to the route's
-`GET` handler; each route requires `CRON_SECRET` (`Authorization: Bearer` or
-`?secret=`) and **fails closed (503) when it is unset**.
+`GET` handler; each route requires `CRON_SECRET` via `Authorization: Bearer`
+only (`?secret=` is rejected) and **fails closed (503) when it is unset**.
 
 | Cron | Route | Notes |
 |------|-------|-------|

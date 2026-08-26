@@ -17,6 +17,7 @@ import {
   type ApiKeyScope,
   getBearerToken,
   issueApiKey,
+  timingSafeEqualString,
 } from '@chm/mcp-server/auth'
 import { getAuthProvider } from '@/lib/auth/provider'
 import { resolveServerAuthProvider } from '@/lib/auth/providers'
@@ -26,19 +27,6 @@ const ALLOWED_SCOPES = new Set<string>(ALL_API_KEY_SCOPES)
 
 function getSecret(): string | null {
   return process.env.CHM_API_KEY_SECRET ?? null
-}
-
-function timingSafeEqualString(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a)
-  const bBytes = new TextEncoder().encode(b)
-  if (aBytes.length !== bBytes.length) return false
-
-  let diff = 0
-  for (let index = 0; index < aBytes.length; index += 1) {
-    diff |= aBytes[index] ^ bBytes[index]
-  }
-
-  return diff === 0
 }
 
 function normalizeScopes(raw: unknown): ApiKeyScope[] | undefined {
@@ -166,3 +154,5 @@ export const Route = createFileRoute('/api/v1/auth/api-key')({
     },
   },
 })
+
+export { handlePost as __handlePostForTests }

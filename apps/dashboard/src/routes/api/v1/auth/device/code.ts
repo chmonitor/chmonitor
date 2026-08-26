@@ -1,13 +1,16 @@
 /**
- * POST /api/v1/auth/device/code
- *
- * RFC 8628 device authorization — public. Creates a pending device/user code
- * pair (D1 or in-memory). Returns 503 when device login is disabled or
- * CHM_API_KEY_SECRET is missing.
+ * POST /api/v1/auth/device/code — rate limit guard (test export).
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import {
+  checkRateLimitDurable,
+  clientIpKey,
+  getDeviceCodeRateLimitPerMin,
+  RATE_LIMIT_BINDING_DEVICE_CODE,
+  rateLimitResponse,
+} from '@/lib/api/rate-limiter'
 import { insertDeviceCode } from '@/lib/auth/device-code-store'
 import { resolveDeviceLogin } from '@/lib/auth/device-login-config'
 
@@ -45,11 +48,26 @@ function disabledResponse(reason: string | null): Response {
   )
 }
 
+async function checkDeviceCodeRateLimit(
+  request: Request
+): Promise<Response | null> {
+  const rl = await checkRateLimitDurable(
+    `device-code:ip:${clientIpKey(request)}`,
+    getDeviceCodeRateLimitPerMin(),
+    RATE_LIMIT_BINDING_DEVICE_CODE
+  )
+  if (rl.allowed) return null
+  return rateLimitResponse(rl.retryAfterSec)
+}
+
 async function handlePost(request: Request): Promise<Response> {
   const status = resolveDeviceLogin()
   if (!status.enabled) {
     return disabledResponse(status.reason)
   }
+
+  const rateLimited = await checkDeviceCodeRateLimit(request)
+  if (rateLimited) return rateLimited
 
   let clientId = 'chm-cli'
   try {
@@ -113,3 +131,8 @@ export const Route = createFileRoute('/api/v1/auth/device/code')({
     },
   },
 })
+
+export {
+  checkDeviceCodeRateLimit as __checkDeviceCodeRateLimitForTests,
+  handlePost as __handlePostForTests,
+}
