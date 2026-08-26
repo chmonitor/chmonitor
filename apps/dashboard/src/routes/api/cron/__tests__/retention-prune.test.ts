@@ -129,12 +129,14 @@ describe('GET /api/cron/retention-prune — auth gate', () => {
     })
   })
 
-  test('2. wrong ?secret= query param → 401', async () => {
-    const res = await handler(req({ secret: 'wrong' }))
+  test('2. legacy ?secret= query param → 401 (header-only auth)', async () => {
+    const res = await handler(req({ secret: 'test-secret' }))
 
     expect(res.status).toBe(401)
-    expect((await res.json()) as { error: string }).toEqual({
-      error: 'Unauthorized',
+    expect((await res.json()) as { error: string }).toMatchObject({
+      error: expect.stringContaining(
+        'Query-string cron secrets are not accepted'
+      ),
     })
   })
 })
@@ -154,10 +156,10 @@ describe('GET /api/cron/retention-prune — D1 unbound no-op', () => {
     })
   })
 
-  test('3. getD1Database returning null → 200 skipped (authorized via ?secret=)', async () => {
+  test('3. getD1Database returning null → 200 skipped (authorized via header)', async () => {
     getD1Database = mock(() => null)
 
-    const res = await handler(req({ secret: 'test-secret' }))
+    const res = await handler(req({ auth: 'Bearer test-secret' }))
 
     expect(res.status).toBe(200)
     expect((await res.json()) as { skipped: boolean; reason: string }).toEqual({

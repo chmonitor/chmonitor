@@ -58,6 +58,15 @@ describe('isAuthenticatedRequest', () => {
     expect(await isAuthenticatedRequest(anonReq())).toBe(false)
   })
 
+  it('hasValidChmApiKey returns false when api-key auth is disabled', async () => {
+    const { hasValidChmApiKey } = await import('../api-guard')
+    delete process.env.CHM_API_KEY_SECRET
+    const req = new Request('https://dash.example.com/api/health', {
+      headers: { 'x-api-key': 'chm_anything' },
+    })
+    expect(await hasValidChmApiKey(req)).toBe(false)
+  })
+
   it('returns true for a valid chm_ key sent as x-api-key', async () => {
     process.env.CHM_AUTH_PROVIDER = 'none'
     process.env.CHM_API_KEY_SECRET = TEST_SECRET

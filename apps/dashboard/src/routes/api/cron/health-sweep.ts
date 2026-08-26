@@ -12,8 +12,8 @@
  * — a falsy value makes the scheduled run a 200 no-op without removing the cron.
  *
  * Guarded by a shared secret (CRON_SECRET) supplied via the `Authorization:
- * Bearer <secret>` header or the `?secret=` query param. Returns 401 on
- * mismatch.
+ * Bearer <secret>` header only. Returns 401 on mismatch (query-string secrets
+ * are rejected — they land in access logs).
  *
  * CRON_SECRET is REQUIRED for this route: when it is unset/empty the endpoint
  * FAILS CLOSED with HTTP 503 (it does NOT run). The platform routes Cloudflare
@@ -38,47 +38,20 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error, warn } from '@chm/logger'
 import { bridgeClickHouseEnv, bridgePostgresEnv } from '@/lib/api/server-env'
-import { secretsMatch } from '@/lib/auth/providers/constant-time'
+import { authorizeCronRequest } from '@/lib/cron/authorize-cron'
 import { runHealthSweep } from '@/lib/health/server-sweep'
 import { isHealthSweepEnabled } from '@/lib/health/sweep-schedule'
 
-/**
- * Authorize a cron request. Returns a short-circuit `Response` when the request
- * must be rejected, or `null` when it is authorized to proceed.
- *
- * Fail-closed: when CRON_SECRET is unset/empty we return 503 (not configured)
- * instead of allowing the request through.
- */
-function authorizeCron(request: Request): Response | null {
-  const bindings = env as Record<string, string | undefined>
-  const secret = (bindings.CRON_SECRET ?? process.env.CRON_SECRET)?.trim()
-
-  // Fail closed: without a configured secret this endpoint is disabled rather
-  // than left open to unauthenticated callers (which could trigger the sweep
-  // and its webhook fan-out).
-  if (!secret) {
-    warn(
-      '[GET /api/cron/health-sweep] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
-    )
-    return Response.json(
-      { error: 'CRON_SECRET not configured' },
-      { status: 503 }
-    )
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader && secretsMatch(authHeader, `Bearer ${secret}`)) return null
-
-  const url = new URL(request.url)
-  const querySecret = url.searchParams.get('secret')
-  if (querySecret && secretsMatch(querySecret, secret)) return null
-
-  return Response.json({ error: 'Unauthorized' }, { status: 401 })
-}
-
 async function handler(request: Request): Promise<Response> {
-  const denied = authorizeCron(request)
-  if (denied) return denied
+  const denied = authorizeCronRequest(request, 'health-sweep')
+  if (denied) {
+    if (denied.status === 503) {
+      warn(
+        '[GET /api/cron/health-sweep] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
+      )
+    }
+    return denied
+  }
 
   // Scheduled-run enablement gate (issue #2666). The `*/10 * * * *` Cloudflare
   // Cron trigger fires this route unattended, so operators get a single switch

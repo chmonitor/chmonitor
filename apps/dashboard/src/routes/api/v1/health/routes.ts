@@ -403,3 +403,9 @@ export const Route = createFileRoute('/api/v1/health/routes')({
     },
   },
 })
+
+export {
+  handleDelete as __handleDeleteForTests,
+  handleGet as __handleGetForTests,
+  handlePost as __handlePostForTests,
+}

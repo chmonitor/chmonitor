@@ -24,6 +24,8 @@
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
 
+import { timingSafeEqualString } from '@chm/mcp-server/auth/timing'
+
 /** Thrown by `verifyClerkWebhook` on any signature/header failure. */
 export class SvixVerificationError extends Error {
   constructor(message: string) {
@@ -78,16 +80,6 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-/** Constant-time-ish string compare (avoids early-exit length leak). */
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let mismatch = 0
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  }
-  return mismatch === 0
-}
-
 /**
  * Verify a Clerk (Svix) webhook and return the parsed event. Throws
  * `SvixVerificationError` on any missing header or signature mismatch. The
@@ -128,7 +120,7 @@ export async function verifyClerkWebhook(
     if (comma === -1) return false
     const version = part.slice(0, comma)
     const value = part.slice(comma + 1)
-    return version === 'v1' && safeEqual(value, expected)
+    return version === 'v1' && timingSafeEqualString(value, expected)
   })
   if (!passed) throw new SvixVerificationError('no matching v1 signature')
 

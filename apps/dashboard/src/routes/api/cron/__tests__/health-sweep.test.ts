@@ -54,20 +54,23 @@ const SOURCE = readFileSync(
 // ---------------------------------------------------------------------------
 
 describe('health-sweep.ts CRON_SECRET authorization (structural)', () => {
-  test('imports secretsMatch from the constant-time module', () => {
+  test('delegates cron auth to the shared authorizeCronRequest helper', () => {
     expect(SOURCE).toContain(
-      "import { secretsMatch } from '@/lib/auth/providers/constant-time'"
+      "import { authorizeCronRequest } from '@/lib/cron/authorize-cron'"
     )
   })
 
-  test('uses secretsMatch for Authorization header comparison', () => {
-    expect(SOURCE).toMatch(
-      /secretsMatch\(authHeader,\s*`Bearer \$\{secret\}`\)/
+  test('uses secretsMatch for Authorization header comparison via shared helper', () => {
+    expect(SOURCE).toContain(
+      "import { authorizeCronRequest } from '@/lib/cron/authorize-cron'"
     )
   })
 
-  test('uses secretsMatch for ?secret= query param comparison', () => {
-    expect(SOURCE).toMatch(/secretsMatch\(querySecret,\s*secret\)/)
+  test('rejects legacy ?secret= query param (header-only auth)', () => {
+    expect(SOURCE).not.toMatch(/searchParams\.get\(['"]secret['"]\)/)
+    expect(SOURCE).toContain(
+      "import { authorizeCronRequest } from '@/lib/cron/authorize-cron'"
+    )
   })
 
   test('does NOT use === to compare secrets (timing-safe check)', () => {
@@ -88,14 +91,9 @@ describe('health-sweep.ts CRON_SECRET authorization (structural)', () => {
   })
 
   test('fails closed when CRON_SECRET is unset (503, not open)', () => {
-    // Security (issue #2135): when CRON_SECRET is not configured the endpoint
-    // must DENY the request, not allow it. The old insecure guard
-    // (`if (!secret) return true`) must be gone.
     expect(SOURCE).not.toMatch(/if\s*\(!secret\)\s*return true/)
-    // The unset branch returns a 503 with a JSON error body.
-    expect(SOURCE).toMatch(/if\s*\(!secret\)/)
-    expect(SOURCE).toContain("error: 'CRON_SECRET not configured'")
-    expect(SOURCE).toMatch(/status:\s*503/)
+    expect(SOURCE).toContain('authorizeCronRequest(request')
+    expect(SOURCE).toMatch(/denied\.status === 503/)
   })
 })
 

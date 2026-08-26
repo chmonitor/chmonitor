@@ -28,3 +28,7 @@ export {
   apiKeyCandidates,
   getRequestApiKeyCandidates,
 } from './request-api-key'
+export {
+  constantTimeEqual,
+  timingSafeEqualString,
+} from './timing'

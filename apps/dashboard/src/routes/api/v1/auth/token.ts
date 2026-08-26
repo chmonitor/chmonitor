@@ -10,7 +10,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { ALL_API_KEY_SCOPES, issueApiKey } from '@chm/mcp-server/auth'
-import { getByDeviceCode, markConsumed } from '@/lib/auth/device-code-store'
+import {
+  checkRateLimitDurable,
+  clientIpKey,
+  getDeviceCodeRateLimitPerMin,
+  RATE_LIMIT_BINDING_DEVICE_CODE,
+  rateLimitResponse,
+} from '@/lib/api/rate-limiter'
+import {
+  enforceDeviceCodePollInterval,
+  getByDeviceCode,
+  markConsumed,
+} from '@/lib/auth/device-code-store'
 import { resolveDeviceLogin } from '@/lib/auth/device-login-config'
 
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code'
@@ -37,6 +48,13 @@ async function handlePost(request: Request): Promise<Response> {
       { status: 503 }
     )
   }
+
+  const rl = await checkRateLimitDurable(
+    `device-token:ip:${clientIpKey(request)}`,
+    getDeviceCodeRateLimitPerMin(),
+    RATE_LIMIT_BINDING_DEVICE_CODE
+  )
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec)
 
   let grantType: string | undefined
   let deviceCode: string | undefined
@@ -75,6 +93,13 @@ async function handlePost(request: Request): Promise<Response> {
   }
 
   if (record.approvedAt == null || !record.userId) {
+    const poll = await enforceDeviceCodePollInterval(record)
+    if (poll === 'slow_down') {
+      return Response.json(
+        { error: 'slow_down', interval: record.intervalSec },
+        { status: 429 }
+      )
+    }
     return oauthError('authorization_pending', 'Waiting for user authorization')
   }
 
@@ -107,3 +132,5 @@ export const Route = createFileRoute('/api/v1/auth/token')({
     },
   },
 })
+
+export { handlePost as __handlePostForTests }

@@ -57,16 +57,7 @@ async function sign(payloadEnc: string, secret: string): Promise<Uint8Array> {
   return new Uint8Array(signature)
 }
 
-function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false
-
-  let diff = 0
-  for (let index = 0; index < a.length; index += 1) {
-    diff |= a[index] ^ b[index]
-  }
-
-  return diff === 0
-}
+import { constantTimeEqual } from './timing'
 
 function normalizeScopes(scopes?: string[] | null): string[] | undefined {
   if (!scopes || scopes.length === 0) return undefined
@@ -103,14 +94,15 @@ export type ApiKeyVerificationResult = {
 }
 
 /**
- * verifyApiKey intentionally accepts any token when getSecret returns null.
- * That means CHM_API_KEY_SECRET is unset and API-key auth is disabled.
+ * When CHM_API_KEY_SECRET is unset, API-key auth is disabled. Callers MUST
+ * gate on `apiKeyAuthEnabled()` before treating a token as authenticated —
+ * this function returns `{ valid: false, reason: 'disabled' }` in that case.
  */
 export async function verifyApiKey(
   token: string
 ): Promise<ApiKeyVerificationResult> {
   const secret = getSecret()
-  if (!secret) return { valid: true }
+  if (!secret) return { valid: false, reason: 'disabled' }
   if (!token.startsWith('chm_'))
     return { valid: false, reason: 'invalid prefix' }
 

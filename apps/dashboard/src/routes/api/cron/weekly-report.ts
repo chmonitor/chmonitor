@@ -16,7 +16,7 @@
  * are generated, so self-hosted stays quiet by default.
  *
  * Guarded by a shared secret (CRON_SECRET) via the `Authorization: Bearer
- * <secret>` header or the `?secret=` query param — identical to health-sweep.
+ * <secret>` header only — identical to health-sweep.
  * When CRON_SECRET is unset/empty this endpoint FAILS CLOSED with HTTP 503; the
  * platform routes scheduled events to the fetch handler as a plain GET with no
  * trusted in-request signal, so an unauthenticated caller must not be able to
@@ -29,7 +29,7 @@ import { env } from 'cloudflare:workers'
 import { error, warn } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
-import { secretsMatch } from '@/lib/auth/providers/constant-time'
+import { authorizeCronRequest } from '@/lib/cron/authorize-cron'
 import { runReportFanout } from '@/lib/insights/report-fanout'
 import {
   parseOptedInHosts,
@@ -37,39 +37,16 @@ import {
 } from '@/lib/insights/weekly-report'
 import { getHost } from '@/lib/utils'
 
-/**
- * Authorize a cron request. Returns a short-circuit `Response` when the request
- * must be rejected, or `null` when it is authorized to proceed. Fail-closed:
- * without a configured CRON_SECRET this endpoint returns 503. Mirrors
- * health-sweep exactly.
- */
-function authorizeCron(request: Request): Response | null {
-  const bindings = env as Record<string, string | undefined>
-  const secret = (bindings.CRON_SECRET ?? process.env.CRON_SECRET)?.trim()
-
-  if (!secret) {
-    warn(
-      '[GET /api/cron/weekly-report] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
-    )
-    return Response.json(
-      { error: 'CRON_SECRET not configured' },
-      { status: 503 }
-    )
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader && secretsMatch(authHeader, `Bearer ${secret}`)) return null
-
-  const url = new URL(request.url)
-  const querySecret = url.searchParams.get('secret')
-  if (querySecret && secretsMatch(querySecret, secret)) return null
-
-  return Response.json({ error: 'Unauthorized' }, { status: 401 })
-}
-
 async function handler(request: Request): Promise<Response> {
-  const denied = authorizeCron(request)
-  if (denied) return denied
+  const denied = authorizeCronRequest(request, 'weekly-report')
+  if (denied) {
+    if (denied.status === 503) {
+      warn(
+        '[GET /api/cron/weekly-report] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
+      )
+    }
+    return denied
+  }
 
   const bindings = env as Record<string, string | undefined>
   bridgeClickHouseEnv(bindings)

@@ -388,6 +388,17 @@ export function getBrowserConnectionRateLimitPerMin(): number {
 }
 
 /**
+ * RFC 8628 device-code endpoints (`/auth/device/code`, `/auth/token`) are
+ * deliberately public. Cap code minting per IP to limit D1/memory write
+ * amplification from unauthenticated callers.
+ */
+export function getDeviceCodeRateLimitPerMin(): number {
+  return readIntEnv('RATE_LIMIT_DEVICE_CODE_PER_MIN', 10)
+}
+
+export const RATE_LIMIT_BINDING_DEVICE_CODE = 'CHM_RATE_LIMIT_DEVICE_CODE'
+
+/**
  * Flush all buckets (for testing only).
  */
 export function _resetBucketsForTest(): void {

@@ -17,8 +17,7 @@
  * than pruned, so a transient failure can never cause silent deletion.
  *
  * Guarded by a shared secret (CRON_SECRET) supplied via the `Authorization:
- * Bearer <secret>` header or the `?secret=` query param. Returns 401 on
- * mismatch.
+ * Bearer <secret>` header only. Returns 401 on mismatch.
  *
  * CRON_SECRET is REQUIRED for this route: when it is unset/empty the endpoint
  * FAILS CLOSED with HTTP 503 (it does NOT run). This is a destructive endpoint
@@ -33,49 +32,22 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import { env } from 'cloudflare:workers'
 import { error, log, warn } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
-import { secretsMatch } from '@/lib/auth/providers/constant-time'
 import { retentionCutoffMs } from '@/lib/billing/entitlements'
 import { resolveRetentionPlanForUser } from '@/lib/billing/retention-owner'
-
-/**
- * Authorize a cron request. Returns a short-circuit `Response` when the request
- * must be rejected, or `null` when it is authorized to proceed.
- *
- * Fail-closed: when CRON_SECRET is unset/empty we return 503 (not configured)
- * instead of allowing the request through.
- */
-function authorizeCron(request: Request): Response | null {
-  const bindings = env as Record<string, string | undefined>
-  const secret = (bindings.CRON_SECRET ?? process.env.CRON_SECRET)?.trim()
-
-  // Fail closed: without a configured secret this destructive endpoint is
-  // disabled rather than left open to unauthenticated callers.
-  if (!secret) {
-    warn(
-      '[GET /api/cron/retention-prune] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
-    )
-    return Response.json(
-      { error: 'CRON_SECRET not configured' },
-      { status: 503 }
-    )
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader && secretsMatch(authHeader, `Bearer ${secret}`)) return null
-
-  const url = new URL(request.url)
-  const querySecret = url.searchParams.get('secret')
-  if (querySecret && secretsMatch(querySecret, secret)) return null
-
-  return Response.json({ error: 'Unauthorized' }, { status: 401 })
-}
+import { authorizeCronRequest } from '@/lib/cron/authorize-cron'
 
 async function handler(request: Request): Promise<Response> {
-  const denied = authorizeCron(request)
-  if (denied) return denied
+  const denied = authorizeCronRequest(request, 'retention-prune')
+  if (denied) {
+    if (denied.status === 503) {
+      warn(
+        '[GET /api/cron/retention-prune] CRON_SECRET not configured — refusing (503). Set CRON_SECRET to enable this endpoint.'
+      )
+    }
+    return denied
+  }
 
   // Graceful no-op: D1 not bound (OSS / local dev / non-CF environment)
   let db: D1Database | null = null
