@@ -155,7 +155,9 @@ Timezone is a searchable combobox
 Chart palette is a three-card picker with a mini bar preview. Unit options
 show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
 (available) plus disabled coming-soon channels. 2–3 choice toggles use
-`segmented-control.tsx` (optional `description`). Dialog keeps
+`segmented-control.tsx` (optional `description`; 4+ options wrap to
+2 / 3 / 5 columns so the Navigation presets fit a 375 Settings pane).
+Show all is full-width under the hide-count line on that pane. Dialog keeps
 `data-testid="settings-dialog"`.
 
 **Workspace default (#3290):** first-run / missing-workspace blobs use

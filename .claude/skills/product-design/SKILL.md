@@ -421,8 +421,9 @@ First-run workspace is Custom + the slim hide list
 DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
-`data-chart-palette` / `data-density` on `<html>`. For 2–3 choices use
-`components/settings/segmented-control.tsx`. Full detail:
+`data-chart-palette` / `data-density` on `<html>`. For 2–3 choices use `components/settings/segmented-control.tsx`; 4+
+options wrap so the Navigation presets fit a 375 Settings pane. Show all
+is a full-width control under the hide-count line. Full detail:
 `docs/knowledge/product-design.md`.
 
 ## Adding a page

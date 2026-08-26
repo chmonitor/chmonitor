@@ -98,7 +98,7 @@ export function WorkspacePresetPicker({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <SegmentedControl
         ariaLabel="Workspace preset"
         value={preset}
@@ -108,16 +108,16 @@ export function WorkspacePresetPicker({
       <p className="text-xs text-muted-foreground">{PRESET_HINT[preset]}</p>
 
       {preset !== 'full' && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
           <p className="min-w-0 text-xs text-muted-foreground">
             {extraHiddenCount > 0
-              ? `${extraHiddenCount} extra page${extraHiddenCount === 1 ? '' : 's'} hidden. Click Show on a row, or Show all.`
-              : 'Hidden pages stay in this tree. Click Show on a row, or Show all.'}
+              ? `${extraHiddenCount} extra page${extraHiddenCount === 1 ? '' : 's'} hidden. Show a row, or Show all.`
+              : 'Hidden pages stay in this tree. Show a row, or Show all.'}
           </p>
           <button
             type="button"
             data-testid="workspace-show-all"
-            className="inline-flex h-8 w-fit shrink-0 items-center rounded-md border border-border px-3 text-[13px] font-medium hover:bg-muted"
+            className="inline-flex h-8 w-full shrink-0 items-center justify-center rounded-md border border-border px-3 text-[13px] font-medium hover:bg-muted sm:w-fit"
             onClick={() => applyPreset('full')}
           >
             Show all
