@@ -109,13 +109,22 @@ export function nextReminderAt(record: OutageRecord): number {
 export function reconcileOutages(
   prev: OutageState,
   results: ProbeOutcome[],
-  now: number
+  now: number,
+  logInfo: (message: string) => void = () => {}
 ): { alerts: OutageAlert[]; next: OutageState } {
   const alerts: OutageAlert[] = []
+  const STALE_MS = 7 * 24 * HOUR
+  const observed = new Set(results.map((result) => result.name))
+
   const next: OutageState = {}
+  for (const [name, record] of Object.entries(prev)) {
+    if (now - record.downSince <= STALE_MS) {
+      next[name] = record
+    }
+  }
 
   for (const result of results) {
-    const record = prev[result.name]
+    const record = next[result.name]
 
     if (result.state === 'down') {
       if (!record) {
@@ -155,6 +164,15 @@ export function reconcileOutages(
         kind: 'recovered',
         downtimeMs: now - record.downSince,
       })
+      delete next[result.name]
+    }
+  }
+
+  for (const name of Object.keys(next)) {
+    if (!observed.has(name)) {
+      logInfo(
+        `[cloud-hooks] carrying forward outage state for unobserved surface: ${name}`
+      )
     }
   }
 

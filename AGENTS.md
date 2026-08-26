@@ -74,7 +74,7 @@ ONCE (e.g. set `CHM_AUTH_PROVIDER`, never also `VITE_AUTH_PROVIDER`). The hosted
 product's non-secret config lives in committed `apps/dashboard/.env.production`
 (+ `.env.preview` overlay) — the SINGLE source for both the vite client build
 (`CHM_BUILD_ENV=production|preview`, npm `build:production`/`build:preview`) and the Worker
-runtime vars. `wrangler.toml` declares NO `[vars]`; `scripts/patch-wrangler-env.ts`
+runtime vars. `wrangler.toml` declares NO `[vars]`; `apps/dashboard/scripts/patch-wrangler-env.ts`
 injects them from `.env.production` at deploy. Self-hosters use `apps/dashboard/.env.example`
 (same names) on Docker (`docker-compose.yml` `env_file`) / K8s (Helm `values.yaml`).
 Secrets NEVER live in committed `.env*` — only in `scripts/set-secrets.ts` / a
@@ -94,7 +94,7 @@ Source: `lib/config/deployment-mode.ts` (`parseDeploymentMode` / `modeDefaults` 
 - `lib/cloud/cloud-mode.ts` — `isCloudModeClient()` / `isCloudModeServer()` / `parseCloudMode()` (server derives from `CHM_DEPLOYMENT_MODE` when `CHM_CLOUD_MODE` unset).
 - `apps/dashboard/.env.production` (+ `.env.preview`) — single source: `CHM_CLOUD_MODE=true`, `CHM_FEATURE_USER_CONNECTIONS_DB=true`, etc.
 - `vite.config.ts` `loadDeployEnv` + CLIENT_ENV + `src/vite-env.d.ts` — derive/inline `VITE_CLOUD_MODE` (build) from the canonical `CHM_*`.
-- `scripts/patch-wrangler-env.ts` — reads `.env.production`/`.env.preview` → Worker runtime `[vars]` (the @cloudflare/vite-plugin strips `[vars]` from the generated config).
+- `apps/dashboard/scripts/patch-wrangler-env.ts` — reads `.env.production`/`.env.preview` → Worker runtime `[vars]` (the @cloudflare/vite-plugin strips `[vars]` from the generated config).
 - `.github/workflows/cloudflare.yml` build step — runs `build:preview` (PRs) / `build:production` (main); values come from the `.env*` files, not hardcoded.
 - `lib/swr/use-merged-hosts.ts` — demo tagging + hide-when-signed-in; returns `cloudMode` / `isSignedIn`.
 - `components/host/host-switcher.tsx` — "Demo / read-only" badges; treats `demo` like `env` for live status.
@@ -331,11 +331,11 @@ of local files.
 - `cd apps/docs && pnpm run build` - Full build (sync-docs → generate-og → vite build incl. prerender)
 - Edit only `docs/content/**`; `apps/docs/content/docs/**` is regenerated and gitignored.
 
-**IMPORTANT — keep the AI Agent docs in sync**: `docs/content/ai-agent.mdx` is
+**IMPORTANT — keep the AI Agent docs in sync**: `docs/content/guide/ai-agent.mdx` is
 the user-facing reference for the agent's tools, skills, and configuration.
 Whenever you add, rename, or remove an agent tool (`lib/ai/agent/tools/*.ts`), a
 skill (`.agents/skills/*/SKILL.md`), or an agent env var, update
-`docs/content/ai-agent.mdx` in the same change so the docs do not drift.
+`docs/content/guide/ai-agent.mdx` in the same change so the docs do not drift.
 
 ## Architecture
 
@@ -854,4 +854,4 @@ export function YourChart({ hostId, interval }: YourChartProps) {
 
 The agent subsystem lives at `apps/dashboard/src/lib/ai/agent/` and is built on the **Vercel AI SDK** (not LangGraph). It has 29+ tool categories (schema, query, diagnostics, anomaly, cluster, visualization, etc.) assembled by `tools/index.ts`. Agent prompts are in `lib/ai/agent/prompts/`, skills in `lib/ai/agent/skills/`, and workflows in `lib/ai/agent/workflows/`.
 
-For the agent environment variables and configuration, see `apps/dashboard/src/lib/ai/agent/` or `docs/content/ai-agent.mdx`.
+For the agent environment variables and configuration, see `apps/dashboard/src/lib/ai/agent/` or `docs/content/guide/ai-agent.mdx`.

@@ -31,7 +31,7 @@ KV/R2/D1 incremental-cache layer**.
 apps/dashboard/
   vite.config.ts        # tanstackStart() + @cloudflare/vite-plugin (CF) | nitro() (Node)
   wrangler.toml         # name = chmonitor-dash, routes → dash.chmonitor.dev
-  scripts/patch-wrangler-env.ts   # re-injects [[routes]]/[vars] the vite plugin strips
+  apps/dashboard/scripts/patch-wrangler-env.ts   # re-injects [[routes]]/[vars] the vite plugin strips
   src/
     routes/             # TanStack Router file routes (was app/)
       (dashboard)/ (docs)/ (peerdb)/   # route groups
@@ -213,7 +213,7 @@ data-dashboard pages** (render-delay collapses), but it's not universal.
     `globals.css` (`text-destructive-foreground` resolves to nothing; currently
     unused). Add the token to both files together if a consumer ever needs it.
 - Conversation **server-persistence** needs a provisioned `CHM_CLOUD_D1`
-  (`wrangler d1 create`) + binding in `wrangler.toml` + `patch-wrangler-env.ts`. Agent chat
+  (`wrangler d1 create`) + binding in `wrangler.toml` + `apps/dashboard/scripts/patch-wrangler-env.ts`. Agent chat
   works via the client thread store until then.
 - Copied agent-subsystem **test files** are excluded from the production typecheck
   (mirrors the Next app's tsconfig); wiring `bun test` for them is a follow-up.
@@ -276,7 +276,7 @@ Wiring (all four must stay in sync per var):
 - `.github/workflows/cloudflare.yml` dashboard-tsr build step `env:` — sets
   `VITE_*` (pk_test for PR preview, pk_live for prod) + git metadata.
 - `src/vite-env.d.ts` — types each `VITE_*`.
-- `wrangler.toml` / `patch-wrangler-env.ts` — only the SERVER vars (`CHM_*`),
+- `wrangler.toml` / `apps/dashboard/scripts/patch-wrangler-env.ts` — only the SERVER vars (`CHM_*`),
   never the client publishable key (it's build-time).
 
 Server reads use runtime `CHM_AUTH_PROVIDER` → build-time

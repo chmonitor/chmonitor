@@ -121,7 +121,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
-          key: ${{ runner.os }}-cypress-v1-${{ hashFiles('**/bun.lock') }}
+          key: ${{ runner.os }}-cypress-v1-${{ hashFiles('apps/dashboard/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-cypress-v1-
 

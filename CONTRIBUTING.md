@@ -11,7 +11,7 @@ request.
 - [pnpm](https://pnpm.io) (`pnpm@10.18.0`, via corepack) — the package manager
   used in this repo. The `preinstall` hook blocks other package managers
   (`npx only-allow pnpm`).
-- Node.js 20+.
+- Node.js 22+ (matches `engines`: >=22.22.1).
 - [Bun](https://bun.sh) — still required as the test runner (`bun test`, used
   by the `test:*` scripts) and to execute `.ts` scripts directly. No longer
   used for installing dependencies.
@@ -199,4 +199,4 @@ User-facing docs live in `docs/content/` and are published via `apps/docs`
 `apps/docs/content/docs/` is gitignored and regenerated at build time.
 
 If you add, rename, or remove an agent tool, a skill, or an agent env var,
-update `docs/content/ai-agent.mdx` in the same PR.
+update `docs/content/guide/ai-agent.mdx` in the same PR.

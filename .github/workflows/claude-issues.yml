@@ -182,7 +182,7 @@ jobs:
               merge: **`Resolves #${{ github.event.issue.number }}`**.
             - Per project policy, arm auto-merge after creating the PR:
               `gh pr merge --auto --squash <pr-number>` (known non-required checks
-              `e2e-test`, `e2e-test-tsr`, `component-test`, `unit-tests` do not block).
+              `e2e-test`, `e2e-test-tsr`, `component-test` do not block).
             - Comment on the issue linking the PR:
               `gh issue comment ${{ github.event.issue.number }} --body "Opened #<pr-number> — Resolves this on merge."`
 
