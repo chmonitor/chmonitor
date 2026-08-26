@@ -124,4 +124,35 @@ describe('reconcileOutages', () => {
       alerts.find((a) => a.name === 'dashboard')?.downtimeMs
     ).toBeGreaterThan(alerts.find((a) => a.name === 'docs')?.downtimeMs ?? 0)
   })
+
+  test('preserves downSince when a surface is omitted from probe results', () => {
+    const prev: OutageState = {
+      dashboard: { downSince: T0, lastAlertAt: T0, reminders: 0 },
+    }
+    const logs: string[] = []
+    const { alerts, next } = reconcileOutages(prev, [], T0 + HOUR, (msg) =>
+      logs.push(msg)
+    )
+    expect(alerts).toEqual([])
+    expect(next.dashboard.downSince).toBe(T0)
+    expect(logs.some((line) => line.includes('dashboard'))).toBe(true)
+  })
+
+  test('keeps accumulated downtime when an omitted surface returns down later', () => {
+    const prev: OutageState = {
+      dashboard: { downSince: T0, lastAlertAt: T0, reminders: 0 },
+    }
+    const omitted = reconcileOutages(prev, [], T0 + HOUR)
+    const resumed = reconcileOutages(omitted.next, [down()], T0 + 2 * HOUR)
+    expect(resumed.next.dashboard.downSince).toBe(T0)
+  })
+
+  test('prunes carried-forward entries older than seven days', () => {
+    const prev: OutageState = {
+      dashboard: { downSince: T0, lastAlertAt: T0, reminders: 0 },
+    }
+    const staleAt = T0 + 7 * 24 * HOUR + MINUTE
+    const { next } = reconcileOutages(prev, [], staleAt)
+    expect(next.dashboard).toBeUndefined()
+  })
 })

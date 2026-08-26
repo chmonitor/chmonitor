@@ -47,7 +47,7 @@ monitoring feature behind cloud mode. (Mirrors `lib/edition` fail-open design.)
 - Single source of truth: `apps/dashboard/.env.production` (+ `.env.preview` overlay).
   It feeds BOTH the vite client build (`CHM_BUILD_ENV=production|preview` →
   `build:production`/`build:preview`) AND the Worker runtime `[vars]`
-  (`scripts/patch-wrangler-env.ts` injects the non-`VITE_` keys).
+  (`apps/dashboard/scripts/patch-wrangler-env.ts` injects the non-`VITE_` keys).
   `wrangler.toml` declares NO `[vars]` — never re-add one; edit `.env.production`.
 - Self-hosted uses the same names from `apps/dashboard/.env.example` (Docker
   `env_file`, Helm `values.yaml`). Secrets only via `set-secrets.ts` / K8s Secret.

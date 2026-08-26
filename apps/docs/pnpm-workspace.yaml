@@ -1,3 +1,13 @@
 # Standalone workspace root: this app installs in isolation with its own
 # pnpm-lock.yaml and is NOT a member of the repo-root workspace. pnpm resolves
 # the nearest pnpm-workspace.yaml, so `pnpm install` here scopes to this app only.
+
+onlyBuiltDependencies:
+  - core-js
+  - esbuild
+  - sharp
+  - workerd
+
+overrides:
+  undici: ^7.28.0
+  ws: ^8.21.3

@@ -358,16 +358,32 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
 async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
 
-  // Highly fragmented table (many active parts → merge pressure, slow reads).
-  const parts = await firstRow(
-    `SELECT database, table, count() AS value,
+  const [partsSettled, compressionSettled, ttlSettled] =
+    await Promise.allSettled([
+      firstRow(
+        `SELECT database, table, count() AS value,
        formatReadableSize(sum(bytes_on_disk)) AS size
      FROM system.parts WHERE active
      GROUP BY database, table
      ORDER BY value DESC
      LIMIT 1`,
-    hostId
-  )
+        hostId
+      ),
+      firstRow(
+        `SELECT database, table,
+       round(sum(data_compressed_bytes) * 1.0 / nullIf(sum(data_uncompressed_bytes), 0), 3) AS value,
+       formatReadableSize(sum(data_uncompressed_bytes)) AS uncompressed
+     FROM system.parts WHERE active
+     GROUP BY database, table
+     HAVING sum(data_uncompressed_bytes) > 1073741824
+     ORDER BY value DESC
+     LIMIT 1`,
+        hostId
+      ),
+      collectTtlPartitionHealth(hostId),
+    ])
+
+  const parts = partsSettled.status === 'fulfilled' ? partsSettled.value : null
   if (parts) {
     const partCount = Number(parts.value) || 0
     if (partCount >= 300) {
@@ -383,18 +399,8 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     }
   }
 
-  // Worst compression on a sizeable table (ratio near 1 == barely compressed).
-  const compression = await firstRow(
-    `SELECT database, table,
-       round(sum(data_compressed_bytes) * 1.0 / nullIf(sum(data_uncompressed_bytes), 0), 3) AS value,
-       formatReadableSize(sum(data_uncompressed_bytes)) AS uncompressed
-     FROM system.parts WHERE active
-     GROUP BY database, table
-     HAVING sum(data_uncompressed_bytes) > 1073741824
-     ORDER BY value DESC
-     LIMIT 1`,
-    hostId
-  )
+  const compression =
+    compressionSettled.status === 'fulfilled' ? compressionSettled.value : null
   if (compression) {
     const ratio = Number(compression.value) || 0
     if (ratio >= 0.7) {
@@ -413,7 +419,9 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     }
   }
 
-  out.push(...(await collectTtlPartitionHealth(hostId)))
+  if (ttlSettled.status === 'fulfilled') {
+    out.push(...ttlSettled.value)
+  }
 
   return out
 }
@@ -425,10 +433,19 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
 async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
 
-  const readonly = await firstRow(
-    `SELECT count() AS value FROM system.replicas WHERE is_readonly`,
-    hostId
-  )
+  const [readonlySettled, lagSettled] = await Promise.allSettled([
+    firstRow(
+      `SELECT count() AS value FROM system.replicas WHERE is_readonly`,
+      hostId
+    ),
+    firstRow(
+      `SELECT max(absolute_delay) AS value FROM system.replicas`,
+      hostId
+    ),
+  ])
+
+  const readonly =
+    readonlySettled.status === 'fulfilled' ? readonlySettled.value : null
   if (readonly) {
     const count = Number(readonly.value) || 0
     if (count > 0) {
@@ -444,10 +461,7 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
     }
   }
 
-  const lag = await firstRow(
-    `SELECT max(absolute_delay) AS value FROM system.replicas`,
-    hostId
-  )
+  const lag = lagSettled.status === 'fulfilled' ? lagSettled.value : null
   if (lag) {
     const seconds = Number(lag.value) || 0
     if (seconds >= 60) {
@@ -476,32 +490,45 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
 async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
 
-  // Detached parts — leftovers from failed merges / DETACH; disk without value.
-  const detached = await firstRow(
-    `SELECT count() AS value FROM system.detached_parts`,
-    hostId
-  )
+  const [
+    detachedSettled,
+    mutationsSettled,
+    longRunningSettled,
+    dictionariesSettled,
+    pressureSettled,
+  ] = await Promise.allSettled([
+    firstRow(`SELECT count() AS value FROM system.detached_parts`, hostId),
+    firstRow(
+      `SELECT count() AS value FROM system.mutations WHERE is_done = 0 AND latest_fail_reason != ''`,
+      hostId
+    ),
+    firstRow(
+      `SELECT count() AS value, max(elapsed) AS max_elapsed FROM system.processes WHERE elapsed > 60 AND query NOT ILIKE '%system.processes%'`,
+      hostId
+    ),
+    firstRow(
+      `SELECT count() AS value FROM system.dictionaries WHERE status = 'FAILED'`,
+      hostId
+    ),
+    collectPartsPressure(hostId),
+  ])
+
+  const detached =
+    detachedSettled.status === 'fulfilled' ? detachedSettled.value : null
   if (detached) {
     const candidate = checkDetachedParts(Number(detached.value) || 0)
     if (candidate) out.push(candidate)
   }
 
-  // Stuck mutations — not done yet but already carrying a failure reason.
-  const mutations = await firstRow(
-    `SELECT count() AS value FROM system.mutations WHERE is_done = 0 AND latest_fail_reason != ''`,
-    hostId
-  )
+  const mutations =
+    mutationsSettled.status === 'fulfilled' ? mutationsSettled.value : null
   if (mutations) {
     const candidate = checkStuckMutations(Number(mutations.value) || 0)
     if (candidate) out.push(candidate)
   }
 
-  // Long-running live query — the single longest currently-executing query,
-  // excluding this collector's own probe of system.processes.
-  const longRunning = await firstRow(
-    `SELECT count() AS value, max(elapsed) AS max_elapsed FROM system.processes WHERE elapsed > 60 AND query NOT ILIKE '%system.processes%'`,
-    hostId
-  )
+  const longRunning =
+    longRunningSettled.status === 'fulfilled' ? longRunningSettled.value : null
   if (longRunning) {
     const candidate = checkLongRunningQuery(
       Number(longRunning.max_elapsed) || 0,
@@ -510,19 +537,17 @@ async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
     if (candidate) out.push(candidate)
   }
 
-  // Dictionaries stuck in the FAILED state — every query using them errors.
-  const dictionaries = await firstRow(
-    `SELECT count() AS value FROM system.dictionaries WHERE status = 'FAILED'`,
-    hostId
-  )
+  const dictionaries =
+    dictionariesSettled.status === 'fulfilled'
+      ? dictionariesSettled.value
+      : null
   if (dictionaries) {
     const candidate = checkFailedDictionaries(Number(dictionaries.value) || 0)
     if (candidate) out.push(candidate)
   }
 
-  // Predictive parts pressure — project the worst partition's time-to-throw from
-  // system.part_log; fall back to fill-percent-only when part_log is disabled.
-  const pressure = await collectPartsPressure(hostId)
+  const pressure =
+    pressureSettled.status === 'fulfilled' ? pressureSettled.value : null
   if (pressure) out.push(pressure)
 
   return out

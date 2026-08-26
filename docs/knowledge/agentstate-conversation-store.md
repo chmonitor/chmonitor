@@ -26,7 +26,7 @@ alongside Browser / D1 / Postgres / Memory. It additionally enables **AI
 enrichment**: auto-generated conversation titles and follow-up question
 suggestions.
 
-User-facing reference: [docs/content/ai-agent.mdx](../content/ai-agent.mdx)
+User-facing reference: [docs/content/guide/ai-agent.mdx](../content/guide/ai-agent.mdx)
 ("Conversation history backends" → "AgentState"). See also
 [agent-conversation-storage.md](agent-conversation-storage.md) for the broader
 store-selection rules.

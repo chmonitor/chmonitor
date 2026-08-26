@@ -55,7 +55,7 @@ canonical `CHM_*` → legacy `NEXT_PUBLIC_*` → committed default. The explicit
 
 | Target | Non-secret config | Secrets | Mechanism |
 |--------|-------------------|---------|-----------|
-| **Cloudflare (hosted)** | `apps/dashboard/.env.production` (+ `.env.preview` overlay for PR previews) | `scripts/set-secrets.ts` (from CI secrets) | `scripts/patch-wrangler-env.ts` injects every non-`VITE_` key as a Worker runtime `[var]` at deploy; the same files feed the vite client build via `CHM_BUILD_ENV=production\|preview` (npm `build:production` / `build:preview`) |
+| **Cloudflare (hosted)** | `apps/dashboard/.env.production` (+ `.env.preview` overlay for PR previews) | `scripts/set-secrets.ts` (from CI secrets) | `apps/dashboard/scripts/patch-wrangler-env.ts` injects every non-`VITE_` key as a Worker runtime `[var]` at deploy; the same files feed the vite client build via `CHM_BUILD_ENV=production\|preview` (npm `build:production` / `build:preview`) |
 | **Docker** | `.env` (optional, `env_file` with `required: false` in `docker-compose.yml`) or `-e` flags; template is `.env.example` | `.env.local` / `-e` / orchestrator secret | plain `process.env`; client `VITE_*` is baked into the image at build time |
 | **Kubernetes / Helm** | `values.yaml` → ConfigMap | Kubernetes `Secret` | `envFrom` ConfigMap + Secret; client `VITE_*` is baked into the image at build time |
 
@@ -162,10 +162,10 @@ The same script deploys from both CI and local (run inside `apps/dashboard`):
 pnpm run cf:deploy
 ```
 
-This is `pnpm run build:production && bun scripts/patch-wrangler-env.ts && wrangler deploy --minify`, i.e.:
+This is `pnpm run build:production && bun apps/dashboard/scripts/patch-wrangler-env.ts && wrangler deploy --minify`, i.e.:
 
 1. `pnpm run build:production` — vite build (Cloudflare target) + `tsc --noEmit`
-2. `bun scripts/patch-wrangler-env.ts` — injects Worker runtime `[vars]` from `.env.production` (+ `.env.preview` overlay)
+2. `bun apps/dashboard/scripts/patch-wrangler-env.ts` — injects Worker runtime `[vars]` from `.env.production` (+ `.env.preview` overlay)
 3. `wrangler deploy --minify` — deploy to Workers
 
 No OpenNext transform, no KV/R2/D1 cache population step — the TanStack Start
@@ -266,7 +266,7 @@ pnpm run docker:health
 `wrangler.toml` declares **no** `[vars]` block (see "Never re-add a `[vars]`
 block to `wrangler.toml`" above). Non-secret config for the hosted product
 lives only in the committed `apps/dashboard/.env.production` (+ `.env.preview`
-overlay); `scripts/patch-wrangler-env.ts` injects it as Worker runtime vars at
+overlay); `apps/dashboard/scripts/patch-wrangler-env.ts` injects it as Worker runtime vars at
 deploy time. To change a value, edit `.env.production`, not `wrangler.toml`.
 
 **Secrets** (set via `pnpm run cf:config` or manually):
@@ -374,7 +374,7 @@ Single record of what is attached and why (issue #2900):
 **Why it is inert.** The Cloudflare account is over the Workers Free
 5-crons-per-account budget, so any schedules PUT — even `crons: []` — fails
 *after* a successful script upload and exits the deploy 1 (PRs #2866, #2868).
-`scripts/patch-wrangler-env.ts` therefore runs `delete generated.triggers`;
+`apps/dashboard/scripts/patch-wrangler-env.ts` therefore runs `delete generated.triggers`;
 wrangler skips the schedules API entirely when the key is absent, and the crons
 attached by earlier deploys stay in place. The cron HTTP routes
 (`src/routes/api/cron/*`) still work with `CRON_SECRET` from any scheduler.
@@ -389,7 +389,7 @@ reintroducing the #2868 red deploy) fails in CI first.
 
 **Re-enable path.** 1) The account regains cron budget (free plan → 5 total, or
 upgrade; count all workers). 2) Remove `delete generated.triggers` from
-`scripts/patch-wrangler-env.ts`, restoring the earlier preview-only guard.
+`apps/dashboard/scripts/patch-wrangler-env.ts`, restoring the earlier preview-only guard.
 3) Update `cron-triggers.test.ts` and this table. 4) Verify with
 `pnpm exec wrangler deploy --minify --dry-run`, then deploy and confirm the
 schedules PUT succeeds.

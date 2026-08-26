@@ -589,6 +589,40 @@ Operators who already bought a license set `CHM_LICENSE_KEY` on the
 | `POLAR_ACCESS_TOKEN` | Org access token (secret). |
 | `POLAR_WEBHOOK_SECRET` | Webhook signing secret. |
 
+## Ops notifications worker (cloud-hooks)
+
+`apps/cloud-hooks` is the Cloudflare Worker for Polar license checkout, Clerk
+lifecycle hooks, health-probe digests, and exception/issue-watch notifications.
+Bindings (`CHM_CLOUD_D1`, `CHM_TELEMETRY_DB`, `CHM_HOOKS_KV`) are declared in
+`apps/cloud-hooks/wrangler.toml`, not here. See `apps/cloud-hooks/.env.example`.
+
+| Variable | Purpose |
+|---|---|
+| `POLAR_WEBHOOK_SECRET` | Polar webhook HMAC signing secret. |
+| `POLAR_ACCESS_TOKEN` | Polar org API token for checkout/re-key. |
+| `CLERK_SECRET_KEY` | Clerk backend API key (when Clerk hooks are enabled). |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook signing secret (`whsec_…`). |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token for ops digests/alerts. |
+| `TELEGRAM_CHAT_ID` | Destination chat/channel id for Telegram alerts. |
+| `GITHUB_TOKEN` | PAT with `issues:write` (fallback when GitHub App creds unset). |
+| `GH_APP_ID` | GitHub App id for exception/issue filing (preferred over PAT). |
+| `GH_APP_PRIVATE_KEY` | GitHub App PKCS#8 private key PEM. |
+| `GH_APP_INSTALLATION_ID` | Optional fixed installation id (else resolved from repo). |
+| `CF_OBSERVABILITY_API_TOKEN` | Cloudflare API token with Workers Observability read. |
+| `CHM_POLAR_SERVER` | `sandbox` or `production` Polar API host. |
+| `CHM_LICENSE_SUCCESS_ORIGIN` | Post-checkout redirect origin (default `https://chmonitor.dev`). |
+| `CF_ACCOUNT_ID` | Cloudflare account id for observability queries. |
+| `GITHUB_REPOSITORY` | `owner/repo` for filed issues (default `chmonitor/chmonitor`). |
+| `CHM_EXCEPTION_ISSUE_LABELS` | Comma-separated labels for exception issues. |
+| `CHM_EXCEPTION_MAX_ISSUES_PER_RUN` | Max new exception issues per scan (default `5`). |
+| `CHM_EXCEPTION_SCRIPTS` | Comma-separated Worker script names to scan. |
+| `CHM_ISSUE_WATCH_EXCLUDE_LABELS` | Labels whose new issues the watch stays quiet about. |
+| `CHM_ISSUE_WATCH_MAX_PER_RUN` | Max new issues announced per ops sweep (default `10`). |
+| `CHM_POLAR_LICENSE_TEAM_YEARLY` | Polar product id — team yearly license. |
+| `CHM_POLAR_LICENSE_TEAM_LIFETIME` | Polar product id — team lifetime license. |
+| `CHM_POLAR_LICENSE_UNLIMITED_YEARLY` | Polar product id — unlimited yearly license. |
+| `CHM_POLAR_LICENSE_UNLIMITED_LIFETIME` | Polar product id — unlimited lifetime license. |
+
 ## Runtime & build
 
 | Variable | Default | Purpose |

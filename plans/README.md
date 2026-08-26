@@ -98,8 +98,9 @@ CI's `bun-version` 1.3.13→1.3.14 for the `unit-tests` coverage-writer crash
 (`WriteFailed`); [#2246](https://github.com/chmonitor/chmonitor/pull/2246) then
 fixed the real root cause of the related `cloudflare:workers` pre-push-hook
 failures with a global `bun test` preload; [#2252](https://github.com/chmonitor/chmonitor/pull/2252)
-bumped remaining stray bun pins. `unit-tests` is still a non-required check
-per the babysit-PR policy above, so any residual flake there is not a blocker.
+bumped remaining stray bun pins. `unit-tests` is a required merge check (PR
+[#2527](https://github.com/chmonitor/chmonitor/pull/2527), merged 2026-07-10);
+known non-required checks are `e2e-test`, `e2e-test-tsr`, and `component-test`.
 
 **Note:** a separate long-running autonomous swarm (see `~/.claude` memory
 `chmonitor-swarm-ci-operating-context`) also works this backlog concurrently —
@@ -210,10 +211,10 @@ it protects (76–78, 95).
 | # | Plan | Category | Priority | Effort | Depends on | Status |
 |---|------|----------|----------|--------|------------|--------|
 | 71 | [cloud-demo-host-guard-coverage](71-cloud-demo-host-guard-coverage.md) | security | P1 | M | — | ⏳ TODO · [#2488](https://github.com/chmonitor/chmonitor/issues/2488) |
-| 72 | [prefetch-query-key-alignment](72-prefetch-query-key-alignment.md) | bug | P1 | S | — | ⏳ TODO · [#2489](https://github.com/chmonitor/chmonitor/issues/2489) |
-| 73 | [table-result-row-cap](73-table-result-row-cap.md) | perf | P1 | M | — | ⏳ TODO · [#2490](https://github.com/chmonitor/chmonitor/issues/2490) |
+| 72 | [prefetch-query-key-alignment](72-prefetch-query-key-alignment.md) | bug | P1 | S | — | ✅ DONE · shared `chartQueryKey`/`tableQueryKey` in `apps/dashboard/src/lib/swr/prefetch.ts` · [#2489](https://github.com/chmonitor/chmonitor/issues/2489) |
+| 73 | [table-result-row-cap](73-table-result-row-cap.md) | perf | P1 | M | — | ✅ DONE · `max_result_rows` cap in `apps/dashboard/src/lib/api/query-executor.ts` · [#2490](https://github.com/chmonitor/chmonitor/issues/2490) |
 | 74 | [host-id-validation-unification](74-host-id-validation-unification.md) | bug | P1 | S | — | ⏳ TODO · [#2491](https://github.com/chmonitor/chmonitor/issues/2491) |
-| 75 | [required-unit-tests-check](75-required-unit-tests-check.md) | dx | P1 | S | — | ⏳ TODO · [#2492](https://github.com/chmonitor/chmonitor/issues/2492) |
+| 75 | [required-unit-tests-check](75-required-unit-tests-check.md) | dx | P1 | S | — | ✅ DONE · PR [#2527](https://github.com/chmonitor/chmonitor/pull/2527) merged 2026-07-10 · [#2492](https://github.com/chmonitor/chmonitor/issues/2492) |
 | 76 | [billing-resolution-tests](76-billing-resolution-tests.md) | tests | P1 | M | — | ⏳ TODO · [#2493](https://github.com/chmonitor/chmonitor/issues/2493) |
 | 77 | [deploy-env-projection-tests](77-deploy-env-projection-tests.md) | tests | P1 | S | — | ⏳ TODO · [#2494](https://github.com/chmonitor/chmonitor/issues/2494) |
 | 78 | [constant-time-auth-dedupe](78-constant-time-auth-dedupe.md) | security | P1 | S | — | ⏳ TODO · [#2495](https://github.com/chmonitor/chmonitor/issues/2495) |
@@ -224,10 +225,10 @@ it protects (76–78, 95).
 | 83 | [fleet-wide-rate-limiting](83-fleet-wide-rate-limiting.md) | security | P2 | M | — | ✅ DONE · [#2500](https://github.com/chmonitor/chmonitor/issues/2500) (closes #2467) |
 | 84 | [sanitize-500-error-responses](84-sanitize-500-error-responses.md) | security | P2 | S | — | ⏳ TODO · [#2501](https://github.com/chmonitor/chmonitor/issues/2501) |
 | 85 | [bug-handler-fail-closed-senders](85-bug-handler-fail-closed-senders.md) | security | P2 | S | — | ⏳ TODO · [#2502](https://github.com/chmonitor/chmonitor/issues/2502) |
-| 86 | [telemetry-event-insert-bounds](86-telemetry-event-insert-bounds.md) | security | P3 | S | — | ⏳ TODO · [#2503](https://github.com/chmonitor/chmonitor/issues/2503) |
+| 86 | [telemetry-event-insert-bounds](86-telemetry-event-insert-bounds.md) | security | P3 | S | — | ✅ DONE · `MAX_BODY_BYTES` + hex64 validation in `apps/telemetry/src/index.ts` · [#2503](https://github.com/chmonitor/chmonitor/issues/2503) |
 | 87 | [browser-connection-store-fixes](87-browser-connection-store-fixes.md) | bug | P2 | M | — | ⏳ TODO · [#2504](https://github.com/chmonitor/chmonitor/issues/2504) |
 | 88 | [optional-table-probe-transient-errors](88-optional-table-probe-transient-errors.md) | bug | P2 | S | — | ⏳ TODO · [#2505](https://github.com/chmonitor/chmonitor/issues/2505) |
-| 89 | [lazy-markdown-imports](89-lazy-markdown-imports.md) | perf | P2 | S | — | ⏳ TODO · [#2506](https://github.com/chmonitor/chmonitor/issues/2506) |
+| 89 | [lazy-markdown-imports](89-lazy-markdown-imports.md) | perf | P2 | S | — | ✅ DONE · lazy `react-markdown` in `apps/dashboard/src/components/data-table/formatters/advanced-formatters.tsx` · [#2506](https://github.com/chmonitor/chmonitor/issues/2506) |
 | 90 | [landing-blog-image-optimization](90-landing-blog-image-optimization.md) | perf | P2 | M | — | ⏳ TODO · [#2507](https://github.com/chmonitor/chmonitor/issues/2507) |
 | 91 | [readme-docs-link-fixes](91-readme-docs-link-fixes.md) | docs | P1 | S | — | ⏳ TODO · [#2508](https://github.com/chmonitor/chmonitor/issues/2508) |
 | 92 | [blog-og-duplicate-post](92-blog-og-duplicate-post.md) | docs/SEO | P2 | S | — | ⏳ TODO · [#2509](https://github.com/chmonitor/chmonitor/issues/2509) |
@@ -244,8 +245,8 @@ it protects (76–78, 95).
 
 ### Round-4 dependency notes
 
-- 75 (make unit-tests a required check) is the verification-baseline finding —
-  land early; without it every test plan protects nothing.
+- 75 (make unit-tests a required check) landed in PR #2527 — unit-tests is now
+  required alongside `dashboard`.
 - 102 depends on 72 (both touch the chart/table queryKey code).
 - 96 depends on 95 (adapter contract tests pin the API the spike must preserve).
 - 71 and 84 both touch API route error paths — mergeable independently, but
@@ -269,6 +270,43 @@ it protects (76–78, 95).
   overage billing is unwired; revisit inside plans/18.
 - **`/v1/summary` double-WHERE 500** and **insight NaN guards**: already
   tracked as issues #2466 / #2469 — not re-planned.
+
+## Round 5 — audit findings (104–129)
+
+Generated by the improve skill on 2026-08-26 at commit `34113ac`. GitHub issue
+per plan (links below). Plan 119 extends plan 78 (constant-time auth dedupe);
+plan 120 supersedes plan 84 (sanitize 500 error responses).
+
+| # | Plan | Category | Priority | Effort | Depends on | Status |
+|---|------|----------|----------|--------|------------|--------|
+| 104 | pnpm overrides migration | deps | P1 | M | — | ✅ DONE · [#3300](https://github.com/chmonitor/chmonitor/issues/3300) |
+| 105 | cloud-hooks in unit-tests CI | dx | P2 | S | — | ⏳ TODO · [#3301](https://github.com/chmonitor/chmonitor/issues/3301) |
+| 106 | cloud-hooks Telegram HTML escape | security | P2 | S | — | ⏳ TODO · [#3302](https://github.com/chmonitor/chmonitor/issues/3302) |
+| 107 | license-wall Polar verify | business-logic | P2 | M | — | ⏳ TODO · [#3303](https://github.com/chmonitor/chmonitor/issues/3303) |
+| 109 | batch insights chart fetches | perf | P2 | M | — | ⏳ TODO · [#3304](https://github.com/chmonitor/chmonitor/issues/3304) |
+| 110 | parallelize advisor engines | perf | P2 | M | — | ⏳ TODO · [#3305](https://github.com/chmonitor/chmonitor/issues/3305) |
+| 111 | lazy-load react-markdown shell | perf | P2 | S | — | ⏳ TODO · [#3306](https://github.com/chmonitor/chmonitor/issues/3306) |
+| 112 | delete orphaned billing UI | tech-debt | P3 | S | — | ⏳ TODO · [#3307](https://github.com/chmonitor/chmonitor/issues/3307) |
+| 113 | consolidate Polar reverse map | refactor | P3 | S | — | ⏳ TODO · [#3308](https://github.com/chmonitor/chmonitor/issues/3308) |
+| 114 | parallelize insights-collector probes | perf | P2 | M | — | ✅ DONE · [#3309](https://github.com/chmonitor/chmonitor/issues/3309) |
+| 115 | API-key issuance route tests | tests | P2 | M | — | ⏳ TODO · [#3310](https://github.com/chmonitor/chmonitor/issues/3310) |
+| 116 | alert-routing CRUD tests | tests | P2 | M | — | ⏳ TODO · [#3311](https://github.com/chmonitor/chmonitor/issues/3311) |
+| 117 | page-render sweep coverage | tests | P2 | L | — | ⏳ TODO · [#3312](https://github.com/chmonitor/chmonitor/issues/3312) |
+| 118 | cron-trigger header-only auth | security | P2 | S | — | ⏳ TODO · [#3313](https://github.com/chmonitor/chmonitor/issues/3313) |
+| 119 | constant-time comparator helper | security | P2 | S | 78 | ⏳ TODO · extends 78 · [#3314](https://github.com/chmonitor/chmonitor/issues/3314) |
+| 120 | sanitize query-route errors | security | P2 | M | 84 | ⏳ TODO · supersedes 84 · [#3315](https://github.com/chmonitor/chmonitor/issues/3315) |
+| 121 | pnpm audit override floors | deps | P1 | S–M | 104 | ✅ DONE · [#3316](https://github.com/chmonitor/chmonitor/issues/3316) |
+| 122 | DX/docs drift batch | dx | P2 | M | — | ✅ DONE · [#3317](https://github.com/chmonitor/chmonitor/issues/3317) |
+| 123 | CI concurrency + cache hygiene | dx | P3 | S–M | — | ✅ DONE · [#3318](https://github.com/chmonitor/chmonitor/issues/3318) |
+| 124 | advisor findings in weekly report | feature | P3 | M | — | ⏳ TODO · [#3319](https://github.com/chmonitor/chmonitor/issues/3319) |
+| 125 | schema/settings diff tests | tests | P2 | M | — | ⏳ TODO · [#3320](https://github.com/chmonitor/chmonitor/issues/3320) |
+| 126 | cloud-hooks billing-deps tests | tests | P2 | M | — | ⏳ TODO · [#3321](https://github.com/chmonitor/chmonitor/issues/3321) |
+| 127 | agents/models route tests | tests | P2 | M | — | ⏳ TODO · [#3322](https://github.com/chmonitor/chmonitor/issues/3322) |
+| 128 | Rust CLI keyring plaintext purge | security | P2 | M | — | ⏳ TODO · [#3323](https://github.com/chmonitor/chmonitor/issues/3323) |
+| 129 | plans ledger reconciliation | dx | P3 | S | — | ✅ DONE · [#3324](https://github.com/chmonitor/chmonitor/issues/3324) |
+
+Also from the same audit batch (plan 139): outage state carry-forward in
+`apps/cloud-hooks` — ✅ DONE · [#3335](https://github.com/chmonitor/chmonitor/issues/3335).
 
 ## How "done" is judged (every plan)
 

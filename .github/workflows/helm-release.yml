@@ -28,6 +28,10 @@ on:
   # changed, so actually populating index.yaml still requires a Chart.yaml bump.
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

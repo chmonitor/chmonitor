@@ -4,3 +4,25 @@
 # `pnpm install` here scopes to this app + the shared packages only.
 packages:
   - ../../packages/*
+
+onlyBuiltDependencies:
+  - '@sentry/cli'
+  - core-js
+  - cypress
+  - esbuild
+  - sharp
+  - workerd
+
+overrides:
+  '@anthropic-ai/sdk': 0.92.0
+  '@opentelemetry/core': ^2.9.0
+  brace-expansion: ^5.0.9
+  dompurify: ^3.4.14
+  ip-address: ^10.3.1
+  js-yaml: ^4.3.1
+  mermaid: ^11.16.1
+  nanoid: ^3.3.18
+  postcss: ^8.5.23
+  protobufjs: ^8.7.2
+  undici: ^7.28.0
+  ws: ^8.21.3
