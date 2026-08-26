@@ -111,7 +111,10 @@ async fn send_get(
             bail!("chmonitor API at {url} returned {len} bytes (limit {MAX_RESPONSE_BYTES})");
         }
     }
-    let bytes = resp.bytes().await.unwrap_or_default();
+    let bytes = resp
+        .bytes()
+        .await
+        .with_context(|| format!("failed to read response body from {url}"))?;
     if bytes.len() > MAX_RESPONSE_BYTES {
         bail!(
             "chmonitor API at {url} returned {} bytes (limit {MAX_RESPONSE_BYTES})",
