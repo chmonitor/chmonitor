@@ -1,4 +1,4 @@
-import { authorizeCronRequest } from './authorize-cron'
+import { authorizeCronRequest } from '../authorize-cron'
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 mock.module('cloudflare:workers', () => ({ env: {} }))
