@@ -228,18 +228,21 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Tab strips:** define the tabs as one array and map it — an icon per tab with
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.
-  Wrap the list in `scrollbar-hide overflow-x-auto` + `w-max min-w-full` so
-  labels like "Memory & CPU" scroll instead of clipping. Selected styles use
-  Base UI `data-active:` (trigger `border-b-2`, not Radix
+  Wrap the list in `scrollbar-hide min-w-0 w-full overflow-x-auto` +
+  `TabsList w-max min-w-full flex-nowrap` so labels like "Memory & CPU"
+  scroll inside the strip (`min-w-0` is required on the flex child). Selected
+  styles use Base UI `data-active:` (trigger `border-b-2`, not Radix
   `data-[state=active]:`). Do not use `TabsList variant="line"` on an
   `overflow-x-auto` strip — the hanging `after` underline is clipped.
 - **Responsive chrome:** overview KPIs wrap from `sm` (truncate is `max-sm:`
   only). App sidebar overlays below `lg` (not a docked rail at 768). Mobile
-  sidebar sheet is opaque — no heatmap-through-frost.   Phone time chips /
-  sidebar rows / toggle / header utility icons (refresh, search, theme) are
-  `min 44×44`. Docs article Copy Markdown / Open are 44px below `md` (not
-  header search/menu). Agent FAB must not cover heatmap
-  "Avg / active day" (`pb-16` + last-card `pr-16`; landscape FAB at `top-16`).
+  sidebar sheet is opaque — no heatmap-through-frost. Phone sidebar rows /
+  toggle / header utility icons (refresh, search, theme) are `min 44×44`.
+  The header day switcher (1h…30d) stays compact and `flex-1` below `sm` so
+  chips + those utilities fit one 375 row. Docs article Copy Markdown / Open
+  are 44px below `md` (not header search/menu). Agent FAB must not cover
+  heatmap "Avg / active day" (`pb-16` + last-card `pr-16`; landscape FAB at
+  `top-16`).
 - **Paired page sections** (e.g. AI-generated vs. plain-statistics content):
   identical-weight header on both — `icon (size-4, muted-foreground) + <h2
   className="text-sm font-medium text-foreground">`. A *genuinely* empty section

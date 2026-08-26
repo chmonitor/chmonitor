@@ -26,8 +26,8 @@ export function TabsSkeleton({
     <div className={cn('space-y-2', className)}>
       {/* Tabs list skeleton */}
       {variant === 'underline' ? (
-        <div>
-          <div className="inline-flex h-auto w-full items-center justify-start gap-1 border-b border-border bg-transparent p-0">
+        <div className="scrollbar-hide min-w-0 w-full overflow-x-auto py-0.5">
+          <div className="inline-flex h-auto w-max min-w-full flex-nowrap items-center justify-start gap-1 border-b border-border bg-transparent p-0">
             {Array.from({ length: tabCount }).map((_, i) => (
               <Skeleton
                 key={i}

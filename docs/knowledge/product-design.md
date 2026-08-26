@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-24
+updated: 2026-08-26
 tags:
   - design-system
   - ui
@@ -585,8 +585,11 @@ when the user unblocks the site. Gate "Send test" on the live permission.
 Define tabs as one array and map it. One icon size (`size-3.5`), no margin
 utility — `TabsTrigger` already provides `items-center gap-1.5`; a stacked
 `mr-*` is what makes icons look off-baseline. Keep the strip in the
-`scrollbar-hide overflow-x-auto` + `TabsList w-max min-w-full flex-nowrap`
-wrapper so many tabs (Overview's "Memory & CPU") scroll instead of clipping.
+`scrollbar-hide min-w-0 w-full overflow-x-auto` + `TabsList w-max min-w-full
+flex-nowrap` wrapper so many tabs (Overview's "Memory & CPU") scroll
+inside the strip. `min-w-0 w-full` is required: the strip is a flex child
+of `Tabs` (`flex flex-col`), and without a bounded min-width the list
+grows to its content (~650px) and "Memo" clips with no in-strip scroll.
 Selected state is Base UI `data-active:` (underline via trigger
 `border-b-2` + `data-active:border-foreground`), never Radix
 `data-[state=active]:` — those selectors never match, so light-mode overview
@@ -613,10 +616,14 @@ would clip it.
   `lg`; the heatmap's last stat card (`Avg / active day`) is `max-lg:col-span-2
   max-lg:pr-16` so the bubble does not cover the label. On phone landscape the
   FAB moves to `top-16`.
-- **Phone tap targets are 44×44.** Time chips (`min-h-11 min-w-11` until
-  `sm`), sidebar rows (`h-11` until `lg`), sidebar trigger (`size-11` until
-  `lg`), header utility icons — refresh, search, theme (`min-h-11 min-w-11`
-  until `lg`). Glyph stays 16–20px. Compact sizes return at the desktop rail.
+- **Phone tap targets are 44×44** for sidebar rows (`h-11` until `lg`), the
+  sidebar trigger (`size-11` until `lg`), and header utility icons — refresh,
+  search, theme (`min-h-11 min-w-11` until `lg`). Glyph stays 16–20px. Compact
+  sizes return at the desktop rail. The **global header day switcher**
+  (1h…30d) is the exception: chips stay compact (`px-1.5 py-0.5`, `flex-1`
+  below `sm`) so they fill the row beside those 44×44 utilities on 375
+  without clipping the theme icon or leaving an empty band. Chart
+  `DateRangeSelector` dropdown chips stay `min-h-11 min-w-11` until `sm`.
   Docs article **Copy Markdown** / **Open** (`[data-article-actions]`, below
   `md`) are the same 44px floor; docs header search/menu is a separate control
   (`#nd-nav` / `#nd-subnav`).
