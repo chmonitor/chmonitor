@@ -608,7 +608,7 @@ export function SettingsForm({
           <div className="flex items-center px-5 pt-4 pr-12">
             <h2 className="text-sm font-semibold">{activeLabel}</h2>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4">
             {/* General */}
             <TabsContent value="general" className="space-y-4 px-1 pb-2">
               <Field
