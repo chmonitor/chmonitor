@@ -81,6 +81,10 @@ describe('KpiCard overflow', () => {
     expect(value?.className).toContain('sm:whitespace-normal')
     expect(value?.className.split(/\s+/)).not.toContain('truncate')
 
+    const unit = container.querySelector('span.whitespace-nowrap')
+    expect(unit?.textContent).toBe('running')
+    expect(unit?.className).toContain('shrink-0')
+
     await cleanup()
   })
 })

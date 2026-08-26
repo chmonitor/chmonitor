@@ -618,9 +618,12 @@ would clip it.
 
 ### Responsive chrome (phones + tablets)
 
-- **Overview KPI cards** wrap titles/values from `sm` up. `truncate` is
-  `max-sm:` only — a four-up strip at 1280 must show "Active Queries" and
-  typical values in full.
+- **Overview KPI cards** (`OverviewCharts`) use 1 column, 2×2 from `sm`,
+  four-across from `lg` — the same split as `/traffic`. `md:grid-cols-4`
+  (768) keeps four crushed columns and wraps "Active Queries". Titles/values
+  wrap from `sm` up; `truncate` is `max-sm:` only so a four-up strip at 1280
+  still shows "Active Queries" and typical values in full. Clickable cards
+  keep a 44px tap (`min-h-11`).
 - **App sidebar overlays below `lg` (1024)**, not `md`. A docked 16rem rail at
   768 / landscape crushes the card grid. `SidebarProvider` uses `useIsLgDown()`;
   the desktop rail + resize handle are `lg:flex` / `lg:block`. The mobile

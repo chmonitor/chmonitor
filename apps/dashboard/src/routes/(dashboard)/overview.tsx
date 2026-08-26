@@ -7,7 +7,10 @@ import { lazy, memo, Suspense, useMemo, useState } from 'react'
 import { ClientOnly } from '@/components/client-only'
 import { InsightsStrip } from '@/components/insights/insights-strip'
 import { cardStyles } from '@/components/overview-charts/card-styles'
-import { OverviewCharts } from '@/components/overview-charts/overview-charts-client'
+import {
+  OVERVIEW_KPI_GRID_CLASS,
+  OverviewCharts,
+} from '@/components/overview-charts/overview-charts-client'
 import { OverviewStatusStrip } from '@/components/overview-charts/overview-status-strip'
 import { ChartSkeleton, Skeleton, TabsSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -320,7 +323,7 @@ function OverviewPageFallback() {
   return (
     <div>
       <Skeleton className="mb-3 h-5 w-full rounded-lg" />
-      <div className="mb-4 grid auto-rows-fr grid-cols-1 gap-3 sm:mb-6 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
+      <div className={cn(OVERVIEW_KPI_GRID_CLASS, 'mb-4 sm:mb-6')}>
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className={cn(cardStyles.base, 'gap-2.5 p-3 sm:p-4')}>
             <Skeleton className="h-3 w-24" />
