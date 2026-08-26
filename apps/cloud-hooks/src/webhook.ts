@@ -143,8 +143,7 @@ export async function handlePolarWebhook(
     if (data.productId && licenseForProductId(env, data.productId)) {
       logInfo(
         '[cloud-hooks] self-host license event; skipping cloud plan apply',
-        data.productId,
-        event.type
+        { productId: data.productId, eventType: event.type }
       )
       return Response.json({ received: true }, { status: 202 })
     }

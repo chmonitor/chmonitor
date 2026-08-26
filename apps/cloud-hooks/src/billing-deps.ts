@@ -8,7 +8,7 @@
  * that once the Polar endpoint is cut over (plans/103 step 3-4) nothing forks.
  */
 
-import type { PaidLicenseId } from '@chm/pricing'
+import type { PaidLicenseId, PlanId } from '@chm/pricing'
 import type { Env } from './env'
 
 import {
@@ -20,7 +20,7 @@ import {
   PAID_LICENSE_IDS,
   planForProductIdFromLookup,
 } from '@chm/pricing'
-import { logError, logInfo } from './log'
+import { logError, logInfo, type LogMeta } from './log'
 
 type BillingPeriod = 'monthly' | 'yearly'
 
@@ -32,7 +32,7 @@ function readEnv(env: Env, key: string): string | undefined {
 /** Env-driven reverse map: Polar product id → our plan + period, or null. */
 export function makePlanForProductId(
   env: Env
-): (productId: string) => { planId: string; period: BillingPeriod } | null {
+): (productId: string) => { planId: PlanId; period: BillingPeriod } | null {
   return (productId: string) =>
     planForProductIdFromLookup((key) => readEnv(env, key), productId)
 }
@@ -176,7 +176,7 @@ export function makeApplyDeps(
     invalidateNegativeCache: () => {},
     onUpgradeCompleted: async () => {},
     logBillingAudit: async () => {},
-    logInfo: (m, meta) => logInfo(m, meta),
+    logInfo: (m, meta) => logInfo(m, meta as LogMeta | undefined),
     logError: (m, meta) => logError(m, meta),
   }
 }

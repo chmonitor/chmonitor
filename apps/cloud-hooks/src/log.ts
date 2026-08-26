@@ -21,6 +21,8 @@ export function logInfo(msg: string, meta?: LogMeta): void {
   emitInfo(msg, meta)
 }
 
+export type { LogMeta }
+
 export function logError(
   msg: string,
   errOrMeta?: unknown,
