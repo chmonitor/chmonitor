@@ -10,9 +10,10 @@ import type { MenuItem } from '@/components/menu/types'
  * are never on the hide list (engine swap already drops those groups).
  * Footer rows are never hidden.
  *
- * The rail is flattened separately (`flattenSingletonGroups`) so a group
- * with one visible child renders as a leaf (Chat, Health, Queries, Tables,
- * SQL) without a chevron.
+ * Groups with one visible child stay grouped on the live rail (AI Agent →
+ * Chat, Health → Health, Queries → Running Queries, Tables → Tables
+ * Overview, Tools → SQL Console). Overview is a catalog leaf. Hover +
+ * still nests hidden siblings under that parent.
  *
  * Full in Settings → Navigation still shows every page. Explorer stays in
  * the Tables inventory (and under Tools); it is not an Essential rail row.

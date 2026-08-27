@@ -375,10 +375,12 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   flyout of hidden leaves (click navigates; hover Add / Pin; footer
   Customize… and Show all). Full with hide count 0 hides the row. Below
   `lg` the catalog is an inline panel inside the overlay sidebar — it does
-  not open the 375 Settings dialog unless Customize is tapped. Groups with
-  0–1 visible children flatten (`flattenSingletonGroups`) so Essential
-  shows Chat / Health / Queries / Tables / SQL without a chevron. Settings
-  → Navigation has **Show all** (applies Full) when the
+  not open the 375 Settings dialog unless Customize is tapped. Essential
+  keeps grouped parents with one visible child (Overview is a leaf; AI
+  Agent → Chat, Health → Health, Queries → Running Queries, Tables →
+  Tables Overview, Tools → SQL Console) — do not flatten those groups
+  to Chat / SQL leaves. Hover + still adds hidden siblings under that
+  parent. Settings → Navigation has **Show all** (applies Full) when the
   preset is not Full.
 
 - **Alerts in the sidebar (#3291):** there is no standing Alerts catalog
@@ -813,8 +815,10 @@ Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 preset).
 
 **Essential first-run default:** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
-Flattened rail: Overview, Chat (`/agents`), Health, Queries
-(`/running-queries`), Tables (`/tables-overview`), SQL (`/sql`), More.
+Grouped rail (one visible child each, not flattened leaves): Overview
+(leaf), AI Agent → Chat (`/agents`), Health → Health (`/health`),
+Queries → Running Queries (`/running-queries`), Tables → Tables
+Overview (`/tables-overview`), Tools → SQL Console (`/sql`), More.
 Insights, Merges, Metrics, Clusters, Explain, Advisor, Explorer, and
 parent `/tables` are off the rail. Explorer is not on Essential; on Full
 it stays under Tools (inventory remains Tables in the customize tree).

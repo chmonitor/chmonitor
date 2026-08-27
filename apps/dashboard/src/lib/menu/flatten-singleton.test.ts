@@ -3,16 +3,16 @@ import { menuItemsConfig } from '@/menu'
 import type { MenuItem } from '@/components/menu/types'
 
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { DEFAULT_SOURCE_ENGINE } from '@chm/types'
 import {
   flattenSingletonGroups,
   flattenSingletonTitle,
 } from '@/lib/menu/flatten-singleton'
 import { revealAlertsWhenActive } from '@/lib/menu/notification-alerts'
-import {
-  DEFAULT_HIDDEN_MENU_HREFS,
-  DEFAULT_VISIBLE_MENU_HREFS,
-} from '@/lib/menu/slim-default'
+import { DEFAULT_HIDDEN_MENU_HREFS } from '@/lib/menu/slim-default'
 import { filterMenuItemsByEngine } from '@/lib/menu/visible-items'
 import { applyWorkspaceVisibility } from '@/lib/menu/workspace-presets'
 
@@ -21,6 +21,16 @@ const leaf = (overrides: Partial<MenuItem> = {}): MenuItem => ({
   href: overrides.href ?? '/item',
   ...overrides,
 })
+
+function essentialRail(): MenuItem[] {
+  return applyWorkspaceVisibility(
+    filterMenuItemsByEngine(menuItemsConfig, DEFAULT_SOURCE_ENGINE),
+    {
+      workspacePreset: 'custom',
+      hiddenMenuHrefs: DEFAULT_HIDDEN_MENU_HREFS,
+    }
+  )
+}
 
 describe('flattenSingletonTitle', () => {
   test('uses the parent title for Queries / Tables / Health', () => {
@@ -89,50 +99,67 @@ describe('flattenSingletonGroups', () => {
     expect(flat[2]?.title).toBe('Queries Many')
     expect(flat[2]?.items).toHaveLength(2)
   })
+})
 
-  test('Essential first-run rail is six leaves plus About, no specialist groups', () => {
-    const visible = applyWorkspaceVisibility(
-      filterMenuItemsByEngine(menuItemsConfig, DEFAULT_SOURCE_ENGINE),
-      {
-        workspacePreset: 'custom',
-        hiddenMenuHrefs: DEFAULT_HIDDEN_MENU_HREFS,
-      }
+describe('Essential first-run rail (grouped, not flattened)', () => {
+  test('live sidebar source does not flatten singleton groups', () => {
+    const src = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        'use-visible-menu-items.ts'
+      ),
+      'utf8'
     )
-    const flat = flattenSingletonGroups(visible)
-    const body = flat.filter((item) => item.section !== 'footer')
+    expect(src).not.toMatch(/\bflattenSingletonGroups\b/)
+    expect(src).toContain('revealAlertsWhenActive')
+  })
+
+  test('keeps parent groups with one visible child plus About', () => {
+    const visible = essentialRail()
+    const body = visible.filter((item) => item.section !== 'footer')
 
     expect(body.map((item) => item.title)).toEqual([
       'Overview',
-      'Chat',
+      'AI Agent',
       'Health',
       'Queries',
       'Tables',
-      'SQL',
+      'Tools',
     ])
-    for (const item of body) {
-      expect(item.items, item.title).toBeUndefined()
-    }
-    expect(flat.some((item) => item.href === '/about')).toBe(true)
-    expect(body.map((item) => item.href)).toEqual([
-      ...DEFAULT_VISIBLE_MENU_HREFS,
+    expect(body[0]?.href).toBe('/overview')
+    expect(body[0]?.items).toBeUndefined()
+    expect(body.map((item) => item.items?.map((child) => child.href))).toEqual([
+      undefined,
+      ['/agents'],
+      ['/health'],
+      ['/running-queries'],
+      ['/tables-overview'],
+      ['/sql'],
     ])
+    expect(body.map((item) => item.items?.map((child) => child.title))).toEqual(
+      [
+        undefined,
+        ['Chat'],
+        ['Health'],
+        ['Running Queries'],
+        ['Tables Overview'],
+        ['SQL Console'],
+      ]
+    )
+    expect(visible.some((item) => item.href === '/about')).toBe(true)
   })
 
-  test('Alerts injection before flatten keeps Health as a two-child group', () => {
-    const visible = applyWorkspaceVisibility(
-      filterMenuItemsByEngine(menuItemsConfig, DEFAULT_SOURCE_ENGINE),
-      {
-        workspacePreset: 'custom',
-        hiddenMenuHrefs: DEFAULT_HIDDEN_MENU_HREFS,
-      }
-    )
-    const withAlerts = revealAlertsWhenActive(visible, true)
-    const flat = flattenSingletonGroups(withAlerts)
-    const health = flat.find((item) => item.title === 'Health')
+  test('Alerts injection keeps Health as a two-child group', () => {
+    const withAlerts = revealAlertsWhenActive(essentialRail(), true)
+    const health = withAlerts.find((item) => item.title === 'Health')
     expect(health?.items?.map((child) => child.href)).toEqual([
       '/health',
       '/alert-settings',
     ])
-    expect(flat.find((item) => item.title === 'Queries')?.items).toBeUndefined()
+    expect(
+      withAlerts
+        .find((item) => item.title === 'Queries')
+        ?.items?.map((child) => child.href)
+    ).toEqual(['/running-queries'])
   })
 })

@@ -1,7 +1,6 @@
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
-import { flattenSingletonGroups } from '@/lib/menu/flatten-singleton'
 import { revealAlertsWhenActive } from '@/lib/menu/notification-alerts'
 import {
   getAllowedMenuItems,
@@ -13,8 +12,9 @@ import { useNotifications } from '@/lib/swr/use-notifications'
 
 /**
  * Sidebar catalog after permission / engine / workspace gates, with Alerts
- * injected only while the notifications poll reports a count, then 1-child
- * groups flattened (no chevron).
+ * injected only while the notifications poll reports a count. Groups with
+ * one visible child keep their parent (chevron + nested leaf) so hover +
+ * can add hidden siblings under that parent.
  */
 export function useVisibleMenuItems() {
   const { config } = useFeaturePermissions()
@@ -23,11 +23,9 @@ export function useVisibleMenuItems() {
   const hostId = useHostId()
   const { totalCount, isLoading } = useNotifications(hostId)
 
-  return flattenSingletonGroups(
-    revealAlertsWhenActive(
-      getVisibleMenuItems(config, engine, workspaceFromSettings(settings)),
-      !isLoading && totalCount > 0
-    )
+  return revealAlertsWhenActive(
+    getVisibleMenuItems(config, engine, workspaceFromSettings(settings)),
+    !isLoading && totalCount > 0
   )
 }
 
