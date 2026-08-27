@@ -103,7 +103,9 @@ export function WhatsNewDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="relative flex max-h-[min(40rem,90vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 sm:max-w-xl"
+        // Do not add `relative`: twMerge would drop DialogContent's `fixed`
+        // and un-center the popup. `fixed` already contains the lightbox.
+        className="flex max-h-[min(40rem,90vh)] flex-col gap-0 overflow-hidden rounded-xl border bg-card p-0 sm:max-w-xl"
         data-testid="whats-new-dialog"
         initialFocus={titleRef}
       >

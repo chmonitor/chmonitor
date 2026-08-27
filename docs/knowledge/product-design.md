@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-26
+updated: 2026-08-27
 tags:
   - design-system
   - ui
@@ -100,6 +100,9 @@ body `scrollTop` resets on open, so markdown links in older notes cannot
 `scrollIntoView` the list to the middle. Each version can show a row of
 screenshot **thumbnails** (`WhatsNewScreenshotGallery`); click one to
 open a full-size overlay inside the same dialog (`WhatsNewScreenshotLightbox`).
+Do not put `relative` on `DialogContent`: `cn()`/`twMerge` drops the
+primitive's `fixed`, so `top-1/2 left-1/2 -translate-*` no longer centers in
+the viewport. `fixed` already contains that inner `absolute` overlay.
 Escape / close dismisses the overlay first, then the dialog. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
 `docs/whats-new` friendly copy first). Airgap fallback is a **build-time
 snapshot** of latest `v*` notes, not the full CHANGELOG.md. Settings icon is lucide `Settings` (`size-4`, `strokeWidth={1.5}`),
