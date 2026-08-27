@@ -2,7 +2,11 @@
 
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
-use std::{fs, io::Write, path::PathBuf};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 use keyring::Entry;
@@ -33,14 +37,11 @@ fn keyring_entry(user: &str) -> Result<Entry> {
     Entry::new(SERVICE, user).context("failed to open OS keyring entry")
 }
 
-fn read_plaintext(key: &str) -> Result<Option<String>> {
-    let Some(path) = credentials_path() else {
-        return Ok(None);
-    };
+fn read_plaintext_at(path: &Path, key: &str) -> Result<Option<String>> {
     if !path.exists() {
         return Ok(None);
     }
-    let content = fs::read_to_string(&path)
+    let content = fs::read_to_string(path)
         .with_context(|| format!("failed to read credentials at {}", path.display()))?;
     for line in content.lines() {
         let line = line.trim();
@@ -59,15 +60,21 @@ fn read_plaintext(key: &str) -> Result<Option<String>> {
     Ok(None)
 }
 
-fn write_plaintext(key: &str, value: &str) -> Result<()> {
-    let path = credentials_path().context("could not resolve credentials path")?;
+fn read_plaintext(key: &str) -> Result<Option<String>> {
+    let Some(path) = credentials_path() else {
+        return Ok(None);
+    };
+    read_plaintext_at(&path, key)
+}
+
+fn write_plaintext_at(path: &Path, key: &str, value: &str) -> Result<()> {
     if let Some(parent) = path.parent() {
         ensure_private_dir(parent)?;
     }
 
     let mut map = std::collections::BTreeMap::<String, String>::new();
     if path.exists() {
-        let existing = fs::read_to_string(&path).unwrap_or_default();
+        let existing = fs::read_to_string(path).unwrap_or_default();
         for line in existing.lines() {
             if let Some((k, v)) = line.split_once('=') {
                 map.insert(k.trim().to_string(), v.trim().trim_matches('"').to_string());
@@ -88,12 +95,17 @@ fn write_plaintext(key: &str, value: &str) -> Result<()> {
         opts.mode(0o600);
     }
     let mut file = opts
-        .open(&path)
+        .open(path)
         .with_context(|| format!("failed to open {}", path.display()))?;
 
     file.write_all(out.as_bytes())
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
+}
+
+fn write_plaintext(key: &str, value: &str) -> Result<()> {
+    let path = credentials_path().context("could not resolve credentials path")?;
+    write_plaintext_at(&path, key, value)
 }
 
 fn clear_plaintext_at(path: &std::path::Path, key: &str) -> Result<()> {
@@ -248,6 +260,64 @@ pub fn resolve_api_key(cli_or_config: Option<&str>) -> Result<Option<String>> {
         }
     }
     load_api_key()
+}
+
+fn connection_plaintext_key(name: &str) -> String {
+    format!("connection.{name}")
+}
+
+fn connection_keyring_user(name: &str) -> String {
+    format!("connection:{name}")
+}
+
+/// Store a local-connection password. Keyring when `use_keyring` is true and
+/// available; otherwise 0600 plaintext at `path` (same file format as token/api_key).
+pub fn store_connection_password_at(
+    path: &Path,
+    name: &str,
+    password: &str,
+    use_keyring: bool,
+) -> Result<()> {
+    let plaintext_key = connection_plaintext_key(name);
+    if use_keyring
+        && keyring_entry(&connection_keyring_user(name))
+            .and_then(|e| {
+                e.set_password(password)
+                    .context("failed to store secret in OS keyring")
+            })
+            .is_ok()
+    {
+        let _ = purge_stale_plaintext_at(path, &plaintext_key);
+        return Ok(());
+    }
+    write_plaintext_at(path, &plaintext_key, password)
+}
+
+pub fn load_connection_password_at(
+    path: &Path,
+    name: &str,
+    use_keyring: bool,
+) -> Result<Option<String>> {
+    if use_keyring {
+        if let Ok(entry) = keyring_entry(&connection_keyring_user(name)) {
+            match entry.get_password() {
+                Ok(v) if !v.is_empty() => return Ok(Some(v)),
+                Ok(_) => {}
+                Err(keyring::Error::NoEntry) => {}
+                Err(_) => {}
+            }
+        }
+    }
+    read_plaintext_at(path, &connection_plaintext_key(name))
+}
+
+pub fn clear_connection_password_at(path: &Path, name: &str, use_keyring: bool) -> Result<()> {
+    if use_keyring {
+        if let Ok(entry) = keyring_entry(&connection_keyring_user(name)) {
+            let _ = entry.delete_credential();
+        }
+    }
+    clear_plaintext_at(path, &connection_plaintext_key(name))
 }
 
 #[cfg(test)]

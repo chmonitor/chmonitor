@@ -3,7 +3,7 @@ id: standalone-cli
 title: Standalone CLI (Rust)
 type: reference
 status: active
-updated: 2026-08-23
+updated: 2026-08-27
 tags:
   - rust
   - cli
@@ -55,13 +55,39 @@ channel = "stable" # or "beta"
 ```
 
 Credentials (device-login token / API key) live in the OS keyring, with a
-`0600` plaintext fallback at `~/.config/chm/credentials`.
+`0600` plaintext fallback at `~/.config/chm/credentials`. Local connection
+passwords use the same helper (`connection.<name>` keys) and are never written
+into `config.toml`.
+
+## Local connections (`chm add` / `ls` / `use`)
+
+P0 local store — no dashboard, no network on add:
+
+```bash
+chm add http://localhost:8123
+chm add http://user:pass@ch.example:8123/analytics --name prod
+chm add localhost:8123 --ch-user default          # --ch-host style
+chm add postgres://user:pass@localhost:5432/app
+chm ls                 # name, engine, host, current marker; `--json`
+chm use prod
+chm rm prod            # optional
+```
+
+`connect` is an alias of `add`. Names default to a short host/db slug. The
+active name is `current_connection` in user `config.toml`. `chm hosts` still
+lists **dashboard** `/api/v1/hosts` only. The live TUI opens against the active
+local ClickHouse connection; `h`/`l` cycles local connections without restart. <!-- pragma: allowlist secret -->
+Postgres add/use/ls works; PG TUI panes are a later slice.
 
 ## Command tree
 
 ```text
 chm                # live TUI (default; same as `chm tui`)
 ├── tui [chart]    # explicit TUI alias (alt-screen)
+├── add <url>      # save a local named connection (alias: connect)
+├── ls             # list local connections (`--json`; TTY picker to use)
+├── use <name>     # set the active local connection
+├── rm <name>      # remove a local named connection
 ├── auth
 │   ├── login [--api-key]
 │   ├── logout
@@ -74,7 +100,7 @@ chm                # live TUI (default; same as `chm tui`)
 ├── dashboard
 │   ├── list
 │   └── open <name>
-├── hosts
+├── hosts          # dashboard API hosts (not the local store)
 ├── link [path]
 ├── chart <name>
 ├── table <name>
@@ -103,7 +129,9 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 PRs (including the rolling release-please CLI PR) for the four release
 targets: linux gnu x86_64/aarch64 and macOS x86_64/aarch64. It posts one
 sticky comment (`header: cli-build-report`) and recreates it on each push
-so only the latest numbers stay. Local:
+so only the latest numbers stay. `--assemble DIR` is resolved from the
+repo root (CI downloads metrics to `$GITHUB_WORKSPACE/cli-report-metrics`,
+not `rust/`). Local:
 
 ```bash
 bash scripts/cli-build-report.sh --target x86_64-unknown-linux-gnu
@@ -136,7 +164,7 @@ a visible `overview | table` switcher.
 | `r` | Refresh now |
 | `?` | Help overlay |
 | `a` | Open interactive agent chat (returns to the TUI on exit) |
-| `h` / `l` or ← / → or `[` / `]` | Previous / next host (cycles the `/api/v1/hosts` list) |
+| `h` / `l` or ← / → or `[` / `]` | Previous / next host (dashboard `/api/v1/hosts`, or local `chm add` connections) |
 | `j` / `k` or ↑ / ↓ | Scroll table |
 | `Tab` | Switch pane (small terminals) |
 | `1` | Overview pane |
