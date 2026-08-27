@@ -167,9 +167,9 @@ Show all is full-width under the hide-count line on that pane. Dialog keeps
 
 **Workspace default:** first-run / missing-workspace blobs use
 `workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
-(`lib/menu/slim-default.ts`) — QA keep list is Essential plus Insights
-and Explorer (Overview, Chat, Insights, Health, Queries / running,
-Tables overview + Explorer, SQL).
+(`lib/menu/slim-default.ts`) — QA keep list is Essential plus Insights,
+Explorer, and Query History (Overview, Chat, Insights, Health, Queries /
+running + history, Tables overview + Explorer, SQL).
 Merges, Metrics, Clusters, Explain, Advisor, Keeper, PeerDB,
 Security, Logs, System, Operations, and extra children stay off the
 first-run rail. Full still means every
@@ -388,7 +388,7 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   inline panel inside the overlay sidebar — it does not open the 375
   Settings dialog unless Customize is tapped. Essential keeps grouped
   parents (Overview is a leaf; AI Agent → Chat, Insights → Insights,
-  Health → Health, Queries → Running, Tables → Overview + Explorer,
+  Health → Health, Queries → Running + History, Tables → Overview + Explorer,
   Tools → SQL) — do not flatten those groups to Chat / SQL leaves.
   Settings → Navigation has **Show all** (applies Full) when the preset
   is not Full.
@@ -825,10 +825,12 @@ Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 preset).
 
 **Essential first-run default:** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
-QA keep list is Essential plus `/insights` and `/explorer` only.
+QA keep list is Essential plus `/insights`, `/explorer`, and
+`/history-queries`.
 Grouped rail (not flattened leaves): Overview (leaf), AI Agent → Chat
 (`/agents`), Insights → Insights (`/insights`), Health → Health
-(`/health`), Queries → Running (`/running-queries`), Tables → Overview
+(`/health`), Queries → Running + History (`/running-queries`,
+`/history-queries`), Tables → Overview
 + Explorer (`/tables-overview`, `/explorer`), Tools → SQL (`/sql`;
 Explorer also lists under Tools), More. Merges, Metrics, Clusters,
 Explain, Advisor, Keeper, PeerDB, Security, Logs, System, Operations,

@@ -374,9 +374,9 @@ arrow. Footer Done, optional All pages… into Settings → Navigation (not
 the default path). Overview (no children) has no heading dialog. Footer
 About is never hideable. More is a flyout of hidden pages (not Settings).
 Essential is grouped (not flattened): Overview; AI Agent → Chat; Insights
-→ Insights; Health → Health; Queries → Running; Tables → Overview +
-Explorer; Tools → SQL. Do not flatten those groups to Chat / SQL
-leaves.
+→ Insights; Health → Health; Queries → Running + History; Tables →
+Overview + Explorer; Tools → SQL. Do not flatten those groups to Chat /
+SQL leaves.
 
 ## User appearance settings
 
@@ -448,8 +448,8 @@ a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
 First-run workspace is Custom + the Essential hide list
 (`DEFAULT_HIDDEN_MENU_HREFS`: grouped Overview; AI Agent → Chat; Insights
-→ Insights; Health → Health; Queries → Running; Tables → Overview +
-Explorer; Tools → SQL). Full still restores every page. Other
+→ Insights; Health → Health; Queries → Running + History; Tables →
+Overview + Explorer; Tools → SQL). Full still restores every page. Other
 DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
@@ -486,13 +486,13 @@ is a full-width control under the hide-count line. Full detail:
    absent so Postgres hosts inherit Health (default source-engine family).
    Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
    (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
-   sidebar stays Essential plus Insights and Explorer (grouped: Overview;
-   AI Agent → Chat; Insights → Insights; Health → Health; Queries →
-   Running; Tables → Overview + Explorer; Tools → SQL) — they remain
-   restorable from the group heading dialog, hover +, More, in-page More
-   / Customize, or Settings → Navigation. Do not add Merges / Metrics /
-   Clusters / Explain / Advisor, or Keeper / PeerDB / Security / Logs /
-   System / Operations, to the keep list.
+   sidebar stays Essential plus Insights, Explorer, and Query History
+   (grouped: Overview; AI Agent → Chat; Insights → Insights; Health →
+   Health; Queries → Running + History; Tables → Overview + Explorer;
+   Tools → SQL) — they remain restorable from the group heading dialog,
+   hover +, More, in-page More / Customize, or Settings → Navigation. Do
+   not add Merges / Metrics / Clusters / Explain / Advisor, or Keeper /
+   PeerDB / Security / Logs / System / Operations, to the keep list.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

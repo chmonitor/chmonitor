@@ -35,13 +35,14 @@ describe('slim default sidebar (Essential keep list)', () => {
     }
   })
 
-  test('QA keep list is Essential plus Insights and Explorer only', () => {
+  test('QA keep list is Essential plus Insights, Explorer, and Query History', () => {
     expect([...DEFAULT_VISIBLE_MENU_HREFS]).toEqual([
       '/overview',
       '/agents',
       '/insights',
       '/health',
       '/running-queries',
+      '/history-queries',
       '/tables-overview',
       '/explorer',
       '/sql',
@@ -122,7 +123,10 @@ describe('slim default sidebar (Essential keep list)', () => {
     expect(childHrefs('AI Agent')).toEqual(['/agents'])
     expect(childHrefs('Insights')).toEqual(['/insights'])
     expect(childHrefs('Health')).toEqual(['/health'])
-    expect(childHrefs('Queries')).toEqual(['/running-queries'])
+    expect(childHrefs('Queries')).toEqual([
+      '/running-queries',
+      '/history-queries',
+    ])
     expect(childHrefs('Tables')).toEqual(['/explorer', '/tables-overview'])
     expect(childHrefs('Tools')).toEqual(['/sql', '/explorer'])
     expect(childHrefs('Merges')).toBeUndefined()
@@ -132,7 +136,6 @@ describe('slim default sidebar (Essential keep list)', () => {
 
   test('Essential keep list excludes specialist rail rows', () => {
     for (const href of [
-      '/history-queries',
       '/merges',
       '/metrics',
       '/clusters',

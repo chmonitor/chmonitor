@@ -30,14 +30,14 @@ describe('findCatalogGroupForHref', () => {
 describe('hiddenSiblingLeaves', () => {
   const hidden = new Set(DEFAULT_HIDDEN_MENU_HREFS)
 
-  test('Queries + lists History / Slow / Failed, not Running Queries', () => {
+  test('Queries + lists Slow / Failed, not Running or History', () => {
     const siblings = hiddenSiblingLeaves(
       menuItemsConfig,
       '/running-queries',
       hidden
     )
     const hrefs = siblings.map((item) => item.href)
-    expect(hrefs).toContain('/history-queries')
+    expect(hrefs).not.toContain('/history-queries')
     expect(hrefs).toContain('/slow-queries')
     expect(hrefs).toContain('/failed-queries')
     expect(hrefs).not.toContain('/running-queries')
@@ -57,7 +57,7 @@ describe('hiddenSiblingLeaves', () => {
 })
 
 describe('findCatalogGroupByTitle / catalogGroupLeaves', () => {
-  test('Queries lists every catalog child including hidden History', () => {
+  test('Queries lists every catalog child including History', () => {
     const group = findCatalogGroupByTitle(menuItemsConfig, 'Queries')
     const hrefs = catalogGroupLeaves(group).map((item) => item.href)
     expect(hrefs).toContain('/running-queries')

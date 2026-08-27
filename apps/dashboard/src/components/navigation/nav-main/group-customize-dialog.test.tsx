@@ -151,11 +151,12 @@ describe('GroupCustomizeDialog', () => {
       await renderQueriesDialog(false)
 
     try {
-      expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).toContain(
-        '/history-queries'
-      )
+      expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).toContain('/failed-queries')
       expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).not.toContain(
         '/running-queries'
+      )
+      expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).not.toContain(
+        '/history-queries'
       )
 
       const trigger = container.querySelector(
@@ -180,7 +181,7 @@ describe('GroupCustomizeDialog', () => {
       )
       expect(
         document.querySelector(
-          '[data-testid="group-customize-add"][data-href="/history-queries"]'
+          '[data-testid="group-customize-add"][data-href="/failed-queries"]'
         )
       ).not.toBeNull()
       expect(
@@ -190,7 +191,12 @@ describe('GroupCustomizeDialog', () => {
       ).not.toBeNull()
       expect(
         document.querySelector(
-          '[data-testid="group-customize-open"][data-href="/history-queries"]'
+          '[data-testid="group-customize-remove"][data-href="/history-queries"]'
+        )
+      ).not.toBeNull()
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-open"][data-href="/failed-queries"]'
         )
       ).not.toBeNull()
     } finally {
@@ -204,42 +210,42 @@ describe('GroupCustomizeDialog', () => {
       await renderQueriesDialog(true)
 
     try {
-      const historyAdd = document.querySelector(
-        '[data-testid="group-customize-add"][data-href="/history-queries"]'
+      const failedAdd = document.querySelector(
+        '[data-testid="group-customize-add"][data-href="/failed-queries"]'
       ) as HTMLButtonElement | null
-      expect(historyAdd).not.toBeNull()
+      expect(failedAdd).not.toBeNull()
 
       const { act } = await import('react')
       await act(async () => {
-        historyAdd?.click()
+        failedAdd?.click()
       })
 
       const afterAdd = queryClient.getQueryData(
         (await import('@/lib/hooks/use-user-settings')).USER_SETTINGS_QUERY_KEY
       ) as { hiddenMenuHrefs: string[] }
-      expect(afterAdd.hiddenMenuHrefs).not.toContain('/history-queries')
+      expect(afterAdd.hiddenMenuHrefs).not.toContain('/failed-queries')
       expect(
-        persistShowMenuHref(DEFAULT_USER_SETTINGS, '/history-queries')
+        persistShowMenuHref(DEFAULT_USER_SETTINGS, '/failed-queries')
           .hiddenMenuHrefs
-      ).not.toContain('/history-queries')
+      ).not.toContain('/failed-queries')
 
-      const historyRow = document.querySelector(
-        '[data-href="/history-queries"][data-hidden]'
+      const failedRow = document.querySelector(
+        '[data-href="/failed-queries"][data-hidden]'
       ) as HTMLButtonElement | null
-      expect(historyRow).not.toBeNull()
-      expect(historyRow?.getAttribute('data-hidden')).toBe('false')
-      expect(historyRow?.getAttribute('data-testid')).toBe(
+      expect(failedRow).not.toBeNull()
+      expect(failedRow?.getAttribute('data-hidden')).toBe('false')
+      expect(failedRow?.getAttribute('data-testid')).toBe(
         'group-customize-remove'
       )
 
       await act(async () => {
-        historyRow?.click()
+        failedRow?.click()
       })
 
       const afterRemove = queryClient.getQueryData(
         (await import('@/lib/hooks/use-user-settings')).USER_SETTINGS_QUERY_KEY
       ) as { hiddenMenuHrefs: string[] }
-      expect(afterRemove.hiddenMenuHrefs).toContain('/history-queries')
+      expect(afterRemove.hiddenMenuHrefs).toContain('/failed-queries')
     } finally {
       await cleanup()
     }

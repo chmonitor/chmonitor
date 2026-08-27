@@ -23,7 +23,7 @@ describe('mergeUserSettings', () => {
     expect(merged.hiddenMenuHrefs.length).toBeGreaterThan(0)
     expect(merged.hiddenMenuHrefs).not.toContain('/overview')
     expect(merged.hiddenMenuHrefs).toContain('/alert-settings')
-    expect(merged.hiddenMenuHrefs).toContain('/history-queries')
+    expect(merged.hiddenMenuHrefs).not.toContain('/history-queries')
     expect(merged.hiddenMenuHrefs).not.toContain('/insights')
     expect(merged.hiddenMenuHrefs).not.toContain('/explorer')
     expect(merged.lastSeenChangelogVersion).toBe('')

@@ -134,7 +134,7 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
       ['/agents'],
       ['/insights'],
       ['/health'],
-      ['/running-queries'],
+      ['/running-queries', '/history-queries'],
       ['/explorer', '/tables-overview'],
       ['/sql', '/explorer'],
     ])
@@ -152,6 +152,6 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
       withAlerts
         .find((item) => item.title === 'Queries')
         ?.items?.map((child) => child.href)
-    ).toEqual(['/running-queries'])
+    ).toEqual(['/running-queries', '/history-queries'])
   })
 })

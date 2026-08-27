@@ -91,7 +91,7 @@ async function renderInto(
 }
 
 describe('AddButton', () => {
-  test('opens hidden siblings and showMenuHref adds History to the rail', async () => {
+  test('opens hidden siblings and showMenuHref adds Failed to the rail', async () => {
     const { AddButton } = await import('./add-button')
     const { SidebarProvider, SidebarMenu, SidebarMenuItem } = await import(
       '@/components/ui/sidebar'
@@ -106,7 +106,7 @@ describe('AddButton', () => {
       defaultOptions: { queries: { retry: false } },
     })
     queryClient.setQueryData(USER_SETTINGS_QUERY_KEY, DEFAULT_USER_SETTINGS)
-    expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).toContain('/history-queries')
+    expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).toContain('/failed-queries')
 
     const {
       RouterContextProvider,
@@ -145,23 +145,23 @@ describe('AddButton', () => {
         trigger?.click()
       })
 
-      const history = document.querySelector(
-        '[data-testid="hidden-page-add"][data-href="/history-queries"]'
+      const failed = document.querySelector(
+        '[data-testid="hidden-page-add"][data-href="/failed-queries"]'
       ) as HTMLButtonElement | null
-      expect(history).not.toBeNull()
+      expect(failed).not.toBeNull()
 
       await act(async () => {
-        history?.click()
+        failed?.click()
       })
 
       const stored = queryClient.getQueryData(USER_SETTINGS_QUERY_KEY) as {
         hiddenMenuHrefs: string[]
       }
-      expect(stored.hiddenMenuHrefs).not.toContain('/history-queries')
+      expect(stored.hiddenMenuHrefs).not.toContain('/failed-queries')
       expect(
-        persistShowMenuHref(DEFAULT_USER_SETTINGS, '/history-queries')
+        persistShowMenuHref(DEFAULT_USER_SETTINGS, '/failed-queries')
           .hiddenMenuHrefs
-      ).not.toContain('/history-queries')
+      ).not.toContain('/failed-queries')
     } finally {
       await cleanup()
     }
