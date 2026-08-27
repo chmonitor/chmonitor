@@ -76,7 +76,7 @@ export function GroupCustomizeDialog({
 }) {
   const titleRef = useRef<HTMLHeadingElement>(null)
   const openSettings = useOpenSettings()
-  const { catalog, hiddenHrefs, showHref, hideHref } = useMenuWorkspaceCatalog()
+  const { catalog } = useMenuWorkspaceCatalog()
   const leaves = catalogGroupLeaves(
     findCatalogGroupByTitle(catalog, groupTitle)
   )
@@ -100,13 +100,7 @@ export function GroupCustomizeDialog({
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-2 py-2">
           <ul className="flex min-w-0 flex-col">
             {leaves.map((item) => (
-              <GroupPageRow
-                key={item.href}
-                item={item}
-                hidden={hiddenHrefs.has(item.href)}
-                onAdd={showHref}
-                onRemove={hideHref}
-              />
+              <GroupPageRow key={item.href} item={item} />
             ))}
           </ul>
         </div>
@@ -138,18 +132,11 @@ export function GroupCustomizeDialog({
   )
 }
 
-function GroupPageRow({
-  item,
-  hidden,
-  onAdd,
-  onRemove,
-}: {
-  item: MenuItem
-  hidden: boolean
-  onAdd: (href: string) => void
-  onRemove: (href: string) => void
-}) {
+function GroupPageRow({ item }: { item: MenuItem }) {
+  const { hiddenHrefs, showHref, hideHref } = useMenuWorkspaceCatalog()
+  const [hidden, setHidden] = useState(() => hiddenHrefs.has(item.href))
   const Icon = item.icon
+
   return (
     <li
       className={cn(
@@ -171,7 +158,15 @@ function GroupPageRow({
           'flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-[13px] hover:bg-muted lg:min-h-8',
           hidden && 'opacity-60'
         )}
-        onClick={() => (hidden ? onAdd(item.href) : onRemove(item.href))}
+        onClick={() => {
+          if (hidden) {
+            showHref(item.href)
+            setHidden(false)
+          } else {
+            hideHref(item.href)
+            setHidden(true)
+          }
+        }}
       >
         {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
         <span className="min-w-0 truncate">{item.title}</span>

@@ -168,8 +168,8 @@ Show all is full-width under the hide-count line on that pane. Dialog keeps
 **Workspace default:** first-run / missing-workspace blobs use
 `workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
 (`lib/menu/slim-default.ts`) — Essential rail (Overview, Chat,
-Insights, Health, Queries / running, Tables overview + Explorer, Merges,
-Metrics, Tools SQL + Explain + Advisor, Clusters). Keeper, PeerDB,
+Insights, Health, Queries / running, Tables overview + Explorer, SQL).
+Merges, Metrics, Clusters, Explain, Advisor, Keeper, PeerDB,
 Security, Logs, System, Operations, and extra children stay off the
 first-run rail. Full still means every
 page (`workspacePreset: 'full'`, `hiddenMenuHrefs: []`). An explicit
@@ -388,8 +388,7 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   Settings dialog unless Customize is tapped. Essential keeps grouped
   parents (Overview is a leaf; AI Agent → Chat, Insights → Insights,
   Health → Health, Queries → Running, Tables → Overview + Explorer,
-  Merges → Merges, Metrics → Metrics, Tools → SQL + Explain + Advisor,
-  Cluster → Clusters) — do not flatten those groups to Chat / SQL leaves.
+  Tools → SQL) — do not flatten those groups to Chat / SQL leaves.
   Settings → Navigation has **Show all** (applies Full) when the preset
   is not Full.
 
@@ -828,15 +827,13 @@ preset).
 Grouped rail (not flattened leaves): Overview (leaf), AI Agent → Chat
 (`/agents`), Insights → Insights (`/insights`), Health → Health
 (`/health`), Queries → Running (`/running-queries`), Tables → Overview
-+ Explorer (`/tables-overview`, `/explorer`), Merges → Merges
-(`/merges`), Metrics → Metrics (`/metrics`), Tools → SQL + Explain +
-Advisor (`/sql`, `/explain`, `/advisor`; Explorer also lists under
-Tools), Cluster → Clusters (`/clusters`), More. Keeper, PeerDB,
-Security, Logs, System, Operations, and extra children stay in the
-catalog — restore via the group-heading customize dialog, hover +, More,
-Settings → Navigation, or in-page More / Customize. Parent `/tables` is
-not a keep-list href. Do not add a page to
-`DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
++ Explorer (`/tables-overview`, `/explorer`), Tools → SQL (`/sql`;
+Explorer also lists under Tools), More. Merges, Metrics, Clusters,
+Explain, Advisor, Keeper, PeerDB, Security, Logs, System, Operations,
+and extra children stay in the catalog — restore via the group-heading
+customize dialog, hover +, More, Settings → Navigation, or in-page More
+/ Customize. Parent `/tables` is not a keep-list href. Do not add a page
+to `DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
 pages are hidden by default because the hide list is the complement of
 that keep list. Postgres-only leaves are never auto-hidden.
 DBA / Engineer / SRE leftover: those pills still keep whole **groups**,

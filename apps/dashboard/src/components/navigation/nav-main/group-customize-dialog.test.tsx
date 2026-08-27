@@ -146,9 +146,8 @@ async function renderQueriesDialog(open = false) {
 }
 
 describe('GroupCustomizeDialog', () => {
-  test('heading + opens the Queries dialog; Add/Remove updates hiddenMenuHrefs', async () => {
-    const { persistShowMenuHref } = await import('@/lib/menu/hide-menu-item')
-    const { container, cleanup, queryClient, DEFAULT_USER_SETTINGS } =
+  test('heading + opens the Queries dialog of catalog children', async () => {
+    const { container, cleanup, DEFAULT_USER_SETTINGS } =
       await renderQueriesDialog(false)
 
     try {
@@ -179,21 +178,38 @@ describe('GroupCustomizeDialog', () => {
       expect(dialog?.textContent).toContain(
         'Add or remove pages in this group.'
       )
-
-      const historyAdd = document.querySelector(
-        '[data-testid="group-customize-add"][data-href="/history-queries"]'
-      ) as HTMLButtonElement | null
-      const runningRemove = document.querySelector(
-        '[data-testid="group-customize-remove"][data-href="/running-queries"]'
-      ) as HTMLButtonElement | null
-      expect(historyAdd).not.toBeNull()
-      expect(runningRemove).not.toBeNull()
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-add"][data-href="/history-queries"]'
+        )
+      ).not.toBeNull()
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-remove"][data-href="/running-queries"]'
+        )
+      ).not.toBeNull()
       expect(
         document.querySelector(
           '[data-testid="group-customize-open"][data-href="/history-queries"]'
         )
       ).not.toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
 
+  test('Add/Remove in the heading dialog updates hiddenMenuHrefs', async () => {
+    const { persistShowMenuHref } = await import('@/lib/menu/hide-menu-item')
+    const { cleanup, queryClient, DEFAULT_USER_SETTINGS } =
+      await renderQueriesDialog(true)
+
+    try {
+      const historyAdd = document.querySelector(
+        '[data-testid="group-customize-add"][data-href="/history-queries"]'
+      ) as HTMLButtonElement | null
+      expect(historyAdd).not.toBeNull()
+
+      const { act } = await import('react')
       await act(async () => {
         historyAdd?.click()
       })
@@ -207,13 +223,17 @@ describe('GroupCustomizeDialog', () => {
           .hiddenMenuHrefs
       ).not.toContain('/history-queries')
 
-      const historyRemove = document.querySelector(
-        '[data-testid="group-customize-remove"][data-href="/history-queries"]'
+      const historyRow = document.querySelector(
+        '[data-href="/history-queries"][data-hidden]'
       ) as HTMLButtonElement | null
-      expect(historyRemove).not.toBeNull()
+      expect(historyRow).not.toBeNull()
+      expect(historyRow?.getAttribute('data-hidden')).toBe('false')
+      expect(historyRow?.getAttribute('data-testid')).toBe(
+        'group-customize-remove'
+      )
 
       await act(async () => {
-        historyRemove?.click()
+        historyRow?.click()
       })
 
       const afterRemove = queryClient.getQueryData(

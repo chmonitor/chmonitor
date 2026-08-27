@@ -80,11 +80,11 @@ describe('slim default sidebar (Essential keep list)', () => {
     expect(titles).toContain('Health')
     expect(titles).toContain('Queries')
     expect(titles).toContain('Tables')
-    expect(titles).toContain('Merges')
-    expect(titles).toContain('Metrics')
     expect(titles).toContain('Tools')
-    expect(titles).toContain('Cluster')
     expect(titles).toContain('About')
+    expect(titles).not.toContain('Merges')
+    expect(titles).not.toContain('Metrics')
+    expect(titles).not.toContain('Cluster')
     expect(titles).not.toContain('Keeper')
     expect(titles).not.toContain('PeerDB')
     expect(titles).not.toContain('Security')
@@ -111,20 +111,20 @@ describe('slim default sidebar (Essential keep list)', () => {
     expect(childHrefs('Health')).toEqual(['/health'])
     expect(childHrefs('Queries')).toEqual(['/running-queries'])
     expect(childHrefs('Tables')).toEqual(['/explorer', '/tables-overview'])
-    expect(childHrefs('Merges')).toEqual(['/merges'])
-    expect(childHrefs('Metrics')).toEqual(['/metrics'])
-    expect(childHrefs('Tools')).toEqual([
-      '/sql',
-      '/explorer',
-      '/explain',
-      '/advisor',
-    ])
-    expect(childHrefs('Cluster')).toEqual(['/clusters'])
+    expect(childHrefs('Tools')).toEqual(['/sql', '/explorer'])
+    expect(childHrefs('Merges')).toBeUndefined()
+    expect(childHrefs('Metrics')).toBeUndefined()
+    expect(childHrefs('Cluster')).toBeUndefined()
   })
 
   test('Essential keep list excludes specialist rail rows', () => {
     for (const href of [
       '/history-queries',
+      '/merges',
+      '/metrics',
+      '/clusters',
+      '/explain',
+      '/advisor',
       '/alert-settings',
       '/keeper/info',
       '/peerdb',

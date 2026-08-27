@@ -125,10 +125,7 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
       'Health',
       'Queries',
       'Tables',
-      'Merges',
-      'Metrics',
       'Tools',
-      'Cluster',
     ])
     expect(body[0]?.href).toBe('/overview')
     expect(body[0]?.items).toBeUndefined()
@@ -139,10 +136,7 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
       ['/health'],
       ['/running-queries'],
       ['/explorer', '/tables-overview'],
-      ['/merges'],
-      ['/metrics'],
-      ['/sql', '/explorer', '/explain', '/advisor'],
-      ['/clusters'],
+      ['/sql', '/explorer'],
     ])
     expect(visible.some((item) => item.href === '/about')).toBe(true)
   })
