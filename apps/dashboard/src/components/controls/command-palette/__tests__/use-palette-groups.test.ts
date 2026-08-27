@@ -49,8 +49,8 @@ describe('derivePaletteGroups', () => {
       currentHostId: 0,
       query: 'overview',
     })
-    // Group derivation is query-independent — cmdk's own fuzzy filter narrows
-    // the rendered rows, so the un-filtered menu item is still present here.
+    // Group derivation is query-independent — filterPaletteRows ranks the
+    // rendered rows, so the un-filtered menu item is still present here.
     expect(result.leafItems.map((i) => i.href)).toEqual(['/overview'])
   })
 

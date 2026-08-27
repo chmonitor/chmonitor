@@ -44,4 +44,10 @@ describe('command palette hidden pages', () => {
     expect(paletteSrc).toContain('usePaletteMenuItems')
     expect(paletteSrc).not.toMatch(/\buseVisibleMenuItems\b/)
   })
+
+  test('cmdk does not filter or reorder rows (Enter follows the highlight)', () => {
+    expect(src).toContain('shouldFilter={false}')
+    expect(src).toContain('filterPaletteRows')
+    expect(src).toContain('paletteItemId')
+  })
 })
