@@ -13,7 +13,7 @@ import {
 } from '@/lib/menu/workspace-presets'
 import { DEFAULT_USER_SETTINGS } from '@/lib/types/user-settings'
 
-describe('slim default sidebar (#3290)', () => {
+describe('slim default sidebar (Essential keep list)', () => {
   const leaves = collectMenuLeaves(menuItemsConfig)
   const hidden = new Set(DEFAULT_HIDDEN_MENU_HREFS)
   const visible = new Set<string>(DEFAULT_VISIBLE_MENU_HREFS)
@@ -38,12 +38,6 @@ describe('slim default sidebar (#3290)', () => {
   test('day-to-day hrefs exist on the catalog', () => {
     const leafHrefs = new Set(leaves.map((leaf) => leaf.href))
     for (const href of DEFAULT_VISIBLE_MENU_HREFS) {
-      if (href === '/tables') {
-        expect(menuItemsConfig.some((item) => item.href === '/tables')).toBe(
-          true
-        )
-        continue
-      }
       expect(leafHrefs.has(href), href).toBe(true)
     }
   })
@@ -69,7 +63,7 @@ describe('slim default sidebar (#3290)', () => {
     }
   })
 
-  test('first-run settings apply the slim hide list as Custom', () => {
+  test('first-run settings apply the Essential hide list as Custom', () => {
     expect(DEFAULT_USER_SETTINGS.workspacePreset).toBe('custom')
     expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).toEqual(
       DEFAULT_HIDDEN_MENU_HREFS
@@ -85,13 +79,40 @@ describe('slim default sidebar (#3290)', () => {
     expect(titles).toContain('Queries')
     expect(titles).toContain('Tables')
     expect(titles).toContain('Tools')
-    expect(titles).toContain('Cluster')
+    expect(titles).toContain('AI Agent')
     expect(titles).toContain('About')
+    expect(titles).not.toContain('Insights')
+    expect(titles).not.toContain('Merges')
+    expect(titles).not.toContain('Metrics')
+    expect(titles).not.toContain('Cluster')
     expect(titles).not.toContain('Keeper')
     expect(titles).not.toContain('PeerDB')
     expect(titles).not.toContain('Security')
     expect(titles).not.toContain('Logs')
     expect(titles).not.toContain('System')
     expect(titles).not.toContain('Operations')
+  })
+
+  test('Essential keep list excludes specialist rail rows', () => {
+    for (const href of [
+      '/insights',
+      '/merges',
+      '/metrics',
+      '/clusters',
+      '/explain',
+      '/advisor',
+      '/explorer',
+      '/tables',
+    ]) {
+      expect(DEFAULT_VISIBLE_MENU_HREFS as readonly string[]).not.toContain(
+        href
+      )
+      if (href !== '/tables') {
+        expect(DEFAULT_HIDDEN_MENU_HREFS, href).toContain(href)
+      }
+    }
+    for (const href of DEFAULT_VISIBLE_MENU_HREFS) {
+      expect(DEFAULT_HIDDEN_MENU_HREFS).not.toContain(href)
+    }
   })
 })

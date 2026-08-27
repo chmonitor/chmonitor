@@ -54,6 +54,8 @@ interface SettingsFormProps {
   onClose: () => void
   /** Opens this pane. Defaults to General. */
   initialTab?: SettingsTab
+  /** Prefill Navigation search so that catalog group is focused. */
+  focusGroup?: string
 }
 
 const themeOptions = [
@@ -443,6 +445,7 @@ export function SettingsForm({
   onUpdate,
   onClose,
   initialTab = 'general',
+  focusGroup,
 }: SettingsFormProps) {
   const { setTheme } = useTheme()
   const engine = useActiveHostEngine()
@@ -736,12 +739,13 @@ export function SettingsForm({
               <Field
                 label="Workspace"
                 icon={LayoutGrid}
-                description="Hide pages from the sidebar and command palette. Full restores every page. Hidden pages stay reachable by URL."
+                description="Hide pages from the sidebar and More. ⌘K still lists them. Full restores every page. Hidden pages stay reachable by URL."
               >
                 <WorkspacePresetPicker
                   preset={settings.workspacePreset}
                   hiddenMenuHrefs={settings.hiddenMenuHrefs}
                   engine={engine}
+                  focusGroup={focusGroup}
                   onChange={(next) => onUpdate(next)}
                 />
               </Field>

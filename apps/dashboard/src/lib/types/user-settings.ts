@@ -30,14 +30,17 @@ export interface UserSettings {
   /**
    * Role workspace preset. Full is the only auto-expand preset (new menu
    * pages stay visible). Named presets keep a stable group set. Custom uses
-   * `hiddenMenuHrefs` as a hide list. First-run default is Custom + the slim
-   * day-to-day hide list (#3290); Full still restores every page.
+   * `hiddenMenuHrefs` as a hide list. First-run default is Custom + the
+   * Essential keep list (`DEFAULT_HIDDEN_MENU_HREFS`); Full still restores
+   * every page. DBA / Engineer / SRE stay group-title presets (not leaf
+   * keep-lists).
    */
   workspacePreset: WorkspacePreset
   /**
-   * Menu hrefs hidden from sidebar + command palette. Hidden is not
-   * unauthorized — routes stay reachable. Footer / Settings / host switcher
-   * are never filtered here.
+   * Menu hrefs hidden from the sidebar and More. Hide is not unauthorized
+   * and does not filter ⌘K — hidden pages stay indexed with a Hidden hint
+   * and stay reachable by URL. Footer / Settings / host switcher are never
+   * filtered here.
    */
   hiddenMenuHrefs: string[]
   /**
@@ -78,7 +81,7 @@ export function mergeUserSettings(stored: unknown): UserSettings {
   const merged = { ...DEFAULT_USER_SETTINGS, ...partial }
   const preset = parseWorkspacePreset(partial.workspacePreset)
   merged.workspacePreset = preset
-  // An omitted hide list picks up the slim first-run default only for Custom
+  // An omitted hide list picks up the Essential first-run default only for Custom
   // (and junk/missing preset, which falls back to Custom). Named presets and
   // Full keep an empty hide list when the key was never stored. An explicit
   // `[]` must stay empty.

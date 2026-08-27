@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-26
+updated: 2026-08-27
 tags:
   - design-system
   - ui
@@ -162,14 +162,17 @@ show a sample on the control (`1.5 GiB` / `1.6 GB`). Integrations lists MCP
 Show all is full-width under the hide-count line on that pane. Dialog keeps
 `data-testid="settings-dialog"`.
 
-**Workspace default (#3290):** first-run / missing-workspace blobs use
+**Workspace default:** first-run / missing-workspace blobs use
 `workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
-(`lib/menu/slim-default.ts`) — day-to-day pages only (Overview, Chat,
-Insights, Health, Running Queries, Tables overview / explorer, Merges,
-Metrics, SQL / Explain / Advisor, Clusters). Full still means every
+(`lib/menu/slim-default.ts`) — Essential rail only (Overview, Chat,
+Health, Queries / running, Tables overview, SQL). Insights, Merges,
+Metrics, Clusters, Explain, Advisor, Explorer, and the parent `/tables`
+row stay off the first-run rail. Full still means every
 page (`workspacePreset: 'full'`, `hiddenMenuHrefs: []`). An explicit
-stored Full empty hide list is never replaced by the slim list.
-Other appearance defaults stay byte-for-byte:
+stored Full empty hide list is never replaced by the Essential list.
+DBA / Engineer / SRE remain **group-title** presets (they still dump
+whole groups onto the rail; they are not leaf keep-lists that start from
+Essential). Other appearance defaults stay byte-for-byte:
 `byteUnit: 'binary'`, `numberFormat: 'abbreviated'`, `chartPalette: 'default'`
 (attribute absent), `tableDensity: 'comfortable'` (attribute absent),
 `defaultTimeRange: '24h'`.
@@ -361,9 +364,18 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   Leaf rows also reveal Hide (EyeOff) beside the pin; that writes
   `hiddenMenuHrefs` via `hideMenuHref` and toasts Undo + Open Navigation
   (Settings → Workspace → Navigation). Footer About is not hideable this way.
-  A **More pages** row (`more-pages-button.tsx`) appears at the bottom of
-  the sidebar when the hide list is non-empty and opens that same Navigation
-  pane. Settings → Navigation has **Show all** (applies Full) when the
+  Hover **+** (`add-button.tsx`) lists hidden siblings in that catalog group
+  (Queries + → History, Slow, Failed; Tables + → Replicas, TTL, Explorer).
+  Click adds with `showMenuHref` and does not navigate; an arrow opens the
+  page. Footer Customize… opens Settings → Navigation, preferably focused
+  on that group. A **More** row (`more-pages-button.tsx`) is a searchable
+  flyout of hidden leaves (click navigates; hover Add / Pin; footer
+  Customize… and Show all). Full with hide count 0 hides the row. Below
+  `lg` the catalog is an inline panel inside the overlay sidebar — it does
+  not open the 375 Settings dialog unless Customize is tapped. Groups with
+  0–1 visible children flatten (`flattenSingletonGroups`) so Essential
+  shows Chat / Health / Queries / Tables / SQL without a chevron. Settings
+  → Navigation has **Show all** (applies Full) when the
   preset is not Full.
 
 - **Alerts in the sidebar (#3291):** there is no standing Alerts catalog
@@ -797,16 +809,21 @@ Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 **Footer**: About (next to the Settings gear; never hidden by a workspace
 preset).
 
-**Slim first-run default (#3290):** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
-Visible groups: Overview, AI Agent (Chat), Insights, Health, Queries
-(Running Queries), Tables (Explorer + Overview), Merges, Metrics, Tools
-(SQL, Explorer, Explain, Advisor), Cluster (Clusters). Keeper, PeerDB,
-Security, Logs, System, Operations, and the extra children stay in the
-catalog — restore via Settings → Navigation (Show / Show all / Full) or
-the sidebar More pages row. Do not add a page to
+**Essential first-run default:** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
+Flattened rail: Overview, Chat (`/agents`), Health, Queries
+(`/running-queries`), Tables (`/tables-overview`), SQL (`/sql`), More.
+Insights, Merges, Metrics, Clusters, Explain, Advisor, Explorer, and
+parent `/tables` are off the rail. Explorer is not on Essential; on Full
+it stays under Tools (inventory remains Tables in the customize tree).
+Keeper, PeerDB, Security, Logs, System, Operations, and extra children
+stay in the catalog — restore via hover +, More, Settings → Navigation,
+or in-page More / Customize on Overview, Health, Queries, Tables
+overview, and SQL. Do not add a page to
 `DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
 pages are hidden by default because the hide list is the complement of
 that keep list. Postgres-only leaves are never auto-hidden.
+DBA / Engineer / SRE leftover: those pills still keep whole **groups**,
+not Essential-plus-a-few-leaves.
 
 **Tools** is the interactive-utility group — pages where you *do* something
 (run SQL, explore schema, explain a query, compare hosts, build charts) rather
@@ -828,8 +845,13 @@ breakdown. Do not add a third TTL reporting surface. Never `ALTER TTL`
 or `DROP PARTITION` from this page. AI Agent stays its own flagship group. Postgres-only
 items stay engine-gated and are not moved here.
 
-⌘K (`components/controls/command-palette.tsx`) indexes every visible
-menu leaf by sidebar title, document `<title>` (`lib/page-title.ts` +
+⌘K (`components/controls/command-palette.tsx`) indexes the **full**
+permission/engine/cloud-allowed catalog (`usePaletteMenuItems` /
+`getAllowedMenuItems`). Workspace `hiddenMenuHrefs` does **not** filter
+⌘K — hidden rows stay listed with a muted Hidden hint. Selecting a
+hidden page navigates and does not auto-unhide; the header shows
+**Keep in sidebar** (and Pin) on that page. Search still matches
+sidebar title, document `<title>` (`lib/page-title.ts` +
 OG `headTitle`/`title`), href, description, and optional `keywords` on
 `MenuItem` (`menuItemPaletteValue`). DBA pages (Advisor, Schema Compare,
 Settings Diff, TTL & Partitions) declare aliases so searches like

@@ -26,3 +26,22 @@ describe('command palette row titles', () => {
     expect(src).toContain('min-w-0 flex-1 truncate')
   })
 })
+
+describe('command palette hidden pages', () => {
+  test('workspace-hidden rows get a Hidden hint', () => {
+    expect(src).toContain('palette-hidden-hint')
+    expect(src).toContain('hiddenHrefs')
+  })
+
+  test('indexes the allowed catalog, not the sidebar hide list', () => {
+    const paletteSrc = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        '../../command-palette.tsx'
+      ),
+      'utf8'
+    )
+    expect(paletteSrc).toContain('usePaletteMenuItems')
+    expect(paletteSrc).not.toMatch(/\buseVisibleMenuItems\b/)
+  })
+})

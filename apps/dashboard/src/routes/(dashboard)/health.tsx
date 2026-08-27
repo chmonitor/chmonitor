@@ -4,6 +4,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { HealthGrid } from '@/components/health/health-grid'
 import { PageHeader } from '@/components/layout'
+import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { ChartsOnlyPageSkeleton } from '@/components/skeletons'
 import { AppLink } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
@@ -18,16 +19,21 @@ function HealthPageContent() {
         title="Health Summary"
         description="Real-time health indicators for your ClickHouse cluster"
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            render={
-              <AppLink href={buildUrl('/health-settings', { host: hostId })} />
-            }
-          >
-            <Settings className="mr-2 size-4" />
-            Settings
-          </Button>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <RelatedPagesLink href="/health" />
+            <Button
+              variant="outline"
+              size="sm"
+              render={
+                <AppLink
+                  href={buildUrl('/health-settings', { host: hostId })}
+                />
+              }
+            >
+              <Settings className="mr-2 size-4" />
+              Settings
+            </Button>
+          </div>
         }
       />
       <HealthGrid />

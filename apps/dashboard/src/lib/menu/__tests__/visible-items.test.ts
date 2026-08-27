@@ -7,7 +7,9 @@ import { DEFAULT_SOURCE_ENGINE } from '@chm/types'
 import {
   filterCloudOnly,
   filterMenuItemsByEngine,
+  getAllowedMenuItems,
   getSettingsNavMenuItems,
+  getVisibleMenuItems,
 } from '@/lib/menu/visible-items'
 import {
   applyWorkspaceVisibility,
@@ -410,5 +412,35 @@ describe('applyWorkspaceVisibility', () => {
     expect(PRESET_GROUP_TITLES.engineer).not.toContain('Keeper')
     expect(PRESET_GROUP_TITLES.sre).toContain('Health')
     expect(PRESET_GROUP_TITLES.sre).toContain('Tools')
+  })
+})
+
+describe('palette includes hidden pages', () => {
+  const config = {
+    authProvider: 'none' as const,
+    principal: 'anonymous' as const,
+    features: {},
+  }
+
+  test('getAllowedMenuItems keeps specialist hrefs that workspace hide drops', () => {
+    const allowed = collectMenuHrefs(getAllowedMenuItems(config))
+    const sidebar = collectMenuHrefs(
+      getVisibleMenuItems(config, DEFAULT_SOURCE_ENGINE, {
+        workspacePreset: 'custom',
+        hiddenMenuHrefs: [
+          '/history-queries',
+          '/slow-queries',
+          '/insights',
+          '/explorer',
+        ],
+      })
+    )
+
+    expect(allowed).toContain('/history-queries')
+    expect(allowed).toContain('/slow-queries')
+    expect(allowed).toContain('/insights')
+    expect(sidebar).not.toContain('/history-queries')
+    expect(sidebar).not.toContain('/slow-queries')
+    expect(sidebar).not.toContain('/insights')
   })
 })

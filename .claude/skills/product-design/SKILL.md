@@ -15,7 +15,8 @@ description: >-
   "query picker", "select labels", "ON CLUSTER", "advisor DDL",
   "advisor schema", "schema advisor",
   "command palette", "cmd k", "search dialog", "ttl partitions",
-  "header title", "768", "truncate Overview".
+  "header title", "768", "truncate Overview", "essential sidebar",
+  "more pages", "keep in sidebar", "hover add".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -357,7 +358,9 @@ filter/search/sort/card wiring.
 Favorites in the sidebar can be drag-reordered; order is the localStorage pin
 list (`chm-pinned-favorites`). Leaf sidebar rows also reveal Hide (EyeOff)
 beside the pin; that writes `hiddenMenuHrefs` and toasts Undo + Open
-Navigation (Settings → Workspace → Navigation).
+Navigation (Settings → Workspace → Navigation). Hover **+** lists hidden
+siblings in that group (`showMenuHref` on click). More is a flyout of
+hidden pages (not Settings). Groups with 0–1 visible children flatten.
 
 ## User appearance settings
 
@@ -409,23 +412,26 @@ stays `shrink-0` on the right. Click a leaf to hide or show it — hidden
 rows stay visible but muted, like Dim unavailable pages.
 Expand/collapse does not write settings. Hide of an already-hidden-by-
 preset leaf stays on the role; Custom only when the hide list leaves
-`hideListForPreset`. Search filters the tree. When the preset is not
-Full, a **Show all** control applies Full. The sidebar **More pages**
-row opens this pane when any pages are hidden. Never a 40-checkbox wall
-or a separate Hide-pages drawer. Then the Dim / Hide unavailable-page
-demos.
-Hidden pages stay routable. Filter through
-`getVisibleMenuItems` (sidebar + ⌘K wrap it in `useVisibleMenuItems`
-so Alerts appears only with an active notification count) so sidebar,
-⌘K, and the Settings > Navigation
+  `hideListForPreset`. Search filters the tree. When the preset is not
+  Full, a **Show all** control applies Full. The sidebar **More** row is a
+  searchable flyout of hidden leaves (click navigates; Customize… opens
+  this pane). Never a 40-checkbox wall
+  or a separate Hide-pages drawer. Then the Dim / Hide unavailable-page
+  demos.
+Hidden pages stay routable. Sidebar visibility is the hide list
+(`getVisibleMenuItems` + flatten + Alerts). ⌘K uses
+`usePaletteMenuItems` / `getAllowedMenuItems` so hidden pages stay
+indexed with a Hidden hint and do not auto-unhide. Landing on a hidden
+page shows Keep in sidebar. Settings > Navigation
 tree match the **active host engine** (`useActiveHostEngine` —
 default source engine, Postgres pages when `?pg=` is active).
 Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
-First-run workspace is Custom + the slim hide list
-(`DEFAULT_HIDDEN_MENU_HREFS`); Full still restores every page. Other
+First-run workspace is Custom + the Essential hide list
+(`DEFAULT_HIDDEN_MENU_HREFS`: Overview, Chat, Health, Queries, Tables
+overview, SQL). Full still restores every page. Other
 DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
@@ -462,7 +468,9 @@ is a full-width control under the hide-count line. Full detail:
    absent so Postgres hosts inherit Health (default source-engine family).
    Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
    (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
-   sidebar stays slim — they remain restorable from Settings → Navigation.
+   sidebar stays Essential (Overview, Chat, Health, Queries, Tables
+   overview, SQL) — they remain restorable from hover +, More, in-page
+   More / Customize, or Settings → Navigation.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

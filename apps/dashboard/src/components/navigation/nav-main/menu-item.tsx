@@ -4,6 +4,7 @@ import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
+import { AddButton, SubAddButton } from './add-button'
 import { CollapsedSubmenu } from './collapsed-submenu'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
@@ -11,7 +12,9 @@ import { lazy, Suspense } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
+import { hiddenSiblingLeaves } from '@/lib/menu/hidden-siblings'
 import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
+import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
@@ -111,6 +114,10 @@ const SingleMenuItem = function SingleMenuItem({
   const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(item.isNew || item.countKey)
+  const { catalog, hiddenHrefs } = useMenuWorkspaceCatalog()
+  const hasAdd =
+    Boolean(item.href) &&
+    hiddenSiblingLeaves(catalog, item.href, hiddenHrefs).length > 0
 
   // When the page's backing table is missing, either dim it (default) or hide
   // it entirely per the user's Navigation setting. A missing metadata database
@@ -147,7 +154,11 @@ const SingleMenuItem = function SingleMenuItem({
         <span
           className={cn(
             'min-w-0 truncate group-data-[state=collapsed]/sidebar:hidden',
-            hasBadge ? 'pr-16' : 'pr-12'
+            hasBadge && hasAdd
+              ? 'pr-20'
+              : hasAdd || hasBadge
+                ? 'pr-16'
+                : 'pr-12'
           )}
         >
           {item.title}
@@ -156,6 +167,7 @@ const SingleMenuItem = function SingleMenuItem({
       {item.href ? (
         <HideButton href={item.href} title={item.title} hasBadge={hasBadge} />
       ) : null}
+      {item.href ? <AddButton href={item.href} hasBadge={hasBadge} /> : null}
       <PinButton href={item.href} title={item.title} hasBadge={hasBadge} />
       {item.isNew && (
         <SidebarMenuBadge className={badgeHiddenClasses}>
@@ -203,6 +215,10 @@ const SubMenuItem = function SubMenuItem({
   const available = tableAvailable && dbSatisfied
   const { settings } = useUserSettings()
   const hasBadge = Boolean(subItem.isNew || subItem.countKey)
+  const { catalog, hiddenHrefs } = useMenuWorkspaceCatalog()
+  const hasAdd =
+    Boolean(subItem.href) &&
+    hiddenSiblingLeaves(catalog, subItem.href, hiddenHrefs).length > 0
 
   if (!tableAvailable && !settings.dimUnavailablePages) {
     return null
@@ -218,7 +234,8 @@ const SubMenuItem = function SubMenuItem({
         )}
         className={cn(
           'h-11 min-h-11 w-full cursor-pointer pr-12 lg:h-7 lg:min-h-7',
-          hasBadge && 'pr-16',
+          hasAdd && 'pr-16',
+          hasBadge && (hasAdd ? 'pr-20' : 'pr-16'),
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={
@@ -258,6 +275,9 @@ const SubMenuItem = function SubMenuItem({
           title={subItem.title}
           hasBadge={hasBadge}
         />
+      ) : null}
+      {subItem.href ? (
+        <SubAddButton href={subItem.href} hasBadge={hasBadge} />
       ) : null}
       <SubPinButton
         href={subItem.href}

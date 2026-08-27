@@ -109,6 +109,18 @@ const TITLE_CLASS = 'font-medium whitespace-nowrap shrink-0'
 /** Trailing meta on the same row: ellipsis instead of wrapping the title. */
 const META_CLASS = 'ml-1 min-w-0 flex-1 truncate text-xs text-muted-foreground'
 
+function HiddenHint({ hidden }: { hidden: boolean }) {
+  if (!hidden) return null
+  return (
+    <span
+      data-testid="palette-hidden-hint"
+      className="ml-1 shrink-0 text-[10px] font-medium text-muted-foreground"
+    >
+      Hidden
+    </span>
+  )
+}
+
 export const PALETTE_TABS: {
   value: PaletteTab
   label: string
@@ -191,6 +203,7 @@ export function CommandPaletteResults({
   onOpenInExplorer,
   leafItems,
   sectionedItems,
+  hiddenHrefs,
   onSelectMenuItem,
   databases,
   tables,
@@ -215,6 +228,7 @@ export function CommandPaletteResults({
   onOpenInExplorer: () => void
   leafItems: readonly MenuItem[]
   sectionedItems: readonly MenuItem[]
+  hiddenHrefs?: ReadonlySet<string>
   onSelectMenuItem: (item: MenuItem) => void
   databases: readonly string[]
   tables: readonly ExplorerTableRow[]
@@ -355,7 +369,10 @@ export function CommandPaletteResults({
               key={group.href}
               onSelect={() => onSelectMenuItem(group)}
               value={menuItemPaletteValue(group)}
-              className="group min-w-0"
+              className={cn(
+                'group min-w-0',
+                hiddenHrefs?.has(group.href) && 'text-muted-foreground'
+              )}
             >
               {group.icon && <group.icon className="size-4 shrink-0" />}
               <HighlightText
@@ -363,6 +380,7 @@ export function CommandPaletteResults({
                 query={inputValue}
                 className={TITLE_CLASS}
               />
+              <HiddenHint hidden={Boolean(hiddenHrefs?.has(group.href))} />
               <EnterHint />
             </CommandItem>
           ))}
@@ -381,7 +399,10 @@ export function CommandPaletteResults({
                 key={item.href}
                 onSelect={() => onSelectMenuItem(item)}
                 value={menuItemPaletteValue(item, group.title)}
-                className="group flex-col items-start gap-0.5 rounded-md"
+                className={cn(
+                  'group flex-col items-start gap-0.5 rounded-md',
+                  hiddenHrefs?.has(item.href) && 'text-muted-foreground'
+                )}
               >
                 <div className="flex w-full min-w-0 items-center gap-2">
                   {item.icon && <item.icon className="size-4 shrink-0" />}
@@ -390,6 +411,7 @@ export function CommandPaletteResults({
                     query={inputValue}
                     className={TITLE_CLASS}
                   />
+                  <HiddenHint hidden={Boolean(hiddenHrefs?.has(item.href))} />
                   <EnterHint />
                 </div>
                 {item.description && (
