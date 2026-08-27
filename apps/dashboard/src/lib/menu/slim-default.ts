@@ -10,11 +10,12 @@ import type { MenuItem } from '@/components/menu/types'
  * are never on the hide list (engine swap already drops those groups).
  * Footer rows are never hidden.
  *
- * Groups stay grouped on the live rail. First-run keep list is the day-to-day
- * pages: Overview (leaf); AI Agent → Chat; Insights → Insights; Health →
- * Health; Queries → Running; Tables → Overview + Explorer; Tools → SQL
- * (Explorer also lists under Tools). Hover + still nests hidden siblings.
- * Group headings open a per-category customize dialog.
+ * Groups stay grouped on the live rail. QA default keep list is Essential
+ * plus Insights and Explorer only: Overview (leaf); AI Agent → Chat;
+ * Insights → Insights; Health → Health; Queries → Running; Tables →
+ * Overview + Explorer; Tools → SQL (Explorer also lists under Tools).
+ * Hover + still nests hidden siblings. Group headings open a per-category
+ * customize dialog.
  *
  * Full in Settings → Navigation still shows every page. Merges / Metrics /
  * Clusters / Explain / Advisor, and Keeper / PeerDB / Security / Logs /

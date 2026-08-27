@@ -35,6 +35,19 @@ describe('slim default sidebar (Essential keep list)', () => {
     }
   })
 
+  test('QA keep list is Essential plus Insights and Explorer only', () => {
+    expect([...DEFAULT_VISIBLE_MENU_HREFS]).toEqual([
+      '/overview',
+      '/agents',
+      '/insights',
+      '/health',
+      '/running-queries',
+      '/tables-overview',
+      '/explorer',
+      '/sql',
+    ])
+  })
+
   test('day-to-day hrefs exist on the catalog', () => {
     const leafHrefs = new Set(leaves.map((leaf) => leaf.href))
     for (const href of DEFAULT_VISIBLE_MENU_HREFS) {

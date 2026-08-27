@@ -167,8 +167,9 @@ Show all is full-width under the hide-count line on that pane. Dialog keeps
 
 **Workspace default:** first-run / missing-workspace blobs use
 `workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
-(`lib/menu/slim-default.ts`) — Essential rail (Overview, Chat,
-Insights, Health, Queries / running, Tables overview + Explorer, SQL).
+(`lib/menu/slim-default.ts`) — QA keep list is Essential plus Insights
+and Explorer (Overview, Chat, Insights, Health, Queries / running,
+Tables overview + Explorer, SQL).
 Merges, Metrics, Clusters, Explain, Advisor, Keeper, PeerDB,
 Security, Logs, System, Operations, and extra children stay off the
 first-run rail. Full still means every
@@ -824,6 +825,7 @@ Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 preset).
 
 **Essential first-run default:** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
+QA keep list is Essential plus `/insights` and `/explorer` only.
 Grouped rail (not flattened leaves): Overview (leaf), AI Agent → Chat
 (`/agents`), Insights → Insights (`/insights`), Health → Health
 (`/health`), Queries → Running (`/running-queries`), Tables → Overview

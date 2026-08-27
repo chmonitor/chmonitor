@@ -486,13 +486,13 @@ is a full-width control under the hide-count line. Full detail:
    absent so Postgres hosts inherit Health (default source-engine family).
    Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
    (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
-   sidebar stays Essential (grouped: Overview; AI Agent → Chat; Insights
-   → Insights; Health → Health; Queries → Running; Tables → Overview +
-   Explorer; Tools → SQL) — they remain restorable from the group
-   heading dialog, hover +, More, in-page More / Customize, or Settings →
-   Navigation. Do not add Merges / Metrics / Clusters / Explain / Advisor,
-   or Keeper / PeerDB / Security / Logs / System / Operations, to the keep
-   list.
+   sidebar stays Essential plus Insights and Explorer (grouped: Overview;
+   AI Agent → Chat; Insights → Insights; Health → Health; Queries →
+   Running; Tables → Overview + Explorer; Tools → SQL) — they remain
+   restorable from the group heading dialog, hover +, More, in-page More
+   / Customize, or Settings → Navigation. Do not add Merges / Metrics /
+   Clusters / Explain / Advisor, or Keeper / PeerDB / Security / Logs /
+   System / Operations, to the keep list.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions
