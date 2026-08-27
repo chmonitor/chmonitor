@@ -856,7 +856,11 @@ hidden page navigates and does not auto-unhide; the header shows
 **Keep in sidebar** (and Pin) on that page. Search still matches
 sidebar title, document `<title>` (`lib/page-title.ts` +
 OG `headTitle`/`title`), href, description, and optional `keywords` on
-`MenuItem` (`menuItemPaletteValue`). DBA pages (Advisor, Schema Compare,
+`MenuItem` (`menuItemPaletteValue`). Filtering is userland
+(`Command shouldFilter={false}` + `filterPaletteRows`): group headings
+and Hidden badges are not selectable rows, so Enter/click activate
+`navigable[selectedIndex]` (the highlighted href), not the row below.
+DBA pages (Advisor, Schema Compare,
 Settings Diff, TTL & Partitions) declare aliases so searches like
 `ddl`, `schema diff`, `config diff`, `ttl inventory`, or the tab title
 `TTL & Partition Health` hit them. The dialog has category tabs

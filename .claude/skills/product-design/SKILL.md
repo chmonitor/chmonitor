@@ -229,7 +229,9 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   tokens highlight in the visible title/description (`HighlightText`). Titles
   stay one line (`whitespace-nowrap`) so `TTL & Partitions` does not wrap
   on `&`. All still caps explorer rows; the Databases and Tables tabs show
-  the full fetch. Reset tab + query on close.
+  the full fetch. Reset tab + query on close. Filter in userland
+  (`shouldFilter={false}` + `filterPaletteRows`): group headings and Hidden
+  badges are not navigable, so Enter opens the highlighted href.
 - **Tab strips:** define the tabs as one array and map it — an icon per tab with
   ONE size (`size-3.5`) and NO margin utility; `TabsTrigger` already supplies
   `items-center gap-1.5`. Adding `mr-*` on top of that reads as misalignment.

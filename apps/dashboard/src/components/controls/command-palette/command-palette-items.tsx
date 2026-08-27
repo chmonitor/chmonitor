@@ -26,18 +26,77 @@ import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
 import type { PaletteTab } from '../command-palette-utils'
 import type { ExplorerTableRow } from './use-palette-groups'
 
+import {
+  buildLeafPaletteRows,
+  buildSectionedPaletteRows,
+  filterPaletteRows,
+  filterRankedByQuery,
+  groupedPaletteRows,
+  matchesPaletteQuery,
+  paletteItemId,
+} from '../command-palette-selection'
 import { menuItemPaletteValue } from '../command-palette-utils'
 import { HighlightText } from './highlight-text'
 import { EXPLORER_GROUP_MAX } from './use-palette-groups'
 import {
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { IconButton } from '@/components/ui/icon-button'
 import { cn, getHost } from '@/lib/utils'
+
+/** Same chrome as `CommandDialog`, with cmdk filtering off (#3346). */
+const PALETTE_COMMAND_CLASS =
+  '**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5'
+
+const SECTIONED_GROUP_CLASS =
+  '[&_[cmdk-group-items]]:ml-3 [&_[cmdk-group-items]]:border-l [&_[cmdk-group-items]]:border-border [&_[cmdk-group-items]]:pl-2.5'
+
+export function CommandPaletteDialog({
+  open,
+  onOpenChange,
+  children,
+  className,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      aria-label="Command palette"
+    >
+      <DialogHeader className="sr-only">
+        <DialogTitle>Command palette</DialogTitle>
+        <DialogDescription>
+          Search pages, query id, or database.table
+        </DialogDescription>
+      </DialogHeader>
+      <DialogContent
+        className={cn('overflow-hidden p-0', className)}
+        showCloseButton={false}
+      >
+        <Command shouldFilter={false} className={PALETTE_COMMAND_CLASS}>
+          {children}
+        </Command>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 /**
  * The two ways to open the palette: an icon-only button below `lg`, and a
@@ -248,10 +307,61 @@ export function CommandPaletteResults({
   const showTables = showAll || tab === 'tables'
   const showActions = showAll || tab === 'actions'
   const showChrome = showAll
-  const listedDatabases = showAll
-    ? databases.slice(0, EXPLORER_GROUP_MAX)
-    : databases
-  const listedTables = showAll ? tables.slice(0, EXPLORER_GROUP_MAX) : tables
+  const listedDatabases = filterRankedByQuery(
+    showAll ? databases.slice(0, EXPLORER_GROUP_MAX) : databases,
+    inputValue,
+    (database) => `database ${database}`
+  )
+  const listedTables = filterRankedByQuery(
+    showAll ? tables.slice(0, EXPLORER_GROUP_MAX) : tables,
+    inputValue,
+    (row) => `table ${row.database}.${row.name} ${row.engine}`
+  )
+  const listedFavorites = showChrome
+    ? filterRankedByQuery(
+        favoriteMenuItems,
+        inputValue,
+        (item) => `favorite ${menuItemPaletteValue(item)}`
+      )
+    : []
+  const pageGroups = showPages
+    ? groupedPaletteRows(
+        filterPaletteRows(
+          [
+            ...buildLeafPaletteRows(leafItems, hiddenHrefs),
+            ...buildSectionedPaletteRows(sectionedItems, hiddenHrefs),
+          ],
+          inputValue
+        )
+      )
+    : []
+  const menuById = new Map<string, MenuItem>()
+  for (const item of leafItems) {
+    menuById.set(paletteItemId('Go to', item.href), item)
+  }
+  for (const group of sectionedItems) {
+    for (const item of group.items ?? []) {
+      menuById.set(paletteItemId(group.title, item.href), item)
+    }
+  }
+  const showAiChat = matchesPaletteQuery(
+    'Open AI Agent chat assistant',
+    inputValue
+  )
+  const showTheme =
+    mounted &&
+    matchesPaletteQuery('Toggle dark light theme appearance', inputValue)
+  const listedHosts = filterRankedByQuery(
+    otherHosts,
+    inputValue,
+    (host) => `switch host ${host.name || getHost(host.host)}`
+  )
+  const showSettings = Boolean(
+    onOpenSettings && matchesPaletteQuery('Settings preferences', inputValue)
+  )
+  const hasActions =
+    showActions &&
+    (showAiChat || showTheme || listedHosts.length > 0 || showSettings)
 
   return (
     <CommandList className="max-h-[60vh] scroll-py-2">
@@ -266,17 +376,16 @@ export function CommandPaletteResults({
         </div>
       </CommandEmpty>
 
-      {/* Pinned favorites (issue #2769) surface first, above Recent —
-          cmdk's own value-based filter still narrows this group when the
-          user types, so it isn't gated to the empty-query state. */}
-      {showChrome && favoriteMenuItems.length > 0 && (
+      {/* Pinned favorites (issue #2769) surface first, above Recent.
+          Filtering is userland so cmdk cannot reorder DOM nodes (#3346). */}
+      {showChrome && listedFavorites.length > 0 && (
         <>
           <CommandGroup heading="Favorites">
-            {favoriteMenuItems.map((item) => (
+            {listedFavorites.map((item) => (
               <CommandItem
                 key={`favorite-${item.href}`}
                 onSelect={() => onSelectFavorite(item)}
-                value={`favorite ${menuItemPaletteValue(item)}`}
+                value={`favorite:${item.href}`}
                 className="group min-w-0"
               >
                 <Pin className="size-4 shrink-0 fill-current text-muted-foreground" />
@@ -362,69 +471,72 @@ export function CommandPaletteResults({
         </>
       )}
 
-      {showPages && leafItems.length > 0 && (
-        <CommandGroup heading="Go to">
-          {leafItems.map((group) => (
-            <CommandItem
-              key={group.href}
-              onSelect={() => onSelectMenuItem(group)}
-              value={menuItemPaletteValue(group)}
-              className={cn(
-                'group min-w-0',
-                hiddenHrefs?.has(group.href) && 'text-muted-foreground'
-              )}
-            >
-              {group.icon && <group.icon className="size-4 shrink-0" />}
-              <HighlightText
-                text={group.title}
-                query={inputValue}
-                className={TITLE_CLASS}
-              />
-              <HiddenHint hidden={Boolean(hiddenHrefs?.has(group.href))} />
-              <EnterHint />
-            </CommandItem>
-          ))}
-        </CommandGroup>
-      )}
-
-      {showPages &&
-        sectionedItems.map((group) => (
+      {pageGroups.map((group) => {
+        const isGoTo = group.heading === 'Go to'
+        return (
           <CommandGroup
-            key={group.title}
-            heading={group.title}
-            className="[&_[cmdk-group-items]]:ml-3 [&_[cmdk-group-items]]:border-l [&_[cmdk-group-items]]:border-border [&_[cmdk-group-items]]:pl-2.5"
+            key={group.heading ?? 'pages'}
+            heading={group.heading}
+            className={isGoTo ? undefined : SECTIONED_GROUP_CLASS}
           >
-            {group.items?.map((item) => (
-              <CommandItem
-                key={item.href}
-                onSelect={() => onSelectMenuItem(item)}
-                value={menuItemPaletteValue(item, group.title)}
-                className={cn(
-                  'group flex-col items-start gap-0.5 rounded-md',
-                  hiddenHrefs?.has(item.href) && 'text-muted-foreground'
-                )}
-              >
-                <div className="flex w-full min-w-0 items-center gap-2">
-                  {item.icon && <item.icon className="size-4 shrink-0" />}
-                  <HighlightText
-                    text={item.title}
-                    query={inputValue}
-                    className={TITLE_CLASS}
-                  />
-                  <HiddenHint hidden={Boolean(hiddenHrefs?.has(item.href))} />
-                  <EnterHint />
-                </div>
-                {item.description && (
-                  <HighlightText
-                    text={item.description}
-                    query={inputValue}
-                    className="w-full truncate pl-6 text-xs text-muted-foreground"
-                  />
-                )}
-              </CommandItem>
-            ))}
+            {group.items.map((row) => {
+              const item = menuById.get(row.id)
+              if (!item) return null
+              if (isGoTo) {
+                return (
+                  <CommandItem
+                    key={row.id}
+                    onSelect={() => onSelectMenuItem(item)}
+                    value={row.id}
+                    className={cn(
+                      'group min-w-0',
+                      row.hidden && 'text-muted-foreground'
+                    )}
+                  >
+                    {item.icon && <item.icon className="size-4 shrink-0" />}
+                    <HighlightText
+                      text={item.title}
+                      query={inputValue}
+                      className={TITLE_CLASS}
+                    />
+                    <HiddenHint hidden={Boolean(row.hidden)} />
+                    <EnterHint />
+                  </CommandItem>
+                )
+              }
+              return (
+                <CommandItem
+                  key={row.id}
+                  onSelect={() => onSelectMenuItem(item)}
+                  value={row.id}
+                  className={cn(
+                    'group flex-col items-start gap-0.5 rounded-md',
+                    row.hidden && 'text-muted-foreground'
+                  )}
+                >
+                  <div className="flex w-full min-w-0 items-center gap-2">
+                    {item.icon && <item.icon className="size-4 shrink-0" />}
+                    <HighlightText
+                      text={item.title}
+                      query={inputValue}
+                      className={TITLE_CLASS}
+                    />
+                    <HiddenHint hidden={Boolean(row.hidden)} />
+                    <EnterHint />
+                  </div>
+                  {item.description && (
+                    <HighlightText
+                      text={item.description}
+                      query={inputValue}
+                      className="w-full truncate pl-6 text-xs text-muted-foreground"
+                    />
+                  )}
+                </CommandItem>
+              )
+            })}
           </CommandGroup>
-        ))}
+        )
+      })}
 
       {showDatabases && listedDatabases.length > 0 && (
         <CommandGroup heading="Databases">
@@ -432,7 +544,7 @@ export function CommandPaletteResults({
             <CommandItem
               key={`db-${database}`}
               onSelect={() => onSelectDatabase(database)}
-              value={`database ${database}`}
+              value={`database:${database}`}
               className="group min-w-0"
             >
               <Database className="size-4 shrink-0" />
@@ -453,7 +565,7 @@ export function CommandPaletteResults({
             <CommandItem
               key={`table-${row.database}-${row.name}`}
               onSelect={() => onSelectTable(row)}
-              value={`table ${row.database}.${row.name} ${row.engine}`}
+              value={`table:${row.database}:${row.name}`}
               className="group min-w-0"
             >
               <Table className="size-4 shrink-0" />
@@ -469,23 +581,25 @@ export function CommandPaletteResults({
         </CommandGroup>
       )}
 
-      {showActions && <CommandSeparator />}
-      {showActions && (
+      {hasActions && <CommandSeparator />}
+      {hasActions && (
         <CommandGroup heading="Actions">
-          <CommandItem
-            onSelect={onOpenAiChat}
-            value="Open AI Agent chat assistant"
-            className="group"
-          >
-            <Sparkles className="size-4 shrink-0" />
-            <span>Open AI Agent chat</span>
-            <EnterHint />
-          </CommandItem>
+          {showAiChat && (
+            <CommandItem
+              onSelect={onOpenAiChat}
+              value="action:open-ai-chat"
+              className="group"
+            >
+              <Sparkles className="size-4 shrink-0" />
+              <span>Open AI Agent chat</span>
+              <EnterHint />
+            </CommandItem>
+          )}
 
-          {mounted && (
+          {showTheme && (
             <CommandItem
               onSelect={onToggleTheme}
-              value="Toggle dark light theme appearance"
+              value="action:toggle-theme"
               className="group"
             >
               {resolvedTheme === 'dark' ? (
@@ -500,11 +614,11 @@ export function CommandPaletteResults({
             </CommandItem>
           )}
 
-          {otherHosts.map((host) => (
+          {listedHosts.map((host) => (
             <CommandItem
               key={`switch-host-${host.id}`}
               onSelect={() => onSwitchHost(host.id)}
-              value={`switch host ${host.name || getHost(host.host)}`}
+              value={`action:switch-host:${host.id}`}
               className="group"
             >
               <GlobeIcon className="size-4 shrink-0" />
@@ -513,10 +627,10 @@ export function CommandPaletteResults({
             </CommandItem>
           ))}
 
-          {onOpenSettings && (
+          {showSettings && (
             <CommandItem
-              onSelect={onOpenSettings}
-              value="Settings preferences"
+              onSelect={() => onOpenSettings?.()}
+              value="action:settings"
               className="group"
             >
               <Settings className="size-4 shrink-0" />

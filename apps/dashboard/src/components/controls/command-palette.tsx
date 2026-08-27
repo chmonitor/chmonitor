@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import {
+  CommandPaletteDialog,
   CommandPaletteFooter,
   CommandPaletteResults,
   CommandPaletteTabs,
@@ -17,7 +18,7 @@ import {
 } from './command-palette/use-palette-groups'
 import { parseTableName } from './command-palette-utils'
 import { useTheme } from 'next-themes'
-import { CommandDialog, CommandInput } from '@/components/ui/command'
+import { CommandInput } from '@/components/ui/command'
 import { useFavoriteHrefs } from '@/hooks/use-favorites'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
@@ -171,7 +172,7 @@ export const CommandPalette = function CommandPalette({
     <>
       <CommandPaletteTrigger onOpen={() => setOpen(true)} />
 
-      <CommandDialog
+      <CommandPaletteDialog
         open={open}
         onOpenChange={(value) => {
           setOpen(value)
@@ -180,8 +181,6 @@ export const CommandPalette = function CommandPalette({
             setTab('all')
           }
         }}
-        aria-label="Command palette"
-        showCloseButton={false}
         className="sm:max-w-2xl"
       >
         <CommandInput
@@ -246,7 +245,7 @@ export const CommandPalette = function CommandPalette({
         />
 
         <CommandPaletteFooter />
-      </CommandDialog>
+      </CommandPaletteDialog>
     </>
   )
 }

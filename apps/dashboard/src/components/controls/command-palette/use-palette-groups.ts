@@ -32,11 +32,11 @@ export interface PaletteGroups {
 
 /**
  * Pure derivation of the command palette's groups from menu items,
- * favorites, the explorer table listing, and the merged host list. cmdk still
- * does its own fuzzy filtering per `CommandItem` `value`, so this does NOT
- * filter by `query`; it only computes the quick-navigation affordance
- * (`isQueryId` / `isTableName`), which genuinely depends on the current
- * input.
+ * favorites, the explorer table listing, and the merged host list. The
+ * palette UI filters and ranks rows in `filterPaletteRows` (cmdk
+ * `shouldFilter` is off), so this does NOT filter by `query`; it only
+ * computes the quick-navigation affordance (`isQueryId` / `isTableName`),
+ * which genuinely depends on the current input.
  */
 export function derivePaletteGroups({
   menuItems,
