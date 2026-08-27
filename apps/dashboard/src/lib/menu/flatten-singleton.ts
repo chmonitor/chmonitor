@@ -1,15 +1,18 @@
 import type { MenuItem } from '@/components/menu/types'
 
 /**
- * Group titles that are folders, not the destination name. Flattening uses
- * the child's title (Chat, SQL Console) instead of the folder name.
+ * Unused on the live sidebar (#3348). Essential keeps parent/child groups
+ * even when a group has one visible child, so hover + can nest hidden
+ * siblings under that parent. Helper stays unit-tested in case another
+ * surface wants a flat label.
  */
+
+/** Group titles that are folders; flattening uses the child's title. */
 const FOLDER_TITLES = new Set(['AI Agent', 'Tools'])
 
 /**
- * Label for a 1-child group on the Essential rail: parent title for
- * Queries / Tables / Health, child title for folder groups, and "SQL"
- * for the Tools → SQL Console singleton.
+ * Short label for a 1-child group: parent title for Queries / Tables /
+ * Health, child title for folder groups, and "SQL" for Tools → SQL Console.
  */
 export function flattenSingletonTitle(
   parent: MenuItem,

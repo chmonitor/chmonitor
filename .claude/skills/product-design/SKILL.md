@@ -363,7 +363,10 @@ list (`chm-pinned-favorites`). Leaf sidebar rows also reveal Hide (EyeOff)
 beside the pin; that writes `hiddenMenuHrefs` and toasts Undo + Open
 Navigation (Settings → Workspace → Navigation). Hover **+** lists hidden
 siblings in that group (`showMenuHref` on click). More is a flyout of
-hidden pages (not Settings). Groups with 0–1 visible children flatten.
+hidden pages (not Settings). Essential keeps grouped parents with one
+visible child (Overview is a leaf; AI Agent → Chat, Health → Health,
+Queries → Running Queries, Tables → Tables Overview, Tools → SQL
+Console) — do not flatten those groups to Chat / SQL leaves.
 
 ## User appearance settings
 
@@ -422,7 +425,7 @@ preset leaf stays on the role; Custom only when the hide list leaves
   or a separate Hide-pages drawer. Then the Dim / Hide unavailable-page
   demos.
 Hidden pages stay routable. Sidebar visibility is the hide list
-(`getVisibleMenuItems` + flatten + Alerts). ⌘K uses
+(`getVisibleMenuItems` + Alerts). ⌘K uses
 `usePaletteMenuItems` / `getAllowedMenuItems` so hidden pages stay
 indexed with a Hidden hint and do not auto-unhide. Landing on a hidden
 page shows Keep in sidebar. Settings > Navigation
@@ -433,8 +436,9 @@ Timezone uses `timezone-combobox.tsx`
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
 First-run workspace is Custom + the Essential hide list
-(`DEFAULT_HIDDEN_MENU_HREFS`: Overview, Chat, Health, Queries, Tables
-overview, SQL). Full still restores every page. Other
+(`DEFAULT_HIDDEN_MENU_HREFS`: grouped Overview, AI Agent → Chat, Health
+→ Health, Queries → Running Queries, Tables → Tables Overview, Tools →
+SQL Console). Full still restores every page. Other
 DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
@@ -471,9 +475,11 @@ is a full-width control under the hide-count line. Full detail:
    absent so Postgres hosts inherit Health (default source-engine family).
    Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
    (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
-   sidebar stays Essential (Overview, Chat, Health, Queries, Tables
-   overview, SQL) — they remain restorable from hover +, More, in-page
-   More / Customize, or Settings → Navigation.
+   sidebar stays Essential (grouped parents with one child: Overview,
+   AI Agent → Chat, Health → Health, Queries → Running Queries, Tables
+   → Tables Overview, Tools → SQL Console) — they remain restorable
+   from hover +, More, in-page More / Customize, or Settings →
+   Navigation.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

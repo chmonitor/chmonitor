@@ -77,7 +77,7 @@ export function filterMenuItemsByEngine(
 
 /**
  * Permission / cloud / engine catalog — no workspace hide list. Sidebar
- * applies hide + flatten on top; ⌘K uses this so hidden pages stay indexed.
+ * applies hide on top; ⌘K uses this so hidden pages stay indexed.
  */
 export function getAllowedMenuItems(
   config: PublicFeaturePermissionConfig,
@@ -90,8 +90,9 @@ export function getAllowedMenuItems(
 }
 
 /**
- * Sidebar catalog: allowed items plus workspace hide. Flattening of 1-child
- * groups happens in `useVisibleMenuItems` after Alerts injection.
+ * Sidebar catalog: allowed items plus workspace hide. Alerts injection
+ * happens in `useVisibleMenuItems`. Groups with one visible child stay
+ * grouped (parent + nested leaf), not flattened to a leaf.
  *
  * Workspace filtering is last and never replaces the deployment gates.
  */
