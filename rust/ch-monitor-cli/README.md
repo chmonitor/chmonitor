@@ -38,6 +38,10 @@ cargo build --release --manifest-path rust/ch-monitor-cli/Cargo.toml
 ```bash
 chm                  # live TUI (default)
 chm --help
+chm add http://localhost:8123
+chm add postgres://user@localhost:5432/app --name shop
+chm ls
+chm use local
 chm auth login
 chm auth status
 chm auth logout
@@ -45,6 +49,8 @@ chm config           # interactive dialog
 chm config show
 chm config set host_id 0
 ```
+
+`chm add` (alias `chm connect`) saves a **local** named connection (ClickHouse HTTP or Postgres) with no dashboard and no network. `chm ls` lists them; `chm use <name>` sets the active one in `~/.config/chm/config.toml`. Passwords go in the credentials helper, never in `ls` / JSON. Dashboard `chm hosts` is unchanged. <!-- pragma: allowlist secret -->
 
 `chm tui` is an explicit alias of the default TUI. `chm dashboard list` opens a
 ratatui picker for Overview or a saved dashboard. Dashboard API helpers

@@ -25,6 +25,12 @@ pub struct FileConfig {
     pub token: Option<String>,
     pub default_chart: Option<String>,
     pub channel: Option<String>,
+    /// Active local connection name (`chm use`). Not a dashboard host id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_connection: Option<String>,
+    /// Local named connections (`chm add`). Passwords are not stored here.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub connections: Vec<crate::connections::StoredConnection>,
 }
 
 #[derive(Debug, Clone)]
@@ -95,8 +101,11 @@ pub fn load_layered_files(
     }
 
     // Layer: project over user (project wins when both set the same key).
+    // Local connections stay on the user file only.
     let mut merged = FileConfig::default();
     if let Some(user) = load_toml_file(&user_path)? {
+        merged.current_connection = user.current_connection.clone();
+        merged.connections = user.connections.clone();
         merge_file(&mut merged, user);
     }
     for candidate in project_paths {
@@ -126,6 +135,8 @@ fn merge_file(dst: &mut FileConfig, src: FileConfig) {
     if src.channel.is_some() {
         dst.channel = src.channel;
     }
+    // Local connections stay on the user (or --config) file. Project
+    // chm.toml is dashboard settings and must not drop or replace them.
 }
 
 fn parse_channel(raw: &str) -> Result<Channel> {
@@ -195,23 +206,41 @@ pub fn load_user_file_config(path: &PathBuf) -> Result<FileConfig> {
     Ok(load_toml_file(path)?.unwrap_or_default())
 }
 
-const SECRET_KEYS: &[&str] = &["api_key", "token"];
+const SECRET_KEYS: &[&str] = &["api_key", "token", "password"];
 
-/// Redact `api_key` / `token` values as `(set)` so `config show` is safe to print.
+/// Redact `api_key` / `token` / `password` values as `(set)` so `config show` is safe to print.
 pub fn redact_toml(content: &str) -> String {
     let Ok(mut value) = toml::from_str::<toml::Value>(content) else {
         return content.to_string();
     };
-    if let Some(table) = value.as_table_mut() {
-        for key in SECRET_KEYS {
-            if let Some(toml::Value::String(s)) = table.get(*key) {
-                if !s.is_empty() && s != "(set)" {
-                    table.insert((*key).to_string(), toml::Value::String("(set)".into()));
+    redact_value(&mut value);
+    toml::to_string_pretty(&value).unwrap_or_else(|_| content.to_string())
+}
+
+fn redact_value(value: &mut toml::Value) {
+    match value {
+        toml::Value::Table(table) => {
+            let keys: Vec<String> = table.keys().cloned().collect();
+            for key in keys {
+                if SECRET_KEYS.iter().any(|s| *s == key) {
+                    if let Some(toml::Value::String(s)) = table.get(&key) {
+                        if !s.is_empty() && s != "(set)" {
+                            table.insert(key.clone(), toml::Value::String("(set)".into()));
+                        }
+                    }
+                }
+                if let Some(v) = table.get_mut(&key) {
+                    redact_value(v);
                 }
             }
         }
+        toml::Value::Array(arr) => {
+            for v in arr {
+                redact_value(v);
+            }
+        }
+        _ => {}
     }
-    toml::to_string_pretty(&value).unwrap_or_else(|_| content.to_string())
 }
 
 #[derive(Debug, Clone)]
@@ -597,5 +626,52 @@ host_id = 1
         assert_eq!(json["resolved"]["host_id"], 3);
         assert_eq!(json["resolved"]["api_key_set"], true);
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn project_merge_keeps_user_connections() {
+        let root = std::env::temp_dir().join(format!(
+            "chm-cfg-conns-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let user = root.join("user.toml");
+        let project = root.join("chm.toml");
+        fs::write(
+            &user,
+            r#"
+current_connection = "local"
+
+[[connections]]
+name = "local"
+engine = "clickhouse" # pragma: allowlist secret
+host = "localhost"
+port = 8123
+"#,
+        )
+        .unwrap();
+        fs::write(&project, "host_id = 2\n").unwrap();
+        let (merged, _) = load_layered_files(user, vec![project], None).unwrap();
+        assert_eq!(merged.host_id, Some(2));
+        assert_eq!(merged.current_connection.as_deref(), Some("local"));
+        assert_eq!(merged.connections.len(), 1);
+        assert_eq!(merged.connections[0].name, "local");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn redact_toml_hides_nested_password() {
+        let raw = r#"
+[[connections]]
+name = "local"
+password = "should-not-print"
+"#;
+        let redacted = redact_toml(raw);
+        assert!(!redacted.contains("should-not-print"), "{redacted}");
+        assert!(redacted.contains("(set)"), "{redacted}");
     }
 }

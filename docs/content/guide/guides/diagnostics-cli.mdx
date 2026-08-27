@@ -1,6 +1,6 @@
 ---
 title: chm CLI
-description: Install and use the chm / chmonitor CLI — dashboard API client, TUI, self-update, and zero-signup `chm doctor` against a cluster.
+description: Install and use the chm / chmonitor CLI — local connections, dashboard API client, TUI, self-update, and zero-signup `chm doctor` against a cluster.
 icon: Terminal
 ---
 
@@ -14,7 +14,9 @@ open the live TUI (`chm tui` is the same UI) on the Overview dashboard charts.
 dashboard when needed.
 
 `chm doctor --ch-host` (no dashboard account or backend) is a separate mode: it connects
-**straight to a ClickHouse host** with no dashboard account or backend.
+**straight to a ClickHouse host** with no dashboard account or backend. `chm add` / {/* pragma: allowlist secret */}
+`chm ls` / `chm use` manage a **local** named connection store (ClickHouse HTTP and {/* pragma: allowlist secret */}
+Postgres) with no dashboard required.
 
 <Callout type="info" title="Binary names and platforms">
 Shipped release assets are Linux and macOS only (`x86_64` / `aarch64`). There
@@ -103,6 +105,32 @@ After some commands (including `chm doctor` cluster scan), `chm` does a fast, be
 check for a newer release and prints a one-line hint to stderr if one is
 available. Silence it with `CHM_NO_UPDATE_CHECK=1`.
 </Callout>
+
+## Local connections (`chm add` / `ls` / `use`)
+
+Save named ClickHouse HTTP and Postgres URLs on this machine — no dashboard {/* pragma: allowlist secret */}
+account, no network on add (the URL is not probed):
+
+```bash
+chm add http://localhost:8123
+chm add http://user:pass@ch.example:8123/analytics --name prod
+chm add localhost:8123 --ch-user default
+chm add postgres://user:pass@localhost:5432/app
+chm ls
+chm ls --json
+chm use prod
+chm rm prod
+```
+
+`connect` is an alias of `add`. `--name` is optional; the default is a short
+host/database slug. `chm ls` prints name, engine (`clickhouse` \| `postgres`), {/* pragma: allowlist secret */}
+host, and a `*` on the active connection. Secrets stay in the credentials
+helper (OS keyring / `~/.config/chm/credentials`) and never appear in `ls` or
+JSON. The active name is `current_connection` in `~/.config/chm/config.toml`.
+
+This store is **not** `chm hosts` (that lists hosts from a running dashboard
+API). The live TUI opens against the active local ClickHouse connection and {/* pragma: allowlist secret */}
+`h`/`l` switches among local connections without restart.
 
 ## Common dashboard commands
 

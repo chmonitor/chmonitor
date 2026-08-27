@@ -5,6 +5,7 @@ pub mod audit;
 pub mod auth;
 pub mod chart;
 pub mod config_cmd;
+pub mod connections;
 pub mod dashboard;
 pub mod diagnose_cmd;
 pub mod doctor;
@@ -18,6 +19,7 @@ use reqwest::Client;
 use crate::{
     cli::{Cli, Commands, DoctorArgs, PromptCommand},
     config::AppConfig,
+    connections::ConnectionStore,
     prompts,
     tui::TuiOptions,
 };
@@ -37,6 +39,28 @@ async fn run_cluster_scan(
         args.json || cfg.json,
     )
     .await
+}
+
+fn resolve_tui_backend(
+    cfg: &AppConfig,
+    cli: &Cli,
+) -> (
+    Option<crate::diagnose::ChConfig>,
+    Vec<crate::connections::StoredConnection>,
+    Option<String>,
+) {
+    let explicit = cli.clickhouse.to_ch_config(); // pragma: allowlist secret
+    if let Some(ch) = explicit {
+        return (Some(ch), Vec::new(), None);
+    }
+    let store = ConnectionStore::from_config_path(cfg.user_config_path.clone());
+    let Ok((conns, current)) = store.load() else {
+        return (None, Vec::new(), None);
+    };
+    let ch = current
+        .as_deref()
+        .and_then(|name| store.ch_config_for(name).ok().flatten());
+    (ch, conns, current)
 }
 
 pub(crate) async fn run_tui_session(
@@ -79,6 +103,29 @@ pub async fn dispatch(
             Ok(0)
         }
         Commands::Dashboard(args) => dashboard::run(client, cfg, args.command).await,
+        Commands::Add(args) => {
+            connections::add(
+                cfg,
+                &args.url,
+                &args,
+                &cli.clickhouse.ch_user,     // pragma: allowlist secret
+                &cli.clickhouse.ch_password, // pragma: allowlist secret
+                &cli.clickhouse.ch_database, // pragma: allowlist secret
+            )?;
+            Ok(0)
+        }
+        Commands::Ls => {
+            connections::ls(cfg)?;
+            Ok(0)
+        }
+        Commands::Use { name } => {
+            connections::use_name(cfg, &name)?;
+            Ok(0)
+        }
+        Commands::Rm { name } => {
+            connections::rm(cfg, &name)?;
+            Ok(0)
+        }
         Commands::Hosts => {
             hosts::run(client, cfg).await?;
             Ok(0)
@@ -116,6 +163,7 @@ pub async fn dispatch(
             Ok(0)
         }
         Commands::Tui(args) => {
+            let (ch, local_connections, current_connection) = resolve_tui_backend(cfg, cli);
             run_tui_session(
                 client,
                 cfg,
@@ -127,7 +175,10 @@ pub async fn dispatch(
                     page_size: args.page_size,
                     start_overview: args.overview,
                     host_id: cfg.host_id,
-                    ch: cli.clickhouse.to_ch_config(),
+                    ch,
+                    local_connections,
+                    current_connection,
+                    config_path: Some(cfg.user_config_path.clone()),
                 },
             )
             .await?;

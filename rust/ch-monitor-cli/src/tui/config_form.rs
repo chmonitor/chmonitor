@@ -209,6 +209,7 @@ impl ConfigForm {
             token: None,
             default_chart: Some(default_chart.to_string()),
             channel: Some(self.channel.as_str().to_string()),
+            ..Default::default()
         })
     }
 }
