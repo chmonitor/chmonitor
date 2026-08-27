@@ -129,7 +129,9 @@ cargo run --manifest-path rust/ch-monitor-cli/Cargo.toml -- doctor
 PRs (including the rolling release-please CLI PR) for the four release
 targets: linux gnu x86_64/aarch64 and macOS x86_64/aarch64. It posts one
 sticky comment (`header: cli-build-report`) and recreates it on each push
-so only the latest numbers stay. Local:
+so only the latest numbers stay. `--assemble DIR` is resolved from the
+repo root (CI downloads metrics to `$GITHUB_WORKSPACE/cli-report-metrics`,
+not `rust/`). Local:
 
 ```bash
 bash scripts/cli-build-report.sh --target x86_64-unknown-linux-gnu

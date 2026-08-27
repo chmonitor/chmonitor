@@ -4,11 +4,21 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT/rust"
 
 usage() {
   echo "usage: $0 [--target TRIPLE] [--out DIR] [--assemble DIR] [--report PATH]" >&2
   exit 2
+}
+
+# Relative --assemble / --report / --out paths are from the repo root, not rust/.
+# The report job downloads artifacts to $GITHUB_WORKSPACE/cli-report-metrics.
+abs_from_root() {
+  local p="$1"
+  if [[ "$p" == /* ]]; then
+    printf '%s\n' "$p"
+  else
+    printf '%s\n' "$ROOT/$p"
+  fi
 }
 
 target=""
@@ -44,6 +54,8 @@ file_size() {
 }
 
 if [[ -n "$assemble_dir" ]]; then
+  assemble_dir="$(abs_from_root "$assemble_dir")"
+  report="$(abs_from_root "$report")"
   python3 - "$assemble_dir" "$report" <<'PY'
 import json, os, sys
 from pathlib import Path
@@ -51,7 +63,11 @@ from pathlib import Path
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
 files = sorted(src.rglob("*.json"))
 if not files:
-    raise SystemExit(f"no metrics json in {src}")
+    listing = []
+    if src.exists():
+        listing = [str(p) for p in sorted(src.rglob("*")) if p.is_file()]
+    extra = f" files={listing}" if listing else " (dir missing or empty)"
+    raise SystemExit(f"no metrics json in {src}{extra}")
 rows = [json.loads(p.read_text()) for p in files]
 rows.sort(key=lambda r: r.get("target") or "")
 head = rows[0]
@@ -112,6 +128,9 @@ print(f"Wrote {dest}")
 PY
   exit 0
 fi
+
+cd "$ROOT/rust"
+out_dir="$(abs_from_root "$out_dir")"
 
 host="$(host_triple)"
 if [[ -z "$target" ]]; then
