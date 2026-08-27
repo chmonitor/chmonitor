@@ -36,11 +36,13 @@
  * collision (logged); a later query within the same pack wins over an
  * earlier one too (same merge step).
  *
- * SERVER-ONLY MODULE: statically imports `node:fs/promises` + `node:url` (for
- * `file://`) and the `yaml` parser — none of which belong in the browser
- * bundle. Every call site MUST gate on the build-time `import.meta.env.SSR`
- * constant so Vite/Rollup dead-code-eliminates this whole module out of the
- * client build. See `getQueryConfigByName` in `../index.ts`.
+ * SERVER-ONLY MODULE: `file://` reads use Node builtins (`node:fs/promises`,
+ * `node:url`). Those are dynamically imported inside the reader so a static
+ * import of this file from the shared query-config barrel cannot throw in the
+ * Vite DEV client — named access of the externalized `node:fs/promises.readFile`
+ * crashes the whole dashboard. Call sites still MUST gate on the build-time
+ * `import.meta.env.SSR` constant so production client builds DCE the pack
+ * lookup. See `getQueryConfigByName` in `../index.ts`.
  */
 
 import { z } from 'zod'
@@ -49,8 +51,6 @@ import type { DeclarativeQueryConfig } from './schema'
 
 import { getConfigSource } from './loader'
 import { validateDeclarativeConfig } from './validate'
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import { error, warn } from '@chm/logger'
 import { parse as parseYaml } from 'yaml'
 import { createHostValidationFetch } from '@/lib/browser-connections/host-url'
@@ -111,6 +111,10 @@ async function readPackSource(
   fetchImpl: typeof fetch
 ): Promise<string> {
   if (url.startsWith('file://')) {
+    const [{ readFile }, { fileURLToPath }] = await Promise.all([
+      import('node:fs/promises'),
+      import('node:url'),
+    ])
     return readFile(fileURLToPath(url), 'utf-8')
   }
 

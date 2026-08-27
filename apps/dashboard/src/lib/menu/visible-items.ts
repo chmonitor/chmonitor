@@ -1,14 +1,7 @@
-// Central menu-visibility resolver. A menu item is shown when it passes TWO
-// independent gates, applied in one place so every nav surface (sidebar,
-// command palette, future ones) stays consistent:
-//
-//   1. Feature permission  — `filterMenuItemsByPermissions` (auth/deployment)
-//   2. Cloud-only          — drop `cloudOnly` items when not in cloud mode
-//
-// Previously the cloud-only rule lived as inline logic in app-sidebar.tsx and
-// clerk-nav.tsx but was missing from the command palette, so ⌘K leaked
-// Billing in self-host / OSS. Encoding the rule as data on the
-// item (`cloudOnly: true`) and resolving it here removes that fragility.
+// Central menu-visibility resolver. Deployment gates (permission, cloud-only,
+// engine) apply to every nav surface. Workspace hide is sidebar / More only —
+// the command palette indexes the full allowed catalog so hidden pages stay
+// reachable via ⌘K without auto-unhiding.
 
 import { menuItemsConfig } from '@/menu'
 
@@ -83,28 +76,33 @@ export function filterMenuItemsByEngine(
 }
 
 /**
- * The single source of truth for what a CLIENT nav surface may render:
- * `menuItemsConfig` with feature-permission, cloud-only, engine, and
- * workspace-preset gates applied. `isCloudModeClient()` is resolved at build
- * time, so this is cheap and stable across renders.
- *
- * `engine` is the ACTIVE host's source engine (defaults to `'clickhouse'`), so
- * a caller that doesn't thread it — and every ClickHouse host — sees exactly
- * today's menu when the workspace is Full.
+ * Permission / cloud / engine catalog — no workspace hide list. Sidebar
+ * applies hide + flatten on top; ⌘K uses this so hidden pages stay indexed.
+ */
+export function getAllowedMenuItems(
+  config: PublicFeaturePermissionConfig,
+  engine: SourceEngine = DEFAULT_SOURCE_ENGINE
+): MenuItem[] {
+  const cloudMode = isCloudModeClient()
+  const byPermission = filterMenuItemsByPermissions(menuItemsConfig, config)
+  const byCloud = filterCloudOnly(byPermission, cloudMode)
+  return filterMenuItemsByEngine(byCloud, engine)
+}
+
+/**
+ * Sidebar catalog: allowed items plus workspace hide. Flattening of 1-child
+ * groups happens in `useVisibleMenuItems` after Alerts injection.
  *
  * Workspace filtering is last and never replaces the deployment gates.
  */
 export function getVisibleMenuItems(
   config: PublicFeaturePermissionConfig,
-  engine: SourceEngine = 'clickhouse',
+  engine: SourceEngine = DEFAULT_SOURCE_ENGINE,
   workspace?: WorkspaceVisibility
 ): MenuItem[] {
-  const cloudMode = isCloudModeClient()
-  const byPermission = filterMenuItemsByPermissions(menuItemsConfig, config)
-  const byCloud = filterCloudOnly(byPermission, cloudMode)
-  const byEngine = filterMenuItemsByEngine(byCloud, engine)
-  if (!workspace) return byEngine
-  return applyWorkspaceVisibility(byEngine, workspace)
+  const allowed = getAllowedMenuItems(config, engine)
+  if (!workspace) return allowed
+  return applyWorkspaceVisibility(allowed, workspace)
 }
 
 /**

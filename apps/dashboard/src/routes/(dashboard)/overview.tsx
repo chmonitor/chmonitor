@@ -6,6 +6,7 @@ import { OVERVIEW_TABS } from './-charts-config'
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
 import { ClientOnly } from '@/components/client-only'
 import { InsightsStrip } from '@/components/insights/insights-strip'
+import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { cardStyles } from '@/components/overview-charts/card-styles'
 import {
   OVERVIEW_KPI_GRID_CLASS,
@@ -248,18 +249,21 @@ function OverviewPageContent() {
           onValueChange={handleTabChange}
           className="space-y-2"
         >
-          <div className="scrollbar-hide min-w-0 w-full overflow-x-auto py-0.5">
-            <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap items-center justify-start gap-1 rounded-none border-b border-border bg-transparent p-0 text-muted-foreground">
-              {OVERVIEW_TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className={TAB_TRIGGER_CLASS}
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="scrollbar-hide min-w-0 w-full flex-1 overflow-x-auto py-0.5">
+              <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap items-center justify-start gap-1 rounded-none border-b border-border bg-transparent p-0 text-muted-foreground">
+                {OVERVIEW_TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className={TAB_TRIGGER_CLASS}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            <RelatedPagesLink href="/overview" className="shrink-0" />
           </div>
 
           {OVERVIEW_TABS.map((tab) => (

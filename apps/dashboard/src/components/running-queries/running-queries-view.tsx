@@ -7,6 +7,7 @@ import type { CardError } from '@/lib/card-error-utils'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout'
 import { CollapsedChartsRow } from '@/components/layout/query-page/collapsed-charts-row'
+import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { HeaderButton } from '@/components/query-tables/header-button'
 import { QueryPageSkeleton } from '@/components/query-tables/query-page-skeleton'
 import { CompletedQueriesTable } from '@/components/running-queries/completed-queries-table'
@@ -279,6 +280,7 @@ export const RunningQueriesView = function RunningQueriesView() {
           }
           actions={
             <div className="flex flex-wrap items-center gap-1.5">
+              <RelatedPagesLink href="/running-queries" />
               <HeaderButton onClick={() => setChartsOpen((v) => !v)}>
                 {chartsOpen ? (
                   <MinimizeIcon className="size-3.5" />

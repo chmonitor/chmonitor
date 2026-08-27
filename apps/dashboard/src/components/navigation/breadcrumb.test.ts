@@ -15,7 +15,9 @@ const src = readFileSync(
 
 describe('header breadcrumb title', () => {
   test('current page does not ellipsize', () => {
-    expect(src).toContain('className="shrink-0 font-medium text-foreground"')
+    expect(src).toContain(
+      'className="inline-flex shrink-0 items-center font-medium text-foreground"'
+    )
     expect(src).not.toContain('truncate font-medium text-foreground')
   })
 

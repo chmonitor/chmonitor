@@ -21,7 +21,8 @@ import { CommandDialog, CommandInput } from '@/components/ui/command'
 import { useFavoriteHrefs } from '@/hooks/use-favorites'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
-import { useVisibleMenuItems } from '@/lib/menu/use-visible-menu-items'
+import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
+import { usePaletteMenuItems } from '@/lib/menu/use-visible-menu-items'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
@@ -64,7 +65,8 @@ export const CommandPalette = function CommandPalette({
     rememberSelection,
   } = useCommandPaletteState({ open: controlledOpen, onOpenChange })
 
-  const menuItems = useVisibleMenuItems()
+  const menuItems = usePaletteMenuItems()
+  const { hiddenHrefs } = useMenuWorkspaceCatalog()
   const favoriteHrefs = useFavoriteHrefs()
   const favoriteMenuItems = getFavoriteMenuItems(menuItems, favoriteHrefs)
   const { setTheme, resolvedTheme } = useTheme()
@@ -217,6 +219,7 @@ export const CommandPalette = function CommandPalette({
           onOpenInExplorer={handleOpenInExplorer}
           leafItems={leafItems}
           sectionedItems={sectionedItems}
+          hiddenHrefs={hiddenHrefs}
           onSelectMenuItem={(item) =>
             navigate(item.href, {
               id: `page-${item.href}`,

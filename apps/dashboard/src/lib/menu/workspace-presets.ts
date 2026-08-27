@@ -11,6 +11,12 @@ import {
  * top-level menu groups. Full is the only auto-expand preset: new pages and
  * groups appear there automatically. Footer rows (About) are
  * never hidden — they sit next to the Settings gear and Host switcher.
+ *
+ * First-run is Custom + the Essential leaf keep list (`slim-default.ts`),
+ * not Full / DBA / Engineer / SRE. Role pills still dump whole groups onto
+ * the rail (leftover — they are not leaf keep-lists that start from
+ * Essential). Hide = sidebar / More membership; ⌘K uses the full allowed
+ * catalog.
  */
 
 export const WORKSPACE_PRESETS = [

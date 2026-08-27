@@ -20,6 +20,7 @@ interface SettingsDialogProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   initialTab?: SettingsTab
+  focusGroup?: string
 }
 
 export function SettingsDialog({
@@ -27,6 +28,7 @@ export function SettingsDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   initialTab = 'general',
+  focusGroup,
 }: SettingsDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const { settings, updateSettings } = useUserSettings()
@@ -64,6 +66,7 @@ export function SettingsDialog({
           onUpdate={updateSettings}
           onClose={() => onOpenChange(false)}
           initialTab={initialTab}
+          focusGroup={focusGroup}
         />
       </DialogContent>
     </Dialog>

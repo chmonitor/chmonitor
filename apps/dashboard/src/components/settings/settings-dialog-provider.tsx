@@ -13,13 +13,19 @@ import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
 
-type OpenSettings = (tab?: SettingsTab) => void
+export interface OpenSettingsOptions {
+  /** Prefill Navigation search so that catalog group is focused. */
+  focusGroup?: string
+}
+
+type OpenSettings = (tab?: SettingsTab, options?: OpenSettingsOptions) => void
 
 const SettingsDialogContext = createContext<OpenSettings | null>(null)
 
 /**
  * One Settings dialog for the shell (gear, ⌘,, command palette, hide-page
- * toast). Passing a tab opens that pane; omitting it opens General.
+ * toast, hover-Add Customize). Passing a tab opens that pane; omitting it
+ * opens General.
  */
 export function SettingsDialogProvider({
   children,
@@ -28,13 +34,15 @@ export function SettingsDialogProvider({
 }) {
   const [open, setOpen] = useState(false)
   const [initialTab, setInitialTab] = useState<SettingsTab>('general')
+  const [focusGroup, setFocusGroup] = useState<string | undefined>()
   const { config } = useFeaturePermissions()
   const canUseSettings = isFeatureAllowed(SETTINGS_FEATURE_PERMISSION, config)
 
   const openSettings = useCallback<OpenSettings>(
-    (tab = 'general') => {
+    (tab = 'general', options) => {
       if (!canUseSettings) return
       setInitialTab(tab)
+      setFocusGroup(options?.focusGroup)
       setOpen(true)
     },
     [canUseSettings]
@@ -42,7 +50,10 @@ export function SettingsDialogProvider({
 
   const handleOpenChange = useCallback((next: boolean) => {
     setOpen(next)
-    if (!next) setInitialTab('general')
+    if (!next) {
+      setInitialTab('general')
+      setFocusGroup(undefined)
+    }
   }, [])
 
   useSettingsShortcut(openSettings, canUseSettings)
@@ -57,6 +68,7 @@ export function SettingsDialogProvider({
           open={open}
           onOpenChange={handleOpenChange}
           initialTab={initialTab}
+          focusGroup={focusGroup}
         />
       ) : null}
     </SettingsDialogContext.Provider>

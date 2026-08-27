@@ -3,6 +3,7 @@ import { useLocation } from '@tanstack/react-router'
 import { menuItemsConfig } from '@/menu'
 
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
+import { KeepInSidebarChip } from '@/components/navigation/keep-in-sidebar'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { filterMenuItemsByPermissions } from '@/lib/feature-permissions/menu'
 import { getBreadcrumbPath } from '@/lib/menu/breadcrumb'
@@ -61,10 +62,11 @@ export const Breadcrumb = function Breadcrumb({ className }: BreadcrumbProps) {
               )}
               {isLast ? (
                 <span
-                  className="shrink-0 font-medium text-foreground"
+                  className="inline-flex shrink-0 items-center font-medium text-foreground"
                   aria-current="page"
                 >
                   {crumb.title}
+                  <KeepInSidebarChip />
                 </span>
               ) : crumb.href ? (
                 <HostPrefixedLink

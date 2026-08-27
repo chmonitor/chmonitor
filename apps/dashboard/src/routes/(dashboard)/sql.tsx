@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ExplorerSidebar } from '@/components/explorer/explorer-sidebar'
 import { useExplorerState } from '@/components/explorer/hooks/use-explorer-state'
+import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { SqlConsole } from '@/components/sql-console'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -54,7 +55,10 @@ function SqlConsolePage() {
         </Button>
       )}
       <div>
-        <h1 className="text-xl font-semibold">SQL Console</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-xl font-semibold">SQL Console</h1>
+          <RelatedPagesLink href="/sql" className="shrink-0" />
+        </div>
         <p className="text-muted-foreground text-sm">
           Run read-only SQL with history, EXPLAIN, query log and scan analysis.
         </p>

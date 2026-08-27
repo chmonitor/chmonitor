@@ -6,7 +6,7 @@ import type { WorkspacePreset } from '@/lib/types/user-settings'
 import { SegmentedControl } from './segmented-control'
 import { WorkspaceMenuTree } from './workspace-menu-tree'
 import { DEFAULT_SOURCE_ENGINE, type SourceEngine } from '@chm/types'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { getSettingsNavMenuItems } from '@/lib/menu/visible-items'
 import {
@@ -35,7 +35,7 @@ const PRESET_HINT: Record<WorkspacePreset, string> = {
     'Overview, SQL/explorer, queries, insights. Less keeper, security, and ops.',
   sre: 'Overview, health, insights, SQL tools, replication, disks, errors, running queries.',
   custom:
-    'Day-to-day pages by default. Hide or show more in the tree, or pick Full.',
+    'Essential pages by default (Overview, Chat, Health, Queries, Tables, SQL). Hide or show more from the rail, More, or this tree.',
 }
 
 interface WorkspacePresetPickerProps {
@@ -47,6 +47,8 @@ interface WorkspacePresetPickerProps {
    * unspecified hosts keep today's tree.
    */
   engine?: SourceEngine
+  /** Prefill the tree search so Customize from a group lands on that group. */
+  focusGroup?: string
   onChange: (next: {
     workspacePreset: WorkspacePreset
     hiddenMenuHrefs: string[]
@@ -57,9 +59,14 @@ export function WorkspacePresetPicker({
   preset,
   hiddenMenuHrefs,
   engine = DEFAULT_SOURCE_ENGINE,
+  focusGroup,
   onChange,
 }: WorkspacePresetPickerProps) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(focusGroup ?? '')
+
+  useEffect(() => {
+    if (focusGroup) setQuery(focusGroup)
+  }, [focusGroup])
 
   const treeItems = useMemo(() => getSettingsNavMenuItems(engine), [engine])
   const leaves = useMemo(() => collectMenuLeaves(treeItems), [treeItems])
