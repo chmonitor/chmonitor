@@ -3,7 +3,7 @@ id: declarative-config-catalog
 title: Declarative Config Catalog
 type: spec
 status: active
-updated: 2026-07-03
+updated: 2026-08-27
 tags:
   - query-config
   - declarative
@@ -196,6 +196,11 @@ every entry in `queries` is validated against the same
   (`browser-connections`, `user-connections`) `await` it before the
   synchronous `getQueryConfigByName` lookup so a pack-only query resolves
   deterministically on first request, instead of racing a background fetch.
+- **Vite DEV client** — `file://` Node builtins are dynamically imported
+  inside the reader. A static `import { readFile } from 'node:fs/promises'`
+  throws on named access in the browser (`node:fs/promises` is externalized)
+  and blanks the dashboard whenever the shared query-config barrel loads.
+  Production client builds still DCE the pack lookup via `import.meta.env.SSR`.
 - **`minChmVersion`** is schema-validated but not yet enforced against the
   running app version — deferred, same as pack signing/verification.
 
