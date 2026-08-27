@@ -35,6 +35,20 @@ describe('slim default sidebar (Essential keep list)', () => {
     }
   })
 
+  test('QA keep list is Essential plus Insights, Explorer, and Query History', () => {
+    expect([...DEFAULT_VISIBLE_MENU_HREFS]).toEqual([
+      '/overview',
+      '/agents',
+      '/insights',
+      '/health',
+      '/running-queries',
+      '/history-queries',
+      '/tables-overview',
+      '/explorer',
+      '/sql',
+    ])
+  })
+
   test('day-to-day hrefs exist on the catalog', () => {
     const leafHrefs = new Set(leaves.map((leaf) => leaf.href))
     for (const href of DEFAULT_VISIBLE_MENU_HREFS) {
@@ -75,13 +89,13 @@ describe('slim default sidebar (Essential keep list)', () => {
     }).map((item: MenuItem) => item.title)
 
     expect(titles).toContain('Overview')
+    expect(titles).toContain('AI Agent')
+    expect(titles).toContain('Insights')
     expect(titles).toContain('Health')
     expect(titles).toContain('Queries')
     expect(titles).toContain('Tables')
     expect(titles).toContain('Tools')
-    expect(titles).toContain('AI Agent')
     expect(titles).toContain('About')
-    expect(titles).not.toContain('Insights')
     expect(titles).not.toContain('Merges')
     expect(titles).not.toContain('Metrics')
     expect(titles).not.toContain('Cluster')
@@ -93,15 +107,45 @@ describe('slim default sidebar (Essential keep list)', () => {
     expect(titles).not.toContain('Operations')
   })
 
+  test('first-run grouped rail keeps the extra day-to-day children', () => {
+    const visible = applyWorkspaceVisibility(menuItemsConfig, {
+      workspacePreset: DEFAULT_USER_SETTINGS.workspacePreset,
+      hiddenMenuHrefs: DEFAULT_USER_SETTINGS.hiddenMenuHrefs,
+    })
+    const childHrefs = (title: string) =>
+      visible
+        .find((item: MenuItem) => item.title === title)
+        ?.items?.map((child) => child.href)
+
+    expect(
+      visible.find((item: MenuItem) => item.title === 'Overview')?.href
+    ).toBe('/overview')
+    expect(childHrefs('AI Agent')).toEqual(['/agents'])
+    expect(childHrefs('Insights')).toEqual(['/insights'])
+    expect(childHrefs('Health')).toEqual(['/health'])
+    expect(childHrefs('Queries')).toEqual([
+      '/running-queries',
+      '/history-queries',
+    ])
+    expect(childHrefs('Tables')).toEqual(['/explorer', '/tables-overview'])
+    expect(childHrefs('Tools')).toEqual(['/sql', '/explorer'])
+    expect(childHrefs('Merges')).toBeUndefined()
+    expect(childHrefs('Metrics')).toBeUndefined()
+    expect(childHrefs('Cluster')).toBeUndefined()
+  })
+
   test('Essential keep list excludes specialist rail rows', () => {
     for (const href of [
-      '/insights',
       '/merges',
       '/metrics',
       '/clusters',
       '/explain',
       '/advisor',
-      '/explorer',
+      '/alert-settings',
+      '/keeper/info',
+      '/peerdb',
+      '/logs/text-log',
+      '/settings',
       '/tables',
     ]) {
       expect(DEFAULT_VISIBLE_MENU_HREFS as readonly string[]).not.toContain(

@@ -26,6 +26,30 @@ export function findCatalogGroupForHref(
   return undefined
 }
 
+/** Top-level (or nested) catalog group whose `title` matches. */
+export function findCatalogGroupByTitle(
+  items: readonly MenuItem[],
+  title: string
+): MenuItem | undefined {
+  for (const item of items) {
+    if (isFooterItem(item)) continue
+    if (item.title === title && item.items?.length) return item
+    if (item.items?.length) {
+      const nested = findCatalogGroupByTitle(item.items, title)
+      if (nested) return nested
+    }
+  }
+  return undefined
+}
+
+/** Leaf children of a catalog group (skip nested folders). */
+export function catalogGroupLeaves(group: MenuItem | undefined): MenuItem[] {
+  if (!group?.items?.length) return []
+  return group.items.filter(
+    (child) => Boolean(child.href) && !child.items?.length
+  )
+}
+
 /** Hidden leaves in the same catalog group as `href`, excluding `href`. */
 export function hiddenSiblingLeaves(
   items: readonly MenuItem[],

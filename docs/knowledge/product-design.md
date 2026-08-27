@@ -167,10 +167,12 @@ Show all is full-width under the hide-count line on that pane. Dialog keeps
 
 **Workspace default:** first-run / missing-workspace blobs use
 `workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
-(`lib/menu/slim-default.ts`) — Essential rail only (Overview, Chat,
-Health, Queries / running, Tables overview, SQL). Insights, Merges,
-Metrics, Clusters, Explain, Advisor, Explorer, and the parent `/tables`
-row stay off the first-run rail. Full still means every
+(`lib/menu/slim-default.ts`) — QA keep list is Essential plus Insights,
+Explorer, and Query History (Overview, Chat, Insights, Health, Queries /
+running + history, Tables overview + Explorer, SQL).
+Merges, Metrics, Clusters, Explain, Advisor, Keeper, PeerDB,
+Security, Logs, System, Operations, and extra children stay off the
+first-run rail. Full still means every
 page (`workspacePreset: 'full'`, `hiddenMenuHrefs: []`). An explicit
 stored Full empty hide list is never replaced by the Essential list.
 DBA / Engineer / SRE remain **group-title** presets (they still dump
@@ -368,20 +370,28 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   `hiddenMenuHrefs` via `hideMenuHref` and toasts Undo + Open Navigation
   (Settings → Workspace → Navigation). Footer About is not hideable this way.
   Hover **+** (`add-button.tsx`) lists hidden siblings in that catalog group
-  (Queries + → History, Slow, Failed; Tables + → Replicas, TTL, Explorer).
-  Click adds with `showMenuHref` and does not navigate; an arrow opens the
-  page. Footer Customize… opens Settings → Navigation, preferably focused
-  on that group. A **More** row (`more-pages-button.tsx`) is a searchable
-  flyout of hidden leaves (click navigates; hover Add / Pin; footer
-  Customize… and Show all). Full with hide count 0 hides the row. Below
-  `lg` the catalog is an inline panel inside the overlay sidebar — it does
-  not open the 375 Settings dialog unless Customize is tapped. Essential
-  keeps grouped parents with one visible child (Overview is a leaf; AI
-  Agent → Chat, Health → Health, Queries → Running Queries, Tables →
-  Tables Overview, Tools → SQL Console) — do not flatten those groups
-  to Chat / SQL leaves. Hover + still adds hidden siblings under that
-  parent. Settings → Navigation has **Show all** (applies Full) when the
-  preset is not Full.
+  (Queries + → History, Slow, Failed; Tables + → Replicas, TTL). Click
+  adds with `showMenuHref` and does not navigate; an arrow opens the page.
+  Group headings show a hover **+** / Customize (`group-customize-dialog.tsx`)
+  that opens a dialog titled with that group and lists **all catalog
+  children**: visible rows have Remove (`hideMenuHref`); hidden rows are
+  muted with Add (`showMenuHref`). Toggle updates the rail immediately.
+  An explicit Open arrow navigates; Done closes; optional All pages… opens
+  Settings → Navigation focused on the group (not the default path). This
+  dialog is the 375 customize surface — no overflow-x, do not rely on the
+  cramped hover +/hide/pin row. Overview (no children) has no heading
+  dialog. Footer About is never hideable. Footer Customize… on leaf hover
+  still opens Settings → Navigation, preferably focused on that group. A
+  **More** row (`more-pages-button.tsx`) is a searchable flyout of hidden
+  leaves (click navigates; hover Add / Pin; footer Customize… and Show
+  all). Full with hide count 0 hides the row. Below `lg` the catalog is an
+  inline panel inside the overlay sidebar — it does not open the 375
+  Settings dialog unless Customize is tapped. Essential keeps grouped
+  parents (Overview is a leaf; AI Agent → Chat, Insights → Insights,
+  Health → Health, Queries → Running + History, Tables → Overview + Explorer,
+  Tools → SQL) — do not flatten those groups to Chat / SQL leaves.
+  Settings → Navigation has **Show all** (applies Full) when the preset
+  is not Full.
 
 - **Alerts in the sidebar (#3291):** there is no standing Alerts catalog
   item. `revealAlertsWhenActive` injects an Alerts leaf (href
@@ -815,18 +825,19 @@ Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
 preset).
 
 **Essential first-run default:** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
-Grouped rail (one visible child each, not flattened leaves): Overview
-(leaf), AI Agent → Chat (`/agents`), Health → Health (`/health`),
-Queries → Running Queries (`/running-queries`), Tables → Tables
-Overview (`/tables-overview`), Tools → SQL Console (`/sql`), More.
-Insights, Merges, Metrics, Clusters, Explain, Advisor, Explorer, and
-parent `/tables` are off the rail. Explorer is not on Essential; on Full
-it stays under Tools (inventory remains Tables in the customize tree).
-Keeper, PeerDB, Security, Logs, System, Operations, and extra children
-stay in the catalog — restore via hover +, More, Settings → Navigation,
-or in-page More / Customize on Overview, Health, Queries, Tables
-overview, and SQL. Do not add a page to
-`DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
+QA keep list is Essential plus `/insights`, `/explorer`, and
+`/history-queries`.
+Grouped rail (not flattened leaves): Overview (leaf), AI Agent → Chat
+(`/agents`), Insights → Insights (`/insights`), Health → Health
+(`/health`), Queries → Running + History (`/running-queries`,
+`/history-queries`), Tables → Overview
++ Explorer (`/tables-overview`, `/explorer`), Tools → SQL (`/sql`;
+Explorer also lists under Tools), More. Merges, Metrics, Clusters,
+Explain, Advisor, Keeper, PeerDB, Security, Logs, System, Operations,
+and extra children stay in the catalog — restore via the group-heading
+customize dialog, hover +, More, Settings → Navigation, or in-page More
+/ Customize. Parent `/tables` is not a keep-list href. Do not add a page
+to `DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
 pages are hidden by default because the hide list is the complement of
 that keep list. Postgres-only leaves are never auto-hidden.
 DBA / Engineer / SRE leftover: those pills still keep whole **groups**,

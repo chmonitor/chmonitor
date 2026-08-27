@@ -6,6 +6,7 @@ import type { MenuItemActiveState, MenuItemProps } from './types'
 
 import { AddButton, SubAddButton } from './add-button'
 import { CollapsedSubmenu } from './collapsed-submenu'
+import { GroupCustomizeButton } from './group-customize-dialog'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense } from 'react'
@@ -366,8 +367,9 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         <span>{item.title}</span>
         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
       </CollapsibleTrigger>
+      <GroupCustomizeButton groupTitle={item.title} />
       {item.countKey && (
-        <SidebarMenuBadge>
+        <SidebarMenuBadge className={cn(badgeHiddenClasses, 'max-lg:hidden')}>
           <Suspense fallback={null}>
             <CountBadge
               countKey={item.countKey}

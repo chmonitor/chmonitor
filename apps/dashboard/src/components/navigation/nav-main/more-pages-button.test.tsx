@@ -211,7 +211,7 @@ describe('MorePagesButton', () => {
       ).not.toBeNull()
       expect(
         document.querySelector(
-          '[data-testid="hidden-page-add"][data-href="/history-queries"]'
+          '[data-testid="hidden-page-add"][data-href="/failed-queries"]'
         )
       ).not.toBeNull()
       expect(

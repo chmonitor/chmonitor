@@ -114,13 +114,14 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
     expect(src).toContain('revealAlertsWhenActive')
   })
 
-  test('keeps parent groups with one visible child plus About', () => {
+  test('keeps parent groups with day-to-day children plus About', () => {
     const visible = essentialRail()
     const body = visible.filter((item) => item.section !== 'footer')
 
     expect(body.map((item) => item.title)).toEqual([
       'Overview',
       'AI Agent',
+      'Insights',
       'Health',
       'Queries',
       'Tables',
@@ -131,21 +132,12 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
     expect(body.map((item) => item.items?.map((child) => child.href))).toEqual([
       undefined,
       ['/agents'],
+      ['/insights'],
       ['/health'],
-      ['/running-queries'],
-      ['/tables-overview'],
-      ['/sql'],
+      ['/running-queries', '/history-queries'],
+      ['/explorer', '/tables-overview'],
+      ['/sql', '/explorer'],
     ])
-    expect(body.map((item) => item.items?.map((child) => child.title))).toEqual(
-      [
-        undefined,
-        ['Chat'],
-        ['Health'],
-        ['Running Queries'],
-        ['Tables Overview'],
-        ['SQL Console'],
-      ]
-    )
     expect(visible.some((item) => item.href === '/about')).toBe(true)
   })
 
@@ -160,6 +152,6 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
       withAlerts
         .find((item) => item.title === 'Queries')
         ?.items?.map((child) => child.href)
-    ).toEqual(['/running-queries'])
+    ).toEqual(['/running-queries', '/history-queries'])
   })
 })

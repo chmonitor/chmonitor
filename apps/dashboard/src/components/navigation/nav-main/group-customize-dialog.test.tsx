@@ -1,0 +1,282 @@
+/**
+ * Group-heading customize dialog: lists catalog children, Add/Remove
+ * writes hiddenMenuHrefs, 375 dialog opens without overflow-x.
+ * happy-dom + react-dom/client.
+ */
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+import type { ReactElement, ReactNode } from 'react'
+
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
+import { GlobalRegistrator } from '@happy-dom/global-registrator'
+
+mock.module('@/components/menu/link-with-context', () => ({
+  HostPrefixedLink: ({
+    href,
+    children,
+    className,
+    ...props
+  }: {
+    href: string
+    children?: ReactNode
+    className?: string
+  }) => (
+    <a href={href} className={className} {...props}>
+      {children}
+    </a>
+  ),
+}))
+
+beforeAll(() => {
+  GlobalRegistrator.register()
+  ;(
+    globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+  ).IS_REACT_ACT_ENVIRONMENT = true
+
+  if (!window.matchMedia) {
+    window.matchMedia = ((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener() {},
+      removeListener() {},
+      addEventListener() {},
+      removeEventListener() {},
+      dispatchEvent() {
+        return false
+      },
+    })) as typeof window.matchMedia
+  }
+})
+
+afterAll(async () => {
+  await GlobalRegistrator.unregister()
+})
+
+afterEach(() => {
+  document.body.replaceChildren()
+})
+
+async function renderInto(
+  node: ReactElement
+): Promise<{ container: HTMLDivElement; cleanup: () => Promise<void> }> {
+  const { act } = await import('react')
+  const { createRoot } = await import('react-dom/client')
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = createRoot(container)
+
+  await act(async () => {
+    root.render(node)
+  })
+
+  return {
+    container,
+    cleanup: async () => {
+      await act(async () => {
+        root.unmount()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+      container.remove()
+    },
+  }
+}
+
+async function renderQueriesDialog(open = false) {
+  const { GroupCustomizeButton, GroupCustomizeDialog } = await import(
+    './group-customize-dialog'
+  )
+  const { SidebarProvider, SidebarMenu, SidebarMenuItem } = await import(
+    '@/components/ui/sidebar'
+  )
+  const { USER_SETTINGS_QUERY_KEY } = await import(
+    '@/lib/hooks/use-user-settings'
+  )
+  const { DEFAULT_USER_SETTINGS } = await import('@/lib/types/user-settings')
+  const {
+    RouterContextProvider,
+    createMemoryHistory,
+    createRootRoute,
+    createRouter,
+  } = await import('@tanstack/react-router')
+
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  queryClient.setQueryData(USER_SETTINGS_QUERY_KEY, DEFAULT_USER_SETTINGS)
+
+  const router = createRouter({
+    routeTree: createRootRoute(),
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  })
+
+  const node = (
+    <RouterContextProvider router={router}>
+      <QueryClientProvider client={queryClient}>
+        <SidebarProvider>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              {open ? (
+                <GroupCustomizeDialog
+                  open
+                  onOpenChange={() => {}}
+                  groupTitle="Queries"
+                />
+              ) : (
+                <GroupCustomizeButton groupTitle="Queries" />
+              )}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarProvider>
+      </QueryClientProvider>
+    </RouterContextProvider>
+  )
+
+  const rendered = await renderInto(node)
+  return { ...rendered, queryClient, DEFAULT_USER_SETTINGS }
+}
+
+describe('GroupCustomizeDialog', () => {
+  test('heading + opens the Queries dialog of catalog children', async () => {
+    const { container, cleanup, DEFAULT_USER_SETTINGS } =
+      await renderQueriesDialog(false)
+
+    try {
+      expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).toContain('/failed-queries')
+      expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).not.toContain(
+        '/running-queries'
+      )
+      expect(DEFAULT_USER_SETTINGS.hiddenMenuHrefs).not.toContain(
+        '/history-queries'
+      )
+
+      const trigger = container.querySelector(
+        '[data-testid="group-customize-button"][data-group="Queries"]'
+      ) as HTMLButtonElement | null
+      expect(trigger).not.toBeNull()
+      expect(trigger?.getAttribute('aria-label')).toBe('Customize Queries')
+      expect(trigger?.className).toContain('after:-inset-3')
+
+      const { act } = await import('react')
+      await act(async () => {
+        trigger?.click()
+      })
+
+      const dialog = document.querySelector(
+        '[data-testid="group-customize-dialog"]'
+      ) as HTMLElement | null
+      expect(dialog).not.toBeNull()
+      expect(dialog?.textContent).toContain('Queries')
+      expect(dialog?.textContent).toContain(
+        'Add or remove pages in this group.'
+      )
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-add"][data-href="/failed-queries"]'
+        )
+      ).not.toBeNull()
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-remove"][data-href="/running-queries"]'
+        )
+      ).not.toBeNull()
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-remove"][data-href="/history-queries"]'
+        )
+      ).not.toBeNull()
+      expect(
+        document.querySelector(
+          '[data-testid="group-customize-open"][data-href="/failed-queries"]'
+        )
+      ).not.toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('Add/Remove in the heading dialog updates hiddenMenuHrefs', async () => {
+    const { persistShowMenuHref } = await import('@/lib/menu/hide-menu-item')
+    const { cleanup, queryClient, DEFAULT_USER_SETTINGS } =
+      await renderQueriesDialog(true)
+
+    try {
+      const failedAdd = document.querySelector(
+        '[data-testid="group-customize-add"][data-href="/failed-queries"]'
+      ) as HTMLButtonElement | null
+      expect(failedAdd).not.toBeNull()
+
+      const { act } = await import('react')
+      await act(async () => {
+        failedAdd?.click()
+      })
+
+      const afterAdd = queryClient.getQueryData(
+        (await import('@/lib/hooks/use-user-settings')).USER_SETTINGS_QUERY_KEY
+      ) as { hiddenMenuHrefs: string[] }
+      expect(afterAdd.hiddenMenuHrefs).not.toContain('/failed-queries')
+      expect(
+        persistShowMenuHref(DEFAULT_USER_SETTINGS, '/failed-queries')
+          .hiddenMenuHrefs
+      ).not.toContain('/failed-queries')
+
+      const failedRow = document.querySelector(
+        '[data-href="/failed-queries"][data-hidden]'
+      ) as HTMLButtonElement | null
+      expect(failedRow).not.toBeNull()
+      expect(failedRow?.getAttribute('data-hidden')).toBe('false')
+      expect(failedRow?.getAttribute('data-testid')).toBe(
+        'group-customize-remove'
+      )
+
+      await act(async () => {
+        failedRow?.click()
+      })
+
+      const afterRemove = queryClient.getQueryData(
+        (await import('@/lib/hooks/use-user-settings')).USER_SETTINGS_QUERY_KEY
+      ) as { hiddenMenuHrefs: string[] }
+      expect(afterRemove.hiddenMenuHrefs).toContain('/failed-queries')
+    } finally {
+      await cleanup()
+    }
+  })
+
+  test('375: dialog opens with no overflow-x and fits the viewport', async () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+
+    const { cleanup } = await renderQueriesDialog(true)
+
+    try {
+      const dialog = document.querySelector(
+        '[data-testid="group-customize-dialog"]'
+      ) as HTMLElement | null
+      expect(dialog).not.toBeNull()
+      expect(dialog?.className).toContain('overflow-hidden')
+      expect(dialog?.className).toContain('max-w-[calc(100%-2rem)]')
+      expect(dialog?.className).not.toContain('overflow-x-auto')
+      expect(dialog?.textContent).toContain('Queries')
+      expect(
+        document.querySelector('[data-testid="group-customize-done"]')
+      ).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="group-customize-all-pages"]')
+      ).not.toBeNull()
+    } finally {
+      await cleanup()
+    }
+  })
+})

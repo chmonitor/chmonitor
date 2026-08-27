@@ -10,23 +10,29 @@ import type { MenuItem } from '@/components/menu/types'
  * are never on the hide list (engine swap already drops those groups).
  * Footer rows are never hidden.
  *
- * Groups with one visible child stay grouped on the live rail (AI Agent →
- * Chat, Health → Health, Queries → Running Queries, Tables → Tables
- * Overview, Tools → SQL Console). Overview is a catalog leaf. Hover +
- * still nests hidden siblings under that parent.
+ * Groups stay grouped on the live rail. QA default keep list is Essential
+ * plus Insights, Explorer, and Query History: Overview (leaf); AI Agent →
+ * Chat; Insights → Insights; Health → Health; Queries → Running +
+ * History; Tables → Overview + Explorer; Tools → SQL (Explorer also
+ * lists under Tools). Hover + still nests hidden siblings. Group headings
+ * open a per-category customize dialog.
  *
- * Full in Settings → Navigation still shows every page. Explorer stays in
- * the Tables inventory (and under Tools); it is not an Essential rail row.
- * New pages that should stay off the default rail must not be added here.
+ * Full in Settings → Navigation still shows every page. Merges / Metrics /
+ * Clusters / Explain / Advisor, and Keeper / PeerDB / Security / Logs /
+ * System / Operations, stay off first-run. New pages that should stay off
+ * the default rail must not be added here.
  *
  * DBA / Engineer / SRE remain group-title presets (not leaf keep-lists).
  */
 export const DEFAULT_VISIBLE_MENU_HREFS = [
   '/overview',
   '/agents',
+  '/insights',
   '/health',
   '/running-queries',
+  '/history-queries',
   '/tables-overview',
+  '/explorer',
   '/sql',
 ] as const
 

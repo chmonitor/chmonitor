@@ -35,7 +35,7 @@ const PRESET_HINT: Record<WorkspacePreset, string> = {
     'Overview, SQL/explorer, queries, insights. Less keeper, security, and ops.',
   sre: 'Overview, health, insights, SQL tools, replication, disks, errors, running queries.',
   custom:
-    'Essential pages by default (Overview, Chat, Health, Queries, Tables, SQL). Hide or show more from the rail, More, or this tree.',
+    'Essential pages by default (Overview, Chat, Insights, Health, Queries, Tables, SQL). Hide or show more from a group heading, More, or this tree.',
 }
 
 interface WorkspacePresetPickerProps {
