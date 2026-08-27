@@ -151,6 +151,15 @@ describe("What's new dialog layout", () => {
       expect(body?.scrollTop).toBe(0)
       expect(body?.contains(title as Node)).toBe(false)
 
+      // Keep the primitive's `fixed` + `top/left-1/2` translate centering.
+      // `relative` here is merged away via twMerge and un-centers the popup.
+      const dialogClasses = dialog?.className.split(/\s+/) ?? []
+      expect(dialogClasses).toContain('fixed')
+      expect(dialogClasses).toContain('top-1/2')
+      expect(dialogClasses).toContain('left-1/2')
+      expect(dialogClasses).toContain('-translate-x-1/2')
+      expect(dialogClasses).toContain('-translate-y-1/2')
+      expect(dialogClasses).not.toContain('relative')
       expect(dialog?.className).toContain('flex-col')
       expect(dialog?.className).toContain('overflow-hidden')
       expect(body?.className).toContain('min-h-0')
