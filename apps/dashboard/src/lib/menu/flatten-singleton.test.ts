@@ -114,38 +114,36 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
     expect(src).toContain('revealAlertsWhenActive')
   })
 
-  test('keeps parent groups with one visible child plus About', () => {
+  test('keeps parent groups with day-to-day children plus About', () => {
     const visible = essentialRail()
     const body = visible.filter((item) => item.section !== 'footer')
 
     expect(body.map((item) => item.title)).toEqual([
       'Overview',
       'AI Agent',
+      'Insights',
       'Health',
       'Queries',
       'Tables',
+      'Merges',
+      'Metrics',
       'Tools',
+      'Cluster',
     ])
     expect(body[0]?.href).toBe('/overview')
     expect(body[0]?.items).toBeUndefined()
     expect(body.map((item) => item.items?.map((child) => child.href))).toEqual([
       undefined,
       ['/agents'],
+      ['/insights'],
       ['/health'],
       ['/running-queries'],
-      ['/tables-overview'],
-      ['/sql'],
+      ['/explorer', '/tables-overview'],
+      ['/merges'],
+      ['/metrics'],
+      ['/sql', '/explorer', '/explain', '/advisor'],
+      ['/clusters'],
     ])
-    expect(body.map((item) => item.items?.map((child) => child.title))).toEqual(
-      [
-        undefined,
-        ['Chat'],
-        ['Health'],
-        ['Running Queries'],
-        ['Tables Overview'],
-        ['SQL Console'],
-      ]
-    )
     expect(visible.some((item) => item.href === '/about')).toBe(true)
   })
 

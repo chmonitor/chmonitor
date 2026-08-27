@@ -10,24 +10,33 @@ import type { MenuItem } from '@/components/menu/types'
  * are never on the hide list (engine swap already drops those groups).
  * Footer rows are never hidden.
  *
- * Groups with one visible child stay grouped on the live rail (AI Agent →
- * Chat, Health → Health, Queries → Running Queries, Tables → Tables
- * Overview, Tools → SQL Console). Overview is a catalog leaf. Hover +
- * still nests hidden siblings under that parent.
+ * Groups stay grouped on the live rail. First-run keep list is the day-to-day
+ * pages: Overview (leaf); AI Agent → Chat; Insights → Insights; Health →
+ * Health; Queries → Running; Tables → Overview + Explorer; Merges → Merges;
+ * Metrics → Metrics; Tools → SQL + Explain + Advisor (Explorer also lists
+ * under Tools); Cluster → Clusters. Hover + still nests hidden siblings.
+ * Group headings open a per-category customize dialog.
  *
- * Full in Settings → Navigation still shows every page. Explorer stays in
- * the Tables inventory (and under Tools); it is not an Essential rail row.
- * New pages that should stay off the default rail must not be added here.
+ * Full in Settings → Navigation still shows every page. Keeper / PeerDB /
+ * Security / Logs / System / Operations stay off first-run. New pages that
+ * should stay off the default rail must not be added here.
  *
  * DBA / Engineer / SRE remain group-title presets (not leaf keep-lists).
  */
 export const DEFAULT_VISIBLE_MENU_HREFS = [
   '/overview',
   '/agents',
+  '/insights',
   '/health',
   '/running-queries',
   '/tables-overview',
+  '/explorer',
+  '/merges',
+  '/metrics',
   '/sql',
+  '/explain',
+  '/advisor',
+  '/clusters',
 ] as const
 
 const VISIBLE = new Set<string>(DEFAULT_VISIBLE_MENU_HREFS)

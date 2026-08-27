@@ -16,7 +16,8 @@ description: >-
   "advisor schema", "schema advisor",
   "command palette", "cmd k", "search dialog", "ttl partitions",
   "header title", "768", "truncate Overview", "essential sidebar",
-  "more pages", "keep in sidebar", "hover add".
+  "more pages", "keep in sidebar", "hover add", "group heading",
+  "customize dialog".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -364,11 +365,19 @@ Favorites in the sidebar can be drag-reordered; order is the localStorage pin
 list (`chm-pinned-favorites`). Leaf sidebar rows also reveal Hide (EyeOff)
 beside the pin; that writes `hiddenMenuHrefs` and toasts Undo + Open
 Navigation (Settings → Workspace → Navigation). Hover **+** lists hidden
-siblings in that group (`showMenuHref` on click). More is a flyout of
-hidden pages (not Settings). Essential keeps grouped parents with one
-visible child (Overview is a leaf; AI Agent → Chat, Health → Health,
-Queries → Running Queries, Tables → Tables Overview, Tools → SQL
-Console) — do not flatten those groups to Chat / SQL leaves.
+siblings in that group (`showMenuHref` on click). Group headings show a
+hover **+** / Customize control that opens a **per-category dialog**
+(`group-customize-dialog.tsx`) listing every catalog child of that group:
+visible rows have Remove (`hideMenuHref`), hidden rows are muted with Add
+(`showMenuHref`). Toggle updates the rail immediately; Open is an explicit
+arrow. Footer Done, optional All pages… into Settings → Navigation (not
+the default path). Overview (no children) has no heading dialog. Footer
+About is never hideable. More is a flyout of hidden pages (not Settings).
+Essential is grouped (not flattened): Overview; AI Agent → Chat; Insights
+→ Insights; Health → Health; Queries → Running; Tables → Overview +
+Explorer; Merges → Merges; Metrics → Metrics; Tools → SQL + Explain +
+Advisor; Cluster → Clusters. Do not flatten those groups to Chat / SQL
+leaves.
 
 ## User appearance settings
 
@@ -423,8 +432,9 @@ preset leaf stays on the role; Custom only when the hide list leaves
   `hideListForPreset`. Search filters the tree. When the preset is not
   Full, a **Show all** control applies Full. The sidebar **More** row is a
   searchable flyout of hidden leaves (click navigates; Customize… opens
-  this pane). Never a 40-checkbox wall
-  or a separate Hide-pages drawer. Then the Dim / Hide unavailable-page
+  this pane). Group headings are the default customize surface (one group
+  at a time — never a 40-checkbox wall of the whole catalog). Then the Dim /
+  Hide unavailable-page
   demos.
 Hidden pages stay routable. Sidebar visibility is the hide list
 (`getVisibleMenuItems` + Alerts). ⌘K uses
@@ -438,9 +448,10 @@ Timezone uses `timezone-combobox.tsx`
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
 First-run workspace is Custom + the Essential hide list
-(`DEFAULT_HIDDEN_MENU_HREFS`: grouped Overview, AI Agent → Chat, Health
-→ Health, Queries → Running Queries, Tables → Tables Overview, Tools →
-SQL Console). Full still restores every page. Other
+(`DEFAULT_HIDDEN_MENU_HREFS`: grouped Overview; AI Agent → Chat; Insights
+→ Insights; Health → Health; Queries → Running; Tables → Overview +
+Explorer; Merges → Merges; Metrics → Metrics; Tools → SQL + Explain +
+Advisor; Cluster → Clusters). Full still restores every page. Other
 DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
@@ -477,11 +488,13 @@ is a full-width control under the hide-count line. Full detail:
    absent so Postgres hosts inherit Health (default source-engine family).
    Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
    (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
-   sidebar stays Essential (grouped parents with one child: Overview,
-   AI Agent → Chat, Health → Health, Queries → Running Queries, Tables
-   → Tables Overview, Tools → SQL Console) — they remain restorable
-   from hover +, More, in-page More / Customize, or Settings →
-   Navigation.
+   sidebar stays Essential (grouped: Overview; AI Agent → Chat; Insights
+   → Insights; Health → Health; Queries → Running; Tables → Overview +
+   Explorer; Merges → Merges; Metrics → Metrics; Tools → SQL + Explain +
+   Advisor; Cluster → Clusters) — they remain restorable from the group
+   heading dialog, hover +, More, in-page More / Customize, or Settings →
+   Navigation. Do not add Keeper / PeerDB / Security / Logs / System /
+   Operations leaves to the keep list.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

@@ -2,6 +2,8 @@ import { menuItemsConfig } from '@/menu'
 
 import { describe, expect, test } from 'bun:test'
 import {
+  catalogGroupLeaves,
+  findCatalogGroupByTitle,
   findCatalogGroupForHref,
   hiddenLeavesGrouped,
   hiddenSiblingLeaves,
@@ -41,7 +43,7 @@ describe('hiddenSiblingLeaves', () => {
     expect(hrefs).not.toContain('/running-queries')
   })
 
-  test('Tables + lists Replicas, TTL, Explorer', () => {
+  test('Tables + lists Replicas and TTL, not Explorer or Overview', () => {
     const hrefs = hiddenSiblingLeaves(
       menuItemsConfig,
       '/tables-overview',
@@ -49,16 +51,26 @@ describe('hiddenSiblingLeaves', () => {
     ).map((item) => item.href)
     expect(hrefs).toContain('/replicas')
     expect(hrefs).toContain('/ttl-partition-health')
-    expect(hrefs).toContain('/explorer')
+    expect(hrefs).not.toContain('/explorer')
     expect(hrefs).not.toContain('/tables-overview')
   })
 })
 
+describe('findCatalogGroupByTitle / catalogGroupLeaves', () => {
+  test('Queries lists every catalog child including hidden History', () => {
+    const group = findCatalogGroupByTitle(menuItemsConfig, 'Queries')
+    const hrefs = catalogGroupLeaves(group).map((item) => item.href)
+    expect(hrefs).toContain('/running-queries')
+    expect(hrefs).toContain('/history-queries')
+    expect(findCatalogGroupByTitle(menuItemsConfig, 'Overview')).toBeUndefined()
+  })
+})
+
 describe('hiddenLeavesGrouped', () => {
-  test('dedupes Explorer and groups like the catalog', () => {
+  test('dedupes Explorer when hidden and groups like the catalog', () => {
     const groups = hiddenLeavesGrouped(
       menuItemsConfig,
-      new Set(DEFAULT_HIDDEN_MENU_HREFS)
+      new Set([...DEFAULT_HIDDEN_MENU_HREFS, '/explorer'])
     )
     const explorerHits = groups.flatMap((group) =>
       group.items.filter((item) => item.href === '/explorer')
