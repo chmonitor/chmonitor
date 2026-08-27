@@ -9,7 +9,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
     name = "chm",
     version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("CHM_TARGET"), ")"),
     about = "chmonitor CLI (`chm` / `chmonitor`) — live TUI by default",
-    after_help = "Run `chm` with no subcommand to open the live TUI. Pipes, CI, agents, `--json`, and `--no-tui` print a snapshot instead. Direct cluster: `chm --ch-host http://localhost:8123`. `chm --help` / `chm help` / `chm -h` print this help."
+    after_help = "Run `chm` with no subcommand to open the live TUI. Pipes, CI, agents, `--json`, and `--no-tui` print a snapshot instead. Direct cluster: `chm --ch-host http://localhost:8123` or `chm add` / `chm use`. `chm --help` / `chm help` / `chm -h` print this help."
 )]
 pub struct Cli {
     /// Path to config.toml (default ~/.config/chm/config.toml)
@@ -144,6 +144,21 @@ pub enum Commands {
     Config(ConfigArgs),
     /// List or open Overview / saved dashboards
     Dashboard(DashboardArgs),
+    /// Save a local named database connection (no network)
+    #[command(visible_alias = "connect")]
+    Add(AddConnectionArgs),
+    /// List local named connections (not dashboard hosts)
+    Ls,
+    /// Set the active local connection
+    Use {
+        /// Connection name from `chm ls`
+        name: String,
+    },
+    /// Remove a local named connection
+    Rm {
+        /// Connection name from `chm ls`
+        name: String,
+    },
     /// List hosts from a running chmonitor dashboard
     Hosts,
     /// Open the dashboard (or a path) in the browser
@@ -202,6 +217,18 @@ pub enum Commands {
     /// (`scripts/install.sh` or `cargo install chmonitor`).
     /// `--beta` / `--stable` switch the saved channel and then update.
     Update(UpdateArgs),
+}
+
+/// Flags for `chm add` / `chm connect`.
+#[derive(Args, Debug, Clone)]
+pub struct AddConnectionArgs {
+    #[arg(
+        help = "Database URL. ClickHouse HTTP `http(s)://[user:pass@]host:8123[/db]` (or `--ch-host` style `host:8123`), Postgres `postgres://` / `postgresql://`." // pragma: allowlist secret
+    )]
+    pub url: String,
+    /// Connection name (default: derived from host / database)
+    #[arg(long, short = 'n')]
+    pub name: Option<String>,
 }
 
 /// Flags for `chm` / `chm tui`.

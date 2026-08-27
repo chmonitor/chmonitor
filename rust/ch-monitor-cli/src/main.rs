@@ -4,6 +4,7 @@ mod cli;
 mod client;
 mod commands;
 mod config;
+mod connections;
 mod credentials;
 mod dashboards;
 mod diagnose;
@@ -45,6 +46,10 @@ async fn main() -> Result<()> {
     let (tel_event, tel_command): (&'static str, &'static str) = match &command {
         Commands::Doctor(_) if cli.clickhouse.has_cluster_host() => ("cli_diagnose", "doctor"),
         Commands::Doctor(_) => ("cli_run", "doctor"),
+        Commands::Add(_) => ("cli_run", "add"),
+        Commands::Ls => ("cli_run", "ls"),
+        Commands::Use { .. } => ("cli_run", "use"),
+        Commands::Rm { .. } => ("cli_run", "rm"),
         Commands::Hosts => ("cli_run", "hosts"),
         Commands::Chart { .. } => ("cli_run", "chart"),
         Commands::Table { .. } => ("cli_run", "table"),
@@ -169,6 +174,7 @@ mod tests {
         assert!(help.contains("doctor"), "{help}");
         assert!(help.contains("auth"), "{help}");
         assert!(help.contains("config"), "{help}");
+        assert!(help.contains("add"), "{help}");
         assert!(help.contains("--base-url"), "{help}");
         assert!(!help.contains("diagnose"), "{help}");
     }
@@ -477,5 +483,65 @@ mod tests {
         let help = cmd.render_long_help().to_string();
         assert!(help.contains("dashboard"), "{help}");
         assert!(help.contains("config"), "{help}");
+    }
+
+    #[test]
+    fn add_connect_ls_use_rm_parse() {
+        let add = Cli::try_parse_from(["chm", "add", "http://localhost:8123", "--name", "local"])
+            .expect("parse add");
+        match add.command {
+            Some(Commands::Add(args)) => {
+                assert_eq!(args.url, "http://localhost:8123");
+                assert_eq!(args.name.as_deref(), Some("local"));
+            }
+            other => panic!("expected Add, got {other:?}"),
+        }
+
+        let connect = Cli::try_parse_from(["chm", "connect", "postgres://localhost/app"])
+            .expect("parse connect alias");
+        match connect.command {
+            Some(Commands::Add(args)) => {
+                assert_eq!(args.url, "postgres://localhost/app");
+                assert!(args.name.is_none());
+            }
+            other => panic!("expected Add via connect, got {other:?}"),
+        }
+
+        let ls = Cli::try_parse_from(["chm", "ls"]).expect("parse ls");
+        assert!(matches!(ls.command, Some(Commands::Ls)));
+
+        let use_cmd = Cli::try_parse_from(["chm", "use", "local"]).expect("parse use");
+        match use_cmd.command {
+            Some(Commands::Use { name }) => assert_eq!(name, "local"),
+            other => panic!("expected Use, got {other:?}"),
+        }
+
+        let rm = Cli::try_parse_from(["chm", "rm", "local"]).expect("parse rm");
+        match rm.command {
+            Some(Commands::Rm { name }) => assert_eq!(name, "local"),
+            other => panic!("expected Rm, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn help_lists_local_connection_commands() {
+        let mut cmd = Cli::command();
+        let help = cmd.render_long_help().to_string();
+        assert!(help.contains("add"), "{help}");
+        assert!(help.contains("connect"), "{help}");
+        assert!(help.contains("ls"), "{help}");
+        assert!(help.contains("use"), "{help}");
+        assert!(help.contains("local named"), "{help}");
+        let add_help = cmd
+            .find_subcommand_mut("add")
+            .expect("add subcommand")
+            .render_long_help()
+            .to_string();
+        assert!(add_help.contains("postgres://"), "{add_help}");
+        assert!(add_help.contains("--name"), "{add_help}");
+        assert!(
+            add_help.contains("no network") || add_help.contains("Save a local"),
+            "{add_help}"
+        );
     }
 }

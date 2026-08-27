@@ -10,6 +10,7 @@ pub mod picker;
 
 use std::{
     io,
+    path::PathBuf,
     time::{Duration, Instant},
 };
 
@@ -35,6 +36,7 @@ use serde_json::Value;
 use crate::{
     client,
     config::{AppConfig, DEFAULT_TABLE},
+    connections::{ConnectionStore, Engine, StoredConnection},
     dashboards,
     diagnose::{self, ChConfig, Finding, Report},
     metrics, output,
@@ -55,6 +57,8 @@ const EMERALD: Color = Color::Rgb(16, 185, 129);
 const AUTH_HINT: &str = "Dashboard needs login — run `chm auth login`, then press r";
 const CH_AGENT_HINT: &str =
     "Agent chat needs a chmonitor dashboard — drop --ch-host or set CHM_BASE_URL";
+const PG_TUI_HINT: &str =
+    "Postgres TUI is not in this slice — connection is active (`chm ls` / `chm use`). Press h/l to switch.";
 const HELP_TEXT: &str = "\
 chmonitor keys (ops cockpit)
 
@@ -62,8 +66,8 @@ chmonitor keys (ops cockpit)
   r           refresh now
   ?           toggle this help
   a           open agent chat (dashboard API)
-  h / ←       previous host
-  l / →       next host
+  h / ←       previous host / local connection
+  l / →       next host / local connection
   j / ↓       scroll table down
   k / ↑       scroll table up
   Tab         switch pane (small terminals)
@@ -71,9 +75,8 @@ chmonitor keys (ops cockpit)
   2           queries table
   3           doctor findings
   /           filter table
-  c           (connection is --ch-host vs --base-url)
 
-Connect with dashboard API (default) or `chm --ch-host http://host:8123`.
+Connect with dashboard API (default), `chm --ch-host`, or `chm add` / `chm use`.
 Non-TTY / CI / --json / --no-tui prints a snapshot instead of alt-screen.";
 
 const PREFERRED_TABLE_COLUMNS: &[&str] = &[
@@ -133,6 +136,9 @@ pub struct TuiOptions {
     pub start_overview: bool,
     pub host_id: u32,
     pub ch: Option<ChConfig>,
+    pub local_connections: Vec<StoredConnection>,
+    pub current_connection: Option<String>,
+    pub config_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -176,6 +182,8 @@ struct App {
     ch: Option<ChConfig>,
     report: Option<Report>,
     agent_hint: Option<String>,
+    local_connections: Vec<StoredConnection>,
+    config_path: Option<PathBuf>,
 }
 
 impl App {
@@ -186,6 +194,13 @@ impl App {
             opts.charts.clone()
         };
         let _ = opts.start_overview;
+        let hosts = local_hosts(&opts.local_connections);
+        let host_id = if hosts.is_empty() {
+            opts.host_id
+        } else {
+            current_local_id(&opts.local_connections, opts.current_connection.as_deref())
+                .unwrap_or(0)
+        };
         Self {
             dashboard: if opts.dashboard.trim().is_empty() {
                 dashboards::OVERVIEW_NAME.to_string()
@@ -198,8 +213,8 @@ impl App {
                 opts.table.clone()
             },
             page_size: opts.page_size,
-            host_id: opts.host_id,
-            hosts: Vec::new(),
+            host_id,
+            hosts,
             charts: charts
                 .into_iter()
                 .map(|name| ChartPane {
@@ -221,6 +236,8 @@ impl App {
             ch: opts.ch.clone(),
             report: None,
             agent_hint: None,
+            local_connections: opts.local_connections.clone(),
+            config_path: opts.config_path.clone(),
         }
     }
 
@@ -408,10 +425,16 @@ fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
             }
             KeyCode::Char('h') | KeyCode::Char('[') | KeyCode::Left => {
                 app.host_id = step_host(&app.hosts, app.host_id, -1);
+                if !app.local_connections.is_empty() {
+                    apply_local_selection(app);
+                }
                 KeyAction::Refresh
             }
             KeyCode::Char('l') | KeyCode::Char(']') | KeyCode::Right => {
                 app.host_id = step_host(&app.hosts, app.host_id, 1);
+                if !app.local_connections.is_empty() {
+                    apply_local_selection(app);
+                }
                 KeyAction::Refresh
             }
             KeyCode::Down | KeyCode::Char('j') => {
@@ -505,6 +528,19 @@ fn bound_table_rows(mut rows: Vec<Value>, page_size: usize) -> Vec<Value> {
 
 async fn refresh(client: &Client, cfg: &AppConfig, app: &mut App, force: bool) {
     app.agent_hint = None;
+    if !app.local_connections.is_empty() {
+        app.hosts = local_hosts(&app.local_connections);
+        if app.ch.is_some() {
+            refresh_clickhouse(client, app, force).await; // pragma: allowlist secret
+            app.hosts = local_hosts(&app.local_connections);
+            return;
+        }
+        app.auth_required = false;
+        if app.error.as_deref() != Some(PG_TUI_HINT) {
+            app.error = Some(PG_TUI_HINT.to_string());
+        }
+        return;
+    }
     if app.ch.is_some() {
         refresh_clickhouse(client, app, force).await;
         return;
@@ -726,12 +762,14 @@ async fn refresh_clickhouse(client: &Client, app: &mut App, force: bool) {
         Err(err) => errors.push(short_error("processes", &err)),
     }
 
-    app.hosts = vec![HostEntry {
-        id: 0,
-        name: ch.url.clone(),
-        host: ch.url,
-    }];
-    app.host_id = 0;
+    if app.local_connections.is_empty() {
+        app.hosts = vec![HostEntry {
+            id: 0,
+            name: ch.url.clone(),
+            host: ch.url,
+        }];
+        app.host_id = 0;
+    }
 
     if let Some(message) = errors.into_iter().next() {
         app.error = Some(message);
@@ -1177,6 +1215,60 @@ fn refresh_age_label(last_ok: Option<Instant>, now: Instant) -> String {
     }
 }
 
+fn local_hosts(conns: &[StoredConnection]) -> Vec<HostEntry> {
+    conns
+        .iter()
+        .enumerate()
+        .map(|(i, c)| HostEntry {
+            id: i as u32,
+            name: c.name.clone(),
+            host: c.display_host(),
+        })
+        .collect()
+}
+
+fn current_local_id(conns: &[StoredConnection], current: Option<&str>) -> Option<u32> {
+    let current = current.map(str::trim).filter(|s| !s.is_empty())?;
+    conns
+        .iter()
+        .position(|c| c.name.eq_ignore_ascii_case(current))
+        .map(|i| i as u32)
+}
+
+fn apply_local_selection(app: &mut App) {
+    let Some(idx) = app.hosts.iter().position(|h| h.id == app.host_id) else {
+        return;
+    };
+    let Some(conn) = app.local_connections.get(idx).cloned() else {
+        return;
+    };
+    let password = app
+        .config_path
+        .as_ref()
+        .and_then(|path| {
+            ConnectionStore::from_config_path(path.clone())
+                .load_password(&conn.name)
+                .ok()
+                .flatten()
+        })
+        .unwrap_or_default();
+    match conn.engine {
+        Engine::ClickHouse /* pragma: allowlist secret */ => {
+            app.ch = conn.to_ch_config(&password);
+            if app.error.as_deref() == Some(PG_TUI_HINT) {
+                app.error = None;
+            }
+        }
+        Engine::Postgres => {
+            app.ch = None;
+            app.error = Some(PG_TUI_HINT.to_string());
+        }
+    }
+    if let Some(path) = &app.config_path {
+        let _ = ConnectionStore::from_config_path(path.clone()).use_name(&conn.name);
+    }
+}
+
 fn host_label(hosts: &[HostEntry], host_id: u32) -> String {
     hosts
         .iter()
@@ -1373,7 +1465,13 @@ pub async fn snapshot(client: &Client, cfg: &AppConfig, opts: &TuiOptions) -> Re
             })
         });
         output::print_json(&serde_json::json!({
-            "backend": if app.ch.is_some() { "clickhouse" } else { "dashboard" },
+            "backend": if app.ch.is_some() {
+                "clickhouse" // pragma: allowlist secret
+            } else if !app.local_connections.is_empty() {
+                "local"
+            } else {
+                "dashboard"
+            },
             "host": app.host_label(),
             "dashboard": app.dashboard,
             "error": app.error,
@@ -1563,6 +1661,9 @@ mod tests {
             start_overview: false,
             host_id: 0,
             ch: None,
+            local_connections: Vec::new(),
+            current_connection: None,
+            config_path: None,
         };
         let mut app = App::new(&opts);
         assert_eq!(app.focused, Pane::Overview);
@@ -1616,6 +1717,9 @@ mod tests {
             start_overview: true,
             host_id: 0,
             ch: None,
+            local_connections: Vec::new(),
+            current_connection: None,
+            config_path: None,
         };
         let mut app = App::new(&opts);
         app.hosts = parse_hosts(&json!([{"id":0,"name":"a"},{"id":1,"name":"b"}]));
@@ -1649,6 +1753,9 @@ mod tests {
                 password: String::new(),
                 database: "default".into(),
             }),
+            local_connections: Vec::new(),
+            current_connection: None,
+            config_path: None,
         };
         let mut app = App::new(&opts);
         assert_eq!(
@@ -1674,6 +1781,9 @@ mod tests {
             start_overview: false,
             host_id: 0,
             ch: None,
+            local_connections: Vec::new(),
+            current_connection: None,
+            config_path: None,
         };
         let app = App::new(&opts);
         assert_eq!(app.dashboard, "Overview");
@@ -1699,6 +1809,9 @@ mod tests {
             start_overview: true,
             host_id: 0,
             ch: None,
+            local_connections: Vec::new(),
+            current_connection: None,
+            config_path: None,
         };
         let mut app = App::new(&opts);
         app.charts[0].rows = vec![json!({"query_count": 1})];
@@ -1765,5 +1878,59 @@ mod tests {
             15,
         );
         assert_eq!(table.len(), 15);
+    }
+
+    #[test]
+    fn local_connections_cycle_without_restart() {
+        let conns = vec![
+            StoredConnection {
+                name: "ch".into(),
+                engine: Engine::ClickHouse, // pragma: allowlist secret
+                host: "localhost".into(),
+                port: 8123,
+                user: "default".into(),
+                database: "default".into(),
+                tls: false,
+            },
+            StoredConnection {
+                name: "pg".into(),
+                engine: Engine::Postgres,
+                host: "localhost".into(),
+                port: 5432,
+                user: "app".into(),
+                database: "app".into(),
+                tls: false,
+            },
+        ];
+        let opts = TuiOptions {
+            dashboard: "Overview".into(),
+            charts: vec!["query-count".into()],
+            table: "running-queries".into(),
+            page_size: 15,
+            start_overview: true,
+            host_id: 0,
+            ch: conns[0].to_ch_config(""),
+            local_connections: conns,
+            current_connection: Some("ch".into()),
+            config_path: None,
+        };
+        let mut app = App::new(&opts);
+        assert_eq!(app.hosts.len(), 2);
+        assert_eq!(app.host_id, 0);
+        assert!(app.ch.is_some());
+        assert_eq!(
+            handle_key(&mut app, key(KeyCode::Char('l'))),
+            KeyAction::Refresh
+        );
+        assert_eq!(app.host_id, 1);
+        assert!(app.ch.is_none());
+        assert_eq!(app.error.as_deref(), Some(PG_TUI_HINT));
+        assert_eq!(
+            handle_key(&mut app, key(KeyCode::Char('h'))),
+            KeyAction::Refresh
+        );
+        assert_eq!(app.host_id, 0);
+        assert!(app.ch.is_some());
+        assert_eq!(app.host_label(), "ch");
     }
 }

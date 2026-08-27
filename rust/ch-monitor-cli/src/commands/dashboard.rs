@@ -101,6 +101,9 @@ async fn open_entry(client: &Client, cfg: &AppConfig, entry: &DashboardEntry) ->
             start_overview: true,
             host_id: cfg.host_id,
             ch: None,
+            local_connections: Vec::new(),
+            current_connection: None,
+            config_path: None,
         },
     )
     .await?;
