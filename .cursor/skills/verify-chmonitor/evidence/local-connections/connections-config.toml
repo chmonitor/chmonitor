@@ -1,0 +1,9 @@
+current_connection = "verify-local"
+
+[[connections]]
+name = "verify-local"
+engine = "clickhouse"  # pragma: allowlist secret
+host = "127.0.0.1"
+port = 8123
+user = "default"
+database = "default"

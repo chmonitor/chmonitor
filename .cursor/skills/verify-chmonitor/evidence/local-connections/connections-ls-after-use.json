@@ -1,0 +1,14 @@
+{
+  "connections": [
+    {
+      "current": true,
+      "database": "default",
+      "engine": "clickhouse",  // pragma: allowlist secret
+      "host": "127.0.0.1:8123",
+      "name": "verify-local",
+      "tls": false,
+      "user": "default"
+    }
+  ],
+  "current": "verify-local"
+}

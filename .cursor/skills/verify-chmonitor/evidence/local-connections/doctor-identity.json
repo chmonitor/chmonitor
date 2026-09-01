@@ -1,0 +1,10 @@
+{
+  "bin": "/tmp/verify-chmonitor/prefix/bin/chm",
+  "alias": "/tmp/verify-chmonitor/prefix/bin/chmonitor",
+  "crate_version": "0.1.3",
+  "target": "x86_64-unknown-linux-gnu",
+  "version_line": "chm 0.1.3 (x86_64-unknown-linux-gnu)",
+  "git_head": "545f8867",
+  "repo_root": "/workspace",
+  "profile": "debug"
+}

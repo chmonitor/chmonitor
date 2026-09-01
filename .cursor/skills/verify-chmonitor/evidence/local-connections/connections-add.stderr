@@ -1,0 +1,2 @@
+ok: saved connection 'verify-local' (clickhouse 127.0.0.1:8123)  # pragma: allowlist secret
+info: active — `chm use` to switch, `chm ls` to list

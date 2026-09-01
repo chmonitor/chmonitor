@@ -1,0 +1,1 @@
+ok: using 'verify-local' (clickhouse 127.0.0.1:8123)  # pragma: allowlist secret
