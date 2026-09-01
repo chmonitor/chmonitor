@@ -1,0 +1,48 @@
+=== prove local-connections 2026-09-01T18:27:07Z ===
+git_head=545f8867
+rustc=rustc 1.98.0 (88d9e12ae 2026-08-18)
+chm=chm 0.1.3 (x86_64-unknown-linux-gnu)
+VERIFY_PREFIX=/tmp/verify-chmonitor/prefix
+VERIFY_SCRATCH=/tmp/verify-chmonitor/scratch-prove-local-connections
+VERIFY_EVIDENCE=/workspace/.cursor/skills/verify-chmonitor/evidence/local-connections
+
+=== doctor.sh (identity-only, no dash HTTP) ===
+ok    identity             chm 0.1.3 (x86_64-unknown-linux-gnu)
+ok    bin                  /tmp/verify-chmonitor/prefix/bin/chm
+info  dashboard_http       skipped (identity-only; set VERIFY_DOCTOR_HTTP=1 or pass --http)
+verify-chmonitor doctor: this binary is ours
+elapsed_sec=0
+
+=== drive.sh local-connections ===
+ok    local-connections    name=verify-local current=verify-local host=127.0.0.1:8123
+ok    local-connections-rm name=verify-local gone
+verify-chmonitor drive: evidence in /workspace/.cursor/skills/verify-chmonitor/evidence/local-connections
+elapsed_sec=1
+
+=== redact-check.sh ===
+verify-chmonitor redact-check: ok  /workspace/.cursor/skills/verify-chmonitor/evidence/local-connections
+
+=== cleanup.sh ===
+verify-chmonitor cleanup: removed scratch /tmp/verify-chmonitor/scratch-prove-local-connections
+verify-chmonitor cleanup: evidence kept at /workspace/.cursor/skills/verify-chmonitor/evidence/local-connections
+
+=== after cleanup ===
+ok    scratch_gone        /tmp/verify-chmonitor/scratch-prove-local-connections
+ok    evidence_kept       /workspace/.cursor/skills/verify-chmonitor/evidence/local-connections
+total 48
+drwxr-xr-x 2 ubuntu ubuntu 4096 Sep  1 18:27 .
+drwxr-xr-x 3 ubuntu ubuntu 4096 Sep  1 18:26 ..
+-rw-r--r-- 1 ubuntu ubuntu  119 Sep  1 18:27 connections-add.stderr
+-rw-r--r-- 1 ubuntu ubuntu    0 Sep  1 18:27 connections-add.stdout
+-rw-r--r-- 1 ubuntu ubuntu    0 Sep  1 18:27 connections-config-after-rm.toml
+-rw-r--r-- 1 ubuntu ubuntu  166 Sep  1 18:27 connections-config.toml
+-rw-r--r-- 1 ubuntu ubuntu  256 Sep  1 18:27 connections-ls-after-add.json
+-rw-r--r-- 1 ubuntu ubuntu   43 Sep  1 18:27 connections-ls-after-rm.json
+-rw-r--r-- 1 ubuntu ubuntu  256 Sep  1 18:27 connections-ls-after-use.json
+-rw-r--r-- 1 ubuntu ubuntu   27 Sep  1 18:27 connections-rm.stderr
+-rw-r--r-- 1 ubuntu ubuntu    0 Sep  1 18:27 connections-rm.stdout
+-rw-r--r-- 1 ubuntu ubuntu   53 Sep  1 18:27 connections-use.stderr
+-rw-r--r-- 1 ubuntu ubuntu    0 Sep  1 18:27 connections-use.stdout
+-rw-r--r-- 1 ubuntu ubuntu  312 Sep  1 18:27 doctor-identity.json
+-rw-r--r-- 1 ubuntu ubuntu   37 Sep  1 18:27 doctor-version.txt
+-rw-r--r-- 1 ubuntu ubuntu 1530 Sep  1 18:27 prove-log.txt
