@@ -24,15 +24,16 @@ Preconditions:
 - Isolated `--config` (empty is fine).
 - `CLICKHOUSE_HOST` is unset unless the cluster sub-feature is the one being driven. <!-- pragma: allowlist secret -->
 
-- **Identity.** Run `.cursor/skills/verify-chmonitor/scripts/doctor.sh`. Stdout contains `ok    identity` and a version line matching `rust/ch-monitor-cli/Cargo.toml`. `$VERIFY_EVIDENCE/doctor-version.txt` matches `$VERIFY_PREFIX/bin/chm --version`. Those files are written before dashboard HTTP so `timeout 90 scripts/doctor.sh` still lands identity when healthz hangs.
-- **Connectivity JSON.** The same command writes `doctor-connectivity.json`. `cli_version.ok` is true and `detail` contains the crate version. `base_url` is `https://dash.chmonitor.dev` unless `VERIFY_BASE_URL` was overridden.
-- **Cloud healthz.** If `dashboard_health.ok` is false with `unreachable (https://dash.chmonitor.dev/api/healthz)`, treat as **informational**. Hosted `/api/healthz` is ClickHouse-gated and often 503 while `/api/v1/hosts` is 200. Do not fail identity on that row. Do not add a host to fix it. <!-- pragma: allowlist secret -->
+- **Identity.** Run `.cursor/skills/verify-chmonitor/scripts/doctor.sh` with **no extra flags**. Stdout contains `ok    identity` and a version line matching `rust/ch-monitor-cli/Cargo.toml`. `$VERIFY_EVIDENCE/doctor-version.txt` matches `$VERIFY_PREFIX/bin/chm --version`. Default is identity-only: **do not wait on dash.chmonitor.dev HTTP**. Cluster-gated `/api/healthz` is not the prove.
+- **Connectivity JSON (opt-in).** Pass `--http` or `VERIFY_DOCTOR_HTTP=1`. Writes `doctor-connectivity.json` under `timeout --foreground --kill-after=1s` (`VERIFY_DOCTOR_HTTP_TIMEOUT`, default 5s). `cli_version.ok` is true and `detail` contains the crate version. `base_url` is `https://dash.chmonitor.dev` unless `VERIFY_BASE_URL` was overridden. A timeout is informational; identity already passed.
+- **Cloud healthz.** Skip for the canonical prove. If you did pass `--http` and `dashboard_health.ok` is false with `unreachable (https://dash.chmonitor.dev/api/healthz)`, treat as **informational**. Hosted `/api/healthz` is ClickHouse-gated and often 503 while `/api/v1/hosts` is 200. Do not fail identity on that row. Do not add a host to fix it. <!-- pragma: allowlist secret -->
 - **Credentials.** Cloud `auth_method` is `device`. Missing bearer/api-key is expected. Do not run `chm auth login` for this feature.
 - **Cluster scan.** Run `scripts/doctor.sh --cluster` when `/ping` on `$VERIFY_CH_HOST` is 200. Artifact `doctor-cluster.json` includes `score`, `grade`, `findings`. Exit 0 or 1 (critical findings). Process must not mutate the cluster.
-- **Proof.** Identity file + connectivity JSON (and cluster JSON when that sub-feature ran). `scripts/redact-check.sh` must pass.
+- **Proof.** Identity file (and connectivity JSON only when `--http` ran; cluster JSON when `--cluster` ran). `scripts/redact-check.sh` must pass. Canonical prove is identity-only.
 
 ## Gotchas
 
+- Default `doctor.sh` does **not** contact dash.chmonitor.dev. Do not treat missing `doctor-connectivity.json` as a failed identity prove.
 - If `CLICKHOUSE_HOST` is set, `chm doctor` is a **cluster scan**, not connectivity. Always unset it for the connectivity recipe. <!-- pragma: allowlist secret -->
 - `chm doctor` exits non-zero when any connectivity row fails. That is not "wrong binary".
 - Cluster JSON is a `Report` object; connectivity JSON is an **array** of check rows. Do not parse them with the same schema.

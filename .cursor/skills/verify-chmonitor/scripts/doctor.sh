@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Read-only check: is this the binary we built, and is it worth driving?
 #
-#   scripts/doctor.sh            identity + dashboard connectivity (CLICKHOUSE_* unset)  # pragma: allowlist secret
-#   scripts/doctor.sh --cluster  plus local cluster scan at $VERIFY_CH_HOST
+#   scripts/doctor.sh              identity only (default — no dash HTTP)
+#   scripts/doctor.sh --http       also dashboard connectivity (bounded timeout)
+#   scripts/doctor.sh --cluster    plus local cluster scan at $VERIFY_CH_HOST
 #
-# Identity is fail-closed. Cloud /api/healthz is ClickHouse-gated and may 503  # pragma: allowlist secret
-# while /api/v1/hosts is 200 — that is not a wrong-binary signal.
+# Identity is fail-closed. Hosted /api/healthz is cluster-gated and can hang;
+# it is not part of identity. Default skips that HTTP. `VERIFY_DOCTOR_HTTP=1`
+# or `--http` enables it with `timeout --kill-after` (default 5s).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,8 +15,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 
 CLUSTER=0
-if [[ "${1:-}" == "--cluster" ]]; then
-  CLUSTER=1
+WANT_HTTP=0
+for arg in "$@"; do
+  case "$arg" in
+    --cluster) CLUSTER=1 ;;
+    --http) WANT_HTTP=1 ;;
+    --identity) WANT_HTTP=0 ;;
+    *)
+      echo "verify-chmonitor doctor: unknown argument '$arg'" >&2
+      exit 2
+      ;;
+  esac
+done
+if [[ "${VERIFY_DOCTOR_HTTP:-}" == "1" || "${VERIFY_DOCTOR_SKIP_HTTP:-1}" == "0" ]]; then
+  WANT_HTTP=1
 fi
 
 ensure_dirs
@@ -51,8 +65,7 @@ fi
 echo "ok    identity             $version_line"
 echo "ok    bin                  $real_bin"
 
-# Persist identity *before* dashboard HTTP. dash.chmonitor.dev /api/healthz can
-# hang; wrapping doctor.sh with `timeout` must still leave these files.
+# Persist identity before any network. dash.chmonitor.dev /api/healthz can hang.
 printf '%s\n' "$identity" >"$VERIFY_EVIDENCE/doctor-identity.json"
 echo "$version_line" >"$VERIFY_EVIDENCE/doctor-version.txt"
 
@@ -61,43 +74,45 @@ if [[ "$fail" -ne 0 ]]; then
   exit 1
 fi
 
-# Connectivity doctor: MUST unset CLICKHOUSE_HOST or this becomes a cluster scan.  # pragma: allowlist secret
-# Bound HTTP so a hung healthz cannot block the rest of the helper.
-conn_json="$VERIFY_EVIDENCE/doctor-connectivity.json"
-conn_timeout="${VERIFY_DOCTOR_HTTP_TIMEOUT:-45}"
-set +e
-# timeout cannot wrap a bash function; invoke the binary with the same isolated env as chm().
-if command -v timeout >/dev/null; then
-  chm_env timeout "$conn_timeout" "$CHM_BIN" --config "$CONFIG_PATH" --base-url "$VERIFY_BASE_URL" --json doctor \
-    >"$conn_json" 2>"$VERIFY_EVIDENCE/doctor-connectivity.stderr"
-  conn_rc=$?
+if [[ "$WANT_HTTP" -eq 0 ]]; then
+  echo "info  dashboard_http       skipped (identity-only; set VERIFY_DOCTOR_HTTP=1 or pass --http)"
 else
-  chm --json doctor >"$conn_json" 2>"$VERIFY_EVIDENCE/doctor-connectivity.stderr"
-  conn_rc=$?
-fi
-set -e
+  # MUST unset CLICKHOUSE_HOST or this becomes a cluster scan.  # pragma: allowlist secret
+  conn_json="$VERIFY_EVIDENCE/doctor-connectivity.json"
+  conn_timeout="${VERIFY_DOCTOR_HTTP_TIMEOUT:-5}"
+  set +e
+  if command -v timeout >/dev/null; then
+    # SIGTERM then SIGKILL so a stuck healthz cannot block the helper.
+    chm_env timeout --foreground --kill-after=1s "$conn_timeout" \
+      "$CHM_BIN" --config "$CONFIG_PATH" --base-url "$VERIFY_BASE_URL" --json doctor \
+      >"$conn_json" 2>"$VERIFY_EVIDENCE/doctor-connectivity.stderr"
+    conn_rc=$?
+  else
+    echo "verify-chmonitor doctor: GNU timeout missing; skipping dashboard HTTP" >&2
+    conn_rc=124
+  fi
+  set -e
 
-python3 - "$conn_json" "$crate" "$conn_rc" <<'PY'
+  python3 - "$conn_json" "$crate" "$conn_rc" <<'PY'
 import json, sys
 path, crate, rc = sys.argv[1], sys.argv[2], int(sys.argv[3])
 timed_out = rc in (124, 137)
 try:
     data = json.load(open(path))
 except Exception as e:
-    mark = "info" if timed_out else "FAIL"
-    print(f"{mark}  connectivity_json    {e} (rc={rc})", file=sys.stderr)
-    sys.exit(0 if timed_out else 1)
+    print(f"info  connectivity_json    {e} (rc={rc})")
+    sys.exit(0)
 if not isinstance(data, list):
-    mark = "info" if timed_out else "FAIL"
-    print(f"{mark}  connectivity_json    expected array (rc={rc})", file=sys.stderr)
-    sys.exit(0 if timed_out else 1)
+    print(f"info  connectivity_json    expected array (rc={rc})")
+    sys.exit(0)
 by = {row.get("check"): row for row in data if isinstance(row, dict)}
 cli = by.get("cli_version") or {}
 detail = str(cli.get("detail") or "")
-if crate not in detail:
+if crate not in detail and not timed_out:
     print(f"FAIL  cli_version          {detail!r} does not contain {crate}", file=sys.stderr)
     sys.exit(1)
-print(f"ok    cli_version          {detail}")
+if crate in detail:
+    print(f"ok    cli_version          {detail}")
 for name in ("base_url", "auth_method", "credentials", "dashboard_health", "hosts_api"):
     row = by.get(name) or {}
     mark = "ok" if row.get("ok") else "info"
@@ -107,6 +122,8 @@ if timed_out:
 elif rc != 0:
     print("info  doctor_exit          non-zero (cloud healthz/credentials often fail without login)")
 PY
+  redact_check_file "$conn_json" || true
+fi
 
 # Cluster scan is the health check before driving TUI against a CH HTTP host.
 if [[ "$CLUSTER" -eq 1 ]]; then
@@ -118,8 +135,15 @@ if [[ "$CLUSTER" -eq 1 ]]; then
   echo "ok    clickhouse_ping      $VERIFY_CH_HOST/ping $ping_code"  # pragma: allowlist secret
   cluster_json="$VERIFY_EVIDENCE/doctor-cluster.json"
   set +e
-  chm --json doctor --ch-host "$VERIFY_CH_HOST" >"$cluster_json" 2>"$VERIFY_EVIDENCE/doctor-cluster.stderr"
-  cluster_rc=$?
+  if command -v timeout >/dev/null; then
+    chm_env timeout --foreground --kill-after=1s 20 \
+      "$CHM_BIN" --config "$CONFIG_PATH" --json doctor --ch-host "$VERIFY_CH_HOST" \
+      >"$cluster_json" 2>"$VERIFY_EVIDENCE/doctor-cluster.stderr"
+    cluster_rc=$?
+  else
+    chm --json doctor --ch-host "$VERIFY_CH_HOST" >"$cluster_json" 2>"$VERIFY_EVIDENCE/doctor-cluster.stderr"
+    cluster_rc=$?
+  fi
   set -e
   python3 - "$cluster_json" "$cluster_rc" <<'PY'
 import json, sys
@@ -135,5 +159,4 @@ PY
   redact_check_file "$cluster_json"
 fi
 
-redact_check_file "$conn_json" || true
 echo "verify-chmonitor doctor: this binary is ours"

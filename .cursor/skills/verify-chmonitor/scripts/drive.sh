@@ -58,11 +58,41 @@ assert name in toml, toml
 assert "password" not in toml.lower(), toml
 print(f"ok    local-connections    name={name} current={after_use.get('current')} host={match.get('host')}")
 PY
+  # Config is metadata-only (no passwords). Snapshot after use, before rm.
+  cp "$CONFIG_PATH" "$VERIFY_EVIDENCE/connections-config.toml"
+
+  chm --no-tui rm "$name" \
+    >"$VERIFY_EVIDENCE/connections-rm.stdout" \
+    2>"$VERIFY_EVIDENCE/connections-rm.stderr"
+  grep -q "removed '$name'" "$VERIFY_EVIDENCE/connections-rm.stderr" \
+    || grep -q "removed '$name'" "$VERIFY_EVIDENCE/connections-rm.stdout"
+  chm --json ls >"$VERIFY_EVIDENCE/connections-ls-after-rm.json"
+  cp "$CONFIG_PATH" "$VERIFY_EVIDENCE/connections-config-after-rm.toml"
+
+  python3 - "$VERIFY_EVIDENCE" "$name" <<'PY'
+import json, os, sys
+evidence, name = sys.argv[1:]
+after_rm = json.load(open(os.path.join(evidence, "connections-ls-after-rm.json")))
+conns = after_rm.get("connections") or []
+assert all(c.get("name") != name for c in conns), after_rm
+assert after_rm.get("current") != name, after_rm
+assert "password" not in json.dumps(after_rm)
+toml = open(os.path.join(evidence, "connections-config-after-rm.toml"), encoding="utf-8").read()
+assert name not in toml, toml
+print(f"ok    local-connections-rm name={name} gone")
+PY
+
   redact_check_file "$VERIFY_EVIDENCE/connections-ls-after-add.json"
   redact_check_file "$VERIFY_EVIDENCE/connections-ls-after-use.json"
-  # Config is metadata-only (no passwords). Copy a redacted snapshot.
-  cp "$CONFIG_PATH" "$VERIFY_EVIDENCE/connections-config.toml"
+  redact_check_file "$VERIFY_EVIDENCE/connections-ls-after-rm.json"
   redact_check_file "$VERIFY_EVIDENCE/connections-config.toml"
+  redact_check_file "$VERIFY_EVIDENCE/connections-config-after-rm.toml"
+  redact_check_file "$VERIFY_EVIDENCE/connections-add.stdout"
+  redact_check_file "$VERIFY_EVIDENCE/connections-add.stderr"
+  redact_check_file "$VERIFY_EVIDENCE/connections-use.stdout"
+  redact_check_file "$VERIFY_EVIDENCE/connections-use.stderr"
+  redact_check_file "$VERIFY_EVIDENCE/connections-rm.stdout"
+  redact_check_file "$VERIFY_EVIDENCE/connections-rm.stderr"
 }
 
 drive_tui_snapshot() {

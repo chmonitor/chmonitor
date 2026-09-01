@@ -27,13 +27,14 @@ Preconditions:
 - `scripts/doctor.sh` accepted identity.
 - Fresh `$VERIFY_SCRATCH` so `--config` does not reuse the operator's store.
 - `CLICKHOUSE_PASSWORD` unset (otherwise `add` stores the env password). <!-- pragma: allowlist secret -->
-- Local CH is **not** required for add/ls/use (no network). Ping is only needed if a later TUI drive uses the saved connection.
+- Local CH is **not** required for add/ls/use/rm (no network). Ping is only needed if a later TUI drive uses the saved connection.
 
 - **Add.** Run `.cursor/skills/verify-chmonitor/scripts/drive.sh local-connections`. That runs `chm --no-tui add http://127.0.0.1:8123 --name verify-local`. Stderr contains `saved connection 'verify-local'` (or `updated`). Exit 0.
 - **List after add.** `chm --json ls` writes `connections-ls-after-add.json`. `connections` has `name` = `verify-local`, `engine` = `clickhouse`, `host` = `127.0.0.1:8123`. JSON has **no** `password` key. Text `ls` would show `* verify-local` when it is current. <!-- pragma: allowlist secret -->
 - **Use.** `chm --no-tui use verify-local` then `chm --json ls`. `current` is `verify-local`.
-- **Config side effect.** Scratch `config.toml` contains `current_connection` and a `[[connections]]` table with `name = "verify-local"`. File contains no `password` key. Do not copy any `credentials` sidecar into `$VERIFY_EVIDENCE`.
-- **Proof.** Keep add stderr, both ls JSON files, and `connections-config.toml`. Run `scripts/redact-check.sh "$VERIFY_EVIDENCE"`. Cleanup deletes scratch (including any credentials file) and must leave these artifacts in `$VERIFY_EVIDENCE`.
+- **Config side effect.** Scratch `config.toml` contains `current_connection` and a `[[connections]]` table with `name = "verify-local"`. File contains no `password` key. Snapshot as `connections-config.toml` **before** rm. Do not copy any `credentials` sidecar into `$VERIFY_EVIDENCE`.
+- **Rm.** `chm --no-tui rm verify-local`. Stderr contains `removed 'verify-local'`. `chm --json ls` writes `connections-ls-after-rm.json` with that name gone. `connections-config-after-rm.toml` must not contain `verify-local`.
+- **Proof.** Keep add/use/rm stderr, the three ls JSON files, and both config snapshots. Run `scripts/redact-check.sh "$VERIFY_EVIDENCE"`. Cleanup deletes scratch (including any credentials file) and must leave these artifacts in `$VERIFY_EVIDENCE`.
 
 ## Gotchas
 

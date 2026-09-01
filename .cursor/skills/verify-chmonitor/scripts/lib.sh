@@ -42,7 +42,7 @@ ensure_dirs() {
 # Live TUI needs a real TERM and must not inherit CI / CHM_NO_TUI / TERM=dumb.
 chm_env() {
   # Drop Cloud-image cluster env so add/doctor/TUI do not inherit it. pragma: allowlist secret
-  env -u CI -u GITHUB_ACTIONS -u CHM_NO_TUI -u CHM_CONFIG -u CHM_API_KEY -u CHM_TOKEN -u CLICKHOUSE_HOST -u CLICKHOUSE_USER -u CLICKHOUSE_PASSWORD -u CLICKHOUSE_DATABASE PATH="$VERIFY_PREFIX/bin:$PATH" TERM="${VERIFY_TERM:-xterm-256color}" "$@" # pragma: allowlist secret
+  env -u CI -u GITHUB_ACTIONS -u CHM_NO_TUI -u CHM_CONFIG -u CHM_API_KEY -u CHM_TOKEN -u CLICKHOUSE_HOST -u CLICKHOUSE_USER -u CLICKHOUSE_PASSWORD -u CLICKHOUSE_DATABASE PATH="$VERIFY_PREFIX/bin:$PATH" TERM="${VERIFY_TERM:-xterm-256color}" DO_NOT_TRACK=1 CHM_TELEMETRY=off "$@" # pragma: allowlist secret
 }
 
 chm() {

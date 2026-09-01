@@ -72,7 +72,8 @@ Do not use git worktrees for this skill.
 ## Doctor
 
 ```bash
-.cursor/skills/verify-chmonitor/scripts/doctor.sh            # identity + connectivity
+.cursor/skills/verify-chmonitor/scripts/doctor.sh            # identity only (default)
+.cursor/skills/verify-chmonitor/scripts/doctor.sh --http     # also dashboard HTTP (bounded)
 .cursor/skills/verify-chmonitor/scripts/doctor.sh --cluster  # plus local CH scan
 ```
 
@@ -85,10 +86,12 @@ launch install: realpath matches `identity.json`, `--version` contains
 `rust/ch-monitor-cli/Cargo.toml`'s `version` **and** a compile-time target
 (`env!("CHM_TARGET")`), path is under `$VERIFY_PREFIX`. This is the
 "is this binary ours?" check. A crates.io or `~/.local/bin` `chm` is not
-ours. `doctor.sh` writes `doctor-identity.json` and `doctor-version.txt`
-**before** dashboard HTTP, and bounds `chm --json doctor` with
-`timeout` (`VERIFY_DOCTOR_HTTP_TIMEOUT`, default 45s), so a hung
-`/api/healthz` still leaves identity evidence.
+ours. Default `doctor.sh` is **identity-only**: it writes `doctor-identity.json`
+and `doctor-version.txt` and **does not** call dash.chmonitor.dev. Hosted
+`GET /api/healthz` is cluster-gated and can hang for minutes — it is **not**
+the prove. Connectivity is opt-in (`--http` / `VERIFY_DOCTOR_HTTP=1`) and
+wrapped in `timeout --foreground --kill-after=1s`
+(`VERIFY_DOCTOR_HTTP_TIMEOUT`, default **5s**). Never wait on that HTTP.
 
 **Connectivity (`chm doctor` with `CLICKHOUSE_*` unset).** JSON array of <!-- pragma: allowlist secret -->
 `{check, ok, detail}`:
@@ -181,10 +184,11 @@ Proof standards:
 
 Typical artifacts for the canonical drive (`local-connections`):
 
-- `doctor-identity.json`, `doctor-version.txt`, `doctor-connectivity.json`
+- `doctor-identity.json`, `doctor-version.txt` (identity-only; no connectivity JSON unless `--http`)
 - `connections-add.stderr` (success line `saved connection 'verify-local'`)
-- `connections-ls-after-add.json`, `connections-ls-after-use.json`
-- `connections-config.toml` (metadata only)
+- `connections-ls-after-add.json`, `connections-ls-after-use.json`, `connections-ls-after-rm.json`
+- `connections-rm.stderr` (success line `removed 'verify-local'`)
+- `connections-config.toml` (metadata only, after use), `connections-config-after-rm.toml`
 
 ## Cleanup
 
@@ -206,7 +210,7 @@ All under `.cursor/skills/verify-chmonitor/scripts/`. `chmod +x` is set in git.
 | --- | --- |
 | `lib.sh` | sourced by the others (`VERIFY_*`, `chm`, `tmux_bin`) |
 | `launch.sh` | `.cursor/skills/verify-chmonitor/scripts/launch.sh` |
-| `doctor.sh` | `.cursor/skills/verify-chmonitor/scripts/doctor.sh` `[--cluster]` |
+| `doctor.sh` | `.cursor/skills/verify-chmonitor/scripts/doctor.sh` `[--http] [--cluster]` |
 | `drive.sh` | `.cursor/skills/verify-chmonitor/scripts/drive.sh` `<feature>` |
 | `cleanup.sh` | `.cursor/skills/verify-chmonitor/scripts/cleanup.sh` `[--purge]` |
 | `redact-check.sh` | `.cursor/skills/verify-chmonitor/scripts/redact-check.sh` `[dir]` |

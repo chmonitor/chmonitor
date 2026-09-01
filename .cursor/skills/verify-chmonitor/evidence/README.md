@@ -1,11 +1,12 @@
-# Evidence dumps (not committed)
+# Evidence
 
-Runtime proof files for a verification run belong in `$VERIFY_EVIDENCE`
-(default `/tmp/verify-chmonitor/evidence/<run-id>`), never in this folder.
+Runtime dumps default to `$VERIFY_EVIDENCE` (often
+`/tmp/verify-chmonitor/evidence/<run-id>`). `scripts/cleanup.sh` never
+deletes that directory. After cleanup, confirm the artifacts still exist.
 
-`scripts/cleanup.sh` deletes scratch config/credentials and tmux sessions.
-It must not delete `$VERIFY_EVIDENCE`. After cleanup, confirm the artifacts
-still exist at that path.
+The canonical proven drive (`local-connections`) is committed here as
+`local-connections/` — redacted transcripts/JSON only. Never commit a
+`credentials` sidecar or `CLICKHOUSE_PASSWORD`. <!-- pragma: allowlist secret -->
+`last-run/` is gitignored for ad-hoc dumps.
 
-Never copy a `credentials` sidecar or `CLICKHOUSE_PASSWORD` into evidence. <!-- pragma: allowlist secret -->
 Run `scripts/redact-check.sh` before treating a dump as publishable.
