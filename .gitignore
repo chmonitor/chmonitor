@@ -100,7 +100,10 @@ packages/clickhouse-client/src/wasm/generated/*
 .claude/*.local.md
 .claude/*.local.json
 .claude/worktrees/
-.cursor
+# Cursor local files; keep committed project skills (verify-*, etc.)
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
 .wrangler
 .antigravitycli
 .cf-stub-backup/
