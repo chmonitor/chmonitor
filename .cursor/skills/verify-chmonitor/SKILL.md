@@ -85,7 +85,10 @@ launch install: realpath matches `identity.json`, `--version` contains
 `rust/ch-monitor-cli/Cargo.toml`'s `version` **and** a compile-time target
 (`env!("CHM_TARGET")`), path is under `$VERIFY_PREFIX`. This is the
 "is this binary ours?" check. A crates.io or `~/.local/bin` `chm` is not
-ours.
+ours. `doctor.sh` writes `doctor-identity.json` and `doctor-version.txt`
+**before** dashboard HTTP, and bounds `chm --json doctor` with
+`timeout` (`VERIFY_DOCTOR_HTTP_TIMEOUT`, default 45s), so a hung
+`/api/healthz` still leaves identity evidence.
 
 **Connectivity (`chm doctor` with `CLICKHOUSE_*` unset).** JSON array of <!-- pragma: allowlist secret -->
 `{check, ok, detail}`:

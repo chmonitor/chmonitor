@@ -24,7 +24,7 @@ Preconditions:
 - Isolated `--config` (empty is fine).
 - `CLICKHOUSE_HOST` is unset unless the cluster sub-feature is the one being driven. <!-- pragma: allowlist secret -->
 
-- **Identity.** Run `.cursor/skills/verify-chmonitor/scripts/doctor.sh`. Stdout contains `ok    identity` and a version line matching `rust/ch-monitor-cli/Cargo.toml`. `$VERIFY_EVIDENCE/doctor-version.txt` matches `$VERIFY_PREFIX/bin/chm --version`.
+- **Identity.** Run `.cursor/skills/verify-chmonitor/scripts/doctor.sh`. Stdout contains `ok    identity` and a version line matching `rust/ch-monitor-cli/Cargo.toml`. `$VERIFY_EVIDENCE/doctor-version.txt` matches `$VERIFY_PREFIX/bin/chm --version`. Those files are written before dashboard HTTP so `timeout 90 scripts/doctor.sh` still lands identity when healthz hangs.
 - **Connectivity JSON.** The same command writes `doctor-connectivity.json`. `cli_version.ok` is true and `detail` contains the crate version. `base_url` is `https://dash.chmonitor.dev` unless `VERIFY_BASE_URL` was overridden.
 - **Cloud healthz.** If `dashboard_health.ok` is false with `unreachable (https://dash.chmonitor.dev/api/healthz)`, treat as **informational**. Hosted `/api/healthz` is ClickHouse-gated and often 503 while `/api/v1/hosts` is 200. Do not fail identity on that row. Do not add a host to fix it. <!-- pragma: allowlist secret -->
 - **Credentials.** Cloud `auth_method` is `device`. Missing bearer/api-key is expected. Do not run `chm auth login` for this feature.

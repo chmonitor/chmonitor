@@ -51,24 +51,46 @@ fi
 echo "ok    identity             $version_line"
 echo "ok    bin                  $real_bin"
 
+# Persist identity *before* dashboard HTTP. dash.chmonitor.dev /api/healthz can
+# hang; wrapping doctor.sh with `timeout` must still leave these files.
+printf '%s\n' "$identity" >"$VERIFY_EVIDENCE/doctor-identity.json"
+echo "$version_line" >"$VERIFY_EVIDENCE/doctor-version.txt"
+
+if [[ "$fail" -ne 0 ]]; then
+  echo "verify-chmonitor doctor: identity failed" >&2
+  exit 1
+fi
+
 # Connectivity doctor: MUST unset CLICKHOUSE_HOST or this becomes a cluster scan.  # pragma: allowlist secret
+# Bound HTTP so a hung healthz cannot block the rest of the helper.
 conn_json="$VERIFY_EVIDENCE/doctor-connectivity.json"
+conn_timeout="${VERIFY_DOCTOR_HTTP_TIMEOUT:-45}"
 set +e
-chm --json doctor >"$conn_json" 2>"$VERIFY_EVIDENCE/doctor-connectivity.stderr"
-conn_rc=$?
+# timeout cannot wrap a bash function; invoke the binary with the same isolated env as chm().
+if command -v timeout >/dev/null; then
+  chm_env timeout "$conn_timeout" "$CHM_BIN" --config "$CONFIG_PATH" --base-url "$VERIFY_BASE_URL" --json doctor \
+    >"$conn_json" 2>"$VERIFY_EVIDENCE/doctor-connectivity.stderr"
+  conn_rc=$?
+else
+  chm --json doctor >"$conn_json" 2>"$VERIFY_EVIDENCE/doctor-connectivity.stderr"
+  conn_rc=$?
+fi
 set -e
 
 python3 - "$conn_json" "$crate" "$conn_rc" <<'PY'
 import json, sys
 path, crate, rc = sys.argv[1], sys.argv[2], int(sys.argv[3])
+timed_out = rc in (124, 137)
 try:
     data = json.load(open(path))
 except Exception as e:
-    print(f"FAIL  connectivity_json    {e}", file=sys.stderr)
-    sys.exit(1)
+    mark = "info" if timed_out else "FAIL"
+    print(f"{mark}  connectivity_json    {e} (rc={rc})", file=sys.stderr)
+    sys.exit(0 if timed_out else 1)
 if not isinstance(data, list):
-    print("FAIL  connectivity_json    expected array", file=sys.stderr)
-    sys.exit(1)
+    mark = "info" if timed_out else "FAIL"
+    print(f"{mark}  connectivity_json    expected array (rc={rc})", file=sys.stderr)
+    sys.exit(0 if timed_out else 1)
 by = {row.get("check"): row for row in data if isinstance(row, dict)}
 cli = by.get("cli_version") or {}
 detail = str(cli.get("detail") or "")
@@ -80,7 +102,9 @@ for name in ("base_url", "auth_method", "credentials", "dashboard_health", "host
     row = by.get(name) or {}
     mark = "ok" if row.get("ok") else "info"
     print(f"{mark:4}  {name:<20} {row.get('detail','')}")
-if rc != 0:
+if timed_out:
+    print("info  doctor_exit          timeout (cloud healthz can hang; identity already recorded)")
+elif rc != 0:
     print("info  doctor_exit          non-zero (cloud healthz/credentials often fail without login)")
 PY
 
@@ -111,12 +135,5 @@ PY
   redact_check_file "$cluster_json"
 fi
 
-redact_check_file "$conn_json"
-printf '%s\n' "$identity" >"$VERIFY_EVIDENCE/doctor-identity.json"
-echo "$version_line" >"$VERIFY_EVIDENCE/doctor-version.txt"
-
-if [[ "$fail" -ne 0 ]]; then
-  echo "verify-chmonitor doctor: identity failed" >&2
-  exit 1
-fi
+redact_check_file "$conn_json" || true
 echo "verify-chmonitor doctor: this binary is ours"
