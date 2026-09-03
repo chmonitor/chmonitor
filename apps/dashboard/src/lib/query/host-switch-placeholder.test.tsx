@@ -135,7 +135,7 @@ describe('host switch keeps placeholder data scoped to the host', () => {
         'running-queries',
         hostId,
         undefined,
-        { refreshInterval: 0 }
+        0
       )
       return (
         <output>
