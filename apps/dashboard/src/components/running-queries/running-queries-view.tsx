@@ -98,6 +98,13 @@ function runningToCompleted(row: RunningQueryRow): CompletedQueryRow {
  */
 export const RunningQueriesView = function RunningQueriesView() {
   const hostId = useHostId()
+  // The poll diff, just-finished, and retained Done rows below are all
+  // per-host state; remount on switch so host A's queries never surface as
+  // "finished" under host B.
+  return <HostRunningQueriesView key={hostId} hostId={hostId} />
+}
+
+function HostRunningQueriesView({ hostId }: { hostId: number }) {
   const searchParams = useUrlSearchParams()
   const [chartsOpen, setChartsOpen] = useState(true)
   const [live, setLive] = useState(true)

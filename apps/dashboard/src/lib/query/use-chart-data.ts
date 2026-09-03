@@ -8,7 +8,11 @@ import {
   isCustomHost,
 } from '@/lib/host-fetch/resolve-host-fetch'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
-import { chartQueryKey, serializeChartParams } from '@/lib/query/query-keys'
+import {
+  chartQueryKey,
+  keepPreviousDataForHost,
+  serializeChartParams,
+} from '@/lib/query/query-keys'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { chartRefreshInterval } from '@/lib/swr/chart-freshness'
 import { REFRESH_INTERVAL, type RefreshInterval } from '@/lib/swr/config'
@@ -149,9 +153,9 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
     refetchInterval: resolvedRefetchInterval,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    // Keep previous data visible while re-fetching on host/range changes so the
-    // UI never blanks to a skeleton during transitions.
-    placeholderData: (prev) => prev,
+    // Keep previous data visible across range/param changes on the same host
+    // so the UI never blanks to a skeleton; a host switch starts clean.
+    placeholderData: keepPreviousDataForHost(hostId),
     retry: (failureCount, err) => {
       if (
         'status' in err &&
