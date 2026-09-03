@@ -37,7 +37,9 @@ export function AppSidebar() {
         <SampleClusterBanner />
       </SidebarHeader>
 
-      <SidebarContent>
+      {/* Row actions extend a 44px hit area past the right edge on the
+          touch overlay; keep that from becoming a sideways scroll. */}
+      <SidebarContent className="overflow-x-hidden">
         <NavMain items={menuItems} />
       </SidebarContent>
 
