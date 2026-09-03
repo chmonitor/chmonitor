@@ -28,10 +28,7 @@ export function HighlightText({
       parts.push(text.slice(cursor, start))
     }
     parts.push(
-      <mark
-        key={start}
-        className="rounded-sm bg-primary/25 text-foreground"
-      >
+      <mark key={start} className="rounded-sm bg-primary/25 text-foreground">
         {text.slice(start, end)}
       </mark>
     )
