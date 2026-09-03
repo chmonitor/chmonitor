@@ -101,7 +101,7 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   markdown link deep in an older note and `scrollIntoView` the list to the
   middle. Screenshot thumbs (`WhatsNewScreenshotGallery`) open a full-size
   overlay in the same dialog; Escape closes the overlay before the dialog.
-  Do not add `relative` on `DialogContent` — `cn()`/`twMerge` drops the
+  Do not add `relative` on `DialogContent` — `cn()` drops the
   primitive's `fixed`, so `top-1/2 left-1/2 -translate-*` no longer centers
   in the viewport. `fixed` already contains an inner `absolute` overlay.
 - **Base UI Select labels:** pass `items={{ value: 'Human label' }}` on
