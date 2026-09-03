@@ -1,6 +1,6 @@
 import { menuItemsConfig } from '@/menu'
 
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
@@ -22,11 +22,20 @@ export function useMenuWorkspaceCatalog() {
   const { settings, updateSettings } = useUserSettings()
   const settingsRef = useRef(settings)
   settingsRef.current = settings
-  const catalog = getAllowedMenuItems(config, engine)
-  const workspace = workspaceFromSettings(settings)
-  const hiddenHrefs = new Set(
-    effectiveHiddenMenuHrefs(menuItemsConfig, workspace)
+  // Every rail row, sub-row, and heading calls this hook; the catalog and
+  // hide set only change with permissions, engine, or the workspace settings,
+  // not with each route transition that re-renders the rail.
+  const catalog = useMemo(
+    () => getAllowedMenuItems(config, engine),
+    [config, engine]
   )
+  const { workspace, hiddenHrefs } = useMemo(() => {
+    const next = workspaceFromSettings(settings)
+    return {
+      workspace: next,
+      hiddenHrefs: new Set(effectiveHiddenMenuHrefs(menuItemsConfig, next)),
+    }
+  }, [settings])
 
   const showHref = (href: string) => {
     const next = persistShowMenuHref(settingsRef.current, href)
