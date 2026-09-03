@@ -115,8 +115,6 @@ export function useTableData<T = unknown>(
     refetchInterval: resolvedRefetchInterval,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    // Keep previous data visible across filter/page changes on the same host
-    // so the UI never blanks to a skeleton; a host switch starts clean.
     placeholderData: keepPreviousDataForHost(hostId),
   })
 

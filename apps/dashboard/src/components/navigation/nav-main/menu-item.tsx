@@ -311,8 +311,8 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
     (child) => child.href && isMenuItemActive(child.href, pathname)
   )?.href
   const [open, setOpen] = useState(hasActiveChild)
-  // Client-side navigation onto a child (palette, breadcrumb, in-page link)
-  // must reveal the active row; a manual collapse holds until the next move.
+  // Palette, breadcrumb, and in-page navigation onto a child must reveal
+  // the active row.
   useEffect(() => {
     if (activeChildHref) setOpen(true)
   }, [activeChildHref])

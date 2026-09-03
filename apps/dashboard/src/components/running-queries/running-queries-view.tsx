@@ -98,9 +98,8 @@ function runningToCompleted(row: RunningQueryRow): CompletedQueryRow {
  */
 export const RunningQueriesView = function RunningQueriesView() {
   const hostId = useHostId()
-  // The poll diff, just-finished, and retained Done rows below are all
-  // per-host state; remount on switch so host A's queries never surface as
-  // "finished" under host B.
+  // Finished and Done rows are per-host state; remount so host A's queries
+  // never show as finished under host B.
   return <HostRunningQueriesView key={hostId} hostId={hostId} />
 }
 

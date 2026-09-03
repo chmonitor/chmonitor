@@ -22,9 +22,7 @@ export function useMenuWorkspaceCatalog() {
   const { settings, updateSettings } = useUserSettings()
   const settingsRef = useRef(settings)
   settingsRef.current = settings
-  // Every rail row, sub-row, and heading calls this hook; the catalog and
-  // hide set only change with permissions, engine, or the workspace settings,
-  // not with each route transition that re-renders the rail.
+  // Every rail row calls this on each route re-render; memoize.
   const catalog = useMemo(
     () => getAllowedMenuItems(config, engine),
     [config, engine]

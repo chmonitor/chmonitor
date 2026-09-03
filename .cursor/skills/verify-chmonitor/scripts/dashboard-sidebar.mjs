@@ -3,10 +3,7 @@
 //
 //   VERIFY_DASH_URL=http://localhost:3000 node .cursor/skills/verify-chmonitor/scripts/dashboard-sidebar.mjs
 //
-// Needs `puppeteer-core` in $VERIFY_PUPPETEER_DIR (default
-// /tmp/verify-chmonitor/puppeteer): `npm i --prefix "$dir" puppeteer-core`.
-// Chrome comes from $VERIFY_CHROME or the first of google-chrome / chromium.
-// Evidence lands in $VERIFY_EVIDENCE (default /tmp/verify-chmonitor/evidence/<run>).
+// Needs `puppeteer-core` in $VERIFY_PUPPETEER_DIR: `npm i --prefix "$dir" puppeteer-core`.
 // Exit 1 when any check fails; the JSON report lists every check either way.
 
 import { createRequire } from 'node:module'
@@ -228,8 +225,7 @@ try {
     await shot(p, '1280-insight-after-x')
     await p.browserContext().close()
   }
-  // Optional: a second dashboard with two hosts where host 1 is unreachable
-  // (VERIFY_DASH_MULTIHOST_URL). Switching A → B must not render A's rows.
+  // Needs a two-host dashboard with host 1 unreachable; A → B must not render A's rows.
   const MULTI = process.env.VERIFY_DASH_MULTIHOST_URL
   if (MULTI) {
     const p = await page(desktop, { width: 1280, height: 800 })

@@ -29,9 +29,9 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
   return (
     <SidebarMenuAction
       className={cn(
+        overlayActionClasses,
         // `SidebarMenuAction` forces `[&>svg]:size-4`; override so the pin
         // stays small and inset from the very right edge with breathing room.
-        overlayActionClasses,
         'right-2 [&>svg]:size-3',
         hasBadge && 'right-7'
       )}
