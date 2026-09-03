@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-08-27
+updated: 2026-09-03
 tags:
   - design-system
   - ui
@@ -100,7 +100,7 @@ body `scrollTop` resets on open, so markdown links in older notes cannot
 `scrollIntoView` the list to the middle. Each version can show a row of
 screenshot **thumbnails** (`WhatsNewScreenshotGallery`); click one to
 open a full-size overlay inside the same dialog (`WhatsNewScreenshotLightbox`).
-Do not put `relative` on `DialogContent`: `cn()`/`twMerge` drops the
+Do not put `relative` on `DialogContent`: `cn()` drops the
 primitive's `fixed`, so `top-1/2 left-1/2 -translate-*` no longer centers in
 the viewport. `fixed` already contains that inner `absolute` overlay.
 Escape / close dismisses the overlay first, then the dialog. Notes come from `GET /api/v1/releases` (server-side GitHub Releases with
@@ -203,8 +203,8 @@ How each applies (all wired by `AppearanceSettingsProvider`,
 ## shadcn/ui rule
 
 Never edit `src/components/ui/*`. Customise via `className` at the call site or a
-wrapper in `src/components/`. Merge with `cn()` (`src/lib/utils.ts` = clsx +
-tailwind-merge). Primitives available: accordion, alert, avatar, badge,
+wrapper in `src/components/`. Merge with `cn()` (`src/lib/utils.ts` re-exports
+the `cn` package). Primitives available: accordion, alert, avatar, badge,
 breadcrumb, button, button-group, card, carousel, checkbox, collapsible, command,
 dialog, drawer, dropdown-menu, empty-state, form, hover-card, icon-button, input,
 input-group, label, popover, progress, resizable, scroll-area, select, separator,

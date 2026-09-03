@@ -3,7 +3,7 @@ id: conventions
 title: Development Conventions
 type: workflow
 status: active
-updated: 2026-08-20
+updated: 2026-09-03
 tags:
   - conventions
   - patterns
@@ -71,7 +71,7 @@ the Presets menu, fixed in PR #1360).
 - Good: `className={cn('flex', isActive ? 'text-red' : 'text-gray')}`
 - Good: `className={cn('flex', isActive && 'text-red')}`
 
-Reason: `cn()` (clsx + tailwind-merge) deduplicates conflicting Tailwind classes (e.g. `p-2 p-4` → `p-4`) and handles falsy values cleanly. Template literals leave conflicting classes in place, causing unpredictable specificity bugs.
+Reason: `cn()` (the `cn` package) deduplicates conflicting Tailwind classes (e.g. `p-2 p-4` → `p-4`) and handles falsy values cleanly. Template literals leave conflicting classes in place, causing unpredictable specificity bugs.
 
 ## Query Patterns
 
