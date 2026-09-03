@@ -9,7 +9,7 @@ import { CollapsedSubmenu } from './collapsed-submenu'
 import { GroupCustomizeButton } from './group-customize-dialog'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useUserSettings } from '@/lib/hooks/use-user-settings'
@@ -307,6 +307,15 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   const hostId = useHostId()
   const isCollapsed = state === 'collapsed'
   const siblingHrefs = item.items?.map((child) => child.href) ?? []
+  const activeChildHref = item.items?.find(
+    (child) => child.href && isMenuItemActive(child.href, pathname)
+  )?.href
+  const [open, setOpen] = useState(hasActiveChild)
+  // Client-side navigation onto a child (palette, breadcrumb, in-page link)
+  // must reveal the active row; a manual collapse holds until the next move.
+  useEffect(() => {
+    if (activeChildHref) setOpen(true)
+  }, [activeChildHref])
 
   // When collapsed, use Popover submenu
   // Note: Badges stay inline with button content for collapsed state
@@ -350,7 +359,8 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   // Entire button (text + chevron) triggers toggle
   return (
     <Collapsible
-      defaultOpen={hasActiveChild}
+      open={open}
+      onOpenChange={setOpen}
       className="group/collapsible"
       render={<SidebarMenuItem />}
     >
