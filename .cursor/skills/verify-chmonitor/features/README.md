@@ -50,3 +50,4 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 - [Local named connections](./local-connections.md) — `chm add` / `ls` / `use` / `rm` (no dashboard).
 - [Dashboard Overview](./dashboard-overview.md) — secondary web surface; public demo, no add-host.
 - [Sidebar heading customize](./sidebar-heading-customize.md) — secondary; group `+` dialog on dashboard sidebar.
+- [Sidebar navigation](./sidebar-navigation.md) — secondary; overlay chrome at 375/768, docked hover at 1280, nested active, ⌘K hidden pages, fresh vs stored profiles (`scripts/dashboard-sidebar.mjs`).

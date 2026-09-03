@@ -379,7 +379,18 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   An explicit Open arrow navigates; Done closes; optional All pages… opens
   Settings → Navigation focused on the group (not the default path). This
   dialog is the 375 customize surface — no overflow-x, do not rely on the
-  cramped hover +/hide/pin row. Overview (no children) has no heading
+  cramped hover +/hide/pin row. **Overlay leaf chrome (below `lg`):** Hide
+  and Add on leaf rows are `max-lg:hidden` (docked rail, hover-only); the
+  pin is the single leaf action and stays visible with a 44px hit area.
+  Group headings keep the Customize `+` visible on the overlay, including
+  768 tablets — use `overlayActionClasses` (`nav-main/overlay-action.ts`),
+  not `SidebarMenuAction showOnHover`, whose `md:opacity-0` hides it there.
+  `SidebarContent` in `app-sidebar.tsx` is `overflow-x-hidden` so those hit
+  areas never become a sideways scroll. **Nested active:** the group
+  `Collapsible` is controlled — it opens whenever the active child href
+  changes (⌘K, breadcrumb, in-page link) and a manual collapse holds until
+  the next move; `defaultOpen` alone left the active row hidden after
+  client-side navigation. Overview (no children) has no heading
   dialog. Footer About is never hideable. Footer Customize… on leaf hover
   still opens Settings → Navigation, preferably focused on that group. A
   **More** row (`more-pages-button.tsx`) is a searchable flyout of hidden
