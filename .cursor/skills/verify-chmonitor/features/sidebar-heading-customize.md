@@ -34,7 +34,7 @@ Preconditions:
 ## Gotchas
 
 - Overview never renders `GroupCustomizeButton` (no catalog leaves). Do not look for `data-group=Overview`.
-- `showOnHover` — the `+` is easy to miss; query the testid, do not depend on pixel hover in a collapsed rail.
+- The `+` is hover-revealed on the docked rail (`lg`+) and always visible on the touch overlay below `lg`; query the testid, do not depend on pixel hover in a collapsed rail.
 - Dialog is `data-testid=group-customize-dialog`, not the shadcn `Dialog` internals in `components/ui/`.
 - Do not mix this with CLI `chm` drives. It does not exist in the TUI.
 - Never create a hosted connection to "get a fuller sidebar."

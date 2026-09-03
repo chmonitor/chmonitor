@@ -2,6 +2,7 @@ import { ArrowUpRight, Plus } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
 
+import { overlayActionClasses } from './overlay-action'
 import { useRef, useState } from 'react'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useOpenSettings } from '@/components/settings/settings-dialog-provider'
@@ -43,10 +44,9 @@ export function GroupCustomizeButton({
     <>
       <SidebarMenuAction
         type="button"
-        showOnHover
         data-testid="group-customize-button"
         data-group={groupTitle}
-        className="right-1 after:-inset-3 [&>svg]:size-3 md:after:hidden"
+        className={cn(overlayActionClasses, 'right-1 [&>svg]:size-3')}
         aria-label={`Customize ${groupTitle}`}
         onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
           event.preventDefault()

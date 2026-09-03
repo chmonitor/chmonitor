@@ -1,5 +1,5 @@
-import type { PaletteTab } from '../command-palette-utils'
 import type { RecentPaletteItemKind } from '@/lib/command-palette/recent-items'
+import type { PaletteTab } from '../command-palette-utils'
 
 import * as React from 'react'
 import { useEffect, useState } from 'react'

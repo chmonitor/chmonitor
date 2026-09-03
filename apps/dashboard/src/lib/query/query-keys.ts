@@ -121,3 +121,24 @@ export function tableQueryKey({
     connectionKey,
   ] as const
 }
+
+/** Index of `hostId` in every host-scoped key built by this module. */
+const HOST_KEY_INDEX = 2
+
+/**
+ * `placeholderData` for the host-scoped keys above. Carries the previous
+ * result across a key change (time range, params, page) only while the host
+ * stays the same, so switching monitors never shows the old host's rows under
+ * the new host's name while the first fetch is in flight.
+ */
+export function keepPreviousDataForHost<TData>(
+  hostId: number | string | undefined
+) {
+  return (
+    previousData: TData | undefined,
+    previousQuery: { queryKey: readonly unknown[] } | undefined
+  ): TData | undefined =>
+    previousQuery?.queryKey[HOST_KEY_INDEX] === hostId
+      ? previousData
+      : undefined
+}

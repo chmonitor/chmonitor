@@ -4,6 +4,7 @@ import {
   activatePaletteRow,
   buildSectionedPaletteRows,
   filterPaletteRows,
+  filterRankedByQuery,
   navigablePaletteRows,
   paletteItemId,
   stepPaletteIndex,
@@ -111,5 +112,26 @@ describe('filterPaletteRows + selectedIndex + Enter', () => {
     expect(paletteItemId('Tables', '/replicas')).not.toBe(
       paletteItemId('Tables', '/replicated-fetches')
     )
+  })
+})
+
+describe('switch-host action search value', () => {
+  const hosts = [
+    { id: 0, name: 'Alpha Monitor' },
+    { id: 1, name: 'Beta Monitor' },
+  ]
+  const searchValue = (host: { name: string }) =>
+    `Switch to ${host.name} host monitor`
+
+  test('matches the visible label and the bare host name', () => {
+    expect(
+      filterRankedByQuery(hosts, 'Switch to Beta', searchValue).map((h) => h.id)
+    ).toEqual([1])
+    expect(
+      filterRankedByQuery(hosts, 'beta', searchValue).map((h) => h.id)
+    ).toEqual([1])
+    expect(
+      filterRankedByQuery(hosts, 'switch host', searchValue).map((h) => h.id)
+    ).toEqual([0, 1])
   })
 })

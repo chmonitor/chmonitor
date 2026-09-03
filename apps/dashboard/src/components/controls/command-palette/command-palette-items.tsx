@@ -354,7 +354,7 @@ export function CommandPaletteResults({
   const listedHosts = filterRankedByQuery(
     otherHosts,
     inputValue,
-    (host) => `switch host ${host.name || getHost(host.host)}`
+    (host) => `Switch to ${host.name || getHost(host.host)} host monitor`
   )
   const showSettings = Boolean(
     onOpenSettings && matchesPaletteQuery('Settings preferences', inputValue)

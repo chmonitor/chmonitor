@@ -10,6 +10,7 @@ import {
 } from '@/lib/host-fetch/resolve-host-fetch'
 import { hostConnectionKey } from '@/lib/query/host-query-key'
 import {
+  keepPreviousDataForHost,
   serializeTableSearchParams,
   tableQueryKey,
 } from '@/lib/query/query-keys'
@@ -114,9 +115,7 @@ export function useTableData<T = unknown>(
     refetchInterval: resolvedRefetchInterval,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    // Keep previous data visible while re-fetching on host/range changes so the
-    // UI never blanks to a skeleton during transitions.
-    placeholderData: (prev) => prev,
+    placeholderData: keepPreviousDataForHost(hostId),
   })
 
   const dataArray = data?.data ?? []

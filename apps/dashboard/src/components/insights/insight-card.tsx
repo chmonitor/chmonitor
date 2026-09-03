@@ -50,85 +50,86 @@ export function InsightCard({
       : undefined
 
   return (
-    <Card
-      role="button"
-      tabIndex={0}
-      aria-label={`View insight: ${insight.title}`}
-      onClick={() => setDetailOpen(true)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          setDetailOpen(true)
-        }
-      }}
-      className={cn(
-        'h-full cursor-pointer gap-0 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        className
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Icon
-            className={cn('size-4 shrink-0', style.iconColor)}
-            strokeWidth={1.5}
-            aria-hidden="true"
-          />
-          <span className="truncate text-xs text-muted-foreground">
-            {style.label}
-            {hasGeneratedAt ? (
-              <>
-                {' · '}
-                <time
-                  dateTime={insight.generatedAt}
-                  title={new Date(generatedMs).toLocaleString()}
-                >
-                  {formatRelativeTime(generatedMs)}
-                </time>
-              </>
-            ) : null}
-          </span>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="-mr-1.5 -mt-1.5 size-7 shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
-          aria-label={`Dismiss insight: ${insight.title}`}
-          onClick={(e) => {
-            e.stopPropagation()
-            onDismiss(insight)
-          }}
-        >
-          <X className="size-3.5" />
-        </Button>
-      </div>
-
-      <h3 className="mt-3 text-sm font-medium leading-snug text-foreground">
-        {insight.title}
-      </h3>
-      <p
-        className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground"
-        title={insight.detail}
+    <>
+      <Card
+        role="button"
+        tabIndex={0}
+        aria-label={`View insight: ${insight.title}`}
+        onClick={() => setDetailOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setDetailOpen(true)
+          }
+        }}
+        className={cn(
+          'h-full cursor-pointer gap-0 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          className
+        )}
       >
-        {insight.detail}
-      </p>
-
-      <div className="mt-3 flex items-center justify-end gap-2">
-        {action && actionHref ? (
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <Icon
+              className={cn('size-4 shrink-0', style.iconColor)}
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
+            <span className="truncate text-xs text-muted-foreground">
+              {style.label}
+              {hasGeneratedAt ? (
+                <>
+                  {' · '}
+                  <time
+                    dateTime={insight.generatedAt}
+                    title={new Date(generatedMs).toLocaleString()}
+                  >
+                    {formatRelativeTime(generatedMs)}
+                  </time>
+                </>
+              ) : null}
+            </span>
+          </div>
           <Button
+            type="button"
             variant="ghost"
-            size="sm"
-            className="h-6 gap-1 px-0 text-xs font-normal text-muted-foreground hover:text-foreground"
-            render={
-              <Link href={actionHref} onClick={(e) => e.stopPropagation()} />
-            }
+            size="icon"
+            className="-mr-1.5 -mt-1.5 size-7 shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
+            aria-label={`Dismiss insight: ${insight.title}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              onDismiss(insight)
+            }}
           >
-            {action.label}
-            <ArrowRight className="size-3" />
+            <X className="size-3.5" />
           </Button>
-        ) : null}
-      </div>
+        </div>
 
+        <h3 className="mt-3 text-sm font-medium leading-snug text-foreground">
+          {insight.title}
+        </h3>
+        <p
+          className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground"
+          title={insight.detail}
+        >
+          {insight.detail}
+        </p>
+
+        <div className="mt-3 flex items-center justify-end gap-2">
+          {action && actionHref ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-0 text-xs font-normal text-muted-foreground hover:text-foreground"
+              render={
+                <Link href={actionHref} onClick={(e) => e.stopPropagation()} />
+              }
+            >
+              {action.label}
+              <ArrowRight className="size-3" />
+            </Button>
+          ) : null}
+        </div>
+      </Card>
       <InsightDetailDialog
         insight={insight}
         hostId={hostId}
@@ -137,6 +138,6 @@ export function InsightCard({
         onDismiss={onDismiss}
         linkSearch={linkSearch}
       />
-    </Card>
+    </>
   )
 }

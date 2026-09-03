@@ -43,7 +43,11 @@ values and file paths: `docs/knowledge/product-design.md`.
 4. **Hooks at the deepest consumer.** A component that needs data calls
    `useHostId()` / `useChartData()` itself — do NOT prop-drill `hostId`.
 5. **`?host=N` routing**, never dynamic `/N/...` segments. Preserve other search
-   params with `buildUrl(pathname, { host }, searchParams)`.
+   params with `buildUrl(pathname, { host }, searchParams)`. Data shown under
+   a host name must come from that host: host-scoped hooks use
+   `keepPreviousDataForHost` (or opt out of `placeholderData`), and per-host
+   component state remounts with `key={hostId}` (see
+   `docs/knowledge/static-site-architecture.md`, "Host-scoped cache").
 6. **No "AI slop" decoration** — one clear signal per state, not several
    redundant ones. No full-saturation accent bars/rails stacked on an
    already-colored border; no gradient blobs/glow orbs behind icons. See
@@ -373,6 +377,12 @@ visible rows have Remove (`hideMenuHref`), hidden rows are muted with Add
 arrow. Footer Done, optional All pages… into Settings → Navigation (not
 the default path). Overview (no children) has no heading dialog. Footer
 About is never hideable. More is a flyout of hidden pages (not Settings).
+Below `lg` (touch overlay) leaf rows show only the pin; Hide / Add are
+`max-lg:hidden` and live in the heading dialog. Overlay-visible row actions
+use `overlayActionClasses` (`nav-main/overlay-action.ts`), not
+`showOnHover` (its `md:opacity-0` hides the `+` on 768 tablets). Group
+`Collapsible` is controlled: it opens when the active child href changes so
+⌘K / breadcrumb navigation never lands on a collapsed parent.
 Essential is grouped (not flattened): Overview; AI Agent → Chat; Insights
 → Insights; Health → Health; Queries → Running + History; Tables →
 Overview + Explorer; Tools → SQL. Do not flatten those groups to Chat /

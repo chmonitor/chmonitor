@@ -148,6 +148,9 @@ export function useHostStatus(
       }
     },
     enabled: hostId !== null && !isBrowserConnection,
+    // The key only changes on a host switch; the client-wide keepPreviousData
+    // default would show host A's version and uptime under host B's name.
+    placeholderData: undefined,
     staleTime: 10000,
     refetchInterval:
       refreshInterval > 0 ? visibilityAwareInterval(refreshInterval) : false,

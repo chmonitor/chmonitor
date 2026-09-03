@@ -214,16 +214,20 @@ All under `.cursor/skills/verify-chmonitor/scripts/`. `chmod +x` is set in git.
 | `drive.sh` | `.cursor/skills/verify-chmonitor/scripts/drive.sh` `<feature>` |
 | `cleanup.sh` | `.cursor/skills/verify-chmonitor/scripts/cleanup.sh` `[--purge]` |
 | `redact-check.sh` | `.cursor/skills/verify-chmonitor/scripts/redact-check.sh` `[dir]` |
+| `dashboard-sidebar.mjs` | `VERIFY_DASH_URL=http://localhost:3000 node .cursor/skills/verify-chmonitor/scripts/dashboard-sidebar.mjs` (headless Chrome + `puppeteer-core` under `VERIFY_PUPPETEER_DIR`) |
 
 Override paths with `VERIFY_PREFIX`, `VERIFY_SCRATCH`, `VERIFY_EVIDENCE`,
-`VERIFY_RUN_ID`, `VERIFY_CH_HOST`, `VERIFY_BASE_URL`.
+`VERIFY_RUN_ID`, `VERIFY_CH_HOST`, `VERIFY_BASE_URL`, `VERIFY_DASH_URL`,
+`VERIFY_DASH_MULTIHOST_URL`, `VERIFY_CHROME`, `VERIFY_PUPPETEER_DIR`.
 
 ## Secondary surface (dashboard)
 
 `apps/dashboard` (TanStack Start) and live `https://dash.chmonitor.dev`.
 Local `pnpm run dev` on port 3000 is optional and not required for CLI
-proofs. Feature map lists Overview and sidebar heading customize; those
-recipes must not add a host. Public demo is `?host=0`.
+proofs. Feature map lists Overview, sidebar heading customize, and sidebar
+navigation; those recipes must not add a host. Public demo is `?host=0`.
+The sidebar navigation recipe is scripted (`scripts/dashboard-sidebar.mjs`)
+and writes `sidebar-navigation.json` + screenshots into `$VERIFY_EVIDENCE`.
 
 ## Feature map
 
