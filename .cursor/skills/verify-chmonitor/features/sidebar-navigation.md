@@ -11,6 +11,7 @@ The dashboard sidebar is a docked 16rem rail at `lg` (1024) and up, and a touch 
 - `profiles` fresh = Custom + Essential hide list; stored Full shows every group with no More row; a named preset shows its group set plus More; an all-hidden Custom still shows More (no stranding).
 - `heading-dialog-375` the group Customize dialog fits 375 and Remove updates the rail (details in [sidebar-heading-customize](./sidebar-heading-customize.md)).
 - `insight-dialog-close` the insight detail dialog closes from its X (#3362), covered here because the preview cards on `/insights-settings` need no LLM.
+- `multihost` (optional, `VERIFY_DASH_MULTIHOST_URL`): keyboard switch in the host switcher (Enter, ArrowDown, Enter) lands on `?host=1` with the same path; every sidebar link carries the new host; no request goes to host 0 after the switch; with host 1 unreachable, no host-0 KPI, row, or version renders under host 1 at 1s / 4s / 9s; ⌘K `Switch to <host>` matches the visible label and keeps the path.
 
 ## How to get to it (user POV)
 
@@ -25,6 +26,7 @@ Preconditions:
 - A dashboard at `VERIFY_DASH_URL` (local `pnpm run dev` on `:3000`, or hosted `https://dash.chmonitor.dev`; stay anonymous, do not add a host).
 - Chrome on the machine (`VERIFY_CHROME` or `google-chrome` / `chromium`) and `puppeteer-core` under `VERIFY_PUPPETEER_DIR` (default `/tmp/verify-chmonitor/puppeteer`): `npm i --prefix /tmp/verify-chmonitor/puppeteer puppeteer-core`.
 - `/insights-settings` exists (the `insight-dialog-close` check uses its mock preview cards).
+- Optional two-host server for `multihost`: run a second `vite dev` under the `preview` wrangler env with a local `.dev.vars.preview` (not committed; add it to `.git/info/exclude`) such as `CLICKHOUSE_HOST=http://localhost:8123,http://127.0.0.1:8124` and `CLICKHOUSE_NAME=Alpha Monitor,Beta Monitor`, then pass `VERIFY_DASH_MULTIHOST_URL=http://localhost:3001`. Host 1 must be unreachable for the no-leak checks to mean anything. <!-- pragma: allowlist secret -->
 
 ```bash
 VERIFY_DASH_URL=http://localhost:3000 node .cursor/skills/verify-chmonitor/scripts/dashboard-sidebar.mjs

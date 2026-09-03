@@ -228,6 +228,65 @@ try {
     await shot(p, '1280-insight-after-x')
     await p.browserContext().close()
   }
+  // Optional: a second dashboard with two hosts where host 1 is unreachable
+  // (VERIFY_DASH_MULTIHOST_URL). Switching A → B must not render A's rows.
+  const MULTI = process.env.VERIFY_DASH_MULTIHOST_URL
+  if (MULTI) {
+    const p = await page(desktop, { width: 1280, height: 800 })
+    const requests = []
+    p.on('request', (r) => {
+      const u = r.url()
+      if (u.includes('/api/v1/')) requests.push({ t: Date.now(), host: new URL(u).searchParams.get('hostId') ?? new URL(u).searchParams.get('host') })
+    })
+    await p.goto(`${MULTI}/running-queries?host=0`, { waitUntil: 'networkidle2', timeout: 90_000 })
+    await p.waitForSelector('[data-testid="host-switcher"]', { timeout: 60_000 })
+    await sleep(2500)
+    const sample = () => p.evaluate(() => {
+      const main = document.querySelector('main')?.innerText ?? ''
+      return { kpi: main.match(/RUNNING OVER TIME\n([\d,]+)/)?.[1] ?? null, showing: main.match(/Showing \d+ of \d+ active quer\w+/)?.[0] ?? null, switcher: document.querySelector('[data-testid="host-switcher"]')?.textContent?.trim().slice(0, 40) }
+    })
+    const a = await sample()
+    check('multihost-A-has-data', a.kpi !== null && a.kpi !== '0', a)
+    const links = await p.$$eval(`${SIDEBAR} a[href^="/"]`, (els) => els.map((e) => e.getAttribute('href')))
+    check('multihost-A-links-carry-host', links.length > 0 && links.every((h) => h.includes('host=0')), links.filter((h) => !h.includes('host=0')))
+
+    const tSwitch = Date.now()
+    await p.focus('[data-testid="host-switcher"]')
+    await p.keyboard.press('Enter')
+    await p.waitForSelector('[data-testid="host-option-1"]', { visible: true })
+    let focused = await p.evaluate(() => document.activeElement?.getAttribute('data-testid'))
+    if (focused !== 'host-option-1') {
+      await p.keyboard.press('ArrowDown')
+      focused = await p.evaluate(() => document.activeElement?.getAttribute('data-testid'))
+    }
+    await p.keyboard.press('Enter')
+    await p.waitForFunction(() => new URL(location.href).searchParams.get('host') === '1', { timeout: 15_000 })
+    check('multihost-keyboard-switch', focused === 'host-option-1' && p.url().includes('/running-queries?host=1'), { focused, url: p.url() })
+    const timeline = []
+    for (const at of [1000, 4000, 9000]) {
+      await sleep(at - (Date.now() - tSwitch) > 0 ? at - (Date.now() - tSwitch) : 0)
+      timeline.push({ at, ...(await sample()) })
+    }
+    await shot(p, '1280-multihost-B')
+    check('multihost-B-no-A-rows', timeline.every((s) => (s.kpi === '0' || s.kpi === null) && (s.showing ?? '').startsWith('Showing 0 of 0')), timeline)
+    check('multihost-B-switcher-no-A-status', timeline.every((s) => !s.switcher?.includes('Alpha') && !/v\d+\.\d+/.test(s.switcher ?? '')), timeline.map((s) => s.switcher))
+    const toA = requests.filter((r) => r.t >= tSwitch && r.host === '0').length
+    check('multihost-B-no-host0-requests', toA === 0, { requestsAfterSwitch: requests.filter((r) => r.t >= tSwitch).length, toHost0: toA })
+    const linksB = await p.$$eval(`${SIDEBAR} a[href^="/"]`, (els) => els.map((e) => e.getAttribute('href')))
+    check('multihost-B-links-carry-host', linksB.length > 0 && linksB.every((h) => h.includes('host=1')), linksB.filter((h) => !h.includes('host=1')))
+
+    await p.keyboard.down('Control')
+    await p.keyboard.press('k')
+    await p.keyboard.up('Control')
+    await p.waitForSelector('[cmdk-input]', { visible: true })
+    await p.type('[cmdk-input]', 'Switch to Alpha')
+    await sleep(400)
+    const rows = await p.$$eval('[cmdk-item]', (els) => els.map((e) => e.textContent?.slice(0, 40)))
+    await p.keyboard.press('Enter')
+    await p.waitForFunction(() => new URL(location.href).searchParams.get('host') === '0', { timeout: 15_000 })
+    check('multihost-palette-switch-keeps-path', rows[0]?.startsWith('Switch to Alpha') && p.url().includes('/running-queries?host=0'), { rows: rows.slice(0, 2), url: p.url() })
+    await p.browserContext().close()
+  }
 } finally {
   await touch.close()
   await desktop.close()

@@ -218,7 +218,7 @@ All under `.cursor/skills/verify-chmonitor/scripts/`. `chmod +x` is set in git.
 
 Override paths with `VERIFY_PREFIX`, `VERIFY_SCRATCH`, `VERIFY_EVIDENCE`,
 `VERIFY_RUN_ID`, `VERIFY_CH_HOST`, `VERIFY_BASE_URL`, `VERIFY_DASH_URL`,
-`VERIFY_CHROME`, `VERIFY_PUPPETEER_DIR`.
+`VERIFY_DASH_MULTIHOST_URL`, `VERIFY_CHROME`, `VERIFY_PUPPETEER_DIR`.
 
 ## Secondary surface (dashboard)
 

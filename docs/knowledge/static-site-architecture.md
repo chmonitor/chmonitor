@@ -3,7 +3,7 @@ id: static-site-architecture
 title: Dashboard Architecture
 type: decision
 status: active
-updated: 2026-06-22
+updated: 2026-09-03
 tags:
   - architecture
   - tanstack-start
@@ -40,6 +40,27 @@ All data fetching requires a `hostId` extracted from the `?host=` param. Environ
 - `CLICKHOUSE_USER` — usernames
 - `CLICKHOUSE_PASSWORD` — passwords
 - `CLICKHOUSE_NAME` — custom display names
+
+### Host-scoped cache (switching A → B must never show A's data)
+
+- Every host-scoped TanStack Query key carries the host: `chartQueryKey` /
+  `tableQueryKey` put `hostId` at index 2; URL-string keys embed `hostId=`.
+- The client-wide `placeholderData: keepPreviousData` default smooths
+  same-host key changes (range, filters) but would carry host A's result
+  across a host switch. `useChartData` / `useTableData` use
+  `keepPreviousDataForHost(hostId)` (`lib/query/query-keys.ts`), which reuses
+  the previous result only when the previous key was for the same host.
+  `useHostStatus` opts out entirely (`placeholderData: undefined`) because its
+  key only changes on a switch. Apply one of these two to any new hook whose
+  key changes with the host and whose output is visible on screen.
+- Per-host component state (poll diffs, retained rows, expansion) belongs to
+  one host: remount on switch with `key={hostId}` (see `RunningQueriesView`)
+  instead of resetting fields by hand.
+- Manual refresh invalidates only active queries (`provider.tsx`); there is
+  no global `invalidateQueries()` path, and none should be added.
+- Proof: `.cursor/skills/verify-chmonitor/scripts/dashboard-sidebar.mjs`
+  with `VERIFY_DASH_MULTIHOST_URL` (two hosts, second unreachable) and
+  `lib/query/host-switch-placeholder.test.tsx`.
 
 ## Key Files
 

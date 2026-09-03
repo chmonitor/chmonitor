@@ -43,7 +43,11 @@ values and file paths: `docs/knowledge/product-design.md`.
 4. **Hooks at the deepest consumer.** A component that needs data calls
    `useHostId()` / `useChartData()` itself — do NOT prop-drill `hostId`.
 5. **`?host=N` routing**, never dynamic `/N/...` segments. Preserve other search
-   params with `buildUrl(pathname, { host }, searchParams)`.
+   params with `buildUrl(pathname, { host }, searchParams)`. Data shown under
+   a host name must come from that host: host-scoped hooks use
+   `keepPreviousDataForHost` (or opt out of `placeholderData`), and per-host
+   component state remounts with `key={hostId}` (see
+   `docs/knowledge/static-site-architecture.md`, "Host-scoped cache").
 6. **No "AI slop" decoration** — one clear signal per state, not several
    redundant ones. No full-saturation accent bars/rails stacked on an
    already-colored border; no gradient blobs/glow orbs behind icons. See
