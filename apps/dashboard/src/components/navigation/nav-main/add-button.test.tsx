@@ -138,7 +138,7 @@ describe('AddButton', () => {
         '[data-testid="add-menu-item"]'
       ) as HTMLButtonElement | null
       expect(trigger).not.toBeNull()
-      expect(trigger?.className).toContain('after:-inset-3')
+      expect(trigger?.className).toContain('max-lg:hidden')
 
       const { act } = await import('react')
       await act(async () => {

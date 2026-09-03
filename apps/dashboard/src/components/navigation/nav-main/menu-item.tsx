@@ -154,12 +154,12 @@ const SingleMenuItem = function SingleMenuItem({
         {item.icon && <item.icon className="size-4 shrink-0" />}
         <span
           className={cn(
-            'min-w-0 truncate group-data-[state=collapsed]/sidebar:hidden',
+            'min-w-0 truncate pr-12 group-data-[state=collapsed]/sidebar:hidden',
             hasBadge && hasAdd
-              ? 'pr-20'
+              ? 'lg:pr-20'
               : hasAdd || hasBadge
-                ? 'pr-16'
-                : 'pr-12'
+                ? 'lg:pr-16'
+                : undefined
           )}
         >
           {item.title}
@@ -235,8 +235,8 @@ const SubMenuItem = function SubMenuItem({
         )}
         className={cn(
           'h-11 min-h-11 w-full cursor-pointer pr-12 lg:h-7 lg:min-h-7',
-          hasAdd && 'pr-16',
-          hasBadge && (hasAdd ? 'pr-20' : 'pr-16'),
+          hasAdd && 'lg:pr-16',
+          hasBadge && (hasAdd ? 'lg:pr-20' : 'lg:pr-16'),
           available ? '' : 'opacity-50 text-muted-foreground/50'
         )}
         render={

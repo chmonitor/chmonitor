@@ -1,5 +1,5 @@
 /**
- * Hover-hide control: type=button, does not navigate, 44px mobile hit area.
+ * Hover-hide control: type=button, does not navigate, docked rail only.
  * happy-dom + react-dom/client — same harness as nav-settings-button.test.tsx.
  */
 
@@ -73,7 +73,7 @@ async function renderInto(
 }
 
 describe('HideButton', () => {
-  test('is a button, does not follow a wrapping link, and has a 44px hit area', async () => {
+  test('is a button, does not follow a wrapping link, and is docked-rail only', async () => {
     const { HideButton } = await import('./hide-button')
     const { SidebarProvider, SidebarMenu, SidebarMenuItem } = await import(
       '@/components/ui/sidebar'
@@ -117,7 +117,7 @@ describe('HideButton', () => {
       expect(button).not.toBeNull()
       expect(button?.tagName).toBe('BUTTON')
       expect(button?.getAttribute('aria-label')).toBe('Hide Overview from menu')
-      expect(button?.className).toContain('after:-inset-3')
+      expect(button?.className).toContain('max-lg:hidden')
 
       const { act } = await import('react')
       await act(async () => {

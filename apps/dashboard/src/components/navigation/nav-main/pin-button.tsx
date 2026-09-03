@@ -1,5 +1,6 @@
 import { Pin } from 'lucide-react'
 
+import { overlayActionClasses } from './overlay-action'
 import { SidebarMenuAction } from '@/components/ui/sidebar'
 import { useIsFavorite, useToggleFavorite } from '@/hooks/use-favorites'
 import { cn } from '@/lib/utils'
@@ -27,10 +28,10 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
 
   return (
     <SidebarMenuAction
-      showOnHover
       className={cn(
         // `SidebarMenuAction` forces `[&>svg]:size-4`; override so the pin
         // stays small and inset from the very right edge with breathing room.
+        overlayActionClasses,
         'right-2 [&>svg]:size-3',
         hasBadge && 'right-7'
       )}
@@ -75,7 +76,7 @@ export function SubPinButton({ href, title, hasBadge }: SubPinButtonProps) {
       aria-label={isPinned ? `Unpin ${title}` : `Pin ${title}`}
       aria-pressed={isPinned}
       className={cn(
-        'absolute top-1/2 right-2 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden',
+        'absolute top-1/2 right-2 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden transition-opacity after:absolute after:-inset-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden lg:opacity-0 lg:after:hidden',
         hasBadge && 'right-7'
       )}
     >

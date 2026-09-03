@@ -45,7 +45,7 @@ export function AddButton({ href, hasBadge }: AddButtonProps) {
             showOnHover
             data-testid="add-menu-item"
             className={cn(
-              'right-12 after:-inset-3 [&>svg]:size-3 md:after:hidden',
+              'right-12 max-lg:hidden [&>svg]:size-3',
               hasBadge && 'right-16'
             )}
             aria-label="Add a hidden page in this group"
@@ -83,7 +83,7 @@ export function SubAddButton({ href, hasBadge }: AddButtonProps) {
             data-testid="add-menu-item"
             aria-label="Add a hidden page in this group"
             className={cn(
-              'absolute top-1/2 right-12 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground opacity-0 outline-hidden transition-opacity after:absolute after:-inset-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden md:after:hidden',
+              'absolute top-1/2 right-12 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden max-lg:hidden',
               hasBadge && 'right-16'
             )}
           />
