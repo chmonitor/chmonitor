@@ -13,13 +13,13 @@
 import type { PlanId } from '@chm/pricing'
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
-import { logError, logInfo } from './log'
 
 import {
   licenseForProductId,
   makeApplyDeps,
   makePlanForProductId,
 } from './billing-deps'
+import { logError, logInfo } from './log'
 import {
   classifyTransition,
   formatCheckoutStarted,

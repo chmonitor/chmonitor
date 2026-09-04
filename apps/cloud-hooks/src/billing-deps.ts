@@ -11,6 +11,7 @@
 import type { PaidLicenseId, PlanId } from '@chm/pricing'
 import type { Env } from './env'
 
+import { type LogMeta, logError, logInfo } from './log'
 import {
   type ApplySubscriptionDeps,
   upsertSubscription as coreUpsertSubscription,
@@ -20,7 +21,6 @@ import {
   PAID_LICENSE_IDS,
   planForProductIdFromLookup,
 } from '@chm/pricing'
-import { logError, logInfo, type LogMeta } from './log'
 
 type BillingPeriod = 'monthly' | 'yearly'
 

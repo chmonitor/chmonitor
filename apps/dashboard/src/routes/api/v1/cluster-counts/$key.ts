@@ -24,7 +24,10 @@ import {
   hasClusterCountKey,
 } from '@/lib/api/cluster-count-registry'
 import { createErrorResponse } from '@/lib/api/error-handler'
-import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error' // pragma: allowlist secret
+import {
+  sanitizeClickHouseError,
+  sanitizeDbQueryError,
+} from '@/lib/api/error-handler/sanitize-error' // pragma: allowlist secret
 import { HostIdSchema, MenuCountKeySchema } from '@/lib/api/schemas'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
@@ -32,7 +35,6 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,

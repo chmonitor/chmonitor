@@ -7,13 +7,13 @@
 
 import type { NotifyKind } from './telegram'
 
+import { logError as emitLogError } from './log'
 import {
   formatOutageAlert,
   readOutageState,
   reconcileOutages,
   writeOutageState,
 } from './outage'
-import { logError as emitLogError } from './log'
 
 export type ProbeState = 'up' | 'down'
 

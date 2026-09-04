@@ -61,9 +61,9 @@ describe('detectChFlavor', () => {
   })
 
   test('returns cloud when hostname is ClickHouse Cloud', () => {
-    expect(detectChFlavor('24.8.1.2', 'abc.us-east-1.aws.clickhouse.cloud')).toBe(
-      'cloud'
-    )
+    expect(
+      detectChFlavor('24.8.1.2', 'abc.us-east-1.aws.clickhouse.cloud')
+    ).toBe('cloud')
   })
 })
 

@@ -129,6 +129,7 @@
       "!**/*.generated.ts",
       "!.agents",
       "!.claude",
+      "!.cursor",
       "!.omo"
     ]
   }

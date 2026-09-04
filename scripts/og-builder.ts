@@ -137,10 +137,7 @@ function lockup(corner: OgLogoCorner, fg: string, domain: string): string {
 <text x="936" y="582" font-family="Inter" font-size="13" fill="${fg}" fill-opacity="0.72">${xmlEscape(domain)}</text>`
 }
 
-export function buildOgSvg(
-  card: OgCard,
-  plateHrefUri: string
-): string {
+export function buildOgSvg(card: OgCard, plateHrefUri: string): string {
   const ink = card.ink ?? 'light'
   const logo = card.logo ?? 'top-left'
   const plate = card.plate ?? 'landing'

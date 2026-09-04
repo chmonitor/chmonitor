@@ -1,4 +1,3 @@
-import { QUERY_COMMENT } from '@chm/clickhouse-client/constants' // pragma: allowlist secret
 import {
   CLUSTER_COLUMNS_QUERY,
   CLUSTER_INDEXES_QUERY,
@@ -6,6 +5,7 @@ import {
   CLUSTER_TABLES_QUERY,
 } from './cluster-sql'
 import { describe, expect, test } from 'bun:test'
+import { QUERY_COMMENT } from '@chm/clickhouse-client/constants' // pragma: allowlist secret
 
 const USER_DB_FILTER =
   "database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')"

@@ -1,8 +1,8 @@
 import type { Env } from './env'
 
 import { licenseForProductId, makePlanForProductId } from './billing-deps'
-import { licensePolarProductEnvKey } from '@chm/pricing'
 import { describe, expect, test } from 'bun:test'
+import { licensePolarProductEnvKey } from '@chm/pricing'
 
 function stubEnv(overrides: Record<string, string> = {}): Env {
   return {

@@ -8,6 +8,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { detectTableTruncation } from '@/lib/api/table-query-settings'
 import {
@@ -16,7 +17,6 @@ import {
   hasTable,
 } from '@/lib/api/table-registry'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 /**
  * GET handler for `/api/v1/tables/$name`, extracted as a named export so it
