@@ -57,15 +57,21 @@ describe('plan-enforcement — anti-drift coverage', () => {
     }
   })
 
-  test('the cost/abuse-bounded limits are enforced; alertRules stays deferred', () => {
-    // Enforcement is live for the limits that cap a cost/abuse vector. alertRules
-    // stays deferred only because no alert-rule feature exists to gate yet.
+  test('the cost/abuse-bounded limits are enforced; alertRules is inherent', () => {
+    // Enforcement is live for the limits that cap a cost/abuse vector. Custom
+    // alert rules ship for every edition; there is no numeric cap to gate after
+    // dashboard Polar seats were removed.
     expect(LIMIT_ENFORCEMENT.hosts.status).toBe('inherent')
     expect(LIMIT_ENFORCEMENT.seats.status).toBe('inherent')
     expect(LIMIT_ENFORCEMENT.aiRequestsPerDay.status).toBe('enforced')
     expect(LIMIT_ENFORCEMENT.aiMonthlyUsdBudget.status).toBe('enforced')
     expect(LIMIT_ENFORCEMENT.retentionDays.status).toBe('enforced')
-    expect(LIMIT_ENFORCEMENT.alertRules.status).toBe('deferred')
+    expect(LIMIT_ENFORCEMENT.alertRules.status).toBe('inherent')
+  })
+
+  test('alerting capabilities match the shipped feature, not a missing-feature stub', () => {
+    expect(CAPABILITY_ENFORCEMENT.alerting_basic.status).toBe('inherent')
+    expect(CAPABILITY_ENFORCEMENT.alerting_advanced.status).toBe('inherent')
   })
 
   test('host overage is honestly deferred pending Polar usage reporting', () => {
