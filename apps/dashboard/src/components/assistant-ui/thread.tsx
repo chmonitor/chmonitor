@@ -32,43 +32,31 @@
  *  #12 – Message timing (relative timestamp w/ tooltip)
  */
 
-import {
-  AlertTriangleIcon,
-  CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CopyIcon,
-  LoaderCircleIcon,
-  PencilIcon,
-  RefreshCwIcon,
-} from 'lucide-react'
-
 import type { ComponentProps, FC } from 'react'
 
+import { AgentDataError } from './-thread/agent-data-error'
+import { AssistantActionBar } from './-thread/assistant-action-bar'
+import { AssistantFollowUpChips } from './-thread/assistant-follow-up-chips'
+import { BranchPicker } from './-thread/branch-picker'
 import {
   groupByChainOfThought,
   renderGroupedPart,
 } from './-thread/chain-of-thought'
-import { ThreadComposer, WelcomeComposer } from './-thread/composer'
-import { FollowUpChips } from './-thread/follow-up-chips'
+import { ThreadComposer } from './-thread/composer'
 import { FollowUpSuggestions } from './-thread/follow-up-suggestions'
+import { LoadingIndicator } from './-thread/loading-indicator'
+import { MessageError } from './-thread/message-error'
 import { MessageStatsFooter } from './-thread/message-stats'
+import { ThreadWelcome } from './-thread/thread-welcome'
+import { UserActionBar } from './-thread/user-action-bar'
 import {
-  ActionBarPrimitive,
-  BranchPickerPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
-  useAui,
   useAuiState,
 } from '@assistant-ui/react'
-import { AgentWelcomeScreen } from '@/components/agents/welcome/agent-welcome-screen'
-import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { JsonRenderMessage } from '@/components/assistant-ui/json-render-message'
-import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
-import { useStartAgentPrompt } from '@/components/assistant-ui/use-start-agent-prompt'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
-import { Marker, MarkerIcon } from '@/components/ui/marker'
 import { Message, MessageContent } from '@/components/ui/message'
 import {
   MessageScroller,
@@ -78,15 +66,6 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller'
-import {
-  type AgentError,
-  classifyError,
-  extractAgentErrorFromParts,
-  parseAgentError,
-} from '@/lib/ai/agent/errors'
-import { getFollowUpPrompts } from '@/lib/ai/agent/follow-up-prompts'
-import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
-import { track } from '@/lib/telemetry'
 
 interface ThreadProps {
   /** Display name to weave into the welcome heading. */
@@ -165,37 +144,6 @@ export function Thread({
   )
 }
 
-interface ThreadWelcomeProps {
-  firstName?: string | null
-  clusterName?: string | null
-  hasClusterIssue?: boolean
-  onPickPrompt?: (prompt: string) => void
-}
-
-function ThreadWelcome({
-  firstName,
-  clusterName,
-  hasClusterIssue,
-  onPickPrompt,
-}: ThreadWelcomeProps) {
-  const { activeToolCount } = useAgentSkills()
-  const startPrompt = useStartAgentPrompt()
-  const handlePickPrompt = onPickPrompt ?? startPrompt
-
-  return (
-    <ThreadPrimitive.Empty>
-      <AgentWelcomeScreen
-        firstName={firstName}
-        clusterName={clusterName}
-        hasClusterIssue={hasClusterIssue}
-        activeToolCount={activeToolCount}
-        composer={<WelcomeComposer />}
-        onPickPrompt={handlePickPrompt}
-      />
-    </ThreadPrimitive.Empty>
-  )
-}
-
 const UserMessage: FC = () => {
   const messageId = useAuiState((s) => s.message.id)
   return (
@@ -216,22 +164,6 @@ const UserMessage: FC = () => {
         </Message>
       </MessagePrimitive.Root>
     </MessageScrollerItem>
-  )
-}
-
-function UserActionBar() {
-  return (
-    <ActionBarPrimitive.Root
-      hideWhenRunning
-      autohide="not-last"
-      className="flex items-center opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100 focus-within:opacity-100"
-    >
-      <ActionBarPrimitive.Edit asChild>
-        <TooltipIconButton tooltip="Edit" className="text-muted-foreground">
-          <PencilIcon className="size-3.5" />
-        </TooltipIconButton>
-      </ActionBarPrimitive.Edit>
-    </ActionBarPrimitive.Root>
   )
 }
 
@@ -263,168 +195,6 @@ const EditComposer: FC = () => {
     </ComposerPrimitive.Root>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Task #1: "Thinking…" loading placeholder
-// ---------------------------------------------------------------------------
-
-/**
- * Shows a spinner + visible "Thinking…" pill while the thread is running and
- * the current assistant message has no real parts yet, so sighted users get a
- * clear streaming affordance (not just an aria-live region).
- */
-function LoadingIndicator() {
-  const isRunning = useAuiState((s) => s.thread.isRunning)
-  const hasError = useAuiState(
-    (s) =>
-      s.message.role === 'assistant' &&
-      (s.message.status?.type === 'incomplete' ||
-        s.message.content.some(
-          (p) => (p as { type?: string })?.type === 'data-error'
-        ))
-  )
-  const hasNoParts = useAuiState(
-    (s) =>
-      s.message.role === 'assistant' &&
-      (s.message.content.length === 0 ||
-        (s.message.content.length === 1 &&
-          s.message.content[0]?.type === 'text' &&
-          (s.message.content[0] as { type: 'text'; text: string }).text === ''))
-  )
-
-  if (!isRunning || hasError || !hasNoParts) return null
-
-  return (
-    <Marker className="py-1" role="status">
-      <MarkerIcon>
-        <LoaderCircleIcon className="animate-spin" />
-      </MarkerIcon>
-      {/* Visible "Thinking…" pill so sighted users get the streaming affordance
-          too, not just an aria-live region (issue #2803). */}
-      <span className="animate-pulse text-xs font-medium text-muted-foreground motion-reduce:animate-none">
-        Thinking…
-      </span>
-    </Marker>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Task #5: MessageError using ErrorPrimitive
-// ---------------------------------------------------------------------------
-
-/**
- * Render a classified agent error (message + actionable suggestion). Shared by
- * runtime HTTP errors (`MessagePrimitive.Error`) and streamed `data-error` parts.
- */
-function AgentErrorAlert({ agentError }: { agentError: AgentError }) {
-  return (
-    <div
-      role="alert"
-      className="border-destructive/40 bg-destructive/10 text-destructive mt-1 rounded-lg border px-3 py-2 text-sm"
-    >
-      <div className="flex items-start gap-2">
-        <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-        <div className="min-w-0 space-y-1">
-          <p className="font-medium break-words">{agentError.message}</p>
-          {agentError.suggestion ? (
-            <p className="text-destructive/80 text-xs break-words">
-              {agentError.suggestion}
-            </p>
-          ) : null}
-          {agentError.code ? (
-            <p className="text-destructive/60 font-mono text-[10px]">
-              {agentError.code}
-              {agentError.provider ? ` · ${agentError.provider}` : ''}
-            </p>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Parse the runtime error payload (often a stringified `{ error: AgentError }`
- * JSON body from the agent route) into a structured alert. Falls back to
- * {@link classifyError} for plain text / non-AgentError shapes so we never dump
- * raw JSON into the chat bubble.
- */
-function resolveRuntimeAgentError(raw: unknown): AgentError {
-  if (raw instanceof Error) {
-    const parsed = parseAgentError(raw)
-    if (parsed) return parsed
-    // AI SDK often puts the JSON body in error.message — classify the Error.
-    return classifyError(raw)
-  }
-  if (typeof raw === 'string') {
-    const parsed = parseAgentError(new Error(raw))
-    if (parsed) return parsed
-    return classifyError(raw)
-  }
-  // Some transports put the parsed JSON body (`{ error: AgentError }`) on
-  // status.error directly rather than as a string.
-  if (raw && typeof raw === 'object') {
-    const asRecord = raw as Record<string, unknown>
-    const nested = asRecord.error
-    if (
-      nested &&
-      typeof nested === 'object' &&
-      typeof (nested as AgentError).type === 'string' &&
-      typeof (nested as AgentError).message === 'string'
-    ) {
-      const parsed = parseAgentError(
-        new Error(JSON.stringify({ error: nested }))
-      )
-      if (parsed) return parsed
-    }
-    const direct = parseAgentError(new Error(JSON.stringify(raw)))
-    if (direct) return direct
-  }
-  return classifyError(raw)
-}
-
-function MessageError() {
-  const status = useAuiState((s) => s.message.status)
-  const rawError =
-    status &&
-    typeof status === 'object' &&
-    'error' in status &&
-    (status as { error?: unknown }).error !== undefined &&
-    (status as { error?: unknown }).error !== null
-      ? (status as { error?: unknown }).error
-      : undefined
-
-  // MessagePrimitive.Error only mounts when the runtime marked the message as
-  // failed; parse any JSON body so we never dump raw `{error:{...}}` into the UI.
-  const agentError = resolveRuntimeAgentError(
-    rawError ?? 'An unexpected error occurred'
-  )
-
-  return (
-    <MessagePrimitive.Error>
-      <AgentErrorAlert agentError={agentError} />
-    </MessagePrimitive.Error>
-  )
-}
-
-/**
- * Renders a `data-error` part the agent route streamed for a failure that
- * happened INSIDE the UI-message stream (provider/tool/upstream error surfacing
- * after the HTTP 200 headers were sent). assistant-ui's `MessagePrimitive.Error`
- * only covers the runtime's own error status, so without this these classified
- * errors were dropped and the message looked dead ("An error occurred" / an
- * empty bubble). This makes the real cause + actionable suggestion visible.
- */
-function AgentDataError() {
-  const content = useAuiState((s) => s.message.content) as readonly unknown[]
-  const agentError: AgentError | null = extractAgentErrorFromParts(content)
-  if (!agentError) return null
-  return <AgentErrorAlert agentError={agentError} />
-}
-
-// ---------------------------------------------------------------------------
-// AssistantMessage — wires all tasks together
-// ---------------------------------------------------------------------------
 
 /**
  * Assistant message body. Renders streaming parts (text · reasoning · tool
@@ -478,122 +248,5 @@ const AssistantMessage: FC = () => {
         </Message>
       </MessagePrimitive.Root>
     </MessageScrollerItem>
-  )
-}
-
-/** Joins the text parts of a message's `content`/parts array into one string. */
-function messagePartsText(parts: readonly unknown[]): string {
-  return (parts as { type?: string; text?: string }[])
-    .filter((part) => part?.type === 'text')
-    .map((part) => part.text ?? '')
-    .join(' ')
-}
-
-/**
- * Deterministic follow-up chips (issue #2324) — rendered only under the last
- * assistant message, once it has finished streaming. Unlike
- * `FollowUpSuggestions` (LLM-generated, AgentState-only), these are computed
- * instantly client-side from the last exchange via
- * `lib/ai/agent/follow-up-prompts.ts`, so they work for every conversation
- * backend.
- */
-function AssistantFollowUpChips() {
-  const isLast = useAuiState((s) => s.message.isLast)
-  const isRunning = useAuiState((s) => s.message.status?.type === 'running')
-  // assistant-ui exposes the AI SDK parts array as `message.content`
-  // (same pattern as MessageStatsFooter above).
-  const content = useAuiState((s) => s.message.content) as readonly unknown[]
-  const messages = useAuiState((s) => s.thread.messages)
-  const aui = useAui()
-  const { ensureAuthed } = useAgentAuthGate()
-
-  if (!isLast || isRunning) return null
-
-  const lastAssistantText = messagePartsText(content)
-
-  const toolsUsed = (content as { type?: string; toolName?: string }[])
-    .filter((part) => part?.type === 'tool-call')
-    .map((part) => part.toolName)
-    .filter((name): name is string => Boolean(name))
-
-  const lastUserMessage = [...messages]
-    .reverse()
-    .find((message) => message.role === 'user')
-  const lastUserText = messagePartsText(
-    (lastUserMessage?.content ?? []) as readonly unknown[]
-  )
-
-  const prompts = getFollowUpPrompts({
-    lastUserText,
-    lastAssistantText,
-    toolsUsed,
-  })
-
-  const handleSelect = (text: string) => {
-    if (!ensureAuthed()) return
-    aui.thread.append({
-      role: 'user',
-      content: [{ type: 'text', text }],
-    })
-    track('ai_query_sent')
-  }
-
-  return (
-    <FollowUpChips
-      prompts={prompts}
-      onSelect={handleSelect}
-      anchored
-      className="mt-2"
-    />
-  )
-}
-
-function AssistantActionBar() {
-  return (
-    <ActionBarPrimitive.Root
-      hideWhenRunning
-      autohide="not-last"
-      autohideFloat="single-branch"
-      className="text-muted-foreground flex items-center gap-1"
-    >
-      <ActionBarPrimitive.Copy asChild>
-        <TooltipIconButton tooltip="Copy">
-          <MessagePrimitive.If copied>
-            <CheckIcon className="size-3.5" />
-          </MessagePrimitive.If>
-          <MessagePrimitive.If copied={false}>
-            <CopyIcon className="size-3.5" />
-          </MessagePrimitive.If>
-        </TooltipIconButton>
-      </ActionBarPrimitive.Copy>
-      <ActionBarPrimitive.Reload asChild>
-        <TooltipIconButton tooltip="Regenerate">
-          <RefreshCwIcon className="size-3.5" />
-        </TooltipIconButton>
-      </ActionBarPrimitive.Reload>
-    </ActionBarPrimitive.Root>
-  )
-}
-
-function BranchPicker() {
-  return (
-    <BranchPickerPrimitive.Root
-      hideWhenSingleBranch
-      className="text-muted-foreground inline-flex items-center gap-1 text-xs"
-    >
-      <BranchPickerPrimitive.Previous asChild>
-        <TooltipIconButton tooltip="Previous">
-          <ChevronLeftIcon className="size-3.5" />
-        </TooltipIconButton>
-      </BranchPickerPrimitive.Previous>
-      <span className="font-mono tabular-nums">
-        <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
-      </span>
-      <BranchPickerPrimitive.Next asChild>
-        <TooltipIconButton tooltip="Next">
-          <ChevronRightIcon className="size-3.5" />
-        </TooltipIconButton>
-      </BranchPickerPrimitive.Next>
-    </BranchPickerPrimitive.Root>
   )
 }

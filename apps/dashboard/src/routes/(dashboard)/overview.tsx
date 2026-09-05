@@ -4,8 +4,8 @@ import type { OverviewChartConfig } from './-charts-config'
 
 import { OVERVIEW_TABS } from './-charts-config'
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
-import { ClientOnly } from '@/components/client-only'
 import { InsightsStrip } from '@/components/insights/insights-strip'
+import { ClientOnly } from '@/components/layout/client-only'
 import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { cardStyles } from '@/components/overview-charts/card-styles'
 import {

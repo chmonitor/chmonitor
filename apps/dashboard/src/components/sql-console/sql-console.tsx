@@ -21,7 +21,7 @@ import { ExplainTab } from './tabs/explain-tab'
 import { QueryLogTab } from './tabs/query-log-tab'
 import { ResultsTab } from './tabs/results-tab'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { ClientOnly } from '@/components/client-only'
+import { ClientOnly } from '@/components/layout/client-only'
 import {
   QueryFavoritesPanel,
   SaveFavoriteButton,

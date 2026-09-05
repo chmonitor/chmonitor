@@ -5,6 +5,6 @@
  * with custom functionality.
  */
 
-export { PageHeader } from './page-header'
 // Re-export AppSidebar from the main components directory
-export { AppSidebar } from '@/components/app-sidebar'
+export { AppSidebar } from './app-sidebar'
+export { PageHeader } from './page-header'
