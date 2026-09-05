@@ -5,6 +5,40 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.5](https://github.com/chmonitor/chmonitor/compare/v0.3.4...v0.3.5) (2026-09-05)
+
+
+### ✨ Features
+
+* **cli:** add local named connections ([#3356](https://github.com/chmonitor/chmonitor/issues/3356)) ([2209b61](https://github.com/chmonitor/chmonitor/commit/2209b611ce1ca052c416c481832d7279db63f475))
+* **dashboard:** Essential first-run sidebar with hover-add and More flyout ([#3345](https://github.com/chmonitor/chmonitor/issues/3345)) ([2e83247](https://github.com/chmonitor/chmonitor/commit/2e832479649df44316e3e75197f7cd54063fae17))
+* **dashboard:** Essential heading dialog to add/remove group children ([#3353](https://github.com/chmonitor/chmonitor/issues/3353)) ([0f582f0](https://github.com/chmonitor/chmonitor/commit/0f582f0d17a05afa93c3a170c8aefdc6eb4bc2bf))
+* **dashboard:** slim default sidebar to day-to-day pages ([#3294](https://github.com/chmonitor/chmonitor/issues/3294)) ([766e90e](https://github.com/chmonitor/chmonitor/commit/766e90ed4be595a03cf7871f5561cc65493b773e))
+
+
+### 🐛 Bug Fixes
+
+* **advisor:** batch correctness, sanitization, and weekly report integration ([#3340](https://github.com/chmonitor/chmonitor/issues/3340)) ([27d6b7d](https://github.com/chmonitor/chmonitor/commit/27d6b7da9638b70443210690234dbc75caf7875b))
+* **auth:** harden device/cron/api-key surfaces and add route tests ([#3339](https://github.com/chmonitor/chmonitor/issues/3339)) ([c08807d](https://github.com/chmonitor/chmonitor/commit/c08807d02cd9b6e4fa5afff625aa17bd9b705983))
+* **cli:** assemble report metrics from the repo root ([#3357](https://github.com/chmonitor/chmonitor/issues/3357)) ([28930d8](https://github.com/chmonitor/chmonitor/commit/28930d8d3a1cf4fcbea97dd83ebfa578db0116a6))
+* **cli:** body-read errors, plaintext purge, rust consumer map ([#3337](https://github.com/chmonitor/chmonitor/issues/3337)) ([5421804](https://github.com/chmonitor/chmonitor/commit/5421804554d642ee02d64ea8b1b6cbb413b671e4))
+* **cloud-hooks:** billing hardening, logging, and dead-code cleanup ([#3342](https://github.com/chmonitor/chmonitor/issues/3342)) ([36183db](https://github.com/chmonitor/chmonitor/commit/36183db3aec991d57abe8097cb408d3eee07e6ba))
+* **dashboard:** center the What's new dialog in the viewport ([#3344](https://github.com/chmonitor/chmonitor/issues/3344)) ([df2d270](https://github.com/chmonitor/chmonitor/commit/df2d270f5dc38fff41017f62c0635564f8b95184))
+* **dashboard:** command palette Enter activates the highlighted row ([#3350](https://github.com/chmonitor/chmonitor/issues/3350)) ([3dfd0c6](https://github.com/chmonitor/chmonitor/commit/3dfd0c625088617834aae6bd9e07c947dfbaccef))
+* **dashboard:** compact 375 day switcher and scroll overview tabs ([#3293](https://github.com/chmonitor/chmonitor/issues/3293)) ([34113ac](https://github.com/chmonitor/chmonitor/commit/34113acaaa926c1a4d1f50946487e50ab6e89f3f))
+* **dashboard:** keep Essential sidebar as parent/child groups ([#3349](https://github.com/chmonitor/chmonitor/issues/3349)) ([532fc04](https://github.com/chmonitor/chmonitor/commit/532fc040dbd34541e8b5a183a497406457aa5942))
+* **dashboard:** keep header title readable at 768 ([#3297](https://github.com/chmonitor/chmonitor/issues/3297)) ([70b41df](https://github.com/chmonitor/chmonitor/commit/70b41df0e1eedcd3c95d1909d20de33ca3c30a84))
+* **dashboard:** keep Navigation presets and Show all inside a 375 dialog ([#3299](https://github.com/chmonitor/chmonitor/issues/3299)) ([192a7d7](https://github.com/chmonitor/chmonitor/commit/192a7d738b3c2bd3aa3e1beaa5f65361557288bb))
+* **dashboard:** sidebar overlay chrome, nested active, host-scoped cache ([#3363](https://github.com/chmonitor/chmonitor/issues/3363)) ([6253170](https://github.com/chmonitor/chmonitor/commit/62531700059335509f630b5a95cdd4f7883830f6))
+* **dashboard:** wrap overview metric cards before they crush ([#3298](https://github.com/chmonitor/chmonitor/issues/3298)) ([b6a05ee](https://github.com/chmonitor/chmonitor/commit/b6a05eef46df0bc40a1c36711f6a3c75d18b7319))
+* **deps:** migrate pnpm settings and close audit batch issues ([#3338](https://github.com/chmonitor/chmonitor/issues/3338)) ([a10872a](https://github.com/chmonitor/chmonitor/commit/a10872ac6afda2229361fd74c2a19d65b2933179))
+* **landing:** stop shipping an empty changelog page ([#3287](https://github.com/chmonitor/chmonitor/issues/3287)) ([3cffdc3](https://github.com/chmonitor/chmonitor/commit/3cffdc32917d3b74ffddd494ab8969c223cd1e12))
+
+
+### ⚡ Performance
+
+* **test:** StatTile, lazy markdown, query-insights batch, sweep parity, diff tests ([#3341](https://github.com/chmonitor/chmonitor/issues/3341)) ([b0037ab](https://github.com/chmonitor/chmonitor/commit/b0037ab496a76c53ff8f5aa169b9633c19c97dc1))
+
 ## [0.3.4](https://github.com/chmonitor/chmonitor/compare/v0.3.3...v0.3.4) (2026-08-24)
 
 
