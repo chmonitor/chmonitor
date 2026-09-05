@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.4](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.3...chm-v0.1.4) (2026-09-05)
+
+
+### Features
+
+* **cli:** add local named connections ([#3356](https://github.com/chmonitor/chmonitor/issues/3356)) ([2209b61](https://github.com/chmonitor/chmonitor/commit/2209b611ce1ca052c416c481832d7279db63f475))
+
+
+### Bug Fixes
+
+* **chm:** create credential file with 0600 atomically to close chmod race ([#3228](https://github.com/chmonitor/chmonitor/issues/3228)) ([1790fc9](https://github.com/chmonitor/chmonitor/commit/1790fc96b074cf97c679ebf20e3068a1e6db0aaf)), closes [#3224](https://github.com/chmonitor/chmonitor/issues/3224)
+* **cli:** body-read errors, plaintext purge, rust consumer map ([#3337](https://github.com/chmonitor/chmonitor/issues/3337)) ([5421804](https://github.com/chmonitor/chmonitor/commit/5421804554d642ee02d64ea8b1b6cbb413b671e4))
+* **rust:** format output.rs chain for stable rustfmt ([#3238](https://github.com/chmonitor/chmonitor/issues/3238)) ([4e81bb5](https://github.com/chmonitor/chmonitor/commit/4e81bb5faeca9535b782b9bcc6f08d927defbab6))
+* **rust:** format output.rs chain for stable rustfmt ([#3239](https://github.com/chmonitor/chmonitor/issues/3239)) ([d2901cd](https://github.com/chmonitor/chmonitor/commit/d2901cd5438fb87c632ae0f3619826165398c134))
+* **rust:** move output fns before test module for clippy ([#3234](https://github.com/chmonitor/chmonitor/issues/3234)) ([f64dfc8](https://github.com/chmonitor/chmonitor/commit/f64dfc8b7fa1f0b4f5e5d39e57af43f9a35b3c51))
+
 ## [0.1.3](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.2...chm-v0.1.3) (2026-08-21)
 
 
