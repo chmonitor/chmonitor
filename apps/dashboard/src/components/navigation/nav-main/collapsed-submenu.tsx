@@ -1,7 +1,7 @@
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 
 import { lazy, Suspense, useState } from 'react'
-import { ClientOnly } from '@/components/client-only'
+import { ClientOnly } from '@/components/layout/client-only'
 import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'

@@ -3,7 +3,6 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { ChartsSection } from './-insights/charts-section'
 import { StatsGrid } from './-insights/stats-grid'
-import { ClientOnly } from '@/components/client-only'
 import {
   DATE_RANGE_PRESETS,
   DateRangeSelector,
@@ -11,6 +10,7 @@ import {
   useDateRange,
 } from '@/components/date-range'
 import { InsightsPanel } from '@/components/insights/insights-panel'
+import { ClientOnly } from '@/components/layout/client-only'
 import { Separator } from '@/components/ui/separator'
 import { useHostId } from '@/lib/swr'
 
