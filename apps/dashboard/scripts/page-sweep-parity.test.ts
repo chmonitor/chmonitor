@@ -3,9 +3,9 @@
  * Cypress sweep list (or in SWEEP_EXCLUDED_ROUTES with a documented reason).
  */
 
+import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, test } from 'bun:test'
 
 const DASHBOARD_ROUTES_DIR = join(import.meta.dir, '../src/routes/(dashboard)')
 const SWEEP_FILE = join(

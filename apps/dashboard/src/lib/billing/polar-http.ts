@@ -3,9 +3,11 @@
  *
  * Why: the Speakeasy-generated SDK is ~1.3 MiB raw / ~114 KiB gzip and is the
  * single largest *optional* dependency in the free-plan 3 MiB worker upload.
- * We only call four endpoints (customer state, customer update, checkout
- * create, customer-session create). A ~100-line fetch wrapper keeps behaviour
- * and leaves the SDK available for `scripts/polar-setup.ts` (dev only).
+ * We only call two endpoints (customer state, customer update). Checkout
+ * create and customer-session create lived here for dashboard Polar billing
+ * routes that were removed; license checkout is on `apps/cloud-hooks`. A
+ * ~100-line fetch wrapper keeps behaviour and leaves the SDK available for
+ * `scripts/polar-setup.ts` (dev only).
  *
  * Wire format is snake_case; this module remaps the few fields callers need
  * into the camelCase shape the previous SDK surface exposed.
@@ -46,22 +48,6 @@ export interface PolarActiveSubscription {
 
 export interface PolarCustomerState {
   activeSubscriptions: PolarActiveSubscription[]
-}
-
-export interface PolarCheckoutCreate {
-  products: string[]
-  externalCustomerId: string
-  customerEmail?: string
-  successUrl: string
-  metadata?: Record<string, string>
-}
-
-export interface PolarCheckout {
-  url: string
-}
-
-export interface PolarCustomerSession {
-  customerPortalUrl: string
 }
 
 function authHeaders(accessToken: string): HeadersInit {
@@ -137,14 +123,6 @@ export interface PolarHttpClient {
       customerUpdate: { externalId: string }
     }) => Promise<void>
   }
-  checkouts: {
-    create: (args: PolarCheckoutCreate) => Promise<PolarCheckout>
-  }
-  customerSessions: {
-    create: (args: {
-      externalCustomerId: string
-    }) => Promise<PolarCustomerSession>
-  }
 }
 
 export function createPolarHttpClient(accessToken: string): PolarHttpClient {
@@ -177,52 +155,6 @@ export function createPolarHttpClient(accessToken: string): PolarHttpClient {
         if (!res.ok) {
           throw new PolarHttpError(res.status, await res.text())
         }
-      },
-    },
-    checkouts: {
-      async create(args) {
-        const body: Record<string, unknown> = {
-          products: args.products,
-          external_customer_id: args.externalCustomerId,
-          success_url: args.successUrl,
-        }
-        if (args.customerEmail) body.customer_email = args.customerEmail
-        if (args.metadata) body.metadata = args.metadata
-
-        const res = await polarFetch(accessToken, '/v1/checkouts/', {
-          method: 'POST',
-          body: JSON.stringify(body),
-        })
-        if (!res.ok) {
-          throw new PolarHttpError(res.status, await res.text())
-        }
-        const json = (await res.json()) as Record<string, unknown>
-        const url = String(json.url ?? '')
-        if (!url) {
-          throw new PolarHttpError(res.status, 'missing checkout url')
-        }
-        return { url }
-      },
-    },
-    customerSessions: {
-      async create({ externalCustomerId }) {
-        const res = await polarFetch(accessToken, '/v1/customer-sessions/', {
-          method: 'POST',
-          body: JSON.stringify({
-            external_customer_id: externalCustomerId,
-          }),
-        })
-        if (!res.ok) {
-          throw new PolarHttpError(res.status, await res.text())
-        }
-        const json = (await res.json()) as Record<string, unknown>
-        const customerPortalUrl = String(
-          json.customer_portal_url ?? json.customerPortalUrl ?? ''
-        )
-        if (!customerPortalUrl) {
-          throw new PolarHttpError(res.status, 'missing customer portal url')
-        }
-        return { customerPortalUrl }
       },
     },
   }

@@ -30,8 +30,8 @@ import {
   PAID_LICENSE_IDS,
   planForProductIdFromLookup,
   SUBSCRIBABLE_PLAN_IDS,
-  subscribablePlanProductEnvKey,
   type SubscribablePlanId,
+  subscribablePlanProductEnvKey,
 } from '@chm/pricing'
 
 export type BillingPeriod = 'monthly' | 'yearly'

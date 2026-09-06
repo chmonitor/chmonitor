@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-
 import {
   SANITIZED_MESSAGES,
   sanitizeDbQueryError,

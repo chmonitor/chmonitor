@@ -7,7 +7,7 @@
  *   bun run og:generate
  */
 import { OG_PAGES } from '../apps/dashboard/src/lib/og'
-import { writeOgCard, type OgCard } from './og-builder'
+import { type OgCard, writeOgCard } from './og-builder'
 
 const CARDS: OgCard[] = [
   {

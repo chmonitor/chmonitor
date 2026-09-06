@@ -10,6 +10,7 @@
  */
 
 import type { ClerkMetrics } from './summary'
+
 import { logError, logInfo } from './log'
 
 const CLERK_API = 'https://api.clerk.com/v1'
@@ -53,9 +54,7 @@ export async function fetchClerkMetrics(
   windowSeconds: number = DAY_SECONDS
 ): Promise<ClerkMetrics | null> {
   if (!secretKey) {
-    logInfo(
-      '[cloud-hooks] CLERK_SECRET_KEY unset; digest omits user counts'
-    )
+    logInfo('[cloud-hooks] CLERK_SECRET_KEY unset; digest omits user counts')
     return null
   }
   const auth = { authorization: `Bearer ${secretKey}` }

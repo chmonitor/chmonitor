@@ -29,10 +29,10 @@ import {
   getChartQuery,
   hasChart,
 } from '@/lib/api/chart-registry'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeChartQuery } from '@/lib/api/query-executor'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 /** Per-check result returned in the batched response. */
 interface HealthCheckEntry {

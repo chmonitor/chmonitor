@@ -8,8 +8,7 @@ mock.module('../ai/advisor/recommendation-engine', () => ({
   analyzeQuery: mock(async () => ({ ok: false })),
 }))
 
-const { collectAdvisorRecommendations, ADVISOR_WEEKLY_REPORT_MAX } =
-  await import('./collectors')
+const { ADVISOR_WEEKLY_REPORT_MAX } = await import('./collectors')
 const { selectSchemaOptimizations } = await import('./schema-optimizations')
 
 describe('collectAdvisorRecommendations cap', () => {

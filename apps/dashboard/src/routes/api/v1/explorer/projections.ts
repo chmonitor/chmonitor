@@ -7,12 +7,12 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { debug, error } from '@chm/logger'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { getTableQuery } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 export const Route = createFileRoute('/api/v1/explorer/projections')({
   server: {

@@ -13,7 +13,7 @@ import type { FindingRow } from '../findings/findings-store'
 import type { InsightAction, InsightCard, InsightSeverity } from './types'
 
 import { resolveInsightsStore } from './store/resolve-store'
-import { INSIGHT_SOURCES, advisorInsightKey, insightKey } from './types'
+import { advisorInsightKey, INSIGHT_SOURCES, insightKey } from './types'
 
 /** Default lookback for the panel — recent enough that insights stay relevant. */
 const DEFAULT_SINCE = '6 HOUR'

@@ -11,9 +11,9 @@ import type { FetchDataResult } from '@chm/clickhouse-client'
 import type { ExecuteOptions } from '@/lib/api/query-executor'
 
 import {
+  type ChartQueryParams,
   cachePolicyToQueryCacheTtlSeconds,
   getChartQuery,
-  type ChartQueryParams,
 } from '@/lib/api/chart-registry'
 import { executeChartQuery } from '@/lib/api/query-executor'
 import { chartCachePolicy } from '@/lib/swr/chart-freshness'

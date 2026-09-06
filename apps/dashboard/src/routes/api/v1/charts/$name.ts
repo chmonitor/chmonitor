@@ -20,6 +20,7 @@ import {
   classifyError,
   getStatusCodeForErrorType,
 } from '@/lib/api/error-handler'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import {
   executeChartQuery,
   executeMultiChartQuery,
@@ -41,7 +42,6 @@ import {
 import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 /**
  * GET handler for `/api/v1/charts/$name`, extracted as a named export so it can

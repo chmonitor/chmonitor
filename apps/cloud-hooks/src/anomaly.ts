@@ -23,7 +23,6 @@
  */
 
 import { shiftDay } from './usage'
-import { logError, logInfo } from './log'
 
 /**
  * Minimal D1 subset for the day-series query. Declared here rather than reused

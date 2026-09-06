@@ -16,7 +16,7 @@ Dashboard no longer sells Polar plans. Money path is landing + `apps/cloud-hooks
 
 - Dashboard `/api/v1/webhooks/polar` still exists as a thin adapter until Polar endpoint cutover to hooks (plans/103). No product UUIDs in dashboard env; secrets only.
 - `lib/billing/*` Polar client + subscription store still used by webhook + fail-open plan resolution.
-- `use-billing.ts` startCheckout/openPortal are unused leftovers.
+- `use-billing.ts` / `paywall-store.ts` were deleted with the orphaned billing UI (plan 112 / #3307).
 
 ## Tests
 

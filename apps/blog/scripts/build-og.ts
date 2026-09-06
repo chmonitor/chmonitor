@@ -6,10 +6,11 @@
  *
  *   cd apps/blog && bun run scripts/build-og.ts
  */
+
+import { writeOgCard } from '../../../scripts/og-builder'
 import { mkdir, readdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeOgCard } from '../../../scripts/og-builder'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fontsDir = join(here, 'og-fonts')
