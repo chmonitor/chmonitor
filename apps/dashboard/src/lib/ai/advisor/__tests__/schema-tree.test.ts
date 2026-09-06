@@ -232,15 +232,16 @@ describe('selected table detail', () => {
 
 describe('schema tab reuses Explorer DatabaseTree', () => {
   test('advisor schema UI imports DatabaseTree, not a forked tree', () => {
-    const src = readFileSync(
-      fileURLToPath(
-        new URL(
-          '../../../../components/agents/advisor-schema-tab.tsx',
-          import.meta.url
-        )
-      ),
-      'utf-8'
+    const base = fileURLToPath(
+      new URL('../../../../components/agents/advisor-schema/', import.meta.url)
     )
+    const src = [
+      'schema-sidebar.tsx',
+      'advisor-schema-tab.tsx',
+      'table-relations.tsx',
+    ]
+      .map((name) => readFileSync(`${base}${name}`, 'utf-8'))
+      .join('\n')
     expect(src).toContain("from '@/components/explorer/tree'")
     expect(src).toContain('<DatabaseTree')
     expect(src).not.toMatch(/\bApply\b.*\bDDL\b/i)
