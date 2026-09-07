@@ -1,10 +1,10 @@
 import type { ChartProps } from '@/components/charts/chart-props'
+import type { UseChartResult } from '@/lib/query/use-chart-data'
 import type { CustomChartFactoryConfig } from './types'
 
 import { type FC, memo } from 'react'
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartContainer } from '@/components/charts/chart-container'
-import type { UseChartResult } from '@/lib/query/use-chart-data'
 import { useGroupedChartData } from '@/lib/query/use-chart-grouping'
 import { useChartData, useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'

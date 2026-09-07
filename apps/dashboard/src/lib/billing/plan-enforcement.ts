@@ -12,8 +12,9 @@
  * AI daily-message cap, org seat cap, retention pruning, and the MCP capability.
  * All gates are **fail-open for self-hosted/OSS** — owner/plan resolution throws
  * without Clerk, and every call site swallows that to leave OSS ungated (the
- * "self-hosted stays whole" invariant). Benefits still marked `deferred` either
- * lack a feature to gate (alerting) or are intentionally free during beta.
+ * "self-hosted stays whole" invariant). Dashboard Polar seats are gone; alerting,
+ * custom rules, and dashboards ship for everyone (`inherent`). Remaining
+ * `deferred` rows are still free during beta (SSO, extra AI surfaces).
  *
  * See plans/02-plan-benefits-parity.md.
  */
@@ -40,14 +41,8 @@ export const CAPABILITY_ENFORCEMENT: Record<PlanCapability, Enforcement> = {
   priority_support: { status: 'inherent' },
   ai_agent: { status: 'deferred', reason: BETA },
   ai_insights_scheduled: { status: 'deferred', reason: BETA },
-  alerting_basic: {
-    status: 'deferred',
-    reason: 'Alerting feature not built in this app yet.',
-  },
-  alerting_advanced: {
-    status: 'deferred',
-    reason: 'Alerting feature not built in this app yet.',
-  },
+  alerting_basic: { status: 'inherent' },
+  alerting_advanced: { status: 'inherent' },
   data_export: { status: 'deferred', reason: BETA },
   anomaly_detection: { status: 'deferred', reason: BETA },
   fleet_view: { status: 'deferred', reason: BETA },
@@ -71,7 +66,7 @@ export type LimitKey =
   | 'aiMonthlyUsdBudget'
 
 /**
- * Enforcement status for each numeric limit. Only the host cap is wired today.
+ * Enforcement status for each numeric limit.
  */
 export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
   hosts: {
@@ -84,8 +79,7 @@ export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
     status: 'inherent',
   },
   alertRules: {
-    status: 'deferred',
-    reason: 'No alert-rule create path exists yet.',
+    status: 'inherent',
   },
   retentionDays: {
     status: 'enforced',

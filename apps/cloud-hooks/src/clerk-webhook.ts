@@ -23,8 +23,8 @@
 
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
-import { logError, logInfo } from './log'
 
+import { logError } from './log'
 import { timingSafeEqualString } from '@chm/mcp-server/auth/timing'
 
 /** Thrown by `verifyClerkWebhook` on any signature/header failure. */

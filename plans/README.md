@@ -58,7 +58,7 @@ baseline import cycle + clear round-3 format drift).
 
 ## Round 3 — feature backlog (14–70)
 
-### Merged ✅ (31)
+### Merged ✅ (51)
 
 | # | Plan | PR |
 |---|------|----|
@@ -92,6 +92,25 @@ baseline import cycle + clear round-3 format drift).
 | 61 | [feature-sections-advisor-alerts-refresh.md](61-feature-sections-advisor-alerts-refresh.md) | [#2251](https://github.com/chmonitor/chmonitor/pull/2251) |
 | 63 | [comparison-pages-vs-competitors.md](63-comparison-pages-vs-competitors.md) | [#2247](https://github.com/chmonitor/chmonitor/pull/2247) |
 | 67 | [docs-blog-content-engine.md](67-docs-blog-content-engine.md) | [#2250](https://github.com/chmonitor/chmonitor/pull/2250) |
+| 15 | [upgrade-paywall-modal.md](15-upgrade-paywall-modal.md) | [#2273](https://github.com/chmonitor/chmonitor/pull/2273) — later removed from the dashboard with Polar UI (#3051); money path is landing + `apps/cloud-hooks` |
+| 18 | [per-host-overage-billing.md](18-per-host-overage-billing.md) | [#2289](https://github.com/chmonitor/chmonitor/pull/2289) |
+| 19 | [downgrade-protection.md](19-downgrade-protection.md) | [#2291](https://github.com/chmonitor/chmonitor/pull/2291) |
+| 20 | [seat-cap-invite-time-gate.md](20-seat-cap-invite-time-gate.md) | [#2290](https://github.com/chmonitor/chmonitor/pull/2290) |
+| 25 | [email-alert-adapter.md](25-email-alert-adapter.md) | [#2218](https://github.com/chmonitor/chmonitor/pull/2218) |
+| 26 | [opsgenie-adapter.md](26-opsgenie-adapter.md) | [#2248](https://github.com/chmonitor/chmonitor/pull/2248) |
+| 28 | [maintenance-windows-suppression.md](28-maintenance-windows-suppression.md) | [#2254](https://github.com/chmonitor/chmonitor/pull/2254) |
+| 29 | [alert-ack-manual-resolution.md](29-alert-ack-manual-resolution.md) | [#2258](https://github.com/chmonitor/chmonitor/pull/2258) |
+| 30 | [per-rule-alert-routing.md](30-per-rule-alert-routing.md) | [#2269](https://github.com/chmonitor/chmonitor/pull/2269) |
+| 32 | [custom-alert-rule-builder.md](32-custom-alert-rule-builder.md) | [#2257](https://github.com/chmonitor/chmonitor/pull/2257) |
+| 33 | [remediation-action-links.md](33-remediation-action-links.md) | [#2255](https://github.com/chmonitor/chmonitor/pull/2255) |
+| 34 | [pagerduty-escalation-oncall.md](34-pagerduty-escalation-oncall.md) | [#2281](https://github.com/chmonitor/chmonitor/pull/2281) |
+| 37 | [slack-app-native-oauth.md](37-slack-app-native-oauth.md) | [#2275](https://github.com/chmonitor/chmonitor/pull/2275) |
+| 39 | [otel-trace-export.md](39-otel-trace-export.md) | [#2243](https://github.com/chmonitor/chmonitor/pull/2243) |
+| 41 | [clickhouse-cloud-connect-wizard.md](41-clickhouse-cloud-connect-wizard.md) | [#2240](https://github.com/chmonitor/chmonitor/pull/2240) |
+| 43 | [mcp-custom-server-registry.md](43-mcp-custom-server-registry.md) | [#2271](https://github.com/chmonitor/chmonitor/pull/2271) |
+| 57 | [custom-dashboard-builder-grid.md](57-custom-dashboard-builder-grid.md) | [#2265](https://github.com/chmonitor/chmonitor/pull/2265) |
+| 59 | [ai-generated-dashboards.md](59-ai-generated-dashboards.md) | [#2280](https://github.com/chmonitor/chmonitor/pull/2280) |
+| 66 | [onboarding-sample-cluster-preset.md](66-onboarding-sample-cluster-preset.md) | [#2225](https://github.com/chmonitor/chmonitor/pull/2225) |
 
 Supporting infra: [#2242](https://github.com/chmonitor/chmonitor/pull/2242) bumped
 CI's `bun-version` 1.3.13→1.3.14 for the `unit-tests` coverage-writer crash
@@ -106,97 +125,27 @@ known non-required checks are `e2e-test`, `e2e-test-tsr`, and `component-test`.
 `chmonitor-swarm-ci-operating-context`) also works this backlog concurrently —
 some merges above may originate from it rather than an interactive session.
 
-### Held 🔶 — PR open, needs a human decision (3)
+Reconciled 2026-09-04 against GitHub: every Round-3 PR listed as held/conflicting
+above actually merged in July 2026. Dashboard Polar checkout/paywall was later
+removed (#3051); Cloud money path is landing + `apps/cloud-hooks`.
+
+### Held 🔶 (1)
 
 | # | Plan | PR | Why it's held |
 |---|------|----|---------------|
-| 25 | Email alert adapter | [#2218](https://github.com/chmonitor/chmonitor/pull/2218) | **No-op transport.** The SMTP path is a stub, and email only fires from the cron sweep when a webhook is *also* configured. Decide the real transport (Mailgun/SendGrid/SMTP) and the fire path. Owner chose to defer this decision (2026-07-03). |
-| 42 | Kafka consumer control | [#2259](https://github.com/chmonitor/chmonitor/pull/2259) | **Design-level block, not just a decision.** Marked HELD by the swarm: broker-admin operations aren't implementable within the current architecture as specced — needs a redesign, not a go/no-go call. |
-| 66 | Onboarding sample-cluster preset | [#2225](https://github.com/chmonitor/chmonitor/pull/2225) | **Not just a failed live-verification — a real credential-exposure risk.** The public demo (`play.clickhouse.com`) denies `query_log`/`parts`/`merges`/etc. so most pages render empty. The obvious-looking fix — point at chmonitor's own `duet-ubuntu` cloud demo host — was investigated and **rejected**: that demo's credentials are deliberately server-side-only (`CHM_CLOUD_DEMO_HOSTS`, proxied), while the onboarding preset (`sample-preset.ts`) is embedded client-side and shipped in every deployment's public JS bundle forever. Needs either a genuinely publish-safe ClickHouse demo with broad `system.*` grants, or ship with honest "limited demo" copy instead. |
+| 42 | Kafka consumer control | [#2259](https://github.com/chmonitor/chmonitor/pull/2259) (closed) | **Design-level block.** Broker-admin operations aren't implementable within the current architecture as specced — needs a redesign, not a go/no-go call. |
 
-### In flight — reconciling a shared-file conflict cascade (6)
+### Not started ⏳ (6) — product decision or epic toolchain
 
-Plans **26, 28, 29, 30, 32, 33** (the rest of the alerting cluster) were all
-implemented in parallel against the same base commit and ALL touch the same
-core dispatch function, `apps/dashboard/src/lib/health/server-sweep.ts`. Only
-31 merged cleanly; the other five now cascade into `CONFLICTING` against each
-other as each one lands. Reconciling them requires composing routing +
-suppression gates (maintenance windows, ACKs) + rule-evaluation additions
-(compound, custom) + dispatch-time formatting (Opsgenie, remediation links)
-correctly, in order — not a naive per-PR rebase. **This is the current top
-priority**: land them serially, verify `bun test src/lib/health/ --isolate`
-passes after each (it exercises all six plans' interaction), before starting
-new alerting or advisor work on top of this file. There is also a 5-way
-migration-number collision (`0014_*.sql`) across plans 28/29/30/32/52 to
-renumber sequentially as each lands.
+Not appropriate for blind autonomous execution:
 
-| # | Plan | PR |
-|---|------|----|
-| 26 | [opsgenie-adapter.md](26-opsgenie-adapter.md) | [#2248](https://github.com/chmonitor/chmonitor/pull/2248) — conflicting |
-| 28 | [maintenance-windows-suppression.md](28-maintenance-windows-suppression.md) | [#2254](https://github.com/chmonitor/chmonitor/pull/2254) — conflicting |
-| 29 | [alert-ack-manual-resolution.md](29-alert-ack-manual-resolution.md) | [#2258](https://github.com/chmonitor/chmonitor/pull/2258) — conflicting |
-| 30 | [per-rule-alert-routing.md](30-per-rule-alert-routing.md) | branch `advisor/30-per-rule-alert-routing`, PR pending reconciliation |
-| 32 | [custom-alert-rule-builder.md](32-custom-alert-rule-builder.md) | [#2257](https://github.com/chmonitor/chmonitor/pull/2257) — conflicting |
-| 33 | [remediation-action-links.md](33-remediation-action-links.md) | [#2255](https://github.com/chmonitor/chmonitor/pull/2255) — mergeable, will conflict once others land |
+- **Enterprise 21, 23–24** — prefer Clerk enterprise connections over a bespoke SAML stack. Product decision required: [21 sso-saml-enterprise](21-sso-saml-enterprise.md), [23 rbac-roles-enterprise](23-rbac-roles-enterprise.md), [24 enterprise-multi-org-pooling](24-enterprise-multi-org-pooling.md).
+- **Integrations 38, 40** — new packages/toolchains: [38 grafana-datasource-plugin](38-grafana-datasource-plugin.md), [40 terraform-provider](40-terraform-provider.md).
+- **Growth 65** — [65 live-demo-embedded](65-live-demo-embedded.md) still needs a publish-safe read-only ClickHouse with broad `system.*` grants (plan 66 shipped a limited onboarding preset instead).
 
-Also in flight, not yet merged: **57** [custom-dashboard-builder-grid.md](57-custom-dashboard-builder-grid.md)
-([#2265](https://github.com/chmonitor/chmonitor/pull/2265), mergeable, auto-merge armed),
-**41** [clickhouse-cloud-connect-wizard.md](41-clickhouse-cloud-connect-wizard.md)
-([#2240](https://github.com/chmonitor/chmonitor/pull/2240), conflicting, needs a rebase),
-**39** otel-trace-export (swarm-originated PR [#2243](https://github.com/chmonitor/chmonitor/pull/2243), not in the original plan file set).
-
-### Not started ⏳ (34) — grouped by what unblocks each
-
-Each of these needs a **product/design decision**, **depends on a held PR**, or
-is **epic-scale** (new toolchain / package / enterprise auth) — i.e. not
-appropriate for blind autonomous execution. Grouped by the blocker:
-
-- **Revenue 15–16, 18–20** (5) — 🟢 **unblocked as of 2026-07-03** (plan 14 merged,
-  `#2213`): [15 upgrade-paywall-modal](15-upgrade-paywall-modal.md),
-  [16 billing-usage-dashboard-card](16-billing-usage-dashboard-card.md),
-  [18 per-host-overage-billing](18-per-host-overage-billing.md),
-  [19 downgrade-protection](19-downgrade-protection.md),
-  [20 seat-cap-invite-time-gate](20-seat-cap-invite-time-gate.md).
-  (17 checkout-webhook-e2e-tests already merged as a recovery-runbook doc, #2229.)
-- **Enterprise 21, 23–24** (3) — edition-gated enterprise auth; prefer Clerk
-  enterprise connections over a bespoke SAML stack. Product decision required:
-  [21 sso-saml-enterprise](21-sso-saml-enterprise.md),
-  [23 rbac-roles-enterprise](23-rbac-roles-enterprise.md),
-  [24 enterprise-multi-org-pooling](24-enterprise-multi-org-pooling.md).
-  (22 audit-log-export already merged, #2232.)
-- **Alerting 26, 28–34** (8) — depends on held **#25** (email transport):
-  [26 opsgenie-adapter](26-opsgenie-adapter.md),
-  [28 maintenance-windows-suppression](28-maintenance-windows-suppression.md),
-  [29 alert-ack-manual-resolution](29-alert-ack-manual-resolution.md),
-  [30 per-rule-alert-routing](30-per-rule-alert-routing.md),
-  [31 compound-alert-rules](31-compound-alert-rules.md),
-  [32 custom-alert-rule-builder](32-custom-alert-rule-builder.md),
-  [33 remediation-action-links](33-remediation-action-links.md) (ACK-gated, never auto-executes DDL),
-  [34 pagerduty-escalation-oncall](34-pagerduty-escalation-oncall.md) (extends 30).
-  (27 alert_events store already merged, #2231 — this cluster records into it.)
-- **Integrations 37–40, 42–43** (5) — new packages/toolchains (38 Grafana
-  plugin, 40 Terraform provider, 39 OTel, 37 Slack OAuth) + security-adjacent
-  proxies (42/43): [37 slack-app-native-oauth](37-slack-app-native-oauth.md),
-  [38 grafana-datasource-plugin](38-grafana-datasource-plugin.md),
-  [39 otel-trace-export](39-otel-trace-export.md),
-  [40 terraform-provider](40-terraform-provider.md),
-  [42 kafka-consumer-control](42-kafka-consumer-control.md),
-  [43 mcp-custom-server-registry](43-mcp-custom-server-registry.md) — 🔷 **PR open** [#2271](https://github.com/chmonitor/chmonitor/pull/2271) (per-user D1 registry, SSRF-pinned transport, template library).
-  (36, 41, 44, 45, 46, 47 already merged — the plumbing/advisor foundation this cluster builds on.)
-- **Advisor 52** (1) — [52 proactive-weekly-health-report](52-proactive-weekly-health-report.md)
-  (depends on 25/37 delivery channels). (49 query-cost-estimator already merged, #2233.)
-- **Dashboards/OSS 57–59** (3) — 🟢 **57 unblocked as of 2026-07-03** (plan 56
-  merged, `#2224`): [57 custom-dashboard-builder-grid](57-custom-dashboard-builder-grid.md),
-  [58 declarative-chart-schema](58-declarative-chart-schema.md),
-  [59 ai-generated-dashboards](59-ai-generated-dashboards.md) (needs 57 too).
-  (54 query-config pack registry already merged, #2230.)
-- **Growth 61, 63, 65, 67** (4) — marketing copy must be verified against
-  shipped+enforced features first; 65 depends on held **#66**:
-  [61 feature-sections-advisor-alerts-refresh](61-feature-sections-advisor-alerts-refresh.md),
-  [63 comparison-pages-vs-competitors](63-comparison-pages-vs-competitors.md),
-  [65 live-demo-embedded](65-live-demo-embedded.md) (needs 66),
-  [67 docs-blog-content-engine](67-docs-blog-content-engine.md).
-  (60, 64, 68, 69, 70 already merged.)
+Plan 16 (billing-usage-dashboard-card) was overtaken by the dashboard no-billing
+cut (#3051). Usage read API remains at `GET /api/v1/billing/usage` for the AI
+quota chip; there is no in-app billing page to hang a Polar usage card on.
 
 ## Round 4 — deep audit findings (71–102)
 
@@ -210,38 +159,38 @@ it protects (76–78, 95).
 
 | # | Plan | Category | Priority | Effort | Depends on | Status |
 |---|------|----------|----------|--------|------------|--------|
-| 71 | [cloud-demo-host-guard-coverage](71-cloud-demo-host-guard-coverage.md) | security | P1 | M | — | ⏳ TODO · [#2488](https://github.com/chmonitor/chmonitor/issues/2488) |
+| 71 | [cloud-demo-host-guard-coverage](71-cloud-demo-host-guard-coverage.md) | security | P1 | M | — | ✅ DONE · [#2488](https://github.com/chmonitor/chmonitor/issues/2488) |
 | 72 | [prefetch-query-key-alignment](72-prefetch-query-key-alignment.md) | bug | P1 | S | — | ✅ DONE · shared `chartQueryKey`/`tableQueryKey` in `apps/dashboard/src/lib/swr/prefetch.ts` · [#2489](https://github.com/chmonitor/chmonitor/issues/2489) |
 | 73 | [table-result-row-cap](73-table-result-row-cap.md) | perf | P1 | M | — | ✅ DONE · `max_result_rows` cap in `apps/dashboard/src/lib/api/query-executor.ts` · [#2490](https://github.com/chmonitor/chmonitor/issues/2490) |
-| 74 | [host-id-validation-unification](74-host-id-validation-unification.md) | bug | P1 | S | — | ⏳ TODO · [#2491](https://github.com/chmonitor/chmonitor/issues/2491) |
+| 74 | [host-id-validation-unification](74-host-id-validation-unification.md) | bug | P1 | S | — | ✅ DONE · [#2491](https://github.com/chmonitor/chmonitor/issues/2491) |
 | 75 | [required-unit-tests-check](75-required-unit-tests-check.md) | dx | P1 | S | — | ✅ DONE · PR [#2527](https://github.com/chmonitor/chmonitor/pull/2527) merged 2026-07-10 · [#2492](https://github.com/chmonitor/chmonitor/issues/2492) |
-| 76 | [billing-resolution-tests](76-billing-resolution-tests.md) | tests | P1 | M | — | ⏳ TODO · [#2493](https://github.com/chmonitor/chmonitor/issues/2493) |
-| 77 | [deploy-env-projection-tests](77-deploy-env-projection-tests.md) | tests | P1 | S | — | ⏳ TODO · [#2494](https://github.com/chmonitor/chmonitor/issues/2494) |
-| 78 | [constant-time-auth-dedupe](78-constant-time-auth-dedupe.md) | security | P1 | S | — | ⏳ TODO · [#2495](https://github.com/chmonitor/chmonitor/issues/2495) |
-| 79 | [menu-link-search-params](79-menu-link-search-params.md) | bug | P2 | S | — | ⏳ TODO · [#2496](https://github.com/chmonitor/chmonitor/issues/2496) |
-| 80 | [background-bar-companions](80-background-bar-companions.md) | bug | P2 | S | — | ⏳ TODO · [#2497](https://github.com/chmonitor/chmonitor/issues/2497) |
-| 81 | [tooltip-breakdown-fixes](81-tooltip-breakdown-fixes.md) | bug | P2 | S | — | ⏳ TODO · [#2498](https://github.com/chmonitor/chmonitor/issues/2498) |
-| 82 | [data-table-utility-columns-sorting](82-data-table-utility-columns-sorting.md) | bug | P2 | S | — | ⏳ TODO · [#2499](https://github.com/chmonitor/chmonitor/issues/2499) |
+| 76 | [billing-resolution-tests](76-billing-resolution-tests.md) | tests | P1 | M | — | ✅ DONE · [#2493](https://github.com/chmonitor/chmonitor/issues/2493) |
+| 77 | [deploy-env-projection-tests](77-deploy-env-projection-tests.md) | tests | P1 | S | — | ✅ DONE · [#2494](https://github.com/chmonitor/chmonitor/issues/2494) |
+| 78 | [constant-time-auth-dedupe](78-constant-time-auth-dedupe.md) | security | P1 | S | — | ✅ DONE · [#2495](https://github.com/chmonitor/chmonitor/issues/2495) |
+| 79 | [menu-link-search-params](79-menu-link-search-params.md) | bug | P2 | S | — | ✅ DONE · [#2496](https://github.com/chmonitor/chmonitor/issues/2496) |
+| 80 | [background-bar-companions](80-background-bar-companions.md) | bug | P2 | S | — | ✅ DONE · [#2497](https://github.com/chmonitor/chmonitor/issues/2497) |
+| 81 | [tooltip-breakdown-fixes](81-tooltip-breakdown-fixes.md) | bug | P2 | S | — | ✅ DONE · [#2498](https://github.com/chmonitor/chmonitor/issues/2498) |
+| 82 | [data-table-utility-columns-sorting](82-data-table-utility-columns-sorting.md) | bug | P2 | S | — | ✅ DONE · [#2499](https://github.com/chmonitor/chmonitor/issues/2499) |
 | 83 | [fleet-wide-rate-limiting](83-fleet-wide-rate-limiting.md) | security | P2 | M | — | ✅ DONE · [#2500](https://github.com/chmonitor/chmonitor/issues/2500) (closes #2467) |
-| 84 | [sanitize-500-error-responses](84-sanitize-500-error-responses.md) | security | P2 | S | — | ⏳ TODO · [#2501](https://github.com/chmonitor/chmonitor/issues/2501) |
-| 85 | [bug-handler-fail-closed-senders](85-bug-handler-fail-closed-senders.md) | security | P2 | S | — | ⏳ TODO · [#2502](https://github.com/chmonitor/chmonitor/issues/2502) |
+| 84 | [sanitize-500-error-responses](84-sanitize-500-error-responses.md) | security | P2 | S | — | ✅ DONE · [#2501](https://github.com/chmonitor/chmonitor/issues/2501) |
+| 85 | [bug-handler-fail-closed-senders](85-bug-handler-fail-closed-senders.md) | security | P2 | S | — | ✅ DONE · [#2502](https://github.com/chmonitor/chmonitor/issues/2502) |
 | 86 | [telemetry-event-insert-bounds](86-telemetry-event-insert-bounds.md) | security | P3 | S | — | ✅ DONE · `MAX_BODY_BYTES` + hex64 validation in `apps/telemetry/src/index.ts` · [#2503](https://github.com/chmonitor/chmonitor/issues/2503) |
-| 87 | [browser-connection-store-fixes](87-browser-connection-store-fixes.md) | bug | P2 | M | — | ⏳ TODO · [#2504](https://github.com/chmonitor/chmonitor/issues/2504) |
-| 88 | [optional-table-probe-transient-errors](88-optional-table-probe-transient-errors.md) | bug | P2 | S | — | ⏳ TODO · [#2505](https://github.com/chmonitor/chmonitor/issues/2505) |
+| 87 | [browser-connection-store-fixes](87-browser-connection-store-fixes.md) | bug | P2 | M | — | ✅ DONE · [#2504](https://github.com/chmonitor/chmonitor/issues/2504) |
+| 88 | [optional-table-probe-transient-errors](88-optional-table-probe-transient-errors.md) | bug | P2 | S | — | ✅ DONE · [#2505](https://github.com/chmonitor/chmonitor/issues/2505) |
 | 89 | [lazy-markdown-imports](89-lazy-markdown-imports.md) | perf | P2 | S | — | ✅ DONE · lazy `react-markdown` in `apps/dashboard/src/components/data-table/formatters/advanced-formatters.tsx` · [#2506](https://github.com/chmonitor/chmonitor/issues/2506) |
-| 90 | [landing-blog-image-optimization](90-landing-blog-image-optimization.md) | perf | P2 | M | — | ⏳ TODO · [#2507](https://github.com/chmonitor/chmonitor/issues/2507) |
-| 91 | [readme-docs-link-fixes](91-readme-docs-link-fixes.md) | docs | P1 | S | — | ⏳ TODO · [#2508](https://github.com/chmonitor/chmonitor/issues/2508) |
-| 92 | [blog-og-duplicate-post](92-blog-og-duplicate-post.md) | docs/SEO | P2 | S | — | ⏳ TODO · [#2509](https://github.com/chmonitor/chmonitor/issues/2509) |
-| 93 | [landing-copy-consistency](93-landing-copy-consistency.md) | docs | P2 | S | — | ⏳ TODO · [#2510](https://github.com/chmonitor/chmonitor/issues/2510) |
-| 94 | [toolchain-version-alignment](94-toolchain-version-alignment.md) | dx | P2 | S | — | ⏳ TODO · [#2511](https://github.com/chmonitor/chmonitor/issues/2511) |
-| 95 | [platform-adapter-tests](95-platform-adapter-tests.md) | tests | P2 | S | — | ⏳ TODO · [#2512](https://github.com/chmonitor/chmonitor/issues/2512) |
-| 96 | [opennext-context-replacement-spike](96-opennext-context-replacement-spike.md) | migration | P3 | M | 95 | ⏳ TODO · [#2513](https://github.com/chmonitor/chmonitor/issues/2513) |
+| 90 | [landing-blog-image-optimization](90-landing-blog-image-optimization.md) | perf | P2 | M | — | ✅ DONE · [#2507](https://github.com/chmonitor/chmonitor/issues/2507) |
+| 91 | [readme-docs-link-fixes](91-readme-docs-link-fixes.md) | docs | P1 | S | — | ✅ DONE · [#2508](https://github.com/chmonitor/chmonitor/issues/2508) |
+| 92 | [blog-og-duplicate-post](92-blog-og-duplicate-post.md) | docs/SEO | P2 | S | — | ✅ DONE · [#2509](https://github.com/chmonitor/chmonitor/issues/2509) |
+| 93 | [landing-copy-consistency](93-landing-copy-consistency.md) | docs | P2 | S | — | ✅ DONE · [#2510](https://github.com/chmonitor/chmonitor/issues/2510) |
+| 94 | [toolchain-version-alignment](94-toolchain-version-alignment.md) | dx | P2 | S | — | ✅ DONE · [#2511](https://github.com/chmonitor/chmonitor/issues/2511) |
+| 95 | [platform-adapter-tests](95-platform-adapter-tests.md) | tests | P2 | S | — | ✅ DONE · [#2512](https://github.com/chmonitor/chmonitor/issues/2512) |
+| 96 | [opennext-context-replacement-spike](96-opennext-context-replacement-spike.md) | migration | P3 | M | 95 | ✅ DONE · [#2513](https://github.com/chmonitor/chmonitor/issues/2513) |
 | 97 | [billing-cycle-metering-alignment](97-billing-cycle-metering-alignment.md) | business-logic | P2 | M | 76 (soft) | ✅ DONE · [#2514](https://github.com/chmonitor/chmonitor/issues/2514) |
 | 98 | [cloud-mode-runtime-consistency](98-cloud-mode-runtime-consistency.md) | investigate | P3 | S–M | — | ✅ DONE · build-time contract + `detectCloudModeMismatch` guard in `/api/healthz` · [#2515](https://github.com/chmonitor/chmonitor/issues/2515) |
-| 99 | [seat-precheck-pending-invites](99-seat-precheck-pending-invites.md) | business-logic | P3 | S | — | ⏳ TODO · [#2516](https://github.com/chmonitor/chmonitor/issues/2516) |
-| 100 | [ai-usage-reservation-release](100-ai-usage-reservation-release.md) | investigate | P3 | S | — | ⏳ TODO · [#2517](https://github.com/chmonitor/chmonitor/issues/2517) |
-| 101 | [chart-color-token-hygiene](101-chart-color-token-hygiene.md) | tech-debt | P3 | M | — | ⏳ TODO · [#2518](https://github.com/chmonitor/chmonitor/issues/2518) |
-| 102 | [render-perf-cleanups](102-render-perf-cleanups.md) | perf | P3 | S | 72 | ⏳ TODO · [#2519](https://github.com/chmonitor/chmonitor/issues/2519) |
+| 99 | [seat-precheck-pending-invites](99-seat-precheck-pending-invites.md) | business-logic | P3 | S | — | ✅ DONE · [#2516](https://github.com/chmonitor/chmonitor/issues/2516) |
+| 100 | [ai-usage-reservation-release](100-ai-usage-reservation-release.md) | investigate | P3 | S | — | ✅ DONE · [#2517](https://github.com/chmonitor/chmonitor/issues/2517) |
+| 101 | [chart-color-token-hygiene](101-chart-color-token-hygiene.md) | tech-debt | P3 | M | — | ✅ DONE · [#2518](https://github.com/chmonitor/chmonitor/issues/2518) |
+| 102 | [render-perf-cleanups](102-render-perf-cleanups.md) | perf | P3 | S | 72 | ✅ DONE · [#2519](https://github.com/chmonitor/chmonitor/issues/2519) |
 
 ### Round-4 dependency notes
 
@@ -279,30 +228,31 @@ plan 120 supersedes plan 84 (sanitize 500 error responses).
 
 | # | Plan | Category | Priority | Effort | Depends on | Status |
 |---|------|----------|----------|--------|------------|--------|
-| 104 | pnpm overrides migration | deps | P1 | M | — | ✅ DONE · [#3300](https://github.com/chmonitor/chmonitor/issues/3300) |
-| 105 | cloud-hooks in unit-tests CI | dx | P2 | S | — | ⏳ TODO · [#3301](https://github.com/chmonitor/chmonitor/issues/3301) |
-| 106 | cloud-hooks Telegram HTML escape | security | P2 | S | — | ⏳ TODO · [#3302](https://github.com/chmonitor/chmonitor/issues/3302) |
-| 107 | license-wall Polar verify | business-logic | P2 | M | — | ⏳ TODO · [#3303](https://github.com/chmonitor/chmonitor/issues/3303) |
-| 109 | batch insights chart fetches | perf | P2 | M | — | ⏳ TODO · [#3304](https://github.com/chmonitor/chmonitor/issues/3304) |
-| 110 | parallelize advisor engines | perf | P2 | M | — | ⏳ TODO · [#3305](https://github.com/chmonitor/chmonitor/issues/3305) |
-| 111 | lazy-load react-markdown shell | perf | P2 | S | — | ⏳ TODO · [#3306](https://github.com/chmonitor/chmonitor/issues/3306) |
-| 112 | delete orphaned billing UI | tech-debt | P3 | S | — | ⏳ TODO · [#3307](https://github.com/chmonitor/chmonitor/issues/3307) |
-| 113 | consolidate Polar reverse map | refactor | P3 | S | — | ⏳ TODO · [#3308](https://github.com/chmonitor/chmonitor/issues/3308) |
-| 114 | parallelize insights-collector probes | perf | P2 | M | — | ✅ DONE · [#3309](https://github.com/chmonitor/chmonitor/issues/3309) |
-| 115 | API-key issuance route tests | tests | P2 | M | — | ⏳ TODO · [#3310](https://github.com/chmonitor/chmonitor/issues/3310) |
-| 116 | alert-routing CRUD tests | tests | P2 | M | — | ⏳ TODO · [#3311](https://github.com/chmonitor/chmonitor/issues/3311) |
-| 117 | page-render sweep coverage | tests | P2 | L | — | ⏳ TODO · [#3312](https://github.com/chmonitor/chmonitor/issues/3312) |
-| 118 | cron-trigger header-only auth | security | P2 | S | — | ⏳ TODO · [#3313](https://github.com/chmonitor/chmonitor/issues/3313) |
-| 119 | constant-time comparator helper | security | P2 | S | 78 | ⏳ TODO · extends 78 · [#3314](https://github.com/chmonitor/chmonitor/issues/3314) |
-| 120 | sanitize query-route errors | security | P2 | M | 84 | ⏳ TODO · supersedes 84 · [#3315](https://github.com/chmonitor/chmonitor/issues/3315) |
-| 121 | pnpm audit override floors | deps | P1 | S–M | 104 | ✅ DONE · [#3316](https://github.com/chmonitor/chmonitor/issues/3316) |
-| 122 | DX/docs drift batch | dx | P2 | M | — | ✅ DONE · [#3317](https://github.com/chmonitor/chmonitor/issues/3317) |
-| 123 | CI concurrency + cache hygiene | dx | P3 | S–M | — | ✅ DONE · [#3318](https://github.com/chmonitor/chmonitor/issues/3318) |
-| 124 | advisor findings in weekly report | feature | P3 | M | — | ⏳ TODO · [#3319](https://github.com/chmonitor/chmonitor/issues/3319) |
-| 125 | schema/settings diff tests | tests | P2 | M | — | ⏳ TODO · [#3320](https://github.com/chmonitor/chmonitor/issues/3320) |
-| 126 | cloud-hooks billing-deps tests | tests | P2 | M | — | ⏳ TODO · [#3321](https://github.com/chmonitor/chmonitor/issues/3321) |
-| 127 | agents/models route tests | tests | P2 | M | — | ⏳ TODO · [#3322](https://github.com/chmonitor/chmonitor/issues/3322) |
-| 128 | Rust CLI keyring plaintext purge | security | P2 | M | — | ⏳ TODO · [#3323](https://github.com/chmonitor/chmonitor/issues/3323) |
+| 104 | [pnpm overrides migration](104-pnpm-settings-migration.md) | deps | P1 | M | — | ✅ DONE · [#3300](https://github.com/chmonitor/chmonitor/issues/3300) |
+| 105 | [cloud-hooks in unit-tests CI](105-cloud-hooks-ci-gate.md) | dx | P2 | S | — | ✅ DONE · [#3301](https://github.com/chmonitor/chmonitor/issues/3301) |
+| 106 | [cloud-hooks Telegram HTML escape](106-cloud-hooks-telegram-escape.md) | security | P2 | S | — | ✅ DONE · [#3302](https://github.com/chmonitor/chmonitor/issues/3302) |
+| 107 | [license-wall Polar verify](107-license-endpoints-verification.md) | business-logic | P2 | M | — | ✅ DONE · [#3303](https://github.com/chmonitor/chmonitor/issues/3303) |
+| 108 | [device-code rate limit](108-device-code-rate-limit.md) | security | P2 | M | — | ✅ DONE · [#3330](https://github.com/chmonitor/chmonitor/issues/3330) |
+| 109 | [batch insights chart fetches](109-insights-chart-batching.md) | perf | P2 | M | — | ✅ DONE · [#3304](https://github.com/chmonitor/chmonitor/issues/3304) |
+| 110 | [parallelize advisor engines](110-advisor-parallel-roundtrips.md) | perf | P2 | M | — | ✅ DONE · [#3305](https://github.com/chmonitor/chmonitor/issues/3305) |
+| 111 | [lazy-load react-markdown shell](111-lazy-markdown-shell.md) | perf | P2 | S | — | ✅ DONE · [#3306](https://github.com/chmonitor/chmonitor/issues/3306) |
+| 112 | [delete orphaned billing UI](112-billing-dead-code-removal.md) | tech-debt | P3 | S | — | ✅ DONE · [#3307](https://github.com/chmonitor/chmonitor/issues/3307) |
+| 113 | [consolidate Polar reverse map](113-polar-reverse-map-consolidation.md) | refactor | P3 | S | — | ✅ DONE · [#3308](https://github.com/chmonitor/chmonitor/issues/3308) |
+| 114 | [parallelize insights-collector probes](114-insights-collector-parallelism.md) | perf | P2 | M | — | ✅ DONE · [#3309](https://github.com/chmonitor/chmonitor/issues/3309) |
+| 115 | [API-key issuance route tests](115-api-key-route-tests.md) | tests | P2 | M | — | ✅ DONE · [#3310](https://github.com/chmonitor/chmonitor/issues/3310) |
+| 116 | [alert-routing CRUD tests](116-health-routes-tests.md) | tests | P2 | M | — | ✅ DONE · [#3311](https://github.com/chmonitor/chmonitor/issues/3311) |
+| 117 | [page-render sweep coverage](117-page-sweep-guard.md) | tests | P2 | L | — | ✅ DONE · [#3312](https://github.com/chmonitor/chmonitor/issues/3312) |
+| 118 | [cron-trigger header-only auth](118-cron-secret-header-only.md) | security | P2 | S | — | ✅ DONE · [#3313](https://github.com/chmonitor/chmonitor/issues/3313) |
+| 119 | [constant-time comparator helper](119-constant-time-comparator-dedupe.md) | security | P2 | S | 78 | ✅ DONE · extends 78 · [#3314](https://github.com/chmonitor/chmonitor/issues/3314) |
+| 120 | [sanitize query-route errors](120-sanitize-upstream-errors.md) | security | P2 | M | 84 | ✅ DONE · supersedes 84 · [#3315](https://github.com/chmonitor/chmonitor/issues/3315) |
+| 121 | [pnpm audit override floors](121-deps-audit-fixes.md) | deps | P1 | S–M | 104 | ✅ DONE · [#3316](https://github.com/chmonitor/chmonitor/issues/3316) |
+| 122 | [DX/docs drift batch](122-docs-and-config-fixes.md) | dx | P2 | M | — | ✅ DONE · [#3317](https://github.com/chmonitor/chmonitor/issues/3317) |
+| 123 | [CI concurrency + cache hygiene](123-ci-workflow-hygiene.md) | dx | P3 | S–M | — | ✅ DONE · [#3318](https://github.com/chmonitor/chmonitor/issues/3318) |
+| 124 | advisor findings in weekly report | feature | P3 | M | — | ✅ DONE · [#3319](https://github.com/chmonitor/chmonitor/issues/3319) |
+| 125 | schema/settings diff tests | tests | P2 | M | — | ✅ DONE · [#3320](https://github.com/chmonitor/chmonitor/issues/3320) |
+| 126 | cloud-hooks billing-deps tests | tests | P2 | M | — | ✅ DONE · [#3321](https://github.com/chmonitor/chmonitor/issues/3321) |
+| 127 | agents/models route tests | tests | P2 | M | — | ✅ DONE · [#3322](https://github.com/chmonitor/chmonitor/issues/3322) |
+| 128 | Rust CLI keyring plaintext purge | security | P2 | M | — | ✅ DONE · [#3323](https://github.com/chmonitor/chmonitor/issues/3323) |
 | 129 | plans ledger reconciliation | dx | P3 | S | — | ✅ DONE · [#3324](https://github.com/chmonitor/chmonitor/issues/3324) |
 
 Also from the same audit batch (plan 139): outage state carry-forward in

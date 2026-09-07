@@ -11,7 +11,6 @@
 //   - ClickHouse version is truncated to MAJOR.MINOR (e.g. '24.8') so it cannot
 //     be mistaken for an IPv4 address and cannot fingerprint a specific patch release.
 
-import { APP_VERSION } from '@/lib/whats-new/app-version'
 import { isTelemetryEnabled } from './config'
 import {
   detectChFlavor,
@@ -22,6 +21,7 @@ import {
 } from './environment'
 import { getLicenseKey, sanitizeLicenseKey } from './license-key'
 import { redactPingPayload } from './redact'
+import { APP_VERSION } from '@/lib/whats-new/app-version'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants

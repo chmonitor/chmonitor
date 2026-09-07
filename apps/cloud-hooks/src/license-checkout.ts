@@ -7,7 +7,6 @@
 
 import type { Env } from './env'
 import type { NotifyKind } from './telegram'
-import { logError, logInfo } from './log'
 
 import {
   isLicenseTerm,
@@ -20,6 +19,7 @@ import {
   polarFetch,
   successOrigin,
 } from './license-http'
+import { logError } from './log'
 import { formatCheckoutStarted } from './polar-notify'
 
 export interface LicenseCheckoutDeps {

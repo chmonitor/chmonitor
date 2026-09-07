@@ -9,11 +9,11 @@
 import type { Design, DesignKind } from './design-selection'
 import type { AggregateCall } from './sql-parsing'
 
+import { formatGroupByListForSql } from './sql-parsing'
 import {
   formatQualifiedTable,
   quoteIdentifier,
 } from '@/lib/ai/agent/tools/sql-analysis'
-import { formatGroupByListForSql } from './sql-parsing'
 
 function normalizeForAlias(s: string): string {
   return s

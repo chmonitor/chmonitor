@@ -7,7 +7,6 @@
  */
 
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
-
 import { SANITIZED_MESSAGES } from '@/lib/api/error-handler/sanitize-error'
 
 let cloudMode = false

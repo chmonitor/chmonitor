@@ -22,7 +22,6 @@
 import type { Env } from './env'
 import type { GitHubRepo } from './exceptions'
 import type { GitHubAppAuth } from './github-app'
-import { logError, logInfo } from './log'
 
 import { collectActivation } from './activation'
 import { detectAnomaly, fetchDailySeries, formatAnomaly } from './anomaly'
@@ -34,6 +33,7 @@ import { fetchIssueStats, runIssueWatch } from './issues'
 import { handleLicenseCheckout } from './license-checkout'
 import { handleLicenseLookup } from './license-lookup'
 import { handleLicensePublic, handleLicenseRegister } from './license-register'
+import { logError, logInfo } from './log'
 import { fetchWorkerExceptions } from './observability'
 import { readProbeSnapshot, runProbes } from './probes'
 import { collectSummary, formatDigest } from './summary'
@@ -118,10 +118,7 @@ async function resolveGitHub(
       auth: auth.mode === 'app' ? (auth.app ?? null) : null,
     }
   } catch (err) {
-    logError(
-      `[cloud-hooks] ${label}: GitHub token acquisition failed`,
-      err
-    )
+    logError(`[cloud-hooks] ${label}: GitHub token acquisition failed`, err)
     return null
   }
 }

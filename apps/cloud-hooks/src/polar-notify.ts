@@ -11,8 +11,8 @@
 
 import type { NotifyKind } from './telegram'
 
-import { BILLING_PLANS, monthlyEquivalentUsd, type PlanId } from '@chm/pricing'
 import { escapeHtml } from './lib/html'
+import { BILLING_PLANS, monthlyEquivalentUsd, type PlanId } from '@chm/pricing'
 
 type Period = 'monthly' | 'yearly' | null
 

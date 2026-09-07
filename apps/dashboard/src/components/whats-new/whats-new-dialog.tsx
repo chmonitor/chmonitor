@@ -8,7 +8,6 @@ import {
   WhatsNewScreenshotLightbox,
 } from './whats-new-screenshots'
 import { useLayoutEffect, useRef, useState } from 'react'
-import { collectReleaseScreenshots } from '@/lib/whats-new/images'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,6 +23,7 @@ import {
   GITHUB_RELEASES_PAGE_URL,
   LANDING_CHANGELOG_URL,
 } from '@/lib/whats-new/constants'
+import { collectReleaseScreenshots } from '@/lib/whats-new/images'
 import { toProductTag } from '@/lib/whats-new/version'
 
 function formatPublishedDate(value: string | null): string | null {

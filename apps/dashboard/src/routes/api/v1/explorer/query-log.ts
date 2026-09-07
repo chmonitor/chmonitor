@@ -14,10 +14,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { error } from '@chm/logger'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 // Columns available across supported ClickHouse versions (>= 22.8). Version
 // -specific columns (e.g. `projections`) are intentionally omitted; projection

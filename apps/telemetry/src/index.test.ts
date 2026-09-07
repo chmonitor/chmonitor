@@ -185,7 +185,17 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
       `INSERT INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    insert.run('2026-07-02', hex64('d'), 'docker', '24.8', '', 'us', 'linux', '0.3.1', null)
+    insert.run(
+      '2026-07-02',
+      hex64('d'),
+      'docker',
+      '24.8',
+      '',
+      'us',
+      'linux',
+      '0.3.1',
+      null
+    )
     insert.run(
       '2026-07-02',
       hex64('e'),
@@ -211,10 +221,14 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
       'altinity',
       'oss',
     ])
-    expect(body.by_ch_flavor.find((r) => r.ch_flavor === 'oss')?.installs).toBe(2)
-    expect(body.by_ch_flavor.some((r) => r.ch_flavor === '' || r.ch_flavor === 'unknown')).toBe(
-      false
+    expect(body.by_ch_flavor.find((r) => r.ch_flavor === 'oss')?.installs).toBe(
+      2
     )
+    expect(
+      body.by_ch_flavor.some(
+        (r) => r.ch_flavor === '' || r.ch_flavor === 'unknown'
+      )
+    ).toBe(false)
   })
 
   it('merges empty and unknown ClickHouse versions into one unknown bucket', async () => {
@@ -223,7 +237,17 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
       `INSERT INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    insert.run('2026-07-02', hex64('d'), 'docker', '', 'oss', 'us', 'linux', '0.3.1', null)
+    insert.run(
+      '2026-07-02',
+      hex64('d'),
+      'docker',
+      '',
+      'oss',
+      'us',
+      'linux',
+      '0.3.1',
+      null
+    )
     insert.run(
       '2026-07-02',
       hex64('e'),
@@ -248,8 +272,12 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
     const versions = body.by_ch_version.map((r) => r.ch_version)
     expect(versions).not.toContain('')
     expect(versions.filter((v) => v === 'unknown')).toHaveLength(1)
-    expect(body.by_ch_version.find((r) => r.ch_version === 'unknown')?.installs).toBe(2)
-    expect(body.by_ch_version.find((r) => r.ch_version === '24.8')?.installs).toBe(2)
+    expect(
+      body.by_ch_version.find((r) => r.ch_version === 'unknown')?.installs
+    ).toBe(2)
+    expect(
+      body.by_ch_version.find((r) => r.ch_version === '24.8')?.installs
+    ).toBe(2)
   })
 
   it('merges empty and unknown chmonitor versions into one unknown bucket', async () => {
@@ -258,7 +286,17 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
       `INSERT INTO ping_daily (day, instance_hash, deploy_target, ch_version, ch_flavor, country, platform, chm_version, install_place)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    insert.run('2026-07-02', hex64('d'), 'docker', '24.8', 'oss', 'us', 'linux', '', null)
+    insert.run(
+      '2026-07-02',
+      hex64('d'),
+      'docker',
+      '24.8',
+      'oss',
+      'us',
+      'linux',
+      '',
+      null
+    )
     insert.run(
       '2026-07-02',
       hex64('e'),
@@ -283,8 +321,12 @@ describe('GET /v1/summary — double WHERE regression (#2466)', () => {
     const versions = body.by_chm_version.map((r) => r.chm_version)
     expect(versions).not.toContain('')
     expect(versions.filter((v) => v === 'unknown')).toHaveLength(1)
-    expect(body.by_chm_version.find((r) => r.chm_version === 'unknown')?.installs).toBe(2)
-    expect(body.by_chm_version.find((r) => r.chm_version === '0.3.1')?.installs).toBe(2)
+    expect(
+      body.by_chm_version.find((r) => r.chm_version === 'unknown')?.installs
+    ).toBe(2)
+    expect(
+      body.by_chm_version.find((r) => r.chm_version === '0.3.1')?.installs
+    ).toBe(2)
   })
 
   it('returns 200 (not 500) for ?deploy_target=docker and scopes total_places', async () => {

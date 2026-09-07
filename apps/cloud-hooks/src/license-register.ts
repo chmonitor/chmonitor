@@ -18,10 +18,10 @@ import {
   kvRateLimit,
   LICENSE_PUBLIC_INDEX_KEY,
   LICENSE_REG_KEY_PREFIX,
+  type LicenseKV,
   metaSkuTerm,
   methodNotAllowed,
   polarFetch,
-  type LicenseKV,
 } from './license-http'
 import { logError } from './log'
 

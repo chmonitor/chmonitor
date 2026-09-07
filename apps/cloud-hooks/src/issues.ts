@@ -26,9 +26,9 @@
 import type { GitHubRepo } from './exceptions'
 import type { GitHubAppAuth, KVLike } from './github-app'
 import type { NotifyKind } from './telegram'
-import { logError as emitLogError, logInfo } from './log'
 
 import { withTokenRefresh } from './github-app'
+import { logError as emitLogError, logInfo } from './log'
 
 export const ISSUE_NOTIFY_KIND: NotifyKind = 'new_issue'
 export const ISSUE_CURSOR_KEY = 'issue-watch:v1:last-created'

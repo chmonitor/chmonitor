@@ -10,10 +10,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 
 // Validation regex for identifiers (database and table names)
 const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/

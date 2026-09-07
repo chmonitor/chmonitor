@@ -4,10 +4,11 @@
  * Shared compositor: scripts/og-builder.ts (dune plate, centered title,
  * logo top-left). Run:  bun run scripts/build-og.ts
  */
+
+import { type OgCard, writeOgCard } from '../../../scripts/og-builder'
+import { FEATURE_PAGES } from '../src/data/feature-pages'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { FEATURE_PAGES } from '../src/data/feature-pages'
-import { writeOgCard, type OgCard } from '../../../scripts/og-builder'
 
 const here = join(fileURLToPath(import.meta.url), '..')
 const fontsDir = join(here, 'og-fonts')
