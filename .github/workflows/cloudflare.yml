@@ -1107,9 +1107,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        # Polar license product ids + CHM_POLAR_SERVER come from the committed
-        # dashboard .env.production (non-secret UUIDs). Values are passed as
-        # wrangler --var and never echoed. Same keys locally via
+        # Polar license + donate product ids + CHM_POLAR_SERVER come from the
+        # committed cloud-hooks .env.production (non-secret UUIDs). Dashboard
+        # .env.production must not set CHM_POLAR_*. Values are passed as wrangler
+        # --var and never echoed. Same keys locally via
         # `bun scripts/deploy-worker.ts cloud-hooks --no-secrets`.
         run: |
           set -euo pipefail
@@ -1120,11 +1121,11 @@ jobs:
             esac
             key="${line%%=*}"
             case "$key" in
-              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*)
+              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_DONATE_*)
                 extra_vars+=(--var "${key}:${line#*=}")
                 ;;
             esac
-          done < "${GITHUB_WORKSPACE}/apps/dashboard/.env.production"
+          done < "${GITHUB_WORKSPACE}/apps/cloud-hooks/.env.production"
           pnpm exec wrangler deploy --minify --env preview \
             --var "CF_ACCOUNT_ID:${CLOUDFLARE_ACCOUNT_ID}" \
             --var "GITHUB_REPOSITORY:${GITHUB_REPOSITORY}" \
@@ -1140,6 +1141,8 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Same Polar vars as preview: cloud-hooks .env.production, including
+        # CHM_POLAR_DONATE_* (required for GET /checkout/donate).
         run: |
           set -euo pipefail
           extra_vars=()
@@ -1149,11 +1152,11 @@ jobs:
             esac
             key="${line%%=*}"
             case "$key" in
-              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*)
+              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_DONATE_*)
                 extra_vars+=(--var "${key}:${line#*=}")
                 ;;
             esac
-          done < "${GITHUB_WORKSPACE}/apps/dashboard/.env.production"
+          done < "${GITHUB_WORKSPACE}/apps/cloud-hooks/.env.production"
           pnpm exec wrangler deploy --minify \
             --var "CF_ACCOUNT_ID:${CLOUDFLARE_ACCOUNT_ID}" \
             --var "GITHUB_REPOSITORY:${GITHUB_REPOSITORY}" \
