@@ -24,6 +24,7 @@ describe('homepage hides Pricing and the Always shipping band', () => {
 
   test('keeps FAQ and the dedicated pages/components', () => {
     expect(home).toContain('<FAQ />')
+    expect(existsSync(join(landing, 'src/pages/license.astro'))).toBe(true)
     expect(existsSync(join(landing, 'src/pages/pricing.astro'))).toBe(true)
     expect(existsSync(join(landing, 'src/pages/changelog.astro'))).toBe(true)
     expect(existsSync(join(landing, 'src/components/Pricing.astro'))).toBe(true)
@@ -33,10 +34,12 @@ describe('homepage hides Pricing and the Always shipping band', () => {
   })
 })
 
-describe('header nav advertises Pricing', () => {
-  test('desktop and mobile chrome link to /pricing', () => {
-    expect(nav).toContain("to('/pricing')")
-    expect(nav).toMatch(/>Pricing</)
+describe('header nav advertises License', () => {
+  test('desktop and mobile chrome link to /license', () => {
+    expect(nav).toContain("to('/license')")
+    expect(nav).toMatch(/>License</)
+    expect(nav).not.toContain("to('/pricing')")
+    expect(nav).not.toMatch(/>Pricing</)
   })
 
   test('Changelog still links to /changelog', () => {
@@ -68,13 +71,36 @@ describe('header nav advertises Pricing', () => {
     expect(baseLayout).toContain("import '../styles/nav.css'")
   })
 
-  test('footer still links to /pricing', () => {
-    expect(footer).toContain("to('/pricing')")
+  test('footer still links to /license', () => {
+    expect(footer).toContain("to('/license')")
+    expect(footer).toMatch(/>License</)
+    expect(footer).not.toContain("to('/pricing')")
   })
 
   test('Footer can prefix on-site paths for the blog', () => {
     expect(footer).toContain('origin?: string')
     expect(footer).toContain('const to = (path: string) =>')
+  })
+})
+
+describe('FAQ and customers leftover /pricing links', () => {
+  test('homepage FAQ commercial-license link goes to /license', () => {
+    const faq = read('src/components/FAQ.astro')
+    expect(faq).toContain('href="/license"')
+    expect(faq).not.toContain('href="/pricing"')
+  })
+
+  test('customers empty-state card goes to /license', () => {
+    const customers = read('src/pages/customers.astro')
+    expect(customers).toContain('href="/license"')
+    expect(customers).not.toContain('href="/pricing"')
+  })
+
+  test('Pricing.astro plan section is License-labeled and links to /license', () => {
+    const pricing = read('src/components/Pricing.astro')
+    expect(pricing).toContain('id="license"')
+    expect(pricing).toContain('>License<')
+    expect(pricing).not.toContain('href="/pricing"')
   })
 })
 

@@ -30,15 +30,36 @@ describe('landing SEO routing', () => {
 
   test('does not 301-strip marketing trailing slashes', () => {
     expect(
-      landingRedirectUrl(new URL('https://chmonitor.dev/pricing/'))
+      landingRedirectUrl(new URL('https://chmonitor.dev/changelog/'))
+    ).toBeNull()
+  })
+
+  test('/pricing 301s to /license, including trailing slash and query', () => {
+    expect(landingRedirectUrl(new URL('https://chmonitor.dev/pricing'))).toBe(
+      'https://chmonitor.dev/license'
+    )
+    expect(landingRedirectUrl(new URL('https://chmonitor.dev/pricing/'))).toBe(
+      'https://chmonitor.dev/license'
+    )
+    expect(
+      landingRedirectUrl(new URL('https://chmonitor.dev/pricing?term=lifetime'))
+    ).toBe('https://chmonitor.dev/license?term=lifetime')
+  })
+
+  test('/license and its register/lookup subpages are not redirected', () => {
+    expect(
+      landingRedirectUrl(new URL('https://chmonitor.dev/license'))
+    ).toBeNull()
+    expect(
+      landingRedirectUrl(new URL('https://chmonitor.dev/license/register'))
+    ).toBeNull()
+    expect(
+      landingRedirectUrl(new URL('https://chmonitor.dev/license/lookup'))
     ).toBeNull()
   })
 
   test('does not redirect real marketing paths', () => {
     expect(landingRedirectUrl(new URL('https://chmonitor.dev/'))).toBeNull()
-    expect(
-      landingRedirectUrl(new URL('https://chmonitor.dev/pricing'))
-    ).toBeNull()
     expect(
       landingRedirectUrl(new URL('https://chmonitor.dev/features/storage'))
     ).toBeNull()

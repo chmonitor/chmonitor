@@ -3,7 +3,10 @@ import {
   bossPitch,
   bossPitchPaste,
   buyHref,
+  DONATE_AMOUNTS_USD,
+  donateHref,
   invoiceMailto,
+  LICENSE_PAGE_HREF,
   PRICING_PAGE_HREF,
   paidLicenseSkus,
 } from './licenses'
@@ -61,7 +64,9 @@ describe('landing license offer', () => {
     expect(bossPitch.body).toContain(`$${yearly}/year`)
     expect(bossPitch.body).toContain(`$${lifetime}`)
     expect(bossPitch.body).toContain(`$${unlimitedYearly}/year`)
-    expect(bossPitch.body).toContain(PRICING_PAGE_HREF)
+    expect(bossPitch.body).toContain(LICENSE_PAGE_HREF)
+    expect(LICENSE_PAGE_HREF).toBe('https://chmonitor.dev/license')
+    expect(PRICING_PAGE_HREF).toBe(LICENSE_PAGE_HREF)
     expect(bossPitch.body).toMatch(/no DRM/i)
     expect(bossPitch.body).toMatch(/invoice/i)
     expect(bossPitch.body).not.toMatch(/2am|begging|eleven browser tabs/i)
@@ -71,9 +76,9 @@ describe('landing license offer', () => {
     )
   })
 
-  test('pricing page renders the email composer from the same pitch', () => {
+  test('license page renders the email composer from the same pitch', () => {
     const src = readFileSync(
-      join(landingRoot, 'src/pages/pricing.astro'),
+      join(landingRoot, 'src/pages/license.astro'),
       'utf8'
     )
     expect(src).toContain('bossPitch.to')
@@ -84,7 +89,7 @@ describe('landing license offer', () => {
     expect(src).toContain('New message')
     expect(src).not.toContain('Copy for Slack')
     expect(src.indexOf('tell-your-boss')).toBeLessThan(
-      src.indexOf('pricing-faq')
+      src.indexOf('license-faq')
     )
   })
 
@@ -130,7 +135,8 @@ describe('customers listing is opt-in', () => {
 })
 
 describe('static pages exist', () => {
-  test('pricing, register, and customers pages are in source', () => {
+  test('license, register, lookup, and customers pages are in source', () => {
+    expect(existsSync(join(landingRoot, 'src/pages/license.astro'))).toBe(true)
     expect(existsSync(join(landingRoot, 'src/pages/pricing.astro'))).toBe(true)
     expect(
       existsSync(join(landingRoot, 'src/pages/license/register.astro'))
@@ -161,5 +167,53 @@ describe('static pages exist', () => {
     expect(src).toContain('duyet@chmonitor.dev')
     expect(src).toContain('LICENSE_HELP_DOCS_HREF')
     expect(src).toContain('Polar adds VAT/GST')
+  })
+
+  test('/pricing is a 301 to /license, not a duplicate page', () => {
+    const src = readFileSync(
+      join(landingRoot, 'src/pages/pricing.astro'),
+      'utf8'
+    )
+    expect(src).toContain("Astro.redirect('/license', 301)")
+    expect(src).not.toContain('bossPitch')
+  })
+})
+
+describe('donate chips use GitHub Sponsors, not an invented Polar product', () => {
+  test('amounts are $10, $100, $1,000 one-time Sponsors checkouts', () => {
+    expect([...DONATE_AMOUNTS_USD]).toEqual([10, 100, 1000])
+    for (const amount of DONATE_AMOUNTS_USD) {
+      const href = donateHref(amount)
+      expect(
+        href.startsWith('https://github.com/sponsors/duyet/sponsorships?')
+      ).toBe(true)
+      expect(href).toContain('frequency=one-time')
+      expect(href).toContain(`amount=${amount}`)
+      expect(href).not.toContain('polar')
+    }
+  })
+
+  test('cloud-hooks Polar env has license SKUs only — no donate product id', () => {
+    const env = readFileSync(
+      join(landingRoot, '../cloud-hooks/.env.production'),
+      'utf8'
+    )
+    expect(env).toContain('CHM_POLAR_LICENSE_TEAM_YEARLY')
+    expect(env).not.toMatch(/POLAR_.*DONATE/i)
+    expect(env).not.toMatch(/CHM_POLAR_DONATE/)
+  })
+
+  test('license page lists the three chips below the plan cards', () => {
+    const src = readFileSync(
+      join(landingRoot, 'src/pages/license.astro'),
+      'utf8'
+    )
+    expect(src.indexOf('<Pricing compact={true} />')).toBeLessThan(
+      src.indexOf('id="donate"')
+    )
+    expect(src).toContain('DONATE_AMOUNTS_USD')
+    expect(src).toContain('donateHref')
+    expect(src).toMatch(/logo and website/i)
+    expect(src).toMatch(/main page/i)
   })
 })

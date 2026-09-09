@@ -218,11 +218,11 @@ const header =
   headerStart === -1 || headerEnd === -1
     ? ''
     : html.slice(headerStart, headerEnd)
-if (!/href="\/pricing"/.test(header)) {
-  console.error('MISSING Pricing link in homepage header nav')
+if (!/href="\/license"/.test(header) || !/>License</.test(header)) {
+  console.error('MISSING License link in homepage header nav')
   failed = true
 } else {
-  console.log('OK: homepage header nav links to /pricing')
+  console.log('OK: homepage header nav links to /license')
 }
 
 const drawerStart = html.indexOf('id="mobile-menu"')
@@ -231,24 +231,34 @@ const drawer =
   drawerStart === -1 || drawerFoot === -1
     ? ''
     : html.slice(drawerStart, drawerFoot)
-if (!/href="\/pricing"/.test(drawer)) {
-  console.error('MISSING Pricing link in homepage mobile nav')
+if (!/href="\/license"/.test(drawer) || !/>License</.test(drawer)) {
+  console.error('MISSING License link in homepage mobile nav')
   failed = true
 } else {
-  console.log('OK: homepage mobile nav links to /pricing')
+  console.log('OK: homepage mobile nav links to /license')
 }
 
-const distPricing = join(process.cwd(), 'dist/pricing/index.html')
+const distLicense = join(process.cwd(), 'dist/license/index.html')
 try {
-  const pricingHtml = readFileSync(distPricing, 'utf8')
-  if (!pricingHtml.includes('id="pricing"')) {
-    console.error('MISSING pricing section in dist/pricing/index.html')
+  const licenseHtml = readFileSync(distLicense, 'utf8')
+  if (!licenseHtml.includes('id="license"')) {
+    console.error('MISSING license section in dist/license/index.html')
+    failed = true
+  } else if (!licenseHtml.includes('id="donate"')) {
+    console.error('MISSING donate section in dist/license/index.html')
+    failed = true
+  } else if (
+    !licenseHtml.includes('$10') ||
+    !licenseHtml.includes('$100') ||
+    !licenseHtml.includes('$1,000')
+  ) {
+    console.error('MISSING donate amount chips in dist/license/index.html')
     failed = true
   } else {
-    console.log('OK: dist/pricing/index.html still has Pricing cards')
+    console.log('OK: dist/license/index.html has License cards + donate chips')
   }
 } catch {
-  console.error('MISSING dist/pricing/index.html — run build first')
+  console.error('MISSING dist/license/index.html — run build first')
   failed = true
 }
 

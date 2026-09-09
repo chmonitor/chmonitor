@@ -151,6 +151,12 @@ export function landingRedirectUrl(url: URL): string | null {
   if (path === '/watch/v0.3' || path.startsWith('/watch/v0.3/')) {
     return `${url.origin}/watch/v0-3${search}`
   }
+  // /pricing moved to /license (self-hosted license offer). 301 keeps SEO juice,
+  // query params + anchors intact. /license/register and /license/lookup are
+  // separate pages — never redirect those.
+  if (path === '/pricing') {
+    return `${url.origin}/license${search}`
+  }
   if (first === 'docs') {
     const rest = path.replace(/^\/docs\/?/, '/')
     const dest = rest === '/' ? DOCS_ORIGIN : `${DOCS_ORIGIN}${rest}`
