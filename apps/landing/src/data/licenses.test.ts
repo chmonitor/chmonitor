@@ -4,6 +4,7 @@ import {
   bossPitchPaste,
   buyHref,
   DONATE_AMOUNTS_USD,
+  donateCheckoutAction,
   donateHref,
   invoiceMailto,
   LICENSE_PAGE_HREF,
@@ -179,31 +180,36 @@ describe('static pages exist', () => {
   })
 })
 
-describe('donate chips use GitHub Sponsors, not an invented Polar product', () => {
-  test('amounts are $10, $100, $1,000 one-time Sponsors checkouts', () => {
+describe('donate chips go to Polar via hooks, not GitHub Sponsors', () => {
+  test('amounts are $10, $100, $1,000 Polar donate checkouts in USD dollars', () => {
     expect([...DONATE_AMOUNTS_USD]).toEqual([10, 100, 1000])
+    expect(donateCheckoutAction()).toBe(
+      'https://hooks.chmonitor.dev/checkout/donate'
+    )
     for (const amount of DONATE_AMOUNTS_USD) {
       const href = donateHref(amount)
-      expect(
-        href.startsWith('https://github.com/sponsors/duyet/sponsorships?')
-      ).toBe(true)
-      expect(href).toContain('frequency=one-time')
-      expect(href).toContain(`amount=${amount}`)
-      expect(href).not.toContain('polar')
+      expect(href).toBe(
+        `https://hooks.chmonitor.dev/checkout/donate?amount=${amount}`
+      )
+      expect(href).not.toContain('github.com/sponsors')
     }
   })
 
-  test('cloud-hooks Polar env has license SKUs only — no donate product id', () => {
+  test('cloud-hooks Polar donate product id is a Polar UUID from polar-setup', () => {
     const env = readFileSync(
       join(landingRoot, '../cloud-hooks/.env.production'),
       'utf8'
     )
+    const example = readFileSync(
+      join(landingRoot, '../cloud-hooks/.env.example'),
+      'utf8'
+    )
     expect(env).toContain('CHM_POLAR_LICENSE_TEAM_YEARLY')
-    expect(env).not.toMatch(/POLAR_.*DONATE/i)
-    expect(env).not.toMatch(/CHM_POLAR_DONATE/)
+    expect(env).toMatch(/^CHM_POLAR_DONATE_PRODUCT=[a-f0-9-]{36}$/m)
+    expect(example).toContain('CHM_POLAR_DONATE_PRODUCT')
   })
 
-  test('license page lists the three chips below the plan cards', () => {
+  test('license page lists chips plus a custom amount form below the plan cards', () => {
     const src = readFileSync(
       join(landingRoot, 'src/pages/license.astro'),
       'utf8'
@@ -213,7 +219,11 @@ describe('donate chips use GitHub Sponsors, not an invented Polar product', () =
     )
     expect(src).toContain('DONATE_AMOUNTS_USD')
     expect(src).toContain('donateHref')
+    expect(src).toContain('donateCheckoutAction')
+    expect(src).toContain('name="amount"')
+    expect(src).toContain('donate-custom')
     expect(src).toMatch(/logo and website/i)
     expect(src).toMatch(/main page/i)
+    expect(src).not.toContain('github.com/sponsors')
   })
 })

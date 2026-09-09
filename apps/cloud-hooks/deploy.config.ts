@@ -8,6 +8,7 @@ export default {
   vars: [
     'CHM_POLAR_SERVER',
     'CHM_POLAR_LICENSE_*',
+    'CHM_POLAR_DONATE_*',
     // Exception-scan config (see apps/cloud-hooks/wrangler.toml header).
     'CF_ACCOUNT_ID',
     'GITHUB_REPOSITORY',

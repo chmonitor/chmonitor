@@ -96,23 +96,20 @@ export const LICENSE_PAGE_HREF = 'https://chmonitor.dev/license'
 export const PRICING_PAGE_HREF = LICENSE_PAGE_HREF
 
 /**
- * Polar env only ships license SKUs (`CHM_POLAR_LICENSE_*` in
- * `apps/cloud-hooks/.env.production`). There is no donate product id in this
- * repo — do not invent one. One-off thanks go through GitHub Sponsors.
+ * Polar donate checkout. Amount is USD dollars; hooks convert to Polar cents.
+ * Product id is `CHM_POLAR_DONATE_PRODUCT` on cloud-hooks (polar-setup.ts).
+ * Missing env → GET /checkout/donate returns 501. Do not invent a product UUID.
  */
-export const DONATE_SPONSORS_LOGIN = 'duyet'
 export const DONATE_AMOUNTS_USD = [10, 100, 1000] as const
+export const DONATE_CHECKOUT_PATH = '/checkout/donate'
 
-export function donateHref(
-  amountUsd: (typeof DONATE_AMOUNTS_USD)[number]
-): string {
-  const params = new URLSearchParams({
-    sponsor: DONATE_SPONSORS_LOGIN,
-    preview: 'false',
-    frequency: 'one-time',
-    amount: String(amountUsd),
-  })
-  return `https://github.com/sponsors/${DONATE_SPONSORS_LOGIN}/sponsorships?${params}`
+export function donateHref(amountUsd: number): string {
+  const params = new URLSearchParams({ amount: String(amountUsd) })
+  return `${LICENSE_HOOKS_ORIGIN}${DONATE_CHECKOUT_PATH}?${params}`
+}
+
+export function donateCheckoutAction(): string {
+  return `${LICENSE_HOOKS_ORIGIN}${DONATE_CHECKOUT_PATH}`
 }
 
 export const bossPitch = {

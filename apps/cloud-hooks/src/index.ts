@@ -5,6 +5,7 @@
  *   POST /webhooks/polar  → validate signature → shared billing core → Telegram
  *   POST /webhooks/clerk  → verify Svix signature → Clerk lifecycle → Telegram
  *   GET  /checkout/license → Polar self-host license checkout (302)
+ *   GET  /checkout/donate  → Polar PWYW donate checkout (302, amount in USD)
  *   GET  /licenses/lookup  → honor-system Polar checkout/customer lookup
  *   POST /licenses/register → persist company + website in KV
  *   GET  /licenses/public   → opt-in customers wall rows
@@ -27,6 +28,7 @@ import { collectActivation } from './activation'
 import { detectAnomaly, fetchDailySeries, formatAnomaly } from './anomaly'
 import { fetchClerkMetrics, WEEK_SECONDS } from './clerk-metrics'
 import { handleClerkWebhook } from './clerk-webhook'
+import { handleDonateCheckout } from './donate-checkout'
 import { parseRepo, runExceptionScan } from './exceptions'
 import { resolveGitHubAuth } from './github-app'
 import { fetchIssueStats, runIssueWatch } from './issues'
@@ -345,6 +347,10 @@ export default {
       return handleLicenseCheckout(request, env, {
         notify: (kind, text) => notifier.notify(kind, text),
       })
+    }
+
+    if (url.pathname === '/checkout/donate') {
+      return handleDonateCheckout(request, env)
     }
 
     if (url.pathname === '/licenses/lookup') {

@@ -53,11 +53,11 @@
 # / CF_ACCOUNT_ID unset → the exception-scan capability logs one line and no-ops
 # (never crashes).
 #
-# License product mapping (non-secret, set via CI `--var`, mirror
-# apps/dashboard/.env.production):
-#   CHM_POLAR_SERVER, CHM_POLAR_LICENSE_<SKU>_<TERM>
-# Used by GET /checkout/license (Polar POST /v1/checkouts/). Polar's
-# success_url MUST include the literal `{CHECKOUT_ID}` placeholder.
+# License + donate product mapping (non-secret, set via CI `--var`):
+#   CHM_POLAR_SERVER, CHM_POLAR_LICENSE_<SKU>_<TERM>, CHM_POLAR_DONATE_PRODUCT
+# Used by GET /checkout/license and GET /checkout/donate (Polar POST
+# /v1/checkouts/). Donate is pay-what-you-want; `amount` query is USD dollars
+# (converted to Polar cents). Polar's success_url MUST include `{CHECKOUT_ID}`.
 #
 # Deploy with the unified per-Worker script (reads ./deploy.config.ts for the
 # vars/secrets above, resolves them from the dashboard's
