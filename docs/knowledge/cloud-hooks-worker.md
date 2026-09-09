@@ -18,7 +18,7 @@ tags:
     telemetry,
     issues,
   ]
-updated: 2026-08-17
+updated: 2026-09-09
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -259,6 +259,13 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   — Polar **requires** the `{CHECKOUT_ID}` placeholder and 422s without it.
   302 to `checkout.url`. 400 bad sku/term, 501 missing token or
   `CHM_POLAR_LICENSE_*`, 502 `{error, status}` on Polar failure (never throws).
+- `donate-checkout.ts` — `GET /checkout/donate?amount=N` (USD dollars; optional
+  `cents=` is Polar-native). Pay-what-you-want product
+  `CHM_POLAR_DONATE_PRODUCT` from `polar-setup.ts` (`chmonitor Donate`,
+  `amount_type: custom`). Polar `POST /v1/checkouts/` `amount` is **cents**.
+  400 bad amount, 501 missing token or product id (do not invent a UUID),
+  502 `{error, status}` on Polar failure. Success URL
+  `/license?donated=1&checkout_id={CHECKOUT_ID}`.
 - `license-lookup.ts` — `GET /licenses/lookup?q=` honor-system order check
   (Polar checkout id — this is `CHM_LICENSE_KEY` on the dashboard — then
   customer by email / id / query). 404 JSON if none. Cloud-hooks does not
@@ -268,7 +275,7 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CHM_HOOKS_KV` `license-reg:v1:{uuid}`; `GET /licenses/public` returns
   opt-in rows for `/customers`.
 - `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`,
-  `/checkout/license`, `/licenses/*`, `/healthz`) +
+  `/checkout/license`, `/checkout/donate`, `/licenses/*`, `/healthz`) +
   `scheduled` (daily cron → digest, weekly cron → weekly report, everything else
   → the ops sweep: probes, `runExceptions`, `runIssues`). `resolveGitHub(env,
   label)` centralizes credential checks, repo parsing, and token minting for the
@@ -313,11 +320,13 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   PAT with `issues:write`, repo secret `CLOUD_HOOKS_GITHUB_TOKEN`) and
   `CF_OBSERVABILITY_API_TOKEN`
   (token scope **Account → Workers Observability → Read**).
-  `CHM_POLAR_LICENSE_*` + `CHM_POLAR_SERVER` come from
+  `CHM_POLAR_LICENSE_*` + `CHM_POLAR_DONATE_PRODUCT` + `CHM_POLAR_SERVER` come from
   `apps/cloud-hooks/.env.production` (deploy-worker overlays app env on
   dashboard env; locally `bun scripts/deploy-worker.ts cloud-hooks`).
-  Required for `GET /checkout/license`. Also used so license webhook products
-  skip the Cloud plan path.
+  Required for `GET /checkout/license` and `GET /checkout/donate`. Also used so
+  license webhook products skip the Cloud plan path. Donate product is created
+  by `apps/dashboard/scripts/polar-setup.ts` when `POLAR_ACCESS_TOKEN` is set;
+  until then `/checkout/donate` returns 501.
 - **Exception-scan config** (non-secret, injected at deploy via `--var`, all
   optional with defaults): `CF_ACCOUNT_ID` (required to query — from
   `CLOUDFLARE_ACCOUNT_ID`), `GITHUB_REPOSITORY` (default `chmonitor/chmonitor`),

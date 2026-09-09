@@ -3,7 +3,7 @@ id: billing-checkout-flow
 title: Billing checkout → webhook → D1 → plan resolution (money path + recovery)
 type: workflow
 status: active
-updated: 2026-08-17
+updated: 2026-09-09
 tags:
   - billing
   - polar
@@ -20,8 +20,10 @@ related:
 
 **Money path is landing + cloud-hooks, not the dashboard.** Public paid
 checkout is self-host licenses: landing `polarCheckoutHref` →
-`GET https://hooks.chmonitor.dev/checkout/license`. Polar product IDs
-(`CHM_POLAR_LICENSE_*`, `CHM_POLAR_SERVER`) live in
+`GET https://hooks.chmonitor.dev/checkout/license`. Donate chips/custom amount
+hit `GET https://hooks.chmonitor.dev/checkout/donate?amount=<USD>` (Polar
+pay-what-you-want, amount converted to cents). Polar product IDs
+(`CHM_POLAR_LICENSE_*`, `CHM_POLAR_DONATE_PRODUCT`, `CHM_POLAR_SERVER`) live in
 `apps/cloud-hooks/.env.production`. `apps/dashboard` is a ClickHouse monitor:
 no `/billing` UI, no Polar checkout/portal routes, no Polar product IDs in
 dashboard env. Polar Cloud Free/Pro/Max products are archived.

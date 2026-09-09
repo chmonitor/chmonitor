@@ -8,6 +8,7 @@ import {
   bossPitch,
   bossPitchPaste,
   DONATE_AMOUNTS_USD,
+  donateCheckoutAction,
   donateHref,
   licenseFaqs,
 } from '../data/licenses'
@@ -58,8 +59,7 @@ const breadcrumbJsonLd = {
     <!-- Plan cards (shared section, compact: no duplicate header) -->
     <Pricing compact={true} />
 
-    <!-- Donate CTA below the plan cards. Polar has no donate product in-repo
-         (only CHM_POLAR_LICENSE_* SKUs) — chips go to GitHub Sponsors. -->
+    <!-- Donate CTA below the plan cards. Polar PWYW via hooks /checkout/donate. -->
     <section id="donate" class="band donate-band">
       <div class="wrap">
         <div class="donate-card reveal">
@@ -73,14 +73,30 @@ const breadcrumbJsonLd = {
               <a
                 class:list={[amount === 100 ? btnPrimary : btnOutline, 'donate-chip']}
                 href={donateHref(amount)}
-                target="_blank"
-                rel="noopener"
                 data-cta={`donate-${amount}`}
               >
                 ${amount.toLocaleString('en-US')}
               </a>
             ))}
           </div>
+          <form class="donate-custom" method="get" action={donateCheckoutAction()} data-cta="donate-custom">
+            <label class="donate-custom-label">
+              <span class="sr-only">Custom amount in US dollars</span>
+              <span class="donate-prefix" aria-hidden="true">$</span>
+              <input
+                class="donate-input"
+                type="number"
+                name="amount"
+                min="1"
+                step="1"
+                inputmode="decimal"
+                required
+                placeholder="Other"
+                aria-label="Custom amount in US dollars"
+              />
+            </label>
+            <button class={btnOutline} type="submit">Donate</button>
+          </form>
         </div>
       </div>
     </section>
@@ -225,6 +241,10 @@ const breadcrumbJsonLd = {
     .donate-card p{margin:0 auto 0;max-width:48ch;font-size:clamp(14px,2.6vw,15px);color:var(--muted-fg);line-height:1.55}
     .donate-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px}
     .donate-chip{min-width:5.5rem;min-height:44px}
+    .donate-custom{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:12px}
+    .donate-custom-label{display:flex;align-items:center;min-height:44px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);padding:0 12px;gap:2px}
+    .donate-prefix{color:var(--muted-fg);font-weight:600}
+    .donate-input{width:7rem;min-height:42px;border:0;background:transparent;font-size:15px;font-weight:600;outline:none}
 
     @media (max-width:640px){
       .price-intro.band{padding-top:48px}

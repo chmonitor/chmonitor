@@ -27,7 +27,10 @@ import { Polar } from '@polar-sh/sdk'
 const here = dirname(fileURLToPath(import.meta.url))
 const dashboardRoot = join(here, '..')
 const repoRoot = join(dashboardRoot, '../..')
+const DASH_ENV_LOCAL = join(dashboardRoot, '.env.local')
 const HOOKS_ENV = join(repoRoot, 'apps/cloud-hooks/.env.production')
+const DONATE_PRODUCT_NAME = 'chmonitor Donate'
+const DONATE_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'
 
 function loadEnvFile(path: string): void {
   if (!existsSync(path)) return
@@ -114,6 +117,7 @@ async function archiveOldCloudProducts(
 ): Promise<void> {
   for (const product of products) {
     if (isLicenseProductName(product.name)) continue
+    if (product.name === DONATE_PRODUCT_NAME) continue
     const known = OLD_CLOUD_PRODUCT_NAMES.has(product.name)
     const looksCloud = /^chmonitor (Free|Pro|Max|Fleet|Enterprise)\b/.test(
       product.name
@@ -163,6 +167,31 @@ async function ensureLicenseProduct(
   return { envKey, id: created.id }
 }
 
+async function ensureDonateProduct(
+  existing: Map<string, string>
+): Promise<{ envKey: string; id: string }> {
+  const found = existing.get(DONATE_PRODUCT_NAME)
+  if (found) {
+    console.log(`= reuse  ${DONATE_PRODUCT_NAME} → ${found}`)
+    return { envKey: DONATE_ENV_KEY, id: found }
+  }
+  const created = await polar.products.create({
+    name: DONATE_PRODUCT_NAME,
+    description:
+      'One-off donation to keep the chmonitor OSS build moving. Pay what you want.',
+    prices: [
+      {
+        amountType: 'custom',
+        priceCurrency: 'usd',
+        minimumAmount: 50,
+        presetAmount: 10000,
+      },
+    ],
+  })
+  console.log(`+ create ${DONATE_PRODUCT_NAME} → ${created.id}`)
+  return { envKey: DONATE_ENV_KEY, id: created.id }
+}
+
 async function main() {
   console.log(
     `Polar setup (server=${server}${archiveOld ? ', archive leftover Cloud SKUs' : ''})\n`
@@ -180,11 +209,16 @@ async function main() {
       lines.push(`${envKey}=${id}`)
     }
   }
+  const donate = await ensureDonateProduct(existing)
+  lines.push(`${donate.envKey}=${donate.id}`)
   console.log('\n# Paste into apps/cloud-hooks/.env.production:')
   console.log(lines.join('\n'))
 
-  const licenseLines = lines.filter((l) => l.startsWith('CHM_POLAR_LICENSE_'))
-  if (licenseLines.length) upsertEnvLocal(HOOKS_ENV, licenseLines)
+  const polarLines = lines.filter(
+    (l) =>
+      l.startsWith('CHM_POLAR_LICENSE_') || l.startsWith('CHM_POLAR_DONATE_')
+  )
+  if (polarLines.length) upsertEnvLocal(HOOKS_ENV, polarLines)
 }
 
 function upsertEnvLocal(path: string, lines: string[]): void {
@@ -202,12 +236,12 @@ function upsertEnvLocal(path: string, lines: string[]): void {
   while (kept.length && kept[kept.length - 1] === '') kept.pop()
   const block = [
     '',
-    '# Self-host Polar licenses (from scripts/polar-setup.ts)',
+    '# Self-host Polar licenses + donate (from scripts/polar-setup.ts)',
     ...incoming.values(),
     '',
   ]
   writeFileSync(path, `${kept.join('\n')}${block.join('\n')}`)
-  console.log(`\nWrote ${incoming.size} CHM_POLAR_LICENSE_* keys to ${path}`)
+  console.log(`\nWrote ${incoming.size} CHM_POLAR_* keys to ${path}`)
 }
 
 main().catch((err) => {

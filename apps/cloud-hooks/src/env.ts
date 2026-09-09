@@ -94,6 +94,11 @@ export interface Env {
   CHM_POLAR_LICENSE_TEAM_LIFETIME?: string
   CHM_POLAR_LICENSE_UNLIMITED_YEARLY?: string
   CHM_POLAR_LICENSE_UNLIMITED_LIFETIME?: string
+  /**
+   * Polar pay-what-you-want donate product id. From polar-setup.ts
+   * (`chmonitor Donate`). Unset → GET /checkout/donate returns 501.
+   */
+  CHM_POLAR_DONATE_PRODUCT?: string
 
   [key: string]: unknown
 }
