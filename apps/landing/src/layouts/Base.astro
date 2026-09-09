@@ -735,10 +735,10 @@ const ogImage = new URL(image, Astro.site).toString()
 
     initAnalytics().then(function () {
       // Normalize a trailing slash — static-asset serving may resolve
-      // /pricing as /pricing/ depending on host configuration.
+      // /license as /license/ depending on host configuration.
       var path = location.pathname.replace(/\/+$/, '') || '/'
       if (path === '/') trackEvent('landing_view')
-      else if (path === '/pricing') trackEvent('pricing_view')
+      else if (path === '/license' || path === '/pricing') trackEvent('license_view')
       else if (path === '/cli') trackEvent('cli_view')
     })
 

@@ -30,7 +30,7 @@ export const LICENSE_HOOKS_ORIGIN =
       ?.PUBLIC_LICENSE_CHECKOUT_ORIGIN) ||
   'https://hooks.chmonitor.dev'
 
-/** Pricing Buy → company form first, then Polar. */
+/** License Buy → company form first, then Polar. */
 export function buyHref(sku: LicenseSku, term: LicenseTerm): string {
   if (!isPaidLicense(sku.id)) return PERSONAL_SELFHOST_HREF
   const params = new URLSearchParams({ sku: sku.id, term })
@@ -91,7 +91,29 @@ const teamYearly = licensePriceUsd(team, 'yearly')
 const teamLifetime = licensePriceUsd(team, 'lifetime')
 const unlimitedYearly = licensePriceUsd(unlimited, 'yearly')
 
-export const PRICING_PAGE_HREF = 'https://chmonitor.dev/pricing/'
+export const LICENSE_PAGE_HREF = 'https://chmonitor.dev/license'
+/** @deprecated Use LICENSE_PAGE_HREF. /pricing 301s there. */
+export const PRICING_PAGE_HREF = LICENSE_PAGE_HREF
+
+/**
+ * Polar env only ships license SKUs (`CHM_POLAR_LICENSE_*` in
+ * `apps/cloud-hooks/.env.production`). There is no donate product id in this
+ * repo — do not invent one. One-off thanks go through GitHub Sponsors.
+ */
+export const DONATE_SPONSORS_LOGIN = 'duyet'
+export const DONATE_AMOUNTS_USD = [10, 100, 1000] as const
+
+export function donateHref(
+  amountUsd: (typeof DONATE_AMOUNTS_USD)[number]
+): string {
+  const params = new URLSearchParams({
+    sponsor: DONATE_SPONSORS_LOGIN,
+    preview: 'false',
+    frequency: 'one-time',
+    amount: String(amountUsd),
+  })
+  return `https://github.com/sponsors/${DONATE_SPONSORS_LOGIN}/sponsorships?${params}`
+}
 
 export const bossPitch = {
   to: 'Your boss',
@@ -109,7 +131,7 @@ The software itself is already free. The license is paperwork and support — no
 
 That is less than one hour of someone grepping system.query_log during an incident.
 
-Please approve. I can check out here: ${PRICING_PAGE_HREF}
+Please approve. I can check out here: ${LICENSE_PAGE_HREF}
 
 Thanks`,
 } as const
@@ -145,7 +167,7 @@ export const licenseFaqs = [
   },
   {
     q: 'Need a PO or vendor form?',
-    a: `Buy on Polar from the pricing page. For a PO or Net-30 invoice, email ${LICENSE_SALES_EMAIL}.`,
+    a: `Buy on Polar from the license page. For a PO or Net-30 invoice, email ${LICENSE_SALES_EMAIL}.`,
   },
   {
     q: 'Where do I paste the license key?',

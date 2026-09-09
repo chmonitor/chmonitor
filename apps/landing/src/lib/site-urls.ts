@@ -18,9 +18,10 @@ export const STATIC_PAGES: ListedPage[] = [
       'Open-source ClickHouse monitoring dashboard with an AI agent.',
   },
   {
-    path: '/pricing',
-    title: 'Pricing',
-    description: 'Self-hosted licenses and hosted cloud pricing.',
+    path: '/license',
+    title: 'License',
+    description:
+      'Self-hosted licenses (yearly and lifetime) and a donate option.',
   },
   {
     path: '/changelog',
