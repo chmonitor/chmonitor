@@ -27,6 +27,9 @@ export const docsRoute = ''
 // URLs in per-route `head()` metadata and the sitemap.
 export const siteUrl = 'https://docs.chmonitor.dev'
 
+// Marketing homepage (product site, not docs). Linked from nav + sidebar.
+export const marketingUrl = 'https://chmonitor.dev'
+
 // Production dashboard URL (linked from the sidebar footer + home hero).
 export const dashboardUrl = 'https://dash.chmonitor.dev'
 
