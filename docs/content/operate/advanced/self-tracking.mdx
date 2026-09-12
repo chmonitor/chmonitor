@@ -76,8 +76,10 @@ EVENTS_TABLE_NAME=my_db.dashboard_events
 
 ## Disable self-tracking
 
+<Callout type="info" title="No single off switch">
 chmonitor does not currently have a single flag to disable all event writes. To
 suppress writes, point `EVENTS_TABLE_NAME` at a Null-engine table:
+</Callout>
 
 ```sql
 CREATE TABLE my_db.monitoring_events_null AS system.monitoring_events

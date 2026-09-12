@@ -16,6 +16,11 @@ writes dashboard usage events to your own ClickHouse instance, and from
 off-by-default PostHog integration used for the hosted SaaS product's
 conversion funnel.
 
+<Mermaid chart={`flowchart TD
+  A[Telemetry on by default] --> B{CHM_TELEMETRY=off\nOR DO_NOT_TRACK\nOR empty endpoint?}
+  B -->|yes| Off[no network call]
+  B -->|no| On[instance ping + events]`} />
+
 ## Opt out — on by default
 
 Telemetry runs unless you explicitly turn it off. Any **one** of these disables it:

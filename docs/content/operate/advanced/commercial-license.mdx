@@ -49,38 +49,54 @@ Telemetry off (`CHM_TELEMETRY=off` / `DO_NOT_TRACK=1` / empty endpoint) still se
 
 ## How purchase actually works
 
-```
-You                    Polar                         chmonitor
-──                     ─────                         ─────────
-Pricing → Buy
-  or fill company +
-  website + email
-  then Pay
-         ──────────►  hosted checkout
-                      card / invoice
-                      Polar emails the receipt
-         ◄──────────  back to /license/register?paid=1&checkout_id=…
-                      register company (honor system)
-                      optional list on /customers
-                      set CHM_LICENSE_KEY=<checkout id>
-```
+<Mermaid chart={`sequenceDiagram
+  participant You
+  participant Polar
+  participant chmonitor
+  You->>chmonitor: Pricing → Buy (company + website + email)
+  chmonitor->>Polar: hosted checkout
+  Polar-->>You: receipt email (checkout id)
+  Polar->>chmonitor: /license/register?paid=1&checkout_id=…
+  You->>chmonitor: register company (honor system)
+  You->>You: set CHM_LICENSE_KEY=<checkout id>`} />
 
-1. Open [pricing](https://chmonitor.dev/pricing/) and click **Buy Team** or
-   **Buy Unlimited**. That opens the company form first (name, website,
-   billing email). We save that, then send you to **Polar** with the same
-   customer email so Polar has your details on the payment.
-2. **Polar** collects payment (card). Polar — not chmonitor — sends the
-   **receipt email**. We do not send a separate license-key email; the
-   checkout id **on that Polar receipt** is `CHM_LICENSE_KEY`.
-3. Polar returns you to
-   [register](https://chmonitor.dev/license/register?paid=1) with a
-   `checkout_id`. Enter **company name**, **website**, and billing email.
-   Optionally opt in to the [customers](https://chmonitor.dev/customers)
-   page (off by default).
-4. Set `CHM_LICENSE_KEY` on the dashboard to that checkout id.
-5. Need a PO / Net-30 / vendor form instead of card? Email
-   [hello@chmonitor.dev](mailto:hello@chmonitor.dev) — we invoice; Polar is
-   skipped.
+<Steps>
+<Step>
+### Buy on pricing
+
+Open [pricing](https://chmonitor.dev/pricing/) and click **Buy Team** or
+**Buy Unlimited**. That opens the company form first (name, website,
+billing email). We save that, then send you to **Polar** with the same
+customer email so Polar has your details on the payment.
+</Step>
+<Step>
+### Polar takes payment
+
+**Polar** collects payment (card). Polar — not chmonitor — sends the
+**receipt email**. We do not send a separate license-key email; the
+checkout id **on that Polar receipt** is `CHM_LICENSE_KEY`.
+</Step>
+<Step>
+### Register the company
+
+Polar returns you to
+[register](https://chmonitor.dev/license/register?paid=1) with a
+`checkout_id`. Enter **company name**, **website**, and billing email.
+Optionally opt in to the [customers](https://chmonitor.dev/customers)
+page (off by default).
+</Step>
+<Step>
+### Set the env var
+
+Set `CHM_LICENSE_KEY` on the dashboard to that checkout id.
+</Step>
+<Step>
+### PO / Net-30 instead of card?
+
+Email [hello@chmonitor.dev](mailto:hello@chmonitor.dev) — we invoice; Polar is
+skipped.
+</Step>
+</Steps>
 
 You may also start on `/license/register` **before** paying: fill the
 company form and click Pay — we pass email (and company as metadata) into
@@ -101,27 +117,54 @@ message after register.
 
 ## Who sends email?
 
-- **Polar** — payment receipt / invoice PDF (their branding).
-- **hello@chmonitor.dev** — only if you wrote us (PO, lookup miss, support).
-  Register does not trigger a mail from us.
+<Cards>
+  <Card title="Polar" description="Payment receipt / invoice PDF (their branding)." />
+  <Card title="hello@chmonitor.dev" description="Only if you wrote us (PO, lookup miss, support). Register does not trigger a mail from us." />
+</Cards>
 
 ## How to buy (short)
 
-1. [Pricing](https://chmonitor.dev/pricing/) → Buy → Polar pay.
-2. Land on register → company + website.
-3. Set `CHM_LICENSE_KEY` to the Polar checkout id from the receipt.
-4. Optional: [lookup](https://chmonitor.dev/license/lookup) later.
-5. PO? Email hello@chmonitor.dev.
-
+<Callout type="info" title="Honor system">
 Do not gate OSS features on a license. Missing `CHM_LICENSE_KEY` is a
 normal community install.
+</Callout>
+
+<Steps>
+<Step>
+### Pay
+
+[Pricing](https://chmonitor.dev/pricing/) → Buy → Polar pay.
+</Step>
+<Step>
+### Register
+
+Land on register → company + website.
+</Step>
+<Step>
+### Set the key
+
+Set `CHM_LICENSE_KEY` to the Polar checkout id from the receipt.
+</Step>
+<Step>
+### Lookup later (optional)
+
+[lookup](https://chmonitor.dev/license/lookup).
+</Step>
+<Step>
+### PO instead?
+
+Email hello@chmonitor.dev.
+</Step>
+</Steps>
 
 ## What you get
 
-- Commercial agreement / invoice (PO and Net-30 on request)
-- Priority email support for the paid term (lifetime includes year-1 support; ask if you want a support add-on after that)
-- Optional listing on the customers page
-- Funds development of the OSS dashboard
+<Cards>
+  <Card title="Invoice / agreement" description="Commercial agreement and invoice (PO and Net-30 on request)." />
+  <Card title="Priority email" description="Support for the paid term (lifetime includes year-1 support)." />
+  <Card title="Optional listing" description="Customers page, off by default." />
+  <Card title="Funds OSS" description="Development of the OSS dashboard. No extra dashboard features versus community today." />
+</Cards>
 
 You do **not** get extra dashboard features versus the community build today. Planned Team/Enterprise edition features (SSO, RBAC, fleet) stay on the [editions](/operate/advanced/editions) roadmap and will be included for licensed customers when they ship.
 

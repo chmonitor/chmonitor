@@ -10,6 +10,14 @@ The edition system exists to gate features that only matter at team or enterpris
 
 ## How the edition is selected
 
+<Mermaid chart={`flowchart TD
+  A[CHM_EDITION] --> B{set and valid?}
+  B -->|yes| E[that edition]
+  B -->|no| C[VITE_EDITION]
+  C --> D{set and valid?}
+  D -->|yes| E
+  D -->|no| F[community\nfail-open]`} />
+
 The edition is resolved at runtime from one of two variables, checked in order.
 
 | Variable | Where it applies | When to use |
