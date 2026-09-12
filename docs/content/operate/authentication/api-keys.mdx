@@ -38,7 +38,11 @@ wrangler secret put CHM_API_KEY_SECRET
 
 ## Issue a token
 
-Call the key-issuance endpoint. It uses its own secret-based auth (the same `CHM_API_KEY_SECRET`):
+<Steps>
+<Step>
+### Call the issuance endpoint
+
+It uses its own secret-based auth (the same `CHM_API_KEY_SECRET`):
 
 ```bash
 curl -X POST https://dash.example.com/api/v1/auth/api-key \
@@ -46,8 +50,9 @@ curl -X POST https://dash.example.com/api/v1/auth/api-key \
 ```
 
 The response includes a `chm_` token. Tokens are time-limited; re-issue before expiry.
-
-## Verify
+</Step>
+<Step>
+### Verify on an API route
 
 Pass the token in the `Authorization` header on any `/api/v1/*` route:
 
@@ -55,14 +60,18 @@ Pass the token in the `Authorization` header on any `/api/v1/*` route:
 curl https://dash.example.com/api/v1/hosts \
   -H "Authorization: Bearer chm_eyJ..."
 ```
+</Step>
+<Step>
+### Verify MCP
 
 ```bash
-# MCP client example
 curl https://dash.example.com/api/mcp \
   -H "Authorization: Bearer chm_eyJ..." \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
+</Step>
+</Steps>
 
 ## Device login (`chm auth login`)
 

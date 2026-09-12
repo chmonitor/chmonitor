@@ -110,10 +110,12 @@ See [Feature Permissions](/operate/advanced/feature-permissions) for all feature
 
 ## Public read-only mode
 
+<Callout type="info" title="Default is fully gated">
 By default, Clerk gates **every** `/api/v1/*` request — an anonymous visitor sees
 the dashboard shell but no data (every data call returns `401`). Set
 `CHM_CLERK_PUBLIC_READ` to let anonymous visitors view read-only monitoring
-content while keeping sign-in required for writes:
+content while keeping sign-in required for writes.
+</Callout>
 
 ```bash
 CHM_AUTH_PROVIDER=clerk
@@ -122,14 +124,11 @@ CHM_CLERK_PUBLIC_READ=true   # runtime / Worker var
 
 Access is then split along a **read / write** boundary:
 
-- **Reads** — predefined monitoring data (overview, queries, tables, metrics,
-  charts, schema browsing) — serve to anonymous visitors.
-- **Writes** — the AI agent, control actions (KILL QUERY, OPTIMIZE TABLE), and
-  **arbitrary SQL execution** (SQL Console / explorer query) — still return `401`
-  for anonymous callers. Running attacker-chosen SQL is treated as a write even
-  though it runs read-only, because it is a far more powerful capability than a
-  fixed registry query.
-- API keys (`chm_` bearer tokens) and signed-in Clerk users get full read + write.
+<Cards>
+  <Card title="Reads" description="Predefined monitoring data (overview, queries, tables, metrics, charts, schema browsing) serve to anonymous visitors." />
+  <Card title="Writes" description="AI agent, control actions (KILL QUERY, OPTIMIZE TABLE), and arbitrary SQL still return 401 for anonymous callers." />
+  <Card title="Keys and signed-in users" description="API keys (chm_ bearer) and signed-in Clerk users get full read + write." />
+</Cards>
 
 ### Anonymous capability matrix
 

@@ -33,9 +33,14 @@ matching client `VITE_*`:
 | `CHM_FEATURE_USER_CONNECTIONS_DB` | `VITE_FEATURE_USER_CONNECTIONS_DB` |
 | `CHM_EDITION` | `VITE_EDITION` |
 
-Precedence per var: explicit `VITE_*` → canonical `CHM_*` → legacy
-`NEXT_PUBLIC_*` → built-in default. The explicit `VITE_*` (and legacy
-`NEXT_PUBLIC_*`) forms still work as overrides.
+Precedence per var:
+
+<Mermaid chart={`flowchart LR
+  A["explicit VITE_*"] --> B["canonical CHM_*"]
+  B --> C["legacy NEXT_PUBLIC_*"]
+  C --> D[built-in default]`} />
+
+The explicit `VITE_*` (and legacy `NEXT_PUBLIC_*`) forms still work as overrides.
 
 A dual-surface setting must still be present at **both** build time (so vite
 inlines its `VITE_*`) and runtime (so the server reads it) — but it is the same

@@ -42,17 +42,10 @@ CHM_DEVICE_LOGIN=true
 
 ## When to use
 
-Public mode fits environments where every visitor is already trusted:
-
-- Local development
-- Internal network with no external exposure
-- Read-only dashboards where the data is not sensitive
-
-Avoid public mode for:
-
-- Any public-internet deployment where you want to restrict access
-- Dashboards showing sensitive query data or credentials
-- Multi-user setups where you need per-user audit trails
+<Cards>
+  <Card title="Use public mode" description="Local development, an internal network with no external exposure, or a read-only dashboard where the data is not sensitive." />
+  <Card title="Avoid public mode" description="Any internet-exposed deployment, dashboards with sensitive query data or credentials, or multi-user setups that need per-user audit trails." />
+</Cards>
 
 ## Troubleshooting
 

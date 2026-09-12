@@ -22,6 +22,15 @@ usage events to your own ClickHouse instance). Product analytics exists purely
 to measure the marketing/signup/upgrade funnel and is never required to run
 chmonitor.
 
+<Mermaid chart={`flowchart LR
+  subgraph Optional
+    PA[Product analytics\nPostHog funnel\noff by default]
+  end
+  subgraph OSS
+    T[Product telemetry\nown collector\non by default]
+    ST[Self-tracking\nyour ClickHouse]
+  end`} />
+
 ## Opt in — off by default
 
 <Callout type="info" title="No key, no network call">

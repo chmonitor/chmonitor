@@ -80,6 +80,7 @@ The header shows a status pill that distinguishes:
 
 ## Security
 
+<Callout type="info" title="Read-only proxy">
 CHM proxies only a **read-only allowlist** of PeerDB endpoints
 (`app/api/v1/peerdb/[...slug]`). Mutating endpoints (create/drop/pause, alert
 config, maintenance) are rejected with `403`. The PeerDB credential is attached
@@ -91,6 +92,7 @@ The section also respects
 `CHM_FEATURE_PEERDB_ACCESS=authenticated` or disable it with
 `CHM_FEATURE_PEERDB_ENABLED=false`. The proxy enforces the same gate, so it
 cannot be reached directly when the feature is disabled or restricted.
+</Callout>
 
 ## Local development (mock)
 

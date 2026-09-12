@@ -34,11 +34,23 @@ The `trusted` provider differs from the `proxy` provider:
 
 ## How it works
 
-1. The upstream proxy authenticates the user and copies their identity into request headers before forwarding to chmonitor.
-2. chmonitor checks the trust gate — either a shared secret header or an explicit allow-insecure flag. If the gate does not pass, the request is treated as unauthenticated regardless of what headers are present.
-3. If the gate passes, chmonitor reads the configured header names to build a principal: subject, email, display name, avatar URL, and groups/roles.
-4. Optional group gating: if `CHM_TRUSTED_ALLOWED_GROUPS` is set, the user's forwarded groups must intersect (case-insensitive) or access is denied.
-5. A trusted-authenticated user counts as `authenticated` for the feature permission matrix, which unlocks `authenticated`-access features (AI agent, writes) on that request.
+<Steps>
+<Step>
+The upstream proxy authenticates the user and copies their identity into request headers before forwarding to chmonitor.
+</Step>
+<Step>
+chmonitor checks the trust gate — either a shared secret header or an explicit allow-insecure flag. If the gate does not pass, the request is treated as unauthenticated regardless of what headers are present.
+</Step>
+<Step>
+If the gate passes, chmonitor reads the configured header names to build a principal: subject, email, display name, avatar URL, and groups/roles.
+</Step>
+<Step>
+Optional group gating: if `CHM_TRUSTED_ALLOWED_GROUPS` is set, the user's forwarded groups must intersect (case-insensitive) or access is denied.
+</Step>
+<Step>
+A trusted-authenticated user counts as `authenticated` for the feature permission matrix, which unlocks `authenticated`-access features (AI agent, writes) on that request.
+</Step>
+</Steps>
 
 The identity is available at `GET /api/v1/auth/me` and displayed in the sidebar user menu.
 

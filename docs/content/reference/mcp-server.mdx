@@ -169,10 +169,12 @@ Pre-built prompts for common workflows: `health-check`, `slow-query-analysis`, `
 
 ## Security
 
-- **Read-only.** All tools run read-only queries. The server never mutates data.
-- **Auth is opt-in.** The endpoint requires a token only once an auth scheme is configured. It accepts a `chm_` API key (`CHM_API_KEY_SECRET`) or a Clerk OAuth bearer token (`CHM_AUTH_PROVIDER=clerk`). Either scheme alone is sufficient; they can coexist on the same endpoint. When a scheme is configured, a missing or invalid token is rejected with `401`.
-- **Open when nothing is configured.** If neither `CHM_API_KEY_SECRET` nor Clerk is configured, the endpoint serves anonymous requests — regardless of `NODE_ENV`. This is the self-hosted default; close it by configuring either scheme. Keep an unconfigured endpoint on a trusted network.
-- **Shared credentials.** Queries use the dashboard's configured ClickHouse user. Visibility is bounded by that user's grants.
+<Cards>
+  <Card title="Read-only" description="All tools run read-only queries. The server never mutates data." />
+  <Card title="Auth is opt-in" description="Requires a token once an auth scheme is configured: chm_ API key or Clerk OAuth. Either scheme is enough; they can coexist. Missing or invalid token → 401." />
+  <Card title="Open when nothing is configured" description="If neither CHM_API_KEY_SECRET nor Clerk is set, the endpoint serves anonymous requests — the self-hosted default. Keep it on a trusted network." />
+  <Card title="Shared credentials" description="Queries use the dashboard's configured ClickHouse user. Visibility is bounded by that user's grants." />
+</Cards>
 
 <Callout type="warn" title="Secure the MCP endpoint in production">
 Do not expose the MCP endpoint publicly without setting `CHM_API_KEY_SECRET`. Anyone with access can read all data the ClickHouse user can see.

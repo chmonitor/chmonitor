@@ -6,6 +6,10 @@ title: HTTP API
 
 chmonitor exposes a versioned HTTP API under `/api/v1`. Agents and scripts should discover it from the live catalog — do not hard-code individual paths when a catalog or OpenAPI document is available.
 
+<Callout type="info" title="Prefer discovery over hard-coded paths">
+Start from `GET /.well-known/api-catalog` or `GET /api/v1/openapi.json`. The OpenAPI document is public (no session or API key) and is the stable contract.
+</Callout>
+
 ## Discovery
 
 | Rel | URL | What it is |
@@ -69,7 +73,9 @@ The OpenAPI document is the machine-readable list; this table is the short start
 
 ## Related
 
-- [MCP server](/reference/mcp-server) — tools over `/api/mcp`
-- [API keys](/operate/authentication/api-keys) — issuing `chm_` tokens
-- [Environment variables](/reference/environment-variables) — `CHM_*` names
-- [AI agent](/guide/ai-agent) — in-app agent and discovery endpoints
+<Cards>
+  <Card title="MCP server" href="/reference/mcp-server" description="Tools over /api/mcp." />
+  <Card title="API keys" href="/operate/authentication/api-keys" description="Issuing chm_ tokens." />
+  <Card title="Environment variables" href="/reference/environment-variables" description="CHM_* names." />
+  <Card title="AI agent" href="/guide/ai-agent" description="In-app agent and discovery endpoints." />
+</Cards>

@@ -13,19 +13,11 @@ lives where. Then follow the links to each detailed reference.
 chmonitor has three configuration sources. A later source always wins over an
 earlier one:
 
-```text
-built-in defaults
-  → CHM_CONFIG_FILE (TOML or YAML, feature permissions only)
-    → environment variables
-```
-
-```mermaid
-flowchart LR
+<Mermaid chart={`flowchart LR
     A[Built-in defaults] --> B[CHM_CONFIG_FILE]
     B --> C[Environment variables]
     C --> D[Runtime config]
-    style D fill:#4ade80,color:#000
-```
+    style D fill:#4ade80,color:#000`} />
 
 | Source | What it controls | Notes |
 |---|---|---|

@@ -33,12 +33,11 @@ v1 has no roles — only public and authenticated access levels.
 
 Configuration is layered. Later sources win over earlier ones:
 
-```text
-built-in allow-all defaults
-  → TypeScript config defaults
-    → CHM_CONFIG_FILE (TOML or YAML)
-      → environment variables
-```
+<Mermaid chart={`flowchart LR
+  A[Built-in allow-all] --> B[TypeScript defaults]
+  B --> C[CHM_CONFIG_FILE]
+  C --> D[Environment variables]
+  style D fill:#4ade80,color:#000`} />
 
 ### Config file (`CHM_CONFIG_FILE`)
 
@@ -216,8 +215,10 @@ CHM_DISABLED_FEATURES=insights
 
 ## Behavior when a feature is disabled or gated
 
-- **Disabled** (`enabled = false`): removed from navigation and command search. Direct page visits show a disabled screen. API routes return a blocked response before querying ClickHouse or the agent.
-- **Authenticated** (`access = "authenticated"`): unauthenticated visitors see the feature in navigation (so they know to sign in) but cannot load data. API routes reject unauthenticated requests.
+<Cards>
+  <Card title="Disabled (`enabled = false`)" description="Removed from navigation and command search. Direct page visits show a disabled screen. API routes return a blocked response before querying ClickHouse or the agent." />
+  <Card title="Authenticated" description="Unauthenticated visitors still see the feature in navigation (so they know to sign in) but cannot load data. API routes reject unauthenticated requests." />
+</Cards>
 
 ## Related
 

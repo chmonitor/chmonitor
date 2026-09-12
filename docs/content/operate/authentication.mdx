@@ -6,6 +6,17 @@ icon: ShieldCheck
 
 chmonitor has two independent auth layers that work together on every `/api/v1/*` route. A request is allowed when **either** layer accepts it. The only fully public setup is `CHM_AUTH_PROVIDER=none` with no `CHM_API_KEY_SECRET`.
 
+<Mermaid chart={`flowchart TD
+  R["/api/v1/* request"] --> P{auth=none AND\nno API key secret?}
+  P -->|yes| OK[allow public]
+  P -->|no| X{exempt public path?}
+  X -->|yes| OK
+  X -->|no| K{valid chm_ Bearer?}
+  K -->|yes| OK
+  K -->|no| V{active provider OK?}
+  V -->|yes| OK
+  V -->|no| N["401 Authentication required"]`} />
+
 - **Auth provider** — one of `none`, `clerk`, `proxy`, or `trusted`. Controls whether browser sessions are authenticated. Set the canonical `CHM_AUTH_PROVIDER`; the client `VITE_AUTH_PROVIDER` is derived from it at build time (you don't set it separately).
 - **API key layer** — always active when `CHM_API_KEY_SECRET` is set. Authenticates programmatic clients (MCP, scripts, CI) with signed `chm_` Bearer tokens, independent of the provider.
 

@@ -10,30 +10,35 @@ in a database you operate, instead of Cloudflare D1 (which only exists on the
 hosted Workers deployment). Without a backend, dashboards fall back to browser
 `localStorage` and conversations to memory.
 
-Two self-hosted backends are supported:
-
-- **ClickHouse** — reuse (or dedicate) a ClickHouse instance via
-  `CHM_STATE_CLICKHOUSE_*`. Tables are created lazily
-  (`CREATE TABLE IF NOT EXISTS`, `ReplacingMergeTree`) — no migrations to run.
-- **Postgres** — via `DATABASE_URL` / `POSTGRES_URL`. Tables are also created
-  lazily on first use.
+<Cards>
+  <Card title="ClickHouse" description="Reuse or dedicate an instance via CHM_STATE_CLICKHOUSE_*. Tables are created lazily (CREATE TABLE IF NOT EXISTS, ReplacingMergeTree) — no migrations." />
+  <Card title="Postgres" description="DATABASE_URL / POSTGRES_URL. Tables are also created lazily on first use. One string serves dashboards, connections, and conversations." />
+</Cards>
 
 ## Resolution order
 
 Each store resolves its backend at runtime, fail-open and OSS-first:
 
-1. Explicit backend override, where one exists
-   (`CONVERSATION_STORE_BACKEND` for conversations)
-2. Cloudflare D1 binding (`CHM_CLOUD_D1`, hosted deployment only)
-3. ClickHouse state env (`CHM_STATE_CLICKHOUSE_URL` set) — dashboards and
-   connections
-4. Postgres env (`DATABASE_URL` / `POSTGRES_URL` / `POSTGRES_PRISMA_URL`)
-5. Fallback: `localStorage` (dashboards) / memory (conversations)
+<Mermaid chart={`flowchart TD
+  A[Explicit override\nCONVERSATION_STORE_BACKEND] --> B{set?}
+  B -->|yes| Z[Use that backend]
+  B -->|no| C[Cloudflare D1\nCHM_CLOUD_D1]
+  C --> D{bound?}
+  D -->|yes, hosted| Z
+  D -->|no| E[ClickHouse state\nCHM_STATE_CLICKHOUSE_URL]
+  E --> F{URL set?}
+  F -->|yes| Z
+  F -->|no| G[Postgres\nDATABASE_URL]
+  G --> H{set?}
+  H -->|yes| Z
+  H -->|no| I[Fallback\nlocalStorage / memory]`} />
 
-Server-side dashboard and connection storage additionally requires the
-per-user feature gates (`CHM_FEATURE_CONVERSATION_DB` /
-`CHM_FEATURE_USER_CONNECTIONS_DB`) and an auth provider, since rows are keyed
-by user id — see [Environment variables](/reference/environment-variables).
+<Callout type="info" title="Per-user rows need auth">
+Server-side dashboard and connection storage also requires the per-user feature
+gates (`CHM_FEATURE_CONVERSATION_DB` / `CHM_FEATURE_USER_CONNECTIONS_DB`) and an
+auth provider — rows are keyed by user id. See
+[Environment variables](/reference/environment-variables).
+</Callout>
 
 ## ClickHouse state backend
 
@@ -54,9 +59,11 @@ lightweight `DELETE` permissions on the state database. Tables
 `ReplacingMergeTree(updated_at)` with `FINAL` reads, so updates are plain
 inserts and no mutations are required for normal operation.
 
+<Callout type="warn" title="Monitoring users are often read-only">
 This can be the same ClickHouse you monitor, but a monitoring user is often
 read-only — point `CHM_STATE_CLICKHOUSE_USER` at a writable account (or a
 separate small instance) if so.
+</Callout>
 
 ## Postgres state backend
 

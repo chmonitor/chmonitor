@@ -8,11 +8,20 @@ The query history pages (`/history-queries`, `/failed-queries`,
 `/expensive-queries`, `/slow-queries`) read from `system.query_log`. This table
 is built into ClickHouse and records every completed query.
 
+<Mermaid chart={`flowchart LR
+  Q[Completed queries] --> L[system.query_log]
+  L --> H["/history-queries"]
+  L --> F["/failed-queries"]
+  L --> E["/expensive-queries"]
+  L --> S["/slow-queries"]`} />
+
 ## Requirements
 
+<Callout type="info" title="Enabled by default">
 `system.query_log` must be enabled in your ClickHouse configuration. It is
 enabled by default in most installations. If the table is empty or missing,
 history pages show no data.
+</Callout>
 
 The configured `CLICKHOUSE_USER` needs `SELECT` on `system.query_log`:
 

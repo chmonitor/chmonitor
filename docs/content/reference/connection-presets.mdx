@@ -13,12 +13,11 @@ to wire it into the chmonitor env vars.
 
 ## Why a dedicated read-only user
 
-- **Principle of least privilege.** chmonitor only needs `SELECT` on `system.*`
-  (and optionally on databases you want to explore). Nothing more.
-- **Credential isolation.** A separate `chmonitor` user means a leaked secret
-  cannot be used to drop tables or modify data.
-- **Audit trail.** All chmonitor queries appear in `system.query_log` under a
-  distinct `user` value, making it easy to attribute traffic.
+<Cards>
+  <Card title="Least privilege" description="chmonitor only needs SELECT on system.* (and optionally databases you want to explore). Nothing more." />
+  <Card title="Credential isolation" description="A separate chmonitor user means a leaked secret cannot be used to drop tables or modify data." />
+  <Card title="Audit trail" description="All chmonitor queries appear in system.query_log under a distinct user value." />
+</Cards>
 
 ## Create the read-only user
 

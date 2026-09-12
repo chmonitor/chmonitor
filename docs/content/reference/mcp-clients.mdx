@@ -8,11 +8,11 @@ Connect Claude Desktop, Cursor, Claude Code, or any MCP-compatible client to you
 
 ## Before you start
 
-You need:
-
-- A running chmonitor instance (Docker, Kubernetes, or Cloudflare Workers).
-- The public URL of that instance, e.g. `https://dash.example.com`.
-- An API key if auth is enabled (see [Authentication](#authentication) below).
+<Callout type="info" title="What you need">
+A running chmonitor instance (Docker, Kubernetes, or Cloudflare Workers), its
+public URL (e.g. `https://dash.example.com`), and an API key if auth is enabled
+(see [Authentication](#authentication) below).
+</Callout>
 
 The MCP endpoint is `<your-deployment>/api/mcp`. It uses the **Streamable HTTP** transport — no WebSocket, no persistent session.
 
