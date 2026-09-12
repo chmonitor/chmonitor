@@ -4,7 +4,14 @@ description: Run chmonitor as a Docker container or Compose service — the fast
 icon: Container
 ---
 
-Run chmonitor as a Docker container — the fastest path to a self-hosted ClickHouse dashboard. The image is published to GitHub Container Registry.
+Run chmonitor as a Docker container — the fastest path to a self-hosted dashboard. Image: GitHub Container Registry.
+
+```mermaid
+flowchart LR
+  Img[ghcr.io/chmonitor/chmonitor] --> Ctr[Container :3000]
+  Ctr --> CH[(ClickHouse)]
+  Browser[Browser] --> Ctr
+```
 
 ## Prerequisites
 
@@ -65,7 +72,7 @@ services:
       retries: 3
 ```
 
-If ClickHouse runs in the same Compose project, use the service name as the host. If it runs on the Docker host machine, use `host.docker.internal` and add `--add-host=host.docker.internal:host-gateway` to the service's `extra_hosts`.
+If ClickHouse runs in the same Compose project, use the service name as the host. If it runs on the Docker host, use `host.docker.internal` and add `extra_hosts: ["host.docker.internal:host-gateway"]`.
 
 </Tab>
 </Tabs>
@@ -132,12 +139,17 @@ For breaking changes between major versions, see [Migrating to v0.3](/reference/
 
 ## Troubleshooting
 
-<Callout type="info" title="localhost resolves to the container">
-`localhost` inside the container resolves to the container itself, not the host. Use `host.docker.internal`.
-</Callout>
-
-- Empty pages usually mean the ClickHouse user lacks grants on system tables. Grant `SELECT` on `system.*`.
-- If pages load but charts are empty, check `CLICKHOUSE_MAX_EXECUTION_TIME` — the default is 60 s.
+<Accordions>
+<Accordion title="localhost resolves to the container">
+`localhost` inside the container is the container itself, not the host. Use `host.docker.internal`.
+</Accordion>
+<Accordion title="Empty pages">
+Usually the ClickHouse user lacks grants. Grant `SELECT` on `system.*`.
+</Accordion>
+<Accordion title="Pages load, charts empty">
+Check `CLICKHOUSE_MAX_EXECUTION_TIME` — default is 60 s.
+</Accordion>
+</Accordions>
 
 ## Related
 

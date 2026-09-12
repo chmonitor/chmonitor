@@ -4,11 +4,18 @@ icon: Triangle
 title: Vercel
 ---
 
-Deploy chmonitor to Vercel using the legacy Next.js build. Vercel auto-deploys on every push to `main` and inlines client env vars at build time.
+Deploy chmonitor to Vercel using the **legacy Next.js** build. Vercel auto-deploys on push to `main` and inlines client env at build time.
 
 <Callout type="warn" title="Legacy guide — Next.js v0.2 only">
-This guide targets the **legacy Next.js build (v0.2 and earlier)**. The current app (`apps/dashboard`, TanStack Start, v0.3+) is designed for Cloudflare Workers. If you are running v0.3 or later, use [Cloudflare Workers](/operate/deploy/cloudflare) or [Docker](/operate/deploy/docker) instead.
+This guide targets the **legacy Next.js build (v0.2 and earlier)**. The current app (`apps/dashboard`, TanStack Start, v0.3+) is designed for Cloudflare Workers. If you run v0.3+, use [Cloudflare Workers](/operate/deploy/cloudflare) or [Docker](/operate/deploy/docker).
 </Callout>
+
+```mermaid
+flowchart LR
+  Push[git push main] --> V[Vercel]
+  V --> Next[Next.js v0.2]
+  Next --> CH[(ClickHouse)]
+```
 
 ## Prerequisites
 
@@ -34,7 +41,7 @@ Go to [vercel.com/new](https://vercel.com/new) and import the repository.
 <Step>
 ### Set build settings
 
-Vercel detects Next.js automatically. Confirm the values below.
+Vercel detects Next.js automatically.
 
 | Setting | Value |
 |---|---|
@@ -48,13 +55,13 @@ Vercel detects Next.js automatically. Confirm the values below.
 <Step>
 ### Set environment variables
 
-In the Vercel dashboard, go to **Project → Settings → Environment Variables** and add the variables from [Configure](#configure) below.
+**Project → Settings → Environment Variables** — see [Configure](#configure).
 </Step>
 
 <Step>
 ### Deploy
 
-Click **Deploy** or push to `main` to trigger an automatic deploy.
+Click **Deploy** or push to `main`.
 </Step>
 </Steps>
 
@@ -69,18 +76,24 @@ Template: [`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor
 
 ## Verify
 
-- Open the assigned Vercel URL — you should land on the overview page.
-- To upgrade, push to `main` (or merge a PR) and Vercel auto-deploys. For environment variable changes, update them in the dashboard and trigger a redeploy (Deployments → Redeploy).
+- Open the Vercel URL — overview should load.
+- Upgrade: push to `main` (or merge). Env changes: update in the dashboard, then **Deployments → Redeploy**.
 
-For breaking changes between major versions, see [Migrating to v0.3](/reference/migrating/v0-3).
+For breaking changes, see [Migrating to v0.3](/reference/migrating/v0-3).
 
 ## Troubleshooting
 
-<Callout type="info" title="Vercel limitations">
-- **No D1 / Durable Objects:** Cloudflare-only. Use postgres or clickhouse for conversation store.
-- **Function timeout:** Vercel Hobby plan limits function duration to 10 s. Use Pro or set `CLICKHOUSE_MAX_EXECUTION_TIME` below that limit.
-- **Cold starts:** Vercel serverless functions have cold starts. Set `CLICKHOUSE_POOL_SIZE` appropriately.
-</Callout>
+<Accordions>
+<Accordion title="No D1 / Durable Objects">
+Cloudflare-only. Use postgres or clickhouse for conversation store.
+</Accordion>
+<Accordion title="Function timeout">
+Hobby plan limits functions to 10 s. Use Pro or set `CLICKHOUSE_MAX_EXECUTION_TIME` below that.
+</Accordion>
+<Accordion title="Cold starts">
+Tune `CLICKHOUSE_POOL_SIZE` for serverless cold starts.
+</Accordion>
+</Accordions>
 
 ## Related
 

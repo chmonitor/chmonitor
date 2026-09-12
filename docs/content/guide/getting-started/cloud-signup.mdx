@@ -10,6 +10,15 @@ chmonitor **Cloud** (`dash.chmonitor.dev`) is the hosted dashboard — sign in, 
 Prefer [self-host](/operate/deploy/self-host) plus an optional [commercial license](/operate/advanced/commercial-license) (yearly or lifetime, honor system). That is the paid path for operators who already run infra.
 </Callout>
 
+```mermaid
+flowchart LR
+  Anon[Anonymous] --> Demo[Read-only demo cluster]
+  Anon --> SignIn[Sign in]
+  SignIn --> Hide[Demo hidden]
+  Hide --> Connect[Add your hosts]
+  Connect --> Dash[Your dashboard]
+```
+
 ## The sign-up flow
 
 <Steps>
@@ -26,7 +35,7 @@ Before signing in you can explore a live, public **read-only demo** cluster. Sig
 
 There is no Polar plan picker. Add a ClickHouse or Postgres connection (see [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements), or [Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse)).
 
-Hosted Cloud does not cap hosts or seats. AI daily caps still apply on the hosted product (see below).
+Hosted Cloud does not cap hosts or seats. AI daily caps still apply on the hosted product.
 
 </Step>
 </Steps>
@@ -47,7 +56,11 @@ Anonymous guests also have a tighter per-minute rate limit (`RATE_LIMIT_AGENT_GU
 
 ## Licenses (self-host)
 
-Buy Team or Unlimited from [pricing](https://chmonitor.dev/pricing/). Polar checkout is for the **self-host license** (hooks.chmonitor.dev), then [register](https://chmonitor.dev/license/register) your company. The Cloud dashboard does not sell plans. See [commercial license](/operate/advanced/commercial-license).
+<Cards>
+  <Card title="Pricing" href="https://chmonitor.dev/pricing/" description="Buy Team or Unlimited — Polar checkout is the self-host license." />
+  <Card title="Register" href="https://chmonitor.dev/license/register" description="Register your company after checkout (hooks.chmonitor.dev)." />
+  <Card title="Commercial license" href="/operate/advanced/commercial-license" description="Honor system, no key. Cloud dashboard does not sell plans." />
+</Cards>
 
 ## Related
 

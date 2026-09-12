@@ -4,16 +4,23 @@ description: Deploy chmonitor to Cloudflare Workers for globally distributed, se
 icon: Cloud
 ---
 
-Deploy chmonitor to Cloudflare Workers — best for globally cached, serverless hosting with no servers to manage.
+Deploy to Cloudflare Workers — globally cached, serverless, no servers. The dashboard (`apps/dashboard`) uses `@cloudflare/vite-plugin` for a native Workers bundle. Deploy is `pnpm run build && wrangler deploy`.
 
-The dashboard app (`apps/dashboard`) uses the `@cloudflare/vite-plugin` to build a native Cloudflare Workers bundle — no OpenNext adapter required. The deploy script is just `pnpm run build && wrangler deploy`.
+```mermaid
+flowchart LR
+  Env[".env.production / secrets"] --> Build[vite build]
+  Build --> W[wrangler deploy]
+  W --> Edge[Worker]
+  Edge --> CH[(ClickHouse)]
+  Edge --> D1[(D1 / DO optional)]
+```
 
 ## Prerequisites
 
 <Callout type="info" title="What you need">
 - Cloudflare account
-- pnpm installed locally or in CI
-- `CLOUDFLARE_API_TOKEN` with Workers deploy permissions (or run `wrangler login` for OAuth)
+- pnpm locally or in CI
+- `CLOUDFLARE_API_TOKEN` with Workers deploy permissions (or `wrangler login`)
 </Callout>
 
 ### One-click deploy
@@ -55,13 +62,11 @@ pnpm run cf:deploy   # vite build → wrangler deploy
 <Step>
 ### Open your Worker URL
 
-Open your Workers URL or set a custom domain in the Cloudflare dashboard.
+Open the Workers URL or attach a custom domain in the Cloudflare dashboard.
 </Step>
 </Steps>
 
 ## Verify
-
-Open your Workers URL. To confirm from the shell, hit the readiness endpoint:
 
 ```bash
 curl -sf https://<your-worker-url>/api/healthz && echo OK
@@ -70,7 +75,7 @@ curl -sf https://<your-worker-url>/api/healthz && echo OK
 ## How configuration works on Cloudflare
 
 <Callout type="warn" title="Build-time vs runtime vars">
-There are two kinds of variables — mixing them up is the most common source of bugs.
+Mixing these two kinds is the most common source of bugs.
 </Callout>
 
 | Kind | Where to set | Who reads it | Example |
@@ -81,10 +86,10 @@ There are two kinds of variables — mixing them up is the most common source of
 Set `CHM_*` once. Do not also set `VITE_*`. Hosted dashboard `wrangler.toml` has no `[vars]` block — edit `.env.production`.
 
 <Callout type="info" title="One canonical name">
-You usually don't set `VITE_*` directly. Set the canonical `CHM_*` name (e.g. `CHM_AUTH_PROVIDER`) in the build environment and `vite.config.ts` derives the matching `VITE_*`. A dual-surface setting must be present at build time (so the `VITE_*` inlines) **and** as a runtime `[var]` (so the server reads `CHM_*`) — same name, both places. See [One canonical name per setting](/reference/environment-variables#one-canonical-name-per-setting).
+Set the canonical `CHM_*` name in the build environment; `vite.config.ts` derives `VITE_*`. Dual-surface settings must exist at **build** time (inline) **and** as a runtime var (server). See [One canonical name per setting](/reference/environment-variables#one-canonical-name-per-setting).
 </Callout>
 
-Runtime Worker vars (`wrangler.toml [vars]` and secrets) are never visible in the browser.
+Runtime Worker vars and secrets are never visible in the browser.
 
 ## Secrets
 
@@ -93,11 +98,11 @@ wrangler secret put CLICKHOUSE_HOST
 wrangler secret put CLICKHOUSE_PASSWORD
 ```
 
-Optional secrets (`CLERK_SECRET_KEY`, `ANYROUTER_API_KEY`, `CRON_SECRET`, …):
-see [Environment variables](/reference/environment-variables).
+Optional (`CLERK_SECRET_KEY`, `ANYROUTER_API_KEY`, `CRON_SECRET`, …):
+[Environment variables](/reference/environment-variables).
 
 <Callout type="info" title="Redeploy after secret changes">
-After `wrangler secret put`, redeploy so the Worker picks up the change: `pnpm run cf:deploy`.
+After `wrangler secret put`, redeploy: `pnpm run cf:deploy`.
 </Callout>
 
 ## Configure
@@ -114,9 +119,9 @@ Auth: [Authentication](/operate/authentication). Conversations: [Conversation st
 pnpm run cf:deploy
 ```
 
-This runs: `vite build` (produces the Cloudflare Workers bundle) → `wrangler deploy`.
+Runs `vite build` → `wrangler deploy`.
 
-**CI (GitHub Actions):** push to `main` triggers `.github/workflows/cloudflare.yml`. Set `CLOUDFLARE_API_TOKEN` as a repository secret, plus `CLICKHOUSE_*`, and any canonical build-time vars (e.g. `CHM_AUTH_PROVIDER`, `CHM_CLERK_PUBLISHABLE_KEY` — the client `VITE_*` derive from them).
+**CI:** push to `main` runs `.github/workflows/cloudflare.yml`. Set `CLOUDFLARE_API_TOKEN`, `CLICKHOUSE_*`, and build-time `CHM_*` (e.g. `CHM_AUTH_PROVIDER`, `CHM_CLERK_PUBLISHABLE_KEY`).
 
 <Callout type="info" title="This repo's hosted deploy uses .env.production">
 Dashboard `wrangler.toml` declares **no** `[vars]`. Non-secret hosted config lives in `apps/dashboard/.env.production` (+ `.env.preview`). Edit that file — do not re-add `[vars]`.
@@ -130,14 +135,12 @@ pnpm run cf:preview
 
 ## Cloudflare bindings
 
-The app uses these Cloudflare resources (configured in `wrangler.toml`):
-
 | Binding | Type | Purpose |
 |---|---|---|
 | `CHM_CLOUD_D1` | D1 Database | Conversation history (optional) |
 | `AGENT_CONVERSATIONS_DO` | Durable Object | Conversation history via Durable Objects (optional) |
 
-The TanStack Start build via `@cloudflare/vite-plugin` does not require KV, R2, or cache-tag bindings. Only conversation-store bindings need to be added if you enable server-side persistence.
+TanStack Start via `@cloudflare/vite-plugin` does not need KV, R2, or cache-tag bindings. Add conversation-store bindings only if you persist chats server-side.
 
 ## Upgrading
 
@@ -167,21 +170,21 @@ pnpm run cf:deploy
 </Step>
 </Steps>
 
-Worker secrets persist across deploys; you only need to re-run `wrangler secret put` when a value changes.
+Worker secrets persist across deploys; re-run `wrangler secret put` only when a value changes.
 
-For breaking changes between major versions, see [Migrating to v0.3](/reference/migrating/v0-3).
+For breaking changes, see [Migrating to v0.3](/reference/migrating/v0-3).
 
 ## Troubleshooting
 
 <Accordions>
 <Accordion title="wrangler deploy ships nothing or stale assets">
-Run `pnpm run build` (or `pnpm run cf:deploy`, which does both) before `wrangler deploy` — the Vite build must produce the Workers bundle first.
+Run `pnpm run build` (or `pnpm run cf:deploy`) before `wrangler deploy` — Vite must produce the Workers bundle first.
 </Accordion>
 <Accordion title="Runtime errors / blank pages">
-Check Workers logs in the Cloudflare dashboard. Verify secrets are set (`wrangler secret list`) and redeploy after any `wrangler secret put`.
+Check Workers logs. Verify secrets (`wrangler secret list`) and redeploy after any `wrangler secret put`.
 </Accordion>
 <Accordion title="Build-time client var not taking effect">
-`VITE_*` vars must be set in the environment when `pnpm run build` runs, not in `wrangler.toml [vars]`.
+`VITE_*` must be in the environment when `pnpm run build` runs, not in `wrangler.toml [vars]`.
 </Accordion>
 </Accordions>
 

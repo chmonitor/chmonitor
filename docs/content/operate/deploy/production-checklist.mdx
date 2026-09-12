@@ -4,72 +4,92 @@ icon: ClipboardCheck
 title: Production Checklist
 ---
 
-Work through each section before exposing chmonitor to a team or the internet. Every item is a hardening or validation step — skipping one leaves a gap.
+Work through each section before exposing chmonitor to a team or the internet. Skipping an item leaves a gap.
 
-## ClickHouse user and grants
+```mermaid
+flowchart TD
+  CH[ClickHouse user + secrets] --> Auth[Auth not none on the internet]
+  Auth --> Feat[Gate agent / settings / MCP]
+  Feat --> Agent[Control tools off]
+  Agent --> Health[Cron + alerts]
+  Health --> Net[HTTPS + rollback]
+```
 
-- [ ] Create a dedicated monitoring user — do not use `default` or an admin account.
-- [ ] Grant `SELECT` on `system.*` tables only. The dashboard is read-only by default.
-- [ ] If you enable the kill-query action, also grant `KILL QUERY`.
-- [ ] Set `CLICKHOUSE_MAX_EXECUTION_TIME` to a safe limit (e.g. `30`) so runaway dashboard queries stop quickly.
-- [ ] Store `CLICKHOUSE_PASSWORD` in a secret (Docker secret, k8s Secret, Cloudflare Worker secret, Vercel env) — never in source code or a ConfigMap.
-- [ ] Prefer HTTPS for ClickHouse Cloud and any public endpoint. Keep private endpoints behind your own network.
+<Accordions>
+<Accordion title="ClickHouse user and grants">
 
-## Authentication — do not leave fully public
+- [ ] Dedicated monitoring user — not `default` or admin.
+- [ ] Grant `SELECT` on `system.*` only. Dashboard is read-only by default.
+- [ ] If you enable kill-query, also grant `KILL QUERY`.
+- [ ] Set `CLICKHOUSE_MAX_EXECUTION_TIME` (e.g. `30`) so runaway dashboard queries stop.
+- [ ] Store `CLICKHOUSE_PASSWORD` in a secret (Docker / k8s / Worker / Vercel) — never source or ConfigMap.
+- [ ] Prefer HTTPS for ClickHouse Cloud and public endpoints. Keep private endpoints on your network.
+
+</Accordion>
+<Accordion title="Authentication — do not leave fully public">
 
 <Callout type="danger" title="Open access is not safe on the internet">
-`CHM_AUTH_PROVIDER=none` is only safe on a private network with no agent or MCP access. If chmonitor is reachable from the internet, use Clerk or a trusted-header proxy provider.
+`CHM_AUTH_PROVIDER=none` is only safe on a private network with no agent or MCP access. If chmonitor is reachable from the internet, use Clerk or a trusted-header proxy.
 </Callout>
 
-- [ ] Choose an auth provider: `none` is only safe on a private network with no agent or MCP access.
-- [ ] If you use `CHM_AUTH_PROVIDER=none`, restrict network access so the app is not reachable from the internet.
-- [ ] For team deployments, use Clerk or a trusted-header proxy provider.
-- [ ] Set `CHM_API_KEY_SECRET` whenever you expose `/api/mcp`. MCP clients send long-lived tokens — require an API key. (The MCP endpoint returns 401 by default; set `CHM_MCP_PUBLIC=true` only on isolated private networks.)
-- [ ] Rotate `CHM_API_KEY_SECRET` and `CHM_PROXY_AUTH_SECRET` if they are ever exposed. Redeploy after rotating.
-- [ ] Never put `CLERK_SECRET_KEY`, `LLM_API_KEY`, or `CHM_API_KEY_SECRET` in a `VITE_*` or `NEXT_PUBLIC_*` variable — those are baked into browser JS.
+- [ ] Choose an auth provider: `none` only on a private network with no agent or MCP.
+- [ ] If `CHM_AUTH_PROVIDER=none`, restrict network access so the app is not on the internet.
+- [ ] For teams, use Clerk or a trusted-header proxy.
+- [ ] Set `CHM_API_KEY_SECRET` whenever you expose `/api/mcp`. MCP clients send long-lived tokens. The endpoint returns 401 by default; `CHM_MCP_PUBLIC=true` only on isolated private networks.
+- [ ] Rotate `CHM_API_KEY_SECRET` and `CHM_PROXY_AUTH_SECRET` if exposed. Redeploy after rotating.
+- [ ] Never put `CLERK_SECRET_KEY`, `LLM_API_KEY`, or `CHM_API_KEY_SECRET` in `VITE_*` or `NEXT_PUBLIC_*` — those bake into browser JS.
 
-## Feature permissions — gate sensitive features
+</Accordion>
+<Accordion title="Feature permissions — gate sensitive features">
 
-- [ ] Gate the agent behind authentication: `CHM_FEATURE_AGENT_ACCESS=authenticated`.
+- [ ] Gate the agent: `CHM_FEATURE_AGENT_ACCESS=authenticated`.
 - [ ] Gate settings: `CHM_FEATURE_SETTINGS_ACCESS=authenticated` or `CHM_FEATURE_SETTINGS_ENABLED=false`.
 - [ ] Gate MCP: `CHM_FEATURE_MCP_ACCESS=authenticated`.
-- [ ] Disable features your team does not use: `CHM_DISABLED_FEATURES=actions,peerdb`.
-- [ ] Review which features are visible to unauthenticated users. Default is all public.
+- [ ] Disable unused features: `CHM_DISABLED_FEATURES=actions,peerdb`.
+- [ ] Review what unauthenticated users see. Default is all public.
 
-## AI agent
+</Accordion>
+<Accordion title="AI agent">
 
-- [ ] Keep `AGENT_ENABLE_CONTROL_TOOLS=false` (default) unless you trust all authenticated users to kill queries and optimize tables.
-- [ ] Keep `LLM_API_KEY` server-side only — never in a client env var.
-- [ ] Set `AGENT_API_TOKEN` if you want to gate programmatic access to `/api/v1/agent`.
-- [ ] The agent uses the configured ClickHouse user's grants. A read-only user limits what the agent can do.
-- [ ] Set spending / rate limits on your LLM provider to cap runaway agent costs.
+- [ ] Keep `AGENT_ENABLE_CONTROL_TOOLS=false` unless you trust all authenticated users to kill queries and optimize tables.
+- [ ] Keep `LLM_API_KEY` server-side only.
+- [ ] Set `AGENT_API_TOKEN` to gate `/api/v1/agent`.
+- [ ] The agent uses the ClickHouse user's grants. A read-only user limits what it can do.
+- [ ] Set spending / rate limits on the LLM provider.
 
-## Health alerting
+</Accordion>
+<Accordion title="Health alerting">
 
-- [ ] Set `CRON_SECRET` to protect the `/api/cron/health-sweep` endpoint.
-- [ ] Set `HEALTH_ALERT_ENABLED=true` and `HEALTH_ALERT_WEBHOOK_URL` (Slack or Discord) for proactive alerts.
-- [ ] Choose `HEALTH_ALERT_MIN_SEVERITY=warning` or `critical` depending on alert volume.
-- [ ] Verify the cron trigger reaches the endpoint (Cloudflare Cron Trigger, k8s CronJob, or external cron).
+- [ ] Set `CRON_SECRET` to protect `/api/cron/health-sweep`.
+- [ ] Set `HEALTH_ALERT_ENABLED=true` and `HEALTH_ALERT_WEBHOOK_URL` (Slack or Discord).
+- [ ] Choose `HEALTH_ALERT_MIN_SEVERITY=warning` or `critical`.
+- [ ] Verify the cron trigger (Cloudflare Cron, k8s CronJob, or external cron).
 
-## Query timeout and pool
+</Accordion>
+<Accordion title="Query timeout and pool">
 
-- [ ] Set `CLICKHOUSE_MAX_EXECUTION_TIME` below your infrastructure's request timeout (30 s is a safe default).
-- [ ] Tune `CLICKHOUSE_POOL_SIZE` to match expected concurrent dashboard users.
+- [ ] Set `CLICKHOUSE_MAX_EXECUTION_TIME` below your request timeout (30 s is a safe default).
+- [ ] Tune `CLICKHOUSE_POOL_SIZE` to concurrent dashboard users.
 
-## Conversation store backups
+</Accordion>
+<Accordion title="Conversation store backups">
 
-- [ ] If using a server-side conversation store (postgres, clickhouse, D1), include it in your backup schedule.
-- [ ] For D1 on Cloudflare, use `wrangler d1 export` to back up.
-- [ ] For postgres, use your database provider's backup feature.
-- [ ] `memory` and `local` (browser localStorage) stores are ephemeral — no backup needed, but history is lost on restart or when browser data is cleared.
+- [ ] If using postgres, clickhouse, or D1, include it in backups.
+- [ ] D1: `wrangler d1 export`.
+- [ ] postgres: provider backups.
+- [ ] `memory` and `local` (browser localStorage) are ephemeral.
 
-## Network and deployment
+</Accordion>
+<Accordion title="Network and deployment">
 
-- [ ] Verify the app can reach ClickHouse from the deployment runtime, not just from your laptop.
-- [ ] Use HTTPS in front of chmonitor when exposing to a team (TLS termination at nginx, Cloudflare, or your load balancer).
-- [ ] Record where secrets are stored and who can rotate them.
-- [ ] Keep a rollback path: previous Docker tag, Helm release revision, or Worker version.
-- [ ] Watch app logs after deploy for ClickHouse connection errors or auth failures.
+- [ ] The app can reach ClickHouse from the **runtime**, not just your laptop.
+- [ ] HTTPS in front of chmonitor (nginx, Cloudflare, or load balancer).
+- [ ] Record where secrets live and who can rotate them.
+- [ ] Rollback path: previous Docker tag, Helm revision, or Worker version.
+- [ ] Watch logs after deploy for connection or auth failures.
+
+</Accordion>
+</Accordions>
 
 ## Related
 

@@ -4,37 +4,60 @@ description: Enable and configure ClickHouse system log tables for full chmonito
 icon: TerminalSquare
 ---
 
-chmonitor reads from ClickHouse `system.*` log tables. Most are enabled by default in a fresh installation, but some deployments disable them with `<... remove="1"/>` to save disk. This page lists which tables are needed and how to enable them.
+chmonitor reads from ClickHouse `system.*` log tables. Most are on in a fresh install; some deployments disable them with `<... remove="1"/>` to save disk.
+
+```mermaid
+flowchart LR
+  CH[ClickHouse] --> QL[query_log]
+  CH --> ML[metric_log]
+  CH --> PL[part_log]
+  QL --> Dash[chmonitor pages]
+  ML --> Dash
+  PL --> Dash
+  CH -.-> Opt[optional logs]
+  Opt -.-> Extra[thread / text / session]
+```
 
 ## Required tables
 
-These tables are needed for core monitoring features. Missing any of them degrades the corresponding pages.
+Missing any of these degrades the corresponding pages.
 
 | Table | What it powers | Default |
 |---|---|---|
-| `system.query_log` | Query history, performance analysis, history pages | Enabled |
-| `system.metric_log` | Historical CPU, memory, network metrics | Enabled |
+| `system.query_log` | Query history, performance, history pages | Enabled |
+| `system.metric_log` | Historical CPU, memory, network | Enabled |
 | `system.asynchronous_metric_log` | Periodic async metrics charts | Enabled |
-| `system.part_log` | Part/merge operation history | Enabled |
+| `system.part_log` | Part/merge history | Enabled |
 | `system.error_log` | Server error history (v23.8+) | Enabled |
 
 ## Optional tables
 
-These unlock specific features. chmonitor handles their absence gracefully — the related page shows an empty state or a notice instead of crashing.
+Absence is graceful — empty state or a notice, not a crash.
 
 | Table | Feature | Default | Notes |
 |---|---|---|---|
-| `system.query_thread_log` | Thread analysis, parallelization stats | Disabled | Needs `log_query_threads=1` in profile |
-| `system.processors_profile_log` | Query profiler | Disabled | Needs explicit config entry |
-| `system.query_views_log` | Query views log | Disabled | Needs explicit config entry |
-| `system.text_log` | Server text log viewer | Disabled | Needs explicit config entry |
-| `system.session_log` | Login and session history | Disabled | Needs explicit config entry |
-| `system.crash_log` | Crash log viewer | Disabled | Needs explicit config entry |
-| `system.trace_log` | Trace-level profiling | Disabled | Needs explicit config entry |
-| `system.backup_log` | Backup/restore history | Not present | Only exists when backup is configured |
-| `system.zookeeper` | ZooKeeper / Keeper status | Not present | Only available when Keeper/ZooKeeper is configured |
+| `system.query_thread_log` | Thread analysis | Disabled | Needs `log_query_threads=1` |
+| `system.processors_profile_log` | Query profiler | Disabled | Explicit config |
+| `system.query_views_log` | Query views log | Disabled | Explicit config |
+| `system.text_log` | Server text log | Disabled | Explicit config |
+| `system.session_log` | Login / session history | Disabled | Explicit config |
+| `system.crash_log` | Crash log | Disabled | Explicit config |
+| `system.trace_log` | Trace profiling | Disabled | Explicit config |
+| `system.backup_log` | Backup/restore | Not present | Only when backup is configured |
+| `system.zookeeper` | Keeper status | Not present | Only with Keeper/ZooKeeper |
 
 ## Enable the tables
+
+<Files>
+  <Folder name="etc/clickhouse-server" defaultOpen>
+    <Folder name="config.d" defaultOpen>
+      <File name="system-logs.xml" />
+    </Folder>
+    <Folder name="users.d">
+      <File name="profiles.xml" />
+    </Folder>
+  </Folder>
+</Files>
 
 <Steps>
 
@@ -42,11 +65,13 @@ These unlock specific features. chmonitor handles their absence gracefully — t
 
 ### Add the config block
 
-Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
+Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`. Required blocks first; optional blocks are collapsed.
+
+<Tabs items={['Required logs', 'Optional logs']}>
+<Tab value="Required logs">
 
 ```xml
 <clickhouse>
-  <!-- Required: core monitoring tables -->
   <query_log>
     <database>system</database>
     <table>query_log</table>
@@ -99,8 +124,15 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <buffer_size_rows_flush_threshold>524288</buffer_size_rows_flush_threshold>
     <flush_on_crash>true</flush_on_crash>
   </error_log>
+</clickhouse>
+```
 
-  <!-- Optional: thread analysis -->
+</Tab>
+<Tab value="Optional logs">
+
+Merge these into the same `<clickhouse>` root as the required blocks.
+
+```xml
   <query_thread_log>
     <database>system</database>
     <table>query_thread_log</table>
@@ -111,7 +143,6 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <flush_on_crash>true</flush_on_crash>
   </query_thread_log>
 
-  <!-- Optional: query profiler -->
   <processors_profile_log>
     <database>system</database>
     <table>processors_profile_log</table>
@@ -122,7 +153,6 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <flush_on_crash>true</flush_on_crash>
   </processors_profile_log>
 
-  <!-- Optional: server text log viewer -->
   <text_log>
     <database>system</database>
     <table>text_log</table>
@@ -133,7 +163,6 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <flush_on_crash>true</flush_on_crash>
   </text_log>
 
-  <!-- Optional: session/login history -->
   <session_log>
     <database>system</database>
     <table>session_log</table>
@@ -144,7 +173,6 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <flush_on_crash>true</flush_on_crash>
   </session_log>
 
-  <!-- Optional: trace log -->
   <trace_log>
     <database>system</database>
     <table>trace_log</table>
@@ -155,7 +183,6 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <flush_on_crash>true</flush_on_crash>
   </trace_log>
 
-  <!-- Optional: crash log -->
   <crash_log>
     <database>system</database>
     <table>crash_log</table>
@@ -165,8 +192,10 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
     <buffer_size_rows_flush_threshold>512</buffer_size_rows_flush_threshold>
     <flush_on_crash>true</flush_on_crash>
   </crash_log>
-</clickhouse>
 ```
+
+</Tab>
+</Tabs>
 
 </Step>
 
@@ -174,7 +203,7 @@ Create or edit `/etc/clickhouse-server/config.d/system-logs.xml`:
 
 ### Enable `log_query_threads`
 
-For `query_thread_log` to collect data, set `log_query_threads=1` in the profile used by the monitoring user:
+For `query_thread_log` to collect data, set `log_query_threads=1` on the monitoring profile:
 
 ```xml
 <!-- /etc/clickhouse-server/users.d/profiles.xml -->
@@ -193,8 +222,6 @@ For `query_thread_log` to collect data, set `log_query_threads=1` in the profile
 
 ### Restart and verify
 
-After applying the config, restart ClickHouse and check which log tables are present:
-
 ```bash
 sudo systemctl restart clickhouse-server
 
@@ -208,7 +235,7 @@ clickhouse-client --query \
 
 ## Re-enabling disabled tables
 
-If your config has entries like:
+If your config has:
 
 ```xml
 <metric_log remove="1"/>
@@ -217,19 +244,25 @@ If your config has entries like:
 <query_thread_log remove="1"/>
 ```
 
-Remove those lines and add the corresponding config block from the section above.
+Remove those lines **and** add the matching config block above.
 
 <Callout type="warn" title="The remove attribute prevents table creation">
-The `remove="1"` attribute completely prevents the table from being created — removing the attribute alone is not enough if no config block exists.
+`remove="1"` blocks table creation entirely — dropping the attribute is not enough if no config block exists.
 </Callout>
 
 ## Controlling disk usage
 
-System log tables can grow large. Useful levers:
-
-- **`max_size_rows`**: Caps the table size (default ~1M rows). Rows are dropped when the limit is hit.
-- **TTL**: Configure a TTL to prune old rows automatically. This is set in `config.xml` (or a file in `config.d/`) under the relevant log block — for example, `<ttl>event_date + INTERVAL 30 DAY DELETE</ttl>`. Direct `ALTER TABLE` on system tables is generally restricted.
-- **`collect_interval_milliseconds`**: Higher values mean less frequent metric collection. `60000` (1 minute) is a reasonable default for most deployments.
+<Accordions>
+<Accordion title="max_size_rows">
+Caps table size (default ~1M rows). Rows drop when the limit is hit.
+</Accordion>
+<Accordion title="TTL">
+Set TTL in `config.xml` (or `config.d/`) under the log block, e.g. `<ttl>event_date + INTERVAL 30 DAY DELETE</ttl>`. Direct `ALTER TABLE` on system tables is generally restricted.
+</Accordion>
+<Accordion title="collect_interval_milliseconds">
+Higher values mean less frequent collection. `60000` (1 minute) is a reasonable default.
+</Accordion>
+</Accordions>
 
 ## Related
 
