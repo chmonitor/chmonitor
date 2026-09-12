@@ -4,11 +4,22 @@ description: Run the chmonitor dashboard from source with pnpm and TanStack Star
 icon: TerminalSquare
 ---
 
-Run chmonitor from source for development or to test changes before deploying.
+Run the dashboard from source to develop or test before deploy. The app is `apps/dashboard` (TanStack Start). Set `CHM_*` once; client `VITE_*` is derived.
 
-## The dashboard app
+<Cards>
+  <Card title="ClickHouse user & grants" href="/guide/getting-started/clickhouse-requirements" description="Dedicated read-only user — do not use admin." />
+  <Card title="Enable system tables" href="/guide/getting-started/clickhouse-enable-system-tables" description="query_log and friends for full pages." />
+  <Card title="Environment variables" href="/reference/environment-variables" description="Every CHM_* / CLICKHOUSE_* name." />
+</Cards>
 
-The dashboard is `apps/dashboard` (TanStack Start). Set `CHM_*` once; client `VITE_*` is derived. Copy `apps/dashboard/.env.example` → `.env.local`.
+```mermaid
+flowchart LR
+  Clone[Clone repo] --> Install[pnpm install]
+  Install --> Env[".env.local"]
+  Env --> Dev["pnpm run dev"]
+  Dev --> UI["localhost:3000"]
+  UI --> CH[(ClickHouse)]
+```
 
 ## Steps
 
@@ -29,7 +40,7 @@ cd chmonitor
 
 ### Install dependencies
 
-The project uses [pnpm](https://pnpm.io) (`pnpm@10.18.0`) as its package manager. Install it first if you don't have it.
+The project uses [pnpm](https://pnpm.io) (`pnpm@10.18.0`).
 
 ```bash
 pnpm install
@@ -41,7 +52,14 @@ pnpm install
 
 ### Create `.env.local`
 
-In `apps/dashboard/`, create `.env.local`:
+In `apps/dashboard/`:
+
+<Files>
+  <Folder name="apps/dashboard" defaultOpen>
+    <File name=".env.example" />
+    <File name=".env.local" />
+  </Folder>
+</Files>
 
 ```bash
 # Required
@@ -49,8 +67,6 @@ CLICKHOUSE_HOST=http://localhost:8123
 CLICKHOUSE_USER=monitoring
 CLICKHOUSE_PASSWORD=your-password
 ```
-
-Optional names and flags: [Environment variables](/reference/environment-variables).
 
 <Callout type="warn" title="Never put secrets in VITE_* variables">
 Set `CHM_*`. Client vars are inlined at build time.
@@ -62,33 +78,42 @@ Set `CHM_*`. Client vars are inlined at build time.
 
 ### Configure ClickHouse hosts
 
-chmonitor connects to one or more ClickHouse instances. Comma-separated lists configure multiple hosts; each `hostId` maps positionally to the other lists.
+Comma-separated lists configure multiple hosts; each `hostId` maps positionally.
+
+<Tabs items={['One host', 'Multiple hosts']}>
+<Tab value="One host">
 
 ```bash
-# One host
 CLICKHOUSE_HOST=http://localhost:8123
 CLICKHOUSE_USER=monitoring
 CLICKHOUSE_PASSWORD=your-password
+```
 
-# Multiple hosts (comma-separated, positional)
+</Tab>
+<Tab value="Multiple hosts">
+
+```bash
 CLICKHOUSE_HOST=http://ch-1:8123,http://ch-2:8123,http://ch-3:8123
 CLICKHOUSE_USER=monitoring,monitoring,monitoring
 CLICKHOUSE_PASSWORD=pass-1,pass-2,pass-3
 CLICKHOUSE_NAME=ch-1,ch-2,ch-3
 ```
 
+</Tab>
+</Tabs>
+
 | Variable | Purpose |
 |---|---|
 | `CLICKHOUSE_HOST` | One or more URLs (`http://`/`https://`), optionally `host:port`. |
 | `CLICKHOUSE_USER` | Comma-separated user(s); a single value applies to every host. |
 | `CLICKHOUSE_PASSWORD` | Comma-separated password(s); a single value applies to every host. |
-| `CLICKHOUSE_NAME` | Comma-separated display names for the host switcher. |
+| `CLICKHOUSE_NAME` | Display names for the host switcher. |
 | `CLICKHOUSE_DATABASE` | Default database (default `system`). |
 | `CLICKHOUSE_MAX_EXECUTION_TIME` | Query timeout in seconds (default `60`). |
 | `CLICKHOUSE_TZ` | Session timezone for queries. |
 | `CLICKHOUSE_EXCLUDE_USER_DEFAULT` | Hide the `default` user from the UI when set. |
 
-Host `0` is `CLICKHOUSE_HOST`'s first entry and is the default in URLs (`?host=0`). Make sure the user has the grants described in the next step.
+Host `0` is the first `CLICKHOUSE_HOST` entry (`?host=0`). The user needs the grants in the next step.
 
 </Step>
 
@@ -96,13 +121,15 @@ Host `0` is `CLICKHOUSE_HOST`'s first entry and is the default in URLs (`?host=0
 
 ### Configure Postgres hosts (optional)
 
-Postgres support is a beta **source engine** — off by default. Turn it on with the feature flag, then add connection details the same positional way as ClickHouse:
+Postgres is a beta **source engine** — off by default.
+
+<Accordions>
+<Accordion title="Postgres env (feature flag + positional hosts)">
 
 ```bash
-# Master switch for Postgres as a source
 CHM_FEATURE_POSTGRES_SOURCE=true
 
-# One Postgres host
+# One host
 POSTGRES_HOST=db.example.com
 POSTGRES_PORT=5432
 POSTGRES_USER=chmonitor_ro
@@ -111,7 +138,7 @@ POSTGRES_DATABASE=postgres
 POSTGRES_SSLMODE=require
 POSTGRES_NAME=Production Postgres
 
-# Multiple Postgres hosts (comma-separated, positional)
+# Multiple (comma-separated, positional)
 POSTGRES_HOST=db-1:5432,db-2:5432
 POSTGRES_USER=ro,ro
 POSTGRES_PASSWORD=p1,p2
@@ -120,25 +147,25 @@ POSTGRES_NAME=pg-1,pg-2
 
 | Variable | Purpose |
 |---|---|
-| `CHM_FEATURE_POSTGRES_SOURCE` | Master switch for Postgres monitoring. Default `false`. |
-| `POSTGRES_HOST` | One or more hosts, optionally `host:port`. |
-| `POSTGRES_PORT` | Port for hosts without an inline port (default `5432`). |
-| `POSTGRES_USER` | Comma-separated user(s); a single value applies to every host. |
-| `POSTGRES_PASSWORD` | Comma-separated password(s); a single value applies to every host. |
-| `POSTGRES_DATABASE` | Comma-separated database names (default `postgres`). |
-| `POSTGRES_SSLMODE` | Comma-separated sslmode (`disable`/`require`/`verify-ca`/`verify-full`). |
-| `POSTGRES_NAME` | Comma-separated display names for the host switcher. |
+| `CHM_FEATURE_POSTGRES_SOURCE` | Master switch. Default `false`. |
+| `POSTGRES_HOST` | Hosts, optionally `host:port`. |
+| `POSTGRES_PORT` | Default `5432` when no inline port. |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | Positional; a single value applies to every host. |
+| `POSTGRES_DATABASE` | Default `postgres`. |
+| `POSTGRES_SSLMODE` | `disable` / `require` / `verify-ca` / `verify-full`. |
+| `POSTGRES_NAME` | Host switcher labels. |
 | `CHM_ALLOW_PRIVATE_HOSTS` | Allow `localhost`/private addresses for local dev (ignored in Cloud). |
 
-Use a dedicated **read-only Postgres role** — chmonitor pins `default_transaction_read_only=on` on every query. Query Insights needs the `pg_stat_statements` extension; Running Queries only needs `pg_stat_activity`. See the [Postgres feature guide](/guide/features/postgres) for details.
+Use a dedicated **read-only** role — chmonitor pins `default_transaction_read_only=on`. Query Insights needs `pg_stat_statements`; Running Queries needs `pg_stat_activity`. See the [Postgres feature guide](/guide/features/postgres).
+
+</Accordion>
+</Accordions>
 
 </Step>
 
 <Step>
 
-### Configure ClickHouse
-
-Make sure the user you set in the previous step has the right grants:
+### Configure ClickHouse grants
 
 - [ClickHouse user & grants](/guide/getting-started/clickhouse-requirements)
 - [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables)
@@ -162,39 +189,27 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Verify
 
-The dashboard should hot-reload as you edit source, and the overview page should render live metrics from your ClickHouse instance.
+The dashboard hot-reloads as you edit. Overview should show live metrics from ClickHouse.
 
 ## Troubleshooting
 
-<Callout type="warn" title="Common issues">
-
-- **`localhost` connection refused** — If ClickHouse is not running locally, update `CLICKHOUSE_HOST` to point at your remote instance.
-- **Type errors on first run** — Run `pnpm run type-check` from the repo root. Some generated types require a build pass first.
-- **Missing system tables** — See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables).
-
-</Callout>
+<Accordions>
+<Accordion title="localhost connection refused">
+If ClickHouse is not running locally, point `CLICKHOUSE_HOST` at your remote instance.
+</Accordion>
+<Accordion title="Type errors on first run">
+Run `pnpm run type-check` from the repo root. Some generated types need a build pass first.
+</Accordion>
+<Accordion title="Missing system tables">
+See [Enable system tables](/guide/getting-started/clickhouse-enable-system-tables).
+</Accordion>
+</Accordions>
 
 ## Related
 
 <Cards>
-  <Card
-    title="Getting started"
-    href="/guide/getting-started"
-    description="Run chmonitor against your ClickHouse instance in minutes."
-  />
-  <Card
-    title="ClickHouse user & grants"
-    href="/guide/getting-started/clickhouse-requirements"
-    description="Create a safe read-only monitoring user with the minimal grants needed."
-  />
-  <Card
-    title="Enable system tables"
-    href="/guide/getting-started/clickhouse-enable-system-tables"
-    description="Enable system log tables for full feature coverage."
-  />
-  <Card
-    title="Install & configure"
-    href="/operate/deploy"
-    description="Deploy to Kubernetes, Cloudflare Workers, or another platform."
-  />
+  <Card title="Getting started" href="/guide/getting-started" description="Run chmonitor against your ClickHouse instance in minutes." />
+  <Card title="ClickHouse user & grants" href="/guide/getting-started/clickhouse-requirements" description="Create a safe read-only monitoring user." />
+  <Card title="Enable system tables" href="/guide/getting-started/clickhouse-enable-system-tables" description="Enable system log tables for full coverage." />
+  <Card title="Install & configure" href="/operate/deploy" description="Deploy to Kubernetes, Cloudflare Workers, or Docker." />
 </Cards>

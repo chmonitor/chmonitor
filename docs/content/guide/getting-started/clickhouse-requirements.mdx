@@ -8,10 +8,21 @@ chmonitor needs a ClickHouse user with at minimum `SELECT` on `system.*`. Do not
 
 <Callout type="info" title="Connecting a firewalled ClickHouse to Cloud?">
 If your ClickHouse is behind a firewall and you use the hosted Cloud, see
-[Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse) for how
-to reach it without a brittle IP allowlist (Cloudflare Tunnel, dedicated egress
-IPs, or a jump host).
+[Connect a firewalled ClickHouse](/guide/guides/connect-firewalled-clickhouse)
+(Cloudflare Tunnel, dedicated egress IPs, or a jump host).
 </Callout>
+
+```mermaid
+flowchart TD
+  U[monitoring user] --> R[SELECT on system.*]
+  U --> T[CREATE TEMPORARY TABLE]
+  R --> Dash[Core dashboards]
+  T --> Dash
+  U -.->|optional| E[SELECT on *.*]
+  E -.-> Explorer[Data Explorer]
+  U -.->|optional| K[KILL QUERY / OPTIMIZE]
+  K -.-> Actions[UI + agent actions]
+```
 
 ## Copy & paste: pick a permission level
 
@@ -169,125 +180,102 @@ Generate the hash: `echo -n 'your-password' | sha256sum`. Run `SYSTEM RELOAD CON
 
 </Tabs>
 
-## Minimum: read-only monitoring user
+## Optional extras
 
-This user can view all monitoring pages. It cannot kill queries, run optimizations, or mutate data.
+The tabs above already cover the three permission levels. Use these only if you need write-side extras.
 
-```sql
--- Create the user
-CREATE USER monitoring
-  IDENTIFIED WITH sha256_password BY 'your-password'
-  HOST ANY;
-
--- Grant read-only access to system tables
-GRANT SELECT ON system.* TO monitoring;
-
--- Allow temporary tables (required for some merge-aware queries)
-GRANT CREATE TEMPORARY TABLE ON *.* TO monitoring;
-```
-
-## Optional: Data Explorer (query any table)
-
-The Data Explorer lets you run SQL against any table in your ClickHouse instance, not just `system.*`. To enable it, grant `SELECT` on all databases:
+<Accordions>
+<Accordion title="Data Explorer (SELECT on every database)">
+The Data Explorer lets you run SQL against any table, not just `system.*`:
 
 ```sql
--- Lets the monitoring user read every table in every database.
--- Use only if you trust this account to access all your data.
 GRANT SELECT ON *.* TO monitoring;
 ```
 
-`SELECT ON *.*` is a superset of `SELECT ON system.*`, so you do not need both.
-
-## Optional grants for actions
-
-Add these only if you want operators to use the corresponding actions from the UI.
-
+`SELECT ON *.*` is a superset of `SELECT ON system.*` — you do not need both.
+</Accordion>
+<Accordion title="Kill Query / Optimize Table">
 ```sql
--- Kill Query action (Running Queries page)
 GRANT KILL QUERY ON *.* TO monitoring;
-
--- Optimize Table action (Data Explorer page)
 GRANT OPTIMIZE ON *.* TO monitoring;
 ```
 
 <Callout type="warn" title="Control tools are off by default">
-`AGENT_ENABLE_CONTROL_TOOLS` must also be set to `true` for the AI agent to use kill/optimize. Keep it `false` (the default) on public or shared deployments.
+`AGENT_ENABLE_CONTROL_TOOLS` must also be `true` for the AI agent to use kill/optimize. Keep it `false` on public or shared deployments.
 </Callout>
-
-## Optional: self-tracking events table
-
-chmonitor can write dashboard pageview events to a ClickHouse table (`system.monitoring_events` by default). Change `EVENTS_TABLE_NAME` to a table in your own database if you prefer not to write to `system.*`.
-
-If you enable this, the monitoring user needs write access to that table:
+</Accordion>
+<Accordion title="Self-tracking events table">
+chmonitor can write dashboard pageview events to ClickHouse (`system.monitoring_events` by default). Change `EVENTS_TABLE_NAME` to a table in your own database if you prefer not to write to `system.*`.
 
 ```sql
 GRANT SELECT, INSERT
   ON your_database.monitoring_events
   TO monitoring;
 ```
+</Accordion>
+</Accordions>
 
 ## Per-feature grants checklist
 
-`GRANT SELECT ON system.*` covers the majority of the dashboard. Some features read tables that require additional grants or depend on optional system tables that are only present when a subsystem is configured.
+`GRANT SELECT ON system.*` covers most of the dashboard. Missing optional tables show a notice, not an error.
 
-### Always required
+<Accordions>
+<Accordion title="Always required (SELECT ON system.*)">
 
-| Dashboard feature | System tables used | Grant |
-|---|---|---|
-| Overview metrics | `system.metrics`, `system.asynchronous_metrics` | `SELECT ON system.*` |
-| Running queries | `system.processes` | `SELECT ON system.*` |
-| Active merges | `system.merges` | `SELECT ON system.*` |
-| Replica status | `system.replicas` | `SELECT ON system.*` |
-| Disks & storage | `system.disks`, `system.parts` | `SELECT ON system.*` |
-| Tables list | `system.tables`, `system.columns` | `SELECT ON system.*` |
-| Clusters | `system.clusters` | `SELECT ON system.*` |
-| Mutations | `system.mutations` | `SELECT ON system.*` |
-| Replication queue | `system.replication_queue` | `SELECT ON system.*` |
-| Settings / users / roles | `system.settings`, `system.users`, `system.roles` | `SELECT ON system.*` |
-| Warnings | `system.warnings` | `SELECT ON system.*` |
-| Errors | `system.errors` | `SELECT ON system.*` |
-| Dictionaries | `system.dictionaries` | `SELECT ON system.*` |
+| Dashboard feature | System tables used |
+|---|---|
+| Overview metrics | `system.metrics`, `system.asynchronous_metrics` |
+| Running queries | `system.processes` |
+| Active merges | `system.merges` |
+| Replica status | `system.replicas` |
+| Disks & storage | `system.disks`, `system.parts` |
+| Tables list | `system.tables`, `system.columns` |
+| Clusters | `system.clusters` |
+| Mutations | `system.mutations` |
+| Replication queue | `system.replication_queue` |
+| Settings / users / roles | `system.settings`, `system.users`, `system.roles` |
+| Warnings / errors | `system.warnings`, `system.errors` |
+| Dictionaries | `system.dictionaries` |
 
-### Requires `system.query_log` (enabled by default in most setups)
+</Accordion>
+<Accordion title="Requires system.query_log (usually on)">
 
-| Feature | Tables | Grant |
-|---|---|---|
-| Query history | `system.query_log` | `SELECT ON system.*` |
-| Slow / expensive queries | `system.query_log` | `SELECT ON system.*` |
-| Failed queries | `system.query_log` | `SELECT ON system.*` |
-| Common errors | `system.errors` | `SELECT ON system.*` |
-| Top tables / columns by usage | `system.query_log` | `SELECT ON system.*` |
+| Feature | Tables |
+|---|---|
+| Query history | `system.query_log` |
+| Slow / expensive / failed queries | `system.query_log` |
+| Common errors | `system.errors` |
+| Top tables / columns by usage | `system.query_log` |
 
-### Optional — tables present only when the subsystem is configured
-
-These pages show a "table not available" notice when the underlying table does not exist. No error is raised.
+</Accordion>
+<Accordion title="Optional — only when the subsystem exists">
 
 | Feature | Required table | Notes |
 |---|---|---|
-| Query thread analysis / parallelization | `system.query_thread_log` | Enable in ClickHouse server config |
-| Query profiler | `system.processors_profile_log` | Enable in ClickHouse server config |
-| Query views log | `system.query_views_log` | Available from ClickHouse 22.4+ |
-| Query cache | `system.query_cache` | Available from ClickHouse 23.5+ |
-| User processes | `system.user_processes` | Available from ClickHouse 23.3+ |
-| Merge performance | `system.part_log` | Enable `part_log` in server config |
-| Part log | `system.part_log` | Enable `part_log` in server config |
-| Query metric log | `system.query_metric_log` | Enable in ClickHouse server config |
+| Query thread analysis | `system.query_thread_log` | Enable in server config |
+| Query profiler | `system.processors_profile_log` | Enable in server config |
+| Query views log | `system.query_views_log` | ClickHouse 22.4+ |
+| Query cache | `system.query_cache` | ClickHouse 23.5+ |
+| User processes | `system.user_processes` | ClickHouse 23.3+ |
+| Merge performance / part log | `system.part_log` | Enable `part_log` |
+| Query metric log | `system.query_metric_log` | Enable in server config |
 | Detached parts | `system.detached_parts` | Always exists; may be empty |
-| Dropped tables | `system.dropped_tables` | Available from ClickHouse 23.x+ |
-| Distributed DDL queue | `system.distributed_ddl_queue` | Only on clusters using DDL via ZooKeeper/Keeper |
-| Moves | `system.moves` | Only when tiered storage / volume moves are active |
-| Replicated fetches | `system.replicated_fetches` | Only on replicated clusters |
-| View refreshes | `system.view_refreshes` | Only when Refreshable Materialized Views are in use |
-| Skip indexes (Data Explorer) | `system.data_skipping_indices` | Available from ClickHouse 22.x+ |
-| Login attempts / sessions | `system.session_log` | Enable in ClickHouse server config |
-| Text log | `system.text_log` | Enable `text_log` in server config |
-| Crash log | `system.crash_log` | Always exists on supported versions |
-| **Backups** | `system.backup_log` | Optional. Only exists when backups are configured. |
-| **Error log** | `system.error_log` | Optional. Enable `error_log` in server config. |
+| Dropped tables | `system.dropped_tables` | ClickHouse 23.x+ |
+| Distributed DDL queue | `system.distributed_ddl_queue` | DDL via Keeper |
+| Moves | `system.moves` | Tiered storage |
+| Replicated fetches | `system.replicated_fetches` | Replicated clusters |
+| View refreshes | `system.view_refreshes` | Refreshable MVs |
+| Skip indexes (Explorer) | `system.data_skipping_indices` | ClickHouse 22.x+ |
+| Login / sessions | `system.session_log` | Enable in server config |
+| Text log | `system.text_log` | Enable `text_log` |
+| Crash log | `system.crash_log` | Supported versions |
+| **Backups** | `system.backup_log` | Only when backups are configured |
+| **Error log** | `system.error_log` | Enable `error_log` |
 
-### ClickHouse Keeper / ZooKeeper (all optional)
+</Accordion>
+<Accordion title="Keeper / ZooKeeper (all optional)">
 
-All Keeper pages are `optional: true` — they silently degrade to a notice when Keeper is not configured.
+All Keeper pages are `optional: true` — they degrade to a notice when Keeper is not configured. `SELECT ON system.*` covers them.
 
 | Feature | Required table | Notes |
 |---|---|---|
@@ -295,32 +283,28 @@ All Keeper pages are `optional: true` — they silently degrade to a notice when
 | Keeper connections | `system.zookeeper_connection` | Requires Keeper/ZooKeeper |
 | Keeper watches | `system.zookeeper_watches` | Requires Keeper/ZooKeeper |
 | Keeper log | `system.zookeeper_log` | Requires Keeper/ZooKeeper |
-| Keeper connection log | `system.zookeeper_connection_log` | Available from ClickHouse 25.8+ |
+| Keeper connection log | `system.zookeeper_connection_log` | ClickHouse 25.8+ |
 | ZooKeeper data browser | `system.zookeeper` | Requires Keeper/ZooKeeper |
 
-No special grants are needed for Keeper tables — `SELECT ON system.*` covers them. They simply do not exist when Keeper is not running.
-
-### Kafka (optional)
+</Accordion>
+<Accordion title="Kafka + action grants">
 
 | Feature | Required table | Notes |
 |---|---|---|
-| Kafka consumers | `system.kafka_consumers` | Only exists when Kafka engine tables are present |
+| Kafka consumers | `system.kafka_consumers` | Only when Kafka engine tables exist |
 
-### Action grants (not SELECT)
-
-| Action | Grant needed |
+| Action | Grant |
 |---|---|
-| Kill Query (Running Queries page / AI agent) | `GRANT KILL QUERY ON *.* TO monitoring;` |
-| Optimize Table (Data Explorer / AI agent) | `GRANT OPTIMIZE ON *.* TO monitoring;` |
-| Create temporary tables (some merge queries) | `GRANT CREATE TEMPORARY TABLE ON *.* TO monitoring;` |
+| Kill Query | `GRANT KILL QUERY ON *.* TO monitoring;` |
+| Optimize Table | `GRANT OPTIMIZE ON *.* TO monitoring;` |
+| Create temporary tables | `GRANT CREATE TEMPORARY TABLE ON *.* TO monitoring;` |
 
-## Optional: ClickHouse Keeper / ZooKeeper access
-
-`system.zookeeper` is available only when ZooKeeper or ClickHouse Keeper is configured. No special grants are needed — `SELECT ON system.*` covers it.
+</Accordion>
+</Accordions>
 
 ## Multi-host setup
 
-Each ClickHouse host in a multi-host deployment can have its own user and password. Use comma-separated values in the same position across all four variables:
+Each host can have its own user and password. Comma-separated values share positions:
 
 ```bash
 CLICKHOUSE_HOST=https://prod-a:8443,https://prod-b:8443
@@ -329,11 +313,16 @@ CLICKHOUSE_PASSWORD=secret-a,secret-b
 CLICKHOUSE_NAME=prod-a,prod-b
 ```
 
-`CLICKHOUSE_HOST` defines the host count. `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` may be a single shared value or one value per host position. `CLICKHOUSE_NAME` is optional. Position N maps to host index N.
+`CLICKHOUSE_HOST` defines the host count. `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` may be a single shared value or one value per host. `CLICKHOUSE_NAME` is optional.
 
 ## Recommended ClickHouse profile
 
-Create a monitoring profile to enable query caching and the experimental analyzer:
+<Files>
+  <Folder name="etc/clickhouse-server/users.d" defaultOpen>
+    <File name="monitoring.xml" />
+    <File name="monitoring_profile.xml" />
+  </Folder>
+</Files>
 
 ```xml
 <!-- /etc/clickhouse-server/users.d/monitoring_profile.xml -->

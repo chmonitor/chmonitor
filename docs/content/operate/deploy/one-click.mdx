@@ -4,27 +4,41 @@ icon: MousePointerClick
 title: One-Click Deploy Templates
 ---
 
-Deploy chmonitor on Railway, Render, or Fly.io with community-maintained templates. Each template runs the published image and wires up a health check for you.
+Deploy on Railway, Render, or Fly.io with community-maintained templates. Each runs the published image and wires a health check.
 
 <Callout type="warn" title="Starting-point templates, not verified pipelines">
-These are starting-point templates, not verified CI pipelines. They have not been boot-tested end-to-end against a live ClickHouse instance in automated CI. Review the env var placeholders, substitute real values, and verify the deployment works in your environment before relying on it in production.
+These are starting-point templates, not verified CI pipelines. They have not been boot-tested end-to-end against a live ClickHouse instance in automated CI. Review env placeholders, substitute real values, and verify before production.
 </Callout>
+
+```mermaid
+flowchart LR
+  T[Template] --> P[Railway / Render / Fly]
+  P --> Img[ghcr.io image]
+  Img --> HZ["/api/healthz"]
+  Img --> CH[(ClickHouse)]
+```
 
 ## Prerequisites
 
-All three templates run the published image `ghcr.io/chmonitor/chmonitor:latest`, expose port 3000, and define a health check against `/api/healthz`. You must supply three env vars:
+All three templates use `ghcr.io/chmonitor/chmonitor:latest`, expose port 3000, and health-check `/api/healthz`. You must supply:
 
 | Variable | Description |
 |---|---|
 | `CLICKHOUSE_HOST` | ClickHouse HTTP URL, e.g. `http://your-host:8123` |
 | `CLICKHOUSE_USER` | ClickHouse username |
-| `CLICKHOUSE_PASSWORD` | ClickHouse password (use your platform's secret store) |
+| `CLICKHOUSE_PASSWORD` | ClickHouse password (platform secret store) |
 
-The template files live in [`deploy/templates/`](https://github.com/chmonitor/chmonitor/tree/main/deploy/templates) in the repository.
+Templates live in [`deploy/templates/`](https://github.com/chmonitor/chmonitor/tree/main/deploy/templates).
+
+<Files>
+  <Folder name="deploy/templates" defaultOpen>
+    <File name="railway.json" />
+    <File name="render.yaml" />
+    <File name="fly.toml" />
+  </Folder>
+</Files>
 
 ## Setup
-
-Pick your platform.
 
 <Tabs items={["Railway", "Render", "Fly.io"]}>
 <Tab value="Railway">
@@ -47,11 +61,11 @@ Go to **Variables** and add the three env vars above. Use Railway's secret manag
 <Step>
 ### Open your app
 
-Railway auto-assigns a public URL. The health check path is `/api/healthz`.
+Railway auto-assigns a public URL. Health check path: `/api/healthz`.
 </Step>
 </Steps>
 
-Alternatively, copy `deploy/templates/railway.json` into your repository root as `railway.json` — Railway picks it up automatically on the next deploy.
+Alternatively, copy `deploy/templates/railway.json` into the repo root as `railway.json`.
 
 ```json
 {
@@ -74,23 +88,21 @@ Template: [`deploy/templates/render.yaml`](https://github.com/chmonitor/chmonito
 <Step>
 ### Fork or copy the template
 
-Fork or copy `deploy/templates/render.yaml` as `render.yaml` in your repository root.
+Copy `deploy/templates/render.yaml` as `render.yaml` in the repository root.
 </Step>
 
 <Step>
 ### Create a Blueprint
 
-In the Render dashboard, choose **New → Blueprint** and point it at your repository.
+In Render: **New → Blueprint** and point it at your repository.
 </Step>
 
 <Step>
 ### Set the password as a secret
 
-Render reads `render.yaml`, pulls `ghcr.io/chmonitor/chmonitor:latest`, and creates the service. Set `CLICKHOUSE_PASSWORD` as a **Secret** in the Render environment (do not store it in plain text in `render.yaml`).
+Render pulls `ghcr.io/chmonitor/chmonitor:latest`. Set `CLICKHOUSE_PASSWORD` as a **Secret** (do not leave it in `render.yaml`).
 </Step>
 </Steps>
-
-Key snippet:
 
 ```yaml
 services:
@@ -125,7 +137,7 @@ fly auth login
 <Step>
 ### Copy and edit the template
 
-Copy `deploy/templates/fly.toml` to your working directory. Edit `app`, `primary_region`, and `CLICKHOUSE_HOST` / `CLICKHOUSE_USER`.
+Copy `deploy/templates/fly.toml`. Edit `app`, `primary_region`, and `CLICKHOUSE_HOST` / `CLICKHOUSE_USER`.
 </Step>
 
 <Step>
@@ -146,20 +158,21 @@ fly deploy
 </Step>
 </Steps>
 
-The health check polls `/api/healthz` every 10 seconds with a 20-second grace period on startup.
+Health check polls `/api/healthz` every 10 seconds with a 20-second startup grace.
+
 </Tab>
 </Tabs>
 
 ## Verify
 
-- Open `https://your-app-url` — you should land on the overview page.
-- If the page loads but charts are empty, check that the ClickHouse user has `SELECT` on `system.*`.
-- If the health check fails, verify `CLICKHOUSE_HOST` is reachable from inside the container (use the private/internal hostname your platform provides, not `localhost`).
+- Open `https://your-app-url` — overview should load.
+- Empty charts → ClickHouse user needs `SELECT` on `system.*`.
+- Health check fails → `CLICKHOUSE_HOST` must be reachable **from the container** (private hostname, not `localhost`).
 
 ## Troubleshooting
 
 <Callout type="info" title="More configuration">
-For additional configuration (authentication, AI agent, conversation store), see the [Docker deploy guide](/operate/deploy/docker) — the same env vars apply.
+Auth, AI agent, conversation store: same env vars as [Docker](/operate/deploy/docker).
 </Callout>
 
 ## Related

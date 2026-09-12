@@ -4,11 +4,20 @@ description: Run chmonitor on any server using Node.js — bare VMs, dedicated s
 icon: Server
 ---
 
-Run chmonitor on any server using Node.js — best for bare VMs, dedicated servers, or any environment where you manage the process directly.
+Run chmonitor on any server using Node.js — bare VMs, dedicated servers, or anywhere you manage the process.
+
+```mermaid
+flowchart LR
+  Clone[Clone + pnpm install] --> Env[.env.local]
+  Env --> Build[pnpm run build]
+  Build --> Start[pnpm run start]
+  Start --> Proxy[nginx / Traefik]
+  Proxy --> CH[(ClickHouse)]
+```
 
 ## Prerequisites
 
-- Node.js and pnpm (`pnpm@10.18.0`, via corepack) installed on the server.
+- Node.js and pnpm (`pnpm@10.18.0`, via corepack) on the server.
 - A reachable ClickHouse endpoint with a monitoring user.
 - A process supervisor (systemd) and, optionally, a reverse proxy (nginx).
 
@@ -51,6 +60,13 @@ Open `http://localhost:3000`.
 
 Put env vars in `apps/dashboard/.env.local`. Never commit credentials.
 
+<Files>
+  <Folder name="apps/dashboard" defaultOpen>
+    <File name=".env.example" />
+    <File name=".env.local" />
+  </Folder>
+</Files>
+
 ```bash
 cat <<'EOF' > apps/dashboard/.env.local
 CLICKHOUSE_HOST=https://clickhouse.example.com:8443
@@ -83,6 +99,13 @@ Full list: [Environment variables](/reference/environment-variables).
 
 ## systemd unit
 
+<Files>
+  <Folder name="etc" defaultOpen>
+    <File name="chmonitor/env" />
+    <File name="systemd/system/chmonitor.service" />
+  </Folder>
+</Files>
+
 ```ini
 [Unit]
 Description=chmonitor ClickHouse dashboard
@@ -110,8 +133,6 @@ CLICKHOUSE_PASSWORD=change-me
 CHM_AUTH_PROVIDER=none
 ```
 
-Enable and start:
-
 ```bash
 systemctl enable --now chmonitor
 ```
@@ -126,7 +147,7 @@ pnpm run build
 systemctl restart chmonitor
 ```
 
-For breaking changes between major versions, see [Migrating to v0.3](/reference/migrating/v0-3).
+For breaking changes, see [Migrating to v0.3](/reference/migrating/v0-3).
 
 ## Related
 
