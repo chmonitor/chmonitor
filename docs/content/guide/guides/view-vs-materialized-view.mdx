@@ -6,6 +6,12 @@ icon: Layers
 
 "View vs materialized view" is a SQL-engine question. In ClickHouse you have a **third** option — a **projection** — and mixing the three is how people ship a "view" that either does nothing for performance or doubles write amplification.
 
+<Mermaid chart={`flowchart TD
+  Q["Want faster reads?"] --> V{"Need extra storage?"}
+  V -->|"no, just a named SELECT"| View["Ordinary VIEW\n(no speedup)"]
+  V -->|"yes, same table"| P["Projection"]
+  V -->|"yes, other table / JOIN"| MV["Materialized view"]`} />
+
 Deep MV vs projection trade-offs live in [projections vs materialized views](/guide/guides/projections-vs-materialized-views). This page is the vocabulary and the picker.
 
 ## Three different things people call "views"

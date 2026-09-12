@@ -6,6 +6,12 @@ icon: ChartLine
 
 "ClickHouse vs Datadog" and "ClickHouse vs Grafana" are slightly the wrong questions. Datadog is a full-stack observability platform. Grafana is a visualization layer. ClickHouse is the database. The useful comparison is **how you monitor ClickHouse**: agent metrics, DIY SQL panels, or a dashboard that already speaks `system.query_log`, `system.parts`, and `system.replicas`.
 
+<Mermaid chart={`flowchart LR
+  DD["Datadog\nagent + APM"] --> CH["ClickHouse\nsystem.*"]
+  GF["Grafana\nplugin / Prom"] --> CH
+  CHM["chmonitor\nnative ops UI"] --> CH
+  CH -->|"query_log, parts, replicas"| Ops["On-call:\nmerges, lag, slow SQL"]`} />
+
 ## Three different jobs
 
 | | Datadog | Grafana | chmonitor |
@@ -27,11 +33,23 @@ Neither replaces a native ops UI if your on-call is "why is this MergeTree explo
 
 ## What each is good at
 
-**Datadog** — ClickHouse is one service among Kubernetes, Kafka, and app traces. You want correlation, org-wide SLOs, and an incident product. You already pay for Datadog.
+<Tabs items={["Datadog", "Grafana", "chmonitor"]}>
+<Tab value="Datadog">
 
-**Grafana** — You already have Prometheus, Loki, and a wall of panels. The [official ClickHouse data source](https://grafana.com/docs/plugins/grafana-clickhouse-datasource/) (or Altinity's) can chart the same system tables. Great for custom boards; you own the SQL and the refresh load.
+ClickHouse is one service among Kubernetes, Kafka, and app traces. You want correlation, org-wide SLOs, and an incident product. You already pay for Datadog.
 
-**chmonitor** — Running and slow queries, table size and parts, merge backlog, replication lag, storage, health, plus an [AI agent](/guide/ai-agent) and [MCP server](/guide/features/mcp) over those tables. Five-minute Docker/Helm, no per-node agent.
+</Tab>
+<Tab value="Grafana">
+
+You already have Prometheus, Loki, and a wall of panels. The [official ClickHouse data source](https://grafana.com/docs/plugins/grafana-clickhouse-datasource/) (or Altinity's) can chart the same system tables. Great for custom boards; you own the SQL and the refresh load.
+
+</Tab>
+<Tab value="chmonitor">
+
+Running and slow queries, table size and parts, merge backlog, replication lag, storage, health, plus an [AI agent](/guide/ai-agent) and [MCP server](/guide/features/mcp) over those tables. Five-minute Docker/Helm, no per-node agent.
+
+</Tab>
+</Tabs>
 
 ## Performance and storage monitoring, concretely
 
@@ -45,17 +63,25 @@ Neither replaces a native ops UI if your on-call is "why is this MergeTree explo
 
 Copy-paste Grafana SQL that matches chmonitor's queries: [Grafana bridge](/reference/grafana-bridge).
 
-## When Grafana still makes sense
+## When to pick what
+
+<Tabs items={["Keep Grafana", "Keep Datadog", "Dedicated CH dashboard"]}>
+<Tab value="Keep Grafana">
 
 You standardized on Grafana. You need one glass for Prom + logs + ClickHouse **application** data, not only `system.*`. You like building panels. **Run Grafana and chmonitor together** — same cluster, separate read-only users (`GRANT SELECT ON system.*`). Grafana is not "vs ClickHouse"; it visualizes it.
 
-## When Datadog still makes sense
+</Tab>
+<Tab value="Keep Datadog">
 
 ClickHouse is not the only thing that pages you. You need traces, log search, and escalation in one vendor. Keep Datadog for the fleet; put a dedicated dashboard on the cluster if merge/part/query drills are where the CH on-call actually lives.
 
-## When a dedicated ClickHouse dashboard wins
+</Tab>
+<Tab value="Dedicated CH dashboard">
 
 CH-heavy, self-hosted or cost-sensitive teams. You want version-aware system-table SQL without maintaining a JSON dashboard pack. You want MCP so another agent can ask "what's the replication lag" without scraping Prometheus.
+
+</Tab>
+</Tabs>
 
 <Callout type="info" title="Suggested stacks">
 **Grafana + chmonitor** — wall + CH ops. **Datadog + chmonitor** — APM + CH ops. **chmonitor alone** — ClickHouse is the product you run. None of these require ripping the other out.

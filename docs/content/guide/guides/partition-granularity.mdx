@@ -22,6 +22,10 @@ you haven't chosen the partition expression itself yet — this page is about
 Neither is universally "correct" — the right choice depends on how much data
 lands in a single partition, not on a fixed calendar unit.
 
+<Callout type="info" title="Size the partition, not the calendar">
+Target **hundreds of MB to low single-digit GB** compressed per partition, and **at most a few thousand** active partitions across retention. Calendar unit is a means, not the goal.
+</Callout>
+
 ## Rule of thumb
 
 Size the partition expression so each partition ends up in the **hundreds of MB

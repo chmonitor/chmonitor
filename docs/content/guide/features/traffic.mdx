@@ -21,6 +21,12 @@ The Traffic page answers a single question: **how much data is flowing into this
 
 Traffic reads two complementary data sources and is careful to keep them distinct, because they measure different things:
 
+<Mermaid chart={`flowchart LR
+  Q["system.query_log\nInsert QueryFinish"] --> U["Uncompressed\nrows / bytes sent"]
+  P["system.part_log\nNewPart"] --> C["Compressed\nbytes on disk"]
+  U --> Ratio["Effective compression"]
+  C --> Ratio`} />
+
 - **`system.query_log`** (Insert queries, `type = 'QueryFinish'`, `query_kind = 'Insert'`) — `written_rows` / `written_bytes` are the **uncompressed** payload as ingested. This is the "how much data did clients send us" number.
 - **`system.part_log`** (`NewPart` events) — `size_in_bytes` is the **on-disk (compressed)** size of each new part. This is the "how much did we actually store" number. `part_log` is opt-in (see below), so every chart that reads it degrades gracefully when it is absent.
 
@@ -101,21 +107,33 @@ See [Enable system tables](/guide/getting-started/clickhouse-enable-system-table
 
 Traffic shares the `metrics` feature id.
 
-```bash
-# Gate to authenticated users
-CHM_FEATURE_METRICS_ACCESS=authenticated
+<Tabs items={["Gate to authenticated", "Disable", "Config file"]}>
+<Tab value="Gate to authenticated">
 
-# Disable entirely
+```bash
+CHM_FEATURE_METRICS_ACCESS=authenticated
+```
+
+</Tab>
+<Tab value="Disable">
+
+```bash
 CHM_FEATURE_METRICS_ENABLED=false
 # or
 CHM_DISABLED_FEATURES=metrics
 ```
+
+</Tab>
+<Tab value="Config file">
 
 ```toml
 # CHM_CONFIG_FILE (TOML)
 [features.metrics]
 access = "authenticated"
 ```
+
+</Tab>
+</Tabs>
 
 The global query timeout applies to all Traffic queries:
 

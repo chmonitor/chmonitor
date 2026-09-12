@@ -6,6 +6,12 @@ icon: GitCompareArrows
 
 Operators coming from other DBA tools often look for schema compare, change plans, and TTL inventory. This page is the map of **what ships today**. All of it is recommend-only. Open any of these from the sidebar or ⌘K (title, route, or aliases such as `ddl`, `schema diff`, `config diff`, `ttl inventory`).
 
+<Mermaid chart={`flowchart LR
+  Diff["Settings / schema compare"] --> Copy["Copy SQL / CSV"]
+  Adv["Advisor"] --> Copy
+  TTL["TTL inventory"] --> Copy
+  Copy --> You["You apply on ClickHouse"]`} />
+
 <Callout type="warn" title="Recommend-only">
 chmonitor does **not** apply schema changes and does **not** edit `config.xml` (or any other ClickHouse server file). Advisor output is copyable SQL and settings you review and run yourself.
 </Callout>

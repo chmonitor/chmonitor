@@ -8,10 +8,35 @@ icon: Server
 
 ## Why it happens
 
-- **Too many concurrent queries.** Each one uses a moderate amount of memory, but the sum crosses the server cap.
-- **Oversized caches.** `mark_cache_size` and `uncompressed_cache_size` are configured too large relative to available RAM.
-- **Merges and mutations competing for memory** alongside queries — a merge storm (see [Merges slower than inserts](/guide/guides/merges-slower-than-inserts)) or a large `ALTER … UPDATE/DELETE` adds to the same budget.
-- **Replication buffers** on a busy replica queueing a lot of in-flight data.
+<Mermaid chart={`flowchart TD
+  Q["Concurrent queries"] --> Total["max_server_memory_usage"]
+  C["Mark / uncompressed caches"] --> Total
+  M["Merges + mutations"] --> Total
+  R["Replication buffers"] --> Total
+  Total -->|"over cap"| Kill["Code 241 (total)"]`} />
+
+<Accordions>
+<Accordion title="Too many concurrent queries">
+
+Each one uses a moderate amount of memory, but the sum crosses the server cap.
+
+</Accordion>
+<Accordion title="Oversized caches">
+
+`mark_cache_size` and `uncompressed_cache_size` are configured too large relative to available RAM.
+
+</Accordion>
+<Accordion title="Merges and mutations">
+
+A merge storm or a large `ALTER … UPDATE/DELETE` adds to the same budget — see [Merges slower than inserts](/guide/guides/merges-slower-than-inserts).
+
+</Accordion>
+<Accordion title="Replication buffers">
+
+A busy replica queueing a lot of in-flight data.
+
+</Accordion>
+</Accordions>
 
 ## Diagnose
 

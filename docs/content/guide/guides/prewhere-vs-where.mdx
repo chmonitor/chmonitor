@@ -13,6 +13,12 @@ columns for the rows that passed. A plain `WHERE` clause on a MergeTree table
 gets the same treatment automatically in most cases — but not always, and
 knowing the difference matters for wide tables with heavy columns.
 
+<Mermaid chart={`flowchart LR
+  G["Granules"] --> Cheap["Read cheap filter cols"]
+  Cheap --> Keep{"Filter matches?"}
+  Keep -->|"no"| Skip["Skip heavy columns"]
+  Keep -->|"yes"| Heavy["Read SELECT columns"]`} />
+
 ## How it actually saves I/O
 
 Consider a table with a small `type` column and a large `stack_trace` string
@@ -49,20 +55,32 @@ you.
 
 Write `PREWHERE` explicitly when:
 
-- You have **multiple AND'd conditions** and want to control which one is
-  evaluated first — put the cheapest, most selective condition first, since
-  each is evaluated in sequence per granule.
-- The query targets a `Distributed` or complex view where the optimizer's
-  automatic rewrite doesn't reach the underlying MergeTree condition.
-- You want the filter order to be explicit and stable for future readers of
-  the query, not implicit optimizer behavior.
-- The condition involves columns not part of `ORDER BY` — `PREWHERE` still
-  helps here even though the primary key can't prune it, because it avoids
-  reading unrelated heavy columns.
+<Accordions>
+<Accordion title="Multiple AND'd conditions">
 
-`PREWHERE` only works against columns that physically exist in the table (no
-aliases/computed expressions unless materialized), and only on MergeTree-family
-engines.
+Put the cheapest, most selective condition first — each is evaluated in sequence per granule.
+
+</Accordion>
+<Accordion title="Distributed / complex views">
+
+The optimizer's automatic rewrite may not reach the underlying MergeTree condition. Spell `PREWHERE` on the inner table.
+
+</Accordion>
+<Accordion title="You want a stable filter order">
+
+Make the order explicit for future readers of the query, not implicit optimizer behavior.
+
+</Accordion>
+<Accordion title="Filter is not on ORDER BY">
+
+`PREWHERE` still helps even though the primary key can't prune it, because it avoids reading unrelated heavy columns.
+
+</Accordion>
+</Accordions>
+
+<Callout type="info" title="Engine and column limits">
+`PREWHERE` only works against columns that physically exist in the table (no aliases/computed expressions unless materialized), and only on MergeTree-family engines.
+</Callout>
 
 ## Verify it's actually helping
 

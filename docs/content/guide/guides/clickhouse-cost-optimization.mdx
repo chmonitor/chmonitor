@@ -19,6 +19,12 @@ This is a checklist, not a second copy of the [query optimization pillar](/guide
 
 If you only watch wall-clock latency, a cheap-looking dashboard query that scans 400 GB every minute still wins the invoice.
 
+<Mermaid chart={`flowchart LR
+  Disk["Compressed bytes"] --> Bill["Bill"]
+  Scan["Bytes/rows read"] --> Bill
+  Mem["Peak memory / spill"] --> Bill
+  Merge["Merges + OPTIMIZE FINAL"] --> Bill`} />
+
 ## Storage checklist
 
 Largest tables, compression, and tiny-part tax:

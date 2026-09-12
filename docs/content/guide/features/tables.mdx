@@ -19,11 +19,12 @@ The Tables feature answers storage and replication questions across every databa
 
 The Tables feature answers storage and replication questions without writing any SQL:
 
-- How large is each table, and how many parts does it have?
-- Are any replicated tables lagging or in read-only mode?
-- What DDL operations are pending across the cluster?
-- Which Kafka consumers are behind or erroring?
-- What dictionaries are loaded and how much memory do they use?
+<Cards>
+<Card title="Size and parts" href="/guide/guides/too-many-parts" description="How large is each table, and how many parts does it have?" />
+<Card title="Replica lag / readonly" href="/guide/features/cluster" description="Are any replicated tables lagging or in read-only mode?" />
+<Card title="DDL queue" href="/guide/features/tables" description="What DDL operations are pending across the cluster?" />
+<Card title="Kafka and dictionaries" href="/guide/features/tables" description="Consumer lag, errors, and dictionary memory." />
+</Cards>
 
 All pages are read-only except for the OPTIMIZE TABLE action on the tables list, which requires an extra grant.
 
