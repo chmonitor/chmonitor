@@ -11,9 +11,8 @@ interface MermaidProps {
  * `remarkMdxMermaid` (from fumadocs-core/mdx-plugins) converts ```mermaid
  * fenced blocks into <Mermaid chart="..." /> JSX at build time.  This
  * component initialises the mermaid runtime in the browser and renders the
- * SVG result.  Nothing is emitted during SSR/prerender — the SVG appears
- * after first hydration, which is fine because the diagrams are decorative
- * content rather than above-the-fold text.
+ * SVG result.  Diagrams are client-hydrated: SSR/prerender emits a loading
+ * placeholder, then the SVG appears after hydration.
  */
 export function Mermaid({ chart }: MermaidProps) {
   const { resolvedTheme } = useTheme()
@@ -57,7 +56,18 @@ export function Mermaid({ chart }: MermaidProps) {
     )
   }
 
-  if (!svg) return null
+  if (!svg) {
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+        className="my-4 flex min-h-48 items-center justify-center rounded-md border border-fd-border bg-fd-muted/40 text-sm text-fd-muted-foreground"
+      >
+        Loading diagram…
+      </div>
+    )
+  }
 
   return (
     <div
