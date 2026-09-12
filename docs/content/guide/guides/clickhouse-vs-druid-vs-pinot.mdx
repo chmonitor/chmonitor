@@ -6,6 +6,10 @@ icon: GitCompare
 
 Apache Pinot vs Druid vs ClickHouse is a real-time OLAP shortlist, not a monitoring-tool shortlist. chmonitor does not sell you a database. This page is the engine comparison people search, then the part that actually belongs here: **if you already picked ClickHouse, you still have to watch it.**
 
+<Callout type="info" title="This is an engine comparison">
+chmonitor monitors ClickHouse. Use this page to pick an OLAP store; then use [Grafana vs Datadog vs dedicated dashboard](/guide/guides/clickhouse-monitoring-grafana-vs-datadog) to watch the one you run.
+</Callout>
+
 ## Three engines, three bets
 
 Same rough job — sub-second analytics on large event streams — different assumptions.
@@ -27,9 +31,23 @@ If the product requirement is "the UI never shows an event older than 1–2 seco
 
 ## Query latency and concurrency
 
-- **Pinot** — inverted / sorted / range / text / JSON indexes and star-tree indexes. Built for many concurrent, similar queries (user-facing). Public LinkedIn-scale numbers are impressive; your cluster will not match them without that shape of query and ops investment.
-- **Druid** — pre-aggregation and bitmaps make fixed dashboard queries cheap. Raw-event drill-down and late schema changes are weaker unless you keep a raw store.
-- **ClickHouse** — broadest SQL of the three. Excellent at heavy scans and compression. The concurrency model prefers fewer heavier queries over thousands of tiny pointy lookups unless you add projections, MVs, and careful `ORDER BY`.
+<Tabs items={["Pinot", "Druid", "ClickHouse"]}>
+<Tab value="Pinot">
+
+Inverted / sorted / range / text / JSON indexes and star-tree indexes. Built for many concurrent, similar queries (user-facing). Public LinkedIn-scale numbers are impressive; your cluster will not match them without that shape of query and ops investment.
+
+</Tab>
+<Tab value="Druid">
+
+Pre-aggregation and bitmaps make fixed dashboard queries cheap. Raw-event drill-down and late schema changes are weaker unless you keep a raw store.
+
+</Tab>
+<Tab value="ClickHouse">
+
+Broadest SQL of the three. Excellent at heavy scans and compression. The concurrency model prefers fewer heavier queries over thousands of tiny pointy lookups unless you add projections, MVs, and careful `ORDER BY`.
+
+</Tab>
+</Tabs>
 
 ClickBench-style suites often favor ClickHouse on diverse ad-hoc scans. That does not mean Pinot or Druid "lose" on the workload they were built for. Benchmark the shape you ship.
 

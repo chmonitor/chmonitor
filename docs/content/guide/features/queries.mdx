@@ -19,6 +19,13 @@ The Queries feature covers the full lifecycle of query observability — live ex
 
 The Queries feature answers the full lifecycle of query observability:
 
+<Mermaid chart={`flowchart LR
+  Live["Running\nprocesses"] --> Hist["query_log\nhistory"]
+  Hist --> Fail["Failed"]
+  Hist --> Cost["Slow / expensive"]
+  Live --> Threads["Thread analysis"]
+  Hist --> Explain["EXPLAIN\ninteractive"]`} />
+
 - **Live** — what is running right now, elapsed time, memory, thread count.
 - **History** — finished queries with full metrics (CPU, memory, read/write rows and bytes, duration).
 - **Failures** — queries that errored, with error codes and messages.
@@ -71,21 +78,33 @@ Additional behavior to keep in mind:
 
 All query pages fall under the `queries` feature id:
 
-```bash
-# Gate the whole feature to authenticated users
-CHM_FEATURE_QUERIES_ACCESS=authenticated
+<Tabs items={["Gate to authenticated", "Disable", "Config file"]}>
+<Tab value="Gate to authenticated">
 
-# Disable the whole feature
+```bash
+CHM_FEATURE_QUERIES_ACCESS=authenticated
+```
+
+</Tab>
+<Tab value="Disable">
+
+```bash
 CHM_FEATURE_QUERIES_ENABLED=false
 # or
 CHM_DISABLED_FEATURES=queries
 ```
+
+</Tab>
+<Tab value="Config file">
 
 ```toml
 # CHM_CONFIG_FILE (TOML)
 [features.queries]
 access = "authenticated"
 ```
+
+</Tab>
+</Tabs>
 
 When disabled, all sub-routes are removed from the nav and return a disabled screen on direct visit.
 

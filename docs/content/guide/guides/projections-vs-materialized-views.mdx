@@ -55,6 +55,12 @@ firing per insert, it re-runs a full query on a schedule (`REFRESH EVERY 1
 HOUR`) — useful for expensive cross-table joins/aggregations that don't need to
 be realtime.
 
+<Mermaid chart={`flowchart TD
+  Need["Need pre-computed data?"] --> Join{"JOIN or separate engine/TTL?"}
+  Join -->|"no, same table SQL"| Proj["Projection"]
+  Join -->|"yes"| MV["Materialized view"]
+  Need2["Scheduled, not per-insert?"] --> RMV["Refreshable MV (23.12+)"]`} />
+
 ## Decision guide
 
 | | Projection | Materialized view |

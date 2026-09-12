@@ -8,11 +8,41 @@ icon: Timer
 
 ## Why it happens
 
-- **Undersized merge pool.** `background_pool_size` / `background_merge_scheduling_pool_size` too small for the sustained write rate — not enough worker threads to merge parts as fast as they arrive.
-- **Slow disks.** Merges are I/O-heavy (read every source part, write the merged part). Network-attached storage without enough IOPS, or spinning disks under a high write rate, can't sustain it.
-- **Very large parts.** `max_bytes_to_merge_at_max_space_in_pool` (default 150 GiB) lets merges grow large; a single big merge can occupy a worker for a long time and delay everything queued behind it.
-- **Concurrent mutations.** `ALTER … UPDATE/DELETE` runs through the same merge pool and competes with regular merges for threads.
-- **A single hot partition** serializing merges that could otherwise run in parallel across partitions.
+<Mermaid chart={`flowchart TD
+  Inserts["INSERT rate"] --> Queue["Part queue"]
+  Pool["Merge pool + disk IOPS"] --> Merges["MergeParts"]
+  Queue --> Race{"Merges keep up?"}
+  Merges --> Race
+  Race -->|"no"| Backlog["Code 252 / delay inserts"]
+  Mut["Mutations"] -.-> Pool`} />
+
+<Accordions>
+<Accordion title="Undersized merge pool">
+
+`background_pool_size` / `background_merge_scheduling_pool_size` too small for the sustained write rate — not enough worker threads to merge parts as fast as they arrive.
+
+</Accordion>
+<Accordion title="Slow disks">
+
+Merges are I/O-heavy (read every source part, write the merged part). Network-attached storage without enough IOPS, or spinning disks under a high write rate, can't sustain it.
+
+</Accordion>
+<Accordion title="Very large parts">
+
+`max_bytes_to_merge_at_max_space_in_pool` (default 150 GiB) lets merges grow large; a single big merge can occupy a worker for a long time and delay everything queued behind it.
+
+</Accordion>
+<Accordion title="Concurrent mutations">
+
+`ALTER … UPDATE/DELETE` runs through the same merge pool and competes with regular merges for threads.
+
+</Accordion>
+<Accordion title="A single hot partition">
+
+Serializes merges that could otherwise run in parallel across partitions.
+
+</Accordion>
+</Accordions>
 
 ## Diagnose
 

@@ -6,6 +6,15 @@ icon: PlugZap
 
 When you add a ClickHouse host and click **Test connection**, the dashboard classifies any failure into one of the kinds below and links you straight here. Find your error and follow the fix.
 
+<Mermaid chart={`flowchart TD
+  Test["Test connection"] --> Reach{"Host reachable?"}
+  Reach -->|"no"| Net["DNS / refused / TLS / timeout"]
+  Reach -->|"yes"| Auth{"Credentials?"}
+  Auth -->|"no"| A["Auth failed"]
+  Auth -->|"yes"| Grants{"SELECT on system.*?"}
+  Grants -->|"no"| P["Not enough privileges"]
+  Grants -->|"yes"| OK["Connected"]`} />
+
 ## Fix your error
 
 Each entry lists the message you saw (the symptom) and the fix. The dashboard shows the raw ClickHouse or network error as technical detail underneath the classified error.

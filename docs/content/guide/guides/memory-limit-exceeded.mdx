@@ -10,10 +10,28 @@ icon: Gauge
 
 A query's memory use is dominated by state it has to hold, not the size of the table it scans:
 
-- **High-cardinality `GROUP BY` / `DISTINCT`.** Every distinct key gets a row in an in-memory hash table.
-- **Large `JOIN`s.** The default hash-join algorithm loads the right-hand table fully into memory.
-- **`ORDER BY` without `LIMIT`,** or a `LIMIT` too large to sort in a bounded buffer.
-- **Window functions** over wide partitions, which buffer rows per partition.
+<Accordions>
+<Accordion title="High-cardinality GROUP BY / DISTINCT">
+
+Every distinct key gets a row in an in-memory hash table.
+
+</Accordion>
+<Accordion title="Large JOINs">
+
+The default hash-join algorithm loads the right-hand table fully into memory.
+
+</Accordion>
+<Accordion title="ORDER BY without LIMIT">
+
+Or a `LIMIT` too large to sort in a bounded buffer.
+
+</Accordion>
+<Accordion title="Window functions">
+
+Wide partitions buffer rows per partition.
+
+</Accordion>
+</Accordions>
 
 ## Diagnose
 

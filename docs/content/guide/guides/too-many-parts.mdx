@@ -10,6 +10,13 @@ icon: Layers
 
 Every `INSERT` creates at least one new data part per partition. Background merges continuously combine small parts into larger ones so reads stay fast. When inserts outpace merges, the part count climbs until ClickHouse protects itself:
 
+<Mermaid chart={`flowchart TD
+  I["INSERT batches"] --> P["New parts per partition"]
+  P --> M["Background merges"]
+  M --> Big["Fewer, larger parts"]
+  P -->|"inserts faster than merges"| Throttle["Delay then Code 252\nToo many parts"]
+  Throttle --> Stop["INSERTs rejected"]`} />
+
 - **Frequent small inserts.** Row-at-a-time or micro-batch inserts (application-side "insert on every event") create far more parts than the merge scheduler can absorb.
 - **Over-partitioned tables.** A partition key with too many distinct values (for example `PARTITION BY (toDate(ts), user_id)` instead of just `toDate(ts)`) multiplies the number of parts per insert.
 - **Merges genuinely falling behind.** Slow disks, an undersized merge pool, or a burst of large mutations can make merges the bottleneck even with a sane insert pattern — see [Merges slower than inserts](/guide/guides/merges-slower-than-inserts) for that root cause.

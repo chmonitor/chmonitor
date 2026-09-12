@@ -12,6 +12,12 @@ hash table can outgrow `max_memory_usage` and the query dies with
 `MEMORY_LIMIT_EXCEEDED` (exception code 241) instead of finishing slowly.
 External aggregation trades that hard failure for spilling to disk.
 
+<Mermaid chart={`flowchart TD
+  GB["GROUP BY hash table"] --> Cap{"Over max_bytes_before_external_group_by?"}
+  Cap -->|"no"| RAM["Stay in memory"]
+  Cap -->|"yes"| Spill["Write partial state to disk"]
+  Spill --> Merge["Merge spilled chunks"]`} />
+
 ## How it works
 
 `max_bytes_before_external_group_by` sets a memory threshold per query. Once
@@ -35,6 +41,10 @@ safety valve for genuinely large aggregations, not a substitute for a correctly
 sized `max_memory_usage`.
 
 ## Try these first — they're cheaper than spilling
+
+<Callout type="warn" title="Spill is a safety valve">
+Spilling to disk is strictly slower than staying in memory. Fix cardinality / `GROUP BY` first; then enable external aggregation.
+</Callout>
 
 1. **Reduce the `GROUP BY` cardinality with pre-aggregation.** If the same
    aggregation runs repeatedly, a materialized view that pre-aggregates on

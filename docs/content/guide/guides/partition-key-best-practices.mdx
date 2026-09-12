@@ -12,6 +12,11 @@ always the same mistake: treating the partition key like an index.
 
 ## What the partition key is actually for
 
+<Mermaid chart={`flowchart TD
+  PK["PARTITION BY"] --> Drop["DROP PARTITION / TTL"]
+  PK --> Merge["Merges only inside a partition"]
+  OB["ORDER BY + skip indices"] --> Prune["Query prune / sort"]`} />
+
 The partition key is a **data-lifecycle** mechanism, not a query-acceleration
 mechanism:
 

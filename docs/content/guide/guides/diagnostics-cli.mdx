@@ -32,24 +32,34 @@ the matching binary from
 [GitHub Releases](https://github.com/chmonitor/chmonitor/releases), verifies the
 checksum, installs `chm`, and symlinks `chmonitor` → `chm`:
 
-```bash
-# Stable channel (default)
-curl -sSf https://chmonitor.dev/install.sh | bash
+<Tabs items={["Stable", "Beta", "cargo"]}>
+<Tab value="Stable">
 
-# Beta channel (prereleases)
+```bash
+curl -sSf https://chmonitor.dev/install.sh | bash
+```
+
+</Tab>
+<Tab value="Beta">
+
+```bash
 CHM_CHANNEL=beta bash <(curl -sSf https://chmonitor.dev/install.sh)
 ```
 
-Pin a release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
-Override the install directory with `CHM_INSTALL_DIR` (default
-`$HOME/.local/bin`). The installer never invokes `sudo`.
-
-Already have a Rust toolchain?
+</Tab>
+<Tab value="cargo">
 
 ```bash
 cargo install chmonitor
 # both `chm` and `chmonitor` land in ~/.cargo/bin
 ```
+
+</Tab>
+</Tabs>
+
+Pin a release with `CHM_VERSION=chm-vX.Y.Z` (`vX.Y.Z` / `X.Y.Z` also work).
+Override the install directory with `CHM_INSTALL_DIR` (default
+`$HOME/.local/bin`). The installer never invokes `sudo`.
 
 ### Channels
 

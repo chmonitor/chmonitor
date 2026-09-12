@@ -6,9 +6,11 @@ icon: AppWindow
 
 If you searched **ch-ui**, **ch ui**, **chouse ui**, or **ch-ui docker**, you might have meant three different projects:
 
-- **[chmonitor](https://chmonitor.dev)** — this docs site. Read-only ClickHouse **monitoring** (queries, parts, merges, replication, AI agent).
-- **[ch-ui](https://ch-ui.com/)** ([caioricciuti/ch-ui](https://github.com/caioricciuti/ch-ui)) — a ClickHouse **workspace**: SQL editor, pipelines, models, optional Pro cluster-health modules.
-- **CHouse UI** ([chouse-ui.com](https://chouse-ui.com/)) — another GUI, not related to either.
+<Cards>
+<Card title="chmonitor" href="https://chmonitor.dev" description="This docs site. Read-only ClickHouse monitoring: queries, parts, merges, replication, AI agent." />
+<Card title="ch-ui" href="https://ch-ui.com/" description="ClickHouse workspace: SQL editor, pipelines, models, optional Pro cluster-health modules." />
+<Card title="CHouse UI" href="https://chouse-ui.com/" description="Another GUI — not related to either product above." />
+</Cards>
 
 Short names, different jobs. This page compares ch-ui and chmonitor honestly.
 
@@ -61,6 +63,10 @@ Getting started: [local / Docker](/guide/getting-started), [Docker deploy](/oper
 ## Can you run both?
 
 Yes. Two clients, one ClickHouse. Give each a [least-privilege user](/guide/getting-started/clickhouse-requirements). Use ch-ui to write the pipeline; use chmonitor when on-call asks why inserts stalled.
+
+<Mermaid chart={`flowchart LR
+  CHUI["ch-ui\nSQL / pipelines"] --> CH["ClickHouse"]
+  CHM["chmonitor\nsystem.* ops"] --> CH`} />
 
 If you landed here because Google mixed **chmonitor** with **ch-ui** / **chouse ui**, pick the row in the table that matches the job — not the one that matches the typo.
 

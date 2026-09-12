@@ -19,6 +19,13 @@ The Data Explorer is a tree-browser for the entire schema of a ClickHouse host: 
 
 Select a database from the sidebar, then a table, to see:
 
+<Mermaid chart={`flowchart LR
+  DB["system.databases"] --> T["system.tables"]
+  T --> Col["columns"]
+  T --> Idx["skip indices"]
+  T --> Pr["projections"]
+  T --> Dep["dependencies"]`} />
+
 - **Column list** — name, type, and whether the column is part of the primary key, sorting key, or partition key.
 - **DDL** — the `CREATE TABLE` statement for the selected table.
 - **Indexes** — partition key, sorting key, primary key, sampling key, and engine parameters.

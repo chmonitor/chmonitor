@@ -6,6 +6,10 @@ icon: KeyRound
 
 People paste `"GRANT CREATE ON my_db.* TO"` into a search box because ClickHouse privilege names look like SQL keywords and they are *not* interchangeable. This page is the cheat sheet: correct syntax, what `CREATE` actually includes, how `ON CLUSTER` works, and why a monitoring dashboard should almost never get `CREATE` at all.
 
+<Callout type="warn" title="Monitoring users almost never need CREATE">
+chmonitor's default posture is `SELECT` on `system.*`. App writers get `CREATE TABLE`; the dashboard user should not.
+</Callout>
+
 ## Correct GRANT syntax
 
 The current form is:

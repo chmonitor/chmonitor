@@ -14,15 +14,23 @@ and OSS deployments are unaffected.
 
 ## What you get
 
-- `/chmonitor status [hostId]` — a cluster health summary (memory, disk, running
-  queries, merges, replication lag).
-- `/chmonitor query <SQL>` — run **one read-only `SELECT`** and see the result as
-  a table. Queries are hard-capped (read-only, row limit, and a short execution
-  timeout) so they always answer within Slack's 3-second budget.
-- `/chmonitor alert` — the most recent firing alerts (from alert history).
-- A **Home tab** with a per-host health summary and a link to the dashboard.
-- An **Acknowledge** button on pushed alert messages that records who
-  acknowledged the alert and edits the message to show it.
+<Tabs items={["status", "query", "alert"]}>
+<Tab value="status">
+
+`/chmonitor status [hostId]` — a cluster health summary (memory, disk, running queries, merges, replication lag).
+
+</Tab>
+<Tab value="query">
+
+`/chmonitor query <SQL>` — run **one read-only `SELECT`** and see the result as a table. Queries are hard-capped (read-only, row limit, and a short execution timeout) so they always answer within Slack's 3-second budget.
+
+</Tab>
+<Tab value="alert">
+
+`/chmonitor alert` — the most recent firing alerts (from alert history). Home tab: per-host health summary and a dashboard link. **Acknowledge** on pushed alerts records who acked and edits the message.
+
+</Tab>
+</Tabs>
 
 ## 1. Create the Slack app from the manifest
 

@@ -19,6 +19,15 @@ skip-index, projection, partition-key, and `PREWHERE` fixes as DDL you review an
 run yourself — it never applies anything on its own. See [AI Agent capabilities](/guide/ai-agent/capabilities).
 </Callout>
 
+<Mermaid chart={`flowchart TD
+  Start["Slow query / cluster"] --> Parts["Parts + partitions healthy?"]
+  Parts -->|"no"| PK["Fix PARTITION BY /\ngranularity"]
+  Parts -->|"yes"| Filter["EXPLAIN: Granules N/M"]
+  Filter -->|"N ≈ M"| Pre["PREWHERE or skip index"]
+  Filter -->|"N << M"| Shape["Repeated GROUP BY / WHERE?"]
+  Shape -->|"yes"| Accel["Projection or MV"]
+  Shape -->|"no"| Mem["External GROUP BY /\nmemory only if needed"]`} />
+
 ## The six areas
 
 <Cards>
