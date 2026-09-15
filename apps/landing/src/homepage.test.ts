@@ -187,7 +187,7 @@ describe('landing <img> alts', () => {
       const src = readFileSync(file, 'utf8').replace(/<!--[\s\S]*?-->/g, '')
       const tags = src.match(/<img\b[\s\S]*?>/g) ?? []
       for (const tag of tags) {
-        if (!/\bsrc=/.test(tag) && !/\bdata-src-light=/.test(tag)) continue
+        if (!/\bsrc=/.test(tag) && !/\bdata-src-light/.test(tag)) continue
         if (!/\balt=/.test(tag)) {
           missing.push(
             `${file.replace(`${landing}/`, '')}: ${tag.slice(0, 80)}`

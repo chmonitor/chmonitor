@@ -400,27 +400,22 @@ for (const type of [
   }
 }
 
-// Real rendered tags have src= and/or data-src-light= (theme swap). Do not
-// treat JS/CSS comments like `<img data-src-light data-src-dark>` as imgs.
 const imgTags = html.match(/<img\b[^>]*>/g) ?? []
-const realImgs = imgTags.filter(
-  (tag) => /\bsrc=/.test(tag) || /\bdata-src-light=/.test(tag)
-)
-const imgsWithoutAlt = realImgs.filter((tag) => !/\balt=/.test(tag))
+const imgsWithoutAlt = imgTags.filter((tag) => !/\balt=/.test(tag))
 if (imgsWithoutAlt.length > 0) {
   console.error(
     `MISSING alt on ${imgsWithoutAlt.length} homepage <img>: ${imgsWithoutAlt[0]}`
   )
   failed = true
 } else {
-  console.log(`OK: ${realImgs.length} homepage <img> tags have alt`)
+  console.log(`OK: ${imgTags.length} homepage <img> tags have alt`)
 }
-const themedImgs = realImgs.filter((tag) => /\bdata-src-light=/.test(tag))
+const themedImgs = imgTags.filter((tag) => /\bdata-src-light/.test(tag))
 if (themedImgs.some((tag) => !/\balt=/.test(tag))) {
-  console.error('MISSING alt on theme-switched homepage <img data-src-light=>')
+  console.error('MISSING alt on theme-switched homepage <img data-src-light>')
   failed = true
 } else if (themedImgs.length === 0) {
-  console.error('MISSING theme-switched homepage <img data-src-light=>')
+  console.error('MISSING theme-switched homepage <img data-src-light>')
   failed = true
 } else {
   console.log(`OK: ${themedImgs.length} theme-switched homepage <img> have alt`)
