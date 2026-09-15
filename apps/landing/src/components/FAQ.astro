@@ -1,5 +1,9 @@
 ---
-const faqs = [
+interface Props {
+  faqs?: { q: string; a: string }[]
+}
+
+const defaultFaqs = [
   {
     q: 'How do I deploy chmonitor?',
     a: 'The fastest path is Docker: <code>docker run -d -p 3000:3000 -e CLICKHOUSE_HOST=... ghcr.io/chmonitor/chmonitor:latest</code>. It also deploys to <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Cloudflare Workers</a> and Kubernetes via the bundled Helm chart. See the <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">quickstart</a> for step-by-step instructions.',
@@ -29,6 +33,8 @@ const faqs = [
     a: 'chmonitor uses version-aware SQL, queries adapt to the system table schema of the connected ClickHouse version. It is regularly tested against recent stable releases.',
   },
 ]
+
+const { faqs = defaultFaqs } = Astro.props
 
 const faqJsonLd = {
   '@context': 'https://schema.org',

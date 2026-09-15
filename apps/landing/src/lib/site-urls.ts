@@ -76,6 +76,12 @@ export const STATIC_PAGES: ListedPage[] = [
     description: 'Replication lag and replica health.',
   },
   {
+    path: '/clickhouse-dashboard',
+    title: 'ClickHouse Dashboard — Pre-built Ops Pages | chmonitor',
+    description:
+      'A ClickHouse ops dashboard with pre-built pages for queries, health, storage and replication — not Grafana panels you assemble.',
+  },
+  {
     path: '/vs-datadog',
     title: 'chmonitor vs Datadog',
     description: 'ClickHouse-native monitoring compared to Datadog.',

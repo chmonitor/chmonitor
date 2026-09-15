@@ -22,6 +22,11 @@ describe('homepage hides Pricing and the Always shipping band', () => {
     expect(home).not.toMatch(/<ChangelogBand\b/)
   })
 
+  test('home links the ClickHouse dashboard pillar', () => {
+    expect(home).toContain("from '../data/use-cases'")
+    expect(home).toContain('<UseCaseLinks')
+  })
+
   test('keeps FAQ and the dedicated pages/components', () => {
     expect(home).toContain('<FAQ />')
     expect(existsSync(join(landing, 'src/pages/license.astro'))).toBe(true)

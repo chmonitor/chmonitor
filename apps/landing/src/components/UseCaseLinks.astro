@@ -19,7 +19,7 @@ const { items, eyebrow, heading, soft = false } = Astro.props
       <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{eyebrow}</p>
       <h2 class="mt-3 text-balance font-normal text-[clamp(1.75rem,4vw,2.25rem)] leading-[1.2] tracking-[-0.02em]">{heading}</h2>
     </div>
-    <div class="mt-8 sm:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class:list={['mt-8 sm:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2', items.length > 4 ? 'lg:grid-cols-3' : 'lg:grid-cols-4']}>
       {items.map((item) => (
         <a
           class="reveal group flex flex-col rounded-xl border border-border bg-card p-5 sm:p-6 transition-colors duration-200 hover:border-[var(--hairline-strong)] hover:bg-[var(--canvas-soft)]"

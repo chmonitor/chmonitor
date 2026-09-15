@@ -23,6 +23,7 @@ function copyFields(): string[] {
     ...u.benefits.flatMap((b) => [b.title, b.body]),
     ...u.featureList,
     ...(u.faq ?? []).flatMap((f) => [f.q, f.a]),
+    ...(u.extraShots ?? []).map((s) => s.alt),
   ])
 }
 
@@ -77,6 +78,17 @@ describe('useCases content invariants', () => {
     const blob = `${pillar!.title} ${pillar!.description} ${pillar!.h1} ${pillar!.subhead}`.toLowerCase()
     expect(blob).toContain('system')
     expect(blob).toContain('recommend-only')
+  })
+
+  test('clickhouse-dashboard pillar does not cannibalize home or monitoring titles', () => {
+    const dash = useCases.find((u) => u.slug === 'clickhouse-dashboard')
+    expect(dash).toBeDefined()
+    expect(dash!.title).not.toContain('The ops dashboard for ClickHouse')
+    expect(dash!.h1).not.toBe('The ops dashboard for ClickHouse')
+    expect(dash!.h1.toLowerCase()).not.toContain('clickhouse monitoring')
+    expect(dash!.title.toLowerCase()).not.toBe('clickhouse monitoring')
+    expect(dash!.faq?.length).toBeGreaterThanOrEqual(4)
+    expect(dash!.extraShots?.length).toBeGreaterThanOrEqual(3)
   })
 
   test('titles never collide with the homepage brand title', () => {

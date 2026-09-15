@@ -107,6 +107,13 @@ const PAGES: OgCard[] = [
     domain: 'chmonitor.dev',
   },
   {
+    out: 'apps/landing/public/og/og-clickhouse-dashboard.png',
+    eyebrow: 'CLICKHOUSE DASHBOARD',
+    title: 'A dashboard you\ndo not assemble',
+    sub: 'Pre-built ClickHouse ops pages — queries, health, storage, replication.',
+    domain: 'chmonitor.dev',
+  },
+  {
     out: 'apps/landing/public/og/og-vs-clickhouse-cloud.png',
     eyebrow: 'VS CLICKHOUSE CLOUD',
     title: 'chmonitor vs\nClickHouse Cloud',

@@ -1,0 +1,47 @@
+---
+// SEO pillar: “clickhouse dashboard” — what an ops dashboard is + why chmonitor.
+// Distinct from `/` (brand home) and `/clickhouse-monitoring` (monitoring practice).
+import LandingPage from '../layouts/LandingPage.astro'
+import { useCases } from '../data/use-cases'
+
+const useCase = useCases.find((u) => u.slug === 'clickhouse-dashboard')
+if (!useCase) throw new Error('use-cases.ts: missing "clickhouse-dashboard" entry')
+---
+<LandingPage
+  useCase={useCase}
+  ctaLabel="Open dashboard"
+  secondaryCtaLabel="Install & docs"
+>
+  <section slot="after-benefits" class="band band-soft">
+    <div class="wrap">
+      <div class="sec-head reveal" style="text-align:center">
+        <span class="eyebrow">Pre-built vs panels</span>
+        <h2>Stop building a ClickHouse Grafana board</h2>
+        <p>
+          Operators searching for a ClickHouse dashboard usually mean “show me queries, lag, disk and merges today,” not “give me a charting canvas.” Grafana plus a ClickHouse plugin wins if you want custom business charts. chmonitor wins if you want ops pages that already exist.
+        </p>
+      </div>
+      <div class="cap-grid">
+        <div class="cap reveal">
+          <h4>chmonitor</h4>
+          <p>Connect a host. Overview, queries, health, topology, explorer and the agent are routes. SQL is version-aware against system tables.</p>
+        </div>
+        <div class="cap reveal">
+          <h4>Grafana + ClickHouse plugin</h4>
+          <p>Install Grafana, add a datasource, write panels, keep them current. Flexible, and a standing dashboard project. Full matrix: <a href="/vs-grafana">chmonitor vs Grafana</a>.</p>
+        </div>
+        <div class="cap reveal">
+          <h4>Full-stack APM</h4>
+          <p>Datadog (and similar) cover traces and on-call across your stack. They are not a ClickHouse ops dashboard. See <a href="/vs-datadog">chmonitor vs Datadog</a>.</p>
+        </div>
+      </div>
+      <p class="reveal mt-8 text-center text-sm text-muted-foreground">
+        Also: <a class="font-semibold text-primary underline underline-offset-4 hover:text-primary/80" href="/clickhouse-monitoring">ClickHouse monitoring</a>
+        · <a class="font-semibold text-primary underline underline-offset-4 hover:text-primary/80" href="/features/overview">Overview feature</a>
+        · <a class="font-semibold text-primary underline underline-offset-4 hover:text-primary/80" href="/features/queries">Queries</a>
+        · <a class="font-semibold text-primary underline underline-offset-4 hover:text-primary/80" href="/monitor-queries">Query monitoring</a>
+        · <a class="font-semibold text-primary underline underline-offset-4 hover:text-primary/80" href="/">Product home</a>
+      </p>
+    </div>
+  </section>
+</LandingPage>

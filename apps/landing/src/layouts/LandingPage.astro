@@ -21,12 +21,16 @@ interface Props {
   useCase: UseCase
   ctaLabel?: string
   ctaHref?: string
+  secondaryCtaLabel?: string
+  secondaryCtaHref?: string
 }
 
 const {
   useCase,
   ctaLabel = 'Open dashboard',
   ctaHref = 'https://dash.chmonitor.dev',
+  secondaryCtaLabel = 'Docs',
+  secondaryCtaHref = 'https://docs.chmonitor.dev',
 } = Astro.props
 
 const {
@@ -44,6 +48,7 @@ const {
   featureList,
   faq,
   showComparisons,
+  extraShots,
 } = useCase
 
 // Sibling use cases, for the "Related" cross-link band.
@@ -85,7 +90,7 @@ const faqJsonLd =
         mainEntity: faq.map(({ q, a }) => ({
           '@type': 'Question',
           name: q,
-          acceptedAnswer: { '@type': 'Answer', text: a },
+          acceptedAnswer: { '@type': 'Answer', text: a.replace(/<[^>]+>/g, '') },
         })),
       }
     : null
@@ -112,8 +117,8 @@ const faqJsonLd =
                 {ctaLabel}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </a>
-              <a class="btn btn-ghost" href="https://docs.chmonitor.dev" target="_blank" rel="noopener">
-                Docs
+              <a class="btn btn-ghost" href={secondaryCtaHref} target="_blank" rel="noopener">
+                {secondaryCtaLabel}
               </a>
             </div>
           </div>
@@ -143,6 +148,28 @@ const faqJsonLd =
       </div>
     </section>
 
+    {extraShots && extraShots.length > 0 && (
+      <section class="band">
+        <div class="wrap">
+          <div class="sec-head reveal" style="text-align:center">
+            <span class="eyebrow">Product shots</span>
+            <h2>Real dashboard pages, not mockups</h2>
+            <p>Each image is a shipped view. Click through related features for the full walkthrough.</p>
+          </div>
+          <div class="cap-grid">
+            {extraShots.map((shot) => (
+              <figure class="feat-shot reveal" style="margin:0">
+                <div class="browser-bar"><span class="lights"><i></i><i></i><i></i></span></div>
+                <img src={shot.src} alt={shot.alt} width={shot.width} height={shot.height} loading="lazy" decoding="async" />
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <slot name="after-benefits" />
+
     <SocialProof />
 
     {faq && faq.length > 0 && (
@@ -150,7 +177,7 @@ const faqJsonLd =
         <div class="wrap">
           <div class="sec-head reveal" style="text-align:center">
             <span class="eyebrow">FAQ</span>
-            <h2>ClickHouse monitoring questions</h2>
+            <h2>Questions &amp; answers</h2>
           </div>
           <div class="reveal mx-auto mt-8 sm:mt-10 max-w-3xl">
             {faq.map(({ q, a }) => (
@@ -160,7 +187,7 @@ const faqJsonLd =
                   <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
                   <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
                 </summary>
-                <div class="faq-ans pb-5 text-muted-foreground">{a}</div>
+                <div class="faq-ans pb-5 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4" set:html={a} />
               </details>
             ))}
           </div>
@@ -186,6 +213,8 @@ const faqJsonLd =
     )}
 
     <UseCaseLinks items={related} eyebrow="Related" heading="More ways to monitor ClickHouse" />
+
+    <slot name="before-cta" />
 
     <FinalCta />
   </main>

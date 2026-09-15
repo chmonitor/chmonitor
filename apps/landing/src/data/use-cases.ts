@@ -18,6 +18,18 @@ export interface UseCaseBenefit {
   body: string
 }
 
+export interface UseCaseFaq {
+  q: string
+  a: string
+}
+
+export interface UseCaseShot {
+  src: string
+  alt: string
+  width: number
+  height: number
+}
+
 export interface UseCase {
   /** Route slug — the page lives at /<slug>. */
   slug: string
@@ -40,10 +52,12 @@ export interface UseCase {
   benefits: UseCaseBenefit[]
   /** SoftwareApplication JSON-LD featureList for this page. */
   featureList: string[]
-  /** Optional FAQ — rendered on the page + FAQPage JSON-LD. */
-  faq?: { q: string; a: string }[]
+  /** Optional FAQ + FAQPage JSON-LD (pillar pages). */
+  faq?: UseCaseFaq[]
   /** Honest /vs-* comparison links (pillar pages). */
   showComparisons?: boolean
+  /** Extra product screenshots with descriptive alts (not decorative). */
+  extraShots?: UseCaseShot[]
 }
 
 const SPARKLE_ICON =
@@ -66,6 +80,8 @@ const CAPACITY_ICON =
   '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'
 const TABLE_ICON =
   '<path d="M3 5h18v14H3z"/><path d="M3 10h18"/><path d="M9 10v9"/><path d="M15 10v9"/>'
+const LAYOUT_ICON =
+  '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>'
 
 export const useCases: UseCase[] = [
   // Pillar for "clickhouse monitoring" (#3373). Home stays brand
@@ -130,7 +146,7 @@ export const useCases: UseCase[] = [
       },
       {
         q: 'Is ClickHouse monitoring the same as a ClickHouse dashboard?',
-        a: 'Close, but the search intent differs. Monitoring is the checklist: which system tables, which thresholds, what to do next. A dashboard is the UI you look at all day. This page is the monitoring pillar. Home stays the product brand; a dedicated dashboard URL would cover the live ops UI, not this checklist.',
+        a: 'Close, but the search intent differs. Monitoring is the checklist: which system tables, which thresholds, what to do next. A dashboard is the UI you look at all day. This page is the monitoring pillar. Home stays the product brand; see <a href="/clickhouse-dashboard">ClickHouse dashboard</a> for the live ops UI.',
       },
       {
         q: 'Grafana vs Datadog vs a dedicated ClickHouse monitor?',
@@ -300,6 +316,88 @@ export const useCases: UseCase[] = [
       'Slowest and most-expensive query views',
       'Recommend-only EXPLAIN tuning suggestions',
       'AI-agent capacity and TTL advisor (suggests, never executes DDL)',
+    ],
+  },
+  {
+    slug: 'clickhouse-dashboard',
+    title: 'ClickHouse Dashboard — Pre-built Ops Pages | chmonitor',
+    description:
+      'A ClickHouse ops dashboard with pre-built pages for queries, health, storage and replication — not Grafana panels you assemble. Open source; self-host or try the hosted demo.',
+    eyebrow: 'ClickHouse dashboard',
+    h1: 'A ClickHouse dashboard you do not have to assemble',
+    cardBlurb:
+      'Pre-built ops pages for queries, health, storage and replication — versus building Grafana panels yourself.',
+    subhead:
+      'chmonitor is a ClickHouse ops dashboard: complete pages that read system tables, not a blank canvas. Home stays the product brand; this page is what “ClickHouse dashboard” means in practice, and why operators pick chmonitor over wiring panels.',
+    heroImage: '/assets/screenshots/overview-light.png',
+    heroImageAlt:
+      'chmonitor ClickHouse dashboard overview: query heatmap, charts, and cluster health on one page',
+    heroImageWidth: 1024,
+    heroImageHeight: 732,
+    benefits: [
+      {
+        icon: LAYOUT_ICON,
+        title: 'Pages, not a panel project',
+        body: 'Overview, running queries, health, storage, topology and explorer ship as routes. Grafana plus a ClickHouse plugin is a SQL editor and a blank dashboard — you still write the panels. See the row-by-row matrix on chmonitor vs Grafana.',
+      },
+      {
+        icon: QUERY_GRID_ICON,
+        title: 'Ops surfaces operators actually open',
+        body: 'Live queries with kill, color-coded health, replica lag on a topology map, parts and merges, a schema-aware agent. Each screenshot on this page is a real view, not a mock.',
+      },
+      {
+        icon: SPARKLE_ICON,
+        title: 'Advisor included, recommend-only',
+        body: 'EXPLAIN hints and an AI agent that reads schema and query_log. chmonitor never applies DDL. Install with Docker or open the hosted dashboard; docs cover Workers and Helm.',
+      },
+    ],
+    featureList: [
+      'Pre-built ClickHouse ops dashboard pages',
+      'Query, health, storage and replication views from system tables',
+      'Recommend-only advisor and AI agent',
+      'Self-host (Docker, Kubernetes, Workers) or hosted demo',
+    ],
+    extraShots: [
+      {
+        src: '/assets/screenshots/running-queries-light.png',
+        alt: 'chmonitor running queries page: live charts and a table of active ClickHouse queries with duration and memory',
+        width: 1024,
+        height: 719,
+      },
+      {
+        src: '/assets/screenshots/chmonitor-health-light.png',
+        alt: 'chmonitor health board: color-coded ClickHouse checks for replication, disk, memory and failed queries',
+        width: 1932,
+        height: 1322,
+      },
+      {
+        src: '/assets/screenshots/cluster-topology-light.png',
+        alt: 'chmonitor cluster topology map: ClickHouse shards, replicas and Keeper quorum with replication links',
+        width: 1024,
+        height: 670,
+      },
+    ],
+    faq: [
+      {
+        q: 'What is a ClickHouse dashboard?',
+        a: 'An ops UI that turns ClickHouse system tables into pages: running queries, merges, parts, replication, disks and health. chmonitor is that product — pre-built routes, not a charting library you configure against ClickHouse as one more data source.',
+      },
+      {
+        q: 'How is a ClickHouse dashboard different from Grafana?',
+        a: 'Grafana is a general canvas. With a ClickHouse plugin you still design panels and keep SQL in sync with versions. chmonitor ships the pages. For the dated feature matrix see <a href="/vs-grafana">chmonitor vs Grafana</a>.',
+      },
+      {
+        q: 'Is this the same as ClickHouse monitoring?',
+        a: 'Related, different intent. This page is the dashboard product (what you open). ClickHouse monitoring covers signals, alerts and lag as a practice — see <a href="/clickhouse-monitoring">ClickHouse monitoring</a>.',
+      },
+      {
+        q: 'Does it replace the built-in ClickHouse /dashboard?',
+        a: 'No. ClickHouse ships a small native dashboard. chmonitor is an independent ops UI with deeper query, health, topology and advisor pages. Compare with <a href="/vs-clickhouse-cloud">chmonitor vs ClickHouse Cloud</a> if you use Cloud.',
+      },
+      {
+        q: 'How do I install the dashboard?',
+        a: 'Fastest path is Docker: <code>docker run -d -p 3000:3000 -e CLICKHOUSE_HOST=… ghcr.io/chmonitor/chmonitor:latest</code>. <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a> cover Cloudflare Workers and Helm. Or open the hosted dashboard at <a href="https://dash.chmonitor.dev" target="_blank" rel="noopener">dash.chmonitor.dev</a> and connect a cluster.',
+      },
     ],
   },
 ]
