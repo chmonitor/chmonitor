@@ -87,11 +87,12 @@ CH-heavy, self-hosted or cost-sensitive teams. You want version-aware system-tab
 **Grafana + chmonitor** — wall + CH ops. **Datadog + chmonitor** — APM + CH ops. **chmonitor alone** — ClickHouse is the product you run. None of these require ripping the other out.
 </Callout>
 
-Marketing-length matrices: [chmonitor vs Datadog](https://chmonitor.dev/vs-datadog), [vs Grafana](https://chmonitor.dev/vs-grafana). Demo: [dash.chmonitor.dev](https://dash.chmonitor.dev).
+Pillar (what to monitor, `system.*` dashboards, recommend-only advisor): [ClickHouse monitoring](https://chmonitor.dev/clickhouse-monitoring). Marketing-length matrices: [chmonitor vs Datadog](https://chmonitor.dev/vs-datadog), [vs Grafana](https://chmonitor.dev/vs-grafana). Demo: [dash.chmonitor.dev](https://dash.chmonitor.dev).
 
 ## Related
 
 <Cards>
+<Card title="ClickHouse monitoring (pillar)" href="https://chmonitor.dev/clickhouse-monitoring" description="What to monitor: queries, parts, merges, replicas, and a recommend-only advisor." />
 <Card title="Grafana bridge" href="/reference/grafana-bridge" description="ClickHouse plugin setup and copy-paste system-table panels." />
 <Card title="ch-ui vs chmonitor" href="/guide/guides/ch-ui-vs-chmonitor" description="SQL workspace vs ops dashboard — different from Grafana too." />
 <Card title="Queries" href="/guide/features/queries" description="Live, slow, and failed queries without writing a panel." />

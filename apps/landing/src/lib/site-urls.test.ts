@@ -9,6 +9,7 @@ describe('landing crawler index', () => {
     expect(paths).toContain('/')
     expect(paths).toContain('/license')
     expect(paths).not.toContain('/pricing')
+    expect(paths).toContain('/clickhouse-monitoring')
     expect(paths).toContain('/vs-datadog')
     expect(paths).toContain('/clickhouse-vs-druid-pinot')
     expect(paths).toContain('/watch/v0-3')

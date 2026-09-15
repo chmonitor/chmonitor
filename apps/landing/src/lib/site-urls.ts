@@ -50,6 +50,12 @@ export const STATIC_PAGES: ListedPage[] = [
     description: 'Logos and brand assets.',
   },
   {
+    path: '/clickhouse-monitoring',
+    title: 'ClickHouse monitoring',
+    description:
+      'What to monitor in ClickHouse: system tables, dashboards, recommend-only advisor.',
+  },
+  {
     path: '/performance',
     title: 'Performance',
     description: 'How chmonitor stays fast on large clusters.',

@@ -22,6 +22,7 @@ function copyFields(): string[] {
     u.heroImageAlt,
     ...u.benefits.flatMap((b) => [b.title, b.body]),
     ...u.featureList,
+    ...(u.faq ?? []).flatMap((f) => [f.q, f.a]),
   ])
 }
 
@@ -61,6 +62,26 @@ describe('useCases content invariants', () => {
     for (const u of useCases) {
       expect(u.benefits.length).toBeGreaterThan(0)
       expect(u.featureList.length).toBeGreaterThan(0)
+    }
+  })
+
+  test('clickhouse-monitoring pillar has unique ops-intent copy and FAQ', () => {
+    const pillar = useCases.find((u) => u.slug === 'clickhouse-monitoring')
+    expect(pillar).toBeDefined()
+    expect(pillar!.title).not.toContain('The ops dashboard for ClickHouse')
+    expect(pillar!.h1.toLowerCase()).toContain('what to monitor')
+    expect(pillar!.h1.toLowerCase()).not.toContain('dashboard')
+    expect(pillar!.title.toLowerCase()).not.toContain('clickhouse dashboard')
+    expect(pillar!.faq?.length).toBeGreaterThanOrEqual(4)
+    expect(pillar!.showComparisons).toBe(true)
+    const blob = `${pillar!.title} ${pillar!.description} ${pillar!.h1} ${pillar!.subhead}`.toLowerCase()
+    expect(blob).toContain('system')
+    expect(blob).toContain('recommend-only')
+  })
+
+  test('titles never collide with the homepage brand title', () => {
+    for (const u of useCases) {
+      expect(u.title).not.toBe('chmonitor — The ops dashboard for ClickHouse')
     }
   })
 })

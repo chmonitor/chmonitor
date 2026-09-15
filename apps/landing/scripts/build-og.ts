@@ -72,6 +72,13 @@ const PAGES: OgCard[] = [
     domain: 'chmonitor.dev',
   },
   {
+    out: 'apps/landing/public/og/og-clickhouse-monitoring.png',
+    eyebrow: 'CLICKHOUSE MONITORING',
+    title: 'What to monitor\nin ClickHouse',
+    sub: 'system.* dashboards for queries, parts, merges, replicas.\nRecommend-only advisor — never auto-applies DDL.',
+    domain: 'chmonitor.dev',
+  },
+  {
     out: 'apps/landing/public/og/og-monitor-queries.png',
     eyebrow: 'QUERY MONITORING',
     title: 'Monitor ClickHouse\nqueries, live',

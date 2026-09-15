@@ -14,6 +14,7 @@ import Footer from '../components/Footer.astro'
 import FinalCta from '../components/FinalCta.astro'
 import SocialProof from '../components/SocialProof.astro'
 import UseCaseLinks from '../components/UseCaseLinks.astro'
+import ComparisonLinks from '../components/ComparisonLinks.astro'
 import { useCases } from '../data/use-cases'
 
 interface Props {
@@ -41,9 +42,11 @@ const {
   heroImageHeight,
   benefits,
   featureList,
+  faq,
+  showComparisons,
 } = useCase
 
-// The other three use cases, for the "Related" cross-link band.
+// Sibling use cases, for the "Related" cross-link band.
 const related = useCases.filter((u) => u.slug !== slug)
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
@@ -73,10 +76,26 @@ const softwareJsonLd = {
   featureList,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 }
+
+const faqJsonLd =
+  faq && faq.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faq.map(({ q, a }) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a },
+        })),
+      }
+    : null
 ---
 <Base title={title} description={description} image={`/og/og-${slug}.png`}>
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
   <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} is:inline />
+  {faqJsonLd && (
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
+  )}
   <Nav />
   <main id="top">
     <section class="band" style="padding-bottom:40px">
@@ -125,6 +144,46 @@ const softwareJsonLd = {
     </section>
 
     <SocialProof />
+
+    {faq && faq.length > 0 && (
+      <section id="faq" class="band band-soft">
+        <div class="wrap">
+          <div class="sec-head reveal" style="text-align:center">
+            <span class="eyebrow">FAQ</span>
+            <h2>ClickHouse monitoring questions</h2>
+          </div>
+          <div class="reveal mx-auto mt-8 sm:mt-10 max-w-3xl">
+            {faq.map(({ q, a }) => (
+              <details class="changelog-faq group border-b border-border first:border-t">
+                <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span class="min-w-0 flex-1 text-pretty">{q}</span>
+                  <span class="shrink-0 text-xl font-normal text-muted-foreground group-open:hidden" aria-hidden="true">+</span>
+                  <span class="shrink-0 text-xl font-normal text-muted-foreground hidden group-open:inline" aria-hidden="true">&minus;</span>
+                </summary>
+                <div class="faq-ans pb-5 text-muted-foreground">{a}</div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    {showComparisons && (
+      <section class="band">
+        <div class="wrap">
+          <div class="sec-head reveal" style="text-align:center">
+            <span class="eyebrow">Comparisons</span>
+            <h2>Grafana, Datadog, or a ClickHouse-native monitor</h2>
+            <p>
+              Grafana wins as a multi-source canvas. Datadog wins as fleet APM.
+              chmonitor wins when on-call is merges, parts, replicas, and query_log.
+              Honest matrices — including rows we lose — live on the comparison pages.
+            </p>
+          </div>
+          <ComparisonLinks current="clickhouse-monitoring" />
+        </div>
+      </section>
+    )}
 
     <UseCaseLinks items={related} eyebrow="Related" heading="More ways to monitor ClickHouse" />
 

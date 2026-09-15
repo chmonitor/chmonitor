@@ -1,0 +1,9 @@
+---
+// SEO pillar — "clickhouse monitoring" (#3373). Content in use-cases.ts.
+import LandingPage from '../layouts/LandingPage.astro'
+import { useCases } from '../data/use-cases'
+
+const useCase = useCases.find((u) => u.slug === 'clickhouse-monitoring')
+if (!useCase) throw new Error('use-cases.ts: missing "clickhouse-monitoring" entry')
+---
+<LandingPage useCase={useCase} />

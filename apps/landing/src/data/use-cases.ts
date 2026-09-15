@@ -40,6 +40,10 @@ export interface UseCase {
   benefits: UseCaseBenefit[]
   /** SoftwareApplication JSON-LD featureList for this page. */
   featureList: string[]
+  /** Optional FAQ — rendered on the page + FAQPage JSON-LD. */
+  faq?: { q: string; a: string }[]
+  /** Honest /vs-* comparison links (pillar pages). */
+  showComparisons?: boolean
 }
 
 const SPARKLE_ICON =
@@ -60,8 +64,88 @@ const BARS_ICON =
   '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20v-3"/>'
 const CAPACITY_ICON =
   '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'
+const TABLE_ICON =
+  '<path d="M3 5h18v14H3z"/><path d="M3 10h18"/><path d="M9 10v9"/><path d="M15 10v9"/>'
 
 export const useCases: UseCase[] = [
+  // Pillar for "clickhouse monitoring" (#3373). Home stays brand
+  // ("chmonitor — The ops dashboard for ClickHouse"). A sibling
+  // /clickhouse-dashboard page (#3374) must NOT reuse this title/H1 —
+  // reserve dashboard copy around "ops UI / live dashboard", not
+  // "what to monitor" / system.* checklists.
+  {
+    slug: 'clickhouse-monitoring',
+    title: 'ClickHouse Monitoring: system.* Dashboards & Advisor',
+    description:
+      'What to monitor in ClickHouse: queries, merges, parts, replication, and cluster health from system tables. Pre-built dashboards plus a recommend-only advisor.',
+    eyebrow: 'ClickHouse monitoring',
+    h1: 'What to monitor in ClickHouse',
+    cardBlurb:
+      'The ops checklist: system.* dashboards for queries, storage, and replication, plus a recommend-only advisor.',
+    subhead:
+      'ClickHouse monitoring is reading system.query_log, system.parts, system.merges, system.replicas, and related tables — then acting before lag, parts, or runaway queries become an outage. chmonitor ships those views as pages, with a recommend-only advisor that never applies DDL.',
+    heroImage: '/assets/screenshots/chmonitor-health-light.png',
+    heroImageAlt:
+      'chmonitor ClickHouse monitoring: cluster health board over system tables',
+    heroImageWidth: 1932,
+    heroImageHeight: 1322,
+    benefits: [
+      {
+        icon: QUERY_GRID_ICON,
+        title: 'Queries: running, slow, failed, expensive',
+        body: 'system.processes and system.query_log: duration, memory, rows read, the full statement. Kill a runaway from the table. Rank slow and most-expensive queries so tuning starts where it pays off.',
+      },
+      {
+        icon: TABLE_ICON,
+        title: 'Tables, parts, and merges',
+        body: 'system.parts and system.merges: table size, part counts, merge backlog, and write amplification. Too many parts or a stuck merge is a storage incident, not a pretty chart.',
+      },
+      {
+        icon: TOPOLOGY_ICON,
+        title: 'Replication and cluster topology',
+        body: 'system.replicas, replication_queue, and distributed DDL: lag, read-only replicas, in-flight fetches. A live topology map so you see shards, replicas, and Keeper together.',
+      },
+      {
+        icon: HEALTH_ICON,
+        title: 'Health checks on one board',
+        body: 'Disk, memory, failed queries, stuck mutations, delayed inserts — color-coded from the same system tables, with Slack or Discord when a check turns red and when it recovers.',
+      },
+      {
+        icon: SPARKLE_ICON,
+        title: 'Recommend-only advisor',
+        body: 'EXPLAIN-based query hints and schema/TTL suggestions you copy and apply yourself. chmonitor never rewrites SQL or runs ALTER/DROP. Grafana and Datadog leave that diagnosis to you.',
+      },
+    ],
+    featureList: [
+      'ClickHouse monitoring from system.query_log, system.parts, system.merges, and system.replicas',
+      'Pre-built dashboards for queries, storage, replication, and cluster health',
+      'Recommend-only query and schema advisor (never auto-applies DDL)',
+      'Slack/Discord health alerts with recovery notifications',
+    ],
+    showComparisons: true,
+    faq: [
+      {
+        q: 'What should I monitor in ClickHouse?',
+        a: 'Start with running and slow queries (system.processes, system.query_log), part counts and table size (system.parts), merge backlog (system.merges), replication lag and read-only replicas (system.replicas / replication_queue), plus disk and memory. Those are the signals that page on-call. chmonitor maps each to a page instead of a blank Grafana SQL panel.',
+      },
+      {
+        q: 'Is ClickHouse monitoring the same as a ClickHouse dashboard?',
+        a: 'Close, but the search intent differs. Monitoring is the checklist: which system tables, which thresholds, what to do next. A dashboard is the UI you look at all day. This page is the monitoring pillar. Home stays the product brand; a dedicated dashboard URL would cover the live ops UI, not this checklist.',
+      },
+      {
+        q: 'Grafana vs Datadog vs a dedicated ClickHouse monitor?',
+        a: 'Grafana is a canvas: you write (and maintain) system-table panels. Datadog is fleet observability with an agent and broader APM. chmonitor is ClickHouse-only: it SELECTs system.* with version-aware SQL and ships complete pages. Many teams keep Grafana or Datadog for the rest of the stack and add chmonitor for merges, parts, and query_log. See /vs-grafana and /vs-datadog.',
+      },
+      {
+        q: 'Does the advisor change my cluster?',
+        a: 'No. Query EXPLAIN hints and schema/TTL suggestions are recommend-only. You review and apply DDL yourself. There is no auto-apply path.',
+      },
+      {
+        q: 'Do I need an agent on every ClickHouse node?',
+        a: 'No. chmonitor talks to ClickHouse over HTTP with a read-oriented user (typically GRANT SELECT ON system.*). Docker, Helm, or Cloudflare Workers — no per-node exporter.',
+      },
+    ],
+  },
   {
     slug: 'monitor-queries',
     title: 'chmonitor Query Monitoring — Live, Slow & Expensive Queries',
