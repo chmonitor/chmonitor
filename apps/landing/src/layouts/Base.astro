@@ -105,8 +105,8 @@ const ogImage = new URL(image, Astro.site).toString()
         document.documentElement.setAttribute('data-theme', 'dark')
       }
     })()
-    // Theme-aware screenshots: a single <img data-src-light data-src-dark>
-    // per slot picks the right variant for the current theme, so only ONE
+    // Theme-aware screenshots: one img per slot with data-src-light and
+    // data-src-dark picks the right variant for the current theme, so only ONE
     // image ever downloads (no display:none sibling to fetch on scroll).
     // Exposed on window so the toggle click handler (below) can re-run it.
     window.chmSyncThemedImages = function (root) {
@@ -281,7 +281,7 @@ const ogImage = new URL(image, Astro.site).toString()
     /* Nav chrome lives in styles/nav.css (shared with the blog). */
 
     /* ── theme-aware screenshots ──
-       A single <img data-src-light data-src-dark> per slot (no hidden sibling
+       One img per slot with data-src-light and data-src-dark (no hidden sibling
        to double-fetch). `src` is set to the light variant at build time so
        no-JS/bots still render an image; the inline `chmSyncThemedImages()`
        script (below) overwrites it with the dark variant when needed, before
@@ -672,7 +672,7 @@ const ogImage = new URL(image, Astro.site).toString()
         dlg.close();
       });
     })();
-    // resolve theme-aware screenshot <img> src now that the DOM is parsed
+    // resolve theme-aware screenshot img src now that the DOM is parsed
     safe(function(){ if (typeof window.chmSyncThemedImages === 'function') window.chmSyncThemedImages() });
   </script>
   <!-- Reveal-on-scroll runs in its OWN script so a failure in any

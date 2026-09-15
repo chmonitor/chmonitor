@@ -150,7 +150,7 @@ describe('JSON-LD crawlability (FAQ / Product / Organization)', () => {
 
   test('homepage FAQ emits inline FAQPage JSON-LD', () => {
     const faq = read('src/components/FAQ.astro')
-    expect(faq).toContain("type=\"application/ld+json\"")
+    expect(faq).toContain('type="application/ld+json"')
     expect(faq).toContain('is:inline')
     expect(faq).toContain("'@type': 'FAQPage'")
   })
@@ -187,9 +187,11 @@ describe('landing <img> alts', () => {
       const src = readFileSync(file, 'utf8').replace(/<!--[\s\S]*?-->/g, '')
       const tags = src.match(/<img\b[\s\S]*?>/g) ?? []
       for (const tag of tags) {
-        if (!/\bsrc=/.test(tag)) continue
+        if (!/\bsrc=/.test(tag) && !/\bdata-src-light=/.test(tag)) continue
         if (!/\balt=/.test(tag)) {
-          missing.push(`${file.replace(landing + '/', '')}: ${tag.slice(0, 80)}`)
+          missing.push(
+            `${file.replace(`${landing}/`, '')}: ${tag.slice(0, 80)}`
+          )
         }
       }
     }

@@ -74,7 +74,8 @@ describe('useCases content invariants', () => {
     expect(pillar!.title.toLowerCase()).not.toContain('clickhouse dashboard')
     expect(pillar!.faq?.length).toBeGreaterThanOrEqual(4)
     expect(pillar!.showComparisons).toBe(true)
-    const blob = `${pillar!.title} ${pillar!.description} ${pillar!.h1} ${pillar!.subhead}`.toLowerCase()
+    const blob =
+      `${pillar!.title} ${pillar!.description} ${pillar!.h1} ${pillar!.subhead}`.toLowerCase()
     expect(blob).toContain('system')
     expect(blob).toContain('recommend-only')
   })

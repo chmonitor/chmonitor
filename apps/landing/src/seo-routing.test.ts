@@ -70,9 +70,7 @@ describe('landing SEO routing', () => {
       landingRedirectUrl(new URL('https://chmonitor.dev/watch/v0-3'))
     ).toBeNull()
     expect(
-      landingRedirectUrl(
-        new URL('https://chmonitor.dev/clickhouse-monitoring')
-      )
+      landingRedirectUrl(new URL('https://chmonitor.dev/clickhouse-monitoring'))
     ).toBeNull()
     expect(
       landingRedirectUrl(new URL('https://chmonitor.dev/watch/v0.3'))
