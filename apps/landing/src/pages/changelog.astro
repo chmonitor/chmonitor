@@ -90,7 +90,7 @@ const breadcrumbJsonLd = {
                   <div class="cl-shots">
                     {notes.images.map((img) => (
                       <a href={img.src} target="_blank" rel="noopener" title={img.alt}>
-                        <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
+                        <img src={img.src} alt={img.alt || 'chmonitor release screenshot'} loading="lazy" decoding="async" />
                       </a>
                     ))}
                   </div>

@@ -20,7 +20,7 @@ const breadcrumbJsonLd = {
 
 const softwareJsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
+  '@type': ['SoftwareApplication', 'Product'],
   '@id': `${canonical}#software`,
   name: 'chm',
   alternateName: 'chmonitor CLI',
@@ -32,7 +32,9 @@ const softwareJsonLd = {
   description:
     'chmonitor from the terminal. Talks straight to your chmonitor dashboard. Ready for AI Agents.',
   featureList: features.map((f) => f.title),
+  image: new URL('/og/og-cli.png', Astro.site).toString(),
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  publisher: { '@id': 'https://chmonitor.dev/#organization' },
 }
 
 const ico = (d: string) =>

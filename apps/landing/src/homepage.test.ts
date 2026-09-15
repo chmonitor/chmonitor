@@ -1,6 +1,6 @@
 import { getLatestBlogPost } from './lib/latest-blog-post'
 import { describe, expect, test } from 'bun:test'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const landing = join(import.meta.dir, '..')
@@ -136,6 +136,70 @@ describe('feature sections have no 01 / 08 index labels', () => {
   test('feature pages keep the eyebrow without a 01 · prefix', () => {
     expect(featurePage).toContain('{section.eyebrow}')
     expect(featurePage).not.toContain('padStart')
+  })
+})
+
+describe('JSON-LD crawlability (FAQ / Product / Organization)', () => {
+  test('Base emits inline Organization + SoftwareApplication + Product graph', () => {
+    expect(baseLayout).toContain('type="application/ld+json"')
+    expect(baseLayout).toContain('is:inline')
+    expect(baseLayout).toContain('"@type": "Organization"')
+    expect(baseLayout).toContain('["SoftwareApplication", "Product"]')
+    expect(baseLayout).toContain('"image": "https://chmonitor.dev/og/og.png"')
+  })
+
+  test('homepage FAQ emits inline FAQPage JSON-LD', () => {
+    const faq = read('src/components/FAQ.astro')
+    expect(faq).toContain("type=\"application/ld+json\"")
+    expect(faq).toContain('is:inline')
+    expect(faq).toContain("'@type': 'FAQPage'")
+  })
+
+  test('feature pages, license, and db comparison pages emit FAQPage', () => {
+    expect(featurePage).toContain("'@type': 'FAQPage'")
+    expect(featurePage).toContain('is:inline')
+    expect(read('src/pages/license.astro')).toContain("'@type': 'FAQPage'")
+    expect(read('src/pages/clickhouse-vs-postgres.astro')).toContain(
+      "'@type': 'FAQPage'"
+    )
+  })
+})
+
+describe('landing <img> alts', () => {
+  test('every landing <img> sets alt (empty only when decorative)', () => {
+    const roots = [
+      join(landing, 'src/components'),
+      join(landing, 'src/layouts'),
+      join(landing, 'src/pages'),
+    ]
+    const files: string[] = []
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name)
+        if (statSync(p).isDirectory()) walk(p)
+        else if (/\.(astro|tsx)$/.test(name)) files.push(p)
+      }
+    }
+    for (const r of roots) walk(r)
+
+    const missing: string[] = []
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8').replace(/<!--[\s\S]*?-->/g, '')
+      const tags = src.match(/<img\b[\s\S]*?>/g) ?? []
+      for (const tag of tags) {
+        if (!/\bsrc=/.test(tag)) continue
+        if (!/\balt=/.test(tag)) {
+          missing.push(`${file.replace(landing + '/', '')}: ${tag.slice(0, 80)}`)
+        }
+      }
+    }
+    expect(missing).toEqual([])
+  })
+
+  test('FinalCta logo is decorative (empty alt + aria-hidden)', () => {
+    const cta = read('src/components/FinalCta.astro')
+    expect(cta).toContain('aria-hidden="true"')
+    expect(cta).toContain('alt=""')
   })
 })
 
