@@ -20,6 +20,15 @@ describe('docs Home + Dashboard CTAs', () => {
     )
   })
 
+  test('nav logo SVG uses a brand alt, not empty', () => {
+    assert.match(layout, /src="\/brand\/logo-chmonitor\.svg"/)
+    assert.match(layout, /alt="chmonitor"/)
+    assert.doesNotMatch(
+      layout,
+      /src="\/brand\/logo-chmonitor\.svg"[\s\S]{0,80}alt=""/
+    )
+  })
+
   test('header nav includes Home and Dashboard as external nav-only links', () => {
     assert.match(layout, /text: 'Home'/)
     assert.match(layout, /url: marketingUrl/)

@@ -59,7 +59,7 @@ export function baseOptions(): BaseLayoutProps {
         <span className="inline-flex items-center gap-2 font-medium">
           <img
             src="/brand/logo-chmonitor.svg"
-            alt=""
+            alt="chmonitor"
             width={22}
             height={22}
             className="shrink-0"
