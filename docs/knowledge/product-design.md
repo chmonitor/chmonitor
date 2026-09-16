@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-03
+updated: 2026-09-15
 tags:
   - design-system
   - ui
@@ -373,7 +373,13 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   (Queries + → History, Slow, Failed; Tables + → Replicas, TTL). Click
   adds with `showMenuHref` and does not navigate; an arrow opens the page.
   Group headings show a hover **+** / Customize (`group-customize-dialog.tsx`)
-  that opens a dialog titled with that group and lists **all catalog
+  **inline immediately after the title**, with the expand chevron flush
+  right (`[icon] [label] [+] …… [>]` — #3386). Do not use absolute-right
+  `SidebarMenuAction` on the heading (leaf pin/hide/add still do). The
+  heading trigger is a non-button (`nativeButton={false}`) so the Plus
+  can be a nested `<button>` without invalid HTML. Clicking + must
+  `stopPropagation` so it does not toggle the group. The control opens a
+  dialog titled with that group and lists **all catalog
   children**: visible rows have Remove (`hideMenuHref`); hidden rows are
   muted with Add (`showMenuHref`). Toggle updates the rail immediately.
   An explicit Open arrow navigates; Done closes; optional All pages… opens

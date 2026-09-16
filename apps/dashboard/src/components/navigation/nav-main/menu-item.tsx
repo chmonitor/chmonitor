@@ -365,8 +365,10 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       render={<SidebarMenuItem />}
     >
       <CollapsibleTrigger
+        nativeButton={false}
         render={
           <SidebarMenuButton
+            nativeButton={false}
             isActive={hasActiveChild}
             tooltip={item.title}
             className="h-11 min-h-11 lg:h-8 lg:min-h-8"
@@ -374,10 +376,10 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         }
       >
         {item.icon && <item.icon className="size-4" />}
-        <span>{item.title}</span>
-        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+        <span className="min-w-0 truncate">{item.title}</span>
+        <GroupCustomizeButton groupTitle={item.title} />
+        <ChevronRight className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
       </CollapsibleTrigger>
-      <GroupCustomizeButton groupTitle={item.title} />
       {item.countKey && (
         <SidebarMenuBadge className={cn(badgeHiddenClasses, 'max-lg:hidden')}>
           <Suspense fallback={null}>

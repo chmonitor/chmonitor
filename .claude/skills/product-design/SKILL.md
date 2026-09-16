@@ -370,7 +370,9 @@ list (`chm-pinned-favorites`). Leaf sidebar rows also reveal Hide (EyeOff)
 beside the pin; that writes `hiddenMenuHrefs` and toasts Undo + Open
 Navigation (Settings → Workspace → Navigation). Hover **+** lists hidden
 siblings in that group (`showMenuHref` on click). Group headings show a
-hover **+** / Customize control that opens a **per-category dialog**
+hover **+** / Customize control **right after the label**, chevron flush
+right (`[icon] [label] [+] …… [>]`; not absolute `SidebarMenuAction` —
+#3386). It opens a **per-category dialog**
 (`group-customize-dialog.tsx`) listing every catalog child of that group:
 visible rows have Remove (`hideMenuHref`), hidden rows are muted with Add
 (`showMenuHref`). Toggle updates the rail immediately; Open is an explicit

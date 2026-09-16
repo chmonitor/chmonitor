@@ -165,6 +165,8 @@ describe('GroupCustomizeDialog', () => {
       expect(trigger).not.toBeNull()
       expect(trigger?.getAttribute('aria-label')).toBe('Customize Queries')
       expect(trigger?.className).toContain('after:-inset-3')
+      expect(trigger?.className).not.toContain('absolute')
+      expect(trigger?.className).toContain('relative')
 
       const { act } = await import('react')
       await act(async () => {
