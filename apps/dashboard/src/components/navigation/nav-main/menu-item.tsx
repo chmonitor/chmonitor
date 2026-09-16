@@ -368,7 +368,6 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         nativeButton={false}
         render={
           <SidebarMenuButton
-            nativeButton={false}
             isActive={hasActiveChild}
             tooltip={item.title}
             className="h-11 min-h-11 lg:h-8 lg:min-h-8"
