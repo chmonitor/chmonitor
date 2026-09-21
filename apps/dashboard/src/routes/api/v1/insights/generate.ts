@@ -102,7 +102,7 @@ async function handlePost(request: Request): Promise<Response> {
       requestId,
     })
     return Response.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500, headers: { 'X-Request-ID': requestId } }
     )
   }

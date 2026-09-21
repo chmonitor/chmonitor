@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
+import { error } from '@chm/logger'
 import { bridgeApiKeyEnv, isAuthenticatedRequest } from '@/lib/auth/api-guard'
 
 function getDeploymentInfo(bindings: Record<string, string | undefined>) {
@@ -68,14 +69,13 @@ export const Route = createFileRoute('/api/health')({
               },
             }
           )
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
+        } catch (err) {
+          error('[GET /api/health] Handler error', err as Error)
 
           return Response.json(
             {
               status: 'error',
-              error: errorMessage,
+              error: 'Internal server error',
               timestamp: new Date().toISOString(),
             },
             {

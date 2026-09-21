@@ -11,7 +11,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
-import { getClient } from '@chm/clickhouse-client'
+import { getClickHouseConfigs, getClient } from '@chm/clickhouse-client'
 import { error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { bridgeApiKeyEnv, isAuthenticatedRequest } from '@/lib/auth/api-guard'
@@ -44,16 +44,16 @@ export const Route = createFileRoute('/api/init')({
         }
 
         const hostId = parseInt(hostIdRaw, 10)
-        if (Number.isNaN(hostId) || hostId < 0) {
+        const hostCount = getClickHouseConfigs().length
+        if (!Number.isInteger(hostId) || hostId < 0 || hostId >= hostCount) {
           return Response.json(
-            { error: 'Invalid hostId: must be a non-negative number' },
+            { error: 'Invalid hostId: must be a valid host index' },
             { status: 400 }
           )
         }
 
-        const client = await getClient({ hostId })
-
         try {
+          const client = await getClient({ hostId })
           await initTrackingTable(client)
           return Response.json({ message: 'Ok.' })
         } catch (err) {
