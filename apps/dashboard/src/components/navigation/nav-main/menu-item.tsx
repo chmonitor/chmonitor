@@ -365,7 +365,6 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       render={<SidebarMenuItem />}
     >
       <CollapsibleTrigger
-        nativeButton={false}
         render={
           <SidebarMenuButton
             isActive={hasActiveChild}
@@ -375,10 +374,13 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         }
       >
         {item.icon && <item.icon className="size-4" />}
-        <span className="min-w-0 truncate">{item.title}</span>
-        <GroupCustomizeButton groupTitle={item.title} />
+        {/* pr-7 reserves the customize button's slot: it is an absolutely
+            positioned sibling now (a <button> cannot nest inside the trigger's
+            <button>), so it no longer takes flex space. */}
+        <span className="min-w-0 truncate pr-7">{item.title}</span>
         <ChevronRight className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
       </CollapsibleTrigger>
+      <GroupCustomizeButton groupTitle={item.title} />
       {item.countKey && (
         <SidebarMenuBadge className={cn(badgeHiddenClasses, 'max-lg:hidden')}>
           <Suspense fallback={null}>

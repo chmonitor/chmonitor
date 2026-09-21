@@ -104,23 +104,29 @@ export function InsightsPopover() {
   return (
     <>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger render={<div className="relative hidden sm:flex" />}>
-          <IconButton
-            tooltip={`${total} AI insight${total === 1 ? '' : 's'}`}
-            icon={<Sparkles className="size-4" />}
-            className="hidden sm:flex"
+        {/* Trigger is the IconButton itself — a div trigger wrapping a real
+            <button> nests interactives and warns about nativeButton. */}
+        <div className="relative hidden sm:flex">
+          <PopoverTrigger
+            render={
+              <IconButton
+                tooltip={`${total} AI insight${total === 1 ? '' : 's'}`}
+                icon={<Sparkles className="size-4" />}
+                className="hidden sm:flex"
+              />
+            }
           />
           {total > 0 && (
             <Badge
               className={cn(
-                'absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center border-transparent p-0 text-[10px] font-medium tabular-nums',
+                'pointer-events-none absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center border-transparent p-0 text-[10px] font-medium tabular-nums',
                 badgeTone
               )}
             >
               {total > 99 ? '99+' : total}
             </Badge>
           )}
-        </PopoverTrigger>
+        </div>
 
         <PopoverContent align="end" className="w-80 p-0">
           <div className="flex items-center justify-between border-b px-3 py-2">
@@ -142,6 +148,7 @@ export function InsightsPopover() {
                 size="icon"
                 className="size-7 text-muted-foreground"
                 aria-label="AI Insights settings"
+                nativeButton={false}
                 render={<Link href={settingsHref} />}
               >
                 <Settings2 className="size-3.5" />
@@ -198,6 +205,7 @@ export function InsightsPopover() {
               variant="ghost"
               size="sm"
               className="h-7 gap-1 px-2 text-xs"
+              nativeButton={false}
               render={
                 <Link href={overviewHref} onClick={() => setIsOpen(false)} />
               }
