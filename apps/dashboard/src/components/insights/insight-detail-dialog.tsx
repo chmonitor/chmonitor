@@ -186,6 +186,7 @@ export function InsightDetailDialog({
               type="button"
               size="sm"
               className="gap-1.5"
+              nativeButton={false}
               render={
                 <Link href={actionHref} onClick={() => onOpenChange(false)} />
               }

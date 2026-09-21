@@ -124,6 +124,7 @@ export function ExpandedRow({
           variant="outline"
           size="sm"
           className="h-7 gap-1.5"
+          nativeButton={false}
           render={<Link href={explorerUrl} />}
         >
           <ExternalLink className="size-3.5" />
@@ -134,6 +135,7 @@ export function ExpandedRow({
           size="sm"
           className="h-7 gap-1.5"
           disabled={!detailUrl}
+          nativeButton={false}
           render={
             detailUrl ? (
               <Link href={detailUrl}>
@@ -153,6 +155,7 @@ export function ExpandedRow({
             variant="outline"
             size="sm"
             className="h-7 gap-1.5"
+            nativeButton={false}
             render={<Link href={explainUrl} />}
           >
             <Workflow className="size-3.5" />

@@ -238,6 +238,7 @@ export function InboundEventsSetupDialog({
           <Button
             variant="link"
             className="h-auto p-0 text-xs"
+            nativeButton={false}
             render={
               <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
                 Read the docs

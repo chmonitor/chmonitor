@@ -92,6 +92,7 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
             variant="ghost"
             size="sm"
             className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+            nativeButton={false}
             render={<AppLink href={buildUrl('/insights', { host: hostId })} />}
           >
             View all insights
@@ -119,6 +120,7 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
             size="icon"
             className="size-7 text-muted-foreground hover:text-foreground"
             aria-label="AI Insights settings"
+            nativeButton={false}
             render={
               <AppLink
                 href={buildUrl('/insights-settings', { host: hostId })}

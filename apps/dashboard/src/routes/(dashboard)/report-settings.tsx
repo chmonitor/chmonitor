@@ -28,6 +28,7 @@ function ReportSettingsPage() {
           variant="ghost"
           size="sm"
           className="text-muted-foreground -ml-2 h-7 gap-1.5"
+          nativeButton={false}
           render={<AppLink href={buildUrl('/overview', { host: hostId })} />}
         >
           <ArrowLeft className="size-3.5" />

@@ -180,6 +180,7 @@ export function WhatsNewDialog({
             <Button
               variant="link"
               className="h-auto p-0 text-xs"
+              nativeButton={false}
               render={
                 <a
                   href={GITHUB_RELEASES_PAGE_URL}
@@ -194,6 +195,7 @@ export function WhatsNewDialog({
             <Button
               variant="link"
               className="h-auto p-0 text-xs"
+              nativeButton={false}
               render={
                 <a
                   href={LANDING_CHANGELOG_URL}

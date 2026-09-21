@@ -36,6 +36,7 @@ export function FeatureUnavailable({
           </div>
           <Button
             variant="outline"
+            nativeButton={false}
             render={<a href={`/overview?host=${hostId}`}>Go to overview</a>}
           />
         </CardContent>

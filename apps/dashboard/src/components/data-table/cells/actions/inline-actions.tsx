@@ -122,6 +122,7 @@ export function InlineActions<TData extends RowData>({
                     variant="ghost"
                     size="icon"
                     className="size-7 text-muted-foreground hover:text-foreground"
+                    nativeButton={false}
                     render={<Link href={href} />}
                     aria-label={config.label}
                   />

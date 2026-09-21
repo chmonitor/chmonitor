@@ -285,6 +285,7 @@ export const QueryRow = memo(function QueryRow({
                       size="icon"
                       className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
                       aria-label="Explain query"
+                      nativeButton={false}
                       render={<Link href={explainUrl} />}
                     />
                   }
@@ -302,6 +303,7 @@ export const QueryRow = memo(function QueryRow({
                     size="icon"
                     className="hidden size-7 text-muted-foreground hover:text-foreground md:inline-flex"
                     aria-label="Open in Explorer"
+                    nativeButton={false}
                     render={
                       <Link href={buildExplorerQueryUrl(d.query, hostId)} />
                     }
@@ -323,6 +325,7 @@ export const QueryRow = memo(function QueryRow({
                       queryDetailUrl ? 'Query detail' : 'Query ID unavailable'
                     }
                     disabled={!queryDetailUrl}
+                    nativeButton={false}
                     render={
                       queryDetailUrl ? (
                         <Link href={queryDetailUrl}>

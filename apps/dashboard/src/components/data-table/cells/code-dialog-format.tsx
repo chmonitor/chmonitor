@@ -139,6 +139,7 @@ function ExplorerLink({ query }: { query: string }) {
       variant="ghost"
       size="icon"
       className="size-7"
+      nativeButton={false}
       render={<Link href={href} title="Open in Explorer" />}
     >
       <ExternalLinkIcon className="size-3.5" />

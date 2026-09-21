@@ -120,6 +120,7 @@ export function InsightCard({
               variant="ghost"
               size="sm"
               className="h-6 gap-1 px-0 text-xs font-normal text-muted-foreground hover:text-foreground"
+              nativeButton={false}
               render={
                 <Link href={actionHref} onClick={(e) => e.stopPropagation()} />
               }
