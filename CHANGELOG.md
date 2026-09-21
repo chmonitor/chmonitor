@@ -5,6 +5,60 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.5](https://github.com/chmonitor/chmonitor/compare/v0.3.4...v0.3.5) (2026-09-21)
+
+
+### ✨ Features
+
+* **cli:** add local named connections ([#3356](https://github.com/chmonitor/chmonitor/issues/3356)) ([2209b61](https://github.com/chmonitor/chmonitor/commit/2209b611ce1ca052c416c481832d7279db63f475))
+* **dashboard:** Essential first-run sidebar with hover-add and More flyout ([#3345](https://github.com/chmonitor/chmonitor/issues/3345)) ([2e83247](https://github.com/chmonitor/chmonitor/commit/2e832479649df44316e3e75197f7cd54063fae17))
+* **dashboard:** Essential heading dialog to add/remove group children ([#3353](https://github.com/chmonitor/chmonitor/issues/3353)) ([0f582f0](https://github.com/chmonitor/chmonitor/commit/0f582f0d17a05afa93c3a170c8aefdc6eb4bc2bf))
+* **dashboard:** slim default sidebar to day-to-day pages ([#3294](https://github.com/chmonitor/chmonitor/issues/3294)) ([766e90e](https://github.com/chmonitor/chmonitor/commit/766e90ed4be595a03cf7871f5561cc65493b773e))
+* **docs:** add Home and Dashboard CTAs on every docs page ([#3378](https://github.com/chmonitor/chmonitor/issues/3378)) ([176ee6b](https://github.com/chmonitor/chmonitor/commit/176ee6b599bb8ce7e380b4dc543bace702ea1514)), closes [#3376](https://github.com/chmonitor/chmonitor/issues/3376)
+* **landing:** add /clickhouse-dashboard SEO pillar ([#3385](https://github.com/chmonitor/chmonitor/issues/3385)) ([6ff9912](https://github.com/chmonitor/chmonitor/commit/6ff9912a0b68a05061db413ea4a8e312a502d718)), closes [#3374](https://github.com/chmonitor/chmonitor/issues/3374)
+* **landing:** add /clickhouse-monitoring SEO pillar ([#3384](https://github.com/chmonitor/chmonitor/issues/3384)) ([9d138f1](https://github.com/chmonitor/chmonitor/commit/9d138f18230be0466f29a0ff26b437048a878b0a)), closes [#3373](https://github.com/chmonitor/chmonitor/issues/3373)
+* **landing:** Polar donate checkout with custom amount ([#3369](https://github.com/chmonitor/chmonitor/issues/3369)) ([1119f89](https://github.com/chmonitor/chmonitor/commit/1119f897d6f29eb89f7e2d79b696140033024c2a)), closes [#3368](https://github.com/chmonitor/chmonitor/issues/3368)
+* **landing:** rename Pricing to License and add donate chips ([#3367](https://github.com/chmonitor/chmonitor/issues/3367)) ([a81f892](https://github.com/chmonitor/chmonitor/commit/a81f89278fa6f0c116f9f1092da3aeaa744e2681)), closes [#3366](https://github.com/chmonitor/chmonitor/issues/3366)
+* **site:** shared header/nav between landing and telemetry ([#3396](https://github.com/chmonitor/chmonitor/issues/3396)) ([db4d936](https://github.com/chmonitor/chmonitor/commit/db4d93688a8a4174a77ccc64761ca867f426192e))
+
+
+### 🐛 Bug Fixes
+
+* **advisor:** batch correctness, sanitization, and weekly report integration ([#3340](https://github.com/chmonitor/chmonitor/issues/3340)) ([27d6b7d](https://github.com/chmonitor/chmonitor/commit/27d6b7da9638b70443210690234dbc75caf7875b))
+* **api:** auth + rate-limit guards on public probe endpoints ([#3391](https://github.com/chmonitor/chmonitor/issues/3391)) ([a95a708](https://github.com/chmonitor/chmonitor/commit/a95a708c5cd2e17d73c6177b94ccb8678a3a121d))
+* **api:** redact ClickHouse host credentials in public responses ([#3397](https://github.com/chmonitor/chmonitor/issues/3397)) ([4eb6976](https://github.com/chmonitor/chmonitor/commit/4eb6976a3f8a07ae5036485982d3ae761dd2897f))
+* **api:** validate hostId and harden public route error handling ([#3393](https://github.com/chmonitor/chmonitor/issues/3393)) ([ee3ccf6](https://github.com/chmonitor/chmonitor/commit/ee3ccf6a7df45398c8032d48cdbe9036d2e8713a))
+* **auth:** harden device/cron/api-key surfaces and add route tests ([#3339](https://github.com/chmonitor/chmonitor/issues/3339)) ([c08807d](https://github.com/chmonitor/chmonitor/commit/c08807d02cd9b6e4fa5afff625aa17bd9b705983))
+* **ci:** pass CHM_POLAR_DONATE_* from cloud-hooks env on deploy ([#3370](https://github.com/chmonitor/chmonitor/issues/3370)) ([f9cc505](https://github.com/chmonitor/chmonitor/commit/f9cc50565c56dac343a9b3e25b8db5d470744a4e))
+* **cli:** assemble report metrics from the repo root ([#3357](https://github.com/chmonitor/chmonitor/issues/3357)) ([28930d8](https://github.com/chmonitor/chmonitor/commit/28930d8d3a1cf4fcbea97dd83ebfa578db0116a6))
+* **cli:** body-read errors, plaintext purge, rust consumer map ([#3337](https://github.com/chmonitor/chmonitor/issues/3337)) ([5421804](https://github.com/chmonitor/chmonitor/commit/5421804554d642ee02d64ea8b1b6cbb413b671e4))
+* **cloud-hooks:** billing hardening, logging, and dead-code cleanup ([#3342](https://github.com/chmonitor/chmonitor/issues/3342)) ([36183db](https://github.com/chmonitor/chmonitor/commit/36183db3aec991d57abe8097cb408d3eee07e6ba))
+* **dashboard:** a11y polish — labels, focus rings, status announcements ([#3395](https://github.com/chmonitor/chmonitor/issues/3395)) ([419a082](https://github.com/chmonitor/chmonitor/commit/419a082f251ae89086fd61d10cf4a69682ecd9cc))
+* **dashboard:** address remaining a11y findings from browser sweep ([#3401](https://github.com/chmonitor/chmonitor/issues/3401)) ([9aefc54](https://github.com/chmonitor/chmonitor/commit/9aefc54cb17cfc3efd18af6f968e16a78c2c9448))
+* **dashboard:** center the What's new dialog in the viewport ([#3344](https://github.com/chmonitor/chmonitor/issues/3344)) ([df2d270](https://github.com/chmonitor/chmonitor/commit/df2d270f5dc38fff41017f62c0635564f8b95184))
+* **dashboard:** command palette Enter activates the highlighted row ([#3350](https://github.com/chmonitor/chmonitor/issues/3350)) ([3dfd0c6](https://github.com/chmonitor/chmonitor/commit/3dfd0c625088617834aae6bd9e07c947dfbaccef))
+* **dashboard:** compact 375 day switcher and scroll overview tabs ([#3293](https://github.com/chmonitor/chmonitor/issues/3293)) ([34113ac](https://github.com/chmonitor/chmonitor/commit/34113acaaa926c1a4d1f50946487e50ab6e89f3f))
+* **dashboard:** keep Essential sidebar as parent/child groups ([#3349](https://github.com/chmonitor/chmonitor/issues/3349)) ([532fc04](https://github.com/chmonitor/chmonitor/commit/532fc040dbd34541e8b5a183a497406457aa5942))
+* **dashboard:** keep header title readable at 768 ([#3297](https://github.com/chmonitor/chmonitor/issues/3297)) ([70b41df](https://github.com/chmonitor/chmonitor/commit/70b41df0e1eedcd3c95d1909d20de33ca3c30a84))
+* **dashboard:** keep Navigation presets and Show all inside a 375 dialog ([#3299](https://github.com/chmonitor/chmonitor/issues/3299)) ([192a7d7](https://github.com/chmonitor/chmonitor/commit/192a7d738b3c2bd3aa3e1beaa5f65361557288bb))
+* **dashboard:** part-log UX hygiene — dead controls, error surfacing, a11y ([#3394](https://github.com/chmonitor/chmonitor/issues/3394)) ([a3c2bbe](https://github.com/chmonitor/chmonitor/commit/a3c2bbe5e0b6ce2dd3df8128cbfc68f999986c62))
+* **dashboard:** resilient clipboard copy in assistant action bar ([#3390](https://github.com/chmonitor/chmonitor/issues/3390)) ([0c751d2](https://github.com/chmonitor/chmonitor/commit/0c751d23c63e812c2a0f6ae1b5697f9f0a94ff38))
+* **dashboard:** resolve nested interactive controls in sidebar nav ([#3399](https://github.com/chmonitor/chmonitor/issues/3399)) ([1a64b66](https://github.com/chmonitor/chmonitor/commit/1a64b668eeebddd827dcdd398f54062a0e86dfc5))
+* **dashboard:** set nativeButton=false on Button render-prop call sites ([#3400](https://github.com/chmonitor/chmonitor/issues/3400)) ([1dba508](https://github.com/chmonitor/chmonitor/commit/1dba508a67367e9a21c7f05aa031a2adc81ca4ba))
+* **dashboard:** sidebar group + after label, chevron flush right ([#3388](https://github.com/chmonitor/chmonitor/issues/3388)) ([c6135e6](https://github.com/chmonitor/chmonitor/commit/c6135e640f11856f035e2c44fd834fa8206098d7))
+* **dashboard:** sidebar overlay chrome, nested active, host-scoped cache ([#3363](https://github.com/chmonitor/chmonitor/issues/3363)) ([6253170](https://github.com/chmonitor/chmonitor/commit/62531700059335509f630b5a95cdd4f7883830f6))
+* **dashboard:** wrap overview metric cards before they crush ([#3298](https://github.com/chmonitor/chmonitor/issues/3298)) ([b6a05ee](https://github.com/chmonitor/chmonitor/commit/b6a05eef46df0bc40a1c36711f6a3c75d18b7319))
+* **deps:** migrate pnpm settings and close audit batch issues ([#3338](https://github.com/chmonitor/chmonitor/issues/3338)) ([a10872a](https://github.com/chmonitor/chmonitor/commit/a10872ac6afda2229361fd74c2a19d65b2933179))
+* **docs:** Mermaid loading placeholder while hydrating ([#3382](https://github.com/chmonitor/chmonitor/issues/3382)) ([19c0c71](https://github.com/chmonitor/chmonitor/commit/19c0c71f325d349d7ae1546deba6a8d95f1cd72c))
+* **landing:** brand alt on nav logo SVG ([#3389](https://github.com/chmonitor/chmonitor/issues/3389)) ([7c4bff2](https://github.com/chmonitor/chmonitor/commit/7c4bff2a9d70bca0d45865c8bdd7f3e3a40f8443)), closes [#3387](https://github.com/chmonitor/chmonitor/issues/3387)
+* **landing:** crawlable JSON-LD and image alts ([#3383](https://github.com/chmonitor/chmonitor/issues/3383)) ([573504e](https://github.com/chmonitor/chmonitor/commit/573504e50cab93a0b15b4e843f2b745a71754aef))
+* **landing:** stop shipping an empty changelog page ([#3287](https://github.com/chmonitor/chmonitor/issues/3287)) ([3cffdc3](https://github.com/chmonitor/chmonitor/commit/3cffdc32917d3b74ffddd494ab8969c223cd1e12))
+
+
+### ⚡ Performance
+
+* **test:** StatTile, lazy markdown, query-insights batch, sweep parity, diff tests ([#3341](https://github.com/chmonitor/chmonitor/issues/3341)) ([b0037ab](https://github.com/chmonitor/chmonitor/commit/b0037ab496a76c53ff8f5aa169b9633c19c97dc1))
+
 ## [0.3.4](https://github.com/chmonitor/chmonitor/compare/v0.3.3...v0.3.4) (2026-08-24)
 
 
