@@ -423,7 +423,7 @@ export function KeeperNodeCards() {
         <p className="text-[12.5px]">
           No keeper nodes found.
           <br />
-          <span className="text-[11.5px] opacity-70">
+          <span className="text-[11.5px]">
             system.zookeeper_info requires ClickHouse ≥ 26.1 and an active
             Keeper / ZooKeeper connection.
           </span>
@@ -443,7 +443,7 @@ export function KeeperNodeCards() {
                 <span className="text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {clusterName || 'default'}
                 </span>
-                <span className="text-[11px] text-muted-foreground/60">
+                <span className="text-[11px] text-muted-foreground">
                   ({nodes.length} {nodes.length === 1 ? 'node' : 'nodes'})
                 </span>
               </div>

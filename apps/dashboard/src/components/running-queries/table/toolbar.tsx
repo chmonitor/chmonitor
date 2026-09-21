@@ -21,7 +21,7 @@ export function KindFilter({
             'h-7 whitespace-nowrap rounded px-2.5 text-[11.5px] font-medium uppercase tracking-wide transition-colors',
             value === kind
               ? 'bg-card text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
+              : 'text-foreground/70 hover:text-foreground'
           )}
         >
           {kind === 'all' ? 'All' : kind}

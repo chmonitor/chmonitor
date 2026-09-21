@@ -50,8 +50,8 @@ function IssuePill({ status }: { status: HealthStatus }) {
       className={cn(
         'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
         status === 'critical'
-          ? 'bg-red-500/12 text-red-600 dark:text-red-400'
-          : 'bg-amber-500/12 text-amber-600 dark:text-amber-400'
+          ? 'bg-red-500/12 text-red-700 dark:text-red-400'
+          : 'bg-amber-500/12 text-amber-700 dark:text-amber-400'
       )}
     >
       {status === 'critical' ? 'Critical' : 'Warning'}

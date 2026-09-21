@@ -43,7 +43,7 @@ export function ResultsTab({
     return (
       <div className="text-muted-foreground p-8 text-center text-sm">
         Write a query and press{' '}
-        <kbd className="bg-muted rounded border px-1.5 py-0.5 text-xs">
+        <kbd className="bg-muted rounded border px-1.5 py-0.5 text-xs text-foreground">
           ⌘/Ctrl + Enter
         </kbd>{' '}
         to run.

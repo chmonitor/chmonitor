@@ -132,7 +132,10 @@ function InboundEventsPage() {
             if (value != null) setSource(value)
           }}
         >
-          <SelectTrigger className="h-8 w-full sm:w-44">
+          <SelectTrigger
+            className="h-8 w-full sm:w-44"
+            aria-label="Filter by source"
+          >
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
@@ -148,7 +151,10 @@ function InboundEventsPage() {
             if (value != null) setSeverity(value)
           }}
         >
-          <SelectTrigger className="h-8 w-full sm:w-44">
+          <SelectTrigger
+            className="h-8 w-full sm:w-44"
+            aria-label="Filter by severity"
+          >
             <SelectValue placeholder="Severity" />
           </SelectTrigger>
           <SelectContent>

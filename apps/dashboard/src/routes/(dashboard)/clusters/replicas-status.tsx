@@ -38,7 +38,10 @@ function ReplicasStatusContent() {
         <div className="bg-card flex h-96 items-center justify-center rounded-lg border">
           <p className="text-muted-foreground text-sm">
             Select a cluster from the{' '}
-            <Link href={clustersUrl} className="text-primary hover:underline">
+            <Link
+              href={clustersUrl}
+              className="text-primary underline underline-offset-2"
+            >
               clusters list
             </Link>{' '}
             to view replicas status.

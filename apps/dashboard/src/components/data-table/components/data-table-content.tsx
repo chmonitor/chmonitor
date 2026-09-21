@@ -207,6 +207,9 @@ export const DataTableContent = memo(function DataTableContent<
   const tableContent = (
     <Table
       aria-describedby="table-description"
+      // Keyboard entry point for the overflow-x-auto wrapper: a focusable
+      // descendant lets keyboard users scroll the region (WCAG 2.1.1).
+      tabIndex={0}
       style={{ width: table.getTotalSize(), minWidth: '100%' }}
       // Force re-render when column order changes
       key={table.getState().columnOrder.join(',')}

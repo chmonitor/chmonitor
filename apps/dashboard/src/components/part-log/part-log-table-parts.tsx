@@ -107,7 +107,7 @@ export function ThSort({
           type="button"
           onClick={() => onSort(sortKey)}
           className={cn(
-            'inline-flex items-center gap-1 hover:text-foreground',
+            'inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
             align === 'right' && 'flex-row-reverse'
           )}
         >
@@ -393,7 +393,7 @@ export function Row({
                   if (!success) toast.error('Failed to copy part name')
                 })
               }}
-              className="hidden size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex"
+              className="hidden size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:inline-flex"
             >
               <Copy className="size-3" />
             </button>
@@ -401,7 +401,7 @@ export function Row({
               type="button"
               title="Details"
               onClick={onToggle}
-              className="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <MoreHorizontal className="size-3.5" />
             </button>

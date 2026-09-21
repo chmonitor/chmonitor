@@ -63,7 +63,7 @@ export function SegmentedControl<T extends string>({
             {Icon && <Icon className="size-4" aria-hidden="true" />}
             <span className="text-xs font-medium">{option.label}</span>
             {option.description && (
-              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              <span className="font-mono text-[11px] tabular-nums text-foreground/70">
                 {option.description}
               </span>
             )}

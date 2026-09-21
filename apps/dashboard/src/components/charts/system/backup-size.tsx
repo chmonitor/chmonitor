@@ -78,7 +78,7 @@ export const ChartBackupSize = memo(function ChartBackupSize({
           description={
             <span>
               Backup tracking needs{' '}
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11.5px]">
+              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11.5px] text-foreground">
                 system.backup_log
               </code>
               , which isn&apos;t present on this cluster.

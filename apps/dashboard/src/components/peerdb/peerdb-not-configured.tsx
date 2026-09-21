@@ -17,13 +17,19 @@ export function PeerDBNotConfigured() {
 
       <ol className="w-full space-y-2 text-left text-sm text-muted-foreground">
         <li>
-          1. Set <code className="rounded bg-muted px-1">PEERDB_API_URL</code>{' '}
+          1. Set{' '}
+          <code className="rounded bg-muted px-1 text-foreground">
+            PEERDB_API_URL
+          </code>{' '}
           to your PeerDB REST API (the PeerDB UI URL with an{' '}
-          <code className="rounded bg-muted px-1">/api</code> suffix, or a raw
-          flow-api origin).
+          <code className="rounded bg-muted px-1 text-foreground">/api</code>{' '}
+          suffix, or a raw flow-api origin).
         </li>
         <li>
-          2. Set <code className="rounded bg-muted px-1">PEERDB_PASSWORD</code>{' '}
+          2. Set{' '}
+          <code className="rounded bg-muted px-1 text-foreground">
+            PEERDB_PASSWORD
+          </code>{' '}
           if the API requires auth (leave empty otherwise).
         </li>
         <li>3. Restart the app.</li>
@@ -38,7 +44,7 @@ PEERDB_PASSWORD=your-peerdb-ui-password`}
         Or attach PeerDB per connection: open a connection&apos;s{' '}
         <span className="font-medium text-foreground">Advanced</span> section,
         add its PeerDB API URL (Password or API token auth), then view it at{' '}
-        <code className="rounded bg-muted px-1">
+        <code className="rounded bg-muted px-1 text-foreground">
           /peerdb?connection=&lt;id&gt;
         </code>
         .

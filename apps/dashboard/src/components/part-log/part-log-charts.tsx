@@ -241,7 +241,7 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
                 Part events in window
               </div>
             </div>
-            <span className="rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+            <span className="rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-foreground">
               top {churnRows.length}
             </span>
           </div>

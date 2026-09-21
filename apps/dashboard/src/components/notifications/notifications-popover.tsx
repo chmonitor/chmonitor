@@ -94,21 +94,25 @@ export const NotificationsPopover = function NotificationsPopover() {
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger render={<div className="relative hidden sm:flex" />}>
-        <IconButton
-          tooltip={`${totalCount} notification${totalCount === 1 ? '' : 's'}`}
-          icon={<Bell className="size-4" />}
-          className="hidden sm:flex"
+      <div className="relative hidden sm:flex">
+        <PopoverTrigger
+          render={
+            <IconButton
+              tooltip={`${totalCount} notification${totalCount === 1 ? '' : 's'}`}
+              icon={<Bell className="size-4" />}
+              className="hidden sm:flex"
+            />
+          }
         />
         {totalCount > 0 && (
           <Badge
             variant="secondary"
-            className="absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center p-0 text-[10px] font-medium tabular-nums"
+            className="pointer-events-none absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center p-0 text-[10px] font-medium tabular-nums"
           >
             {totalCount > 99 ? '99+' : totalCount}
           </Badge>
         )}
-      </PopoverTrigger>
+      </div>
 
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
