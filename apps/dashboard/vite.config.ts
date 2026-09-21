@@ -772,6 +772,9 @@ export default defineConfig({
       '@chm/clickhouse-client/constants': r(
         '../../packages/clickhouse-client/src/clickhouse/constants.ts'
       ),
+      '@chm/clickhouse-client/redact-host': r(
+        '../../packages/clickhouse-client/src/clickhouse/redact-host.ts'
+      ),
       '@chm/clickhouse-client/table-existence-cache': r(
         '../../packages/clickhouse-client/src/table-existence-cache.ts'
       ),

@@ -25,6 +25,7 @@ import { buildSuggestions } from './alert-suggestions'
 import { listCustomRules } from './custom-rules-store'
 import { METRIC_CATALOG } from './rule-builder-schema'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug } from '@chm/logger'
 import { listBaselines } from '@/lib/insights/baseline-store'
 import { resolveInsightsStore } from '@/lib/insights/store/resolve-store'
@@ -46,7 +47,7 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>()
 
 function hostLabel(config: ClickHouseConfig): string {
-  return config.customName?.trim() || config.host
+  return config.customName?.trim() || redactHostCredentials(config.host)
 }
 
 /**

@@ -18,6 +18,7 @@ import {
   parseBrowserDiffSessions,
 } from './diff-peers'
 import { fetchData } from '@chm/clickhouse-client' // pragma: allowlist secret
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config' // pragma: allowlist secret
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { queryConnection } from '@/lib/connection-query/connection-client'
@@ -66,7 +67,7 @@ async function listEnvPeers(
     demoBlocked: false,
     peers: configs.map((c) => ({
       id: c.id,
-      name: c.customName ?? c.host,
+      name: c.customName ?? redactHostCredentials(c.host),
       kind: 'env' as const,
       envHostId: c.id,
     })),
