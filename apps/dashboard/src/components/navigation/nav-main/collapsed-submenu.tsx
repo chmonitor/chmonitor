@@ -25,14 +25,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useSidebar } from '@/components/ui/sidebar'
-import { activateOnEnterOrSpace } from '@/lib/a11y'
 import { isMenuItemActiveAmongSiblings } from '@/lib/menu/breadcrumb'
 import { cn } from '@/lib/utils'
 
 interface CollapsedSubmenuProps {
   item: MenuItemType
   pathname: string
-  trigger: React.ReactNode
+  trigger: React.ReactElement
 }
 
 /**
@@ -142,20 +141,16 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
   return (
     <ClientOnly fallback={<div className="cursor-pointer">{trigger}</div>}>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <div
-              role="button"
-              tabIndex={0}
-              onMouseEnter={() => setOpen(true)}
-              onMouseLeave={() => setOpen(false)}
-              onKeyDown={activateOnEnterOrSpace(() => setOpen(!open))}
-              className="cursor-pointer"
-            />
-          }
+        {/* Hover handlers live on a plain wrapper so the trigger itself is the
+            real <button> — a role=button div wrapping it would nest
+            interactives and trip the nativeButton warning. */}
+        <div
+          className="cursor-pointer"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
         >
-          {trigger}
-        </PopoverTrigger>
+          <PopoverTrigger render={trigger} />
+        </div>
         <PopoverContent
           align="start"
           side="right"
