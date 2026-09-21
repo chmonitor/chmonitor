@@ -57,6 +57,7 @@ export function InsightsEmptyCta({
           size="icon"
           className="size-8 text-muted-foreground hover:text-foreground"
           aria-label="AI Insights settings"
+          nativeButton={false}
           render={
             <AppLink href={buildUrl('/insights-settings', { host: hostId })} />
           }

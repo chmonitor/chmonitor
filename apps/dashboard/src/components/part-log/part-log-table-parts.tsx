@@ -214,6 +214,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
           variant="default"
           size="sm"
           className="h-7 gap-1.5 text-[11.5px]"
+          nativeButton={false}
           render={
             <a
               href={buildUrl('/tables', {
@@ -240,6 +241,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
           variant="outline"
           size="sm"
           className="h-7 gap-1.5 text-[11.5px]"
+          nativeButton={false}
           render={
             <a href={buildUrl('/merges', { host: hostId })}>
               <Merge className="size-3" />
@@ -252,6 +254,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
           variant="outline"
           size="sm"
           className="h-7 gap-1.5 text-[11.5px]"
+          nativeButton={false}
           render={
             <a
               href={buildUrl('/tables', {

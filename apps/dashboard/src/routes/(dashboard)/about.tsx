@@ -139,6 +139,7 @@ function AboutPage() {
               <Button
                 variant="outline"
                 className="w-full"
+                nativeButton={false}
                 render={
                   <a
                     href={GITHUB_REPO.replace('git+', '').replace('.git', '')}
@@ -167,6 +168,7 @@ function AboutPage() {
               <Button
                 variant="outline"
                 className="w-full"
+                nativeButton={false}
                 render={
                   <a
                     href={`${GITHUB_REPO.replace('git+', '').replace('.git', '')}#readme`}

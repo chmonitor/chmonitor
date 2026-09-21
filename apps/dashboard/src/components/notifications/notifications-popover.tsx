@@ -94,7 +94,10 @@ export const NotificationsPopover = function NotificationsPopover() {
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger render={<div className="relative hidden sm:flex" />}>
+      <PopoverTrigger
+        nativeButton={false}
+        render={<div className="relative hidden sm:flex" />}
+      >
         <IconButton
           tooltip={`${totalCount} notification${totalCount === 1 ? '' : 's'}`}
           icon={<Bell className="size-4" />}

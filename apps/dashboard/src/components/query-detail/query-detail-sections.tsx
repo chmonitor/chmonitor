@@ -117,6 +117,7 @@ export function QueryDetailHeader({
               variant="outline"
               size="sm"
               className="h-7 gap-1.5"
+              nativeButton={false}
               render={
                 <Link
                   href={buildUrl('/explain', {
@@ -133,6 +134,7 @@ export function QueryDetailHeader({
               variant="outline"
               size="sm"
               className="h-7 gap-1.5"
+              nativeButton={false}
               render={<Link href={explorerUrl} />}
             >
               <ExternalLink className="size-3.5" />

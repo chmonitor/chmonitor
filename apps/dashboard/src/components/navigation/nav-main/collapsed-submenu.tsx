@@ -143,6 +143,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
     <ClientOnly fallback={<div className="cursor-pointer">{trigger}</div>}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
+          nativeButton={false}
           render={
             <div
               role="button"

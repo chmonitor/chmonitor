@@ -25,6 +25,7 @@ function HealthPageContent() {
             <Button
               variant="outline"
               size="sm"
+              nativeButton={false}
               render={
                 <AppLink
                   href={buildUrl('/health-settings', { host: hostId })}
