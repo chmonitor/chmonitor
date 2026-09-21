@@ -174,9 +174,7 @@ describe('landing <img> alts', () => {
   test('nav brand logo uses a short brand alt, not empty', () => {
     expect(nav).toContain('src="/brand/logo-chmonitor.svg"')
     expect(nav).toContain('alt="chmonitor"')
-    expect(nav).not.toMatch(
-      /src="\/brand\/logo-chmonitor\.svg"[^>]*alt=""/
-    )
+    expect(nav).not.toMatch(/src="\/brand\/logo-chmonitor\.svg"[^>]*alt=""/)
   })
 
   test('every landing <img> sets alt (empty only when decorative)', () => {
