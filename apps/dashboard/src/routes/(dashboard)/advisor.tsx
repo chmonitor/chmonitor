@@ -29,6 +29,7 @@ import {
   advisorUserInputCopy,
   isAdvisorUserInputError,
 } from '@/lib/ai/advisor/empty-copy'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
@@ -345,4 +346,5 @@ function AdvisorPage() {
 
 export const Route = createFileRoute('/(dashboard)/advisor')({
   component: AdvisorPage,
+  head: () => pageOgHead('advisor'),
 })

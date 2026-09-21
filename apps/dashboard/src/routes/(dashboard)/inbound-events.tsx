@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { pageOgHead } from '@/lib/og'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
 
@@ -255,4 +256,5 @@ function InboundEventsPage() {
 
 export const Route = createFileRoute('/(dashboard)/inbound-events')({
   component: InboundEventsPage,
+  head: () => pageOgHead('inbound-events'),
 })

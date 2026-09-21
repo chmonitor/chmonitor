@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
 import { EmptyState } from '@/components/ui/empty-state'
 import { DASHBOARD_SESSION_KEY } from '@/lib/dashboard-storage'
+import { pageOgHead } from '@/lib/og'
 import {
   DEFAULT_CHART_WIDGET_H,
   DEFAULT_CHART_WIDGET_W,
@@ -247,4 +248,5 @@ function DashboardPage() {
 
 export const Route = createFileRoute('/(dashboard)/dashboard')({
   component: DashboardPage,
+  head: () => pageOgHead('dashboard'),
 })

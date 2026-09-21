@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { useEffect } from 'react'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { splitHref } from '@/lib/url/url-builder'
 
 /** Redirect /cluster → /clusters (topology + table merged into one page) */
@@ -21,4 +22,5 @@ function ClusterRedirectPage() {
 
 export const Route = createFileRoute('/(dashboard)/cluster')({
   component: ClusterRedirectPage,
+  head: () => pageOgHead('clusters'),
 })

@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { queryMetricLogConfig } from '@/lib/query-config/system/query-metric-log'
 
 function QueryMetricLogPageContent() {
@@ -41,4 +42,5 @@ function QueryMetricLogPage() {
 
 export const Route = createFileRoute('/(dashboard)/query-metric-log')({
   component: QueryMetricLogPage,
+  head: () => pageOgHead('query-metric-log'),
 })

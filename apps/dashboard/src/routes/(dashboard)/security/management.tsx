@@ -32,6 +32,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { pageOgHead } from '@/lib/og'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
@@ -121,4 +122,5 @@ function ManagementPage() {
 
 export const Route = createFileRoute('/(dashboard)/security/management')({
   component: ManagementPage,
+  head: () => pageOgHead('security/management'),
 })

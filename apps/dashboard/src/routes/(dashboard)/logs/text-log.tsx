@@ -5,6 +5,7 @@ import { PageLayout } from '@/components/layout/query-page'
 import { LogFilters } from '@/components/logs/log-filters'
 import { PageSkeleton } from '@/components/skeletons'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { textLogConfig } from '@/lib/query-config/logs/text-log'
 
 function TextLogContent() {
@@ -44,4 +45,5 @@ function TextLogPage() {
 
 export const Route = createFileRoute('/(dashboard)/logs/text-log')({
   component: TextLogPage,
+  head: () => pageOgHead('logs/text-log'),
 })

@@ -6,6 +6,7 @@ import { TableSkeleton } from '@/components/skeletons'
 import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { clustersReplicasStatusConfig } from '@/lib/query-config/system/replicas-status'
 import { useHostId } from '@/lib/swr'
 
@@ -58,4 +59,5 @@ function ClusterReplicasStatusPage() {
 
 export const Route = createFileRoute('/(dashboard)/clusters/replicas-status')({
   component: ClusterReplicasStatusPage,
+  head: () => pageOgHead('clusters/replicas-status'),
 })

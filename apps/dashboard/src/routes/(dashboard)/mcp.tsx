@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MCP_PROTOCOL_VERSION } from '@/lib/mcp'
+import { pageOgHead } from '@/lib/og'
 
 /**
  * One labeled fact about the endpoint. Label on top, value below, so the row
@@ -134,4 +135,5 @@ function McpPage() {
 
 export const Route = createFileRoute('/(dashboard)/mcp')({
   component: McpPage,
+  head: () => pageOgHead('mcp'),
 })

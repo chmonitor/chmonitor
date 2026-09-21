@@ -7,6 +7,7 @@ import { ChartSkeleton, ChartsOnlyPageSkeleton } from '@/components/skeletons'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
@@ -130,4 +131,5 @@ function ChartsPage() {
 
 export const Route = createFileRoute('/(dashboard)/charts')({
   component: ChartsPage,
+  head: () => pageOgHead('charts'),
 })

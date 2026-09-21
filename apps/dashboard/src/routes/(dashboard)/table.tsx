@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Suspense, useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { splitHref } from '@/lib/url/url-builder'
 
 function TableRedirect() {
@@ -54,4 +55,5 @@ function TablePage() {
 
 export const Route = createFileRoute('/(dashboard)/table')({
   component: TablePage,
+  head: () => pageOgHead('explorer'),
 })

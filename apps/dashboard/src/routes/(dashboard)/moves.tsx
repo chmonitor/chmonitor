@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
+import { pageOgHead } from '@/lib/og'
 import { movesConfig } from '@/lib/query-config/tables/moves'
 
 function MovesPageContent() {
@@ -19,4 +20,5 @@ function MovesPage() {
 
 export const Route = createFileRoute('/(dashboard)/moves')({
   component: MovesPage,
+  head: () => pageOgHead('moves'),
 })

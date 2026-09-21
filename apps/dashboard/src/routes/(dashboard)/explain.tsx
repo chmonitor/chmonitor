@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
@@ -605,4 +606,5 @@ function ExplainPage() {
 
 export const Route = createFileRoute('/(dashboard)/explain')({
   component: ExplainPage,
+  head: () => pageOgHead('explain'),
 })

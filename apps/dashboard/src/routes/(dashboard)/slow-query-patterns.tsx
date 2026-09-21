@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PatternDetailSheet } from '@/components/slow-query-patterns/pattern-detail-sheet'
+import { pageOgHead } from '@/lib/og'
 import { slowQueryPatternsConfig } from '@/lib/query-config/queries/slow-query-patterns'
 
 /**
@@ -39,4 +40,5 @@ function SlowQueryPatternsPage() {
 
 export const Route = createFileRoute('/(dashboard)/slow-query-patterns')({
   component: SlowQueryPatternsPage,
+  head: () => pageOgHead('slow-query-patterns'),
 })

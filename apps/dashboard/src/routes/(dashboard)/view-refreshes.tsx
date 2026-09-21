@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { MvStalenessBadge } from '@/components/alerting/mv-staleness-badge'
 import { QueryPageLayout } from '@/components/layout/query-page'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { pageOgHead } from '@/lib/og'
 import { viewRefreshesConfig } from '@/lib/query-config/tables/view-refreshes'
 import { useHostId } from '@/lib/swr/use-host'
 
@@ -28,4 +29,5 @@ function ViewRefreshesPage() {
 
 export const Route = createFileRoute('/(dashboard)/view-refreshes')({
   component: ViewRefreshesPage,
+  head: () => pageOgHead('view-refreshes'),
 })

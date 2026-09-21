@@ -10,6 +10,7 @@ import {
 import { PageHeader } from '@/components/layout'
 import { PageSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
+import { pageOgHead } from '@/lib/og'
 
 function AlertSettingsContent() {
   // Optional deep link into a specific tab: /alert-settings?tab=webhooks
@@ -52,4 +53,5 @@ function AlertSettingsPage() {
 
 export const Route = createFileRoute('/(dashboard)/alert-settings')({
   component: AlertSettingsPage,
+  head: () => pageOgHead('alert-settings'),
 })

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { QueryPageLayout } from '@/components/layout/query-page'
 import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
+import { pageOgHead } from '@/lib/og'
 import { tablesOverviewConfig } from '@/lib/query-config/tables/tables-overview'
 
 function TablesOverviewPage() {
@@ -20,4 +21,5 @@ function TablesOverviewPage() {
 
 export const Route = createFileRoute('/(dashboard)/tables-overview')({
   component: TablesOverviewPage,
+  head: () => pageOgHead('tables-overview'),
 })

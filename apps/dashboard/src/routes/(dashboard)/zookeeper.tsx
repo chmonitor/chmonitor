@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Suspense, useEffect } from 'react'
 import { ChartSkeleton } from '@/components/skeletons'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { splitHref } from '@/lib/url/url-builder'
 
 /**
@@ -36,4 +37,5 @@ function ZookeeperPage() {
 
 export const Route = createFileRoute('/(dashboard)/zookeeper')({
   component: ZookeeperPage,
+  head: () => pageOgHead('keeper'),
 })

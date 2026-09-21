@@ -8,6 +8,7 @@ import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { SqlConsole } from '@/components/sql-console'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 
 /**
@@ -91,4 +92,5 @@ function SqlConsolePage() {
 
 export const Route = createFileRoute('/(dashboard)/sql')({
   component: SqlConsolePage,
+  head: () => pageOgHead('sql'),
 })

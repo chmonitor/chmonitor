@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { keepHostSearch } from '../-root-search'
 import { useEffect } from 'react'
 import { PageSkeleton } from '@/components/skeletons'
+import { pageOgHead } from '@/lib/og'
 
 /**
  * Redirect page for legacy /ai-chat route.
@@ -20,4 +21,5 @@ function AiChatRedirectPage() {
 
 export const Route = createFileRoute('/(dashboard)/ai-chat')({
   component: AiChatRedirectPage,
+  head: () => pageOgHead('agents'),
 })

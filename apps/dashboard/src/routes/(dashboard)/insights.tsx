@@ -12,6 +12,7 @@ import {
 import { InsightsPanel } from '@/components/insights/insights-panel'
 import { ClientOnly } from '@/components/layout/client-only'
 import { Separator } from '@/components/ui/separator'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 
 function InsightsPage() {
@@ -67,4 +68,5 @@ function InsightsPage() {
 
 export const Route = createFileRoute('/(dashboard)/insights')({
   component: InsightsPage,
+  head: () => pageOgHead('insights'),
 })

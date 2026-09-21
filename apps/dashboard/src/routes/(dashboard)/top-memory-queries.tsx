@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { createPage } from '@/lib/create-page'
+import { pageOgHead } from '@/lib/og'
 import { topMemoryQueriesLiveConfig } from '@/lib/query-config/queries/top-memory-queries-live'
 
 const TopMemoryQueriesPage = createPage({
@@ -10,4 +11,5 @@ const TopMemoryQueriesPage = createPage({
 
 export const Route = createFileRoute('/(dashboard)/top-memory-queries')({
   component: TopMemoryQueriesPage,
+  head: () => pageOgHead('top-memory-queries'),
 })

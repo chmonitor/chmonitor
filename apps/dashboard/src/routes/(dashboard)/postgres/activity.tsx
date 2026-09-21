@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { PgPage } from '@/components/postgres/pg-page'
+import { pageOgHead } from '@/lib/og'
 import { pgRunningQueriesConfig } from '@/lib/pg-query-config'
 
 /**
@@ -14,4 +15,5 @@ function PostgresActivityPage() {
 
 export const Route = createFileRoute('/(dashboard)/postgres/activity')({
   component: PostgresActivityPage,
+  head: () => pageOgHead('postgres/activity'),
 })

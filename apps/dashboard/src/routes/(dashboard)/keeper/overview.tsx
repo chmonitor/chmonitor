@@ -5,6 +5,7 @@ import { KeeperNodeCards } from '@/components/keeper/keeper-node-cards'
 import { KeeperOverviewKpis } from '@/components/keeper/keeper-overview-kpis'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
+import { pageOgHead } from '@/lib/og'
 import { keeperOverviewConfig } from '@/lib/query-config/keeper'
 
 function KeeperOverviewContent() {
@@ -30,4 +31,5 @@ function KeeperOverviewPage() {
 
 export const Route = createFileRoute('/(dashboard)/keeper/overview')({
   component: KeeperOverviewPage,
+  head: () => pageOgHead('keeper/overview'),
 })

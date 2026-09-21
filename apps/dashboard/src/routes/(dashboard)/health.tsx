@@ -8,6 +8,7 @@ import { RelatedPagesLink } from '@/components/navigation/related-pages-link'
 import { ChartsOnlyPageSkeleton } from '@/components/skeletons'
 import { AppLink } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
@@ -51,6 +52,7 @@ function HealthPage() {
 
 export const Route = createFileRoute('/(dashboard)/health')({
   component: HealthPage,
+  head: () => pageOgHead('health'),
   validateSearch: (search: Record<string, unknown>) => search,
   beforeLoad: ({ search }) => {
     // Legacy deep link: /health?settings=alerts used to open the settings
