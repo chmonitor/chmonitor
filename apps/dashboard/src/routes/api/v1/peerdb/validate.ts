@@ -18,6 +18,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { createValidationError } from '@/lib/api/error-handler'
+import {
+  checkRateLimitDurable,
+  clientIpKey,
+  getBrowserConnectionRateLimitPerMin,
+  RATE_LIMIT_BINDING_BROWSER_CONN,
+  rateLimitResponse,
+} from '@/lib/api/rate-limiter'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import {
   buildPeerDBAuthHeader,
@@ -30,6 +37,25 @@ const ROUTE_CONTEXT = {
 } as const
 
 const PROBE_TIMEOUT_MS = 10_000
+
+/**
+ * IP-keyed rate limit guard — the same class of unauthenticated outbound
+ * probe as `/api/v1/browser-connections/test` (#2978): this route dials an
+ * attacker-supplied PeerDB URL (`/v1/version`) on every request. Shares the
+ * `CHM_RATE_LIMIT_BROWSER_CONN` binding + 10/min getter (one budget class for
+ * outbound-probe routes) but keys distinctly (`peerdb-validate:ip:`) so a
+ * burst against one route doesn't consume a sibling's budget.
+ */
+async function checkPeerdbValidateRateLimit(
+  request: Request
+): Promise<Response | null> {
+  const rl = await checkRateLimitDurable(
+    `peerdb-validate:ip:${clientIpKey(request)}`,
+    getBrowserConnectionRateLimitPerMin(),
+    RATE_LIMIT_BINDING_BROWSER_CONN
+  )
+  return rl.allowed ? null : rateLimitResponse(rl.retryAfterSec)
+}
 
 interface ValidateRequest {
   apiUrl: string
@@ -63,6 +89,11 @@ async function handlePost(request: Request): Promise<Response> {
       ROUTE_CONTEXT
     )
   }
+
+  // Rate limit BEFORE any outbound work — this route fetches an
+  // attacker-supplied URL, so cap it like the browser-connections probe.
+  const limited = await checkPeerdbValidateRateLimit(request)
+  if (limited) return limited
 
   // http(s)-only + SSRF guard, identical to how ClickHouse host URLs are vetted.
   const ssrfError = await validateHostUrl(apiUrl)
