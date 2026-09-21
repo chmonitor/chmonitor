@@ -341,7 +341,7 @@ function buildInitialGraph(
         label: edgeLabel,
         labelStyle: edgeLabel
           ? {
-              fill: 'hsl(var(--foreground))',
+              fill: 'var(--foreground)',
               fontSize: 10,
               fontWeight: 500,
             }

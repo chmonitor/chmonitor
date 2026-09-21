@@ -177,7 +177,7 @@ function buildGraph(
       ...(showLabels && p.count > 1
         ? {
             label: `${p.count} mirrors`,
-            labelStyle: { fill: 'hsl(var(--foreground))', fontSize: 10 },
+            labelStyle: { fill: 'var(--foreground)', fontSize: 10 },
             labelBgPadding: [6, 3] as [number, number],
             labelBgBorderRadius: 4,
             labelBgStyle: {
