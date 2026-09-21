@@ -19,42 +19,42 @@ import { useCallback, useEffect, useRef } from 'react'
 const darkTheme = EditorView.theme(
   {
     '&': {
-      backgroundColor: 'hsl(var(--background))',
-      color: 'hsl(var(--foreground))',
+      backgroundColor: 'var(--background)',
+      color: 'var(--foreground)',
     },
     '.cm-content': {
-      caretColor: 'hsl(var(--foreground))',
+      caretColor: 'var(--foreground)',
       fontFamily: 'var(--font-mono, ui-monospace, monospace)',
       fontSize: '0.875rem',
       lineHeight: '1.5',
     },
     '.cm-gutters': {
-      backgroundColor: 'hsl(var(--muted))',
-      color: 'hsl(var(--muted-foreground))',
+      backgroundColor: 'var(--muted)',
+      color: 'var(--muted-foreground)',
       border: 'none',
     },
     '.cm-activeLine': {
-      backgroundColor: 'hsl(var(--muted) / 0.5)',
+      backgroundColor: 'oklch(from var(--muted) l c h / 0.5)',
     },
     '.cm-activeLineGutter': {
-      backgroundColor: 'hsl(var(--muted) / 0.8)',
+      backgroundColor: 'oklch(from var(--muted) l c h / 0.8)',
     },
     '.cm-selectionMatch': {
-      backgroundColor: 'hsl(var(--accent) / 0.3)',
+      backgroundColor: 'oklch(from var(--accent) l c h / 0.3)',
     },
     '&.cm-focused .cm-cursor': {
-      borderLeftColor: 'hsl(var(--foreground))',
+      borderLeftColor: 'var(--foreground)',
     },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
-      backgroundColor: 'hsl(var(--accent) / 0.4)',
+      backgroundColor: 'oklch(from var(--accent) l c h / 0.4)',
     },
     '&.cm-focused': {
       outline: 'none',
     },
     '.cm-tooltip': {
-      backgroundColor: 'hsl(var(--popover))',
-      color: 'hsl(var(--popover-foreground))',
-      border: '1px solid hsl(var(--border))',
+      backgroundColor: 'var(--popover)',
+      color: 'var(--popover-foreground)',
+      border: '1px solid var(--border)',
     },
   },
   { dark: true }
@@ -63,42 +63,42 @@ const darkTheme = EditorView.theme(
 const lightTheme = EditorView.theme(
   {
     '&': {
-      backgroundColor: 'hsl(var(--background))',
-      color: 'hsl(var(--foreground))',
+      backgroundColor: 'var(--background)',
+      color: 'var(--foreground)',
     },
     '.cm-content': {
-      caretColor: 'hsl(var(--foreground))',
+      caretColor: 'var(--foreground)',
       fontFamily: 'var(--font-mono, ui-monospace, monospace)',
       fontSize: '0.875rem',
       lineHeight: '1.5',
     },
     '.cm-gutters': {
-      backgroundColor: 'hsl(var(--muted))',
-      color: 'hsl(var(--muted-foreground))',
+      backgroundColor: 'var(--muted)',
+      color: 'var(--muted-foreground)',
       border: 'none',
     },
     '.cm-activeLine': {
-      backgroundColor: 'hsl(var(--muted) / 0.3)',
+      backgroundColor: 'oklch(from var(--muted) l c h / 0.3)',
     },
     '.cm-activeLineGutter': {
-      backgroundColor: 'hsl(var(--muted) / 0.5)',
+      backgroundColor: 'oklch(from var(--muted) l c h / 0.5)',
     },
     '.cm-selectionMatch': {
-      backgroundColor: 'hsl(var(--accent) / 0.3)',
+      backgroundColor: 'oklch(from var(--accent) l c h / 0.3)',
     },
     '&.cm-focused .cm-cursor': {
-      borderLeftColor: 'hsl(var(--foreground))',
+      borderLeftColor: 'var(--foreground)',
     },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
-      backgroundColor: 'hsl(var(--accent) / 0.3)',
+      backgroundColor: 'oklch(from var(--accent) l c h / 0.3)',
     },
     '&.cm-focused': {
       outline: 'none',
     },
     '.cm-tooltip': {
-      backgroundColor: 'hsl(var(--popover))',
-      color: 'hsl(var(--popover-foreground))',
-      border: '1px solid hsl(var(--border))',
+      backgroundColor: 'var(--popover)',
+      color: 'var(--popover-foreground)',
+      border: '1px solid var(--border)',
     },
   },
   { dark: false }

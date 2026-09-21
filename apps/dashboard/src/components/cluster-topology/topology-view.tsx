@@ -20,7 +20,12 @@ import {
   EMPTY_LIVE,
   KeeperInspector,
 } from './inspector'
-import { isKeeperNode, layoutTopology, STATUS_COLOR } from './model'
+import {
+  isKeeperNode,
+  layoutTopology,
+  REPLICATION_COLOR,
+  STATUS_COLOR,
+} from './model'
 import { TopoCanvas } from './topo-canvas'
 import { useOnClearSelect } from './topology-select'
 import { TopologyUpdatedAgo } from './topology-updated-ago'
@@ -488,7 +493,7 @@ export function TopologyView({
               <span className="inline-flex items-center gap-1.5">
                 <span
                   className="h-0.5 w-4 rounded-full"
-                  style={{ background: '#3b82f6', opacity: 0.6 }}
+                  style={{ background: REPLICATION_COLOR, opacity: 0.6 }}
                 />
                 replication
               </span>
@@ -511,7 +516,7 @@ export function TopologyView({
                 warn
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-slate-400" />
+                <span className="h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500" />
                 unreachable
               </span>
             </div>

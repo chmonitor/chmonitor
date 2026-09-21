@@ -73,6 +73,11 @@ export const STATUS_COLOR: Record<string, string> = {
   unreachable: '#94a3b8',
 }
 
+// Replication edge color (CH↔CH replica links) — blue, deliberately outside
+// STATUS_COLOR which is keyed by node health. Shared by the canvas stroke and
+// the legend swatch in topology-view.tsx.
+export const REPLICATION_COLOR = '#3b82f6'
+
 // Stable palette — EVERY cluster (logical and physical alike) draws a distinct
 // color from this list in encounter order, so concentric/overlapping territories
 // read as separate colored boundaries instead of a muddy stack of gray lines.

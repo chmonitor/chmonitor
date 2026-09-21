@@ -49,11 +49,7 @@ export function PhaseTimeline({
         const done = i < currentIdx
         const cur = i === currentIdx
         const last = i === nodes.length - 1
-        const tone = done
-          ? DONE_COLOR
-          : cur
-            ? currentColor
-            : 'hsl(var(--border))'
+        const tone = done ? DONE_COLOR : cur ? currentColor : 'var(--border)'
         const isComplete =
           done || (cur && mode === 'progress' && n.id === 'snapshot_done')
         const marker = isComplete
@@ -124,7 +120,7 @@ export function PhaseTimeline({
                 className="mx-2 mt-2.5 min-w-[12px] flex-1 self-start rounded-full"
                 style={{
                   height: 2,
-                  background: done ? DONE_COLOR : 'hsl(var(--border))',
+                  background: done ? DONE_COLOR : 'var(--border)',
                 }}
               />
             )}

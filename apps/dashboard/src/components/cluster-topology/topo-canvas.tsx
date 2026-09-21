@@ -3,7 +3,13 @@ import type { TopologyModel } from './model'
 import type { DragKind, DragState, Pos, PosMap } from './topo-canvas-geometry'
 import type { LiveMetrics } from './topo-glyphs'
 
-import { isKeeperNode, KP_R, STATUS_COLOR, VB_W } from './model'
+import {
+  isKeeperNode,
+  KP_R,
+  REPLICATION_COLOR,
+  STATUS_COLOR,
+  VB_W,
+} from './model'
 import {
   _KP_DOWN,
   _KP_HALF,
@@ -478,7 +484,7 @@ export const TopoCanvas = memo(function TopoCanvas({
             key={`p${i}`}
             d={curvePath(e.x1, e.y1, e.x2, e.y2)}
             fill="none"
-            stroke="#3b82f6"
+            stroke={REPLICATION_COLOR}
             strokeOpacity={lit ? 0.5 : 0.12}
             strokeWidth="2"
             style={{ transition: 'stroke-opacity .25s', pointerEvents: 'none' }}
