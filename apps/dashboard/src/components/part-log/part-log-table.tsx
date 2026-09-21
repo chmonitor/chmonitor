@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import type { PartLogRow } from './lib'
 import type { SortKey, SortState } from './part-log-table-parts'
@@ -6,7 +6,7 @@ import type { SortKey, SortState } from './part-log-table-parts'
 import { num } from './lib'
 import { Row, SORT_PRESETS, SORT_VALUE, ThSort } from './part-log-table-parts'
 import { useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
@@ -50,11 +50,6 @@ const QUICK_FILTERS: QuickFilter[] = [
     label: '> 100 MiB',
     test: (r) => num(r.size_in_bytes) >= 100 * 1024 * 1024,
   },
-  {
-    key: 'analytics',
-    label: 'analytics.*',
-    test: (r) => r.database === 'analytics',
-  },
 ]
 
 // ───────────────────────── main table ─────────────────────────
@@ -72,6 +67,19 @@ export function PartLogTable({
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
 
   const nowSeconds = useMemo(() => Math.floor(Date.now() / 1000), [])
+
+  // Static filters + one chip per database seen in the loaded rows.
+  const quickFilters = useMemo<QuickFilter[]>(() => {
+    const dbs = [...new Set(rows.map((r) => r.database).filter(Boolean))].sort()
+    return [
+      ...QUICK_FILTERS,
+      ...dbs.map((db) => ({
+        key: `db:${db}`,
+        label: `${db}.*`,
+        test: (r: PartLogRow) => r.database === db,
+      })),
+    ]
+  }, [rows])
 
   const toggleRow = (id: string) =>
     setExpanded((prev) => {
@@ -98,7 +106,7 @@ export function PartLogTable({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const filters = QUICK_FILTERS.filter((f) => activeFilters.has(f.key))
+    const filters = quickFilters.filter((f) => activeFilters.has(f.key))
     const out = rows.filter((r) => {
       if (q) {
         const hay =
@@ -119,7 +127,7 @@ export function PartLogTable({
       return sort.dir === 'desc' ? -cmp : cmp
     })
     return out
-  }, [rows, search, activeFilters, sort])
+  }, [rows, search, activeFilters, sort, quickFilters])
 
   const maxSize = useMemo(
     () => Math.max(...rows.map((r) => num(r.size_in_bytes)), 1),
@@ -143,16 +151,12 @@ export function PartLogTable({
               className="h-9 pl-8 text-[13px]"
             />
           </div>
-          <Button variant="outline" size="sm" className="h-9 gap-1.5">
-            <SlidersHorizontal className="size-3.5" />
-            Advanced
-          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-2 px-2.5 py-2.5 sm:px-3">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Quick filters
           </span>
-          {QUICK_FILTERS.map((f) => {
+          {quickFilters.map((f) => {
             const on = activeFilters.has(f.key)
             return (
               <button
@@ -160,7 +164,7 @@ export function PartLogTable({
                 type="button"
                 onClick={() => toggleFilter(f.key)}
                 className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium transition-colors',
+                  'inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                   on
                     ? 'border-foreground bg-foreground text-background'
                     : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -174,7 +178,7 @@ export function PartLogTable({
             <button
               type="button"
               onClick={() => setActiveFilters(new Set())}
-              className="ml-auto text-[11.5px] text-muted-foreground hover:text-foreground"
+              className="ml-auto rounded-sm text-[11.5px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               Clear all
             </button>
@@ -199,7 +203,7 @@ export function PartLogTable({
                   type="button"
                   onClick={() => setSort({ key: p.key, dir: p.dir })}
                   className={cn(
-                    'h-7 rounded px-2.5 text-[11.5px] font-medium',
+                    'h-7 rounded px-2.5 text-[11.5px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                     active
                       ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -300,11 +304,18 @@ export function PartLogTable({
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-6 py-12 text-center text-[13px] text-muted-foreground"
-                  >
-                    No part events match your filters
+                  <td colSpan={8} className="px-6 py-8">
+                    <EmptyState
+                      variant="filtered-empty"
+                      compact
+                      action={{
+                        label: 'Clear filters',
+                        onClick: () => {
+                          setActiveFilters(new Set())
+                          setSearch('')
+                        },
+                      }}
+                    />
                   </td>
                 </tr>
               )}

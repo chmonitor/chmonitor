@@ -1,5 +1,6 @@
-import { HardDrive, Layers, Merge, Sparkles } from 'lucide-react'
+import { HardDrive, Layers, Merge, RefreshCw, Sparkles } from 'lucide-react'
 
+import type { CardError } from '@/lib/card-error-utils'
 import type { PartLogRow } from './lib'
 import type { DonutSegment, LifecyclePoint } from './part-log-charts-parts'
 
@@ -21,6 +22,14 @@ import {
   SizeHistogram,
 } from './part-log-charts-parts'
 import { derivePartLogData } from './part-log-derive'
+import { ChartStaleIndicator } from '@/components/charts/chart-stale-indicator'
+import { EmptyState } from '@/components/ui/empty-state'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+  getCardErrorTitle,
+  toEmptyStateVariant,
+} from '@/lib/card-error-utils'
 import { useChartData } from '@/lib/query/use-chart-data'
 import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { useHostId } from '@/lib/swr/use-host'
@@ -55,6 +64,12 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
     mutations: num(d.mutations),
     removals: num(d.removals),
   }))
+
+  const lifecycleError = lifecycleSwr.error as CardError | undefined
+  const lifecycleErrorVariant = lifecycleError
+    ? detectCardErrorVariant(lifecycleError)
+    : 'error'
+  const retryLifecycle = () => void lifecycleSwr.mutate()
 
   const reasonSegments: DonutSegment[] = [
     {
@@ -136,9 +151,33 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
               <LegendDot color={TONE_COLOR.violet} label="Merge" />
               <LegendDot color={TONE_COLOR.amber} label="Mutate" />
               <LegendDot color={TONE_COLOR.rose} label="Remove" />
+              {lifecycleSwr.staleError && (
+                <ChartStaleIndicator
+                  error={lifecycleSwr.staleError}
+                  onRetry={retryLifecycle}
+                  alwaysVisible
+                />
+              )}
             </div>
           </div>
-          {lifecycleData.length > 0 ? (
+          {lifecycleError && lifecycleData.length === 0 ? (
+            <EmptyState
+              variant={toEmptyStateVariant(lifecycleErrorVariant)}
+              title={getCardErrorTitle(lifecycleErrorVariant)}
+              description={getCardErrorDescription(
+                lifecycleError,
+                lifecycleErrorVariant,
+                true
+              )}
+              compact
+              className="h-[172px] justify-center"
+              action={{
+                label: 'Retry',
+                onClick: retryLifecycle,
+                icon: <RefreshCw className="mr-1.5 size-3.5" />,
+              }}
+            />
+          ) : lifecycleData.length > 0 ? (
             <>
               <LifecycleChart data={lifecycleData} />
               <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-foreground">
