@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useWhatsNew } from '@/components/whats-new/whats-new-provider'
+import { pageOgHead } from '@/lib/og'
 
 const GITHUB_REPO =
   packageInfo.repository?.url || 'https://github.com/chmonitor/chmonitor'
@@ -263,4 +264,5 @@ function AboutPage() {
 
 export const Route = createFileRoute('/(dashboard)/about')({
   component: AboutPage,
+  head: () => pageOgHead('about'),
 })

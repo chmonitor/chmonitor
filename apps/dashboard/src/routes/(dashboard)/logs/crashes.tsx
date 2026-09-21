@@ -5,6 +5,7 @@ import { PageLayout } from '@/components/layout/query-page'
 import { LogFilters } from '@/components/logs/log-filters'
 import { PageSkeleton } from '@/components/skeletons'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { crashLogConfig } from '@/lib/query-config/logs/crashes'
 
 function CrashesContent() {
@@ -56,4 +57,5 @@ function CrashesPage() {
 
 export const Route = createFileRoute('/(dashboard)/logs/crashes')({
   component: CrashesPage,
+  head: () => pageOgHead('logs/crashes'),
 })

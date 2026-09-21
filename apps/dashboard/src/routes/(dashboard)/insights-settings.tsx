@@ -7,6 +7,7 @@ import { StatsInsightsSettingsForm } from '@/components/insights/stats-insights-
 import { AppLink } from '@/components/ui/app-link'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
@@ -167,4 +168,5 @@ function InsightsSettingsPage() {
 
 export const Route = createFileRoute('/(dashboard)/insights-settings')({
   component: InsightsSettingsPage,
+  head: () => pageOgHead('insights-settings'),
 })

@@ -6,6 +6,7 @@ import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useServerVersion } from '@/lib/hooks/use-server-version'
+import { pageOgHead } from '@/lib/og'
 import {
   keeperChangelogsConfig,
   keeperClusterConfig,
@@ -65,4 +66,5 @@ function KeeperDeepDivePage() {
 
 export const Route = createFileRoute('/(dashboard)/keeper/deep-dive')({
   component: KeeperDeepDivePage,
+  head: () => pageOgHead('keeper/deep-dive'),
 })

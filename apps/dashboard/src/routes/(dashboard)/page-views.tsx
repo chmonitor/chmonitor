@@ -9,6 +9,7 @@ import { PageSkeleton } from '@/components/skeletons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { EVENTS_TABLE } from '@/lib/app-tables'
+import { pageOgHead } from '@/lib/og'
 import { pageViewsConfig } from '@/lib/query-config/more/page-views'
 import { useHostId } from '@/lib/swr'
 
@@ -94,4 +95,5 @@ function PageViewsPage() {
 
 export const Route = createFileRoute('/(dashboard)/page-views')({
   component: PageViewsPage,
+  head: () => pageOgHead('page-views'),
 })

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { FirstRunEmptyState } from '@/components/host/first-run-empty-state'
+import { pageOgHead } from '@/lib/og'
 
 /**
  * Standalone setup / "Connect a host" page.
@@ -13,4 +14,5 @@ import { FirstRunEmptyState } from '@/components/host/first-run-empty-state'
  */
 export const Route = createFileRoute('/(dashboard)/setup')({
   component: FirstRunEmptyState,
+  head: () => pageOgHead('setup'),
 })

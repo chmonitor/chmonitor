@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { PageLayout } from '@/components/layout/query-page'
 import { PageSkeleton } from '@/components/skeletons'
+import { pageOgHead } from '@/lib/og'
 import { parallelizationConfig } from '@/lib/query-config/queries/parallelization'
 
 function ParallelizationContent() {
@@ -24,4 +25,5 @@ function ParallelizationPage() {
 
 export const Route = createFileRoute('/(dashboard)/queries/parallelization')({
   component: ParallelizationPage,
+  head: () => pageOgHead('queries/parallelization'),
 })

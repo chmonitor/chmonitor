@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { QueryDetailView } from '@/components/query-detail/query-detail-view'
 import { TableSkeleton } from '@/components/skeletons'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 
 function QueryDetailContent() {
   const searchParams = useUrlSearchParams()
@@ -30,4 +31,5 @@ function QueryDetailPage() {
 
 export const Route = createFileRoute('/(dashboard)/query')({
   component: QueryDetailPage,
+  head: () => pageOgHead('query'),
 })

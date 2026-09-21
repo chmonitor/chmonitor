@@ -9,6 +9,7 @@ import {
 import { PageHeader } from '@/components/layout'
 import { PageSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
+import { pageOgHead } from '@/lib/og'
 
 function HealthSettingsContent() {
   // Optional deep link into a specific tab: /health-settings?tab=alerts
@@ -50,4 +51,5 @@ function HealthSettingsPage() {
 
 export const Route = createFileRoute('/(dashboard)/health-settings')({
   component: HealthSettingsPage,
+  head: () => pageOgHead('health-settings'),
 })

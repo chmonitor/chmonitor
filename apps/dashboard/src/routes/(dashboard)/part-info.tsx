@@ -7,6 +7,7 @@ import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { pageOgHead } from '@/lib/og'
 import { partInfoConfig } from '@/lib/query-config/tables/part-info'
 import { useHostId } from '@/lib/swr'
 
@@ -68,4 +69,5 @@ function PartInfoPage() {
 
 export const Route = createFileRoute('/(dashboard)/part-info')({
   component: PartInfoPage,
+  head: () => pageOgHead('part-info'),
 })

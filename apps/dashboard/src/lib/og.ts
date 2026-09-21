@@ -226,6 +226,397 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Fleet Overview',
     description: 'Health signals across all ClickHouse hosts in one view.',
   },
+
+  // ── Uniform coverage: every remaining page route gets a card so
+  //    `head: () => pageOgHead('<slug>')` is wired on all of them.
+  //    Slug = route path minus the leading slash (same lookup page-title.ts
+  //    uses), so nested groups keep their path: 'keeper/overview' etc.
+  about: {
+    eyebrow: 'ABOUT',
+    title: 'About chmonitor',
+    description: 'Version, capabilities and links for this deployment.',
+  },
+  advisor: {
+    eyebrow: 'AI AGENT',
+    title: 'Query Advisor',
+    description:
+      'Index, projection, partition-key and PREWHERE recommendations for a query.',
+  },
+  'agents/settings': {
+    eyebrow: 'AI AGENT',
+    title: 'Agent Settings',
+    description: 'Configure the AI agent: provider, model and behaviour.',
+  },
+  'alert-settings': {
+    eyebrow: 'ALERTS',
+    title: 'Alert Settings',
+    description:
+      'Where alerts go, when they fire, and what has fired recently.',
+  },
+  'asynchronous-metrics': {
+    eyebrow: 'METRICS',
+    title: 'Asynchronous Metrics',
+    description:
+      'Periodically sampled background metrics from system.asynchronous_metrics.',
+  },
+  charts: {
+    eyebrow: 'CHARTS',
+    title: 'Charts',
+    description: 'Browse built-in charts for ClickHouse metrics.',
+  },
+  'clusters/replicas-status': {
+    eyebrow: 'REPLICATION',
+    title: 'Cluster Replica Status',
+    description: 'Replica health and lag for a selected cluster.',
+  },
+  'common-errors': {
+    eyebrow: 'FAILURES',
+    title: 'Common Errors',
+    description:
+      'Error codes, occurrence counts and last-seen messages from system.errors.',
+  },
+  dashboard: {
+    eyebrow: 'CHARTS',
+    title: 'Chart Builder',
+    description: 'Compose custom dashboards from charts and widgets.',
+  },
+  'detached-parts': {
+    eyebrow: 'PARTS',
+    title: 'Detached Parts',
+    description: 'Detached MergeTree parts and the reason each was detached.',
+  },
+  dictionaries: {
+    eyebrow: 'TABLES',
+    title: 'Dictionaries',
+    description: 'External dictionaries loaded in ClickHouse.',
+  },
+  'distributed-ddl-queue': {
+    eyebrow: 'DDL',
+    title: 'Distributed DDL Queue',
+    description: 'ON CLUSTER DDL tasks executed across the cluster.',
+  },
+  'dropped-tables': {
+    eyebrow: 'TABLES',
+    title: 'Dropped Tables',
+    description: 'Tables awaiting final asynchronous drop.',
+  },
+  errors: {
+    eyebrow: 'LOGS',
+    title: 'Errors',
+    description: 'System error codes, counts and history from system.errors.',
+  },
+  'expensive-queries-by-memory': {
+    eyebrow: 'COST',
+    title: 'Expensive Queries (Memory)',
+    description:
+      'Most expensive queries by memory over the selected time window.',
+  },
+  explain: {
+    eyebrow: 'TOOLS',
+    title: 'Explain',
+    description:
+      'Inspect EXPLAIN plans, applied optimizations and projection analysis.',
+  },
+  health: {
+    eyebrow: 'HEALTH',
+    title: 'Health Summary',
+    description: 'Real-time health indicators for your ClickHouse cluster.',
+  },
+  'health-settings': {
+    eyebrow: 'HEALTH',
+    title: 'Health Settings',
+    description:
+      'Per-check warning and critical thresholds plus alert delivery.',
+  },
+  'inbound-events': {
+    eyebrow: 'EVENTS',
+    title: 'Inbound Events',
+    description:
+      'Normalized inbound events ingested via the event bus (Alertmanager, Datadog, webhooks).',
+  },
+  insights: {
+    eyebrow: 'INSIGHTS',
+    title: 'Insights',
+    description:
+      'Query, traffic and activity analytics with AI-generated findings.',
+  },
+  'insights-settings': {
+    eyebrow: 'INSIGHTS',
+    title: 'Insights Settings',
+    description: 'Configure AI insight generation and stats thresholds.',
+  },
+  'kafka-consumers': {
+    eyebrow: 'INGESTION',
+    title: 'Kafka Consumers',
+    description:
+      'Kafka engine consumer state: poll/commit activity and last exception.',
+  },
+  keeper: {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Data Browser',
+    description: 'Browse the ClickHouse Keeper / ZooKeeper znode tree.',
+  },
+  'keeper/overview': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Overview',
+    description:
+      'Keeper/ZooKeeper health: liveness, request load, latency and node state.',
+  },
+  'keeper/connections': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Connections',
+    description: 'Live Keeper client connections and session state.',
+  },
+  'keeper/watches': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Watches',
+    description: 'Active Keeper watches by path and session.',
+  },
+  'keeper/connection-log': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Connection Log',
+    description: 'Connection and disconnection events with reason codes.',
+  },
+  'keeper/info': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Info',
+    description:
+      'Per-node Keeper introspection: role, latency, raft indices and data size.',
+  },
+  'keeper/log': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Request Log',
+    description: 'Per-request log of operations sent to Keeper and responses.',
+  },
+  'keeper/deep-dive': {
+    eyebrow: 'KEEPER',
+    title: 'Keeper Deep Dive',
+    description:
+      'Raft membership, snapshots and changelogs for the Keeper ensemble.',
+  },
+  'logs/crashes': {
+    eyebrow: 'LOGS',
+    title: 'Crash Log',
+    description: 'Server crash history and details from system.crash_log.',
+  },
+  'logs/stack-traces': {
+    eyebrow: 'LOGS',
+    title: 'Stack Traces',
+    description: 'Current stack traces for all server threads.',
+  },
+  'logs/text-log': {
+    eyebrow: 'LOGS',
+    title: 'Server Text Log',
+    description: 'Server log messages from system.text_log.',
+  },
+  mcp: {
+    eyebrow: 'MCP',
+    title: 'MCP Server',
+    description:
+      'MCP endpoint, setup guides and tool reference for AI clients.',
+  },
+  'merge-performance': {
+    eyebrow: 'MERGES',
+    title: 'Merge Performance',
+    description: 'Merge duration and rows read over time.',
+  },
+  'mergetree-settings': {
+    eyebrow: 'SETTINGS',
+    title: 'MergeTree Settings',
+    description: 'MergeTree engine settings from system.merge_tree_settings.',
+  },
+  metrics: {
+    eyebrow: 'METRICS',
+    title: 'Metrics',
+    description: 'Instant server metrics from system.metrics.',
+  },
+  moves: {
+    eyebrow: 'PARTS',
+    title: 'Part Moves',
+    description: 'In-progress part moves between disks and volumes.',
+  },
+  'page-views': {
+    eyebrow: 'ANALYTICS',
+    title: 'Page Views',
+    description: 'Usage analytics for the chmonitor dashboard.',
+  },
+  'part-info': {
+    eyebrow: 'PARTS',
+    title: 'Part Info',
+    description: 'Active parts and levels for a selected table.',
+  },
+  'part-log': {
+    eyebrow: 'PARTS',
+    title: 'Part Log',
+    description:
+      'Part lifecycle events — merges, mutations, moves — from system.part_log.',
+  },
+  'postgres/activity': {
+    eyebrow: 'POSTGRES',
+    title: 'Postgres Activity',
+    description: 'Live client backends from pg_stat_activity.',
+  },
+  'postgres/queries': {
+    eyebrow: 'POSTGRES',
+    title: 'Postgres Query Insights',
+    description: 'Slow query patterns from pg_stat_statements.',
+  },
+  profiler: {
+    eyebrow: 'DIAGNOSTICS',
+    title: 'Query Profiler',
+    description: 'Query processor profiling data.',
+  },
+  projections: {
+    eyebrow: 'TABLES',
+    title: 'Projections',
+    description: 'Projection definitions and storage cost per table.',
+  },
+  'queries/insights': {
+    eyebrow: 'QUERIES',
+    title: 'Query Insights',
+    description:
+      'Query performance dashboards: latency, memory, cache hit ratio, errors and hot tables.',
+  },
+  'queries/parallelization': {
+    eyebrow: 'PERFORMANCE',
+    title: 'Query Parallelization',
+    description: 'Thread-level parallelization of query execution.',
+  },
+  'queries/thread-analysis': {
+    eyebrow: 'PERFORMANCE',
+    title: 'Thread Analysis',
+    description: 'Per-thread query execution breakdown.',
+  },
+  query: {
+    eyebrow: 'QUERIES',
+    title: 'Query Details',
+    description:
+      'Stages, settings, profile events and resource usage for a single query.',
+  },
+  'query-metric-log': {
+    eyebrow: 'DIAGNOSTICS',
+    title: 'Query Metric Log',
+    description: 'Per-query resource usage sampled over each query lifetime.',
+  },
+  'query-views-log': {
+    eyebrow: 'DIAGNOSTICS',
+    title: 'Query Views Log',
+    description: 'Materialized view execution log: targets, durations, rows.',
+  },
+  'rabbitmq-consumers': {
+    eyebrow: 'INGESTION',
+    title: 'RabbitMQ Consumers',
+    description:
+      'RabbitMQ engine consumer state: active consumers, messages and errors.',
+  },
+  'readonly-tables': {
+    eyebrow: 'TABLES',
+    title: 'Readonly Tables',
+    description: 'Tables currently in read-only state.',
+  },
+  'recent-queries': {
+    eyebrow: 'HISTORY',
+    title: 'Recent Queries',
+    description: 'The most recently finished queries from system.query_log.',
+  },
+  'replicated-fetches': {
+    eyebrow: 'REPLICATION',
+    title: 'Replicated Fetches',
+    description: 'Currently executing background part downloads from replicas.',
+  },
+  'replicated-merge-tree-settings': {
+    eyebrow: 'REPLICATION',
+    title: 'Replicated MergeTree Settings',
+    description: 'Replicated MergeTree settings and changes from default.',
+  },
+  'replication-queue': {
+    eyebrow: 'REPLICATION',
+    title: 'Replication Queue',
+    description: 'Replication queue tasks stored in Keeper / ZooKeeper.',
+  },
+  roles: {
+    eyebrow: 'ACCESS',
+    title: 'Roles',
+    description: 'Roles and grants configured on the cluster.',
+  },
+  'security/audit-log': {
+    eyebrow: 'ACCESS',
+    title: 'Audit Log',
+    description: 'Audit trail of user and admin actions.',
+  },
+  'security/login-attempts': {
+    eyebrow: 'ACCESS',
+    title: 'Login Attempts',
+    description: 'Login success and failure tracking.',
+  },
+  'security/management': {
+    eyebrow: 'ACCESS',
+    title: 'RBAC Management',
+    description: 'Manage users, roles and grants with guarded writes.',
+  },
+  'security/sessions': {
+    eyebrow: 'ACCESS',
+    title: 'User Sessions',
+    description: 'Active and historical user sessions.',
+  },
+  setup: {
+    eyebrow: 'SETUP',
+    title: 'Setup',
+    description: 'Connect your first ClickHouse host to start monitoring.',
+  },
+  'slow-query-patterns': {
+    eyebrow: 'PERFORMANCE',
+    title: 'Slow Query Patterns',
+    description:
+      'Query patterns grouped by normalized hash: calls, percentiles, resource usage.',
+  },
+  sql: {
+    eyebrow: 'TOOLS',
+    title: 'SQL Console',
+    description: 'Run ad-hoc SQL against your ClickHouse cluster.',
+  },
+  'tables-overview': {
+    eyebrow: 'TABLES',
+    title: 'Tables Overview',
+    description: 'Table counts, sizes and rows summarized per database.',
+  },
+  'top-cpu-queries': {
+    eyebrow: 'PERFORMANCE',
+    title: 'Top CPU Queries',
+    description: 'Running and finished queries ranked by total CPU time.',
+  },
+  'top-memory-queries': {
+    eyebrow: 'PERFORMANCE',
+    title: 'Top Memory Queries',
+    description: 'Running and finished queries ranked by peak memory usage.',
+  },
+  'top-usage-columns': {
+    eyebrow: 'USAGE',
+    title: 'Top Usage Columns',
+    description: 'Most-used columns across tables from system.query_log.',
+  },
+  'top-usage-tables': {
+    eyebrow: 'USAGE',
+    title: 'Top Usage Tables',
+    description: 'Most-queried tables from system.query_log.',
+  },
+  'user-processes': {
+    eyebrow: 'SYSTEM',
+    title: 'User Processes',
+    description: 'Per-user live queries and historical activity.',
+  },
+  'view-refreshes': {
+    eyebrow: 'TABLES',
+    title: 'View Refreshes',
+    description:
+      'Materialized view refresh operations from system.view_refreshes.',
+  },
+  warnings: {
+    eyebrow: 'SYSTEM',
+    title: 'Warnings',
+    description:
+      'Server-side warnings about configuration or operational issues.',
+  },
 }
 
 /** Absolute URL of a page's OG image, e.g. .../og-running-queries.png. */

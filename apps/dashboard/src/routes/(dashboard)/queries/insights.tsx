@@ -16,6 +16,7 @@ import { ChartQueryInsightsReadThroughput } from '@/components/charts/query-perf
 import { ChartQueryInsightsRows } from '@/components/charts/query-performance/query-insights-rows'
 import { ChartQueryInsightsTopUsers } from '@/components/charts/query-performance/query-insights-top-users'
 import { useTimeRange } from '@/lib/context/time-range-context'
+import { pageOgHead } from '@/lib/og'
 import { ChartGroupingProvider } from '@/lib/query/use-chart-grouping'
 import { useHostId } from '@/lib/swr'
 
@@ -87,4 +88,5 @@ function QueryInsightsPage() {
 
 export const Route = createFileRoute('/(dashboard)/queries/insights')({
   component: QueryInsightsPage,
+  head: () => pageOgHead('queries/insights'),
 })

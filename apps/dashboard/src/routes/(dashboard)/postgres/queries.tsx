@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PgPage } from '@/components/postgres/pg-page'
 import { PgPatternDetailSheet } from '@/components/postgres/pg-pattern-detail-sheet'
 import { PostgresInsightsPanel } from '@/components/postgres/postgres-insights-panel'
+import { pageOgHead } from '@/lib/og'
 import { pgSlowPatternsConfig } from '@/lib/pg-query-config'
 
 /**
@@ -41,4 +42,5 @@ function PostgresQueriesPage() {
 
 export const Route = createFileRoute('/(dashboard)/postgres/queries')({
   component: PostgresQueriesPage,
+  head: () => pageOgHead('postgres/queries'),
 })
