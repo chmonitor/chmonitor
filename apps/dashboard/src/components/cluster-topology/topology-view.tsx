@@ -353,6 +353,7 @@ export function TopologyView({
               variant="default"
               size="sm"
               className="h-7 gap-1.5 px-2 text-[12px]"
+              nativeButton={false}
               render={<Link href={detailHref} />}
             >
               <ExternalLinkIcon className="h-3 w-3" />

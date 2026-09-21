@@ -128,6 +128,7 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
               variant="default"
               size="sm"
               className="h-7 gap-1.5 text-xs"
+              nativeButton={false}
               render={<Link href={readonlyTablesUrl} />}
             >
               View all

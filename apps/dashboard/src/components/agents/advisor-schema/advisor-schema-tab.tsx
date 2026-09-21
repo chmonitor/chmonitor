@@ -159,6 +159,7 @@ export function AdvisorSchemaTab() {
             <Button
               variant="outline"
               size="sm"
+              nativeButton={false}
               render={<Link href={agentHref} />}
               data-testid="advisor-ask-agent"
             >

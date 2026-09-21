@@ -243,6 +243,7 @@ function PatternDetailSheetContent({
           <Button
             size="sm"
             variant="outline"
+            nativeButton={false}
             render={<Link href={explorerHref} />}
           >
             <ExternalLinkIcon className="mr-1.5 size-3.5" />
@@ -251,6 +252,7 @@ function PatternDetailSheetContent({
           <Button
             size="sm"
             variant="outline"
+            nativeButton={false}
             render={<Link href={explainHref} />}
           >
             <LightbulbIcon className="mr-1.5 size-3.5" />

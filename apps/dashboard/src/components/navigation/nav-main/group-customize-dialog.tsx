@@ -27,10 +27,12 @@ interface GroupCustomizeButtonProps {
 }
 
 /**
- * Hover + on a parent group heading, inline immediately after the title
- * so the expand chevron can stay flush right (#3386). Opens a dialog of
- * every catalog child — Add (`showMenuHref`) / Remove (`hideMenuHref`)
- * without navigating. Overview (no children) never renders this.
+ * Hover + on a parent group heading. Absolute sibling of the collapsible
+ * trigger (a <button> cannot nest inside the trigger's <button>), sitting in
+ * the `pr-7` slot the title reserves just left of the flush-right expand
+ * chevron (#3386). Opens a dialog of every catalog child — Add
+ * (`showMenuHref`) / Remove (`hideMenuHref`) without navigating. Overview (no
+ * children) never renders this.
  */
 export function GroupCustomizeButton({
   groupTitle,
@@ -40,11 +42,6 @@ export function GroupCustomizeButton({
   const group = findCatalogGroupByTitle(catalog, groupTitle)
   if (!catalogGroupLeaves(group).length) return null
 
-  const stopToggle = (event: React.SyntheticEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-  }
-
   return (
     <>
       <button
@@ -53,14 +50,10 @@ export function GroupCustomizeButton({
         data-group={groupTitle}
         className={cn(
           overlayActionClasses,
-          'relative flex aspect-square w-5 shrink-0 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-3 [&>svg]:shrink-0'
+          'absolute top-1/2 right-8 flex aspect-square w-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-3 [&>svg]:shrink-0'
         )}
         aria-label={`Customize ${groupTitle}`}
-        onPointerDown={stopToggle}
-        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-          stopToggle(event)
-          setOpen(true)
-        }}
+        onClick={() => setOpen(true)}
       >
         <Plus />
       </button>

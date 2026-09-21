@@ -268,6 +268,7 @@ export function BulkExplainDialog({
                 variant="outline"
                 size="sm"
                 className="h-8 text-[12px]"
+                nativeButton={false}
                 render={<a href={agentUrl}>Ask AI about all findings</a>}
               />
             </div>

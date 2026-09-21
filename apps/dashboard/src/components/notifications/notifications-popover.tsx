@@ -94,6 +94,8 @@ export const NotificationsPopover = function NotificationsPopover() {
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
+      {/* Trigger is the IconButton itself — a div trigger wrapping a real
+          <button> nests interactives and warns about nativeButton. */}
       <div className="relative hidden sm:flex">
         <PopoverTrigger
           render={

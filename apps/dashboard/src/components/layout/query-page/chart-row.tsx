@@ -64,6 +64,7 @@ export const ChartRow = function ChartRow({
         {/* Collapsed state - compact chart summaries, click to expand */}
         {isCollapsed && (
           <CollapsibleTrigger
+            nativeButton={false}
             render={
               <div className="group/row relative flex h-10 w-full min-w-0 items-center gap-2 rounded-lg border border-dashed bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer px-3" />
             }

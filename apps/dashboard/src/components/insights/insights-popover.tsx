@@ -104,6 +104,8 @@ export function InsightsPopover() {
   return (
     <>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
+        {/* Trigger is the IconButton itself — a div trigger wrapping a real
+            <button> nests interactives and warns about nativeButton. */}
         <div className="relative hidden sm:flex">
           <PopoverTrigger
             render={
@@ -146,6 +148,7 @@ export function InsightsPopover() {
                 size="icon"
                 className="size-7 text-muted-foreground"
                 aria-label="AI Insights settings"
+                nativeButton={false}
                 render={<Link href={settingsHref} />}
               >
                 <Settings2 className="size-3.5" />
@@ -202,6 +205,7 @@ export function InsightsPopover() {
               variant="ghost"
               size="sm"
               className="h-7 gap-1 px-2 text-xs"
+              nativeButton={false}
               render={
                 <Link href={overviewHref} onClick={() => setIsOpen(false)} />
               }

@@ -375,6 +375,7 @@ export const TableClient = function TableClient({
                         variant="link"
                         size="sm"
                         className="h-auto justify-start p-0 text-xs"
+                        nativeButton={false}
                         render={
                           <a
                             href={guidance.docsUrl}
@@ -396,6 +397,7 @@ export const TableClient = function TableClient({
                       variant="link"
                       size="sm"
                       className="h-auto justify-start p-0 text-xs"
+                      nativeButton={false}
                       render={
                         <a
                           href="https://clickhouse.com/docs/en/operations/system-tables"
