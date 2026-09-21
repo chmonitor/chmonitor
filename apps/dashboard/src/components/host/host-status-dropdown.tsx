@@ -5,7 +5,7 @@
  * Shows checking effect while loading status.
  */
 
-import { StatusIndicator } from './shared'
+import { StatusIndicator } from './shared/status-indicator'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 
 interface HostStatusDropdownProps {
@@ -23,6 +23,7 @@ export const HostStatusDropdown = function HostStatusDropdown({
   if (isLoading) {
     return (
       <StatusIndicator
+        label="Checking"
         className="bg-gray-400 animate-pulse"
         title={['Checking...']}
       />
@@ -30,8 +31,14 @@ export const HostStatusDropdown = function HostStatusDropdown({
   }
 
   if (isOnline) {
-    return <StatusIndicator className="bg-emerald-500" title={['Online']} />
+    return (
+      <StatusIndicator
+        label="Online"
+        className="bg-emerald-500"
+        title={['Online']}
+      />
+    )
   }
 
-  return <StatusIndicator title={['Offline']} />
+  return <StatusIndicator label="Offline" title={['Offline']} />
 }

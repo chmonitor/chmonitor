@@ -150,6 +150,7 @@ export function InsightsPopover() {
                 variant="ghost"
                 size="icon"
                 className="size-7"
+                aria-label="Close"
                 onClick={() => setIsOpen(false)}
               >
                 <X className="size-3.5" />

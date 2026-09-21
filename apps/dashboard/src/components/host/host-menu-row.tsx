@@ -1,7 +1,7 @@
 import { Check, ClockIcon, TagIcon } from 'lucide-react'
 
 import { formatCompactUptime } from './format-uptime'
-import { StatusIndicator } from './shared'
+import { StatusIndicator } from './shared/status-indicator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 import { cn } from '@/lib/utils'
@@ -56,9 +56,21 @@ export const HostMenuRow = function HostMenuRow({
         ? [`Host: ${data.hostname}`, `Uptime: ${data.uptime}`]
         : ['Offline']
 
+  const statusLabel = skipStatus
+    ? 'Custom connection'
+    : isLoading
+      ? 'Checking'
+      : isOnline
+        ? 'Online'
+        : 'Offline'
+
   return (
     <div className="flex w-full items-center gap-2.5">
-      <StatusIndicator className={dotClass} title={tooltip} />
+      <StatusIndicator
+        label={statusLabel}
+        className={dotClass}
+        title={tooltip}
+      />
       <div className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="truncate text-sm font-medium">{hostName}</span>
         {skipStatus ? (

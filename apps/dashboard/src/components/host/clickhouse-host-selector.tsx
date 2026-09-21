@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import type { MergedHostInfo } from '@/lib/swr/use-merged-hosts'
 
-import { StatusIndicator } from './shared'
+import { StatusIndicator } from './shared/status-indicator'
 import { useState } from 'react'
 import { ConnectionManagerDialog } from '@/components/connections'
 import {
@@ -141,6 +141,7 @@ const HostStatusIndicator = function HostStatusIndicator({
       <div className="flex items-center gap-2">
         <span>{hostName}</span>
         <StatusIndicator
+          label="Loading"
           title={['Loading...']}
           className="bg-gray-400 animate-pulse"
         />
@@ -153,6 +154,7 @@ const HostStatusIndicator = function HostStatusIndicator({
       <div className="flex items-center gap-2">
         <span>{hostName}</span>
         <StatusIndicator
+          label="Online"
           className="bg-sky-500"
           title={[
             `Host: ${data.hostname}`,
@@ -167,7 +169,7 @@ const HostStatusIndicator = function HostStatusIndicator({
   return (
     <div className="flex items-center gap-2">
       <span>{hostName}</span>
-      <StatusIndicator title={['The host is offline']} />
+      <StatusIndicator label="Offline" title={['The host is offline']} />
     </div>
   )
 }
