@@ -18,6 +18,7 @@ import {
   getClient,
 } from '@chm/clickhouse-client'
 import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug, error as logError } from '@chm/logger'
 import { stripTrailingFormat, validateSqlQuery } from '@chm/sql-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
@@ -141,7 +142,7 @@ async function fetchExplainAsText(
       metadata: {
         queryId: resultSet.query_id,
         sql: explainQuery,
-        host: clientConfig.host,
+        host: redactHostCredentials(clientConfig.host),
       },
     }
   } catch (err) {

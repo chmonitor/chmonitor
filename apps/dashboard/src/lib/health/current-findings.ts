@@ -17,6 +17,7 @@ import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
 import { getServerThresholdOverrides } from './server-alert-config'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
 import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
 
@@ -33,7 +34,7 @@ export interface CurrentFinding {
 }
 
 function hostLabel(config: ClickHouseConfig): string {
-  return config.customName?.trim() || config.host
+  return config.customName?.trim() || redactHostCredentials(config.host)
 }
 
 async function runRuleQuery(

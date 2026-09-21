@@ -18,6 +18,7 @@ import type { DispatchFindingParams } from './dispatch'
 import type { SweepContext } from './resolve-config'
 
 import { fetchData } from '@chm/clickhouse-client'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug } from '@chm/logger'
 import { classifyValue } from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
@@ -50,7 +51,7 @@ export interface HostSweepResult {
 }
 
 export function hostLabel(config: ClickHouseConfig): string {
-  return config.customName?.trim() || config.host
+  return config.customName?.trim() || redactHostCredentials(config.host)
 }
 
 /**

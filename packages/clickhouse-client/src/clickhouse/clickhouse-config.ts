@@ -7,6 +7,7 @@ import type { ClickHouseEnv } from './env-schema'
 import type { ClickHouseConfig } from './types'
 
 import { _resetEnvCache, validateClickHouseEnv } from './env-schema'
+import { redactHostCredentials } from './redact-host'
 import { debug, error, isDebugEnabled } from '@chm/logger'
 
 /**
@@ -17,6 +18,10 @@ import { debug, error, isDebugEnabled } from '@chm/logger'
  */
 export { _resetEnvCache }
 
+// Canonical home is ./redact-host (dependency-free for subpath imports);
+// re-exported here so existing './clickhouse-config' import sites keep working.
+export { redactHostCredentials }
+
 /**
  * Memoized parsed configs, keyed by the env object reference returned by
  * validateClickHouseEnv(). Env vars don't change at runtime, so parsing once
@@ -26,39 +31,6 @@ export { _resetEnvCache }
  */
 let _cachedEnv: ClickHouseEnv | null = null
 let _cachedConfigs: ClickHouseConfig[] | null = null
-
-/**
- * Redacts username and password credentials from a ClickHouse host URL string
- */
-export function redactHostCredentials(urlStr: string): string {
-  // Fast-path: no '@' means no credentials to redact.
-  if (!urlStr.includes('@')) {
-    return urlStr
-  }
-  try {
-    const url = new URL(urlStr)
-    // Only trust the parse result for http/https — other inputs (e.g.
-    // "admin:secret@host") are silently parsed with "admin:" as the scheme
-    // and no username/password, so we fall through to the regex path.
-    if (url.protocol === 'http:' || url.protocol === 'https:') {
-      if (url.username) url.username = '***'
-      if (url.password) url.password = '***'
-      return url.toString()
-    }
-  } catch {
-    // URL constructor threw — fall through to regex below.
-  }
-  // Fallback for URLs without a recognized protocol (e.g. "admin:secret@host:8123").
-  // Handles user:pass@, :pass@ (password-only), and user@ (username-only).
-  return urlStr.replace(
-    /(?:(https?:\/\/))?([^:@]*)(?::([^@]*))?@/,
-    (_, proto, user, pass) => {
-      const redactedUser = user ? '***' : ''
-      const redactedPass = pass !== undefined ? ':***' : ''
-      return `${proto ?? ''}${redactedUser}${redactedPass}@`
-    }
-  )
-}
 
 /**
  * Retrieve a single ClickHouseConfig by hostId, throwing if the id is out of

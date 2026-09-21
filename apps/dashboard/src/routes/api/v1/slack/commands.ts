@@ -29,6 +29,7 @@ import type { DataFormat } from '@clickhouse/client'
 
 import { env } from 'cloudflare:workers'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { error as logError } from '@chm/logger'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
@@ -59,7 +60,7 @@ function hostLabelFor(hostId: number): string {
     const configs = getClickHouseConfigs()
     const cfg = configs[hostId]
     if (!cfg) return `host ${hostId}`
-    return cfg.customName?.trim() || cfg.host
+    return cfg.customName?.trim() || redactHostCredentials(cfg.host)
   } catch {
     return `host ${hostId}`
   }

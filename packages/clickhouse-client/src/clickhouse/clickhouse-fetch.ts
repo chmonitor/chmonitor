@@ -27,6 +27,7 @@ import {
   resolveEffectiveQuery,
   resolveHostConfig,
 } from './fetch-request'
+import { redactHostCredentials } from './redact-host'
 import { debug, isDebugEnabled } from '@chm/logger'
 
 export type { FetchJsonEachRowTextResult } from './fetch-normalize'
@@ -91,7 +92,7 @@ export const fetchData = async <
     const skipped = await checkOptionalTables({
       queryConfig,
       currentHostId,
-      host: clientConfig.host,
+      host: redactHostCredentials(clientConfig.host),
       classifyProbeFailure: true,
     })
     if (skipped) {
@@ -150,7 +151,7 @@ export const fetchData = async <
       let rows: number = 0
 
       debug(
-        `--> Query (${query_id}, host: ${clientConfig.host}):`,
+        `--> Query (${query_id}, host: ${redactHostCredentials(clientConfig.host)}):`,
         effectiveQuery.replace(/(\n|\s+)/g, ' ').replace(/\s+/g, ' ')
       )
 
@@ -174,7 +175,7 @@ export const fetchData = async <
         queryId: query_id,
         duration,
         rows,
-        host: clientConfig.host,
+        host: redactHostCredentials(clientConfig.host),
         // Include detected ClickHouse version
         clickhouseVersion: clickhouseVersion?.raw ?? 'unknown',
         // Include the actual SQL that was executed (normalized for readability)
@@ -228,7 +229,7 @@ export const fetchData = async <
       data: null,
       ...handleFetchError({
         originalError,
-        host: clientConfig.host,
+        host: redactHostCredentials(clientConfig.host),
         start,
       }),
     }

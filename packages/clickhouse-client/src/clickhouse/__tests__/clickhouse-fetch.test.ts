@@ -584,6 +584,22 @@ describe('clickhouse-fetch', () => {
         expect(result.error?.details?.host).toBe('http://localhost:8123')
       })
 
+      it('redacts credentials embedded in CLICKHOUSE_HOST on the error path', async () => {
+        // Operators may inline user:pass@ into CLICKHOUSE_HOST; the host echoed
+        // back in metadata/error details must never carry those credentials.
+        process.env.CLICKHOUSE_HOST = 'http://admin:s3cret@localhost:8123'
+        resetEnvCache()
+        mockClientQuery.mockRejectedValue(new Error('Test error'))
+
+        const result = await fetchData(defaultParams)
+
+        expect(result.metadata.host).toBe('http://***:***@localhost:8123/')
+        expect(result.error?.details?.host).toBe(
+          'http://***:***@localhost:8123/'
+        )
+        expect(result.error?.message).not.toContain('s3cret')
+      })
+
       it('should return metadata on error', async () => {
         mockClientQuery.mockRejectedValue(new Error('Test error'))
 
@@ -616,6 +632,16 @@ describe('clickhouse-fetch', () => {
         const result = await fetchData(defaultParams)
 
         expect(result.metadata.host).toBe('http://localhost:8123')
+      })
+
+      it('redacts credentials embedded in CLICKHOUSE_HOST from metadata.host', async () => {
+        process.env.CLICKHOUSE_HOST = 'http://admin:s3cret@localhost:8123'
+        resetEnvCache()
+
+        const result = await fetchData(defaultParams)
+
+        expect(result.metadata.host).toBe('http://***:***@localhost:8123/')
+        expect(String(result.metadata.host)).not.toContain('s3cret')
       })
     })
 
@@ -724,6 +750,16 @@ describe('clickhouse-fetch', () => {
       )
       // metadata.sql should also reflect the executed (selected) query
       expect(result.metadata.sql).toContain('SELECT only_variant')
+    })
+
+    it('redacts credentials embedded in CLICKHOUSE_HOST from metadata.host', async () => {
+      process.env.CLICKHOUSE_HOST = 'http://admin:s3cret@localhost:8123'
+      resetEnvCache()
+
+      const result = await fetchJsonEachRowAsNormalizedJson(defaultParams)
+
+      expect(result.metadata.host).toBe('http://***:***@localhost:8123/')
+      expect(String(result.metadata.host)).not.toContain('s3cret')
     })
   })
 })

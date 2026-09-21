@@ -48,6 +48,7 @@ export {
   getAndValidateClientConfig,
   getClickHouseConfigs,
   getClickHouseHosts,
+  redactHostCredentials,
 } from './clickhouse/clickhouse-config'
 // Re-export data fetching functions without eagerly loading the module.
 export async function fetchData<

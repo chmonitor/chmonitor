@@ -6,6 +6,7 @@ import { env } from 'cloudflare:workers'
 // @clickhouse/client (node:os/node:stream/TCP) — excluded from the worker
 // bundle in vite.config.ts.
 import { getClient } from '@chm/clickhouse-client'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { error as logError, warn } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { detectCloudModeMismatch } from '@/lib/cloud/cloud-mode'
@@ -91,7 +92,7 @@ export const Route = createFileRoute('/api/healthz')({
               await resultSet.text()
 
               return {
-                host: config.host,
+                host: redactHostCredentials(config.host),
                 name: config.customName,
                 status: 'up' as const,
                 latencyMs: Date.now() - start,
@@ -99,7 +100,7 @@ export const Route = createFileRoute('/api/healthz')({
             } catch (err) {
               logError('[/api/healthz] host check failed', err as Error)
               return {
-                host: config.host,
+                host: redactHostCredentials(config.host),
                 name: config.customName,
                 status: 'down' as const,
                 latencyMs: Date.now() - start,

@@ -20,6 +20,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { getClickHouseConfigs } from '@chm/clickhouse-client'
+import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { error as logError } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { queryAlertEvents } from '@/lib/health/alert-history-store'
@@ -67,7 +68,7 @@ async function buildHomeSummaries(): Promise<HomeHostSummary[]> {
 
   return configs.map((c, i) => ({
     hostId: c.id,
-    label: c.customName?.trim() || c.host,
+    label: c.customName?.trim() || redactHostCredentials(c.host),
     memoryUsagePct: snapshots[i]?.memoryUsagePct ?? null,
     diskUsagePct: snapshots[i]?.diskUsagePct ?? null,
     firing: firingByHost.get(c.id) ?? 0,

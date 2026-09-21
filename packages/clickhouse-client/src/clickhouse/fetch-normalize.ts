@@ -21,6 +21,7 @@ import {
   parseReadBytesFromHeaders,
 } from './fetch-headers'
 import { checkOptionalTables, resolveHostConfig } from './fetch-request'
+import { redactHostCredentials } from './redact-host'
 import { debug } from '@chm/logger'
 
 export type FetchJsonEachRowTextResult = FetchDataResult<never> & {
@@ -56,7 +57,7 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
     const skipped = await checkOptionalTables({
       queryConfig,
       currentHostId,
-      host: clientConfig.host,
+      host: redactHostCredentials(clientConfig.host),
       classifyProbeFailure: false,
     })
     if (skipped) {
@@ -97,7 +98,7 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
       const rows = countJsonEachRowRows(rawText)
 
       debug(
-        `--> Query (${queryId}, host: ${clientConfig.host}):`,
+        `--> Query (${queryId}, host: ${redactHostCredentials(clientConfig.host)}):`,
         effectiveQuery.replace(/(\n|\s+)/g, ' ').replace(/\s+/g, ' ')
       )
       debug(`<-- Response (${queryId}):`, { rows, duration, unit: 's' })
@@ -113,7 +114,7 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
           queryId,
           duration,
           rows,
-          host: clientConfig.host,
+          host: redactHostCredentials(clientConfig.host),
           sql: effectiveQuery.replace(/\s+/g, ' ').trim(),
           rawResponseLength: rawText.length,
           rawResponsePreview:
@@ -130,7 +131,7 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
       dataJson: null,
       ...handleFetchError({
         originalError,
-        host: clientConfig.host,
+        host: redactHostCredentials(clientConfig.host),
         start,
       }),
     }

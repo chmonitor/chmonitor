@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./constants": "./src/clickhouse/constants.ts",
+    "./redact-host": "./src/clickhouse/redact-host.ts",
     "./clickhouse-version": "./src/clickhouse-version.ts",
     "./table-validator": "./src/table-validator.ts",
     "./table-existence-cache": "./src/table-existence-cache.ts",
