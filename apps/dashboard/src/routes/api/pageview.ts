@@ -23,6 +23,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { getClient } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
+import { clientIpKey } from '@/lib/api/rate-limiter'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { EVENTS_TABLE } from '@/lib/app-tables'
 import { bridgeApiKeyEnv, enforceAuth } from '@/lib/auth/api-guard'
@@ -75,13 +76,15 @@ export const Route = createFileRoute('/api/pageview')({
         const searchParams = new URL(request.url).searchParams
         const rawUrl = searchParams.get('url') || request.headers.get('referer')
         const hostId = parseInt(searchParams.get('hostId') || '0', 10)
+        if (!Number.isInteger(hostId) || hostId < 0) {
+          return Response.json({ error: 'Invalid hostId' }, { status: 400 })
+        }
 
         if (!rawUrl) {
           return Response.json({ error: 'No URL provided' }, { status: 400 })
         }
 
         const url = normalizeUrl(rawUrl)
-        const client = await getClient({ hostId })
 
         // User-agent: parse browser/os/device from the UA string directly.
         // next/server's userAgent() is not available; Cloudflare provides the
@@ -102,9 +105,13 @@ export const Route = createFileRoute('/api/pageview')({
           request.headers.get('x-vercel-ip-country-region') ??
           undefined
 
-        const realIp = request.headers.get('x-real-ip') ?? ''
-        const forwardedFor = request.headers.get('x-forwarded-for') ?? realIp
-        const ip = (forwardedFor.split(',')[0] || '').trim()
+        // Client identity for the rate-limit key and the stored `extra.ip`.
+        // Only trusts X-Real-IP / X-Forwarded-For when the runtime allows it
+        // (CHM_TRUST_PROXY_HEADERS / CF edge) — see clientIpKey.
+        const ip = clientIpKey(
+          request,
+          env as Record<string, string | undefined>
+        )
 
         // Rate-limit the anonymous-reachable INSERT to prevent event-table spam.
         if (!allowPageview(ip)) {
@@ -112,6 +119,7 @@ export const Route = createFileRoute('/api/pageview')({
         }
 
         try {
+          const client = await getClient({ hostId })
           await client.insert({
             table: EVENTS_TABLE,
             format: 'JSONEachRow',

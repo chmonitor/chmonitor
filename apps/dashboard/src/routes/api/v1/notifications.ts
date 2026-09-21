@@ -10,7 +10,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { getClient } from '@chm/clickhouse-client'
+import { error } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
+import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 // ---------------------------------------------------------------------------
@@ -173,9 +175,13 @@ export const Route = createFileRoute('/api/v1/notifications')({
             },
           })
         } catch (err) {
+          error('[GET /api/v1/notifications] Handler error', err as Error)
           return Response.json(
             {
-              error: err instanceof Error ? err.message : 'Unknown error',
+              error:
+                err instanceof Error
+                  ? sanitizeDbQueryError(err.message)
+                  : 'Unknown error',
             },
             { status: 500 }
           )
