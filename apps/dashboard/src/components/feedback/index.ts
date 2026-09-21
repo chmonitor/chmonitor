@@ -9,3 +9,4 @@ export {
   OptionalTableInfo,
   type OptionalTableInfoProps,
 } from './optional-table-info'
+export { SuggestionCard } from './suggestion-card'

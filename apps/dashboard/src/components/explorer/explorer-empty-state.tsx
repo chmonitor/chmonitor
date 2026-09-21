@@ -190,7 +190,7 @@ export function ExplorerEmptyState() {
                   key={db.name}
                   role="button"
                   tabIndex={0}
-                  className="group cursor-pointer p-4 transition-[border-color,background-color] hover:border-primary/50 hover:bg-muted/50"
+                  className="group cursor-pointer p-4 transition-[border-color,background-color] hover:border-primary/50 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setDatabase(db.name)}
                   onKeyDown={activateOnEnterOrSpace(() => setDatabase(db.name))}
                 >

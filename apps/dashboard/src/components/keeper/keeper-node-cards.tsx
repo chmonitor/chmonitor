@@ -272,7 +272,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
           <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
             Latency
           </span>
-          <div className="mt-0.5 grid grid-cols-3 gap-1">
+          <div className="mt-0.5 grid grid-cols-1 gap-1 sm:grid-cols-3">
             <MetricRow label="avg" value={fmtMs(row.avg_latency)} />
             <MetricRow label="min" value={fmtMs(row.min_latency)} />
             <MetricRow label="max" value={fmtMs(row.max_latency)} />

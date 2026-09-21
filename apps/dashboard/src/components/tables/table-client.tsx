@@ -6,6 +6,7 @@ import type { QueryConfig } from '@/types/query-config'
 import { lazy, Suspense, useMemo } from 'react'
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { DataTable } from '@/components/data-table/data-table'
+import { SuggestionCard } from '@/components/feedback'
 import { FilterBar } from '@/components/filters/filter-bar'
 import { TableSkeleton } from '@/components/skeletons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -13,7 +14,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { SuggestionCard } from '@/components/ui/suggestion-card'
 import {
   type CardError,
   detectCardErrorVariant,

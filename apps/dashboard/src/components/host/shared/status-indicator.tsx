@@ -16,6 +16,12 @@ export interface StatusIndicatorProps {
   title: string[]
 
   /**
+   * Accessible name announced by screen readers (e.g. 'Online', 'Checking',
+   * 'Custom connection'). Explicit so non-online dot colors never misreport.
+   */
+  label: string
+
+  /**
    * Optional CSS className for styling the indicator.
    * - If provided: renders with custom color (e.g., 'bg-emerald-500' for online)
    * - If omitted: renders default red color (offline state)
@@ -34,27 +40,27 @@ export interface StatusIndicatorProps {
  *
  * @example Online state
  * <StatusIndicator
+ *   label="Online"
  *   className="bg-emerald-500"
  *   title={['Host: server1', 'Online: 2 days', 'Version: 24.3.1']}
  * />
  *
  * @example Offline state
- * <StatusIndicator title={['The host is offline']} />
+ * <StatusIndicator label="Offline" title={['The host is offline']} />
  *
  * @example Loading state
  * <StatusIndicator
+ *   label="Checking"
  *   className="bg-gray-400 animate-pulse"
  *   title={['Loading...']}
  * />
  */
 export const StatusIndicator = function StatusIndicator({
   title,
+  label,
   className,
   size = 'size-2',
 }: StatusIndicatorProps) {
-  const isOnline = className !== undefined
-  const statusText = isOnline ? 'Online' : 'Offline'
-
   return (
     <TooltipProvider delay={0}>
       <Tooltip>
@@ -63,7 +69,7 @@ export const StatusIndicator = function StatusIndicator({
             <span
               className={cn('relative flex cursor-pointer', size)}
               role="status"
-              aria-label={statusText}
+              aria-label={label}
             />
           }
         >

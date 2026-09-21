@@ -7,6 +7,7 @@ import type { ChartDataPoint } from '@/types/chart-data'
 
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { chartCard } from '@/components/charts/chart-card-styles'
+import { SuggestionCard } from '@/components/feedback'
 import { EmptyStateIllustration } from '@/components/illustrations/empty-state-illustration'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +16,6 @@ import {
   CardDescription,
   CardHeader,
 } from '@/components/ui/card'
-import { SuggestionCard } from '@/components/ui/suggestion-card'
 import { activateOnEnterOrSpace } from '@/lib/a11y'
 import { useHostId } from '@/lib/swr'
 import { splitHref } from '@/lib/url/url-builder'

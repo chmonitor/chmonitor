@@ -191,6 +191,9 @@ function parseIntelligent(text: string): TextPart[] {
 function renderTextWithLinks(text: string): React.ReactNode {
   // URL regex that matches http/https URLs and www URLs
   const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g
+  // Non-global test regex — testing with the /g one would leak lastIndex
+  // between .map iterations and fail to linkify alternating URL segments.
+  const urlTest = /^(?:https?:\/\/[^\s]+|www\.[^\s]+)$/
 
   const parts = text.split(urlRegex)
 
@@ -198,7 +201,7 @@ function renderTextWithLinks(text: string): React.ReactNode {
     if (!part) return null
 
     // Check if this part is a URL
-    if (urlRegex.test(part)) {
+    if (urlTest.test(part)) {
       const href = part.startsWith('www.') ? `https://${part}` : part
 
       return (

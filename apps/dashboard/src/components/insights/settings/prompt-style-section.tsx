@@ -31,7 +31,7 @@ export function PromptStyleSection({
         <FileText className="size-3.5 text-muted-foreground" />
         Prompt style
       </Label>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {INSIGHT_PROMPT_STYLES.map((s) => {
           const Icon = STYLE_ICONS[s.id]
           const active = settings.promptStyle === s.id

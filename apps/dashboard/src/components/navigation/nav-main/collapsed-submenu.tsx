@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useSidebar } from '@/components/ui/sidebar'
+import { activateOnEnterOrSpace } from '@/lib/a11y'
 import { isMenuItemActiveAmongSiblings } from '@/lib/menu/breadcrumb'
 import { cn } from '@/lib/utils'
 
@@ -148,7 +149,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
               tabIndex={0}
               onMouseEnter={() => setOpen(true)}
               onMouseLeave={() => setOpen(false)}
-              onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
+              onKeyDown={activateOnEnterOrSpace(() => setOpen(!open))}
               className="cursor-pointer"
             />
           }
