@@ -6,6 +6,7 @@
     "jsxImportSource": "react",
     "paths": {
       "@chm/pricing": ["../../packages/pricing/src/index.ts"],
+      "@chm/site-nav": ["../../packages/site-nav/src/index.ts"],
       "@/*": ["./src/*"]
     }
   }

@@ -23,9 +23,11 @@ compatibility_flags = ["global_fetch_strictly_public"]
 
 # CI deploys with `npx wrangler` (no pnpm install). Alias the telemetry subpath
 # so esbuild bundles shared enums from source without pulling the full @chm/types
-# package (which would drag in lucide-react etc.).
+# package (which would drag in lucide-react etc.). @chm/site-nav is zero-dep and
+# likewise bundled straight from source.
 [alias]
 "@chm/types/telemetry" = "../../packages/types/src/telemetry.ts"
+"@chm/site-nav" = "../../packages/site-nav/src/index.ts"
 
 [observability]
 enabled = true

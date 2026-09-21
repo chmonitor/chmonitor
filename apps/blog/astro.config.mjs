@@ -8,6 +8,15 @@ export default defineConfig({
   integrations: [sitemap()],
   vite: {
     plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        // Shared nav model pulled in transitively by the landing Nav.astro
+        // chrome this site reuses (zero-dep package, bundled from source).
+        '@chm/site-nav': fileURLToPath(
+          new URL('../../packages/site-nav/src/index.ts', import.meta.url)
+        ),
+      },
+    },
     // Nav/Footer reuse landing chrome (GitHub stars, changelog, use-cases).
     server: { fs: { allow: [fileURLToPath(new URL('../..', import.meta.url))] } },
   },

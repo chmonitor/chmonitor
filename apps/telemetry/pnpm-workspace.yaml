@@ -3,4 +3,5 @@
 # the nearest pnpm-workspace.yaml, so `pnpm install` here scopes to this app
 # plus shared @chm/* packages from ../../packages/*.
 packages:
+  - ../../packages/site-nav
   - ../../packages/types

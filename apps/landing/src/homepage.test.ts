@@ -2,6 +2,13 @@ import { getLatestBlogPost } from './lib/latest-blog-post'
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  FEATURE_MENU,
+  NAV_BRAND,
+  RESOURCE_DRAWER_ITEMS,
+  RESOURCE_MENU,
+  TOP_LEVEL_LINKS,
+} from '@chm/site-nav'
 
 const landing = join(import.meta.dir, '..')
 const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
@@ -40,15 +47,31 @@ describe('homepage hides Pricing and the Always shipping band', () => {
 })
 
 describe('header nav advertises License', () => {
+  // Nav items are shared via @chm/site-nav (also rendered by the telemetry
+  // header) — assert the model, plus that Nav.astro maps over it so the
+  // desktop dropdowns and mobile drawer stay in sync.
   test('desktop and mobile chrome link to /license', () => {
-    expect(nav).toContain("to('/license')")
-    expect(nav).toMatch(/>License</)
-    expect(nav).not.toContain("to('/pricing')")
+    expect(
+      TOP_LEVEL_LINKS.some(
+        (l) => l.href === '/license' && l.label === 'License'
+      )
+    ).toBe(true)
+    expect(
+      TOP_LEVEL_LINKS.some(
+        (l) => l.href === '/pricing' || l.label === 'Pricing'
+      )
+    ).toBe(false)
+    // Both the desktop bar and the mobile drawer render TOP_LEVEL_LINKS.
+    expect(nav.match(/TOP_LEVEL_LINKS\.map/g)?.length).toBe(2)
     expect(nav).not.toMatch(/>Pricing</)
   })
 
   test('Changelog still links to /changelog', () => {
-    expect(nav).toContain("to('/changelog')")
+    expect(RESOURCE_MENU.some((i) => i.href === '/changelog')).toBe(true)
+    expect(nav).toContain('RESOURCE_MENU.map')
+    expect(nav).toContain('RESOURCE_DRAWER_ITEMS.map')
+    // The drawer drops resource items already reachable top-level (Docs).
+    expect(RESOURCE_DRAWER_ITEMS.some((i) => i.label === 'Docs')).toBe(false)
   })
 
   test('changelog page loads releases at build time instead of shipping the empty fallback', () => {
@@ -59,14 +82,16 @@ describe('header nav advertises License', () => {
   })
 
   test('CLI is listed under Features, not as a top-level item', () => {
-    expect(nav).toContain("to('/cli')")
-    expect(nav).toContain('featureIcons.cli')
-    expect(nav).toContain(
-      'nav-item-label">CLI<span class="nav-badge">Beta</span>'
-    )
-    expect(nav).not.toMatch(
-      /to\('\/customers'\)\}>Customers<\/a>\s*<a href=\{to\('\/cli'\)\}>CLI<\/a>/
-    )
+    const cli = FEATURE_MENU.find((i) => i.label === 'CLI')
+    expect(cli?.href).toBe('/cli')
+    expect(cli?.badge).toBe('Beta')
+    expect(TOP_LEVEL_LINKS.some((l) => l.label === 'CLI')).toBe(false)
+    // Every shared feature icon key resolves to a glyph in Nav.astro.
+    expect(nav).toContain('featureIcons[item.icon]')
+    for (const item of FEATURE_MENU) {
+      expect(nav).toContain(`${item.icon}:`)
+    }
+    expect(nav).toContain('nav-item-label')
     expect(footer).toContain("to('/cli')")
   })
 
@@ -172,9 +197,13 @@ describe('JSON-LD crawlability (FAQ / Product / Organization)', () => {
 
 describe('landing <img> alts', () => {
   test('nav brand logo uses a short brand alt, not empty', () => {
-    expect(nav).toContain('src="/brand/logo-chmonitor.svg"')
-    expect(nav).toContain('alt="chmonitor"')
-    expect(nav).not.toMatch(/src="\/brand\/logo-chmonitor\.svg"[^>]*alt=""/)
+    // Brand comes from @chm/site-nav — the shared logo path + label are what
+    // every consumer (landing, telemetry) renders.
+    expect(NAV_BRAND.logo).toBe('/brand/logo-chmonitor.svg')
+    expect(NAV_BRAND.label).toBe('chmonitor')
+    expect(nav).toContain('src={NAV_BRAND.logo}')
+    expect(nav).toContain('alt={NAV_BRAND.label}')
+    expect(nav).not.toMatch(/alt=""/)
   })
 
   test('every landing <img> sets alt (empty only when decorative)', () => {

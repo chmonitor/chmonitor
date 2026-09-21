@@ -1,4 +1,14 @@
 ---
+import {
+  FEATURE_MENU,
+  NAV_BRAND,
+  NAV_CTAS,
+  RESOURCE_DRAWER_ITEMS,
+  RESOURCE_MENU,
+  TOP_LEVEL_LINKS,
+  isExternalHref,
+  type FeatureIconKey,
+} from '@chm/site-nav'
 import { btnOutline, btnOutlineBlock, btnPrimary, btnPrimaryBlock } from '../lib/button-classes'
 import { formatCount, getGitHubStats } from '../lib/github-stars'
 import ThemeToggle from './ThemeToggle.astro'
@@ -19,7 +29,7 @@ const starLabel = formatCount(stars)
 
 // Lucide glyphs (inner paths only) for the Features dropdown — one per child so
 // the mega-menu scans visually. Rendered inside `.nav-ico > svg` via set:html.
-const featureIcons = {
+const featureIcons: Record<FeatureIconKey, string> = {
   aiAgent: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
   overview: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
   queries: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -39,11 +49,11 @@ const featureIco = (d: string) =>
 ---
   <header class="nav">
     <div class="wrap nav-row">
-      <a class="brand" href={to('/')}>
+      <a class="brand" href={to(NAV_BRAND.href)}>
         <span class="mark" aria-hidden="true">
-          <img src="/brand/logo-chmonitor.svg" alt="chmonitor" />
+          <img src={NAV_BRAND.logo} alt={NAV_BRAND.label} />
         </span>
-        chmonitor
+        {NAV_BRAND.label}
       </a>
       <nav class="nav-links">
         <div class="nav-group">
@@ -52,33 +62,33 @@ const featureIco = (d: string) =>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="nav-menu nav-menu-grid">
-            <a href={to('/features/ai-agent')}><span class="nav-ico" set:html={featureIco(featureIcons.aiAgent)} /><span class="nav-txt">AI Agent<small>Schema-aware recommendations &amp; MCP</small></span></a>
-            <a href={to('/cli')}><span class="nav-ico" set:html={featureIco(featureIcons.cli)} /><span class="nav-txt"><span class="nav-item-label">CLI<span class="nav-badge">Beta</span></span><small>chm doctor, TUI and dashboard API</small></span></a>
-            <a href={to('/features/overview')}><span class="nav-ico" set:html={featureIco(featureIcons.overview)} /><span class="nav-txt">Cluster overview<small>Live charts the moment you connect</small></span></a>
-            <a href={to('/features/queries')}><span class="nav-ico" set:html={featureIco(featureIcons.queries)} /><span class="nav-txt">Query monitoring<small>Running, slow, failed &amp; expensive</small></span></a>
-            <a href={to('/features/topology')}><span class="nav-ico" set:html={featureIco(featureIcons.topology)} /><span class="nav-txt">Cluster topology<small>Nodes, shards, replicas &amp; Keeper</small></span></a>
-            <a href={to('/features/storage')}><span class="nav-ico" set:html={featureIco(featureIcons.storage)} /><span class="nav-txt">Storage &amp; tables<small>Sizes, compression and disk headroom</small></span></a>
-            <a href={to('/features/traffic')}><span class="nav-ico" set:html={featureIco(featureIcons.traffic)} /><span class="nav-txt">Traffic<small>Ingestion, compression &amp; write amplification</small></span></a>
-            <a href={to('/features/alerting')}><span class="nav-ico" set:html={featureIco(featureIcons.alerting)} /><span class="nav-txt">Alerting<small>Health checks with webhooks</small></span></a>
-            <a href={to('/features/data-explorer')}><span class="nav-ico" set:html={featureIco(featureIcons.explorer)} /><span class="nav-txt">Data Explorer<small>Tables, lineage and SQL console</small></span></a>
-            <a href={to('/features/insights')}><span class="nav-ico" set:html={featureIco(featureIcons.insights)} /><span class="nav-txt">Insights<small>AI findings and cluster vitals</small></span></a>
-            <a href={to('/features/peerdb')}><span class="nav-ico" set:html={featureIco(featureIcons.peerdb)} /><span class="nav-txt">PeerDB replication<small>Postgres → ClickHouse CDC</small></span></a>
-            <a href={to('/features/postgres')}><span class="nav-ico" set:html={featureIco(featureIcons.postgres)} /><span class="nav-txt"><span class="nav-item-label">Postgres<span class="nav-badge">Beta</span></span><small>Monitor Postgres alongside</small></span></a>
+            {FEATURE_MENU.map((item) => (
+              <a href={to(item.href)}>
+                <span class="nav-ico" set:html={featureIco(featureIcons[item.icon])} />
+                <span class="nav-txt">
+                  {item.badge ? (
+                    <span class="nav-item-label">{item.label}<span class="nav-badge">{item.badge}</span></span>
+                  ) : (
+                    item.label
+                  )}
+                  <small>{item.description}</small>
+                </span>
+              </a>
+            ))}
           </div>
         </div>
-        <a href={to('/customers')}>Customers</a>
-        <a href={to('/license')}>License</a>
-        <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a>
+        {TOP_LEVEL_LINKS.map((item) => (
+          <a href={isExternalHref(item.href) ? item.href : to(item.href)} target={isExternalHref(item.href) ? '_blank' : undefined} rel={isExternalHref(item.href) ? 'noopener' : undefined}>{item.label}</a>
+        ))}
         <div class="nav-group">
           <button type="button" class="nav-trigger" aria-haspopup="true" aria-expanded="false">
             Resources
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="nav-menu">
-            <a href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog<small>Release notes and product updates</small></a>
-            <a href={to('/changelog')}>Changelog<small>Release notes and full ship log</small></a>
-            <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs<small>Setup, deploy and API guides</small></a>
-            <a href={to('/brand')}>Brand<small>Logos and brand assets</small></a>
+            {RESOURCE_MENU.map((item) => (
+              <a href={isExternalHref(item.href) ? item.href : to(item.href)} target={isExternalHref(item.href) ? '_blank' : undefined} rel={isExternalHref(item.href) ? 'noopener' : undefined}>{item.label}<small>{item.description}</small></a>
+            ))}
           </div>
         </div>
       </nav>
@@ -87,11 +97,11 @@ const featureIco = (d: string) =>
              Tailwind `inline-flex`, which beats `@layer base` `display:none` on
              `.nav-cta > a` and was clipping "Dashboard" off the phone header. -->
         <div class="nav-cta-desktop">
-          <a class={btnOutline} href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener" data-cta="github-star-nav">
+          <a class={btnOutline} href={NAV_CTAS.github.href} target="_blank" rel="noopener" data-cta="github-star-nav">
             <svg class="size-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
             {starLabel ? <><span class="tabular-nums">{starLabel}</span> Stars</> : 'Star'}
           </a>
-          <a class={btnPrimary} href="https://dash.chmonitor.dev" target="_blank" rel="noopener">
+          <a class={btnPrimary} href={NAV_CTAS.dashboard.href} target="_blank" rel="noopener">
             Dashboard
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
@@ -124,31 +134,23 @@ const featureIco = (d: string) =>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
           <div class="nav-drawer-group-body">
-            <a href={to('/features/ai-agent')}>AI Agent</a>
-            <a href={to('/cli')}>CLI<span class="nav-badge">Beta</span></a>
-            <a href={to('/features/overview')}>Cluster overview</a>
-            <a href={to('/features/queries')}>Query monitoring</a>
-            <a href={to('/features/topology')}>Cluster topology</a>
-            <a href={to('/features/storage')}>Storage &amp; tables</a>
-            <a href={to('/features/alerting')}>Alerting</a>
-            <a href={to('/features/data-explorer')}>Data Explorer</a>
-            <a href={to('/features/insights')}>Insights</a>
-            <a href={to('/features/peerdb')}>PeerDB replication</a>
-            <a href={to('/features/postgres')}>Postgres<span class="nav-badge">Beta</span></a>
+            {FEATURE_MENU.map((item) => (
+              <a href={to(item.href)}>{item.label}{item.badge && <span class="nav-badge">{item.badge}</span>}</a>
+            ))}
           </div>
         </details>
-        <a href={to('/customers')}>Customers</a>
-        <a href={to('/license')}>License</a>
-        <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a>
+        {TOP_LEVEL_LINKS.map((item) => (
+          <a href={isExternalHref(item.href) ? item.href : to(item.href)} target={isExternalHref(item.href) ? '_blank' : undefined} rel={isExternalHref(item.href) ? 'noopener' : undefined}>{item.label}</a>
+        ))}
         <details class="nav-drawer-group">
           <summary>
             Resources
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
           <div class="nav-drawer-group-body">
-            <a href="https://blog.chmonitor.dev" target="_blank" rel="noopener">Blog</a>
-            <a href={to('/changelog')}>Changelog</a>
-            <a href={to('/brand')}>Brand</a>
+            {RESOURCE_DRAWER_ITEMS.map((item) => (
+              <a href={isExternalHref(item.href) ? item.href : to(item.href)} target={isExternalHref(item.href) ? '_blank' : undefined} rel={isExternalHref(item.href) ? 'noopener' : undefined}>{item.label}</a>
+            ))}
           </div>
         </details>
       </div>
@@ -157,11 +159,11 @@ const featureIco = (d: string) =>
           <span>Theme</span>
           <ThemeToggle />
         </div>
-        <a class={btnOutlineBlock} href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">
+        <a class={btnOutlineBlock} href={NAV_CTAS.github.href} target="_blank" rel="noopener">
           <svg class="size-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.9c-2.78.62-3.37-1.2-3.37-1.2-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.58 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
           Star on GitHub
         </a>
-        <a class={btnPrimaryBlock} href="https://dash.chmonitor.dev" target="_blank" rel="noopener">
+        <a class={btnPrimaryBlock} href={NAV_CTAS.dashboard.href} target="_blank" rel="noopener">
           Dashboard
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
