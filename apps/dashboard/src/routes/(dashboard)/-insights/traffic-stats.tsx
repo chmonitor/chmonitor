@@ -34,7 +34,7 @@ export function PercentileSelector({
               'rounded-md px-2 py-1 text-xs font-medium transition-colors',
               value === p
                 ? 'bg-background text-foreground shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
+                : 'text-foreground/70 hover:text-foreground'
             )}
           >
             p{p}

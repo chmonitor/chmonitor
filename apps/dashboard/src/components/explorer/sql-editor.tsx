@@ -51,6 +51,9 @@ const darkTheme = EditorView.theme(
     '&.cm-focused': {
       outline: 'none',
     },
+    '.cm-placeholder': {
+      color: 'var(--muted-foreground)',
+    },
     '.cm-tooltip': {
       backgroundColor: 'var(--popover)',
       color: 'var(--popover-foreground)',
@@ -94,6 +97,9 @@ const lightTheme = EditorView.theme(
     },
     '&.cm-focused': {
       outline: 'none',
+    },
+    '.cm-placeholder': {
+      color: 'var(--muted-foreground)',
     },
     '.cm-tooltip': {
       backgroundColor: 'var(--popover)',
@@ -184,6 +190,7 @@ export function SqlEditor({
         theme,
         updateListener,
         EditorView.lineWrapping,
+        EditorView.contentAttributes.of({ 'aria-label': 'SQL query editor' }),
       ],
     })
 

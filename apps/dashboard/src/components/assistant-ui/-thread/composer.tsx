@@ -41,7 +41,7 @@ export function WelcomeComposer() {
           className="border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100 rounded-lg border px-3 py-2 text-sm"
         >
           <p className="font-medium">LLM provider not configured</p>
-          <p className="text-muted-foreground mt-0.5 text-xs">
+          <p className="mt-0.5 text-xs text-amber-950/80 dark:text-amber-100/80">
             Set one of{' '}
             <code className="font-mono text-[11px]">OPENROUTER_API_KEY</code>{' '}
             (or <code className="font-mono text-[11px]">LLM_API_KEY</code>),{' '}
@@ -96,7 +96,7 @@ export function ThreadComposer() {
           className="border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100 rounded-lg border px-3 py-2 text-sm"
         >
           <p className="font-medium">LLM provider not configured</p>
-          <p className="text-muted-foreground mt-0.5 text-xs">
+          <p className="mt-0.5 text-xs text-amber-950/80 dark:text-amber-100/80">
             Set OPENROUTER_API_KEY (or LLM_API_KEY), ANYROUTER_API_KEY, or
             NVIDIA_API_KEY so the agent can answer.
           </p>

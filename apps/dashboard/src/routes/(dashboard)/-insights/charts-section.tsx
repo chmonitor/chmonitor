@@ -39,7 +39,7 @@ export function ChartsSection({ hostId }: { readonly hostId: number }) {
       {hasTopTablesData && <TopTablesBySizeChart hostId={hostId} />}
       {hasCompressionData && <CompressionRatiosChart hostId={hostId} />}
       {!hasTopTablesData && !hasCompressionData && (
-        <div className="col-span-1 text-center text-muted-foreground/60 py-8 lg:col-span-2">
+        <div className="col-span-1 text-center text-muted-foreground py-8 lg:col-span-2">
           No table data available
         </div>
       )}

@@ -41,7 +41,7 @@ function PageViewsUnavailable() {
 
         <p className="text-sm text-muted-foreground">
           Page Views records visits to the chmonitor dashboard into a{' '}
-          <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+          <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
             {EVENTS_TABLE}
           </code>{' '}
           table on this ClickHouse host. That table doesn't exist here yet, so

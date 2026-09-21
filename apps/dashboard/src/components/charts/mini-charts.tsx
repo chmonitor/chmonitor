@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
  */
 
 const EMPTY_CLASS =
-  'flex size-full items-center justify-center text-[10px] text-muted-foreground/60'
+  'flex size-full items-center justify-center text-[10px] text-muted-foreground'
 
 // ───────────────────────── area ─────────────────────────
 
@@ -62,6 +62,7 @@ export const MiniAreaChart = function MiniAreaChart({
       <AreaChart
         data={chartData}
         margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+        accessibilityLayer={false}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -139,6 +140,7 @@ export const MiniBarChart = function MiniBarChart({
         data={data}
         margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
         barCategoryGap={2}
+        accessibilityLayer={false}
       >
         <ChartTooltip
           cursor={{ fill: 'var(--muted)', opacity: 0.5 }}

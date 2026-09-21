@@ -35,6 +35,7 @@ export function ExamplePreviewChrome({
       <div
         className="pointer-events-none select-none rounded-xl border border-dashed border-border bg-card/40 p-4 opacity-40"
         aria-hidden="true"
+        inert
         data-testid="compare-example-preview"
       >
         {children}
